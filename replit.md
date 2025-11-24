@@ -1,134 +1,119 @@
 # SmartXFlow – Odds & Volume Monitor
 
-## Proje Özeti
-Windows masaüstü uygulaması - arbworld.net'ten Moneyway ve Dropping Odds verilerini çekip, zaman serisi olarak saklayan ve grafiksel analiz sunan profesyonel bahis analiz aracı.
+## Proje Ozeti
+Windows masaustu uygulamasi - arbworld.net'ten Moneyway ve Dropping Odds verilerini cekip, zaman serisi olarak saklayan ve grafiksel analiz sunan profesyonel bahis analiz araci.
 
 ## Teknoloji Stack
 - **Dil:** Python 3.11
-- **UI Framework:** PyQt6 (Modern Qt6 tabanlı GUI)
-- **Grafik:** Matplotlib (Zaman serisi grafikleri için)
-- **Database:** SQLite (lokal) + Supabase (cloud)
+- **UI Framework:** Tkinter (native Python GUI)
+- **Grafik:** Matplotlib (Zaman serisi grafikleri)
+- **Database:** SQLite (lokal) + Supabase (cloud - opsiyonel)
 - **Scraping:** BeautifulSoup4 + Requests (arbworld.net)
-- **Build Tool:** PyInstaller (Windows .exe oluşturma için)
+- **Build Tool:** PyInstaller (Windows .exe)
 - **CI/CD:** GitHub Actions (otomatik .exe build)
 
-## Proje Yapısı
+## Proje Yapisi
 ```
 .
-├── yenversyon.py          # Ana PyQt6 GUI uygulaması (2369 satır)
-├── yenversyon.spec        # PyInstaller build yapılandırması
-├── scraper/              # Scraping modülü
+├── main.py               # Ana Tkinter GUI uygulamasi (550+ satir)
+├── scraper/              # Scraping modulu
 │   ├── __init__.py
-│   ├── moneyway.py       # 6 market için scraper (22KB)
-│   └── core.py.old       # Eski dummy scraper (yedek)
-├── core/                 # Çekirdek işlevsellik
+│   ├── core.py           # Scraper bridge (run_scraper fonksiyonu)
+│   └── moneyway.py       # 6 market icin scraper (566 satir)
+├── services/             # Servis katmani
 │   ├── __init__.py
-│   ├── storage.py        # SQLite + Supabase dual storage (9KB)
-│   └── settings.py       # Ayarlar yönetimi
-├── ui/                   # UI bileşenleri
+│   └── supabase_client.py # Supabase + SQLite client
+├── core/                 # Cekirdek islevsellik
 │   ├── __init__.py
-│   └── settings_dialog.py # Ayarlar diyalogu
+│   └── storage.py        # SQLite + Supabase dual storage
 ├── data/                 # Scraped data (Git'e gitmez)
 ├── .github/
 │   └── workflows/
-│       └── build.yml     # GitHub Actions - PyQt6 .exe build
-├── test_scraper.py       # Replit test script (CLI)
-├── requirements.txt      # Python bağımlılıkları
-├── settings.json         # Kullanıcı ayarları
-├── .gitignore           # Git ignore kuralları
+│       └── build.yml     # GitHub Actions - Windows .exe build
+├── embedded_config.py    # Gomulu yapilandirma
+├── requirements.txt      # Python bagimliliklari
 └── replit.md            # Bu dosya
 ```
 
-## Özellikler
+## Ozellikler
 
 ### Veri Toplama (6 Market)
 1. **Moneyway Markets:**
-   - 1-X-2 (Maç sonucu)
+   - 1-X-2 (Mac sonucu)
    - Over/Under 2.5 
    - BTTS (Both Teams To Score)
 2. **Dropping Odds Markets:**
-   - 1-X-2 (Maç sonucu)
+   - 1-X-2 (Mac sonucu)
    - Over/Under 2.5
    - BTTS
 
-### Veritabanı & Zaman Serisi
-- **Dual Storage:** SQLite (offline) + Supabase (cloud sync)
+### Iki Sekmeli GUI
+1. **Kontrol Paneli:**
+   - "Simdi Scrape Et" butonu
+   - Otomatik scrape (1-30 dakika aralik)
+   - Renkli durum gostergesi (yesil/kirmizi)
+   - Dark theme log penceresi
+
+2. **Veri & Grafik:**
+   - 6 market radio button secimi
+   - Mac listesi (SQLite'dan)
+   - Matplotlib zaman serisi grafigi
+   - Oran degisimi gorselestirme
+
+### Veritabani & Zaman Serisi
+- **Dual Storage:** SQLite (offline) + Supabase (cloud sync - opsiyonel)
 - **History Tracking:** Her scrape timestamp ile kaydedilir
-- **Maç Bazlı Kayıt:** Her maç için ayrı geçmiş tutulur
-
-### Grafik & Analiz
-- **Matplotlib Integration:** Profesyonel zaman serisi grafikleri
-- **Oran Hareketi:** Başlangıç → Güncel oran karşılaştırması (renkli ok göstergesi)
-- **Para Akışı:** Moneyway yüzdesi ve miktarı takibi
-- **İki Satırlı Hücre Gösterimi:** Oran + Yüzde/Miktar tek hücrede
-
-### GUI Özellikleri (PyQt6)
-- 6 market butonu (kolay geçiş)
-- Tablo gösterimi (custom delegates)
-- Maç seçimi ve detay görüntüleme
-- Ayarlar diyalogu
-- Dark theme
+- **Mac Bazli Kayit:** Her mac icin ayri gecmis tutulur
 
 ### GitHub Actions Workflow
 - Her `main` branch push'unda otomatik olarak Windows .exe build edilir
-- PyInstaller ile `yenversyon.spec` kullanılarak PyQt6 .exe oluşturulur
-- Build edilen .exe, GitHub Actions "Artifacts" bölümünden 30 gün boyunca indirilebilir
-- Tag push'larında otomatik Release oluşturulur
+- PyInstaller ile tek dosya .exe olusturulur
+- Build edilen .exe, GitHub Actions "Artifacts" bolumunden 30 gun boyunca indirilebilir
 
-## Kullanım
+## Kullanim
 
-### Geliştirme (Replit'te)
-**Not:** PyQt6 GUI Replit'te çalışmaz (VNC gerektirir). Replit'te sadece scraper fonksiyonlarını test edebilirsiniz:
+### Windows'ta
+1. GitHub Actions "Artifacts" bolumunden `SmartXFlow-Windows-EXE.zip` indir
+2. Zip'i ac → `SmartXFlow.exe` cift tikla
+3. "Simdi Scrape Et" ile veri cek
+4. "Veri & Grafik" sekmesinde maclari incele
 
-```bash
-python test_scraper.py
+### Supabase Kurulumu (Opsiyonel)
+Cloud sync icin:
+1. supabase.com'da proje olustur
+2. SQL Editor'de asagidaki tablolari olustur:
+
+```sql
+CREATE TABLE matches (
+    id SERIAL PRIMARY KEY,
+    external_match_id TEXT,
+    league TEXT,
+    home_team TEXT,
+    away_team TEXT,
+    start_time TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE market_snapshots (
+    id SERIAL PRIMARY KEY,
+    match_id INTEGER REFERENCES matches(id),
+    source TEXT,
+    market TEXT,
+    selection TEXT,
+    odds NUMERIC,
+    money_percent NUMERIC,
+    volume NUMERIC,
+    created_at TIMESTAMP DEFAULT NOW()
+);
 ```
 
-### Tam Uygulama (Windows'ta)
-GitHub Actions ile build edilen `.exe` dosyasını Windows'ta çalıştırın:
-1. GitHub Actions "Artifacts" bölümünden `.exe`'yi indirin
-2. Windows'ta çift tıklayın
-3. Cookie bilgilerinizi ayarlara girin
-4. 6 market butonuyla veri toplayın
+3. Environment variable olarak ayarla:
+   - SUPABASE_URL
+   - SUPABASE_ANON_KEY
 
-### Scraper Geliştirme
-1. `scraper/moneyway.py` dosyasını inceleyin
-2. 6 farklı market için endpoint'ler tanımlı: `DATASETS` dict
-3. Her market için özel extract fonksiyonu var
-4. Cookie bilgisi `COOKIE_STRING` env var'ından okunur
-
-### Windows .exe Build (GitHub Actions)
-1. Kodunuzu GitHub'a push edin:
-   ```bash
-   git add .
-   git commit -m "Update features"
-   git push origin main
-   ```
-2. GitHub Actions otomatik olarak çalışacak
-3. Actions sekmesinden "Build Windows EXE" workflow'unu açın
-4. "Artifacts" bölümünden `SmartXFlow-Windows-EXE` dosyasını indirin
-
-### Lokal .exe Build (Opsiyonel - Windows'ta)
-```bash
-pip install -r requirements.txt
-pip install pyinstaller
-pyinstaller yenversyon.spec
-```
-.exe dosyası `dist/` klasöründe oluşturulacak.
-
-## Sonraki Adımlar
-1. Cookie bilgilerinizi güncelleyin (değiştiyse)
-2. Supabase'de tabloları oluşturun (cloud sync için)
-3. GitHub repo'nuza push yaparak otomatik .exe build'i test edin
-4. Windows'ta .exe'yi çalıştırıp veri toplamayı test edin
-
-## Notlar
-- tkinter Python'un yerleşik kütüphanesi olduğundan ekstra kurulum gerektirmez
-- Scraping kodları `scraper/` klasöründe modüler olarak organize edilmiştir
-- Log penceresinde tüm işlemler zaman damgası ile kaydedilir
-- Otomatik scraping arka planda çalışır, UI donmaz
-- `.gitignore` ile Python ve build dosyaları versiyon kontrolünden hariç tutulmuştur
-
-## Tarih
-- **24 Kasım 2025:** Proje altyapısı oluşturuldu, temel GUI ve GitHub Actions hazırlandı
-- **24 Kasım 2025:** ONEDIR mode + DLL packaging düzeltmesi tamamlandı
+## Son Guncellemeler
+- **24 Kasim 2025:** Tkinter GUI tam yeniden yazildi
+- **24 Kasim 2025:** Gercek scraper entegrasyonu tamamlandi
+- **24 Kasim 2025:** Matplotlib grafik eklendi
+- **24 Kasim 2025:** Iki sekmeli arayuz (Kontrol + Grafik)
+- **24 Kasim 2025:** Build basariyla tamamlandi
