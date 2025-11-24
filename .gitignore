@@ -28,7 +28,7 @@ env/
 .venv
 
 # PyInstaller
-*.spec
+# *.spec (Commented out - we need yenversyon.spec for builds)
 
 # IDE
 .vscode/
