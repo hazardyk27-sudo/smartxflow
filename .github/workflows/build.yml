@@ -26,6 +26,24 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
         
+    - name: Inject credentials into embedded config
+      run: |
+        $cookie = "${{ secrets.ARBWORLD_COOKIE }}"
+        $supabase_url = "${{ secrets.SUPABASE_URL }}"
+        $supabase_key = "${{ secrets.SUPABASE_KEY }}"
+        
+        $content = @"
+        # This file is auto-generated during build process
+        # DO NOT edit manually - values are injected from GitHub Secrets
+        
+        EMBEDDED_COOKIE = '''$cookie'''
+        EMBEDDED_SUPABASE_URL = '''$supabase_url'''
+        EMBEDDED_SUPABASE_KEY = '''$supabase_key'''
+        "@
+        
+        Set-Content -Path "embedded_config.py" -Value $content
+        Write-Host "Credentials injected successfully"
+        
     - name: Build EXE with PyInstaller
       run: |
         pyinstaller yenversyon.spec
