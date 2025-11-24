@@ -3,7 +3,12 @@ from PyInstaller.utils.hooks import collect_all
 
 datas = [('core', 'core'), ('scraper', 'scraper'), ('ui', 'ui')]
 binaries = []
-hiddenimports = ['PyQt6', 'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets', 'matplotlib.backends.backend_qtagg', 'bs4', 'supabase.client', 'supabase.lib']
+hiddenimports = [
+    'PyQt6', 'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets',
+    'PyQt6.sip', 'PyQt6.QtCore.Qt', 'PyQt6.QtPrintSupport',
+    'matplotlib.backends.backend_qtagg', 'matplotlib.backends.backend_qt5agg',
+    'bs4', 'supabase.client', 'supabase.lib', 'postgrest'
+]
 tmp_ret = collect_all('PyQt6')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('matplotlib')
@@ -40,10 +45,11 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=None,
 )
