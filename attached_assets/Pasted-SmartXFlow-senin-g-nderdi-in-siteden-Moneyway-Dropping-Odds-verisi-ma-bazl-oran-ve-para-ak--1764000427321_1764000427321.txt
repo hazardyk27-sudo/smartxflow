@@ -1,0 +1,229 @@
+SmartXFlow, senin gönderdiğin siteden (Moneyway + Dropping Odds verisi) maç bazlı oran ve para akışı verilerini çekip, bunları borsa grafiği gibi zaman serisi olarak saklayan ve son kullanıcıya “maçın geçmişini grafikle gösteren” bir masaüstü uygulaması.
+
+🔗 Veri Kaynağı
+
+Site: Senin gönderdiğin Moneyway/Dropping Odds sayfası (örnek: .../moneyway/football-1-x-2?...)
+
+Erişim:
+
+Sitenin veriye erişmek için kullandığı XHR / API istekleri var
+
+Bu istekler cookie + header ile korunuyor
+
+Ben sana cookie ve örnek istekleri veriyorum, sen bunları kullanarak veri çekeceksin
+
+🎯 Çekilecek Veriler (Net Liste)
+
+İki ana ana kategori, üç market türü:
+
+Moneyway (para akışı)
+
+1-X-2 (maç sonucu)
+
+2.5 üst/alt
+
+BTTS (Both Teams To Score – Karşılıklı gol var/yok)
+
+Dropping Odds (oran hareketi)
+
+1-X-2
+
+2.5 Üst/Alt
+
+BTTS
+
+Yani her maç için:
+
+Moneyway 1X2 + O/U 2.5 + BTTS
+
+Dropping Odds 1X2 + O/U 2.5 + BTTS
+hem o anki değerler hem de zaman serisi (geçmiş) tutulacak.
+
+🏗 Genel Sistem Akışı
+
+Scraper (arka planda çalışan Python kodu)
+
+Benim vereceğim cookie + URL üzerinden siteye istek atacak
+
+İlgili endpoint’ten:
+
+Maç listesi
+
+Seçili maç için Moneyway + Dropping Odds 1X2 / 2.5 / BTTS verilerini çekecek
+
+Çektiği her veri setini timestamp ile veritabanına yazacak
+
+Veritabanı (Öneri: Supabase / PostgreSQL)
+
+Amaç: Her maç + market için zaman içinde nasıl değiştiğini kayıt altına almak
+
+Örnek tablo yapısı:
+
+matches
+
+match_id (siteye ait ID)
+
+home_team
+
+away_team
+
+start_time
+
+market_snapshots
+
+id
+
+match_id (FK)
+
+created_at (timestamp – ne zaman çekildi)
+
+source_type (moneyway / dropping_odds)
+
+market_type (1x2 / ou_2_5 / btts)
+
+selection (1, X, 2, over, under, yes, no)
+
+odds (float)
+
+moneyway_percent (float, varsa)
+
+volume (para miktarı, varsa)
+
+SmartXFlow Masaüstü Uygulaması (Replit’te yazdığımız Tkinter app)
+
+Kullanıcı bir maç seçtiğinde:
+
+Arka planda veritabanından o maçın tüm geçmiş snapshot’larını çeker
+
+Örnek: Son 2 günün Moneyway 1X2 grafiği, Dropping Odds 2.5 Üst grafiği, BTTS grafiği
+
+Bu verileri borsa grafiği gibi çizer:
+
+X ekseni: Zaman (timestamp’ler)
+
+Y ekseni: Oran veya Moneyway yüzdesi
+
+Kullanıcı:
+
+“Bu maç için son 2 gün neler olmuş?”
+
+“Oran önce düşmüş sonra yükselmiş mi?”
+
+“Para akışı hangi yöne geçmiş?”
+gibi soruların cevabını grafikten görür.
+
+👨‍💻 Geliştiricinin Yapması Gerekenler (Adım Adım)
+1️⃣ Network & Endpoint Analizi
+
+Tarayıcı dev tools (Network) ile:
+
+Moneyway sayfası açıkken hangi XHR isteği JSON veri döndürüyor?
+
+Dropping odds için hangi endpoint kullanılıyor?
+
+URL parametreleri:
+
+tarih
+
+lig (league)
+
+maç id
+
+market türü (1X2 / O/U 2.5 / BTTS)
+
+İstek header’larında:
+
+cookie (ben veriyorum)
+
+user-agent
+
+referer vs.
+
+Bunları tespit ettikten sonra Python’da requests ile aynı endpoint’lere istek atılacak.
+
+2️⃣ scraper/core.py içinde run_scraper()’ı gerçek hale getirmek
+
+Şu an dummy. Bunu şu mantıkla yaz:
+
+def run_scraper():
+    """
+    İş akışı:
+    1) Bugün / seçilen gün için maç listesini çek
+    2) Her maç için:
+       - Moneyway 1X2, O/U 2.5, BTTS
+       - Dropping Odds 1X2, O/U 2.5, BTTS
+       verilerini al
+    3) Her veri için timestamp ile DB'ye yaz
+    4) Özet bir sonuç döndür (kaç maç, kaç snapshot yazıldı gibi)
+    """
+    return {
+        "matches_processed": 42,
+        "snapshots_written": 300,
+        "status": "ok"
+    }
+
+
+Bu fonksiyon:
+
+Şimdi Scrape Et butonuna basıldığında bir defa çalışacak
+
+Otomatik Scrape modunda belli aralıklarla tekrar tekrar çalışacak
+
+Yani sen sadece bu fonksiyonu “veriyi çek + DB’ye yaz” şeklinde sağlamlaştıracaksın.
+
+3️⃣ Veritabanı Katmanı
+
+Supabase / Postgres seçilirse:
+
+Python tarafında psycopg2 veya supabase-py kullanılabilir
+
+run_scraper() içinden:
+
+Her maç verisi için INSERT INTO market_snapshots (...) VALUES (...) yap
+
+Şimdilik dosyaya (JSON/CSV) yazmak istersen:
+
+data/ klasörü altına timestamp’li dosyalar oluşturup ileride DB’ye migrate edilebilir
+
+4️⃣ Grafik tarafı (masaüstü app içinde)
+
+Bu kısım ikinci faz ama mantığı şöyle olacak:
+
+Tkinter + matplotlib embed
+
+Kullanıcı maç seçince:
+
+DB’den ilgili maçın verilerini okuyan bir fonksiyon (örn: get_match_history(match_id, last_days=2))
+
+Bu verilerle:
+
+Moneyway 1X2 için line chart
+
+Dropping odds 1X2 için line chart
+
+İstenirse farklı tab’ler (1X2 / O/U / BTTS sekmeleri)
+
+Ama şu an birinci öncelik: veri toplanması ve DB’ye düzenli yazılması.
+
+📌 Son Kullanıcıya Gidecek Son Hal (Hedef Resim)
+
+Kullanıcı SmartXFlow’u açacak
+
+Bir maç listesi görecek (örneğin bugünkü maçlar)
+
+Bir maça tıkladığında:
+
+Son 2 gün boyunca:
+
+Oranlar nasıl hareket etmiş? (Dropping odds 1X2 / 2.5 / BTTS)
+
+Para akışı (Moneyway) hangi yöne gitmiş?
+
+Tüm bunları borsa grafiği gibi inceleyebilecek
+
+Bu sayede:
+
+“Sabah 1.90 olup akşam 1.60’a düşüp sonra yine 1.75’e çıkmış”
+
+“Para %40’tan %80’e kadar yığılmış”
+gibi hareketleri görüp kendi bahis kararını verecek.
