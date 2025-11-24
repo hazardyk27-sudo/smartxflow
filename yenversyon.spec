@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all, collect_submodules
 
-datas = [('core', 'core'), ('scraper', 'scraper'), ('ui', 'ui')]
+datas = [('core', 'core'), ('scraper', 'scraper'), ('ui', 'ui'), ('embedded_config.py', '.')]
 binaries = []
 hiddenimports = [
     'PyQt6', 'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets',
