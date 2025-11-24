@@ -47,6 +47,10 @@ Thumbs.db
 # Config (optional - uncomment if needed)
 # config/*.json
 
+# Data (scraped data)
+data/
+*.json
+
 # Replit
 .replit
 .upm/

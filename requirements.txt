@@ -1,2 +1,6 @@
 pyinstaller==6.3.0
 trafilatura
+requests==2.31.0
+beautifulsoup4==4.12.3
+lxml==5.1.0
+pandas==2.2.0

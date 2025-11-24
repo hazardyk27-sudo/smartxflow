@@ -28,3 +28,8 @@ args = "python main.py"
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[userenv]
+
+[userenv.shared]
+ARBWORLD_COOKIES = "Betfair=shown--; _ga=GA1.1.1542665487.1743766120; PHPSESSID=17727519e475de1f11dd15baebbd9ab0; _ga_G52Q1M2G10=GS2.1.s1763999988$o450$g0$t1763999988$j60$l0$h0"
