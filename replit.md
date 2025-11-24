@@ -131,3 +131,4 @@ pyinstaller yenversyon.spec
 
 ## Tarih
 - **24 Kasım 2025:** Proje altyapısı oluşturuldu, temel GUI ve GitHub Actions hazırlandı
+- **24 Kasım 2025:** ONEDIR mode + DLL packaging düzeltmesi tamamlandı
