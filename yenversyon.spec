@@ -51,6 +51,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=None,
+    include_msvcr=True,
 )
 
 coll = COLLECT(
