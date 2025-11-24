@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_all
+from PyInstaller.utils.hooks import collect_all, collect_submodules
 
 datas = [('core', 'core'), ('scraper', 'scraper'), ('ui', 'ui')]
 binaries = []
@@ -9,6 +9,10 @@ hiddenimports = [
     'matplotlib.backends.backend_qtagg', 'matplotlib.backends.backend_qt5agg',
     'bs4', 'supabase.client', 'supabase.lib', 'postgrest'
 ]
+
+# Collect all PyQt6 submodules explicitly
+hiddenimports += collect_submodules('PyQt6')
+
 tmp_ret = collect_all('PyQt6')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('matplotlib')
@@ -42,7 +46,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,
