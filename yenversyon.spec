@@ -10,14 +10,12 @@ hiddenimports = [
     'bs4', 'supabase.client', 'supabase.lib', 'postgrest'
 ]
 
-# Collect all PyQt6 submodules explicitly
 hiddenimports += collect_submodules('PyQt6')
 
 tmp_ret = collect_all('PyQt6')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('matplotlib')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-
 
 a = Analysis(
     ['yenversyon.py'],
@@ -37,8 +35,9 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
+    a.binaries,
+    a.datas,
     [],
-    exclude_binaries=True,
     name='SmartXFlow',
     debug=False,
     bootloader_ignore_signals=False,
@@ -51,15 +50,4 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=None,
-    include_msvcr=True,
-)
-
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.datas,
-    strip=False,
-    upx=False,
-    upx_exclude=[],
-    name='SmartXFlow',
 )

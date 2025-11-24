@@ -24,7 +24,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pyinstaller
+        pip install pyinstaller==6.3.0
         
     - name: Inject credentials into embedded config
       run: |
@@ -44,21 +44,22 @@ jobs:
         Set-Content -Path "embedded_config.py" -Value $content
         Write-Host "Credentials injected successfully"
         
-    - name: Build EXE with PyInstaller
+    - name: Build EXE with PyInstaller (ONEFILE)
       run: |
         pyinstaller yenversyon.spec
+        dir dist
         
     - name: Upload EXE artifact
       uses: actions/upload-artifact@v4
       with:
         name: SmartXFlow-Windows-EXE
-        path: dist/SmartXFlow/
+        path: dist/SmartXFlow.exe
         retention-days: 30
         
     - name: Create Release (on tag)
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: dist/SmartXFlow/**/*
+        files: dist/SmartXFlow.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
