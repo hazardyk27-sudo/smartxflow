@@ -10,56 +10,41 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pyinstaller==6.3.0
-        
-    - name: Inject credentials into embedded config
-      run: |
-        $cookie = "${{ secrets.ARBWORLD_COOKIE }}"
-        $supabase_url = "${{ secrets.SUPABASE_URL }}"
-        $supabase_key = "${{ secrets.SUPABASE_KEY }}"
-        
-        $content = @"
-        # This file is auto-generated during build process
-        # DO NOT edit manually - values are injected from GitHub Secrets
-        
-        EMBEDDED_COOKIE = '''$cookie'''
-        EMBEDDED_SUPABASE_URL = '''$supabase_url'''
-        EMBEDDED_SUPABASE_KEY = '''$supabase_key'''
-        "@
-        
-        Set-Content -Path "embedded_config.py" -Value $content
-        Write-Host "Credentials injected successfully"
-        
-    - name: Build EXE with PyInstaller (ONEFILE)
-      run: |
-        pyinstaller yenversyon.spec
-        dir dist
-        
-    - name: Upload EXE artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: SmartXFlow-Windows-EXE
-        path: dist/SmartXFlow.exe
-        retention-days: 30
-        
-    - name: Create Release (on tag)
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v1
-      with:
-        files: dist/SmartXFlow.exe
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller==6.3.0
+
+      - name: Create embedded config
+        run: |
+          echo "# Auto-generated config" > embedded_config.py
+          echo "EMBEDDED_COOKIE = ''" >> embedded_config.py
+          echo "EMBEDDED_SUPABASE_URL = ''" >> embedded_config.py
+          echo "EMBEDDED_SUPABASE_KEY = ''" >> embedded_config.py
+        shell: cmd
+
+      - name: Build with PyInstaller
+        run: pyinstaller --onefile --noconsole --name SmartXFlow --add-data "scraper;scraper" --add-data "core;core" --add-data "embedded_config.py;." main.py
+        shell: cmd
+
+      - name: List output
+        run: dir dist
+        shell: cmd
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartXFlow-Windows-EXE
+          path: dist/SmartXFlow.exe
+          retention-days: 30
