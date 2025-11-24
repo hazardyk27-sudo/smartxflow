@@ -19,10 +19,24 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 from scraper.moneyway import scrape_all, DATASETS, EXTRACTOR_MAP
-try:
-    from scrape_moneyway import COOKIE_STRING as DEFAULT_COOKIE
-except Exception:
-    DEFAULT_COOKIE = None
+def _get_default_cookie():
+    """Get default cookie from embedded config or scrape_moneyway."""
+    try:
+        import embedded_config
+        if embedded_config.EMBEDDED_COOKIE:
+            return embedded_config.EMBEDDED_COOKIE
+    except (ImportError, AttributeError):
+        pass
+    
+    try:
+        from scrape_moneyway import COOKIE_STRING
+        return COOKIE_STRING
+    except Exception:
+        pass
+    
+    return None
+
+DEFAULT_COOKIE = _get_default_cookie()
 from core.settings import SettingsManager, Settings
 from ui.settings_dialog import SettingsDialog
 

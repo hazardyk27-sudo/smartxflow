@@ -12,14 +12,25 @@ except Exception:
     _SUPABASE_AVAILABLE = False
 
 def _get_supabase_credentials():
-    """Load Supabase credentials from environment variables."""
-    url = os.getenv('SUPABASE_URL')
-    key = os.getenv('SUPABASE_KEY')
+    """Load Supabase credentials from embedded config, settings, or environment variables."""
+    url = None
+    key = None
+    
+    try:
+        import embedded_config
+        url = embedded_config.EMBEDDED_SUPABASE_URL
+        key = embedded_config.EMBEDDED_SUPABASE_KEY
+    except (ImportError, AttributeError):
+        pass
+    
+    if not url or not key:
+        url = os.getenv('SUPABASE_URL')
+        key = os.getenv('SUPABASE_KEY')
     
     if not url or not key:
         raise ValueError(
-            "SUPABASE_URL and SUPABASE_KEY environment variables required for cloud storage. "
-            "Set them in Replit Secrets or your .env file."
+            "SUPABASE_URL and SUPABASE_KEY not found. "
+            "They should be embedded in the build or set as environment variables."
         )
     
     return url, key
