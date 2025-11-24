@@ -1,82 +1,126 @@
 # SmartXFlow – Odds & Volume Monitor
 
 ## Proje Özeti
-Windows masaüstü uygulaması - Odds ve Volume verilerini izleme ve scraping için Python/tkinter tabanlı GUI uygulaması.
+Windows masaüstü uygulaması - arbworld.net'ten Moneyway ve Dropping Odds verilerini çekip, zaman serisi olarak saklayan ve grafiksel analiz sunan profesyonel bahis analiz aracı.
 
 ## Teknoloji Stack
 - **Dil:** Python 3.11
-- **UI Framework:** tkinter (Python'un yerleşik GUI kütüphanesi)
+- **UI Framework:** PyQt6 (Modern Qt6 tabanlı GUI)
+- **Grafik:** Matplotlib (Zaman serisi grafikleri için)
+- **Database:** SQLite (lokal) + Supabase (cloud)
+- **Scraping:** BeautifulSoup4 + Requests (arbworld.net)
 - **Build Tool:** PyInstaller (Windows .exe oluşturma için)
 - **CI/CD:** GitHub Actions (otomatik .exe build)
 
 ## Proje Yapısı
 ```
 .
-├── main.py                 # Ana uygulama giriş noktası (tkinter GUI)
-├── scraper/               # Scraping modülü
+├── yenversyon.py          # Ana PyQt6 GUI uygulaması (2369 satır)
+├── yenversyon.spec        # PyInstaller build yapılandırması
+├── scraper/              # Scraping modülü
 │   ├── __init__.py
-│   └── core.py           # Scraping fonksiyonları (şu an dummy)
-├── config/               # Yapılandırma dosyaları için
+│   ├── moneyway.py       # 6 market için scraper (22KB)
+│   └── core.py.old       # Eski dummy scraper (yedek)
+├── core/                 # Çekirdek işlevsellik
+│   ├── __init__.py
+│   ├── storage.py        # SQLite + Supabase dual storage (9KB)
+│   └── settings.py       # Ayarlar yönetimi
+├── ui/                   # UI bileşenleri
+│   ├── __init__.py
+│   └── settings_dialog.py # Ayarlar diyalogu
+├── data/                 # Scraped data (Git'e gitmez)
 ├── .github/
 │   └── workflows/
-│       └── build.yml     # GitHub Actions - otomatik .exe build
+│       └── build.yml     # GitHub Actions - PyQt6 .exe build
+├── test_scraper.py       # Replit test script (CLI)
 ├── requirements.txt      # Python bağımlılıkları
+├── settings.json         # Kullanıcı ayarları
 ├── .gitignore           # Git ignore kuralları
 └── replit.md            # Bu dosya
 ```
 
 ## Özellikler
 
-### Mevcut Özellikler
-1. **Manuel Scrape:** "Şimdi Scrape Et" butonu ile anında scraping
-2. **Otomatik Scrape:** Belirlenen aralıklarla (1, 5, 10, 15, 30 dakika) otomatik scraping
-3. **Durdur Butonu:** Otomatik scraping'i temiz bir şekilde durdurma
-4. **Log Penceresi:** Tüm işlemlerin zaman damgalı kaydı
-5. **Threading:** UI donmasını önlemek için arka plan thread'leri
-6. **Temiz Kapanma:** Uygulama kapatılırken thread'lerin düzgün sonlanması
+### Veri Toplama (6 Market)
+1. **Moneyway Markets:**
+   - 1-X-2 (Maç sonucu)
+   - Over/Under 2.5 
+   - BTTS (Both Teams To Score)
+2. **Dropping Odds Markets:**
+   - 1-X-2 (Maç sonucu)
+   - Over/Under 2.5
+   - BTTS
+
+### Veritabanı & Zaman Serisi
+- **Dual Storage:** SQLite (offline) + Supabase (cloud sync)
+- **History Tracking:** Her scrape timestamp ile kaydedilir
+- **Maç Bazlı Kayıt:** Her maç için ayrı geçmiş tutulur
+
+### Grafik & Analiz
+- **Matplotlib Integration:** Profesyonel zaman serisi grafikleri
+- **Oran Hareketi:** Başlangıç → Güncel oran karşılaştırması (renkli ok göstergesi)
+- **Para Akışı:** Moneyway yüzdesi ve miktarı takibi
+- **İki Satırlı Hücre Gösterimi:** Oran + Yüzde/Miktar tek hücrede
+
+### GUI Özellikleri (PyQt6)
+- 6 market butonu (kolay geçiş)
+- Tablo gösterimi (custom delegates)
+- Maç seçimi ve detay görüntüleme
+- Ayarlar diyalogu
+- Dark theme
 
 ### GitHub Actions Workflow
 - Her `main` branch push'unda otomatik olarak Windows .exe build edilir
-- PyInstaller ile `--onefile --noconsole` parametreleriyle tek dosya .exe oluşturulur
+- PyInstaller ile `yenversyon.spec` kullanılarak PyQt6 .exe oluşturulur
 - Build edilen .exe, GitHub Actions "Artifacts" bölümünden 30 gün boyunca indirilebilir
 - Tag push'larında otomatik Release oluşturulur
 
 ## Kullanım
 
 ### Geliştirme (Replit'te)
+**Not:** PyQt6 GUI Replit'te çalışmaz (VNC gerektirir). Replit'te sadece scraper fonksiyonlarını test edebilirsiniz:
+
 ```bash
-python main.py
+python test_scraper.py
 ```
 
-### Scraper Fonksiyonlarını Ekleme
-1. `scraper/core.py` dosyasını açın
-2. `run_scraper()` fonksiyonunu kendi scraping mantığınızla değiştirin
-3. Ek modüller gerekiyorsa `requirements.txt`'ye ekleyin
+### Tam Uygulama (Windows'ta)
+GitHub Actions ile build edilen `.exe` dosyasını Windows'ta çalıştırın:
+1. GitHub Actions "Artifacts" bölümünden `.exe`'yi indirin
+2. Windows'ta çift tıklayın
+3. Cookie bilgilerinizi ayarlara girin
+4. 6 market butonuyla veri toplayın
+
+### Scraper Geliştirme
+1. `scraper/moneyway.py` dosyasını inceleyin
+2. 6 farklı market için endpoint'ler tanımlı: `DATASETS` dict
+3. Her market için özel extract fonksiyonu var
+4. Cookie bilgisi `COOKIE_STRING` env var'ından okunur
 
 ### Windows .exe Build (GitHub Actions)
 1. Kodunuzu GitHub'a push edin:
    ```bash
    git add .
-   git commit -m "Update scraper"
+   git commit -m "Update features"
    git push origin main
    ```
 2. GitHub Actions otomatik olarak çalışacak
 3. Actions sekmesinden "Build Windows EXE" workflow'unu açın
 4. "Artifacts" bölümünden `SmartXFlow-Windows-EXE` dosyasını indirin
 
-### Lokal .exe Build (Opsiyonel)
+### Lokal .exe Build (Opsiyonel - Windows'ta)
 ```bash
 pip install -r requirements.txt
 pip install pyinstaller
-pyinstaller --onefile --noconsole --name SmartXFlow main.py
+pyinstaller yenversyon.spec
 ```
 .exe dosyası `dist/` klasöründe oluşturulacak.
 
 ## Sonraki Adımlar
-1. `scraper/core.py` içindeki dummy fonksiyonu gerçek scraping kodu ile değiştirin
-2. Gerekli Python kütüphanelerini `requirements.txt`'ye ekleyin
-3. İhtiyaç halinde `config/` klasörüne yapılandırma dosyaları ekleyin
-4. GitHub repo'nuza push yaparak otomatik .exe build'i test edin
+1. Cookie bilgilerinizi güncelleyin (değiştiyse)
+2. Supabase'de tabloları oluşturun (cloud sync için)
+3. GitHub repo'nuza push yaparak otomatik .exe build'i test edin
+4. Windows'ta .exe'yi çalıştırıp veri toplamayı test edin
 
 ## Notlar
 - tkinter Python'un yerleşik kütüphanesi olduğundan ekstra kurulum gerektirmez

@@ -1,4 +1,1 @@
-"""
-Scraper package
-Bu klasöre scraping fonksiyonlarınızı ekleyebilirsiniz
-"""
+from .moneyway import scrape_all, DATASETS, EXTRACTOR_MAP

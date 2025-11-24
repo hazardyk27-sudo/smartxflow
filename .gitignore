@@ -51,6 +51,9 @@ Thumbs.db
 data/
 *.json
 
+# Attached assets (uploaded files with potential secrets)
+attached_assets/
+
 # Replit
 .replit
 .upm/

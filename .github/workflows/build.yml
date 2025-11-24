@@ -28,19 +28,19 @@ jobs:
         
     - name: Build EXE with PyInstaller
       run: |
-        pyinstaller --onefile --noconsole --name SmartXFlow main.py
+        pyinstaller yenversyon.spec
         
     - name: Upload EXE artifact
       uses: actions/upload-artifact@v4
       with:
         name: SmartXFlow-Windows-EXE
-        path: dist/SmartXFlow.exe
+        path: dist/yenversyon.exe
         retention-days: 30
         
     - name: Create Release (on tag)
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: dist/SmartXFlow.exe
+        files: dist/yenversyon.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
