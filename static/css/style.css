@@ -1,5 +1,37 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
 
+:root {
+    --font-base: 14px;
+    --font-heading: 20px;
+    --font-modal-title: 18px;
+    --font-subtitle: 13px;
+    --font-table-header: 12px;
+    --font-match-name: 15px;
+    --font-odds: 15px;
+    --font-money: 13px;
+    --font-pct: 13px;
+    --font-secondary: 12px;
+    --font-small: 11px;
+    
+    --weight-regular: 400;
+    --weight-medium: 500;
+    --weight-semibold: 600;
+    --weight-bold: 700;
+    
+    --line-height: 1.35;
+    --line-height-tight: 1.2;
+    
+    --color-bg-primary: #0d1117;
+    --color-bg-secondary: #161b22;
+    --color-bg-tertiary: #21262d;
+    --color-border: #30363d;
+    --color-text-primary: #c9d1d9;
+    --color-text-secondary: #8b949e;
+    --color-text-muted: #8899a6;
+    --color-accent: #4ade80;
+    --color-link: #58a6ff;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -8,8 +40,10 @@
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #0d1117;
-    color: #c9d1d9;
+    font-size: var(--font-base);
+    line-height: var(--line-height);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -35,16 +69,18 @@ body {
 }
 
 .brand h1 {
-    font-size: 18px;
-    font-weight: 700;
+    font-size: var(--font-heading);
+    font-weight: var(--weight-bold);
     color: #fff;
     letter-spacing: -0.3px;
+    line-height: var(--line-height-tight);
 }
 
 .brand .subtitle {
-    font-size: 11px;
-    color: #8899a6;
-    font-weight: 500;
+    font-size: var(--font-secondary);
+    color: var(--color-text-muted);
+    font-weight: var(--weight-medium);
+    line-height: var(--line-height);
 }
 
 .header-right {
@@ -317,27 +353,29 @@ body {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
-    min-width: 1000px;
 }
 
-.matches-table colgroup col.col-date { width: 100px; }
-.matches-table colgroup col.col-league { width: 130px; }
+.matches-table colgroup col.col-date { width: 90px; }
+.matches-table colgroup col.col-league { width: 120px; }
 .matches-table colgroup col.col-match { width: auto; }
-.matches-table colgroup col.col-selection { width: 120px; }
-.matches-table colgroup col.col-volume { width: 120px; }
+.matches-table colgroup col.col-volume { width: 110px; }
+
+.matches-table[data-selection-count="3"] colgroup col.col-selection { width: 130px; }
+.matches-table[data-selection-count="2"] colgroup col.col-selection { width: 180px; }
 
 .matches-table th {
-    padding: 14px 16px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #8b949e;
+    padding: 12px 16px;
+    font-size: var(--font-table-header);
+    font-weight: var(--weight-semibold);
+    color: var(--color-text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 1px solid #30363d;
-    background: #21262d;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg-tertiary);
     position: sticky;
     top: 0;
     z-index: 1;
+    line-height: var(--line-height);
 }
 
 .matches-table th.sortable {
@@ -373,9 +411,10 @@ body {
 
 .matches-table td {
     padding: 12px 16px;
-    font-size: 13px;
+    font-size: var(--font-base);
     border-bottom: 1px solid rgba(48, 54, 61, 0.5);
     vertical-align: middle;
+    line-height: var(--line-height);
 }
 
 .matches-table tr {
@@ -412,50 +451,53 @@ body {
 }
 
 .match-date {
-    color: #8b949e;
-    font-size: 12px;
-    font-weight: 500;
+    color: var(--color-text-secondary);
+    font-size: var(--font-secondary);
+    font-weight: var(--weight-medium);
     font-family: 'Inter', sans-serif;
     text-align: left;
     vertical-align: middle;
-    line-height: 1.4;
+    line-height: var(--line-height);
 }
 
 .match-league {
-    color: #8b949e;
-    font-size: 12px;
-    font-weight: 500;
+    color: var(--color-text-secondary);
+    font-size: var(--font-secondary);
+    font-weight: var(--weight-medium);
     font-family: 'Inter', sans-serif;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     text-align: left;
     vertical-align: middle;
+    line-height: var(--line-height);
 }
 
 .match-teams {
-    font-weight: 600;
-    font-size: 14px;
+    font-weight: var(--weight-semibold);
+    font-size: var(--font-match-name);
     font-family: 'Inter', sans-serif;
     letter-spacing: -0.2px;
     text-align: center;
     vertical-align: middle;
     white-space: nowrap;
+    line-height: var(--line-height);
 }
 
 .match-volume {
-    color: #4ade80;
-    font-size: 14px;
-    font-weight: 600;
+    color: var(--color-accent);
+    font-size: var(--font-base);
+    font-weight: var(--weight-semibold);
     font-family: 'Inter', sans-serif;
     text-align: right;
     vertical-align: middle;
+    line-height: var(--line-height);
 }
 
 .match-teams .vs {
     color: #536471;
     margin: 0 5px;
-    font-weight: 400;
+    font-weight: var(--weight-regular);
 }
 
 .selection-cell {
@@ -468,16 +510,16 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
+    gap: 3px;
 }
 
 .selection-odds {
-    font-weight: 600;
-    color: #4ade80;
-    font-size: 16px;
+    font-weight: var(--weight-semibold);
+    color: var(--color-accent);
+    font-size: var(--font-odds);
     font-family: 'Inter', sans-serif;
     letter-spacing: -0.3px;
-    line-height: 1.2;
+    line-height: var(--line-height-tight);
 }
 
 .selection-odds.drop-odds {
@@ -485,20 +527,20 @@ body {
 }
 
 .selection-money {
-    font-size: 11px;
-    font-weight: 500;
+    font-size: var(--font-money);
+    font-weight: var(--weight-medium);
     font-family: 'Inter', sans-serif;
     letter-spacing: -0.2px;
-    line-height: 1.2;
-    color: #8899a6;
+    line-height: var(--line-height-tight);
+    color: var(--color-text-muted);
 }
 
 .selection-pct {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: var(--font-pct);
+    font-weight: var(--weight-semibold);
     font-family: 'Inter', sans-serif;
     letter-spacing: -0.2px;
-    line-height: 1.2;
+    line-height: var(--line-height-tight);
 }
 
 .color-normal {

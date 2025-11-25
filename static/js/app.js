@@ -399,8 +399,10 @@ async function loadMatches() {
 }
 
 function updateTableHeaders() {
+    const table = document.querySelector('.matches-table');
     const thead = document.querySelector('.matches-table thead tr');
-    if (!thead) return;
+    const colgroup = document.querySelector('.matches-table colgroup');
+    if (!thead || !table) return;
     
     const getArrow = (col) => {
         if (currentSortColumn === col) {
@@ -412,6 +414,18 @@ function updateTableHeaders() {
     const getActiveClass = (col) => currentSortColumn === col ? 'active' : '';
     
     if (currentMarket.includes('1x2')) {
+        table.setAttribute('data-selection-count', '3');
+        if (colgroup) {
+            colgroup.innerHTML = `
+                <col class="col-date">
+                <col class="col-league">
+                <col class="col-match">
+                <col class="col-selection">
+                <col class="col-selection">
+                <col class="col-selection">
+                <col class="col-volume">
+            `;
+        }
         thead.innerHTML = `
             <th class="col-date sortable ${getActiveClass('date')}" data-sort="date" onclick="sortByColumn('date')">DATE <span class="sort-arrow">${getArrow('date')}</span></th>
             <th class="col-league sortable ${getActiveClass('league')}" data-sort="league" onclick="sortByColumn('league')">LEAGUE <span class="sort-arrow">${getArrow('league')}</span></th>
@@ -422,6 +436,17 @@ function updateTableHeaders() {
             <th class="col-volume sortable ${getActiveClass('volume')}" data-sort="volume" onclick="sortByColumn('volume')">VOLUME <span class="sort-arrow">${getArrow('volume')}</span></th>
         `;
     } else if (currentMarket.includes('ou25')) {
+        table.setAttribute('data-selection-count', '2');
+        if (colgroup) {
+            colgroup.innerHTML = `
+                <col class="col-date">
+                <col class="col-league">
+                <col class="col-match">
+                <col class="col-selection">
+                <col class="col-selection">
+                <col class="col-volume">
+            `;
+        }
         thead.innerHTML = `
             <th class="col-date sortable ${getActiveClass('date')}" data-sort="date" onclick="sortByColumn('date')">DATE <span class="sort-arrow">${getArrow('date')}</span></th>
             <th class="col-league sortable ${getActiveClass('league')}" data-sort="league" onclick="sortByColumn('league')">LEAGUE <span class="sort-arrow">${getArrow('league')}</span></th>
@@ -431,6 +456,17 @@ function updateTableHeaders() {
             <th class="col-volume sortable ${getActiveClass('volume')}" data-sort="volume" onclick="sortByColumn('volume')">VOLUME <span class="sort-arrow">${getArrow('volume')}</span></th>
         `;
     } else if (currentMarket.includes('btts')) {
+        table.setAttribute('data-selection-count', '2');
+        if (colgroup) {
+            colgroup.innerHTML = `
+                <col class="col-date">
+                <col class="col-league">
+                <col class="col-match">
+                <col class="col-selection">
+                <col class="col-selection">
+                <col class="col-volume">
+            `;
+        }
         thead.innerHTML = `
             <th class="col-date sortable ${getActiveClass('date')}" data-sort="date" onclick="sortByColumn('date')">DATE <span class="sort-arrow">${getArrow('date')}</span></th>
             <th class="col-league sortable ${getActiveClass('league')}" data-sort="league" onclick="sortByColumn('league')">LEAGUE <span class="sort-arrow">${getArrow('league')}</span></th>
