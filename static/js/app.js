@@ -1287,6 +1287,7 @@ function renderChartLegendFilters(datasets, market) {
     const items = legendLabels[market] || [];
     
     const timeRanges = [
+        { key: '5min', label: '5 dk' },
         { key: '10min', label: '10 dk' },
         { key: '30min', label: '30 dk' },
         { key: '1hour', label: '1 saat' },
@@ -1373,6 +1374,9 @@ function filterHistoryByTimeRange(historyData) {
     let cutoffTime;
     
     switch (chartTimeRange) {
+        case '5min':
+            cutoffTime = new Date(now.getTime() - 5 * 60 * 1000);
+            break;
         case '10min':
             cutoffTime = new Date(now.getTime() - 10 * 60 * 1000);
             break;
@@ -1600,12 +1604,13 @@ function exportChartCSV() {
     const visibleSeriesNames = visibleDatasets.map(ds => ds.label).join(', ');
     
     const timeRangeLabels = {
-        '10m': '10 dakika',
-        '30m': '30 dakika',
-        '1h': '1 saat',
-        '6h': '6 saat',
-        '12h': '12 saat',
-        '1d': '1 gün'
+        '5min': '5 dakika',
+        '10min': '10 dakika',
+        '30min': '30 dakika',
+        '1hour': '1 saat',
+        '6hour': '6 saat',
+        '12hour': '12 saat',
+        '1day': '1 gün'
     };
     const timeRangeLabel = timeRangeLabels[chartTimeRange] || '1 gün';
     
