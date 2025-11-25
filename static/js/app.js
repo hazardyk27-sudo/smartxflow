@@ -435,12 +435,17 @@ function applySorting(data) {
     sortedData = sortedData.filter(m => hasValidMarketData(m, currentMarket));
     
     if (todayFilterActive) {
-        const today = getTodayDateString();
-        console.log('[Filter] Today:', today);
+        const todayDay = new Date().getDate();
+        console.log('[Filter] Today day:', todayDay);
         sortedData = sortedData.filter(m => {
-            const matchDate = extractDateOnly(m.date);
-            console.log('[Filter] Match date:', m.date, '-> extracted:', matchDate);
-            return matchDate === today;
+            if (!m.date) return false;
+            const dayMatch = m.date.match(/^(\d{1,2})\./);
+            if (dayMatch) {
+                const matchDay = parseInt(dayMatch[1], 10);
+                console.log('[Filter] Match:', m.date, '-> day:', matchDay);
+                return matchDay === todayDay;
+            }
+            return false;
         });
         console.log('[Filter] Filtered count:', sortedData.length);
     }
@@ -521,11 +526,15 @@ function applySorting(data) {
 
 function parseOddsValue(val) {
     if (!val || val === '-') return 0;
-    let str = String(val).split('\n')[0];
-    str = str.replace(/[↑↓]/g, '').trim();
-    str = str.replace(/,/g, '.');
-    str = str.replace(/[^0-9.-]/g, '');
-    const num = parseFloat(str);
+    
+    const values = String(val)
+        .replace(/[↑↓]/g, '')
+        .match(/[\d.,]+/g);
+    
+    if (!values || values.length === 0) return 0;
+    
+    const last = values[values.length - 1];
+    const num = parseFloat(last.replace(',', '.'));
     return isNaN(num) ? 0 : num;
 }
 
@@ -1683,13 +1692,24 @@ function exportChartPNG() {
     
     console.log('[PNG Export] html2canvas available, starting capture...');
     
+    if (chart) {
+        chart.options.animation = false;
+        chart.update('none');
+    }
+    
     setTimeout(() => {
         html2canvas(modalContent, {
             backgroundColor: '#15202b',
             scale: 2,
             useCORS: true,
-            allowTaint: true,
-            logging: true
+            allowTaint: false,
+            logging: true,
+            onclone: function(clonedDoc) {
+                const clonedCanvas = clonedDoc.querySelector('#oddsChart');
+                if (clonedCanvas) {
+                    clonedCanvas.crossOrigin = 'anonymous';
+                }
+            }
         }).then(async canvas => {
             console.log('[PNG Export] Canvas created, size:', canvas.width, 'x', canvas.height);
             restoreStyles();
@@ -1703,7 +1723,7 @@ function exportChartPNG() {
             showExportNotification('PNG oluşturma hatası: ' + err.message, true);
             resetButton();
         });
-    }, 100);
+    }, 300);
 }
 
 function exportChartPNGFallback(filename, resetButton) {
@@ -1761,17 +1781,28 @@ function exportChartPNGFallback(filename, resetButton) {
         return;
     }
     
+    if (chart) {
+        chart.options.animation = false;
+        chart.update('none');
+    }
+    
     setTimeout(() => {
         html2canvas(modalContent, {
             backgroundColor: '#161b22',
             scale: 2,
             logging: false,
             useCORS: true,
-            allowTaint: true,
+            allowTaint: false,
             height: modalContent.scrollHeight,
             windowHeight: modalContent.scrollHeight,
             scrollY: 0,
-            scrollX: 0
+            scrollX: 0,
+            onclone: function(clonedDoc) {
+                const clonedCanvas = clonedDoc.querySelector('#oddsChart');
+                if (clonedCanvas) {
+                    clonedCanvas.crossOrigin = 'anonymous';
+                }
+            }
         }).then(async canvas => {
             restoreStyles();
             
@@ -1795,7 +1826,7 @@ function exportChartPNGFallback(filename, resetButton) {
             showExportNotification('PNG oluşturma hatası', true);
             resetButton();
         });
-    }, 100);
+    }, 300);
 }
 
 function exportChartCSV() {
