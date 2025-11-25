@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
+
 * {
     margin: 0;
     padding: 0;
@@ -5,10 +7,12 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: #0f1419;
     color: #e7e9ea;
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .header {
@@ -34,11 +38,13 @@ body {
     font-size: 18px;
     font-weight: 700;
     color: #fff;
+    letter-spacing: -0.3px;
 }
 
 .brand .subtitle {
     font-size: 11px;
     color: #8899a6;
+    font-weight: 500;
 }
 
 .header-right {
@@ -55,6 +61,7 @@ body {
     background: #192734;
     border-radius: 16px;
     font-size: 12px;
+    font-weight: 500;
 }
 
 .status-dot {
@@ -82,9 +89,10 @@ body {
     border: none;
     border-radius: 6px;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
 }
 
 .btn-primary {
@@ -115,8 +123,10 @@ body {
     padding: 6px 10px;
     border-radius: 6px;
     font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
     outline: none;
+    font-family: 'Inter', sans-serif;
 }
 
 .interval-select:hover {
@@ -136,10 +146,11 @@ body {
     border: 1px solid #2f3336;
     color: #8899a6;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     border-radius: 6px;
     transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
 }
 
 .btn-auto:hover {
@@ -180,6 +191,7 @@ body {
     border-radius: 6px;
     transition: all 0.2s;
     white-space: nowrap;
+    font-family: 'Inter', sans-serif;
 }
 
 .tab:hover {
@@ -235,6 +247,7 @@ body {
     font-size: 14px;
     width: 100%;
     outline: none;
+    font-family: 'Inter', sans-serif;
 }
 
 .search-box input::placeholder {
@@ -254,8 +267,10 @@ body {
     padding: 10px 14px;
     border-radius: 8px;
     font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
     outline: none;
+    font-family: 'Inter', sans-serif;
 }
 
 .sort-select:hover {
@@ -272,6 +287,7 @@ body {
     border-radius: 20px;
     font-size: 13px;
     color: #8899a6;
+    font-weight: 500;
 }
 
 .match-count span {
@@ -309,9 +325,10 @@ body {
 }
 
 .matches-table td {
-    padding: 12px;
-    font-size: 14px;
+    padding: 10px 12px;
+    font-size: 13px;
     border-bottom: 1px solid #2f3336;
+    vertical-align: middle;
 }
 
 .matches-table tr {
@@ -328,50 +345,52 @@ body {
 }
 
 .col-date {
-    width: 130px;
+    width: 110px;
 }
 
 .col-league {
-    width: 150px;
+    width: 130px;
 }
 
 .col-match {
-    min-width: 200px;
+    min-width: 180px;
 }
 
 .col-selection {
-    width: 120px;
+    width: 110px;
     text-align: center;
 }
 
 .col-volume {
-    width: 110px;
+    width: 100px;
     text-align: right;
 }
 
 .match-date {
     color: #8899a6;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
 }
 
 .match-league {
     color: #8899a6;
-    font-size: 13px;
+    font-size: 12px;
+    font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 140px;
+    max-width: 120px;
 }
 
 .match-teams {
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
+    letter-spacing: -0.2px;
 }
 
 .match-teams .vs {
     color: #536471;
-    margin: 0 6px;
+    margin: 0 5px;
     font-weight: 400;
 }
 
@@ -382,53 +401,64 @@ body {
 .selection-odds {
     font-weight: 700;
     color: #4ade80;
-    font-size: 16px;
-    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 15px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.5px;
 }
 
 .selection-money {
-    font-size: 14px;
-    font-weight: 700;
-    color: #fbbf24;
-    margin-top: 4px;
-    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.3px;
 }
 
 .selection-pct {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
-    padding: 4px 12px;
-    border-radius: 12px;
-    display: inline-block;
-    margin-top: 4px;
+    margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.3px;
 }
 
-.pct-normal {
+.color-normal {
     color: #e7e9ea;
-    background: #374151;
 }
 
-.pct-yellow {
+.color-yellow {
     color: #fbbf24;
-    background: #78350f;
 }
 
-.pct-orange {
+.color-orange {
     color: #fb923c;
-    background: #7c2d12;
 }
 
-.pct-red {
+.color-red {
     color: #f87171;
-    background: #7f1d1d;
+}
+
+.trend-up {
+    color: #4ade80;
+    font-weight: 700;
+    margin-left: 4px;
+    font-size: 14px;
+}
+
+.trend-down {
+    color: #f87171;
+    font-weight: 700;
+    margin-left: 4px;
+    font-size: 14px;
 }
 
 .volume-cell {
     text-align: right;
-    font-family: 'SF Mono', Monaco, monospace;
+    font-family: 'JetBrains Mono', monospace;
     color: #4ade80;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
+    letter-spacing: -0.3px;
 }
 
 .loading-row td {
@@ -513,11 +543,13 @@ body {
     font-weight: 700;
     color: #fff;
     margin-bottom: 4px;
+    letter-spacing: -0.3px;
 }
 
 .modal-subtitle {
     font-size: 13px;
     color: #8899a6;
+    font-weight: 500;
 }
 
 .modal-close {
@@ -577,26 +609,22 @@ body {
     font-size: 18px;
     font-weight: 700;
     color: #fff;
+    font-family: 'JetBrains Mono', monospace;
 }
 
 .info-value.odds {
     color: #4ade80;
-    font-family: 'SF Mono', Monaco, monospace;
 }
 
 .info-value.money {
     color: #fbbf24;
-    font-family: 'SF Mono', Monaco, monospace;
 }
 
 .info-value.volume {
     color: #4ade80;
-    font-family: 'SF Mono', Monaco, monospace;
 }
 
 .info-value.pct {
-    padding: 4px 14px;
-    border-radius: 12px;
     display: inline-block;
     font-size: 16px;
 }
@@ -621,6 +649,7 @@ body {
     cursor: pointer;
     border-radius: 8px;
     transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
 }
 
 .chart-tab:hover {

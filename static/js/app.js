@@ -371,13 +371,13 @@ function updateTableHeaders() {
     }
 }
 
-function getPctClass(pctValue) {
+function getColorClass(pctValue) {
     const num = parseFloat(String(pctValue).replace(/[^0-9.]/g, ''));
-    if (isNaN(num)) return 'pct-normal';
-    if (num >= 90) return 'pct-red';
-    if (num >= 70) return 'pct-orange';
-    if (num >= 50) return 'pct-yellow';
-    return 'pct-normal';
+    if (isNaN(num)) return 'color-normal';
+    if (num >= 90) return 'color-red';
+    if (num >= 70) return 'color-orange';
+    if (num >= 50) return 'color-yellow';
+    return 'color-normal';
 }
 
 function renderMatches(data) {
@@ -414,6 +414,9 @@ function renderMatches(data) {
         
         if (currentMarket.includes('1x2')) {
             if (isMoneyway) {
+                const c1 = getColorClass(d.Pct1);
+                const cX = getColorClass(d.PctX);
+                const c2 = getColorClass(d.Pct2);
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${match.date || '-'}</td>
@@ -421,18 +424,18 @@ function renderMatches(data) {
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell">
                             <div class="selection-odds">${formatOdds(d.Odds1 || d['1'])}</div>
-                            ${d.Amt1 ? `<div class="selection-money">${d.Amt1}</div>` : ''}
-                            ${d.Pct1 ? `<div class="selection-pct ${getPctClass(d.Pct1)}">${d.Pct1}%</div>` : ''}
+                            ${d.Amt1 ? `<div class="selection-money ${c1}">${d.Amt1}</div>` : ''}
+                            ${d.Pct1 ? `<div class="selection-pct ${c1}">${d.Pct1}%</div>` : ''}
                         </td>
                         <td class="selection-cell">
                             <div class="selection-odds">${formatOdds(d.OddsX || d['X'])}</div>
-                            ${d.AmtX ? `<div class="selection-money">${d.AmtX}</div>` : ''}
-                            ${d.PctX ? `<div class="selection-pct ${getPctClass(d.PctX)}">${d.PctX}%</div>` : ''}
+                            ${d.AmtX ? `<div class="selection-money ${cX}">${d.AmtX}</div>` : ''}
+                            ${d.PctX ? `<div class="selection-pct ${cX}">${d.PctX}%</div>` : ''}
                         </td>
                         <td class="selection-cell">
                             <div class="selection-odds">${formatOdds(d.Odds2 || d['2'])}</div>
-                            ${d.Amt2 ? `<div class="selection-money">${d.Amt2}</div>` : ''}
-                            ${d.Pct2 ? `<div class="selection-pct ${getPctClass(d.Pct2)}">${d.Pct2}%</div>` : ''}
+                            ${d.Amt2 ? `<div class="selection-money ${c2}">${d.Amt2}</div>` : ''}
+                            ${d.Pct2 ? `<div class="selection-pct ${c2}">${d.Pct2}%</div>` : ''}
                         </td>
                         <td class="volume-cell">${d.Volume || '-'}</td>
                     </tr>
@@ -458,6 +461,8 @@ function renderMatches(data) {
             }
         } else if (currentMarket.includes('ou25')) {
             if (isMoneyway) {
+                const cU = getColorClass(d.PctUnder);
+                const cO = getColorClass(d.PctOver);
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${match.date || '-'}</td>
@@ -465,13 +470,13 @@ function renderMatches(data) {
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell">
                             <div class="selection-odds">${formatOdds(d.Under)}</div>
-                            ${d.AmtUnder ? `<div class="selection-money">${d.AmtUnder}</div>` : ''}
-                            ${d.PctUnder ? `<div class="selection-pct ${getPctClass(d.PctUnder)}">${d.PctUnder}%</div>` : ''}
+                            ${d.AmtUnder ? `<div class="selection-money ${cU}">${d.AmtUnder}</div>` : ''}
+                            ${d.PctUnder ? `<div class="selection-pct ${cU}">${d.PctUnder}%</div>` : ''}
                         </td>
                         <td class="selection-cell">
                             <div class="selection-odds">${formatOdds(d.Over)}</div>
-                            ${d.AmtOver ? `<div class="selection-money">${d.AmtOver}</div>` : ''}
-                            ${d.PctOver ? `<div class="selection-pct ${getPctClass(d.PctOver)}">${d.PctOver}%</div>` : ''}
+                            ${d.AmtOver ? `<div class="selection-money ${cO}">${d.AmtOver}</div>` : ''}
+                            ${d.PctOver ? `<div class="selection-pct ${cO}">${d.PctOver}%</div>` : ''}
                         </td>
                         <td class="volume-cell">${d.Volume || '-'}</td>
                     </tr>
@@ -494,6 +499,8 @@ function renderMatches(data) {
             }
         } else {
             if (isMoneyway) {
+                const cY = getColorClass(d.PctYes);
+                const cN = getColorClass(d.PctNo);
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${match.date || '-'}</td>
@@ -501,13 +508,13 @@ function renderMatches(data) {
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell">
                             <div class="selection-odds">${formatOdds(d.Yes)}</div>
-                            ${d.AmtYes ? `<div class="selection-money">${d.AmtYes}</div>` : ''}
-                            ${d.PctYes ? `<div class="selection-pct ${getPctClass(d.PctYes)}">${d.PctYes}%</div>` : ''}
+                            ${d.AmtYes ? `<div class="selection-money ${cY}">${d.AmtYes}</div>` : ''}
+                            ${d.PctYes ? `<div class="selection-pct ${cY}">${d.PctYes}%</div>` : ''}
                         </td>
                         <td class="selection-cell">
                             <div class="selection-odds">${formatOdds(d.No)}</div>
-                            ${d.AmtNo ? `<div class="selection-money">${d.AmtNo}</div>` : ''}
-                            ${d.PctNo ? `<div class="selection-pct ${getPctClass(d.PctNo)}">${d.PctNo}%</div>` : ''}
+                            ${d.AmtNo ? `<div class="selection-money ${cN}">${d.AmtNo}</div>` : ''}
+                            ${d.PctNo ? `<div class="selection-pct ${cN}">${d.PctNo}%</div>` : ''}
                         </td>
                         <td class="volume-cell">${d.Volume || '-'}</td>
                     </tr>
@@ -633,191 +640,154 @@ function updateMatchInfoCard() {
     
     if (selectedChartMarket.includes('1x2')) {
         if (isMoneyway) {
+            const c1 = getColorClass(d.Pct1);
+            const cX = getColorClass(d.PctX);
+            const c2 = getColorClass(d.Pct2);
             html = `
-                <div class="info-row">
-                    <div class="info-item">
-                        <div class="info-label">1 Odds</div>
-                        <div class="info-value odds">${formatOdds(d.Odds1 || d['1'])}</div>
+                <div class="info-columns">
+                    <div class="info-column">
+                        <div class="column-header">1</div>
+                        <div class="column-value odds">${formatOdds(d.Odds1 || d['1'])}</div>
+                        <div class="column-value money ${c1}">${d.Amt1 || '-'}</div>
+                        <div class="column-value pct ${c1}">${d.Pct1 || '-'}%</div>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">X Odds</div>
-                        <div class="info-value odds">${formatOdds(d.OddsX || d['X'])}</div>
+                    <div class="info-column">
+                        <div class="column-header">X</div>
+                        <div class="column-value odds">${formatOdds(d.OddsX || d['X'])}</div>
+                        <div class="column-value money ${cX}">${d.AmtX || '-'}</div>
+                        <div class="column-value pct ${cX}">${d.PctX || '-'}%</div>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">2 Odds</div>
-                        <div class="info-value odds">${formatOdds(d.Odds2 || d['2'])}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Total Volume</div>
-                        <div class="info-value volume">${d.Volume || '-'}</div>
-                    </div>
-                </div>
-                <div class="info-row">
-                    <div class="info-item">
-                        <div class="info-label">1 Stake</div>
-                        <div class="info-value money">${d.Amt1 || '-'}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">X Stake</div>
-                        <div class="info-value money">${d.AmtX || '-'}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">2 Stake</div>
-                        <div class="info-value money">${d.Amt2 || '-'}</div>
+                    <div class="info-column">
+                        <div class="column-header">2</div>
+                        <div class="column-value odds">${formatOdds(d.Odds2 || d['2'])}</div>
+                        <div class="column-value money ${c2}">${d.Amt2 || '-'}</div>
+                        <div class="column-value pct ${c2}">${d.Pct2 || '-'}%</div>
                     </div>
                 </div>
-                <div class="info-row">
-                    <div class="info-item">
-                        <div class="info-label">1 %</div>
-                        <div class="info-value pct ${getPctClass(d.Pct1)}">${d.Pct1 || '-'}%</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">X %</div>
-                        <div class="info-value pct ${getPctClass(d.PctX)}">${d.PctX || '-'}%</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">2 %</div>
-                        <div class="info-value pct ${getPctClass(d.Pct2)}">${d.Pct2 || '-'}%</div>
-                    </div>
+                <div class="volume-bar">
+                    <span class="volume-label">Total Volume</span>
+                    <span class="volume-value">${d.Volume || '-'}</span>
                 </div>
             `;
         } else {
             html = `
-                <div class="info-row">
-                    <div class="info-item">
-                        <div class="info-label">1 Odds</div>
-                        <div class="info-value odds">${formatOdds(d.Odds1 || d['1'])}</div>
+                <div class="info-columns">
+                    <div class="info-column">
+                        <div class="column-header">1</div>
+                        <div class="column-value odds">${formatOdds(d.Odds1 || d['1'])}</div>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">X Odds</div>
-                        <div class="info-value odds">${formatOdds(d.OddsX || d['X'])}</div>
+                    <div class="info-column">
+                        <div class="column-header">X</div>
+                        <div class="column-value odds">${formatOdds(d.OddsX || d['X'])}</div>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">2 Odds</div>
-                        <div class="info-value odds">${formatOdds(d.Odds2 || d['2'])}</div>
+                    <div class="info-column">
+                        <div class="column-header">2</div>
+                        <div class="column-value odds">${formatOdds(d.Odds2 || d['2'])}</div>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">Volume</div>
-                        <div class="info-value volume">${d.Volume || '-'}</div>
-                    </div>
+                </div>
+                <div class="volume-bar">
+                    <span class="volume-label">Volume</span>
+                    <span class="volume-value">${d.Volume || '-'}</span>
                 </div>
             `;
         }
     } else if (selectedChartMarket.includes('ou25')) {
         if (isMoneyway) {
+            const cU = getColorClass(d.PctUnder);
+            const cO = getColorClass(d.PctOver);
             html = `
-                <div class="info-row">
-                    <div class="info-item">
-                        <div class="info-label">Under 2.5</div>
-                        <div class="info-value odds">${formatOdds(d.Under)}</div>
+                <div class="info-columns">
+                    <div class="info-column">
+                        <div class="column-header">Under 2.5</div>
+                        <div class="column-value odds">${formatOdds(d.Under)}</div>
+                        <div class="column-value money ${cU}">${d.AmtUnder || '-'}</div>
+                        <div class="column-value pct ${cU}">${d.PctUnder || '-'}%</div>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">Over 2.5</div>
-                        <div class="info-value odds">${formatOdds(d.Over)}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Total Volume</div>
-                        <div class="info-value volume">${d.Volume || '-'}</div>
-                    </div>
-                </div>
-                <div class="info-row">
-                    <div class="info-item">
-                        <div class="info-label">Under Stake</div>
-                        <div class="info-value money">${d.AmtUnder || '-'}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Over Stake</div>
-                        <div class="info-value money">${d.AmtOver || '-'}</div>
+                    <div class="info-column">
+                        <div class="column-header">Over 2.5</div>
+                        <div class="column-value odds">${formatOdds(d.Over)}</div>
+                        <div class="column-value money ${cO}">${d.AmtOver || '-'}</div>
+                        <div class="column-value pct ${cO}">${d.PctOver || '-'}%</div>
                     </div>
                 </div>
-                <div class="info-row">
-                    <div class="info-item">
-                        <div class="info-label">Under %</div>
-                        <div class="info-value pct ${getPctClass(d.PctUnder)}">${d.PctUnder || '-'}%</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Over %</div>
-                        <div class="info-value pct ${getPctClass(d.PctOver)}">${d.PctOver || '-'}%</div>
-                    </div>
+                <div class="volume-bar">
+                    <span class="volume-label">Total Volume</span>
+                    <span class="volume-value">${d.Volume || '-'}</span>
                 </div>
             `;
         } else {
             html = `
-                <div class="info-row">
-                    <div class="info-item">
-                        <div class="info-label">Under 2.5</div>
-                        <div class="info-value odds">${formatOdds(d.Under)}</div>
+                <div class="info-columns">
+                    <div class="info-column">
+                        <div class="column-header">Under 2.5</div>
+                        <div class="column-value odds">${formatOdds(d.Under)}</div>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">Over 2.5</div>
-                        <div class="info-value odds">${formatOdds(d.Over)}</div>
+                    <div class="info-column">
+                        <div class="column-header">Over 2.5</div>
+                        <div class="column-value odds">${formatOdds(d.Over)}</div>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">Volume</div>
-                        <div class="info-value volume">${d.Volume || '-'}</div>
-                    </div>
+                </div>
+                <div class="volume-bar">
+                    <span class="volume-label">Volume</span>
+                    <span class="volume-value">${d.Volume || '-'}</span>
                 </div>
             `;
         }
     } else if (selectedChartMarket.includes('btts')) {
         if (isMoneyway) {
+            const cY = getColorClass(d.PctYes);
+            const cN = getColorClass(d.PctNo);
             html = `
-                <div class="info-row">
-                    <div class="info-item">
-                        <div class="info-label">Yes</div>
-                        <div class="info-value odds">${formatOdds(d.Yes)}</div>
+                <div class="info-columns">
+                    <div class="info-column">
+                        <div class="column-header">Yes</div>
+                        <div class="column-value odds">${formatOdds(d.Yes)}</div>
+                        <div class="column-value money ${cY}">${d.AmtYes || '-'}</div>
+                        <div class="column-value pct ${cY}">${d.PctYes || '-'}%</div>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">No</div>
-                        <div class="info-value odds">${formatOdds(d.No)}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Total Volume</div>
-                        <div class="info-value volume">${d.Volume || '-'}</div>
-                    </div>
-                </div>
-                <div class="info-row">
-                    <div class="info-item">
-                        <div class="info-label">Yes Stake</div>
-                        <div class="info-value money">${d.AmtYes || '-'}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">No Stake</div>
-                        <div class="info-value money">${d.AmtNo || '-'}</div>
+                    <div class="info-column">
+                        <div class="column-header">No</div>
+                        <div class="column-value odds">${formatOdds(d.No)}</div>
+                        <div class="column-value money ${cN}">${d.AmtNo || '-'}</div>
+                        <div class="column-value pct ${cN}">${d.PctNo || '-'}%</div>
                     </div>
                 </div>
-                <div class="info-row">
-                    <div class="info-item">
-                        <div class="info-label">Yes %</div>
-                        <div class="info-value pct ${getPctClass(d.PctYes)}">${d.PctYes || '-'}%</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">No %</div>
-                        <div class="info-value pct ${getPctClass(d.PctNo)}">${d.PctNo || '-'}%</div>
-                    </div>
+                <div class="volume-bar">
+                    <span class="volume-label">Total Volume</span>
+                    <span class="volume-value">${d.Volume || '-'}</span>
                 </div>
             `;
         } else {
             html = `
-                <div class="info-row">
-                    <div class="info-item">
-                        <div class="info-label">Yes</div>
-                        <div class="info-value odds">${formatOdds(d.Yes)}</div>
+                <div class="info-columns">
+                    <div class="info-column">
+                        <div class="column-header">Yes</div>
+                        <div class="column-value odds">${formatOdds(d.Yes)}</div>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">No</div>
-                        <div class="info-value odds">${formatOdds(d.No)}</div>
+                    <div class="info-column">
+                        <div class="column-header">No</div>
+                        <div class="column-value odds">${formatOdds(d.No)}</div>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">Volume</div>
-                        <div class="info-value volume">${d.Volume || '-'}</div>
-                    </div>
+                </div>
+                <div class="volume-bar">
+                    <span class="volume-label">Volume</span>
+                    <span class="volume-value">${d.Volume || '-'}</span>
                 </div>
             `;
         }
     }
     
     card.innerHTML = html;
+}
+
+function getTrendArrow(current, previous) {
+    if (!current || !previous) return '';
+    const curr = parseFloat(String(current).replace(/[^0-9.]/g, ''));
+    const prev = parseFloat(String(previous).replace(/[^0-9.]/g, ''));
+    if (isNaN(curr) || isNaN(prev)) return '';
+    if (curr > prev) return '<span class="trend-up">↑</span>';
+    if (curr < prev) return '<span class="trend-down">↓</span>';
+    return '';
 }
 
 function closeModal() {
