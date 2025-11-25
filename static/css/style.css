@@ -316,12 +316,18 @@ body {
 .matches-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 800px;
+    table-layout: fixed;
+    min-width: 1000px;
 }
 
+.matches-table colgroup col.col-date { width: 100px; }
+.matches-table colgroup col.col-league { width: 130px; }
+.matches-table colgroup col.col-match { width: auto; }
+.matches-table colgroup col.col-selection { width: 120px; }
+.matches-table colgroup col.col-volume { width: 120px; }
+
 .matches-table th {
-    text-align: left;
-    padding: 14px 12px;
+    padding: 14px 16px;
     font-size: 11px;
     font-weight: 700;
     color: #8899a6;
@@ -366,7 +372,7 @@ body {
 }
 
 .matches-table td {
-    padding: 10px 12px;
+    padding: 12px 16px;
     font-size: 13px;
     border-bottom: 1px solid #2f3336;
     vertical-align: middle;
@@ -377,7 +383,7 @@ body {
     transition: background 0.15s;
 }
 
-.matches-table tr:hover {
+.matches-table tbody tr:hover {
     background: #1d2d3a;
 }
 
@@ -386,27 +392,22 @@ body {
 }
 
 .col-date {
-    width: 110px;
-    text-align: center;
+    text-align: left;
 }
 
 .col-league {
-    width: 130px;
-    text-align: center;
+    text-align: left;
 }
 
 .col-match {
-    min-width: 180px;
     text-align: center;
 }
 
 .col-selection {
-    width: 110px;
     text-align: center;
 }
 
 .col-volume {
-    width: 100px;
     text-align: right;
 }
 
@@ -415,8 +416,9 @@ body {
     font-size: 12px;
     font-weight: 500;
     font-family: 'Inter', sans-serif;
-    text-align: center;
+    text-align: left;
     vertical-align: middle;
+    line-height: 1.4;
 }
 
 .match-league {
@@ -427,8 +429,7 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 120px;
-    text-align: center;
+    text-align: left;
     vertical-align: middle;
 }
 
@@ -438,6 +439,16 @@ body {
     font-family: 'Inter', sans-serif;
     letter-spacing: -0.2px;
     text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.match-volume {
+    color: #4ade80;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    text-align: right;
     vertical-align: middle;
 }
 
@@ -449,6 +460,15 @@ body {
 
 .selection-cell {
     text-align: center;
+    vertical-align: middle;
+}
+
+.selection-cell > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
 }
 
 .selection-odds {
@@ -457,6 +477,7 @@ body {
     font-size: 16px;
     font-family: 'Inter', sans-serif;
     letter-spacing: -0.3px;
+    line-height: 1.2;
 }
 
 .selection-odds.drop-odds {
@@ -464,19 +485,20 @@ body {
 }
 
 .selection-money {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
-    margin-top: 2px;
     font-family: 'Inter', sans-serif;
     letter-spacing: -0.2px;
+    line-height: 1.2;
+    color: #8899a6;
 }
 
 .selection-pct {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
-    margin-top: 2px;
     font-family: 'Inter', sans-serif;
     letter-spacing: -0.2px;
+    line-height: 1.2;
 }
 
 .color-normal {

@@ -505,21 +505,21 @@ function renderMatches(data) {
                         <td class="match-date">${match.date || '-'}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="selection-cell">
+                        <td class="selection-cell"><div>
                             <div class="selection-odds">${formatOdds(d.Odds1 || d['1'])}</div>
                             ${d.Amt1 ? `<div class="selection-money ${c1}">${d.Amt1}</div>` : ''}
                             ${d.Pct1 ? `<div class="selection-pct ${c1}">${d.Pct1}%</div>` : ''}
-                        </td>
-                        <td class="selection-cell">
+                        </div></td>
+                        <td class="selection-cell"><div>
                             <div class="selection-odds">${formatOdds(d.OddsX || d['X'])}</div>
                             ${d.AmtX ? `<div class="selection-money ${cX}">${d.AmtX}</div>` : ''}
                             ${d.PctX ? `<div class="selection-pct ${cX}">${d.PctX}%</div>` : ''}
-                        </td>
-                        <td class="selection-cell">
+                        </div></td>
+                        <td class="selection-cell"><div>
                             <div class="selection-odds">${formatOdds(d.Odds2 || d['2'])}</div>
                             ${d.Amt2 ? `<div class="selection-money ${c2}">${d.Amt2}</div>` : ''}
                             ${d.Pct2 ? `<div class="selection-pct ${c2}">${d.Pct2}%</div>` : ''}
-                        </td>
+                        </div></td>
                         <td class="volume-cell">${d.Volume || '-'}</td>
                     </tr>
                 `;
@@ -529,15 +529,15 @@ function renderMatches(data) {
                         <td class="match-date">${match.date || '-'}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="selection-cell">
+                        <td class="selection-cell"><div>
                             <div class="selection-odds drop-odds">${formatOdds(d.Odds1 || d['1'])}${trend1}</div>
-                        </td>
-                        <td class="selection-cell">
+                        </div></td>
+                        <td class="selection-cell"><div>
                             <div class="selection-odds drop-odds">${formatOdds(d.OddsX || d['X'])}${trendX}</div>
-                        </td>
-                        <td class="selection-cell">
+                        </div></td>
+                        <td class="selection-cell"><div>
                             <div class="selection-odds drop-odds">${formatOdds(d.Odds2 || d['2'])}${trend2}</div>
-                        </td>
+                        </div></td>
                         <td class="volume-cell">${d.Volume || '-'}</td>
                     </tr>
                 `;
@@ -554,16 +554,16 @@ function renderMatches(data) {
                         <td class="match-date">${match.date || '-'}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="selection-cell">
+                        <td class="selection-cell"><div>
                             <div class="selection-odds">${formatOdds(d.Under)}</div>
                             ${d.AmtUnder ? `<div class="selection-money ${cU}">${d.AmtUnder}</div>` : ''}
                             ${d.PctUnder ? `<div class="selection-pct ${cU}">${d.PctUnder}%</div>` : ''}
-                        </td>
-                        <td class="selection-cell">
+                        </div></td>
+                        <td class="selection-cell"><div>
                             <div class="selection-odds">${formatOdds(d.Over)}</div>
                             ${d.AmtOver ? `<div class="selection-money ${cO}">${d.AmtOver}</div>` : ''}
                             ${d.PctOver ? `<div class="selection-pct ${cO}">${d.PctOver}%</div>` : ''}
-                        </td>
+                        </div></td>
                         <td class="volume-cell">${d.Volume || '-'}</td>
                     </tr>
                 `;
@@ -573,12 +573,12 @@ function renderMatches(data) {
                         <td class="match-date">${match.date || '-'}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="selection-cell">
+                        <td class="selection-cell"><div>
                             <div class="selection-odds drop-odds">${formatOdds(d.Under)}${trendUnder}</div>
-                        </td>
-                        <td class="selection-cell">
+                        </div></td>
+                        <td class="selection-cell"><div>
                             <div class="selection-odds drop-odds">${formatOdds(d.Over)}${trendOver}</div>
-                        </td>
+                        </div></td>
                         <td class="volume-cell">${d.Volume || '-'}</td>
                     </tr>
                 `;
@@ -595,16 +595,16 @@ function renderMatches(data) {
                         <td class="match-date">${match.date || '-'}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="selection-cell">
+                        <td class="selection-cell"><div>
                             <div class="selection-odds">${formatOdds(d.Yes)}</div>
                             ${d.AmtYes ? `<div class="selection-money ${cY}">${d.AmtYes}</div>` : ''}
                             ${d.PctYes ? `<div class="selection-pct ${cY}">${d.PctYes}%</div>` : ''}
-                        </td>
-                        <td class="selection-cell">
+                        </div></td>
+                        <td class="selection-cell"><div>
                             <div class="selection-odds">${formatOdds(d.No)}</div>
                             ${d.AmtNo ? `<div class="selection-money ${cN}">${d.AmtNo}</div>` : ''}
                             ${d.PctNo ? `<div class="selection-pct ${cN}">${d.PctNo}%</div>` : ''}
-                        </td>
+                        </div></td>
                         <td class="volume-cell">${d.Volume || '-'}</td>
                     </tr>
                 `;
@@ -614,12 +614,12 @@ function renderMatches(data) {
                         <td class="match-date">${match.date || '-'}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="selection-cell">
+                        <td class="selection-cell"><div>
                             <div class="selection-odds drop-odds">${formatOdds(d.Yes)}${trendYes}</div>
-                        </td>
-                        <td class="selection-cell">
+                        </div></td>
+                        <td class="selection-cell"><div>
                             <div class="selection-odds drop-odds">${formatOdds(d.No)}${trendNo}</div>
-                        </td>
+                        </div></td>
                         <td class="volume-cell">${d.Volume || '-'}</td>
                     </tr>
                 `;
