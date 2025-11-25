@@ -1477,8 +1477,8 @@ function generateExportFilename(extension) {
 
 function isEXEEnvironment() {
     return typeof window.pywebview !== 'undefined' || 
-           navigator.userAgent.includes('pywebview') ||
-           !navigator.userAgent.includes('Chrome');
+           window.location.protocol === 'file:' ||
+           navigator.userAgent.toLowerCase().includes('pywebview');
 }
 
 function showExportNotification(message, isError = false) {
@@ -1508,35 +1508,55 @@ function showExportNotification(message, isError = false) {
 }
 
 async function savePNGViaAPI(imageData, filename) {
-    if (isEXEEnvironment()) {
-        try {
-            const response = await fetch('/api/export/png', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: imageData, filename: filename })
-            });
-            const result = await response.json();
-            if (result.success) {
-                showExportNotification(`PNG kaydedildi: ${result.path}`);
-                return true;
-            }
-        } catch (err) {
-            console.error('API save error:', err);
+    console.log('[PNG Export] Starting save, filename:', filename);
+    console.log('[PNG Export] isEXE:', isEXEEnvironment());
+    
+    try {
+        const response = await fetch('/api/export/png', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: imageData, filename: filename })
+        });
+        const result = await response.json();
+        console.log('[PNG Export] API response:', result);
+        
+        if (result.success) {
+            showExportNotification(`PNG kaydedildi: ${result.path}`);
+            return true;
+        } else {
+            console.warn('[PNG Export] API failed:', result.error);
         }
+    } catch (err) {
+        console.error('[PNG Export] API error:', err);
     }
     
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = imageData;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showExportNotification('PNG indirildi');
-    return true;
+    console.log('[PNG Export] Falling back to browser download');
+    try {
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = imageData;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        
+        setTimeout(() => {
+            document.body.removeChild(link);
+        }, 100);
+        
+        showExportNotification('PNG indirildi');
+        return true;
+    } catch (downloadErr) {
+        console.error('[PNG Export] Download error:', downloadErr);
+        showExportNotification('PNG indirme hatası', true);
+        return false;
+    }
 }
 
 function exportChartPNG() {
+    console.log('[PNG Export] exportChartPNG called');
+    
     if (!selectedMatch) {
+        console.error('[PNG Export] No match selected');
         showExportNotification('Maç bulunamadı', true);
         return;
     }
@@ -1558,9 +1578,11 @@ function exportChartPNG() {
     };
     
     const filename = generateExportFilename('png');
+    console.log('[PNG Export] Filename:', filename);
     
     const modalContent = document.querySelector('.modal-content');
     if (!modalContent) {
+        console.error('[PNG Export] Modal content not found');
         showExportNotification('Modal bulunamadı', true);
         resetButton();
         return;
@@ -1609,11 +1631,14 @@ function exportChartPNG() {
     };
     
     if (typeof html2canvas === 'undefined') {
+        console.error('[PNG Export] html2canvas not loaded');
         restoreStyles();
         showExportNotification('PNG kütüphanesi yüklenemedi', true);
         resetButton();
         return;
     }
+    
+    console.log('[PNG Export] html2canvas available, starting capture...');
     
     setTimeout(() => {
         html2canvas(modalContent, {
@@ -1621,16 +1646,18 @@ function exportChartPNG() {
             scale: 2,
             useCORS: true,
             allowTaint: true,
-            logging: false
+            logging: true
         }).then(async canvas => {
+            console.log('[PNG Export] Canvas created, size:', canvas.width, 'x', canvas.height);
             restoreStyles();
             const imageData = canvas.toDataURL('image/png');
+            console.log('[PNG Export] Image data length:', imageData.length);
             await savePNGViaAPI(imageData, filename);
             resetButton();
         }).catch(err => {
             restoreStyles();
-            console.error('html2canvas error:', err);
-            showExportNotification('PNG oluşturma hatası', true);
+            console.error('[PNG Export] html2canvas error:', err);
+            showExportNotification('PNG oluşturma hatası: ' + err.message, true);
             resetButton();
         });
     }, 100);

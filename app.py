@@ -316,13 +316,17 @@ def export_png():
     """Save PNG file for EXE/pywebview environment"""
     import base64
     import re
+    import platform
     
     try:
         data = request.get_json()
         image_data = data.get('image', '')
         filename = data.get('filename', 'SmartXFlow_export.png')
         
+        print(f"[PNG Export] Received request, filename: {filename}")
+        
         if not image_data:
+            print("[PNG Export] Error: No image data")
             return jsonify({'success': False, 'error': 'No image data'})
         
         header_match = re.match(r'data:image/\w+;base64,', image_data)
@@ -330,10 +334,35 @@ def export_png():
             image_data = image_data[header_match.end():]
         
         image_bytes = base64.b64decode(image_data)
+        print(f"[PNG Export] Image size: {len(image_bytes)} bytes")
         
-        downloads_path = os.path.expanduser('~/Downloads')
-        if not os.path.exists(downloads_path):
-            downloads_path = os.path.expanduser('~')
+        downloads_path = None
+        possible_paths = []
+        
+        if platform.system() == 'Windows':
+            possible_paths = [
+                os.path.join(os.environ.get('USERPROFILE', ''), 'Downloads'),
+                os.path.join(os.environ.get('USERPROFILE', ''), 'Desktop'),
+                os.environ.get('USERPROFILE', ''),
+                os.path.join(os.environ.get('HOMEDRIVE', 'C:'), os.environ.get('HOMEPATH', ''), 'Downloads'),
+            ]
+        else:
+            possible_paths = [
+                os.path.expanduser('~/Downloads'),
+                os.path.expanduser('~/Desktop'),
+                os.path.expanduser('~'),
+                '/tmp'
+            ]
+        
+        for path in possible_paths:
+            if path and os.path.exists(path) and os.access(path, os.W_OK):
+                downloads_path = path
+                break
+        
+        if not downloads_path:
+            downloads_path = os.getcwd()
+        
+        print(f"[PNG Export] Save directory: {downloads_path}")
         
         safe_filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
         filepath = os.path.join(downloads_path, safe_filename)
@@ -348,9 +377,13 @@ def export_png():
         with open(filepath, 'wb') as f:
             f.write(image_bytes)
         
+        print(f"[PNG Export] Saved to: {filepath}")
         return jsonify({'success': True, 'path': filepath})
     
     except Exception as e:
+        print(f"[PNG Export] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)})
 
 
