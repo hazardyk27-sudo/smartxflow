@@ -6,6 +6,7 @@ let selectedMatch = null;
 let selectedChartMarket = 'moneyway_1x2';
 let autoScrapeRunning = false;
 let currentSort = 'date_desc';
+let chartVisibleSeries = {};
 
 const demoMatches = {
     'moneyway_1x2': [
@@ -1234,6 +1235,16 @@ async function loadChart(home, away, market) {
         
         const tooltipHistory = historyData;
         
+        renderChartLegendFilters(datasets, market);
+        
+        datasets.forEach((ds, idx) => {
+            const key = `${market}_${ds.label}`;
+            if (chartVisibleSeries[key] === undefined) {
+                chartVisibleSeries[key] = true;
+            }
+            ds.hidden = !chartVisibleSeries[key];
+        });
+        
         chart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -1249,16 +1260,7 @@ async function loadChart(home, away, market) {
                 },
                 plugins: {
                     legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: '#e7e9ea',
-                            usePointStyle: true,
-                            pointStyle: 'circle',
-                            padding: 20,
-                            font: { size: 13, weight: 'bold' },
-                            boxWidth: 14,
-                            boxHeight: 14
-                        }
+                        display: false
                     },
                     tooltip: {
                         backgroundColor: '#1f2937',
@@ -1393,6 +1395,81 @@ async function loadChart(home, away, market) {
         });
     } catch (error) {
         console.error('Error loading chart:', error);
+    }
+}
+
+function renderChartLegendFilters(datasets, market) {
+    const container = document.getElementById('chartLegendFilters');
+    if (!container) return;
+    
+    const legendLabels = {
+        'moneyway_1x2': [
+            { key: '1', label: '1', color: '#3b82f6' },
+            { key: 'X', label: 'X', color: '#22c55e' },
+            { key: '2', label: '2', color: '#eab308' }
+        ],
+        'moneyway_ou25': [
+            { key: 'Under', label: 'Under 2.5', color: '#3b82f6' },
+            { key: 'Over', label: 'Over 2.5', color: '#22c55e' }
+        ],
+        'moneyway_btts': [
+            { key: 'Yes', label: 'BTTS Yes', color: '#22c55e' },
+            { key: 'No', label: 'BTTS No', color: '#ef4444' }
+        ],
+        'dropping_1x2': [
+            { key: '1', label: '1', color: '#3b82f6' },
+            { key: 'X', label: 'X', color: '#22c55e' },
+            { key: '2', label: '2', color: '#eab308' }
+        ],
+        'dropping_ou25': [
+            { key: 'Under', label: 'Under 2.5', color: '#3b82f6' },
+            { key: 'Over', label: 'Over 2.5', color: '#22c55e' }
+        ],
+        'dropping_btts': [
+            { key: 'Yes', label: 'BTTS Yes', color: '#22c55e' },
+            { key: 'No', label: 'BTTS No', color: '#ef4444' }
+        ]
+    };
+    
+    const items = legendLabels[market] || [];
+    
+    container.innerHTML = items.map(item => {
+        const stateKey = `${market}_${item.key}`;
+        const isActive = chartVisibleSeries[stateKey] !== false;
+        const activeClass = isActive ? 'active' : 'inactive';
+        
+        return `
+            <button class="chart-legend-btn ${activeClass}" 
+                    style="--legend-color: ${item.color};"
+                    onclick="toggleChartSeries('${market}', '${item.key}', this)">
+                <span class="legend-color-dot"></span>
+                <span>${item.label}</span>
+            </button>
+        `;
+    }).join('');
+}
+
+function toggleChartSeries(market, seriesKey, btn) {
+    const stateKey = `${market}_${seriesKey}`;
+    
+    chartVisibleSeries[stateKey] = !chartVisibleSeries[stateKey];
+    
+    if (btn) {
+        if (chartVisibleSeries[stateKey]) {
+            btn.classList.remove('inactive');
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+            btn.classList.add('inactive');
+        }
+    }
+    
+    if (chart) {
+        const datasetIndex = chart.data.datasets.findIndex(ds => ds.label === seriesKey);
+        if (datasetIndex !== -1) {
+            chart.data.datasets[datasetIndex].hidden = !chartVisibleSeries[stateKey];
+            chart.update();
+        }
     }
 }
 
