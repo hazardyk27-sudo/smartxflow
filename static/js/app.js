@@ -1426,6 +1426,7 @@ function exportChartPNG() {
     if (!chart || !selectedMatch) return;
     
     const modalContent = document.querySelector('.modal-content');
+    const modalBody = document.querySelector('.modal-body');
     if (!modalContent) return;
     
     const exportBtn = document.querySelector('.chart-export-btn');
@@ -1434,44 +1435,86 @@ function exportChartPNG() {
     const closeBtn = document.querySelector('.modal-close');
     if (closeBtn) closeBtn.style.display = 'none';
     
-    html2canvas(modalContent, {
-        backgroundColor: '#161b22',
-        scale: 2,
-        logging: false,
-        useCORS: true,
-        allowTaint: true
-    }).then(canvas => {
-        if (closeBtn) closeBtn.style.display = '';
-        
-        const link = document.createElement('a');
-        link.download = generateExportFilename('png');
-        link.href = canvas.toDataURL('image/png', 1.0);
-        link.click();
-        
-        if (exportBtn) {
-            exportBtn.innerHTML = `
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                    <polyline points="21 15 16 10 5 21"/>
-                </svg>
-                PNG
-            `;
+    const originalStyles = {
+        modalContent: {
+            maxHeight: modalContent.style.maxHeight,
+            height: modalContent.style.height,
+            overflow: modalContent.style.overflow
+        },
+        modalBody: modalBody ? {
+            maxHeight: modalBody.style.maxHeight,
+            height: modalBody.style.height,
+            overflow: modalBody.style.overflow
+        } : null
+    };
+    
+    const fullHeight = modalContent.scrollHeight;
+    modalContent.style.maxHeight = 'none';
+    modalContent.style.height = fullHeight + 'px';
+    modalContent.style.overflow = 'visible';
+    
+    if (modalBody) {
+        modalBody.style.maxHeight = 'none';
+        modalBody.style.height = 'auto';
+        modalBody.style.overflow = 'visible';
+    }
+    
+    const restoreStyles = () => {
+        modalContent.style.maxHeight = originalStyles.modalContent.maxHeight;
+        modalContent.style.height = originalStyles.modalContent.height;
+        modalContent.style.overflow = originalStyles.modalContent.overflow;
+        if (modalBody && originalStyles.modalBody) {
+            modalBody.style.maxHeight = originalStyles.modalBody.maxHeight;
+            modalBody.style.height = originalStyles.modalBody.height;
+            modalBody.style.overflow = originalStyles.modalBody.overflow;
         }
-    }).catch(err => {
         if (closeBtn) closeBtn.style.display = '';
-        console.error('PNG export error:', err);
-        if (exportBtn) {
-            exportBtn.innerHTML = `
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                    <polyline points="21 15 16 10 5 21"/>
-                </svg>
-                PNG
-            `;
-        }
-    });
+    };
+    
+    setTimeout(() => {
+        html2canvas(modalContent, {
+            backgroundColor: '#161b22',
+            scale: 2,
+            logging: false,
+            useCORS: true,
+            allowTaint: true,
+            height: modalContent.scrollHeight,
+            windowHeight: modalContent.scrollHeight,
+            scrollY: 0,
+            scrollX: 0
+        }).then(canvas => {
+            restoreStyles();
+            
+            const link = document.createElement('a');
+            link.download = generateExportFilename('png');
+            link.href = canvas.toDataURL('image/png', 1.0);
+            link.click();
+            
+            if (exportBtn) {
+                exportBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    PNG
+                `;
+            }
+        }).catch(err => {
+            restoreStyles();
+            console.error('PNG export error:', err);
+            if (exportBtn) {
+                exportBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    PNG
+                `;
+            }
+        });
+    }, 100);
 }
 
 function exportChartCSV() {
