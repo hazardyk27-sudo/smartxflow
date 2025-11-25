@@ -28,14 +28,14 @@ jobs:
 
       - name: Create embedded config
         run: |
-          echo "# Auto-generated config" > embedded_config.py
-          echo "EMBEDDED_COOKIE = ''" >> embedded_config.py
-          echo "EMBEDDED_SUPABASE_URL = ''" >> embedded_config.py
-          echo "EMBEDDED_SUPABASE_KEY = ''" >> embedded_config.py
+          echo # Auto-generated config > embedded_config.py
+          echo EMBEDDED_COOKIE = '' >> embedded_config.py
+          echo EMBEDDED_SUPABASE_URL = '' >> embedded_config.py
+          echo EMBEDDED_SUPABASE_KEY = '' >> embedded_config.py
         shell: cmd
 
       - name: Build with PyInstaller
-        run: pyinstaller --onefile --noconsole --name SmartXFlow --add-data "scraper;scraper" --add-data "core;core" --add-data "embedded_config.py;." main.py
+        run: pyinstaller --onefile --name SmartXFlow --add-data "scraper;scraper" --add-data "core;core" --add-data "services;services" --add-data "templates;templates" --add-data "static;static" --add-data "embedded_config.py;." --hidden-import=flask --hidden-import=jinja2 main.py
         shell: cmd
 
       - name: List output
