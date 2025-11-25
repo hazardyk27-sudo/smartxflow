@@ -54,6 +54,20 @@
         </div>
     </header>
 
+    <div class="smart-money-ticker" id="smartMoneyTicker">
+        <div class="ticker-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+            <span>Smart Money</span>
+        </div>
+        <div class="ticker-wrapper">
+            <div class="ticker-content" id="tickerContent">
+                <div class="ticker-empty">Alarm analizi yapılıyor...</div>
+            </div>
+        </div>
+    </div>
+
     <nav class="market-tabs">
         <button class="tab active" data-market="moneyway_1x2">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -172,6 +186,18 @@
             
             <div class="modal-body">
                 <div class="match-info-card" id="matchInfoCard"></div>
+                
+                <div class="smart-money-events" id="smartMoneyEvents">
+                    <div class="events-header">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                        </svg>
+                        <span>Smart Money Events</span>
+                    </div>
+                    <div class="events-content" id="matchAlarmsContainer">
+                        <div class="no-alarms">Alarm analizi yapılıyor...</div>
+                    </div>
+                </div>
                 
                 <div class="chart-tabs" id="modalChartTabs">
                     <button class="chart-tab active" data-market="moneyway_1x2">Moneyway 1X2</button>

@@ -118,8 +118,34 @@ CREATE TABLE market_snapshots (
 - **PNG Export:** html2canvas ile tüm modal sayfası (bilgiler + grafik) indirilir
 - **Volume Format:** £ sembolü + binlik ayraç (£32,218 formatında)
 - **Grafik Ölçekleme:** 5dk/10dk/30dk/1saat/6saat/12saat/1gün bucket aralıkları (veri filtrelemez, sadece ölçekler)
+- **View Mode Toggle:** Moneyway grafiklerde "% Yüzde" / "£ Para" seçimi (Pct vs Amt verileri)
+
+## Smart Money Alarm Sistemi
+
+### 6 Alarm Türü (Öncelik Sırasına Göre)
+1. 🔴 **Reverse Line Move (RLM)** - Para ↑ ama oran ↑ → ters hareket
+2. 🟢 **Sharp Move** - Para ↑ ve oran ↓ → profesyonel para akışı
+3. ⚠ **Big Money Move** - totalDiff ≥ £3000 veya tek taraf ≥ £1500
+4. 🔵 **Line Freeze** - Para ↑ ama oran uzun süre hareket etmiyor
+5. 🟡 **Public Money Surge** - Para ↑ ama oran flat → halk yüklenmesi
+6. 🟣 **Momentum Spike** - Art arda aynı yöne para akışı
+
+### Smart Money Ticker
+- Ekranın üstünde tam genişlikte borsa bandı
+- Sağdan sola kesintisiz animasyon
+- Hover → animasyon durur
+- Tıkla → maç modal'ı açılır
+- Max 15 aktif alarm gösterilir
+
+### Maç Modal - Smart Money Events
+- Modal'da "Smart Money Events" bölümü
+- Her alarm için: ikon, isim, detay, açıklama
 
 ## Son Guncellemeler
+- **26 Kasim 2025:** Smart Money Alarm Sistemi - 6 alarm türü
+- **26 Kasim 2025:** Smart Money Ticker - borsa bandı animasyonlu
+- **26 Kasim 2025:** Maç modal Smart Money Events bölümü
+- **26 Kasim 2025:** Moneyway grafik View Mode Toggle (% Yüzde / £ Para)
 - **25 Kasim 2025:** Modal stake/% verileri API'den yükleniyor (modalOddsData)
 - **25 Kasim 2025:** Tablo sıralama düzeltildi (parseOddsValue ile sayısal sıralama)
 - **25 Kasim 2025:** Günün Maçları filtresi tarih formatları genişletildi

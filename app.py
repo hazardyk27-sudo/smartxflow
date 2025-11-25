@@ -12,6 +12,7 @@ from flask import Flask, render_template, jsonify, request
 
 from scraper.core import run_scraper, get_cookie_string
 from services.supabase_client import LocalDatabase
+from core.alarms import analyze_match_alarms, format_alarm_for_ticker, format_alarm_for_modal, ALARM_TYPES
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SESSION_SECRET', 'smartxflow-secret-key')
@@ -420,6 +421,70 @@ def export_png():
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/alarms')
+def get_all_alarms():
+    """Get all active alarms for ticker"""
+    try:
+        all_alarms = []
+        matches = db.get_all_matches()
+        
+        markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
+        
+        for m in matches:
+            home = m.get('home_team', '')
+            away = m.get('away_team', '')
+            
+            for market in markets:
+                history = db.get_match_history(home, away, market)
+                if len(history) >= 2:
+                    alarms = analyze_match_alarms(history, market)
+                    for alarm in alarms:
+                        formatted = format_alarm_for_ticker(alarm, home, away)
+                        formatted['market'] = market
+                        formatted['match_id'] = f"{home}_{away}"
+                        all_alarms.append(formatted)
+        
+        all_alarms.sort(key=lambda x: x.get('priority', 99))
+        
+        return jsonify({
+            'alarms': all_alarms[:15],
+            'total': len(all_alarms)
+        })
+    except Exception as e:
+        print(f"[Alarms API] Error: {e}")
+        return jsonify({'alarms': [], 'total': 0, 'error': str(e)})
+
+
+@app.route('/api/match/alarms')
+def get_match_alarms():
+    """Get alarms for a specific match"""
+    home = request.args.get('home', '')
+    away = request.args.get('away', '')
+    
+    try:
+        all_alarms = []
+        markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
+        
+        for market in markets:
+            history = db.get_match_history(home, away, market)
+            if len(history) >= 2:
+                alarms = analyze_match_alarms(history, market)
+                for alarm in alarms:
+                    formatted = format_alarm_for_modal(alarm)
+                    formatted['market'] = market
+                    all_alarms.append(formatted)
+        
+        all_alarms.sort(key=lambda x: x.get('priority', 99))
+        
+        return jsonify({
+            'alarms': all_alarms,
+            'alarm_types': ALARM_TYPES
+        })
+    except Exception as e:
+        print(f"[Match Alarms API] Error: {e}")
+        return jsonify({'alarms': [], 'error': str(e)})
 
 
 if __name__ == '__main__':

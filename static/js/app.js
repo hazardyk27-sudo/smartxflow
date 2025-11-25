@@ -20,7 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSearch();
     setupModalChartTabs();
     checkStatus();
+    loadSmartMoneyTicker();
     window.statusInterval = window.setInterval(checkStatus, 3000);
+    window.tickerInterval = window.setInterval(loadSmartMoneyTicker, 30000);
 });
 
 function setupTabs() {
@@ -656,6 +658,7 @@ function openMatchModal(index) {
         
         document.getElementById('modalOverlay').classList.add('active');
         loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
+        loadMatchAlarms(selectedMatch.home_team, selectedMatch.away_team);
     }
 }
 
@@ -2170,3 +2173,79 @@ document.addEventListener('keydown', (e) => {
         closeModal();
     }
 });
+
+async function loadSmartMoneyTicker() {
+    try {
+        const response = await fetch('/api/alarms');
+        const data = await response.json();
+        
+        const tickerContent = document.getElementById('tickerContent');
+        if (!tickerContent) return;
+        
+        if (!data.alarms || data.alarms.length === 0) {
+            tickerContent.innerHTML = '<div class="ticker-empty">Aktif alarm yok</div>';
+            return;
+        }
+        
+        const items = data.alarms.map(alarm => `
+            <div class="ticker-item" 
+                 style="--alarm-color: ${alarm.color};"
+                 onclick="openMatchModalByTeams('${alarm.home}', '${alarm.away}')">
+                <span class="ticker-icon">${alarm.icon}</span>
+                <span class="ticker-type">${alarm.name}</span>
+                <span class="ticker-divider">|</span>
+                <span class="ticker-match">${alarm.home} – ${alarm.away}</span>
+                ${alarm.money_text ? `<span class="ticker-divider">|</span><span class="ticker-money">${alarm.money_text}</span>` : ''}
+            </div>
+        `).join('');
+        
+        tickerContent.innerHTML = items + items;
+        
+        tickerContent.style.animation = 'none';
+        tickerContent.offsetHeight;
+        const duration = Math.max(25, data.alarms.length * 4);
+        tickerContent.style.animation = `ticker-scroll ${duration}s linear infinite`;
+        
+    } catch (error) {
+        console.error('[Ticker] Error:', error);
+    }
+}
+
+function openMatchModalByTeams(home, away) {
+    const match = matches.find(m => m.home_team === home && m.away_team === away);
+    if (match) {
+        openMatchModal(match);
+    }
+}
+
+async function loadMatchAlarms(home, away) {
+    try {
+        const response = await fetch(`/api/match/alarms?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}`);
+        const data = await response.json();
+        
+        const container = document.getElementById('matchAlarmsContainer');
+        if (!container) return;
+        
+        if (!data.alarms || data.alarms.length === 0) {
+            container.innerHTML = '<div class="no-alarms">Bu maç için aktif alarm yok</div>';
+            return;
+        }
+        
+        const alarmsHtml = data.alarms.map(alarm => `
+            <div class="alarm-card" style="--alarm-color: ${alarm.color};">
+                <div class="alarm-header">
+                    <span class="alarm-icon">${alarm.icon}</span>
+                    <span class="alarm-name">${alarm.name}</span>
+                    <span class="alarm-side">${alarm.side || ''}</span>
+                </div>
+                <div class="alarm-detail">${alarm.detail}</div>
+                <div class="alarm-description">${alarm.description}</div>
+            </div>
+        `).join('');
+        
+        container.innerHTML = alarmsHtml;
+        
+    } catch (error) {
+        console.error('[Match Alarms] Error:', error);
+    }
+}

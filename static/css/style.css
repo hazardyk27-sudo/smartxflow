@@ -1174,3 +1174,201 @@ body {
         min-width: 80px;
     }
 }
+
+.smart-money-ticker {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(90deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
+    border-bottom: 1px solid #30363d;
+    height: 40px;
+    overflow: hidden;
+}
+
+.ticker-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 16px;
+    background: #21262d;
+    height: 100%;
+    border-right: 1px solid #30363d;
+    color: #f0883e;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.ticker-label svg {
+    stroke: #f0883e;
+}
+
+.ticker-wrapper {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    mask-image: linear-gradient(90deg, transparent 0%, black 5%, black 95%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 5%, black 95%, transparent 100%);
+}
+
+.ticker-content {
+    display: flex;
+    gap: 40px;
+    padding: 0 20px;
+    white-space: nowrap;
+    animation: ticker-scroll 30s linear infinite;
+}
+
+.ticker-content:hover {
+    animation-play-state: paused;
+}
+
+@keyframes ticker-scroll {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+.ticker-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--alarm-color, #30363d);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.ticker-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--alarm-color, #58a6ff);
+    transform: scale(1.02);
+}
+
+.ticker-icon {
+    font-size: 14px;
+}
+
+.ticker-type {
+    color: var(--alarm-color, #c9d1d9);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.ticker-divider {
+    color: #30363d;
+    font-size: 10px;
+}
+
+.ticker-match {
+    color: #c9d1d9;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.ticker-money {
+    color: #4ade80;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.ticker-empty {
+    color: #8b949e;
+    font-size: 12px;
+    padding: 0 20px;
+}
+
+.smart-money-events {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+.events-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #21262d;
+    border-bottom: 1px solid #30363d;
+    color: #f0883e;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.events-header svg {
+    stroke: #f0883e;
+}
+
+.events-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 14px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.no-alarms {
+    color: #8b949e;
+    font-size: 12px;
+    padding: 8px 0;
+}
+
+.alarm-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--alarm-color, #30363d);
+    border-radius: 8px;
+    padding: 10px 12px;
+    min-width: 180px;
+    max-width: 250px;
+    flex: 1;
+}
+
+.alarm-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.alarm-icon {
+    font-size: 14px;
+}
+
+.alarm-name {
+    color: var(--alarm-color, #c9d1d9);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.alarm-side {
+    color: #8b949e;
+    font-size: 10px;
+    margin-left: auto;
+    padding: 2px 6px;
+    background: #21262d;
+    border-radius: 4px;
+}
+
+.alarm-detail {
+    color: #c9d1d9;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.alarm-description {
+    color: #8b949e;
+    font-size: 11px;
+    line-height: 1.4;
+}
