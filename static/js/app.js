@@ -117,6 +117,15 @@ function updateTableHeaders() {
     }
 }
 
+function getPctClass(pctValue) {
+    const num = parseFloat(String(pctValue).replace(/[^0-9.]/g, ''));
+    if (isNaN(num)) return 'pct-normal';
+    if (num >= 90) return 'pct-red';
+    if (num >= 70) return 'pct-orange';
+    if (num >= 50) return 'pct-yellow';
+    return 'pct-normal';
+}
+
 function renderMatches(data) {
     const tbody = document.getElementById('matchesTableBody');
     const countEl = document.getElementById('matchCount');
@@ -158,17 +167,17 @@ function renderMatches(data) {
                     <td class="selection-cell">
                         <div class="selection-odds">${formatOdds(d.Odds1 || d['1'] || match.odds?.['1'])}</div>
                         ${d.Amt1 ? `<div class="selection-money">${d.Amt1}</div>` : ''}
-                        ${d.Pct1 ? `<div class="selection-pct">${d.Pct1}%</div>` : ''}
+                        ${d.Pct1 ? `<div class="selection-pct ${getPctClass(d.Pct1)}">${d.Pct1}%</div>` : ''}
                     </td>
                     <td class="selection-cell">
                         <div class="selection-odds">${formatOdds(d.OddsX || d['X'] || match.odds?.['X'])}</div>
                         ${d.AmtX ? `<div class="selection-money">${d.AmtX}</div>` : ''}
-                        ${d.PctX ? `<div class="selection-pct">${d.PctX}%</div>` : ''}
+                        ${d.PctX ? `<div class="selection-pct ${getPctClass(d.PctX)}">${d.PctX}%</div>` : ''}
                     </td>
                     <td class="selection-cell">
                         <div class="selection-odds">${formatOdds(d.Odds2 || d['2'] || match.odds?.['2'])}</div>
                         ${d.Amt2 ? `<div class="selection-money">${d.Amt2}</div>` : ''}
-                        ${d.Pct2 ? `<div class="selection-pct">${d.Pct2}%</div>` : ''}
+                        ${d.Pct2 ? `<div class="selection-pct ${getPctClass(d.Pct2)}">${d.Pct2}%</div>` : ''}
                     </td>
                     <td class="volume-cell">${d.Volume || '-'}</td>
                 </tr>
@@ -182,12 +191,12 @@ function renderMatches(data) {
                     <td class="selection-cell">
                         <div class="selection-odds">${formatOdds(d.Under || match.odds?.Under)}</div>
                         ${d.AmtUnder ? `<div class="selection-money">${d.AmtUnder}</div>` : ''}
-                        ${d.PctUnder ? `<div class="selection-pct">${d.PctUnder}%</div>` : ''}
+                        ${d.PctUnder ? `<div class="selection-pct ${getPctClass(d.PctUnder)}">${d.PctUnder}%</div>` : ''}
                     </td>
                     <td class="selection-cell">
                         <div class="selection-odds">${formatOdds(d.Over || match.odds?.Over)}</div>
                         ${d.AmtOver ? `<div class="selection-money">${d.AmtOver}</div>` : ''}
-                        ${d.PctOver ? `<div class="selection-pct">${d.PctOver}%</div>` : ''}
+                        ${d.PctOver ? `<div class="selection-pct ${getPctClass(d.PctOver)}">${d.PctOver}%</div>` : ''}
                     </td>
                     <td class="volume-cell">${d.Volume || '-'}</td>
                 </tr>
@@ -201,12 +210,12 @@ function renderMatches(data) {
                     <td class="selection-cell">
                         <div class="selection-odds">${formatOdds(d.Yes || match.odds?.Yes)}</div>
                         ${d.AmtYes ? `<div class="selection-money">${d.AmtYes}</div>` : ''}
-                        ${d.PctYes ? `<div class="selection-pct">${d.PctYes}%</div>` : ''}
+                        ${d.PctYes ? `<div class="selection-pct ${getPctClass(d.PctYes)}">${d.PctYes}%</div>` : ''}
                     </td>
                     <td class="selection-cell">
                         <div class="selection-odds">${formatOdds(d.No || match.odds?.No)}</div>
                         ${d.AmtNo ? `<div class="selection-money">${d.AmtNo}</div>` : ''}
-                        ${d.PctNo ? `<div class="selection-pct">${d.PctNo}%</div>` : ''}
+                        ${d.PctNo ? `<div class="selection-pct ${getPctClass(d.PctNo)}">${d.PctNo}%</div>` : ''}
                     </td>
                     <td class="volume-cell">${d.Volume || '-'}</td>
                 </tr>
@@ -304,6 +313,20 @@ function selectMatch(index) {
     }
 }
 
+function roundTo10Min(timestamp) {
+    const date = new Date(timestamp);
+    const minutes = date.getMinutes();
+    const roundedMinutes = Math.floor(minutes / 10) * 10;
+    date.setMinutes(roundedMinutes, 0, 0);
+    return date;
+}
+
+function formatTimeLabel(date) {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
 async function loadChart(home, away, market) {
     try {
         const response = await fetch(
@@ -316,8 +339,9 @@ async function loadChart(home, away, market) {
         }
         
         const ctx = document.getElementById('oddsChart').getContext('2d');
+        const isMoneyway = market.startsWith('moneyway');
         
-        if (!data.chart_data.labels.length) {
+        if (!data.history || data.history.length === 0) {
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -331,17 +355,190 @@ async function loadChart(home, away, market) {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    }
+                    plugins: { legend: { display: false } }
                 }
             });
             return;
         }
         
+        const timeBlocks = {};
+        data.history.forEach(h => {
+            const ts = h.ScrapedAt || '';
+            let date;
+            try {
+                date = new Date(ts);
+            } catch {
+                date = new Date();
+            }
+            const rounded = roundTo10Min(date);
+            const key = rounded.getTime();
+            timeBlocks[key] = h;
+        });
+        
+        const sortedKeys = Object.keys(timeBlocks).map(Number).sort((a, b) => a - b);
+        const labels = sortedKeys.map(k => formatTimeLabel(new Date(k)));
+        const historyData = sortedKeys.map(k => timeBlocks[k]);
+        
+        let datasets = [];
+        const colors = {
+            '1': '#4ade80',
+            'X': '#fbbf24', 
+            '2': '#60a5fa',
+            'Under': '#60a5fa',
+            'Over': '#4ade80',
+            'Yes': '#4ade80',
+            'No': '#f87171'
+        };
+        
+        if (market.includes('1x2')) {
+            if (isMoneyway) {
+                ['Pct1', 'PctX', 'Pct2'].forEach((key, idx) => {
+                    const label = ['1%', 'X%', '2%'][idx];
+                    const color = [colors['1'], colors['X'], colors['2']][idx];
+                    datasets.push({
+                        label: label,
+                        data: historyData.map(h => {
+                            const val = h[key];
+                            return val ? parseFloat(String(val).replace(/[^0-9.]/g, '')) : null;
+                        }),
+                        borderColor: color,
+                        backgroundColor: color,
+                        tension: 0.3,
+                        fill: false,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: color,
+                        pointBorderColor: color,
+                        pointStyle: 'circle'
+                    });
+                });
+            } else {
+                ['Odds1', 'OddsX', 'Odds2'].forEach((key, idx) => {
+                    const altKey = ['1', 'X', '2'][idx];
+                    const label = ['1', 'X', '2'][idx];
+                    const color = [colors['1'], colors['X'], colors['2']][idx];
+                    datasets.push({
+                        label: label,
+                        data: historyData.map(h => {
+                            const val = h[key] || h[altKey];
+                            if (!val) return null;
+                            const num = parseFloat(String(val).split('\n')[0]);
+                            return isNaN(num) ? null : num;
+                        }),
+                        borderColor: color,
+                        backgroundColor: color,
+                        tension: 0.3,
+                        fill: false,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: color,
+                        pointBorderColor: color,
+                        pointStyle: 'circle'
+                    });
+                });
+            }
+        } else if (market.includes('ou25')) {
+            if (isMoneyway) {
+                ['PctUnder', 'PctOver'].forEach((key, idx) => {
+                    const label = ['Under%', 'Over%'][idx];
+                    const color = [colors['Under'], colors['Over']][idx];
+                    datasets.push({
+                        label: label,
+                        data: historyData.map(h => {
+                            const val = h[key];
+                            return val ? parseFloat(String(val).replace(/[^0-9.]/g, '')) : null;
+                        }),
+                        borderColor: color,
+                        backgroundColor: color,
+                        tension: 0.3,
+                        fill: false,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: color,
+                        pointBorderColor: color,
+                        pointStyle: 'circle'
+                    });
+                });
+            } else {
+                ['Under', 'Over'].forEach((key, idx) => {
+                    const label = key;
+                    const color = colors[key];
+                    datasets.push({
+                        label: label,
+                        data: historyData.map(h => {
+                            const val = h[key];
+                            if (!val) return null;
+                            const num = parseFloat(String(val).split('\n')[0]);
+                            return isNaN(num) ? null : num;
+                        }),
+                        borderColor: color,
+                        backgroundColor: color,
+                        tension: 0.3,
+                        fill: false,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: color,
+                        pointBorderColor: color,
+                        pointStyle: 'circle'
+                    });
+                });
+            }
+        } else if (market.includes('btts')) {
+            if (isMoneyway) {
+                ['PctYes', 'PctNo'].forEach((key, idx) => {
+                    const label = ['Yes%', 'No%'][idx];
+                    const color = [colors['Yes'], colors['No']][idx];
+                    datasets.push({
+                        label: label,
+                        data: historyData.map(h => {
+                            const val = h[key];
+                            return val ? parseFloat(String(val).replace(/[^0-9.]/g, '')) : null;
+                        }),
+                        borderColor: color,
+                        backgroundColor: color,
+                        tension: 0.3,
+                        fill: false,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: color,
+                        pointBorderColor: color,
+                        pointStyle: 'circle'
+                    });
+                });
+            } else {
+                ['Yes', 'No'].forEach((key, idx) => {
+                    const label = key;
+                    const color = colors[key];
+                    datasets.push({
+                        label: label,
+                        data: historyData.map(h => {
+                            const val = h[key];
+                            if (!val) return null;
+                            const num = parseFloat(String(val).split('\n')[0]);
+                            return isNaN(num) ? null : num;
+                        }),
+                        borderColor: color,
+                        backgroundColor: color,
+                        tension: 0.3,
+                        fill: false,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: color,
+                        pointBorderColor: color,
+                        pointStyle: 'circle'
+                    });
+                });
+            }
+        }
+        
+        const tooltipData = historyData;
+        
         chart = new Chart(ctx, {
             type: 'line',
-            data: data.chart_data,
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -353,21 +550,90 @@ async function loadChart(home, away, market) {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            color: '#9ca3af',
+                            color: '#e7e9ea',
                             usePointStyle: true,
                             pointStyle: 'circle',
                             padding: 15,
-                            font: { size: 11 }
+                            font: { size: 12, weight: 'bold' },
+                            boxWidth: 12,
+                            boxHeight: 12
                         }
                     },
                     tooltip: {
                         backgroundColor: '#1f2937',
                         titleColor: '#fff',
-                        bodyColor: '#d1d5db',
+                        titleFont: { size: 13, weight: 'bold' },
+                        bodyColor: '#e7e9ea',
+                        bodyFont: { size: 12 },
                         borderColor: '#374151',
                         borderWidth: 1,
-                        padding: 10,
-                        displayColors: true
+                        padding: 12,
+                        displayColors: true,
+                        boxWidth: 12,
+                        boxHeight: 12,
+                        boxPadding: 4,
+                        callbacks: {
+                            label: function(context) {
+                                const idx = context.dataIndex;
+                                const h = tooltipData[idx];
+                                if (!h) return context.dataset.label + ': ' + context.formattedValue;
+                                
+                                const datasetLabel = context.dataset.label;
+                                let lines = [];
+                                
+                                if (market.includes('1x2')) {
+                                    if (datasetLabel.includes('1')) {
+                                        const odds = h.Odds1 || h['1'] || '-';
+                                        const amt = h.Amt1 || '';
+                                        const pct = h.Pct1 || '';
+                                        lines.push(`1 • ${formatOdds(odds)}`);
+                                        if (amt) lines.push(`${amt}  —  ${pct}%`);
+                                    } else if (datasetLabel.includes('X')) {
+                                        const odds = h.OddsX || h['X'] || '-';
+                                        const amt = h.AmtX || '';
+                                        const pct = h.PctX || '';
+                                        lines.push(`X • ${formatOdds(odds)}`);
+                                        if (amt) lines.push(`${amt}  —  ${pct}%`);
+                                    } else if (datasetLabel.includes('2')) {
+                                        const odds = h.Odds2 || h['2'] || '-';
+                                        const amt = h.Amt2 || '';
+                                        const pct = h.Pct2 || '';
+                                        lines.push(`2 • ${formatOdds(odds)}`);
+                                        if (amt) lines.push(`${amt}  —  ${pct}%`);
+                                    }
+                                } else if (market.includes('ou25')) {
+                                    if (datasetLabel.toLowerCase().includes('under')) {
+                                        const odds = h.Under || '-';
+                                        const amt = h.AmtUnder || '';
+                                        const pct = h.PctUnder || '';
+                                        lines.push(`Under • ${formatOdds(odds)}`);
+                                        if (amt) lines.push(`${amt}  —  ${pct}%`);
+                                    } else {
+                                        const odds = h.Over || '-';
+                                        const amt = h.AmtOver || '';
+                                        const pct = h.PctOver || '';
+                                        lines.push(`Over • ${formatOdds(odds)}`);
+                                        if (amt) lines.push(`${amt}  —  ${pct}%`);
+                                    }
+                                } else if (market.includes('btts')) {
+                                    if (datasetLabel.toLowerCase().includes('yes')) {
+                                        const odds = h.Yes || '-';
+                                        const amt = h.AmtYes || '';
+                                        const pct = h.PctYes || '';
+                                        lines.push(`Yes • ${formatOdds(odds)}`);
+                                        if (amt) lines.push(`${amt}  —  ${pct}%`);
+                                    } else {
+                                        const odds = h.No || '-';
+                                        const amt = h.AmtNo || '';
+                                        const pct = h.PctNo || '';
+                                        lines.push(`No • ${formatOdds(odds)}`);
+                                        if (amt) lines.push(`${amt}  —  ${pct}%`);
+                                    }
+                                }
+                                
+                                return lines.length > 0 ? lines : [context.dataset.label + ': ' + context.formattedValue];
+                            }
+                        }
                     }
                 },
                 scales: {
@@ -378,7 +644,7 @@ async function loadChart(home, away, market) {
                         },
                         ticks: {
                             color: '#8899a6',
-                            font: { size: 10 }
+                            font: { size: 11 }
                         }
                     },
                     y: {
@@ -388,17 +654,18 @@ async function loadChart(home, away, market) {
                         },
                         ticks: {
                             color: '#8899a6',
-                            font: { size: 10 }
+                            font: { size: 11 }
                         }
                     }
                 },
                 elements: {
                     point: {
-                        radius: 3,
-                        hoverRadius: 5
+                        radius: 5,
+                        hoverRadius: 8,
+                        borderWidth: 0
                     },
                     line: {
-                        borderWidth: 2
+                        borderWidth: 3
                     }
                 }
             }
