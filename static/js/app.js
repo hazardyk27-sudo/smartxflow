@@ -7,11 +7,261 @@ let selectedChartMarket = 'moneyway_1x2';
 let autoScrapeRunning = false;
 let currentSort = 'date_desc';
 
+const demoMatches = {
+    'moneyway_1x2': [
+        {
+            home_team: 'Galatasaray',
+            away_team: 'Fenerbahçe',
+            league: 'Super Lig',
+            date: '25.11.2025 20:00',
+            details: {
+                Odds1: '2.10', OddsX: '3.40', Odds2: '3.25',
+                Amt1: '£125,400', AmtX: '£45,200', Amt2: '£38,600',
+                Pct1: '59.8', PctX: '21.6', Pct2: '18.6',
+                Volume: '£209,200'
+            }
+        },
+        {
+            home_team: 'Manchester City',
+            away_team: 'Liverpool',
+            league: 'Premier League',
+            date: '25.11.2025 17:30',
+            details: {
+                Odds1: '1.85', OddsX: '3.80', Odds2: '4.00',
+                Amt1: '£234,500', AmtX: '£67,800', Amt2: '£52,300',
+                Pct1: '66.1', PctX: '19.1', Pct2: '14.8',
+                Volume: '£354,600'
+            }
+        },
+        {
+            home_team: 'Real Madrid',
+            away_team: 'Barcelona',
+            league: 'La Liga',
+            date: '25.11.2025 21:00',
+            details: {
+                Odds1: '2.25', OddsX: '3.50', Odds2: '2.90',
+                Amt1: '£189,200', AmtX: '£56,400', Amt2: '£112,800',
+                Pct1: '52.8', PctX: '15.7', Pct2: '31.5',
+                Volume: '£358,400'
+            }
+        },
+        {
+            home_team: 'Bayern Munich',
+            away_team: 'Dortmund',
+            league: 'Bundesliga',
+            date: '25.11.2025 18:30',
+            details: {
+                Odds1: '1.45', OddsX: '4.80', Odds2: '6.50',
+                Amt1: '£312,600', AmtX: '£28,400', Amt2: '£15,200',
+                Pct1: '87.8', PctX: '8.0', Pct2: '4.2',
+                Volume: '£356,200'
+            }
+        },
+        {
+            home_team: 'PSG',
+            away_team: 'Monaco',
+            league: 'Ligue 1',
+            date: '25.11.2025 21:00',
+            details: {
+                Odds1: '1.35', OddsX: '5.20', Odds2: '8.00',
+                Amt1: '£285,400', AmtX: '£18,600', Amt2: '£9,200',
+                Pct1: '91.2', PctX: '5.9', Pct2: '2.9',
+                Volume: '£313,200'
+            }
+        },
+        {
+            home_team: 'Besiktas',
+            away_team: 'Trabzonspor',
+            league: 'Super Lig',
+            date: '26.11.2025 19:00',
+            details: {
+                Odds1: '1.90', OddsX: '3.60', Odds2: '3.80',
+                Amt1: '£156,800', AmtX: '£52,400', Amt2: '£48,200',
+                Pct1: '60.9', PctX: '20.3', Pct2: '18.8',
+                Volume: '£257,400'
+            }
+        },
+        {
+            home_team: 'Arsenal',
+            away_team: 'Chelsea',
+            league: 'Premier League',
+            date: '26.11.2025 17:00',
+            details: {
+                Odds1: '2.00', OddsX: '3.50', Odds2: '3.40',
+                Amt1: '£178,300', AmtX: '£64,500', Amt2: '£68,900',
+                Pct1: '57.2', PctX: '20.7', Pct2: '22.1',
+                Volume: '£311,700'
+            }
+        },
+        {
+            home_team: 'Juventus',
+            away_team: 'AC Milan',
+            league: 'Serie A',
+            date: '25.11.2025 20:45',
+            details: {
+                Odds1: '2.40', OddsX: '3.20', Odds2: '2.85',
+                Amt1: '£98,500', AmtX: '£42,300', Amt2: '£76,800',
+                Pct1: '45.3', PctX: '19.4', Pct2: '35.3',
+                Volume: '£217,600'
+            }
+        }
+    ],
+    'moneyway_ou25': [
+        {
+            home_team: 'Galatasaray',
+            away_team: 'Fenerbahçe',
+            league: 'Super Lig',
+            date: '25.11.2025 20:00',
+            details: {
+                Under: '2.10', Over: '1.72',
+                AmtUnder: '£85,200', AmtOver: '£124,000',
+                PctUnder: '40.7', PctOver: '59.3',
+                Volume: '£209,200'
+            }
+        },
+        {
+            home_team: 'Manchester City',
+            away_team: 'Liverpool',
+            league: 'Premier League',
+            date: '25.11.2025 17:30',
+            details: {
+                Under: '2.30', Over: '1.58',
+                AmtUnder: '£98,400', AmtOver: '£256,200',
+                PctUnder: '27.8', PctOver: '72.2',
+                Volume: '£354,600'
+            }
+        },
+        {
+            home_team: 'Bayern Munich',
+            away_team: 'Dortmund',
+            league: 'Bundesliga',
+            date: '25.11.2025 18:30',
+            details: {
+                Under: '2.50', Over: '1.50',
+                AmtUnder: '£62,400', AmtOver: '£293,800',
+                PctUnder: '17.5', PctOver: '82.5',
+                Volume: '£356,200'
+            }
+        }
+    ],
+    'moneyway_btts': [
+        {
+            home_team: 'Galatasaray',
+            away_team: 'Fenerbahçe',
+            league: 'Super Lig',
+            date: '25.11.2025 20:00',
+            details: {
+                Yes: '1.65', No: '2.20',
+                AmtYes: '£142,300', AmtNo: '£66,900',
+                PctYes: '68.0', PctNo: '32.0',
+                Volume: '£209,200'
+            }
+        },
+        {
+            home_team: 'Real Madrid',
+            away_team: 'Barcelona',
+            league: 'La Liga',
+            date: '25.11.2025 21:00',
+            details: {
+                Yes: '1.55', No: '2.40',
+                AmtYes: '£268,400', AmtNo: '£90,000',
+                PctYes: '74.9', PctNo: '25.1',
+                Volume: '£358,400'
+            }
+        }
+    ],
+    'dropping_1x2': [
+        {
+            home_team: 'Galatasaray',
+            away_team: 'Fenerbahçe',
+            league: 'Super Lig',
+            date: '25.11.2025 20:00',
+            details: {
+                Odds1: '2.05', OddsX: '3.45', Odds2: '3.30',
+                Volume: '£209,200'
+            }
+        },
+        {
+            home_team: 'Manchester City',
+            away_team: 'Liverpool',
+            league: 'Premier League',
+            date: '25.11.2025 17:30',
+            details: {
+                Odds1: '1.80', OddsX: '3.90', Odds2: '4.20',
+                Volume: '£354,600'
+            }
+        },
+        {
+            home_team: 'Bayern Munich',
+            away_team: 'Dortmund',
+            league: 'Bundesliga',
+            date: '25.11.2025 18:30',
+            details: {
+                Odds1: '1.42', OddsX: '4.90', Odds2: '6.80',
+                Volume: '£356,200'
+            }
+        }
+    ],
+    'dropping_ou25': [
+        {
+            home_team: 'Bayern Munich',
+            away_team: 'Dortmund',
+            league: 'Bundesliga',
+            date: '25.11.2025 18:30',
+            details: {
+                Under: '2.45', Over: '1.52',
+                Volume: '£356,200'
+            }
+        },
+        {
+            home_team: 'Real Madrid',
+            away_team: 'Barcelona',
+            league: 'La Liga',
+            date: '25.11.2025 21:00',
+            details: {
+                Under: '2.35', Over: '1.55',
+                Volume: '£358,400'
+            }
+        }
+    ],
+    'dropping_btts': [
+        {
+            home_team: 'Juventus',
+            away_team: 'AC Milan',
+            league: 'Serie A',
+            date: '25.11.2025 20:45',
+            details: {
+                Yes: '1.70', No: '2.10',
+                Volume: '£217,600'
+            }
+        },
+        {
+            home_team: 'Arsenal',
+            away_team: 'Chelsea',
+            league: 'Premier League',
+            date: '26.11.2025 17:00',
+            details: {
+                Yes: '1.62', No: '2.25',
+                Volume: '£311,700'
+            }
+        }
+    ]
+};
+
+const demoHistory = [
+    { ScrapedAt: '2025-11-25T16:00:00', Odds1: '2.20', OddsX: '3.30', Odds2: '3.15', Pct1: '56.2', PctX: '23.1', Pct2: '20.7', Amt1: '£112,200', AmtX: '£46,100', Amt2: '£41,300', Volume: '£199,600' },
+    { ScrapedAt: '2025-11-25T16:10:00', Odds1: '2.18', OddsX: '3.32', Odds2: '3.18', Pct1: '57.0', PctX: '22.8', Pct2: '20.2', Amt1: '£115,800', AmtX: '£46,300', Amt2: '£41,000', Volume: '£203,100' },
+    { ScrapedAt: '2025-11-25T16:20:00', Odds1: '2.15', OddsX: '3.35', Odds2: '3.20', Pct1: '58.2', PctX: '22.1', Pct2: '19.7', Amt1: '£118,200', AmtX: '£44,800', Amt2: '£40,000', Volume: '£203,000' },
+    { ScrapedAt: '2025-11-25T16:30:00', Odds1: '2.12', OddsX: '3.38', Odds2: '3.22', Pct1: '58.8', PctX: '21.9', Pct2: '19.3', Amt1: '£120,500', AmtX: '£44,900', Amt2: '£39,600', Volume: '£205,000' },
+    { ScrapedAt: '2025-11-25T16:40:00', Odds1: '2.10', OddsX: '3.40', Odds2: '3.25', Pct1: '59.5', PctX: '21.7', Pct2: '18.8', Amt1: '£123,800', AmtX: '£45,100', Amt2: '£39,100', Volume: '£208,000' },
+    { ScrapedAt: '2025-11-25T16:50:00', Odds1: '2.10', OddsX: '3.40', Odds2: '3.25', Pct1: '59.8', PctX: '21.6', Pct2: '18.6', Amt1: '£125,400', AmtX: '£45,200', Amt2: '£38,600', Volume: '£209,200' }
+];
+
 document.addEventListener('DOMContentLoaded', () => {
     loadMatches();
     setupTabs();
     setupSearch();
-    setupChartTabs();
+    setupModalChartTabs();
     checkStatus();
     window.statusInterval = window.setInterval(checkStatus, 3000);
 });
@@ -27,13 +277,14 @@ function setupTabs() {
     });
 }
 
-function setupChartTabs() {
-    document.querySelectorAll('.chart-market-tabs .chart-tab').forEach(tab => {
+function setupModalChartTabs() {
+    document.querySelectorAll('#modalChartTabs .chart-tab').forEach(tab => {
         tab.addEventListener('click', () => {
-            document.querySelectorAll('.chart-market-tabs .chart-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             selectedChartMarket = tab.dataset.market;
             if (selectedMatch) {
+                updateMatchInfoCard();
                 loadChart(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
             }
         });
@@ -65,26 +316,29 @@ async function loadMatches() {
     
     try {
         const response = await fetch(`/api/matches?market=${currentMarket}`);
-        matches = await response.json();
+        const apiMatches = await response.json();
+        
+        if (apiMatches && apiMatches.length > 0) {
+            matches = apiMatches;
+        } else {
+            matches = demoMatches[currentMarket] || [];
+        }
+        
         filteredMatches = applySorting(matches);
         renderMatches(filteredMatches);
     } catch (error) {
-        console.error('Error loading matches:', error);
-        tbody.innerHTML = `
-            <tr class="loading-row">
-                <td colspan="7">
-                    <div class="empty-state">
-                        <p>No data available. Click "Scrape Now" to fetch matches.</p>
-                    </div>
-                </td>
-            </tr>
-        `;
+        console.error('Error loading matches, using demo data:', error);
+        matches = demoMatches[currentMarket] || [];
+        filteredMatches = applySorting(matches);
+        renderMatches(filteredMatches);
     }
 }
 
 function updateTableHeaders() {
     const thead = document.querySelector('.matches-table thead tr');
     if (!thead) return;
+    
+    const isDropping = currentMarket.startsWith('dropping');
     
     if (currentMarket.includes('1x2')) {
         thead.innerHTML = `
@@ -144,7 +398,7 @@ function renderMatches(data) {
                             <circle cx="12" cy="12" r="10"/>
                             <path d="M12 6v6l4 2"/>
                         </svg>
-                        <p>No matches found. Click "Scrape Now" to fetch data.</p>
+                        <p>No matches found for this market. Click "Scrape Now" to fetch data.</p>
                     </div>
                 </td>
             </tr>
@@ -152,74 +406,128 @@ function renderMatches(data) {
         return;
     }
     
+    const isDropping = currentMarket.startsWith('dropping');
+    const isMoneyway = currentMarket.startsWith('moneyway');
+    
     tbody.innerHTML = data.map((match, idx) => {
         const d = match.details || {};
-        const isSelected = selectedMatch && 
-            selectedMatch.home_team === match.home_team && 
-            selectedMatch.away_team === match.away_team;
         
         if (currentMarket.includes('1x2')) {
-            return `
-                <tr data-index="${idx}" class="${isSelected ? 'selected' : ''}" onclick="selectMatch(${idx})">
-                    <td class="match-date">${match.date || '-'}</td>
-                    <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                    <td class="selection-cell">
-                        <div class="selection-odds">${formatOdds(d.Odds1 || d['1'] || match.odds?.['1'])}</div>
-                        ${d.Amt1 ? `<div class="selection-money">${d.Amt1}</div>` : ''}
-                        ${d.Pct1 ? `<div class="selection-pct ${getPctClass(d.Pct1)}">${d.Pct1}%</div>` : ''}
-                    </td>
-                    <td class="selection-cell">
-                        <div class="selection-odds">${formatOdds(d.OddsX || d['X'] || match.odds?.['X'])}</div>
-                        ${d.AmtX ? `<div class="selection-money">${d.AmtX}</div>` : ''}
-                        ${d.PctX ? `<div class="selection-pct ${getPctClass(d.PctX)}">${d.PctX}%</div>` : ''}
-                    </td>
-                    <td class="selection-cell">
-                        <div class="selection-odds">${formatOdds(d.Odds2 || d['2'] || match.odds?.['2'])}</div>
-                        ${d.Amt2 ? `<div class="selection-money">${d.Amt2}</div>` : ''}
-                        ${d.Pct2 ? `<div class="selection-pct ${getPctClass(d.Pct2)}">${d.Pct2}%</div>` : ''}
-                    </td>
-                    <td class="volume-cell">${d.Volume || '-'}</td>
-                </tr>
-            `;
+            if (isMoneyway) {
+                return `
+                    <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                        <td class="match-date">${match.date || '-'}</td>
+                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
+                        <td class="selection-cell">
+                            <div class="selection-odds">${formatOdds(d.Odds1 || d['1'])}</div>
+                            ${d.Amt1 ? `<div class="selection-money">${d.Amt1}</div>` : ''}
+                            ${d.Pct1 ? `<div class="selection-pct ${getPctClass(d.Pct1)}">${d.Pct1}%</div>` : ''}
+                        </td>
+                        <td class="selection-cell">
+                            <div class="selection-odds">${formatOdds(d.OddsX || d['X'])}</div>
+                            ${d.AmtX ? `<div class="selection-money">${d.AmtX}</div>` : ''}
+                            ${d.PctX ? `<div class="selection-pct ${getPctClass(d.PctX)}">${d.PctX}%</div>` : ''}
+                        </td>
+                        <td class="selection-cell">
+                            <div class="selection-odds">${formatOdds(d.Odds2 || d['2'])}</div>
+                            ${d.Amt2 ? `<div class="selection-money">${d.Amt2}</div>` : ''}
+                            ${d.Pct2 ? `<div class="selection-pct ${getPctClass(d.Pct2)}">${d.Pct2}%</div>` : ''}
+                        </td>
+                        <td class="volume-cell">${d.Volume || '-'}</td>
+                    </tr>
+                `;
+            } else {
+                return `
+                    <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                        <td class="match-date">${match.date || '-'}</td>
+                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
+                        <td class="selection-cell">
+                            <div class="selection-odds">${formatOdds(d.Odds1 || d['1'])}</div>
+                        </td>
+                        <td class="selection-cell">
+                            <div class="selection-odds">${formatOdds(d.OddsX || d['X'])}</div>
+                        </td>
+                        <td class="selection-cell">
+                            <div class="selection-odds">${formatOdds(d.Odds2 || d['2'])}</div>
+                        </td>
+                        <td class="volume-cell">${d.Volume || '-'}</td>
+                    </tr>
+                `;
+            }
         } else if (currentMarket.includes('ou25')) {
-            return `
-                <tr data-index="${idx}" class="${isSelected ? 'selected' : ''}" onclick="selectMatch(${idx})">
-                    <td class="match-date">${match.date || '-'}</td>
-                    <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                    <td class="selection-cell">
-                        <div class="selection-odds">${formatOdds(d.Under || match.odds?.Under)}</div>
-                        ${d.AmtUnder ? `<div class="selection-money">${d.AmtUnder}</div>` : ''}
-                        ${d.PctUnder ? `<div class="selection-pct ${getPctClass(d.PctUnder)}">${d.PctUnder}%</div>` : ''}
-                    </td>
-                    <td class="selection-cell">
-                        <div class="selection-odds">${formatOdds(d.Over || match.odds?.Over)}</div>
-                        ${d.AmtOver ? `<div class="selection-money">${d.AmtOver}</div>` : ''}
-                        ${d.PctOver ? `<div class="selection-pct ${getPctClass(d.PctOver)}">${d.PctOver}%</div>` : ''}
-                    </td>
-                    <td class="volume-cell">${d.Volume || '-'}</td>
-                </tr>
-            `;
+            if (isMoneyway) {
+                return `
+                    <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                        <td class="match-date">${match.date || '-'}</td>
+                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
+                        <td class="selection-cell">
+                            <div class="selection-odds">${formatOdds(d.Under)}</div>
+                            ${d.AmtUnder ? `<div class="selection-money">${d.AmtUnder}</div>` : ''}
+                            ${d.PctUnder ? `<div class="selection-pct ${getPctClass(d.PctUnder)}">${d.PctUnder}%</div>` : ''}
+                        </td>
+                        <td class="selection-cell">
+                            <div class="selection-odds">${formatOdds(d.Over)}</div>
+                            ${d.AmtOver ? `<div class="selection-money">${d.AmtOver}</div>` : ''}
+                            ${d.PctOver ? `<div class="selection-pct ${getPctClass(d.PctOver)}">${d.PctOver}%</div>` : ''}
+                        </td>
+                        <td class="volume-cell">${d.Volume || '-'}</td>
+                    </tr>
+                `;
+            } else {
+                return `
+                    <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                        <td class="match-date">${match.date || '-'}</td>
+                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
+                        <td class="selection-cell">
+                            <div class="selection-odds">${formatOdds(d.Under)}</div>
+                        </td>
+                        <td class="selection-cell">
+                            <div class="selection-odds">${formatOdds(d.Over)}</div>
+                        </td>
+                        <td class="volume-cell">${d.Volume || '-'}</td>
+                    </tr>
+                `;
+            }
         } else {
-            return `
-                <tr data-index="${idx}" class="${isSelected ? 'selected' : ''}" onclick="selectMatch(${idx})">
-                    <td class="match-date">${match.date || '-'}</td>
-                    <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                    <td class="selection-cell">
-                        <div class="selection-odds">${formatOdds(d.Yes || match.odds?.Yes)}</div>
-                        ${d.AmtYes ? `<div class="selection-money">${d.AmtYes}</div>` : ''}
-                        ${d.PctYes ? `<div class="selection-pct ${getPctClass(d.PctYes)}">${d.PctYes}%</div>` : ''}
-                    </td>
-                    <td class="selection-cell">
-                        <div class="selection-odds">${formatOdds(d.No || match.odds?.No)}</div>
-                        ${d.AmtNo ? `<div class="selection-money">${d.AmtNo}</div>` : ''}
-                        ${d.PctNo ? `<div class="selection-pct ${getPctClass(d.PctNo)}">${d.PctNo}%</div>` : ''}
-                    </td>
-                    <td class="volume-cell">${d.Volume || '-'}</td>
-                </tr>
-            `;
+            if (isMoneyway) {
+                return `
+                    <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                        <td class="match-date">${match.date || '-'}</td>
+                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
+                        <td class="selection-cell">
+                            <div class="selection-odds">${formatOdds(d.Yes)}</div>
+                            ${d.AmtYes ? `<div class="selection-money">${d.AmtYes}</div>` : ''}
+                            ${d.PctYes ? `<div class="selection-pct ${getPctClass(d.PctYes)}">${d.PctYes}%</div>` : ''}
+                        </td>
+                        <td class="selection-cell">
+                            <div class="selection-odds">${formatOdds(d.No)}</div>
+                            ${d.AmtNo ? `<div class="selection-money">${d.AmtNo}</div>` : ''}
+                            ${d.PctNo ? `<div class="selection-pct ${getPctClass(d.PctNo)}">${d.PctNo}%</div>` : ''}
+                        </td>
+                        <td class="volume-cell">${d.Volume || '-'}</td>
+                    </tr>
+                `;
+            } else {
+                return `
+                    <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                        <td class="match-date">${match.date || '-'}</td>
+                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
+                        <td class="selection-cell">
+                            <div class="selection-odds">${formatOdds(d.Yes)}</div>
+                        </td>
+                        <td class="selection-cell">
+                            <div class="selection-odds">${formatOdds(d.No)}</div>
+                        </td>
+                        <td class="volume-cell">${d.Volume || '-'}</td>
+                    </tr>
+                `;
+            }
         }
     }).join('');
 }
@@ -290,27 +598,230 @@ function sortMatches() {
     filterMatches(query);
 }
 
-function selectMatch(index) {
+function openMatchModal(index) {
     const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
     if (index >= 0 && index < dataSource.length) {
         selectedMatch = dataSource[index];
+        selectedChartMarket = currentMarket;
         
-        document.querySelectorAll('.matches-table tbody tr').forEach(tr => {
-            tr.classList.remove('selected');
-        });
-        document.querySelector(`tr[data-index="${index}"]`)?.classList.add('selected');
-        
-        document.getElementById('chartTitle').textContent = 
+        document.getElementById('modalMatchTitle').textContent = 
             `${selectedMatch.home_team} vs ${selectedMatch.away_team}`;
-        document.getElementById('chartSubtitle').textContent = 
-            selectedMatch.league || 'Odds Movement Chart';
+        document.getElementById('modalLeague').textContent = 
+            `${selectedMatch.league || ''} • ${selectedMatch.date || ''}`;
         
-        document.getElementById('chartMarketTabs').style.display = 'flex';
-        document.getElementById('chartEmpty').classList.add('hidden');
-        document.querySelector('.chart-container').classList.add('active');
+        updateMatchInfoCard();
         
+        document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
+            t.classList.remove('active');
+            if (t.dataset.market === currentMarket) {
+                t.classList.add('active');
+            }
+        });
+        
+        document.getElementById('modalOverlay').classList.add('active');
         loadChart(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
     }
+}
+
+function updateMatchInfoCard() {
+    const card = document.getElementById('matchInfoCard');
+    const d = selectedMatch.details || {};
+    const isMoneyway = selectedChartMarket.startsWith('moneyway');
+    const isDropping = selectedChartMarket.startsWith('dropping');
+    
+    let html = '';
+    
+    if (selectedChartMarket.includes('1x2')) {
+        if (isMoneyway) {
+            html = `
+                <div class="info-row">
+                    <div class="info-item">
+                        <div class="info-label">1 Odds</div>
+                        <div class="info-value odds">${formatOdds(d.Odds1 || d['1'])}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">X Odds</div>
+                        <div class="info-value odds">${formatOdds(d.OddsX || d['X'])}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">2 Odds</div>
+                        <div class="info-value odds">${formatOdds(d.Odds2 || d['2'])}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Total Volume</div>
+                        <div class="info-value volume">${d.Volume || '-'}</div>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-item">
+                        <div class="info-label">1 Stake</div>
+                        <div class="info-value money">${d.Amt1 || '-'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">X Stake</div>
+                        <div class="info-value money">${d.AmtX || '-'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">2 Stake</div>
+                        <div class="info-value money">${d.Amt2 || '-'}</div>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-item">
+                        <div class="info-label">1 %</div>
+                        <div class="info-value pct ${getPctClass(d.Pct1)}">${d.Pct1 || '-'}%</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">X %</div>
+                        <div class="info-value pct ${getPctClass(d.PctX)}">${d.PctX || '-'}%</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">2 %</div>
+                        <div class="info-value pct ${getPctClass(d.Pct2)}">${d.Pct2 || '-'}%</div>
+                    </div>
+                </div>
+            `;
+        } else {
+            html = `
+                <div class="info-row">
+                    <div class="info-item">
+                        <div class="info-label">1 Odds</div>
+                        <div class="info-value odds">${formatOdds(d.Odds1 || d['1'])}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">X Odds</div>
+                        <div class="info-value odds">${formatOdds(d.OddsX || d['X'])}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">2 Odds</div>
+                        <div class="info-value odds">${formatOdds(d.Odds2 || d['2'])}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Volume</div>
+                        <div class="info-value volume">${d.Volume || '-'}</div>
+                    </div>
+                </div>
+            `;
+        }
+    } else if (selectedChartMarket.includes('ou25')) {
+        if (isMoneyway) {
+            html = `
+                <div class="info-row">
+                    <div class="info-item">
+                        <div class="info-label">Under 2.5</div>
+                        <div class="info-value odds">${formatOdds(d.Under)}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Over 2.5</div>
+                        <div class="info-value odds">${formatOdds(d.Over)}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Total Volume</div>
+                        <div class="info-value volume">${d.Volume || '-'}</div>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-item">
+                        <div class="info-label">Under Stake</div>
+                        <div class="info-value money">${d.AmtUnder || '-'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Over Stake</div>
+                        <div class="info-value money">${d.AmtOver || '-'}</div>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-item">
+                        <div class="info-label">Under %</div>
+                        <div class="info-value pct ${getPctClass(d.PctUnder)}">${d.PctUnder || '-'}%</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Over %</div>
+                        <div class="info-value pct ${getPctClass(d.PctOver)}">${d.PctOver || '-'}%</div>
+                    </div>
+                </div>
+            `;
+        } else {
+            html = `
+                <div class="info-row">
+                    <div class="info-item">
+                        <div class="info-label">Under 2.5</div>
+                        <div class="info-value odds">${formatOdds(d.Under)}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Over 2.5</div>
+                        <div class="info-value odds">${formatOdds(d.Over)}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Volume</div>
+                        <div class="info-value volume">${d.Volume || '-'}</div>
+                    </div>
+                </div>
+            `;
+        }
+    } else if (selectedChartMarket.includes('btts')) {
+        if (isMoneyway) {
+            html = `
+                <div class="info-row">
+                    <div class="info-item">
+                        <div class="info-label">Yes</div>
+                        <div class="info-value odds">${formatOdds(d.Yes)}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">No</div>
+                        <div class="info-value odds">${formatOdds(d.No)}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Total Volume</div>
+                        <div class="info-value volume">${d.Volume || '-'}</div>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-item">
+                        <div class="info-label">Yes Stake</div>
+                        <div class="info-value money">${d.AmtYes || '-'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">No Stake</div>
+                        <div class="info-value money">${d.AmtNo || '-'}</div>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-item">
+                        <div class="info-label">Yes %</div>
+                        <div class="info-value pct ${getPctClass(d.PctYes)}">${d.PctYes || '-'}%</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">No %</div>
+                        <div class="info-value pct ${getPctClass(d.PctNo)}">${d.PctNo || '-'}%</div>
+                    </div>
+                </div>
+            `;
+        } else {
+            html = `
+                <div class="info-row">
+                    <div class="info-item">
+                        <div class="info-label">Yes</div>
+                        <div class="info-value odds">${formatOdds(d.Yes)}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">No</div>
+                        <div class="info-value odds">${formatOdds(d.No)}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Volume</div>
+                        <div class="info-value volume">${d.Volume || '-'}</div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    card.innerHTML = html;
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
 }
 
 function roundTo10Min(timestamp) {
@@ -329,10 +840,20 @@ function formatTimeLabel(date) {
 
 async function loadChart(home, away, market) {
     try {
-        const response = await fetch(
-            `/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}`
-        );
-        const data = await response.json();
+        let data = { history: [] };
+        
+        try {
+            const response = await fetch(
+                `/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}`
+            );
+            data = await response.json();
+        } catch (e) {
+            console.log('Using demo history data');
+        }
+        
+        if (!data.history || data.history.length === 0) {
+            data.history = demoHistory;
+        }
         
         if (chart) {
             chart.destroy();
@@ -340,26 +861,7 @@ async function loadChart(home, away, market) {
         
         const ctx = document.getElementById('oddsChart').getContext('2d');
         const isMoneyway = market.startsWith('moneyway');
-        
-        if (!data.history || data.history.length === 0) {
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['No data'],
-                    datasets: [{
-                        label: 'No historical data available',
-                        data: [0],
-                        borderColor: '#536471'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }
-                }
-            });
-            return;
-        }
+        const isDropping = market.startsWith('dropping');
         
         const timeBlocks = {};
         data.history.forEach(h => {
@@ -381,14 +883,16 @@ async function loadChart(home, away, market) {
         
         let datasets = [];
         const colors = {
-            '1': '#4ade80',
-            'X': '#fbbf24', 
-            '2': '#60a5fa',
-            'Under': '#60a5fa',
-            'Over': '#4ade80',
-            'Yes': '#4ade80',
-            'No': '#f87171'
+            '1': '#3b82f6',
+            'X': '#22c55e', 
+            '2': '#eab308',
+            'Under': '#3b82f6',
+            'Over': '#22c55e',
+            'Yes': '#22c55e',
+            'No': '#ef4444'
         };
+        
+        const latestData = historyData[historyData.length - 1] || {};
         
         if (market.includes('1x2')) {
             if (isMoneyway) {
@@ -403,13 +907,15 @@ async function loadChart(home, away, market) {
                         }),
                         borderColor: color,
                         backgroundColor: color,
-                        tension: 0.3,
+                        tension: 0.1,
                         fill: false,
-                        pointRadius: 5,
-                        pointHoverRadius: 8,
+                        pointRadius: 6,
+                        pointHoverRadius: 9,
                         pointBackgroundColor: color,
-                        pointBorderColor: color,
-                        pointStyle: 'circle'
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointStyle: 'circle',
+                        borderWidth: 3
                     });
                 });
             } else {
@@ -427,13 +933,15 @@ async function loadChart(home, away, market) {
                         }),
                         borderColor: color,
                         backgroundColor: color,
-                        tension: 0.3,
+                        tension: 0.1,
                         fill: false,
-                        pointRadius: 5,
-                        pointHoverRadius: 8,
+                        pointRadius: 6,
+                        pointHoverRadius: 9,
                         pointBackgroundColor: color,
-                        pointBorderColor: color,
-                        pointStyle: 'circle'
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointStyle: 'circle',
+                        borderWidth: 3
                     });
                 });
             }
@@ -450,13 +958,15 @@ async function loadChart(home, away, market) {
                         }),
                         borderColor: color,
                         backgroundColor: color,
-                        tension: 0.3,
+                        tension: 0.1,
                         fill: false,
-                        pointRadius: 5,
-                        pointHoverRadius: 8,
+                        pointRadius: 6,
+                        pointHoverRadius: 9,
                         pointBackgroundColor: color,
-                        pointBorderColor: color,
-                        pointStyle: 'circle'
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointStyle: 'circle',
+                        borderWidth: 3
                     });
                 });
             } else {
@@ -473,13 +983,15 @@ async function loadChart(home, away, market) {
                         }),
                         borderColor: color,
                         backgroundColor: color,
-                        tension: 0.3,
+                        tension: 0.1,
                         fill: false,
-                        pointRadius: 5,
-                        pointHoverRadius: 8,
+                        pointRadius: 6,
+                        pointHoverRadius: 9,
                         pointBackgroundColor: color,
-                        pointBorderColor: color,
-                        pointStyle: 'circle'
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointStyle: 'circle',
+                        borderWidth: 3
                     });
                 });
             }
@@ -496,13 +1008,15 @@ async function loadChart(home, away, market) {
                         }),
                         borderColor: color,
                         backgroundColor: color,
-                        tension: 0.3,
+                        tension: 0.1,
                         fill: false,
-                        pointRadius: 5,
-                        pointHoverRadius: 8,
+                        pointRadius: 6,
+                        pointHoverRadius: 9,
                         pointBackgroundColor: color,
-                        pointBorderColor: color,
-                        pointStyle: 'circle'
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointStyle: 'circle',
+                        borderWidth: 3
                     });
                 });
             } else {
@@ -519,19 +1033,21 @@ async function loadChart(home, away, market) {
                         }),
                         borderColor: color,
                         backgroundColor: color,
-                        tension: 0.3,
+                        tension: 0.1,
                         fill: false,
-                        pointRadius: 5,
-                        pointHoverRadius: 8,
+                        pointRadius: 6,
+                        pointHoverRadius: 9,
                         pointBackgroundColor: color,
-                        pointBorderColor: color,
-                        pointStyle: 'circle'
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointStyle: 'circle',
+                        borderWidth: 3
                     });
                 });
             }
         }
         
-        const tooltipData = historyData;
+        const tooltipHistory = historyData;
         
         chart = new Chart(ctx, {
             type: 'line',
@@ -553,81 +1069,101 @@ async function loadChart(home, away, market) {
                             color: '#e7e9ea',
                             usePointStyle: true,
                             pointStyle: 'circle',
-                            padding: 15,
-                            font: { size: 12, weight: 'bold' },
-                            boxWidth: 12,
-                            boxHeight: 12
+                            padding: 20,
+                            font: { size: 13, weight: 'bold' },
+                            boxWidth: 14,
+                            boxHeight: 14
                         }
                     },
                     tooltip: {
                         backgroundColor: '#1f2937',
                         titleColor: '#fff',
-                        titleFont: { size: 13, weight: 'bold' },
+                        titleFont: { size: 14, weight: 'bold' },
                         bodyColor: '#e7e9ea',
-                        bodyFont: { size: 12 },
+                        bodyFont: { size: 13 },
                         borderColor: '#374151',
                         borderWidth: 1,
-                        padding: 12,
+                        padding: 16,
                         displayColors: true,
-                        boxWidth: 12,
-                        boxHeight: 12,
-                        boxPadding: 4,
+                        boxWidth: 14,
+                        boxHeight: 14,
+                        boxPadding: 6,
                         callbacks: {
                             label: function(context) {
                                 const idx = context.dataIndex;
-                                const h = tooltipData[idx];
+                                const h = tooltipHistory[idx];
                                 if (!h) return context.dataset.label + ': ' + context.formattedValue;
                                 
                                 const datasetLabel = context.dataset.label;
                                 let lines = [];
                                 
-                                if (market.includes('1x2')) {
-                                    if (datasetLabel.includes('1')) {
-                                        const odds = h.Odds1 || h['1'] || '-';
-                                        const amt = h.Amt1 || '';
-                                        const pct = h.Pct1 || '';
-                                        lines.push(`1 • ${formatOdds(odds)}`);
-                                        if (amt) lines.push(`${amt}  —  ${pct}%`);
-                                    } else if (datasetLabel.includes('X')) {
-                                        const odds = h.OddsX || h['X'] || '-';
-                                        const amt = h.AmtX || '';
-                                        const pct = h.PctX || '';
-                                        lines.push(`X • ${formatOdds(odds)}`);
-                                        if (amt) lines.push(`${amt}  —  ${pct}%`);
-                                    } else if (datasetLabel.includes('2')) {
-                                        const odds = h.Odds2 || h['2'] || '-';
-                                        const amt = h.Amt2 || '';
-                                        const pct = h.Pct2 || '';
-                                        lines.push(`2 • ${formatOdds(odds)}`);
-                                        if (amt) lines.push(`${amt}  —  ${pct}%`);
-                                    }
-                                } else if (market.includes('ou25')) {
-                                    if (datasetLabel.toLowerCase().includes('under')) {
-                                        const odds = h.Under || '-';
-                                        const amt = h.AmtUnder || '';
-                                        const pct = h.PctUnder || '';
-                                        lines.push(`Under • ${formatOdds(odds)}`);
-                                        if (amt) lines.push(`${amt}  —  ${pct}%`);
+                                if (isDropping) {
+                                    const currentOdds = parseFloat(context.formattedValue);
+                                    const latestOdds = getLatestOdds(latestData, datasetLabel.replace('%', ''), market);
+                                    
+                                    if (!isNaN(currentOdds) && !isNaN(latestOdds) && currentOdds > 0) {
+                                        const pctChange = ((latestOdds - currentOdds) / currentOdds) * 100;
+                                        const changeSign = pctChange >= 0 ? '+' : '';
+                                        const changeStr = `${changeSign}${pctChange.toFixed(1)}%`;
+                                        
+                                        lines.push(`${datasetLabel}: ${currentOdds.toFixed(2)} → ${latestOdds.toFixed(2)}`);
+                                        if (pctChange >= 0) {
+                                            lines.push(`Change: ${changeStr} (UP)`);
+                                        } else {
+                                            lines.push(`Change: ${changeStr} (DOWN)`);
+                                        }
                                     } else {
-                                        const odds = h.Over || '-';
-                                        const amt = h.AmtOver || '';
-                                        const pct = h.PctOver || '';
-                                        lines.push(`Over • ${formatOdds(odds)}`);
-                                        if (amt) lines.push(`${amt}  —  ${pct}%`);
+                                        lines.push(`${datasetLabel}: ${context.formattedValue}`);
                                     }
-                                } else if (market.includes('btts')) {
-                                    if (datasetLabel.toLowerCase().includes('yes')) {
-                                        const odds = h.Yes || '-';
-                                        const amt = h.AmtYes || '';
-                                        const pct = h.PctYes || '';
-                                        lines.push(`Yes • ${formatOdds(odds)}`);
-                                        if (amt) lines.push(`${amt}  —  ${pct}%`);
-                                    } else {
-                                        const odds = h.No || '-';
-                                        const amt = h.AmtNo || '';
-                                        const pct = h.PctNo || '';
-                                        lines.push(`No • ${formatOdds(odds)}`);
-                                        if (amt) lines.push(`${amt}  —  ${pct}%`);
+                                } else {
+                                    if (market.includes('1x2')) {
+                                        if (datasetLabel.includes('1')) {
+                                            const odds = h.Odds1 || h['1'] || '-';
+                                            const amt = h.Amt1 || '';
+                                            const pct = h.Pct1 || '';
+                                            lines.push(`1 • ${formatOdds(odds)}`);
+                                            if (amt) lines.push(`${amt} — ${pct}%`);
+                                        } else if (datasetLabel.includes('X')) {
+                                            const odds = h.OddsX || h['X'] || '-';
+                                            const amt = h.AmtX || '';
+                                            const pct = h.PctX || '';
+                                            lines.push(`X • ${formatOdds(odds)}`);
+                                            if (amt) lines.push(`${amt} — ${pct}%`);
+                                        } else if (datasetLabel.includes('2')) {
+                                            const odds = h.Odds2 || h['2'] || '-';
+                                            const amt = h.Amt2 || '';
+                                            const pct = h.Pct2 || '';
+                                            lines.push(`2 • ${formatOdds(odds)}`);
+                                            if (amt) lines.push(`${amt} — ${pct}%`);
+                                        }
+                                    } else if (market.includes('ou25')) {
+                                        if (datasetLabel.toLowerCase().includes('under')) {
+                                            const odds = h.Under || '-';
+                                            const amt = h.AmtUnder || '';
+                                            const pct = h.PctUnder || '';
+                                            lines.push(`Under • ${formatOdds(odds)}`);
+                                            if (amt) lines.push(`${amt} — ${pct}%`);
+                                        } else {
+                                            const odds = h.Over || '-';
+                                            const amt = h.AmtOver || '';
+                                            const pct = h.PctOver || '';
+                                            lines.push(`Over • ${formatOdds(odds)}`);
+                                            if (amt) lines.push(`${amt} — ${pct}%`);
+                                        }
+                                    } else if (market.includes('btts')) {
+                                        if (datasetLabel.toLowerCase().includes('yes')) {
+                                            const odds = h.Yes || '-';
+                                            const amt = h.AmtYes || '';
+                                            const pct = h.PctYes || '';
+                                            lines.push(`Yes • ${formatOdds(odds)}`);
+                                            if (amt) lines.push(`${amt} — ${pct}%`);
+                                        } else {
+                                            const odds = h.No || '-';
+                                            const amt = h.AmtNo || '';
+                                            const pct = h.PctNo || '';
+                                            lines.push(`No • ${formatOdds(odds)}`);
+                                            if (amt) lines.push(`${amt} — ${pct}%`);
+                                        }
                                     }
                                 }
                                 
@@ -639,30 +1175,30 @@ async function loadChart(home, away, market) {
                 scales: {
                     x: {
                         grid: {
-                            color: '#2f3336',
+                            color: 'rgba(55, 65, 81, 0.5)',
                             drawBorder: false
                         },
                         ticks: {
                             color: '#8899a6',
-                            font: { size: 11 }
+                            font: { size: 12 }
                         }
                     },
                     y: {
                         grid: {
-                            color: '#2f3336',
+                            color: 'rgba(55, 65, 81, 0.5)',
                             drawBorder: false
                         },
                         ticks: {
                             color: '#8899a6',
-                            font: { size: 11 }
+                            font: { size: 12 }
                         }
                     }
                 },
                 elements: {
                     point: {
-                        radius: 5,
-                        hoverRadius: 8,
-                        borderWidth: 0
+                        radius: 6,
+                        hoverRadius: 9,
+                        borderWidth: 2
                     },
                     line: {
                         borderWidth: 3
@@ -673,6 +1209,21 @@ async function loadChart(home, away, market) {
     } catch (error) {
         console.error('Error loading chart:', error);
     }
+}
+
+function getLatestOdds(latestData, label, market) {
+    if (market.includes('1x2')) {
+        if (label === '1') return parseFloat(latestData.Odds1 || latestData['1']) || 0;
+        if (label === 'X') return parseFloat(latestData.OddsX || latestData['X']) || 0;
+        if (label === '2') return parseFloat(latestData.Odds2 || latestData['2']) || 0;
+    } else if (market.includes('ou25')) {
+        if (label === 'Under') return parseFloat(latestData.Under) || 0;
+        if (label === 'Over') return parseFloat(latestData.Over) || 0;
+    } else if (market.includes('btts')) {
+        if (label === 'Yes') return parseFloat(latestData.Yes) || 0;
+        if (label === 'No') return parseFloat(latestData.No) || 0;
+    }
+    return 0;
 }
 
 async function triggerScrape() {
@@ -814,3 +1365,9 @@ async function updateInterval() {
         console.error('Update interval error:', error);
     }
 }
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeModal();
+    }
+});

@@ -58,44 +58,44 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
             </svg>
-            Moneyway 1X2
+            MW 1X2
         </button>
         <button class="tab" data-market="moneyway_ou25">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
             </svg>
-            Moneyway 2.5
+            MW 2.5
         </button>
         <button class="tab" data-market="moneyway_btts">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
             </svg>
-            Moneyway BTTS
+            MW BTTS
         </button>
         <button class="tab" data-market="dropping_1x2">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
                 <polyline points="17 18 23 18 23 12"/>
             </svg>
-            Dropping 1X2
+            Drop 1X2
         </button>
         <button class="tab" data-market="dropping_ou25">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
                 <polyline points="17 18 23 18 23 12"/>
             </svg>
-            Dropping 2.5
+            Drop 2.5
         </button>
         <button class="tab" data-market="dropping_btts">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
                 <polyline points="17 18 23 18 23 12"/>
             </svg>
-            Dropping BTTS
+            Drop BTTS
         </button>
     </nav>
 
-    <main class="main-layout">
+    <main class="main-content">
         <section class="matches-section">
             <div class="toolbar">
                 <div class="search-box">
@@ -103,7 +103,7 @@
                         <circle cx="11" cy="11" r="8"/>
                         <path d="M21 21l-4.35-4.35"/>
                     </svg>
-                    <input type="text" id="searchInput" placeholder="Search teams or competitions...">
+                    <input type="text" id="searchInput" placeholder="Search teams or leagues...">
                 </div>
                 <div class="sort-controls">
                     <select id="sortSelect" class="sort-select" onchange="sortMatches()">
@@ -142,34 +142,41 @@
                 </table>
             </div>
         </section>
-
-        <aside class="chart-section" id="chartPanel">
-            <div class="chart-header">
-                <h3 id="chartTitle">Select a match to view odds movement</h3>
-                <span class="chart-subtitle" id="chartSubtitle">Click on any match row</span>
-            </div>
-            
-            <div class="chart-market-tabs" id="chartMarketTabs" style="display: none;">
-                <button class="chart-tab active" data-market="moneyway_1x2">MW 1X2</button>
-                <button class="chart-tab" data-market="moneyway_ou25">MW 2.5</button>
-                <button class="chart-tab" data-market="moneyway_btts">MW BTTS</button>
-                <button class="chart-tab" data-market="dropping_1x2">Drop 1X2</button>
-                <button class="chart-tab" data-market="dropping_ou25">Drop 2.5</button>
-                <button class="chart-tab" data-market="dropping_btts">Drop BTTS</button>
-            </div>
-            
-            <div class="chart-container">
-                <canvas id="oddsChart"></canvas>
-            </div>
-            
-            <div class="chart-empty" id="chartEmpty">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                </svg>
-                <p>Select a match to view<br>odds movement chart</p>
-            </div>
-        </aside>
     </main>
+
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <h2 id="modalMatchTitle">Match Details</h2>
+                    <span class="modal-subtitle" id="modalLeague">League</span>
+                </div>
+                <button class="modal-close" onclick="closeModal()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="match-info-card" id="matchInfoCard"></div>
+                
+                <div class="chart-tabs" id="modalChartTabs">
+                    <button class="chart-tab active" data-market="moneyway_1x2">MW 1X2</button>
+                    <button class="chart-tab" data-market="moneyway_ou25">MW 2.5</button>
+                    <button class="chart-tab" data-market="moneyway_btts">MW BTTS</button>
+                    <button class="chart-tab" data-market="dropping_1x2">Drop 1X2</button>
+                    <button class="chart-tab" data-market="dropping_ou25">Drop 2.5</button>
+                    <button class="chart-tab" data-market="dropping_btts">Drop BTTS</button>
+                </div>
+                
+                <div class="chart-wrapper">
+                    <canvas id="oddsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="/static/js/app.js"></script>
 </body>
