@@ -647,21 +647,48 @@ function updateMatchInfoCard() {
                 <div class="info-columns">
                     <div class="info-column">
                         <div class="column-header">1</div>
-                        <div class="column-value odds">${formatOdds(d.Odds1 || d['1'])}</div>
-                        <div class="column-value money ${c1}">${d.Amt1 || '-'}</div>
-                        <div class="column-value pct ${c1}">${d.Pct1 || '-'}%</div>
+                        <div class="column-row">
+                            <span class="row-label">Odds</span>
+                            <span class="row-value odds">${formatOdds(d.Odds1 || d['1'])}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">Stake</span>
+                            <span class="row-value money ${c1}">${d.Amt1 || '-'}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">%</span>
+                            <span class="row-value pct ${c1}">${d.Pct1 || '-'}%</span>
+                        </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">X</div>
-                        <div class="column-value odds">${formatOdds(d.OddsX || d['X'])}</div>
-                        <div class="column-value money ${cX}">${d.AmtX || '-'}</div>
-                        <div class="column-value pct ${cX}">${d.PctX || '-'}%</div>
+                        <div class="column-row">
+                            <span class="row-label">Odds</span>
+                            <span class="row-value odds">${formatOdds(d.OddsX || d['X'])}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">Stake</span>
+                            <span class="row-value money ${cX}">${d.AmtX || '-'}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">%</span>
+                            <span class="row-value pct ${cX}">${d.PctX || '-'}%</span>
+                        </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">2</div>
-                        <div class="column-value odds">${formatOdds(d.Odds2 || d['2'])}</div>
-                        <div class="column-value money ${c2}">${d.Amt2 || '-'}</div>
-                        <div class="column-value pct ${c2}">${d.Pct2 || '-'}%</div>
+                        <div class="column-row">
+                            <span class="row-label">Odds</span>
+                            <span class="row-value odds">${formatOdds(d.Odds2 || d['2'])}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">Stake</span>
+                            <span class="row-value money ${c2}">${d.Amt2 || '-'}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">%</span>
+                            <span class="row-value pct ${c2}">${d.Pct2 || '-'}%</span>
+                        </div>
                     </div>
                 </div>
                 <div class="volume-bar">
@@ -674,15 +701,24 @@ function updateMatchInfoCard() {
                 <div class="info-columns">
                     <div class="info-column">
                         <div class="column-header">1</div>
-                        <div class="column-value odds">${formatOdds(d.Odds1 || d['1'])}</div>
+                        <div class="column-row">
+                            <span class="row-label">Odds</span>
+                            <span class="row-value odds">${formatOdds(d.Odds1 || d['1'])}</span>
+                        </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">X</div>
-                        <div class="column-value odds">${formatOdds(d.OddsX || d['X'])}</div>
+                        <div class="column-row">
+                            <span class="row-label">Odds</span>
+                            <span class="row-value odds">${formatOdds(d.OddsX || d['X'])}</span>
+                        </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">2</div>
-                        <div class="column-value odds">${formatOdds(d.Odds2 || d['2'])}</div>
+                        <div class="column-row">
+                            <span class="row-label">Odds</span>
+                            <span class="row-value odds">${formatOdds(d.Odds2 || d['2'])}</span>
+                        </div>
                     </div>
                 </div>
                 <div class="volume-bar">
@@ -699,15 +735,33 @@ function updateMatchInfoCard() {
                 <div class="info-columns">
                     <div class="info-column">
                         <div class="column-header">Under 2.5</div>
-                        <div class="column-value odds">${formatOdds(d.Under)}</div>
-                        <div class="column-value money ${cU}">${d.AmtUnder || '-'}</div>
-                        <div class="column-value pct ${cU}">${d.PctUnder || '-'}%</div>
+                        <div class="column-row">
+                            <span class="row-label">Odds</span>
+                            <span class="row-value odds">${formatOdds(d.Under)}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">Stake</span>
+                            <span class="row-value money ${cU}">${d.AmtUnder || '-'}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">%</span>
+                            <span class="row-value pct ${cU}">${d.PctUnder || '-'}%</span>
+                        </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">Over 2.5</div>
-                        <div class="column-value odds">${formatOdds(d.Over)}</div>
-                        <div class="column-value money ${cO}">${d.AmtOver || '-'}</div>
-                        <div class="column-value pct ${cO}">${d.PctOver || '-'}%</div>
+                        <div class="column-row">
+                            <span class="row-label">Odds</span>
+                            <span class="row-value odds">${formatOdds(d.Over)}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">Stake</span>
+                            <span class="row-value money ${cO}">${d.AmtOver || '-'}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">%</span>
+                            <span class="row-value pct ${cO}">${d.PctOver || '-'}%</span>
+                        </div>
                     </div>
                 </div>
                 <div class="volume-bar">
@@ -720,11 +774,17 @@ function updateMatchInfoCard() {
                 <div class="info-columns">
                     <div class="info-column">
                         <div class="column-header">Under 2.5</div>
-                        <div class="column-value odds">${formatOdds(d.Under)}</div>
+                        <div class="column-row">
+                            <span class="row-label">Odds</span>
+                            <span class="row-value odds">${formatOdds(d.Under)}</span>
+                        </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">Over 2.5</div>
-                        <div class="column-value odds">${formatOdds(d.Over)}</div>
+                        <div class="column-row">
+                            <span class="row-label">Odds</span>
+                            <span class="row-value odds">${formatOdds(d.Over)}</span>
+                        </div>
                     </div>
                 </div>
                 <div class="volume-bar">
@@ -741,15 +801,33 @@ function updateMatchInfoCard() {
                 <div class="info-columns">
                     <div class="info-column">
                         <div class="column-header">Yes</div>
-                        <div class="column-value odds">${formatOdds(d.Yes)}</div>
-                        <div class="column-value money ${cY}">${d.AmtYes || '-'}</div>
-                        <div class="column-value pct ${cY}">${d.PctYes || '-'}%</div>
+                        <div class="column-row">
+                            <span class="row-label">Odds</span>
+                            <span class="row-value odds">${formatOdds(d.Yes)}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">Stake</span>
+                            <span class="row-value money ${cY}">${d.AmtYes || '-'}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">%</span>
+                            <span class="row-value pct ${cY}">${d.PctYes || '-'}%</span>
+                        </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">No</div>
-                        <div class="column-value odds">${formatOdds(d.No)}</div>
-                        <div class="column-value money ${cN}">${d.AmtNo || '-'}</div>
-                        <div class="column-value pct ${cN}">${d.PctNo || '-'}%</div>
+                        <div class="column-row">
+                            <span class="row-label">Odds</span>
+                            <span class="row-value odds">${formatOdds(d.No)}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">Stake</span>
+                            <span class="row-value money ${cN}">${d.AmtNo || '-'}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">%</span>
+                            <span class="row-value pct ${cN}">${d.PctNo || '-'}%</span>
+                        </div>
                     </div>
                 </div>
                 <div class="volume-bar">
@@ -762,11 +840,17 @@ function updateMatchInfoCard() {
                 <div class="info-columns">
                     <div class="info-column">
                         <div class="column-header">Yes</div>
-                        <div class="column-value odds">${formatOdds(d.Yes)}</div>
+                        <div class="column-row">
+                            <span class="row-label">Odds</span>
+                            <span class="row-value odds">${formatOdds(d.Yes)}</span>
+                        </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">No</div>
-                        <div class="column-value odds">${formatOdds(d.No)}</div>
+                        <div class="column-row">
+                            <span class="row-label">Odds</span>
+                            <span class="row-value odds">${formatOdds(d.No)}</span>
+                        </div>
                     </div>
                 </div>
                 <div class="volume-bar">

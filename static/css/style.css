@@ -628,6 +628,47 @@ body {
     font-weight: 700;
 }
 
+.column-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #2f3336;
+}
+
+.column-row:last-child {
+    border-bottom: none;
+}
+
+.row-label {
+    font-size: 12px;
+    color: #8899a6;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.row-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.row-value.odds {
+    color: #4ade80;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.row-value.money {
+    font-size: 14px;
+}
+
+.row-value.pct {
+    font-size: 15px;
+    font-weight: 700;
+}
+
 .volume-bar {
     display: flex;
     justify-content: space-between;
