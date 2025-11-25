@@ -889,17 +889,44 @@ function closeModal() {
     document.getElementById('modalOverlay').classList.remove('active');
 }
 
-function roundTo10Min(timestamp) {
+function getBucketConfig() {
+    switch (chartTimeRange) {
+        case '5min':
+            return { bucketMinutes: 5, labelFormat: 'time' };
+        case '10min':
+            return { bucketMinutes: 10, labelFormat: 'time' };
+        case '30min':
+            return { bucketMinutes: 30, labelFormat: 'time' };
+        case '1hour':
+            return { bucketMinutes: 60, labelFormat: 'time' };
+        case '6hour':
+            return { bucketMinutes: 60, labelFormat: 'time' };
+        case '12hour':
+            return { bucketMinutes: 60, labelFormat: 'time' };
+        case '1day':
+        default:
+            return { bucketMinutes: 1440, labelFormat: 'date' };
+    }
+}
+
+function roundToBucket(timestamp) {
     const date = new Date(timestamp);
-    const minutes = date.getMinutes();
-    const roundedMinutes = Math.floor(minutes / 10) * 10;
-    date.setMinutes(roundedMinutes, 0, 0);
-    return date;
+    const config = getBucketConfig();
+    const bucketMs = config.bucketMinutes * 60 * 1000;
+    const roundedTime = Math.floor(date.getTime() / bucketMs) * bucketMs;
+    return new Date(roundedTime);
 }
 
 function formatTimeLabel(date) {
+    const config = getBucketConfig();
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    if (config.labelFormat === 'date') {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        return `${day}.${month}`;
+    }
     return `${hours}:${minutes}`;
 }
 
@@ -939,7 +966,7 @@ async function loadChart(home, away, market) {
             } catch {
                 date = new Date();
             }
-            const rounded = roundTo10Min(date);
+            const rounded = roundToBucket(date);
             const key = rounded.getTime();
             timeBlocks[key] = h;
         });
