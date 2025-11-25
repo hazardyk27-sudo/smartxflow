@@ -1026,6 +1026,38 @@ body {
     color: #fff;
 }
 
+.view-mode-filters {
+    display: flex;
+    gap: 4px;
+    background: #161b22;
+    padding: 3px;
+    border-radius: 8px;
+    border: 1px solid #30363d;
+}
+
+.chart-view-btn {
+    padding: 6px 14px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: #8b949e;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.chart-view-btn:hover {
+    color: #c9d1d9;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.chart-view-btn.active {
+    background: #58a6ff;
+    color: #fff;
+}
+
 .chart-export-btns {
     display: flex;
     gap: 6px;

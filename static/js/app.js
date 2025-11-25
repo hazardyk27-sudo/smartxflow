@@ -11,6 +11,7 @@ let chartVisibleSeries = {};
 let todayFilterActive = false;
 let chartTimeRange = '5min';
 let currentChartHistoryData = [];
+let chartViewMode = 'percent';
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1064,7 +1065,10 @@ async function loadChart(home, away, market) {
         
         if (market.includes('1x2')) {
             if (isMoneyway) {
-                ['Pct1', 'PctX', 'Pct2'].forEach((key, idx) => {
+                const dataKeys = chartViewMode === 'money' 
+                    ? ['Amt1', 'AmtX', 'Amt2'] 
+                    : ['Pct1', 'PctX', 'Pct2'];
+                dataKeys.forEach((key, idx) => {
                     const label = ['1', 'X', '2'][idx];
                     const color = [colors['1'], colors['X'], colors['2']][idx];
                     datasets.push({
@@ -1115,7 +1119,10 @@ async function loadChart(home, away, market) {
             }
         } else if (market.includes('ou25')) {
             if (isMoneyway) {
-                ['PctUnder', 'PctOver'].forEach((key, idx) => {
+                const dataKeys = chartViewMode === 'money' 
+                    ? ['AmtUnder', 'AmtOver'] 
+                    : ['PctUnder', 'PctOver'];
+                dataKeys.forEach((key, idx) => {
                     const label = ['Under', 'Over'][idx];
                     const color = [colors['Under'], colors['Over']][idx];
                     datasets.push({
@@ -1165,7 +1172,10 @@ async function loadChart(home, away, market) {
             }
         } else if (market.includes('btts')) {
             if (isMoneyway) {
-                ['PctYes', 'PctNo'].forEach((key, idx) => {
+                const dataKeys = chartViewMode === 'money' 
+                    ? ['AmtYes', 'AmtNo'] 
+                    : ['PctYes', 'PctNo'];
+                dataKeys.forEach((key, idx) => {
                     const label = ['Yes', 'No'][idx];
                     const color = [colors['Yes'], colors['No']][idx];
                     datasets.push({
@@ -1450,7 +1460,25 @@ function renderChartLegendFilters(datasets, market) {
         `;
     }).join('');
     
+    const isMoneyway = market.startsWith('moneyway');
+    const viewModeButtons = isMoneyway ? `
+        <div class="chart-filter-group view-mode-filters">
+            <button class="chart-view-btn ${chartViewMode === 'percent' ? 'active' : ''}" 
+                    data-mode="percent"
+                    onclick="setChartViewMode('percent')">
+                % Yüzde
+            </button>
+            <button class="chart-view-btn ${chartViewMode === 'money' ? 'active' : ''}" 
+                    data-mode="money"
+                    onclick="setChartViewMode('money')">
+                £ Para
+            </button>
+        </div>
+        <div class="chart-filter-divider"></div>
+    ` : '';
+    
     container.innerHTML = `
+        ${viewModeButtons}
         <div class="chart-filter-group series-filters">
             ${seriesButtons}
         </div>
@@ -1486,6 +1514,21 @@ function setChartTimeRange(range) {
     document.querySelectorAll('.chart-time-btn').forEach(btn => {
         btn.classList.remove('active');
         if (btn.dataset.range === range) {
+            btn.classList.add('active');
+        }
+    });
+    
+    if (selectedMatch) {
+        loadChart(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
+    }
+}
+
+function setChartViewMode(mode) {
+    chartViewMode = mode;
+    
+    document.querySelectorAll('.chart-view-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.mode === mode) {
             btn.classList.add('active');
         }
     });
