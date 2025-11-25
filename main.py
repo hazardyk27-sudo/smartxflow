@@ -66,8 +66,10 @@ def get_matches():
         history = db.get_match_history(m['home_team'], m['away_team'], market)
         
         odds = {}
+        details = {}
         if history:
             latest = history[-1]
+            details = latest
             if market in ['moneyway_1x2', 'dropping_1x2']:
                 odds = {
                     '1': latest.get('Odds1', latest.get('1', '-')),
@@ -91,6 +93,7 @@ def get_matches():
             'league': m.get('league', ''),
             'date': m.get('date', ''),
             'odds': odds,
+            'details': details,
             'history_count': len(history)
         })
     

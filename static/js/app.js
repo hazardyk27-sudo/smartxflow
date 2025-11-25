@@ -2,11 +2,13 @@ let currentMarket = 'moneyway_1x2';
 let matches = [];
 let chart = null;
 let selectedMatch = null;
+let selectedChartMarket = 'moneyway_1x2';
 
 document.addEventListener('DOMContentLoaded', () => {
     loadMatches();
     setupTabs();
     setupSearch();
+    setupChartTabs();
     checkStatus();
     setInterval(checkStatus, 5000);
 });
@@ -20,13 +22,16 @@ function setupTabs() {
             loadMatches();
         });
     });
-    
-    document.querySelectorAll('.chart-tabs .chart-tab').forEach(tab => {
+}
+
+function setupChartTabs() {
+    document.querySelectorAll('.chart-market-tabs .chart-tab').forEach(tab => {
         tab.addEventListener('click', () => {
-            document.querySelectorAll('.chart-tabs .chart-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.chart-market-tabs .chart-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
+            selectedChartMarket = tab.dataset.market;
             if (selectedMatch) {
-                loadChart(selectedMatch.home_team, selectedMatch.away_team, tab.dataset.market);
+                loadChart(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
             }
         });
     });
@@ -46,12 +51,14 @@ async function loadMatches() {
     const tbody = document.getElementById('matchesTableBody');
     tbody.innerHTML = `
         <tr class="loading-row">
-            <td colspan="6">
+            <td colspan="7">
                 <div class="loading-spinner"></div>
                 Loading matches...
             </td>
         </tr>
     `;
+    
+    updateTableHeaders();
     
     try {
         const response = await fetch(`/api/matches?market=${currentMarket}`);
@@ -61,12 +68,47 @@ async function loadMatches() {
         console.error('Error loading matches:', error);
         tbody.innerHTML = `
             <tr class="loading-row">
-                <td colspan="6">
+                <td colspan="7">
                     <div class="empty-state">
                         <p>No data available. Click "Scrape Now" to fetch matches.</p>
                     </div>
                 </td>
             </tr>
+        `;
+    }
+}
+
+function updateTableHeaders() {
+    const thead = document.querySelector('.matches-table thead tr');
+    if (!thead) return;
+    
+    if (currentMarket.includes('1x2')) {
+        thead.innerHTML = `
+            <th class="col-date">DATE</th>
+            <th class="col-league">LEAGUE</th>
+            <th class="col-match">MATCH</th>
+            <th class="col-selection">1</th>
+            <th class="col-selection">X</th>
+            <th class="col-selection">2</th>
+            <th class="col-volume">VOLUME</th>
+        `;
+    } else if (currentMarket.includes('ou25')) {
+        thead.innerHTML = `
+            <th class="col-date">DATE</th>
+            <th class="col-league">LEAGUE</th>
+            <th class="col-match">MATCH</th>
+            <th class="col-selection">UNDER</th>
+            <th class="col-selection">OVER</th>
+            <th class="col-volume">VOLUME</th>
+        `;
+    } else if (currentMarket.includes('btts')) {
+        thead.innerHTML = `
+            <th class="col-date">DATE</th>
+            <th class="col-league">LEAGUE</th>
+            <th class="col-match">MATCH</th>
+            <th class="col-selection">YES</th>
+            <th class="col-selection">NO</th>
+            <th class="col-volume">VOLUME</th>
         `;
     }
 }
@@ -80,9 +122,10 @@ function renderMatches(data) {
     }
     
     if (data.length === 0) {
+        const colspan = currentMarket.includes('1x2') ? 7 : 6;
         tbody.innerHTML = `
             <tr class="loading-row">
-                <td colspan="6">
+                <td colspan="${colspan}">
                     <div class="empty-state">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                             <circle cx="12" cy="12" r="10"/>
@@ -96,72 +139,84 @@ function renderMatches(data) {
         return;
     }
     
-    tbody.innerHTML = data.map(match => {
-        const odds = match.odds || {};
-        let oddsHtml = '';
+    tbody.innerHTML = data.map((match, idx) => {
+        const d = match.details || {};
+        const isSelected = selectedMatch && 
+            selectedMatch.home_team === match.home_team && 
+            selectedMatch.away_team === match.away_team;
         
         if (currentMarket.includes('1x2')) {
-            oddsHtml = `
-                <span class="odd">${formatOdds(odds['1'])}</span>
-                <span class="separator">-</span>
-                <span class="odd">${formatOdds(odds['X'])}</span>
-                <span class="separator">-</span>
-                <span class="odd">${formatOdds(odds['2'])}</span>
+            return `
+                <tr data-index="${idx}" class="${isSelected ? 'selected' : ''}" onclick="selectMatch(${idx})">
+                    <td class="match-date">${match.date || '-'}</td>
+                    <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
+                    <td class="selection-cell">
+                        <div class="selection-odds">${formatOdds(d.Odds1 || d['1'] || match.odds?.['1'])}</div>
+                        ${d.Amt1 ? `<div class="selection-money">${d.Amt1}</div>` : ''}
+                        ${d.Pct1 ? `<div class="selection-pct">${d.Pct1}%</div>` : ''}
+                    </td>
+                    <td class="selection-cell">
+                        <div class="selection-odds">${formatOdds(d.OddsX || d['X'] || match.odds?.['X'])}</div>
+                        ${d.AmtX ? `<div class="selection-money">${d.AmtX}</div>` : ''}
+                        ${d.PctX ? `<div class="selection-pct">${d.PctX}%</div>` : ''}
+                    </td>
+                    <td class="selection-cell">
+                        <div class="selection-odds">${formatOdds(d.Odds2 || d['2'] || match.odds?.['2'])}</div>
+                        ${d.Amt2 ? `<div class="selection-money">${d.Amt2}</div>` : ''}
+                        ${d.Pct2 ? `<div class="selection-pct">${d.Pct2}%</div>` : ''}
+                    </td>
+                    <td class="volume-cell">${d.Volume || '-'}</td>
+                </tr>
             `;
         } else if (currentMarket.includes('ou25')) {
-            oddsHtml = `
-                <span class="odd">${formatOdds(odds['Under'])}</span>
-                <span class="separator">/</span>
-                <span class="odd">${formatOdds(odds['Over'])}</span>
+            return `
+                <tr data-index="${idx}" class="${isSelected ? 'selected' : ''}" onclick="selectMatch(${idx})">
+                    <td class="match-date">${match.date || '-'}</td>
+                    <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
+                    <td class="selection-cell">
+                        <div class="selection-odds">${formatOdds(d.Under || match.odds?.Under)}</div>
+                        ${d.AmtUnder ? `<div class="selection-money">${d.AmtUnder}</div>` : ''}
+                        ${d.PctUnder ? `<div class="selection-pct">${d.PctUnder}%</div>` : ''}
+                    </td>
+                    <td class="selection-cell">
+                        <div class="selection-odds">${formatOdds(d.Over || match.odds?.Over)}</div>
+                        ${d.AmtOver ? `<div class="selection-money">${d.AmtOver}</div>` : ''}
+                        ${d.PctOver ? `<div class="selection-pct">${d.PctOver}%</div>` : ''}
+                    </td>
+                    <td class="volume-cell">${d.Volume || '-'}</td>
+                </tr>
             `;
-        } else if (currentMarket.includes('btts')) {
-            oddsHtml = `
-                <span class="odd">${formatOdds(odds['Yes'])}</span>
-                <span class="separator">/</span>
-                <span class="odd">${formatOdds(odds['No'])}</span>
+        } else {
+            return `
+                <tr data-index="${idx}" class="${isSelected ? 'selected' : ''}" onclick="selectMatch(${idx})">
+                    <td class="match-date">${match.date || '-'}</td>
+                    <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
+                    <td class="selection-cell">
+                        <div class="selection-odds">${formatOdds(d.Yes || match.odds?.Yes)}</div>
+                        ${d.AmtYes ? `<div class="selection-money">${d.AmtYes}</div>` : ''}
+                        ${d.PctYes ? `<div class="selection-pct">${d.PctYes}%</div>` : ''}
+                    </td>
+                    <td class="selection-cell">
+                        <div class="selection-odds">${formatOdds(d.No || match.odds?.No)}</div>
+                        ${d.AmtNo ? `<div class="selection-money">${d.AmtNo}</div>` : ''}
+                        ${d.PctNo ? `<div class="selection-pct">${d.PctNo}%</div>` : ''}
+                    </td>
+                    <td class="volume-cell">${d.Volume || '-'}</td>
+                </tr>
             `;
         }
-        
-        return `
-            <tr>
-                <td>
-                    <div class="match-teams">
-                        <span class="home">${match.home_team}</span>
-                        <span class="away">${match.away_team}</span>
-                    </div>
-                </td>
-                <td class="competition">${match.league || '-'}</td>
-                <td class="date">${match.date || '-'}</td>
-                <td><span class="status-badge">Upcoming</span></td>
-                <td>
-                    <div class="odds-display">${oddsHtml}</div>
-                </td>
-                <td>
-                    <button class="view-details" onclick="openMatchDetails('${escapeHtml(match.home_team)}', '${escapeHtml(match.away_team)}')">
-                        View Details
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                            <polyline points="15 3 21 3 21 9"/>
-                            <line x1="10" y1="14" x2="21" y2="3"/>
-                        </svg>
-                    </button>
-                </td>
-            </tr>
-        `;
     }).join('');
 }
 
 function formatOdds(value) {
     if (!value || value === '-') return '-';
     const str = String(value);
-    const num = parseFloat(str.split('\n')[0]);
-    return isNaN(num) ? '-' : num.toFixed(2);
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML.replace(/'/g, "\\'");
+    const firstLine = str.split('\n')[0];
+    const num = parseFloat(firstLine);
+    return isNaN(num) ? firstLine : num.toFixed(2);
 }
 
 function filterMatches(query) {
@@ -178,27 +233,33 @@ function filterMatches(query) {
     renderMatches(filtered);
 }
 
-async function openMatchDetails(home, away) {
-    selectedMatch = { home_team: home, away_team: away };
-    
-    const modal = document.getElementById('chartModal');
-    const title = document.getElementById('modalMatchTitle');
-    
-    if (title) {
-        title.textContent = `${home} vs ${away}`;
+function selectMatch(index) {
+    if (index >= 0 && index < matches.length) {
+        selectedMatch = matches[index];
+        
+        document.querySelectorAll('.matches-table tbody tr').forEach(tr => {
+            tr.classList.remove('selected');
+        });
+        document.querySelector(`tr[data-index="${index}"]`)?.classList.add('selected');
+        
+        document.getElementById('chartTitle').textContent = 
+            `${selectedMatch.home_team} vs ${selectedMatch.away_team}`;
+        document.getElementById('chartSubtitle').textContent = 
+            selectedMatch.league || 'Odds Movement Chart';
+        
+        document.getElementById('chartMarketTabs').style.display = 'flex';
+        document.getElementById('chartEmpty').classList.add('hidden');
+        document.querySelector('.chart-container').classList.add('active');
+        
+        loadChart(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
     }
-    
-    modal.classList.add('active');
-    
-    document.querySelectorAll('.chart-tabs .chart-tab').forEach(t => t.classList.remove('active'));
-    document.querySelector('.chart-tabs .chart-tab[data-market="moneyway_1x2"]')?.classList.add('active');
-    
-    await loadChart(home, away, 'moneyway_1x2');
 }
 
 async function loadChart(home, away, market) {
     try {
-        const response = await fetch(`/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}`);
+        const response = await fetch(
+            `/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}`
+        );
         const data = await response.json();
         
         if (chart) {
@@ -206,6 +267,29 @@ async function loadChart(home, away, market) {
         }
         
         const ctx = document.getElementById('oddsChart').getContext('2d');
+        
+        if (!data.chart_data.labels.length) {
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['No data'],
+                    datasets: [{
+                        label: 'No historical data available',
+                        data: [0],
+                        borderColor: '#536471'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+            return;
+        }
+        
         chart = new Chart(ctx, {
             type: 'line',
             data: data.chart_data,
@@ -222,7 +306,9 @@ async function loadChart(home, away, market) {
                         labels: {
                             color: '#9ca3af',
                             usePointStyle: true,
-                            pointStyle: 'circle'
+                            pointStyle: 'circle',
+                            padding: 15,
+                            font: { size: 11 }
                         }
                     },
                     tooltip: {
@@ -231,43 +317,36 @@ async function loadChart(home, away, market) {
                         bodyColor: '#d1d5db',
                         borderColor: '#374151',
                         borderWidth: 1,
-                        padding: 12,
-                        displayColors: true,
-                        callbacks: {
-                            title: function(items) {
-                                if (items.length > 0) {
-                                    const date = new Date();
-                                    return date.toLocaleDateString('tr-TR') + ' ' + items[0].label;
-                                }
-                                return '';
-                            }
-                        }
+                        padding: 10,
+                        displayColors: true
                     }
                 },
                 scales: {
                     x: {
                         grid: {
-                            color: '#374151',
+                            color: '#2f3336',
                             drawBorder: false
                         },
                         ticks: {
-                            color: '#9ca3af'
+                            color: '#8899a6',
+                            font: { size: 10 }
                         }
                     },
                     y: {
                         grid: {
-                            color: '#374151',
+                            color: '#2f3336',
                             drawBorder: false
                         },
                         ticks: {
-                            color: '#9ca3af'
+                            color: '#8899a6',
+                            font: { size: 10 }
                         }
                     }
                 },
                 elements: {
                     point: {
-                        radius: 4,
-                        hoverRadius: 6
+                        radius: 3,
+                        hoverRadius: 5
                     },
                     line: {
                         borderWidth: 2
@@ -280,25 +359,13 @@ async function loadChart(home, away, market) {
     }
 }
 
-function closeModal() {
-    const modal = document.getElementById('chartModal');
-    modal.classList.remove('active');
-    selectedMatch = null;
-}
-
-document.getElementById('chartModal')?.addEventListener('click', (e) => {
-    if (e.target.id === 'chartModal') {
-        closeModal();
-    }
-});
-
 async function triggerScrape() {
     const btn = document.getElementById('scrapeBtn');
     const originalText = btn.innerHTML;
     
     btn.disabled = true;
     btn.innerHTML = `
-        <div class="loading-spinner" style="width:16px;height:16px;margin:0;border-width:2px;"></div>
+        <div class="loading-spinner" style="width:14px;height:14px;margin:0;border-width:2px;"></div>
         Scraping...
     `;
     
