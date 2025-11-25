@@ -16,6 +16,7 @@ const demoMatches = {
             date: '25.11.2025 20:00',
             details: {
                 Odds1: '2.10', OddsX: '3.40', Odds2: '3.25',
+                PrevOdds1: '2.08', PrevOddsX: '3.42', PrevOdds2: '3.28',
                 Amt1: '£125,400', AmtX: '£45,200', Amt2: '£38,600',
                 Pct1: '59.8', PctX: '21.6', Pct2: '18.6',
                 Volume: '£209,200'
@@ -28,6 +29,7 @@ const demoMatches = {
             date: '25.11.2025 17:30',
             details: {
                 Odds1: '1.85', OddsX: '3.80', Odds2: '4.00',
+                PrevOdds1: '1.90', PrevOddsX: '3.75', PrevOdds2: '3.95',
                 Amt1: '£234,500', AmtX: '£67,800', Amt2: '£52,300',
                 Pct1: '66.1', PctX: '19.1', Pct2: '14.8',
                 Volume: '£354,600'
@@ -40,6 +42,7 @@ const demoMatches = {
             date: '25.11.2025 21:00',
             details: {
                 Odds1: '2.25', OddsX: '3.50', Odds2: '2.90',
+                PrevOdds1: '2.30', PrevOddsX: '3.45', PrevOdds2: '2.85',
                 Amt1: '£189,200', AmtX: '£56,400', Amt2: '£112,800',
                 Pct1: '52.8', PctX: '15.7', Pct2: '31.5',
                 Volume: '£358,400'
@@ -52,6 +55,7 @@ const demoMatches = {
             date: '25.11.2025 18:30',
             details: {
                 Odds1: '1.45', OddsX: '4.80', Odds2: '6.50',
+                PrevOdds1: '1.48', PrevOddsX: '4.75', PrevOdds2: '6.40',
                 Amt1: '£312,600', AmtX: '£28,400', Amt2: '£15,200',
                 Pct1: '87.8', PctX: '8.0', Pct2: '4.2',
                 Volume: '£356,200'
@@ -64,6 +68,7 @@ const demoMatches = {
             date: '25.11.2025 21:00',
             details: {
                 Odds1: '1.35', OddsX: '5.20', Odds2: '8.00',
+                PrevOdds1: '1.38', PrevOddsX: '5.10', PrevOdds2: '7.80',
                 Amt1: '£285,400', AmtX: '£18,600', Amt2: '£9,200',
                 Pct1: '91.2', PctX: '5.9', Pct2: '2.9',
                 Volume: '£313,200'
@@ -76,6 +81,7 @@ const demoMatches = {
             date: '26.11.2025 19:00',
             details: {
                 Odds1: '1.90', OddsX: '3.60', Odds2: '3.80',
+                PrevOdds1: '1.95', PrevOddsX: '3.55', PrevOdds2: '3.75',
                 Amt1: '£156,800', AmtX: '£52,400', Amt2: '£48,200',
                 Pct1: '60.9', PctX: '20.3', Pct2: '18.8',
                 Volume: '£257,400'
@@ -88,6 +94,7 @@ const demoMatches = {
             date: '26.11.2025 17:00',
             details: {
                 Odds1: '2.00', OddsX: '3.50', Odds2: '3.40',
+                PrevOdds1: '2.05', PrevOddsX: '3.45', PrevOdds2: '3.35',
                 Amt1: '£178,300', AmtX: '£64,500', Amt2: '£68,900',
                 Pct1: '57.2', PctX: '20.7', Pct2: '22.1',
                 Volume: '£311,700'
@@ -100,6 +107,7 @@ const demoMatches = {
             date: '25.11.2025 20:45',
             details: {
                 Odds1: '2.40', OddsX: '3.20', Odds2: '2.85',
+                PrevOdds1: '2.35', PrevOddsX: '3.25', PrevOdds2: '2.90',
                 Amt1: '£98,500', AmtX: '£42,300', Amt2: '£76,800',
                 Pct1: '45.3', PctX: '19.4', Pct2: '35.3',
                 Volume: '£217,600'
@@ -413,6 +421,10 @@ function renderMatches(data) {
         const d = match.details || {};
         
         if (currentMarket.includes('1x2')) {
+            const trend1 = getTableTrendArrow(d.Odds1 || d['1'], d.PrevOdds1);
+            const trendX = getTableTrendArrow(d.OddsX || d['X'], d.PrevOddsX);
+            const trend2 = getTableTrendArrow(d.Odds2 || d['2'], d.PrevOdds2);
+            
             if (isMoneyway) {
                 const c1 = getColorClass(d.Pct1);
                 const cX = getColorClass(d.PctX);
@@ -423,17 +435,17 @@ function renderMatches(data) {
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Odds1 || d['1'])}</div>
+                            <div class="selection-odds">${formatOdds(d.Odds1 || d['1'])}${trend1}</div>
                             ${d.Amt1 ? `<div class="selection-money ${c1}">${d.Amt1}</div>` : ''}
                             ${d.Pct1 ? `<div class="selection-pct ${c1}">${d.Pct1}%</div>` : ''}
                         </td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.OddsX || d['X'])}</div>
+                            <div class="selection-odds">${formatOdds(d.OddsX || d['X'])}${trendX}</div>
                             ${d.AmtX ? `<div class="selection-money ${cX}">${d.AmtX}</div>` : ''}
                             ${d.PctX ? `<div class="selection-pct ${cX}">${d.PctX}%</div>` : ''}
                         </td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Odds2 || d['2'])}</div>
+                            <div class="selection-odds">${formatOdds(d.Odds2 || d['2'])}${trend2}</div>
                             ${d.Amt2 ? `<div class="selection-money ${c2}">${d.Amt2}</div>` : ''}
                             ${d.Pct2 ? `<div class="selection-pct ${c2}">${d.Pct2}%</div>` : ''}
                         </td>
@@ -447,19 +459,22 @@ function renderMatches(data) {
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Odds1 || d['1'])}</div>
+                            <div class="selection-odds">${formatOdds(d.Odds1 || d['1'])}${trend1}</div>
                         </td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.OddsX || d['X'])}</div>
+                            <div class="selection-odds">${formatOdds(d.OddsX || d['X'])}${trendX}</div>
                         </td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Odds2 || d['2'])}</div>
+                            <div class="selection-odds">${formatOdds(d.Odds2 || d['2'])}${trend2}</div>
                         </td>
                         <td class="volume-cell">${d.Volume || '-'}</td>
                     </tr>
                 `;
             }
         } else if (currentMarket.includes('ou25')) {
+            const trendUnder = getTableTrendArrow(d.Under, d.PrevUnder);
+            const trendOver = getTableTrendArrow(d.Over, d.PrevOver);
+            
             if (isMoneyway) {
                 const cU = getColorClass(d.PctUnder);
                 const cO = getColorClass(d.PctOver);
@@ -469,12 +484,12 @@ function renderMatches(data) {
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Under)}</div>
+                            <div class="selection-odds">${formatOdds(d.Under)}${trendUnder}</div>
                             ${d.AmtUnder ? `<div class="selection-money ${cU}">${d.AmtUnder}</div>` : ''}
                             ${d.PctUnder ? `<div class="selection-pct ${cU}">${d.PctUnder}%</div>` : ''}
                         </td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Over)}</div>
+                            <div class="selection-odds">${formatOdds(d.Over)}${trendOver}</div>
                             ${d.AmtOver ? `<div class="selection-money ${cO}">${d.AmtOver}</div>` : ''}
                             ${d.PctOver ? `<div class="selection-pct ${cO}">${d.PctOver}%</div>` : ''}
                         </td>
@@ -488,16 +503,19 @@ function renderMatches(data) {
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Under)}</div>
+                            <div class="selection-odds">${formatOdds(d.Under)}${trendUnder}</div>
                         </td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Over)}</div>
+                            <div class="selection-odds">${formatOdds(d.Over)}${trendOver}</div>
                         </td>
                         <td class="volume-cell">${d.Volume || '-'}</td>
                     </tr>
                 `;
             }
         } else {
+            const trendYes = getTableTrendArrow(d.Yes, d.PrevYes);
+            const trendNo = getTableTrendArrow(d.No, d.PrevNo);
+            
             if (isMoneyway) {
                 const cY = getColorClass(d.PctYes);
                 const cN = getColorClass(d.PctNo);
@@ -507,12 +525,12 @@ function renderMatches(data) {
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Yes)}</div>
+                            <div class="selection-odds">${formatOdds(d.Yes)}${trendYes}</div>
                             ${d.AmtYes ? `<div class="selection-money ${cY}">${d.AmtYes}</div>` : ''}
                             ${d.PctYes ? `<div class="selection-pct ${cY}">${d.PctYes}%</div>` : ''}
                         </td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.No)}</div>
+                            <div class="selection-odds">${formatOdds(d.No)}${trendNo}</div>
                             ${d.AmtNo ? `<div class="selection-money ${cN}">${d.AmtNo}</div>` : ''}
                             ${d.PctNo ? `<div class="selection-pct ${cN}">${d.PctNo}%</div>` : ''}
                         </td>
@@ -526,10 +544,10 @@ function renderMatches(data) {
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Yes)}</div>
+                            <div class="selection-odds">${formatOdds(d.Yes)}${trendYes}</div>
                         </td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.No)}</div>
+                            <div class="selection-odds">${formatOdds(d.No)}${trendNo}</div>
                         </td>
                         <td class="volume-cell">${d.Volume || '-'}</td>
                     </tr>
@@ -537,6 +555,16 @@ function renderMatches(data) {
             }
         }
     }).join('');
+}
+
+function getTableTrendArrow(current, previous) {
+    if (!current || !previous) return '';
+    const curr = parseFloat(String(current).replace(/[^0-9.]/g, ''));
+    const prev = parseFloat(String(previous).replace(/[^0-9.]/g, ''));
+    if (isNaN(curr) || isNaN(prev)) return '';
+    if (curr > prev) return '<span class="trend-up">↑</span>';
+    if (curr < prev) return '<span class="trend-down">↓</span>';
+    return '';
 }
 
 function formatOdds(value) {
