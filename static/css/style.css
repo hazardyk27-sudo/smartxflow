@@ -579,6 +579,81 @@ body {
     margin-bottom: 20px;
 }
 
+.info-columns {
+    display: flex;
+    justify-content: space-around;
+    gap: 20px;
+}
+
+.info-column {
+    flex: 1;
+    text-align: center;
+    padding: 16px;
+    background: #0f1419;
+    border-radius: 10px;
+}
+
+.column-header {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #2f3336;
+}
+
+.column-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    margin-bottom: 10px;
+    font-size: 15px;
+}
+
+.column-value:last-child {
+    margin-bottom: 0;
+}
+
+.column-value.odds {
+    color: #4ade80;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.column-value.money {
+    font-size: 14px;
+}
+
+.column-value.pct {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.volume-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding: 14px 20px;
+    background: #0f1419;
+    border-radius: 10px;
+    border: 1px solid #2f3336;
+}
+
+.volume-label {
+    font-size: 12px;
+    color: #8899a6;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.volume-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: #4ade80;
+}
+
 .info-row {
     display: flex;
     justify-content: space-around;
