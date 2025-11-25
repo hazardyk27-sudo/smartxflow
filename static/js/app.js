@@ -471,15 +471,27 @@ function getTodayDateString() {
     const day = String(now.getDate()).padStart(2, '0');
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const year = now.getFullYear();
-    return `${day}.${month}.${year}`;
+    return `${year}-${month}-${day}`;
 }
 
 function extractDateOnly(dateStr) {
     if (!dateStr) return '';
-    const parts = dateStr.match(/(\d{2})\.(\d{2})\.(\d{4})/);
-    if (parts) {
-        return `${parts[1]}.${parts[2]}.${parts[3]}`;
+    
+    const ddmmyyyy = dateStr.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+    if (ddmmyyyy) {
+        return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`;
     }
+    
+    const yyyymmdd = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (yyyymmdd) {
+        return `${yyyymmdd[1]}-${yyyymmdd[2]}-${yyyymmdd[3]}`;
+    }
+    
+    const isoMatch = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T/);
+    if (isoMatch) {
+        return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+    }
+    
     return '';
 }
 
@@ -1422,6 +1434,60 @@ function generateExportFilename(extension) {
     return `SmartXFlow_${league}_${home}-${away}_${marketLabel}_${dateStr}.${extension}`;
 }
 
+function isEXEEnvironment() {
+    return typeof window.pywebview !== 'undefined' || 
+           navigator.userAgent.includes('pywebview') ||
+           !navigator.userAgent.includes('Chrome');
+}
+
+function showExportNotification(message, isError = false) {
+    const existing = document.querySelector('.export-notification');
+    if (existing) existing.remove();
+    
+    const notification = document.createElement('div');
+    notification.className = 'export-notification';
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        background: ${isError ? '#dc2626' : '#22c55e'};
+        color: white;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: slideIn 0.3s ease;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => notification.remove(), 4000);
+}
+
+async function savePNGViaAPI(imageData, filename) {
+    try {
+        const response = await fetch('/api/export/png', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: imageData, filename: filename })
+        });
+        const result = await response.json();
+        if (result.success) {
+            showExportNotification(`PNG kaydedildi: ${result.path}`);
+            return true;
+        } else {
+            showExportNotification(`Hata: ${result.error}`, true);
+            return false;
+        }
+    } catch (err) {
+        console.error('API save error:', err);
+        showExportNotification('PNG kaydetme hatası', true);
+        return false;
+    }
+}
+
 function exportChartPNG() {
     if (!chart || !selectedMatch) return;
     
@@ -1471,6 +1537,19 @@ function exportChartPNG() {
         if (closeBtn) closeBtn.style.display = '';
     };
     
+    const resetButton = () => {
+        if (exportBtn) {
+            exportBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                </svg>
+                PNG
+            `;
+        }
+    };
+    
     setTimeout(() => {
         html2canvas(modalContent, {
             backgroundColor: '#161b22',
@@ -1482,37 +1561,28 @@ function exportChartPNG() {
             windowHeight: modalContent.scrollHeight,
             scrollY: 0,
             scrollX: 0
-        }).then(canvas => {
+        }).then(async canvas => {
             restoreStyles();
             
-            const link = document.createElement('a');
-            link.download = generateExportFilename('png');
-            link.href = canvas.toDataURL('image/png', 1.0);
-            link.click();
+            const imageData = canvas.toDataURL('image/png', 1.0);
+            const filename = generateExportFilename('png');
             
-            if (exportBtn) {
-                exportBtn.innerHTML = `
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                        <circle cx="8.5" cy="8.5" r="1.5"/>
-                        <polyline points="21 15 16 10 5 21"/>
-                    </svg>
-                    PNG
-                `;
+            const saved = await savePNGViaAPI(imageData, filename);
+            
+            if (!saved) {
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = imageData;
+                link.click();
+                showExportNotification('PNG indirildi');
             }
+            
+            resetButton();
         }).catch(err => {
             restoreStyles();
             console.error('PNG export error:', err);
-            if (exportBtn) {
-                exportBtn.innerHTML = `
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                        <circle cx="8.5" cy="8.5" r="1.5"/>
-                        <polyline points="21 15 16 10 5 21"/>
-                    </svg>
-                    PNG
-                `;
-            }
+            showExportNotification('PNG oluşturma hatası', true);
+            resetButton();
         });
     }, 100);
 }

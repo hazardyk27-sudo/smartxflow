@@ -267,5 +267,48 @@ def get_markets():
     ])
 
 
+@app.route('/api/export/png', methods=['POST'])
+def export_png():
+    """Save PNG file for EXE/pywebview environment"""
+    import base64
+    import re
+    
+    try:
+        data = request.get_json()
+        image_data = data.get('image', '')
+        filename = data.get('filename', 'SmartXFlow_export.png')
+        
+        if not image_data:
+            return jsonify({'success': False, 'error': 'No image data'})
+        
+        header_match = re.match(r'data:image/\w+;base64,', image_data)
+        if header_match:
+            image_data = image_data[header_match.end():]
+        
+        image_bytes = base64.b64decode(image_data)
+        
+        downloads_path = os.path.expanduser('~/Downloads')
+        if not os.path.exists(downloads_path):
+            downloads_path = os.path.expanduser('~')
+        
+        safe_filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
+        filepath = os.path.join(downloads_path, safe_filename)
+        
+        counter = 1
+        base_name = safe_filename.rsplit('.', 1)[0]
+        ext = '.png'
+        while os.path.exists(filepath):
+            filepath = os.path.join(downloads_path, f"{base_name}_{counter}{ext}")
+            counter += 1
+        
+        with open(filepath, 'wb') as f:
+            f.write(image_bytes)
+        
+        return jsonify({'success': True, 'path': filepath})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
