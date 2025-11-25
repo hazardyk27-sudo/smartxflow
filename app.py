@@ -29,7 +29,9 @@ scrape_status = {
     "running": False,
     "auto_running": False,
     "last_result": None,
-    "last_scrape_time": None
+    "last_scrape_time": None,
+    "next_scrape_time": None,
+    "interval_minutes": 5
 }
 
 auto_scrape_thread = None
@@ -249,13 +251,16 @@ def toggle_auto_scrape():
     
     if action == 'start' and not scrape_status['auto_running']:
         scrape_status['auto_running'] = True
+        scrape_status['interval_minutes'] = interval
         stop_auto_event.clear()
         
         def auto_loop():
             global scrape_status
+            from datetime import timedelta
             while not stop_auto_event.is_set():
                 if not scrape_status['running']:
                     scrape_status['running'] = True
+                    scrape_status['next_scrape_time'] = None
                     try:
                         result = run_scraper()
                         scrape_status['last_result'] = result
@@ -265,25 +270,46 @@ def toggle_auto_scrape():
                     finally:
                         scrape_status['running'] = False
                 
-                for _ in range(interval * 60):
+                next_time = datetime.now() + timedelta(minutes=scrape_status['interval_minutes'])
+                scrape_status['next_scrape_time'] = next_time.isoformat()
+                
+                for _ in range(scrape_status['interval_minutes'] * 60):
                     if stop_auto_event.is_set():
                         break
                     time.sleep(1)
             
             scrape_status['auto_running'] = False
+            scrape_status['next_scrape_time'] = None
         
         auto_scrape_thread = threading.Thread(target=auto_loop)
         auto_scrape_thread.daemon = True
         auto_scrape_thread.start()
         
-        return jsonify({'status': 'ok', 'auto_running': True})
+        return jsonify({'status': 'ok', 'auto_running': True, 'interval_minutes': interval})
     
     elif action == 'stop':
         stop_auto_event.set()
         scrape_status['auto_running'] = False
+        scrape_status['next_scrape_time'] = None
         return jsonify({'status': 'ok', 'auto_running': False})
     
     return jsonify({'status': 'ok', 'auto_running': scrape_status['auto_running']})
+
+
+@app.route('/api/interval', methods=['POST'])
+def update_interval():
+    """Update auto-scrape interval"""
+    global scrape_status
+    data = request.get_json() or {}
+    new_interval = int(data.get('interval', 5))
+    
+    if new_interval < 1:
+        new_interval = 1
+    if new_interval > 60:
+        new_interval = 60
+    
+    scrape_status['interval_minutes'] = new_interval
+    return jsonify({'status': 'ok', 'interval_minutes': new_interval})
 
 
 @app.route('/api/status')
@@ -294,6 +320,8 @@ def get_status():
         'auto_running': scrape_status['auto_running'],
         'last_result': scrape_status['last_result'],
         'last_scrape_time': scrape_status['last_scrape_time'],
+        'next_scrape_time': scrape_status['next_scrape_time'],
+        'interval_minutes': scrape_status['interval_minutes'],
         'cookie_set': bool(get_cookie_string())
     })
 
