@@ -425,16 +425,18 @@ def export_png():
 
 @app.route('/api/alarms')
 def get_all_alarms():
-    """Get all active alarms for ticker"""
+    """Get all active alarms for ticker - one per match, max 12"""
     try:
-        all_alarms = []
+        match_best_alarms = {}
         matches = db.get_all_matches()
         
-        markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
+        markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts', 
+                   'dropping_1x2', 'dropping_ou25', 'dropping_btts']
         
         for m in matches:
             home = m.get('home_team', '')
             away = m.get('away_team', '')
+            match_key = f"{home}_{away}"
             
             for market in markets:
                 history = db.get_match_history(home, away, market)
@@ -443,13 +445,17 @@ def get_all_alarms():
                     for alarm in alarms:
                         formatted = format_alarm_for_ticker(alarm, home, away)
                         formatted['market'] = market
-                        formatted['match_id'] = f"{home}_{away}"
-                        all_alarms.append(formatted)
+                        formatted['match_id'] = match_key
+                        
+                        current_best = match_best_alarms.get(match_key)
+                        if not current_best or formatted['priority'] < current_best['priority']:
+                            match_best_alarms[match_key] = formatted
         
+        all_alarms = list(match_best_alarms.values())
         all_alarms.sort(key=lambda x: x.get('priority', 99))
         
         return jsonify({
-            'alarms': all_alarms[:15],
+            'alarms': all_alarms[:12],
             'total': len(all_alarms)
         })
     except Exception as e:

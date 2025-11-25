@@ -2189,17 +2189,26 @@ async function loadSmartMoneyTicker() {
             return;
         }
         
-        const items = data.alarms.map(alarm => `
-            <div class="ticker-item" 
-                 style="--alarm-color: ${alarm.color};"
-                 onclick="openMatchModalByTeams('${alarm.home}', '${alarm.away}', '${alarm.type}')">
-                <span class="ticker-icon">${alarm.icon}</span>
-                <span class="ticker-type">${alarm.name}</span>
-                <span class="ticker-divider">|</span>
-                <span class="ticker-match">${alarm.home} – ${alarm.away}</span>
-                ${alarm.money_text ? `<span class="ticker-divider">|</span><span class="ticker-money">${alarm.money_text}</span>` : ''}
-            </div>
-        `).join('');
+        const items = data.alarms.map(alarm => {
+            const shortName = alarm.name.split(' ')[0];
+            const sideText = alarm.side ? ` (${alarm.side})` : '';
+            const oddsText = (alarm.odds_from && alarm.odds_to) 
+                ? `${parseFloat(alarm.odds_from).toFixed(2)} → ${parseFloat(alarm.odds_to).toFixed(2)}` 
+                : '';
+            
+            return `
+                <div class="ticker-item" 
+                     style="--alarm-color: ${alarm.color};"
+                     onclick="openMatchModalByTeams('${alarm.home}', '${alarm.away}', '${alarm.type}')">
+                    <span class="ticker-icon">${alarm.icon}</span>
+                    <span class="ticker-type">${shortName}</span>
+                    <span class="ticker-divider">|</span>
+                    <span class="ticker-match">${alarm.home} – ${alarm.away}</span>
+                    ${alarm.money_text ? `<span class="ticker-divider">|</span><span class="ticker-money">${alarm.money_text}${sideText}</span>` : ''}
+                    ${oddsText ? `<span class="ticker-divider">|</span><span class="ticker-odds">${oddsText}</span>` : ''}
+                </div>
+            `;
+        }).join('');
         
         tickerContent.innerHTML = items + items;
         
