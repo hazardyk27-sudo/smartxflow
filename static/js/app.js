@@ -9,6 +9,8 @@ let currentSortColumn = 'date';
 let currentSortDirection = 'desc';
 let chartVisibleSeries = {};
 let todayFilterActive = false;
+let chartTimeRange = '1day';
+let currentChartHistoryData = [];
 
 const demoMatches = {
     'moneyway_1x2': [
@@ -1164,8 +1166,10 @@ async function loadChart(home, away, market) {
         const isMoneyway = market.startsWith('moneyway');
         const isDropping = market.startsWith('dropping');
         
+        const filteredHistory = filterHistoryByTimeRange(data.history);
+        
         const timeBlocks = {};
-        data.history.forEach(h => {
+        filteredHistory.forEach(h => {
             const ts = h.ScrapedAt || '';
             let date;
             try {
@@ -1548,7 +1552,16 @@ function renderChartLegendFilters(datasets, market) {
     
     const items = legendLabels[market] || [];
     
-    container.innerHTML = items.map(item => {
+    const timeRanges = [
+        { key: '10min', label: '10 dk' },
+        { key: '30min', label: '30 dk' },
+        { key: '1hour', label: '1 saat' },
+        { key: '6hour', label: '6 saat' },
+        { key: '12hour', label: '12 saat' },
+        { key: '1day', label: '1 gün' }
+    ];
+    
+    const seriesButtons = items.map(item => {
         const stateKey = `${market}_${item.key}`;
         const isActive = chartVisibleSeries[stateKey] !== false;
         const activeClass = isActive ? 'active' : 'inactive';
@@ -1562,6 +1575,82 @@ function renderChartLegendFilters(datasets, market) {
             </button>
         `;
     }).join('');
+    
+    const timeButtons = timeRanges.map(tr => {
+        const isActive = chartTimeRange === tr.key;
+        return `
+            <button class="chart-time-btn ${isActive ? 'active' : ''}" 
+                    data-range="${tr.key}"
+                    onclick="setChartTimeRange('${tr.key}')">
+                ${tr.label}
+            </button>
+        `;
+    }).join('');
+    
+    container.innerHTML = `
+        <div class="chart-filter-group series-filters">
+            ${seriesButtons}
+        </div>
+        <div class="chart-filter-divider"></div>
+        <div class="chart-filter-group time-filters">
+            ${timeButtons}
+        </div>
+    `;
+}
+
+function setChartTimeRange(range) {
+    chartTimeRange = range;
+    
+    document.querySelectorAll('.chart-time-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.range === range) {
+            btn.classList.add('active');
+        }
+    });
+    
+    if (selectedMatch) {
+        loadChart(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
+    }
+}
+
+function filterHistoryByTimeRange(historyData) {
+    if (!historyData || historyData.length === 0) return historyData;
+    
+    const now = new Date();
+    let cutoffTime;
+    
+    switch (chartTimeRange) {
+        case '10min':
+            cutoffTime = new Date(now.getTime() - 10 * 60 * 1000);
+            break;
+        case '30min':
+            cutoffTime = new Date(now.getTime() - 30 * 60 * 1000);
+            break;
+        case '1hour':
+            cutoffTime = new Date(now.getTime() - 60 * 60 * 1000);
+            break;
+        case '6hour':
+            cutoffTime = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+            break;
+        case '12hour':
+            cutoffTime = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+            break;
+        case '1day':
+        default:
+            cutoffTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+            break;
+    }
+    
+    return historyData.filter(h => {
+        const ts = h.ScrapedAt || '';
+        let date;
+        try {
+            date = new Date(ts);
+        } catch {
+            return true;
+        }
+        return date >= cutoffTime;
+    });
 }
 
 function toggleChartSeries(market, seriesKey, btn) {
