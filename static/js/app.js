@@ -436,10 +436,13 @@ function applySorting(data) {
     
     if (todayFilterActive) {
         const today = getTodayDateString();
+        console.log('[Filter] Today:', today);
         sortedData = sortedData.filter(m => {
             const matchDate = extractDateOnly(m.date);
+            console.log('[Filter] Match date:', m.date, '-> extracted:', matchDate);
             return matchDate === today;
         });
+        console.log('[Filter] Filtered count:', sortedData.length);
     }
     
     return sortedData.sort((a, b) => {
@@ -462,30 +465,30 @@ function applySorting(data) {
                 break;
             case 'sel1':
                 if (currentMarket.includes('1x2')) {
-                    valA = parseFloat(d1.Odds1 || d1['1'] || 0);
-                    valB = parseFloat(d2.Odds1 || d2['1'] || 0);
+                    valA = parseOddsValue(d1.Odds1 || d1['1']);
+                    valB = parseOddsValue(d2.Odds1 || d2['1']);
                 } else if (currentMarket.includes('ou25')) {
-                    valA = parseFloat(d1.Under || 0);
-                    valB = parseFloat(d2.Under || 0);
+                    valA = parseOddsValue(d1.Under);
+                    valB = parseOddsValue(d2.Under);
                 } else if (currentMarket.includes('btts')) {
-                    valA = parseFloat(d1.Yes || 0);
-                    valB = parseFloat(d2.Yes || 0);
+                    valA = parseOddsValue(d1.OddsYes || d1.Yes);
+                    valB = parseOddsValue(d2.OddsYes || d2.Yes);
                 }
                 break;
             case 'selX':
-                valA = parseFloat(d1.OddsX || d1['X'] || 0);
-                valB = parseFloat(d2.OddsX || d2['X'] || 0);
+                valA = parseOddsValue(d1.OddsX || d1['X']);
+                valB = parseOddsValue(d2.OddsX || d2['X']);
                 break;
             case 'sel2':
                 if (currentMarket.includes('1x2')) {
-                    valA = parseFloat(d1.Odds2 || d1['2'] || 0);
-                    valB = parseFloat(d2.Odds2 || d2['2'] || 0);
+                    valA = parseOddsValue(d1.Odds2 || d1['2']);
+                    valB = parseOddsValue(d2.Odds2 || d2['2']);
                 } else if (currentMarket.includes('ou25')) {
-                    valA = parseFloat(d1.Over || 0);
-                    valB = parseFloat(d2.Over || 0);
+                    valA = parseOddsValue(d1.Over);
+                    valB = parseOddsValue(d2.Over);
                 } else if (currentMarket.includes('btts')) {
-                    valA = parseFloat(d1.No || 0);
-                    valB = parseFloat(d2.No || 0);
+                    valA = parseOddsValue(d1.OddsNo || d1.No);
+                    valB = parseOddsValue(d2.OddsNo || d2.No);
                 }
                 break;
             case 'volume':
@@ -496,6 +499,9 @@ function applySorting(data) {
                 valA = parseDate(a.date);
                 valB = parseDate(b.date);
         }
+        
+        valA = valA || 0;
+        valB = valB || 0;
         
         if (typeof valA === 'string' && typeof valB === 'string') {
             if (currentSortDirection === 'asc') {
@@ -513,6 +519,16 @@ function applySorting(data) {
     });
 }
 
+function parseOddsValue(val) {
+    if (!val || val === '-') return 0;
+    let str = String(val).split('\n')[0];
+    str = str.replace(/[↑↓]/g, '').trim();
+    str = str.replace(/,/g, '.');
+    str = str.replace(/[^0-9.-]/g, '');
+    const num = parseFloat(str);
+    return isNaN(num) ? 0 : num;
+}
+
 function getTodayDateString() {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
@@ -523,6 +539,11 @@ function getTodayDateString() {
 
 function extractDateOnly(dateStr) {
     if (!dateStr) return '';
+    
+    const ddmmyyyyHHMM = dateStr.match(/(\d{2})\.(\d{2})\.(\d{4})\s+\d{2}:\d{2}/);
+    if (ddmmyyyyHHMM) {
+        return `${ddmmyyyyHHMM[3]}-${ddmmyyyyHHMM[2]}-${ddmmyyyyHHMM[1]}`;
+    }
     
     const ddmmyyyy = dateStr.match(/(\d{2})\.(\d{2})\.(\d{4})/);
     if (ddmmyyyy) {
@@ -537,6 +558,13 @@ function extractDateOnly(dateStr) {
     const isoMatch = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T/);
     if (isoMatch) {
         return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+    }
+    
+    const dmySlash = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (dmySlash) {
+        const day = dmySlash[1].padStart(2, '0');
+        const month = dmySlash[2].padStart(2, '0');
+        return `${dmySlash[3]}-${month}-${day}`;
     }
     
     return '';
@@ -592,6 +620,7 @@ function parseVolume(match) {
 
 
 let previousOddsData = null;
+let modalOddsData = null;
 
 function openMatchModal(index) {
     const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
@@ -599,6 +628,7 @@ function openMatchModal(index) {
         selectedMatch = dataSource[index];
         selectedChartMarket = currentMarket;
         previousOddsData = null;
+        modalOddsData = selectedMatch.odds || selectedMatch.details || null;
         
         document.getElementById('modalMatchTitle').textContent = 
             `${selectedMatch.home_team} vs ${selectedMatch.away_team}`;
@@ -628,8 +658,16 @@ async function loadChartWithTrends(home, away, market) {
                 `/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}`
             );
             data = await response.json();
+            console.log('[Modal] Loaded history for', home, 'vs', away, 'market:', market, 'count:', data.history?.length);
         } catch (e) {
             console.log('Using demo history data');
+        }
+        
+        if (data.history && data.history.length >= 1) {
+            modalOddsData = data.history[data.history.length - 1];
+            console.log('[Modal] Latest odds data:', modalOddsData);
+        } else {
+            modalOddsData = null;
         }
         
         if (data.history && data.history.length >= 2) {
@@ -649,10 +687,15 @@ async function loadChartWithTrends(home, away, market) {
 
 function updateMatchInfoCard() {
     const card = document.getElementById('matchInfoCard');
-    const d = selectedMatch.odds || selectedMatch.details || {};
+    const baseData = selectedMatch.odds || selectedMatch.details || {};
+    const d = modalOddsData || baseData;
     const p = previousOddsData || {};
     const isMoneyway = selectedChartMarket.startsWith('moneyway');
     const isDropping = selectedChartMarket.startsWith('dropping');
+    
+    console.log('[Modal Card] Market:', selectedChartMarket, 'isMoneyway:', isMoneyway, 'isDropping:', isDropping);
+    console.log('[Modal Card] Data source:', modalOddsData ? 'API (modalOddsData)' : 'Match (baseData)');
+    console.log('[Modal Card] Data:', d);
     
     let html = '';
     

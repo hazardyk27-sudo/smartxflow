@@ -120,6 +120,10 @@ CREATE TABLE market_snapshots (
 - **Grafik Ölçekleme:** 5dk/10dk/30dk/1saat/6saat/12saat/1gün bucket aralıkları (veri filtrelemez, sadece ölçekler)
 
 ## Son Guncellemeler
+- **25 Kasim 2025:** Modal stake/% verileri API'den yükleniyor (modalOddsData)
+- **25 Kasim 2025:** Tablo sıralama düzeltildi (parseOddsValue ile sayısal sıralama)
+- **25 Kasim 2025:** Günün Maçları filtresi tarih formatları genişletildi
+- **25 Kasim 2025:** PNG export düzeltildi (EXE ortamı için backend API)
 - **25 Kasim 2025:** PNG export - tüm modal sayfası indirilir (html2canvas)
 - **25 Kasim 2025:** Volume £ sembolü ve binlik ayraç formatı eklendi
 - **25 Kasim 2025:** Grafik zaman filtresi: veri filtrelemek yerine bucket ölçekleme
