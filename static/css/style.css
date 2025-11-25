@@ -242,6 +242,31 @@ body {
     color: #8899a6;
 }
 
+.sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sort-select {
+    background: #192734;
+    border: 1px solid #2f3336;
+    color: #e7e9ea;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+}
+
+.sort-select:hover {
+    border-color: #536471;
+}
+
+.sort-select:focus {
+    border-color: #1d9bf0;
+}
+
 .match-count {
     background: #192734;
     padding: 6px 14px;

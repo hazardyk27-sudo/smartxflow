@@ -1,9 +1,11 @@
 let currentMarket = 'moneyway_1x2';
 let matches = [];
+let filteredMatches = [];
 let chart = null;
 let selectedMatch = null;
 let selectedChartMarket = 'moneyway_1x2';
 let autoScrapeRunning = false;
+let currentSort = 'date_desc';
 
 document.addEventListener('DOMContentLoaded', () => {
     loadMatches();
@@ -64,7 +66,8 @@ async function loadMatches() {
     try {
         const response = await fetch(`/api/matches?market=${currentMarket}`);
         matches = await response.json();
-        renderMatches(matches);
+        filteredMatches = applySorting(matches);
+        renderMatches(filteredMatches);
     } catch (error) {
         console.error('Error loading matches:', error);
         tbody.innerHTML = `
@@ -221,22 +224,67 @@ function formatOdds(value) {
 }
 
 function filterMatches(query) {
-    if (!query) {
-        renderMatches(matches);
-        return;
+    let filtered = [...matches];
+    
+    if (query) {
+        filtered = filtered.filter(m => 
+            m.home_team.toLowerCase().includes(query) ||
+            m.away_team.toLowerCase().includes(query) ||
+            (m.league && m.league.toLowerCase().includes(query))
+        );
     }
     
-    const filtered = matches.filter(m => 
-        m.home_team.toLowerCase().includes(query) ||
-        m.away_team.toLowerCase().includes(query) ||
-        (m.league && m.league.toLowerCase().includes(query))
-    );
+    filtered = applySorting(filtered);
+    filteredMatches = filtered;
     renderMatches(filtered);
 }
 
+function applySorting(data) {
+    const sortType = document.getElementById('sortSelect')?.value || currentSort;
+    currentSort = sortType;
+    
+    return [...data].sort((a, b) => {
+        if (sortType === 'date_asc') {
+            return parseDate(a.date) - parseDate(b.date);
+        } else if (sortType === 'date_desc') {
+            return parseDate(b.date) - parseDate(a.date);
+        } else if (sortType === 'volume_desc') {
+            return parseVolume(b) - parseVolume(a);
+        } else if (sortType === 'volume_asc') {
+            return parseVolume(a) - parseVolume(b);
+        }
+        return 0;
+    });
+}
+
+function parseDate(dateStr) {
+    if (!dateStr || dateStr === '-') return 0;
+    const parts = dateStr.match(/(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/);
+    if (parts) {
+        return new Date(parts[3], parts[2] - 1, parts[1], parts[4], parts[5]).getTime();
+    }
+    return new Date(dateStr).getTime() || 0;
+}
+
+function parseVolume(match) {
+    const d = match.details || {};
+    let vol = d.Volume || '0';
+    if (typeof vol === 'string') {
+        vol = vol.replace(/[£€$,\s]/g, '').replace(/k/i, '000').replace(/m/i, '000000');
+    }
+    return parseFloat(vol) || 0;
+}
+
+function sortMatches() {
+    const searchInput = document.getElementById('searchInput');
+    const query = searchInput?.value?.toLowerCase() || '';
+    filterMatches(query);
+}
+
 function selectMatch(index) {
-    if (index >= 0 && index < matches.length) {
-        selectedMatch = matches[index];
+    const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
+    if (index >= 0 && index < dataSource.length) {
+        selectedMatch = dataSource[index];
         
         document.querySelectorAll('.matches-table tbody tr').forEach(tr => {
             tr.classList.remove('selected');

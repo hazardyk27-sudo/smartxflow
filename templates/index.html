@@ -105,6 +105,14 @@
                     </svg>
                     <input type="text" id="searchInput" placeholder="Search teams or competitions...">
                 </div>
+                <div class="sort-controls">
+                    <select id="sortSelect" class="sort-select" onchange="sortMatches()">
+                        <option value="date_desc">Date (Newest)</option>
+                        <option value="date_asc">Date (Oldest)</option>
+                        <option value="volume_desc">Volume (High)</option>
+                        <option value="volume_asc">Volume (Low)</option>
+                    </select>
+                </div>
                 <div class="match-count">
                     <span id="matchCount">0</span> Matches
                 </div>
