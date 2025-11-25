@@ -101,6 +101,62 @@ body {
     cursor: not-allowed;
 }
 
+.auto-scrape-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 12px;
+}
+
+.interval-select {
+    background: #192734;
+    border: 1px solid #2f3336;
+    color: #e7e9ea;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+}
+
+.interval-select:hover {
+    border-color: #536471;
+}
+
+.interval-select:focus {
+    border-color: #1d9bf0;
+}
+
+.btn-auto {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #192734;
+    border: 1px solid #2f3336;
+    color: #8899a6;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.btn-auto:hover {
+    background: #1d2d3a;
+    color: #e7e9ea;
+}
+
+.btn-auto.active {
+    background: #166534;
+    border-color: #22c55e;
+    color: #4ade80;
+}
+
+.btn-auto.active:hover {
+    background: #15803d;
+}
+
 .market-tabs {
     display: flex;
     gap: 2px;

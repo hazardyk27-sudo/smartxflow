@@ -38,11 +38,14 @@ scrape_status = {
     "running": False,
     "auto_running": False,
     "last_result": None,
-    "last_scrape_time": None
+    "last_scrape_time": None,
+    "interval_minutes": 5,
+    "next_scrape_time": None
 }
 
 auto_scrape_thread = None
 stop_auto_event = threading.Event()
+interval_change_event = threading.Event()
 server_shutdown_event = threading.Event()
 
 
@@ -210,15 +213,18 @@ def trigger_scrape():
 
 @app.route('/api/scrape/auto', methods=['POST'])
 def toggle_auto_scrape():
-    global scrape_status, auto_scrape_thread, stop_auto_event
+    global scrape_status, auto_scrape_thread, stop_auto_event, interval_change_event
     
     data = request.get_json() or {}
     action = data.get('action', 'toggle')
-    interval = int(data.get('interval', 5))
+    interval = int(data.get('interval', scrape_status['interval_minutes']))
+    
+    scrape_status['interval_minutes'] = interval
     
     if action == 'start' and not scrape_status['auto_running']:
         scrape_status['auto_running'] = True
         stop_auto_event.clear()
+        interval_change_event.clear()
         
         def auto_loop():
             global scrape_status
@@ -234,25 +240,62 @@ def toggle_auto_scrape():
                     finally:
                         scrape_status['running'] = False
                 
-                for _ in range(interval * 60):
-                    if stop_auto_event.is_set():
+                wait_seconds = scrape_status['interval_minutes'] * 60
+                next_time = datetime.now().timestamp() + wait_seconds
+                scrape_status['next_scrape_time'] = datetime.fromtimestamp(next_time).isoformat()
+                
+                interval_change_event.clear()
+                for _ in range(wait_seconds):
+                    if stop_auto_event.is_set() or interval_change_event.is_set():
                         break
                     time.sleep(1)
+                
+                if interval_change_event.is_set():
+                    interval_change_event.clear()
+                    continue
             
             scrape_status['auto_running'] = False
+            scrape_status['next_scrape_time'] = None
         
         auto_scrape_thread = threading.Thread(target=auto_loop)
         auto_scrape_thread.daemon = True
         auto_scrape_thread.start()
         
-        return jsonify({'status': 'ok', 'auto_running': True})
+        return jsonify({'status': 'ok', 'auto_running': True, 'interval': interval})
     
     elif action == 'stop':
         stop_auto_event.set()
         scrape_status['auto_running'] = False
+        scrape_status['next_scrape_time'] = None
         return jsonify({'status': 'ok', 'auto_running': False})
     
-    return jsonify({'status': 'ok', 'auto_running': scrape_status['auto_running']})
+    return jsonify({'status': 'ok', 'auto_running': scrape_status['auto_running'], 'interval': scrape_status['interval_minutes']})
+
+
+@app.route('/api/interval', methods=['POST'])
+def set_interval():
+    global scrape_status, interval_change_event
+    
+    data = request.get_json() or {}
+    new_interval = int(data.get('interval', 5))
+    
+    if new_interval < 1:
+        new_interval = 1
+    elif new_interval > 60:
+        new_interval = 60
+    
+    old_interval = scrape_status['interval_minutes']
+    scrape_status['interval_minutes'] = new_interval
+    
+    if scrape_status['auto_running']:
+        interval_change_event.set()
+    
+    return jsonify({
+        'status': 'ok',
+        'old_interval': old_interval,
+        'new_interval': new_interval,
+        'auto_running': scrape_status['auto_running']
+    })
 
 
 @app.route('/api/status')
@@ -262,6 +305,8 @@ def get_status():
         'auto_running': scrape_status['auto_running'],
         'last_result': scrape_status['last_result'],
         'last_scrape_time': scrape_status['last_scrape_time'],
+        'interval_minutes': scrape_status['interval_minutes'],
+        'next_scrape_time': scrape_status['next_scrape_time'],
         'cookie_set': bool(get_cookie_string())
     })
 

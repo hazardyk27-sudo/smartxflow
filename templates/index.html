@@ -22,6 +22,24 @@
             </div>
         </div>
         <div class="header-right">
+            <div class="auto-scrape-controls">
+                <select id="intervalSelect" class="interval-select" onchange="updateInterval()">
+                    <option value="1">1 dk</option>
+                    <option value="2">2 dk</option>
+                    <option value="5" selected>5 dk</option>
+                    <option value="10">10 dk</option>
+                    <option value="15">15 dk</option>
+                    <option value="30">30 dk</option>
+                    <option value="60">60 dk</option>
+                </select>
+                <button class="btn btn-auto" id="autoBtn" onclick="toggleAutoScrape()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span id="autoBtnText">Auto</span>
+                </button>
+            </div>
             <div class="status-indicator" id="statusIndicator">
                 <span class="status-dot"></span>
                 <span class="status-text">Ready</span>

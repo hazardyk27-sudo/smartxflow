@@ -3,6 +3,7 @@ let matches = [];
 let chart = null;
 let selectedMatch = null;
 let selectedChartMarket = 'moneyway_1x2';
+let autoScrapeRunning = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadMatches();
@@ -10,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSearch();
     setupChartTabs();
     checkStatus();
-    setInterval(checkStatus, 5000);
+    window.statusInterval = window.setInterval(checkStatus, 3000);
 });
 
 function setupTabs() {
@@ -394,20 +395,107 @@ async function checkStatus() {
         const response = await fetch('/api/status');
         const status = await response.json();
         
+        autoScrapeRunning = status.auto_running;
+        
         const indicator = document.getElementById('statusIndicator');
         if (indicator) {
             const dot = indicator.querySelector('.status-dot');
             const text = indicator.querySelector('.status-text');
             
-            if (status.running || status.auto_running) {
+            if (status.running) {
                 dot.classList.add('running');
-                text.textContent = status.auto_running ? 'Auto Scraping' : 'Scraping...';
+                text.textContent = 'Scraping...';
+            } else if (status.auto_running) {
+                dot.classList.add('running');
+                if (status.next_scrape_time) {
+                    const next = new Date(status.next_scrape_time);
+                    const now = new Date();
+                    const diffSec = Math.max(0, Math.floor((next - now) / 1000));
+                    const min = Math.floor(diffSec / 60);
+                    const sec = diffSec % 60;
+                    text.textContent = `Next: ${min}:${sec.toString().padStart(2, '0')}`;
+                } else {
+                    text.textContent = 'Auto Active';
+                }
             } else {
                 dot.classList.remove('running');
                 text.textContent = 'Ready';
             }
         }
+        
+        const autoBtn = document.getElementById('autoBtn');
+        const autoBtnText = document.getElementById('autoBtnText');
+        if (autoBtn && autoBtnText) {
+            if (status.auto_running) {
+                autoBtn.classList.add('active');
+                autoBtnText.textContent = 'Stop';
+            } else {
+                autoBtn.classList.remove('active');
+                autoBtnText.textContent = 'Auto';
+            }
+        }
+        
+        const intervalSelect = document.getElementById('intervalSelect');
+        if (intervalSelect && status.interval_minutes) {
+            intervalSelect.value = status.interval_minutes.toString();
+        }
+        
     } catch (error) {
         console.error('Status check error:', error);
+    }
+}
+
+async function toggleAutoScrape() {
+    const autoBtn = document.getElementById('autoBtn');
+    const intervalSelect = document.getElementById('intervalSelect');
+    const interval = parseInt(intervalSelect.value) || 5;
+    
+    autoBtn.disabled = true;
+    
+    try {
+        const action = autoScrapeRunning ? 'stop' : 'start';
+        const response = await fetch('/api/scrape/auto', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, interval })
+        });
+        const result = await response.json();
+        
+        autoScrapeRunning = result.auto_running;
+        
+        if (action === 'start' && result.auto_running) {
+            setTimeout(() => loadMatches(), 3000);
+        }
+        
+        checkStatus();
+    } catch (error) {
+        console.error('Auto scrape toggle error:', error);
+    }
+    
+    autoBtn.disabled = false;
+}
+
+async function updateInterval() {
+    const intervalSelect = document.getElementById('intervalSelect');
+    const newInterval = parseInt(intervalSelect.value) || 5;
+    
+    try {
+        const response = await fetch('/api/interval', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ interval: newInterval })
+        });
+        
+        if (!response.ok) {
+            console.error('Interval API error:', response.status);
+            return;
+        }
+        
+        const result = await response.json();
+        console.log('Interval updated:', result);
+        
+        checkStatus();
+    } catch (error) {
+        console.error('Update interval error:', error);
     }
 }
