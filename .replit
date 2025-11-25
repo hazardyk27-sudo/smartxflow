@@ -57,3 +57,7 @@ COOKIE_STRING = "FCNEC=%5B%5B%22AKsRol_FbFM4-_5I284lzPHjFMSw_YMHo0DSgfdxUcJQS95G
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 42399
+externalPort = 3000

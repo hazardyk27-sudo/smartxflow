@@ -368,8 +368,36 @@ function formatOdds(value) {
     return isNaN(num) ? firstLine : num.toFixed(2);
 }
 
+function hasValidMarketData(match, market) {
+    const d = match.details || match.odds || {};
+    
+    if (market.includes('1x2')) {
+        const odds1 = d.Odds1 || d['1'];
+        const oddsX = d.OddsX || d['X'];
+        const odds2 = d.Odds2 || d['2'];
+        return isValidOdds(odds1) || isValidOdds(oddsX) || isValidOdds(odds2);
+    } else if (market.includes('ou25')) {
+        const under = d.Under;
+        const over = d.Over;
+        return isValidOdds(under) || isValidOdds(over);
+    } else if (market.includes('btts')) {
+        const yes = d.OddsYes || d.Yes;
+        const no = d.OddsNo || d.No;
+        return isValidOdds(yes) || isValidOdds(no);
+    }
+    return false;
+}
+
+function isValidOdds(value) {
+    if (!value || value === '-' || value === '') return false;
+    const num = parseFloat(String(value).replace(/[^0-9.]/g, ''));
+    return !isNaN(num) && num > 0;
+}
+
 function filterMatches(query) {
     let filtered = [...matches];
+    
+    filtered = filtered.filter(m => hasValidMarketData(m, currentMarket));
     
     if (query) {
         filtered = filtered.filter(m => 
