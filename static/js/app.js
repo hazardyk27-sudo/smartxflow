@@ -2174,6 +2174,8 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+let highlightedAlarmType = null;
+
 async function loadSmartMoneyTicker() {
     try {
         const response = await fetch('/api/alarms');
@@ -2190,7 +2192,7 @@ async function loadSmartMoneyTicker() {
         const items = data.alarms.map(alarm => `
             <div class="ticker-item" 
                  style="--alarm-color: ${alarm.color};"
-                 onclick="openMatchModalByTeams('${alarm.home}', '${alarm.away}')">
+                 onclick="openMatchModalByTeams('${alarm.home}', '${alarm.away}', '${alarm.type}')">
                 <span class="ticker-icon">${alarm.icon}</span>
                 <span class="ticker-type">${alarm.name}</span>
                 <span class="ticker-divider">|</span>
@@ -2211,11 +2213,46 @@ async function loadSmartMoneyTicker() {
     }
 }
 
-function openMatchModalByTeams(home, away) {
+function openMatchModalByTeams(home, away, alarmType) {
+    highlightedAlarmType = alarmType || null;
     const match = matches.find(m => m.home_team === home && m.away_team === away);
     if (match) {
         openMatchModal(match);
     }
+}
+
+function getAlarmRGB(color) {
+    const colorMap = {
+        '#ef4444': '239, 68, 68',
+        '#22c55e': '34, 197, 94',
+        '#f59e0b': '245, 158, 11',
+        '#3b82f6': '59, 130, 246',
+        '#eab308': '234, 179, 8',
+        '#a855f7': '168, 85, 247'
+    };
+    return colorMap[color] || '88, 166, 255';
+}
+
+function groupAlarmsByType(alarms) {
+    const grouped = {};
+    alarms.forEach(alarm => {
+        const key = alarm.type;
+        if (!grouped[key]) {
+            grouped[key] = {
+                ...alarm,
+                count: 1,
+                sides: [alarm.side],
+                allDetails: [alarm.detail]
+            };
+        } else {
+            grouped[key].count++;
+            if (alarm.side && !grouped[key].sides.includes(alarm.side)) {
+                grouped[key].sides.push(alarm.side);
+            }
+            grouped[key].allDetails.push(alarm.detail);
+        }
+    });
+    return Object.values(grouped);
 }
 
 async function loadMatchAlarms(home, away) {
@@ -2228,24 +2265,51 @@ async function loadMatchAlarms(home, away) {
         
         if (!data.alarms || data.alarms.length === 0) {
             container.innerHTML = '<div class="no-alarms">Bu maç için aktif alarm yok</div>';
+            highlightedAlarmType = null;
             return;
         }
         
-        const alarmsHtml = data.alarms.map(alarm => `
-            <div class="alarm-card" style="--alarm-color: ${alarm.color};">
-                <div class="alarm-header">
-                    <span class="alarm-icon">${alarm.icon}</span>
-                    <span class="alarm-name">${alarm.name}</span>
-                    <span class="alarm-side">${alarm.side || ''}</span>
+        const groupedAlarms = groupAlarmsByType(data.alarms);
+        
+        if (highlightedAlarmType) {
+            groupedAlarms.sort((a, b) => {
+                if (a.type === highlightedAlarmType) return -1;
+                if (b.type === highlightedAlarmType) return 1;
+                return 0;
+            });
+        }
+        
+        const alarmsHtml = groupedAlarms.map(alarm => {
+            const isHighlighted = alarm.type === highlightedAlarmType;
+            const rgb = getAlarmRGB(alarm.color);
+            const sidesText = alarm.sides.filter(s => s).join(', ');
+            const countBadge = alarm.count > 1 ? `<span class="alarm-count">x${alarm.count}</span>` : '';
+            
+            return `
+                <div class="alarm-card ${isHighlighted ? 'highlighted' : ''}" 
+                     style="--alarm-color: ${alarm.color}; --alarm-rgb: ${rgb};">
+                    <div class="alarm-header">
+                        <div class="alarm-header-left">
+                            <span class="alarm-icon">${alarm.icon}</span>
+                            <span class="alarm-name">${alarm.name}</span>
+                            ${countBadge}
+                        </div>
+                        <div class="alarm-tags">
+                            ${sidesText ? `<span class="alarm-tag market">${sidesText}</span>` : ''}
+                            <span class="alarm-tag time">Son 5 dk</span>
+                        </div>
+                    </div>
+                    <div class="alarm-detail">${alarm.detail}</div>
+                    <div class="alarm-description">${alarm.description}</div>
                 </div>
-                <div class="alarm-detail">${alarm.detail}</div>
-                <div class="alarm-description">${alarm.description}</div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
         
         container.innerHTML = alarmsHtml;
+        highlightedAlarmType = null;
         
     } catch (error) {
         console.error('[Match Alarms] Error:', error);
+        highlightedAlarmType = null;
     }
 }

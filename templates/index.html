@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=87">
+    <link rel="stylesheet" href="/static/css/style.css?v=88">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
@@ -185,8 +185,6 @@
             </div>
             
             <div class="modal-body">
-                <div class="match-info-card" id="matchInfoCard"></div>
-                
                 <div class="smart-money-events" id="smartMoneyEvents">
                     <div class="events-header">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -194,10 +192,12 @@
                         </svg>
                         <span>Smart Money Events</span>
                     </div>
-                    <div class="events-content" id="matchAlarmsContainer">
+                    <div class="events-grid" id="matchAlarmsContainer">
                         <div class="no-alarms">Alarm analizi yapılıyor...</div>
                     </div>
                 </div>
+                
+                <div class="match-info-card" id="matchInfoCard"></div>
                 
                 <div class="chart-tabs" id="modalChartTabs">
                     <button class="chart-tab active" data-market="moneyway_1x2">Moneyway 1X2</button>
@@ -217,6 +217,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=96"></script>
+    <script src="/static/js/app.js?v=97"></script>
 </body>
 </html>
