@@ -346,14 +346,17 @@ body {
 
 .col-date {
     width: 110px;
+    text-align: center;
 }
 
 .col-league {
     width: 130px;
+    text-align: center;
 }
 
 .col-match {
     min-width: 180px;
+    text-align: center;
 }
 
 .col-selection {
@@ -370,22 +373,31 @@ body {
     color: #8899a6;
     font-size: 12px;
     font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    text-align: center;
+    vertical-align: middle;
 }
 
 .match-league {
     color: #8899a6;
     font-size: 12px;
     font-weight: 500;
+    font-family: 'Inter', sans-serif;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 120px;
+    text-align: center;
+    vertical-align: middle;
 }
 
 .match-teams {
     font-weight: 600;
-    font-size: 13px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
     letter-spacing: -0.2px;
+    text-align: center;
+    vertical-align: middle;
 }
 
 .match-teams .vs {
@@ -399,11 +411,11 @@ body {
 }
 
 .selection-odds {
-    font-weight: 700;
+    font-weight: 600;
     color: #4ade80;
-    font-size: 15px;
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: -0.5px;
+    font-size: 16px;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.3px;
 }
 
 .selection-odds.drop-odds {
@@ -412,18 +424,18 @@ body {
 
 .selection-money {
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     margin-top: 2px;
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: -0.3px;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.2px;
 }
 
 .selection-pct {
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 600;
     margin-top: 2px;
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: -0.3px;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.2px;
 }
 
 .color-normal {
@@ -458,11 +470,11 @@ body {
 
 .volume-cell {
     text-align: right;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Inter', sans-serif;
     color: #4ade80;
     font-size: 14px;
-    font-weight: 700;
-    letter-spacing: -0.3px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
 }
 
 .loading-row td {
