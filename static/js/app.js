@@ -1204,9 +1204,9 @@ async function loadChart(home, away, market) {
                                         
                                         lines.push(`${datasetLabel}: ${currentOdds.toFixed(2)} → ${latestOdds.toFixed(2)}`);
                                         if (pctChange >= 0) {
-                                            lines.push(`Change: ${changeStr} (UP)`);
+                                            lines.push(`Change: ${changeStr} ↑`);
                                         } else {
-                                            lines.push(`Change: ${changeStr} (DOWN)`);
+                                            lines.push(`Change: ${changeStr} ↓`);
                                         }
                                     } else {
                                         lines.push(`${datasetLabel}: ${context.formattedValue}`);
