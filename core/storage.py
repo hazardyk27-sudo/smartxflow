@@ -90,7 +90,6 @@ class SQLiteStorage(StorageBackend):
         try:
             cur = conn.cursor()
             hist_headers = list(headers) + ["ScrapedAt"]
-            cur.execute(f"DROP TABLE IF EXISTS \"{hist_table}\"")
             cols_def = ", ".join([f'"{h}" TEXT' for h in hist_headers])
             cur.execute(f"CREATE TABLE IF NOT EXISTS \"{hist_table}\" ({cols_def})")
             cols = ", ".join([f'"{h}"' for h in hist_headers])

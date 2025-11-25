@@ -439,6 +439,14 @@ function getColorClass(pctValue) {
     return 'color-normal';
 }
 
+function formatPct(val) {
+    if (!val || val === '-') return '-';
+    const cleaned = String(val).replace(/[%\s]/g, '');
+    const num = parseFloat(cleaned);
+    if (isNaN(num)) return '-';
+    return num.toFixed(1);
+}
+
 function renderMatches(data) {
     const tbody = document.getElementById('matchesTableBody');
     const countEl = document.getElementById('matchCount');
@@ -759,56 +767,58 @@ function updateMatchInfoCard() {
             const cX = getColorClass(d.PctX);
             const c2 = getColorClass(d.Pct2);
             html = `
-                <div class="info-columns">
-                    <div class="info-column">
-                        <div class="column-header">1</div>
-                        <div class="column-row">
-                            <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.Odds1 || d['1'])}${trend1}</span>
-                        </div>
-                        <div class="column-row">
-                            <span class="row-label">Stake</span>
-                            <span class="row-value money ${c1}">${d.Amt1 || '-'}</span>
-                        </div>
-                        <div class="column-row">
-                            <span class="row-label">%</span>
-                            <span class="row-value pct ${c1}">${d.Pct1 || '-'}%</span>
-                        </div>
-                    </div>
-                    <div class="info-column">
-                        <div class="column-header">X</div>
-                        <div class="column-row">
-                            <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.OddsX || d['X'])}${trendX}</span>
-                        </div>
-                        <div class="column-row">
-                            <span class="row-label">Stake</span>
-                            <span class="row-value money ${cX}">${d.AmtX || '-'}</span>
-                        </div>
-                        <div class="column-row">
-                            <span class="row-label">%</span>
-                            <span class="row-value pct ${cX}">${d.PctX || '-'}%</span>
-                        </div>
-                    </div>
-                    <div class="info-column">
-                        <div class="column-header">2</div>
-                        <div class="column-row">
-                            <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.Odds2 || d['2'])}${trend2}</span>
-                        </div>
-                        <div class="column-row">
-                            <span class="row-label">Stake</span>
-                            <span class="row-value money ${c2}">${d.Amt2 || '-'}</span>
-                        </div>
-                        <div class="column-row">
-                            <span class="row-label">%</span>
-                            <span class="row-value pct ${c2}">${d.Pct2 || '-'}%</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="volume-bar">
-                    <span class="volume-label">Total Volume</span>
-                    <span class="volume-value">${d.Volume || '-'}</span>
+                <table style="width:100%;border-collapse:separate;border-spacing:10px 0;">
+                    <tr>
+                        <td style="width:33%;vertical-align:top;text-align:center;padding:16px;background:#0f1419;border-radius:10px;">
+                            <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #2f3336;">1</div>
+                            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2f3336;">
+                                <span style="font-size:12px;color:#8899a6;">Odds</span>
+                                <span style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#4ade80;">${formatOdds(d.Odds1 || d['1'])}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2f3336;">
+                                <span style="font-size:12px;color:#8899a6;">Stake</span>
+                                <span class="money ${c1}" style="font-family:'JetBrains Mono',monospace;font-size:14px;">${d.Amt1 || '-'}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;padding:8px 0;">
+                                <span style="font-size:12px;color:#8899a6;">%</span>
+                                <span class="pct ${c1}" style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;">${formatPct(d.Pct1)}%</span>
+                            </div>
+                        </td>
+                        <td style="width:33%;vertical-align:top;text-align:center;padding:16px;background:#0f1419;border-radius:10px;">
+                            <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #2f3336;">X</div>
+                            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2f3336;">
+                                <span style="font-size:12px;color:#8899a6;">Odds</span>
+                                <span style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#4ade80;">${formatOdds(d.OddsX || d['X'])}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2f3336;">
+                                <span style="font-size:12px;color:#8899a6;">Stake</span>
+                                <span class="money ${cX}" style="font-family:'JetBrains Mono',monospace;font-size:14px;">${d.AmtX || '-'}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;padding:8px 0;">
+                                <span style="font-size:12px;color:#8899a6;">%</span>
+                                <span class="pct ${cX}" style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;">${formatPct(d.PctX)}%</span>
+                            </div>
+                        </td>
+                        <td style="width:33%;vertical-align:top;text-align:center;padding:16px;background:#0f1419;border-radius:10px;">
+                            <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #2f3336;">2</div>
+                            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2f3336;">
+                                <span style="font-size:12px;color:#8899a6;">Odds</span>
+                                <span style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#4ade80;">${formatOdds(d.Odds2 || d['2'])}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2f3336;">
+                                <span style="font-size:12px;color:#8899a6;">Stake</span>
+                                <span class="money ${c2}" style="font-family:'JetBrains Mono',monospace;font-size:14px;">${d.Amt2 || '-'}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;padding:8px 0;">
+                                <span style="font-size:12px;color:#8899a6;">%</span>
+                                <span class="pct ${c2}" style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;">${formatPct(d.Pct2)}%</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:14px 20px;background:#0f1419;border-radius:10px;border:1px solid #2f3336;">
+                    <span style="font-size:12px;color:#8899a6;text-transform:uppercase;font-weight:600;">Total Volume</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#4ade80;">${d.Volume || '-'}</span>
                 </div>
             `;
         } else {
@@ -863,7 +873,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">%</span>
-                            <span class="row-value pct ${cU}">${d.PctUnder || '-'}%</span>
+                            <span class="row-value pct ${cU}">${formatPct(d.PctUnder)}%</span>
                         </div>
                     </div>
                     <div class="info-column">
@@ -878,7 +888,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">%</span>
-                            <span class="row-value pct ${cO}">${d.PctOver || '-'}%</span>
+                            <span class="row-value pct ${cO}">${formatPct(d.PctOver)}%</span>
                         </div>
                     </div>
                 </div>
@@ -932,7 +942,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">%</span>
-                            <span class="row-value pct ${cY}">${d.PctYes || '-'}%</span>
+                            <span class="row-value pct ${cY}">${formatPct(d.PctYes)}%</span>
                         </div>
                     </div>
                     <div class="info-column">
@@ -947,7 +957,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">%</span>
-                            <span class="row-value pct ${cN}">${d.PctNo || '-'}%</span>
+                            <span class="row-value pct ${cN}">${formatPct(d.PctNo)}%</span>
                         </div>
                     </div>
                 </div>
@@ -1072,7 +1082,7 @@ async function loadChart(home, away, market) {
         if (market.includes('1x2')) {
             if (isMoneyway) {
                 ['Pct1', 'PctX', 'Pct2'].forEach((key, idx) => {
-                    const label = ['1%', 'X%', '2%'][idx];
+                    const label = ['1', 'X', '2'][idx];
                     const color = [colors['1'], colors['X'], colors['2']][idx];
                     datasets.push({
                         label: label,
@@ -1123,7 +1133,7 @@ async function loadChart(home, away, market) {
         } else if (market.includes('ou25')) {
             if (isMoneyway) {
                 ['PctUnder', 'PctOver'].forEach((key, idx) => {
-                    const label = ['Under%', 'Over%'][idx];
+                    const label = ['Under', 'Over'][idx];
                     const color = [colors['Under'], colors['Over']][idx];
                     datasets.push({
                         label: label,
@@ -1173,7 +1183,7 @@ async function loadChart(home, away, market) {
         } else if (market.includes('btts')) {
             if (isMoneyway) {
                 ['PctYes', 'PctNo'].forEach((key, idx) => {
-                    const label = ['Yes%', 'No%'][idx];
+                    const label = ['Yes', 'No'][idx];
                     const color = [colors['Yes'], colors['No']][idx];
                     datasets.push({
                         label: label,
