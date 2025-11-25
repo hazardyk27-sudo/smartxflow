@@ -575,7 +575,7 @@ function parseDate(dateStr) {
 }
 
 function parseVolume(match) {
-    const d = match.details || {};
+    const d = match.odds || match.details || {};
     let vol = d.Volume || '0';
     if (typeof vol === 'string') {
         vol = vol.replace(/[£€$,\s]/g, '').replace(/k/i, '000').replace(/m/i, '000000');
@@ -642,7 +642,7 @@ async function loadChartWithTrends(home, away, market) {
 
 function updateMatchInfoCard() {
     const card = document.getElementById('matchInfoCard');
-    const d = selectedMatch.details || {};
+    const d = selectedMatch.odds || selectedMatch.details || {};
     const p = previousOddsData || {};
     const isMoneyway = selectedChartMarket.startsWith('moneyway');
     const isDropping = selectedChartMarket.startsWith('dropping');
