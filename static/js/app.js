@@ -214,9 +214,9 @@ function renderMatches(data) {
         const d = match.details || match.odds || {};
         
         if (currentMarket.includes('1x2')) {
-            const trend1 = isDropping ? getTableTrendArrow(d.Odds1 || d['1'], d.PrevOdds1) : '';
-            const trendX = isDropping ? getTableTrendArrow(d.OddsX || d['X'], d.PrevOddsX) : '';
-            const trend2 = isDropping ? getTableTrendArrow(d.Odds2 || d['2'], d.PrevOdds2) : '';
+            const trend1 = isDropping ? (getDirectTrendArrow(d.Trend1) || getTableTrendArrow(d.Odds1 || d['1'], d.PrevOdds1)) : '';
+            const trendX = isDropping ? (getDirectTrendArrow(d.TrendX) || getTableTrendArrow(d.OddsX || d['X'], d.PrevOddsX)) : '';
+            const trend2 = isDropping ? (getDirectTrendArrow(d.Trend2) || getTableTrendArrow(d.Odds2 || d['2'], d.PrevOdds2)) : '';
             
             if (isMoneyway) {
                 const c1 = getColorClass(d.Pct1);
@@ -265,8 +265,8 @@ function renderMatches(data) {
                 `;
             }
         } else if (currentMarket.includes('ou25')) {
-            const trendUnder = isDropping ? getTableTrendArrow(d.Under, d.PrevUnder) : '';
-            const trendOver = isDropping ? getTableTrendArrow(d.Over, d.PrevOver) : '';
+            const trendUnder = isDropping ? (getDirectTrendArrow(d.TrendUnder) || getTableTrendArrow(d.Under, d.PrevUnder)) : '';
+            const trendOver = isDropping ? (getDirectTrendArrow(d.TrendOver) || getTableTrendArrow(d.Over, d.PrevOver)) : '';
             
             if (isMoneyway) {
                 const cU = getColorClass(d.PctUnder);
@@ -306,8 +306,8 @@ function renderMatches(data) {
                 `;
             }
         } else {
-            const trendYes = isDropping ? getTableTrendArrow(d.OddsYes || d.Yes, d.PrevYes) : '';
-            const trendNo = isDropping ? getTableTrendArrow(d.OddsNo || d.No, d.PrevNo) : '';
+            const trendYes = isDropping ? (getDirectTrendArrow(d.TrendYes) || getTableTrendArrow(d.OddsYes || d.Yes, d.PrevYes)) : '';
+            const trendNo = isDropping ? (getDirectTrendArrow(d.TrendNo) || getTableTrendArrow(d.OddsNo || d.No, d.PrevNo)) : '';
             
             if (isMoneyway) {
                 const cY = getColorClass(d.PctYes);
@@ -355,8 +355,18 @@ function getTableTrendArrow(current, previous) {
     const curr = parseFloat(String(current).replace(/[^0-9.]/g, ''));
     const prev = parseFloat(String(previous).replace(/[^0-9.]/g, ''));
     if (isNaN(curr) || isNaN(prev)) return '';
+    const diff = Math.abs(curr - prev);
+    if (diff < 0.001) return '';
     if (curr > prev) return '<span class="trend-up">↑</span>';
     if (curr < prev) return '<span class="trend-down">↓</span>';
+    return '';
+}
+
+function getDirectTrendArrow(trendValue) {
+    if (!trendValue) return '';
+    const t = String(trendValue).trim();
+    if (t === '↑' || t.includes('↑')) return '<span class="trend-up">↑</span>';
+    if (t === '↓' || t.includes('↓')) return '<span class="trend-down">↓</span>';
     return '';
 }
 
@@ -414,6 +424,8 @@ function filterMatches(query) {
 
 function applySorting(data) {
     let sortedData = [...data];
+    
+    sortedData = sortedData.filter(m => hasValidMarketData(m, currentMarket));
     
     if (todayFilterActive) {
         const today = getTodayDateString();
@@ -1193,10 +1205,10 @@ async function loadChart(home, away, market) {
                                 let lines = [];
                                 
                                 if (isDropping) {
-                                    const graphPointOdds = parseFloat(context.formattedValue);
+                                    const graphPointOdds = getOddsFromHistory(h, datasetLabel, market);
                                     const currentLatestOdds = getLatestOdds(latestData, datasetLabel.replace('%', ''), market);
                                     
-                                    if (!isNaN(graphPointOdds) && !isNaN(currentLatestOdds) && graphPointOdds > 0) {
+                                    if (graphPointOdds > 0 && currentLatestOdds > 0 && graphPointOdds !== currentLatestOdds) {
                                         const pctChange = ((currentLatestOdds - graphPointOdds) / graphPointOdds) * 100;
                                         const changeSign = pctChange >= 0 ? '+' : '';
                                         const changeStr = `${changeSign}${pctChange.toFixed(1)}%`;
@@ -1204,6 +1216,8 @@ async function loadChart(home, away, market) {
                                         
                                         lines.push(`${datasetLabel}: ${graphPointOdds.toFixed(2)} → ${currentLatestOdds.toFixed(2)}`);
                                         lines.push(`Change vs Latest: ${changeStr} ${arrow}`);
+                                    } else if (graphPointOdds > 0) {
+                                        lines.push(`${datasetLabel}: ${graphPointOdds.toFixed(2)}`);
                                     } else {
                                         lines.push(`${datasetLabel}: ${context.formattedValue}`);
                                     }
@@ -1545,18 +1559,66 @@ async function savePNGViaAPI(imageData, filename) {
 }
 
 function exportChartPNG() {
-    if (!chart || !selectedMatch) return;
-    
-    const modalContent = document.querySelector('.modal-content');
-    const modalBody = document.querySelector('.modal-body');
-    if (!modalContent) return;
+    if (!chart || !selectedMatch) {
+        showExportNotification('Grafik bulunamadı', true);
+        return;
+    }
     
     const exportBtn = document.querySelector('.chart-export-btn');
     if (exportBtn) exportBtn.textContent = 'Exporting...';
     
+    const resetButton = () => {
+        if (exportBtn) {
+            exportBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                </svg>
+                PNG
+            `;
+        }
+    };
+    
+    const filename = generateExportFilename('png');
+    
+    try {
+        const chartImage = chart.toBase64Image('image/png', 1);
+        
+        if (chartImage && chartImage.startsWith('data:image')) {
+            savePNGViaAPI(chartImage, filename).then(saved => {
+                if (!saved) {
+                    const link = document.createElement('a');
+                    link.download = filename;
+                    link.href = chartImage;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showExportNotification('Grafik PNG olarak indirildi');
+                }
+                resetButton();
+            });
+        } else {
+            exportChartPNGFallback(filename, resetButton);
+        }
+    } catch (err) {
+        console.error('Chart toBase64 error:', err);
+        exportChartPNGFallback(filename, resetButton);
+    }
+}
+
+function exportChartPNGFallback(filename, resetButton) {
+    const modalContent = document.querySelector('.modal-content');
+    if (!modalContent) {
+        showExportNotification('Modal bulunamadı', true);
+        resetButton();
+        return;
+    }
+    
     const closeBtn = document.querySelector('.modal-close');
     if (closeBtn) closeBtn.style.display = 'none';
     
+    const modalBody = document.querySelector('.modal-body');
     const originalStyles = {
         modalContent: {
             maxHeight: modalContent.style.maxHeight,
@@ -1593,18 +1655,12 @@ function exportChartPNG() {
         if (closeBtn) closeBtn.style.display = '';
     };
     
-    const resetButton = () => {
-        if (exportBtn) {
-            exportBtn.innerHTML = `
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                    <polyline points="21 15 16 10 5 21"/>
-                </svg>
-                PNG
-            `;
-        }
-    };
+    if (typeof html2canvas === 'undefined') {
+        restoreStyles();
+        showExportNotification('PNG kütüphanesi yüklenemedi', true);
+        resetButton();
+        return;
+    }
     
     setTimeout(() => {
         html2canvas(modalContent, {
@@ -1621,22 +1677,22 @@ function exportChartPNG() {
             restoreStyles();
             
             const imageData = canvas.toDataURL('image/png', 1.0);
-            const filename = generateExportFilename('png');
-            
             const saved = await savePNGViaAPI(imageData, filename);
             
             if (!saved) {
                 const link = document.createElement('a');
                 link.download = filename;
                 link.href = imageData;
+                document.body.appendChild(link);
                 link.click();
+                document.body.removeChild(link);
                 showExportNotification('PNG indirildi');
             }
             
             resetButton();
         }).catch(err => {
             restoreStyles();
-            console.error('PNG export error:', err);
+            console.error('html2canvas error:', err);
             showExportNotification('PNG oluşturma hatası', true);
             resetButton();
         });
@@ -1741,6 +1797,44 @@ function toggleChartSeries(market, seriesKey, btn) {
             chart.update();
         }
     }
+}
+
+function getOddsFromHistory(historyPoint, label, market) {
+    if (!historyPoint) return 0;
+    
+    if (market.includes('1x2')) {
+        if (label === '1') {
+            const val = historyPoint.Odds1 || historyPoint['1'];
+            return val ? parseFloat(String(val).split('\n')[0]) || 0 : 0;
+        }
+        if (label === 'X') {
+            const val = historyPoint.OddsX || historyPoint['X'];
+            return val ? parseFloat(String(val).split('\n')[0]) || 0 : 0;
+        }
+        if (label === '2') {
+            const val = historyPoint.Odds2 || historyPoint['2'];
+            return val ? parseFloat(String(val).split('\n')[0]) || 0 : 0;
+        }
+    } else if (market.includes('ou25')) {
+        if (label === 'Under' || label.toLowerCase().includes('under')) {
+            const val = historyPoint.Under;
+            return val ? parseFloat(String(val).split('\n')[0]) || 0 : 0;
+        }
+        if (label === 'Over' || label.toLowerCase().includes('over')) {
+            const val = historyPoint.Over;
+            return val ? parseFloat(String(val).split('\n')[0]) || 0 : 0;
+        }
+    } else if (market.includes('btts')) {
+        if (label === 'Yes' || label.toLowerCase().includes('yes')) {
+            const val = historyPoint.OddsYes || historyPoint.Yes;
+            return val ? parseFloat(String(val).split('\n')[0]) || 0 : 0;
+        }
+        if (label === 'No' || label.toLowerCase().includes('no')) {
+            const val = historyPoint.OddsNo || historyPoint.No;
+            return val ? parseFloat(String(val).split('\n')[0]) || 0 : 0;
+        }
+    }
+    return 0;
 }
 
 function getLatestOdds(latestData, label, market) {
