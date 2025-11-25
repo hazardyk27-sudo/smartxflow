@@ -1701,15 +1701,49 @@ function generateExportFilename(extension) {
 }
 
 function exportChartPNG() {
-    if (!chart) return;
+    if (!chart || !selectedMatch) return;
     
-    const canvas = document.getElementById('oddsChart');
-    if (!canvas) return;
+    const modalBody = document.querySelector('.modal-body');
+    if (!modalBody) return;
     
-    const link = document.createElement('a');
-    link.download = generateExportFilename('png');
-    link.href = canvas.toDataURL('image/png', 1.0);
-    link.click();
+    const exportBtn = document.querySelector('.chart-export-btn');
+    if (exportBtn) exportBtn.textContent = 'Exporting...';
+    
+    html2canvas(modalBody, {
+        backgroundColor: '#15202b',
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        allowTaint: true
+    }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = generateExportFilename('png');
+        link.href = canvas.toDataURL('image/png', 1.0);
+        link.click();
+        
+        if (exportBtn) {
+            exportBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                </svg>
+                PNG
+            `;
+        }
+    }).catch(err => {
+        console.error('PNG export error:', err);
+        if (exportBtn) {
+            exportBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                </svg>
+                PNG
+            `;
+        }
+    });
 }
 
 function exportChartCSV() {
@@ -1717,61 +1751,67 @@ function exportChartCSV() {
     
     const market = selectedChartMarket;
     const isMoneyway = market.startsWith('moneyway');
-    const isDropping = market.startsWith('dropping');
     
     const datasets = chart.data.datasets;
     const labels = chart.data.labels;
     
-    let headers = ['timestamp'];
-    let rows = [];
+    const visibleDatasets = datasets.filter(ds => !ds.hidden);
+    const visibleSeriesNames = visibleDatasets.map(ds => ds.label).join(', ');
     
-    if (market.includes('1x2')) {
-        if (isMoneyway) {
-            headers = ['timestamp', 'odd_1', 'odd_x', 'odd_2', 'stake_1', 'stake_x', 'stake_2', 'percent_1', 'percent_x', 'percent_2', 'total_volume'];
-        } else {
-            headers = ['timestamp', 'odd_1', 'odd_x', 'odd_2', 'change_percent_1', 'change_percent_x', 'change_percent_2'];
-        }
-    } else if (market.includes('ou25')) {
-        if (isMoneyway) {
-            headers = ['timestamp', 'odd_under25', 'odd_over25', 'stake_under25', 'stake_over25', 'percent_under25', 'percent_over25', 'total_volume'];
-        } else {
-            headers = ['timestamp', 'odd_under25', 'odd_over25', 'change_percent_under25', 'change_percent_over25'];
-        }
-    } else if (market.includes('btts')) {
-        if (isMoneyway) {
-            headers = ['timestamp', 'odd_yes', 'odd_no', 'stake_yes', 'stake_no', 'percent_yes', 'percent_no', 'total_volume'];
-        } else {
-            headers = ['timestamp', 'odd_yes', 'odd_no', 'change_percent_yes', 'change_percent_no'];
-        }
-    }
+    const timeRangeLabels = {
+        '10m': '10 dakika',
+        '30m': '30 dakika',
+        '1h': '1 saat',
+        '6h': '6 saat',
+        '12h': '12 saat',
+        '1d': '1 gün'
+    };
+    const timeRangeLabel = timeRangeLabels[chartTimeRange] || '1 gün';
+    
+    const marketLabels = {
+        'moneyway_1x2': 'Moneyway 1X2',
+        'moneyway_ou25': 'Moneyway Over/Under 2.5',
+        'moneyway_btts': 'Moneyway BTTS',
+        'dropping_1x2': 'Dropping Odds 1X2',
+        'dropping_ou25': 'Dropping Odds O/U 2.5',
+        'dropping_btts': 'Dropping Odds BTTS'
+    };
+    const marketLabel = marketLabels[market] || market;
+    
+    let csvContent = '\uFEFF';
+    
+    csvContent += `# SmartXFlow - Odds Export\n`;
+    csvContent += `# Match: ${selectedMatch.home_team} vs ${selectedMatch.away_team}\n`;
+    csvContent += `# League: ${selectedMatch.league}\n`;
+    csvContent += `# Match Date: ${selectedMatch.start_time || 'N/A'}\n`;
+    csvContent += `# Chart Type: ${marketLabel}\n`;
+    csvContent += `# Time Range: ${timeRangeLabel}\n`;
+    csvContent += `# Visible Series: ${visibleSeriesNames}\n`;
+    csvContent += `# Export Date: ${new Date().toLocaleString('tr-TR')}\n`;
+    csvContent += `#\n`;
+    
+    let headers = ['timestamp'];
+    visibleDatasets.forEach(ds => {
+        headers.push(ds.label.toLowerCase().replace(/\s+/g, '_'));
+    });
+    
+    csvContent += headers.join(',') + '\n';
     
     for (let i = 0; i < labels.length; i++) {
         let row = [labels[i]];
         
-        datasets.forEach(ds => {
-            if (!ds.hidden) {
-                const val = ds.data[i];
-                row.push(val !== null && val !== undefined ? val : '');
-            }
+        visibleDatasets.forEach(ds => {
+            const val = ds.data[i];
+            row.push(val !== null && val !== undefined ? val : '');
         });
         
-        while (row.length < headers.length) {
-            row.push('');
-        }
-        
-        rows.push(row);
-    }
-    
-    let csvContent = '\uFEFF';
-    csvContent += headers.join(',') + '\n';
-    rows.forEach(row => {
         csvContent += row.map(cell => {
             if (typeof cell === 'string' && (cell.includes(',') || cell.includes('"') || cell.includes('\n'))) {
                 return '"' + cell.replace(/"/g, '""') + '"';
             }
             return cell;
         }).join(',') + '\n';
-    });
+    }
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
