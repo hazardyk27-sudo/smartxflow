@@ -1508,25 +1508,31 @@ function showExportNotification(message, isError = false) {
 }
 
 async function savePNGViaAPI(imageData, filename) {
-    try {
-        const response = await fetch('/api/export/png', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: imageData, filename: filename })
-        });
-        const result = await response.json();
-        if (result.success) {
-            showExportNotification(`PNG kaydedildi: ${result.path}`);
-            return true;
-        } else {
-            showExportNotification(`Hata: ${result.error}`, true);
-            return false;
+    if (isEXEEnvironment()) {
+        try {
+            const response = await fetch('/api/export/png', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData, filename: filename })
+            });
+            const result = await response.json();
+            if (result.success) {
+                showExportNotification(`PNG kaydedildi: ${result.path}`);
+                return true;
+            }
+        } catch (err) {
+            console.error('API save error:', err);
         }
-    } catch (err) {
-        console.error('API save error:', err);
-        showExportNotification('PNG kaydetme hatası', true);
-        return false;
     }
+    
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = imageData;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showExportNotification('PNG indirildi');
+    return true;
 }
 
 function exportChartPNG() {
