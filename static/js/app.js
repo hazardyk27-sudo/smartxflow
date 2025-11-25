@@ -1166,20 +1166,17 @@ async function loadChart(home, away, market) {
                                 let lines = [];
                                 
                                 if (isDropping) {
-                                    const currentOdds = parseFloat(context.formattedValue);
-                                    const latestOdds = getLatestOdds(latestData, datasetLabel.replace('%', ''), market);
+                                    const graphPointOdds = parseFloat(context.formattedValue);
+                                    const currentLatestOdds = getLatestOdds(latestData, datasetLabel.replace('%', ''), market);
                                     
-                                    if (!isNaN(currentOdds) && !isNaN(latestOdds) && currentOdds > 0) {
-                                        const pctChange = ((latestOdds - currentOdds) / currentOdds) * 100;
+                                    if (!isNaN(graphPointOdds) && !isNaN(currentLatestOdds) && graphPointOdds > 0) {
+                                        const pctChange = ((currentLatestOdds - graphPointOdds) / graphPointOdds) * 100;
                                         const changeSign = pctChange >= 0 ? '+' : '';
                                         const changeStr = `${changeSign}${pctChange.toFixed(1)}%`;
+                                        const arrow = pctChange >= 0 ? '↑' : '↓';
                                         
-                                        lines.push(`${datasetLabel}: ${currentOdds.toFixed(2)} → ${latestOdds.toFixed(2)}`);
-                                        if (pctChange >= 0) {
-                                            lines.push(`Change: ${changeStr} ↑`);
-                                        } else {
-                                            lines.push(`Change: ${changeStr} ↓`);
-                                        }
+                                        lines.push(`${datasetLabel}: ${graphPointOdds.toFixed(2)} → ${currentLatestOdds.toFixed(2)}`);
+                                        lines.push(`Change vs Latest: ${changeStr} ${arrow}`);
                                     } else {
                                         lines.push(`${datasetLabel}: ${context.formattedValue}`);
                                     }
@@ -1725,11 +1722,11 @@ function getLatestOdds(latestData, label, market) {
         if (label === 'X') return parseFloat(latestData.OddsX || latestData['X']) || 0;
         if (label === '2') return parseFloat(latestData.Odds2 || latestData['2']) || 0;
     } else if (market.includes('ou25')) {
-        if (label === 'Under') return parseFloat(latestData.Under) || 0;
-        if (label === 'Over') return parseFloat(latestData.Over) || 0;
+        if (label === 'Under' || label.toLowerCase().includes('under')) return parseFloat(latestData.Under) || 0;
+        if (label === 'Over' || label.toLowerCase().includes('over')) return parseFloat(latestData.Over) || 0;
     } else if (market.includes('btts')) {
-        if (label === 'Yes') return parseFloat(latestData.Yes) || 0;
-        if (label === 'No') return parseFloat(latestData.No) || 0;
+        if (label === 'Yes' || label.toLowerCase().includes('yes')) return parseFloat(latestData.OddsYes || latestData.Yes) || 0;
+        if (label === 'No' || label.toLowerCase().includes('no')) return parseFloat(latestData.OddsNo || latestData.No) || 0;
     }
     return 0;
 }
