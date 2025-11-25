@@ -577,8 +577,8 @@ body {
     background: #15202b;
     border-radius: 16px;
     width: 100%;
-    max-width: 950px;
-    max-height: 90vh;
+    max-width: 1200px;
+    max-height: 95vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -625,15 +625,16 @@ body {
 }
 
 .modal-body {
-    padding: 24px;
+    padding: 28px 32px;
     overflow-y: auto;
+    flex: 1;
 }
 
 .match-info-card {
     background: #192734;
     border-radius: 12px;
     padding: 20px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 
 .info-columns {
@@ -924,9 +925,23 @@ body {
 .chart-wrapper {
     background: #0f1419;
     border-radius: 12px;
-    padding: 20px;
-    height: 320px;
+    padding: 24px;
+    height: 480px;
+    min-height: 450px;
     border: 1px solid #2f3336;
+    margin-top: 8px;
+}
+
+@media (min-width: 1400px) {
+    .chart-wrapper {
+        height: 550px;
+    }
+}
+
+@media (min-width: 1600px) {
+    .chart-wrapper {
+        height: 600px;
+    }
 }
 
 @media (max-width: 768px) {
@@ -962,6 +977,16 @@ body {
         max-width: 100%;
         max-height: 100vh;
         border-radius: 0;
+    }
+    
+    .modal-body {
+        padding: 16px;
+    }
+    
+    .chart-wrapper {
+        height: 350px;
+        min-height: 300px;
+        padding: 16px;
     }
     
     .info-row {
