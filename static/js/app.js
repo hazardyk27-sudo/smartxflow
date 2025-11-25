@@ -242,7 +242,7 @@ function renderMatches(data) {
                             ${d.Amt2 ? `<div class="selection-money ${c2}">${d.Amt2}</div>` : ''}
                             ${d.Pct2 ? `<div class="selection-pct ${c2}">${d.Pct2}%</div>` : ''}
                         </div></td>
-                        <td class="volume-cell">${d.Volume || '-'}</td>
+                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
                     </tr>
                 `;
             } else {
@@ -260,7 +260,7 @@ function renderMatches(data) {
                         <td class="selection-cell"><div>
                             <div class="selection-odds drop-odds">${formatOdds(d.Odds2 || d['2'])}${trend2}</div>
                         </div></td>
-                        <td class="volume-cell">${d.Volume || '-'}</td>
+                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
                     </tr>
                 `;
             }
@@ -286,7 +286,7 @@ function renderMatches(data) {
                             ${d.AmtOver ? `<div class="selection-money ${cO}">${d.AmtOver}</div>` : ''}
                             ${d.PctOver ? `<div class="selection-pct ${cO}">${d.PctOver}%</div>` : ''}
                         </div></td>
-                        <td class="volume-cell">${d.Volume || '-'}</td>
+                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
                     </tr>
                 `;
             } else {
@@ -301,7 +301,7 @@ function renderMatches(data) {
                         <td class="selection-cell"><div>
                             <div class="selection-odds drop-odds">${formatOdds(d.Over)}${trendOver}</div>
                         </div></td>
-                        <td class="volume-cell">${d.Volume || '-'}</td>
+                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
                     </tr>
                 `;
             }
@@ -327,7 +327,7 @@ function renderMatches(data) {
                             ${d.AmtNo ? `<div class="selection-money ${cN}">${d.AmtNo}</div>` : ''}
                             ${d.PctNo ? `<div class="selection-pct ${cN}">${d.PctNo}%</div>` : ''}
                         </div></td>
-                        <td class="volume-cell">${d.Volume || '-'}</td>
+                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
                     </tr>
                 `;
             } else {
@@ -342,7 +342,7 @@ function renderMatches(data) {
                         <td class="selection-cell"><div>
                             <div class="selection-odds drop-odds">${formatOdds(d.OddsNo || d.No)}${trendNo}</div>
                         </div></td>
-                        <td class="volume-cell">${d.Volume || '-'}</td>
+                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
                     </tr>
                 `;
             }
@@ -376,6 +376,13 @@ function formatOdds(value) {
     const firstLine = str.split('\n')[0];
     const num = parseFloat(firstLine);
     return isNaN(num) ? firstLine : num.toFixed(2);
+}
+
+function formatVolume(value) {
+    if (!value || value === '-') return '-';
+    const num = parseInt(String(value).replace(/[^0-9]/g, ''));
+    if (isNaN(num)) return '-';
+    return '£' + num.toLocaleString('en-GB');
 }
 
 function hasValidMarketData(match, market) {
@@ -710,7 +717,7 @@ function updateMatchInfoCard() {
                 </table>
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:14px 20px;background:#0f1419;border-radius:10px;border:1px solid #2f3336;">
                     <span style="font-size:12px;color:#8899a6;text-transform:uppercase;font-weight:600;">Total Volume</span>
-                    <span style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#4ade80;">${d.Volume || '-'}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#4ade80;">${formatVolume(d.Volume)}</span>
                 </div>
             `;
         } else {
@@ -740,7 +747,7 @@ function updateMatchInfoCard() {
                 </div>
                 <div class="volume-bar">
                     <span class="volume-label">Volume</span>
-                    <span class="volume-value">${d.Volume || '-'}</span>
+                    <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;
         }
@@ -786,7 +793,7 @@ function updateMatchInfoCard() {
                 </div>
                 <div class="volume-bar">
                     <span class="volume-label">Total Volume</span>
-                    <span class="volume-value">${d.Volume || '-'}</span>
+                    <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;
         } else {
@@ -809,7 +816,7 @@ function updateMatchInfoCard() {
                 </div>
                 <div class="volume-bar">
                     <span class="volume-label">Volume</span>
-                    <span class="volume-value">${d.Volume || '-'}</span>
+                    <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;
         }
@@ -855,7 +862,7 @@ function updateMatchInfoCard() {
                 </div>
                 <div class="volume-bar">
                     <span class="volume-label">Total Volume</span>
-                    <span class="volume-value">${d.Volume || '-'}</span>
+                    <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;
         } else {
@@ -878,7 +885,7 @@ function updateMatchInfoCard() {
                 </div>
                 <div class="volume-bar">
                     <span class="volume-label">Volume</span>
-                    <span class="volume-value">${d.Volume || '-'}</span>
+                    <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;
         }
