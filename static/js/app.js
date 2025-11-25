@@ -186,6 +186,7 @@ const demoMatches = {
             date: '25.11.2025 20:00',
             details: {
                 Odds1: '2.05', OddsX: '3.45', Odds2: '3.30',
+                PrevOdds1: '2.15', PrevOddsX: '3.40', PrevOdds2: '3.20',
                 Volume: '£209,200'
             }
         },
@@ -196,6 +197,7 @@ const demoMatches = {
             date: '25.11.2025 17:30',
             details: {
                 Odds1: '1.80', OddsX: '3.90', Odds2: '4.20',
+                PrevOdds1: '1.95', PrevOddsX: '3.75', PrevOdds2: '4.00',
                 Volume: '£354,600'
             }
         },
@@ -206,7 +208,30 @@ const demoMatches = {
             date: '25.11.2025 18:30',
             details: {
                 Odds1: '1.42', OddsX: '4.90', Odds2: '6.80',
+                PrevOdds1: '1.50', PrevOddsX: '4.70', PrevOdds2: '6.50',
                 Volume: '£356,200'
+            }
+        },
+        {
+            home_team: 'Real Madrid',
+            away_team: 'Barcelona',
+            league: 'La Liga',
+            date: '25.11.2025 21:00',
+            details: {
+                Odds1: '2.20', OddsX: '3.55', Odds2: '2.95',
+                PrevOdds1: '2.30', PrevOddsX: '3.50', PrevOdds2: '2.85',
+                Volume: '£358,400'
+            }
+        },
+        {
+            home_team: 'PSG',
+            away_team: 'Monaco',
+            league: 'Ligue 1',
+            date: '25.11.2025 21:00',
+            details: {
+                Odds1: '1.32', OddsX: '5.30', Odds2: '8.20',
+                PrevOdds1: '1.40', PrevOddsX: '5.10', PrevOdds2: '7.80',
+                Volume: '£313,200'
             }
         }
     ],
@@ -218,6 +243,7 @@ const demoMatches = {
             date: '25.11.2025 18:30',
             details: {
                 Under: '2.45', Over: '1.52',
+                PrevUnder: '2.55', PrevOver: '1.48',
                 Volume: '£356,200'
             }
         },
@@ -228,7 +254,19 @@ const demoMatches = {
             date: '25.11.2025 21:00',
             details: {
                 Under: '2.35', Over: '1.55',
+                PrevUnder: '2.25', PrevOver: '1.62',
                 Volume: '£358,400'
+            }
+        },
+        {
+            home_team: 'Manchester City',
+            away_team: 'Liverpool',
+            league: 'Premier League',
+            date: '25.11.2025 17:30',
+            details: {
+                Under: '2.28', Over: '1.60',
+                PrevUnder: '2.35', PrevOver: '1.55',
+                Volume: '£354,600'
             }
         }
     ],
@@ -240,6 +278,7 @@ const demoMatches = {
             date: '25.11.2025 20:45',
             details: {
                 Yes: '1.70', No: '2.10',
+                PrevYes: '1.80', PrevNo: '2.00',
                 Volume: '£217,600'
             }
         },
@@ -250,7 +289,19 @@ const demoMatches = {
             date: '26.11.2025 17:00',
             details: {
                 Yes: '1.62', No: '2.25',
+                PrevYes: '1.72', PrevNo: '2.10',
                 Volume: '£311,700'
+            }
+        },
+        {
+            home_team: 'Real Madrid',
+            away_team: 'Barcelona',
+            league: 'La Liga',
+            date: '25.11.2025 21:00',
+            details: {
+                Yes: '1.52', No: '2.45',
+                PrevYes: '1.58', PrevNo: '2.35',
+                Volume: '£358,400'
             }
         }
     ]
@@ -421,9 +472,9 @@ function renderMatches(data) {
         const d = match.details || {};
         
         if (currentMarket.includes('1x2')) {
-            const trend1 = getTableTrendArrow(d.Odds1 || d['1'], d.PrevOdds1);
-            const trendX = getTableTrendArrow(d.OddsX || d['X'], d.PrevOddsX);
-            const trend2 = getTableTrendArrow(d.Odds2 || d['2'], d.PrevOdds2);
+            const trend1 = isDropping ? getTableTrendArrow(d.Odds1 || d['1'], d.PrevOdds1) : '';
+            const trendX = isDropping ? getTableTrendArrow(d.OddsX || d['X'], d.PrevOddsX) : '';
+            const trend2 = isDropping ? getTableTrendArrow(d.Odds2 || d['2'], d.PrevOdds2) : '';
             
             if (isMoneyway) {
                 const c1 = getColorClass(d.Pct1);
@@ -435,17 +486,17 @@ function renderMatches(data) {
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Odds1 || d['1'])}${trend1}</div>
+                            <div class="selection-odds">${formatOdds(d.Odds1 || d['1'])}</div>
                             ${d.Amt1 ? `<div class="selection-money ${c1}">${d.Amt1}</div>` : ''}
                             ${d.Pct1 ? `<div class="selection-pct ${c1}">${d.Pct1}%</div>` : ''}
                         </td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.OddsX || d['X'])}${trendX}</div>
+                            <div class="selection-odds">${formatOdds(d.OddsX || d['X'])}</div>
                             ${d.AmtX ? `<div class="selection-money ${cX}">${d.AmtX}</div>` : ''}
                             ${d.PctX ? `<div class="selection-pct ${cX}">${d.PctX}%</div>` : ''}
                         </td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Odds2 || d['2'])}${trend2}</div>
+                            <div class="selection-odds">${formatOdds(d.Odds2 || d['2'])}</div>
                             ${d.Amt2 ? `<div class="selection-money ${c2}">${d.Amt2}</div>` : ''}
                             ${d.Pct2 ? `<div class="selection-pct ${c2}">${d.Pct2}%</div>` : ''}
                         </td>
@@ -472,8 +523,8 @@ function renderMatches(data) {
                 `;
             }
         } else if (currentMarket.includes('ou25')) {
-            const trendUnder = getTableTrendArrow(d.Under, d.PrevUnder);
-            const trendOver = getTableTrendArrow(d.Over, d.PrevOver);
+            const trendUnder = isDropping ? getTableTrendArrow(d.Under, d.PrevUnder) : '';
+            const trendOver = isDropping ? getTableTrendArrow(d.Over, d.PrevOver) : '';
             
             if (isMoneyway) {
                 const cU = getColorClass(d.PctUnder);
@@ -484,12 +535,12 @@ function renderMatches(data) {
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Under)}${trendUnder}</div>
+                            <div class="selection-odds">${formatOdds(d.Under)}</div>
                             ${d.AmtUnder ? `<div class="selection-money ${cU}">${d.AmtUnder}</div>` : ''}
                             ${d.PctUnder ? `<div class="selection-pct ${cU}">${d.PctUnder}%</div>` : ''}
                         </td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Over)}${trendOver}</div>
+                            <div class="selection-odds">${formatOdds(d.Over)}</div>
                             ${d.AmtOver ? `<div class="selection-money ${cO}">${d.AmtOver}</div>` : ''}
                             ${d.PctOver ? `<div class="selection-pct ${cO}">${d.PctOver}%</div>` : ''}
                         </td>
@@ -513,8 +564,8 @@ function renderMatches(data) {
                 `;
             }
         } else {
-            const trendYes = getTableTrendArrow(d.Yes, d.PrevYes);
-            const trendNo = getTableTrendArrow(d.No, d.PrevNo);
+            const trendYes = isDropping ? getTableTrendArrow(d.Yes, d.PrevYes) : '';
+            const trendNo = isDropping ? getTableTrendArrow(d.No, d.PrevNo) : '';
             
             if (isMoneyway) {
                 const cY = getColorClass(d.PctYes);
@@ -525,12 +576,12 @@ function renderMatches(data) {
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Yes)}${trendYes}</div>
+                            <div class="selection-odds">${formatOdds(d.Yes)}</div>
                             ${d.AmtYes ? `<div class="selection-money ${cY}">${d.AmtYes}</div>` : ''}
                             ${d.PctYes ? `<div class="selection-pct ${cY}">${d.PctYes}%</div>` : ''}
                         </td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.No)}${trendNo}</div>
+                            <div class="selection-odds">${formatOdds(d.No)}</div>
                             ${d.AmtNo ? `<div class="selection-money ${cN}">${d.AmtNo}</div>` : ''}
                             ${d.PctNo ? `<div class="selection-pct ${cN}">${d.PctNo}%</div>` : ''}
                         </td>
@@ -699,9 +750,9 @@ function updateMatchInfoCard() {
     let html = '';
     
     if (selectedChartMarket.includes('1x2')) {
-        const trend1 = getTrendArrow(d.Odds1 || d['1'], p.Odds1 || p['1']);
-        const trendX = getTrendArrow(d.OddsX || d['X'], p.OddsX || p['X']);
-        const trend2 = getTrendArrow(d.Odds2 || d['2'], p.Odds2 || p['2']);
+        const trend1 = isDropping ? getTrendArrow(d.Odds1 || d['1'], p.Odds1 || p['1']) : '';
+        const trendX = isDropping ? getTrendArrow(d.OddsX || d['X'], p.OddsX || p['X']) : '';
+        const trend2 = isDropping ? getTrendArrow(d.Odds2 || d['2'], p.Odds2 || p['2']) : '';
         
         if (isMoneyway) {
             const c1 = getColorClass(d.Pct1);
@@ -792,8 +843,8 @@ function updateMatchInfoCard() {
             `;
         }
     } else if (selectedChartMarket.includes('ou25')) {
-        const trendUnder = getTrendArrow(d.Under, p.Under);
-        const trendOver = getTrendArrow(d.Over, p.Over);
+        const trendUnder = isDropping ? getTrendArrow(d.Under, p.Under) : '';
+        const trendOver = isDropping ? getTrendArrow(d.Over, p.Over) : '';
         
         if (isMoneyway) {
             const cU = getColorClass(d.PctUnder);
@@ -804,7 +855,7 @@ function updateMatchInfoCard() {
                         <div class="column-header">Under 2.5</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.Under)}${trendUnder}</span>
+                            <span class="row-value odds">${formatOdds(d.Under)}</span>
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
@@ -819,7 +870,7 @@ function updateMatchInfoCard() {
                         <div class="column-header">Over 2.5</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.Over)}${trendOver}</span>
+                            <span class="row-value odds">${formatOdds(d.Over)}</span>
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
@@ -861,8 +912,8 @@ function updateMatchInfoCard() {
             `;
         }
     } else if (selectedChartMarket.includes('btts')) {
-        const trendYes = getTrendArrow(d.Yes, p.Yes);
-        const trendNo = getTrendArrow(d.No, p.No);
+        const trendYes = isDropping ? getTrendArrow(d.Yes, p.Yes) : '';
+        const trendNo = isDropping ? getTrendArrow(d.No, p.No) : '';
         
         if (isMoneyway) {
             const cY = getColorClass(d.PctYes);
@@ -873,7 +924,7 @@ function updateMatchInfoCard() {
                         <div class="column-header">Yes</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.Yes)}${trendYes}</span>
+                            <span class="row-value odds">${formatOdds(d.Yes)}</span>
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
@@ -888,7 +939,7 @@ function updateMatchInfoCard() {
                         <div class="column-header">No</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.No)}${trendNo}</span>
+                            <span class="row-value odds">${formatOdds(d.No)}</span>
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
