@@ -5,8 +5,10 @@ let chart = null;
 let selectedMatch = null;
 let selectedChartMarket = 'moneyway_1x2';
 let autoScrapeRunning = false;
-let currentSort = 'date_desc';
+let currentSortColumn = 'date';
+let currentSortDirection = 'desc';
 let chartVisibleSeries = {};
+let todayFilterActive = false;
 
 const demoMatches = {
     'moneyway_1x2': [
@@ -398,35 +400,42 @@ function updateTableHeaders() {
     const thead = document.querySelector('.matches-table thead tr');
     if (!thead) return;
     
-    const isDropping = currentMarket.startsWith('dropping');
+    const getArrow = (col) => {
+        if (currentSortColumn === col) {
+            return currentSortDirection === 'asc' ? '↑' : '↓';
+        }
+        return '';
+    };
+    
+    const getActiveClass = (col) => currentSortColumn === col ? 'active' : '';
     
     if (currentMarket.includes('1x2')) {
         thead.innerHTML = `
-            <th class="col-date">DATE</th>
-            <th class="col-league">LEAGUE</th>
-            <th class="col-match">MATCH</th>
-            <th class="col-selection">1</th>
-            <th class="col-selection">X</th>
-            <th class="col-selection">2</th>
-            <th class="col-volume">VOLUME</th>
+            <th class="col-date sortable ${getActiveClass('date')}" data-sort="date" onclick="sortByColumn('date')">DATE <span class="sort-arrow">${getArrow('date')}</span></th>
+            <th class="col-league sortable ${getActiveClass('league')}" data-sort="league" onclick="sortByColumn('league')">LEAGUE <span class="sort-arrow">${getArrow('league')}</span></th>
+            <th class="col-match sortable ${getActiveClass('match')}" data-sort="match" onclick="sortByColumn('match')">MATCH <span class="sort-arrow">${getArrow('match')}</span></th>
+            <th class="col-selection sortable ${getActiveClass('sel1')}" data-sort="sel1" onclick="sortByColumn('sel1')">1 <span class="sort-arrow">${getArrow('sel1')}</span></th>
+            <th class="col-selection sortable ${getActiveClass('selX')}" data-sort="selX" onclick="sortByColumn('selX')">X <span class="sort-arrow">${getArrow('selX')}</span></th>
+            <th class="col-selection sortable ${getActiveClass('sel2')}" data-sort="sel2" onclick="sortByColumn('sel2')">2 <span class="sort-arrow">${getArrow('sel2')}</span></th>
+            <th class="col-volume sortable ${getActiveClass('volume')}" data-sort="volume" onclick="sortByColumn('volume')">VOLUME <span class="sort-arrow">${getArrow('volume')}</span></th>
         `;
     } else if (currentMarket.includes('ou25')) {
         thead.innerHTML = `
-            <th class="col-date">DATE</th>
-            <th class="col-league">LEAGUE</th>
-            <th class="col-match">MATCH</th>
-            <th class="col-selection">UNDER</th>
-            <th class="col-selection">OVER</th>
-            <th class="col-volume">VOLUME</th>
+            <th class="col-date sortable ${getActiveClass('date')}" data-sort="date" onclick="sortByColumn('date')">DATE <span class="sort-arrow">${getArrow('date')}</span></th>
+            <th class="col-league sortable ${getActiveClass('league')}" data-sort="league" onclick="sortByColumn('league')">LEAGUE <span class="sort-arrow">${getArrow('league')}</span></th>
+            <th class="col-match sortable ${getActiveClass('match')}" data-sort="match" onclick="sortByColumn('match')">MATCH <span class="sort-arrow">${getArrow('match')}</span></th>
+            <th class="col-selection sortable ${getActiveClass('sel1')}" data-sort="sel1" onclick="sortByColumn('sel1')">UNDER <span class="sort-arrow">${getArrow('sel1')}</span></th>
+            <th class="col-selection sortable ${getActiveClass('sel2')}" data-sort="sel2" onclick="sortByColumn('sel2')">OVER <span class="sort-arrow">${getArrow('sel2')}</span></th>
+            <th class="col-volume sortable ${getActiveClass('volume')}" data-sort="volume" onclick="sortByColumn('volume')">VOLUME <span class="sort-arrow">${getArrow('volume')}</span></th>
         `;
     } else if (currentMarket.includes('btts')) {
         thead.innerHTML = `
-            <th class="col-date">DATE</th>
-            <th class="col-league">LEAGUE</th>
-            <th class="col-match">MATCH</th>
-            <th class="col-selection">YES</th>
-            <th class="col-selection">NO</th>
-            <th class="col-volume">VOLUME</th>
+            <th class="col-date sortable ${getActiveClass('date')}" data-sort="date" onclick="sortByColumn('date')">DATE <span class="sort-arrow">${getArrow('date')}</span></th>
+            <th class="col-league sortable ${getActiveClass('league')}" data-sort="league" onclick="sortByColumn('league')">LEAGUE <span class="sort-arrow">${getArrow('league')}</span></th>
+            <th class="col-match sortable ${getActiveClass('match')}" data-sort="match" onclick="sortByColumn('match')">MATCH <span class="sort-arrow">${getArrow('match')}</span></th>
+            <th class="col-selection sortable ${getActiveClass('sel1')}" data-sort="sel1" onclick="sortByColumn('sel1')">YES <span class="sort-arrow">${getArrow('sel1')}</span></th>
+            <th class="col-selection sortable ${getActiveClass('sel2')}" data-sort="sel2" onclick="sortByColumn('sel2')">NO <span class="sort-arrow">${getArrow('sel2')}</span></th>
+            <th class="col-volume sortable ${getActiveClass('volume')}" data-sort="volume" onclick="sortByColumn('volume')">VOLUME <span class="sort-arrow">${getArrow('volume')}</span></th>
         `;
     }
 }
@@ -652,21 +661,132 @@ function filterMatches(query) {
 }
 
 function applySorting(data) {
-    const sortType = document.getElementById('sortSelect')?.value || currentSort;
-    currentSort = sortType;
+    let sortedData = [...data];
     
-    return [...data].sort((a, b) => {
-        if (sortType === 'date_asc') {
-            return parseDate(a.date) - parseDate(b.date);
-        } else if (sortType === 'date_desc') {
-            return parseDate(b.date) - parseDate(a.date);
-        } else if (sortType === 'volume_desc') {
-            return parseVolume(b) - parseVolume(a);
-        } else if (sortType === 'volume_asc') {
-            return parseVolume(a) - parseVolume(b);
+    if (todayFilterActive) {
+        const today = getTodayDateString();
+        sortedData = sortedData.filter(m => {
+            const matchDate = extractDateOnly(m.date);
+            return matchDate === today;
+        });
+    }
+    
+    return sortedData.sort((a, b) => {
+        let valA, valB;
+        const d1 = a.details || {};
+        const d2 = b.details || {};
+        
+        switch (currentSortColumn) {
+            case 'date':
+                valA = parseDate(a.date);
+                valB = parseDate(b.date);
+                break;
+            case 'league':
+                valA = (a.league || '').toLowerCase();
+                valB = (b.league || '').toLowerCase();
+                break;
+            case 'match':
+                valA = (a.home_team || '').toLowerCase();
+                valB = (b.home_team || '').toLowerCase();
+                break;
+            case 'sel1':
+                if (currentMarket.includes('1x2')) {
+                    valA = parseFloat(d1.Odds1 || d1['1'] || 0);
+                    valB = parseFloat(d2.Odds1 || d2['1'] || 0);
+                } else if (currentMarket.includes('ou25')) {
+                    valA = parseFloat(d1.Under || 0);
+                    valB = parseFloat(d2.Under || 0);
+                } else if (currentMarket.includes('btts')) {
+                    valA = parseFloat(d1.Yes || 0);
+                    valB = parseFloat(d2.Yes || 0);
+                }
+                break;
+            case 'selX':
+                valA = parseFloat(d1.OddsX || d1['X'] || 0);
+                valB = parseFloat(d2.OddsX || d2['X'] || 0);
+                break;
+            case 'sel2':
+                if (currentMarket.includes('1x2')) {
+                    valA = parseFloat(d1.Odds2 || d1['2'] || 0);
+                    valB = parseFloat(d2.Odds2 || d2['2'] || 0);
+                } else if (currentMarket.includes('ou25')) {
+                    valA = parseFloat(d1.Over || 0);
+                    valB = parseFloat(d2.Over || 0);
+                } else if (currentMarket.includes('btts')) {
+                    valA = parseFloat(d1.No || 0);
+                    valB = parseFloat(d2.No || 0);
+                }
+                break;
+            case 'volume':
+                valA = parseVolume(a);
+                valB = parseVolume(b);
+                break;
+            default:
+                valA = parseDate(a.date);
+                valB = parseDate(b.date);
         }
-        return 0;
+        
+        if (typeof valA === 'string' && typeof valB === 'string') {
+            if (currentSortDirection === 'asc') {
+                return valA.localeCompare(valB);
+            } else {
+                return valB.localeCompare(valA);
+            }
+        } else {
+            if (currentSortDirection === 'asc') {
+                return valA - valB;
+            } else {
+                return valB - valA;
+            }
+        }
     });
+}
+
+function getTodayDateString() {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    return `${day}.${month}.${year}`;
+}
+
+function extractDateOnly(dateStr) {
+    if (!dateStr) return '';
+    const parts = dateStr.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+    if (parts) {
+        return `${parts[1]}.${parts[2]}.${parts[3]}`;
+    }
+    return '';
+}
+
+function sortByColumn(column) {
+    if (currentSortColumn === column) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortColumn = column;
+        currentSortDirection = 'desc';
+    }
+    
+    updateTableHeaders();
+    filteredMatches = applySorting(matches);
+    renderMatches(filteredMatches);
+}
+
+function toggleTodayFilter() {
+    todayFilterActive = !todayFilterActive;
+    
+    const btn = document.getElementById('todayBtn');
+    if (btn) {
+        if (todayFilterActive) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    }
+    
+    const searchInput = document.getElementById('searchInput');
+    const query = searchInput?.value?.toLowerCase() || '';
+    filterMatches(query);
 }
 
 function parseDate(dateStr) {
@@ -687,11 +807,6 @@ function parseVolume(match) {
     return parseFloat(vol) || 0;
 }
 
-function sortMatches() {
-    const searchInput = document.getElementById('searchInput');
-    const query = searchInput?.value?.toLowerCase() || '';
-    filterMatches(query);
-}
 
 let previousOddsData = null;
 

@@ -105,14 +105,15 @@
                     </svg>
                     <input type="text" id="searchInput" placeholder="Search teams or leagues...">
                 </div>
-                <div class="sort-controls">
-                    <select id="sortSelect" class="sort-select" onchange="sortMatches()">
-                        <option value="date_desc">Date (Newest)</option>
-                        <option value="date_asc">Date (Oldest)</option>
-                        <option value="volume_desc">Volume (High)</option>
-                        <option value="volume_asc">Volume (Low)</option>
-                    </select>
-                </div>
+                <button class="btn btn-today" id="todayBtn" onclick="toggleTodayFilter()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    Günün Maçları
+                </button>
                 <div class="match-count">
                     <span id="matchCount">0</span> Matches
                 </div>
@@ -122,13 +123,13 @@
                 <table class="matches-table">
                     <thead>
                         <tr>
-                            <th class="col-date">DATE</th>
-                            <th class="col-league">LEAGUE</th>
-                            <th class="col-match">MATCH</th>
-                            <th class="col-selection">1</th>
-                            <th class="col-selection">X</th>
-                            <th class="col-selection">2</th>
-                            <th class="col-volume">VOLUME</th>
+                            <th class="col-date sortable" data-sort="date" onclick="sortByColumn('date')">DATE <span class="sort-arrow"></span></th>
+                            <th class="col-league sortable" data-sort="league" onclick="sortByColumn('league')">LEAGUE <span class="sort-arrow"></span></th>
+                            <th class="col-match sortable" data-sort="match" onclick="sortByColumn('match')">MATCH <span class="sort-arrow"></span></th>
+                            <th class="col-selection sortable" data-sort="sel1" onclick="sortByColumn('sel1')">1 <span class="sort-arrow"></span></th>
+                            <th class="col-selection sortable" data-sort="selX" onclick="sortByColumn('selX')">X <span class="sort-arrow"></span></th>
+                            <th class="col-selection sortable" data-sort="sel2" onclick="sortByColumn('sel2')">2 <span class="sort-arrow"></span></th>
+                            <th class="col-volume sortable" data-sort="volume" onclick="sortByColumn('volume')">VOLUME <span class="sort-arrow"></span></th>
                         </tr>
                     </thead>
                     <tbody id="matchesTableBody">

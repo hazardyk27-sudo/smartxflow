@@ -260,25 +260,35 @@ body {
     gap: 8px;
 }
 
-.sort-select {
+.btn-today {
     background: #192734;
     border: 1px solid #2f3336;
     color: #e7e9ea;
-    padding: 10px 14px;
+    padding: 10px 16px;
     border-radius: 8px;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
-    outline: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
     font-family: 'Inter', sans-serif;
 }
 
-.sort-select:hover {
+.btn-today:hover {
     border-color: #536471;
+    background: #1d2d3a;
 }
 
-.sort-select:focus {
+.btn-today.active {
+    background: #1d9bf0;
     border-color: #1d9bf0;
+    color: #fff;
+}
+
+.btn-today.active:hover {
+    background: #1a8cd8;
 }
 
 .match-count {
@@ -322,6 +332,37 @@ body {
     position: sticky;
     top: 0;
     z-index: 1;
+}
+
+.matches-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s, background 0.2s;
+}
+
+.matches-table th.sortable:hover {
+    color: #e7e9ea;
+    background: #1d2d3a;
+}
+
+.matches-table th.sortable.active {
+    color: #1d9bf0;
+}
+
+.sort-arrow {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 10px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.matches-table th.sortable.active .sort-arrow {
+    opacity: 1;
+}
+
+.matches-table th.sortable:hover .sort-arrow {
+    opacity: 0.5;
 }
 
 .matches-table td {
