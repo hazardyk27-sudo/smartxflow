@@ -115,17 +115,17 @@ CREATE TABLE market_snapshots (
 - **Database:** data/moneyway.db (LocalDatabase class in services/supabase_client.py)
 - **Trend Arrows:** Sadece Dropping Odds marketlerinde görünür (↑/↓ yeşil/kırmızı)
 - **Trend Functions:** `getDirectTrendArrow` (API trend) + `getTableTrendArrow` (prev/curr hesaplama)
-- **Tooltip:** `getOddsFromHistory()` - history datasından gerçek odds değeri alır
-- **PNG Export:** Chart.js `toBase64Image()` + html2canvas fallback (EXE uyumlu)
-- **Lig İsimleri:** max-width: 140px, ellipsis, CSS tooltip on hover
+- **PNG Export:** html2canvas ile tüm modal sayfası (bilgiler + grafik) indirilir
+- **Volume Format:** £ sembolü + binlik ayraç (£32,218 formatında)
+- **Grafik Ölçekleme:** 5dk/10dk/30dk/1saat/6saat/12saat/1gün bucket aralıkları (veri filtrelemez, sadece ölçekler)
 
 ## Son Guncellemeler
-- **25 Kasim 2025:** BTTS Drop market trend okları düzeltildi (getDirectTrendArrow)
-- **25 Kasim 2025:** Grafik tooltip - getOddsFromHistory helper eklendi
-- **25 Kasim 2025:** PNG export - EXE uyumlu fallback mekanizması
-- **25 Kasim 2025:** Lig isimleri CSS tooltip düzeltmesi
-- **24 Kasim 2025:** Tkinter GUI tam yeniden yazildi
-- **24 Kasim 2025:** Gercek scraper entegrasyonu tamamlandi
-- **24 Kasim 2025:** Matplotlib grafik eklendi
-- **24 Kasim 2025:** Iki sekmeli arayuz (Kontrol + Grafik)
+- **25 Kasim 2025:** PNG export - tüm modal sayfası indirilir (html2canvas)
+- **25 Kasim 2025:** Volume £ sembolü ve binlik ayraç formatı eklendi
+- **25 Kasim 2025:** Grafik zaman filtresi: veri filtrelemek yerine bucket ölçekleme
+- **25 Kasim 2025:** Grafik noktaları küçültüldü (pointRadius: 3)
+- **25 Kasim 2025:** Modal odds/details uyumsuzluğu düzeltildi
+- **25 Kasim 2025:** BTTS Drop market trend okları düzeltildi
+- **24 Kasim 2025:** Flask Web UI + GitHub Dark tema
+- **24 Kasim 2025:** Chart.js grafik entegrasyonu
 - **24 Kasim 2025:** Build basariyla tamamlandi
