@@ -111,7 +111,19 @@ CREATE TABLE market_snapshots (
    - SUPABASE_URL
    - SUPABASE_ANON_KEY
 
+## Teknik Notlar
+- **Database:** data/moneyway.db (LocalDatabase class in services/supabase_client.py)
+- **Trend Arrows:** Sadece Dropping Odds marketlerinde görünür (↑/↓ yeşil/kırmızı)
+- **Trend Functions:** `getDirectTrendArrow` (API trend) + `getTableTrendArrow` (prev/curr hesaplama)
+- **Tooltip:** `getOddsFromHistory()` - history datasından gerçek odds değeri alır
+- **PNG Export:** Chart.js `toBase64Image()` + html2canvas fallback (EXE uyumlu)
+- **Lig İsimleri:** max-width: 140px, ellipsis, CSS tooltip on hover
+
 ## Son Guncellemeler
+- **25 Kasim 2025:** BTTS Drop market trend okları düzeltildi (getDirectTrendArrow)
+- **25 Kasim 2025:** Grafik tooltip - getOddsFromHistory helper eklendi
+- **25 Kasim 2025:** PNG export - EXE uyumlu fallback mekanizması
+- **25 Kasim 2025:** Lig isimleri CSS tooltip düzeltmesi
 - **24 Kasim 2025:** Tkinter GUI tam yeniden yazildi
 - **24 Kasim 2025:** Gercek scraper entegrasyonu tamamlandi
 - **24 Kasim 2025:** Matplotlib grafik eklendi
