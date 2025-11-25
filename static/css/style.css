@@ -406,6 +406,10 @@ body {
     letter-spacing: -0.5px;
 }
 
+.selection-odds.drop-odds {
+    color: #ffffff;
+}
+
 .selection-money {
     font-size: 12px;
     font-weight: 600;

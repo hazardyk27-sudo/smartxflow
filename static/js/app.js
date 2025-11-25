@@ -510,13 +510,13 @@ function renderMatches(data) {
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Odds1 || d['1'])}${trend1}</div>
+                            <div class="selection-odds drop-odds">${formatOdds(d.Odds1 || d['1'])}${trend1}</div>
                         </td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.OddsX || d['X'])}${trendX}</div>
+                            <div class="selection-odds drop-odds">${formatOdds(d.OddsX || d['X'])}${trendX}</div>
                         </td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Odds2 || d['2'])}${trend2}</div>
+                            <div class="selection-odds drop-odds">${formatOdds(d.Odds2 || d['2'])}${trend2}</div>
                         </td>
                         <td class="volume-cell">${d.Volume || '-'}</td>
                     </tr>
@@ -554,10 +554,10 @@ function renderMatches(data) {
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Under)}${trendUnder}</div>
+                            <div class="selection-odds drop-odds">${formatOdds(d.Under)}${trendUnder}</div>
                         </td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Over)}${trendOver}</div>
+                            <div class="selection-odds drop-odds">${formatOdds(d.Over)}${trendOver}</div>
                         </td>
                         <td class="volume-cell">${d.Volume || '-'}</td>
                     </tr>
@@ -595,10 +595,10 @@ function renderMatches(data) {
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.Yes)}${trendYes}</div>
+                            <div class="selection-odds drop-odds">${formatOdds(d.Yes)}${trendYes}</div>
                         </td>
                         <td class="selection-cell">
-                            <div class="selection-odds">${formatOdds(d.No)}${trendNo}</div>
+                            <div class="selection-odds drop-odds">${formatOdds(d.No)}${trendNo}</div>
                         </td>
                         <td class="volume-cell">${d.Volume || '-'}</td>
                     </tr>
