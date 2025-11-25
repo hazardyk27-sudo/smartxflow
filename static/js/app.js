@@ -211,7 +211,7 @@ function renderMatches(data) {
     const isMoneyway = currentMarket.startsWith('moneyway');
     
     tbody.innerHTML = data.map((match, idx) => {
-        const d = match.details || {};
+        const d = match.details || match.odds || {};
         
         if (currentMarket.includes('1x2')) {
             const trend1 = isDropping ? getTableTrendArrow(d.Odds1 || d['1'], d.PrevOdds1) : '';
@@ -425,8 +425,8 @@ function applySorting(data) {
     
     return sortedData.sort((a, b) => {
         let valA, valB;
-        const d1 = a.details || {};
-        const d2 = b.details || {};
+        const d1 = a.details || a.odds || {};
+        const d2 = b.details || b.odds || {};
         
         switch (currentSortColumn) {
             case 'date':
