@@ -46,37 +46,74 @@ def get_matches():
     """Get all matches from database"""
     market = request.args.get('market', 'moneyway_1x2')
     matches = db.get_all_matches()
+    is_dropping = market.startswith('dropping')
     
     enriched = []
     for m in matches:
         history = db.get_match_history(m['home_team'], m['away_team'], market)
         
         odds = {}
+        prev_odds = {}
         if history:
             latest = history[-1]
+            previous = history[-2] if len(history) >= 2 else None
+            
             if market in ['moneyway_1x2', 'dropping_1x2']:
                 odds = {
-                    '1': latest.get('Odds1', latest.get('1', '-')),
-                    'X': latest.get('OddsX', latest.get('X', '-')),
-                    '2': latest.get('Odds2', latest.get('2', '-'))
+                    'Odds1': latest.get('Odds1', latest.get('1', '-')),
+                    'OddsX': latest.get('OddsX', latest.get('X', '-')),
+                    'Odds2': latest.get('Odds2', latest.get('2', '-')),
+                    'Pct1': latest.get('Pct1', ''),
+                    'Amt1': latest.get('Amt1', ''),
+                    'PctX': latest.get('PctX', ''),
+                    'AmtX': latest.get('AmtX', ''),
+                    'Pct2': latest.get('Pct2', ''),
+                    'Amt2': latest.get('Amt2', ''),
+                    'Volume': latest.get('Volume', '')
                 }
+                if is_dropping and previous:
+                    prev_odds = {
+                        'PrevOdds1': previous.get('Odds1', previous.get('1', '')),
+                        'PrevOddsX': previous.get('OddsX', previous.get('X', '')),
+                        'PrevOdds2': previous.get('Odds2', previous.get('2', ''))
+                    }
             elif market in ['moneyway_ou25', 'dropping_ou25']:
                 odds = {
                     'Under': latest.get('Under', '-'),
-                    'Over': latest.get('Over', '-')
+                    'Over': latest.get('Over', '-'),
+                    'PctUnder': latest.get('PctUnder', ''),
+                    'AmtUnder': latest.get('AmtUnder', ''),
+                    'PctOver': latest.get('PctOver', ''),
+                    'AmtOver': latest.get('AmtOver', ''),
+                    'Volume': latest.get('Volume', '')
                 }
+                if is_dropping and previous:
+                    prev_odds = {
+                        'PrevUnder': previous.get('Under', ''),
+                        'PrevOver': previous.get('Over', '')
+                    }
             elif market in ['moneyway_btts', 'dropping_btts']:
                 odds = {
-                    'Yes': latest.get('Yes', '-'),
-                    'No': latest.get('No', '-')
+                    'OddsYes': latest.get('OddsYes', latest.get('Yes', '-')),
+                    'OddsNo': latest.get('OddsNo', latest.get('No', '-')),
+                    'PctYes': latest.get('PctYes', ''),
+                    'AmtYes': latest.get('AmtYes', ''),
+                    'PctNo': latest.get('PctNo', ''),
+                    'AmtNo': latest.get('AmtNo', ''),
+                    'Volume': latest.get('Volume', '')
                 }
+                if is_dropping and previous:
+                    prev_odds = {
+                        'PrevYes': previous.get('OddsYes', previous.get('Yes', '')),
+                        'PrevNo': previous.get('OddsNo', previous.get('No', ''))
+                    }
         
         enriched.append({
             'home_team': m.get('home_team', ''),
             'away_team': m.get('away_team', ''),
             'league': m.get('league', ''),
             'date': m.get('date', ''),
-            'odds': odds,
+            'odds': {**odds, **prev_odds},
             'history_count': len(history)
         })
     

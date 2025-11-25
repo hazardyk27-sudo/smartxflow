@@ -306,8 +306,8 @@ function renderMatches(data) {
                 `;
             }
         } else {
-            const trendYes = isDropping ? getTableTrendArrow(d.Yes, d.PrevYes) : '';
-            const trendNo = isDropping ? getTableTrendArrow(d.No, d.PrevNo) : '';
+            const trendYes = isDropping ? getTableTrendArrow(d.OddsYes || d.Yes, d.PrevYes) : '';
+            const trendNo = isDropping ? getTableTrendArrow(d.OddsNo || d.No, d.PrevNo) : '';
             
             if (isMoneyway) {
                 const cY = getColorClass(d.PctYes);
@@ -318,12 +318,12 @@ function renderMatches(data) {
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell"><div>
-                            <div class="selection-odds">${formatOdds(d.Yes)}</div>
+                            <div class="selection-odds">${formatOdds(d.OddsYes || d.Yes)}</div>
                             ${d.AmtYes ? `<div class="selection-money ${cY}">${d.AmtYes}</div>` : ''}
                             ${d.PctYes ? `<div class="selection-pct ${cY}">${d.PctYes}%</div>` : ''}
                         </div></td>
                         <td class="selection-cell"><div>
-                            <div class="selection-odds">${formatOdds(d.No)}</div>
+                            <div class="selection-odds">${formatOdds(d.OddsNo || d.No)}</div>
                             ${d.AmtNo ? `<div class="selection-money ${cN}">${d.AmtNo}</div>` : ''}
                             ${d.PctNo ? `<div class="selection-pct ${cN}">${d.PctNo}%</div>` : ''}
                         </div></td>
@@ -337,10 +337,10 @@ function renderMatches(data) {
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell"><div>
-                            <div class="selection-odds drop-odds">${formatOdds(d.Yes)}${trendYes}</div>
+                            <div class="selection-odds drop-odds">${formatOdds(d.OddsYes || d.Yes)}${trendYes}</div>
                         </div></td>
                         <td class="selection-cell"><div>
-                            <div class="selection-odds drop-odds">${formatOdds(d.No)}${trendNo}</div>
+                            <div class="selection-odds drop-odds">${formatOdds(d.OddsNo || d.No)}${trendNo}</div>
                         </div></td>
                         <td class="volume-cell">${d.Volume || '-'}</td>
                     </tr>
@@ -774,8 +774,8 @@ function updateMatchInfoCard() {
             `;
         }
     } else if (selectedChartMarket.includes('btts')) {
-        const trendYes = isDropping ? getTrendArrow(d.Yes, p.Yes) : '';
-        const trendNo = isDropping ? getTrendArrow(d.No, p.No) : '';
+        const trendYes = isDropping ? getTrendArrow(d.OddsYes || d.Yes, p.OddsYes || p.Yes) : '';
+        const trendNo = isDropping ? getTrendArrow(d.OddsNo || d.No, p.OddsNo || p.No) : '';
         
         if (isMoneyway) {
             const cY = getColorClass(d.PctYes);
@@ -786,7 +786,7 @@ function updateMatchInfoCard() {
                         <div class="column-header">Yes</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.Yes)}</span>
+                            <span class="row-value odds">${formatOdds(d.OddsYes || d.Yes)}</span>
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
@@ -801,7 +801,7 @@ function updateMatchInfoCard() {
                         <div class="column-header">No</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.No)}</span>
+                            <span class="row-value odds">${formatOdds(d.OddsNo || d.No)}</span>
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
@@ -825,14 +825,14 @@ function updateMatchInfoCard() {
                         <div class="column-header">Yes</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.Yes)}${trendYes}</span>
+                            <span class="row-value odds">${formatOdds(d.OddsYes || d.Yes)}${trendYes}</span>
                         </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">No</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.No)}${trendNo}</span>
+                            <span class="row-value odds">${formatOdds(d.OddsNo || d.No)}${trendNo}</span>
                         </div>
                     </div>
                 </div>
