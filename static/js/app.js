@@ -9,7 +9,7 @@ let currentSortColumn = 'date';
 let currentSortDirection = 'desc';
 let chartVisibleSeries = {};
 let todayFilterActive = false;
-let chartTimeRange = '1day';
+let chartTimeRange = '5min';
 let currentChartHistoryData = [];
 
 
@@ -912,9 +912,9 @@ function getBucketConfig() {
         case '1hour':
             return { bucketMinutes: 60, labelFormat: 'time' };
         case '6hour':
-            return { bucketMinutes: 60, labelFormat: 'time' };
+            return { bucketMinutes: 360, labelFormat: 'datetime' };
         case '12hour':
-            return { bucketMinutes: 60, labelFormat: 'time' };
+            return { bucketMinutes: 720, labelFormat: 'datetime' };
         case '1day':
         default:
             return { bucketMinutes: 1440, labelFormat: 'date' };
@@ -933,11 +933,14 @@ function formatTimeLabel(date) {
     const config = getBucketConfig();
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
     
     if (config.labelFormat === 'date') {
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
         return `${day}.${month}`;
+    }
+    if (config.labelFormat === 'datetime') {
+        return `${day}.${month} ${hours}:${minutes}`;
     }
     return `${hours}:${minutes}`;
 }
@@ -1434,46 +1437,7 @@ function setChartTimeRange(range) {
 }
 
 function filterHistoryByTimeRange(historyData) {
-    if (!historyData || historyData.length === 0) return historyData;
-    
-    const now = new Date();
-    let cutoffTime;
-    
-    switch (chartTimeRange) {
-        case '5min':
-            cutoffTime = new Date(now.getTime() - 5 * 60 * 1000);
-            break;
-        case '10min':
-            cutoffTime = new Date(now.getTime() - 10 * 60 * 1000);
-            break;
-        case '30min':
-            cutoffTime = new Date(now.getTime() - 30 * 60 * 1000);
-            break;
-        case '1hour':
-            cutoffTime = new Date(now.getTime() - 60 * 60 * 1000);
-            break;
-        case '6hour':
-            cutoffTime = new Date(now.getTime() - 6 * 60 * 60 * 1000);
-            break;
-        case '12hour':
-            cutoffTime = new Date(now.getTime() - 12 * 60 * 60 * 1000);
-            break;
-        case '1day':
-        default:
-            cutoffTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-            break;
-    }
-    
-    return historyData.filter(h => {
-        const ts = h.ScrapedAt || '';
-        let date;
-        try {
-            date = new Date(ts);
-        } catch {
-            return true;
-        }
-        return date >= cutoffTime;
-    });
+    return historyData || [];
 }
 
 function generateExportFilename(extension) {
