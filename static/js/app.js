@@ -1595,6 +1595,25 @@ function renderChartLegendFilters(datasets, market) {
         <div class="chart-filter-group time-filters">
             ${timeButtons}
         </div>
+        <div class="chart-filter-divider"></div>
+        <div class="chart-export-btns">
+            <button class="chart-export-btn" onclick="exportChartPNG()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                </svg>
+                PNG
+            </button>
+            <button class="chart-export-btn" onclick="exportChartCSV()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                CSV
+            </button>
+        </div>
     `;
 }
 
@@ -1651,6 +1670,115 @@ function filterHistoryByTimeRange(historyData) {
         }
         return date >= cutoffTime;
     });
+}
+
+function generateExportFilename(extension) {
+    const match = selectedMatch;
+    if (!match) return `SmartXFlow_export.${extension}`;
+    
+    const now = new Date();
+    const dateStr = now.getFullYear().toString() +
+        String(now.getMonth() + 1).padStart(2, '0') +
+        String(now.getDate()).padStart(2, '0') + '_' +
+        String(now.getHours()).padStart(2, '0') +
+        String(now.getMinutes()).padStart(2, '0');
+    
+    const league = (match.league || 'League').replace(/[^a-zA-Z0-9]/g, '');
+    const home = (match.home_team || 'Home').replace(/[^a-zA-Z0-9]/g, '');
+    const away = (match.away_team || 'Away').replace(/[^a-zA-Z0-9]/g, '');
+    
+    const marketMap = {
+        'moneyway_1x2': 'MW1X2',
+        'moneyway_ou25': 'MW25',
+        'moneyway_btts': 'MWBTTS',
+        'dropping_1x2': 'Drop1X2',
+        'dropping_ou25': 'Drop25',
+        'dropping_btts': 'DropBTTS'
+    };
+    const marketLabel = marketMap[selectedChartMarket] || 'Chart';
+    
+    return `SmartXFlow_${league}_${home}-${away}_${marketLabel}_${dateStr}.${extension}`;
+}
+
+function exportChartPNG() {
+    if (!chart) return;
+    
+    const canvas = document.getElementById('oddsChart');
+    if (!canvas) return;
+    
+    const link = document.createElement('a');
+    link.download = generateExportFilename('png');
+    link.href = canvas.toDataURL('image/png', 1.0);
+    link.click();
+}
+
+function exportChartCSV() {
+    if (!chart || !selectedMatch) return;
+    
+    const market = selectedChartMarket;
+    const isMoneyway = market.startsWith('moneyway');
+    const isDropping = market.startsWith('dropping');
+    
+    const datasets = chart.data.datasets;
+    const labels = chart.data.labels;
+    
+    let headers = ['timestamp'];
+    let rows = [];
+    
+    if (market.includes('1x2')) {
+        if (isMoneyway) {
+            headers = ['timestamp', 'odd_1', 'odd_x', 'odd_2', 'stake_1', 'stake_x', 'stake_2', 'percent_1', 'percent_x', 'percent_2', 'total_volume'];
+        } else {
+            headers = ['timestamp', 'odd_1', 'odd_x', 'odd_2', 'change_percent_1', 'change_percent_x', 'change_percent_2'];
+        }
+    } else if (market.includes('ou25')) {
+        if (isMoneyway) {
+            headers = ['timestamp', 'odd_under25', 'odd_over25', 'stake_under25', 'stake_over25', 'percent_under25', 'percent_over25', 'total_volume'];
+        } else {
+            headers = ['timestamp', 'odd_under25', 'odd_over25', 'change_percent_under25', 'change_percent_over25'];
+        }
+    } else if (market.includes('btts')) {
+        if (isMoneyway) {
+            headers = ['timestamp', 'odd_yes', 'odd_no', 'stake_yes', 'stake_no', 'percent_yes', 'percent_no', 'total_volume'];
+        } else {
+            headers = ['timestamp', 'odd_yes', 'odd_no', 'change_percent_yes', 'change_percent_no'];
+        }
+    }
+    
+    for (let i = 0; i < labels.length; i++) {
+        let row = [labels[i]];
+        
+        datasets.forEach(ds => {
+            if (!ds.hidden) {
+                const val = ds.data[i];
+                row.push(val !== null && val !== undefined ? val : '');
+            }
+        });
+        
+        while (row.length < headers.length) {
+            row.push('');
+        }
+        
+        rows.push(row);
+    }
+    
+    let csvContent = '\uFEFF';
+    csvContent += headers.join(',') + '\n';
+    rows.forEach(row => {
+        csvContent += row.map(cell => {
+            if (typeof cell === 'string' && (cell.includes(',') || cell.includes('"') || cell.includes('\n'))) {
+                return '"' + cell.replace(/"/g, '""') + '"';
+            }
+            return cell;
+        }).join(',') + '\n';
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = generateExportFilename('csv');
+    link.click();
+    URL.revokeObjectURL(link.href);
 }
 
 function toggleChartSeries(market, seriesKey, btn) {
