@@ -80,11 +80,14 @@ def get_matches():
                     'Amt2': latest.get('Amt2', ''),
                     'Volume': latest.get('Volume', '')
                 }
-                if is_dropping and previous:
+                if is_dropping:
                     prev_odds = {
-                        'PrevOdds1': previous.get('Odds1', previous.get('1', '')),
-                        'PrevOddsX': previous.get('OddsX', previous.get('X', '')),
-                        'PrevOdds2': previous.get('Odds2', previous.get('2', ''))
+                        'PrevOdds1': latest.get('Odds1_prev', ''),
+                        'PrevOddsX': latest.get('OddsX_prev', ''),
+                        'PrevOdds2': latest.get('Odds2_prev', ''),
+                        'Trend1': latest.get('Trend1', ''),
+                        'TrendX': latest.get('TrendX', ''),
+                        'Trend2': latest.get('Trend2', '')
                     }
             elif market in ['moneyway_ou25', 'dropping_ou25']:
                 odds = {
@@ -96,10 +99,12 @@ def get_matches():
                     'AmtOver': latest.get('AmtOver', ''),
                     'Volume': latest.get('Volume', '')
                 }
-                if is_dropping and previous:
+                if is_dropping:
                     prev_odds = {
-                        'PrevUnder': previous.get('Under', ''),
-                        'PrevOver': previous.get('Over', '')
+                        'PrevUnder': latest.get('Under_prev', ''),
+                        'PrevOver': latest.get('Over_prev', ''),
+                        'TrendUnder': latest.get('TrendUnder', ''),
+                        'TrendOver': latest.get('TrendOver', '')
                     }
             elif market in ['moneyway_btts', 'dropping_btts']:
                 odds = {
@@ -111,10 +116,12 @@ def get_matches():
                     'AmtNo': latest.get('AmtNo', ''),
                     'Volume': latest.get('Volume', '')
                 }
-                if is_dropping and previous:
+                if is_dropping:
                     prev_odds = {
-                        'PrevYes': previous.get('OddsYes', previous.get('Yes', '')),
-                        'PrevNo': previous.get('OddsNo', previous.get('No', ''))
+                        'PrevYes': latest.get('OddsYes_prev', ''),
+                        'PrevNo': latest.get('OddsNo_prev', ''),
+                        'TrendYes': latest.get('TrendYes', ''),
+                        'TrendNo': latest.get('TrendNo', '')
                     }
         
         enriched.append({

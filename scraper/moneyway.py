@@ -516,18 +516,36 @@ def extract_dropping_btts(table: BeautifulSoup) -> List[Dict[str, str]]:
             return txt, start, cur
         yes_text, yes_start, yes_cur = two_line_text(ocells[0] if len(ocells) > 0 else None, yes_start_fb, yes_cur_fb)
         no_text, no_start, no_cur = two_line_text(ocells[1] if len(ocells) > 1 else None, no_start_fb, no_cur_fb)
+        pct_cells = tr.select("td.tpercent")
+        pct_yes, amt_yes, pct_no, amt_no = "", "", "", ""
+        if len(pct_cells) >= 2:
+            pct_yes, amt_yes = _parse_pct_amt_cell(pct_cells[0])
+            pct_no, amt_no = _parse_pct_amt_cell(pct_cells[1])
+        def calc_trend(cur, prev):
+            try:
+                c = float(cur) if cur else 0
+                p = float(prev) if prev else 0
+                if abs(c - p) < 0.001:
+                    return ""
+                return "↑" if c > p else "↓"
+            except:
+                return ""
         rows.append({
             "ID": row_id,
             "Flag": flag,
             "League": league,
             "Date": date,
             "Home": home,
-            "Yes_start": yes_start,
-            "Yes_cur": yes_cur,
-            "No_start": no_start,
-            "No_cur": no_cur,
-            "Yes": yes_text,
-            "No": no_text,
+            "OddsYes": yes_cur,
+            "OddsYes_prev": yes_start,
+            "OddsNo": no_cur,
+            "OddsNo_prev": no_start,
+            "TrendYes": calc_trend(yes_cur, yes_start),
+            "TrendNo": calc_trend(no_cur, no_start),
+            "PctYes": pct_yes,
+            "AmtYes": amt_yes,
+            "PctNo": pct_no,
+            "AmtNo": amt_no,
             "Away": away,
             "Volume": volume,
         })
