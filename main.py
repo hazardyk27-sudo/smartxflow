@@ -1,12 +1,13 @@
 """
 SmartXFlow - Betting Odds Monitor
-Desktop application with embedded web interface
+Native Desktop Application with embedded web interface
 """
 
 import os
 import sys
 import threading
-import webbrowser
+import time
+import socket
 
 def resource_path(relative_path):
     """Get absolute path to resource for PyInstaller"""
@@ -20,7 +21,6 @@ os.chdir(resource_path('.'))
 
 from flask import Flask, render_template, jsonify, request
 import json
-import time
 from datetime import datetime
 
 from scraper.core import run_scraper, get_cookie_string
@@ -43,6 +43,7 @@ scrape_status = {
 
 auto_scrape_thread = None
 stop_auto_event = threading.Event()
+server_shutdown_event = threading.Event()
 
 
 @app.route('/')
@@ -274,34 +275,95 @@ def get_markets():
     ])
 
 
-def run_server():
-    """Run Flask server"""
-    app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False)
+def is_port_available(port):
+    """Check if a port is available"""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.bind(('127.0.0.1', port))
+        sock.close()
+        return True
+    except:
+        return False
+
+
+def wait_for_server(host='127.0.0.1', port=5000, timeout=30):
+    """Wait for the Flask server to be ready"""
+    import urllib.request
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            urllib.request.urlopen(f'http://{host}:{port}/api/status', timeout=1)
+            return True
+        except:
+            time.sleep(0.2)
+    return False
+
+
+def run_flask_server():
+    """Run Flask server in a thread"""
+    import logging
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)
+    
+    app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False, threaded=True)
+
+
+def on_window_close():
+    """Handle window close event"""
+    global stop_auto_event, server_shutdown_event
+    stop_auto_event.set()
+    server_shutdown_event.set()
+
+
+def run_desktop_app():
+    """Run as native desktop application using pywebview"""
+    import webview
+    
+    server_thread = threading.Thread(target=run_flask_server, daemon=True)
+    server_thread.start()
+    
+    if not wait_for_server():
+        print("Error: Could not start server")
+        return
+    
+    window = webview.create_window(
+        'SmartXFlow - Betting Odds Monitor',
+        'http://127.0.0.1:5000',
+        width=1200,
+        height=800,
+        min_size=(900, 600),
+        resizable=True,
+        background_color='#0f1419'
+    )
+    
+    webview.start()
+    
+    on_window_close()
 
 
 def main():
-    """Main entry point - starts server and opens browser"""
-    server_thread = threading.Thread(target=run_server)
-    server_thread.daemon = True
-    server_thread.start()
-    
-    time.sleep(1)
-    
-    webbrowser.open('http://127.0.0.1:5000')
-    
-    print("SmartXFlow is running at http://127.0.0.1:5000")
-    print("Press Ctrl+C to exit")
-    
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("\nShutting down...")
-        sys.exit(0)
-
-
-if __name__ == '__main__':
+    """Main entry point"""
     if len(sys.argv) > 1 and sys.argv[1] == '--server':
         app.run(host='0.0.0.0', port=5000, debug=False)
     else:
-        main()
+        try:
+            import webview
+            run_desktop_app()
+        except ImportError:
+            import webbrowser
+            print("pywebview not available, opening in browser...")
+            server_thread = threading.Thread(target=run_flask_server, daemon=True)
+            server_thread.start()
+            time.sleep(1)
+            webbrowser.open('http://127.0.0.1:5000')
+            print("SmartXFlow is running at http://127.0.0.1:5000")
+            print("Press Ctrl+C to exit")
+            try:
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                pass
+
+
+if __name__ == '__main__':
+    main()

@@ -25,6 +25,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller==6.3.0
+          pip install pythonnet clr-loader
+        shell: cmd
 
       - name: Create embedded config
         run: |
@@ -35,7 +37,7 @@ jobs:
         shell: cmd
 
       - name: Build with PyInstaller
-        run: pyinstaller --onefile --name SmartXFlow --add-data "scraper;scraper" --add-data "core;core" --add-data "services;services" --add-data "templates;templates" --add-data "static;static" --add-data "embedded_config.py;." --hidden-import=flask --hidden-import=jinja2 main.py
+        run: pyinstaller --onefile --noconsole --name SmartXFlow --add-data "scraper;scraper" --add-data "core;core" --add-data "services;services" --add-data "templates;templates" --add-data "static;static" --add-data "embedded_config.py;." --hidden-import=flask --hidden-import=jinja2 --hidden-import=webview --hidden-import=clr_loader --hidden-import=pythonnet --collect-all webview main.py
         shell: cmd
 
       - name: List output
