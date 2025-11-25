@@ -249,12 +249,12 @@ const demoMatches = {
 };
 
 const demoHistory = [
-    { ScrapedAt: '2025-11-25T16:00:00', Odds1: '2.20', OddsX: '3.30', Odds2: '3.15', Pct1: '56.2', PctX: '23.1', Pct2: '20.7', Amt1: '£112,200', AmtX: '£46,100', Amt2: '£41,300', Volume: '£199,600' },
-    { ScrapedAt: '2025-11-25T16:10:00', Odds1: '2.18', OddsX: '3.32', Odds2: '3.18', Pct1: '57.0', PctX: '22.8', Pct2: '20.2', Amt1: '£115,800', AmtX: '£46,300', Amt2: '£41,000', Volume: '£203,100' },
-    { ScrapedAt: '2025-11-25T16:20:00', Odds1: '2.15', OddsX: '3.35', Odds2: '3.20', Pct1: '58.2', PctX: '22.1', Pct2: '19.7', Amt1: '£118,200', AmtX: '£44,800', Amt2: '£40,000', Volume: '£203,000' },
-    { ScrapedAt: '2025-11-25T16:30:00', Odds1: '2.12', OddsX: '3.38', Odds2: '3.22', Pct1: '58.8', PctX: '21.9', Pct2: '19.3', Amt1: '£120,500', AmtX: '£44,900', Amt2: '£39,600', Volume: '£205,000' },
-    { ScrapedAt: '2025-11-25T16:40:00', Odds1: '2.10', OddsX: '3.40', Odds2: '3.25', Pct1: '59.5', PctX: '21.7', Pct2: '18.8', Amt1: '£123,800', AmtX: '£45,100', Amt2: '£39,100', Volume: '£208,000' },
-    { ScrapedAt: '2025-11-25T16:50:00', Odds1: '2.10', OddsX: '3.40', Odds2: '3.25', Pct1: '59.8', PctX: '21.6', Pct2: '18.6', Amt1: '£125,400', AmtX: '£45,200', Amt2: '£38,600', Volume: '£209,200' }
+    { ScrapedAt: '2025-11-25T16:00:00', Odds1: '2.20', OddsX: '3.30', Odds2: '3.15', Pct1: '56.2', PctX: '23.1', Pct2: '20.7', Amt1: '£112,200', AmtX: '£46,100', Amt2: '£41,300', Volume: '£199,600', Under: '1.95', Over: '1.85', Yes: '1.75', No: '1.95' },
+    { ScrapedAt: '2025-11-25T16:10:00', Odds1: '2.18', OddsX: '3.32', Odds2: '3.18', Pct1: '57.0', PctX: '22.8', Pct2: '20.2', Amt1: '£115,800', AmtX: '£46,300', Amt2: '£41,000', Volume: '£203,100', Under: '1.92', Over: '1.88', Yes: '1.78', No: '1.92' },
+    { ScrapedAt: '2025-11-25T16:20:00', Odds1: '2.15', OddsX: '3.35', Odds2: '3.20', Pct1: '58.2', PctX: '22.1', Pct2: '19.7', Amt1: '£118,200', AmtX: '£44,800', Amt2: '£40,000', Volume: '£203,000', Under: '1.88', Over: '1.92', Yes: '1.82', No: '1.88' },
+    { ScrapedAt: '2025-11-25T16:30:00', Odds1: '2.12', OddsX: '3.38', Odds2: '3.22', Pct1: '58.8', PctX: '21.9', Pct2: '19.3', Amt1: '£120,500', AmtX: '£44,900', Amt2: '£39,600', Volume: '£205,000', Under: '1.85', Over: '1.95', Yes: '1.85', No: '1.85' },
+    { ScrapedAt: '2025-11-25T16:40:00', Odds1: '2.08', OddsX: '3.42', Odds2: '3.28', Pct1: '59.5', PctX: '21.7', Pct2: '18.8', Amt1: '£123,800', AmtX: '£45,100', Amt2: '£39,100', Volume: '£208,000', Under: '1.82', Over: '1.98', Yes: '1.88', No: '1.82' },
+    { ScrapedAt: '2025-11-25T16:50:00', Odds1: '2.10', OddsX: '3.40', Odds2: '3.25', Pct1: '59.8', PctX: '21.6', Pct2: '18.6', Amt1: '£125,400', AmtX: '£45,200', Amt2: '£38,600', Volume: '£209,200', Under: '1.80', Over: '2.00', Yes: '1.90', No: '1.80' }
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -605,11 +605,14 @@ function sortMatches() {
     filterMatches(query);
 }
 
+let previousOddsData = null;
+
 function openMatchModal(index) {
     const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
     if (index >= 0 && index < dataSource.length) {
         selectedMatch = dataSource[index];
         selectedChartMarket = currentMarket;
+        previousOddsData = null;
         
         document.getElementById('modalMatchTitle').textContent = 
             `${selectedMatch.home_team} vs ${selectedMatch.away_team}`;
@@ -626,19 +629,52 @@ function openMatchModal(index) {
         });
         
         document.getElementById('modalOverlay').classList.add('active');
-        loadChart(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
+        loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
+    }
+}
+
+async function loadChartWithTrends(home, away, market) {
+    try {
+        let data = { history: [] };
+        
+        try {
+            const response = await fetch(
+                `/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}`
+            );
+            data = await response.json();
+        } catch (e) {
+            console.log('Using demo history data');
+        }
+        
+        if (data.history && data.history.length >= 2) {
+            previousOddsData = data.history[data.history.length - 2];
+        } else {
+            previousOddsData = null;
+        }
+        
+        updateMatchInfoCard();
+        
+        loadChart(home, away, market);
+    } catch (e) {
+        console.error('Error loading chart with trends:', e);
+        loadChart(home, away, market);
     }
 }
 
 function updateMatchInfoCard() {
     const card = document.getElementById('matchInfoCard');
     const d = selectedMatch.details || {};
+    const p = previousOddsData || {};
     const isMoneyway = selectedChartMarket.startsWith('moneyway');
     const isDropping = selectedChartMarket.startsWith('dropping');
     
     let html = '';
     
     if (selectedChartMarket.includes('1x2')) {
+        const trend1 = getTrendArrow(d.Odds1 || d['1'], p.Odds1 || p['1']);
+        const trendX = getTrendArrow(d.OddsX || d['X'], p.OddsX || p['X']);
+        const trend2 = getTrendArrow(d.Odds2 || d['2'], p.Odds2 || p['2']);
+        
         if (isMoneyway) {
             const c1 = getColorClass(d.Pct1);
             const cX = getColorClass(d.PctX);
@@ -649,7 +685,7 @@ function updateMatchInfoCard() {
                         <div class="column-header">1</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.Odds1 || d['1'])}</span>
+                            <span class="row-value odds">${formatOdds(d.Odds1 || d['1'])}${trend1}</span>
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
@@ -664,7 +700,7 @@ function updateMatchInfoCard() {
                         <div class="column-header">X</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.OddsX || d['X'])}</span>
+                            <span class="row-value odds">${formatOdds(d.OddsX || d['X'])}${trendX}</span>
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
@@ -679,7 +715,7 @@ function updateMatchInfoCard() {
                         <div class="column-header">2</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.Odds2 || d['2'])}</span>
+                            <span class="row-value odds">${formatOdds(d.Odds2 || d['2'])}${trend2}</span>
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
@@ -703,21 +739,21 @@ function updateMatchInfoCard() {
                         <div class="column-header">1</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.Odds1 || d['1'])}</span>
+                            <span class="row-value odds">${formatOdds(d.Odds1 || d['1'])}${trend1}</span>
                         </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">X</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.OddsX || d['X'])}</span>
+                            <span class="row-value odds">${formatOdds(d.OddsX || d['X'])}${trendX}</span>
                         </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">2</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.Odds2 || d['2'])}</span>
+                            <span class="row-value odds">${formatOdds(d.Odds2 || d['2'])}${trend2}</span>
                         </div>
                     </div>
                 </div>
@@ -728,6 +764,9 @@ function updateMatchInfoCard() {
             `;
         }
     } else if (selectedChartMarket.includes('ou25')) {
+        const trendUnder = getTrendArrow(d.Under, p.Under);
+        const trendOver = getTrendArrow(d.Over, p.Over);
+        
         if (isMoneyway) {
             const cU = getColorClass(d.PctUnder);
             const cO = getColorClass(d.PctOver);
@@ -737,7 +776,7 @@ function updateMatchInfoCard() {
                         <div class="column-header">Under 2.5</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.Under)}</span>
+                            <span class="row-value odds">${formatOdds(d.Under)}${trendUnder}</span>
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
@@ -752,7 +791,7 @@ function updateMatchInfoCard() {
                         <div class="column-header">Over 2.5</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.Over)}</span>
+                            <span class="row-value odds">${formatOdds(d.Over)}${trendOver}</span>
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
@@ -776,14 +815,14 @@ function updateMatchInfoCard() {
                         <div class="column-header">Under 2.5</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.Under)}</span>
+                            <span class="row-value odds">${formatOdds(d.Under)}${trendUnder}</span>
                         </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">Over 2.5</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.Over)}</span>
+                            <span class="row-value odds">${formatOdds(d.Over)}${trendOver}</span>
                         </div>
                     </div>
                 </div>
@@ -794,6 +833,9 @@ function updateMatchInfoCard() {
             `;
         }
     } else if (selectedChartMarket.includes('btts')) {
+        const trendYes = getTrendArrow(d.Yes, p.Yes);
+        const trendNo = getTrendArrow(d.No, p.No);
+        
         if (isMoneyway) {
             const cY = getColorClass(d.PctYes);
             const cN = getColorClass(d.PctNo);
@@ -803,7 +845,7 @@ function updateMatchInfoCard() {
                         <div class="column-header">Yes</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.Yes)}</span>
+                            <span class="row-value odds">${formatOdds(d.Yes)}${trendYes}</span>
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
@@ -818,7 +860,7 @@ function updateMatchInfoCard() {
                         <div class="column-header">No</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.No)}</span>
+                            <span class="row-value odds">${formatOdds(d.No)}${trendNo}</span>
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
@@ -842,14 +884,14 @@ function updateMatchInfoCard() {
                         <div class="column-header">Yes</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.Yes)}</span>
+                            <span class="row-value odds">${formatOdds(d.Yes)}${trendYes}</span>
                         </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">No</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
-                            <span class="row-value odds">${formatOdds(d.No)}</span>
+                            <span class="row-value odds">${formatOdds(d.No)}${trendNo}</span>
                         </div>
                     </div>
                 </div>
