@@ -1739,19 +1739,24 @@ function generateExportFilename(extension) {
 function exportChartPNG() {
     if (!chart || !selectedMatch) return;
     
-    const modalBody = document.querySelector('.modal-body');
-    if (!modalBody) return;
+    const modalContent = document.querySelector('.modal-content');
+    if (!modalContent) return;
     
     const exportBtn = document.querySelector('.chart-export-btn');
     if (exportBtn) exportBtn.textContent = 'Exporting...';
     
-    html2canvas(modalBody, {
-        backgroundColor: '#15202b',
+    const closeBtn = document.querySelector('.modal-close');
+    if (closeBtn) closeBtn.style.display = 'none';
+    
+    html2canvas(modalContent, {
+        backgroundColor: '#161b22',
         scale: 2,
         logging: false,
         useCORS: true,
         allowTaint: true
     }).then(canvas => {
+        if (closeBtn) closeBtn.style.display = '';
+        
         const link = document.createElement('a');
         link.download = generateExportFilename('png');
         link.href = canvas.toDataURL('image/png', 1.0);
@@ -1768,6 +1773,7 @@ function exportChartPNG() {
             `;
         }
     }).catch(err => {
+        if (closeBtn) closeBtn.style.display = '';
         console.error('PNG export error:', err);
         if (exportBtn) {
             exportBtn.innerHTML = `
