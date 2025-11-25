@@ -57,7 +57,8 @@ EXTRACTOR_MAP = {
         "extract_dropping_1x2",
         [
             "League", "Date", "Home",
-            "1", "X", "2",
+            "Odds1", "Odds1_prev", "OddsX", "OddsX_prev", "Odds2", "Odds2_prev",
+            "Trend1", "TrendX", "Trend2",
             "Away", "Volume",
         ],
     ),
@@ -65,7 +66,9 @@ EXTRACTOR_MAP = {
         "extract_dropping_ou25",
         [
             "League", "Date", "Home",
-            "Under", "Astar", "Over",
+            "Under", "Under_prev", "Line", "Over", "Over_prev",
+            "TrendUnder", "TrendOver",
+            "PctUnder", "AmtUnder", "PctOver", "AmtOver",
             "Away", "Volume",
         ],
     ),
@@ -73,7 +76,9 @@ EXTRACTOR_MAP = {
         "extract_dropping_btts",
         [
             "League", "Date", "Home",
-            "Yes", "No",
+            "OddsYes", "OddsYes_prev", "OddsNo", "OddsNo_prev",
+            "TrendYes", "TrendNo",
+            "PctYes", "AmtYes", "PctNo", "AmtNo",
             "Away", "Volume",
         ],
     ),
@@ -349,21 +354,30 @@ def extract_dropping_1x2(table: BeautifulSoup) -> List[Dict[str, str]]:
         text1, s1, c1 = two_line_text(ocells[0] if len(ocells) > 0 else None, s1_f, c1_f)
         textx, sx, cx = two_line_text(ocells[1] if len(ocells) > 1 else None, sx_f, cx_f)
         text2, s2, c2 = two_line_text(ocells[2] if len(ocells) > 2 else None, s2_f, c2_f)
+        def calc_trend(cur, prev):
+            try:
+                c = float(cur) if cur else 0
+                p = float(prev) if prev else 0
+                if abs(c - p) < 0.001:
+                    return ""
+                return "↑" if c > p else "↓"
+            except:
+                return ""
         rows.append({
             "ID": row_id,
             "Flag": flag,
             "League": league,
             "Date": date,
             "Home": home,
-            "Odds1_start": s1,
-            "Odds1_cur": c1,
-            "OddsX_start": sx,
-            "OddsX_cur": cx,
-            "Odds2_start": s2,
-            "Odds2_cur": c2,
-            "1": text1,
-            "X": textx,
-            "2": text2,
+            "Odds1": c1,
+            "Odds1_prev": s1,
+            "OddsX": cx,
+            "OddsX_prev": sx,
+            "Odds2": c2,
+            "Odds2_prev": s2,
+            "Trend1": calc_trend(c1, s1),
+            "TrendX": calc_trend(cx, sx),
+            "Trend2": calc_trend(c2, s2),
             "Away": away,
             "Volume": volume,
         })
@@ -421,19 +435,37 @@ def extract_dropping_ou25(table: BeautifulSoup) -> List[Dict[str, str]]:
             astar = joined.strip()
         if not astar:
             astar = astar_fb
+        pct_cells = tr.select("td.tpercent")
+        pct_under, amt_under, pct_over, amt_over = "", "", "", ""
+        if len(pct_cells) >= 2:
+            pct_under, amt_under = _parse_pct_amt_cell(pct_cells[0])
+            pct_over, amt_over = _parse_pct_amt_cell(pct_cells[1])
+        def calc_trend(cur, prev):
+            try:
+                c = float(cur) if cur else 0
+                p = float(prev) if prev else 0
+                if abs(c - p) < 0.001:
+                    return ""
+                return "↑" if c > p else "↓"
+            except:
+                return ""
         rows.append({
             "ID": row_id,
             "Flag": flag,
             "League": league,
             "Date": date,
             "Home": home,
-            "Under_start": under_start,
-            "Under_cur": under_cur,
-            "Astar": astar,
-            "Over_start": over_start,
-            "Over_cur": over_cur,
-            "Under": under_text,
-            "Over": over_text,
+            "Under": under_cur,
+            "Under_prev": under_start,
+            "Line": astar,
+            "Over": over_cur,
+            "Over_prev": over_start,
+            "TrendUnder": calc_trend(under_cur, under_start),
+            "TrendOver": calc_trend(over_cur, over_start),
+            "PctUnder": pct_under,
+            "AmtUnder": amt_under,
+            "PctOver": pct_over,
+            "AmtOver": amt_over,
             "Away": away,
             "Volume": volume,
         })
