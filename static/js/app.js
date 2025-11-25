@@ -1536,8 +1536,8 @@ async function savePNGViaAPI(imageData, filename) {
 }
 
 function exportChartPNG() {
-    if (!chart || !selectedMatch) {
-        showExportNotification('Grafik bulunamadı', true);
+    if (!selectedMatch) {
+        showExportNotification('Maç bulunamadı', true);
         return;
     }
     
@@ -1559,29 +1559,81 @@ function exportChartPNG() {
     
     const filename = generateExportFilename('png');
     
-    try {
-        const chartImage = chart.toBase64Image('image/png', 1);
-        
-        if (chartImage && chartImage.startsWith('data:image')) {
-            savePNGViaAPI(chartImage, filename).then(saved => {
-                if (!saved) {
-                    const link = document.createElement('a');
-                    link.download = filename;
-                    link.href = chartImage;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    showExportNotification('Grafik PNG olarak indirildi');
-                }
-                resetButton();
-            });
-        } else {
-            exportChartPNGFallback(filename, resetButton);
-        }
-    } catch (err) {
-        console.error('Chart toBase64 error:', err);
-        exportChartPNGFallback(filename, resetButton);
+    const modalContent = document.querySelector('.modal-content');
+    if (!modalContent) {
+        showExportNotification('Modal bulunamadı', true);
+        resetButton();
+        return;
     }
+    
+    const closeBtn = document.querySelector('.modal-close');
+    const exportBtns = document.querySelector('.chart-export-btns');
+    if (closeBtn) closeBtn.style.visibility = 'hidden';
+    if (exportBtns) exportBtns.style.visibility = 'hidden';
+    
+    const modalBody = document.querySelector('.modal-body');
+    const originalStyles = {
+        modalContent: {
+            maxHeight: modalContent.style.maxHeight,
+            height: modalContent.style.height,
+            overflow: modalContent.style.overflow
+        },
+        modalBody: modalBody ? {
+            maxHeight: modalBody.style.maxHeight,
+            height: modalBody.style.height,
+            overflow: modalBody.style.overflow
+        } : null
+    };
+    
+    modalContent.style.maxHeight = 'none';
+    modalContent.style.height = 'auto';
+    modalContent.style.overflow = 'visible';
+    
+    if (modalBody) {
+        modalBody.style.maxHeight = 'none';
+        modalBody.style.height = 'auto';
+        modalBody.style.overflow = 'visible';
+    }
+    
+    const restoreStyles = () => {
+        modalContent.style.maxHeight = originalStyles.modalContent.maxHeight;
+        modalContent.style.height = originalStyles.modalContent.height;
+        modalContent.style.overflow = originalStyles.modalContent.overflow;
+        if (modalBody && originalStyles.modalBody) {
+            modalBody.style.maxHeight = originalStyles.modalBody.maxHeight;
+            modalBody.style.height = originalStyles.modalBody.height;
+            modalBody.style.overflow = originalStyles.modalBody.overflow;
+        }
+        if (closeBtn) closeBtn.style.visibility = '';
+        if (exportBtns) exportBtns.style.visibility = '';
+    };
+    
+    if (typeof html2canvas === 'undefined') {
+        restoreStyles();
+        showExportNotification('PNG kütüphanesi yüklenemedi', true);
+        resetButton();
+        return;
+    }
+    
+    setTimeout(() => {
+        html2canvas(modalContent, {
+            backgroundColor: '#15202b',
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            logging: false
+        }).then(async canvas => {
+            restoreStyles();
+            const imageData = canvas.toDataURL('image/png');
+            await savePNGViaAPI(imageData, filename);
+            resetButton();
+        }).catch(err => {
+            restoreStyles();
+            console.error('html2canvas error:', err);
+            showExportNotification('PNG oluşturma hatası', true);
+            resetButton();
+        });
+    }, 100);
 }
 
 function exportChartPNGFallback(filename, resetButton) {
