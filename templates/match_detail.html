@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ home }} vs {{ away }} - SmartXFlow</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <a href="/" class="back-link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+            </a>
+            <div class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <circle cx="16" cy="16" r="14" stroke="#4ade80" stroke-width="2"/>
+                    <path d="M10 16L14 20L22 12" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div class="brand">
+                <h1>SmartXFlow</h1>
+                <span class="subtitle">Betting Odds Monitor</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="detail-content">
+        <div class="match-header">
+            <h1>{{ home }} vs {{ away }}</h1>
+            <span class="markets-badge">6 markets available</span>
+        </div>
+
+        <div class="chart-section full">
+            <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+                Odds Movement Charts
+            </h3>
+            <p class="chart-subtitle">Historical odds data for all markets</p>
+            
+            <div class="chart-tabs">
+                <button class="chart-tab active" data-market="moneyway_1x2">Moneyway 1X2</button>
+                <button class="chart-tab" data-market="moneyway_ou25">Moneyway O2.5</button>
+                <button class="chart-tab" data-market="moneyway_btts">Moneyway BTTS</button>
+                <button class="chart-tab" data-market="dropping_1x2">Dropping 1X2</button>
+                <button class="chart-tab" data-market="dropping_ou25">Dropping O2.5</button>
+                <button class="chart-tab" data-market="dropping_btts">Dropping BTTS</button>
+            </div>
+            
+            <div class="chart-container large">
+                <canvas id="oddsChart"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const homeTeam = "{{ home }}";
+        const awayTeam = "{{ away }}";
+        let chart = null;
+        let currentMarket = 'moneyway_1x2';
+
+        document.querySelectorAll('.chart-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentMarket = tab.dataset.market;
+                loadChart();
+            });
+        });
+
+        async function loadChart() {
+            try {
+                const response = await fetch(`/api/match/history?home=${encodeURIComponent(homeTeam)}&away=${encodeURIComponent(awayTeam)}&market=${currentMarket}`);
+                const data = await response.json();
+                
+                if (chart) {
+                    chart.destroy();
+                }
+                
+                const ctx = document.getElementById('oddsChart').getContext('2d');
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: data.chart_data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#9ca3af' }
+                            },
+                            tooltip: {
+                                backgroundColor: '#1f2937',
+                                titleColor: '#fff',
+                                bodyColor: '#d1d5db',
+                                borderColor: '#374151',
+                                borderWidth: 1
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: '#374151' },
+                                ticks: { color: '#9ca3af' }
+                            },
+                            y: {
+                                grid: { color: '#374151' },
+                                ticks: { color: '#9ca3af' }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading chart:', error);
+            }
+        }
+
+        loadChart();
+    </script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartXFlow - Betting Odds Monitor</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <circle cx="16" cy="16" r="14" stroke="#4ade80" stroke-width="2"/>
+                    <path d="M10 16L14 20L22 12" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div class="brand">
+                <h1>SmartXFlow</h1>
+                <span class="subtitle">Betting Odds Monitor</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="status-indicator" id="statusIndicator">
+                <span class="status-dot"></span>
+                <span class="status-text">Ready</span>
+            </div>
+            <button class="btn btn-primary" id="scrapeBtn" onclick="triggerScrape()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                </svg>
+                Scrape Now
+            </button>
+        </div>
+    </header>
+
+    <nav class="market-tabs">
+        <button class="tab active" data-market="moneyway_1x2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            Moneyway 1X2
+        </button>
+        <button class="tab" data-market="moneyway_ou25">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            Moneyway O/U 2.5
+        </button>
+        <button class="tab" data-market="moneyway_btts">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            Moneyway BTTS
+        </button>
+        <button class="tab" data-market="dropping_1x2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
+                <polyline points="17 18 23 18 23 12"/>
+            </svg>
+            Dropping 1X2
+        </button>
+        <button class="tab" data-market="dropping_ou25">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
+                <polyline points="17 18 23 18 23 12"/>
+            </svg>
+            Dropping O/U 2.5
+        </button>
+        <button class="tab" data-market="dropping_btts">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
+                <polyline points="17 18 23 18 23 12"/>
+            </svg>
+            Dropping BTTS
+        </button>
+    </nav>
+
+    <main class="main-content">
+        <div class="toolbar">
+            <div class="search-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="M21 21l-4.35-4.35"/>
+                </svg>
+                <input type="text" id="searchInput" placeholder="Search teams or competitions...">
+            </div>
+            <div class="match-count">
+                <span id="matchCount">0</span> Matches
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="matches-table">
+                <thead>
+                    <tr>
+                        <th>MATCH</th>
+                        <th>COMPETITION</th>
+                        <th>DATE</th>
+                        <th>STATUS</th>
+                        <th>ODDS</th>
+                        <th>ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody id="matchesTableBody">
+                    <tr class="loading-row">
+                        <td colspan="6">
+                            <div class="loading-spinner"></div>
+                            Loading matches...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <div class="modal" id="chartModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="match-info">
+                    <h2 id="modalMatchTitle">Match Title</h2>
+                    <span class="markets-count">6 markets available</span>
+                </div>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="chart-section">
+                <h3>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                    </svg>
+                    Odds Movement Charts
+                </h3>
+                <p class="chart-subtitle">Historical odds data for all markets</p>
+                
+                <div class="chart-tabs">
+                    <button class="chart-tab active" data-market="moneyway_1x2">Moneyway 1X2</button>
+                    <button class="chart-tab" data-market="moneyway_ou25">Moneyway O2.5</button>
+                    <button class="chart-tab" data-market="moneyway_btts">Moneyway BTTS</button>
+                    <button class="chart-tab" data-market="dropping_1x2">Dropping 1X2</button>
+                    <button class="chart-tab" data-market="dropping_ou25">Dropping O2.5</button>
+                    <button class="chart-tab" data-market="dropping_btts">Dropping BTTS</button>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="oddsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
