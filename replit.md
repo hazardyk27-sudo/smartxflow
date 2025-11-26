@@ -9,19 +9,20 @@ Uygulama iki modda çalışabilir:
 ### SERVER Mode (Replit Backend)
 - Scraper aktif - arbworld.net'e istek atar
 - SQLite'a yazar, Supabase'e sync eder
-- 5 dakikada bir otomatik veri çeker
+- 10 dakikada bir otomatik veri çeker (sabit)
 - `SMARTXFLOW_MODE=server` veya Replit ortamında otomatik
+- UI'da "Son Güncelleme: HH:MM (TR)" gösterilir
 
 ### CLIENT Mode (Windows EXE)
 - Scraper devre dışı - arbworld.net'e istek ATMAZ
 - Sadece Supabase'ten veri okur
-- "Auto" butonu = Supabase'ten veri yenileme
-- "Scrape Now" butonu gizlenir
+- Otomatik sync aktif
 - `SMARTXFLOW_MODE=client` veya EXE olarak çalışınca otomatik
 
 ```
 ┌─ REPLIT SERVER ─────────────────────────────────┐
-│  Scraper (5dk) → SQLite → Supabase              │
+│  Scraper (10dk) → SQLite → Supabase             │
+│  Tüm zamanlar Turkey TZ (Europe/Istanbul)       │
 └─────────────────────────────────────────────────┘
                         ↓
 ┌─ WINDOWS EXE (CLIENT) ──────────────────────────┐
@@ -169,6 +170,10 @@ CREATE TABLE market_snapshots (
 - Her alarm için: ikon, isim, detay, açıklama
 
 ## Son Guncellemeler
+- **26 Kasim 2025:** Scrape interval 10 dakikaya sabitlendi
+- **26 Kasim 2025:** Turkey timezone (Europe/Istanbul) tüm zamanlar için
+- **26 Kasim 2025:** UI sadeleştirildi - manuel kontroller kaldırıldı
+- **26 Kasim 2025:** "Son Güncelleme: HH:MM (TR)" göstergesi eklendi
 - **26 Kasim 2025:** Server/Client Mode mimarisi - merkezi scraping
 - **26 Kasim 2025:** Auto butonu client'ta Supabase polling
 - **26 Kasim 2025:** Smart Money Alarm Sistemi - 6 alarm türü
