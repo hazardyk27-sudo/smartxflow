@@ -11,13 +11,13 @@ from datetime import datetime
 from flask import Flask, render_template, jsonify, request
 
 from scraper.core import run_scraper, get_cookie_string
-from services.supabase_client import LocalDatabase
+from services.supabase_client import get_database
 from core.alarms import analyze_match_alarms, format_alarm_for_ticker, format_alarm_for_modal, ALARM_TYPES
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SESSION_SECRET', 'smartxflow-secret-key')
 
-db = LocalDatabase()
+db = get_database()
 
 @app.after_request
 def add_header(response):
@@ -330,7 +330,8 @@ def get_status():
         'last_scrape_time': scrape_status['last_scrape_time'],
         'next_scrape_time': scrape_status['next_scrape_time'],
         'interval_minutes': scrape_status['interval_minutes'],
-        'cookie_set': bool(get_cookie_string())
+        'cookie_set': bool(get_cookie_string()),
+        'supabase_connected': db.is_supabase_available
     })
 
 

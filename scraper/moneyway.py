@@ -610,7 +610,7 @@ def scrape_all(output_dir: str, verbose: bool = VERBOSE_DEFAULT, cookie_string: 
         save_records_to_sqlite(records, headers, table_name, db_path)
         hist_table = f"{table_name}_hist"
         save_records_to_sqlite_append(records, headers, hist_table, db_path)
-        results.append({"key": dataset_key, "rows": len(records)})
+        results.append({"key": dataset_key, "rows": len(records), "data": records})
         if progress_cb:
             progress_cb(f"Saved {dataset_key}", idx, total)
     return {"results": results, "db_path": db_path}
