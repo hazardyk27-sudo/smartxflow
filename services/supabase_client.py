@@ -184,24 +184,81 @@ class SupabaseClient:
             return []
         
         try:
-            match_url = f"{self._rest_url('matches')}?home_team=eq.{home_team}&away_team=eq.{away_team}&select=id"
-            resp = httpx.get(match_url, headers=self._headers(), timeout=10)
+            import urllib.parse
+            history_table = f"{market}_history"
+            home_enc = urllib.parse.quote(home_team, safe='')
+            away_enc = urllib.parse.quote(away_team, safe='')
             
-            if resp.status_code != 200 or not resp.json():
-                return []
-            
-            match_id = resp.json()[0]['id']
-            
-            snap_url = f"{self._rest_url('odds_snapshots')}?match_id=eq.{match_id}&market=eq.{market}&select=*&order=scraped_at.asc"
-            resp = httpx.get(snap_url, headers=self._headers(), timeout=10)
+            url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}&order=scrapedat.asc"
+            resp = httpx.get(url, headers=self._headers(), timeout=15)
             
             if resp.status_code == 200:
-                snapshots = resp.json()
-                return [self._snapshot_to_legacy(s, market) for s in snapshots]
+                rows = resp.json()
+                return [self._history_row_to_legacy(r, market) for r in rows]
             return []
         except Exception as e:
-            print(f"Error get_match_history: {e}")
+            print(f"Error get_match_history from {market}_history: {e}")
             return []
+    
+    def _history_row_to_legacy(self, row: Dict, market: str) -> Dict[str, Any]:
+        result = {
+            'ScrapedAt': row.get('scrapedat', ''),
+            'Volume': row.get('volume', ''),
+            'Home': row.get('home', ''),
+            'Away': row.get('away', ''),
+            'League': row.get('league', ''),
+            'Date': row.get('date', '')
+        }
+        
+        if market in ['moneyway_1x2', 'dropping_1x2']:
+            result.update({
+                'Odds1': row.get('odds1', ''),
+                'OddsX': row.get('oddsx', ''),
+                'Odds2': row.get('odds2', ''),
+                'Pct1': row.get('pct1', ''),
+                'Amt1': row.get('amt1', ''),
+                'PctX': row.get('pctx', ''),
+                'AmtX': row.get('amtx', ''),
+                'Pct2': row.get('pct2', ''),
+                'Amt2': row.get('amt2', ''),
+                'Odds1_prev': row.get('odds1_prev', ''),
+                'OddsX_prev': row.get('oddsx_prev', ''),
+                'Odds2_prev': row.get('odds2_prev', ''),
+                'Trend1': row.get('trend1', ''),
+                'TrendX': row.get('trendx', ''),
+                'Trend2': row.get('trend2', '')
+            })
+        elif market in ['moneyway_ou25', 'dropping_ou25']:
+            result.update({
+                'Under': row.get('under', ''),
+                'Over': row.get('over', ''),
+                'Line': row.get('line', '2.5'),
+                'PctUnder': row.get('pctunder', ''),
+                'AmtUnder': row.get('amtunder', ''),
+                'PctOver': row.get('pctover', ''),
+                'AmtOver': row.get('amtover', ''),
+                'Under_prev': row.get('under_prev', ''),
+                'Over_prev': row.get('over_prev', ''),
+                'TrendUnder': row.get('trendunder', ''),
+                'TrendOver': row.get('trendover', '')
+            })
+        elif market in ['moneyway_btts', 'dropping_btts']:
+            result.update({
+                'Yes': row.get('yes', ''),
+                'No': row.get('no', ''),
+                'OddsYes': row.get('oddsyes', row.get('yes', '')),
+                'OddsNo': row.get('oddsno', row.get('no', '')),
+                'PctYes': row.get('pctyes', ''),
+                'AmtYes': row.get('amtyes', ''),
+                'PctNo': row.get('pctno', ''),
+                'AmtNo': row.get('amtno', ''),
+                'OddsYes_prev': row.get('oddsyes_prev', ''),
+                'OddsNo_prev': row.get('oddsno_prev', ''),
+                'TrendYes': row.get('trendyes', ''),
+                'TrendNo': row.get('trendno', '')
+            })
+        
+        return result
     
     def get_active_alerts(self, limit: int = 50) -> List[Dict[str, Any]]:
         if not self.is_available:
