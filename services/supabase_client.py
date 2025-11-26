@@ -276,6 +276,35 @@ class SupabaseClient:
         
         return result
     
+    def get_all_matches_with_latest(self, market: str) -> List[Dict[str, Any]]:
+        """Get all matches from market table (moneyway_1x2, dropping_ou25, etc.)"""
+        if not self.is_available:
+            return []
+        
+        try:
+            url = f"{self._rest_url(market)}?select=*&order=date.desc"
+            resp = httpx.get(url, headers=self._headers(), timeout=15)
+            
+            if resp.status_code == 200:
+                rows = resp.json()
+                matches = []
+                for row in rows:
+                    matches.append({
+                        'home_team': row.get('home', ''),
+                        'away_team': row.get('away', ''),
+                        'league': row.get('league', ''),
+                        'date': row.get('date', ''),
+                        'latest': row
+                    })
+                print(f"[Supabase] Got {len(matches)} matches from {market}")
+                return matches
+            else:
+                print(f"[Supabase] Error fetching {market}: {resp.status_code}")
+                return []
+        except Exception as e:
+            print(f"Error get_all_matches_with_latest from {market}: {e}")
+            return []
+    
     def get_active_alerts(self, limit: int = 50) -> List[Dict[str, Any]]:
         if not self.is_available:
             return []
@@ -511,7 +540,11 @@ class HybridDatabase:
         return self.local.get_match_history(home, away, market)
     
     def get_all_matches_with_latest(self, market: str) -> List[Dict[str, Any]]:
-        """Get all matches with latest snapshot - optimized single query"""
+        """Get all matches with latest snapshot from Supabase or local"""
+        if self.supabase.is_available:
+            matches = self.supabase.get_all_matches_with_latest(market)
+            if matches:
+                return matches
         return self.local.get_all_matches_with_latest(market)
     
     def save_scraped_data(self, market: str, rows: List[Dict[str, Any]]) -> int:
