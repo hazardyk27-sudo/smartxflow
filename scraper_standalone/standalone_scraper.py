@@ -19,7 +19,7 @@ try:
 except ImportError:
     TURKEY_TZ = None
 
-VERSION = "1.0.2"
+VERSION = "1.0.3-debug"
 SCRAPE_INTERVAL_MINUTES = 10
 
 DATASETS = {
@@ -135,18 +135,26 @@ class SupabaseWriter:
         try:
             headers = self._headers()
             headers["Prefer"] = "resolution=merge-duplicates"
+            url = self._rest_url(table)
+            
+            log(f"  [DEBUG] UPSERT Request:")
+            log(f"    Method: POST")
+            log(f"    URL: {url}")
+            log(f"    Headers: apikey={self.key[:20]}..., Prefer={headers.get('Prefer')}")
+            log(f"    Body sample: {json.dumps(rows[0]) if rows else 'empty'}")
             
             resp = requests.post(
-                self._rest_url(table),
+                url,
                 headers=headers,
                 json=rows,
                 timeout=30
             )
             
+            log(f"    Response: {resp.status_code} - {resp.text[:300] if resp.text else 'no body'}")
+            
             if resp.status_code in [200, 201, 204]:
                 return True
             else:
-                log(f"  Supabase upsert hata: {resp.status_code} - {resp.text[:200]}")
                 return False
         except Exception as e:
             log(f"  Supabase baglanti hatasi: {e}")
@@ -159,18 +167,25 @@ class SupabaseWriter:
         
         try:
             headers = self._headers()
+            url = self._rest_url(table)
+            
+            log(f"  [DEBUG] INSERT Request:")
+            log(f"    Method: POST")
+            log(f"    URL: {url}")
+            log(f"    Body sample: {json.dumps(rows[0]) if rows else 'empty'}")
             
             resp = requests.post(
-                self._rest_url(table),
+                url,
                 headers=headers,
                 json=rows,
                 timeout=30
             )
             
+            log(f"    Response: {resp.status_code} - {resp.text[:300] if resp.text else 'no body'}")
+            
             if resp.status_code in [200, 201, 204]:
                 return True
             else:
-                log(f"  Supabase insert hata: {resp.status_code} - {resp.text[:200]}")
                 return False
         except Exception as e:
             log(f"  Supabase baglanti hatasi: {e}")
