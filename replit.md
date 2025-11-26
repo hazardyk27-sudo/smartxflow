@@ -3,12 +3,37 @@
 ## Proje Ozeti
 Windows masaustu uygulamasi - arbworld.net'ten Moneyway ve Dropping Odds verilerini cekip, zaman serisi olarak saklayan ve grafiksel analiz sunan profesyonel bahis analiz araci.
 
+## Mimari: Server/Client Mode
+Uygulama iki modda çalışabilir:
+
+### SERVER Mode (Replit Backend)
+- Scraper aktif - arbworld.net'e istek atar
+- SQLite'a yazar, Supabase'e sync eder
+- 5 dakikada bir otomatik veri çeker
+- `SMARTXFLOW_MODE=server` veya Replit ortamında otomatik
+
+### CLIENT Mode (Windows EXE)
+- Scraper devre dışı - arbworld.net'e istek ATMAZ
+- Sadece Supabase'ten veri okur
+- "Auto" butonu = Supabase'ten veri yenileme
+- "Scrape Now" butonu gizlenir
+- `SMARTXFLOW_MODE=client` veya EXE olarak çalışınca otomatik
+
+```
+┌─ REPLIT SERVER ─────────────────────────────────┐
+│  Scraper (5dk) → SQLite → Supabase              │
+└─────────────────────────────────────────────────┘
+                        ↓
+┌─ WINDOWS EXE (CLIENT) ──────────────────────────┐
+│  Supabase'ten okur (Auto Sync)                  │
+└─────────────────────────────────────────────────┘
+```
+
 ## Teknoloji Stack
 - **Dil:** Python 3.11
-- **UI Framework:** Tkinter (native Python GUI)
-- **Grafik:** Matplotlib (Zaman serisi grafikleri)
-- **Database:** SQLite (lokal) + Supabase (cloud - opsiyonel)
-- **Scraping:** BeautifulSoup4 + Requests (arbworld.net)
+- **Web UI:** Flask + Jinja2 + Chart.js
+- **Database:** SQLite (server cache) + Supabase (cloud)
+- **Scraping:** trafilatura / requests (arbworld.net)
 - **Build Tool:** PyInstaller (Windows .exe)
 - **CI/CD:** GitHub Actions (otomatik .exe build)
 
@@ -25,6 +50,8 @@ Windows masaustu uygulamasi - arbworld.net'ten Moneyway ve Dropping Odds veriler
 │   └── supabase_client.py # Supabase + SQLite client
 ├── core/                 # Cekirdek islevsellik
 │   ├── __init__.py
+│   ├── settings.py       # Mode konfigürasyonu (server/client)
+│   ├── alarms.py         # Smart Money alarm mantığı
 │   └── storage.py        # SQLite + Supabase dual storage
 ├── data/                 # Scraped data (Git'e gitmez)
 ├── .github/
@@ -142,6 +169,8 @@ CREATE TABLE market_snapshots (
 - Her alarm için: ikon, isim, detay, açıklama
 
 ## Son Guncellemeler
+- **26 Kasim 2025:** Server/Client Mode mimarisi - merkezi scraping
+- **26 Kasim 2025:** Auto butonu client'ta Supabase polling
 - **26 Kasim 2025:** Smart Money Alarm Sistemi - 6 alarm türü
 - **26 Kasim 2025:** Smart Money Ticker - borsa bandı animasyonlu
 - **26 Kasim 2025:** Maç modal Smart Money Events bölümü
