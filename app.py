@@ -641,7 +641,7 @@ def get_ticker_alarms():
         
         matches_data = db.get_all_matches_with_latest('moneyway_1x2')
         
-        for match in matches_data[:15]:
+        for match in matches_data[:50]:
             home = match.get('home_team', '')
             away = match.get('away_team', '')
             
