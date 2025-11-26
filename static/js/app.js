@@ -23,8 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupModalChartTabs();
     checkStatus();
     loadSmartMoneyTicker();
-    window.statusInterval = window.setInterval(checkStatus, 3000);
-    window.tickerInterval = window.setInterval(loadSmartMoneyTicker, 30000);
+    window.statusInterval = window.setInterval(checkStatus, 30000);
+    window.tickerInterval = window.setInterval(loadSmartMoneyTicker, 60000);
 });
 
 function setupTabs() {
@@ -2104,39 +2104,15 @@ async function checkStatus() {
             if (status.running) {
                 dot.classList.add('running');
                 text.textContent = 'Scraping...';
-            } else if (status.auto_running) {
-                dot.classList.add('running');
-                if (status.next_scrape_time) {
-                    const next = new Date(status.next_scrape_time);
-                    const now = new Date();
-                    const diffSec = Math.max(0, Math.floor((next - now) / 1000));
-                    const min = Math.floor(diffSec / 60);
-                    const sec = diffSec % 60;
-                    text.textContent = `Next: ${min}:${sec.toString().padStart(2, '0')}`;
-                } else {
-                    text.textContent = 'Auto Active';
-                }
             } else {
                 dot.classList.remove('running');
-                text.textContent = 'Ready';
+                text.textContent = status.supabase_connected ? 'Ready' : 'Offline';
             }
         }
         
-        const autoBtn = document.getElementById('autoBtn');
-        const autoBtnText = document.getElementById('autoBtnText');
-        if (autoBtn && autoBtnText) {
-            if (status.auto_running) {
-                autoBtn.classList.add('active');
-                autoBtnText.textContent = 'Stop';
-            } else {
-                autoBtn.classList.remove('active');
-                autoBtnText.textContent = 'Auto';
-            }
-        }
-        
-        const intervalSelect = document.getElementById('intervalSelect');
-        if (intervalSelect && status.interval_minutes) {
-            intervalSelect.value = status.interval_minutes.toString();
+        const lastUpdateTime = document.getElementById('lastUpdateTime');
+        if (lastUpdateTime && status.last_scrape_time_tr) {
+            lastUpdateTime.textContent = status.last_scrape_time_tr;
         }
         
     } catch (error) {
