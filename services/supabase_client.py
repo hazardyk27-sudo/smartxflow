@@ -28,9 +28,11 @@ class SupabaseClient:
             self.key = getattr(embedded_credentials, 'SUPABASE_KEY', '')
             if self.url and self.key:
                 print(f"[Supabase] Loaded from embedded_credentials")
+                print(f"[Supabase] URL: {self.url[:40]}...")
+                print(f"[Supabase] KEY: {self.key[:20]}...{self.key[-10:]}")
                 return
-        except (ImportError, AttributeError):
-            pass
+        except (ImportError, AttributeError) as e:
+            print(f"[Supabase] embedded_credentials not found: {e}")
         
         # Method 2: Try embedded_config.py (legacy)
         try:
@@ -39,15 +41,20 @@ class SupabaseClient:
             self.key = getattr(embedded_config, 'EMBEDDED_SUPABASE_KEY', '')
             if self.url and self.key:
                 print(f"[Supabase] Loaded from embedded_config")
+                print(f"[Supabase] URL: {self.url[:40]}...")
+                print(f"[Supabase] KEY: {self.key[:20]}...{self.key[-10:]}")
                 return
-        except (ImportError, AttributeError):
-            pass
+        except (ImportError, AttributeError) as e:
+            print(f"[Supabase] embedded_config not found: {e}")
         
         # Method 3: Environment variables (Replit)
         self.url = os.getenv('SUPABASE_URL', '')
         self.key = os.getenv('SUPABASE_ANON_KEY', '') or os.getenv('SUPABASE_KEY', '')
         if self.url and self.key:
             print(f"[Supabase] Loaded from environment variables")
+            print(f"[Supabase] URL: {self.url[:40]}...")
+        else:
+            print(f"[Supabase] WARNING: No credentials found!")
     
     @property
     def is_available(self) -> bool:
