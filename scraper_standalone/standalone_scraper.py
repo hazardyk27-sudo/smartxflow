@@ -134,16 +134,18 @@ class SupabaseWriter:
         
         try:
             headers = self._headers()
-            headers["Prefer"] = "resolution=merge-duplicates,return=representation"
+            headers["Prefer"] = "resolution=merge-duplicates,return=minimal"
+            
+            url = f"{self._rest_url(table)}?on_conflict=ID"
             
             resp = requests.post(
-                self._rest_url(table),
+                url,
                 headers=headers,
                 json=rows,
                 timeout=30
             )
             
-            if resp.status_code in [200, 201]:
+            if resp.status_code in [200, 201, 204]:
                 return True
             else:
                 log(f"  Supabase hata: {resp.status_code} - {resp.text[:200]}")
@@ -152,10 +154,37 @@ class SupabaseWriter:
             log(f"  Supabase baglanti hatasi: {e}")
             return False
     
+    def insert_rows(self, table: str, rows: List[Dict[str, Any]]) -> bool:
+        """Insert rows without upsert - for history tables"""
+        if not rows:
+            return True
+        
+        try:
+            headers = self._headers()
+            headers["Prefer"] = "return=minimal"
+            
+            resp = requests.post(
+                self._rest_url(table),
+                headers=headers,
+                json=rows,
+                timeout=30
+            )
+            
+            if resp.status_code in [200, 201, 204]:
+                return True
+            else:
+                log(f"  Supabase insert hata: {resp.status_code} - {resp.text[:200]}")
+                return False
+        except Exception as e:
+            log(f"  Supabase baglanti hatasi: {e}")
+            return False
+    
     def delete_all_rows(self, table: str) -> bool:
         try:
+            url = f"{self._rest_url(table)}?ID=not.is.null"
+            
             resp = requests.delete(
-                self._rest_url(table),
+                url,
                 headers=self._headers(),
                 timeout=30
             )
@@ -173,7 +202,7 @@ class SupabaseWriter:
     def append_history(self, table: str, rows: List[Dict[str, Any]], scraped_at: str) -> bool:
         for row in rows:
             row['ScrapedAt'] = scraped_at
-        return self.upsert_rows(table, rows)
+        return self.insert_rows(table, rows)
 
 
 def _text(node) -> str:
