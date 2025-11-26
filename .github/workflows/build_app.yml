@@ -1,0 +1,48 @@
+name: Build SmartXFlow Alarm V1.01 App
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'app.py'
+      - 'core/**'
+      - 'services/**'
+      - 'templates/**'
+      - 'static/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flask gunicorn requests beautifulsoup4 pytz pyinstaller==6.3.0
+        shell: cmd
+
+      - name: Build App EXE
+        run: |
+          pyinstaller --onefile --console --name "SmartXFlowAlarmV1.01" --add-data "templates;templates" --add-data "static;static" --add-data "core;core" --add-data "services;services" app.py
+        shell: cmd
+
+      - name: List output
+        run: dir dist
+        shell: cmd
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartXFlowAlarmV1.01-Windows-EXE
+          path: |
+            dist/SmartXFlowAlarmV1.01.exe
+          retention-days: 30
