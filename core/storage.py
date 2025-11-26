@@ -5,11 +5,6 @@ from dataclasses import dataclass
 import sqlite3
 
 _SUPABASE_AVAILABLE = False
-try:
-    from supabase import create_client
-    _SUPABASE_AVAILABLE = True
-except Exception:
-    _SUPABASE_AVAILABLE = False
 
 def _get_supabase_credentials():
     """Load Supabase credentials from embedded config, settings, or environment variables."""
