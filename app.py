@@ -1,23 +1,36 @@
 """
 SmartXFlow - Betting Odds Monitor
 Flask Web Application with modern dark theme UI
+
+Mode-aware architecture:
+- SERVER mode (Replit): Runs scraper, writes to SQLite, syncs to Supabase
+- CLIENT mode (EXE): Only reads from Supabase, no scraping
 """
 
 import os
 import json
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, jsonify, request
 
-from scraper.core import run_scraper, get_cookie_string
-from services.supabase_client import LocalDatabase
+from core.settings import init_mode, is_server_mode, is_client_mode, get_scrape_interval_seconds, is_scraper_disabled
+from services.supabase_client import get_database
 from core.alarms import analyze_match_alarms, format_alarm_for_ticker, format_alarm_for_modal, ALARM_TYPES
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SESSION_SECRET', 'smartxflow-secret-key')
 
-db = LocalDatabase()
+current_mode = init_mode()
+db = get_database()
+
+if is_server_mode():
+    from scraper.core import run_scraper, get_cookie_string
+else:
+    def run_scraper(*args, **kwargs):
+        return {'status': 'disabled', 'message': 'Scraping disabled in client mode'}
+    def get_cookie_string():
+        return None
 
 @app.after_request
 def add_header(response):
@@ -32,11 +45,63 @@ scrape_status = {
     "last_result": None,
     "last_scrape_time": None,
     "next_scrape_time": None,
-    "interval_minutes": 5
+    "interval_minutes": 10,
+    "last_supabase_sync": None
 }
 
 auto_scrape_thread = None
 stop_auto_event = threading.Event()
+server_scheduler_thread = None
+server_scheduler_stop = threading.Event()
+
+
+def start_server_scheduler():
+    """Start background scheduler for server mode - runs scraper periodically"""
+    global server_scheduler_thread, server_scheduler_stop
+    
+    if not is_server_mode():
+        return
+    
+    if is_scraper_disabled():
+        print("[Server Mode] Scraper disabled via DISABLE_SCRAPER env variable")
+        print("[Server Mode] Running as UI-only, data comes from Supabase (standalone scraper)")
+        return
+    
+    server_scheduler_stop.clear()
+    interval_seconds = get_scrape_interval_seconds()
+    
+    def scheduler_loop():
+        global scrape_status
+        print(f"[Server Scheduler] Started - interval: {interval_seconds // 60} minutes")
+        
+        while not server_scheduler_stop.is_set():
+            if not scrape_status['running']:
+                scrape_status['running'] = True
+                try:
+                    print(f"[Server Scheduler] Running scrape at {datetime.now().isoformat()}")
+                    result = run_scraper()
+                    scrape_status['last_result'] = result
+                    scrape_status['last_scrape_time'] = datetime.now().isoformat()
+                    scrape_status['last_supabase_sync'] = datetime.now().isoformat()
+                    print(f"[Server Scheduler] Scrape completed")
+                except Exception as e:
+                    print(f"[Server Scheduler] Error: {e}")
+                    scrape_status['last_result'] = {'status': 'error', 'error': str(e)}
+                finally:
+                    scrape_status['running'] = False
+            
+            next_time = datetime.now() + timedelta(seconds=interval_seconds)
+            scrape_status['next_scrape_time'] = next_time.isoformat()
+            
+            for _ in range(interval_seconds):
+                if server_scheduler_stop.is_set():
+                    break
+                time.sleep(1)
+        
+        print("[Server Scheduler] Stopped")
+    
+    server_scheduler_thread = threading.Thread(target=scheduler_loop, daemon=True)
+    server_scheduler_thread.start()
 
 
 @app.route('/')
@@ -53,21 +118,19 @@ def match_detail(home, away):
 
 @app.route('/api/matches')
 def get_matches():
-    """Get all matches from database"""
+    """Get all matches from database - optimized single query"""
     market = request.args.get('market', 'moneyway_1x2')
-    matches = db.get_all_matches()
     is_dropping = market.startswith('dropping')
     
+    matches_with_latest = db.get_all_matches_with_latest(market)
+    
     enriched = []
-    for m in matches:
-        history = db.get_match_history(m['home_team'], m['away_team'], market)
-        
+    for m in matches_with_latest:
+        latest = m.get('latest', {})
         odds = {}
         prev_odds = {}
-        if history:
-            latest = history[-1]
-            previous = history[-2] if len(history) >= 2 else None
-            
+        
+        if latest:
             if market in ['moneyway_1x2', 'dropping_1x2']:
                 odds = {
                     'Odds1': latest.get('Odds1', latest.get('1', '-')),
@@ -131,7 +194,7 @@ def get_matches():
             'league': m.get('league', ''),
             'date': m.get('date', ''),
             'odds': {**odds, **prev_odds},
-            'history_count': len(history)
+            'history_count': 1
         })
     
     return jsonify(enriched)
@@ -222,8 +285,14 @@ def get_match_history():
 
 @app.route('/api/scrape', methods=['POST'])
 def trigger_scrape():
-    """Trigger manual scrape"""
+    """Trigger manual scrape - SERVER MODE ONLY"""
     global scrape_status
+    
+    if is_client_mode():
+        return jsonify({
+            'status': 'disabled', 
+            'message': 'Scraping disabled in client mode. Data is fetched from Supabase.'
+        })
     
     if scrape_status['running']:
         return jsonify({'status': 'error', 'message': 'Scrape already running'})
@@ -236,6 +305,7 @@ def trigger_scrape():
             result = run_scraper()
             scrape_status['last_result'] = result
             scrape_status['last_scrape_time'] = datetime.now().isoformat()
+            scrape_status['last_supabase_sync'] = datetime.now().isoformat()
         except Exception as e:
             scrape_status['last_result'] = {'status': 'error', 'error': str(e)}
         finally:
@@ -250,7 +320,11 @@ def trigger_scrape():
 
 @app.route('/api/scrape/auto', methods=['POST'])
 def toggle_auto_scrape():
-    """Toggle automatic scraping"""
+    """Toggle automatic scraping/polling
+    
+    SERVER MODE: Auto runs scraper periodically
+    CLIENT MODE: Auto polls Supabase for fresh data (no scraping)
+    """
     global scrape_status, auto_scrape_thread, stop_auto_event
     
     data = request.get_json() or {}
@@ -262,38 +336,73 @@ def toggle_auto_scrape():
         scrape_status['interval_minutes'] = interval
         stop_auto_event.clear()
         
-        def auto_loop():
-            global scrape_status
-            from datetime import timedelta
-            while not stop_auto_event.is_set():
-                if not scrape_status['running']:
-                    scrape_status['running'] = True
-                    scrape_status['next_scrape_time'] = None
-                    try:
-                        result = run_scraper()
-                        scrape_status['last_result'] = result
-                        scrape_status['last_scrape_time'] = datetime.now().isoformat()
-                    except Exception as e:
-                        scrape_status['last_result'] = {'status': 'error', 'error': str(e)}
-                    finally:
-                        scrape_status['running'] = False
+        if is_client_mode():
+            def client_poll_loop():
+                global scrape_status
+                poll_interval = interval * 60
+                print(f"[Client Auto] Started - polling Supabase every {interval} minutes")
                 
-                next_time = datetime.now() + timedelta(minutes=scrape_status['interval_minutes'])
-                scrape_status['next_scrape_time'] = next_time.isoformat()
+                while not stop_auto_event.is_set():
+                    scrape_status['last_supabase_sync'] = datetime.now().isoformat()
+                    
+                    next_time = datetime.now() + timedelta(minutes=interval)
+                    scrape_status['next_scrape_time'] = next_time.isoformat()
+                    
+                    for _ in range(poll_interval):
+                        if stop_auto_event.is_set():
+                            break
+                        time.sleep(1)
                 
-                for _ in range(scrape_status['interval_minutes'] * 60):
-                    if stop_auto_event.is_set():
-                        break
-                    time.sleep(1)
+                scrape_status['auto_running'] = False
+                scrape_status['next_scrape_time'] = None
+                print("[Client Auto] Stopped")
             
-            scrape_status['auto_running'] = False
-            scrape_status['next_scrape_time'] = None
-        
-        auto_scrape_thread = threading.Thread(target=auto_loop)
-        auto_scrape_thread.daemon = True
-        auto_scrape_thread.start()
-        
-        return jsonify({'status': 'ok', 'auto_running': True, 'interval_minutes': interval})
+            auto_scrape_thread = threading.Thread(target=client_poll_loop, daemon=True)
+            auto_scrape_thread.start()
+            
+            return jsonify({
+                'status': 'ok', 
+                'auto_running': True, 
+                'interval_minutes': interval,
+                'mode': 'client_poll'
+            })
+        else:
+            def server_auto_loop():
+                global scrape_status
+                while not stop_auto_event.is_set():
+                    if not scrape_status['running']:
+                        scrape_status['running'] = True
+                        scrape_status['next_scrape_time'] = None
+                        try:
+                            result = run_scraper()
+                            scrape_status['last_result'] = result
+                            scrape_status['last_scrape_time'] = datetime.now().isoformat()
+                            scrape_status['last_supabase_sync'] = datetime.now().isoformat()
+                        except Exception as e:
+                            scrape_status['last_result'] = {'status': 'error', 'error': str(e)}
+                        finally:
+                            scrape_status['running'] = False
+                    
+                    next_time = datetime.now() + timedelta(minutes=scrape_status['interval_minutes'])
+                    scrape_status['next_scrape_time'] = next_time.isoformat()
+                    
+                    for _ in range(scrape_status['interval_minutes'] * 60):
+                        if stop_auto_event.is_set():
+                            break
+                        time.sleep(1)
+                
+                scrape_status['auto_running'] = False
+                scrape_status['next_scrape_time'] = None
+            
+            auto_scrape_thread = threading.Thread(target=server_auto_loop, daemon=True)
+            auto_scrape_thread.start()
+            
+            return jsonify({
+                'status': 'ok', 
+                'auto_running': True, 
+                'interval_minutes': interval,
+                'mode': 'server_scrape'
+            })
     
     elif action == 'stop':
         stop_auto_event.set()
@@ -320,17 +429,39 @@ def update_interval():
     return jsonify({'status': 'ok', 'interval_minutes': new_interval})
 
 
+def get_turkey_time_str(iso_time: str) -> str:
+    """Convert ISO time to Turkey timezone HH:MM format"""
+    if not iso_time:
+        return "--:--"
+    try:
+        dt = datetime.fromisoformat(iso_time.replace('Z', '+00:00'))
+        turkey_offset = timedelta(hours=3)
+        turkey_time = dt + turkey_offset
+        return turkey_time.strftime("%H:%M")
+    except:
+        return "--:--"
+
+
 @app.route('/api/status')
 def get_status():
-    """Get current scrape status"""
+    """Get current scrape status with mode information"""
+    mode = "server" if is_server_mode() else "client"
+    
+    last_time_tr = get_turkey_time_str(scrape_status['last_scrape_time'])
+    
     return jsonify({
         'running': scrape_status['running'],
         'auto_running': scrape_status['auto_running'],
         'last_result': scrape_status['last_result'],
         'last_scrape_time': scrape_status['last_scrape_time'],
+        'last_scrape_time_tr': last_time_tr,
+        'last_supabase_sync': scrape_status['last_supabase_sync'],
         'next_scrape_time': scrape_status['next_scrape_time'],
         'interval_minutes': scrape_status['interval_minutes'],
-        'cookie_set': bool(get_cookie_string())
+        'cookie_set': bool(get_cookie_string()) if is_server_mode() else False,
+        'supabase_connected': db.is_supabase_available,
+        'mode': mode,
+        'scraping_enabled': is_server_mode()
     })
 
 
@@ -494,4 +625,7 @@ def get_match_alarms():
 
 
 if __name__ == '__main__':
+    if is_server_mode():
+        start_server_scheduler()
+    
     app.run(host='0.0.0.0', port=5000, debug=False)
