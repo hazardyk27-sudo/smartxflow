@@ -19,7 +19,7 @@ try:
 except ImportError:
     TURKEY_TZ = None
 
-VERSION = "1.0.3-debug"
+VERSION = "1.0.4-urlfix"
 SCRAPE_INTERVAL_MINUTES = 10
 
 DATASETS = {
