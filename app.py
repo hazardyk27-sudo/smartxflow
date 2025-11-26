@@ -119,7 +119,31 @@ def start_server_scheduler():
 @app.route('/')
 def index():
     """Main dashboard page"""
-    return render_template('index.html')
+    # Pre-render ticker alarms for server-side rendering
+    ticker_alarms = []
+    try:
+        from core.alarms import get_critical_alarms, format_alarm_for_ticker
+        
+        matches_data = db.get_all_matches_with_latest('moneyway_1x2')
+        
+        for match in matches_data[:15]:
+            home = match.get('home_team', '')
+            away = match.get('away_team', '')
+            
+            history = db.get_match_history(home, away, 'moneyway_1x2')
+            if len(history) >= 2:
+                alarms = analyze_match_alarms(history, 'moneyway_1x2')
+                for alarm in alarms:
+                    formatted = format_alarm_for_ticker(alarm, home, away)
+                    formatted['market'] = 'moneyway_1x2'
+                    ticker_alarms.append(formatted)
+        
+        ticker_alarms = get_critical_alarms(ticker_alarms, limit=4)
+    except Exception as e:
+        print(f"[Index] Error getting ticker alarms: {e}")
+        ticker_alarms = []
+    
+    return render_template('index.html', ticker_alarms=ticker_alarms)
 
 
 @app.route('/match/<home>/<away>')
@@ -568,16 +592,79 @@ def export_png():
 
 @app.route('/api/alarms')
 def get_all_alarms():
-    """Get all active alarms for ticker - optimized version"""
+    """Get all active alarms - grouped by match+type with event counts"""
     try:
+        from core.alarms import group_alarms_by_match, format_grouped_alarm, get_critical_alarms
+        
+        all_alarms = []
+        markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
+        
+        matches_data = db.get_all_matches_with_latest('moneyway_1x2')
+        
+        for match in matches_data[:50]:
+            home = match.get('home_team', '')
+            away = match.get('away_team', '')
+            
+            for market in markets:
+                history = db.get_match_history(home, away, market)
+                if len(history) >= 2:
+                    alarms = analyze_match_alarms(history, market)
+                    for alarm in alarms:
+                        alarm['home'] = home
+                        alarm['away'] = away
+                        alarm['market'] = market
+                        all_alarms.append(alarm)
+        
+        grouped = group_alarms_by_match(all_alarms)
+        formatted = [format_grouped_alarm(g) for g in grouped]
+        
         return jsonify({
-            'alarms': [],
-            'total': 0,
-            'message': 'Alarm analizi modal içinde yapılıyor'
+            'alarms': formatted,
+            'total': len(formatted),
+            'event_count': sum(g['count'] for g in formatted)
         })
     except Exception as e:
         print(f"[Alarms API] Error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'alarms': [], 'total': 0, 'error': str(e)})
+
+
+@app.route('/api/alarms/ticker')
+def get_ticker_alarms():
+    """Get critical alarms for borsa bandı - max 4 items (fast version)"""
+    try:
+        from core.alarms import get_critical_alarms, format_alarm_for_ticker, ALARM_TYPES
+        
+        all_alarms = []
+        markets = ['moneyway_1x2']
+        
+        matches_data = db.get_all_matches_with_latest('moneyway_1x2')
+        
+        for match in matches_data[:15]:
+            home = match.get('home_team', '')
+            away = match.get('away_team', '')
+            
+            for market in markets:
+                history = db.get_match_history(home, away, market)
+                if len(history) >= 2:
+                    alarms = analyze_match_alarms(history, market)
+                    for alarm in alarms:
+                        formatted = format_alarm_for_ticker(alarm, home, away)
+                        formatted['market'] = market
+                        all_alarms.append(formatted)
+        
+        critical = get_critical_alarms(all_alarms, limit=4)
+        
+        return jsonify({
+            'alarms': critical,
+            'total': len(all_alarms)
+        })
+    except Exception as e:
+        print(f"[Ticker API] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'alarms': [], 'total': 0})
 
 
 @app.route('/api/match/alarms')

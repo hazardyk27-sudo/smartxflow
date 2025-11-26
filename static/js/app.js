@@ -2193,57 +2193,81 @@ document.addEventListener('keydown', (e) => {
 
 let highlightedAlarmType = null;
 
+let tickerAlarms = [];
+let tickerPaused = false;
+let tickerIndex = 0;
+
 async function loadSmartMoneyTicker() {
     try {
-        const response = await fetch('/api/alarms');
+        console.log('[Ticker] Loading...');
+        const response = await fetch('/api/alarms/ticker');
         const data = await response.json();
+        console.log('[Ticker] Response:', data);
         
         const tickerContent = document.getElementById('tickerContent');
-        if (!tickerContent) return;
-        
-        if (!data.alarms || data.alarms.length === 0) {
-            tickerContent.innerHTML = '<div class="ticker-empty">Aktif alarm yok</div>';
-            updateAlarmBadge();
+        if (!tickerContent) {
+            console.log('[Ticker] No tickerContent element');
             return;
         }
         
-        data.alarms.forEach(alarm => {
-            addToAlertsHistory(alarm);
-        });
-        updateAlarmBadge();
+        if (!data.alarms || data.alarms.length === 0) {
+            tickerContent.innerHTML = '<div class="ticker-empty">Aktif kritik alarm yok</div>';
+            updateAlarmBadge(data.total || 0);
+            console.log('[Ticker] No alarms, total:', data.total);
+            return;
+        }
         
-        const items = data.alarms.map(alarm => {
-            const shortName = alarm.name.split(' ')[0];
-            const sideText = alarm.side ? ` (${alarm.side})` : '';
-            const oddsText = (alarm.odds_from && alarm.odds_to) 
-                ? `${parseFloat(alarm.odds_from).toFixed(2)} → ${parseFloat(alarm.odds_to).toFixed(2)}` 
-                : '';
-            
-            return `
-                <div class="ticker-item" 
-                     style="--alarm-color: ${alarm.color};"
-                     onclick="openMatchModalByTeams('${alarm.home}', '${alarm.away}', '${alarm.type}')">
-                    <span class="ticker-icon">${alarm.icon}</span>
-                    <span class="ticker-type">${shortName}</span>
-                    <span class="ticker-divider">|</span>
-                    <span class="ticker-match">${alarm.home} – ${alarm.away}</span>
-                    ${alarm.money_text ? `<span class="ticker-divider">|</span><span class="ticker-money">${alarm.money_text}${sideText}</span>` : ''}
-                    ${oddsText ? `<span class="ticker-divider">|</span><span class="ticker-odds">${oddsText}</span>` : ''}
-                </div>
-            `;
-        }).join('');
-        
-        tickerContent.innerHTML = items + items;
-        
-        tickerContent.style.animation = 'none';
-        tickerContent.offsetHeight;
-        const duration = Math.max(18, data.alarms.length * 2.5);
-        tickerContent.style.animation = `ticker-scroll ${duration}s linear infinite`;
+        tickerAlarms = data.alarms;
+        updateAlarmBadge(data.total);
+        renderTickerCards();
+        console.log('[Ticker] Rendered', tickerAlarms.length, 'cards');
         
     } catch (error) {
         console.error('[Ticker] Error:', error);
     }
 }
+
+function renderTickerCards() {
+    const tickerContent = document.getElementById('tickerContent');
+    if (!tickerContent) {
+        console.error('[Ticker] tickerContent element not found!');
+        return;
+    }
+    
+    if (tickerAlarms.length === 0) {
+        console.log('[Ticker] No alarms to render, keeping server-rendered content');
+        return;
+    }
+    
+    const visibleAlarms = tickerAlarms.slice(0, 4);
+    const existingCards = tickerContent.querySelectorAll('.ticker-card');
+    
+    // If server already rendered cards and data matches, skip
+    if (existingCards.length === visibleAlarms.length) {
+        console.log('[Ticker] Cards already rendered by server, skipping');
+        return;
+    }
+    
+    console.log('[Ticker] Rendering', visibleAlarms.length, 'cards');
+}
+
+function pauseTicker() {
+    tickerPaused = true;
+}
+
+function resumeTicker() {
+    tickerPaused = false;
+}
+
+function rotateTickerAlarms() {
+    if (tickerPaused || tickerAlarms.length <= 4) return;
+    
+    const first = tickerAlarms.shift();
+    tickerAlarms.push(first);
+    renderTickerCards();
+}
+
+setInterval(rotateTickerAlarms, 5000);
 
 function addToAlertsHistory(alarm) {
     const alarmId = `${alarm.type}_${alarm.home}_${alarm.away}_${alarm.side || ''}_${Date.now()}`;
@@ -2281,20 +2305,23 @@ function addToAlertsHistory(alarm) {
     }
 }
 
-function updateAlarmBadge() {
+function updateAlarmBadge(count) {
     const badge = document.getElementById('alarmCountBadge');
     if (badge) {
-        const count = alertsHistory.length;
-        badge.textContent = count > 99 ? '99+' : count;
-        badge.style.display = count > 0 ? 'inline-block' : 'none';
+        const displayCount = count !== undefined ? count : alertsHistory.length;
+        badge.textContent = displayCount > 99 ? '99+' : displayCount;
+        badge.style.display = displayCount > 0 ? 'inline-block' : 'none';
     }
 }
+
+let groupedAlarmsData = [];
+let expandedAlarmGroups = new Set();
 
 function openAlarmPanel() {
     document.getElementById('alarmDrawerOverlay').classList.add('open');
     document.getElementById('alarmDrawer').classList.add('open');
     document.body.style.overflow = 'hidden';
-    renderAlarmList();
+    loadGroupedAlarms();
 }
 
 function closeAlarmPanel() {
@@ -2303,8 +2330,128 @@ function closeAlarmPanel() {
     document.body.style.overflow = '';
 }
 
+async function loadGroupedAlarms() {
+    const container = document.getElementById('alarmDrawerContent');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="alarm-loading">Alarmlar yükleniyor...</div>';
+    
+    try {
+        const response = await fetch('/api/alarms');
+        const data = await response.json();
+        
+        if (data.alarms && data.alarms.length > 0) {
+            groupedAlarmsData = data.alarms;
+            renderGroupedAlarmList();
+        } else {
+            container.innerHTML = '<div class="alarm-empty">Aktif alarm yok</div>';
+        }
+    } catch (error) {
+        console.error('[Alarms] Load error:', error);
+        container.innerHTML = '<div class="alarm-empty">Alarm yüklenirken hata oluştu</div>';
+    }
+}
+
 function filterAlarms() {
-    renderAlarmList();
+    renderGroupedAlarmList();
+}
+
+function renderGroupedAlarmList() {
+    const container = document.getElementById('alarmDrawerContent');
+    if (!container) return;
+    
+    const typeFilter = document.getElementById('alarmTypeFilter')?.value || 'all';
+    const sortBy = document.getElementById('alarmSortBy')?.value || 'newest';
+    
+    let filtered = [...groupedAlarmsData];
+    
+    if (typeFilter !== 'all') {
+        filtered = filtered.filter(a => a.type === typeFilter || a.type.includes(typeFilter));
+    }
+    
+    if (sortBy === 'money') {
+        filtered.sort((a, b) => (b.max_money || 0) - (a.max_money || 0));
+    } else if (sortBy === 'odds') {
+        filtered.sort((a, b) => (b.max_drop || 0) - (a.max_drop || 0));
+    } else {
+        filtered.sort((a, b) => (a.priority || 99) - (b.priority || 99));
+    }
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="alarm-empty">Filtre kriterlerine uygun alarm yok</div>';
+        return;
+    }
+    
+    container.innerHTML = filtered.map((group, idx) => {
+        const groupId = `${group.type}_${group.home}_${group.away}`;
+        const isExpanded = expandedAlarmGroups.has(groupId);
+        const latestTime = group.latest_time ? formatAlarmTime(group.latest_time) : '';
+        const moneyText = group.max_money > 0 ? `+£${group.max_money.toLocaleString()}` : '';
+        const dropText = group.max_drop > 0 ? `${group.max_drop.toFixed(2)} drop` : '';
+        
+        let eventsHtml = '';
+        if (isExpanded && group.events && group.events.length > 0) {
+            eventsHtml = `
+                <div class="alarm-events-timeline">
+                    <div class="events-title">Alarm Geçmişi (${group.events.length} olay)</div>
+                    ${group.events.map(e => `
+                        <div class="event-item">
+                            <div class="event-time">${formatAlarmTime(e.timestamp)}</div>
+                            <div class="event-detail">${e.detail || e.name}</div>
+                            ${e.money_diff > 0 ? `<div class="event-money">+£${e.money_diff.toLocaleString()}</div>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="alarm-group-card ${isExpanded ? 'expanded' : ''}" 
+                 style="--alarm-color: ${group.color};">
+                <div class="alarm-group-header" onclick="toggleAlarmGroup('${groupId}')">
+                    <div class="alarm-group-left">
+                        <span class="alarm-icon">${group.icon}</span>
+                        <div class="alarm-group-info">
+                            <div class="alarm-group-type">${group.name}</div>
+                            <div class="alarm-group-match">${group.home} - ${group.away}</div>
+                        </div>
+                    </div>
+                    <div class="alarm-group-right">
+                        <div class="alarm-group-badge">x${group.count}</div>
+                        <div class="alarm-group-stats">
+                            ${moneyText ? `<span class="stat-money">${moneyText}</span>` : ''}
+                            ${dropText ? `<span class="stat-drop">${dropText}</span>` : ''}
+                        </div>
+                        <div class="alarm-group-time">${latestTime}</div>
+                        <div class="alarm-expand-icon">${isExpanded ? '▼' : '▶'}</div>
+                    </div>
+                </div>
+                ${eventsHtml}
+                <div class="alarm-group-action" onclick="event.stopPropagation(); goToMatchFromAlarm('${group.home}', '${group.away}')">
+                    Maç Detayı →
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function toggleAlarmGroup(groupId) {
+    if (expandedAlarmGroups.has(groupId)) {
+        expandedAlarmGroups.delete(groupId);
+    } else {
+        expandedAlarmGroups.add(groupId);
+    }
+    renderGroupedAlarmList();
+}
+
+function formatAlarmTime(timestamp) {
+    if (!timestamp) return '';
+    try {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+        return timestamp.substring(11, 16) || '';
+    }
 }
 
 function renderAlarmList() {

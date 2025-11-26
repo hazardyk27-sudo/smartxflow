@@ -1207,8 +1207,8 @@ body {
     align-items: center;
     background: linear-gradient(90deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
     border-bottom: 1px solid #30363d;
-    height: 40px;
-    overflow: hidden;
+    height: 56px;
+    overflow: visible;
 }
 
 .ticker-label {
@@ -1232,31 +1232,95 @@ body {
 
 .ticker-wrapper {
     flex: 1;
-    overflow: hidden;
+    overflow: visible;
     position: relative;
-    mask-image: linear-gradient(90deg, transparent 0%, black 5%, black 95%, transparent 100%);
-    -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 5%, black 95%, transparent 100%);
 }
 
 .ticker-content {
-    display: flex;
-    gap: 40px;
-    padding: 0 20px;
+    display: flex !important;
+    gap: 12px;
+    padding: 4px 12px;
     white-space: nowrap;
-    animation: ticker-scroll 20s linear infinite;
+    align-items: center;
+    height: 48px;
+    min-height: 48px;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
-.ticker-content:hover {
-    animation-play-state: paused;
+.ticker-card {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 14px;
+    background: rgba(33, 38, 45, 0.95);
+    border: 1px solid var(--alarm-color, #30363d);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    min-width: 180px;
+    max-width: 280px;
+    height: 40px;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
-@keyframes ticker-scroll {
-    0% {
-        transform: translateX(0);
-    }
-    100% {
-        transform: translateX(-50%);
-    }
+@keyframes fadeInCard {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ticker-card:hover {
+    background: linear-gradient(135deg, rgba(var(--alarm-color-rgb, 255, 255, 255), 0.15), rgba(var(--alarm-color-rgb, 255, 255, 255), 0.08));
+    border-color: var(--alarm-color, #58a6ff);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.ticker-card-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.ticker-card-content {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.ticker-card-type {
+    color: var(--alarm-color, #c9d1d9);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ticker-card-match {
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ticker-card-detail {
+    display: flex;
+    gap: 8px;
+    font-size: 10px;
+    margin-top: 2px;
+}
+
+.ticker-card-detail .money {
+    color: #4ade80;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.ticker-card-detail .side {
+    color: #8b949e;
 }
 
 .ticker-item {
@@ -1913,6 +1977,188 @@ body {
     margin: 0 4px;
 }
 
+/* Alarm Group Card */
+.alarm-group-card {
+    background: #1c2128;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    border-left: 3px solid var(--alarm-color, #4ade80);
+    transition: all 0.2s ease;
+}
+
+.alarm-group-card:hover {
+    border-color: #484f58;
+}
+
+.alarm-group-card.expanded {
+    background: #21262d;
+}
+
+.alarm-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.alarm-group-header:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.alarm-group-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alarm-icon {
+    font-size: 20px;
+}
+
+.alarm-group-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.alarm-group-type {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--alarm-color, #4ade80);
+}
+
+.alarm-group-match {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e6edf3;
+}
+
+.alarm-group-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alarm-group-badge {
+    background: var(--alarm-color, #4ade80);
+    color: #0d1117;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 12px;
+    min-width: 28px;
+    text-align: center;
+}
+
+.alarm-group-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.alarm-group-stats .stat-money {
+    color: #4ade80;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.alarm-group-stats .stat-drop {
+    color: #f0883e;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.alarm-group-time {
+    color: #8b949e;
+    font-size: 11px;
+}
+
+.alarm-expand-icon {
+    color: #8b949e;
+    font-size: 10px;
+    transition: transform 0.2s ease;
+}
+
+.alarm-group-card.expanded .alarm-expand-icon {
+    transform: rotate(90deg);
+}
+
+.alarm-events-timeline {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 12px 14px;
+    border-top: 1px solid #30363d;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.events-title {
+    font-size: 11px;
+    color: #8b949e;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.event-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+}
+
+.event-item:last-child {
+    border-bottom: none;
+}
+
+.event-time {
+    color: #8b949e;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    min-width: 50px;
+}
+
+.event-detail {
+    flex: 1;
+    color: #c9d1d9;
+    font-size: 12px;
+}
+
+.event-money {
+    color: #4ade80;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.alarm-group-action {
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.15);
+    color: #58a6ff;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.alarm-group-action:hover {
+    background: rgba(88, 166, 255, 0.1);
+}
+
+.alarm-loading {
+    text-align: center;
+    color: #8b949e;
+    padding: 40px 20px;
+    font-size: 14px;
+}
+
 /* Responsive */
 @media (max-width: 500px) {
     .alarm-drawer {
@@ -1926,5 +2172,16 @@ body {
     
     .alarm-drawer-filters {
         flex-direction: column;
+    }
+    
+    .alarm-group-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .alarm-group-right {
+        width: 100%;
+        justify-content: space-between;
     }
 }

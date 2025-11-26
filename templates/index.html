@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=200">
+    <link rel="stylesheet" href="/static/css/style.css?v=206">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
@@ -44,7 +44,25 @@
         </div>
         <div class="ticker-wrapper">
             <div class="ticker-content" id="tickerContent">
-                <div class="ticker-empty">Alarm analizi yapılıyor...</div>
+                {% if ticker_alarms %}
+                    {% for alarm in ticker_alarms %}
+                    <div class="ticker-card" 
+                         style="--alarm-color: {{ alarm.color }}; display: flex !important; visibility: visible !important;"
+                         onclick="openMatchModalByTeams('{{ alarm.home }}', '{{ alarm.away }}', '{{ alarm.type }}')">
+                        <div class="ticker-card-icon">{{ alarm.icon }}</div>
+                        <div class="ticker-card-content">
+                            <div class="ticker-card-type" style="color: {{ alarm.color }};">{{ alarm.name.split(' ')[0] }}</div>
+                            <div class="ticker-card-match" style="color: #fff;">{{ alarm.home }} - {{ alarm.away }}</div>
+                            <div class="ticker-card-detail">
+                                {% if alarm.money_text %}<span class="money" style="color: #4ade80;">{{ alarm.money_text }}</span>{% endif %}
+                                {% if alarm.side %}<span class="side">({{ alarm.side }})</span>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="ticker-empty">Aktif kritik alarm yok</div>
+                {% endif %}
             </div>
         </div>
         <button class="alarm-list-btn" onclick="openAlarmPanel()">
@@ -248,6 +266,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=200"></script>
+    <script src="/static/js/app.js?v=207"></script>
 </body>
 </html>
