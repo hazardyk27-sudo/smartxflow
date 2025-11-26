@@ -53,13 +53,13 @@ def is_client_mode() -> bool:
 
 
 def get_scrape_interval_seconds() -> int:
-    """Get scraper interval in seconds (server mode only)"""
-    interval_env = os.environ.get("SCRAPE_INTERVAL_MINUTES", "5")
+    """Get scraper interval in seconds (server mode only) - default 10 minutes"""
+    interval_env = os.environ.get("SCRAPE_INTERVAL_MINUTES", "10")
     try:
         minutes = int(interval_env)
         return max(1, min(60, minutes)) * 60
     except ValueError:
-        return 5 * 60
+        return 10 * 60
 
 
 def get_supabase_poll_interval_seconds() -> int:

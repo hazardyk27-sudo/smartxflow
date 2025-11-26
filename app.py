@@ -11,7 +11,7 @@ import os
 import json
 import threading
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, jsonify, request
 
 from core.settings import init_mode, is_server_mode, is_client_mode, get_scrape_interval_seconds
@@ -45,7 +45,7 @@ scrape_status = {
     "last_result": None,
     "last_scrape_time": None,
     "next_scrape_time": None,
-    "interval_minutes": 5,
+    "interval_minutes": 10,
     "last_supabase_sync": None
 }
 
@@ -424,16 +424,32 @@ def update_interval():
     return jsonify({'status': 'ok', 'interval_minutes': new_interval})
 
 
+def get_turkey_time_str(iso_time: str) -> str:
+    """Convert ISO time to Turkey timezone HH:MM format"""
+    if not iso_time:
+        return "--:--"
+    try:
+        dt = datetime.fromisoformat(iso_time.replace('Z', '+00:00'))
+        turkey_offset = timedelta(hours=3)
+        turkey_time = dt + turkey_offset
+        return turkey_time.strftime("%H:%M")
+    except:
+        return "--:--"
+
+
 @app.route('/api/status')
 def get_status():
     """Get current scrape status with mode information"""
     mode = "server" if is_server_mode() else "client"
+    
+    last_time_tr = get_turkey_time_str(scrape_status['last_scrape_time'])
     
     return jsonify({
         'running': scrape_status['running'],
         'auto_running': scrape_status['auto_running'],
         'last_result': scrape_status['last_result'],
         'last_scrape_time': scrape_status['last_scrape_time'],
+        'last_scrape_time_tr': last_time_tr,
         'last_supabase_sync': scrape_status['last_supabase_sync'],
         'next_scrape_time': scrape_status['next_scrape_time'],
         'interval_minutes': scrape_status['interval_minutes'],

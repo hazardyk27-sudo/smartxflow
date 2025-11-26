@@ -2095,8 +2095,6 @@ async function checkStatus() {
         const status = await response.json();
         
         autoScrapeRunning = status.auto_running;
-        const isClientMode = status.mode === 'client';
-        const scrapingEnabled = status.scraping_enabled;
         
         const indicator = document.getElementById('statusIndicator');
         if (indicator) {
@@ -2106,54 +2104,15 @@ async function checkStatus() {
             if (status.running) {
                 dot.classList.add('running');
                 text.textContent = 'Scraping...';
-            } else if (status.auto_running) {
-                dot.classList.add('running');
-                if (status.next_scrape_time) {
-                    const next = new Date(status.next_scrape_time);
-                    const now = new Date();
-                    const diffSec = Math.max(0, Math.floor((next - now) / 1000));
-                    const min = Math.floor(diffSec / 60);
-                    const sec = diffSec % 60;
-                    text.textContent = isClientMode ? `Sync: ${min}:${sec.toString().padStart(2, '0')}` : `Next: ${min}:${sec.toString().padStart(2, '0')}`;
-                } else {
-                    text.textContent = isClientMode ? 'Auto Sync' : 'Auto Active';
-                }
             } else {
                 dot.classList.remove('running');
                 text.textContent = status.supabase_connected ? 'Ready' : 'Offline';
             }
         }
         
-        const scrapeBtn = document.getElementById('scrapeBtn');
-        if (scrapeBtn) {
-            if (isClientMode) {
-                scrapeBtn.style.display = 'none';
-            } else {
-                scrapeBtn.style.display = '';
-            }
-        }
-        
-        const autoBtn = document.getElementById('autoBtn');
-        const autoBtnText = document.getElementById('autoBtnText');
-        if (autoBtn && autoBtnText) {
-            if (status.auto_running) {
-                autoBtn.classList.add('active');
-                autoBtnText.textContent = 'Stop';
-            } else {
-                autoBtn.classList.remove('active');
-                autoBtnText.textContent = isClientMode ? 'Sync' : 'Auto';
-            }
-        }
-        
-        const intervalSelect = document.getElementById('intervalSelect');
-        if (intervalSelect && status.interval_minutes) {
-            intervalSelect.value = status.interval_minutes.toString();
-        }
-        
-        const modeIndicator = document.getElementById('modeIndicator');
-        if (modeIndicator) {
-            modeIndicator.textContent = isClientMode ? 'Client' : 'Server';
-            modeIndicator.className = isClientMode ? 'mode-badge client' : 'mode-badge server';
+        const lastUpdateTime = document.getElementById('lastUpdateTime');
+        if (lastUpdateTime && status.last_scrape_time_tr) {
+            lastUpdateTime.textContent = status.last_scrape_time_tr;
         }
         
     } catch (error) {
