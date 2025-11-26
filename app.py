@@ -637,17 +637,19 @@ def main():
             host = '127.0.0.1'
         
         port = 5000
+        is_desktop = os.environ.get('SMARTX_DESKTOP') == '1'
         try:
             print(f"Starting Flask on http://{host}:{port}...")
-            import webbrowser
-            if is_client_mode():
+            if is_client_mode() and not is_desktop:
+                import webbrowser
                 webbrowser.open(f'http://127.0.0.1:{port}')
             app.run(host=host, port=port, debug=False)
         except OSError as e:
             if "10048" in str(e) or "Address already in use" in str(e):
                 port = 5050
                 print(f"Port 5000 in use, trying http://{host}:{port}...")
-                if is_client_mode():
+                if is_client_mode() and not is_desktop:
+                    import webbrowser
                     webbrowser.open(f'http://127.0.0.1:{port}')
                 app.run(host=host, port=port, debug=False)
             else:
