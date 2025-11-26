@@ -1312,8 +1312,55 @@ body {
     font-weight: 600;
 }
 
+.events-header-collapsible {
+    cursor: pointer;
+    justify-content: space-between;
+    transition: background 0.2s ease;
+    border-bottom: none;
+}
+
+.events-header-collapsible:hover {
+    background: #282e36;
+}
+
+.events-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.events-chevron {
+    stroke: #8b949e !important;
+    transition: transform 0.3s ease;
+}
+
+.events-chevron.rotated {
+    transform: rotate(180deg);
+}
+
 .events-header svg {
     stroke: #f0883e;
+}
+
+.events-header-left svg {
+    stroke: #f0883e;
+}
+
+.events-grid-wrapper {
+    overflow: hidden;
+    transition: max-height 0.35s ease, opacity 0.25s ease;
+    border-top: 1px solid #30363d;
+}
+
+.events-grid-wrapper.collapsed {
+    max-height: 0;
+    opacity: 0;
+    border-top: none;
+}
+
+.events-grid-wrapper.expanded {
+    max-height: 600px;
+    opacity: 1;
 }
 
 .events-grid {
