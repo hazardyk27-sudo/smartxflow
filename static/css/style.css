@@ -1576,14 +1576,14 @@ body {
     margin-bottom: 8px;
 }
 
-.selection-odds {
+.selection-card .selection-odds {
     color: #4ade80;
     font-size: 20px;
     font-weight: 700;
     margin-bottom: 4px;
 }
 
-.selection-pct {
+.selection-card .selection-pct {
     color: #c9d1d9;
     font-size: 14px;
 }
