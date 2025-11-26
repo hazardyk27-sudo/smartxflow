@@ -289,12 +289,13 @@ class SupabaseClient:
                 rows = resp.json()
                 matches = []
                 for row in rows:
+                    latest = self._normalize_row(row, market)
                     matches.append({
                         'home_team': row.get('home', ''),
                         'away_team': row.get('away', ''),
                         'league': row.get('league', ''),
                         'date': row.get('date', ''),
-                        'latest': row
+                        'latest': latest
                     })
                 print(f"[Supabase] Got {len(matches)} matches from {market}")
                 return matches
@@ -304,6 +305,60 @@ class SupabaseClient:
         except Exception as e:
             print(f"Error get_all_matches_with_latest from {market}: {e}")
             return []
+    
+    def _normalize_row(self, row: Dict, market: str) -> Dict[str, Any]:
+        """Convert lowercase Supabase columns to expected format"""
+        if market in ['moneyway_1x2', 'dropping_1x2']:
+            return {
+                'Odds1': row.get('odds1', '-'),
+                'OddsX': row.get('oddsx', '-'),
+                'Odds2': row.get('odds2', '-'),
+                'Pct1': row.get('pct1', ''),
+                'Amt1': row.get('amt1', ''),
+                'PctX': row.get('pctx', ''),
+                'AmtX': row.get('amtx', ''),
+                'Pct2': row.get('pct2', ''),
+                'Amt2': row.get('amt2', ''),
+                'Volume': row.get('volume', ''),
+                'Odds1_prev': row.get('odds1_prev', ''),
+                'OddsX_prev': row.get('oddsx_prev', ''),
+                'Odds2_prev': row.get('odds2_prev', ''),
+                'Trend1': row.get('trend1', ''),
+                'TrendX': row.get('trendx', ''),
+                'Trend2': row.get('trend2', '')
+            }
+        elif market in ['moneyway_ou25', 'dropping_ou25']:
+            return {
+                'Under': row.get('under', '-'),
+                'Over': row.get('over', '-'),
+                'Line': row.get('line', '2.5'),
+                'PctUnder': row.get('pctunder', ''),
+                'AmtUnder': row.get('amtunder', ''),
+                'PctOver': row.get('pctover', ''),
+                'AmtOver': row.get('amtover', ''),
+                'Volume': row.get('volume', ''),
+                'Under_prev': row.get('under_prev', ''),
+                'Over_prev': row.get('over_prev', ''),
+                'TrendUnder': row.get('trendunder', ''),
+                'TrendOver': row.get('trendover', '')
+            }
+        elif market in ['moneyway_btts', 'dropping_btts']:
+            return {
+                'Yes': row.get('yes', '-'),
+                'No': row.get('no', '-'),
+                'OddsYes': row.get('yes', '-'),
+                'OddsNo': row.get('no', '-'),
+                'PctYes': row.get('pctyes', ''),
+                'AmtYes': row.get('amtyes', ''),
+                'PctNo': row.get('pctno', ''),
+                'AmtNo': row.get('amtno', ''),
+                'Volume': row.get('volume', ''),
+                'OddsYes_prev': row.get('oddsyes_prev', ''),
+                'OddsNo_prev': row.get('oddsno_prev', ''),
+                'TrendYes': row.get('trendyes', ''),
+                'TrendNo': row.get('trendno', '')
+            }
+        return row
     
     def get_active_alerts(self, limit: int = 50) -> List[Dict[str, Any]]:
         if not self.is_available:
