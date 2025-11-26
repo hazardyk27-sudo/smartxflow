@@ -23,8 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupModalChartTabs();
     checkStatus();
     loadSmartMoneyTicker();
-    window.statusInterval = window.setInterval(checkStatus, 3000);
-    window.tickerInterval = window.setInterval(loadSmartMoneyTicker, 30000);
+    window.statusInterval = window.setInterval(checkStatus, 30000);
+    window.tickerInterval = window.setInterval(loadSmartMoneyTicker, 60000);
 });
 
 function setupTabs() {
