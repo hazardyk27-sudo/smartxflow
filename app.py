@@ -84,18 +84,25 @@ def get_headers():
 def fetch_market_data(market):
     """Fetch data from Supabase history table"""
     if not SUPABASE_URL or not SUPABASE_KEY:
+        print(f"[DEBUG] fetch_market_data: No Supabase credentials!")
         return []
     
     table = f"{market}_history"
     url = f"{SUPABASE_URL}/rest/v1/{table}?select=*&order=scrapedat.desc"
     
     try:
+        print(f"[DEBUG] Fetching {market} from {table}...")
         resp = httpx.get(url, headers=get_headers(), timeout=15)
+        print(f"[DEBUG] Response status: {resp.status_code}")
         if resp.status_code == 200:
-            return resp.json()
+            data = resp.json()
+            print(f"[DEBUG] Got {len(data)} rows for {market}")
+            return data
+        else:
+            print(f"[DEBUG] Error response: {resp.text[:200]}")
         return []
     except Exception as e:
-        print(f"Error fetching {market}: {e}")
+        print(f"[ERROR] fetch_market_data {market}: {e}")
         return []
 
 
