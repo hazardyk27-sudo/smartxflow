@@ -21,17 +21,33 @@ class SupabaseClient:
         self._load_credentials()
     
     def _load_credentials(self):
+        # Method 1: Try services/embedded_credentials.py (created by build.yml)
+        try:
+            from services import embedded_credentials
+            self.url = getattr(embedded_credentials, 'SUPABASE_URL', '')
+            self.key = getattr(embedded_credentials, 'SUPABASE_KEY', '')
+            if self.url and self.key:
+                print(f"[Supabase] Loaded from embedded_credentials")
+                return
+        except (ImportError, AttributeError):
+            pass
+        
+        # Method 2: Try embedded_config.py (legacy)
         try:
             import embedded_config
             self.url = getattr(embedded_config, 'EMBEDDED_SUPABASE_URL', '')
             self.key = getattr(embedded_config, 'EMBEDDED_SUPABASE_KEY', '')
+            if self.url and self.key:
+                print(f"[Supabase] Loaded from embedded_config")
+                return
         except (ImportError, AttributeError):
             pass
         
-        if not self.url:
-            self.url = os.getenv('SUPABASE_URL', '')
-        if not self.key:
-            self.key = os.getenv('SUPABASE_ANON_KEY', '') or os.getenv('SUPABASE_KEY', '')
+        # Method 3: Environment variables (Replit)
+        self.url = os.getenv('SUPABASE_URL', '')
+        self.key = os.getenv('SUPABASE_ANON_KEY', '') or os.getenv('SUPABASE_KEY', '')
+        if self.url and self.key:
+            print(f"[Supabase] Loaded from environment variables")
     
     @property
     def is_available(self) -> bool:
