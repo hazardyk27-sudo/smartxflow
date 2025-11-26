@@ -1,0 +1,79 @@
+name: Build Standalone Scraper EXE
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'scraper_standalone/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scraper_standalone/requirements.txt
+          pip install pyinstaller==6.3.0
+        shell: cmd
+
+      - name: Create config with secrets
+        run: |
+          echo {"SUPABASE_URL": "${{ secrets.SUPABASE_URL }}", "SUPABASE_ANON_KEY": "${{ secrets.SUPABASE_KEY }}"} > scraper_standalone/config.json
+        shell: bash
+
+      - name: Build Scraper EXE
+        run: |
+          cd scraper_standalone
+          pyinstaller --onefile --console --name SmartXFlowScraper --icon=NONE --add-data "config.json;." standalone_scraper.py
+        shell: cmd
+
+      - name: Copy config to dist
+        run: |
+          copy scraper_standalone\config.json scraper_standalone\dist\config.json
+        shell: cmd
+
+      - name: Create README
+        run: |
+          echo # SmartXFlowScraper - Calistirma Talimati > scraper_standalone\dist\README.txt
+          echo. >> scraper_standalone\dist\README.txt
+          echo ## Adim 1: config.json duzenle >> scraper_standalone\dist\README.txt
+          echo config.json dosyasini metin editoru ile ac ve asagidaki degerleri gir: >> scraper_standalone\dist\README.txt
+          echo - SUPABASE_URL: Supabase projenizin URL'i >> scraper_standalone\dist\README.txt
+          echo - SUPABASE_ANON_KEY: Supabase anon key'iniz >> scraper_standalone\dist\README.txt
+          echo. >> scraper_standalone\dist\README.txt
+          echo ## Adim 2: SmartXFlowScraper.exe calistir >> scraper_standalone\dist\README.txt
+          echo Cift tiklayarak calistir. Konsol penceresi acilacak. >> scraper_standalone\dist\README.txt
+          echo. >> scraper_standalone\dist\README.txt
+          echo ## Adim 3: Pencereyi kapatma >> scraper_standalone\dist\README.txt
+          echo Scraper her 10 dakikada bir calisir. >> scraper_standalone\dist\README.txt
+          echo Pencereyi minimize edebilirsin ama kapatma. >> scraper_standalone\dist\README.txt
+          echo. >> scraper_standalone\dist\README.txt
+          echo ## Not >> scraper_standalone\dist\README.txt
+          echo - Veri Supabase'e yazilir >> scraper_standalone\dist\README.txt
+          echo - Replit arayuzu bu veriyi okur >> scraper_standalone\dist\README.txt
+        shell: cmd
+
+      - name: List output
+        run: dir scraper_standalone\dist
+        shell: cmd
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartXFlowScraper-Windows-EXE
+          path: |
+            scraper_standalone/dist/SmartXFlowScraper.exe
+            scraper_standalone/dist/config.json
+            scraper_standalone/dist/README.txt
+          retention-days: 30
