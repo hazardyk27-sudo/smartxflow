@@ -121,25 +121,23 @@ class SupabaseWriter:
         return {
             "apikey": self.key,
             "Authorization": f"Bearer {self.key}",
-            "Content-Type": "application/json",
-            "Prefer": "return=representation"
+            "Content-Type": "application/json"
         }
     
     def _rest_url(self, table: str) -> str:
         return f"{self.url}/rest/v1/{table}"
     
     def upsert_rows(self, table: str, rows: List[Dict[str, Any]]) -> bool:
+        """UPSERT rows using Supabase REST API with proper headers"""
         if not rows:
             return True
         
         try:
             headers = self._headers()
-            headers["Prefer"] = "resolution=merge-duplicates,return=minimal"
-            
-            url = f"{self._rest_url(table)}?on_conflict=ID"
+            headers["Prefer"] = "resolution=merge-duplicates"
             
             resp = requests.post(
-                url,
+                self._rest_url(table),
                 headers=headers,
                 json=rows,
                 timeout=30
@@ -148,7 +146,7 @@ class SupabaseWriter:
             if resp.status_code in [200, 201, 204]:
                 return True
             else:
-                log(f"  Supabase hata: {resp.status_code} - {resp.text[:200]}")
+                log(f"  Supabase upsert hata: {resp.status_code} - {resp.text[:200]}")
                 return False
         except Exception as e:
             log(f"  Supabase baglanti hatasi: {e}")
@@ -161,7 +159,6 @@ class SupabaseWriter:
         
         try:
             headers = self._headers()
-            headers["Prefer"] = "return=minimal"
             
             resp = requests.post(
                 self._rest_url(table),
@@ -180,29 +177,35 @@ class SupabaseWriter:
             return False
     
     def delete_all_rows(self, table: str) -> bool:
+        """DELETE all rows using proper filter syntax"""
         try:
-            url = f"{self._rest_url(table)}?ID=not.is.null"
+            headers = self._headers()
+            url = f"{self._rest_url(table)}?ID=neq."
             
             resp = requests.delete(
                 url,
-                headers=self._headers(),
+                headers=headers,
                 timeout=30
             )
             if resp.status_code not in [200, 204]:
-                log(f"  Delete status: {resp.status_code}")
+                log(f"  Delete status: {resp.status_code} - {resp.text[:100]}")
             return resp.status_code in [200, 204]
         except Exception as e:
             log(f"  Tablo temizleme hatasi: {e}")
             return False
     
     def replace_table(self, table: str, rows: List[Dict[str, Any]]) -> bool:
-        self.delete_all_rows(table)
+        """Replace table: sadece UPSERT kullan (DELETE skip)"""
         return self.upsert_rows(table, rows)
     
     def append_history(self, table: str, rows: List[Dict[str, Any]], scraped_at: str) -> bool:
+        """History tablosuna yeni kayit ekle"""
+        history_rows = []
         for row in rows:
-            row['ScrapedAt'] = scraped_at
-        return self.insert_rows(table, rows)
+            new_row = row.copy()
+            new_row['ScrapedAt'] = scraped_at
+            history_rows.append(new_row)
+        return self.insert_rows(table, history_rows)
 
 
 def _text(node) -> str:
