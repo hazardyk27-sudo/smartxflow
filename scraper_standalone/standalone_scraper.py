@@ -180,7 +180,7 @@ class SupabaseWriter:
         """DELETE all rows using proper filter syntax"""
         try:
             headers = self._headers()
-            url = f"{self._rest_url(table)}?ID=neq."
+            url = f"{self._rest_url(table)}?id=neq."
             
             resp = requests.delete(
                 url,
@@ -203,7 +203,7 @@ class SupabaseWriter:
         history_rows = []
         for row in rows:
             new_row = row.copy()
-            new_row['ScrapedAt'] = scraped_at
+            new_row['scrapedat'] = scraped_at
             history_rows.append(new_row)
         return self.insert_rows(table, history_rows)
 
@@ -260,21 +260,21 @@ def extract_moneyway_1x2(table: BeautifulSoup) -> List[Dict[str, str]]:
         while len(pct_amt_values) < 3:
             pct_amt_values.append(("", ""))
         rows.append({
-            "ID": row_id,
-            "League": league,
-            "Date": date,
-            "Home": home,
-            "Odds1": odds_small[0],
-            "OddsX": odds_small[1],
-            "Odds2": odds_small[2],
-            "Pct1": pct_amt_values[0][0],
-            "Amt1": pct_amt_values[0][1],
-            "PctX": pct_amt_values[1][0],
-            "AmtX": pct_amt_values[1][1],
-            "Pct2": pct_amt_values[2][0],
-            "Amt2": pct_amt_values[2][1],
-            "Away": away,
-            "Volume": volume,
+            "id": row_id,
+            "league": league,
+            "date": date,
+            "home": home,
+            "odds1": odds_small[0],
+            "oddsx": odds_small[1],
+            "odds2": odds_small[2],
+            "pct1": pct_amt_values[0][0],
+            "amt1": pct_amt_values[0][1],
+            "pctx": pct_amt_values[1][0],
+            "amtx": pct_amt_values[1][1],
+            "pct2": pct_amt_values[2][0],
+            "amt2": pct_amt_values[2][1],
+            "away": away,
+            "volume": volume,
         })
     return rows
 
@@ -298,19 +298,19 @@ def extract_moneyway_ou25(table: BeautifulSoup) -> List[Dict[str, str]]:
         pct_under, amt_under = _parse_pct_amt_cell(pct_cells[0]) if len(pct_cells) > 0 else ("", "")
         pct_over, amt_over = _parse_pct_amt_cell(pct_cells[1]) if len(pct_cells) > 1 else ("", "")
         rows.append({
-            "ID": row_id,
-            "League": league,
-            "Date": date,
-            "Home": home,
-            "Under": under,
-            "Line": line,
-            "Over": over,
-            "PctUnder": pct_under,
-            "AmtUnder": amt_under,
-            "PctOver": pct_over,
-            "AmtOver": amt_over,
-            "Away": away,
-            "Volume": volume,
+            "id": row_id,
+            "league": league,
+            "date": date,
+            "home": home,
+            "under": under,
+            "line": line,
+            "over": over,
+            "pctunder": pct_under,
+            "amtunder": amt_under,
+            "pctover": pct_over,
+            "amtover": amt_over,
+            "away": away,
+            "volume": volume,
         })
     return rows
 
@@ -333,18 +333,18 @@ def extract_moneyway_btts(table: BeautifulSoup) -> List[Dict[str, str]]:
         pct_yes, amt_yes = _parse_pct_amt_cell(pct_cells[0]) if len(pct_cells) > 0 else ("", "")
         pct_no, amt_no = _parse_pct_amt_cell(pct_cells[1]) if len(pct_cells) > 1 else ("", "")
         rows.append({
-            "ID": row_id,
-            "League": league,
-            "Date": date,
-            "Home": home,
-            "Yes": yes,
-            "No": no,
-            "PctYes": pct_yes,
-            "AmtYes": amt_yes,
-            "PctNo": pct_no,
-            "AmtNo": amt_no,
-            "Away": away,
-            "Volume": volume,
+            "id": row_id,
+            "league": league,
+            "date": date,
+            "home": home,
+            "yes": yes,
+            "no": no,
+            "pctyes": pct_yes,
+            "amtyes": amt_yes,
+            "pctno": pct_no,
+            "amtno": amt_no,
+            "away": away,
+            "volume": volume,
         })
     return rows
 
@@ -398,21 +398,21 @@ def extract_dropping_1x2(table: BeautifulSoup) -> List[Dict[str, str]]:
                 return ""
         
         rows.append({
-            "ID": row_id,
-            "League": league,
-            "Date": date,
-            "Home": home,
-            "Odds1": c1,
-            "Odds1_prev": s1,
-            "OddsX": cx,
-            "OddsX_prev": sx,
-            "Odds2": c2,
-            "Odds2_prev": s2,
-            "Trend1": calc_trend(c1, s1),
-            "TrendX": calc_trend(cx, sx),
-            "Trend2": calc_trend(c2, s2),
-            "Away": away,
-            "Volume": volume,
+            "id": row_id,
+            "league": league,
+            "date": date,
+            "home": home,
+            "odds1": c1,
+            "odds1_prev": s1,
+            "oddsx": cx,
+            "oddsx_prev": sx,
+            "odds2": c2,
+            "odds2_prev": s2,
+            "trend1": calc_trend(c1, s1),
+            "trendx": calc_trend(cx, sx),
+            "trend2": calc_trend(c2, s2),
+            "away": away,
+            "volume": volume,
         })
     return rows
 
@@ -478,23 +478,23 @@ def extract_dropping_ou25(table: BeautifulSoup) -> List[Dict[str, str]]:
                 return ""
         
         rows.append({
-            "ID": row_id,
-            "League": league,
-            "Date": date,
-            "Home": home,
-            "Under": under_cur,
-            "Under_prev": under_start,
-            "Line": astar,
-            "Over": over_cur,
-            "Over_prev": over_start,
-            "TrendUnder": calc_trend(under_cur, under_start),
-            "TrendOver": calc_trend(over_cur, over_start),
-            "PctUnder": pct_under,
-            "AmtUnder": amt_under,
-            "PctOver": pct_over,
-            "AmtOver": amt_over,
-            "Away": away,
-            "Volume": volume,
+            "id": row_id,
+            "league": league,
+            "date": date,
+            "home": home,
+            "under": under_cur,
+            "under_prev": under_start,
+            "line": astar,
+            "over": over_cur,
+            "over_prev": over_start,
+            "trendunder": calc_trend(under_cur, under_start),
+            "trendover": calc_trend(over_cur, over_start),
+            "pctunder": pct_under,
+            "amtunder": amt_under,
+            "pctover": pct_over,
+            "amtover": amt_over,
+            "away": away,
+            "volume": volume,
         })
     return rows
 
@@ -553,22 +553,22 @@ def extract_dropping_btts(table: BeautifulSoup) -> List[Dict[str, str]]:
                 return ""
         
         rows.append({
-            "ID": row_id,
-            "League": league,
-            "Date": date,
-            "Home": home,
-            "OddsYes": yes_cur,
-            "OddsYes_prev": yes_start,
-            "OddsNo": no_cur,
-            "OddsNo_prev": no_start,
-            "TrendYes": calc_trend(yes_cur, yes_start),
-            "TrendNo": calc_trend(no_cur, no_start),
-            "PctYes": pct_yes,
-            "AmtYes": amt_yes,
-            "PctNo": pct_no,
-            "AmtNo": amt_no,
-            "Away": away,
-            "Volume": volume,
+            "id": row_id,
+            "league": league,
+            "date": date,
+            "home": home,
+            "oddsyes": yes_cur,
+            "oddsyes_prev": yes_start,
+            "oddsno": no_cur,
+            "oddsno_prev": no_start,
+            "trendyes": calc_trend(yes_cur, yes_start),
+            "trendno": calc_trend(no_cur, no_start),
+            "pctyes": pct_yes,
+            "amtyes": amt_yes,
+            "pctno": pct_no,
+            "amtno": amt_no,
+            "away": away,
+            "volume": volume,
         })
     return rows
 
