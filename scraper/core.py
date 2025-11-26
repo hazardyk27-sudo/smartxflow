@@ -49,9 +49,9 @@ def sync_to_supabase(scraped_data: Dict[str, Any], progress_callback: Optional[C
     if not db.is_supabase_available:
         return {"matches": 0, "snapshots": 0, "alerts": 0}
     
-    total_matches = 0
     total_snapshots = 0
     total_alerts = 0
+    seen_matches = set()
     
     results = scraped_data.get("results", [])
     
@@ -73,29 +73,33 @@ def sync_to_supabase(scraped_data: Dict[str, Any], progress_callback: Optional[C
             if not home or not away:
                 continue
             
-            total_matches += 1
+            match_key = f"{home}_{away}"
+            seen_matches.add(match_key)
             
-            history = db.get_match_history(home, away, market_key)
-            if len(history) >= 2:
-                alarms = analyze_match_alarms(history, market_key)
-                for alarm in alarms:
-                    success = db.save_alert(
-                        home=home,
-                        away=away,
-                        league=row.get('League', ''),
-                        date=row.get('Date', ''),
-                        alert_type=alarm['type'],
-                        market=market_key,
-                        side=alarm.get('side', ''),
-                        money_diff=alarm.get('money_diff', 0),
-                        odds_from=alarm.get('odds_from'),
-                        odds_to=alarm.get('odds_to')
-                    )
-                    if success:
-                        total_alerts += 1
+            try:
+                history = db.get_match_history(home, away, market_key)
+                if len(history) >= 2:
+                    alarms = analyze_match_alarms(history, market_key)
+                    for alarm in alarms:
+                        success = db.save_alert(
+                            home=home,
+                            away=away,
+                            league=row.get('League', ''),
+                            date=row.get('Date', ''),
+                            alert_type=alarm['type'],
+                            market=market_key,
+                            side=alarm.get('side', ''),
+                            money_diff=alarm.get('money_diff', 0),
+                            odds_from=alarm.get('odds_from'),
+                            odds_to=alarm.get('odds_to')
+                        )
+                        if success:
+                            total_alerts += 1
+            except Exception as e:
+                print(f"Error processing alarms for {home} vs {away}: {e}")
     
     return {
-        "matches": total_matches,
+        "matches": len(seen_matches),
         "snapshots": total_snapshots,
         "alerts": total_alerts
     }

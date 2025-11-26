@@ -163,11 +163,21 @@ class SupabaseClient:
             url = f"{self._rest_url('matches')}?select=*&order=created_at.desc&limit={limit}"
             resp = httpx.get(url, headers=self._headers(), timeout=10)
             if resp.status_code == 200:
-                return resp.json()
+                rows = resp.json()
+                return [self._match_to_legacy(r) for r in rows]
             return []
         except Exception as e:
             print(f"Error get_all_matches: {e}")
             return []
+    
+    def _match_to_legacy(self, row: Dict) -> Dict[str, Any]:
+        return {
+            'home_team': row.get('home_team', ''),
+            'away_team': row.get('away_team', ''),
+            'league': row.get('league', ''),
+            'date': row.get('match_date', ''),
+            'display': f"{row.get('home_team', '')} vs {row.get('away_team', '')}"
+        }
     
     def get_match_history(self, home_team: str, away_team: str, market: str) -> List[Dict[str, Any]]:
         if not self.is_available:
