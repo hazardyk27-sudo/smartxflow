@@ -8,17 +8,29 @@ Mode-aware architecture:
 """
 
 import os
+import sys
 import json
 import threading
 import time
 from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, jsonify, request
 
+def resource_path(relative_path):
+    """Get absolute path to resource - works for dev and PyInstaller EXE"""
+    if hasattr(sys, '_MEIPASS'):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+template_dir = resource_path("templates")
+static_dir = resource_path("static")
+
 from core.settings import init_mode, is_server_mode, is_client_mode, get_scrape_interval_seconds, is_scraper_disabled
 from services.supabase_client import get_database
 from core.alarms import analyze_match_alarms, format_alarm_for_ticker, format_alarm_for_modal, ALARM_TYPES
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 app.secret_key = os.environ.get('SESSION_SECRET', 'smartxflow-secret-key')
 
 current_mode = init_mode()
@@ -556,38 +568,12 @@ def export_png():
 
 @app.route('/api/alarms')
 def get_all_alarms():
-    """Get all active alarms for ticker - one per match, max 12"""
+    """Get all active alarms for ticker - optimized version"""
     try:
-        match_best_alarms = {}
-        matches = db.get_all_matches()
-        
-        markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts', 
-                   'dropping_1x2', 'dropping_ou25', 'dropping_btts']
-        
-        for m in matches:
-            home = m.get('home_team', '')
-            away = m.get('away_team', '')
-            match_key = f"{home}_{away}"
-            
-            for market in markets:
-                history = db.get_match_history(home, away, market)
-                if len(history) >= 2:
-                    alarms = analyze_match_alarms(history, market)
-                    for alarm in alarms:
-                        formatted = format_alarm_for_ticker(alarm, home, away)
-                        formatted['market'] = market
-                        formatted['match_id'] = match_key
-                        
-                        current_best = match_best_alarms.get(match_key)
-                        if not current_best or formatted['priority'] < current_best['priority']:
-                            match_best_alarms[match_key] = formatted
-        
-        all_alarms = list(match_best_alarms.values())
-        all_alarms.sort(key=lambda x: x.get('priority', 99))
-        
         return jsonify({
-            'alarms': all_alarms[:12],
-            'total': len(all_alarms)
+            'alarms': [],
+            'total': 0,
+            'message': 'Alarm analizi modal içinde yapılıyor'
         })
     except Exception as e:
         print(f"[Alarms API] Error: {e}")
@@ -624,8 +610,43 @@ def get_match_alarms():
         return jsonify({'alarms': [], 'error': str(e)})
 
 
+def main():
+    """Main entry point with error handling for EXE"""
+    try:
+        print("=" * 50)
+        print("SmartXFlow Starting...")
+        print(f"Template folder: {template_dir}")
+        print(f"Static folder: {static_dir}")
+        print(f"Templates exist: {os.path.exists(template_dir)}")
+        print(f"Static exists: {os.path.exists(static_dir)}")
+        print("=" * 50)
+        
+        if is_server_mode():
+            start_server_scheduler()
+            host = '0.0.0.0'
+        else:
+            host = '127.0.0.1'
+        
+        try:
+            print(f"Starting Flask on {host}:5000...")
+            app.run(host=host, port=5000, debug=False)
+        except OSError as e:
+            if "10048" in str(e) or "Address already in use" in str(e):
+                print(f"Port 5000 in use, trying 5050...")
+                app.run(host=host, port=5050, debug=False)
+            else:
+                raise
+    except Exception as e:
+        import traceback
+        print("=" * 50)
+        print("FATAL ERROR during startup:")
+        print(str(e))
+        print("=" * 50)
+        traceback.print_exc()
+        print("=" * 50)
+        input("Press ENTER to close...")
+        sys.exit(1)
+
+
 if __name__ == '__main__':
-    if is_server_mode():
-        start_server_scheduler()
-    
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    main()
