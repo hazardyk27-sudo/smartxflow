@@ -5,11 +5,13 @@ from dataclasses import dataclass
 import sqlite3
 
 _SUPABASE_AVAILABLE = False
+_supabase_client = None
+
 try:
-    from supabase import create_client
+    from supabase import create_client, Client
     _SUPABASE_AVAILABLE = True
-except Exception:
-    _SUPABASE_AVAILABLE = False
+except ImportError:
+    pass
 
 def _get_supabase_credentials():
     """Load Supabase credentials from embedded config, settings, or environment variables."""
@@ -25,7 +27,7 @@ def _get_supabase_credentials():
     
     if not url or not key:
         url = os.getenv('SUPABASE_URL')
-        key = os.getenv('SUPABASE_KEY')
+        key = os.getenv('SUPABASE_ANON_KEY') or os.getenv('SUPABASE_KEY')
     
     if not url or not key:
         raise ValueError(
