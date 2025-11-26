@@ -27,13 +27,18 @@ jobs:
           pip install pyinstaller==6.3.0
         shell: cmd
 
+      - name: Create config with secrets
+        run: |
+          echo {"SUPABASE_URL": "${{ secrets.SUPABASE_URL }}", "SUPABASE_ANON_KEY": "${{ secrets.SUPABASE_ANON_KEY }}"} > scraper_standalone/config.json
+        shell: bash
+
       - name: Build Scraper EXE
         run: |
           cd scraper_standalone
-          pyinstaller --onefile --console --name SmartXFlowScraper --icon=NONE standalone_scraper.py
+          pyinstaller --onefile --console --name SmartXFlowScraper --icon=NONE --add-data "config.json;." standalone_scraper.py
         shell: cmd
 
-      - name: Copy config template
+      - name: Copy config to dist
         run: |
           copy scraper_standalone\config.json scraper_standalone\dist\config.json
         shell: cmd
