@@ -63,6 +63,13 @@ jobs:
             --hidden-import=flask `
             --hidden-import=jinja2 `
             --hidden-import=httpx `
+            --hidden-import=httpx._transports `
+            --hidden-import=httpx._transports.default `
+            --hidden-import=httpcore `
+            --hidden-import=h11 `
+            --hidden-import=anyio `
+            --hidden-import=sniffio `
+            --hidden-import=certifi `
             --hidden-import=werkzeug `
             --hidden-import=supabase `
             --hidden-import=gotrue `
@@ -72,6 +79,8 @@ jobs:
             --hidden-import=supafunc `
             --collect-all flask `
             --collect-all supabase `
+            --collect-all httpx `
+            --collect-all httpcore `
             app.py
 
       - name: Upload artifact
