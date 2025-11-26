@@ -17,8 +17,29 @@ from flask import Flask, render_template, jsonify, request
 
 APP_MODE = os.getenv("APP_MODE", "CLIENT")
 
+
+def resource_path(relative_path):
+    """PyInstaller EXE icinde dogru path'i bulmak icin"""
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+
 def get_supabase_credentials():
     """Get Supabase credentials from embedded config or environment"""
+    try:
+        config_path = resource_path("embedded_config.py")
+        if os.path.exists(config_path):
+            import embedded_config
+            url = getattr(embedded_config, 'EMBEDDED_SUPABASE_URL', '')
+            key = getattr(embedded_config, 'EMBEDDED_SUPABASE_KEY', '')
+            if url and key:
+                return url, key
+    except Exception:
+        pass
+    
     try:
         import embedded_config
         url = getattr(embedded_config, 'EMBEDDED_SUPABASE_URL', '')
@@ -36,7 +57,10 @@ SUPABASE_URL, SUPABASE_KEY = get_supabase_credentials()
 
 import httpx
 
-app = Flask(__name__)
+template_dir = resource_path("templates")
+static_dir = resource_path("static")
+
+app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 app.secret_key = os.environ.get('SESSION_SECRET', 'smartxflow-secret-key')
 
 ALARM_TYPES = {
@@ -376,9 +400,40 @@ def open_browser():
     webbrowser.open('http://127.0.0.1:5000')
 
 
-if __name__ == '__main__':
+def main():
+    """Main entry point"""
+    print("=" * 50)
+    print("SmartXFlow Alarm V1.01")
+    print("=" * 50)
+    print(f"Mode: {APP_MODE}")
+    print(f"Supabase URL: {'Connected' if SUPABASE_URL else 'NOT SET'}")
+    print(f"Supabase Key: {'Set' if SUPABASE_KEY else 'NOT SET'}")
+    print(f"Templates: {template_dir}")
+    print(f"Static: {static_dir}")
+    print("=" * 50)
+    
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        print("\nWARNING: Supabase credentials not found!")
+        print("Please ensure embedded_config.py is included in the build.")
+        print("Or set SUPABASE_URL and SUPABASE_ANON_KEY environment variables.")
+    
     if getattr(sys, 'frozen', False):
         threading.Thread(target=open_browser, daemon=True).start()
     
-    print("SmartXFlow starting on http://127.0.0.1:5000")
+    print(f"\nStarting server on http://127.0.0.1:5000")
     app.run(host='0.0.0.0', port=5000, debug=False)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        print("\n" + "=" * 50)
+        print("FATAL ERROR during startup:")
+        print("=" * 50)
+        print(str(e))
+        print("\nFull traceback:")
+        traceback.print_exc()
+        print("=" * 50)
+        input("\nPress ENTER to close...")
