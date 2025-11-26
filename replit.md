@@ -40,7 +40,8 @@ Windows masaustu uygulamasi - arbworld.net'ten Moneyway ve Dropping Odds veriler
 ## Proje Yapisi
 ```
 .
-├── app.py                # Flask Web Arayüzü
+├── app.py                # Flask Web Backend
+├── desktop_app.py        # Masaüstü Uygulaması (pywebview wrapper)
 ├── scraper_standalone/   # PC Scraper (bağımsız)
 │   ├── standalone_scraper.py  # Ana scraper script
 │   ├── config.json            # Supabase ayarları
@@ -59,10 +60,24 @@ Windows masaustu uygulamasi - arbworld.net'ten Moneyway ve Dropping Odds veriler
 ├── templates/
 ├── static/
 ├── .github/workflows/
-│   ├── build.yml              # SmartXFlow Alarm V1.01.exe (Web UI)
-│   └── build_scraper.yml      # SmartXFlow Alarm V1.01Scraper.exe
+│   ├── build.yml              # SmartXFlowDesktop.exe (Masaüstü)
+│   └── build_scraper.yml      # SmartXFlowScraper.exe
 └── replit.md
 ```
+
+## Desktop Uygulama Mimarisi
+```
+┌─ SmartXFlowDesktop.exe ─────────────────────────────┐
+│  pywebview (Edge WebView2)                          │
+│  ├── Flask backend (127.0.0.1:5000)                 │
+│  ├── Gömülü tarayıcı penceresi                      │
+│  └── Konsol yok, harici tarayıcı yok                │
+└─────────────────────────────────────────────────────┘
+```
+- Çift tıklayınca tek bir masaüstü penceresi açılır
+- Tarayıcı sekmesi açılmaz
+- Konsol görünmez
+- Tüm mantık lokal (127.0.0.1)
 
 ## Kurulum
 
