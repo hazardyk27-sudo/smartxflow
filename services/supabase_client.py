@@ -352,6 +352,46 @@ class LocalDatabase:
         
         return history
     
+    def get_all_matches_with_latest(self, market_key: str = "moneyway_1x2") -> List[Dict[str, Any]]:
+        """Get all matches with their latest snapshot - single query optimization"""
+        matches = []
+        
+        if not os.path.exists(self.db_path):
+            return matches
+        
+        table_name = f"{market_key}_hist"
+        
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            
+            cur.execute(f"""
+                SELECT * FROM "{table_name}" t1
+                WHERE t1.ScrapedAt = (
+                    SELECT MAX(t2.ScrapedAt) 
+                    FROM "{table_name}" t2 
+                    WHERE t2.Home = t1.Home AND t2.Away = t1.Away
+                )
+                ORDER BY t1.Date DESC
+            """)
+            
+            for row in cur.fetchall():
+                d = dict(row)
+                matches.append({
+                    'home_team': d.get('Home', ''),
+                    'away_team': d.get('Away', ''),
+                    'league': d.get('League', ''),
+                    'date': d.get('Date', ''),
+                    'latest': d
+                })
+            
+            conn.close()
+        except Exception as e:
+            print(f"Error reading matches with latest: {e}")
+        
+        return matches
+    
     def get_available_markets(self) -> List[str]:
         markets = []
         
@@ -396,6 +436,10 @@ class HybridDatabase:
             if history:
                 return history
         return self.local.get_match_history(home, away, market)
+    
+    def get_all_matches_with_latest(self, market: str) -> List[Dict[str, Any]]:
+        """Get all matches with latest snapshot - optimized single query"""
+        return self.local.get_all_matches_with_latest(market)
     
     def save_scraped_data(self, market: str, rows: List[Dict[str, Any]]) -> int:
         if not self.supabase.is_available:

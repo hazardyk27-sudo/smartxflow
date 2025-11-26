@@ -113,21 +113,19 @@ def match_detail(home, away):
 
 @app.route('/api/matches')
 def get_matches():
-    """Get all matches from database"""
+    """Get all matches from database - optimized single query"""
     market = request.args.get('market', 'moneyway_1x2')
-    matches = db.get_all_matches()
     is_dropping = market.startswith('dropping')
     
+    matches_with_latest = db.get_all_matches_with_latest(market)
+    
     enriched = []
-    for m in matches:
-        history = db.get_match_history(m['home_team'], m['away_team'], market)
-        
+    for m in matches_with_latest:
+        latest = m.get('latest', {})
         odds = {}
         prev_odds = {}
-        if history:
-            latest = history[-1]
-            previous = history[-2] if len(history) >= 2 else None
-            
+        
+        if latest:
             if market in ['moneyway_1x2', 'dropping_1x2']:
                 odds = {
                     'Odds1': latest.get('Odds1', latest.get('1', '-')),
@@ -191,7 +189,7 @@ def get_matches():
             'league': m.get('league', ''),
             'date': m.get('date', ''),
             'odds': {**odds, **prev_odds},
-            'history_count': len(history)
+            'history_count': 1
         })
     
     return jsonify(enriched)
