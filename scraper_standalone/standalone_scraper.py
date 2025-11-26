@@ -1,5 +1,5 @@
 """
-SmartXFlow Standalone Scraper
+SmartXFlow Alarm V1.01 - Standalone Scraper
 PC'de çalışan bağımsız scraper - Supabase'e direkt yazar
 """
 
@@ -19,7 +19,7 @@ try:
 except ImportError:
     TURKEY_TZ = None
 
-VERSION = "1.0.5"
+VERSION = "1.01"
 SCRAPE_INTERVAL_MINUTES = 10
 
 DATASETS = {

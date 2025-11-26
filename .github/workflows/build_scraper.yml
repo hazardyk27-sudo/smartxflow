@@ -37,7 +37,7 @@ jobs:
       - name: Build Scraper EXE
         run: |
           cd scraper_standalone
-          pyinstaller --onefile --console --name SmartXFlowScraper --icon=NONE --add-data "config.json;." standalone_scraper.py
+          pyinstaller --onefile --console --name "SmartXFlowAlarmV1.01Scraper" --icon=NONE --add-data "config.json;." standalone_scraper.py
         shell: cmd
 
       - name: Copy config to dist
@@ -73,9 +73,9 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SmartXFlowScraper-Windows-EXE
+          name: SmartXFlowAlarmV1.01-Scraper-Windows-EXE
           path: |
-            scraper_standalone/dist/SmartXFlowScraper.exe
+            scraper_standalone/dist/SmartXFlowAlarmV1.01Scraper.exe
             scraper_standalone/dist/config.json
             scraper_standalone/dist/README.txt
           retention-days: 30
