@@ -14,7 +14,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, jsonify, request
 
-from core.settings import init_mode, is_server_mode, is_client_mode, get_scrape_interval_seconds
+from core.settings import init_mode, is_server_mode, is_client_mode, get_scrape_interval_seconds, is_scraper_disabled
 from services.supabase_client import get_database
 from core.alarms import analyze_match_alarms, format_alarm_for_ticker, format_alarm_for_modal, ALARM_TYPES
 
@@ -60,6 +60,11 @@ def start_server_scheduler():
     global server_scheduler_thread, server_scheduler_stop
     
     if not is_server_mode():
+        return
+    
+    if is_scraper_disabled():
+        print("[Server Mode] Scraper disabled via DISABLE_SCRAPER env variable")
+        print("[Server Mode] Running as UI-only, data comes from Supabase (standalone scraper)")
         return
     
     server_scheduler_stop.clear()

@@ -47,6 +47,11 @@ def is_server_mode() -> bool:
     return get_app_mode() == AppMode.SERVER
 
 
+def is_scraper_disabled() -> bool:
+    """Check if scraper is explicitly disabled via DISABLE_SCRAPER env variable"""
+    return os.environ.get("DISABLE_SCRAPER", "").lower() in ("true", "1", "yes")
+
+
 def is_client_mode() -> bool:
     """Check if running in client mode (read-only from Supabase)"""
     return get_app_mode() == AppMode.CLIENT
@@ -75,16 +80,22 @@ def get_supabase_poll_interval_seconds() -> int:
 def init_mode():
     """Initialize and log the application mode"""
     mode = get_app_mode()
+    scraper_disabled = is_scraper_disabled()
     
     mode_name = "SERVER" if mode == AppMode.SERVER else "CLIENT"
     print(f"=" * 50)
     print(f"SmartXFlow Mode: {mode_name}")
     
     if mode == AppMode.SERVER:
-        interval = get_scrape_interval_seconds() // 60
-        print(f"  - Scraper: ENABLED (every {interval} minutes)")
-        print(f"  - SQLite: ENABLED (local cache)")
-        print(f"  - Supabase: WRITE + READ")
+        if scraper_disabled:
+            print(f"  - Scraper: DISABLED (DISABLE_SCRAPER=true)")
+            print(f"  - SQLite: ENABLED (local cache)")
+            print(f"  - Supabase: READ-ONLY (UI mode)")
+        else:
+            interval = get_scrape_interval_seconds() // 60
+            print(f"  - Scraper: ENABLED (every {interval} minutes)")
+            print(f"  - SQLite: ENABLED (local cache)")
+            print(f"  - Supabase: WRITE + READ")
     else:
         poll = get_supabase_poll_interval_seconds()
         print(f"  - Scraper: DISABLED")
