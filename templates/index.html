@@ -48,7 +48,10 @@
                     {% for alarm in ticker_alarms %}
                     <div class="ticker-card" 
                          style="--alarm-color: {{ alarm.color }}; display: flex !important; visibility: visible !important;"
-                         onclick="openMatchModalByTeams('{{ alarm.home }}', '{{ alarm.away }}', '{{ alarm.type }}')">
+                         data-home="{{ alarm.home }}"
+                         data-away="{{ alarm.away }}"
+                         data-type="{{ alarm.type }}"
+                         data-key="{{ alarm.home }}|{{ alarm.away }}|{{ alarm.type }}">
                         <div class="ticker-card-icon">{{ alarm.icon }}</div>
                         <div class="ticker-card-content">
                             <div class="ticker-card-type" style="color: {{ alarm.color }};">{{ alarm.name.split(' ')[0] }}</div>
@@ -266,6 +269,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=207"></script>
+    <script src="/static/js/app.js?v=208"></script>
 </body>
 </html>

@@ -2235,21 +2235,74 @@ function renderTickerCards() {
     }
     
     if (tickerAlarms.length === 0) {
-        console.log('[Ticker] No alarms to render, keeping server-rendered content');
+        console.log('[Ticker] No alarms to render');
+        const emptyDiv = tickerContent.querySelector('.ticker-empty');
+        if (!emptyDiv) {
+            tickerContent.innerHTML = '<div class="ticker-empty">Aktif kritik alarm yok</div>';
+        }
         return;
     }
     
     const visibleAlarms = tickerAlarms.slice(0, 4);
     const existingCards = tickerContent.querySelectorAll('.ticker-card');
     
-    // If server already rendered cards and data matches, skip
-    if (existingCards.length === visibleAlarms.length) {
-        console.log('[Ticker] Cards already rendered by server, skipping');
+    // Create keys for current alarms
+    const newKeys = new Set(visibleAlarms.map(a => `${a.home}|${a.away}|${a.type}`));
+    const existingKeys = new Set(Array.from(existingCards).map(c => c.dataset.key));
+    
+    // Check if data changed
+    const keysMatch = newKeys.size === existingKeys.size && 
+                      [...newKeys].every(k => existingKeys.has(k));
+    
+    if (keysMatch && existingCards.length === visibleAlarms.length) {
+        console.log('[Ticker] Data unchanged, skipping render');
         return;
     }
     
-    console.log('[Ticker] Rendering', visibleAlarms.length, 'cards');
+    console.log('[Ticker] Updating cards with new data');
+    
+    // Clear and rebuild
+    tickerContent.innerHTML = '';
+    
+    visibleAlarms.forEach((alarm) => {
+        const shortName = alarm.name ? alarm.name.split(' ')[0] : '';
+        const moneyText = alarm.money_text || '';
+        const sideText = alarm.side ? `(${alarm.side})` : '';
+        const key = `${alarm.home}|${alarm.away}|${alarm.type}`;
+        
+        const card = document.createElement('div');
+        card.className = 'ticker-card';
+        card.style.cssText = `--alarm-color: ${alarm.color}; display: flex !important; visibility: visible !important;`;
+        card.dataset.home = alarm.home;
+        card.dataset.away = alarm.away;
+        card.dataset.type = alarm.type;
+        card.dataset.key = key;
+        
+        card.innerHTML = `
+            <div class="ticker-card-icon">${alarm.icon}</div>
+            <div class="ticker-card-content">
+                <div class="ticker-card-type" style="color: ${alarm.color};">${shortName}</div>
+                <div class="ticker-card-match" style="color: #fff;">${alarm.home} - ${alarm.away}</div>
+                <div class="ticker-card-detail">
+                    ${moneyText ? `<span class="money" style="color: #4ade80;">${moneyText}</span>` : ''}
+                    ${sideText ? `<span class="side">${sideText}</span>` : ''}
+                </div>
+            </div>
+        `;
+        
+        tickerContent.appendChild(card);
+    });
+    
+    console.log('[Ticker] Rendered', visibleAlarms.length, 'cards');
 }
+
+// Delegated click handler for ticker cards (XSS-safe)
+document.addEventListener('click', function(e) {
+    const card = e.target.closest('.ticker-card');
+    if (card && card.dataset.home && card.dataset.away) {
+        openMatchModalByTeams(card.dataset.home, card.dataset.away, card.dataset.type || '');
+    }
+});
 
 function pauseTicker() {
     tickerPaused = true;
