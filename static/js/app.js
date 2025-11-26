@@ -14,6 +14,7 @@ let currentChartHistoryData = [];
 let chartViewMode = 'percent';
 let alertsHistory = [];
 const MAX_ALERTS_HISTORY = 500;
+let isClientMode = true;
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -196,6 +197,9 @@ function renderMatches(data) {
     
     if (data.length === 0) {
         const colspan = currentMarket.includes('1x2') ? 7 : 6;
+        const emptyMessage = isClientMode 
+            ? "Bu market için veri bulunamadı. Scraper'ın Supabase'e veri gönderdiğinden emin olun."
+            : "No matches found for this market. Click 'Scrape Now' to fetch data.";
         tbody.innerHTML = `
             <tr class="loading-row">
                 <td colspan="${colspan}">
@@ -204,7 +208,7 @@ function renderMatches(data) {
                             <circle cx="12" cy="12" r="10"/>
                             <path d="M12 6v6l4 2"/>
                         </svg>
-                        <p>No matches found for this market. Click "Scrape Now" to fetch data.</p>
+                        <p>${emptyMessage}</p>
                     </div>
                 </td>
             </tr>
@@ -2095,6 +2099,7 @@ async function checkStatus() {
         const status = await response.json();
         
         autoScrapeRunning = status.auto_running;
+        isClientMode = status.mode === 'client';
         
         const indicator = document.getElementById('statusIndicator');
         if (indicator) {
@@ -2111,8 +2116,13 @@ async function checkStatus() {
         }
         
         const lastUpdateTime = document.getElementById('lastUpdateTime');
-        if (lastUpdateTime && status.last_scrape_time_tr) {
-            lastUpdateTime.textContent = status.last_scrape_time_tr;
+        if (lastUpdateTime && status.last_data_update) {
+            try {
+                const d = new Date(status.last_data_update);
+                lastUpdateTime.textContent = d.toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
+            } catch(e) {
+                lastUpdateTime.textContent = '--:--';
+            }
         }
         
     } catch (error) {

@@ -2,6 +2,10 @@
 SmartXFlow - Web Application
 Supabase'den veri okur ve gösterir (READ-ONLY)
 Scraper ile ilgisi yok - bağımsız çalışır
+
+APP_MODE:
+- CLIENT: Windows EXE - Sadece Supabase'ten okur, scraper yok
+- SERVER: Replit - Scraper aktif (şu an kullanılmıyor)
 """
 
 import os
@@ -10,6 +14,8 @@ import webbrowser
 import threading
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request
+
+APP_MODE = os.getenv("APP_MODE", "CLIENT")
 
 def get_supabase_credentials():
     """Get Supabase credentials from embedded config or environment"""
@@ -358,7 +364,7 @@ def get_status():
     return jsonify({
         'supabase_connected': connected,
         'last_data_update': last_update,
-        'mode': 'client',
+        'mode': APP_MODE.lower(),
         'version': '1.0'
     })
 
