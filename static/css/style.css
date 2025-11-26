@@ -117,6 +117,33 @@ body {
     50% { opacity: 0.5; }
 }
 
+.last-update-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #21262d;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+}
+
+.last-update-label {
+    color: var(--color-text-muted);
+}
+
+.last-update-time {
+    color: #4ade80;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.last-update-tz {
+    color: var(--color-text-muted);
+    font-size: 10px;
+}
+
 .btn {
     display: flex;
     align-items: center;
@@ -1576,14 +1603,14 @@ body {
     margin-bottom: 8px;
 }
 
-.selection-odds {
+.selection-card .selection-odds {
     color: #4ade80;
     font-size: 20px;
     font-weight: 700;
     margin-bottom: 4px;
 }
 
-.selection-pct {
+.selection-card .selection-pct {
     color: #c9d1d9;
     font-size: 14px;
 }
