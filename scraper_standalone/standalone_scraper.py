@@ -67,35 +67,47 @@ def log(msg: str):
 
 
 def load_config() -> Dict[str, str]:
-    config_path = os.path.join(os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else __file__), 'config.json')
+    if getattr(sys, 'frozen', False):
+        base_dir = os.path.dirname(sys.executable)
+    else:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
     
-    if not os.path.exists(config_path):
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(script_dir, 'config.json')
+    config_path = os.path.join(base_dir, 'config.json')
+    log(f"Config path: {config_path}")
     
     if not os.path.exists(config_path):
         config_path = 'config.json'
+        log(f"Alternatif path deneniyor: {config_path}")
     
     if not os.path.exists(config_path):
         log(f"ERROR: config.json bulunamadi!")
-        log(f"Aranan yollar: {config_path}")
-        log("Lutfen config.json dosyasini .exe ile ayni klasore koyun.")
+        log(f"Lutfen config.json dosyasini .exe ile ayni klasore koyun.")
         input("Devam etmek icin Enter'a basin...")
         sys.exit(1)
     
     try:
-        with open(config_path, 'r', encoding='utf-8') as f:
-            config = json.load(f)
+        with open(config_path, 'r', encoding='utf-8-sig') as f:
+            content = f.read().strip()
+        
+        if content.startswith('\ufeff'):
+            content = content[1:]
+        
+        config = json.loads(content)
         
         if not config.get('SUPABASE_URL') or not config.get('SUPABASE_ANON_KEY'):
             log("ERROR: config.json'da SUPABASE_URL veya SUPABASE_ANON_KEY eksik!")
             input("Devam etmek icin Enter'a basin...")
             sys.exit(1)
         
-        log(f"Config yuklendi: {config_path}")
+        log(f"Config yuklendi basariyla!")
         return config
     except json.JSONDecodeError as e:
         log(f"ERROR: config.json okunamadi - {e}")
+        log(f"Dosya icerigi: {repr(content[:100])}")
+        input("Devam etmek icin Enter'a basin...")
+        sys.exit(1)
+    except Exception as e:
+        log(f"ERROR: Beklenmeyen hata - {e}")
         input("Devam etmek icin Enter'a basin...")
         sys.exit(1)
 
