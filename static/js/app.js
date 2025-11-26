@@ -12,6 +12,8 @@ let todayFilterActive = false;
 let chartTimeRange = '5min';
 let currentChartHistoryData = [];
 let chartViewMode = 'percent';
+let alertsHistory = [];
+const MAX_ALERTS_HISTORY = 500;
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2186,8 +2188,14 @@ async function loadSmartMoneyTicker() {
         
         if (!data.alarms || data.alarms.length === 0) {
             tickerContent.innerHTML = '<div class="ticker-empty">Aktif alarm yok</div>';
+            updateAlarmBadge();
             return;
         }
+        
+        data.alarms.forEach(alarm => {
+            addToAlertsHistory(alarm);
+        });
+        updateAlarmBadge();
         
         const items = data.alarms.map(alarm => {
             const shortName = alarm.name.split(' ')[0];
@@ -2220,6 +2228,153 @@ async function loadSmartMoneyTicker() {
     } catch (error) {
         console.error('[Ticker] Error:', error);
     }
+}
+
+function addToAlertsHistory(alarm) {
+    const alarmId = `${alarm.type}_${alarm.home}_${alarm.away}_${alarm.side || ''}_${Date.now()}`;
+    
+    const exists = alertsHistory.find(a => 
+        a.type === alarm.type && 
+        a.home === alarm.home && 
+        a.away === alarm.away && 
+        a.side === alarm.side &&
+        (Date.now() - a.timestamp) < 60000
+    );
+    
+    if (exists) return;
+    
+    const historyEntry = {
+        id: alarmId,
+        type: alarm.type,
+        name: alarm.name,
+        icon: alarm.icon,
+        color: alarm.color,
+        home: alarm.home,
+        away: alarm.away,
+        market: alarm.side || '',
+        moneyDiff: alarm.money_text || '',
+        oddsOld: alarm.odds_from || '',
+        oddsNew: alarm.odds_to || '',
+        detail: alarm.detail || '',
+        timestamp: Date.now()
+    };
+    
+    alertsHistory.unshift(historyEntry);
+    
+    if (alertsHistory.length > MAX_ALERTS_HISTORY) {
+        alertsHistory = alertsHistory.slice(0, MAX_ALERTS_HISTORY);
+    }
+}
+
+function updateAlarmBadge() {
+    const badge = document.getElementById('alarmCountBadge');
+    if (badge) {
+        const count = alertsHistory.length;
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+}
+
+function openAlarmPanel() {
+    document.getElementById('alarmDrawerOverlay').classList.add('open');
+    document.getElementById('alarmDrawer').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    renderAlarmList();
+}
+
+function closeAlarmPanel() {
+    document.getElementById('alarmDrawerOverlay').classList.remove('open');
+    document.getElementById('alarmDrawer').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+function filterAlarms() {
+    renderAlarmList();
+}
+
+function renderAlarmList() {
+    const container = document.getElementById('alarmDrawerContent');
+    if (!container) return;
+    
+    const typeFilter = document.getElementById('alarmTypeFilter')?.value || 'all';
+    const sortBy = document.getElementById('alarmSortBy')?.value || 'newest';
+    
+    let filtered = [...alertsHistory];
+    
+    if (typeFilter !== 'all') {
+        filtered = filtered.filter(a => a.type === typeFilter);
+    }
+    
+    if (sortBy === 'money') {
+        filtered.sort((a, b) => {
+            const moneyA = parseFloat(String(a.moneyDiff).replace(/[^0-9.-]/g, '')) || 0;
+            const moneyB = parseFloat(String(b.moneyDiff).replace(/[^0-9.-]/g, '')) || 0;
+            return moneyB - moneyA;
+        });
+    } else if (sortBy === 'odds') {
+        filtered.sort((a, b) => {
+            const diffA = Math.abs((parseFloat(a.oddsNew) || 0) - (parseFloat(a.oddsOld) || 0));
+            const diffB = Math.abs((parseFloat(b.oddsNew) || 0) - (parseFloat(b.oddsOld) || 0));
+            return diffB - diffA;
+        });
+    } else {
+        filtered.sort((a, b) => b.timestamp - a.timestamp);
+    }
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="alarm-empty">Filtre kriterlerine uygun alarm yok</div>';
+        return;
+    }
+    
+    container.innerHTML = filtered.map(alarm => {
+        const timeAgo = getTimeAgo(alarm.timestamp);
+        const dateStr = new Date(alarm.timestamp).toLocaleString('tr-TR', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+        const oddsText = (alarm.oddsOld && alarm.oddsNew) 
+            ? `${parseFloat(alarm.oddsOld).toFixed(2)} → ${parseFloat(alarm.oddsNew).toFixed(2)}`
+            : '';
+        
+        return `
+            <div class="alarm-list-card" 
+                 style="--alarm-color: ${alarm.color};"
+                 onclick="goToMatchFromAlarm('${alarm.home}', '${alarm.away}')">
+                <div class="alarm-card-header">
+                    <div class="alarm-card-type">
+                        <span class="icon">${alarm.icon}</span>
+                        <span>${alarm.name}</span>
+                    </div>
+                    <div class="alarm-card-time">
+                        <div>${timeAgo}</div>
+                        <div>${dateStr}</div>
+                    </div>
+                </div>
+                <div class="alarm-card-match">${alarm.home} – ${alarm.away}</div>
+                <div class="alarm-card-details">
+                    ${alarm.moneyDiff ? `<span class="alarm-card-money">${alarm.moneyDiff}</span>` : ''}
+                    ${alarm.market ? `<span class="alarm-card-market">${alarm.market}</span>` : ''}
+                    ${oddsText ? `<span class="alarm-card-odds">${oddsText}</span>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function getTimeAgo(timestamp) {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 60) return 'Az önce';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} dk önce`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} saat önce`;
+    const days = Math.floor(hours / 24);
+    return `${days} gün önce`;
+}
+
+function goToMatchFromAlarm(home, away) {
+    closeAlarmPanel();
+    window.location.href = `/match/${encodeURIComponent(home)}/${encodeURIComponent(away)}`;
 }
 
 function openMatchModalByTeams(home, away, alarmType) {
