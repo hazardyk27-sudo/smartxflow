@@ -67,20 +67,30 @@ def log(msg: str):
 
 
 def load_config() -> Dict[str, str]:
+    possible_paths = []
+    
     if getattr(sys, 'frozen', False):
-        base_dir = os.path.dirname(sys.executable)
+        possible_paths.append(os.path.join(os.path.dirname(sys.executable), 'config.json'))
+        if hasattr(sys, '_MEIPASS'):
+            possible_paths.append(os.path.join(sys._MEIPASS, 'config.json'))
     else:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        possible_paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json'))
     
-    config_path = os.path.join(base_dir, 'config.json')
-    log(f"Config path: {config_path}")
+    possible_paths.append('config.json')
+    possible_paths.append(os.path.join(os.getcwd(), 'config.json'))
     
-    if not os.path.exists(config_path):
-        config_path = 'config.json'
-        log(f"Alternatif path deneniyor: {config_path}")
+    config_path = None
+    for path in possible_paths:
+        log(f"Config araniyor: {path}")
+        if os.path.exists(path):
+            config_path = path
+            break
     
-    if not os.path.exists(config_path):
+    if not config_path:
         log(f"ERROR: config.json bulunamadi!")
+        log(f"Aranan konumlar:")
+        for p in possible_paths:
+            log(f"  - {p}")
         log(f"Lutfen config.json dosyasini .exe ile ayni klasore koyun.")
         input("Devam etmek icin Enter'a basin...")
         sys.exit(1)
