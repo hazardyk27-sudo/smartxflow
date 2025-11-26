@@ -29,7 +29,11 @@ jobs:
 
       - name: Create config with secrets
         run: |
-          echo {"SUPABASE_URL": "${{ secrets.SUPABASE_URL }}", "SUPABASE_ANON_KEY": "${{ secrets.SUPABASE_KEY }}"} > scraper_standalone/config.json
+          python -c "import json; json.dump({'SUPABASE_URL': '${{ secrets.SUPABASE_URL }}', 'SUPABASE_ANON_KEY': '${{ secrets.SUPABASE_KEY }}'}, open('scraper_standalone/config.json', 'w'), indent=2)"
+          echo "=== config.json content ==="
+          cat scraper_standalone/config.json
+          echo ""
+          python -c "import json; json.load(open('scraper_standalone/config.json')); print('JSON validation: OK')"
         shell: bash
 
       - name: Build Scraper EXE
