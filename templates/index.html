@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=92">
+    <link rel="stylesheet" href="/static/css/style.css?v=93">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
@@ -229,14 +229,21 @@
             
             <div class="modal-body">
                 <div class="smart-money-events" id="smartMoneyEvents">
-                    <div class="events-header">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                    <div class="events-header events-header-collapsible" onclick="toggleModalSmartMoneyEvents()">
+                        <div class="events-header-left">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                            </svg>
+                            <span>Smart Money Events</span>
+                        </div>
+                        <svg class="events-chevron" id="modalEventsChevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 9l6 6 6-6"/>
                         </svg>
-                        <span>Smart Money Events</span>
                     </div>
-                    <div class="events-grid" id="matchAlarmsContainer">
-                        <div class="no-alarms">Alarm analizi yapılıyor...</div>
+                    <div class="events-grid-wrapper collapsed" id="modalEventsGridWrapper">
+                        <div class="events-grid" id="matchAlarmsContainer">
+                            <div class="no-alarms">Alarm analizi yapılıyor...</div>
+                        </div>
                     </div>
                 </div>
                 
@@ -260,6 +267,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=102"></script>
+    <script src="/static/js/app.js?v=103"></script>
 </body>
 </html>

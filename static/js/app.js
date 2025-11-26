@@ -636,11 +636,60 @@ function parseVolume(match) {
 let previousOddsData = null;
 let modalOddsData = null;
 
+let modalSmartMoneyEventsOpen = false;
+
+function toggleModalSmartMoneyEvents() {
+    const wrapper = document.getElementById('modalEventsGridWrapper');
+    const chevron = document.getElementById('modalEventsChevron');
+    modalSmartMoneyEventsOpen = !modalSmartMoneyEventsOpen;
+    
+    if (modalSmartMoneyEventsOpen) {
+        wrapper.classList.remove('collapsed');
+        wrapper.classList.add('expanded');
+        chevron.classList.add('rotated');
+    } else {
+        wrapper.classList.remove('expanded');
+        wrapper.classList.add('collapsed');
+        chevron.classList.remove('rotated');
+    }
+}
+
 function openMatchModal(index) {
     const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
     if (index >= 0 && index < dataSource.length) {
-        const match = dataSource[index];
-        window.location.href = `/match/${encodeURIComponent(match.home_team)}/${encodeURIComponent(match.away_team)}`;
+        selectedMatch = dataSource[index];
+        selectedChartMarket = currentMarket;
+        previousOddsData = null;
+        modalOddsData = selectedMatch.odds || selectedMatch.details || null;
+        
+        modalSmartMoneyEventsOpen = false;
+        const wrapper = document.getElementById('modalEventsGridWrapper');
+        const chevron = document.getElementById('modalEventsChevron');
+        if (wrapper) {
+            wrapper.classList.remove('expanded');
+            wrapper.classList.add('collapsed');
+        }
+        if (chevron) {
+            chevron.classList.remove('rotated');
+        }
+        
+        document.getElementById('modalMatchTitle').textContent = 
+            `${selectedMatch.home_team} vs ${selectedMatch.away_team}`;
+        document.getElementById('modalLeague').textContent = 
+            `${selectedMatch.league || ''} • ${selectedMatch.date || ''}`;
+        
+        updateMatchInfoCard();
+        
+        document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
+            t.classList.remove('active');
+            if (t.dataset.market === currentMarket) {
+                t.classList.add('active');
+            }
+        });
+        
+        document.getElementById('modalOverlay').classList.add('active');
+        loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
+        loadMatchAlarms(selectedMatch.home_team, selectedMatch.away_team);
     }
 }
 
@@ -2354,11 +2403,46 @@ function getTimeAgo(timestamp) {
 
 function goToMatchFromAlarm(home, away) {
     closeAlarmPanel();
-    window.location.href = `/match/${encodeURIComponent(home)}/${encodeURIComponent(away)}`;
+    openMatchModalByTeams(home, away);
 }
 
 function openMatchModalByTeams(home, away, alarmType) {
-    window.location.href = `/match/${encodeURIComponent(home)}/${encodeURIComponent(away)}`;
+    const matchIndex = matches.findIndex(m => m.home_team === home && m.away_team === away);
+    if (matchIndex >= 0) {
+        openMatchModal(matchIndex);
+    } else {
+        selectedMatch = { home_team: home, away_team: away, league: '', date: '' };
+        selectedChartMarket = currentMarket;
+        previousOddsData = null;
+        modalOddsData = null;
+        
+        modalSmartMoneyEventsOpen = false;
+        const wrapper = document.getElementById('modalEventsGridWrapper');
+        const chevron = document.getElementById('modalEventsChevron');
+        if (wrapper) {
+            wrapper.classList.remove('expanded');
+            wrapper.classList.add('collapsed');
+        }
+        if (chevron) {
+            chevron.classList.remove('rotated');
+        }
+        
+        document.getElementById('modalMatchTitle').textContent = `${home} vs ${away}`;
+        document.getElementById('modalLeague').textContent = '';
+        
+        updateMatchInfoCard();
+        
+        document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
+            t.classList.remove('active');
+            if (t.dataset.market === currentMarket) {
+                t.classList.add('active');
+            }
+        });
+        
+        document.getElementById('modalOverlay').classList.add('active');
+        loadChartWithTrends(home, away, selectedChartMarket);
+        loadMatchAlarms(home, away);
+    }
 }
 
 function getAlarmRGB(color) {
