@@ -232,7 +232,7 @@ def get_matches():
 
 
 @app.route('/api/match/<match_id>/history')
-def get_match_history(match_id):
+def get_match_history_by_id(match_id):
     market = request.args.get('market', 'moneyway_1x2')
     
     table = f"{market}_history"
@@ -250,6 +250,65 @@ def get_match_history(match_id):
         print(f"Error: {e}")
     
     return jsonify({'history': [], 'count': 0})
+
+
+@app.route('/api/match/history')
+def get_match_history():
+    """Get match history by home/away team names"""
+    home = request.args.get('home', '')
+    away = request.args.get('away', '')
+    market = request.args.get('market', 'moneyway_1x2')
+    
+    if not home or not away:
+        return jsonify({'history': [], 'count': 0})
+    
+    table = f"{market}_history"
+    url = f"{SUPABASE_URL}/rest/v1/{table}?home=ilike.{home}*&away=ilike.{away}*&select=*&order=scrapedat.asc"
+    
+    try:
+        resp = httpx.get(url, headers=get_headers(), timeout=15)
+        if resp.status_code == 200:
+            history = resp.json()
+            formatted = []
+            for row in history:
+                formatted.append({
+                    'ScrapedAt': g(row, 'scrapedat', 'ScrapedAt'),
+                    'Odds1': g(row, 'odds1', 'Odds1'),
+                    'OddsX': g(row, 'oddsx', 'OddsX'),
+                    'Odds2': g(row, 'odds2', 'Odds2'),
+                    'Pct1': g(row, 'pct1', 'Pct1'),
+                    'PctX': g(row, 'pctx', 'PctX'),
+                    'Pct2': g(row, 'pct2', 'Pct2'),
+                    'Amt1': g(row, 'amt1', 'Amt1'),
+                    'AmtX': g(row, 'amtx', 'AmtX'),
+                    'Amt2': g(row, 'amt2', 'Amt2'),
+                    'Volume': g(row, 'volume', 'Volume'),
+                    'Under': g(row, 'under', 'Under'),
+                    'Over': g(row, 'over', 'Over'),
+                    'Line': g(row, 'line', 'Line'),
+                    'OddsYes': g(row, 'yes', 'Yes', 'oddsyes', 'OddsYes'),
+                    'OddsNo': g(row, 'no', 'No', 'oddsno', 'OddsNo'),
+                    'Trend1': g(row, 'trend1', 'Trend1'),
+                    'TrendX': g(row, 'trendx', 'TrendX'),
+                    'Trend2': g(row, 'trend2', 'Trend2')
+                })
+            return jsonify({
+                'history': formatted,
+                'count': len(formatted)
+            })
+    except Exception as e:
+        print(f"Error fetching history: {e}")
+    
+    return jsonify({'history': [], 'count': 0})
+
+
+@app.route('/api/match/alarms')
+def get_match_alarms():
+    """Get alarms for a specific match"""
+    home = request.args.get('home', '')
+    away = request.args.get('away', '')
+    
+    return jsonify({'alarms': [], 'count': 0})
 
 
 @app.route('/api/alarms')
