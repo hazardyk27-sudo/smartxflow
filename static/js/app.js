@@ -2214,7 +2214,7 @@ async function loadSmartMoneyTicker() {
         
         tickerContent.style.animation = 'none';
         tickerContent.offsetHeight;
-        const duration = Math.max(25, data.alarms.length * 4);
+        const duration = Math.max(18, data.alarms.length * 2.5);
         tickerContent.style.animation = `ticker-scroll ${duration}s linear infinite`;
         
     } catch (error) {
