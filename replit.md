@@ -138,6 +138,7 @@ Environment variables:
 - **SCRAPER'A DOKUNMA** - scraper_standalone/ klasorune ve build_scraper.yml'e dokunma, zaten calisiyor
 - **SADECE "push et" DENDIGINDE** push yap, otomatik push yapma
 - **SADECE UYGULAMA DOSYALARI** push et (app.py, templates, static, core, services)
+- **PUSH KOMUTU:** `git push --force` kullan (conflict varsa)
 
 ## Son Guncellemeler
 - **26 Kasim 2025:** Standalone Scraper mimarisi - PC'de çalışan bağımsız .exe
