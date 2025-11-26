@@ -59,18 +59,11 @@
                 <button class="chart-tab" data-market="dropping_btts">Drop BTTS</button>
             </div>
             
+            <div class="chart-legend-filters" id="chartLegendFilters"></div>
+            
             <div class="chart-wrapper-full">
                 <canvas id="oddsChart"></canvas>
             </div>
-        </div>
-
-        <div class="export-actions">
-            <button class="btn btn-secondary" onclick="exportPNG()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
-                </svg>
-                PNG İndir
-            </button>
         </div>
     </main>
 
@@ -81,6 +74,10 @@
         let oddsChart = null;
         let matchData = null;
         let modalOddsData = null;
+        let chartVisibleSeries = {};
+        let chartTimeRange = '5min';
+        let chartViewMode = 'percent';
+        let currentChartHistoryData = [];
 
         document.addEventListener('DOMContentLoaded', function() {
             loadMatchData();
@@ -92,9 +89,9 @@
             try {
                 const response = await fetch('/api/matches?market=' + currentMarket);
                 const data = await response.json();
-                matchData = data.matches && data.matches.find(m => m.home_team === matchHome && m.away_team === matchAway);
+                matchData = data.find ? data.find(m => m.home_team === matchHome && m.away_team === matchAway) : (data.matches && data.matches.find(m => m.home_team === matchHome && m.away_team === matchAway));
                 if (matchData) {
-                    document.getElementById('matchMeta').innerHTML = '<span class="match-league">' + (matchData.league || '') + '</span><span class="match-date">' + (matchData.start_time || '') + '</span>';
+                    document.getElementById('matchMeta').innerHTML = '<span class="match-league">' + (matchData.league || '') + '</span><span class="match-date">' + (matchData.start_time || matchData.date || '') + '</span>';
                     loadMatchHistory(currentMarket);
                     renderMatchInfoCard();
                 }
@@ -141,7 +138,9 @@
                 const data = await response.json();
                 if (data.history && data.history.length > 0) {
                     modalOddsData = data.history[data.history.length - 1];
+                    currentChartHistoryData = data.history;
                     renderChart(data.history, market);
+                    renderChartLegendFilters(market);
                 }
             } catch (error) { console.error('[Match History] Error:', error); }
         }
@@ -158,22 +157,105 @@
             card.innerHTML = html;
         }
 
+        function renderChartLegendFilters(market) {
+            const container = document.getElementById('chartLegendFilters');
+            if (!container) return;
+            
+            const legendLabels = {
+                'moneyway_1x2': [{key:'1',label:'1',color:'#3b82f6'},{key:'X',label:'X',color:'#22c55e'},{key:'2',label:'2',color:'#eab308'}],
+                'moneyway_ou25': [{key:'Under',label:'Under 2.5',color:'#3b82f6'},{key:'Over',label:'Over 2.5',color:'#22c55e'}],
+                'moneyway_btts': [{key:'Yes',label:'BTTS Yes',color:'#22c55e'},{key:'No',label:'BTTS No',color:'#ef4444'}],
+                'dropping_1x2': [{key:'1',label:'1',color:'#3b82f6'},{key:'X',label:'X',color:'#22c55e'},{key:'2',label:'2',color:'#eab308'}],
+                'dropping_ou25': [{key:'Under',label:'Under 2.5',color:'#3b82f6'},{key:'Over',label:'Over 2.5',color:'#22c55e'}],
+                'dropping_btts': [{key:'Yes',label:'BTTS Yes',color:'#22c55e'},{key:'No',label:'BTTS No',color:'#ef4444'}]
+            };
+            
+            const items = legendLabels[market] || [];
+            const timeRanges = [{key:'5min',label:'5 dk'},{key:'10min',label:'10 dk'},{key:'30min',label:'30 dk'},{key:'1hour',label:'1 saat'},{key:'6hour',label:'6 saat'},{key:'12hour',label:'12 saat'},{key:'1day',label:'1 gün'}];
+            
+            const seriesButtons = items.map(item => {
+                const stateKey = market + '_' + item.key;
+                const isActive = chartVisibleSeries[stateKey] !== false;
+                return '<button class="chart-legend-btn ' + (isActive?'active':'inactive') + '" style="--legend-color:' + item.color + ';" onclick="toggleChartSeries(\'' + market + '\',\'' + item.key + '\',this)"><span class="legend-color-dot"></span><span>' + item.label + '</span></button>';
+            }).join('');
+            
+            const timeButtons = timeRanges.map(tr => '<button class="chart-time-btn ' + (chartTimeRange===tr.key?'active':'') + '" data-range="' + tr.key + '" onclick="setChartTimeRange(\'' + tr.key + '\')">' + tr.label + '</button>').join('');
+            
+            const isMoneyway = market.startsWith('moneyway');
+            const viewModeButtons = isMoneyway ? '<div class="chart-filter-group view-mode-filters"><button class="chart-view-btn ' + (chartViewMode==='percent'?'active':'') + '" onclick="setChartViewMode(\'percent\')">% Yüzde</button><button class="chart-view-btn ' + (chartViewMode==='money'?'active':'') + '" onclick="setChartViewMode(\'money\')">£ Para</button></div><div class="chart-filter-divider"></div>' : '';
+            
+            container.innerHTML = viewModeButtons + '<div class="chart-filter-group series-filters">' + seriesButtons + '</div><div class="chart-filter-divider"></div><div class="chart-filter-group time-filters">' + timeButtons + '</div><div class="chart-filter-divider"></div><div class="chart-export-btns"><button class="chart-export-btn" onclick="exportChartPNG()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>PNG</button><button class="chart-export-btn" onclick="exportChartCSV()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>CSV</button></div>';
+        }
+
+        function toggleChartSeries(market, key, btn) {
+            const stateKey = market + '_' + key;
+            chartVisibleSeries[stateKey] = chartVisibleSeries[stateKey] === false ? true : false;
+            btn.classList.toggle('active');
+            btn.classList.toggle('inactive');
+            renderChart(currentChartHistoryData, market);
+        }
+
+        function setChartTimeRange(range) {
+            chartTimeRange = range;
+            document.querySelectorAll('.chart-time-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.chart-time-btn[data-range="' + range + '"]').classList.add('active');
+            renderChart(currentChartHistoryData, currentMarket);
+        }
+
+        function setChartViewMode(mode) {
+            chartViewMode = mode;
+            document.querySelectorAll('.chart-view-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.chart-view-btn[onclick*="' + mode + '"]').classList.add('active');
+            renderChart(currentChartHistoryData, currentMarket);
+        }
+
+        function getTimeRangeMs(range) {
+            const ranges = {'5min':300000,'10min':600000,'30min':1800000,'1hour':3600000,'6hour':21600000,'12hour':43200000,'1day':86400000};
+            return ranges[range] || 300000;
+        }
+
         function renderChart(history, market) {
             if (oddsChart) oddsChart.destroy();
             const ctx = document.getElementById('oddsChart');
-            const labels = history.map(h => new Date(h.ScrapedAt).toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'}));
+            
+            const bucketMs = getTimeRangeMs(chartTimeRange);
+            const bucketedData = {};
+            history.forEach(h => {
+                const ts = new Date(h.ScrapedAt).getTime();
+                const bucket = Math.floor(ts / bucketMs) * bucketMs;
+                if (!bucketedData[bucket]) bucketedData[bucket] = h;
+            });
+            const bucketedHistory = Object.keys(bucketedData).sort((a,b)=>a-b).map(k => bucketedData[k]);
+            
+            const labels = bucketedHistory.map(h => new Date(h.ScrapedAt).toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'}));
             let datasets = [];
+            
+            const isMoneyway = market.startsWith('moneyway');
+            const usePct = chartViewMode === 'percent';
+            
             if (market.includes('1x2')) {
-                datasets = [{label:'Home',data:history.map(h=>parseFloat(h.Odds1)||0),borderColor:'#4ade80',tension:0.3,pointRadius:3},{label:'Draw',data:history.map(h=>parseFloat(h.OddsX)||0),borderColor:'#facc15',tension:0.3,pointRadius:3},{label:'Away',data:history.map(h=>parseFloat(h.Odds2)||0),borderColor:'#f87171',tension:0.3,pointRadius:3}];
+                const show1 = chartVisibleSeries[market+'_1'] !== false;
+                const showX = chartVisibleSeries[market+'_X'] !== false;
+                const show2 = chartVisibleSeries[market+'_2'] !== false;
+                if (show1) datasets.push({label:'1',data:bucketedHistory.map(h=>isMoneyway?(usePct?parseFloat(h.Pct1)||0:parseFloat(h.Amt1)||0):parseFloat(h.Odds1)||0),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.1)',tension:0.3,pointRadius:3,fill:false});
+                if (showX) datasets.push({label:'X',data:bucketedHistory.map(h=>isMoneyway?(usePct?parseFloat(h.PctX)||0:parseFloat(h.AmtX)||0):parseFloat(h.OddsX)||0),borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.1)',tension:0.3,pointRadius:3,fill:false});
+                if (show2) datasets.push({label:'2',data:bucketedHistory.map(h=>isMoneyway?(usePct?parseFloat(h.Pct2)||0:parseFloat(h.Amt2)||0):parseFloat(h.Odds2)||0),borderColor:'#eab308',backgroundColor:'rgba(234,179,8,0.1)',tension:0.3,pointRadius:3,fill:false});
             } else if (market.includes('ou25')) {
-                datasets = [{label:'Over',data:history.map(h=>parseFloat(h.Over)||0),borderColor:'#4ade80',tension:0.3,pointRadius:3},{label:'Under',data:history.map(h=>parseFloat(h.Under)||0),borderColor:'#f87171',tension:0.3,pointRadius:3}];
+                const showUnder = chartVisibleSeries[market+'_Under'] !== false;
+                const showOver = chartVisibleSeries[market+'_Over'] !== false;
+                if (showUnder) datasets.push({label:'Under 2.5',data:bucketedHistory.map(h=>isMoneyway?(usePct?parseFloat(h.PctUnder)||0:parseFloat(h.AmtUnder)||0):parseFloat(h.Under)||0),borderColor:'#3b82f6',tension:0.3,pointRadius:3,fill:false});
+                if (showOver) datasets.push({label:'Over 2.5',data:bucketedHistory.map(h=>isMoneyway?(usePct?parseFloat(h.PctOver)||0:parseFloat(h.AmtOver)||0):parseFloat(h.Over)||0),borderColor:'#22c55e',tension:0.3,pointRadius:3,fill:false});
             } else {
-                datasets = [{label:'Yes',data:history.map(h=>parseFloat(h.OddsYes)||0),borderColor:'#4ade80',tension:0.3,pointRadius:3},{label:'No',data:history.map(h=>parseFloat(h.OddsNo)||0),borderColor:'#f87171',tension:0.3,pointRadius:3}];
+                const showYes = chartVisibleSeries[market+'_Yes'] !== false;
+                const showNo = chartVisibleSeries[market+'_No'] !== false;
+                if (showYes) datasets.push({label:'BTTS Yes',data:bucketedHistory.map(h=>isMoneyway?(usePct?parseFloat(h.PctYes)||0:parseFloat(h.AmtYes)||0):parseFloat(h.OddsYes)||0),borderColor:'#22c55e',tension:0.3,pointRadius:3,fill:false});
+                if (showNo) datasets.push({label:'BTTS No',data:bucketedHistory.map(h=>isMoneyway?(usePct?parseFloat(h.PctNo)||0:parseFloat(h.AmtNo)||0):parseFloat(h.OddsNo)||0),borderColor:'#ef4444',tension:0.3,pointRadius:3,fill:false});
             }
-            oddsChart = new Chart(ctx, {type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:true,position:'top',labels:{color:'#c9d1d9'}}},scales:{x:{grid:{color:'rgba(48,54,61,0.5)'},ticks:{color:'#8b949e'}},y:{grid:{color:'rgba(48,54,61,0.5)'},ticks:{color:'#8b949e'}}}}});
+            
+            oddsChart = new Chart(ctx, {type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(48,54,61,0.5)'},ticks:{color:'#8b949e',maxRotation:45}},y:{grid:{color:'rgba(48,54,61,0.5)'},ticks:{color:'#8b949e'}}},elements:{point:{radius:3,hoverRadius:6,borderWidth:2},line:{borderWidth:3}}}});
         }
 
-        async function exportPNG() {
+        async function exportChartPNG() {
             const content = document.querySelector('.match-detail-content');
             try {
                 const canvas = await html2canvas(content, {backgroundColor:'#0d1117',scale:2});
@@ -182,6 +264,20 @@
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             } catch (e) { console.error('[PNG Export] Error:', e); }
+        }
+
+        function exportChartCSV() {
+            if (!currentChartHistoryData || currentChartHistoryData.length === 0) return;
+            const headers = Object.keys(currentChartHistoryData[0]);
+            let csv = headers.join(',') + '\n';
+            currentChartHistoryData.forEach(row => {
+                csv += headers.map(h => '"' + (row[h] || '') + '"').join(',') + '\n';
+            });
+            const blob = new Blob([csv], {type:'text/csv'});
+            const link = document.createElement('a');
+            link.download = matchHome + '_vs_' + matchAway + '_' + currentMarket + '.csv';
+            link.href = URL.createObjectURL(blob);
+            link.click();
         }
     </script>
 </body>
