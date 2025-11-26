@@ -3,12 +3,6 @@ name: Build SmartXFlow App
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'app.py'
-      - 'templates/**'
-      - 'static/**'
-      - 'core/**'
-      - 'services/**'
   workflow_dispatch:
 
 jobs:
@@ -32,14 +26,22 @@ jobs:
         shell: cmd
 
       - name: Create embedded config
+        shell: python
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
-          echo EMBEDDED_SUPABASE_URL = "${{ secrets.SUPABASE_URL }}" > embedded_config.py
-          echo EMBEDDED_SUPABASE_KEY = "${{ secrets.SUPABASE_KEY }}" >> embedded_config.py
-        shell: cmd
+          import os
+          url = os.environ.get('SUPABASE_URL', '')
+          key = os.environ.get('SUPABASE_KEY', '')
+          with open('embedded_config.py', 'w') as f:
+              f.write(f'EMBEDDED_SUPABASE_URL = "{url}"\n')
+              f.write(f'EMBEDDED_SUPABASE_KEY = "{key}"\n')
+          print(f"Config created: URL={url[:30]}...")
 
-      - name: Build SmartXFlow EXE
+      - name: Build SmartXFlow EXE (console mode for debugging)
         run: |
-          pyinstaller --onefile --noconsole --name SmartXFlow --add-data "templates;templates" --add-data "static;static" --add-data "core;core" --add-data "services;services" --add-data "embedded_config.py;." --hidden-import=flask --hidden-import=jinja2 --hidden-import=httpx --collect-all flask app.py
+          pyinstaller --onefile --console --name SmartXFlow --add-data "templates;templates" --add-data "static;static" --add-data "core;core" --add-data "services;services" --add-data "embedded_config.py;." --hidden-import=flask --hidden-import=jinja2 --hidden-import=httpx --hidden-import=werkzeug --collect-all flask app.py
         shell: cmd
 
       - name: List output
