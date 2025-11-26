@@ -1,4 +1,4 @@
-# SmartXFlow – Odds & Volume Monitor
+# SmartXFlow Alarm V1.01 – Odds & Volume Monitor
 
 ## Proje Ozeti
 Windows masaustu uygulamasi - arbworld.net'ten Moneyway ve Dropping Odds verilerini cekip, zaman serisi olarak saklayan ve grafiksel analiz sunan profesyonel bahis analiz araci.
@@ -7,7 +7,7 @@ Windows masaustu uygulamasi - arbworld.net'ten Moneyway ve Dropping Odds veriler
 
 ### YENİ MİMARİ (26 Kasım 2025)
 ```
-┌─ PC (SmartXFlowScraper.exe) ────────────────────┐
+┌─ PC (SmartXFlow Alarm V1.01Scraper.exe) ────────────────────┐
 │  Standalone Scraper (10dk)                       │
 │  arbworld.net → Supabase (direkt yazma)          │
 │  Windows'ta arkaplanda çalışır                   │
@@ -59,8 +59,8 @@ Windows masaustu uygulamasi - arbworld.net'ten Moneyway ve Dropping Odds veriler
 ├── templates/
 ├── static/
 ├── .github/workflows/
-│   ├── build.yml              # SmartXFlow.exe (Web UI)
-│   └── build_scraper.yml      # SmartXFlowScraper.exe
+│   ├── build.yml              # SmartXFlow Alarm V1.01.exe (Web UI)
+│   └── build_scraper.yml      # SmartXFlow Alarm V1.01Scraper.exe
 └── replit.md
 ```
 
@@ -86,10 +86,10 @@ CREATE TABLE dropping_btts_history AS SELECT *, '' AS ScrapedAt FROM dropping_bt
 ```
 
 ### 2. PC Scraper Kurulumu
-1. GitHub Actions'tan `SmartXFlowScraper-Windows-EXE.zip` indir
+1. GitHub Actions'tan `SmartXFlow Alarm V1.01Scraper-Windows-EXE.zip` indir
 2. Zip'i aç
 3. `config.json` dosyasını düzenle (Supabase URL + Key)
-4. `SmartXFlowScraper.exe` çalıştır
+4. `SmartXFlow Alarm V1.01Scraper.exe` çalıştır
 5. Pencereyi minimize et (kapatma!)
 
 ### 3. Replit Ayarları
