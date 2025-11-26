@@ -1,10 +1,14 @@
-name: Build Windows EXE
+name: Build SmartXFlow App
 
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    paths:
+      - 'app.py'
+      - 'templates/**'
+      - 'static/**'
+      - 'core/**'
+      - 'services/**'
   workflow_dispatch:
 
 jobs:
@@ -23,21 +27,38 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install flask requests httpx pytz beautifulsoup4
           pip install pyinstaller==6.3.0
-          pip install pythonnet clr-loader
         shell: cmd
 
-      - name: Create embedded config
+      - name: Create embedded config with Supabase credentials
         run: |
-          echo # Auto-generated config > embedded_config.py
-          echo EMBEDDED_COOKIE = '' >> embedded_config.py
-          echo EMBEDDED_SUPABASE_URL = '' >> embedded_config.py
-          echo EMBEDDED_SUPABASE_KEY = '' >> embedded_config.py
-        shell: cmd
+          python -c "
+import json, re
+url = '${{ secrets.SUPABASE_URL }}'
+key = '${{ secrets.SUPABASE_KEY }}'
+m = re.search(r'([a-z]{20,})', url)
+correct_url = f'https://{m.group(1)}.supabase.co' if m else url
+with open('embedded_config.py', 'w') as f:
+    f.write(f'EMBEDDED_SUPABASE_URL = \"{correct_url}\"\n')
+    f.write(f'EMBEDDED_SUPABASE_KEY = \"{key}\"\n')
+print(f'Config created with URL: {correct_url}')
+"
+        shell: bash
 
-      - name: Build with PyInstaller
-        run: pyinstaller --onefile --noconsole --name SmartXFlow --add-data "scraper;scraper" --add-data "core;core" --add-data "services;services" --add-data "templates;templates" --add-data "static;static" --add-data "embedded_config.py;." --hidden-import=flask --hidden-import=jinja2 --hidden-import=webview --hidden-import=clr_loader --hidden-import=pythonnet --collect-all webview main.py
+      - name: Build SmartXFlow EXE
+        run: |
+          pyinstaller --onefile --noconsole --name SmartXFlow ^
+            --add-data "templates;templates" ^
+            --add-data "static;static" ^
+            --add-data "core;core" ^
+            --add-data "services;services" ^
+            --add-data "embedded_config.py;." ^
+            --hidden-import=flask ^
+            --hidden-import=jinja2 ^
+            --hidden-import=httpx ^
+            --collect-all flask ^
+            app.py
         shell: cmd
 
       - name: List output
