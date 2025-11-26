@@ -31,34 +31,15 @@ jobs:
           pip install pyinstaller==6.3.0
         shell: cmd
 
-      - name: Create embedded config with Supabase credentials
+      - name: Create embedded config
         run: |
-          python -c "
-import json, re
-url = '${{ secrets.SUPABASE_URL }}'
-key = '${{ secrets.SUPABASE_KEY }}'
-m = re.search(r'([a-z]{20,})', url)
-correct_url = f'https://{m.group(1)}.supabase.co' if m else url
-with open('embedded_config.py', 'w') as f:
-    f.write(f'EMBEDDED_SUPABASE_URL = \"{correct_url}\"\n')
-    f.write(f'EMBEDDED_SUPABASE_KEY = \"{key}\"\n')
-print(f'Config created with URL: {correct_url}')
-"
-        shell: bash
+          echo EMBEDDED_SUPABASE_URL = "${{ secrets.SUPABASE_URL }}" > embedded_config.py
+          echo EMBEDDED_SUPABASE_KEY = "${{ secrets.SUPABASE_KEY }}" >> embedded_config.py
+        shell: cmd
 
       - name: Build SmartXFlow EXE
         run: |
-          pyinstaller --onefile --noconsole --name SmartXFlow ^
-            --add-data "templates;templates" ^
-            --add-data "static;static" ^
-            --add-data "core;core" ^
-            --add-data "services;services" ^
-            --add-data "embedded_config.py;." ^
-            --hidden-import=flask ^
-            --hidden-import=jinja2 ^
-            --hidden-import=httpx ^
-            --collect-all flask ^
-            app.py
+          pyinstaller --onefile --noconsole --name SmartXFlow --add-data "templates;templates" --add-data "static;static" --add-data "core;core" --add-data "services;services" --add-data "embedded_config.py;." --hidden-import=flask --hidden-import=jinja2 --hidden-import=httpx --collect-all flask app.py
         shell: cmd
 
       - name: List output
