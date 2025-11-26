@@ -1,0 +1,70 @@
+name: Build SmartXFlow Alarm V1.01 Desktop App
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'desktop_app/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r desktop_app/requirements.txt
+          pip install pyinstaller==6.3.0
+        shell: cmd
+
+      - name: Create config with secrets
+        run: |
+          python -c "import json,re; url='${{ secrets.SUPABASE_URL }}'; key='${{ secrets.SUPABASE_KEY }}'; m=re.search(r'([a-z]{20,})',url); correct_url=f'https://{m.group(1)}.supabase.co' if m else url; print(f'Corrected URL: {correct_url}'); json.dump({'SUPABASE_URL':correct_url,'SUPABASE_ANON_KEY':key},open('desktop_app/config.json','w'),indent=2)"
+          echo "=== config.json content ==="
+          cat desktop_app/config.json
+        shell: bash
+
+      - name: Build Desktop App EXE
+        run: |
+          cd desktop_app
+          pyinstaller --onefile --windowed --name "SmartXFlowAlarmV1.01" --add-data "config.json;." smartxflow_app.py
+        shell: cmd
+
+      - name: Copy config to dist
+        run: |
+          copy desktop_app\config.json desktop_app\dist\config.json
+        shell: cmd
+
+      - name: Create README
+        run: |
+          echo # SmartXFlow Alarm V1.01 - Desktop App > desktop_app\dist\README.txt
+          echo. >> desktop_app\dist\README.txt
+          echo Cift tiklayarak calistirin. >> desktop_app\dist\README.txt
+          echo Uygulama Supabase'den verileri okur ve gosterir. >> desktop_app\dist\README.txt
+          echo. >> desktop_app\dist\README.txt
+          echo Scraper ayri calisir - bu sadece goruntuleyici. >> desktop_app\dist\README.txt
+        shell: cmd
+
+      - name: List output
+        run: dir desktop_app\dist
+        shell: cmd
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartXFlowAlarmV1.01-Desktop-Windows-EXE
+          path: |
+            desktop_app/dist/SmartXFlowAlarmV1.01.exe
+            desktop_app/dist/config.json
+            desktop_app/dist/README.txt
+          retention-days: 30
