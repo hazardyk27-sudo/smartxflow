@@ -1,152 +1,276 @@
 """
 SmartXFlow Supabase Client
 Handles database operations for matches and market snapshots
+Uses REST API directly for better compatibility
 """
 
 import os
 import sqlite3
+import httpx
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
-
-_SUPABASE_AVAILABLE = False
-_supabase_client = None
-
-try:
-    from supabase import create_client
-    _SUPABASE_AVAILABLE = True
-except ImportError:
-    pass
+import json
 
 
-def get_supabase_credentials():
-    """Get Supabase credentials from embedded config or environment"""
-    url = None
-    key = None
+class SupabaseClient:
+    """REST API based Supabase client"""
     
-    try:
-        import embedded_config
-        url = getattr(embedded_config, 'EMBEDDED_SUPABASE_URL', '')
-        key = getattr(embedded_config, 'EMBEDDED_SUPABASE_KEY', '')
-    except (ImportError, AttributeError):
-        pass
+    def __init__(self):
+        self.url = None
+        self.key = None
+        self._load_credentials()
     
-    if not url:
-        url = os.getenv('SUPABASE_URL', '')
-    if not key:
-        key = os.getenv('SUPABASE_ANON_KEY', '') or os.getenv('SUPABASE_KEY', '')
-    
-    return url, key
-
-
-def get_supabase_client():
-    """Get or create Supabase client singleton"""
-    global _supabase_client
-    
-    if not _SUPABASE_AVAILABLE:
-        return None
-    
-    if _supabase_client is None:
-        url, key = get_supabase_credentials()
-        if url and key:
-            try:
-                _supabase_client = create_client(url, key)
-            except Exception as e:
-                print(f"Supabase connection error: {e}")
-                return None
-    
-    return _supabase_client
-
-
-def save_match_if_not_exists(match_data: Dict[str, Any]) -> Optional[int]:
-    """
-    Save match to Supabase if it doesn't exist.
-    Returns match ID.
-    """
-    client = get_supabase_client()
-    if not client:
-        return None
-    
-    try:
-        existing = client.table('matches').select('id').eq(
-            'external_match_id', match_data.get('external_match_id', '')
-        ).execute()
+    def _load_credentials(self):
+        try:
+            import embedded_config
+            self.url = getattr(embedded_config, 'EMBEDDED_SUPABASE_URL', '')
+            self.key = getattr(embedded_config, 'EMBEDDED_SUPABASE_KEY', '')
+        except (ImportError, AttributeError):
+            pass
         
-        if existing.data:
-            return existing.data[0]['id']
-        
-        result = client.table('matches').insert({
-            'external_match_id': match_data.get('external_match_id', ''),
-            'league': match_data.get('league', ''),
-            'home_team': match_data.get('home_team', ''),
-            'away_team': match_data.get('away_team', ''),
-            'start_time': match_data.get('start_time')
-        }).execute()
-        
-        if result.data:
-            return result.data[0]['id']
-        return None
-        
-    except Exception as e:
-        print(f"Error saving match: {e}")
-        return None
-
-
-def save_snapshots(snapshots: List[Dict[str, Any]]) -> bool:
-    """
-    Bulk insert market snapshots to Supabase.
-    """
-    client = get_supabase_client()
-    if not client or not snapshots:
-        return False
+        if not self.url:
+            self.url = os.getenv('SUPABASE_URL', '')
+        if not self.key:
+            self.key = os.getenv('SUPABASE_ANON_KEY', '') or os.getenv('SUPABASE_KEY', '')
     
-    try:
-        client.table('market_snapshots').insert(snapshots).execute()
-        return True
-    except Exception as e:
-        print(f"Error saving snapshots: {e}")
-        return False
-
-
-def get_matches(limit: int = 100, days_back: int = 7) -> List[Dict[str, Any]]:
-    """Get recent matches from Supabase"""
-    client = get_supabase_client()
-    if not client:
-        return []
+    @property
+    def is_available(self) -> bool:
+        return bool(self.url and self.key)
     
-    try:
-        cutoff = (datetime.now() - timedelta(days=days_back)).isoformat()
-        result = client.table('matches').select('*').gte(
-            'created_at', cutoff
-        ).order('created_at', desc=True).limit(limit).execute()
-        return result.data or []
-    except Exception as e:
-        print(f"Error fetching matches: {e}")
-        return []
-
-
-def get_snapshots_for_match(
-    match_id: int,
-    source: str = None,
-    market: str = None
-) -> List[Dict[str, Any]]:
-    """Get market snapshots for a specific match"""
-    client = get_supabase_client()
-    if not client:
-        return []
+    def _headers(self) -> Dict[str, str]:
+        return {
+            "apikey": self.key,
+            "Authorization": f"Bearer {self.key}",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation"
+        }
     
-    try:
-        query = client.table('market_snapshots').select('*').eq('match_id', match_id)
+    def _rest_url(self, table: str) -> str:
+        return f"{self.url}/rest/v1/{table}"
+    
+    def get_or_create_match(self, home_team: str, away_team: str, league: str, match_date: str) -> Optional[int]:
+        if not self.is_available:
+            return None
         
-        if source:
-            query = query.eq('source', source)
-        if market:
-            query = query.eq('market', market)
+        try:
+            url = f"{self._rest_url('matches')}?home_team=eq.{home_team}&away_team=eq.{away_team}&match_date=eq.{match_date}&select=id"
+            resp = httpx.get(url, headers=self._headers(), timeout=10)
+            
+            if resp.status_code == 200 and resp.json():
+                return resp.json()[0]['id']
+            
+            data = {
+                "home_team": home_team,
+                "away_team": away_team,
+                "league": league,
+                "match_date": match_date
+            }
+            resp = httpx.post(self._rest_url('matches'), headers=self._headers(), json=data, timeout=10)
+            
+            if resp.status_code in [200, 201] and resp.json():
+                return resp.json()[0]['id']
+            
+            return None
+        except Exception as e:
+            print(f"Error get_or_create_match: {e}")
+            return None
+    
+    def save_snapshot(self, match_id: int, market: str, data: Dict[str, Any]) -> bool:
+        if not self.is_available:
+            return False
         
-        result = query.order('created_at').execute()
-        return result.data or []
-    except Exception as e:
-        print(f"Error fetching snapshots: {e}")
-        return []
+        try:
+            snapshot = {
+                "match_id": match_id,
+                "market": market,
+                "volume": data.get('Volume', data.get('volume', ''))
+            }
+            
+            if market in ['moneyway_1x2', 'dropping_1x2']:
+                snapshot.update({
+                    "odds_1": self._parse_numeric(data.get('Odds1')),
+                    "odds_x": self._parse_numeric(data.get('OddsX')),
+                    "odds_2": self._parse_numeric(data.get('Odds2')),
+                    "pct_1": data.get('Pct1', ''),
+                    "amt_1": data.get('Amt1', ''),
+                    "pct_x": data.get('PctX', ''),
+                    "amt_x": data.get('AmtX', ''),
+                    "pct_2": data.get('Pct2', ''),
+                    "amt_2": data.get('Amt2', ''),
+                    "trend_1": data.get('Trend1', ''),
+                    "trend_x": data.get('TrendX', ''),
+                    "trend_2": data.get('Trend2', '')
+                })
+            elif market in ['moneyway_ou25', 'dropping_ou25']:
+                snapshot.update({
+                    "under_odds": self._parse_numeric(data.get('Under')),
+                    "over_odds": self._parse_numeric(data.get('Over')),
+                    "line": data.get('Line', '2.5'),
+                    "pct_under": data.get('PctUnder', ''),
+                    "amt_under": data.get('AmtUnder', ''),
+                    "pct_over": data.get('PctOver', ''),
+                    "amt_over": data.get('AmtOver', ''),
+                    "trend_under": data.get('TrendUnder', ''),
+                    "trend_over": data.get('TrendOver', '')
+                })
+            elif market in ['moneyway_btts', 'dropping_btts']:
+                snapshot.update({
+                    "yes_odds": self._parse_numeric(data.get('OddsYes', data.get('Yes'))),
+                    "no_odds": self._parse_numeric(data.get('OddsNo', data.get('No'))),
+                    "pct_yes": data.get('PctYes', ''),
+                    "amt_yes": data.get('AmtYes', ''),
+                    "pct_no": data.get('PctNo', ''),
+                    "amt_no": data.get('AmtNo', ''),
+                    "trend_yes": data.get('TrendYes', ''),
+                    "trend_no": data.get('TrendNo', '')
+                })
+            
+            resp = httpx.post(self._rest_url('odds_snapshots'), headers=self._headers(), json=snapshot, timeout=10)
+            return resp.status_code in [200, 201]
+        except Exception as e:
+            print(f"Error save_snapshot: {e}")
+            return False
+    
+    def save_alert(self, match_id: int, alert_type: str, market: str, side: str, 
+                   money_diff: float = 0, odds_from: float = None, odds_to: float = None,
+                   details: Dict = None) -> bool:
+        if not self.is_available:
+            return False
+        
+        try:
+            data = {
+                "match_id": match_id,
+                "alert_type": alert_type,
+                "market": market,
+                "side": side,
+                "money_diff": money_diff,
+                "odds_from": odds_from,
+                "odds_to": odds_to,
+                "details": json.dumps(details) if details else None,
+                "is_active": True
+            }
+            resp = httpx.post(self._rest_url('alerts'), headers=self._headers(), json=data, timeout=10)
+            return resp.status_code in [200, 201]
+        except Exception as e:
+            print(f"Error save_alert: {e}")
+            return False
+    
+    def get_all_matches(self, limit: int = 100) -> List[Dict[str, Any]]:
+        if not self.is_available:
+            return []
+        
+        try:
+            url = f"{self._rest_url('matches')}?select=*&order=created_at.desc&limit={limit}"
+            resp = httpx.get(url, headers=self._headers(), timeout=10)
+            if resp.status_code == 200:
+                rows = resp.json()
+                return [self._match_to_legacy(r) for r in rows]
+            return []
+        except Exception as e:
+            print(f"Error get_all_matches: {e}")
+            return []
+    
+    def _match_to_legacy(self, row: Dict) -> Dict[str, Any]:
+        return {
+            'home_team': row.get('home_team', ''),
+            'away_team': row.get('away_team', ''),
+            'league': row.get('league', ''),
+            'date': row.get('match_date', ''),
+            'display': f"{row.get('home_team', '')} vs {row.get('away_team', '')}"
+        }
+    
+    def get_match_history(self, home_team: str, away_team: str, market: str) -> List[Dict[str, Any]]:
+        if not self.is_available:
+            return []
+        
+        try:
+            match_url = f"{self._rest_url('matches')}?home_team=eq.{home_team}&away_team=eq.{away_team}&select=id"
+            resp = httpx.get(match_url, headers=self._headers(), timeout=10)
+            
+            if resp.status_code != 200 or not resp.json():
+                return []
+            
+            match_id = resp.json()[0]['id']
+            
+            snap_url = f"{self._rest_url('odds_snapshots')}?match_id=eq.{match_id}&market=eq.{market}&select=*&order=scraped_at.asc"
+            resp = httpx.get(snap_url, headers=self._headers(), timeout=10)
+            
+            if resp.status_code == 200:
+                snapshots = resp.json()
+                return [self._snapshot_to_legacy(s, market) for s in snapshots]
+            return []
+        except Exception as e:
+            print(f"Error get_match_history: {e}")
+            return []
+    
+    def get_active_alerts(self, limit: int = 50) -> List[Dict[str, Any]]:
+        if not self.is_available:
+            return []
+        
+        try:
+            url = f"{self._rest_url('alerts')}?is_active=eq.true&select=*,matches(home_team,away_team,league)&order=created_at.desc&limit={limit}"
+            resp = httpx.get(url, headers=self._headers(), timeout=10)
+            if resp.status_code == 200:
+                return resp.json()
+            return []
+        except Exception as e:
+            print(f"Error get_active_alerts: {e}")
+            return []
+    
+    def _parse_numeric(self, val: Any) -> Optional[float]:
+        if val is None or val == '' or val == '-':
+            return None
+        try:
+            return float(str(val).replace(',', '.').split('\n')[0])
+        except:
+            return None
+    
+    def _snapshot_to_legacy(self, snap: Dict, market: str) -> Dict[str, Any]:
+        result = {
+            'ScrapedAt': snap.get('scraped_at', ''),
+            'Volume': snap.get('volume', '')
+        }
+        
+        if market in ['moneyway_1x2', 'dropping_1x2']:
+            result.update({
+                'Odds1': snap.get('odds_1'),
+                'OddsX': snap.get('odds_x'),
+                'Odds2': snap.get('odds_2'),
+                'Pct1': snap.get('pct_1', ''),
+                'Amt1': snap.get('amt_1', ''),
+                'PctX': snap.get('pct_x', ''),
+                'AmtX': snap.get('amt_x', ''),
+                'Pct2': snap.get('pct_2', ''),
+                'Amt2': snap.get('amt_2', ''),
+                'Trend1': snap.get('trend_1', ''),
+                'TrendX': snap.get('trend_x', ''),
+                'Trend2': snap.get('trend_2', '')
+            })
+        elif market in ['moneyway_ou25', 'dropping_ou25']:
+            result.update({
+                'Under': snap.get('under_odds'),
+                'Over': snap.get('over_odds'),
+                'Line': snap.get('line', '2.5'),
+                'PctUnder': snap.get('pct_under', ''),
+                'AmtUnder': snap.get('amt_under', ''),
+                'PctOver': snap.get('pct_over', ''),
+                'AmtOver': snap.get('amt_over', ''),
+                'TrendUnder': snap.get('trend_under', ''),
+                'TrendOver': snap.get('trend_over', '')
+            })
+        elif market in ['moneyway_btts', 'dropping_btts']:
+            result.update({
+                'OddsYes': snap.get('yes_odds'),
+                'OddsNo': snap.get('no_odds'),
+                'PctYes': snap.get('pct_yes', ''),
+                'AmtYes': snap.get('amt_yes', ''),
+                'PctNo': snap.get('pct_no', ''),
+                'AmtNo': snap.get('amt_no', ''),
+                'TrendYes': snap.get('trend_yes', ''),
+                'TrendNo': snap.get('trend_no', '')
+            })
+        
+        return result
 
 
 class LocalDatabase:
@@ -160,7 +284,6 @@ class LocalDatabase:
         self.db_path = db_path
     
     def get_all_matches(self) -> List[Dict[str, Any]]:
-        """Get unique matches from all history tables"""
         matches = []
         seen = set()
         
@@ -203,7 +326,6 @@ class LocalDatabase:
         away: str,
         market_key: str = "moneyway_1x2"
     ) -> List[Dict[str, Any]]:
-        """Get historical data for a specific match and market"""
         history = []
         
         if not os.path.exists(self.db_path):
@@ -230,8 +352,47 @@ class LocalDatabase:
         
         return history
     
+    def get_all_matches_with_latest(self, market_key: str = "moneyway_1x2") -> List[Dict[str, Any]]:
+        """Get all matches with their latest snapshot - single query optimization"""
+        matches = []
+        
+        if not os.path.exists(self.db_path):
+            return matches
+        
+        table_name = f"{market_key}_hist"
+        
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            
+            cur.execute(f"""
+                SELECT * FROM "{table_name}" t1
+                WHERE t1.ScrapedAt = (
+                    SELECT MAX(t2.ScrapedAt) 
+                    FROM "{table_name}" t2 
+                    WHERE t2.Home = t1.Home AND t2.Away = t1.Away
+                )
+                ORDER BY t1.Date DESC
+            """)
+            
+            for row in cur.fetchall():
+                d = dict(row)
+                matches.append({
+                    'home_team': d.get('Home', ''),
+                    'away_team': d.get('Away', ''),
+                    'league': d.get('League', ''),
+                    'date': d.get('Date', ''),
+                    'latest': d
+                })
+            
+            conn.close()
+        except Exception as e:
+            print(f"Error reading matches with latest: {e}")
+        
+        return matches
+    
     def get_available_markets(self) -> List[str]:
-        """Get list of available market tables"""
         markets = []
         
         if not os.path.exists(self.db_path):
@@ -251,9 +412,82 @@ class LocalDatabase:
         return markets
 
 
-def get_database():
-    """Get appropriate database (Supabase or local SQLite)"""
-    client = get_supabase_client()
-    if client:
-        return client
-    return LocalDatabase()
+class HybridDatabase:
+    """Hybrid database that uses Supabase when available, falls back to SQLite"""
+    
+    def __init__(self):
+        self.supabase = SupabaseClient()
+        self.local = LocalDatabase()
+    
+    @property
+    def is_supabase_available(self) -> bool:
+        return self.supabase.is_available
+    
+    def get_all_matches(self) -> List[Dict[str, Any]]:
+        if self.supabase.is_available:
+            matches = self.supabase.get_all_matches()
+            if matches:
+                return matches
+        return self.local.get_all_matches()
+    
+    def get_match_history(self, home: str, away: str, market: str) -> List[Dict[str, Any]]:
+        if self.supabase.is_available:
+            history = self.supabase.get_match_history(home, away, market)
+            if history:
+                return history
+        return self.local.get_match_history(home, away, market)
+    
+    def get_all_matches_with_latest(self, market: str) -> List[Dict[str, Any]]:
+        """Get all matches with latest snapshot - optimized single query"""
+        return self.local.get_all_matches_with_latest(market)
+    
+    def save_scraped_data(self, market: str, rows: List[Dict[str, Any]]) -> int:
+        if not self.supabase.is_available:
+            return 0
+        
+        saved = 0
+        for row in rows:
+            home = row.get('Home', '')
+            away = row.get('Away', '')
+            league = row.get('League', '')
+            date = row.get('Date', '')
+            
+            if not home or not away:
+                continue
+            
+            match_id = self.supabase.get_or_create_match(home, away, league, date)
+            if match_id:
+                if self.supabase.save_snapshot(match_id, market, row):
+                    saved += 1
+        
+        return saved
+    
+    def save_alert(self, home: str, away: str, league: str, date: str,
+                   alert_type: str, market: str, side: str, 
+                   money_diff: float = 0, odds_from: float = None, odds_to: float = None) -> bool:
+        if not self.supabase.is_available:
+            return False
+        
+        match_id = self.supabase.get_or_create_match(home, away, league, date)
+        if match_id:
+            return self.supabase.save_alert(match_id, alert_type, market, side, money_diff, odds_from, odds_to)
+        return False
+    
+    def get_active_alerts(self) -> List[Dict[str, Any]]:
+        if self.supabase.is_available:
+            return self.supabase.get_active_alerts()
+        return []
+
+
+_database = None
+
+
+def get_database() -> HybridDatabase:
+    global _database
+    if _database is None:
+        _database = HybridDatabase()
+    return _database
+
+
+def get_supabase_client():
+    return get_database().supabase if get_database().is_supabase_available else None
