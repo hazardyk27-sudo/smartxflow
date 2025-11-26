@@ -2223,11 +2223,7 @@ async function loadSmartMoneyTicker() {
 }
 
 function openMatchModalByTeams(home, away, alarmType) {
-    highlightedAlarmType = alarmType || null;
-    const match = matches.find(m => m.home_team === home && m.away_team === away);
-    if (match) {
-        openMatchModal(match);
-    }
+    window.location.href = `/match/${encodeURIComponent(home)}/${encodeURIComponent(away)}`;
 }
 
 function getAlarmRGB(color) {

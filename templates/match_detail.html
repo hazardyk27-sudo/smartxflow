@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ home }} vs {{ away }} - SmartXFlow</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=90">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
-<body>
+<body class="match-detail-page">
     <header class="header">
         <div class="header-left">
             <a href="/" class="back-link">
@@ -23,107 +24,165 @@
             </div>
             <div class="brand">
                 <h1>SmartXFlow</h1>
-                <span class="subtitle">Betting Odds Monitor</span>
+                <span class="subtitle">Match Detail</span>
             </div>
         </div>
     </header>
 
-    <main class="detail-content">
-        <div class="match-header">
-            <h1>{{ home }} vs {{ away }}</h1>
-            <span class="markets-badge">6 markets available</span>
+    <main class="match-detail-content">
+        <div class="match-detail-header">
+            <h2 class="match-title">{{ home }} <span class="vs">vs</span> {{ away }}</h2>
+            <div class="match-meta" id="matchMeta"></div>
         </div>
 
-        <div class="chart-section full">
-            <h3>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        <div class="smart-money-events" id="smartMoneyEvents">
+            <div class="events-header">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
-                Odds Movement Charts
-            </h3>
-            <p class="chart-subtitle">Historical odds data for all markets</p>
-            
-            <div class="chart-tabs">
+                <span>Smart Money Events</span>
+            </div>
+            <div class="events-grid" id="matchAlarmsContainer">
+                <div class="no-alarms">Alarm analizi yapılıyor...</div>
+            </div>
+        </div>
+
+        <div class="match-info-card" id="matchInfoCard"></div>
+
+        <div class="chart-section">
+            <div class="chart-tabs" id="chartTabs">
                 <button class="chart-tab active" data-market="moneyway_1x2">Moneyway 1X2</button>
-                <button class="chart-tab" data-market="moneyway_ou25">Moneyway O2.5</button>
+                <button class="chart-tab" data-market="moneyway_ou25">Moneyway 2.5</button>
                 <button class="chart-tab" data-market="moneyway_btts">Moneyway BTTS</button>
-                <button class="chart-tab" data-market="dropping_1x2">Dropping 1X2</button>
-                <button class="chart-tab" data-market="dropping_ou25">Dropping O2.5</button>
-                <button class="chart-tab" data-market="dropping_btts">Dropping BTTS</button>
+                <button class="chart-tab" data-market="dropping_1x2">Drop 1X2</button>
+                <button class="chart-tab" data-market="dropping_ou25">Drop 2.5</button>
+                <button class="chart-tab" data-market="dropping_btts">Drop BTTS</button>
             </div>
             
-            <div class="chart-container large">
+            <div class="chart-wrapper-full">
                 <canvas id="oddsChart"></canvas>
             </div>
+        </div>
+
+        <div class="export-actions">
+            <button class="btn btn-secondary" onclick="exportPNG()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                </svg>
+                PNG İndir
+            </button>
         </div>
     </main>
 
     <script>
-        const homeTeam = "{{ home }}";
-        const awayTeam = "{{ away }}";
-        let chart = null;
+        const matchHome = "{{ home }}";
+        const matchAway = "{{ away }}";
         let currentMarket = 'moneyway_1x2';
+        let oddsChart = null;
+        let matchData = null;
+        let modalOddsData = null;
 
-        document.querySelectorAll('.chart-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                currentMarket = tab.dataset.market;
-                loadChart();
-            });
+        document.addEventListener('DOMContentLoaded', function() {
+            loadMatchData();
+            loadMatchAlarms();
+            setupChartTabs();
         });
 
-        async function loadChart() {
+        async function loadMatchData() {
             try {
-                const response = await fetch(`/api/match/history?home=${encodeURIComponent(homeTeam)}&away=${encodeURIComponent(awayTeam)}&market=${currentMarket}`);
+                const response = await fetch('/api/matches?market=' + currentMarket);
                 const data = await response.json();
-                
-                if (chart) {
-                    chart.destroy();
+                matchData = data.matches && data.matches.find(m => m.home_team === matchHome && m.away_team === matchAway);
+                if (matchData) {
+                    document.getElementById('matchMeta').innerHTML = '<span class="match-league">' + (matchData.league || '') + '</span><span class="match-date">' + (matchData.start_time || '') + '</span>';
+                    loadMatchHistory(currentMarket);
+                    renderMatchInfoCard();
                 }
-                
-                const ctx = document.getElementById('oddsChart').getContext('2d');
-                chart = new Chart(ctx, {
-                    type: 'line',
-                    data: data.chart_data,
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: {
-                            mode: 'index',
-                            intersect: false
-                        },
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: { color: '#9ca3af' }
-                            },
-                            tooltip: {
-                                backgroundColor: '#1f2937',
-                                titleColor: '#fff',
-                                bodyColor: '#d1d5db',
-                                borderColor: '#374151',
-                                borderWidth: 1
-                            }
-                        },
-                        scales: {
-                            x: {
-                                grid: { color: '#374151' },
-                                ticks: { color: '#9ca3af' }
-                            },
-                            y: {
-                                grid: { color: '#374151' },
-                                ticks: { color: '#9ca3af' }
-                            }
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error('Error loading chart:', error);
-            }
+            } catch (error) { console.error('[Match Detail] Error:', error); }
         }
 
-        loadChart();
+        async function loadMatchAlarms() {
+            try {
+                const response = await fetch('/api/match/alarms?home=' + encodeURIComponent(matchHome) + '&away=' + encodeURIComponent(matchAway));
+                const data = await response.json();
+                const container = document.getElementById('matchAlarmsContainer');
+                if (!data.alarms || data.alarms.length === 0) {
+                    container.innerHTML = '<div class="no-alarms">Bu maç için aktif alarm yok</div>';
+                    return;
+                }
+                const grouped = {};
+                data.alarms.forEach(a => {
+                    if (!grouped[a.type]) grouped[a.type] = { ...a, count: 1, sides: [a.side] };
+                    else { grouped[a.type].count++; if (a.side && !grouped[a.type].sides.includes(a.side)) grouped[a.type].sides.push(a.side); }
+                });
+                container.innerHTML = Object.values(grouped).map(alarm => {
+                    const rgb = {'#ef4444':'239,68,68','#22c55e':'34,197,94','#f59e0b':'245,158,11','#3b82f6':'59,130,246','#eab308':'234,179,8','#a855f7':'168,85,247'}[alarm.color] || '88,166,255';
+                    const sides = alarm.sides.filter(s=>s).join(', ');
+                    return '<div class="alarm-card" style="--alarm-color:' + alarm.color + ';--alarm-rgb:' + rgb + '"><div class="alarm-header"><div class="alarm-header-left"><span class="alarm-icon">' + alarm.icon + '</span><span class="alarm-name">' + alarm.name + '</span>' + (alarm.count>1?'<span class="alarm-count">x' + alarm.count + '</span>':'') + '</div><div class="alarm-tags">' + (sides?'<span class="alarm-tag market">' + sides + '</span>':'') + '<span class="alarm-tag time">Son 5 dk</span></div></div><div class="alarm-detail">' + alarm.detail + '</div><div class="alarm-description">' + alarm.description + '</div></div>';
+                }).join('');
+            } catch (error) { console.error('[Match Alarms] Error:', error); }
+        }
+
+        function setupChartTabs() {
+            document.querySelectorAll('.chart-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentMarket = this.dataset.market;
+                    loadMatchHistory(currentMarket);
+                    renderMatchInfoCard();
+                });
+            });
+        }
+
+        async function loadMatchHistory(market) {
+            try {
+                const response = await fetch('/api/match/history?home=' + encodeURIComponent(matchHome) + '&away=' + encodeURIComponent(matchAway) + '&market=' + market);
+                const data = await response.json();
+                if (data.history && data.history.length > 0) {
+                    modalOddsData = data.history[data.history.length - 1];
+                    renderChart(data.history, market);
+                }
+            } catch (error) { console.error('[Match History] Error:', error); }
+        }
+
+        function renderMatchInfoCard() {
+            const card = document.getElementById('matchInfoCard');
+            if (!matchData || !modalOddsData) return;
+            let vol = modalOddsData.Volume || '0';
+            vol = parseInt(String(vol).replace(/[£,]/g, '')).toLocaleString('en-GB');
+            let html = '<div class="info-row total-volume"><span class="info-label">TOTAL VOLUME</span><span class="info-value volume">£' + vol + '</span></div>';
+            if (currentMarket.includes('1x2')) {
+                html += '<div class="selections-grid"><div class="selection-card"><div class="selection-label">' + matchHome + '</div><div class="selection-odds">' + (modalOddsData.Odds1||'-') + '</div><div class="selection-pct">' + (modalOddsData.Pct1||'-') + '%</div>' + (modalOddsData.Amt1?'<div class="selection-amt">£' + parseInt(modalOddsData.Amt1).toLocaleString('en-GB') + '</div>':'') + '</div><div class="selection-card"><div class="selection-label">Draw</div><div class="selection-odds">' + (modalOddsData.OddsX||'-') + '</div><div class="selection-pct">' + (modalOddsData.PctX||'-') + '%</div>' + (modalOddsData.AmtX?'<div class="selection-amt">£' + parseInt(modalOddsData.AmtX).toLocaleString('en-GB') + '</div>':'') + '</div><div class="selection-card"><div class="selection-label">' + matchAway + '</div><div class="selection-odds">' + (modalOddsData.Odds2||'-') + '</div><div class="selection-pct">' + (modalOddsData.Pct2||'-') + '%</div>' + (modalOddsData.Amt2?'<div class="selection-amt">£' + parseInt(modalOddsData.Amt2).toLocaleString('en-GB') + '</div>':'') + '</div></div>';
+            }
+            card.innerHTML = html;
+        }
+
+        function renderChart(history, market) {
+            if (oddsChart) oddsChart.destroy();
+            const ctx = document.getElementById('oddsChart');
+            const labels = history.map(h => new Date(h.ScrapedAt).toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'}));
+            let datasets = [];
+            if (market.includes('1x2')) {
+                datasets = [{label:'Home',data:history.map(h=>parseFloat(h.Odds1)||0),borderColor:'#4ade80',tension:0.3,pointRadius:3},{label:'Draw',data:history.map(h=>parseFloat(h.OddsX)||0),borderColor:'#facc15',tension:0.3,pointRadius:3},{label:'Away',data:history.map(h=>parseFloat(h.Odds2)||0),borderColor:'#f87171',tension:0.3,pointRadius:3}];
+            } else if (market.includes('ou25')) {
+                datasets = [{label:'Over',data:history.map(h=>parseFloat(h.Over)||0),borderColor:'#4ade80',tension:0.3,pointRadius:3},{label:'Under',data:history.map(h=>parseFloat(h.Under)||0),borderColor:'#f87171',tension:0.3,pointRadius:3}];
+            } else {
+                datasets = [{label:'Yes',data:history.map(h=>parseFloat(h.OddsYes)||0),borderColor:'#4ade80',tension:0.3,pointRadius:3},{label:'No',data:history.map(h=>parseFloat(h.OddsNo)||0),borderColor:'#f87171',tension:0.3,pointRadius:3}];
+            }
+            oddsChart = new Chart(ctx, {type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:true,position:'top',labels:{color:'#c9d1d9'}}},scales:{x:{grid:{color:'rgba(48,54,61,0.5)'},ticks:{color:'#8b949e'}},y:{grid:{color:'rgba(48,54,61,0.5)'},ticks:{color:'#8b949e'}}}}});
+        }
+
+        async function exportPNG() {
+            const content = document.querySelector('.match-detail-content');
+            try {
+                const canvas = await html2canvas(content, {backgroundColor:'#0d1117',scale:2});
+                const link = document.createElement('a');
+                link.download = matchHome + '_vs_' + matchAway + '.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            } catch (e) { console.error('[PNG Export] Error:', e); }
+        }
     </script>
 </body>
 </html>
