@@ -134,6 +134,11 @@ Environment variables:
 - **Trend Format:** "up" / "down" (API için)
 - **Volume Format:** £ + binlik ayraç
 
+## Kullanici Tercihleri
+- **SCRAPER'A DOKUNMA** - scraper_standalone/ klasorune ve build_scraper.yml'e dokunma, zaten calisiyor
+- **SADECE "push et" DENDIGINDE** push yap, otomatik push yapma
+- **SADECE UYGULAMA DOSYALARI** push et (app.py, templates, static, core, services)
+
 ## Son Guncellemeler
 - **26 Kasim 2025:** Standalone Scraper mimarisi - PC'de çalışan bağımsız .exe
 - **26 Kasim 2025:** DISABLE_SCRAPER env variable - Replit'te scraper kapalı
