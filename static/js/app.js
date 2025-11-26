@@ -639,28 +639,8 @@ let modalOddsData = null;
 function openMatchModal(index) {
     const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
     if (index >= 0 && index < dataSource.length) {
-        selectedMatch = dataSource[index];
-        selectedChartMarket = currentMarket;
-        previousOddsData = null;
-        modalOddsData = selectedMatch.odds || selectedMatch.details || null;
-        
-        document.getElementById('modalMatchTitle').textContent = 
-            `${selectedMatch.home_team} vs ${selectedMatch.away_team}`;
-        document.getElementById('modalLeague').textContent = 
-            `${selectedMatch.league || ''} • ${selectedMatch.date || ''}`;
-        
-        updateMatchInfoCard();
-        
-        document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
-            t.classList.remove('active');
-            if (t.dataset.market === currentMarket) {
-                t.classList.add('active');
-            }
-        });
-        
-        document.getElementById('modalOverlay').classList.add('active');
-        loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
-        loadMatchAlarms(selectedMatch.home_team, selectedMatch.away_team);
+        const match = dataSource[index];
+        window.location.href = `/match/${encodeURIComponent(match.home_team)}/${encodeURIComponent(match.away_team)}`;
     }
 }
 
