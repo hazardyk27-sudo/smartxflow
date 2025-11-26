@@ -2277,6 +2277,9 @@ function renderTickerCards() {
         card.dataset.away = alarm.away;
         card.dataset.type = alarm.type;
         card.dataset.key = key;
+        card.dataset.matchId = alarm.match_id || '';
+        card.dataset.market = alarm.market || 'moneyway_1x2';
+        card.dataset.league = alarm.league || '';
         
         card.innerHTML = `
             <div class="ticker-card-icon">${alarm.icon}</div>
@@ -2296,11 +2299,22 @@ function renderTickerCards() {
     console.log('[Ticker] Rendered', visibleAlarms.length, 'cards');
 }
 
-// Delegated click handler for ticker cards (XSS-safe)
+// Delegated click handler for ticker cards (XSS-safe) - uses match_id for reliable navigation
 document.addEventListener('click', function(e) {
     const card = e.target.closest('.ticker-card');
-    if (card && card.dataset.home && card.dataset.away) {
-        openMatchModalByTeams(card.dataset.home, card.dataset.away, card.dataset.type || '');
+    if (card) {
+        const matchId = card.dataset.matchId;
+        const home = card.dataset.home;
+        const away = card.dataset.away;
+        const market = card.dataset.market || 'moneyway_1x2';
+        const league = card.dataset.league || '';
+        const alarmType = card.dataset.type || '';
+        
+        if (matchId) {
+            openMatchModalById(matchId, home, away, market, league, alarmType);
+        } else if (home && away) {
+            openMatchModalByTeams(home, away, alarmType);
+        }
     }
 });
 
@@ -2590,6 +2604,54 @@ function getTimeAgo(timestamp) {
 function goToMatchFromAlarm(home, away) {
     closeAlarmPanel();
     openMatchModalByTeams(home, away);
+}
+
+function openMatchModalById(matchId, home, away, market, league, alarmType) {
+    console.log('[Modal] Opening match by ID:', matchId, home, 'vs', away);
+    
+    const matchIndex = matches.findIndex(m => m.home_team === home && m.away_team === away);
+    
+    if (matchIndex >= 0) {
+        openMatchModal(matchIndex);
+    } else {
+        selectedMatch = { 
+            home_team: home, 
+            away_team: away, 
+            league: league || '', 
+            date: '',
+            match_id: matchId
+        };
+        selectedChartMarket = market || currentMarket;
+        previousOddsData = null;
+        modalOddsData = null;
+        
+        modalSmartMoneyEventsOpen = false;
+        const wrapper = document.getElementById('modalEventsGridWrapper');
+        const chevron = document.getElementById('modalEventsChevron');
+        if (wrapper) {
+            wrapper.classList.remove('expanded');
+            wrapper.classList.add('collapsed');
+        }
+        if (chevron) {
+            chevron.classList.remove('rotated');
+        }
+        
+        document.getElementById('modalMatchTitle').textContent = `${home} vs ${away}`;
+        document.getElementById('modalLeague').textContent = league || '';
+        
+        updateMatchInfoCard();
+        
+        document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
+            t.classList.remove('active');
+            if (t.dataset.market === selectedChartMarket) {
+                t.classList.add('active');
+            }
+        });
+        
+        document.getElementById('modalOverlay').classList.add('active');
+        loadChartWithTrends(home, away, selectedChartMarket);
+        loadMatchAlarms(home, away);
+    }
 }
 
 function openMatchModalByTeams(home, away, alarmType) {

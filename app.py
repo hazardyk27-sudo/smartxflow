@@ -635,6 +635,12 @@ def get_ticker_alarms():
     """Get critical alarms for borsa bandı - max 4 items (fast version)"""
     try:
         from core.alarms import get_critical_alarms, format_alarm_for_ticker, ALARM_TYPES
+        import hashlib
+        
+        def generate_match_id(home, away, market):
+            """Generate unique match ID from home, away and market"""
+            key = f"{home}|{away}|{market}"
+            return hashlib.md5(key.encode()).hexdigest()[:12]
         
         all_alarms = []
         markets = ['moneyway_1x2']
@@ -644,6 +650,7 @@ def get_ticker_alarms():
         for match in matches_data[:50]:
             home = match.get('home_team', '')
             away = match.get('away_team', '')
+            league = match.get('league', '')
             
             for market in markets:
                 history = db.get_match_history(home, away, market)
@@ -652,6 +659,8 @@ def get_ticker_alarms():
                     for alarm in alarms:
                         formatted = format_alarm_for_ticker(alarm, home, away)
                         formatted['market'] = market
+                        formatted['match_id'] = generate_match_id(home, away, market)
+                        formatted['league'] = league
                         all_alarms.append(formatted)
         
         critical = get_critical_alarms(all_alarms, limit=4)
