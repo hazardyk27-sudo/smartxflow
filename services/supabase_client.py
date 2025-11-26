@@ -28,8 +28,7 @@ class SupabaseClient:
             self.key = getattr(embedded_credentials, 'SUPABASE_KEY', '')
             if self.url and self.key:
                 print(f"[Supabase] Loaded from embedded_credentials")
-                print(f"[Supabase] URL: {self.url[:40]}...")
-                print(f"[Supabase] KEY: {self.key[:20]}...{self.key[-10:]}")
+                self._validate_and_log_url()
                 return
         except (ImportError, AttributeError) as e:
             print(f"[Supabase] embedded_credentials not found: {e}")
@@ -41,8 +40,7 @@ class SupabaseClient:
             self.key = getattr(embedded_config, 'EMBEDDED_SUPABASE_KEY', '')
             if self.url and self.key:
                 print(f"[Supabase] Loaded from embedded_config")
-                print(f"[Supabase] URL: {self.url[:40]}...")
-                print(f"[Supabase] KEY: {self.key[:20]}...{self.key[-10:]}")
+                self._validate_and_log_url()
                 return
         except (ImportError, AttributeError) as e:
             print(f"[Supabase] embedded_config not found: {e}")
@@ -52,9 +50,24 @@ class SupabaseClient:
         self.key = os.getenv('SUPABASE_ANON_KEY', '') or os.getenv('SUPABASE_KEY', '')
         if self.url and self.key:
             print(f"[Supabase] Loaded from environment variables")
-            print(f"[Supabase] URL: {self.url[:40]}...")
+            self._validate_and_log_url()
         else:
             print(f"[Supabase] WARNING: No credentials found!")
+    
+    def _validate_and_log_url(self):
+        """Validate URL format and log details"""
+        print(f"[Supabase] URL: {self.url}")
+        print(f"[Supabase] KEY: {self.key[:20]}...{self.key[-10:] if len(self.key) > 30 else ''}")
+        
+        # Check for common URL errors
+        if 'dashboard' in self.url.lower():
+            print(f"[Supabase] ERROR: URL contains 'dashboard' - this is NOT an API URL!")
+            print(f"[Supabase] ERROR: Use https://<project-ref>.supabase.co instead")
+            self.url = None  # Invalidate
+        elif not self.url.endswith('.supabase.co'):
+            print(f"[Supabase] WARNING: URL does not end with .supabase.co")
+        else:
+            print(f"[Supabase] URL format OK")
     
     @property
     def is_available(self) -> bool:
@@ -286,10 +299,12 @@ class SupabaseClient:
     def get_all_matches_with_latest(self, market: str) -> List[Dict[str, Any]]:
         """Get all matches from market table (moneyway_1x2, dropping_ou25, etc.)"""
         if not self.is_available:
+            print(f"[Supabase] ERROR: Not available - URL or KEY missing")
             return []
         
         try:
             url = f"{self._rest_url(market)}?select=*&order=date.desc"
+            print(f"[Supabase] Fetching: {url}")
             resp = httpx.get(url, headers=self._headers(), timeout=15)
             
             if resp.status_code == 200:
@@ -306,11 +321,17 @@ class SupabaseClient:
                     })
                 print(f"[Supabase] Got {len(matches)} matches from {market}")
                 return matches
+            elif resp.status_code == 404:
+                print(f"[Supabase] ERROR 404: Table '{market}' not found!")
+                print(f"[Supabase] Check if URL is correct API endpoint (not dashboard link)")
+                print(f"[Supabase] Current URL base: {self.url}")
+                return []
             else:
-                print(f"[Supabase] Error fetching {market}: {resp.status_code}")
+                print(f"[Supabase] ERROR {resp.status_code} fetching {market}")
+                print(f"[Supabase] Response: {resp.text[:200]}")
                 return []
         except Exception as e:
-            print(f"Error get_all_matches_with_latest from {market}: {e}")
+            print(f"[Supabase] EXCEPTION in get_all_matches_with_latest: {e}")
             return []
     
     def _normalize_row(self, row: Dict, market: str) -> Dict[str, Any]:
