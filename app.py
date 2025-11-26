@@ -613,13 +613,22 @@ def get_match_alarms():
 def main():
     """Main entry point with error handling for EXE"""
     try:
+        mode_name = "CLIENT" if is_client_mode() else "SERVER"
+        
         print("=" * 50)
-        print("SmartXFlow Starting...")
-        print(f"Template folder: {template_dir}")
-        print(f"Static folder: {static_dir}")
+        print("SmartXFlow Alarm V1.01")
+        print("=" * 50)
+        print(f"Mode: {mode_name}")
+        print(f"Supabase: {'Connected' if db.is_supabase_available else 'Not Connected'}")
+        print(f"Templates path: {template_dir}")
+        print(f"Static path: {static_dir}")
         print(f"Templates exist: {os.path.exists(template_dir)}")
-        print(f"Static exists: {os.path.exists(static_dir)}")
+        print(f"Static exist: {os.path.exists(static_dir)}")
         print("=" * 50)
+        
+        if not db.is_supabase_available:
+            print("WARNING: Supabase not configured!")
+            print("Please set SUPABASE_URL and SUPABASE_KEY")
         
         if is_server_mode():
             start_server_scheduler()
@@ -627,13 +636,20 @@ def main():
         else:
             host = '127.0.0.1'
         
+        port = 5000
         try:
-            print(f"Starting Flask on {host}:5000...")
-            app.run(host=host, port=5000, debug=False)
+            print(f"Starting Flask on http://{host}:{port}...")
+            import webbrowser
+            if is_client_mode():
+                webbrowser.open(f'http://127.0.0.1:{port}')
+            app.run(host=host, port=port, debug=False)
         except OSError as e:
             if "10048" in str(e) or "Address already in use" in str(e):
-                print(f"Port 5000 in use, trying 5050...")
-                app.run(host=host, port=5050, debug=False)
+                port = 5050
+                print(f"Port 5000 in use, trying http://{host}:{port}...")
+                if is_client_mode():
+                    webbrowser.open(f'http://127.0.0.1:{port}')
+                app.run(host=host, port=port, debug=False)
             else:
                 raise
     except Exception as e:
