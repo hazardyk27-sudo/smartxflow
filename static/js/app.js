@@ -515,6 +515,21 @@ function getMatchTrendPct(match, selection) {
     return matchData.values[selection].pct_change || 0;
 }
 
+function getMinTrendPct(match) {
+    const matchId = `${match.home_team}|${match.away_team}|${match.league}|${match.date}`;
+    const matchData = oddsTrendCache[matchId];
+    if (!matchData || !matchData.values) return 0;
+    
+    let minPct = 0;
+    for (const sel in matchData.values) {
+        const pct = matchData.values[sel].pct_change || 0;
+        if (pct < minPct) {
+            minPct = pct;
+        }
+    }
+    return minPct;
+}
+
 function getMaxTrendPct(match) {
     const matchId = `${match.home_team}|${match.away_team}|${match.league}|${match.date}`;
     const matchData = oddsTrendCache[matchId];
@@ -522,9 +537,9 @@ function getMaxTrendPct(match) {
     
     let maxPct = 0;
     for (const sel in matchData.values) {
-        const pct = Math.abs(matchData.values[sel].pct_change || 0);
-        if (pct > Math.abs(maxPct)) {
-            maxPct = matchData.values[sel].pct_change || 0;
+        const pct = matchData.values[sel].pct_change || 0;
+        if (pct > maxPct) {
+            maxPct = pct;
         }
     }
     return maxPct;
@@ -602,8 +617,8 @@ function applySorting(data) {
                 valB = parseVolume(b);
                 break;
             case 'trend_down':
-                valA = getMaxTrendPct(a);
-                valB = getMaxTrendPct(b);
+                valA = getMinTrendPct(a);
+                valB = getMinTrendPct(b);
                 return valA - valB;
             case 'trend_up':
                 valA = getMaxTrendPct(a);
