@@ -184,7 +184,12 @@ function formatPct(val) {
     const cleaned = String(val).replace(/[%\s]/g, '');
     const num = parseFloat(cleaned);
     if (isNaN(num)) return '-';
-    return num.toFixed(1);
+    return num.toFixed(1) + '%';
+}
+
+function cleanPct(val) {
+    if (!val || val === '-') return '';
+    return String(val).replace(/%/g, '').trim();
 }
 
 function renderMatches(data) {
@@ -239,17 +244,17 @@ function renderMatches(data) {
                         <td class="selection-cell"><div>
                             <div class="selection-odds">${formatOdds(d.Odds1 || d['1'])}</div>
                             ${d.Amt1 ? `<div class="selection-money ${c1}">${d.Amt1}</div>` : ''}
-                            ${d.Pct1 ? `<div class="selection-pct ${c1}">${d.Pct1}%</div>` : ''}
+                            ${d.Pct1 ? `<div class="selection-pct ${c1}">${cleanPct(d.Pct1)}%</div>` : ''}
                         </div></td>
                         <td class="selection-cell"><div>
                             <div class="selection-odds">${formatOdds(d.OddsX || d['X'])}</div>
                             ${d.AmtX ? `<div class="selection-money ${cX}">${d.AmtX}</div>` : ''}
-                            ${d.PctX ? `<div class="selection-pct ${cX}">${d.PctX}%</div>` : ''}
+                            ${d.PctX ? `<div class="selection-pct ${cX}">${cleanPct(d.PctX)}%</div>` : ''}
                         </div></td>
                         <td class="selection-cell"><div>
                             <div class="selection-odds">${formatOdds(d.Odds2 || d['2'])}</div>
                             ${d.Amt2 ? `<div class="selection-money ${c2}">${d.Amt2}</div>` : ''}
-                            ${d.Pct2 ? `<div class="selection-pct ${c2}">${d.Pct2}%</div>` : ''}
+                            ${d.Pct2 ? `<div class="selection-pct ${c2}">${cleanPct(d.Pct2)}%</div>` : ''}
                         </div></td>
                         <td class="volume-cell">${formatVolume(d.Volume)}</td>
                     </tr>
@@ -288,12 +293,12 @@ function renderMatches(data) {
                         <td class="selection-cell"><div>
                             <div class="selection-odds">${formatOdds(d.Under)}</div>
                             ${d.AmtUnder ? `<div class="selection-money ${cU}">${d.AmtUnder}</div>` : ''}
-                            ${d.PctUnder ? `<div class="selection-pct ${cU}">${d.PctUnder}%</div>` : ''}
+                            ${d.PctUnder ? `<div class="selection-pct ${cU}">${cleanPct(d.PctUnder)}%</div>` : ''}
                         </div></td>
                         <td class="selection-cell"><div>
                             <div class="selection-odds">${formatOdds(d.Over)}</div>
                             ${d.AmtOver ? `<div class="selection-money ${cO}">${d.AmtOver}</div>` : ''}
-                            ${d.PctOver ? `<div class="selection-pct ${cO}">${d.PctOver}%</div>` : ''}
+                            ${d.PctOver ? `<div class="selection-pct ${cO}">${cleanPct(d.PctOver)}%</div>` : ''}
                         </div></td>
                         <td class="volume-cell">${formatVolume(d.Volume)}</td>
                     </tr>
@@ -329,12 +334,12 @@ function renderMatches(data) {
                         <td class="selection-cell"><div>
                             <div class="selection-odds">${formatOdds(d.OddsYes || d.Yes)}</div>
                             ${d.AmtYes ? `<div class="selection-money ${cY}">${d.AmtYes}</div>` : ''}
-                            ${d.PctYes ? `<div class="selection-pct ${cY}">${d.PctYes}%</div>` : ''}
+                            ${d.PctYes ? `<div class="selection-pct ${cY}">${cleanPct(d.PctYes)}%</div>` : ''}
                         </div></td>
                         <td class="selection-cell"><div>
                             <div class="selection-odds">${formatOdds(d.OddsNo || d.No)}</div>
                             ${d.AmtNo ? `<div class="selection-money ${cN}">${d.AmtNo}</div>` : ''}
-                            ${d.PctNo ? `<div class="selection-pct ${cN}">${d.PctNo}%</div>` : ''}
+                            ${d.PctNo ? `<div class="selection-pct ${cN}">${cleanPct(d.PctNo)}%</div>` : ''}
                         </div></td>
                         <td class="volume-cell">${formatVolume(d.Volume)}</td>
                     </tr>
@@ -771,7 +776,7 @@ function updateMatchInfoCard() {
                             </div>
                             <div style="display:flex;justify-content:space-between;padding:8px 0;">
                                 <span style="font-size:12px;color:#8899a6;">%</span>
-                                <span class="pct ${c1}" style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;">${formatPct(d.Pct1)}%</span>
+                                <span class="pct ${c1}" style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;">${formatPct(d.Pct1)}</span>
                             </div>
                         </td>
                         <td style="width:33%;vertical-align:top;text-align:center;padding:16px;background:#0f1419;border-radius:10px;">
@@ -786,7 +791,7 @@ function updateMatchInfoCard() {
                             </div>
                             <div style="display:flex;justify-content:space-between;padding:8px 0;">
                                 <span style="font-size:12px;color:#8899a6;">%</span>
-                                <span class="pct ${cX}" style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;">${formatPct(d.PctX)}%</span>
+                                <span class="pct ${cX}" style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;">${formatPct(d.PctX)}</span>
                             </div>
                         </td>
                         <td style="width:33%;vertical-align:top;text-align:center;padding:16px;background:#0f1419;border-radius:10px;">
@@ -801,7 +806,7 @@ function updateMatchInfoCard() {
                             </div>
                             <div style="display:flex;justify-content:space-between;padding:8px 0;">
                                 <span style="font-size:12px;color:#8899a6;">%</span>
-                                <span class="pct ${c2}" style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;">${formatPct(d.Pct2)}%</span>
+                                <span class="pct ${c2}" style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;">${formatPct(d.Pct2)}</span>
                             </div>
                         </td>
                     </tr>
@@ -863,7 +868,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">%</span>
-                            <span class="row-value pct ${cU}">${formatPct(d.PctUnder)}%</span>
+                            <span class="row-value pct ${cU}">${formatPct(d.PctUnder)}</span>
                         </div>
                     </div>
                     <div class="info-column">
@@ -878,7 +883,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">%</span>
-                            <span class="row-value pct ${cO}">${formatPct(d.PctOver)}%</span>
+                            <span class="row-value pct ${cO}">${formatPct(d.PctOver)}</span>
                         </div>
                     </div>
                 </div>
@@ -932,7 +937,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">%</span>
-                            <span class="row-value pct ${cY}">${formatPct(d.PctYes)}%</span>
+                            <span class="row-value pct ${cY}">${formatPct(d.PctYes)}</span>
                         </div>
                     </div>
                     <div class="info-column">
@@ -947,7 +952,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">%</span>
-                            <span class="row-value pct ${cN}">${formatPct(d.PctNo)}%</span>
+                            <span class="row-value pct ${cN}">${formatPct(d.PctNo)}</span>
                         </div>
                     </div>
                 </div>
@@ -1338,19 +1343,19 @@ async function loadChart(home, away, market) {
                                             const amt = h.Amt1 || '';
                                             const pct = h.Pct1 || '';
                                             lines.push(`1 • ${formatOdds(odds)}`);
-                                            if (amt) lines.push(`${amt} — ${pct}%`);
+                                            if (amt) lines.push(`${amt} — ${cleanPct(pct)}%`);
                                         } else if (datasetLabel.includes('X')) {
                                             const odds = h.OddsX || h['X'] || '-';
                                             const amt = h.AmtX || '';
                                             const pct = h.PctX || '';
                                             lines.push(`X • ${formatOdds(odds)}`);
-                                            if (amt) lines.push(`${amt} — ${pct}%`);
+                                            if (amt) lines.push(`${amt} — ${cleanPct(pct)}%`);
                                         } else if (datasetLabel.includes('2')) {
                                             const odds = h.Odds2 || h['2'] || '-';
                                             const amt = h.Amt2 || '';
                                             const pct = h.Pct2 || '';
                                             lines.push(`2 • ${formatOdds(odds)}`);
-                                            if (amt) lines.push(`${amt} — ${pct}%`);
+                                            if (amt) lines.push(`${amt} — ${cleanPct(pct)}%`);
                                         }
                                     } else if (market.includes('ou25')) {
                                         if (datasetLabel.toLowerCase().includes('under')) {
@@ -1358,13 +1363,13 @@ async function loadChart(home, away, market) {
                                             const amt = h.AmtUnder || '';
                                             const pct = h.PctUnder || '';
                                             lines.push(`Under • ${formatOdds(odds)}`);
-                                            if (amt) lines.push(`${amt} — ${pct}%`);
+                                            if (amt) lines.push(`${amt} — ${cleanPct(pct)}%`);
                                         } else {
                                             const odds = h.Over || '-';
                                             const amt = h.AmtOver || '';
                                             const pct = h.PctOver || '';
                                             lines.push(`Over • ${formatOdds(odds)}`);
-                                            if (amt) lines.push(`${amt} — ${pct}%`);
+                                            if (amt) lines.push(`${amt} — ${cleanPct(pct)}%`);
                                         }
                                     } else if (market.includes('btts')) {
                                         if (datasetLabel.toLowerCase().includes('yes')) {
@@ -1372,13 +1377,13 @@ async function loadChart(home, away, market) {
                                             const amt = h.AmtYes || '';
                                             const pct = h.PctYes || '';
                                             lines.push(`Yes • ${formatOdds(odds)}`);
-                                            if (amt) lines.push(`${amt} — ${pct}%`);
+                                            if (amt) lines.push(`${amt} — ${cleanPct(pct)}%`);
                                         } else {
                                             const odds = h.No || '-';
                                             const amt = h.AmtNo || '';
                                             const pct = h.PctNo || '';
                                             lines.push(`No • ${formatOdds(odds)}`);
-                                            if (amt) lines.push(`${amt} — ${pct}%`);
+                                            if (amt) lines.push(`${amt} — ${cleanPct(pct)}%`);
                                         }
                                     }
                                 }
