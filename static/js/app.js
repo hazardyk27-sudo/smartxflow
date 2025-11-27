@@ -602,30 +602,15 @@ function applySorting(data) {
     
     sortedData = sortedData.filter(m => hasValidMarketData(m, currentMarket));
     
-    if (todayFilterActive) {
-        const now = new Date();
-        const todayDay = now.getDate();
-        const todayMonth = now.getMonth() + 1;
-        console.log('[Filter] Today:', todayDay + '.' + todayMonth);
-        sortedData = sortedData.filter(m => {
-            if (!m.date) return false;
-            const dateMatch = m.date.match(/^(\d{1,2})\.(\d{1,2})/);
-            if (dateMatch) {
-                const matchDay = parseInt(dateMatch[1], 10);
-                const matchMonth = parseInt(dateMatch[2], 10);
-                return matchDay === todayDay && matchMonth === todayMonth;
-            }
-            return false;
-        });
-        console.log('[Filter] Today filtered count:', sortedData.length);
-    }
+    const now = new Date();
+    const todayDay = now.getDate();
+    const todayMonth = now.getMonth() + 1;
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const yesterdayDay = yesterday.getDate();
+    const yesterdayMonth = yesterday.getMonth() + 1;
     
     if (yesterdayFilterActive) {
-        const now = new Date();
-        const yesterday = new Date(now);
-        yesterday.setDate(now.getDate() - 1);
-        const yesterdayDay = yesterday.getDate();
-        const yesterdayMonth = yesterday.getMonth() + 1;
         console.log('[Filter] Yesterday:', yesterdayDay + '.' + yesterdayMonth);
         sortedData = sortedData.filter(m => {
             if (!m.date) return false;
@@ -638,6 +623,19 @@ function applySorting(data) {
             return false;
         });
         console.log('[Filter] Yesterday filtered count:', sortedData.length);
+    } else {
+        console.log('[Filter] Today (default):', todayDay + '.' + todayMonth);
+        sortedData = sortedData.filter(m => {
+            if (!m.date) return false;
+            const dateMatch = m.date.match(/^(\d{1,2})\.(\d{1,2})/);
+            if (dateMatch) {
+                const matchDay = parseInt(dateMatch[1], 10);
+                const matchMonth = parseInt(dateMatch[2], 10);
+                return matchDay === todayDay && matchMonth === todayMonth;
+            }
+            return false;
+        });
+        console.log('[Filter] Today filtered count:', sortedData.length);
     }
     
     return sortedData.sort((a, b) => {
@@ -857,20 +855,13 @@ function showTrendSortButtons(show) {
 }
 
 function toggleTodayFilter() {
-    todayFilterActive = !todayFilterActive;
-    if (todayFilterActive) {
-        yesterdayFilterActive = false;
-        document.getElementById('yesterdayBtn')?.classList.remove('active');
-    }
+    yesterdayFilterActive = false;
     
-    const btn = document.getElementById('todayBtn');
-    if (btn) {
-        if (todayFilterActive) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
-    }
+    const todayBtn = document.getElementById('todayBtn');
+    const yesterdayBtn = document.getElementById('yesterdayBtn');
+    
+    if (todayBtn) todayBtn.classList.add('active');
+    if (yesterdayBtn) yesterdayBtn.classList.remove('active');
     
     const searchInput = document.getElementById('searchInput');
     const query = searchInput?.value?.toLowerCase() || '';
@@ -879,18 +870,16 @@ function toggleTodayFilter() {
 
 function toggleYesterdayFilter() {
     yesterdayFilterActive = !yesterdayFilterActive;
-    if (yesterdayFilterActive) {
-        todayFilterActive = false;
-        document.getElementById('todayBtn')?.classList.remove('active');
-    }
     
-    const btn = document.getElementById('yesterdayBtn');
-    if (btn) {
-        if (yesterdayFilterActive) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
+    const todayBtn = document.getElementById('todayBtn');
+    const yesterdayBtn = document.getElementById('yesterdayBtn');
+    
+    if (yesterdayFilterActive) {
+        if (todayBtn) todayBtn.classList.remove('active');
+        if (yesterdayBtn) yesterdayBtn.classList.add('active');
+    } else {
+        if (todayBtn) todayBtn.classList.add('active');
+        if (yesterdayBtn) yesterdayBtn.classList.remove('active');
     }
     
     const searchInput = document.getElementById('searchInput');
