@@ -214,35 +214,38 @@ function getMoneyColor(moneyStr) {
     return num >= 3000 ? 'money-high' : 'money-low';
 }
 
-function renderDonutSVG(percent, size = 36) {
+function renderDonutSVG(percent, size = 64) {
     const num = parseFloat(String(percent).replace(/[^0-9.]/g, '')) || 0;
-    const radius = (size - 6) / 2;
+    const strokeWidth = size > 50 ? 7 : 5;
+    const radius = (size - strokeWidth * 2) / 2;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (num / 100) * circumference;
     const color = getDonutColor(percent);
+    const fontSize = size > 50 ? 14 : 10;
     
     return `
         <svg class="donut-svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-            <circle cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="#1f2937" stroke-width="5"/>
-            <circle cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="${color}" stroke-width="5"
+            <circle cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="#1f2937" stroke-width="${strokeWidth}"/>
+            <circle cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="${color}" stroke-width="${strokeWidth}"
                 stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
                 stroke-linecap="round" transform="rotate(-90 ${size/2} ${size/2})"/>
             <text x="${size/2}" y="${size/2}" text-anchor="middle" dominant-baseline="central" 
-                fill="#fff" font-size="${size > 30 ? 10 : 8}" font-weight="600">${num.toFixed(0)}%</text>
+                fill="#fff" font-size="${fontSize}" font-weight="600">${num.toFixed(0)}%</text>
         </svg>
     `;
 }
 
 function renderMoneywayBlock(label, percent, odds, money) {
-    const donut = renderDonutSVG(percent, 36);
+    const donut = renderDonutSVG(percent, 64);
     const moneyClass = getMoneyColor(money);
     
     return `
         <div class="mw-outcome-block">
-            ${donut}
-            <div class="mw-label">${label}</div>
-            <div class="mw-odds">${formatOdds(odds)}</div>
-            ${money ? `<div class="mw-money ${moneyClass}">${money}</div>` : ''}
+            <div class="mw-info-stack">
+                <div class="mw-odds">${formatOdds(odds)}</div>
+                ${money ? `<div class="mw-money ${moneyClass}">${money}</div>` : ''}
+            </div>
+            <div class="mw-donut">${donut}</div>
         </div>
     `;
 }
