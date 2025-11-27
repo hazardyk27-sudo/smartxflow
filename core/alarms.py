@@ -9,10 +9,10 @@ from typing import List, Dict, Optional, Any
 from collections import defaultdict
 
 try:
-    from core.config.alarm_thresholds import ALARM_CONFIG, get_threshold
+    from core.config.alarm_thresholds import ALARM_CONFIG, get_threshold, WINDOW_MINUTES, LOOKBACK_MINUTES
     from core.timezone import now_turkey, now_turkey_iso, format_time_only, TURKEY_TZ
 except ImportError:
-    from config.alarm_thresholds import ALARM_CONFIG, get_threshold
+    from config.alarm_thresholds import ALARM_CONFIG, get_threshold, WINDOW_MINUTES, LOOKBACK_MINUTES
     import pytz
     TURKEY_TZ = pytz.timezone('Europe/Istanbul')
     def now_turkey():
@@ -147,13 +147,49 @@ def calculate_smart_score(money_diff: float, odds_drop: float, pct: float) -> in
     
     return min(100, score)
 
+def parse_timestamp(ts: str) -> Optional[datetime]:
+    """Parse timestamp string to datetime object"""
+    if not ts:
+        return None
+    try:
+        return datetime.fromisoformat(ts.replace('Z', '+00:00').split('+')[0])
+    except:
+        return None
+
+def find_window_pairs(history: List[Dict], window_minutes: int = 10) -> List[tuple]:
+    """
+    Find all valid base-target pairs where target is ~window_minutes after base.
+    Returns list of (base_index, target_index) tuples.
+    """
+    pairs = []
+    if len(history) < 2:
+        return pairs
+    
+    for i in range(len(history)):
+        base_ts = parse_timestamp(history[i].get('ScrapedAt', ''))
+        if not base_ts:
+            continue
+        
+        for j in range(i + 1, len(history)):
+            target_ts = parse_timestamp(history[j].get('ScrapedAt', ''))
+            if not target_ts:
+                continue
+            
+            diff_minutes = (target_ts - base_ts).total_seconds() / 60
+            if diff_minutes >= window_minutes:
+                pairs.append((i, j))
+                break
+    
+    return pairs
+
 def analyze_match_alarms(history: List[Dict], market: str) -> List[Dict]:
+    """
+    Analyze all 10-minute windows in match history for alarms.
+    Scans entire history (up to LOOKBACK_MINUTES) looking for alarm conditions
+    in every 10-minute window, not just the most recent one.
+    """
     if len(history) < 2:
         return []
-    
-    current = history[-1]
-    previous = history[-2]
-    first = history[0] if history else current
     
     if market in ['moneyway_1x2', 'dropping_1x2']:
         sides = [
@@ -174,49 +210,12 @@ def analyze_match_alarms(history: List[Dict], market: str) -> List[Dict]:
     else:
         return []
     
-    total_diff = 0
-    max_side_diff = 0
-    max_side_key = None
-    side_changes = []
-    
-    for side in sides:
-        curr_amt = parse_money(current.get(side['amt'], 0))
-        prev_amt = parse_money(previous.get(side['amt'], 0))
-        curr_odds = parse_odds(current.get(side['odds'], 0))
-        prev_odds = parse_odds(previous.get(side['odds'], 0))
-        first_odds = parse_odds(first.get(side['odds'], 0))
-        curr_pct = parse_pct(current.get(side['pct'], 0))
-        
-        diff = curr_amt - prev_amt
-        odds_change = curr_odds - prev_odds
-        total_drop = first_odds - curr_odds if first_odds > 0 else 0
-        smart_score = calculate_smart_score(diff, abs(odds_change), curr_pct)
-        
-        total_diff += max(0, diff)
-        if diff > max_side_diff:
-            max_side_diff = diff
-            max_side_key = side['key']
-        
-        side_changes.append({
-            'key': side['key'],
-            'amt_key': side['amt'],
-            'odds_key': side['odds'],
-            'money_diff': diff,
-            'odds_diff': odds_change,
-            'curr_odds': curr_odds,
-            'prev_odds': prev_odds,
-            'first_odds': first_odds,
-            'total_drop': total_drop,
-            'curr_pct': curr_pct,
-            'smart_score': smart_score
-        })
-    
     detected_alarms = []
-    seen_type_side = set()
-    timestamp = current.get('ScrapedAt', now_turkey_iso())
+    seen_alarms = set()
+    first = history[0] if history else None
+    current = history[-1]
     
     sharp_config = ALARM_CONFIG.get('sharp_money', {})
-    big_config = ALARM_CONFIG.get('big_money', {})
     rlm_config = ALARM_CONFIG.get('rlm', {})
     drop_config = ALARM_CONFIG.get('dropping', {})
     
@@ -225,107 +224,144 @@ def analyze_match_alarms(history: List[Dict], market: str) -> List[Dict]:
     rlm_min_money = rlm_config.get('min_money_inflow', 3000)
     rlm_min_up = rlm_config.get('min_odds_up', 0.03)
     
-    for sc in side_changes:
-        money_diff = sc['money_diff']
-        odds_diff = sc['odds_diff']
+    window_pairs = find_window_pairs(history, WINDOW_MINUTES)
+    
+    for base_idx, target_idx in window_pairs:
+        base = history[base_idx]
+        target = history[target_idx]
+        base_ts = base.get('ScrapedAt', '')
+        target_ts = target.get('ScrapedAt', '')
         
-        if money_diff >= sharp_min_money and odds_diff < -sharp_min_drop:
-            if ('sharp', sc['key']) not in seen_type_side:
-                seen_type_side.add(('sharp', sc['key']))
-                detected_alarms.append({
-                    'type': 'sharp',
-                    'side': sc['key'],
-                    'money_diff': money_diff,
-                    'odds_from': sc['prev_odds'],
-                    'odds_to': sc['curr_odds'],
-                    'timestamp': timestamp
-                })
+        for side in sides:
+            base_amt = parse_money(base.get(side['amt'], 0))
+            target_amt = parse_money(target.get(side['amt'], 0))
+            base_odds = parse_odds(base.get(side['odds'], 0))
+            target_odds = parse_odds(target.get(side['odds'], 0))
+            target_pct = parse_pct(target.get(side['pct'], 0))
+            
+            money_diff = target_amt - base_amt
+            odds_diff = target_odds - base_odds
+            
+            alarm_key_sharp = ('sharp', side['key'], base_ts[:16] if base_ts else '')
+            if money_diff >= sharp_min_money and odds_diff < -sharp_min_drop:
+                if alarm_key_sharp not in seen_alarms:
+                    seen_alarms.add(alarm_key_sharp)
+                    detected_alarms.append({
+                        'type': 'sharp',
+                        'side': side['key'],
+                        'money_diff': money_diff,
+                        'odds_from': base_odds,
+                        'odds_to': target_odds,
+                        'window_start': base_ts,
+                        'window_end': target_ts,
+                        'timestamp': target_ts
+                    })
+            
+            alarm_key_rlm = ('rlm', side['key'], base_ts[:16] if base_ts else '')
+            if money_diff >= rlm_min_money and odds_diff > rlm_min_up:
+                if alarm_key_rlm not in seen_alarms:
+                    seen_alarms.add(alarm_key_rlm)
+                    detected_alarms.append({
+                        'type': 'rlm',
+                        'side': side['key'],
+                        'money_diff': money_diff,
+                        'odds_from': base_odds,
+                        'odds_to': target_odds,
+                        'window_start': base_ts,
+                        'window_end': target_ts,
+                        'timestamp': target_ts
+                    })
+            
+            alarm_key_surge = ('public_surge', side['key'], base_ts[:16] if base_ts else '')
+            odds_flat = abs(odds_diff) <= 0.02
+            if money_diff > 100 and odds_flat:
+                if alarm_key_surge not in seen_alarms:
+                    seen_alarms.add(alarm_key_surge)
+                    detected_alarms.append({
+                        'type': 'public_surge',
+                        'side': side['key'],
+                        'money_diff': money_diff,
+                        'odds_from': base_odds,
+                        'odds_to': target_odds,
+                        'window_start': base_ts,
+                        'window_end': target_ts,
+                        'timestamp': target_ts
+                    })
+    
+    for side in sides:
+        curr_odds = parse_odds(current.get(side['odds'], 0))
+        first_odds = parse_odds(first.get(side['odds'], 0)) if first else 0
+        curr_pct = parse_pct(current.get(side['pct'], 0))
+        total_drop = first_odds - curr_odds if first_odds > 0 else 0
         
-        if money_diff >= rlm_min_money and odds_diff > rlm_min_up:
-            if ('rlm', sc['key']) not in seen_type_side:
-                seen_type_side.add(('rlm', sc['key']))
-                detected_alarms.append({
-                    'type': 'rlm',
-                    'side': sc['key'],
-                    'money_diff': money_diff,
-                    'odds_from': sc['prev_odds'],
-                    'odds_to': sc['curr_odds'],
-                    'timestamp': timestamp
-                })
-        
-        if sc['total_drop'] >= drop_config.get('min_total_drop', 0.30):
-            if sc['curr_pct'] >= drop_config.get('min_money_pct', 60):
-                if ('dropping', sc['key']) not in seen_type_side:
-                    seen_type_side.add(('dropping', sc['key']))
+        if total_drop >= drop_config.get('min_total_drop', 0.30):
+            if curr_pct >= drop_config.get('min_money_pct', 60):
+                alarm_key = ('dropping', side['key'])
+                if alarm_key not in seen_alarms:
+                    seen_alarms.add(alarm_key)
                     detected_alarms.append({
                         'type': 'dropping',
-                        'side': sc['key'],
-                        'money_diff': money_diff,
-                        'odds_from': sc['first_odds'],
-                        'odds_to': sc['curr_odds'],
-                        'total_drop': sc['total_drop'],
-                        'money_pct': sc['curr_pct'],
-                        'timestamp': timestamp
+                        'side': side['key'],
+                        'money_diff': 0,
+                        'odds_from': first_odds,
+                        'odds_to': curr_odds,
+                        'total_drop': total_drop,
+                        'money_pct': curr_pct,
+                        'timestamp': current.get('ScrapedAt', now_turkey_iso())
                     })
-        
-        odds_flat = abs(odds_diff) <= 0.02
-        if money_diff > 100 and odds_flat:
-            if ('public_surge', sc['key']) not in seen_type_side:
-                seen_type_side.add(('public_surge', sc['key']))
-                detected_alarms.append({
-                    'type': 'public_surge',
-                    'side': sc['key'],
-                    'money_diff': money_diff,
-                    'odds_from': sc['prev_odds'],
-                    'odds_to': sc['curr_odds'],
-                    'timestamp': timestamp
-                })
     
-    big_money_result = check_big_money_10min(history, sides)
-    if big_money_result:
-        side_key = big_money_result['key']
-        if ('big_money', side_key) not in seen_type_side:
-            seen_type_side.add(('big_money', side_key))
+    big_money_result = check_big_money_all_windows(history, sides, WINDOW_MINUTES)
+    for result in big_money_result:
+        alarm_key = ('big_money', result['key'], result.get('window_start', '')[:16])
+        if alarm_key not in seen_alarms:
+            seen_alarms.add(alarm_key)
             detected_alarms.append({
                 'type': 'big_money',
-                'side': side_key,
-                'money_diff': big_money_result['total_inflow'],
-                'total_diff': big_money_result['total_inflow'],
-                'time_window': '10 dakika',
-                'timestamp': timestamp
+                'side': result['key'],
+                'money_diff': result['total_inflow'],
+                'total_diff': result['total_inflow'],
+                'time_window': f'{WINDOW_MINUTES} dakika',
+                'window_start': result.get('window_start', ''),
+                'window_end': result.get('window_end', ''),
+                'timestamp': result.get('window_end', current.get('ScrapedAt', now_turkey_iso()))
             })
     
     if len(history) >= 4:
         for side in sides:
             momentum_result = check_momentum(history[-6:] if len(history) >= 6 else history, [side])
-            if momentum_result and ('momentum', side['key']) not in seen_type_side:
-                seen_type_side.add(('momentum', side['key']))
-                detected_alarms.append({
-                    'type': 'momentum',
-                    'side': momentum_result['key'],
-                    'money_diff': momentum_result['total_diff'],
-                    'timestamp': timestamp
-                })
+            if momentum_result:
+                alarm_key = ('momentum', side['key'])
+                if alarm_key not in seen_alarms:
+                    seen_alarms.add(alarm_key)
+                    detected_alarms.append({
+                        'type': 'momentum',
+                        'side': momentum_result['key'],
+                        'money_diff': momentum_result['total_diff'],
+                        'timestamp': current.get('ScrapedAt', now_turkey_iso())
+                    })
     
     if len(history) >= 3:
         for side in sides:
             freeze_result = check_line_freeze(history[-5:] if len(history) >= 5 else history, [side])
-            if freeze_result and ('line_freeze', side['key']) not in seen_type_side:
-                seen_type_side.add(('line_freeze', side['key']))
-                detected_alarms.append({
-                    'type': 'line_freeze',
-                    'side': freeze_result['key'],
-                    'money_diff': freeze_result['total_money'],
-                    'timestamp': timestamp
-                })
+            if freeze_result:
+                alarm_key = ('line_freeze', side['key'])
+                if alarm_key not in seen_alarms:
+                    seen_alarms.add(alarm_key)
+                    detected_alarms.append({
+                        'type': 'line_freeze',
+                        'side': freeze_result['key'],
+                        'money_diff': freeze_result['total_money'],
+                        'timestamp': current.get('ScrapedAt', now_turkey_iso())
+                    })
     
     if len(history) >= 2:
         momentum_change_result = check_momentum_change(history, sides)
         if momentum_change_result:
             to_option = momentum_change_result['to_option']
             from_option = momentum_change_result['from_option']
-            if ('momentum_change', to_option) not in seen_type_side:
-                seen_type_side.add(('momentum_change', to_option))
+            alarm_key = ('momentum_change', to_option)
+            if alarm_key not in seen_alarms:
+                seen_alarms.add(alarm_key)
                 detected_alarms.append({
                     'type': 'momentum_change',
                     'side': to_option,
@@ -333,17 +369,60 @@ def analyze_match_alarms(history: List[Dict], market: str) -> List[Dict]:
                     'from_pct': momentum_change_result['from_pct'],
                     'to_pct': momentum_change_result['to_pct'],
                     'detail': f"{from_option}→{to_option} ({momentum_change_result['from_pct']:.0f}%→{momentum_change_result['to_pct']:.0f}%)",
-                    'timestamp': timestamp
+                    'timestamp': current.get('ScrapedAt', now_turkey_iso())
                 })
     
-    detected_alarms.sort(key=lambda x: ALARM_TYPES[x['type']]['priority'])
+    detected_alarms.sort(key=lambda x: (ALARM_TYPES[x['type']]['priority'], x.get('timestamp', '')), reverse=False)
     
     return detected_alarms
+
+def check_big_money_all_windows(history: List[Dict], sides: List[Dict], window_minutes: int = 10) -> List[Dict]:
+    """
+    Big Money: Tum 10 dakikalik pencerelerde 15.000 £+ para girisini kontrol et.
+    Her pencere icin ayri alarm uretir.
+    """
+    config = ALARM_CONFIG.get('big_money', {})
+    min_inflow = config.get('min_money_inflow', 15000)
+    
+    if len(history) < 2:
+        return []
+    
+    results = []
+    window_pairs = find_window_pairs(history, window_minutes)
+    
+    for base_idx, target_idx in window_pairs:
+        base = history[base_idx]
+        target = history[target_idx]
+        base_ts = base.get('ScrapedAt', '')
+        target_ts = target.get('ScrapedAt', '')
+        
+        for side in sides:
+            total_inflow = 0
+            for i in range(base_idx, target_idx + 1):
+                if i == 0:
+                    continue
+                curr_amt = parse_money(history[i].get(side['amt'], 0))
+                prev_amt = parse_money(history[i-1].get(side['amt'], 0))
+                diff = curr_amt - prev_amt
+                if diff > 0:
+                    total_inflow += diff
+            
+            if total_inflow >= min_inflow:
+                results.append({
+                    'key': side['key'],
+                    'total_inflow': total_inflow,
+                    'time_window': window_minutes,
+                    'window_start': base_ts,
+                    'window_end': target_ts
+                })
+    
+    return results
 
 def check_big_money_10min(history: List[Dict], sides: List[Dict]) -> Optional[Dict]:
     """
     Big Money: 10 dakika icinde 15.000 £+ para girisi
     Oran sarti yok, sadece hacim onemli
+    (Geriye uyumluluk icin korundu)
     """
     config = ALARM_CONFIG.get('big_money', {})
     min_inflow = config.get('min_money_inflow', 15000)

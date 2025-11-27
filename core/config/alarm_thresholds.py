@@ -3,16 +3,25 @@ Alarm Threshold Configuration
 Easily adjustable thresholds for Smart Money detection
 """
 
+WINDOW_MINUTES = 10
+LOOKBACK_MINUTES = 180
+
 ALARM_CONFIG = {
+    'global': {
+        'window_minutes': WINDOW_MINUTES,
+        'lookback_minutes': LOOKBACK_MINUTES,
+        'description': 'Tum alarm kontrolleri 10 dk pencerelerle, son 3 saat geriye bakarak yapilir'
+    },
+    
     'sharp_money': {
         'min_money_inflow': 3000,
         'min_odds_drop': 0.03,
-        'description': 'Sharp Money: £3,000+ para girisi + oran dususu'
+        'description': 'Sharp Money: £3,000+ para girisi + oran dususu (10 dk pencerede)'
     },
     
     'big_money': {
         'min_money_inflow': 15000,
-        'time_window_minutes': 10,
+        'time_window_minutes': WINDOW_MINUTES,
         'description': 'Big Money: 10 dakika icinde £15,000+ para girisi (oran sarti yok)'
     },
     

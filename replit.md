@@ -162,6 +162,8 @@ Environment variables:
 - **SUPABASE SECRET ADI** - Her zaman SUPABASE_ANON_KEY kullan (SUPABASE_KEY değil)
 
 ## Son Guncellemeler
+- **27 Kasim 2025:** Alarm sistemi yeniden yazıldı: Tüm 10 dakikalık pencereler taranıyor (son 3 saat)
+- **27 Kasim 2025:** WINDOW_MINUTES=10, LOOKBACK_MINUTES=180 - alarm thresholds config'e eklendi
 - **27 Kasim 2025:** Türkiye saati (Europe/Istanbul) tüm uygulamada sabit - core/timezone.py modülü eklendi
 - **27 Kasim 2025:** Alarm kuralları güncellendi: Sharp £3K + oran düşüşü, Big Money £15K/10dk, RLM £3K + ters oran
 - **27 Kasim 2025:** Ticker kartları için benzersiz match_id navigasyonu - tıklanan kart her zaman doğru maçı açar
