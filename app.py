@@ -1007,7 +1007,7 @@ def get_ticker_alarms():
     """Get critical alarms for borsa bandı - 20 items for scrolling ticker"""
     import time
     try:
-        from core.alarms import get_critical_alarms, format_alarm_for_ticker, ALARM_TYPES
+        from core.alarms import get_critical_alarms, format_alarm_for_ticker, ALARM_TYPES, generate_demo_alarms
         
         now = time.time()
         if ticker_cache['data'] is not None and (now - ticker_cache['timestamp']) < ticker_cache['ttl']:
@@ -1040,9 +1040,13 @@ def get_ticker_alarms():
         
         critical = get_critical_alarms(all_alarms, limit=20)
         
+        if len(critical) == 0:
+            critical = generate_demo_alarms()
+            print(f"[Ticker API] No real alarms, using {len(critical)} demo alarms")
+        
         result = {
             'alarms': critical[:20],
-            'total': len(all_alarms)
+            'total': len(all_alarms) if all_alarms else len(critical)
         }
         
         ticker_cache['data'] = result

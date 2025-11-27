@@ -775,3 +775,35 @@ def format_grouped_alarm(group: Dict) -> Dict:
         'priority': group['priority'],
         'critical': alarm_info.get('critical', False)
     }
+
+
+def generate_demo_alarms() -> List[Dict]:
+    """Generate demo alarms for ticker when no real alarms exist"""
+    demo_matches = [
+        {'home': 'Liverpool', 'away': 'Sunderland', 'league': 'English Premier League', 'date': now_turkey().strftime('%d.%m %H:%M')},
+        {'home': 'Arsenal', 'away': 'Brentford', 'league': 'English Premier League', 'date': now_turkey().strftime('%d.%m %H:%M')},
+        {'home': 'Man Utd', 'away': 'West Ham', 'league': 'English Premier League', 'date': now_turkey().strftime('%d.%m %H:%M')},
+        {'home': 'Lazio', 'away': 'AC Milan', 'league': 'Italian Cup', 'date': now_turkey().strftime('%d.%m %H:%M')},
+        {'home': 'Leeds', 'away': 'Chelsea', 'league': 'English Premier League', 'date': now_turkey().strftime('%d.%m %H:%M')},
+    ]
+    
+    demo_alarms = [
+        {'type': 'sharp', 'side': '1', 'money_diff': 3500, 'odds_from': 1.45, 'odds_to': 1.39},
+        {'type': 'big_money', 'side': '2', 'money_diff': 18000, 'total_diff': 18000},
+        {'type': 'rlm', 'side': 'X', 'money_diff': 4200, 'odds_from': 5.20, 'odds_to': 5.40},
+        {'type': 'public_surge', 'side': '1', 'money_diff': 2800, 'odds_from': 1.31, 'odds_to': 1.31},
+        {'type': 'momentum', 'side': '2', 'money_diff': 1500},
+    ]
+    
+    result = []
+    for i, alarm in enumerate(demo_alarms):
+        match = demo_matches[i % len(demo_matches)]
+        formatted = format_alarm_for_ticker(alarm, match['home'], match['away'])
+        formatted['market'] = 'moneyway_1x2'
+        formatted['match_id'] = f"{match['home']}|{match['away']}|{match['league']}|{match['date']}"
+        formatted['league'] = match['league']
+        formatted['date'] = match['date']
+        formatted['timestamp'] = now_turkey_iso()
+        result.append(formatted)
+    
+    return result
