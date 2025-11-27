@@ -1491,113 +1491,131 @@ async function loadChart(home, away, market) {
                         display: false
                     },
                     tooltip: {
-                        backgroundColor: '#1f2937',
-                        titleColor: '#fff',
-                        titleFont: { size: 14, weight: 'bold' },
-                        bodyColor: '#e7e9ea',
-                        bodyFont: { size: 13 },
-                        borderColor: '#374151',
-                        borderWidth: 1,
-                        padding: 16,
-                        displayColors: true,
-                        boxWidth: 14,
-                        boxHeight: 14,
-                        boxPadding: 6,
-                        callbacks: {
-                            labelTextColor: function(context) {
-                                const idx = context.dataIndex;
-                                const h = tooltipHistory[idx];
-                                if (!h || !isDropping) return '#e7e9ea';
-                                
-                                const datasetLabel = context.dataset.label;
-                                const graphPointOdds = getOddsFromHistory(h, datasetLabel, market);
-                                const currentLatestOdds = getLatestOdds(latestData, datasetLabel.replace('%', ''), market);
-                                
-                                if (graphPointOdds > 0 && currentLatestOdds > 0 && graphPointOdds !== currentLatestOdds) {
-                                    const pctChange = ((currentLatestOdds - graphPointOdds) / graphPointOdds) * 100;
-                                    return pctChange >= 0 ? '#22c55e' : '#ef4444';
-                                }
-                                return '#e7e9ea';
-                            },
-                            label: function(context) {
-                                const idx = context.dataIndex;
-                                const h = tooltipHistory[idx];
-                                if (!h) return context.dataset.label + ': ' + context.formattedValue;
-                                
-                                const datasetLabel = context.dataset.label;
-                                let lines = [];
-                                
-                                if (isDropping) {
-                                    const graphPointOdds = getOddsFromHistory(h, datasetLabel, market);
-                                    const currentLatestOdds = getLatestOdds(latestData, datasetLabel.replace('%', ''), market);
-                                    
-                                    if (graphPointOdds > 0 && currentLatestOdds > 0 && graphPointOdds !== currentLatestOdds) {
-                                        const pctChange = ((currentLatestOdds - graphPointOdds) / graphPointOdds) * 100;
-                                        const changeSign = pctChange >= 0 ? '+' : '';
-                                        const changeStr = `${changeSign}${pctChange.toFixed(1)}%`;
-                                        const arrow = pctChange >= 0 ? '↑' : '↓';
-                                        
-                                        lines.push(`${datasetLabel}: ${graphPointOdds.toFixed(2)} → ${currentLatestOdds.toFixed(2)}`);
-                                        lines.push(`Change vs Latest: ${changeStr} ${arrow}`);
-                                    } else if (graphPointOdds > 0) {
-                                        lines.push(`${datasetLabel}: ${graphPointOdds.toFixed(2)}`);
-                                    } else {
-                                        lines.push(`${datasetLabel}: ${context.formattedValue}`);
-                                    }
-                                } else {
-                                    if (market.includes('1x2')) {
-                                        if (datasetLabel.includes('1')) {
-                                            const odds = h.Odds1 || h['1'] || '-';
-                                            const amt = h.Amt1 || '';
-                                            const pct = h.Pct1 || '';
-                                            lines.push(`1 • ${formatOdds(odds)}`);
-                                            if (amt) lines.push(`${amt} — ${cleanPct(pct)}%`);
-                                        } else if (datasetLabel.includes('X')) {
-                                            const odds = h.OddsX || h['X'] || '-';
-                                            const amt = h.AmtX || '';
-                                            const pct = h.PctX || '';
-                                            lines.push(`X • ${formatOdds(odds)}`);
-                                            if (amt) lines.push(`${amt} — ${cleanPct(pct)}%`);
-                                        } else if (datasetLabel.includes('2')) {
-                                            const odds = h.Odds2 || h['2'] || '-';
-                                            const amt = h.Amt2 || '';
-                                            const pct = h.Pct2 || '';
-                                            lines.push(`2 • ${formatOdds(odds)}`);
-                                            if (amt) lines.push(`${amt} — ${cleanPct(pct)}%`);
-                                        }
-                                    } else if (market.includes('ou25')) {
-                                        if (datasetLabel.toLowerCase().includes('under')) {
-                                            const odds = h.Under || '-';
-                                            const amt = h.AmtUnder || '';
-                                            const pct = h.PctUnder || '';
-                                            lines.push(`Under • ${formatOdds(odds)}`);
-                                            if (amt) lines.push(`${amt} — ${cleanPct(pct)}%`);
-                                        } else {
-                                            const odds = h.Over || '-';
-                                            const amt = h.AmtOver || '';
-                                            const pct = h.PctOver || '';
-                                            lines.push(`Over • ${formatOdds(odds)}`);
-                                            if (amt) lines.push(`${amt} — ${cleanPct(pct)}%`);
-                                        }
-                                    } else if (market.includes('btts')) {
-                                        if (datasetLabel.toLowerCase().includes('yes')) {
-                                            const odds = h.Yes || '-';
-                                            const amt = h.AmtYes || '';
-                                            const pct = h.PctYes || '';
-                                            lines.push(`Yes • ${formatOdds(odds)}`);
-                                            if (amt) lines.push(`${amt} — ${cleanPct(pct)}%`);
-                                        } else {
-                                            const odds = h.No || '-';
-                                            const amt = h.AmtNo || '';
-                                            const pct = h.PctNo || '';
-                                            lines.push(`No • ${formatOdds(odds)}`);
-                                            if (amt) lines.push(`${amt} — ${cleanPct(pct)}%`);
-                                        }
-                                    }
-                                }
-                                
-                                return lines.length > 0 ? lines : [context.dataset.label + ': ' + context.formattedValue];
+                        enabled: false,
+                        external: function(context) {
+                            let tooltipEl = document.getElementById('chartjs-tooltip');
+                            if (!tooltipEl) {
+                                tooltipEl = document.createElement('div');
+                                tooltipEl.id = 'chartjs-tooltip';
+                                tooltipEl.innerHTML = '<div class="chart-tooltip-inner"></div>';
+                                document.body.appendChild(tooltipEl);
                             }
+                            
+                            const tooltipModel = context.tooltip;
+                            if (tooltipModel.opacity === 0) {
+                                tooltipEl.style.opacity = 0;
+                                return;
+                            }
+                            
+                            if (tooltipModel.body) {
+                                const dataIndex = tooltipModel.dataPoints[0].dataIndex;
+                                const h = tooltipHistory[dataIndex];
+                                const titleLines = tooltipModel.title || [];
+                                
+                                let innerHtml = '<div class="chart-tooltip-title">' + titleLines.join('<br>') + '</div>';
+                                innerHtml += '<div class="chart-tooltip-body">';
+                                
+                                tooltipModel.dataPoints.forEach(function(dataPoint) {
+                                    const datasetLabel = dataPoint.dataset.label;
+                                    const boxColor = dataPoint.dataset.borderColor;
+                                    
+                                    if (isDropping && h) {
+                                        const graphPointOdds = getOddsFromHistory(h, datasetLabel, market);
+                                        const currentLatestOdds = getLatestOdds(latestData, datasetLabel.replace('%', ''), market);
+                                        
+                                        innerHtml += '<div class="chart-tooltip-row">';
+                                        innerHtml += '<span class="chart-tooltip-box" style="background:' + boxColor + '"></span>';
+                                        
+                                        if (graphPointOdds > 0 && currentLatestOdds > 0 && graphPointOdds !== currentLatestOdds) {
+                                            const pctChange = ((currentLatestOdds - graphPointOdds) / graphPointOdds) * 100;
+                                            const changeSign = pctChange >= 0 ? '+' : '';
+                                            const changeStr = changeSign + pctChange.toFixed(1) + '%';
+                                            const arrow = pctChange >= 0 ? '↑' : '↓';
+                                            const colorClass = pctChange >= 0 ? 'trend-color-up' : 'trend-color-down';
+                                            
+                                            innerHtml += '<span class="chart-tooltip-label">' + datasetLabel + ': ' + graphPointOdds.toFixed(2) + ' → ' + currentLatestOdds.toFixed(2) + '</span>';
+                                            innerHtml += '</div>';
+                                            innerHtml += '<div class="chart-tooltip-row chart-tooltip-change">';
+                                            innerHtml += '<span class="chart-tooltip-box" style="background:transparent"></span>';
+                                            innerHtml += '<span class="chart-tooltip-label">Change vs Latest: <span class="' + colorClass + '">' + changeStr + ' ' + arrow + '</span></span>';
+                                        } else if (graphPointOdds > 0) {
+                                            innerHtml += '<span class="chart-tooltip-label">' + datasetLabel + ': ' + graphPointOdds.toFixed(2) + '</span>';
+                                        } else {
+                                            innerHtml += '<span class="chart-tooltip-label">' + datasetLabel + ': ' + dataPoint.formattedValue + '</span>';
+                                        }
+                                        innerHtml += '</div>';
+                                    } else if (h) {
+                                        innerHtml += '<div class="chart-tooltip-row">';
+                                        innerHtml += '<span class="chart-tooltip-box" style="background:' + boxColor + '"></span>';
+                                        
+                                        if (market.includes('1x2')) {
+                                            if (datasetLabel.includes('1')) {
+                                                const odds = h.Odds1 || h['1'] || '-';
+                                                const amt = h.Amt1 || '';
+                                                const pct = h.Pct1 || '';
+                                                innerHtml += '<span class="chart-tooltip-label">1 • ' + formatOdds(odds) + '</span>';
+                                                if (amt) innerHtml += '</div><div class="chart-tooltip-row"><span class="chart-tooltip-box" style="background:transparent"></span><span class="chart-tooltip-label">' + amt + ' — ' + cleanPct(pct) + '%</span>';
+                                            } else if (datasetLabel.includes('X')) {
+                                                const odds = h.OddsX || h['X'] || '-';
+                                                const amt = h.AmtX || '';
+                                                const pct = h.PctX || '';
+                                                innerHtml += '<span class="chart-tooltip-label">X • ' + formatOdds(odds) + '</span>';
+                                                if (amt) innerHtml += '</div><div class="chart-tooltip-row"><span class="chart-tooltip-box" style="background:transparent"></span><span class="chart-tooltip-label">' + amt + ' — ' + cleanPct(pct) + '%</span>';
+                                            } else if (datasetLabel.includes('2')) {
+                                                const odds = h.Odds2 || h['2'] || '-';
+                                                const amt = h.Amt2 || '';
+                                                const pct = h.Pct2 || '';
+                                                innerHtml += '<span class="chart-tooltip-label">2 • ' + formatOdds(odds) + '</span>';
+                                                if (amt) innerHtml += '</div><div class="chart-tooltip-row"><span class="chart-tooltip-box" style="background:transparent"></span><span class="chart-tooltip-label">' + amt + ' — ' + cleanPct(pct) + '%</span>';
+                                            }
+                                        } else if (market.includes('ou25')) {
+                                            if (datasetLabel.toLowerCase().includes('under')) {
+                                                const odds = h.Under || '-';
+                                                const amt = h.AmtUnder || '';
+                                                const pct = h.PctUnder || '';
+                                                innerHtml += '<span class="chart-tooltip-label">Under • ' + formatOdds(odds) + '</span>';
+                                                if (amt) innerHtml += '</div><div class="chart-tooltip-row"><span class="chart-tooltip-box" style="background:transparent"></span><span class="chart-tooltip-label">' + amt + ' — ' + cleanPct(pct) + '%</span>';
+                                            } else {
+                                                const odds = h.Over || '-';
+                                                const amt = h.AmtOver || '';
+                                                const pct = h.PctOver || '';
+                                                innerHtml += '<span class="chart-tooltip-label">Over • ' + formatOdds(odds) + '</span>';
+                                                if (amt) innerHtml += '</div><div class="chart-tooltip-row"><span class="chart-tooltip-box" style="background:transparent"></span><span class="chart-tooltip-label">' + amt + ' — ' + cleanPct(pct) + '%</span>';
+                                            }
+                                        } else if (market.includes('btts')) {
+                                            if (datasetLabel.toLowerCase().includes('yes')) {
+                                                const odds = h.Yes || '-';
+                                                const amt = h.AmtYes || '';
+                                                const pct = h.PctYes || '';
+                                                innerHtml += '<span class="chart-tooltip-label">Yes • ' + formatOdds(odds) + '</span>';
+                                                if (amt) innerHtml += '</div><div class="chart-tooltip-row"><span class="chart-tooltip-box" style="background:transparent"></span><span class="chart-tooltip-label">' + amt + ' — ' + cleanPct(pct) + '%</span>';
+                                            } else {
+                                                const odds = h.No || '-';
+                                                const amt = h.AmtNo || '';
+                                                const pct = h.PctNo || '';
+                                                innerHtml += '<span class="chart-tooltip-label">No • ' + formatOdds(odds) + '</span>';
+                                                if (amt) innerHtml += '</div><div class="chart-tooltip-row"><span class="chart-tooltip-box" style="background:transparent"></span><span class="chart-tooltip-label">' + amt + ' — ' + cleanPct(pct) + '%</span>';
+                                            }
+                                        }
+                                        innerHtml += '</div>';
+                                    } else {
+                                        innerHtml += '<div class="chart-tooltip-row">';
+                                        innerHtml += '<span class="chart-tooltip-box" style="background:' + boxColor + '"></span>';
+                                        innerHtml += '<span class="chart-tooltip-label">' + datasetLabel + ': ' + dataPoint.formattedValue + '</span>';
+                                        innerHtml += '</div>';
+                                    }
+                                });
+                                
+                                innerHtml += '</div>';
+                                tooltipEl.querySelector('.chart-tooltip-inner').innerHTML = innerHtml;
+                            }
+                            
+                            const position = context.chart.canvas.getBoundingClientRect();
+                            tooltipEl.style.opacity = 1;
+                            tooltipEl.style.position = 'absolute';
+                            tooltipEl.style.left = position.left + window.pageXOffset + tooltipModel.caretX + 'px';
+                            tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY + 'px';
+                            tooltipEl.style.pointerEvents = 'none';
                         }
                     }
                 },
