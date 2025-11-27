@@ -16,6 +16,12 @@ let alertsHistory = [];
 const MAX_ALERTS_HISTORY = 500;
 let isClientMode = true;
 
+let alarmCurrentPage = 0;
+let alarmHasMore = false;
+let alarmIsLoading = false;
+let alarmTotalCount = 0;
+const ALARM_PAGE_SIZE = 30;
+
 
 document.addEventListener('DOMContentLoaded', () => {
     loadMatches();
@@ -2676,68 +2682,108 @@ function openAlarmPanel() {
     document.getElementById('alarmDrawerOverlay').classList.add('open');
     document.getElementById('alarmDrawer').classList.add('open');
     document.body.style.overflow = 'hidden';
-    loadGroupedAlarms();
+    
+    alarmCurrentPage = 0;
+    groupedAlarmsData = [];
+    alarmHasMore = false;
+    loadGroupedAlarms(true);
+    
+    const content = document.getElementById('alarmDrawerContent');
+    if (content) {
+        content.removeEventListener('scroll', handleAlarmScroll);
+        content.addEventListener('scroll', handleAlarmScroll);
+    }
 }
 
 function closeAlarmPanel() {
     document.getElementById('alarmDrawerOverlay').classList.remove('open');
     document.getElementById('alarmDrawer').classList.remove('open');
     document.body.style.overflow = '';
+    
+    const content = document.getElementById('alarmDrawerContent');
+    if (content) {
+        content.removeEventListener('scroll', handleAlarmScroll);
+    }
 }
 
-async function loadGroupedAlarms() {
-    const container = document.getElementById('alarmDrawerContent');
-    if (!container) return;
+function handleAlarmScroll(e) {
+    const container = e.target;
+    const scrollBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
     
-    container.innerHTML = '<div class="alarm-loading">Alarmlar yükleniyor...</div>';
+    if (scrollBottom < 100 && alarmHasMore && !alarmIsLoading) {
+        loadGroupedAlarms(false);
+    }
+}
+
+async function loadGroupedAlarms(isNewLoad = true) {
+    const container = document.getElementById('alarmDrawerContent');
+    if (!container || alarmIsLoading) return;
+    
+    alarmIsLoading = true;
+    
+    if (isNewLoad) {
+        alarmCurrentPage = 0;
+        groupedAlarmsData = [];
+        container.innerHTML = '<div class="alarm-loading">Alarmlar yükleniyor...</div>';
+    } else {
+        const loadingMore = document.createElement('div');
+        loadingMore.className = 'alarm-loading-more';
+        loadingMore.id = 'alarmLoadingMore';
+        loadingMore.innerHTML = 'Daha fazla yükleniyor...';
+        container.appendChild(loadingMore);
+    }
     
     try {
-        const response = await fetch('/api/alarms');
+        const typeFilter = document.getElementById('alarmTypeFilter')?.value || 'all';
+        const sortBy = document.getElementById('alarmSortBy')?.value || 'newest';
+        
+        const url = `/api/alarms?page=${alarmCurrentPage}&page_size=${ALARM_PAGE_SIZE}&filter=${typeFilter}&sort=${sortBy}`;
+        const response = await fetch(url);
         const data = await response.json();
         
+        const loadingMore = document.getElementById('alarmLoadingMore');
+        if (loadingMore) loadingMore.remove();
+        
         if (data.alarms && data.alarms.length > 0) {
-            groupedAlarmsData = data.alarms;
+            groupedAlarmsData = [...groupedAlarmsData, ...data.alarms];
+            alarmHasMore = data.has_more;
+            alarmTotalCount = data.total;
+            alarmCurrentPage++;
             renderGroupedAlarmList();
-        } else {
+        } else if (isNewLoad) {
             container.innerHTML = '<div class="alarm-empty">Aktif alarm yok</div>';
+            alarmHasMore = false;
         }
     } catch (error) {
         console.error('[Alarms] Load error:', error);
-        container.innerHTML = '<div class="alarm-empty">Alarm yüklenirken hata oluştu</div>';
+        if (isNewLoad) {
+            container.innerHTML = '<div class="alarm-empty">Alarm yüklenirken hata oluştu</div>';
+        }
+    } finally {
+        alarmIsLoading = false;
     }
 }
 
 function filterAlarms() {
-    renderGroupedAlarmList();
+    alarmCurrentPage = 0;
+    groupedAlarmsData = [];
+    loadGroupedAlarms(true);
 }
 
 function renderGroupedAlarmList() {
     const container = document.getElementById('alarmDrawerContent');
     if (!container) return;
     
-    const typeFilter = document.getElementById('alarmTypeFilter')?.value || 'all';
-    const sortBy = document.getElementById('alarmSortBy')?.value || 'newest';
-    
-    let filtered = [...groupedAlarmsData];
-    
-    if (typeFilter !== 'all') {
-        filtered = filtered.filter(a => a.type === typeFilter || a.type.includes(typeFilter));
-    }
-    
-    if (sortBy === 'money') {
-        filtered.sort((a, b) => (b.max_money || 0) - (a.max_money || 0));
-    } else if (sortBy === 'odds') {
-        filtered.sort((a, b) => (b.max_drop || 0) - (a.max_drop || 0));
-    } else {
-        filtered.sort((a, b) => (a.priority || 99) - (b.priority || 99));
-    }
-    
-    if (filtered.length === 0) {
+    if (groupedAlarmsData.length === 0) {
         container.innerHTML = '<div class="alarm-empty">Filtre kriterlerine uygun alarm yok</div>';
         return;
     }
     
-    container.innerHTML = filtered.map((group, idx) => {
+    const countInfo = alarmTotalCount > 0 
+        ? `<div class="alarm-count-info">${groupedAlarmsData.length} / ${alarmTotalCount} alarm gösteriliyor</div>` 
+        : '';
+    
+    const alarmsHtml = groupedAlarmsData.map((group, idx) => {
         const groupId = `${group.type}_${group.home}_${group.away}`;
         const isExpanded = expandedAlarmGroups.has(groupId);
         const latestTime = group.latest_time ? formatAlarmTime(group.latest_time) : '';
@@ -2788,6 +2834,12 @@ function renderGroupedAlarmList() {
             </div>
         `;
     }).join('');
+    
+    const loadMoreHtml = alarmHasMore 
+        ? '<div class="alarm-load-more">Daha fazla alarm için aşağı kaydırın...</div>' 
+        : '';
+    
+    container.innerHTML = countInfo + alarmsHtml + loadMoreHtml;
 }
 
 function toggleAlarmGroup(groupId) {

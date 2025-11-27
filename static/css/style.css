@@ -2227,6 +2227,34 @@ body {
     font-size: 14px;
 }
 
+.alarm-loading-more {
+    text-align: center;
+    color: #8b949e;
+    padding: 15px 20px;
+    font-size: 13px;
+    border-top: 1px solid #21262d;
+}
+
+.alarm-count-info {
+    text-align: center;
+    color: #8b949e;
+    padding: 8px 20px;
+    font-size: 12px;
+    background: rgba(33, 38, 45, 0.5);
+    border-bottom: 1px solid #21262d;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.alarm-load-more {
+    text-align: center;
+    color: #6e7681;
+    padding: 12px 20px;
+    font-size: 12px;
+    font-style: italic;
+}
+
 /* ========== 6-HOUR ODDS TREND (DROP MARKETS ONLY) ========== */
 
 .odds-trend-cell {

@@ -690,16 +690,23 @@ def export_png():
 
 @app.route('/api/alarms')
 def get_all_alarms():
-    """Get all active alarms - grouped by match+type with event counts"""
+    """Get all active alarms - grouped by match+type with pagination and server-side filter/sort"""
     try:
         from core.alarms import group_alarms_by_match, format_grouped_alarm, get_critical_alarms
+        
+        page = request.args.get('page', 0, type=int)
+        page_size = request.args.get('page_size', 30, type=int)
+        type_filter = request.args.get('filter', 'all')
+        sort_by = request.args.get('sort', 'newest')
+        
+        page_size = min(page_size, 50)
         
         all_alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
         
         matches_data = db.get_all_matches_with_latest('moneyway_1x2')
         
-        for match in matches_data[:50]:
+        for match in matches_data[:100]:
             home = match.get('home_team', '')
             away = match.get('away_team', '')
             
@@ -716,16 +723,34 @@ def get_all_alarms():
         grouped = group_alarms_by_match(all_alarms)
         formatted = [format_grouped_alarm(g) for g in grouped]
         
+        if type_filter != 'all':
+            formatted = [a for a in formatted if type_filter in a.get('type', '')]
+        
+        if sort_by == 'money':
+            formatted.sort(key=lambda x: x.get('max_money', 0), reverse=True)
+        elif sort_by == 'odds':
+            formatted.sort(key=lambda x: x.get('max_drop', 0), reverse=True)
+        else:
+            formatted.sort(key=lambda x: x.get('priority', 99))
+        
+        total_count = len(formatted)
+        start_idx = page * page_size
+        end_idx = start_idx + page_size
+        paginated = formatted[start_idx:end_idx]
+        
         return jsonify({
-            'alarms': formatted,
-            'total': len(formatted),
+            'alarms': paginated,
+            'total': total_count,
+            'page': page,
+            'page_size': page_size,
+            'has_more': end_idx < total_count,
             'event_count': sum(g['count'] for g in formatted)
         })
     except Exception as e:
         print(f"[Alarms API] Error: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'alarms': [], 'total': 0, 'error': str(e)})
+        return jsonify({'alarms': [], 'total': 0, 'page': 0, 'has_more': False, 'error': str(e)})
 
 
 @app.route('/api/alarms/ticker')
