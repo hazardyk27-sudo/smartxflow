@@ -31,10 +31,10 @@ from services.supabase_client import get_database
 from core.alarms import analyze_match_alarms, format_alarm_for_ticker, format_alarm_for_modal, ALARM_TYPES
 import hashlib
 
-def generate_match_id(home, away, league, market=''):
-    """Generate unique match ID from home, away, league and optionally market.
-    This ensures unique identification even for teams playing multiple times."""
-    key = f"{home}|{away}|{league}|{market}" if market else f"{home}|{away}|{league}"
+def generate_match_id(home, away, league, date=''):
+    """Generate unique match ID from home, away, league and date.
+    This ensures unique identification even for teams playing multiple times in the same league."""
+    key = f"{home}|{away}|{league}|{date}" if date else f"{home}|{away}|{league}"
     return hashlib.md5(key.encode()).hexdigest()[:12]
 
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
@@ -137,6 +137,7 @@ def index():
             home = match.get('home_team', '')
             away = match.get('away_team', '')
             league = match.get('league', '')
+            date = match.get('date', '')
             
             history = db.get_match_history(home, away, 'moneyway_1x2')
             if len(history) >= 2:
@@ -144,8 +145,9 @@ def index():
                 for alarm in alarms:
                     formatted = format_alarm_for_ticker(alarm, home, away)
                     formatted['market'] = 'moneyway_1x2'
-                    formatted['match_id'] = generate_match_id(home, away, league)
+                    formatted['match_id'] = generate_match_id(home, away, league, date)
                     formatted['league'] = league
+                    formatted['date'] = date
                     ticker_alarms.append(formatted)
         
         ticker_alarms = get_critical_alarms(ticker_alarms, limit=4)
@@ -237,13 +239,14 @@ def get_matches():
         home = m.get('home_team', '')
         away = m.get('away_team', '')
         league = m.get('league', '')
+        date = m.get('date', '')
         
         enriched.append({
             'home_team': home,
             'away_team': away,
             'league': league,
-            'date': m.get('date', ''),
-            'match_id': generate_match_id(home, away, league),
+            'date': date,
+            'match_id': generate_match_id(home, away, league, date),
             'odds': {**odds, **prev_odds},
             'history_count': 1
         })
@@ -660,6 +663,7 @@ def get_ticker_alarms():
             home = match.get('home_team', '')
             away = match.get('away_team', '')
             league = match.get('league', '')
+            date = match.get('date', '')
             
             for market in markets:
                 history = db.get_match_history(home, away, market)
@@ -668,8 +672,9 @@ def get_ticker_alarms():
                     for alarm in alarms:
                         formatted = format_alarm_for_ticker(alarm, home, away)
                         formatted['market'] = market
-                        formatted['match_id'] = generate_match_id(home, away, league)
+                        formatted['match_id'] = generate_match_id(home, away, league, date)
                         formatted['league'] = league
+                        formatted['date'] = date
                         all_alarms.append(formatted)
         
         critical = get_critical_alarms(all_alarms, limit=4)

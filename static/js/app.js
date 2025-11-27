@@ -2280,6 +2280,7 @@ function renderTickerCards() {
         card.dataset.matchId = alarm.match_id || '';
         card.dataset.market = alarm.market || 'moneyway_1x2';
         card.dataset.league = alarm.league || '';
+        card.dataset.date = alarm.date || '';
         
         card.innerHTML = `
             <div class="ticker-card-icon">${alarm.icon}</div>

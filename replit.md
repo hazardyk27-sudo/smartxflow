@@ -156,6 +156,9 @@ Environment variables:
 - **PUSH KOMUTU:** `git push --force` kullan (conflict varsa)
 
 ## Son Guncellemeler
+- **27 Kasim 2025:** Ticker kartları için benzersiz match_id navigasyonu - tıklanan kart her zaman doğru maçı açar
+- **27 Kasim 2025:** match_id: home|away|league|date kombinasyonu ile tam benzersizlik
+- **27 Kasim 2025:** Demo alarmlar eklendi (Sharp Money, Big Money, RLM, Line Freeze, Public Surge, Momentum)
 - **26 Kasim 2025:** Standalone Scraper mimarisi - PC'de çalışan bağımsız .exe
 - **26 Kasim 2025:** DISABLE_SCRAPER env variable - Replit'te scraper kapalı
 - **26 Kasim 2025:** GitHub Actions scraper build workflow
