@@ -103,6 +103,8 @@ async function loadMatches() {
         filteredMatches = applySorting(matches);
         renderMatches(filteredMatches);
         
+        updateSelectionSortButtons();
+        
         if (currentMarket.startsWith('dropping')) {
             attachTrendTooltipListeners();
         }
@@ -825,8 +827,82 @@ function sortByColumn(column) {
     
     updateTrendSortButtons();
     updateTableHeaders();
+    updateSelectionSortButtons();
     filteredMatches = applySorting(matches);
     renderMatches(filteredMatches);
+}
+
+let currentSelectedSide = '1';
+
+function sortBySelection(selection) {
+    currentSelectedSide = selection;
+    
+    const isMoneyway = currentMarket.startsWith('moneyway');
+    if (!isMoneyway) return;
+    
+    let sortColumn;
+    if (currentMarket.includes('1x2')) {
+        if (selection === '1') sortColumn = 'sel1';
+        else if (selection === 'X') sortColumn = 'selX';
+        else if (selection === '2') sortColumn = 'sel2';
+    } else if (currentMarket.includes('ou25')) {
+        if (selection === 'Under') sortColumn = 'sel1';
+        else if (selection === 'Over') sortColumn = 'sel2';
+    } else if (currentMarket.includes('btts')) {
+        if (selection === 'Yes') sortColumn = 'sel1';
+        else if (selection === 'No') sortColumn = 'sel2';
+    }
+    
+    if (sortColumn) {
+        currentSortColumn = sortColumn;
+        currentSortDirection = 'desc';
+        
+        updateSelectionSortButtons();
+        updateTableHeaders();
+        filteredMatches = applySorting(matches);
+        renderMatches(filteredMatches);
+    }
+}
+
+function updateSelectionSortButtons() {
+    const container = document.getElementById('selectionSortButtons');
+    if (!container) return;
+    
+    const isMoneyway = currentMarket.startsWith('moneyway');
+    
+    if (!isMoneyway) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    container.style.display = 'flex';
+    
+    let buttons = [];
+    if (currentMarket.includes('1x2')) {
+        buttons = [
+            { sel: '1', label: '1', sortCol: 'sel1' },
+            { sel: 'X', label: 'X', sortCol: 'selX' },
+            { sel: '2', label: '2', sortCol: 'sel2' }
+        ];
+    } else if (currentMarket.includes('ou25')) {
+        buttons = [
+            { sel: 'Under', label: 'Under', sortCol: 'sel1' },
+            { sel: 'Over', label: 'Over', sortCol: 'sel2' }
+        ];
+    } else if (currentMarket.includes('btts')) {
+        buttons = [
+            { sel: 'Yes', label: 'Yes', sortCol: 'sel1' },
+            { sel: 'No', label: 'No', sortCol: 'sel2' }
+        ];
+    }
+    
+    let html = '<span class="sort-label">Sırala:</span>';
+    buttons.forEach((btn, idx) => {
+        const isActive = currentSortColumn === btn.sortCol && currentSortDirection === 'desc';
+        html += `<button class="sel-sort-btn ${isActive ? 'active' : ''}" data-sel="${btn.sel}" onclick="sortBySelection('${btn.sel}')">${btn.label}</button>`;
+    });
+    
+    container.innerHTML = html;
 }
 
 function sortByTrend(direction) {
