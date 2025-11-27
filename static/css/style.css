@@ -1261,17 +1261,57 @@ body {
     gap: 8px;
     padding: 6px 14px;
     background: rgba(22, 27, 34, 0.95);
-    border: 1px solid #f85149;
+    border: 2px solid var(--pill-color, #666);
     border-radius: 20px;
     cursor: pointer;
     transition: all 0.2s ease;
     flex-shrink: 0;
+    box-shadow: 0 0 8px rgba(var(--pill-color-rgb, 102, 102, 102), 0.25);
 }
 
 .ticker-pill:hover {
-    background: rgba(248, 81, 73, 0.15);
-    border-color: #f85149;
+    background: rgba(var(--pill-color-rgb, 102, 102, 102), 0.15);
     transform: scale(1.02);
+}
+
+.ticker-pill[data-alarm="sharp"] {
+    --pill-color: #22c55e;
+    --pill-color-rgb: 34, 197, 94;
+}
+
+.ticker-pill[data-alarm="rlm"] {
+    --pill-color: #f97316;
+    --pill-color-rgb: 249, 115, 22;
+}
+
+.ticker-pill[data-alarm="big_money"] {
+    --pill-color: #eab308;
+    --pill-color-rgb: 234, 179, 8;
+}
+
+.ticker-pill[data-alarm="momentum_change"] {
+    --pill-color: #06b6d4;
+    --pill-color-rgb: 6, 182, 212;
+}
+
+.ticker-pill[data-alarm="momentum"] {
+    --pill-color: #a855f7;
+    --pill-color-rgb: 168, 85, 247;
+}
+
+.ticker-pill[data-alarm="line_freeze"] {
+    --pill-color: #3b82f6;
+    --pill-color-rgb: 59, 130, 246;
+}
+
+.ticker-pill[data-alarm="public_surge"] {
+    --pill-color: #eab308;
+    --pill-color-rgb: 234, 179, 8;
+}
+
+.ticker-pill[data-alarm="dropping"] {
+    --pill-color: #ef4444;
+    --pill-color-rgb: 239, 68, 68;
 }
 
 .pill-dot {

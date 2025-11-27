@@ -2193,6 +2193,22 @@ document.addEventListener('keydown', (e) => {
 
 let highlightedAlarmType = null;
 
+const AlarmColors = {
+    sharp: { hex: '#22c55e', name: 'Sharp Money', icon: '🟢', priority: 1 },
+    rlm: { hex: '#f97316', name: 'Reverse Line Move', icon: '🔴', priority: 2 },
+    big_money: { hex: '#eab308', name: 'Big Money', icon: '💰', priority: 3 },
+    momentum_change: { hex: '#06b6d4', name: 'Momentum Change', icon: '🔄', priority: 4 },
+    momentum: { hex: '#a855f7', name: 'Momentum', icon: '🟣', priority: 5 },
+    line_freeze: { hex: '#3b82f6', name: 'Line Freeze', icon: '🔵', priority: 6 },
+    public_surge: { hex: '#eab308', name: 'Public Surge', icon: '🟡', priority: 7 },
+    dropping: { hex: '#ef4444', name: 'Dropping', icon: '📉', priority: 8 },
+    default: { hex: '#666666', name: 'Alert', icon: '⚡', priority: 99 }
+};
+
+function getAlarmColor(alarmType) {
+    return AlarmColors[alarmType] || AlarmColors.default;
+}
+
 let tickerAlarms = [];
 let tickerPaused = false;
 let tickerIndex = 0;
@@ -2235,15 +2251,18 @@ function renderTickerPills() {
         pill.dataset.market = alarm.market || 'moneyway_1x2';
         pill.dataset.league = alarm.league || '';
         pill.dataset.date = alarm.date || '';
+        pill.dataset.alarm = alarm.type || 'default';
         
+        const alarmInfo = getAlarmColor(alarm.type);
+        const color = alarmInfo.hex;
         const shortName = alarm.name ? alarm.name.split(' ')[0].toUpperCase() : '';
         const moneyText = alarm.money_text || '';
         const sideText = alarm.side ? `(${alarm.side})` : '';
         const oddsText = (alarm.odds_from && alarm.odds_to) ? `${alarm.odds_from} → ${alarm.odds_to}` : '';
         
         pill.innerHTML = `
-            <span class="pill-dot" style="background: ${alarm.color};"></span>
-            <span class="pill-type" style="color: ${alarm.color};">${shortName}</span>
+            <span class="pill-dot" style="background: ${color};"></span>
+            <span class="pill-type" style="color: ${color};">${shortName}</span>
             <span class="pill-match">${alarm.home} – ${alarm.away}</span>
             ${moneyText ? `<span class="pill-money">${moneyText}</span>` : ''}
             ${sideText ? `<span class="pill-side">${sideText}</span>` : ''}

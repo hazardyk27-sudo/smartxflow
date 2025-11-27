@@ -5,7 +5,7 @@ integrations = ["web_scraper:1.0.0"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["cacert", "cairo", "dbus", "ffmpeg-full", "fontconfig", "freetype", "ghostscript", "glibcLocales", "gobject-introspection", "gtk3", "pkg-config", "qhull", "tcl", "tk", "xcodebuild", "xorg.libX11", "xorg.libXext", "xorg.libXrender", "xorg.libxcb", "xvfb-run", "zlib", "zstd"]
+packages = ["cairo", "dbus", "ffmpeg-full", "fontconfig", "freetype", "ghostscript", "glibcLocales", "gobject-introspection", "gtk3", "pkg-config", "qhull", "tcl", "tk", "xcodebuild", "xorg.libX11", "xorg.libXext", "xorg.libXrender", "xorg.libxcb", "xvfb-run", "zlib", "zstd"]
 
 [workflows]
 runButton = "Project"
@@ -62,10 +62,6 @@ externalPort = 80
 [[ports]]
 localPort = 33333
 externalPort = 3000
-
-[[ports]]
-localPort = 40709
-externalPort = 3002
 
 [[ports]]
 localPort = 41423
