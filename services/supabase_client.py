@@ -296,6 +296,45 @@ class SupabaseClient:
         
         return result
     
+    def get_bulk_history_for_alarms(self, market: str, match_pairs: List[tuple]) -> Dict[tuple, List[Dict]]:
+        """
+        Batch fetch history for multiple matches in a single query.
+        Returns: {(home, away): [history_records]}
+        """
+        if not self.is_available or not match_pairs:
+            return {}
+        
+        try:
+            import urllib.parse
+            history_table = f"{market}_history"
+            
+            homes = list(set(pair[0] for pair in match_pairs))
+            aways = list(set(pair[1] for pair in match_pairs))
+            
+            homes_filter = ','.join(f'"{h}"' for h in homes)
+            aways_filter = ','.join(f'"{a}"' for a in aways)
+            
+            url = f"{self._rest_url(history_table)}?home=in.({urllib.parse.quote(homes_filter, safe='')})&away=in.({urllib.parse.quote(aways_filter, safe='')})&order=scrapedat.asc&limit=10000"
+            
+            resp = httpx.get(url, headers=self._headers(), timeout=30)
+            
+            if resp.status_code != 200:
+                return {}
+            
+            rows = resp.json()
+            
+            result = {}
+            for row in rows:
+                key = (row.get('home', ''), row.get('away', ''))
+                if key not in result:
+                    result[key] = []
+                result[key].append(self._history_row_to_legacy(row, market))
+            
+            return result
+        except Exception as e:
+            print(f"[Supabase] Error in get_bulk_history_for_alarms: {e}")
+            return {}
+    
     def get_all_matches_with_latest(self, market: str) -> List[Dict[str, Any]]:
         """Get all matches from market table (moneyway_1x2, dropping_ou25, etc.)"""
         if not self.is_available:
@@ -764,6 +803,12 @@ class HybridDatabase:
             if history:
                 return history
         return self.local.get_match_history(home, away, market)
+    
+    def get_bulk_history_for_alarms(self, market: str, match_pairs: List[tuple]) -> Dict[tuple, List[Dict]]:
+        """Batch fetch history for multiple matches"""
+        if self.supabase.is_available:
+            return self.supabase.get_bulk_history_for_alarms(market, match_pairs)
+        return {}
     
     def get_all_matches_with_latest(self, market: str) -> List[Dict[str, Any]]:
         """Get all matches with latest snapshot from Supabase or local"""

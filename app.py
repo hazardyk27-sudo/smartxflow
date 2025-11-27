@@ -685,7 +685,7 @@ def get_cached_alarms():
         print("[Alarms API] Using cached data")
         return alarm_cache['data'].copy()
     
-    print("[Alarms API] Refreshing alarm cache (checking all today's matches)...")
+    print("[Alarms API] Refreshing alarm cache (using bulk query)...")
     start_time = time.time()
     
     all_alarms = []
@@ -725,28 +725,27 @@ def get_cached_alarms():
             if len(today_matches) >= 80:
                 break
     
-    checked = 0
-    for match in today_matches:
-        home = match.get('home_team', '')
-        away = match.get('away_team', '')
+    match_pairs = [(m.get('home_team', ''), m.get('away_team', '')) for m in today_matches]
+    match_info = {(m.get('home_team', ''), m.get('away_team', '')): m.get('league', '') for m in today_matches}
+    
+    for market in markets:
+        bulk_history = db.get_bulk_history_for_alarms(market, match_pairs)
         
-        for market in markets:
-            history = db.get_match_history(home, away, market)
+        for (home, away), history in bulk_history.items():
             if len(history) >= 2:
                 alarms = analyze_match_alarms(history, market)
                 for alarm in alarms:
                     alarm['home'] = home
                     alarm['away'] = away
                     alarm['market'] = market
-                    alarm['league'] = match.get('league', '')
+                    alarm['league'] = match_info.get((home, away), '')
                     all_alarms.append(alarm)
-        checked += 1
     
     grouped = group_alarms_by_match(all_alarms)
     formatted = [format_grouped_alarm(g) for g in grouped]
     
     elapsed = time.time() - start_time
-    print(f"[Alarms API] Cache refreshed in {elapsed:.2f}s, checked {checked} matches, found {len(formatted)} alarms")
+    print(f"[Alarms API] Cache refreshed in {elapsed:.2f}s, checked {len(match_pairs)} matches (bulk), found {len(formatted)} alarms")
     
     alarm_cache['data'] = formatted
     alarm_cache['timestamp'] = now
