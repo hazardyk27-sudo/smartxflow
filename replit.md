@@ -153,10 +153,12 @@ Environment variables:
 - **Tarih Formatı:** DD.MM.YYYY HH:MM (Türkiye saati)
 
 ## Kullanici Tercihleri
+- **UYGULAMA = desktop_app.py** - "uygulama" dendiğinde HER ZAMAN desktop_app.py build edilir (pywebview masaüstü)
 - **SCRAPER'A DOKUNMA** - scraper_standalone/ klasorune ve build_scraper.yml'e dokunma, zaten calisiyor
 - **SADECE "push et" DENDIGINDE** push yap, otomatik push yapma
 - **SADECE UYGULAMA DOSYALARI** push et (app.py, templates, static, core, services)
 - **PUSH KOMUTU:** `git push --force` kullan (conflict varsa)
+- **DEBUG DOSYASI** - Her EXE build'inde BUILD_INFO.txt ve smartxflow_debug.log dahil edilir
 
 ## Son Guncellemeler
 - **27 Kasim 2025:** Türkiye saati (Europe/Istanbul) tüm uygulamada sabit - core/timezone.py modülü eklendi
