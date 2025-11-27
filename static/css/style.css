@@ -1280,7 +1280,7 @@ body {
     white-space: nowrap;
     align-items: center;
     height: 42px;
-    animation: tickerScroll 6s linear infinite;
+    animation: tickerScroll 3s linear infinite;
 }
 
 .ticker-wrapper:hover .ticker-track {
