@@ -45,6 +45,11 @@ ALARM_CONFIG = {
         'min_money_diff': 100,
         'max_odds_change': 0.02,
         'description': 'Public money - money up, odds flat'
+    },
+    
+    'momentum_change': {
+        'dominance_threshold': 50,
+        'description': 'Dominance change - when >50% share switches to different option'
     }
 }
 

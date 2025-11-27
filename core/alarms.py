@@ -69,6 +69,14 @@ ALARM_TYPES = {
         'priority': 7,
         'description': 'Trend oluşumu. Sürekli aynı yöne para akışı.',
         'critical': False
+    },
+    'momentum_change': {
+        'name': 'Momentum Change',
+        'icon': '🔄',
+        'color': '#06b6d4',
+        'priority': 8,
+        'description': 'Dominasyon değişimi. %50+ paya sahip seçenek değişti.',
+        'critical': True
     }
 }
 
@@ -300,6 +308,23 @@ def analyze_match_alarms(history: List[Dict], market: str) -> List[Dict]:
                     'timestamp': timestamp
                 })
     
+    if len(history) >= 2:
+        momentum_change_result = check_momentum_change(history, sides)
+        if momentum_change_result:
+            to_option = momentum_change_result['to_option']
+            from_option = momentum_change_result['from_option']
+            if ('momentum_change', to_option) not in seen_type_side:
+                seen_type_side.add(('momentum_change', to_option))
+                detected_alarms.append({
+                    'type': 'momentum_change',
+                    'side': to_option,
+                    'from_option': from_option,
+                    'from_pct': momentum_change_result['from_pct'],
+                    'to_pct': momentum_change_result['to_pct'],
+                    'detail': f"{from_option}→{to_option} ({momentum_change_result['from_pct']:.0f}%→{momentum_change_result['to_pct']:.0f}%)",
+                    'timestamp': timestamp
+                })
+    
     detected_alarms.sort(key=lambda x: ALARM_TYPES[x['type']]['priority'])
     
     return detected_alarms
@@ -350,6 +375,72 @@ def check_line_freeze(history: List[Dict], sides: List[Dict]) -> Optional[Dict]:
         
         if odds_stable and total_money >= min_money:
             return {'key': side['key'], 'total_money': total_money}
+    
+    return None
+
+def check_momentum_change(history: List[Dict], sides: List[Dict]) -> Optional[Dict]:
+    """
+    Momentum Change Alarm - Dominasyon Değişimi
+    
+    Koşullar:
+    1. Şu anda bir seçenek %50+ paya sahip olmalı
+    2. En yakın önceki %50+ dominant farklı bir seçenek olmalı
+    3. Süre sınırı yok - herhangi bir zaman diliminde olabilir
+    
+    Mantık:
+    - Tarihçeyi sondan başa doğru tara
+    - Şu anki dominant'ı bul
+    - En yakın önceki %50+ dominant'ı bul
+    - Sadece bunlar farklıysa alarm tetikle (böylece tekrar tetiklenmez)
+    
+    Örnek: Saat 13:00'te 1=%63, Saat 22:00'de X=%54 → Alarm!
+    """
+    config = ALARM_CONFIG.get('momentum_change', {})
+    dominance_threshold = config.get('dominance_threshold', 50)
+    
+    if len(history) < 2:
+        return None
+    
+    def get_dominant(record):
+        """Bir kayıttaki %50+ dominant seçeneği bul"""
+        best_option = None
+        best_pct = 0
+        for side in sides:
+            pct = parse_pct(record.get(side['pct'], 0))
+            if pct > dominance_threshold and pct > best_pct:
+                best_option = side['key']
+                best_pct = pct
+        return best_option, best_pct
+    
+    current = history[-1]
+    current_dominant, current_pct = get_dominant(current)
+    
+    if not current_dominant:
+        return None
+    
+    previous_dominant = None
+    previous_pct = 0
+    previous_timestamp = ''
+    
+    for i in range(len(history) - 2, -1, -1):
+        record = history[i]
+        dominant, pct = get_dominant(record)
+        if dominant:
+            previous_dominant = dominant
+            previous_pct = pct
+            previous_timestamp = record.get('ScrapedAt', '')
+            break
+    
+    if previous_dominant and previous_dominant != current_dominant:
+        return {
+            'key': current_dominant,
+            'from_option': previous_dominant,
+            'from_pct': previous_pct,
+            'to_option': current_dominant,
+            'to_pct': current_pct,
+            'previous_timestamp': previous_timestamp,
+            'current_timestamp': current.get('ScrapedAt', '')
+        }
     
     return None
 
