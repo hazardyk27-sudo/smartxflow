@@ -387,6 +387,10 @@ function renderMatches(data) {
             }
         }
     }).join('');
+    
+    if (currentMarket.startsWith('dropping')) {
+        setTimeout(() => attachTrendTooltipListeners(), 50);
+    }
 }
 
 function getTableTrendArrow(current, previous) {
