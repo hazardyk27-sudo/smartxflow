@@ -610,30 +610,41 @@ function applySorting(data) {
     const yesterdayDay = yesterday.getDate();
     const yesterdayMonth = yesterday.getMonth() + 1;
     
+    const monthNames = {
+        'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+        'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+    };
+    
+    function parseMatchDate(dateStr) {
+        if (!dateStr) return null;
+        const numericMatch = dateStr.match(/^(\d{1,2})\.(\d{1,2})/);
+        if (numericMatch) {
+            return { day: parseInt(numericMatch[1], 10), month: parseInt(numericMatch[2], 10) };
+        }
+        const textMatch = dateStr.match(/^(\d{1,2})\.(\w{3})/);
+        if (textMatch) {
+            const day = parseInt(textMatch[1], 10);
+            const monthStr = textMatch[2];
+            const month = monthNames[monthStr];
+            if (month) return { day, month };
+        }
+        return null;
+    }
+    
     if (yesterdayFilterActive) {
         console.log('[Filter] Yesterday:', yesterdayDay + '.' + yesterdayMonth);
         sortedData = sortedData.filter(m => {
-            if (!m.date) return false;
-            const dateMatch = m.date.match(/^(\d{1,2})\.(\d{1,2})/);
-            if (dateMatch) {
-                const matchDay = parseInt(dateMatch[1], 10);
-                const matchMonth = parseInt(dateMatch[2], 10);
-                return matchDay === yesterdayDay && matchMonth === yesterdayMonth;
-            }
-            return false;
+            const parsed = parseMatchDate(m.date);
+            if (!parsed) return false;
+            return parsed.day === yesterdayDay && parsed.month === yesterdayMonth;
         });
         console.log('[Filter] Yesterday filtered count:', sortedData.length);
     } else {
         console.log('[Filter] Today (default):', todayDay + '.' + todayMonth);
         sortedData = sortedData.filter(m => {
-            if (!m.date) return false;
-            const dateMatch = m.date.match(/^(\d{1,2})\.(\d{1,2})/);
-            if (dateMatch) {
-                const matchDay = parseInt(dateMatch[1], 10);
-                const matchMonth = parseInt(dateMatch[2], 10);
-                return matchDay === todayDay && matchMonth === todayMonth;
-            }
-            return false;
+            const parsed = parseMatchDate(m.date);
+            if (!parsed) return false;
+            return parsed.day === todayDay && parsed.month === todayMonth;
         });
         console.log('[Filter] Today filtered count:', sortedData.length);
     }
