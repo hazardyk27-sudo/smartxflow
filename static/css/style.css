@@ -2268,11 +2268,19 @@ body {
 
 .mw-outcome-block {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    min-width: 90px;
+    gap: 8px;
+    min-width: 110px;
+}
+
+.mw-info-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    min-width: 60px;
+    gap: 2px;
 }
 
 .mw-odds {
@@ -2280,7 +2288,6 @@ body {
     font-weight: 600;
     color: var(--mw-text-odds);
     white-space: nowrap;
-    text-align: center;
 }
 
 .mw-donut {
@@ -2294,10 +2301,9 @@ body {
     font-weight: 500;
     white-space: nowrap;
     color: var(--mw-text-money);
-    text-align: center;
-    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 70px;
 }
 
 /* Volume sütunu da aynı para rengi ve hizalama */
