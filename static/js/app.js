@@ -217,8 +217,9 @@ function renderDonutSVG(percent, size = 48) {
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (num / 100) * circumference;
     const trackColor = '#1c2533';
-    const fillColor = '#3FDA7A';
-    const textColor = '#ffffff';
+    const isHigh = num >= 50;
+    const fillColor = isHigh ? '#22c55e' : '#111827';
+    const textColor = isHigh ? '#ffffff' : '#9ca3af';
     const fontSize = size > 40 ? 11 : 9;
     
     return `
