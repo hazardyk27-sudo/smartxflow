@@ -162,6 +162,9 @@ Environment variables:
 - **SUPABASE SECRET ADI** - Her zaman SUPABASE_ANON_KEY kullan (SUPABASE_KEY değil)
 
 ## Son Guncellemeler
+- **27 Kasim 2025:** Alarm listesi API cache (30sn TTL) - hızlı yükleme
+- **27 Kasim 2025:** Alarm listesine takım adı arama eklendi (debounce 300ms)
+- **27 Kasim 2025:** x3/x4 badge tıklanabilir popover - alarm geçmişi tasarımı ile aynı
 - **27 Kasim 2025:** Alarm listesi optimizasyonu: sayfalama (30'luk), server-side filtre/sort, lazy loading (scroll)
 - **27 Kasim 2025:** Tarih filtresi 3 modlu sistem: ALL (bugün+gelecek), TODAY (sadece bugün), YESTERDAY (sadece dün)
 - **27 Kasim 2025:** Drop BTTS Supabase sütun adları düzeltildi (oddsyes/oddsno)
