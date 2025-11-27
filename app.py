@@ -95,12 +95,18 @@ def cleanup_old_matches():
 
 
 def start_cleanup_scheduler():
-    """Start daily cleanup scheduler"""
+    """Start daily cleanup scheduler - includes alarm state cleanup"""
     global cleanup_thread
+    
+    try:
+        from core.alarm_state import cleanup_old_alarm_states
+    except ImportError:
+        cleanup_old_alarm_states = lambda *args: None
     
     def cleanup_loop():
         while True:
             cleanup_old_matches()
+            cleanup_old_alarm_states(hours=48)
             time.sleep(3600)
     
     cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
