@@ -1,6 +1,7 @@
 """
 SmartXFlow - Betting Odds Monitor
 Flask Web Application with modern dark theme UI
+Build: 2025-11-28
 
 Mode-aware architecture:
 - SERVER mode (Replit): Runs scraper, writes to SQLite, syncs to Supabase
