@@ -35,7 +35,7 @@ jobs:
         shell: python
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           import os
           url = os.environ.get('SUPABASE_URL', '')
