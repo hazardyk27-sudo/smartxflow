@@ -751,9 +751,6 @@ alarm_cache = {
     'ttl': 120
 }
 
-match_alarm_cache = {}
-match_alarm_cache_ttl = 300
-
 DEMO_TEAMS = {'Whale FC', 'Sharp FC', 'Pro Bettors XI', 'Casual City', 'Target United', 
               'Small Fish', 'Budget Boys', 'Line Freeze FC', 'Bookmaker XI', 
               'Public Money FC', 'Trending Town', 'Accelerate FC', 'Brake City',
@@ -774,7 +771,7 @@ def is_demo_match(match):
 
 def get_cached_alarms():
     """Get alarms from cache or refresh if expired.
-    Uses bulk history for base data, then enriches with match_alarm_cache.
+    SYNCHRONIZED: Single source of truth for all 3 UIs (ticker, alarm list, match modal).
     Returns only TODAY's alarms (Europe/Istanbul timezone).
     """
     import time
@@ -784,9 +781,7 @@ def get_cached_alarms():
     now = time.time()
     if alarm_cache['data'] is not None and (now - alarm_cache['timestamp']) < alarm_cache['ttl']:
         print("[Alarms API] Using cached data")
-        result = alarm_cache['data'].copy()
-        result = enrich_with_match_cache(result)
-        return result
+        return alarm_cache['data'].copy()
     
     print("[Alarms API] Refreshing alarm cache (bulk query)...")
     start_time = time.time()
@@ -836,114 +831,8 @@ def get_cached_alarms():
     alarm_cache['data'] = formatted
     alarm_cache['timestamp'] = now
     
-    result = formatted.copy()
-    result = enrich_with_match_cache(result)
-    return result
+    return formatted.copy()
 
-
-def enrich_with_match_cache(formatted_alarms: list) -> list:
-    """Enrich alarm list with more accurate data from match_alarm_cache.
-    When match detail API has more complete data, use those counts instead.
-    Replaces bulk history data with cache data (not append).
-    """
-    import time
-    from core.alarms import ALARM_CONFIG
-    from core.timezone import is_today_turkey
-    
-    now = time.time()
-    enriched = []
-    processed_matches = set()
-    
-    for alarm in formatted_alarms:
-        home = alarm.get('home', '')
-        away = alarm.get('away', '')
-        league = alarm.get('league', '')
-        date = alarm.get('date', '')
-        match_id = alarm.get('match_id', f"{home}|{away}|{league}|{date}")
-        cache_key = (home, away)
-        
-        if cache_key in processed_matches:
-            continue
-        
-        if cache_key in match_alarm_cache:
-            cached = match_alarm_cache[cache_key]
-            if now - cached['timestamp'] < match_alarm_cache_ttl:
-                today_alarms = [a for a in cached['alarms'] if is_today_turkey(a.get('timestamp', ''))]
-                if today_alarms:
-                    grouped = {}
-                    for a in today_alarms:
-                        alarm_type = a.get('name', '')
-                        if alarm_type not in grouped:
-                            grouped[alarm_type] = []
-                        grouped[alarm_type].append(a)
-                    
-                    for alarm_type, type_alarms in grouped.items():
-                        config = ALARM_CONFIG.get(alarm_type, {'priority': 99})
-                        enriched.append({
-                            'home': home,
-                            'away': away,
-                            'league': league,
-                            'date': date,
-                            'match_id': match_id,
-                            'name': alarm_type,
-                            'type': alarm_type,
-                            'icon': config.get('icon', ''),
-                            'color': config.get('color', '#888'),
-                            'count': len(type_alarms),
-                            'priority': config.get('priority', 99),
-                            'events': type_alarms,
-                            'max_money': max((a.get('money', 0) for a in type_alarms), default=0),
-                            'max_drop': max((a.get('odds_drop', 0) for a in type_alarms), default=0),
-                        })
-                    processed_matches.add(cache_key)
-                    continue
-        
-        enriched.append(alarm)
-        processed_matches.add(cache_key)
-    
-    for cache_key, cached in match_alarm_cache.items():
-        if cache_key in processed_matches:
-            continue
-        if now - cached['timestamp'] >= match_alarm_cache_ttl:
-            continue
-        
-        home, away = cache_key
-        cached_league = cached.get('league', '')
-        cached_date = cached.get('date', '')
-        cached_match_id = f"{home}|{away}|{cached_league}|{cached_date}"
-        
-        today_alarms = [a for a in cached['alarms'] if is_today_turkey(a.get('timestamp', ''))]
-        if not today_alarms:
-            continue
-        
-        grouped = {}
-        for a in today_alarms:
-            alarm_type = a.get('name', '')
-            if alarm_type not in grouped:
-                grouped[alarm_type] = []
-            grouped[alarm_type].append(a)
-        
-        for alarm_type, type_alarms in grouped.items():
-            config = ALARM_CONFIG.get(alarm_type, {'priority': 99})
-            enriched.append({
-                'home': home,
-                'away': away,
-                'league': cached_league,
-                'date': cached_date,
-                'match_id': cached_match_id,
-                'name': alarm_type,
-                'type': alarm_type,
-                'icon': config.get('icon', ''),
-                'color': config.get('color', '#888'),
-                'count': len(type_alarms),
-                'priority': config.get('priority', 99),
-                'events': type_alarms,
-                'max_money': max((a.get('money', 0) for a in type_alarms), default=0),
-                'max_drop': max((a.get('odds_drop', 0) for a in type_alarms), default=0),
-            })
-        processed_matches.add(cache_key)
-    
-    return enriched
 
 @app.route('/api/alarms')
 def get_all_alarms():
