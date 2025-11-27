@@ -686,71 +686,11 @@ def get_ticker_alarms():
                         formatted['date'] = date
                         all_alarms.append(formatted)
         
-        critical = get_critical_alarms(all_alarms, limit=10)
-        
-        if True:
-            demo_matches = [
-                ('Tottenham', 'Arsenal', 'Premier League', '#06b6d4', 'momentum_change', '', '1→X', '', ''),
-                ('Sevilla', 'Betis', 'La Liga', '#06b6d4', 'momentum_change', '', 'X→2', '', ''),
-                ('AC Milan', 'Inter', 'Serie A', '#06b6d4', 'momentum_change', '', '2→1', '', ''),
-                ('Arsenal', 'Chelsea', 'Premier League', '#f85149', 'rlm', '+£450', '1', '2.10', '2.25'),
-                ('Real Madrid', 'Barcelona', 'La Liga', '#4ade80', 'sharp', '+£820', '2', '1.85', '1.72'),
-                ('Bayern', 'Dortmund', 'Bundesliga', '#f0883e', 'big_money', '+£1,200', 'X', '3.40', '3.55'),
-                ('PSG', 'Lyon', 'Ligue 1', '#58a6ff', 'line_freeze', '+£380', '1', '1.45', '1.45'),
-                ('Juventus', 'Inter', 'Serie A', '#f85149', 'rlm', '+£560', '2', '2.80', '2.95'),
-                ('Man City', 'Liverpool', 'Premier League', '#4ade80', 'sharp', '+£920', '1', '1.90', '1.78'),
-                ('Atletico', 'Sevilla', 'La Liga', '#a371f7', 'momentum', '+£340', 'X', '3.20', '3.35'),
-                ('Ajax', 'PSV', 'Eredivisie', '#f0883e', 'big_money', '+£780', '1', '2.05', '2.15'),
-                ('Porto', 'Benfica', 'Liga Portugal', '#f85149', 'rlm', '+£410', '2', '2.50', '2.65'),
-                ('Celtic', 'Rangers', 'Scottish Prem', '#4ade80', 'sharp', '+£650', '1', '1.75', '1.62'),
-                ('Galatasaray', 'Fenerbahce', 'Super Lig', '#f0883e', 'big_money', '+£890', 'X', '3.10', '3.25'),
-                ('Sporting', 'Braga', 'Liga Portugal', '#58a6ff', 'line_freeze', '+£290', '1', '1.55', '1.55'),
-                ('Napoli', 'Roma', 'Serie A', '#f85149', 'rlm', '+£520', '2', '2.35', '2.48'),
-                ('Leverkusen', 'Leipzig', 'Bundesliga', '#4ade80', 'sharp', '+£710', '1', '2.00', '1.88'),
-                ('Monaco', 'Marseille', 'Ligue 1', '#a371f7', 'momentum', '+£430', 'X', '3.50', '3.65'),
-                ('Wolves', 'Aston Villa', 'Premier League', '#f0883e', 'big_money', '+£580', '2', '2.70', '2.82'),
-                ('Valencia', 'Villarreal', 'La Liga', '#f85149', 'rlm', '+£360', '1', '2.20', '2.32'),
-                ('Fiorentina', 'Lazio', 'Serie A', '#4ade80', 'sharp', '+£480', 'X', '3.30', '3.18'),
-                ('Feyenoord', 'AZ', 'Eredivisie', '#58a6ff', 'line_freeze', '+£320', '1', '1.65', '1.65'),
-                ('Besiktas', 'Trabzonspor', 'Super Lig', '#a371f7', 'momentum', '+£540', '2', '2.45', '2.58'),
-            ]
-            
-            alarm_info = {
-                'rlm': ('🔴', 'Reverse Line Move', '#f85149'),
-                'sharp': ('🟢', 'Sharp Move', '#4ade80'),
-                'big_money': ('💰', 'Big Money', '#f0883e'),
-                'line_freeze': ('🔵', 'Line Freeze', '#58a6ff'),
-                'momentum': ('🟣', 'Momentum', '#a371f7'),
-                'momentum_change': ('🔄', 'Momentum Change', '#06b6d4'),
-            }
-            
-            for i, (home, away, league, color, atype, money, side, odds_from, odds_to) in enumerate(demo_matches):
-                if len(critical) >= 20:
-                    break
-                icon, name, _ = alarm_info.get(atype, ('⚡', 'Alert', '#fff'))
-                demo_time = (now_turkey() - timedelta(minutes=i*3)).isoformat()
-                critical.append({
-                    'type': atype,
-                    'icon': icon,
-                    'name': name,
-                    'color': color,
-                    'home': home,
-                    'away': away,
-                    'side': side,
-                    'money_text': money,
-                    'odds_from': odds_from,
-                    'odds_to': odds_to,
-                    'market': 'moneyway_1x2',
-                    'match_id': generate_match_id(home, away, league, '2025-01-01'),
-                    'league': league,
-                    'date': '2025-01-01',
-                    'timestamp': demo_time,
-                    'time_text': format_time_only(demo_time)
-                })
+        critical = get_critical_alarms(all_alarms, limit=20)
         
         return jsonify({
             'alarms': critical[:20],
-            'total': len(all_alarms) if all_alarms else 20
+            'total': len(all_alarms)
         })
     except Exception as e:
         print(f"[Ticker API] Error: {e}")
