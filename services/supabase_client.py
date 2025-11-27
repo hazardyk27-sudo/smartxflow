@@ -299,7 +299,7 @@ class SupabaseClient:
     def get_bulk_history_for_alarms(self, market: str, match_pairs: List[tuple]) -> Dict[tuple, List[Dict]]:
         """
         Batch fetch history for last 24h and filter by match_pairs.
-        Uses Range header to bypass 1000 row limit.
+        Uses paginated fetching to bypass 1000 row limit.
         Returns: {(home, away): [history_records]}
         """
         if not self.is_available or not match_pairs:
@@ -311,22 +311,37 @@ class SupabaseClient:
             
             cutoff = (datetime.utcnow() - timedelta(hours=24)).isoformat()
             
-            headers = self._headers()
-            headers["Range"] = "0-49999"
+            all_rows = []
+            page_size = 10000
+            max_pages = 5
             
-            url = f"{self._rest_url(history_table)}?select=*&scrapedat=gte.{cutoff}&order=scrapedat.desc"
-            resp = httpx.get(url, headers=headers, timeout=60)
-            
-            if resp.status_code not in [200, 206]:
-                print(f"[Supabase] Bulk history failed: {resp.status_code}")
-                return {}
-            
-            rows = resp.json()
+            for page in range(max_pages):
+                start = page * page_size
+                end = start + page_size - 1
+                
+                headers = self._headers()
+                headers["Range"] = f"{start}-{end}"
+                headers["Prefer"] = "count=exact"
+                
+                url = f"{self._rest_url(history_table)}?select=*&scrapedat=gte.{cutoff}&order=scrapedat.desc"
+                resp = httpx.get(url, headers=headers, timeout=60)
+                
+                if resp.status_code not in [200, 206]:
+                    if page == 0:
+                        print(f"[Supabase] Bulk history failed: {resp.status_code}")
+                        return {}
+                    break
+                
+                rows = resp.json()
+                all_rows.extend(rows)
+                
+                if len(rows) < page_size:
+                    break
             
             match_set = set(match_pairs)
             
             result = {}
-            for row in rows:
+            for row in all_rows:
                 key = (row.get('home', ''), row.get('away', ''))
                 if key in match_set:
                     if key not in result:
@@ -336,7 +351,7 @@ class SupabaseClient:
             for key in result:
                 result[key] = list(reversed(result[key]))
             
-            print(f"[Supabase] Bulk history ({market}): {len(rows)} rows (24h), {len(result)} matches")
+            print(f"[Supabase] Bulk history ({market}): {len(all_rows)} rows (24h), {len(result)} matches")
             return result
         except Exception as e:
             print(f"[Supabase] Error in get_bulk_history_for_alarms: {e}")

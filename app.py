@@ -741,8 +741,11 @@ def export_png():
 alarm_cache = {
     'data': None,
     'timestamp': 0,
-    'ttl': 60
+    'ttl': 120
 }
+
+match_alarm_cache = {}
+match_alarm_cache_ttl = 300
 
 DEMO_TEAMS = {'Whale FC', 'Sharp FC', 'Pro Bettors XI', 'Casual City', 'Target United', 
               'Small Fish', 'Budget Boys', 'Line Freeze FC', 'Bookmaker XI', 
@@ -764,7 +767,7 @@ def is_demo_match(match):
 
 def get_cached_alarms():
     """Get alarms from cache or refresh if expired.
-    Checks ALL today's matches to ensure consistency with match detail view.
+    Uses bulk history for base data, then enriches with match_alarm_cache.
     Returns only TODAY's alarms (Europe/Istanbul timezone).
     """
     import time
@@ -774,16 +777,17 @@ def get_cached_alarms():
     now = time.time()
     if alarm_cache['data'] is not None and (now - alarm_cache['timestamp']) < alarm_cache['ttl']:
         print("[Alarms API] Using cached data")
-        return alarm_cache['data'].copy()
+        result = alarm_cache['data'].copy()
+        result = enrich_with_match_cache(result)
+        return result
     
-    print("[Alarms API] Refreshing alarm cache (checking ALL matches)...")
+    print("[Alarms API] Refreshing alarm cache (bulk query)...")
     start_time = time.time()
     
     all_alarms = []
     markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
     
     matches_data = db.get_all_matches_with_latest('moneyway_1x2')
-    
     real_matches = [m for m in matches_data if not is_demo_match(m)]
     
     all_unique_matches = []
@@ -792,12 +796,9 @@ def get_cached_alarms():
         home = m.get('home_team', '')
         away = m.get('away_team', '')
         pair = (home, away)
-        
-        if pair in seen_pairs:
-            continue
-        
-        all_unique_matches.append(m)
-        seen_pairs.add(pair)
+        if pair not in seen_pairs:
+            all_unique_matches.append(m)
+            seen_pairs.add(pair)
     
     match_pairs = [(m.get('home_team', ''), m.get('away_team', '')) for m in all_unique_matches]
     match_info = {(m.get('home_team', ''), m.get('away_team', '')): m.get('league', '') for m in all_unique_matches}
@@ -811,24 +812,120 @@ def get_cached_alarms():
             if len(history) >= 2:
                 alarms = analyze_match_alarms(history, market)
                 for alarm in alarms:
+                    if not is_today_turkey(alarm.get('timestamp', '')):
+                        continue
                     alarm['home'] = home
                     alarm['away'] = away
                     alarm['market'] = market
                     alarm['league'] = match_info.get((home, away), '')
                     all_alarms.append(alarm)
     
-    today_alarms = [a for a in all_alarms if is_today_turkey(a.get('timestamp', ''))]
-    
-    grouped = group_alarms_by_match(today_alarms)
+    grouped = group_alarms_by_match(all_alarms)
     formatted = [format_grouped_alarm(g) for g in grouped]
     
     elapsed = time.time() - start_time
-    print(f"[Alarms API] Cache refreshed in {elapsed:.2f}s, checked {len(match_pairs)} matches (bulk), found {len(formatted)} alarms (today only, filtered {len(all_alarms)} total)")
+    print(f"[Alarms API] Cache refreshed in {elapsed:.2f}s, checked {len(match_pairs)} matches (bulk), found {len(formatted)} alarm groups ({len(all_alarms)} today events)")
     
     alarm_cache['data'] = formatted
     alarm_cache['timestamp'] = now
     
-    return formatted.copy()
+    result = formatted.copy()
+    result = enrich_with_match_cache(result)
+    return result
+
+
+def enrich_with_match_cache(formatted_alarms: list) -> list:
+    """Enrich alarm list with more accurate data from match_alarm_cache.
+    When match detail API has more complete data, use those counts instead.
+    Replaces bulk history data with cache data (not append).
+    """
+    import time
+    from core.alarms import ALARM_CONFIG
+    from core.timezone import is_today_turkey
+    
+    now = time.time()
+    enriched = []
+    processed_matches = set()
+    
+    for alarm in formatted_alarms:
+        home = alarm.get('home', '')
+        away = alarm.get('away', '')
+        cache_key = (home, away)
+        
+        if cache_key in processed_matches:
+            continue
+        
+        if cache_key in match_alarm_cache:
+            cached = match_alarm_cache[cache_key]
+            if now - cached['timestamp'] < match_alarm_cache_ttl:
+                today_alarms = [a for a in cached['alarms'] if is_today_turkey(a.get('timestamp', ''))]
+                if today_alarms:
+                    grouped = {}
+                    for a in today_alarms:
+                        alarm_type = a.get('name', '')
+                        if alarm_type not in grouped:
+                            grouped[alarm_type] = []
+                        grouped[alarm_type].append(a)
+                    
+                    for alarm_type, type_alarms in grouped.items():
+                        config = ALARM_CONFIG.get(alarm_type, {'priority': 99})
+                        enriched.append({
+                            'home': home,
+                            'away': away,
+                            'league': alarm.get('league', ''),
+                            'name': alarm_type,
+                            'type': alarm_type,
+                            'icon': config.get('icon', ''),
+                            'color': config.get('color', '#888'),
+                            'count': len(type_alarms),
+                            'priority': config.get('priority', 99),
+                            'events': type_alarms,
+                            'max_money': max((a.get('money', 0) for a in type_alarms), default=0),
+                            'max_drop': max((a.get('odds_drop', 0) for a in type_alarms), default=0),
+                        })
+                    processed_matches.add(cache_key)
+                    continue
+        
+        enriched.append(alarm)
+        processed_matches.add(cache_key)
+    
+    for cache_key, cached in match_alarm_cache.items():
+        if cache_key in processed_matches:
+            continue
+        if now - cached['timestamp'] >= match_alarm_cache_ttl:
+            continue
+        
+        home, away = cache_key
+        today_alarms = [a for a in cached['alarms'] if is_today_turkey(a.get('timestamp', ''))]
+        if not today_alarms:
+            continue
+        
+        grouped = {}
+        for a in today_alarms:
+            alarm_type = a.get('name', '')
+            if alarm_type not in grouped:
+                grouped[alarm_type] = []
+            grouped[alarm_type].append(a)
+        
+        for alarm_type, type_alarms in grouped.items():
+            config = ALARM_CONFIG.get(alarm_type, {'priority': 99})
+            enriched.append({
+                'home': home,
+                'away': away,
+                'league': '',
+                'name': alarm_type,
+                'type': alarm_type,
+                'icon': config.get('icon', ''),
+                'color': config.get('color', '#888'),
+                'count': len(type_alarms),
+                'priority': config.get('priority', 99),
+                'events': type_alarms,
+                'max_money': max((a.get('money', 0) for a in type_alarms), default=0),
+                'max_drop': max((a.get('odds_drop', 0) for a in type_alarms), default=0),
+            })
+        processed_matches.add(cache_key)
+    
+    return enriched
 
 @app.route('/api/alarms')
 def get_all_alarms():
@@ -1019,26 +1116,59 @@ def get_match_details():
         return jsonify({'success': False, 'error': str(e)})
 
 
+def get_match_alarms_data(home: str, away: str, today_only: bool = True) -> list:
+    """
+    Core function to get alarms for a specific match.
+    Used by both match detail API and alarm list to ensure consistency.
+    Also updates the shared match_alarm_cache for consistency with alarm list.
+    """
+    import time
+    from core.timezone import is_today_turkey
+    
+    cache_key = (home, away)
+    now = time.time()
+    
+    if cache_key in match_alarm_cache:
+        cached = match_alarm_cache[cache_key]
+        if now - cached['timestamp'] < match_alarm_cache_ttl:
+            alarms = cached['alarms']
+            if today_only:
+                alarms = [a for a in alarms if is_today_turkey(a.get('timestamp', ''))]
+            return alarms
+    
+    all_alarms = []
+    markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
+    
+    for market in markets:
+        history = db.get_match_history(home, away, market)
+        if len(history) >= 2:
+            alarms = analyze_match_alarms(history, market)
+            for alarm in alarms:
+                formatted = format_alarm_for_modal(alarm)
+                formatted['market'] = market
+                all_alarms.append(formatted)
+    
+    all_alarms.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+    
+    match_alarm_cache[cache_key] = {
+        'alarms': all_alarms.copy(),
+        'timestamp': now
+    }
+    
+    if today_only:
+        all_alarms = [a for a in all_alarms if is_today_turkey(a.get('timestamp', ''))]
+    
+    return all_alarms
+
 @app.route('/api/match/alarms')
 def get_match_alarms():
     """Get alarms for a specific match"""
     home = request.args.get('home', '')
     away = request.args.get('away', '')
+    today_only = request.args.get('today_only', 'true').lower() == 'true'
     
     try:
-        all_alarms = []
-        markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
-        
-        for market in markets:
-            history = db.get_match_history(home, away, market)
-            if len(history) >= 2:
-                alarms = analyze_match_alarms(history, market)
-                for alarm in alarms:
-                    formatted = format_alarm_for_modal(alarm)
-                    formatted['market'] = market
-                    all_alarms.append(formatted)
-        
-        all_alarms.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        all_alarms = get_match_alarms_data(home, away, today_only)
         
         return jsonify({
             'alarms': all_alarms,
