@@ -5,6 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'app.py'
+      - 'desktop_app.py'
       - 'templates/**'
       - 'static/**'
       - 'core/**'
@@ -27,10 +28,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flask httpx pytz supabase
+          pip install flask httpx pytz supabase pywebview
           pip install pyinstaller==6.3.0
 
-      - name: Create embedded config
+      - name: Create embedded credentials
         shell: python
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -40,21 +41,25 @@ jobs:
           url = os.environ.get('SUPABASE_URL', '')
           key = os.environ.get('SUPABASE_KEY', '')
           
-          # Create embedded_config.py
-          with open('embedded_config.py', 'w') as f:
-              f.write(f'EMBEDDED_SUPABASE_URL = "{url}"\n')
-              f.write(f'EMBEDDED_SUPABASE_KEY = "{key}"\n')
+          print(f"SUPABASE_URL length: {len(url)}")
+          print(f"SUPABASE_KEY length: {len(key)}")
           
-          # Set environment variables for the app
+          # Create services/embedded_credentials.py
+          os.makedirs('services', exist_ok=True)
           with open('services/embedded_credentials.py', 'w') as f:
               f.write(f'SUPABASE_URL = "{url}"\n')
               f.write(f'SUPABASE_KEY = "{key}"\n')
           
-          print("Config files created")
+          # Also create embedded_config.py at root
+          with open('embedded_config.py', 'w') as f:
+              f.write(f'EMBEDDED_SUPABASE_URL = "{url}"\n')
+              f.write(f'EMBEDDED_SUPABASE_KEY = "{key}"\n')
+          
+          print("Embedded credentials created successfully")
 
-      - name: Build EXE
+      - name: Build Desktop EXE
         run: |
-          pyinstaller --onefile --console --name SmartXFlow `
+          pyinstaller --onefile --noconsole --windowed --name SmartXFlowDesktop `
             --add-data "templates;templates" `
             --add-data "static;static" `
             --add-data "core;core" `
@@ -62,6 +67,8 @@ jobs:
             --add-data "embedded_config.py;." `
             --hidden-import=flask `
             --hidden-import=jinja2 `
+            --hidden-import=webview `
+            --hidden-import=webview.platforms.edgechromium `
             --hidden-import=httpx `
             --hidden-import=httpx._transports `
             --hidden-import=httpx._transports.default `
@@ -77,15 +84,37 @@ jobs:
             --hidden-import=realtime `
             --hidden-import=storage3 `
             --hidden-import=supafunc `
+            --hidden-import=clr `
+            --hidden-import=pythonnet `
             --collect-all flask `
+            --collect-all webview `
             --collect-all supabase `
             --collect-all httpx `
             --collect-all httpcore `
-            app.py
+            desktop_app.py
+
+      - name: Create debug info file
+        shell: python
+        run: |
+          from datetime import datetime
+          with open('dist/BUILD_INFO.txt', 'w') as f:
+              f.write(f"SmartXFlow Desktop Build Info\n")
+              f.write(f"==============================\n")
+              f.write(f"Build Time: {datetime.now().isoformat()}\n")
+              f.write(f"Python: 3.11\n")
+              f.write(f"PyInstaller: 6.3.0\n")
+              f.write(f"Entry Point: desktop_app.py\n")
+              f.write(f"Mode: pywebview (Edge WebView2)\n")
+              f.write(f"Console: Hidden\n")
+              f.write(f"\n")
+              f.write(f"Debug log will be created as smartxflow_debug.log\n")
+              f.write(f"in the same folder as the EXE when you run it.\n")
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: SmartXFlow-Windows-EXE
-          path: dist/SmartXFlow.exe
+          path: |
+            dist/SmartXFlowDesktop.exe
+            dist/BUILD_INFO.txt
           retention-days: 30
