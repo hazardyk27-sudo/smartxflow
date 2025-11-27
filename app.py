@@ -1035,7 +1035,7 @@ def get_match_alarms():
                     formatted['market'] = market
                     all_alarms.append(formatted)
         
-        all_alarms.sort(key=lambda x: x.get('priority', 99))
+        all_alarms.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
         
         return jsonify({
             'alarms': all_alarms,

@@ -3215,24 +3215,34 @@ function showAlarmHistoryPopover(badge, data) {
     popover.className = 'alarm-history-popover';
     popover.id = 'alarmHistoryPopover';
     
-    const eventsList = [];
+    const events = [];
     for (let i = 0; i < data.count; i++) {
-        const timestamp = data.timestamps[i] || '';
-        const detail = data.details[i] || data.name;
-        const moneyDiff = data.moneyDiffs[i] || 0;
-        const side = data.sides ? data.sides[i] : '';
-        const timeStr = formatAlarmTime(timestamp);
-        const sidePill = side ? `<span class="selection-pill">${side}</span>` : '';
-        
-        eventsList.push(`
+        events.push({
+            timestamp: data.timestamps[i] || '',
+            detail: data.details[i] || data.name,
+            moneyDiff: data.moneyDiffs[i] || 0,
+            side: data.sides ? data.sides[i] : ''
+        });
+    }
+    
+    events.sort((a, b) => {
+        const dateA = new Date(a.timestamp);
+        const dateB = new Date(b.timestamp);
+        return dateB - dateA;
+    });
+    
+    const eventsList = events.map(event => {
+        const timeStr = formatAlarmTime(event.timestamp);
+        const sidePill = event.side ? `<span class="selection-pill">${event.side}</span>` : '';
+        return `
             <div class="popover-event-item">
                 <div class="popover-event-time">${timeStr}</div>
                 ${sidePill}
-                <div class="popover-event-detail">${detail}</div>
-                ${moneyDiff > 0 ? `<div class="popover-event-money" style="color: ${data.color};">+£${moneyDiff.toLocaleString()}</div>` : ''}
+                <div class="popover-event-detail">${event.detail}</div>
+                ${event.moneyDiff > 0 ? `<div class="popover-event-money" style="color: ${data.color};">+£${event.moneyDiff.toLocaleString()}</div>` : ''}
             </div>
-        `);
-    }
+        `;
+    });
     
     popover.innerHTML = `
         <div class="popover-header" style="border-color: ${data.color};">
