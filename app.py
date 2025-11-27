@@ -286,6 +286,96 @@ def get_matches():
     return jsonify(enriched)
 
 
+@app.route('/api/match/history/bulk')
+def get_match_history_bulk():
+    """Get historical data for ALL markets of a single match in one request.
+    This is faster than calling /api/match/history 6 times separately.
+    """
+    home = request.args.get('home', '')
+    away = request.args.get('away', '')
+    
+    if not home or not away:
+        return jsonify({'error': 'Missing home or away parameter', 'markets': {}})
+    
+    all_markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts', 
+                   'dropping_1x2', 'dropping_ou25', 'dropping_btts']
+    
+    result = {}
+    for market in all_markets:
+        history = db.get_match_history(home, away, market)
+        
+        chart_data = {'labels': [], 'datasets': []}
+        
+        if history:
+            for h in history:
+                timestamp = h.get('ScrapedAt', '')
+                try:
+                    dt = datetime.fromisoformat(timestamp)
+                    chart_data['labels'].append(dt.strftime('%H:%M'))
+                except:
+                    chart_data['labels'].append(timestamp[:16] if timestamp else '')
+            
+            if market in ['moneyway_1x2', 'dropping_1x2']:
+                for idx, (key, color) in enumerate([('Odds1', '#4ade80'), ('OddsX', '#fbbf24'), ('Odds2', '#60a5fa')]):
+                    alt_key = ['1', 'X', '2'][idx]
+                    values = []
+                    for h in history:
+                        val = h.get(key, h.get(alt_key, ''))
+                        try:
+                            v = float(str(val).split('\n')[0]) if val else None
+                            values.append(v)
+                        except:
+                            values.append(None)
+                    chart_data['datasets'].append({
+                        'label': ['1', 'X', '2'][idx],
+                        'data': values,
+                        'borderColor': color,
+                        'tension': 0.1,
+                        'fill': False
+                    })
+            elif market in ['moneyway_ou25', 'dropping_ou25']:
+                for key, color, label in [('Under', '#60a5fa', 'Under'), ('Over', '#4ade80', 'Over')]:
+                    values = []
+                    for h in history:
+                        val = h.get(key, '')
+                        try:
+                            v = float(str(val).split('\n')[0]) if val else None
+                            values.append(v)
+                        except:
+                            values.append(None)
+                    chart_data['datasets'].append({
+                        'label': label,
+                        'data': values,
+                        'borderColor': color,
+                        'tension': 0.1,
+                        'fill': False
+                    })
+            elif market in ['moneyway_btts', 'dropping_btts']:
+                for key, color, label in [('Yes', '#4ade80', 'Yes'), ('No', '#f87171', 'No')]:
+                    values = []
+                    for h in history:
+                        val = h.get(key, '')
+                        try:
+                            v = float(str(val).split('\n')[0]) if val else None
+                            values.append(v)
+                        except:
+                            values.append(None)
+                    chart_data['datasets'].append({
+                        'label': label,
+                        'data': values,
+                        'borderColor': color,
+                        'tension': 0.1,
+                        'fill': False
+                    })
+        
+        result[market] = {
+            'history': history,
+            'chart_data': chart_data
+        }
+    
+    return jsonify({'markets': result})
+
+
 @app.route('/api/match/history')
 def get_match_history():
     """Get historical data for a specific match"""

@@ -1000,18 +1000,55 @@ function openMatchModal(index) {
     }
 }
 
+let bulkHistoryCache = {};
+let bulkHistoryCacheKey = '';
+
+async function loadAllMarketsAtOnce(home, away) {
+    const cacheKey = `${home}|${away}`;
+    if (bulkHistoryCacheKey === cacheKey && Object.keys(bulkHistoryCache).length > 0) {
+        console.log('[Bulk] Using cached data for', cacheKey);
+        return bulkHistoryCache;
+    }
+    
+    try {
+        console.log('[Bulk] Fetching all markets for', home, 'vs', away);
+        const startTime = performance.now();
+        const response = await fetch(
+            `/api/match/history/bulk?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}`
+        );
+        const data = await response.json();
+        const elapsed = performance.now() - startTime;
+        console.log(`[Bulk] Loaded all 6 markets in ${elapsed.toFixed(0)}ms`);
+        
+        if (data.markets) {
+            bulkHistoryCache = data.markets;
+            bulkHistoryCacheKey = cacheKey;
+        }
+        return data.markets || {};
+    } catch (e) {
+        console.error('[Bulk] Error fetching all markets:', e);
+        return {};
+    }
+}
+
 async function loadChartWithTrends(home, away, market) {
     try {
         let data = { history: [] };
         
-        try {
-            const response = await fetch(
-                `/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}`
-            );
-            data = await response.json();
-            console.log('[Modal] Loaded history for', home, 'vs', away, 'market:', market, 'count:', data.history?.length);
-        } catch (e) {
-            console.log('Using demo history data');
+        const cacheKey = `${home}|${away}`;
+        if (bulkHistoryCacheKey === cacheKey && bulkHistoryCache[market]) {
+            data = bulkHistoryCache[market];
+            console.log('[Modal] Using bulk cache for', market, 'count:', data.history?.length);
+        } else {
+            try {
+                const response = await fetch(
+                    `/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}`
+                );
+                data = await response.json();
+                console.log('[Modal] Loaded history for', home, 'vs', away, 'market:', market, 'count:', data.history?.length);
+            } catch (e) {
+                console.log('Using demo history data');
+            }
         }
         
         if (data.history && data.history.length >= 1) {
@@ -2981,8 +3018,9 @@ function getTimeAgo(timestamp) {
     return `${days} gün önce`;
 }
 
-function goToMatchFromAlarm(home, away) {
+async function goToMatchFromAlarm(home, away) {
     closeAlarmPanel();
+    await loadAllMarketsAtOnce(home, away);
     openMatchModalByTeams(home, away);
 }
 
