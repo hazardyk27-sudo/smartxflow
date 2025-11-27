@@ -3161,9 +3161,9 @@ function renderDrop1X2Cell(label, oddsValue, trendData) {
     if (!trendData || !trendData.history || trendData.history.length < 2) {
         const flatSparkline = generateFlatSparklineSVG();
         return `
-            <div class="drop-odds-cell">
-                <div class="sparkline-container">${flatSparkline}</div>
-                <span class="drop-odds-value">${formattedOdds}</span>
+            <div class="drop-mini-card">
+                <div class="drop-spark">${flatSparkline}</div>
+                <div class="drop-odds">${formattedOdds}</div>
             </div>
         `;
     }
@@ -3179,12 +3179,13 @@ function renderDrop1X2Cell(label, oddsValue, trendData) {
         trend: trendData.trend
     }).replace(/"/g, '&quot;');
     
+    const changeClass = trendData.trend === 'up' ? 'positive' : (trendData.trend === 'down' ? 'negative' : '');
+    
     return `
-        <div class="drop-odds-cell" data-tooltip="${tooltipData}">
-            <div class="sparkline-container">${sparkline}</div>
-            <span class="drop-odds-value">${formattedOdds}</span>
-            ${pctHtml}
-            ${arrowHtml}
+        <div class="drop-mini-card" data-tooltip="${tooltipData}">
+            <div class="drop-spark">${sparkline}</div>
+            <div class="drop-odds">${formattedOdds}</div>
+            <div class="drop-change ${changeClass}">${pctHtml}${arrowHtml}</div>
         </div>
     `;
 }
@@ -3261,7 +3262,7 @@ function hideTrendTooltip() {
 }
 
 function attachTrendTooltipListeners() {
-    document.querySelectorAll('.odds-trend-cell, .drop-odds-cell[data-tooltip]').forEach(cell => {
+    document.querySelectorAll('.odds-trend-cell, .drop-mini-card[data-tooltip]').forEach(cell => {
         cell.addEventListener('mouseenter', showTrendTooltip);
         cell.addEventListener('mouseleave', hideTrendTooltip);
     });
