@@ -2273,7 +2273,7 @@ body {
 .mw-odds {
     font-size: 15px;
     font-weight: 600;
-    color: #bcdcff;
+    color: #ffffff;
     white-space: nowrap;
 }
 
@@ -2285,7 +2285,7 @@ body {
     text-overflow: ellipsis;
     max-width: 70px;
     display: block;
-    color: #52c41a;
+    color: #3fb950;
 }
 
 .mw-donut {
