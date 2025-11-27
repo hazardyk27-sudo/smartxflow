@@ -1949,6 +1949,29 @@ body {
     white-space: nowrap;
 }
 
+/* Selection Pill - shows which outcome (1, X, 2, Over, Under, Yes, No) */
+.selection-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #58a6ff;
+    background: rgba(88, 166, 255, 0.15);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    border-radius: 12px;
+    white-space: nowrap;
+    min-width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.event-item .selection-pill,
+.popover-event-item .selection-pill {
+    margin-right: 4px;
+}
+
 /* Alarm Drawer Overlay */
 .alarm-drawer-overlay {
     position: fixed;

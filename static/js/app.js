@@ -2838,6 +2838,7 @@ function renderGroupedAlarmList() {
                     ${group.events.map(e => `
                         <div class="event-item">
                             <div class="event-time">${formatAlarmTime(e.timestamp)}</div>
+                            ${e.side ? `<span class="selection-pill">${e.side}</span>` : ''}
                             <div class="event-detail">${e.detail || e.name}</div>
                             ${e.money_diff > 0 ? `<div class="event-money">+£${e.money_diff.toLocaleString()}</div>` : ''}
                         </div>
@@ -3109,12 +3110,14 @@ function groupAlarmsByType(alarms) {
                 ...alarm,
                 count: 1,
                 sides: [alarm.side],
+                allSides: [alarm.side],
                 allDetails: [alarm.detail],
                 allTimestamps: [alarm.timestamp],
                 allMoneyDiffs: [alarm.money_diff || 0]
             };
         } else {
             grouped[key].count++;
+            grouped[key].allSides.push(alarm.side);
             if (alarm.side && !grouped[key].sides.includes(alarm.side)) {
                 grouped[key].sides.push(alarm.side);
             }
@@ -3161,11 +3164,14 @@ function showAlarmHistoryPopover(badge, data) {
         const timestamp = data.timestamps[i] || '';
         const detail = data.details[i] || data.name;
         const moneyDiff = data.moneyDiffs[i] || 0;
+        const side = data.sides ? data.sides[i] : '';
         const timeStr = formatAlarmTime(timestamp);
+        const sidePill = side ? `<span class="selection-pill">${side}</span>` : '';
         
         eventsList.push(`
             <div class="popover-event-item">
                 <div class="popover-event-time">${timeStr}</div>
+                ${sidePill}
                 <div class="popover-event-detail">${detail}</div>
                 ${moneyDiff > 0 ? `<div class="popover-event-money" style="color: ${data.color};">+£${moneyDiff.toLocaleString()}</div>` : ''}
             </div>
@@ -3283,7 +3289,8 @@ async function loadMatchAlarms(home, away) {
                     count: alarm.count,
                     timestamps: alarm.allTimestamps,
                     details: alarm.allDetails,
-                    moneyDiffs: alarm.allMoneyDiffs || []
+                    moneyDiffs: alarm.allMoneyDiffs || [],
+                    sides: alarm.allSides || []
                 };
                 countBadge = `<span class="alarm-count-badge clickable" data-badge-id="${badgeId}" onclick="event.stopPropagation(); showAlarmHistoryPopover(this, window['${badgeId}'])">x${alarm.count}</span>`;
             }

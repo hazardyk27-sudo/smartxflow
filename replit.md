@@ -162,6 +162,8 @@ Environment variables:
 - **SUPABASE SECRET ADI** - Her zaman SUPABASE_ANON_KEY kullan (SUPABASE_KEY değil)
 
 ## Son Guncellemeler
+- **27 Kasim 2025:** Alarm geçmişinde seçenek pill'i eklendi (1, X, 2, Over, Under, Yes, No)
+- **27 Kasim 2025:** Selection pill hem alarm listesi popup hem maç içi popover'da gösteriliyor
 - **27 Kasim 2025:** Alarm/Ticker API cache 60sn TTL - demo maçlar filtrelendi (is_demo_match)
 - **27 Kasim 2025:** İlk istek 2-3s, cache'li istekler 5-10ms - 500x hızlanma
 - **27 Kasim 2025:** DEMO_TEAMS seti ile demo takımlar, "Demo" liglerle birlikte otomatik filtreleniyor
