@@ -30,6 +30,12 @@
     --color-text-muted: #8899a6;
     --color-accent: #4ade80;
     --color-link: #58a6ff;
+    
+    /* Moneyway Global Renk Sistemi */
+    --moneyColor: #52c41a;
+    --oddsColor: #e5e7eb;
+    --donutFill: #22c55e;
+    --donutTrack: #1f2630;
 }
 
 * {
@@ -2273,7 +2279,7 @@ body {
 .mw-odds {
     font-size: 15px;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--oddsColor);
     white-space: nowrap;
 }
 
@@ -2285,7 +2291,13 @@ body {
     text-overflow: ellipsis;
     max-width: 70px;
     display: block;
-    color: #3fb950;
+    color: var(--moneyColor);
+}
+
+/* Volume sütunu da aynı para rengi */
+.volume-text,
+td.volume {
+    color: var(--moneyColor) !important;
 }
 
 .mw-donut {
