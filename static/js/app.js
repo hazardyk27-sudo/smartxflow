@@ -3026,10 +3026,14 @@ function getTimeAgo(timestamp) {
     return `${days} gün önce`;
 }
 
-async function goToMatchFromAlarm(home, away) {
+async function goToMatchFromAlarm(home, away, matchId, league) {
     closeAlarmPanel();
     await loadAllMarketsAtOnce(home, away);
-    openMatchModalByTeams(home, away);
+    if (matchId) {
+        openMatchModalById(matchId, home, away, currentMarket, league);
+    } else {
+        openMatchModalByTeams(home, away);
+    }
 }
 
 function openMatchModalById(matchId, home, away, market, league, alarmType) {
