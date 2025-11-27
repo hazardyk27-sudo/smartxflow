@@ -56,6 +56,7 @@ Windows masaustu uygulamasi - arbworld.net'ten Moneyway ve Dropping Odds veriler
 ├── core/
 │   ├── settings.py       # Mode + DISABLE_SCRAPER kontrolü
 │   ├── alarms.py         # Smart Money alarm mantığı
+│   ├── alarm_state.py    # Alarm deduplication (SQLite state)
 │   └── storage.py
 ├── templates/
 ├── static/
@@ -162,6 +163,9 @@ Environment variables:
 - **SUPABASE SECRET ADI** - Her zaman SUPABASE_ANON_KEY kullan (SUPABASE_KEY değil)
 
 ## Son Guncellemeler
+- **27 Kasim 2025:** Alarm deduplication sistemi - aynı window için tekrar alarm üretilmez (core/alarm_state.py)
+- **27 Kasim 2025:** Window-based alarmlar (sharp/rlm/big_money/public_surge): benzersiz window_start ile kontrol
+- **27 Kasim 2025:** Non-windowed alarmlar: 15dk cooldown VEYA £5000+ artış ile yeni alarm
 - **27 Kasim 2025:** Alarm geçmişinde seçenek pill'i eklendi (1, X, 2, Over, Under, Yes, No)
 - **27 Kasim 2025:** Selection pill hem alarm listesi popup hem maç içi popover'da gösteriliyor
 - **27 Kasim 2025:** Alarm/Ticker API cache 60sn TTL - demo maçlar filtrelendi (is_demo_match)
