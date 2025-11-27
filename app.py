@@ -688,40 +688,66 @@ def export_png():
         return jsonify({'success': False, 'error': str(e)})
 
 
+alarm_cache = {
+    'data': None,
+    'timestamp': 0,
+    'ttl': 30
+}
+
+def get_cached_alarms():
+    """Get alarms from cache or refresh if expired"""
+    import time
+    from core.alarms import group_alarms_by_match, format_grouped_alarm
+    
+    now = time.time()
+    if alarm_cache['data'] is not None and (now - alarm_cache['timestamp']) < alarm_cache['ttl']:
+        return alarm_cache['data']
+    
+    all_alarms = []
+    markets = ['moneyway_1x2']
+    
+    matches_data = db.get_all_matches_with_latest('moneyway_1x2')
+    
+    for match in matches_data[:20]:
+        home = match.get('home_team', '')
+        away = match.get('away_team', '')
+        
+        for market in markets:
+            history = db.get_match_history(home, away, market)
+            if len(history) >= 2:
+                alarms = analyze_match_alarms(history, market)
+                for alarm in alarms:
+                    alarm['home'] = home
+                    alarm['away'] = away
+                    alarm['market'] = market
+                    all_alarms.append(alarm)
+    
+    grouped = group_alarms_by_match(all_alarms)
+    formatted = [format_grouped_alarm(g) for g in grouped]
+    
+    alarm_cache['data'] = formatted
+    alarm_cache['timestamp'] = now
+    
+    return formatted
+
 @app.route('/api/alarms')
 def get_all_alarms():
     """Get all active alarms - grouped by match+type with pagination and server-side filter/sort"""
     try:
-        from core.alarms import group_alarms_by_match, format_grouped_alarm, get_critical_alarms
-        
         page = request.args.get('page', 0, type=int)
         page_size = request.args.get('page_size', 30, type=int)
         type_filter = request.args.get('filter', 'all')
         sort_by = request.args.get('sort', 'newest')
+        search_query = request.args.get('search', '').strip().lower()
         
         page_size = min(page_size, 50)
         
-        all_alarms = []
-        markets = ['moneyway_1x2']
+        formatted = get_cached_alarms()
         
-        matches_data = db.get_all_matches_with_latest('moneyway_1x2')
-        
-        for match in matches_data[:30]:
-            home = match.get('home_team', '')
-            away = match.get('away_team', '')
-            
-            for market in markets:
-                history = db.get_match_history(home, away, market)
-                if len(history) >= 2:
-                    alarms = analyze_match_alarms(history, market)
-                    for alarm in alarms:
-                        alarm['home'] = home
-                        alarm['away'] = away
-                        alarm['market'] = market
-                        all_alarms.append(alarm)
-        
-        grouped = group_alarms_by_match(all_alarms)
-        formatted = [format_grouped_alarm(g) for g in grouped]
+        if search_query:
+            formatted = [a for a in formatted if 
+                         search_query in a.get('home', '').lower() or 
+                         search_query in a.get('away', '').lower()]
         
         if type_filter != 'all':
             formatted = [a for a in formatted if type_filter in a.get('type', '')]

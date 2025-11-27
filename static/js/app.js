@@ -2736,8 +2736,12 @@ async function loadGroupedAlarms(isNewLoad = true) {
     try {
         const typeFilter = document.getElementById('alarmTypeFilter')?.value || 'all';
         const sortBy = document.getElementById('alarmSortBy')?.value || 'newest';
+        const searchQuery = document.getElementById('alarmTeamSearch')?.value.trim() || '';
         
-        const url = `/api/alarms?page=${alarmCurrentPage}&page_size=${ALARM_PAGE_SIZE}&filter=${typeFilter}&sort=${sortBy}`;
+        let url = `/api/alarms?page=${alarmCurrentPage}&page_size=${ALARM_PAGE_SIZE}&filter=${typeFilter}&sort=${sortBy}`;
+        if (searchQuery) {
+            url += `&search=${encodeURIComponent(searchQuery)}`;
+        }
         console.log('[Alarms] Fetching:', url);
         const response = await fetch(url);
         const data = await response.json();
@@ -2771,6 +2775,39 @@ function filterAlarms() {
     alarmCurrentPage = 0;
     groupedAlarmsData = [];
     loadGroupedAlarms(true);
+}
+
+let alarmSearchTimeout = null;
+
+function debounceAlarmSearch() {
+    const searchInput = document.getElementById('alarmTeamSearch');
+    const clearBtn = document.getElementById('searchClearBtn');
+    
+    if (clearBtn) {
+        clearBtn.style.display = searchInput?.value.trim() ? 'flex' : 'none';
+    }
+    
+    if (alarmSearchTimeout) {
+        clearTimeout(alarmSearchTimeout);
+    }
+    
+    alarmSearchTimeout = setTimeout(() => {
+        filterAlarms();
+    }, 300);
+}
+
+function clearAlarmSearch() {
+    const searchInput = document.getElementById('alarmTeamSearch');
+    const clearBtn = document.getElementById('searchClearBtn');
+    
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    if (clearBtn) {
+        clearBtn.style.display = 'none';
+    }
+    
+    filterAlarms();
 }
 
 function renderGroupedAlarmList() {
@@ -3073,7 +3110,8 @@ function groupAlarmsByType(alarms) {
                 count: 1,
                 sides: [alarm.side],
                 allDetails: [alarm.detail],
-                allTimestamps: [alarm.timestamp]
+                allTimestamps: [alarm.timestamp],
+                allMoneyDiffs: [alarm.money_diff || 0]
             };
         } else {
             grouped[key].count++;
@@ -3082,6 +3120,7 @@ function groupAlarmsByType(alarms) {
             }
             grouped[key].allDetails.push(alarm.detail);
             grouped[key].allTimestamps.push(alarm.timestamp);
+            grouped[key].allMoneyDiffs.push(alarm.money_diff || 0);
         }
     });
     return Object.values(grouped);
@@ -3107,6 +3146,97 @@ function formatAlarmDateTime(timestamp) {
         return `${day} ${month} · ${hours}:${mins}`;
     } catch {
         return timestamp.substring(0, 16) || '';
+    }
+}
+
+function showAlarmHistoryPopover(badge, data) {
+    closeAlarmHistoryPopover();
+    
+    const popover = document.createElement('div');
+    popover.className = 'alarm-history-popover';
+    popover.id = 'alarmHistoryPopover';
+    
+    const eventsList = [];
+    for (let i = 0; i < data.count; i++) {
+        const timestamp = data.timestamps[i] || '';
+        const detail = data.details[i] || data.name;
+        const moneyDiff = data.moneyDiffs[i] || 0;
+        const timeStr = formatAlarmTime(timestamp);
+        
+        eventsList.push(`
+            <div class="popover-event-item">
+                <div class="popover-event-time">${timeStr}</div>
+                <div class="popover-event-detail">${detail}</div>
+                ${moneyDiff > 0 ? `<div class="popover-event-money" style="color: ${data.color};">+£${moneyDiff.toLocaleString()}</div>` : ''}
+            </div>
+        `);
+    }
+    
+    popover.innerHTML = `
+        <div class="popover-header" style="border-color: ${data.color};">
+            <span class="popover-icon">${data.icon}</span>
+            <span class="popover-title">ALARM GEÇMİŞİ (${data.count} OLAY)</span>
+            <button class="popover-close" onclick="closeAlarmHistoryPopover()">✕</button>
+        </div>
+        <div class="popover-events-list">
+            ${eventsList.join('')}
+        </div>
+    `;
+    
+    document.body.appendChild(popover);
+    
+    const rect = badge.getBoundingClientRect();
+    const popoverRect = popover.getBoundingClientRect();
+    
+    let left = rect.left + rect.width / 2 - popoverRect.width / 2;
+    let top = rect.bottom + 8;
+    
+    if (left < 10) left = 10;
+    if (left + popoverRect.width > window.innerWidth - 10) {
+        left = window.innerWidth - popoverRect.width - 10;
+    }
+    if (top + popoverRect.height > window.innerHeight - 10) {
+        top = rect.top - popoverRect.height - 8;
+    }
+    
+    popover.style.left = `${left}px`;
+    popover.style.top = `${top}px`;
+    popover.style.opacity = '1';
+    popover.style.transform = 'translateY(0)';
+    
+    setTimeout(() => {
+        document.addEventListener('click', closePopoverOnClickOutside);
+    }, 100);
+}
+
+function closeAlarmHistoryPopover() {
+    const popover = document.getElementById('alarmHistoryPopover');
+    if (popover) {
+        popover.remove();
+    }
+    document.removeEventListener('click', closePopoverOnClickOutside);
+}
+
+function closePopoverOnClickOutside(e) {
+    const popover = document.getElementById('alarmHistoryPopover');
+    if (popover && !popover.contains(e.target)) {
+        closeAlarmHistoryPopover();
+    }
+}
+
+function formatAlarmTime(timestamp) {
+    if (!timestamp) return '';
+    try {
+        const date = new Date(timestamp);
+        if (isNaN(date.getTime())) {
+            if (timestamp.includes(' ')) {
+                return timestamp.split(' ')[1]?.substring(0, 5) || '';
+            }
+            return '';
+        }
+        return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+        return timestamp.substring(11, 16) || '';
     }
 }
 
@@ -3145,11 +3275,17 @@ async function loadMatchAlarms(home, away) {
             
             let countBadge = '';
             if (alarm.count > 1) {
-                const tooltipLines = alarm.allTimestamps
-                    .map((ts, i) => `${i + 1}) ${formatAlarmDateTime(ts)}`)
-                    .join('\n');
-                const tooltipText = `${alarm.name} (${alarm.count} event)\n${tooltipLines}`;
-                countBadge = `<span class="alarm-count-badge" title="${tooltipText}">x${alarm.count}</span>`;
+                const badgeId = `badge_${alarm.type}_${Date.now()}`;
+                window[badgeId] = {
+                    name: alarm.name,
+                    icon: alarm.icon,
+                    color: alarm.color,
+                    count: alarm.count,
+                    timestamps: alarm.allTimestamps,
+                    details: alarm.allDetails,
+                    moneyDiffs: alarm.allMoneyDiffs || []
+                };
+                countBadge = `<span class="alarm-count-badge clickable" data-badge-id="${badgeId}" onclick="event.stopPropagation(); showAlarmHistoryPopover(this, window['${badgeId}'])">x${alarm.count}</span>`;
             }
             
             return `

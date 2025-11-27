@@ -86,26 +86,36 @@
             </button>
         </div>
         <div class="alarm-drawer-filters">
-            <div class="filter-group">
-                <label>Filtre:</label>
-                <select id="alarmTypeFilter" onchange="filterAlarms()">
-                    <option value="all">Tümü</option>
-                    <option value="sharp">🟢 Sharp Move</option>
-                    <option value="rlm">🔴 Reverse Line Move</option>
-                    <option value="big">💰 Big Money Move</option>
-                    <option value="freeze">🔵 Line Freeze</option>
-                    <option value="public">🟡 Public Money Surge</option>
-                    <option value="momentum">🟣 Momentum Spike</option>
-                    <option value="momentum_change">🔄 Momentum Change</option>
-                </select>
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Filtre:</label>
+                    <select id="alarmTypeFilter" onchange="filterAlarms()">
+                        <option value="all">Tümü</option>
+                        <option value="sharp">🟢 Sharp Move</option>
+                        <option value="rlm">🔴 Reverse Line Move</option>
+                        <option value="big">💰 Big Money Move</option>
+                        <option value="freeze">🔵 Line Freeze</option>
+                        <option value="public">🟡 Public Money Surge</option>
+                        <option value="momentum">🟣 Momentum Spike</option>
+                        <option value="momentum_change">🔄 Momentum Change</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Sırala:</label>
+                    <select id="alarmSortBy" onchange="filterAlarms()">
+                        <option value="newest">En yeni</option>
+                        <option value="money">Para miktarı</option>
+                        <option value="odds">Oran değişimi</option>
+                    </select>
+                </div>
             </div>
-            <div class="filter-group">
-                <label>Sırala:</label>
-                <select id="alarmSortBy" onchange="filterAlarms()">
-                    <option value="newest">En yeni</option>
-                    <option value="money">Para miktarı</option>
-                    <option value="odds">Oran değişimi</option>
-                </select>
+            <div class="search-row">
+                <input type="text" 
+                       id="alarmTeamSearch" 
+                       class="alarm-search-input" 
+                       placeholder="Takım ara (örn: West Ham, Liverpool)"
+                       oninput="debounceAlarmSearch()">
+                <button class="search-clear-btn" onclick="clearAlarmSearch()" id="searchClearBtn" style="display: none;">✕</button>
             </div>
         </div>
         <div class="alarm-drawer-content" id="alarmDrawerContent">
