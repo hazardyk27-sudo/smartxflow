@@ -2236,11 +2236,11 @@ body {
 }
 
 .pct-change.pct-down {
-    color: #22c55e;
+    color: #ef4444;
 }
 
 .pct-change.pct-up {
-    color: #ef4444;
+    color: #22c55e;
 }
 
 .pct-change.pct-stable {
@@ -2254,11 +2254,11 @@ body {
 }
 
 .trend-down-drop {
-    color: #22c55e;
+    color: #ef4444;
 }
 
 .trend-up-drop {
-    color: #ef4444;
+    color: #22c55e;
 }
 
 .trend-stable-drop {
@@ -2316,11 +2316,11 @@ body {
 }
 
 .odds-trend-tooltip .tooltip-value.tooltip-down {
-    color: #22c55e;
+    color: #ef4444;
 }
 
 .odds-trend-tooltip .tooltip-value.tooltip-up {
-    color: #ef4444;
+    color: #22c55e;
 }
 
 .odds-trend-tooltip .tooltip-value.tooltip-stable {
@@ -2337,11 +2337,11 @@ body {
 }
 
 .odds-trend-tooltip .tooltip-trend.tooltip-down {
-    color: #22c55e;
+    color: #ef4444;
 }
 
 .odds-trend-tooltip .tooltip-trend.tooltip-up {
-    color: #ef4444;
+    color: #22c55e;
 }
 
 .odds-trend-tooltip .tooltip-trend.tooltip-stable {

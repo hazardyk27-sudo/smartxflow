@@ -2833,9 +2833,9 @@ function generateSparklineSVG(values, trend) {
     
     let strokeColor = '#6b7280';
     if (trend === 'down') {
-        strokeColor = '#22c55e';
-    } else if (trend === 'up') {
         strokeColor = '#ef4444';
+    } else if (trend === 'up') {
+        strokeColor = '#22c55e';
     }
     
     return `<svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
