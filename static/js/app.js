@@ -216,20 +216,20 @@ function renderDonutSVG(percent, size = 64) {
     const radius = (size - strokeWidth * 2) / 2;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (num / 100) * circumference;
-    const trackColor = '#1f2630';
-    const progressColor = '#22c55e';
-    const isLow = num <= 50;
-    const textColor = isLow ? '#e5e7eb' : '#ffffff';
+    const trackColor = '#1c2533';
+    const isHigh = num >= 50;
+    const fillColor = isHigh ? '#22c55e' : '#111827';
+    const textColor = isHigh ? '#ffffff' : '#9ca3af';
     const fontSize = size > 50 ? 14 : 10;
-    const donutClass = isLow ? 'donut-low' : 'donut-high';
+    const donutClass = isHigh ? 'donut-high' : 'donut-low';
     
     return `
         <svg class="donut-svg ${donutClass}" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-            <circle cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="${trackColor}" stroke-width="${strokeWidth}"/>
-            <circle cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="${progressColor}" stroke-width="${strokeWidth}"
+            <circle class="ring-track" cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="${trackColor}" stroke-width="${strokeWidth}"/>
+            <circle class="ring-fill" cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="${fillColor}" stroke-width="${strokeWidth}"
                 stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
                 stroke-linecap="round" transform="rotate(-90 ${size/2} ${size/2})"/>
-            <text x="${size/2}" y="${size/2}" text-anchor="middle" dominant-baseline="central" 
+            <text class="percent-text" x="${size/2}" y="${size/2}" text-anchor="middle" dominant-baseline="central" 
                 fill="${textColor}" font-size="${fontSize}" font-weight="600">${num.toFixed(0)}%</text>
         </svg>
     `;
