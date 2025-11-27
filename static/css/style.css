@@ -2379,19 +2379,37 @@ body {
     flex-shrink: 0;
 }
 
-/* Responsive Dropping 1X2 */
-@media (max-width: 992px) {
+/* Responsive Dropping 1X2 - Dar ekran */
+@media (max-width: 900px) {
+    .matches-table.dropping-table {
+        table-layout: fixed;
+    }
+    
+    .matches-table.dropping-table colgroup col.col-date { width: 70px; }
+    .matches-table.dropping-table colgroup col.col-league { width: 90px; }
+    .matches-table.dropping-table colgroup col.col-match { width: auto; }
+    .matches-table.dropping-table colgroup col.col-selection { width: 120px; }
+    .matches-table.dropping-table colgroup col.col-volume { width: 70px; }
+    
+    .dropping-1x2-row td {
+        padding: 6px 4px !important;
+    }
+    
+    .drop-cell {
+        padding: 4px 2px !important;
+    }
+    
     .drop-odds-cell {
         gap: 4px;
     }
     
     .drop-odds-cell .sparkline-container {
-        width: 36px;
+        width: 56px;
     }
     
     .drop-odds-cell .sparkline-container svg {
-        width: 36px;
-        height: 14px;
+        width: 56px;
+        height: 18px;
     }
     
     .drop-odds-value {
@@ -2401,20 +2419,24 @@ body {
     .drop-odds-cell .trend-pct {
         font-size: 10px;
     }
+    
+    .drop-odds-cell .trend-arrow-drop {
+        font-size: 11px;
+    }
 }
 
 @media (max-width: 768px) {
     .drop-odds-cell .sparkline-container {
-        width: 28px;
+        width: 40px;
     }
     
     .drop-odds-cell .sparkline-container svg {
-        width: 28px;
-        height: 12px;
+        width: 40px;
+        height: 14px;
     }
     
     .drop-odds-value {
-        font-size: 11px;
+        font-size: 12px;
     }
     
     .drop-odds-cell .trend-pct {
@@ -2423,6 +2445,25 @@ body {
     
     .drop-odds-cell .trend-arrow-drop {
         font-size: 10px;
+    }
+}
+
+@media (max-width: 600px) {
+    .drop-odds-cell .sparkline-container {
+        width: 32px;
+    }
+    
+    .drop-odds-cell .sparkline-container svg {
+        width: 32px;
+        height: 12px;
+    }
+    
+    .drop-odds-value {
+        font-size: 11px;
+    }
+    
+    .drop-odds-cell .trend-pct {
+        font-size: 8px;
     }
 }
 
