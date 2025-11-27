@@ -1504,6 +1504,21 @@ async function loadChart(home, away, market) {
                         boxHeight: 14,
                         boxPadding: 6,
                         callbacks: {
+                            labelTextColor: function(context) {
+                                const idx = context.dataIndex;
+                                const h = tooltipHistory[idx];
+                                if (!h || !isDropping) return '#e7e9ea';
+                                
+                                const datasetLabel = context.dataset.label;
+                                const graphPointOdds = getOddsFromHistory(h, datasetLabel, market);
+                                const currentLatestOdds = getLatestOdds(latestData, datasetLabel.replace('%', ''), market);
+                                
+                                if (graphPointOdds > 0 && currentLatestOdds > 0 && graphPointOdds !== currentLatestOdds) {
+                                    const pctChange = ((currentLatestOdds - graphPointOdds) / graphPointOdds) * 100;
+                                    return pctChange >= 0 ? '#22c55e' : '#ef4444';
+                                }
+                                return '#e7e9ea';
+                            },
                             label: function(context) {
                                 const idx = context.dataIndex;
                                 const h = tooltipHistory[idx];
