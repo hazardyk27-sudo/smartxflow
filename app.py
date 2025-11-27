@@ -709,7 +709,7 @@ def get_ticker_alarms():
             alarm_info = {
                 'rlm': ('🔴', 'Reverse Line Move', '#f85149'),
                 'sharp': ('🟢', 'Sharp Move', '#4ade80'),
-                'big_money': ('⚠', 'Big Money', '#f0883e'),
+                'big_money': ('💰', 'Big Money', '#f0883e'),
                 'line_freeze': ('🔵', 'Line Freeze', '#58a6ff'),
                 'momentum': ('🟣', 'Momentum', '#a371f7'),
                 'momentum_change': ('🔄', 'Momentum Change', '#06b6d4'),

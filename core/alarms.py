@@ -32,7 +32,7 @@ ALARM_TYPES = {
     },
     'big_money': {
         'name': 'Big Money Move',
-        'icon': '⚠',
+        'icon': '💰',
         'color': '#f59e0b',
         'priority': 3,
         'description': 'Çok kısa sürede yüksek para akışı.',
