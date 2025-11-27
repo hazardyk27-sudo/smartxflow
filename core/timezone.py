@@ -56,3 +56,24 @@ def format_time_only(timestamp_str: str) -> str:
 def format_date_only(timestamp_str: str) -> str:
     """Parse timestamp and return only date in DD.MM.YYYY format (Turkey timezone)"""
     return format_turkey_time(timestamp_str, '%d.%m.%Y')
+
+def today_start_turkey() -> datetime:
+    """Get today's start (00:00:00) in Turkey timezone"""
+    now = now_turkey()
+    return TURKEY_TZ.localize(datetime(now.year, now.month, now.day, 0, 0, 0))
+
+def today_end_turkey() -> datetime:
+    """Get today's end (23:59:59) in Turkey timezone"""
+    now = now_turkey()
+    return TURKEY_TZ.localize(datetime(now.year, now.month, now.day, 23, 59, 59))
+
+def is_today_turkey(timestamp_str: str) -> bool:
+    """Check if timestamp is from today (Turkey timezone)"""
+    if not timestamp_str:
+        return False
+    try:
+        dt = parse_to_turkey(timestamp_str)
+        today = now_turkey().date()
+        return dt.date() == today
+    except Exception:
+        return False

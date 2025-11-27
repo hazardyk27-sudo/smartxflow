@@ -765,10 +765,11 @@ def is_demo_match(match):
 def get_cached_alarms():
     """Get alarms from cache or refresh if expired.
     Checks ALL today's matches to ensure consistency with match detail view.
+    Returns only TODAY's alarms (Europe/Istanbul timezone).
     """
     import time
     from core.alarms import group_alarms_by_match, format_grouped_alarm
-    from core.timezone import now_turkey
+    from core.timezone import now_turkey, is_today_turkey
     
     now = time.time()
     if alarm_cache['data'] is not None and (now - alarm_cache['timestamp']) < alarm_cache['ttl']:
@@ -816,11 +817,13 @@ def get_cached_alarms():
                     alarm['league'] = match_info.get((home, away), '')
                     all_alarms.append(alarm)
     
-    grouped = group_alarms_by_match(all_alarms)
+    today_alarms = [a for a in all_alarms if is_today_turkey(a.get('timestamp', ''))]
+    
+    grouped = group_alarms_by_match(today_alarms)
     formatted = [format_grouped_alarm(g) for g in grouped]
     
     elapsed = time.time() - start_time
-    print(f"[Alarms API] Cache refreshed in {elapsed:.2f}s, checked {len(match_pairs)} matches (bulk), found {len(formatted)} alarms")
+    print(f"[Alarms API] Cache refreshed in {elapsed:.2f}s, checked {len(match_pairs)} matches (bulk), found {len(formatted)} alarms (today only, filtered {len(all_alarms)} total)")
     
     alarm_cache['data'] = formatted
     alarm_cache['timestamp'] = now
