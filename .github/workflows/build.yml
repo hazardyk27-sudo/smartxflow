@@ -28,7 +28,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flask httpx pytz supabase pywebview
+          pip install flask httpx pytz pywebview certifi
+          pip install supabase==2.4.0
           pip install pyinstaller==6.3.0
 
       - name: Create embedded credentials
@@ -84,8 +85,6 @@ jobs:
             --hidden-import=realtime `
             --hidden-import=storage3 `
             --hidden-import=supafunc `
-            --hidden-import=clr `
-            --hidden-import=pythonnet `
             --collect-all flask `
             --collect-all webview `
             --collect-all supabase `
