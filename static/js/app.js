@@ -2266,9 +2266,9 @@ function renderTickerPills() {
     tickerAlarms.forEach(alarm => tickerTrack.appendChild(createPill(alarm)));
     
     const totalWidth = tickerTrack.scrollWidth / 2;
-    const speed = 112;
+    const speed = 224;
     const duration = totalWidth / speed;
-    tickerTrack.style.animationDuration = `${Math.max(duration, 8)}s`;
+    tickerTrack.style.animationDuration = `${Math.max(duration, 4)}s`;
 }
 
 function pauseTicker() {
