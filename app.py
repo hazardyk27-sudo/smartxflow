@@ -702,11 +702,11 @@ def get_all_alarms():
         page_size = min(page_size, 50)
         
         all_alarms = []
-        markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
+        markets = ['moneyway_1x2']
         
         matches_data = db.get_all_matches_with_latest('moneyway_1x2')
         
-        for match in matches_data[:100]:
+        for match in matches_data[:30]:
             home = match.get('home_team', '')
             away = match.get('away_team', '')
             
@@ -737,6 +737,8 @@ def get_all_alarms():
         start_idx = page * page_size
         end_idx = start_idx + page_size
         paginated = formatted[start_idx:end_idx]
+        
+        print(f"[Alarms API] Found {total_count} alarms, returning {len(paginated)} for page {page}")
         
         return jsonify({
             'alarms': paginated,

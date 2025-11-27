@@ -1823,14 +1823,23 @@ body {
 }
 
 .alarm-count-badge {
-    background: #ef4444;
+    background: var(--alarm-color, #ef4444);
     color: white;
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 10px;
-    min-width: 18px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    min-width: 28px;
     text-align: center;
+    margin-left: 6px;
+    cursor: help;
+    white-space: pre-line;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.alarm-count-badge:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .alarm-count-badge:empty,

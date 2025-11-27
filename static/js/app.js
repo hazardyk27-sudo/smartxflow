@@ -2738,8 +2738,10 @@ async function loadGroupedAlarms(isNewLoad = true) {
         const sortBy = document.getElementById('alarmSortBy')?.value || 'newest';
         
         const url = `/api/alarms?page=${alarmCurrentPage}&page_size=${ALARM_PAGE_SIZE}&filter=${typeFilter}&sort=${sortBy}`;
+        console.log('[Alarms] Fetching:', url);
         const response = await fetch(url);
         const data = await response.json();
+        console.log('[Alarms] Response:', data);
         
         const loadingMore = document.getElementById('alarmLoadingMore');
         if (loadingMore) loadingMore.remove();
@@ -2751,6 +2753,7 @@ async function loadGroupedAlarms(isNewLoad = true) {
             alarmCurrentPage++;
             renderGroupedAlarmList();
         } else if (isNewLoad) {
+            console.log('[Alarms] No alarms found, total:', data.total);
             container.innerHTML = '<div class="alarm-empty">Aktif alarm yok</div>';
             alarmHasMore = false;
         }
@@ -3069,7 +3072,8 @@ function groupAlarmsByType(alarms) {
                 ...alarm,
                 count: 1,
                 sides: [alarm.side],
-                allDetails: [alarm.detail]
+                allDetails: [alarm.detail],
+                allTimestamps: [alarm.timestamp]
             };
         } else {
             grouped[key].count++;
@@ -3077,9 +3081,33 @@ function groupAlarmsByType(alarms) {
                 grouped[key].sides.push(alarm.side);
             }
             grouped[key].allDetails.push(alarm.detail);
+            grouped[key].allTimestamps.push(alarm.timestamp);
         }
     });
     return Object.values(grouped);
+}
+
+function formatAlarmDateTime(timestamp) {
+    if (!timestamp) return '';
+    try {
+        const date = new Date(timestamp);
+        if (isNaN(date.getTime())) {
+            if (timestamp.includes(' ')) {
+                const [datePart, timePart] = timestamp.split(' ');
+                const time = timePart ? timePart.substring(0, 5) : '';
+                return `${datePart.substring(5, 10)} · ${time}`;
+            }
+            return timestamp.substring(0, 16);
+        }
+        const day = date.getDate().toString().padStart(2, '0');
+        const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+        const month = months[date.getMonth()];
+        const hours = date.getHours().toString().padStart(2, '0');
+        const mins = date.getMinutes().toString().padStart(2, '0');
+        return `${day} ${month} · ${hours}:${mins}`;
+    } catch {
+        return timestamp.substring(0, 16) || '';
+    }
 }
 
 async function loadMatchAlarms(home, away) {
@@ -3110,7 +3138,19 @@ async function loadMatchAlarms(home, away) {
             const isHighlighted = alarm.type === highlightedAlarmType;
             const rgb = getAlarmRGB(alarm.color);
             const sidesText = alarm.sides.filter(s => s).join(', ');
-            const countBadge = alarm.count > 1 ? `<span class="alarm-count">x${alarm.count}</span>` : '';
+            
+            const latestTimestamp = alarm.allTimestamps && alarm.allTimestamps[0] 
+                ? formatAlarmDateTime(alarm.allTimestamps[0]) 
+                : formatAlarmDateTime(alarm.timestamp);
+            
+            let countBadge = '';
+            if (alarm.count > 1) {
+                const tooltipLines = alarm.allTimestamps
+                    .map((ts, i) => `${i + 1}) ${formatAlarmDateTime(ts)}`)
+                    .join('\n');
+                const tooltipText = `${alarm.name} (${alarm.count} event)\n${tooltipLines}`;
+                countBadge = `<span class="alarm-count-badge" title="${tooltipText}">x${alarm.count}</span>`;
+            }
             
             return `
                 <div class="alarm-card ${isHighlighted ? 'highlighted' : ''}" 
@@ -3123,7 +3163,7 @@ async function loadMatchAlarms(home, away) {
                         </div>
                         <div class="alarm-tags">
                             ${sidesText ? `<span class="alarm-tag market">${sidesText}</span>` : ''}
-                            <span class="alarm-tag time">Son 10 dk</span>
+                            <span class="alarm-tag time">${latestTimestamp}</span>
                         </div>
                     </div>
                     <div class="alarm-detail">${alarm.detail}</div>
