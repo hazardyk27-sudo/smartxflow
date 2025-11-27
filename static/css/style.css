@@ -2229,6 +2229,14 @@ body {
     background: rgba(48, 54, 61, 0.8);
 }
 
+.odds-trend-cell.odds-trend-no-data {
+    opacity: 0.8;
+}
+
+.odds-trend-cell.odds-trend-no-data .odds-value-trend {
+    color: #8b949e;
+}
+
 .sparkline-container {
     flex-shrink: 0;
 }

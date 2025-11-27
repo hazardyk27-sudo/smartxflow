@@ -418,21 +418,36 @@ function formatVolume(value) {
 function formatDateTwoLine(dateStr) {
     if (!dateStr || dateStr === '-') return '<div class="date-line">-</div>';
     
-    const parts = dateStr.match(/(\d{1,2})\.(\w{3})\s*(\d{2}:\d{2})/i);
-    if (parts) {
-        const day = parts[1];
-        const month = parts[2];
-        const time = parts[3];
-        return `<div class="date-line">${day}.${month}</div><div class="time-line">${time}</div>`;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    const pattern1 = dateStr.match(/(\d{1,2})\.(\w{3})\s*(\d{2}:\d{2})/i);
+    if (pattern1) {
+        return `<div class="date-line">${pattern1[1]}.${pattern1[2]}</div><div class="time-line">${pattern1[3]}</div>`;
     }
     
-    const altParts = dateStr.match(/(\d{4}-\d{2}-\d{2})\s*(\d{2}:\d{2})/);
-    if (altParts) {
-        const datePart = altParts[1];
-        const time = altParts[2];
-        const d = new Date(datePart);
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        return `<div class="date-line">${d.getDate()}.${months[d.getMonth()]}</div><div class="time-line">${time}</div>`;
+    const pattern2 = dateStr.match(/(\d{1,2})\.(\w{3})(\d{2}:\d{2})/i);
+    if (pattern2) {
+        return `<div class="date-line">${pattern2[1]}.${pattern2[2]}</div><div class="time-line">${pattern2[3]}</div>`;
+    }
+    
+    const pattern3 = dateStr.match(/(\d{4})-(\d{2})-(\d{2})\s*(\d{2}:\d{2})?/);
+    if (pattern3) {
+        const day = parseInt(pattern3[3]);
+        const monthIdx = parseInt(pattern3[2]) - 1;
+        const time = pattern3[4] || '00:00';
+        return `<div class="date-line">${day}.${months[monthIdx]}</div><div class="time-line">${time}</div>`;
+    }
+    
+    const pattern4 = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (pattern4) {
+        const day = parseInt(pattern4[3]);
+        const monthIdx = parseInt(pattern4[2]) - 1;
+        return `<div class="date-line">${day}.${months[monthIdx]}</div><div class="time-line">-</div>`;
+    }
+    
+    const pattern5 = dateStr.match(/(\d{4})/);
+    if (pattern5 && dateStr.length === 4) {
+        return `<div class="date-line">${dateStr}</div><div class="time-line">-</div>`;
     }
     
     return `<div class="date-line">${dateStr}</div>`;
@@ -2898,8 +2913,17 @@ function getOddsTrendData(home, away, selection) {
 }
 
 function renderOddsWithTrend(oddsValue, trendData) {
+    const formattedOdds = formatOdds(oddsValue);
+    
     if (!trendData || !trendData.history || trendData.history.length < 2) {
-        return `<div class="selection-odds drop-odds">${formatOdds(oddsValue)}</div>`;
+        const flatSparkline = generateFlatSparklineSVG();
+        return `
+            <div class="odds-trend-cell odds-trend-no-data">
+                <div class="sparkline-container">${flatSparkline}</div>
+                <div class="odds-value-trend">${formattedOdds}</div>
+                <span class="trend-arrow-drop trend-stable-drop">→</span>
+            </div>
+        `;
     }
     
     const sparkline = generateSparklineSVG(trendData.history, trendData.trend);
@@ -2916,11 +2940,21 @@ function renderOddsWithTrend(oddsValue, trendData) {
     return `
         <div class="odds-trend-cell" data-tooltip="${tooltipData}">
             <div class="sparkline-container">${sparkline}</div>
-            <div class="odds-value-trend">${formatOdds(oddsValue)}</div>
+            <div class="odds-value-trend">${formattedOdds}</div>
             ${pctHtml}
             ${arrowHtml}
         </div>
     `;
+}
+
+function generateFlatSparklineSVG() {
+    const width = 40;
+    const height = 16;
+    const y = height / 2;
+    
+    return `<svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+        <line x1="2" y1="${y}" x2="${width - 2}" y2="${y}" stroke="#6b7280" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>`;
 }
 
 function createTrendTooltip() {
