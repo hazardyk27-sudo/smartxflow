@@ -585,14 +585,27 @@ def check_momentum_change(history: List[Dict], sides: List[Dict]) -> Optional[Di
 
 def group_alarms_by_match(alarms: List[Dict]) -> List[Dict]:
     grouped = defaultdict(lambda: defaultdict(list))
+    match_info = {}
     
     for alarm in alarms:
-        key = (alarm.get('home', ''), alarm.get('away', ''))
+        home = alarm.get('home', '')
+        away = alarm.get('away', '')
+        key = (home, away)
         alarm_type = alarm.get('type', '')
         grouped[key][alarm_type].append(alarm)
+        if key not in match_info:
+            match_info[key] = {
+                'league': alarm.get('league', ''),
+                'date': alarm.get('date', '')
+            }
     
     result = []
     for (home, away), type_alarms in grouped.items():
+        info = match_info.get((home, away), {})
+        league = info.get('league', '')
+        date = info.get('date', '')
+        match_id = f"{home}|{away}|{league}|{date}"
+        
         for alarm_type, events in type_alarms.items():
             events.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
             
@@ -602,6 +615,9 @@ def group_alarms_by_match(alarms: List[Dict]) -> List[Dict]:
             result.append({
                 'home': home,
                 'away': away,
+                'league': league,
+                'date': date,
+                'match_id': match_id,
                 'type': alarm_type,
                 'count': len(events),
                 'latest': events[0],
@@ -693,6 +709,9 @@ def format_grouped_alarm(group: Dict) -> Dict:
         'color': alarm_info.get('color', '#fff'),
         'home': group['home'],
         'away': group['away'],
+        'league': group.get('league', ''),
+        'date': group.get('date', ''),
+        'match_id': group.get('match_id', ''),
         'side': latest.get('side', ''),
         'count': group['count'],
         'latest_time': latest.get('timestamp', ''),
