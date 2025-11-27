@@ -211,33 +211,34 @@ def analyze_match_alarms(history: List[Dict], market: str) -> List[Dict]:
     rlm_config = ALARM_CONFIG.get('rlm', {})
     drop_config = ALARM_CONFIG.get('dropping', {})
     
+    sharp_min_money = sharp_config.get('min_money_inflow', 3000)
+    sharp_min_drop = sharp_config.get('min_odds_drop', 0.03)
+    rlm_min_money = rlm_config.get('min_money_inflow', 3000)
+    rlm_min_up = rlm_config.get('min_odds_up', 0.03)
+    
     for sc in side_changes:
-        money_up = sc['money_diff'] > rlm_config.get('min_money_diff', 100)
-        odds_down = sc['odds_diff'] < -sharp_config.get('min_odds_drop', 0.15)
-        odds_up = sc['odds_diff'] > rlm_config.get('min_odds_up', 0.02)
-        odds_flat = abs(sc['odds_diff']) <= 0.02
+        money_diff = sc['money_diff']
+        odds_diff = sc['odds_diff']
         
-        if money_up and odds_down and sc['money_diff'] >= sharp_config.get('min_money_inflow', 3000):
-            if sc['smart_score'] >= sharp_config.get('min_smart_score', 75):
-                if ('sharp', sc['key']) not in seen_type_side:
-                    seen_type_side.add(('sharp', sc['key']))
-                    detected_alarms.append({
-                        'type': 'sharp',
-                        'side': sc['key'],
-                        'money_diff': sc['money_diff'],
-                        'odds_from': sc['prev_odds'],
-                        'odds_to': sc['curr_odds'],
-                        'smart_score': sc['smart_score'],
-                        'timestamp': timestamp
-                    })
+        if money_diff >= sharp_min_money and odds_diff < -sharp_min_drop:
+            if ('sharp', sc['key']) not in seen_type_side:
+                seen_type_side.add(('sharp', sc['key']))
+                detected_alarms.append({
+                    'type': 'sharp',
+                    'side': sc['key'],
+                    'money_diff': money_diff,
+                    'odds_from': sc['prev_odds'],
+                    'odds_to': sc['curr_odds'],
+                    'timestamp': timestamp
+                })
         
-        if money_up and odds_up:
+        if money_diff >= rlm_min_money and odds_diff > rlm_min_up:
             if ('rlm', sc['key']) not in seen_type_side:
                 seen_type_side.add(('rlm', sc['key']))
                 detected_alarms.append({
                     'type': 'rlm',
                     'side': sc['key'],
-                    'money_diff': sc['money_diff'],
+                    'money_diff': money_diff,
                     'odds_from': sc['prev_odds'],
                     'odds_to': sc['curr_odds'],
                     'timestamp': timestamp
@@ -250,7 +251,7 @@ def analyze_match_alarms(history: List[Dict], market: str) -> List[Dict]:
                     detected_alarms.append({
                         'type': 'dropping',
                         'side': sc['key'],
-                        'money_diff': sc['money_diff'],
+                        'money_diff': money_diff,
                         'odds_from': sc['first_odds'],
                         'odds_to': sc['curr_odds'],
                         'total_drop': sc['total_drop'],
@@ -258,29 +259,30 @@ def analyze_match_alarms(history: List[Dict], market: str) -> List[Dict]:
                         'timestamp': timestamp
                     })
         
-        if money_up and odds_flat:
+        odds_flat = abs(odds_diff) <= 0.02
+        if money_diff > 100 and odds_flat:
             if ('public_surge', sc['key']) not in seen_type_side:
                 seen_type_side.add(('public_surge', sc['key']))
                 detected_alarms.append({
                     'type': 'public_surge',
                     'side': sc['key'],
-                    'money_diff': sc['money_diff'],
+                    'money_diff': money_diff,
                     'odds_from': sc['prev_odds'],
                     'odds_to': sc['curr_odds'],
                     'timestamp': timestamp
                 })
     
-    big_threshold = big_config.get('total_threshold', 3000)
-    side_threshold = big_config.get('side_threshold', 1500)
-    
-    if total_diff >= big_threshold or max_side_diff >= side_threshold:
-        if ('big_money', max_side_key) not in seen_type_side:
-            seen_type_side.add(('big_money', max_side_key))
+    big_money_result = check_big_money_10min(history, sides)
+    if big_money_result:
+        side_key = big_money_result['key']
+        if ('big_money', side_key) not in seen_type_side:
+            seen_type_side.add(('big_money', side_key))
             detected_alarms.append({
                 'type': 'big_money',
-                'side': max_side_key,
-                'money_diff': max(total_diff, max_side_diff),
-                'total_diff': total_diff,
+                'side': side_key,
+                'money_diff': big_money_result['total_inflow'],
+                'total_diff': big_money_result['total_inflow'],
+                'time_window': '10 dakika',
                 'timestamp': timestamp
             })
     
@@ -328,6 +330,55 @@ def analyze_match_alarms(history: List[Dict], market: str) -> List[Dict]:
     detected_alarms.sort(key=lambda x: ALARM_TYPES[x['type']]['priority'])
     
     return detected_alarms
+
+def check_big_money_10min(history: List[Dict], sides: List[Dict]) -> Optional[Dict]:
+    """
+    Big Money: 10 dakika icinde 15.000 £+ para girisi
+    Oran sarti yok, sadece hacim onemli
+    """
+    config = ALARM_CONFIG.get('big_money', {})
+    min_inflow = config.get('min_money_inflow', 15000)
+    time_window = config.get('time_window_minutes', 10)
+    
+    if len(history) < 2:
+        return None
+    
+    current_time = None
+    try:
+        current_ts = history[-1].get('ScrapedAt', '')
+        if current_ts:
+            current_time = datetime.fromisoformat(current_ts.replace('Z', '+00:00').split('+')[0])
+    except:
+        pass
+    
+    for side in sides:
+        total_inflow = 0
+        
+        for i in range(len(history) - 1, 0, -1):
+            try:
+                record_ts = history[i].get('ScrapedAt', '')
+                if record_ts and current_time:
+                    record_time = datetime.fromisoformat(record_ts.replace('Z', '+00:00').split('+')[0])
+                    diff_minutes = (current_time - record_time).total_seconds() / 60
+                    if diff_minutes > time_window:
+                        break
+            except:
+                pass
+            
+            curr_amt = parse_money(history[i].get(side['amt'], 0))
+            prev_amt = parse_money(history[i-1].get(side['amt'], 0))
+            diff = curr_amt - prev_amt
+            if diff > 0:
+                total_inflow += diff
+        
+        if total_inflow >= min_inflow:
+            return {
+                'key': side['key'],
+                'total_inflow': total_inflow,
+                'time_window': time_window
+            }
+    
+    return None
 
 def check_momentum(history: List[Dict], sides: List[Dict]) -> Optional[Dict]:
     config = ALARM_CONFIG.get('momentum', {})
