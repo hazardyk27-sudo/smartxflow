@@ -635,9 +635,10 @@ body {
 }
 
 .volume-cell {
-    text-align: right;
+    text-align: center;
+    vertical-align: middle;
     font-family: 'Inter', sans-serif;
-    color: #4ade80;
+    color: var(--mw-text-money);
     font-size: 14px;
     font-weight: 600;
     letter-spacing: -0.2px;
@@ -2299,10 +2300,13 @@ body {
     text-overflow: ellipsis;
 }
 
-/* Volume sütunu da aynı para rengi */
+/* Volume sütunu da aynı para rengi ve hizalama */
 .volume-text,
-td.volume {
+td.volume,
+.volume-cell {
     color: var(--mw-text-money) !important;
+    text-align: center;
+    vertical-align: middle;
 }
 
 .mw-donut {
