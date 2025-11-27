@@ -2268,9 +2268,18 @@ body {
 .mw-outcome-block {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 110px;
+}
+
+.mw-info-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
     justify-content: center;
-    gap: 6px;
-    min-width: 120px;
+    min-width: 70px;
+    gap: 2px;
 }
 
 .mw-odds {
@@ -2284,6 +2293,10 @@ body {
     font-size: 13px;
     font-weight: 500;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70px;
+    display: block;
     color: var(--mw-text-money);
 }
 
