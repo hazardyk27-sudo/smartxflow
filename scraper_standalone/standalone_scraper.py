@@ -8,10 +8,32 @@ import sys
 import json
 import re
 import time
+import ssl
 import requests
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from bs4 import BeautifulSoup
+
+def setup_ssl_certificates():
+    """PyInstaller ile paketlenmiş .exe için SSL sertifikalarını ayarla"""
+    if getattr(sys, 'frozen', False):
+        try:
+            import certifi
+            os.environ['SSL_CERT_FILE'] = certifi.where()
+            os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()
+        except ImportError:
+            bundle_paths = [
+                os.path.join(os.path.dirname(sys.executable), 'cacert.pem'),
+                os.path.join(sys._MEIPASS, 'certifi', 'cacert.pem') if hasattr(sys, '_MEIPASS') else None,
+                os.path.join(os.path.dirname(sys.executable), 'certifi', 'cacert.pem'),
+            ]
+            for path in bundle_paths:
+                if path and os.path.exists(path):
+                    os.environ['SSL_CERT_FILE'] = path
+                    os.environ['REQUESTS_CA_BUNDLE'] = path
+                    break
+
+setup_ssl_certificates()
 
 try:
     import pytz

@@ -34,10 +34,12 @@ jobs:
           cat scraper_standalone/config.json
         shell: bash
 
-      - name: Build Scraper EXE
+      - name: Get certifi path and Build Scraper EXE
         run: |
           cd scraper_standalone
-          pyinstaller --onefile --console --name "SmartXFlowAlarmV1.01Scraper" --icon=NONE --add-data "config.json;." standalone_scraper.py
+          for /f "delims=" %%i in ('python -c "import certifi; print(certifi.where())"') do set CERTIFI_PATH=%%i
+          echo Certifi path: %CERTIFI_PATH%
+          pyinstaller --onefile --console --name "SmartXFlowAlarmV1.01Scraper" --icon=NONE --add-data "config.json;." --add-data "%CERTIFI_PATH%;certifi" --hidden-import=certifi standalone_scraper.py
         shell: cmd
 
       - name: Copy config to dist
