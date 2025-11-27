@@ -218,11 +218,14 @@ def analyze_match_alarms(history: List[Dict], market: str) -> List[Dict]:
     sharp_config = ALARM_CONFIG.get('sharp_money', {})
     rlm_config = ALARM_CONFIG.get('rlm', {})
     drop_config = ALARM_CONFIG.get('dropping', {})
+    surge_config = ALARM_CONFIG.get('public_surge', {})
     
     sharp_min_money = sharp_config.get('min_money_inflow', 3000)
     sharp_min_drop = sharp_config.get('min_odds_drop', 0.03)
     rlm_min_money = rlm_config.get('min_money_inflow', 3000)
     rlm_min_up = rlm_config.get('min_odds_up', 0.03)
+    surge_min_money = surge_config.get('min_money_diff', 500)
+    surge_max_odds = surge_config.get('max_odds_change', 0.02)
     
     window_pairs = find_window_pairs(history, WINDOW_MINUTES)
     
@@ -273,8 +276,8 @@ def analyze_match_alarms(history: List[Dict], market: str) -> List[Dict]:
                     })
             
             alarm_key_surge = ('public_surge', side['key'], base_ts[:16] if base_ts else '')
-            odds_flat = abs(odds_diff) <= 0.02
-            if money_diff > 100 and odds_flat:
+            odds_flat = abs(odds_diff) <= surge_max_odds
+            if money_diff >= surge_min_money and odds_flat:
                 if alarm_key_surge not in seen_alarms:
                     seen_alarms.add(alarm_key_surge)
                     detected_alarms.append({

@@ -50,9 +50,9 @@ ALARM_CONFIG = {
     },
     
     'public_surge': {
-        'min_money_diff': 100,
+        'min_money_diff': 500,
         'max_odds_change': 0.02,
-        'description': 'Public money - money up, odds flat'
+        'description': 'Public money - minimum £500 para girisi, oran sabit'
     },
     
     'momentum_change': {
