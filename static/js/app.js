@@ -2199,125 +2199,77 @@ let tickerIndex = 0;
 
 async function loadSmartMoneyTicker() {
     try {
-        console.log('[Ticker] Loading...');
         const response = await fetch('/api/alarms/ticker');
         const data = await response.json();
-        console.log('[Ticker] Response:', data);
         
-        const tickerContent = document.getElementById('tickerContent');
-        if (!tickerContent) {
-            console.log('[Ticker] No tickerContent element');
-            return;
-        }
+        const tickerTrack = document.getElementById('tickerTrack');
+        if (!tickerTrack) return;
         
         if (!data.alarms || data.alarms.length === 0) {
-            tickerContent.innerHTML = '<div class="ticker-empty">Aktif kritik alarm yok</div>';
+            tickerTrack.innerHTML = '<div class="ticker-empty">Aktif kritik alarm yok</div>';
             updateAlarmBadge(data.total || 0);
-            console.log('[Ticker] No alarms, total:', data.total);
             return;
         }
         
         tickerAlarms = data.alarms;
         updateAlarmBadge(data.total);
-        renderTickerCards();
-        console.log('[Ticker] Rendered', tickerAlarms.length, 'cards');
+        renderTickerPills();
         
     } catch (error) {
         console.error('[Ticker] Error:', error);
     }
 }
 
-function renderTickerCards() {
-    const tickerContent = document.getElementById('tickerContent');
-    if (!tickerContent) {
-        console.error('[Ticker] tickerContent element not found!');
-        return;
-    }
+function renderTickerPills() {
+    const tickerTrack = document.getElementById('tickerTrack');
+    if (!tickerTrack || tickerAlarms.length === 0) return;
     
-    if (tickerAlarms.length === 0) {
-        console.log('[Ticker] No alarms to render');
-        const emptyDiv = tickerContent.querySelector('.ticker-empty');
-        if (!emptyDiv) {
-            tickerContent.innerHTML = '<div class="ticker-empty">Aktif kritik alarm yok</div>';
-        }
-        return;
-    }
+    tickerTrack.innerHTML = '';
     
-    const visibleAlarms = tickerAlarms.slice(0, 4);
-    const existingCards = tickerContent.querySelectorAll('.ticker-card');
-    
-    // Create keys for current alarms
-    const newKeys = new Set(visibleAlarms.map(a => `${a.home}|${a.away}|${a.type}`));
-    const existingKeys = new Set(Array.from(existingCards).map(c => c.dataset.key));
-    
-    // Check if data changed
-    const keysMatch = newKeys.size === existingKeys.size && 
-                      [...newKeys].every(k => existingKeys.has(k));
-    
-    if (keysMatch && existingCards.length === visibleAlarms.length) {
-        console.log('[Ticker] Data unchanged, skipping render');
-        return;
-    }
-    
-    console.log('[Ticker] Updating cards with new data');
-    
-    // Clear and rebuild
-    tickerContent.innerHTML = '';
-    
-    visibleAlarms.forEach((alarm) => {
-        const shortName = alarm.name ? alarm.name.split(' ')[0] : '';
+    const createPill = (alarm) => {
+        const pill = document.createElement('div');
+        pill.className = 'ticker-pill';
+        pill.dataset.matchId = alarm.match_id || '';
+        pill.dataset.home = alarm.home;
+        pill.dataset.away = alarm.away;
+        pill.dataset.market = alarm.market || 'moneyway_1x2';
+        pill.dataset.league = alarm.league || '';
+        pill.dataset.date = alarm.date || '';
+        
+        const shortName = alarm.name ? alarm.name.split(' ')[0].toUpperCase() : '';
         const moneyText = alarm.money_text || '';
         const sideText = alarm.side ? `(${alarm.side})` : '';
-        const key = `${alarm.home}|${alarm.away}|${alarm.type}`;
+        const oddsText = (alarm.odds_from && alarm.odds_to) ? `${alarm.odds_from} → ${alarm.odds_to}` : '';
         
-        const card = document.createElement('div');
-        card.className = 'ticker-card';
-        card.style.cssText = `--alarm-color: ${alarm.color}; display: flex !important; visibility: visible !important;`;
-        card.dataset.home = alarm.home;
-        card.dataset.away = alarm.away;
-        card.dataset.type = alarm.type;
-        card.dataset.key = key;
-        card.dataset.matchId = alarm.match_id || '';
-        card.dataset.market = alarm.market || 'moneyway_1x2';
-        card.dataset.league = alarm.league || '';
-        card.dataset.date = alarm.date || '';
-        
-        card.innerHTML = `
-            <div class="ticker-card-icon">${alarm.icon}</div>
-            <div class="ticker-card-content">
-                <div class="ticker-card-type" style="color: ${alarm.color};">${shortName}</div>
-                <div class="ticker-card-match" style="color: #fff;">${alarm.home} - ${alarm.away}</div>
-                <div class="ticker-card-detail">
-                    ${moneyText ? `<span class="money" style="color: #4ade80;">${moneyText}</span>` : ''}
-                    ${sideText ? `<span class="side">${sideText}</span>` : ''}
-                </div>
-            </div>
+        pill.innerHTML = `
+            <span class="pill-dot" style="background: ${alarm.color};"></span>
+            <span class="pill-type" style="color: ${alarm.color};">${shortName}</span>
+            <span class="pill-match">${alarm.home} – ${alarm.away}</span>
+            ${moneyText ? `<span class="pill-money">${moneyText}</span>` : ''}
+            ${sideText ? `<span class="pill-side">${sideText}</span>` : ''}
+            ${oddsText ? `<span class="pill-odds">${oddsText}</span>` : ''}
         `;
         
-        tickerContent.appendChild(card);
-    });
-    
-    console.log('[Ticker] Rendered', visibleAlarms.length, 'cards');
-}
-
-// Delegated click handler for ticker cards (XSS-safe) - uses match_id for reliable navigation
-document.addEventListener('click', function(e) {
-    const card = e.target.closest('.ticker-card');
-    if (card) {
-        const matchId = card.dataset.matchId;
-        const home = card.dataset.home;
-        const away = card.dataset.away;
-        const market = card.dataset.market || 'moneyway_1x2';
-        const league = card.dataset.league || '';
-        const alarmType = card.dataset.type || '';
+        pill.onclick = () => openMatchModalById(
+            pill.dataset.matchId, 
+            pill.dataset.home, 
+            pill.dataset.away, 
+            pill.dataset.market, 
+            pill.dataset.league, 
+            pill.dataset.date
+        );
         
-        if (matchId) {
-            openMatchModalById(matchId, home, away, market, league, alarmType);
-        } else if (home && away) {
-            openMatchModalByTeams(home, away, alarmType);
-        }
-    }
-});
+        return pill;
+    };
+    
+    tickerAlarms.forEach(alarm => tickerTrack.appendChild(createPill(alarm)));
+    tickerAlarms.forEach(alarm => tickerTrack.appendChild(createPill(alarm)));
+    
+    const totalWidth = tickerTrack.scrollWidth / 2;
+    const speed = 50;
+    const duration = totalWidth / speed;
+    tickerTrack.style.animationDuration = `${Math.max(duration, 15)}s`;
+}
 
 function pauseTicker() {
     tickerPaused = true;
@@ -2326,16 +2278,6 @@ function pauseTicker() {
 function resumeTicker() {
     tickerPaused = false;
 }
-
-function rotateTickerAlarms() {
-    if (tickerPaused || tickerAlarms.length <= 4) return;
-    
-    const first = tickerAlarms.shift();
-    tickerAlarms.push(first);
-    renderTickerCards();
-}
-
-setInterval(rotateTickerAlarms, 5000);
 
 function addToAlertsHistory(alarm) {
     const alarmId = `${alarm.type}_${alarm.home}_${alarm.away}_${alarm.side || ''}_${Date.now()}`;

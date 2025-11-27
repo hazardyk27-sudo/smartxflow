@@ -1207,8 +1207,8 @@ body {
     align-items: center;
     background: linear-gradient(90deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
     border-bottom: 1px solid #30363d;
-    height: 56px;
-    overflow: visible;
+    height: 42px;
+    overflow: hidden;
 }
 
 .ticker-label {
@@ -1232,95 +1232,86 @@ body {
 
 .ticker-wrapper {
     flex: 1;
-    overflow: visible;
+    overflow: hidden;
     position: relative;
 }
 
-.ticker-content {
-    display: flex !important;
-    gap: 12px;
-    padding: 4px 12px;
+.ticker-track {
+    display: flex;
+    gap: 16px;
+    padding: 0 16px;
     white-space: nowrap;
     align-items: center;
-    height: 48px;
-    min-height: 48px;
-    visibility: visible !important;
-    opacity: 1 !important;
+    height: 42px;
+    animation: tickerScroll 30s linear infinite;
 }
 
-.ticker-card {
-    display: flex !important;
+.ticker-wrapper:hover .ticker-track {
+    animation-play-state: paused;
+}
+
+@keyframes tickerScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+.ticker-pill {
+    display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     padding: 6px 14px;
-    background: rgba(33, 38, 45, 0.95);
-    border: 1px solid var(--alarm-color, #30363d);
-    border-radius: 8px;
+    background: rgba(22, 27, 34, 0.95);
+    border: 1px solid #f85149;
+    border-radius: 20px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    flex-shrink: 0;
-    min-width: 180px;
-    max-width: 280px;
-    height: 40px;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
-
-@keyframes fadeInCard {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.ticker-card:hover {
-    background: linear-gradient(135deg, rgba(var(--alarm-color-rgb, 255, 255, 255), 0.15), rgba(var(--alarm-color-rgb, 255, 255, 255), 0.08));
-    border-color: var(--alarm-color, #58a6ff);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.ticker-card-icon {
-    font-size: 18px;
+    transition: all 0.2s ease;
     flex-shrink: 0;
 }
 
-.ticker-card-content {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
+.ticker-pill:hover {
+    background: rgba(248, 81, 73, 0.15);
+    border-color: #f85149;
+    transform: scale(1.02);
 }
 
-.ticker-card-type {
-    color: var(--alarm-color, #c9d1d9);
-    font-size: 10px;
+.pill-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.pill-type {
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
-.ticker-card-match {
+.pill-match {
     color: #fff;
     font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-weight: 500;
 }
 
-.ticker-card-detail {
-    display: flex;
-    gap: 8px;
-    font-size: 10px;
-    margin-top: 2px;
-}
-
-.ticker-card-detail .money {
+.pill-money {
     color: #4ade80;
+    font-size: 12px;
     font-weight: 700;
     font-family: 'JetBrains Mono', monospace;
 }
 
-.ticker-card-detail .side {
-    color: #8b949e;
+.pill-side {
+    color: #4ade80;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.pill-odds {
+    color: #f0883e;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
 }
 
 .ticker-item {

@@ -43,28 +43,23 @@
             <span>Smart Money</span>
         </div>
         <div class="ticker-wrapper">
-            <div class="ticker-content" id="tickerContent">
+            <div class="ticker-track" id="tickerTrack">
                 {% if ticker_alarms %}
                     {% for alarm in ticker_alarms %}
-                    <div class="ticker-card" 
-                         style="--alarm-color: {{ alarm.color }}; display: flex !important; visibility: visible !important;"
+                    <div class="ticker-pill" 
+                         data-match-id="{{ alarm.match_id or '' }}"
                          data-home="{{ alarm.home }}"
                          data-away="{{ alarm.away }}"
-                         data-type="{{ alarm.type }}"
-                         data-key="{{ alarm.home }}|{{ alarm.away }}|{{ alarm.type }}"
-                         data-match-id="{{ alarm.match_id or '' }}"
                          data-market="{{ alarm.market or 'moneyway_1x2' }}"
                          data-league="{{ alarm.league or '' }}"
-                         data-date="{{ alarm.date or '' }}">
-                        <div class="ticker-card-icon">{{ alarm.icon }}</div>
-                        <div class="ticker-card-content">
-                            <div class="ticker-card-type" style="color: {{ alarm.color }};">{{ alarm.name.split(' ')[0] }}</div>
-                            <div class="ticker-card-match" style="color: #fff;">{{ alarm.home }} - {{ alarm.away }}</div>
-                            <div class="ticker-card-detail">
-                                {% if alarm.money_text %}<span class="money" style="color: #4ade80;">{{ alarm.money_text }}</span>{% endif %}
-                                {% if alarm.side %}<span class="side">({{ alarm.side }})</span>{% endif %}
-                            </div>
-                        </div>
+                         data-date="{{ alarm.date or '' }}"
+                         onclick="openMatchModalById(this.dataset.matchId, this.dataset.home, this.dataset.away, this.dataset.market, this.dataset.league, this.dataset.date)">
+                        <span class="pill-dot" style="background: {{ alarm.color }};"></span>
+                        <span class="pill-type" style="color: {{ alarm.color }};">{{ alarm.name.split(' ')[0].upper() }}</span>
+                        <span class="pill-match">{{ alarm.home }} – {{ alarm.away }}</span>
+                        {% if alarm.money_text %}<span class="pill-money">{{ alarm.money_text }}</span>{% endif %}
+                        {% if alarm.side %}<span class="pill-side">({{ alarm.side }})</span>{% endif %}
+                        {% if alarm.odds_from and alarm.odds_to %}<span class="pill-odds">{{ alarm.odds_from }} → {{ alarm.odds_to }}</span>{% endif %}
                     </div>
                     {% endfor %}
                 {% else %}
