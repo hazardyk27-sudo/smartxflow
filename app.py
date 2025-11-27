@@ -28,7 +28,7 @@ static_dir = resource_path("static")
 
 from core.settings import init_mode, is_server_mode, is_client_mode, get_scrape_interval_seconds, is_scraper_disabled
 from core.timezone import now_turkey, now_turkey_iso, now_turkey_formatted, format_turkey_time, format_time_only, TURKEY_TZ
-from services.supabase_client import get_database
+from services.supabase_client import get_database, get_supabase_client
 from core.alarms import analyze_match_alarms, format_alarm_for_ticker, format_alarm_for_modal, ALARM_TYPES
 import hashlib
 
@@ -697,6 +697,32 @@ def get_ticker_alarms():
         import traceback
         traceback.print_exc()
         return jsonify({'alarms': [], 'total': 0})
+
+
+@app.route('/api/odds-trend/<market>')
+def get_odds_trend(market):
+    """Get 6-hour odds trend data for DROP markets only.
+    Returns sparkline data, percent change, and trend direction.
+    """
+    if not market.startswith('dropping'):
+        return jsonify({'error': 'Only DROP markets supported', 'data': {}})
+    
+    try:
+        sb_client = get_supabase_client()
+        if sb_client:
+            trend_data = sb_client.get_6h_odds_history(market)
+        else:
+            trend_data = {}
+        return jsonify({
+            'market': market,
+            'data': trend_data,
+            'count': len(trend_data)
+        })
+    except Exception as e:
+        print(f"[Odds Trend API] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e), 'data': {}})
 
 
 @app.route('/api/match/alarms')

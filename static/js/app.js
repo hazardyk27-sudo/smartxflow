@@ -77,11 +77,21 @@ async function loadMatches() {
     updateTableHeaders();
     
     try {
+        if (currentMarket.startsWith('dropping')) {
+            await loadOddsTrend(currentMarket);
+        } else {
+            oddsTrendCache = {};
+        }
+        
         const response = await fetch(`/api/matches?market=${currentMarket}`);
         const apiMatches = await response.json();
         matches = apiMatches || [];
         filteredMatches = applySorting(matches);
         renderMatches(filteredMatches);
+        
+        if (currentMarket.startsWith('dropping')) {
+            attachTrendTooltipListeners();
+        }
     } catch (error) {
         console.error('Error loading matches:', error);
         matches = [];
@@ -260,20 +270,25 @@ function renderMatches(data) {
                     </tr>
                 `;
             } else {
+                const trend1Data = getOddsTrendData(match.home_team, match.away_team, 'odds1');
+                const trendXData = getOddsTrendData(match.home_team, match.away_team, 'oddsx');
+                const trend2Data = getOddsTrendData(match.home_team, match.away_team, 'odds2');
+                
+                const cell1 = trend1Data ? renderOddsWithTrend(d.Odds1 || d['1'], trend1Data) 
+                    : `<div class="selection-odds drop-odds">${formatOdds(d.Odds1 || d['1'])}${trend1}</div>`;
+                const cellX = trendXData ? renderOddsWithTrend(d.OddsX || d['X'], trendXData)
+                    : `<div class="selection-odds drop-odds">${formatOdds(d.OddsX || d['X'])}${trendX}</div>`;
+                const cell2 = trend2Data ? renderOddsWithTrend(d.Odds2 || d['2'], trend2Data)
+                    : `<div class="selection-odds drop-odds">${formatOdds(d.Odds2 || d['2'])}${trend2}</div>`;
+                
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${match.date || '-'}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="selection-cell"><div>
-                            <div class="selection-odds drop-odds">${formatOdds(d.Odds1 || d['1'])}${trend1}</div>
-                        </div></td>
-                        <td class="selection-cell"><div>
-                            <div class="selection-odds drop-odds">${formatOdds(d.OddsX || d['X'])}${trendX}</div>
-                        </div></td>
-                        <td class="selection-cell"><div>
-                            <div class="selection-odds drop-odds">${formatOdds(d.Odds2 || d['2'])}${trend2}</div>
-                        </div></td>
+                        <td class="selection-cell"><div>${cell1}</div></td>
+                        <td class="selection-cell"><div>${cellX}</div></td>
+                        <td class="selection-cell"><div>${cell2}</div></td>
                         <td class="volume-cell">${formatVolume(d.Volume)}</td>
                     </tr>
                 `;
@@ -304,17 +319,21 @@ function renderMatches(data) {
                     </tr>
                 `;
             } else {
+                const trendUnderData = getOddsTrendData(match.home_team, match.away_team, 'under');
+                const trendOverData = getOddsTrendData(match.home_team, match.away_team, 'over');
+                
+                const cellUnder = trendUnderData ? renderOddsWithTrend(d.Under, trendUnderData)
+                    : `<div class="selection-odds drop-odds">${formatOdds(d.Under)}${trendUnder}</div>`;
+                const cellOver = trendOverData ? renderOddsWithTrend(d.Over, trendOverData)
+                    : `<div class="selection-odds drop-odds">${formatOdds(d.Over)}${trendOver}</div>`;
+                
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${match.date || '-'}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="selection-cell"><div>
-                            <div class="selection-odds drop-odds">${formatOdds(d.Under)}${trendUnder}</div>
-                        </div></td>
-                        <td class="selection-cell"><div>
-                            <div class="selection-odds drop-odds">${formatOdds(d.Over)}${trendOver}</div>
-                        </div></td>
+                        <td class="selection-cell"><div>${cellUnder}</div></td>
+                        <td class="selection-cell"><div>${cellOver}</div></td>
                         <td class="volume-cell">${formatVolume(d.Volume)}</td>
                     </tr>
                 `;
@@ -345,17 +364,21 @@ function renderMatches(data) {
                     </tr>
                 `;
             } else {
+                const trendYesData = getOddsTrendData(match.home_team, match.away_team, 'yes');
+                const trendNoData = getOddsTrendData(match.home_team, match.away_team, 'no');
+                
+                const cellYes = trendYesData ? renderOddsWithTrend(d.OddsYes || d.Yes, trendYesData)
+                    : `<div class="selection-odds drop-odds">${formatOdds(d.OddsYes || d.Yes)}${trendYes}</div>`;
+                const cellNo = trendNoData ? renderOddsWithTrend(d.OddsNo || d.No, trendNoData)
+                    : `<div class="selection-odds drop-odds">${formatOdds(d.OddsNo || d.No)}${trendNo}</div>`;
+                
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${match.date || '-'}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="selection-cell"><div>
-                            <div class="selection-odds drop-odds">${formatOdds(d.OddsYes || d.Yes)}${trendYes}</div>
-                        </div></td>
-                        <td class="selection-cell"><div>
-                            <div class="selection-odds drop-odds">${formatOdds(d.OddsNo || d.No)}${trendNo}</div>
-                        </div></td>
+                        <td class="selection-cell"><div>${cellYes}</div></td>
+                        <td class="selection-cell"><div>${cellNo}</div></td>
                         <td class="volume-cell">${formatVolume(d.Volume)}</td>
                     </tr>
                 `;
@@ -2765,4 +2788,189 @@ async function loadMatchAlarms(home, away) {
         console.error('[Match Alarms] Error:', error);
         highlightedAlarmType = null;
     }
+}
+
+let oddsTrendCache = {};
+
+async function loadOddsTrend(market) {
+    if (!market.startsWith('dropping')) {
+        oddsTrendCache = {};
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/odds-trend/${market}`);
+        const result = await response.json();
+        oddsTrendCache = result.data || {};
+        console.log(`[Odds Trend] Loaded ${Object.keys(oddsTrendCache).length} matches for ${market}`);
+    } catch (error) {
+        console.error('[Odds Trend] Error loading:', error);
+        oddsTrendCache = {};
+    }
+}
+
+function generateSparklineSVG(values, trend) {
+    if (!values || values.length < 2) {
+        return '';
+    }
+    
+    const width = 40;
+    const height = 16;
+    const padding = 2;
+    
+    const validValues = values.filter(v => v !== null && v !== undefined);
+    if (validValues.length < 2) return '';
+    
+    const min = Math.min(...validValues);
+    const max = Math.max(...validValues);
+    const range = max - min || 1;
+    
+    const points = validValues.map((val, idx) => {
+        const x = padding + (idx / (validValues.length - 1)) * (width - 2 * padding);
+        const y = height - padding - ((val - min) / range) * (height - 2 * padding);
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    
+    let strokeColor = '#6b7280';
+    if (trend === 'down') {
+        strokeColor = '#22c55e';
+    } else if (trend === 'up') {
+        strokeColor = '#ef4444';
+    }
+    
+    return `<svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+        <polyline points="${points}" fill="none" stroke="${strokeColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+}
+
+function getTrendArrowHTML(trend, pctChange) {
+    if (trend === 'down') {
+        return `<span class="trend-arrow-drop trend-down-drop">↓</span>`;
+    } else if (trend === 'up') {
+        return `<span class="trend-arrow-drop trend-up-drop">↑</span>`;
+    }
+    return `<span class="trend-arrow-drop trend-stable-drop">↔</span>`;
+}
+
+function formatPctChange(pctChange, trend) {
+    if (pctChange === 0 || pctChange === null || pctChange === undefined) {
+        return '';
+    }
+    
+    const sign = pctChange > 0 ? '+' : '';
+    const absVal = Math.abs(pctChange).toFixed(1);
+    
+    let colorClass = 'pct-stable';
+    if (trend === 'down') {
+        colorClass = 'pct-down';
+    } else if (trend === 'up') {
+        colorClass = 'pct-up';
+    }
+    
+    return `<span class="pct-change ${colorClass}">${sign}${pctChange.toFixed(1)}%</span>`;
+}
+
+function getOddsTrendData(home, away, selection) {
+    const key = `${home}|${away}`;
+    const matchData = oddsTrendCache[key];
+    
+    if (!matchData || !matchData.values) {
+        return null;
+    }
+    
+    return matchData.values[selection] || null;
+}
+
+function renderOddsWithTrend(oddsValue, trendData) {
+    if (!trendData || !trendData.history || trendData.history.length < 2) {
+        return `<div class="selection-odds drop-odds">${formatOdds(oddsValue)}</div>`;
+    }
+    
+    const sparkline = generateSparklineSVG(trendData.history, trendData.trend);
+    const pctHtml = formatPctChange(trendData.pct_change, trendData.trend);
+    const arrowHtml = getTrendArrowHTML(trendData.trend, trendData.pct_change);
+    
+    const tooltipData = JSON.stringify({
+        old: trendData.old,
+        new: trendData.new,
+        pct: trendData.pct_change,
+        trend: trendData.trend
+    }).replace(/"/g, '&quot;');
+    
+    return `
+        <div class="odds-trend-cell" data-tooltip="${tooltipData}">
+            <div class="sparkline-container">${sparkline}</div>
+            <div class="odds-value-trend">${formatOdds(oddsValue)}</div>
+            ${pctHtml}
+            ${arrowHtml}
+        </div>
+    `;
+}
+
+function createTrendTooltip() {
+    let tooltip = document.getElementById('oddsTrendTooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'oddsTrendTooltip';
+        tooltip.className = 'odds-trend-tooltip';
+        document.body.appendChild(tooltip);
+    }
+    return tooltip;
+}
+
+function showTrendTooltip(event) {
+    const cell = event.currentTarget;
+    const tooltipData = cell.dataset.tooltip;
+    if (!tooltipData) return;
+    
+    try {
+        const data = JSON.parse(tooltipData);
+        const tooltip = createTrendTooltip();
+        
+        const trendText = data.trend === 'down' ? 'Oran düştü' : 
+                         data.trend === 'up' ? 'Oran yükseldi' : 'Değişim yok';
+        const trendClass = data.trend === 'down' ? 'tooltip-down' : 
+                          data.trend === 'up' ? 'tooltip-up' : 'tooltip-stable';
+        
+        const diff = data.new - data.old;
+        const diffSign = diff > 0 ? '+' : '';
+        
+        tooltip.innerHTML = `
+            <div class="tooltip-title">Son 6 Saatlik Değişim</div>
+            <div class="tooltip-row">
+                <span class="tooltip-label">Eski oran:</span>
+                <span class="tooltip-value">${data.old ? data.old.toFixed(2) : '-'}</span>
+            </div>
+            <div class="tooltip-row">
+                <span class="tooltip-label">Yeni oran:</span>
+                <span class="tooltip-value">${data.new ? data.new.toFixed(2) : '-'}</span>
+            </div>
+            <div class="tooltip-row">
+                <span class="tooltip-label">Değişim:</span>
+                <span class="tooltip-value ${trendClass}">${diffSign}${diff.toFixed(2)} (${data.pct > 0 ? '+' : ''}${data.pct}%)</span>
+            </div>
+            <div class="tooltip-trend ${trendClass}">${trendText}</div>
+        `;
+        
+        const rect = cell.getBoundingClientRect();
+        tooltip.style.left = `${rect.left + rect.width / 2}px`;
+        tooltip.style.top = `${rect.top - 10}px`;
+        tooltip.classList.add('visible');
+    } catch (e) {
+        console.error('[Tooltip] Parse error:', e);
+    }
+}
+
+function hideTrendTooltip() {
+    const tooltip = document.getElementById('oddsTrendTooltip');
+    if (tooltip) {
+        tooltip.classList.remove('visible');
+    }
+}
+
+function attachTrendTooltipListeners() {
+    document.querySelectorAll('.odds-trend-cell').forEach(cell => {
+        cell.addEventListener('mouseenter', showTrendTooltip);
+        cell.addEventListener('mouseleave', hideTrendTooltip);
+    });
 }

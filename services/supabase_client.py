@@ -428,6 +428,121 @@ class SupabaseClient:
             print(f"Error get_active_alerts: {e}")
             return []
     
+    def get_6h_odds_history(self, market: str) -> Dict[str, Dict[str, Any]]:
+        """Get 6-hour odds history for DROP markets only.
+        Returns dict: { "home|away": { "sel1": [values], "sel2": [values], ... } }
+        """
+        if not self.is_available:
+            return {}
+        
+        if not market.startswith('dropping'):
+            return {}
+        
+        history_table = f"{market}_history"
+        
+        try:
+            from datetime import datetime, timedelta
+            import pytz
+            
+            turkey_tz = pytz.timezone('Europe/Istanbul')
+            now_turkey = datetime.now(turkey_tz)
+            six_hours_ago = now_turkey - timedelta(hours=6)
+            six_hours_ago_iso = six_hours_ago.strftime('%Y-%m-%d %H:%M:%S')
+            
+            url = f"{self._rest_url(history_table)}?scrapedat=gte.{six_hours_ago_iso}&order=scrapedat.asc"
+            resp = httpx.get(url, headers=self._headers(), timeout=20)
+            
+            if resp.status_code != 200:
+                print(f"[6h History] Error {resp.status_code} from {history_table}")
+                return {}
+            
+            rows = resp.json()
+            if not rows:
+                return {}
+            
+            result = {}
+            
+            for row in rows:
+                home = row.get('home', '')
+                away = row.get('away', '')
+                key = f"{home}|{away}"
+                
+                if key not in result:
+                    result[key] = {
+                        'home': home,
+                        'away': away,
+                        'timestamps': [],
+                        'values': {}
+                    }
+                
+                ts = row.get('scrapedat', '')
+                result[key]['timestamps'].append(ts)
+                
+                if market == 'dropping_1x2':
+                    for sel in ['odds1', 'oddsx', 'odds2']:
+                        if sel not in result[key]['values']:
+                            result[key]['values'][sel] = []
+                        val = self._parse_numeric(row.get(sel, ''))
+                        result[key]['values'][sel].append(val)
+                        
+                elif market == 'dropping_ou25':
+                    for sel in ['under', 'over']:
+                        if sel not in result[key]['values']:
+                            result[key]['values'][sel] = []
+                        val = self._parse_numeric(row.get(sel, ''))
+                        result[key]['values'][sel].append(val)
+                        
+                elif market == 'dropping_btts':
+                    for sel in ['yes', 'no']:
+                        if sel not in result[key]['values']:
+                            result[key]['values'][sel] = []
+                        val = self._parse_numeric(row.get(sel, row.get('odds' + sel, '')))
+                        result[key]['values'][sel].append(val)
+            
+            for key in result:
+                data = result[key]
+                for sel, values in data['values'].items():
+                    valid_values = [v for v in values if v is not None]
+                    if len(valid_values) >= 2:
+                        old_val = valid_values[0]
+                        new_val = valid_values[-1]
+                        if old_val > 0:
+                            pct_change = ((old_val - new_val) / old_val) * 100
+                            if new_val < old_val:
+                                trend = 'down'
+                            elif new_val > old_val:
+                                trend = 'up'
+                            else:
+                                trend = 'stable'
+                        else:
+                            pct_change = 0
+                            trend = 'stable'
+                        
+                        data['values'][sel] = {
+                            'history': valid_values[-10:],
+                            'old': old_val,
+                            'new': new_val,
+                            'pct_change': round(pct_change, 1),
+                            'trend': trend
+                        }
+                    else:
+                        data['values'][sel] = {
+                            'history': valid_values,
+                            'old': valid_values[0] if valid_values else None,
+                            'new': valid_values[-1] if valid_values else None,
+                            'pct_change': 0,
+                            'trend': 'stable'
+                        }
+            
+            print(f"[6h History] Got {len(result)} matches from {history_table}")
+            return result
+            
+        except Exception as e:
+            print(f"[6h History] Error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {}
+    
     def _parse_numeric(self, val: Any) -> Optional[float]:
         if val is None or val == '' or val == '-':
             return None

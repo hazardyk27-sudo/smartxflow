@@ -2196,6 +2196,158 @@ body {
     font-size: 14px;
 }
 
+/* ========== 6-HOUR ODDS TREND (DROP MARKETS ONLY) ========== */
+
+.odds-trend-cell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: rgba(33, 38, 45, 0.5);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.odds-trend-cell:hover {
+    background: rgba(48, 54, 61, 0.8);
+}
+
+.sparkline-container {
+    flex-shrink: 0;
+}
+
+.sparkline-svg {
+    display: block;
+}
+
+.odds-value-trend {
+    font-weight: 700;
+    color: #ffffff;
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.3px;
+}
+
+.pct-change {
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.pct-change.pct-down {
+    color: #22c55e;
+}
+
+.pct-change.pct-up {
+    color: #ef4444;
+}
+
+.pct-change.pct-stable {
+    color: #6b7280;
+}
+
+.trend-arrow-drop {
+    font-size: 12px;
+    font-weight: 700;
+    margin-left: 2px;
+}
+
+.trend-down-drop {
+    color: #22c55e;
+}
+
+.trend-up-drop {
+    color: #ef4444;
+}
+
+.trend-stable-drop {
+    color: #6b7280;
+}
+
+.odds-trend-tooltip {
+    position: fixed;
+    z-index: 10000;
+    background: #1c2128;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 12px 16px;
+    min-width: 200px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    transform: translateX(-50%) translateY(-100%);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+    pointer-events: none;
+}
+
+.odds-trend-tooltip.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.odds-trend-tooltip .tooltip-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #8b949e;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #30363d;
+}
+
+.odds-trend-tooltip .tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+}
+
+.odds-trend-tooltip .tooltip-label {
+    color: #8b949e;
+    font-size: 12px;
+}
+
+.odds-trend-tooltip .tooltip-value {
+    color: #c9d1d9;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.odds-trend-tooltip .tooltip-value.tooltip-down {
+    color: #22c55e;
+}
+
+.odds-trend-tooltip .tooltip-value.tooltip-up {
+    color: #ef4444;
+}
+
+.odds-trend-tooltip .tooltip-value.tooltip-stable {
+    color: #6b7280;
+}
+
+.odds-trend-tooltip .tooltip-trend {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #30363d;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.odds-trend-tooltip .tooltip-trend.tooltip-down {
+    color: #22c55e;
+}
+
+.odds-trend-tooltip .tooltip-trend.tooltip-up {
+    color: #ef4444;
+}
+
+.odds-trend-tooltip .tooltip-trend.tooltip-stable {
+    color: #6b7280;
+}
+
 /* Responsive */
 @media (max-width: 500px) {
     .alarm-drawer {
@@ -2220,5 +2372,10 @@ body {
     .alarm-group-right {
         width: 100%;
         justify-content: space-between;
+    }
+    
+    .odds-trend-cell {
+        flex-wrap: wrap;
+        gap: 4px;
     }
 }
