@@ -61,8 +61,7 @@ function setupModalChartTabs() {
             tab.classList.add('active');
             selectedChartMarket = tab.dataset.market;
             if (selectedMatch) {
-                updateMatchInfoCard();
-                loadChart(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
+                loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
             }
         });
     });
