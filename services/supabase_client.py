@@ -507,7 +507,7 @@ class SupabaseClient:
                         old_val = valid_values[0]
                         new_val = valid_values[-1]
                         if old_val > 0:
-                            pct_change = ((old_val - new_val) / old_val) * 100
+                            pct_change = ((new_val - old_val) / old_val) * 100
                             if new_val < old_val:
                                 trend = 'down'
                             elif new_val > old_val:
