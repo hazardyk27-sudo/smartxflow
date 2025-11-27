@@ -336,13 +336,9 @@ function renderMatches(data) {
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="drop-1x2-outcomes" colspan="3">
-                            <div class="drop-1x2-grid">
-                                ${cell1}
-                                ${cellX}
-                                ${cell2}
-                            </div>
-                        </td>
+                        <td class="drop-cell">${cell1}</td>
+                        <td class="drop-cell">${cellX}</td>
+                        <td class="drop-cell">${cell2}</td>
                         <td class="volume-cell">${formatVolume(d.Volume)}</td>
                     </tr>
                 `;

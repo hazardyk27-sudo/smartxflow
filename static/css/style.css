@@ -2320,22 +2320,22 @@ body {
     }
 }
 
-/* ========== DROPPING 1X2 GRID TASARIMI ========== */
-.drop-1x2-outcomes {
-    padding: 8px 0 !important;
+/* ========== DROPPING 1X2 TASARIMI ========== */
+.dropping-1x2-row td {
+    padding: 10px 8px !important;
 }
 
-.drop-1x2-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    column-gap: 24px;
+.drop-cell {
+    text-align: center;
+    vertical-align: middle;
+    padding: 8px 4px !important;
 }
 
 .drop-odds-cell {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 0;
+    justify-content: center;
+    gap: 6px;
 }
 
 .drop-odds-cell[data-tooltip] {
@@ -2344,32 +2344,34 @@ body {
 
 .drop-odds-cell .sparkline-container {
     flex-shrink: 0;
-    width: 48px;
+    width: 44px;
+}
+
+.drop-odds-cell .sparkline-container svg {
+    width: 44px;
+    height: 18px;
 }
 
 .drop-odds-value {
     font-size: 15px;
     font-weight: 700;
     color: #ffffff;
-    min-width: 40px;
+    white-space: nowrap;
 }
 
 .drop-odds-cell .trend-pct {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .drop-odds-cell .trend-arrow-drop {
-    font-size: 14px;
+    font-size: 13px;
     flex-shrink: 0;
 }
 
 /* Responsive Dropping 1X2 */
-@media (max-width: 768px) {
-    .drop-1x2-grid {
-        column-gap: 12px;
-    }
-    
+@media (max-width: 992px) {
     .drop-odds-cell {
         gap: 4px;
     }
@@ -2378,13 +2380,40 @@ body {
         width: 36px;
     }
     
+    .drop-odds-cell .sparkline-container svg {
+        width: 36px;
+        height: 14px;
+    }
+    
     .drop-odds-value {
         font-size: 13px;
-        min-width: 32px;
     }
     
     .drop-odds-cell .trend-pct {
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 768px) {
+    .drop-odds-cell .sparkline-container {
+        width: 28px;
+    }
+    
+    .drop-odds-cell .sparkline-container svg {
+        width: 28px;
+        height: 12px;
+    }
+    
+    .drop-odds-value {
         font-size: 11px;
+    }
+    
+    .drop-odds-cell .trend-pct {
+        font-size: 9px;
+    }
+    
+    .drop-odds-cell .trend-arrow-drop {
+        font-size: 10px;
     }
 }
 
