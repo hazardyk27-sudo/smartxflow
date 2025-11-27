@@ -298,41 +298,50 @@ class SupabaseClient:
     
     def get_bulk_history_for_alarms(self, market: str, match_pairs: List[tuple]) -> Dict[tuple, List[Dict]]:
         """
-        Batch fetch history for multiple matches in a single query.
+        Batch fetch history for last 24h and filter by match_pairs.
+        Uses Range header to bypass 1000 row limit.
         Returns: {(home, away): [history_records]}
         """
         if not self.is_available or not match_pairs:
             return {}
         
         try:
-            import urllib.parse
+            from datetime import datetime, timedelta
             history_table = f"{market}_history"
             
-            homes = list(set(pair[0] for pair in match_pairs))
-            aways = list(set(pair[1] for pair in match_pairs))
+            cutoff = (datetime.utcnow() - timedelta(hours=24)).isoformat()
             
-            homes_filter = ','.join(f'"{h}"' for h in homes)
-            aways_filter = ','.join(f'"{a}"' for a in aways)
+            headers = self._headers()
+            headers["Range"] = "0-49999"
             
-            url = f"{self._rest_url(history_table)}?home=in.({urllib.parse.quote(homes_filter, safe='')})&away=in.({urllib.parse.quote(aways_filter, safe='')})&order=scrapedat.asc&limit=10000"
+            url = f"{self._rest_url(history_table)}?select=*&scrapedat=gte.{cutoff}&order=scrapedat.desc"
+            resp = httpx.get(url, headers=headers, timeout=60)
             
-            resp = httpx.get(url, headers=self._headers(), timeout=30)
-            
-            if resp.status_code != 200:
+            if resp.status_code not in [200, 206]:
+                print(f"[Supabase] Bulk history failed: {resp.status_code}")
                 return {}
             
             rows = resp.json()
             
+            match_set = set(match_pairs)
+            
             result = {}
             for row in rows:
                 key = (row.get('home', ''), row.get('away', ''))
-                if key not in result:
-                    result[key] = []
-                result[key].append(self._history_row_to_legacy(row, market))
+                if key in match_set:
+                    if key not in result:
+                        result[key] = []
+                    result[key].append(self._history_row_to_legacy(row, market))
             
+            for key in result:
+                result[key] = list(reversed(result[key]))
+            
+            print(f"[Supabase] Bulk history ({market}): {len(rows)} rows (24h), {len(result)} matches")
             return result
         except Exception as e:
             print(f"[Supabase] Error in get_bulk_history_for_alarms: {e}")
+            import traceback
+            traceback.print_exc()
             return {}
     
     def get_all_matches_with_latest(self, market: str) -> List[Dict[str, Any]]:

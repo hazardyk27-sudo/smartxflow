@@ -775,7 +775,7 @@ def get_cached_alarms():
         print("[Alarms API] Using cached data")
         return alarm_cache['data'].copy()
     
-    print("[Alarms API] Refreshing alarm cache (using bulk query)...")
+    print("[Alarms API] Refreshing alarm cache (checking ALL matches)...")
     start_time = time.time()
     
     all_alarms = []
@@ -785,14 +785,9 @@ def get_cached_alarms():
     
     real_matches = [m for m in matches_data if not is_demo_match(m)]
     
-    today = now_turkey()
-    today_str = today.strftime('%d.%m')
-    today_day = today.strftime('%d')
-    
-    today_matches = []
+    all_unique_matches = []
     seen_pairs = set()
     for m in real_matches:
-        date_str = m.get('date', '')
         home = m.get('home_team', '')
         away = m.get('away_team', '')
         pair = (home, away)
@@ -800,23 +795,13 @@ def get_cached_alarms():
         if pair in seen_pairs:
             continue
         
-        if date_str:
-            day_part = date_str.split('.')[0] if '.' in date_str else ''
-            if day_part == today_day or today_str in date_str:
-                today_matches.append(m)
-                seen_pairs.add(pair)
+        all_unique_matches.append(m)
+        seen_pairs.add(pair)
     
-    if len(today_matches) < 30:
-        for m in real_matches:
-            pair = (m.get('home_team', ''), m.get('away_team', ''))
-            if pair not in seen_pairs:
-                today_matches.append(m)
-                seen_pairs.add(pair)
-            if len(today_matches) >= 80:
-                break
+    match_pairs = [(m.get('home_team', ''), m.get('away_team', '')) for m in all_unique_matches]
+    match_info = {(m.get('home_team', ''), m.get('away_team', '')): m.get('league', '') for m in all_unique_matches}
     
-    match_pairs = [(m.get('home_team', ''), m.get('away_team', '')) for m in today_matches]
-    match_info = {(m.get('home_team', ''), m.get('away_team', '')): m.get('league', '') for m in today_matches}
+    print(f"[Alarms API] Checking {len(match_pairs)} unique matches for alarms")
     
     for market in markets:
         bulk_history = db.get_bulk_history_for_alarms(market, match_pairs)
