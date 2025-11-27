@@ -673,16 +673,19 @@ def is_demo_match(match):
     return False
 
 def get_cached_alarms():
-    """Get alarms from cache or refresh if expired"""
+    """Get alarms from cache or refresh if expired.
+    Checks ALL today's matches to ensure consistency with match detail view.
+    """
     import time
     from core.alarms import group_alarms_by_match, format_grouped_alarm
+    from core.timezone import now_turkey
     
     now = time.time()
     if alarm_cache['data'] is not None and (now - alarm_cache['timestamp']) < alarm_cache['ttl']:
         print("[Alarms API] Using cached data")
         return alarm_cache['data'].copy()
     
-    print("[Alarms API] Refreshing alarm cache...")
+    print("[Alarms API] Refreshing alarm cache (checking all today's matches)...")
     start_time = time.time()
     
     all_alarms = []
@@ -692,8 +695,18 @@ def get_cached_alarms():
     
     real_matches = [m for m in matches_data if not is_demo_match(m)]
     
+    today_str = now_turkey().strftime('%d.%m')
+    today_matches = []
+    for m in real_matches:
+        date_str = m.get('date', '')
+        if date_str and (today_str in date_str or date_str.startswith(today_str.replace('.', '.Nov').replace('11', 'Nov'))):
+            today_matches.append(m)
+    
+    if len(today_matches) < 20:
+        today_matches = real_matches[:50]
+    
     checked = 0
-    for match in real_matches[:10]:
+    for match in today_matches:
         home = match.get('home_team', '')
         away = match.get('away_team', '')
         
@@ -705,6 +718,7 @@ def get_cached_alarms():
                     alarm['home'] = home
                     alarm['away'] = away
                     alarm['market'] = market
+                    alarm['league'] = match.get('league', '')
                     all_alarms.append(alarm)
         checked += 1
     
