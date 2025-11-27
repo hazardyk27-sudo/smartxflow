@@ -162,6 +162,9 @@ Environment variables:
 - **SUPABASE SECRET ADI** - Her zaman SUPABASE_ANON_KEY kullan (SUPABASE_KEY değil)
 
 ## Son Guncellemeler
+- **27 Kasim 2025:** Alarm/Ticker API cache 60sn TTL - demo maçlar filtrelendi (is_demo_match)
+- **27 Kasim 2025:** İlk istek 2-3s, cache'li istekler 5-10ms - 500x hızlanma
+- **27 Kasim 2025:** DEMO_TEAMS seti ile demo takımlar, "Demo" liglerle birlikte otomatik filtreleniyor
 - **27 Kasim 2025:** Alarm listesi API cache (30sn TTL) - hızlı yükleme
 - **27 Kasim 2025:** Alarm listesine takım adı arama eklendi (debounce 300ms)
 - **27 Kasim 2025:** x3/x4 badge tıklanabilir popover - alarm geçmişi tasarımı ile aynı

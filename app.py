@@ -81,6 +81,7 @@ def cleanup_old_matches():
     """
     Delete matches older than yesterday (keep today and yesterday only).
     Runs once per day on server startup or scheduler.
+    Note: Currently read-only mode - cleanup is handled by standalone scraper.
     """
     global last_cleanup_date
     
@@ -88,49 +89,8 @@ def cleanup_old_matches():
     if last_cleanup_date == today:
         return
     
-    try:
-        from services.supabase_client import get_supabase_client
-        supabase = get_supabase_client()
-        if not supabase:
-            return
-        
-        yesterday = today - timedelta(days=1)
-        cutoff_date = yesterday.strftime('%d.%m.%Y')
-        
-        tables = [
-            'moneyway_1x2', 'moneyway_ou25', 'moneyway_btts',
-            'dropping_1x2', 'dropping_ou25', 'dropping_btts',
-            'moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history',
-            'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history'
-        ]
-        
-        for table in tables:
-            try:
-                response = supabase.table(table).select('Date').execute()
-                if response.data:
-                    for row in response.data:
-                        date_str = row.get('Date', '')
-                        if date_str:
-                            try:
-                                date_parts = date_str.split(' ')[0].split('.')
-                                if len(date_parts) >= 3:
-                                    row_date = datetime(
-                                        int(date_parts[2]), 
-                                        int(date_parts[1]), 
-                                        int(date_parts[0])
-                                    ).date()
-                                    if row_date < yesterday:
-                                        pass
-                            except:
-                                pass
-            except Exception as e:
-                print(f"[Cleanup] Error checking table {table}: {e}")
-        
-        last_cleanup_date = today
-        print(f"[Cleanup] Old matches cleanup completed for {today}")
-        
-    except Exception as e:
-        print(f"[Cleanup] Error: {e}")
+    last_cleanup_date = today
+    print(f"[Cleanup] Old matches cleanup completed for {today}")
 
 
 def start_cleanup_scheduler():
@@ -691,8 +651,26 @@ def export_png():
 alarm_cache = {
     'data': None,
     'timestamp': 0,
-    'ttl': 30
+    'ttl': 60
 }
+
+DEMO_TEAMS = {'Whale FC', 'Sharp FC', 'Pro Bettors XI', 'Casual City', 'Target United', 
+              'Small Fish', 'Budget Boys', 'Line Freeze FC', 'Bookmaker XI', 
+              'Public Money FC', 'Trending Town', 'Accelerate FC', 'Brake City',
+              'Volume Kings', 'Momentum FC', 'Surge United',
+              'No Move Utd', 'Steady State', 'Frozen FC', 'Static City',
+              'Fan Favorite', 'NoName FC', 'Rising Stars', 'Slow Movers'}
+
+def is_demo_match(match):
+    """Check if match is a demo match"""
+    home = match.get('home_team', '')
+    away = match.get('away_team', '')
+    league = match.get('league', '')
+    if home in DEMO_TEAMS or away in DEMO_TEAMS:
+        return True
+    if league.lower().startswith('demo'):
+        return True
+    return False
 
 def get_cached_alarms():
     """Get alarms from cache or refresh if expired"""
@@ -701,14 +679,21 @@ def get_cached_alarms():
     
     now = time.time()
     if alarm_cache['data'] is not None and (now - alarm_cache['timestamp']) < alarm_cache['ttl']:
-        return alarm_cache['data']
+        print("[Alarms API] Using cached data")
+        return alarm_cache['data'].copy()
+    
+    print("[Alarms API] Refreshing alarm cache...")
+    start_time = time.time()
     
     all_alarms = []
     markets = ['moneyway_1x2']
     
     matches_data = db.get_all_matches_with_latest('moneyway_1x2')
     
-    for match in matches_data[:20]:
+    real_matches = [m for m in matches_data if not is_demo_match(m)]
+    
+    checked = 0
+    for match in real_matches[:10]:
         home = match.get('home_team', '')
         away = match.get('away_team', '')
         
@@ -721,14 +706,18 @@ def get_cached_alarms():
                     alarm['away'] = away
                     alarm['market'] = market
                     all_alarms.append(alarm)
+        checked += 1
     
     grouped = group_alarms_by_match(all_alarms)
     formatted = [format_grouped_alarm(g) for g in grouped]
     
+    elapsed = time.time() - start_time
+    print(f"[Alarms API] Cache refreshed in {elapsed:.2f}s, checked {checked} matches, found {len(formatted)} alarms")
+    
     alarm_cache['data'] = formatted
     alarm_cache['timestamp'] = now
     
-    return formatted
+    return formatted.copy()
 
 @app.route('/api/alarms')
 def get_all_alarms():
@@ -781,18 +770,31 @@ def get_all_alarms():
         return jsonify({'alarms': [], 'total': 0, 'page': 0, 'has_more': False, 'error': str(e)})
 
 
+ticker_cache = {
+    'data': None,
+    'timestamp': 0,
+    'ttl': 60
+}
+
 @app.route('/api/alarms/ticker')
 def get_ticker_alarms():
     """Get critical alarms for borsa bandı - 20 items for scrolling ticker"""
+    import time
     try:
         from core.alarms import get_critical_alarms, format_alarm_for_ticker, ALARM_TYPES
+        
+        now = time.time()
+        if ticker_cache['data'] is not None and (now - ticker_cache['timestamp']) < ticker_cache['ttl']:
+            return jsonify(ticker_cache['data'])
         
         all_alarms = []
         markets = ['moneyway_1x2']
         
         matches_data = db.get_all_matches_with_latest('moneyway_1x2')
         
-        for match in matches_data[:50]:
+        real_matches = [m for m in matches_data if not is_demo_match(m)]
+        
+        for match in real_matches[:15]:
             home = match.get('home_team', '')
             away = match.get('away_team', '')
             league = match.get('league', '')
@@ -812,10 +814,15 @@ def get_ticker_alarms():
         
         critical = get_critical_alarms(all_alarms, limit=20)
         
-        return jsonify({
+        result = {
             'alarms': critical[:20],
             'total': len(all_alarms)
-        })
+        }
+        
+        ticker_cache['data'] = result
+        ticker_cache['timestamp'] = now
+        
+        return jsonify(result)
     except Exception as e:
         print(f"[Ticker API] Error: {e}")
         import traceback
