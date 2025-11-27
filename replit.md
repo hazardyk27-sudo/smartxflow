@@ -159,6 +159,7 @@ Environment variables:
 - **SADECE UYGULAMA DOSYALARI** push et (app.py, templates, static, core, services)
 - **PUSH KOMUTU:** `git push --force` kullan (conflict varsa)
 - **DEBUG DOSYASI** - Her EXE build'inde BUILD_INFO.txt ve smartxflow_debug.log dahil edilir
+- **SUPABASE SECRET ADI** - Her zaman SUPABASE_ANON_KEY kullan (SUPABASE_KEY değil)
 
 ## Son Guncellemeler
 - **27 Kasim 2025:** Türkiye saati (Europe/Istanbul) tüm uygulamada sabit - core/timezone.py modülü eklendi
