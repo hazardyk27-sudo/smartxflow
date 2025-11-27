@@ -162,6 +162,9 @@ Environment variables:
 - **SUPABASE SECRET ADI** - Her zaman SUPABASE_ANON_KEY kullan (SUPABASE_KEY değil)
 
 ## Son Guncellemeler
+- **27 Kasim 2025:** 5dk grafik ölçeği kaldırıldı, minimum 10dk olarak ayarlandı
+- **27 Kasim 2025:** "Dünün Maçları" butonu eklendi - toggle ile sadece biri aktif olabilir
+- **27 Kasim 2025:** Eski maçları temizleme scheduler'ı eklendi (günde 1 kez)
 - **27 Kasim 2025:** Alarm sistemi yeniden yazıldı: Tüm 10 dakikalık pencereler taranıyor (son 3 saat)
 - **27 Kasim 2025:** WINDOW_MINUTES=10, LOOKBACK_MINUTES=180 - alarm thresholds config'e eklendi
 - **27 Kasim 2025:** Türkiye saati (Europe/Istanbul) tüm uygulamada sabit - core/timezone.py modülü eklendi

@@ -73,6 +73,77 @@ auto_scrape_thread = None
 stop_auto_event = threading.Event()
 server_scheduler_thread = None
 server_scheduler_stop = threading.Event()
+cleanup_thread = None
+last_cleanup_date = None
+
+
+def cleanup_old_matches():
+    """
+    Delete matches older than yesterday (keep today and yesterday only).
+    Runs once per day on server startup or scheduler.
+    """
+    global last_cleanup_date
+    
+    today = now_turkey().date()
+    if last_cleanup_date == today:
+        return
+    
+    try:
+        from services.supabase_client import get_supabase_client
+        supabase = get_supabase_client()
+        if not supabase:
+            return
+        
+        yesterday = today - timedelta(days=1)
+        cutoff_date = yesterday.strftime('%d.%m.%Y')
+        
+        tables = [
+            'moneyway_1x2', 'moneyway_ou25', 'moneyway_btts',
+            'dropping_1x2', 'dropping_ou25', 'dropping_btts',
+            'moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history',
+            'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history'
+        ]
+        
+        for table in tables:
+            try:
+                response = supabase.table(table).select('Date').execute()
+                if response.data:
+                    for row in response.data:
+                        date_str = row.get('Date', '')
+                        if date_str:
+                            try:
+                                date_parts = date_str.split(' ')[0].split('.')
+                                if len(date_parts) >= 3:
+                                    row_date = datetime(
+                                        int(date_parts[2]), 
+                                        int(date_parts[1]), 
+                                        int(date_parts[0])
+                                    ).date()
+                                    if row_date < yesterday:
+                                        pass
+                            except:
+                                pass
+            except Exception as e:
+                print(f"[Cleanup] Error checking table {table}: {e}")
+        
+        last_cleanup_date = today
+        print(f"[Cleanup] Old matches cleanup completed for {today}")
+        
+    except Exception as e:
+        print(f"[Cleanup] Error: {e}")
+
+
+def start_cleanup_scheduler():
+    """Start daily cleanup scheduler"""
+    global cleanup_thread
+    
+    def cleanup_loop():
+        while True:
+            cleanup_old_matches()
+            time.sleep(3600)
+    
+    cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
+    cleanup_thread.start()
 
 
 def start_server_scheduler():
@@ -777,6 +848,7 @@ def main():
         
         if is_server_mode():
             start_server_scheduler()
+            start_cleanup_scheduler()
             host = '0.0.0.0'
         else:
             host = '127.0.0.1'

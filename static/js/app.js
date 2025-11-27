@@ -9,7 +9,8 @@ let currentSortColumn = 'date';
 let currentSortDirection = 'desc';
 let chartVisibleSeries = {};
 let todayFilterActive = false;
-let chartTimeRange = '5min';
+let yesterdayFilterActive = false;
+let chartTimeRange = '10min';
 let currentChartHistoryData = [];
 let chartViewMode = 'percent';
 let alertsHistory = [];
@@ -602,19 +603,41 @@ function applySorting(data) {
     sortedData = sortedData.filter(m => hasValidMarketData(m, currentMarket));
     
     if (todayFilterActive) {
-        const todayDay = new Date().getDate();
-        console.log('[Filter] Today day:', todayDay);
+        const now = new Date();
+        const todayDay = now.getDate();
+        const todayMonth = now.getMonth() + 1;
+        console.log('[Filter] Today:', todayDay + '.' + todayMonth);
         sortedData = sortedData.filter(m => {
             if (!m.date) return false;
-            const dayMatch = m.date.match(/^(\d{1,2})\./);
-            if (dayMatch) {
-                const matchDay = parseInt(dayMatch[1], 10);
-                console.log('[Filter] Match:', m.date, '-> day:', matchDay);
-                return matchDay === todayDay;
+            const dateMatch = m.date.match(/^(\d{1,2})\.(\d{1,2})/);
+            if (dateMatch) {
+                const matchDay = parseInt(dateMatch[1], 10);
+                const matchMonth = parseInt(dateMatch[2], 10);
+                return matchDay === todayDay && matchMonth === todayMonth;
             }
             return false;
         });
-        console.log('[Filter] Filtered count:', sortedData.length);
+        console.log('[Filter] Today filtered count:', sortedData.length);
+    }
+    
+    if (yesterdayFilterActive) {
+        const now = new Date();
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        const yesterdayDay = yesterday.getDate();
+        const yesterdayMonth = yesterday.getMonth() + 1;
+        console.log('[Filter] Yesterday:', yesterdayDay + '.' + yesterdayMonth);
+        sortedData = sortedData.filter(m => {
+            if (!m.date) return false;
+            const dateMatch = m.date.match(/^(\d{1,2})\.(\d{1,2})/);
+            if (dateMatch) {
+                const matchDay = parseInt(dateMatch[1], 10);
+                const matchMonth = parseInt(dateMatch[2], 10);
+                return matchDay === yesterdayDay && matchMonth === yesterdayMonth;
+            }
+            return false;
+        });
+        console.log('[Filter] Yesterday filtered count:', sortedData.length);
     }
     
     return sortedData.sort((a, b) => {
@@ -835,10 +858,35 @@ function showTrendSortButtons(show) {
 
 function toggleTodayFilter() {
     todayFilterActive = !todayFilterActive;
+    if (todayFilterActive) {
+        yesterdayFilterActive = false;
+        document.getElementById('yesterdayBtn')?.classList.remove('active');
+    }
     
     const btn = document.getElementById('todayBtn');
     if (btn) {
         if (todayFilterActive) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    }
+    
+    const searchInput = document.getElementById('searchInput');
+    const query = searchInput?.value?.toLowerCase() || '';
+    filterMatches(query);
+}
+
+function toggleYesterdayFilter() {
+    yesterdayFilterActive = !yesterdayFilterActive;
+    if (yesterdayFilterActive) {
+        todayFilterActive = false;
+        document.getElementById('todayBtn')?.classList.remove('active');
+    }
+    
+    const btn = document.getElementById('yesterdayBtn');
+    if (btn) {
+        if (yesterdayFilterActive) {
             btn.classList.add('active');
         } else {
             btn.classList.remove('active');
@@ -1233,8 +1281,6 @@ function closeModal() {
 
 function getBucketConfig() {
     switch (chartTimeRange) {
-        case '5min':
-            return { bucketMinutes: 5, labelFormat: 'time' };
         case '10min':
             return { bucketMinutes: 10, labelFormat: 'time' };
         case '30min':
@@ -1728,7 +1774,6 @@ function renderChartLegendFilters(datasets, market) {
     const items = legendLabels[market] || [];
     
     const timeRanges = [
-        { key: '5min', label: '5 dk' },
         { key: '10min', label: '10 dk' },
         { key: '30min', label: '30 dk' },
         { key: '1hour', label: '1 saat' },
@@ -2188,7 +2233,6 @@ function exportChartCSV() {
     const visibleSeriesNames = visibleDatasets.map(ds => ds.label).join(', ');
     
     const timeRangeLabels = {
-        '5min': '5 dakika',
         '10min': '10 dakika',
         '30min': '30 dakika',
         '1hour': '1 saat',
@@ -3009,7 +3053,7 @@ async function loadMatchAlarms(home, away) {
                         </div>
                         <div class="alarm-tags">
                             ${sidesText ? `<span class="alarm-tag market">${sidesText}</span>` : ''}
-                            <span class="alarm-tag time">Son 5 dk</span>
+                            <span class="alarm-tag time">Son 10 dk</span>
                         </div>
                     </div>
                     <div class="alarm-detail">${alarm.detail}</div>
