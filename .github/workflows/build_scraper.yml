@@ -34,30 +34,11 @@ jobs:
           cat scraper_standalone/config.json
         shell: bash
 
-      - name: Build Scraper EXE with SSL certificates
+      - name: Build Scraper EXE
         run: |
-          import subprocess
-          import certifi
-          import os
-          
-          os.chdir('scraper_standalone')
-          cert_path = certifi.where()
-          print(f"Certifi path: {cert_path}")
-          
-          cmd = [
-              'pyinstaller',
-              '--onefile',
-              '--console',
-              '--name', 'SmartXFlowAlarmV1.01Scraper',
-              '--icon=NONE',
-              '--add-data', f'config.json;.',
-              '--add-data', f'{cert_path};certifi',
-              '--hidden-import=certifi',
-              'standalone_scraper.py'
-          ]
-          print(f"Running: {' '.join(cmd)}")
-          subprocess.run(cmd, check=True)
-        shell: python
+          cd scraper_standalone
+          pyinstaller --onefile --console --name "SmartXFlowAlarmV1.01Scraper" --icon=NONE --add-data "config.json;." standalone_scraper.py
+        shell: cmd
 
       - name: Copy config to dist
         run: |
