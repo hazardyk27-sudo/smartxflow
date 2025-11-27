@@ -34,6 +34,15 @@ function setupTabs() {
             document.querySelectorAll('.market-tabs .tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             currentMarket = tab.dataset.market;
+            
+            const isDropMarket = currentMarket.startsWith('dropping_');
+            showTrendSortButtons(isDropMarket);
+            
+            if (!isDropMarket && (currentSortColumn === 'trend_down' || currentSortColumn === 'trend_up')) {
+                currentSortColumn = 'date';
+                currentSortDirection = 'desc';
+            }
+            
             loadMatches();
         });
     });
@@ -497,6 +506,30 @@ function filterMatches(query) {
     renderMatches(filtered);
 }
 
+function getMatchTrendPct(match, selection) {
+    const matchId = `${match.home_team}|${match.away_team}|${match.league}|${match.date}`;
+    const matchData = oddsTrendCache[matchId];
+    if (!matchData || !matchData.values || !matchData.values[selection]) {
+        return 0;
+    }
+    return matchData.values[selection].pct_change || 0;
+}
+
+function getMaxTrendPct(match) {
+    const matchId = `${match.home_team}|${match.away_team}|${match.league}|${match.date}`;
+    const matchData = oddsTrendCache[matchId];
+    if (!matchData || !matchData.values) return 0;
+    
+    let maxPct = 0;
+    for (const sel in matchData.values) {
+        const pct = Math.abs(matchData.values[sel].pct_change || 0);
+        if (pct > Math.abs(maxPct)) {
+            maxPct = matchData.values[sel].pct_change || 0;
+        }
+    }
+    return maxPct;
+}
+
 function applySorting(data) {
     let sortedData = [...data];
     
@@ -568,6 +601,14 @@ function applySorting(data) {
                 valA = parseVolume(a);
                 valB = parseVolume(b);
                 break;
+            case 'trend_down':
+                valA = getMaxTrendPct(a);
+                valB = getMaxTrendPct(b);
+                return valA - valB;
+            case 'trend_up':
+                valA = getMaxTrendPct(a);
+                valB = getMaxTrendPct(b);
+                return valB - valA;
             default:
                 valA = parseDate(a.date);
                 valB = parseDate(b.date);
@@ -655,9 +696,64 @@ function sortByColumn(column) {
         currentSortDirection = 'desc';
     }
     
+    updateTrendSortButtons();
     updateTableHeaders();
     filteredMatches = applySorting(matches);
     renderMatches(filteredMatches);
+}
+
+function sortByTrend(direction) {
+    const downBtn = document.getElementById('trendDownBtn');
+    const upBtn = document.getElementById('trendUpBtn');
+    
+    if (direction === 'down') {
+        if (currentSortColumn === 'trend_down') {
+            currentSortColumn = 'date';
+            currentSortDirection = 'desc';
+        } else {
+            currentSortColumn = 'trend_down';
+            currentSortDirection = 'desc';
+        }
+    } else {
+        if (currentSortColumn === 'trend_up') {
+            currentSortColumn = 'date';
+            currentSortDirection = 'desc';
+        } else {
+            currentSortColumn = 'trend_up';
+            currentSortDirection = 'desc';
+        }
+    }
+    
+    updateTrendSortButtons();
+    updateTableHeaders();
+    filteredMatches = applySorting(matches);
+    renderMatches(filteredMatches);
+}
+
+function updateTrendSortButtons() {
+    const downBtn = document.getElementById('trendDownBtn');
+    const upBtn = document.getElementById('trendUpBtn');
+    
+    if (downBtn) {
+        downBtn.classList.remove('active', 'down');
+        if (currentSortColumn === 'trend_down') {
+            downBtn.classList.add('active', 'down');
+        }
+    }
+    
+    if (upBtn) {
+        upBtn.classList.remove('active');
+        if (currentSortColumn === 'trend_up') {
+            upBtn.classList.add('active');
+        }
+    }
+}
+
+function showTrendSortButtons(show) {
+    const btns = document.getElementById('trendSortBtns');
+    if (btns) {
+        btns.style.display = show ? 'flex' : 'none';
+    }
 }
 
 function toggleTodayFilter() {

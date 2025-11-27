@@ -175,6 +175,20 @@
                         </svg>
                         Günün Maçları
                     </button>
+                    <div id="trendSortBtns" class="trend-sort-buttons" style="display: none;">
+                        <button id="trendDownBtn" class="trend-sort-btn" onclick="sortByTrend('down')" title="En çok düşenler">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                            Düşen
+                        </button>
+                        <button id="trendUpBtn" class="trend-sort-btn" onclick="sortByTrend('up')" title="En çok yükselenler">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="18 15 12 9 6 15"></polyline>
+                            </svg>
+                            Yükselen
+                        </button>
+                    </div>
                 </div>
                 <div class="match-count">
                     <span id="matchCount">0</span> Matches

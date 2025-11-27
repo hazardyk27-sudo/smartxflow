@@ -2237,6 +2237,48 @@ body {
     color: #8b949e;
 }
 
+/* Trend Sort Buttons */
+.trend-sort-buttons {
+    display: flex;
+    gap: 6px;
+    margin-left: 8px;
+}
+
+.trend-sort-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    background: rgba(48, 54, 61, 0.6);
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #8b949e;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.trend-sort-btn:hover {
+    background: rgba(48, 54, 61, 0.9);
+    border-color: #484f58;
+    color: #c9d1d9;
+}
+
+.trend-sort-btn.active {
+    border-color: #238636;
+    color: #3fb950;
+}
+
+.trend-sort-btn.active.down {
+    border-color: #da3633;
+    color: #f85149;
+}
+
+.trend-sort-btn svg {
+    flex-shrink: 0;
+}
+
 .sparkline-container {
     flex-shrink: 0;
 }
