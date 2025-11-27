@@ -16,6 +16,13 @@ let alertsHistory = [];
 const MAX_ALERTS_HISTORY = 500;
 let isClientMode = true;
 
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+}
+
 let alarmCurrentPage = 0;
 let alarmHasMore = false;
 let alarmIsLoading = false;
@@ -2913,7 +2920,7 @@ function renderGroupedAlarmList() {
                     </div>
                 </div>
                 ${eventsHtml}
-                <div class="alarm-group-action" onclick="event.stopPropagation(); goToMatchFromAlarm('${group.home}', '${group.away}')">
+                <div class="alarm-group-action" onclick="event.stopPropagation(); goToMatchFromAlarm('${escapeHtml(group.home)}', '${escapeHtml(group.away)}', '${escapeHtml(group.match_id || '')}', '${escapeHtml(group.league || '')}')">
                     Maç Detayı →
                 </div>
             </div>
@@ -2993,7 +3000,7 @@ function renderAlarmList() {
         return `
             <div class="alarm-list-card" 
                  style="--alarm-color: ${alarm.color};"
-                 onclick="goToMatchFromAlarm('${alarm.home}', '${alarm.away}')">
+                 onclick="goToMatchFromAlarm('${escapeHtml(alarm.home)}', '${escapeHtml(alarm.away)}', '${escapeHtml(alarm.match_id || '')}', '${escapeHtml(alarm.league || '')}')">
                 <div class="alarm-card-header">
                     <div class="alarm-card-type">
                         <span class="icon">${alarm.icon}</span>
