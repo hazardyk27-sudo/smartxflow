@@ -136,18 +136,21 @@ Environment variables:
 - Ticker animasyonu
 
 ### Smart Money Alarm Sistemi
-1. 🔴 **Reverse Line Move (RLM)**
-2. 🟢 **Sharp Move**
-3. ⚠ **Big Money Move**
+1. 🔴 **Reverse Line Move (RLM)** - £3,000+ giriş + ters yönde oran hareketi
+2. 🟢 **Sharp Move** - £3,000+ giriş + oran düşüşü
+3. 💰 **Big Money Move** - 10 dakika içinde £15,000+ giriş (oran şartı yok)
 4. 🔵 **Line Freeze**
 5. 🟡 **Public Money Surge**
 6. 🟣 **Momentum Spike**
+7. 🔄 **Momentum Change** - Dominans değişimi (>50% pay değişimi)
 
 ## Teknik Notlar
-- **Timezone:** Turkey (Europe/Istanbul)
+- **Timezone:** Turkey (Europe/Istanbul) - Tüm uygulamada sabit
+- **Timezone Modülü:** core/timezone.py - pytz kullanılıyor
 - **Scrape Interval:** 10 dakika (sabit)
 - **Trend Format:** "up" / "down" (API için)
 - **Volume Format:** £ + binlik ayraç
+- **Tarih Formatı:** DD.MM.YYYY HH:MM (Türkiye saati)
 
 ## Kullanici Tercihleri
 - **SCRAPER'A DOKUNMA** - scraper_standalone/ klasorune ve build_scraper.yml'e dokunma, zaten calisiyor
@@ -156,6 +159,8 @@ Environment variables:
 - **PUSH KOMUTU:** `git push --force` kullan (conflict varsa)
 
 ## Son Guncellemeler
+- **27 Kasim 2025:** Türkiye saati (Europe/Istanbul) tüm uygulamada sabit - core/timezone.py modülü eklendi
+- **27 Kasim 2025:** Alarm kuralları güncellendi: Sharp £3K + oran düşüşü, Big Money £15K/10dk, RLM £3K + ters oran
 - **27 Kasim 2025:** Ticker kartları için benzersiz match_id navigasyonu - tıklanan kart her zaman doğru maçı açar
 - **27 Kasim 2025:** match_id: home|away|league|date kombinasyonu ile tam benzersizlik
 - **27 Kasim 2025:** Demo alarmlar eklendi (Sharp Money, Big Money, RLM, Line Freeze, Public Surge, Momentum)

@@ -12,7 +12,7 @@ import sys
 import json
 import threading
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from flask import Flask, render_template, jsonify, request
 
 def resource_path(relative_path):
@@ -27,6 +27,7 @@ template_dir = resource_path("templates")
 static_dir = resource_path("static")
 
 from core.settings import init_mode, is_server_mode, is_client_mode, get_scrape_interval_seconds, is_scraper_disabled
+from core.timezone import now_turkey, now_turkey_iso, now_turkey_formatted, format_turkey_time, format_time_only, TURKEY_TZ
 from services.supabase_client import get_database
 from core.alarms import analyze_match_alarms, format_alarm_for_ticker, format_alarm_for_modal, ALARM_TYPES
 import hashlib
@@ -97,11 +98,11 @@ def start_server_scheduler():
             if not scrape_status['running']:
                 scrape_status['running'] = True
                 try:
-                    print(f"[Server Scheduler] Running scrape at {datetime.now().isoformat()}")
+                    print(f"[Server Scheduler] Running scrape at {now_turkey_iso()}")
                     result = run_scraper()
                     scrape_status['last_result'] = result
-                    scrape_status['last_scrape_time'] = datetime.now().isoformat()
-                    scrape_status['last_supabase_sync'] = datetime.now().isoformat()
+                    scrape_status['last_scrape_time'] = now_turkey_iso()
+                    scrape_status['last_supabase_sync'] = now_turkey_iso()
                     print(f"[Server Scheduler] Scrape completed")
                 except Exception as e:
                     print(f"[Server Scheduler] Error: {e}")
@@ -109,7 +110,7 @@ def start_server_scheduler():
                 finally:
                     scrape_status['running'] = False
             
-            next_time = datetime.now() + timedelta(seconds=interval_seconds)
+            next_time = now_turkey() + timedelta(seconds=interval_seconds)
             scrape_status['next_scrape_time'] = next_time.isoformat()
             
             for _ in range(interval_seconds):
@@ -358,8 +359,8 @@ def trigger_scrape():
         try:
             result = run_scraper()
             scrape_status['last_result'] = result
-            scrape_status['last_scrape_time'] = datetime.now().isoformat()
-            scrape_status['last_supabase_sync'] = datetime.now().isoformat()
+            scrape_status['last_scrape_time'] = now_turkey_iso()
+            scrape_status['last_supabase_sync'] = now_turkey_iso()
         except Exception as e:
             scrape_status['last_result'] = {'status': 'error', 'error': str(e)}
         finally:
@@ -397,9 +398,9 @@ def toggle_auto_scrape():
                 print(f"[Client Auto] Started - polling Supabase every {interval} minutes")
                 
                 while not stop_auto_event.is_set():
-                    scrape_status['last_supabase_sync'] = datetime.now().isoformat()
+                    scrape_status['last_supabase_sync'] = now_turkey_iso()
                     
-                    next_time = datetime.now() + timedelta(minutes=interval)
+                    next_time = now_turkey() + timedelta(minutes=interval)
                     scrape_status['next_scrape_time'] = next_time.isoformat()
                     
                     for _ in range(poll_interval):
@@ -430,14 +431,14 @@ def toggle_auto_scrape():
                         try:
                             result = run_scraper()
                             scrape_status['last_result'] = result
-                            scrape_status['last_scrape_time'] = datetime.now().isoformat()
-                            scrape_status['last_supabase_sync'] = datetime.now().isoformat()
+                            scrape_status['last_scrape_time'] = now_turkey_iso()
+                            scrape_status['last_supabase_sync'] = now_turkey_iso()
                         except Exception as e:
                             scrape_status['last_result'] = {'status': 'error', 'error': str(e)}
                         finally:
                             scrape_status['running'] = False
                     
-                    next_time = datetime.now() + timedelta(minutes=scrape_status['interval_minutes'])
+                    next_time = now_turkey() + timedelta(minutes=scrape_status['interval_minutes'])
                     scrape_status['next_scrape_time'] = next_time.isoformat()
                     
                     for _ in range(scrape_status['interval_minutes'] * 60):
@@ -488,10 +489,7 @@ def get_turkey_time_str(iso_time: str) -> str:
     if not iso_time:
         return "--:--"
     try:
-        dt = datetime.fromisoformat(iso_time.replace('Z', '+00:00'))
-        turkey_offset = timedelta(hours=3)
-        turkey_time = dt + turkey_offset
-        return turkey_time.strftime("%H:%M")
+        return format_time_only(iso_time)
     except:
         return "--:--"
 
@@ -719,6 +717,7 @@ def get_ticker_alarms():
                 if len(critical) >= 20:
                     break
                 icon, name, _ = alarm_info.get(atype, ('⚡', 'Alert', '#fff'))
+                demo_time = (now_turkey() - timedelta(minutes=i*3)).isoformat()
                 critical.append({
                     'type': atype,
                     'icon': icon,
@@ -733,7 +732,9 @@ def get_ticker_alarms():
                     'market': 'moneyway_1x2',
                     'match_id': generate_match_id(home, away, league, '2025-01-01'),
                     'league': league,
-                    'date': '2025-01-01'
+                    'date': '2025-01-01',
+                    'timestamp': demo_time,
+                    'time_text': format_time_only(demo_time)
                 })
         
         return jsonify({

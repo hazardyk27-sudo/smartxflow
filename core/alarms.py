@@ -10,8 +10,17 @@ from collections import defaultdict
 
 try:
     from core.config.alarm_thresholds import ALARM_CONFIG, get_threshold
+    from core.timezone import now_turkey, now_turkey_iso, format_time_only, TURKEY_TZ
 except ImportError:
     from config.alarm_thresholds import ALARM_CONFIG, get_threshold
+    import pytz
+    TURKEY_TZ = pytz.timezone('Europe/Istanbul')
+    def now_turkey():
+        return datetime.now(TURKEY_TZ)
+    def now_turkey_iso():
+        return now_turkey().isoformat()
+    def format_time_only(ts):
+        return ts[-5:] if ts else ''
 
 ALARM_TYPES = {
     'rlm': {
@@ -204,7 +213,7 @@ def analyze_match_alarms(history: List[Dict], market: str) -> List[Dict]:
     
     detected_alarms = []
     seen_type_side = set()
-    timestamp = current.get('ScrapedAt', datetime.now().isoformat())
+    timestamp = current.get('ScrapedAt', now_turkey_iso())
     
     sharp_config = ALARM_CONFIG.get('sharp_money', {})
     big_config = ALARM_CONFIG.get('big_money', {})
