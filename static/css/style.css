@@ -2267,19 +2267,11 @@ body {
 
 .mw-outcome-block {
     display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-    min-width: 110px;
-}
-
-.mw-info-stack {
-    display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: center;
     justify-content: center;
-    min-width: 70px;
-    gap: 2px;
+    gap: 4px;
+    min-width: 90px;
 }
 
 .mw-odds {
@@ -2287,17 +2279,24 @@ body {
     font-weight: 600;
     color: var(--mw-text-odds);
     white-space: nowrap;
+    text-align: center;
+}
+
+.mw-donut {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .mw-money {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     white-space: nowrap;
+    color: var(--mw-text-money);
+    text-align: center;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 70px;
-    display: block;
-    color: var(--mw-text-money);
 }
 
 /* Volume sütunu da aynı para rengi */
@@ -2312,22 +2311,19 @@ td.volume {
 
 .mw-donut .donut-svg {
     display: block;
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
 }
 
 /* Responsive Moneyway */
-@media (max-width: 768px) {
-    .mw-grid {
-        column-gap: 8px;
-    }
-    
+@media (max-width: 900px) {
     .mw-outcome-block {
-        gap: 6px;
+        gap: 3px;
+        min-width: 75px;
     }
     
     .mw-odds {
-        font-size: 13px;
+        font-size: 14px;
     }
     
     .mw-money {
@@ -2335,8 +2331,48 @@ td.volume {
     }
     
     .mw-donut .donut-svg {
-        width: 52px;
-        height: 52px;
+        width: 42px;
+        height: 42px;
+    }
+}
+
+@media (max-width: 768px) {
+    .mw-outcome-block {
+        gap: 2px;
+        min-width: 65px;
+    }
+    
+    .mw-odds {
+        font-size: 13px;
+    }
+    
+    .mw-money {
+        font-size: 10px;
+    }
+    
+    .mw-donut .donut-svg {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+@media (max-width: 600px) {
+    .mw-outcome-block {
+        gap: 2px;
+        min-width: 55px;
+    }
+    
+    .mw-odds {
+        font-size: 12px;
+    }
+    
+    .mw-money {
+        font-size: 9px;
+    }
+    
+    .mw-donut .donut-svg {
+        width: 32px;
+        height: 32px;
     }
 }
 

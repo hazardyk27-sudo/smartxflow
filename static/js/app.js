@@ -210,21 +210,19 @@ function getMoneyColor(moneyStr) {
     return num >= 3000 ? 'money-high' : 'money-low';
 }
 
-function renderDonutSVG(percent, size = 64) {
+function renderDonutSVG(percent, size = 48) {
     const num = parseFloat(String(percent).replace(/[^0-9.]/g, '')) || 0;
-    const strokeWidth = size > 50 ? 7 : 5;
+    const strokeWidth = size > 40 ? 5 : 4;
     const radius = (size - strokeWidth * 2) / 2;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (num / 100) * circumference;
     const trackColor = '#1c2533';
-    const isHigh = num >= 50;
-    const fillColor = isHigh ? '#22c55e' : '#111827';
-    const textColor = isHigh ? '#ffffff' : '#9ca3af';
-    const fontSize = size > 50 ? 14 : 10;
-    const donutClass = isHigh ? 'donut-high' : 'donut-low';
+    const fillColor = '#3FDA7A';
+    const textColor = '#ffffff';
+    const fontSize = size > 40 ? 11 : 9;
     
     return `
-        <svg class="donut-svg ${donutClass}" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+        <svg class="donut-svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
             <circle class="ring-track" cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="${trackColor}" stroke-width="${strokeWidth}"/>
             <circle class="ring-fill" cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="${fillColor}" stroke-width="${strokeWidth}"
                 stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
@@ -236,15 +234,13 @@ function renderDonutSVG(percent, size = 64) {
 }
 
 function renderMoneywayBlock(label, percent, odds, money) {
-    const donut = renderDonutSVG(percent, 64);
+    const donut = renderDonutSVG(percent, 48);
     
     return `
         <div class="mw-outcome-block">
-            <div class="mw-info-stack">
-                <div class="mw-odds">${formatOdds(odds)}</div>
-                ${money ? `<div class="mw-money">${money}</div>` : ''}
-            </div>
+            <div class="mw-odds">${formatOdds(odds)}</div>
             <div class="mw-donut">${donut}</div>
+            ${money ? `<div class="mw-money">${money}</div>` : ''}
         </div>
     `;
 }
