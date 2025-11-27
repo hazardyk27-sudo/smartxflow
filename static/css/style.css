@@ -2285,14 +2285,7 @@ body {
     text-overflow: ellipsis;
     max-width: 70px;
     display: block;
-}
-
-.mw-money.money-high {
-    color: #22c55e;
-}
-
-.mw-money.money-low {
-    color: #ef4444;
+    color: #52c41a;
 }
 
 .mw-donut {

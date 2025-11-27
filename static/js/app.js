@@ -201,9 +201,10 @@ function getColorClass(pctValue) {
 function getDonutColor(pctValue) {
     const num = parseFloat(String(pctValue).replace(/[^0-9.]/g, ''));
     if (isNaN(num)) return '#4b5563';
-    if (num >= 50) return '#22c55e';
-    if (num >= 30) return '#6b7280';
-    return '#374151';
+    if (num > 90) return '#ff4d4f';
+    if (num > 70) return '#ffa940';
+    if (num > 50) return '#faad14';
+    return '#ffffff';
 }
 
 function getMoneyColor(moneyStr) {
@@ -237,13 +238,12 @@ function renderDonutSVG(percent, size = 64) {
 
 function renderMoneywayBlock(label, percent, odds, money) {
     const donut = renderDonutSVG(percent, 64);
-    const moneyClass = getMoneyColor(money);
     
     return `
         <div class="mw-outcome-block">
             <div class="mw-info-stack">
                 <div class="mw-odds">${formatOdds(odds)}</div>
-                ${money ? `<div class="mw-money ${moneyClass}">${money}</div>` : ''}
+                ${money ? `<div class="mw-money">${money}</div>` : ''}
             </div>
             <div class="mw-donut">${donut}</div>
         </div>
