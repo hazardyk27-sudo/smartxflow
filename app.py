@@ -851,6 +851,9 @@ def enrich_with_match_cache(formatted_alarms: list) -> list:
     for alarm in formatted_alarms:
         home = alarm.get('home', '')
         away = alarm.get('away', '')
+        league = alarm.get('league', '')
+        date = alarm.get('date', '')
+        match_id = alarm.get('match_id', f"{home}|{away}|{league}|{date}")
         cache_key = (home, away)
         
         if cache_key in processed_matches:
@@ -873,7 +876,9 @@ def enrich_with_match_cache(formatted_alarms: list) -> list:
                         enriched.append({
                             'home': home,
                             'away': away,
-                            'league': alarm.get('league', ''),
+                            'league': league,
+                            'date': date,
+                            'match_id': match_id,
                             'name': alarm_type,
                             'type': alarm_type,
                             'icon': config.get('icon', ''),
@@ -897,6 +902,10 @@ def enrich_with_match_cache(formatted_alarms: list) -> list:
             continue
         
         home, away = cache_key
+        cached_league = cached.get('league', '')
+        cached_date = cached.get('date', '')
+        cached_match_id = f"{home}|{away}|{cached_league}|{cached_date}"
+        
         today_alarms = [a for a in cached['alarms'] if is_today_turkey(a.get('timestamp', ''))]
         if not today_alarms:
             continue
@@ -913,7 +922,9 @@ def enrich_with_match_cache(formatted_alarms: list) -> list:
             enriched.append({
                 'home': home,
                 'away': away,
-                'league': '',
+                'league': cached_league,
+                'date': cached_date,
+                'match_id': cached_match_id,
                 'name': alarm_type,
                 'type': alarm_type,
                 'icon': config.get('icon', ''),
