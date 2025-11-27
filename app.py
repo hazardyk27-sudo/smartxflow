@@ -949,6 +949,8 @@ def enrich_with_match_cache(formatted_alarms: list) -> list:
 def get_all_alarms():
     """Get all active alarms - grouped by match+type with pagination and server-side filter/sort"""
     try:
+        from core.alarms import generate_demo_alarms, ALARM_TYPES
+        
         page = request.args.get('page', 0, type=int)
         page_size = request.args.get('page_size', 30, type=int)
         type_filter = request.args.get('filter', 'all')
@@ -958,6 +960,39 @@ def get_all_alarms():
         page_size = min(page_size, 50)
         
         formatted = get_cached_alarms()
+        
+        if len(formatted) == 0:
+            demo_alarms = generate_demo_alarms()
+            for demo in demo_alarms:
+                alarm_info = ALARM_TYPES.get(demo.get('type', ''), {})
+                formatted.append({
+                    'home': demo.get('home', ''),
+                    'away': demo.get('away', ''),
+                    'league': demo.get('league', ''),
+                    'date': demo.get('date', ''),
+                    'match_id': demo.get('match_id', ''),
+                    'name': alarm_info.get('name', demo.get('type', '')),
+                    'type': demo.get('type', ''),
+                    'icon': alarm_info.get('icon', ''),
+                    'color': alarm_info.get('color', '#888'),
+                    'count': 1,
+                    'priority': alarm_info.get('priority', 99),
+                    'events': [{
+                        'type': demo.get('type', ''),
+                        'icon': alarm_info.get('icon', ''),
+                        'name': alarm_info.get('name', ''),
+                        'color': alarm_info.get('color', '#888'),
+                        'side': demo.get('side', ''),
+                        'detail': demo.get('money_text', ''),
+                        'description': alarm_info.get('description', ''),
+                        'priority': alarm_info.get('priority', 99),
+                        'timestamp': demo.get('timestamp', ''),
+                        'money_diff': demo.get('money_diff', 0) if isinstance(demo.get('money_diff'), (int, float)) else 0
+                    }],
+                    'max_money': demo.get('money_diff', 0) if isinstance(demo.get('money_diff'), (int, float)) else 0,
+                    'max_drop': 0,
+                })
+            print(f"[Alarms API] No real alarms, using {len(demo_alarms)} demo alarms")
         
         if search_query:
             formatted = [a for a in formatted if 
