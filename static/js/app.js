@@ -248,7 +248,7 @@ function renderMatches(data) {
                 const c2 = getColorClass(d.Pct2);
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${match.date || '-'}</td>
+                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell"><div>
@@ -274,16 +274,13 @@ function renderMatches(data) {
                 const trendXData = getOddsTrendData(match.home_team, match.away_team, 'oddsx');
                 const trend2Data = getOddsTrendData(match.home_team, match.away_team, 'odds2');
                 
-                const cell1 = trend1Data ? renderOddsWithTrend(d.Odds1 || d['1'], trend1Data) 
-                    : `<div class="selection-odds drop-odds">${formatOdds(d.Odds1 || d['1'])}${trend1}</div>`;
-                const cellX = trendXData ? renderOddsWithTrend(d.OddsX || d['X'], trendXData)
-                    : `<div class="selection-odds drop-odds">${formatOdds(d.OddsX || d['X'])}${trendX}</div>`;
-                const cell2 = trend2Data ? renderOddsWithTrend(d.Odds2 || d['2'], trend2Data)
-                    : `<div class="selection-odds drop-odds">${formatOdds(d.Odds2 || d['2'])}${trend2}</div>`;
+                const cell1 = renderOddsWithTrend(d.Odds1 || d['1'], trend1Data);
+                const cellX = renderOddsWithTrend(d.OddsX || d['X'], trendXData);
+                const cell2 = renderOddsWithTrend(d.Odds2 || d['2'], trend2Data);
                 
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${match.date || '-'}</td>
+                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell"><div>${cell1}</div></td>
@@ -302,7 +299,7 @@ function renderMatches(data) {
                 const cO = getColorClass(d.PctOver);
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${match.date || '-'}</td>
+                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell"><div>
@@ -322,14 +319,12 @@ function renderMatches(data) {
                 const trendUnderData = getOddsTrendData(match.home_team, match.away_team, 'under');
                 const trendOverData = getOddsTrendData(match.home_team, match.away_team, 'over');
                 
-                const cellUnder = trendUnderData ? renderOddsWithTrend(d.Under, trendUnderData)
-                    : `<div class="selection-odds drop-odds">${formatOdds(d.Under)}${trendUnder}</div>`;
-                const cellOver = trendOverData ? renderOddsWithTrend(d.Over, trendOverData)
-                    : `<div class="selection-odds drop-odds">${formatOdds(d.Over)}${trendOver}</div>`;
+                const cellUnder = renderOddsWithTrend(d.Under, trendUnderData);
+                const cellOver = renderOddsWithTrend(d.Over, trendOverData);
                 
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${match.date || '-'}</td>
+                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell"><div>${cellUnder}</div></td>
@@ -347,7 +342,7 @@ function renderMatches(data) {
                 const cN = getColorClass(d.PctNo);
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${match.date || '-'}</td>
+                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell"><div>
@@ -367,14 +362,12 @@ function renderMatches(data) {
                 const trendYesData = getOddsTrendData(match.home_team, match.away_team, 'yes');
                 const trendNoData = getOddsTrendData(match.home_team, match.away_team, 'no');
                 
-                const cellYes = trendYesData ? renderOddsWithTrend(d.OddsYes || d.Yes, trendYesData)
-                    : `<div class="selection-odds drop-odds">${formatOdds(d.OddsYes || d.Yes)}${trendYes}</div>`;
-                const cellNo = trendNoData ? renderOddsWithTrend(d.OddsNo || d.No, trendNoData)
-                    : `<div class="selection-odds drop-odds">${formatOdds(d.OddsNo || d.No)}${trendNo}</div>`;
+                const cellYes = renderOddsWithTrend(d.OddsYes || d.Yes, trendYesData);
+                const cellNo = renderOddsWithTrend(d.OddsNo || d.No, trendNoData);
                 
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${match.date || '-'}</td>
+                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
                         <td class="selection-cell"><div>${cellYes}</div></td>
@@ -420,6 +413,29 @@ function formatVolume(value) {
     const num = parseInt(String(value).replace(/[^0-9]/g, ''));
     if (isNaN(num)) return '-';
     return '£' + num.toLocaleString('en-GB');
+}
+
+function formatDateTwoLine(dateStr) {
+    if (!dateStr || dateStr === '-') return '<div class="date-line">-</div>';
+    
+    const parts = dateStr.match(/(\d{1,2})\.(\w{3})\s*(\d{2}:\d{2})/i);
+    if (parts) {
+        const day = parts[1];
+        const month = parts[2];
+        const time = parts[3];
+        return `<div class="date-line">${day}.${month}</div><div class="time-line">${time}</div>`;
+    }
+    
+    const altParts = dateStr.match(/(\d{4}-\d{2}-\d{2})\s*(\d{2}:\d{2})/);
+    if (altParts) {
+        const datePart = altParts[1];
+        const time = altParts[2];
+        const d = new Date(datePart);
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `<div class="date-line">${d.getDate()}.${months[d.getMonth()]}</div><div class="time-line">${time}</div>`;
+    }
+    
+    return `<div class="date-line">${dateStr}</div>`;
 }
 
 function hasValidMarketData(match, market) {
