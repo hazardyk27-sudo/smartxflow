@@ -264,86 +264,109 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None)
             alarm_key_sharp = ('sharp', side['key'], base_ts[:16] if base_ts else '')
             if money_diff >= sharp_min_money and odds_diff < -sharp_min_drop:
                 if alarm_key_sharp not in seen_alarms:
-                    seen_alarms.add(alarm_key_sharp)
-                    detected_alarms.append({
-                        'type': 'sharp',
-                        'side': side['key'],
-                        'money_diff': money_diff,
-                        'odds_from': base_odds,
-                        'odds_to': target_odds,
-                        'window_start': base_ts,
-                        'window_end': target_ts,
-                        'timestamp': target_ts
-                    })
+                    can_fire, _ = should_fire_alarm(match_id, market, side['key'], 'sharp', target_amt, target_odds, base_ts)
+                    if can_fire:
+                        seen_alarms.add(alarm_key_sharp)
+                        record_alarm_fired(match_id, market, side['key'], 'sharp', target_amt, target_odds, base_ts, target_ts)
+                        detected_alarms.append({
+                            'type': 'sharp',
+                            'side': side['key'],
+                            'money_diff': money_diff,
+                            'odds_from': base_odds,
+                            'odds_to': target_odds,
+                            'window_start': base_ts,
+                            'window_end': target_ts,
+                            'timestamp': target_ts
+                        })
             
             alarm_key_rlm = ('rlm', side['key'], base_ts[:16] if base_ts else '')
             if money_diff >= rlm_min_money and odds_diff > rlm_min_up:
                 if alarm_key_rlm not in seen_alarms:
-                    seen_alarms.add(alarm_key_rlm)
-                    detected_alarms.append({
-                        'type': 'rlm',
-                        'side': side['key'],
-                        'money_diff': money_diff,
-                        'odds_from': base_odds,
-                        'odds_to': target_odds,
-                        'window_start': base_ts,
-                        'window_end': target_ts,
-                        'timestamp': target_ts
-                    })
+                    can_fire, _ = should_fire_alarm(match_id, market, side['key'], 'rlm', target_amt, target_odds, base_ts)
+                    if can_fire:
+                        seen_alarms.add(alarm_key_rlm)
+                        record_alarm_fired(match_id, market, side['key'], 'rlm', target_amt, target_odds, base_ts, target_ts)
+                        detected_alarms.append({
+                            'type': 'rlm',
+                            'side': side['key'],
+                            'money_diff': money_diff,
+                            'odds_from': base_odds,
+                            'odds_to': target_odds,
+                            'window_start': base_ts,
+                            'window_end': target_ts,
+                            'timestamp': target_ts
+                        })
             
             alarm_key_surge = ('public_surge', side['key'], base_ts[:16] if base_ts else '')
             odds_flat = abs(odds_diff) <= surge_max_odds
             if money_diff >= surge_min_money and odds_flat:
                 if alarm_key_surge not in seen_alarms:
-                    seen_alarms.add(alarm_key_surge)
-                    detected_alarms.append({
-                        'type': 'public_surge',
-                        'side': side['key'],
-                        'money_diff': money_diff,
-                        'odds_from': base_odds,
-                        'odds_to': target_odds,
-                        'window_start': base_ts,
-                        'window_end': target_ts,
-                        'timestamp': target_ts
-                    })
+                    can_fire, _ = should_fire_alarm(match_id, market, side['key'], 'public_surge', target_amt, target_odds, base_ts)
+                    if can_fire:
+                        seen_alarms.add(alarm_key_surge)
+                        record_alarm_fired(match_id, market, side['key'], 'public_surge', target_amt, target_odds, base_ts, target_ts)
+                        detected_alarms.append({
+                            'type': 'public_surge',
+                            'side': side['key'],
+                            'money_diff': money_diff,
+                            'odds_from': base_odds,
+                            'odds_to': target_odds,
+                            'window_start': base_ts,
+                            'window_end': target_ts,
+                            'timestamp': target_ts
+                        })
+    
+    curr_amt_cache = {}
+    for side in sides:
+        curr_amt_cache[side['key']] = parse_money(current.get(side['amt'], 0))
     
     for side in sides:
         curr_odds = parse_odds(current.get(side['odds'], 0))
         first_odds = parse_odds(first.get(side['odds'], 0)) if first else 0
         curr_pct = parse_pct(current.get(side['pct'], 0))
+        curr_amt = curr_amt_cache.get(side['key'], 0)
         total_drop = first_odds - curr_odds if first_odds > 0 else 0
         
         if total_drop >= drop_config.get('min_total_drop', 0.30):
             if curr_pct >= drop_config.get('min_money_pct', 60):
                 alarm_key = ('dropping', side['key'])
                 if alarm_key not in seen_alarms:
-                    seen_alarms.add(alarm_key)
-                    detected_alarms.append({
-                        'type': 'dropping',
-                        'side': side['key'],
-                        'money_diff': 0,
-                        'odds_from': first_odds,
-                        'odds_to': curr_odds,
-                        'total_drop': total_drop,
-                        'money_pct': curr_pct,
-                        'timestamp': current.get('ScrapedAt', now_turkey_iso())
-                    })
+                    can_fire, _ = should_fire_alarm(match_id, market, side['key'], 'dropping', curr_amt, curr_odds, None)
+                    if can_fire:
+                        seen_alarms.add(alarm_key)
+                        record_alarm_fired(match_id, market, side['key'], 'dropping', curr_amt, curr_odds, None, None)
+                        detected_alarms.append({
+                            'type': 'dropping',
+                            'side': side['key'],
+                            'money_diff': 0,
+                            'odds_from': first_odds,
+                            'odds_to': curr_odds,
+                            'total_drop': total_drop,
+                            'money_pct': curr_pct,
+                            'timestamp': current.get('ScrapedAt', now_turkey_iso())
+                        })
     
     big_money_result = check_big_money_all_windows(history, sides, WINDOW_MINUTES)
     for result in big_money_result:
         alarm_key = ('big_money', result['key'], result.get('window_start', '')[:16])
         if alarm_key not in seen_alarms:
-            seen_alarms.add(alarm_key)
-            detected_alarms.append({
-                'type': 'big_money',
-                'side': result['key'],
-                'money_diff': result['total_inflow'],
-                'total_diff': result['total_inflow'],
-                'time_window': f'{WINDOW_MINUTES} dakika',
-                'window_start': result.get('window_start', ''),
-                'window_end': result.get('window_end', ''),
-                'timestamp': result.get('window_end', current.get('ScrapedAt', now_turkey_iso()))
-            })
+            window_start = result.get('window_start', '')
+            window_end = result.get('window_end', '')
+            total_inflow = result['total_inflow']
+            can_fire, _ = should_fire_alarm(match_id, market, result['key'], 'big_money', total_inflow, 0, window_start)
+            if can_fire:
+                seen_alarms.add(alarm_key)
+                record_alarm_fired(match_id, market, result['key'], 'big_money', total_inflow, 0, window_start, window_end)
+                detected_alarms.append({
+                    'type': 'big_money',
+                    'side': result['key'],
+                    'money_diff': total_inflow,
+                    'total_diff': total_inflow,
+                    'time_window': f'{WINDOW_MINUTES} dakika',
+                    'window_start': window_start,
+                    'window_end': window_end,
+                    'timestamp': window_end or current.get('ScrapedAt', now_turkey_iso())
+                })
     
     if len(history) >= 4:
         for side in sides:
@@ -351,13 +374,17 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None)
             if momentum_result:
                 alarm_key = ('momentum', side['key'])
                 if alarm_key not in seen_alarms:
-                    seen_alarms.add(alarm_key)
-                    detected_alarms.append({
-                        'type': 'momentum',
-                        'side': momentum_result['key'],
-                        'money_diff': momentum_result['total_diff'],
-                        'timestamp': current.get('ScrapedAt', now_turkey_iso())
-                    })
+                    curr_amt = curr_amt_cache.get(side['key'], 0)
+                    can_fire, _ = should_fire_alarm(match_id, market, side['key'], 'momentum', curr_amt, 0, None)
+                    if can_fire:
+                        seen_alarms.add(alarm_key)
+                        record_alarm_fired(match_id, market, side['key'], 'momentum', curr_amt, 0, None, None)
+                        detected_alarms.append({
+                            'type': 'momentum',
+                            'side': momentum_result['key'],
+                            'money_diff': momentum_result['total_diff'],
+                            'timestamp': current.get('ScrapedAt', now_turkey_iso())
+                        })
     
     if len(history) >= 3:
         for side in sides:
@@ -365,13 +392,17 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None)
             if freeze_result:
                 alarm_key = ('line_freeze', side['key'])
                 if alarm_key not in seen_alarms:
-                    seen_alarms.add(alarm_key)
-                    detected_alarms.append({
-                        'type': 'line_freeze',
-                        'side': freeze_result['key'],
-                        'money_diff': freeze_result['total_money'],
-                        'timestamp': current.get('ScrapedAt', now_turkey_iso())
-                    })
+                    curr_amt = curr_amt_cache.get(side['key'], 0)
+                    can_fire, _ = should_fire_alarm(match_id, market, side['key'], 'line_freeze', curr_amt, 0, None)
+                    if can_fire:
+                        seen_alarms.add(alarm_key)
+                        record_alarm_fired(match_id, market, side['key'], 'line_freeze', curr_amt, 0, None, None)
+                        detected_alarms.append({
+                            'type': 'line_freeze',
+                            'side': freeze_result['key'],
+                            'money_diff': freeze_result['total_money'],
+                            'timestamp': current.get('ScrapedAt', now_turkey_iso())
+                        })
     
     if len(history) >= 2:
         momentum_change_result = check_momentum_change(history, sides)
@@ -380,51 +411,24 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None)
             from_option = momentum_change_result['from_option']
             alarm_key = ('momentum_change', to_option)
             if alarm_key not in seen_alarms:
-                seen_alarms.add(alarm_key)
-                detected_alarms.append({
-                    'type': 'momentum_change',
-                    'side': to_option,
-                    'from_option': from_option,
-                    'from_pct': momentum_change_result['from_pct'],
-                    'to_pct': momentum_change_result['to_pct'],
-                    'detail': f"{from_option}→{to_option} ({momentum_change_result['from_pct']:.0f}%→{momentum_change_result['to_pct']:.0f}%)",
-                    'timestamp': current.get('ScrapedAt', now_turkey_iso())
-                })
+                curr_amt = curr_amt_cache.get(to_option, 0)
+                can_fire, _ = should_fire_alarm(match_id, market, to_option, 'momentum_change', curr_amt, 0, None)
+                if can_fire:
+                    seen_alarms.add(alarm_key)
+                    record_alarm_fired(match_id, market, to_option, 'momentum_change', curr_amt, 0, None, None)
+                    detected_alarms.append({
+                        'type': 'momentum_change',
+                        'side': to_option,
+                        'from_option': from_option,
+                        'from_pct': momentum_change_result['from_pct'],
+                        'to_pct': momentum_change_result['to_pct'],
+                        'detail': f"{from_option}→{to_option} ({momentum_change_result['from_pct']:.0f}%→{momentum_change_result['to_pct']:.0f}%)",
+                        'timestamp': current.get('ScrapedAt', now_turkey_iso())
+                    })
     
     detected_alarms.sort(key=lambda x: (ALARM_TYPES[x['type']]['priority'], x.get('timestamp', '')), reverse=False)
     
-    deduplicated_alarms = []
-    for alarm in detected_alarms:
-        alarm_type = alarm['type']
-        side = alarm.get('side', '')
-        money_diff = alarm.get('money_diff', 0)
-        odds_to = alarm.get('odds_to', 0)
-        window_start = alarm.get('window_start', '')
-        
-        should_fire, reason = should_fire_alarm(
-            match_id=match_id,
-            market=market,
-            side=side,
-            alarm_type=alarm_type,
-            current_money=money_diff,
-            current_odds=odds_to,
-            window_start=window_start
-        )
-        
-        if should_fire:
-            record_alarm_fired(
-                match_id=match_id,
-                market=market,
-                side=side,
-                alarm_type=alarm_type,
-                baseline_money=money_diff,
-                baseline_odds=odds_to,
-                window_start=window_start,
-                window_end=alarm.get('window_end', '')
-            )
-            deduplicated_alarms.append(alarm)
-    
-    return deduplicated_alarms
+    return detected_alarms
 
 def check_big_money_all_windows(history: List[Dict], sides: List[Dict], window_minutes: int = 10) -> List[Dict]:
     """

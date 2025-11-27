@@ -63,6 +63,14 @@ def should_fire_alarm(
     """
     Check if an alarm should be fired based on deduplication rules.
     
+    For windowed alarms (sharp, rlm, big_money, public_surge):
+        - Each unique window_start fires ONCE only
+        - Never fires again for same window
+    
+    For non-windowed alarms (dropping, momentum, line_freeze, momentum_change):
+        - Cooldown of 15 minutes between alarms
+        - Or £5000+ increment since last alarm
+    
     Returns:
         Tuple of (should_fire: bool, reason: str)
     """
@@ -70,6 +78,18 @@ def should_fire_alarm(
     conn = _get_connection()
     try:
         cur = conn.cursor()
+        
+        if window_start:
+            cur.execute('''
+                SELECT * FROM alarm_state 
+                WHERE match_id = ? AND market = ? AND side = ? AND alarm_type = ? AND window_start = ?
+                LIMIT 1
+            ''', (match_id, market, side, alarm_type, window_start))
+            
+            existing = cur.fetchone()
+            if existing:
+                return False, "window_already_fired"
+            return True, "first_window_alarm"
         
         cur.execute('''
             SELECT * FROM alarm_state 
@@ -85,7 +105,6 @@ def should_fire_alarm(
         
         last_fired = last_alarm['fired_at']
         last_money = last_alarm['baseline_money'] or 0
-        last_window = last_alarm['window_start']
         
         try:
             last_fired_dt = datetime.fromisoformat(last_fired.replace('Z', '+00:00'))
@@ -94,20 +113,14 @@ def should_fire_alarm(
         except:
             time_diff = 0
         
-        if time_diff < COOLDOWN_MINUTES:
-            money_increment = current_money - last_money
-            
-            if money_increment >= MIN_MONEY_INCREMENT:
-                return True, f"new_increment_{money_increment:.0f}"
-            else:
-                return False, f"cooldown_active_{time_diff:.1f}min"
+        if time_diff >= COOLDOWN_MINUTES:
+            return True, "cooldown_expired"
         
-        if window_start and window_start == last_window:
-            money_increment = current_money - last_money
-            if money_increment < MIN_MONEY_INCREMENT:
-                return False, "same_window_no_increment"
+        money_increment = current_money - last_money
+        if money_increment >= MIN_MONEY_INCREMENT:
+            return True, f"new_increment_{money_increment:.0f}"
         
-        return True, "cooldown_expired"
+        return False, f"cooldown_active_{time_diff:.1f}min"
         
     finally:
         conn.close()
