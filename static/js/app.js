@@ -199,12 +199,7 @@ function getColorClass(pctValue) {
 }
 
 function getDonutColor(pctValue) {
-    const num = parseFloat(String(pctValue).replace(/[^0-9.]/g, ''));
-    if (isNaN(num)) return '#4b5563';
-    if (num > 90) return '#ff4d4f';
-    if (num > 70) return '#ffa940';
-    if (num > 50) return '#faad14';
-    return '#ffffff';
+    return '#34D399';
 }
 
 function getMoneyColor(moneyStr) {
@@ -221,17 +216,18 @@ function renderDonutSVG(percent, size = 64) {
     const radius = (size - strokeWidth * 2) / 2;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (num / 100) * circumference;
-    const color = getDonutColor(percent);
+    const trackColor = '#1F2630';
+    const progressColor = '#34D399';
     const fontSize = size > 50 ? 14 : 10;
     
     return `
         <svg class="donut-svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-            <circle cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="#1f2937" stroke-width="${strokeWidth}"/>
-            <circle cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="${color}" stroke-width="${strokeWidth}"
+            <circle cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="${trackColor}" stroke-width="${strokeWidth}"/>
+            <circle cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="${progressColor}" stroke-width="${strokeWidth}"
                 stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
                 stroke-linecap="round" transform="rotate(-90 ${size/2} ${size/2})"/>
             <text x="${size/2}" y="${size/2}" text-anchor="middle" dominant-baseline="central" 
-                fill="#fff" font-size="${fontSize}" font-weight="600">${num.toFixed(0)}%</text>
+                fill="#FFFFFF" font-size="${fontSize}" font-weight="600">${num.toFixed(0)}%</text>
         </svg>
     `;
 }
