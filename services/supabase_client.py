@@ -371,11 +371,13 @@ class SupabaseClient:
                 'TrendOver': row.get('trendover', '')
             }
         elif market in ['moneyway_btts', 'dropping_btts']:
+            yes_val = row.get('oddsyes', row.get('yes', '-'))
+            no_val = row.get('oddsno', row.get('no', '-'))
             return {
-                'Yes': row.get('yes', '-'),
-                'No': row.get('no', '-'),
-                'OddsYes': row.get('yes', '-'),
-                'OddsNo': row.get('no', '-'),
+                'Yes': yes_val,
+                'No': no_val,
+                'OddsYes': yes_val,
+                'OddsNo': no_val,
                 'PctYes': row.get('pctyes', ''),
                 'AmtYes': row.get('amtyes', ''),
                 'PctNo': row.get('pctno', ''),
