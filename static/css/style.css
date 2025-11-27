@@ -2227,6 +2227,12 @@ body {
     transition: background 0.2s ease;
 }
 
+/* Drop 1X2 için ekstra sütun boşluğu */
+.matches-table[data-selection-count="3"] .selection-cell {
+    padding-left: 28px !important;
+    padding-right: 28px !important;
+}
+
 .odds-trend-cell:hover {
     background: rgba(48, 54, 61, 0.8);
 }
