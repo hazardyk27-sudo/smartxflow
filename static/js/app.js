@@ -8,8 +8,7 @@ let autoScrapeRunning = false;
 let currentSortColumn = 'date';
 let currentSortDirection = 'desc';
 let chartVisibleSeries = {};
-let todayFilterActive = false;
-let yesterdayFilterActive = false;
+let dateFilterMode = 'ALL';
 let chartTimeRange = '10min';
 let currentChartHistoryData = [];
 let chartViewMode = 'percent';
@@ -631,22 +630,36 @@ function applySorting(data) {
         return null;
     }
     
-    if (yesterdayFilterActive) {
-        console.log('[Filter] Yesterday:', yesterdayDay + '.' + yesterdayMonth);
+    function isDateTodayOrFuture(parsed) {
+        if (!parsed) return false;
+        if (parsed.month > todayMonth) return true;
+        if (parsed.month === todayMonth && parsed.day >= todayDay) return true;
+        return false;
+    }
+    
+    if (dateFilterMode === 'YESTERDAY') {
+        console.log('[Filter] YESTERDAY mode:', yesterdayDay + '.' + yesterdayMonth);
         sortedData = sortedData.filter(m => {
             const parsed = parseMatchDate(m.date);
             if (!parsed) return false;
             return parsed.day === yesterdayDay && parsed.month === yesterdayMonth;
         });
-        console.log('[Filter] Yesterday filtered count:', sortedData.length);
-    } else {
-        console.log('[Filter] Today (default):', todayDay + '.' + todayMonth);
+        console.log('[Filter] YESTERDAY filtered count:', sortedData.length);
+    } else if (dateFilterMode === 'TODAY') {
+        console.log('[Filter] TODAY mode:', todayDay + '.' + todayMonth);
         sortedData = sortedData.filter(m => {
             const parsed = parseMatchDate(m.date);
             if (!parsed) return false;
             return parsed.day === todayDay && parsed.month === todayMonth;
         });
-        console.log('[Filter] Today filtered count:', sortedData.length);
+        console.log('[Filter] TODAY filtered count:', sortedData.length);
+    } else {
+        console.log('[Filter] ALL mode (today + future):', todayDay + '.' + todayMonth, '+');
+        sortedData = sortedData.filter(m => {
+            const parsed = parseMatchDate(m.date);
+            return isDateTodayOrFuture(parsed);
+        });
+        console.log('[Filter] ALL filtered count:', sortedData.length);
     }
     
     return sortedData.sort((a, b) => {
@@ -866,33 +879,38 @@ function showTrendSortButtons(show) {
 }
 
 function toggleTodayFilter() {
-    yesterdayFilterActive = false;
-    
     const todayBtn = document.getElementById('todayBtn');
     const yesterdayBtn = document.getElementById('yesterdayBtn');
     
-    if (todayBtn) todayBtn.classList.add('active');
-    if (yesterdayBtn) yesterdayBtn.classList.remove('active');
+    if (dateFilterMode === 'TODAY') {
+        dateFilterMode = 'ALL';
+        if (todayBtn) todayBtn.classList.remove('active');
+    } else {
+        dateFilterMode = 'TODAY';
+        if (todayBtn) todayBtn.classList.add('active');
+        if (yesterdayBtn) yesterdayBtn.classList.remove('active');
+    }
     
+    console.log('[Filter] Mode changed to:', dateFilterMode);
     const searchInput = document.getElementById('searchInput');
     const query = searchInput?.value?.toLowerCase() || '';
     filterMatches(query);
 }
 
 function toggleYesterdayFilter() {
-    yesterdayFilterActive = !yesterdayFilterActive;
-    
     const todayBtn = document.getElementById('todayBtn');
     const yesterdayBtn = document.getElementById('yesterdayBtn');
     
-    if (yesterdayFilterActive) {
-        if (todayBtn) todayBtn.classList.remove('active');
-        if (yesterdayBtn) yesterdayBtn.classList.add('active');
-    } else {
-        if (todayBtn) todayBtn.classList.add('active');
+    if (dateFilterMode === 'YESTERDAY') {
+        dateFilterMode = 'ALL';
         if (yesterdayBtn) yesterdayBtn.classList.remove('active');
+    } else {
+        dateFilterMode = 'YESTERDAY';
+        if (yesterdayBtn) yesterdayBtn.classList.add('active');
+        if (todayBtn) todayBtn.classList.remove('active');
     }
     
+    console.log('[Filter] Mode changed to:', dateFilterMode);
     const searchInput = document.getElementById('searchInput');
     const query = searchInput?.value?.toLowerCase() || '';
     filterMatches(query);

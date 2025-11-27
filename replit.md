@@ -162,6 +162,9 @@ Environment variables:
 - **SUPABASE SECRET ADI** - Her zaman SUPABASE_ANON_KEY kullan (SUPABASE_KEY değil)
 
 ## Son Guncellemeler
+- **27 Kasim 2025:** Tarih filtresi 3 modlu sistem: ALL (bugün+gelecek), TODAY (sadece bugün), YESTERDAY (sadece dün)
+- **27 Kasim 2025:** Drop BTTS Supabase sütun adları düzeltildi (oddsyes/oddsno)
+- **27 Kasim 2025:** Tarih parse hem "27.11" hem "27.Nov" formatını destekliyor
 - **27 Kasim 2025:** 5dk grafik ölçeği kaldırıldı, minimum 10dk olarak ayarlandı
 - **27 Kasim 2025:** "Dünün Maçları" butonu eklendi - toggle ile sadece biri aktif olabilir
 - **27 Kasim 2025:** Eski maçları temizleme scheduler'ı eklendi (günde 1 kez)
