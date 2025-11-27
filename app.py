@@ -501,6 +501,15 @@ def get_status():
     
     last_time_tr = get_turkey_time_str(scrape_status['last_scrape_time'])
     
+    last_data_update = db.get_last_data_update() if db.is_supabase_available else None
+    last_data_update_tr = None
+    if last_data_update:
+        try:
+            from core.timezone import format_turkey_time
+            last_data_update_tr = format_turkey_time(last_data_update)
+        except:
+            last_data_update_tr = last_data_update
+    
     return jsonify({
         'running': scrape_status['running'],
         'auto_running': scrape_status['auto_running'],
@@ -513,7 +522,9 @@ def get_status():
         'cookie_set': bool(get_cookie_string()) if is_server_mode() else False,
         'supabase_connected': db.is_supabase_available,
         'mode': mode,
-        'scraping_enabled': is_server_mode()
+        'scraping_enabled': is_server_mode(),
+        'last_data_update': last_data_update,
+        'last_data_update_tr': last_data_update_tr
     })
 
 

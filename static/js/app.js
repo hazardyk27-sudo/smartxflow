@@ -2116,11 +2116,10 @@ async function checkStatus() {
         }
         
         const lastUpdateTime = document.getElementById('lastUpdateTime');
-        if (lastUpdateTime && status.last_data_update) {
-            try {
-                const d = new Date(status.last_data_update);
-                lastUpdateTime.textContent = d.toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
-            } catch(e) {
+        if (lastUpdateTime) {
+            if (status.last_data_update_tr) {
+                lastUpdateTime.textContent = status.last_data_update_tr;
+            } else {
                 lastUpdateTime.textContent = '--:--';
             }
         }

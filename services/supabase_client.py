@@ -388,6 +388,32 @@ class SupabaseClient:
             }
         return row
     
+    def get_last_data_update(self) -> Optional[str]:
+        """Get the most recent ScrapedAt timestamp from history tables"""
+        if not self.is_available:
+            return None
+        
+        latest_time = None
+        history_tables = [
+            'moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history',
+            'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history'
+        ]
+        
+        for table in history_tables:
+            try:
+                url = f"{self._rest_url(table)}?select=scrapedat&order=scrapedat.desc&limit=1"
+                resp = httpx.get(url, headers=self._headers(), timeout=5)
+                if resp.status_code == 200:
+                    rows = resp.json()
+                    if rows and rows[0].get('scrapedat'):
+                        ts = rows[0]['scrapedat']
+                        if latest_time is None or ts > latest_time:
+                            latest_time = ts
+            except Exception as e:
+                continue
+        
+        return latest_time
+    
     def get_active_alerts(self, limit: int = 50) -> List[Dict[str, Any]]:
         if not self.is_available:
             return []
@@ -666,6 +692,12 @@ class HybridDatabase:
         if self.supabase.is_available:
             return self.supabase.get_active_alerts()
         return []
+    
+    def get_last_data_update(self) -> Optional[str]:
+        """Get the most recent data update timestamp from Supabase"""
+        if self.supabase.is_available:
+            return self.supabase.get_last_data_update()
+        return None
 
 
 _database = None

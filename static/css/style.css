@@ -287,6 +287,12 @@ body {
     flex-shrink: 0;
 }
 
+.toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .search-box {
     display: flex;
     align-items: center;
