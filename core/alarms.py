@@ -651,7 +651,7 @@ def format_alarm_for_modal(alarm: Dict) -> Dict:
     detail_text = ''
     if alarm['type'] == 'sharp':
         if alarm.get('odds_from') and alarm.get('odds_to'):
-            detail_text = f"+£{int(money_diff):,} — Oran {alarm['odds_from']:.2f} → {alarm['odds_to']:.2f} (Score: {alarm.get('smart_score', 0)})"
+            detail_text = f"+£{int(money_diff):,} — Oran {alarm['odds_from']:.2f} → {alarm['odds_to']:.2f}"
         else:
             detail_text = f"+£{int(money_diff):,}"
     elif alarm['type'] == 'rlm':
