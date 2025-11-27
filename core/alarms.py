@@ -11,6 +11,7 @@ from collections import defaultdict
 try:
     from core.config.alarm_thresholds import ALARM_CONFIG, get_threshold, WINDOW_MINUTES, LOOKBACK_MINUTES
     from core.timezone import now_turkey, now_turkey_iso, format_time_only, TURKEY_TZ
+    from core.alarm_state import should_fire_alarm, record_alarm_fired, cleanup_old_alarm_states
 except ImportError:
     from config.alarm_thresholds import ALARM_CONFIG, get_threshold, WINDOW_MINUTES, LOOKBACK_MINUTES
     import pytz
@@ -21,6 +22,12 @@ except ImportError:
         return now_turkey().isoformat()
     def format_time_only(ts):
         return ts[-5:] if ts else ''
+    def should_fire_alarm(*args, **kwargs):
+        return True, "no_state_module"
+    def record_alarm_fired(*args, **kwargs):
+        pass
+    def cleanup_old_alarm_states(*args, **kwargs):
+        pass
 
 ALARM_TYPES = {
     'rlm': {
@@ -182,11 +189,13 @@ def find_window_pairs(history: List[Dict], window_minutes: int = 10) -> List[tup
     
     return pairs
 
-def analyze_match_alarms(history: List[Dict], market: str) -> List[Dict]:
+def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None) -> List[Dict]:
     """
     Analyze all 10-minute windows in match history for alarms.
     Scans entire history (up to LOOKBACK_MINUTES) looking for alarm conditions
     in every 10-minute window, not just the most recent one.
+    
+    Includes deduplication: Same movement won't trigger multiple alarms.
     """
     if len(history) < 2:
         return []
@@ -214,6 +223,13 @@ def analyze_match_alarms(history: List[Dict], market: str) -> List[Dict]:
     seen_alarms = set()
     first = history[0] if history else None
     current = history[-1]
+    
+    if not match_id:
+        home = current.get('Home', '')
+        away = current.get('Away', '')
+        league = current.get('League', '')
+        date = current.get('Date', '')
+        match_id = f"{home}|{away}|{league}|{date}"
     
     sharp_config = ALARM_CONFIG.get('sharp_money', {})
     rlm_config = ALARM_CONFIG.get('rlm', {})
@@ -377,7 +393,38 @@ def analyze_match_alarms(history: List[Dict], market: str) -> List[Dict]:
     
     detected_alarms.sort(key=lambda x: (ALARM_TYPES[x['type']]['priority'], x.get('timestamp', '')), reverse=False)
     
-    return detected_alarms
+    deduplicated_alarms = []
+    for alarm in detected_alarms:
+        alarm_type = alarm['type']
+        side = alarm.get('side', '')
+        money_diff = alarm.get('money_diff', 0)
+        odds_to = alarm.get('odds_to', 0)
+        window_start = alarm.get('window_start', '')
+        
+        should_fire, reason = should_fire_alarm(
+            match_id=match_id,
+            market=market,
+            side=side,
+            alarm_type=alarm_type,
+            current_money=money_diff,
+            current_odds=odds_to,
+            window_start=window_start
+        )
+        
+        if should_fire:
+            record_alarm_fired(
+                match_id=match_id,
+                market=market,
+                side=side,
+                alarm_type=alarm_type,
+                baseline_money=money_diff,
+                baseline_odds=odds_to,
+                window_start=window_start,
+                window_end=alarm.get('window_end', '')
+            )
+            deduplicated_alarms.append(alarm)
+    
+    return deduplicated_alarms
 
 def check_big_money_all_windows(history: List[Dict], sides: List[Dict], window_minutes: int = 10) -> List[Dict]:
     """
