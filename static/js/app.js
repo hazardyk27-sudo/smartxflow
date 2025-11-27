@@ -236,14 +236,12 @@ function renderDonutSVG(percent, size = 64) {
 }
 
 function renderMoneywayBlock(label, percent, odds, money) {
-    const donut = renderDonutSVG(percent, 64);
+    const donut = renderDonutSVG(percent, 48);
     
     return `
         <div class="mw-outcome-block">
-            <div class="mw-info-stack">
-                <div class="mw-odds">${formatOdds(odds)}</div>
-                ${money ? `<div class="mw-money">${money}</div>` : ''}
-            </div>
+            <div class="mw-odds">${formatOdds(odds)}</div>
+            ${money ? `<div class="mw-money">${money}</div>` : ''}
             <div class="mw-donut">${donut}</div>
         </div>
     `;
