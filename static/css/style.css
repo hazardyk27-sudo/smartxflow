@@ -2340,10 +2340,15 @@ body {
     padding: 6px 4px !important;
 }
 
+.drop-cell .drop-mini-card {
+    display: inline-flex;
+    margin: 0 auto;
+}
+
 .drop-mini-card {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: center;
     gap: 3px;
     min-width: 80px;
 }
