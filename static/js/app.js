@@ -511,14 +511,14 @@ function filterMatches(query) {
 }
 
 function getMatchTrendPct(match, selection) {
-    const matchId = `${match.home_team}|${match.away_team}|${match.league}|${match.date}`;
-    const matchData = oddsTrendCache[matchId];
+    const matchKey = `${match.home_team}|${match.away_team}`;
+    const matchData = oddsTrendCache[matchKey];
     if (!matchData || !matchData.values) return 0;
     
     let selKey = selection;
     if (currentMarket.includes('1x2')) {
         if (selection === 'sel1') selKey = 'odds1';
-        else if (selection === 'selX') selKey = 'oddsX';
+        else if (selection === 'selX') selKey = 'oddsx';
         else if (selection === 'sel2') selKey = 'odds2';
     } else if (currentMarket.includes('ou25')) {
         if (selection === 'sel1') selKey = 'under';
@@ -533,8 +533,8 @@ function getMatchTrendPct(match, selection) {
 }
 
 function getMinTrendPct(match) {
-    const matchId = `${match.home_team}|${match.away_team}|${match.league}|${match.date}`;
-    const matchData = oddsTrendCache[matchId];
+    const matchKey = `${match.home_team}|${match.away_team}`;
+    const matchData = oddsTrendCache[matchKey];
     if (!matchData || !matchData.values) return 0;
     
     let minPct = 0;
@@ -548,8 +548,8 @@ function getMinTrendPct(match) {
 }
 
 function getMaxTrendPct(match) {
-    const matchId = `${match.home_team}|${match.away_team}|${match.league}|${match.date}`;
-    const matchData = oddsTrendCache[matchId];
+    const matchKey = `${match.home_team}|${match.away_team}`;
+    const matchData = oddsTrendCache[matchKey];
     if (!matchData || !matchData.values) return 0;
     
     let maxPct = 0;
