@@ -103,8 +103,6 @@ async function loadMatches() {
         filteredMatches = applySorting(matches);
         renderMatches(filteredMatches);
         
-        updateSelectionSortButtons();
-        
         if (currentMarket.startsWith('dropping')) {
             attachTrendTooltipListeners();
         }
@@ -692,14 +690,14 @@ function applySorting(data) {
                     valA = getMatchTrendPct(a, 'sel1');
                     valB = getMatchTrendPct(b, 'sel1');
                 } else if (currentMarket.includes('1x2')) {
-                    valA = parseOddsValue(d1.Odds1 || d1['1']);
-                    valB = parseOddsValue(d2.Odds1 || d2['1']);
+                    valA = parsePctValue(d1.Pct1);
+                    valB = parsePctValue(d2.Pct1);
                 } else if (currentMarket.includes('ou25')) {
-                    valA = parseOddsValue(d1.Under);
-                    valB = parseOddsValue(d2.Under);
+                    valA = parsePctValue(d1.PctUnder);
+                    valB = parsePctValue(d2.PctUnder);
                 } else if (currentMarket.includes('btts')) {
-                    valA = parseOddsValue(d1.OddsYes || d1.Yes);
-                    valB = parseOddsValue(d2.OddsYes || d2.Yes);
+                    valA = parsePctValue(d1.PctYes);
+                    valB = parsePctValue(d2.PctYes);
                 }
                 break;
             case 'selX':
@@ -707,8 +705,8 @@ function applySorting(data) {
                     valA = getMatchTrendPct(a, 'selX');
                     valB = getMatchTrendPct(b, 'selX');
                 } else {
-                    valA = parseOddsValue(d1.OddsX || d1['X']);
-                    valB = parseOddsValue(d2.OddsX || d2['X']);
+                    valA = parsePctValue(d1.PctX);
+                    valB = parsePctValue(d2.PctX);
                 }
                 break;
             case 'sel2':
@@ -716,14 +714,14 @@ function applySorting(data) {
                     valA = getMatchTrendPct(a, 'sel2');
                     valB = getMatchTrendPct(b, 'sel2');
                 } else if (currentMarket.includes('1x2')) {
-                    valA = parseOddsValue(d1.Odds2 || d1['2']);
-                    valB = parseOddsValue(d2.Odds2 || d2['2']);
+                    valA = parsePctValue(d1.Pct2);
+                    valB = parsePctValue(d2.Pct2);
                 } else if (currentMarket.includes('ou25')) {
-                    valA = parseOddsValue(d1.Over);
-                    valB = parseOddsValue(d2.Over);
+                    valA = parsePctValue(d1.PctOver);
+                    valB = parsePctValue(d2.PctOver);
                 } else if (currentMarket.includes('btts')) {
-                    valA = parseOddsValue(d1.OddsNo || d1.No);
-                    valB = parseOddsValue(d2.OddsNo || d2.No);
+                    valA = parsePctValue(d1.PctNo);
+                    valB = parsePctValue(d2.PctNo);
                 }
                 break;
             case 'volume':
@@ -773,6 +771,14 @@ function parseOddsValue(val) {
     
     const last = values[values.length - 1];
     const num = parseFloat(last.replace(',', '.'));
+    return isNaN(num) ? 0 : num;
+}
+
+function parsePctValue(val) {
+    if (!val || val === '-') return 0;
+    const numMatch = String(val).match(/[\d.,]+/);
+    if (!numMatch) return 0;
+    const num = parseFloat(numMatch[0].replace(',', '.'));
     return isNaN(num) ? 0 : num;
 }
 
@@ -827,82 +833,8 @@ function sortByColumn(column) {
     
     updateTrendSortButtons();
     updateTableHeaders();
-    updateSelectionSortButtons();
     filteredMatches = applySorting(matches);
     renderMatches(filteredMatches);
-}
-
-let currentSelectedSide = '1';
-
-function sortBySelection(selection) {
-    currentSelectedSide = selection;
-    
-    const isMoneyway = currentMarket.startsWith('moneyway');
-    if (!isMoneyway) return;
-    
-    let sortColumn;
-    if (currentMarket.includes('1x2')) {
-        if (selection === '1') sortColumn = 'sel1';
-        else if (selection === 'X') sortColumn = 'selX';
-        else if (selection === '2') sortColumn = 'sel2';
-    } else if (currentMarket.includes('ou25')) {
-        if (selection === 'Under') sortColumn = 'sel1';
-        else if (selection === 'Over') sortColumn = 'sel2';
-    } else if (currentMarket.includes('btts')) {
-        if (selection === 'Yes') sortColumn = 'sel1';
-        else if (selection === 'No') sortColumn = 'sel2';
-    }
-    
-    if (sortColumn) {
-        currentSortColumn = sortColumn;
-        currentSortDirection = 'desc';
-        
-        updateSelectionSortButtons();
-        updateTableHeaders();
-        filteredMatches = applySorting(matches);
-        renderMatches(filteredMatches);
-    }
-}
-
-function updateSelectionSortButtons() {
-    const container = document.getElementById('selectionButtons');
-    if (!container) return;
-    
-    const isMoneyway = currentMarket.startsWith('moneyway');
-    
-    if (!isMoneyway) {
-        container.style.display = 'none';
-        return;
-    }
-    
-    container.style.display = 'flex';
-    
-    let buttons = [];
-    if (currentMarket.includes('1x2')) {
-        buttons = [
-            { sel: '1', label: '1', sortCol: 'sel1' },
-            { sel: 'X', label: 'X', sortCol: 'selX' },
-            { sel: '2', label: '2', sortCol: 'sel2' }
-        ];
-    } else if (currentMarket.includes('ou25')) {
-        buttons = [
-            { sel: 'Over', label: 'Over', sortCol: 'sel2' },
-            { sel: 'Under', label: 'Under', sortCol: 'sel1' }
-        ];
-    } else if (currentMarket.includes('btts')) {
-        buttons = [
-            { sel: 'Yes', label: 'Yes', sortCol: 'sel1' },
-            { sel: 'No', label: 'No', sortCol: 'sel2' }
-        ];
-    }
-    
-    let html = '';
-    buttons.forEach((btn, idx) => {
-        const isActive = currentSortColumn === btn.sortCol && currentSortDirection === 'desc';
-        html += `<button class="sel-btn ${isActive ? 'active' : ''}" onclick="sortBySelection('${btn.sel}')">${btn.label}</button>`;
-    });
-    
-    container.innerHTML = html;
 }
 
 function sortByTrend(direction) {
