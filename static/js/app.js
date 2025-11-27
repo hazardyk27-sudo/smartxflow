@@ -3166,14 +3166,8 @@ function renderDrop1X2Cell(label, oddsValue, trendData) {
         const flatSparkline = generateFlatSparklineSVG();
         return `
             <div class="drop-odds-cell">
-                <div class="drop-odds-header">${label}</div>
-                <div class="drop-odds-body">
-                    <div class="sparkline-container">${flatSparkline}</div>
-                    <div class="drop-odds-line">
-                        <span class="odds-value-trend">${formattedOdds}</span>
-                        <span class="trend-arrow-drop trend-stable-drop">→</span>
-                    </div>
-                </div>
+                <div class="sparkline-container">${flatSparkline}</div>
+                <span class="drop-odds-value">${formattedOdds}</span>
             </div>
         `;
     }
@@ -3191,15 +3185,10 @@ function renderDrop1X2Cell(label, oddsValue, trendData) {
     
     return `
         <div class="drop-odds-cell" data-tooltip="${tooltipData}">
-            <div class="drop-odds-header">${label}</div>
-            <div class="drop-odds-body">
-                <div class="sparkline-container">${sparkline}</div>
-                <div class="drop-odds-line">
-                    <span class="odds-value-trend">${formattedOdds}</span>
-                    ${pctHtml}
-                    ${arrowHtml}
-                </div>
-            </div>
+            <div class="sparkline-container">${sparkline}</div>
+            <span class="drop-odds-value">${formattedOdds}</span>
+            ${pctHtml}
+            ${arrowHtml}
         </div>
     `;
 }

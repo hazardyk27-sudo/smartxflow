@@ -2322,89 +2322,68 @@ body {
 
 /* ========== DROPPING 1X2 GRID TASARIMI ========== */
 .drop-1x2-outcomes {
-    padding: 8px 12px !important;
+    padding: 8px 0 !important;
 }
 
 .drop-1x2-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    column-gap: 16px;
+    column-gap: 24px;
 }
 
 .drop-odds-cell {
     display: flex;
-    flex-direction: column;
-    padding: 4px 8px;
-    background: rgba(33, 38, 45, 0.4);
-    border-radius: 6px;
-    min-width: 0;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
 }
 
 .drop-odds-cell[data-tooltip] {
     cursor: pointer;
 }
 
-.drop-odds-header {
-    font-size: 10px;
-    font-weight: 600;
-    color: #6e7681;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 4px;
-    text-align: center;
-}
-
-.drop-odds-body {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-.drop-odds-body .sparkline-container {
+.drop-odds-cell .sparkline-container {
     flex-shrink: 0;
+    width: 48px;
 }
 
-.drop-odds-line {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 4px;
-    flex: 1;
-    min-width: 0;
+.drop-odds-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+    min-width: 40px;
 }
 
-.drop-odds-line .odds-value-trend {
+.drop-odds-cell .trend-pct {
     font-size: 13px;
-    font-weight: 600;
-    color: #58a6ff;
-}
-
-.drop-odds-line .trend-pct {
-    font-size: 11px;
     font-weight: 500;
 }
 
-.drop-odds-line .trend-arrow-drop {
-    font-size: 12px;
+.drop-odds-cell .trend-arrow-drop {
+    font-size: 14px;
     flex-shrink: 0;
 }
 
 /* Responsive Dropping 1X2 */
 @media (max-width: 768px) {
     .drop-1x2-grid {
-        column-gap: 8px;
+        column-gap: 12px;
     }
     
     .drop-odds-cell {
-        padding: 3px 4px;
-    }
-    
-    .drop-odds-body {
         gap: 4px;
     }
     
-    .drop-odds-line .odds-value-trend {
+    .drop-odds-cell .sparkline-container {
+        width: 36px;
+    }
+    
+    .drop-odds-value {
+        font-size: 13px;
+        min-width: 32px;
+    }
+    
+    .drop-odds-cell .trend-pct {
         font-size: 11px;
     }
 }
