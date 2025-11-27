@@ -29,6 +29,13 @@ static_dir = resource_path("static")
 from core.settings import init_mode, is_server_mode, is_client_mode, get_scrape_interval_seconds, is_scraper_disabled
 from services.supabase_client import get_database
 from core.alarms import analyze_match_alarms, format_alarm_for_ticker, format_alarm_for_modal, ALARM_TYPES
+import hashlib
+
+def generate_match_id(home, away, league, market=''):
+    """Generate unique match ID from home, away, league and optionally market.
+    This ensures unique identification even for teams playing multiple times."""
+    key = f"{home}|{away}|{league}|{market}" if market else f"{home}|{away}|{league}"
+    return hashlib.md5(key.encode()).hexdigest()[:12]
 
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 app.secret_key = os.environ.get('SESSION_SECRET', 'smartxflow-secret-key')
@@ -129,6 +136,7 @@ def index():
         for match in matches_data[:15]:
             home = match.get('home_team', '')
             away = match.get('away_team', '')
+            league = match.get('league', '')
             
             history = db.get_match_history(home, away, 'moneyway_1x2')
             if len(history) >= 2:
@@ -136,6 +144,8 @@ def index():
                 for alarm in alarms:
                     formatted = format_alarm_for_ticker(alarm, home, away)
                     formatted['market'] = 'moneyway_1x2'
+                    formatted['match_id'] = generate_match_id(home, away, league)
+                    formatted['league'] = league
                     ticker_alarms.append(formatted)
         
         ticker_alarms = get_critical_alarms(ticker_alarms, limit=4)
@@ -224,11 +234,16 @@ def get_matches():
                         'TrendNo': latest.get('TrendNo', '')
                     }
         
+        home = m.get('home_team', '')
+        away = m.get('away_team', '')
+        league = m.get('league', '')
+        
         enriched.append({
-            'home_team': m.get('home_team', ''),
-            'away_team': m.get('away_team', ''),
-            'league': m.get('league', ''),
+            'home_team': home,
+            'away_team': away,
+            'league': league,
             'date': m.get('date', ''),
+            'match_id': generate_match_id(home, away, league),
             'odds': {**odds, **prev_odds},
             'history_count': 1
         })
@@ -635,12 +650,6 @@ def get_ticker_alarms():
     """Get critical alarms for borsa bandı - max 4 items (fast version)"""
     try:
         from core.alarms import get_critical_alarms, format_alarm_for_ticker, ALARM_TYPES
-        import hashlib
-        
-        def generate_match_id(home, away, market):
-            """Generate unique match ID from home, away and market"""
-            key = f"{home}|{away}|{market}"
-            return hashlib.md5(key.encode()).hexdigest()[:12]
         
         all_alarms = []
         markets = ['moneyway_1x2']
@@ -659,7 +668,7 @@ def get_ticker_alarms():
                     for alarm in alarms:
                         formatted = format_alarm_for_ticker(alarm, home, away)
                         formatted['market'] = market
-                        formatted['match_id'] = generate_match_id(home, away, market)
+                        formatted['match_id'] = generate_match_id(home, away, league)
                         formatted['league'] = league
                         all_alarms.append(formatted)
         

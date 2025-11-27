@@ -51,7 +51,10 @@
                          data-home="{{ alarm.home }}"
                          data-away="{{ alarm.away }}"
                          data-type="{{ alarm.type }}"
-                         data-key="{{ alarm.home }}|{{ alarm.away }}|{{ alarm.type }}">
+                         data-key="{{ alarm.home }}|{{ alarm.away }}|{{ alarm.type }}"
+                         data-match-id="{{ alarm.match_id or '' }}"
+                         data-market="{{ alarm.market or 'moneyway_1x2' }}"
+                         data-league="{{ alarm.league or '' }}">
                         <div class="ticker-card-icon">{{ alarm.icon }}</div>
                         <div class="ticker-card-content">
                             <div class="ticker-card-type" style="color: {{ alarm.color }};">{{ alarm.name.split(' ')[0] }}</div>

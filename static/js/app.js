@@ -2607,9 +2607,24 @@ function goToMatchFromAlarm(home, away) {
 }
 
 function openMatchModalById(matchId, home, away, market, league, alarmType) {
-    console.log('[Modal] Opening match by ID:', matchId, home, 'vs', away);
+    console.log('[Modal] Opening match by ID:', matchId, home, 'vs', away, 'league:', league);
     
-    const matchIndex = matches.findIndex(m => m.home_team === home && m.away_team === away);
+    let matchIndex = -1;
+    
+    if (matchId) {
+        matchIndex = matches.findIndex(m => m.match_id === matchId);
+    }
+    
+    if (matchIndex < 0) {
+        matchIndex = matches.findIndex(m => 
+            m.home_team === home && m.away_team === away && 
+            (!league || m.league === league)
+        );
+    }
+    
+    if (matchIndex < 0) {
+        matchIndex = matches.findIndex(m => m.home_team === home && m.away_team === away);
+    }
     
     if (matchIndex >= 0) {
         openMatchModal(matchIndex);
