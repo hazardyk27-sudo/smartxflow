@@ -509,10 +509,23 @@ function filterMatches(query) {
 function getMatchTrendPct(match, selection) {
     const matchId = `${match.home_team}|${match.away_team}|${match.league}|${match.date}`;
     const matchData = oddsTrendCache[matchId];
-    if (!matchData || !matchData.values || !matchData.values[selection]) {
-        return 0;
+    if (!matchData || !matchData.values) return 0;
+    
+    let selKey = selection;
+    if (currentMarket.includes('1x2')) {
+        if (selection === 'sel1') selKey = 'odds1';
+        else if (selection === 'selX') selKey = 'oddsX';
+        else if (selection === 'sel2') selKey = 'odds2';
+    } else if (currentMarket.includes('ou25')) {
+        if (selection === 'sel1') selKey = 'under';
+        else if (selection === 'sel2') selKey = 'over';
+    } else if (currentMarket.includes('btts')) {
+        if (selection === 'sel1') selKey = 'yes';
+        else if (selection === 'sel2') selKey = 'no';
     }
-    return matchData.values[selection].pct_change || 0;
+    
+    if (!matchData.values[selKey]) return 0;
+    return matchData.values[selKey].pct_change || 0;
 }
 
 function getMinTrendPct(match) {
@@ -585,7 +598,10 @@ function applySorting(data) {
                 valB = (b.home_team || '').toLowerCase();
                 break;
             case 'sel1':
-                if (currentMarket.includes('1x2')) {
+                if (currentMarket.startsWith('dropping_')) {
+                    valA = getMatchTrendPct(a, 'sel1');
+                    valB = getMatchTrendPct(b, 'sel1');
+                } else if (currentMarket.includes('1x2')) {
                     valA = parseOddsValue(d1.Odds1 || d1['1']);
                     valB = parseOddsValue(d2.Odds1 || d2['1']);
                 } else if (currentMarket.includes('ou25')) {
@@ -597,11 +613,19 @@ function applySorting(data) {
                 }
                 break;
             case 'selX':
-                valA = parseOddsValue(d1.OddsX || d1['X']);
-                valB = parseOddsValue(d2.OddsX || d2['X']);
+                if (currentMarket.startsWith('dropping_')) {
+                    valA = getMatchTrendPct(a, 'selX');
+                    valB = getMatchTrendPct(b, 'selX');
+                } else {
+                    valA = parseOddsValue(d1.OddsX || d1['X']);
+                    valB = parseOddsValue(d2.OddsX || d2['X']);
+                }
                 break;
             case 'sel2':
-                if (currentMarket.includes('1x2')) {
+                if (currentMarket.startsWith('dropping_')) {
+                    valA = getMatchTrendPct(a, 'sel2');
+                    valB = getMatchTrendPct(b, 'sel2');
+                } else if (currentMarket.includes('1x2')) {
                     valA = parseOddsValue(d1.Odds2 || d1['2']);
                     valB = parseOddsValue(d2.Odds2 || d2['2']);
                 } else if (currentMarket.includes('ou25')) {
