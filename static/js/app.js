@@ -3050,13 +3050,15 @@ function openMatchModalById(matchId, home, away, market, league, alarmType) {
     }
 }
 
-function openMatchModalByTeams(home, away, alarmType) {
+async function openMatchModalByTeams(home, away, alarmType) {
     const matchIndex = matches.findIndex(m => m.home_team === home && m.away_team === away);
     if (matchIndex >= 0) {
         openMatchModal(matchIndex);
     } else {
+        console.log('[Modal] Match not in current list, fetching from API:', home, 'vs', away);
+        
         selectedMatch = { home_team: home, away_team: away, league: '', date: '' };
-        selectedChartMarket = currentMarket;
+        selectedChartMarket = 'moneyway_1x2';
         previousOddsData = null;
         modalOddsData = null;
         
@@ -3072,18 +3074,35 @@ function openMatchModalByTeams(home, away, alarmType) {
         }
         
         document.getElementById('modalMatchTitle').textContent = `${home} vs ${away}`;
-        document.getElementById('modalLeague').textContent = '';
-        
-        updateMatchInfoCard();
+        document.getElementById('modalLeague').textContent = 'Yükleniyor...';
         
         document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
             t.classList.remove('active');
-            if (t.dataset.market === currentMarket) {
+            if (t.dataset.market === selectedChartMarket) {
                 t.classList.add('active');
             }
         });
         
         document.getElementById('modalOverlay').classList.add('active');
+        
+        try {
+            const response = await fetch(`/api/match/details?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}`);
+            const data = await response.json();
+            
+            if (data.success && data.match) {
+                selectedMatch = data.match;
+                modalOddsData = data.match.odds || data.match.details || null;
+                
+                document.getElementById('modalMatchTitle').textContent = `${home} vs ${away}`;
+                document.getElementById('modalLeague').textContent = data.match.league || '';
+                
+                console.log('[Modal] Match data loaded from API:', modalOddsData);
+            }
+        } catch (error) {
+            console.error('[Modal] Failed to fetch match details:', error);
+        }
+        
+        updateMatchInfoCard();
         loadChartWithTrends(home, away, selectedChartMarket);
         loadMatchAlarms(home, away);
     }

@@ -689,21 +689,41 @@ def get_cached_alarms():
     start_time = time.time()
     
     all_alarms = []
-    markets = ['moneyway_1x2']
+    markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
     
     matches_data = db.get_all_matches_with_latest('moneyway_1x2')
     
     real_matches = [m for m in matches_data if not is_demo_match(m)]
     
-    today_str = now_turkey().strftime('%d.%m')
+    today = now_turkey()
+    today_str = today.strftime('%d.%m')
+    today_day = today.strftime('%d')
+    
     today_matches = []
+    seen_pairs = set()
     for m in real_matches:
         date_str = m.get('date', '')
-        if date_str and (today_str in date_str or date_str.startswith(today_str.replace('.', '.Nov').replace('11', 'Nov'))):
-            today_matches.append(m)
+        home = m.get('home_team', '')
+        away = m.get('away_team', '')
+        pair = (home, away)
+        
+        if pair in seen_pairs:
+            continue
+        
+        if date_str:
+            day_part = date_str.split('.')[0] if '.' in date_str else ''
+            if day_part == today_day or today_str in date_str:
+                today_matches.append(m)
+                seen_pairs.add(pair)
     
-    if len(today_matches) < 20:
-        today_matches = real_matches[:50]
+    if len(today_matches) < 30:
+        for m in real_matches:
+            pair = (m.get('home_team', ''), m.get('away_team', ''))
+            if pair not in seen_pairs:
+                today_matches.append(m)
+                seen_pairs.add(pair)
+            if len(today_matches) >= 80:
+                break
     
     checked = 0
     for match in today_matches:
@@ -868,6 +888,58 @@ def get_odds_trend(market):
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e), 'data': {}})
+
+
+@app.route('/api/match/details')
+def get_match_details():
+    """Get match details by team names - used when opening from alarm list"""
+    home = request.args.get('home', '')
+    away = request.args.get('away', '')
+    
+    if not home or not away:
+        return jsonify({'success': False, 'error': 'Missing home or away parameter'})
+    
+    try:
+        match_data = None
+        for market in ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts', 'dropping_1x2', 'dropping_ou25', 'dropping_btts']:
+            matches_list = db.get_all_matches_with_latest(market)
+            for m in matches_list:
+                if m.get('home_team') == home and m.get('away_team') == away:
+                    match_data = m
+                    break
+            if match_data:
+                break
+        
+        if match_data:
+            odds_data = match_data.get('odds') or match_data.get('details') or {}
+            return jsonify({
+                'success': True,
+                'match': {
+                    'home_team': home,
+                    'away_team': away,
+                    'league': match_data.get('league', ''),
+                    'date': match_data.get('date', ''),
+                    'odds': odds_data,
+                    'details': odds_data
+                }
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'match': {
+                    'home_team': home,
+                    'away_team': away,
+                    'league': '',
+                    'date': '',
+                    'odds': {},
+                    'details': {}
+                }
+            })
+    except Exception as e:
+        print(f"[Match Details API] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)})
 
 
 @app.route('/api/match/alarms')
