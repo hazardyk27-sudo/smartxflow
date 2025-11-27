@@ -198,6 +198,55 @@ function getColorClass(pctValue) {
     return 'color-normal';
 }
 
+function getDonutColor(pctValue) {
+    const num = parseFloat(String(pctValue).replace(/[^0-9.]/g, ''));
+    if (isNaN(num)) return '#4b5563';
+    if (num >= 50) return '#22c55e';
+    if (num >= 30) return '#6b7280';
+    return '#374151';
+}
+
+function getMoneyColor(moneyStr) {
+    if (!moneyStr) return 'money-low';
+    const numStr = String(moneyStr).replace(/[£€$,\s]/g, '');
+    const num = parseFloat(numStr);
+    if (isNaN(num)) return 'money-low';
+    return num >= 3000 ? 'money-high' : 'money-low';
+}
+
+function renderDonutSVG(percent, size = 36) {
+    const num = parseFloat(String(percent).replace(/[^0-9.]/g, '')) || 0;
+    const radius = (size - 6) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (num / 100) * circumference;
+    const color = getDonutColor(percent);
+    
+    return `
+        <svg class="donut-svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+            <circle cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="#1f2937" stroke-width="5"/>
+            <circle cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="${color}" stroke-width="5"
+                stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
+                stroke-linecap="round" transform="rotate(-90 ${size/2} ${size/2})"/>
+            <text x="${size/2}" y="${size/2}" text-anchor="middle" dominant-baseline="central" 
+                fill="#fff" font-size="${size > 30 ? 10 : 8}" font-weight="600">${num.toFixed(0)}%</text>
+        </svg>
+    `;
+}
+
+function renderMoneywayBlock(label, percent, odds, money) {
+    const donut = renderDonutSVG(percent, 36);
+    const moneyClass = getMoneyColor(money);
+    
+    return `
+        <div class="mw-outcome-block">
+            ${donut}
+            <div class="mw-label">${label}</div>
+            <div class="mw-odds">${formatOdds(odds)}</div>
+            ${money ? `<div class="mw-money ${moneyClass}">${money}</div>` : ''}
+        </div>
+    `;
+}
+
 function formatPct(val) {
     if (!val || val === '-') return '-';
     const cleaned = String(val).replace(/[%\s]/g, '');
@@ -252,29 +301,21 @@ function renderMatches(data) {
             const trend2 = isDropping ? (getDirectTrendArrow(d.Trend2) || getTableTrendArrow(d.Odds2 || d['2'], d.PrevOdds2)) : '';
             
             if (isMoneyway) {
-                const c1 = getColorClass(d.Pct1);
-                const cX = getColorClass(d.PctX);
-                const c2 = getColorClass(d.Pct2);
+                const block1 = renderMoneywayBlock('1', d.Pct1, d.Odds1 || d['1'], d.Amt1);
+                const blockX = renderMoneywayBlock('X', d.PctX, d.OddsX || d['X'], d.AmtX);
+                const block2 = renderMoneywayBlock('2', d.Pct2, d.Odds2 || d['2'], d.Amt2);
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="selection-cell"><div>
-                            <div class="selection-odds">${formatOdds(d.Odds1 || d['1'])}</div>
-                            ${d.Amt1 ? `<div class="selection-money ${c1}">${d.Amt1}</div>` : ''}
-                            ${d.Pct1 ? `<div class="selection-pct ${c1}">${cleanPct(d.Pct1)}%</div>` : ''}
-                        </div></td>
-                        <td class="selection-cell"><div>
-                            <div class="selection-odds">${formatOdds(d.OddsX || d['X'])}</div>
-                            ${d.AmtX ? `<div class="selection-money ${cX}">${d.AmtX}</div>` : ''}
-                            ${d.PctX ? `<div class="selection-pct ${cX}">${cleanPct(d.PctX)}%</div>` : ''}
-                        </div></td>
-                        <td class="selection-cell"><div>
-                            <div class="selection-odds">${formatOdds(d.Odds2 || d['2'])}</div>
-                            ${d.Amt2 ? `<div class="selection-money ${c2}">${d.Amt2}</div>` : ''}
-                            ${d.Pct2 ? `<div class="selection-pct ${c2}">${cleanPct(d.Pct2)}%</div>` : ''}
-                        </div></td>
+                        <td class="mw-outcomes-cell" colspan="3">
+                            <div class="mw-grid mw-grid-3">
+                                ${block1}
+                                ${blockX}
+                                ${block2}
+                            </div>
+                        </td>
                         <td class="volume-cell">${formatVolume(d.Volume)}</td>
                     </tr>
                 `;
@@ -304,23 +345,19 @@ function renderMatches(data) {
             const trendOver = isDropping ? (getDirectTrendArrow(d.TrendOver) || getTableTrendArrow(d.Over, d.PrevOver)) : '';
             
             if (isMoneyway) {
-                const cU = getColorClass(d.PctUnder);
-                const cO = getColorClass(d.PctOver);
+                const blockUnder = renderMoneywayBlock('U 2.5', d.PctUnder, d.Under, d.AmtUnder);
+                const blockOver = renderMoneywayBlock('O 2.5', d.PctOver, d.Over, d.AmtOver);
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="selection-cell"><div>
-                            <div class="selection-odds">${formatOdds(d.Under)}</div>
-                            ${d.AmtUnder ? `<div class="selection-money ${cU}">${d.AmtUnder}</div>` : ''}
-                            ${d.PctUnder ? `<div class="selection-pct ${cU}">${cleanPct(d.PctUnder)}%</div>` : ''}
-                        </div></td>
-                        <td class="selection-cell"><div>
-                            <div class="selection-odds">${formatOdds(d.Over)}</div>
-                            ${d.AmtOver ? `<div class="selection-money ${cO}">${d.AmtOver}</div>` : ''}
-                            ${d.PctOver ? `<div class="selection-pct ${cO}">${cleanPct(d.PctOver)}%</div>` : ''}
-                        </div></td>
+                        <td class="mw-outcomes-cell" colspan="2">
+                            <div class="mw-grid mw-grid-2">
+                                ${blockUnder}
+                                ${blockOver}
+                            </div>
+                        </td>
                         <td class="volume-cell">${formatVolume(d.Volume)}</td>
                     </tr>
                 `;
@@ -347,23 +384,19 @@ function renderMatches(data) {
             const trendNo = isDropping ? (getDirectTrendArrow(d.TrendNo) || getTableTrendArrow(d.OddsNo || d.No, d.PrevNo)) : '';
             
             if (isMoneyway) {
-                const cY = getColorClass(d.PctYes);
-                const cN = getColorClass(d.PctNo);
+                const blockYes = renderMoneywayBlock('Yes', d.PctYes, d.OddsYes || d.Yes, d.AmtYes);
+                const blockNo = renderMoneywayBlock('No', d.PctNo, d.OddsNo || d.No, d.AmtNo);
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="selection-cell"><div>
-                            <div class="selection-odds">${formatOdds(d.OddsYes || d.Yes)}</div>
-                            ${d.AmtYes ? `<div class="selection-money ${cY}">${d.AmtYes}</div>` : ''}
-                            ${d.PctYes ? `<div class="selection-pct ${cY}">${cleanPct(d.PctYes)}%</div>` : ''}
-                        </div></td>
-                        <td class="selection-cell"><div>
-                            <div class="selection-odds">${formatOdds(d.OddsNo || d.No)}</div>
-                            ${d.AmtNo ? `<div class="selection-money ${cN}">${d.AmtNo}</div>` : ''}
-                            ${d.PctNo ? `<div class="selection-pct ${cN}">${cleanPct(d.PctNo)}%</div>` : ''}
-                        </div></td>
+                        <td class="mw-outcomes-cell" colspan="2">
+                            <div class="mw-grid mw-grid-2">
+                                ${blockYes}
+                                ${blockNo}
+                            </div>
+                        </td>
                         <td class="volume-cell">${formatVolume(d.Volume)}</td>
                     </tr>
                 `;

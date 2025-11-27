@@ -2235,6 +2235,88 @@ body {
     border-right: 8px solid transparent;
 }
 
+/* ========== MONEYWAY DONUT TASARIMI ========== */
+.mw-outcomes-cell {
+    padding: 12px 8px !important;
+}
+
+.mw-grid {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+}
+
+.mw-grid-3 {
+    gap: 32px;
+}
+
+.mw-grid-2 {
+    gap: 48px;
+}
+
+.mw-outcome-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 70px;
+}
+
+.mw-outcome-block .donut-svg {
+    display: block;
+}
+
+.mw-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mw-odds {
+    font-size: 14px;
+    font-weight: 700;
+    color: #58a6ff;
+}
+
+.mw-money {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.mw-money.money-high {
+    color: #22c55e;
+}
+
+.mw-money.money-low {
+    color: #ef4444;
+}
+
+/* Responsive Moneyway */
+@media (max-width: 768px) {
+    .mw-grid {
+        gap: 16px;
+    }
+    
+    .mw-grid-3 {
+        gap: 20px;
+    }
+    
+    .mw-grid-2 {
+        gap: 32px;
+    }
+    
+    .mw-outcome-block {
+        min-width: 60px;
+    }
+    
+    .mw-outcome-block .donut-svg {
+        width: 28px;
+        height: 28px;
+    }
+}
+
 .odds-trend-cell:hover {
     background: rgba(48, 54, 61, 0.8);
 }
