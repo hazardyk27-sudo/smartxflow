@@ -324,18 +324,22 @@ function renderMatches(data) {
                 const trendXData = getOddsTrendData(match.home_team, match.away_team, 'oddsx');
                 const trend2Data = getOddsTrendData(match.home_team, match.away_team, 'odds2');
                 
-                const cell1 = renderOddsWithTrend(d.Odds1 || d['1'], trend1Data);
-                const cellX = renderOddsWithTrend(d.OddsX || d['X'], trendXData);
-                const cell2 = renderOddsWithTrend(d.Odds2 || d['2'], trend2Data);
+                const cell1 = renderDrop1X2Cell('1', d.Odds1 || d['1'], trend1Data);
+                const cellX = renderDrop1X2Cell('X', d.OddsX || d['X'], trendXData);
+                const cell2 = renderDrop1X2Cell('2', d.Odds2 || d['2'], trend2Data);
                 
                 return `
-                    <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                    <tr class="dropping-1x2-row" data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                         <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="selection-cell"><div>${cell1}</div></td>
-                        <td class="selection-cell"><div>${cellX}</div></td>
-                        <td class="selection-cell"><div>${cell2}</div></td>
+                        <td class="drop-1x2-outcomes" colspan="3">
+                            <div class="drop-1x2-grid">
+                                ${cell1}
+                                ${cellX}
+                                ${cell2}
+                            </div>
+                        </td>
                         <td class="volume-cell">${formatVolume(d.Volume)}</td>
                     </tr>
                 `;
@@ -3152,6 +3156,51 @@ function renderOddsWithTrend(oddsValue, trendData) {
     `;
 }
 
+function renderDrop1X2Cell(label, oddsValue, trendData) {
+    const formattedOdds = formatOdds(oddsValue);
+    
+    if (!trendData || !trendData.history || trendData.history.length < 2) {
+        const flatSparkline = generateFlatSparklineSVG();
+        return `
+            <div class="drop-odds-cell">
+                <div class="drop-odds-header">${label}</div>
+                <div class="drop-odds-body">
+                    <div class="sparkline-container">${flatSparkline}</div>
+                    <div class="drop-odds-line">
+                        <span class="odds-value-trend">${formattedOdds}</span>
+                        <span class="trend-arrow-drop trend-stable-drop">→</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    const sparkline = generateSparklineSVG(trendData.history, trendData.trend);
+    const pctHtml = formatPctChange(trendData.pct_change, trendData.trend);
+    const arrowHtml = getTrendArrowHTML(trendData.trend, trendData.pct_change);
+    
+    const tooltipData = JSON.stringify({
+        old: trendData.old,
+        new: trendData.new,
+        pct: trendData.pct_change,
+        trend: trendData.trend
+    }).replace(/"/g, '&quot;');
+    
+    return `
+        <div class="drop-odds-cell" data-tooltip="${tooltipData}">
+            <div class="drop-odds-header">${label}</div>
+            <div class="drop-odds-body">
+                <div class="sparkline-container">${sparkline}</div>
+                <div class="drop-odds-line">
+                    <span class="odds-value-trend">${formattedOdds}</span>
+                    ${pctHtml}
+                    ${arrowHtml}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 function generateFlatSparklineSVG() {
     const width = 40;
     const height = 16;
@@ -3224,7 +3273,7 @@ function hideTrendTooltip() {
 }
 
 function attachTrendTooltipListeners() {
-    document.querySelectorAll('.odds-trend-cell').forEach(cell => {
+    document.querySelectorAll('.odds-trend-cell, .drop-odds-cell[data-tooltip]').forEach(cell => {
         cell.addEventListener('mouseenter', showTrendTooltip);
         cell.addEventListener('mouseleave', hideTrendTooltip);
     });
