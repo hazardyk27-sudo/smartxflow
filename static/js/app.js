@@ -865,7 +865,7 @@ function sortBySelection(selection) {
 }
 
 function updateSelectionSortButtons() {
-    const container = document.getElementById('selectionSortButtons');
+    const container = document.getElementById('selectionButtons');
     if (!container) return;
     
     const isMoneyway = currentMarket.startsWith('moneyway');
@@ -886,8 +886,8 @@ function updateSelectionSortButtons() {
         ];
     } else if (currentMarket.includes('ou25')) {
         buttons = [
-            { sel: 'Under', label: 'Under', sortCol: 'sel1' },
-            { sel: 'Over', label: 'Over', sortCol: 'sel2' }
+            { sel: 'Over', label: 'Over', sortCol: 'sel2' },
+            { sel: 'Under', label: 'Under', sortCol: 'sel1' }
         ];
     } else if (currentMarket.includes('btts')) {
         buttons = [
@@ -896,10 +896,10 @@ function updateSelectionSortButtons() {
         ];
     }
     
-    let html = '<span class="sort-label">Sırala:</span>';
+    let html = '';
     buttons.forEach((btn, idx) => {
         const isActive = currentSortColumn === btn.sortCol && currentSortDirection === 'desc';
-        html += `<button class="sel-sort-btn ${isActive ? 'active' : ''}" data-sel="${btn.sel}" onclick="sortBySelection('${btn.sel}')">${btn.label}</button>`;
+        html += `<button class="sel-btn ${isActive ? 'active' : ''}" onclick="sortBySelection('${btn.sel}')">${btn.label}</button>`;
     });
     
     container.innerHTML = html;

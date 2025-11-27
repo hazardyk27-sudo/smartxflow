@@ -372,22 +372,13 @@ body {
     background: #2ea043;
 }
 
-.selection-sort-buttons {
+.selection-buttons {
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-left: 16px;
-    padding-left: 16px;
-    border-left: 1px solid #30363d;
 }
 
-.selection-sort-buttons .sort-label {
-    font-size: 12px;
-    color: #8b949e;
-    margin-right: 4px;
-}
-
-.sel-sort-btn {
+.sel-btn {
     background: #21262d;
     border: 1px solid #30363d;
     color: #8b949e;
@@ -401,19 +392,19 @@ body {
     min-width: 40px;
 }
 
-.sel-sort-btn:hover {
+.sel-btn:hover {
     border-color: #8b949e;
     background: #30363d;
     color: #c9d1d9;
 }
 
-.sel-sort-btn.active {
+.sel-btn.active {
     background: #238636;
     border-color: #238636;
     color: #fff;
 }
 
-.sel-sort-btn.active:hover {
+.sel-btn.active:hover {
     background: #2ea043;
 }
 
