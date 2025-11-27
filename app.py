@@ -1004,47 +1004,60 @@ ticker_cache = {
 
 @app.route('/api/alarms/ticker')
 def get_ticker_alarms():
-    """Get critical alarms for borsa bandı - 20 items for scrolling ticker"""
+    """Get critical alarms for borsa bandı - uses same cache as alarm list for consistency"""
     import time
     try:
-        from core.alarms import get_critical_alarms, format_alarm_for_ticker, ALARM_TYPES
+        from core.alarms import ALARM_TYPES
         
         now = time.time()
         if ticker_cache['data'] is not None and (now - ticker_cache['timestamp']) < ticker_cache['ttl']:
             return jsonify(ticker_cache['data'])
         
-        all_alarms = []
-        markets = ['moneyway_1x2']
+        grouped_alarms = get_cached_alarms()
         
-        matches_data = db.get_all_matches_with_latest('moneyway_1x2')
-        
-        real_matches = [m for m in matches_data if not is_demo_match(m)]
-        
-        for match in real_matches[:30]:
-            home = match.get('home_team', '')
-            away = match.get('away_team', '')
-            league = match.get('league', '')
-            date = match.get('date', '')
+        ticker_alarms = []
+        for group in grouped_alarms:
+            home = group.get('home', '')
+            away = group.get('away', '')
+            league = group.get('league', '')
+            date = group.get('date', '')
+            match_id = group.get('match_id', '')
+            alarm_type = group.get('type', '')
+            alarm_info = ALARM_TYPES.get(alarm_type, {})
             
-            for market in markets:
-                history = db.get_match_history(home, away, market)
-                if len(history) >= 2:
-                    alarms = analyze_match_alarms(history, market)
-                    for alarm in alarms:
-                        formatted = format_alarm_for_ticker(alarm, home, away)
-                        formatted['market'] = market
-                        formatted['match_id'] = generate_match_id(home, away, league, date)
-                        formatted['league'] = league
-                        formatted['date'] = date
-                        all_alarms.append(formatted)
+            events = group.get('events', [])
+            for event in events:
+                money_diff = event.get('money_diff', 0)
+                ticker_alarms.append({
+                    'type': alarm_type,
+                    'icon': alarm_info.get('icon', ''),
+                    'name': alarm_info.get('name', alarm_type),
+                    'color': alarm_info.get('color', '#888'),
+                    'home': home,
+                    'away': away,
+                    'side': event.get('side', ''),
+                    'money_text': f"+£{int(money_diff):,}" if money_diff > 0 else '',
+                    'odds_from': event.get('odds_from'),
+                    'odds_to': event.get('odds_to'),
+                    'priority': alarm_info.get('priority', 99),
+                    'critical': alarm_info.get('critical', False),
+                    'timestamp': event.get('timestamp', ''),
+                    'market': group.get('market', 'moneyway_1x2'),
+                    'match_id': match_id,
+                    'league': league,
+                    'date': date
+                })
         
-        critical = get_critical_alarms(all_alarms, limit=20)
+        ticker_alarms.sort(key=lambda x: (x.get('priority', 99), x.get('timestamp', '')))
+        critical = [a for a in ticker_alarms if a.get('critical', False)][:20]
+        if len(critical) < 20:
+            critical = ticker_alarms[:20]
         
-        print(f"[Ticker API] Found {len(all_alarms)} total alarms, {len(critical)} critical")
+        print(f"[Ticker API] Using cached alarms: {len(ticker_alarms)} total, {len(critical)} shown")
         
         result = {
-            'alarms': critical[:20],
-            'total': len(all_alarms)
+            'alarms': critical,
+            'total': len(ticker_alarms)
         }
         
         ticker_cache['data'] = result
@@ -1139,46 +1152,45 @@ def get_match_details():
 def get_match_alarms_data(home: str, away: str, today_only: bool = True) -> list:
     """
     Core function to get alarms for a specific match.
-    Used by both match detail API and alarm list to ensure consistency.
-    Also updates the shared match_alarm_cache for consistency with alarm list.
+    SYNCHRONIZED: Uses the same cached alarm data as alarm list for consistency.
+    This ensures all 3 UIs (bant, alarm list, match modal) show identical data.
     """
-    import time
     from core.timezone import is_today_turkey
     
-    cache_key = (home, away)
-    now = time.time()
+    grouped_alarms = get_cached_alarms()
     
-    if cache_key in match_alarm_cache:
-        cached = match_alarm_cache[cache_key]
-        if now - cached['timestamp'] < match_alarm_cache_ttl:
-            alarms = cached['alarms']
-            if today_only:
-                alarms = [a for a in alarms if is_today_turkey(a.get('timestamp', ''))]
-            return alarms
+    match_alarms = []
+    for group in grouped_alarms:
+        g_home = group.get('home', '')
+        g_away = group.get('away', '')
+        
+        if g_home.lower() == home.lower() and g_away.lower() == away.lower():
+            alarm_type = group.get('type', '')
+            events = group.get('events', [])
+            
+            for event in events:
+                if today_only and not is_today_turkey(event.get('timestamp', '')):
+                    continue
+                
+                match_alarms.append({
+                    'name': group.get('name', alarm_type),
+                    'type': alarm_type,
+                    'icon': group.get('icon', ''),
+                    'color': group.get('color', '#888'),
+                    'description': event.get('description', ''),
+                    'detail': event.get('detail', ''),
+                    'side': event.get('side', ''),
+                    'market': group.get('market', ''),
+                    'timestamp': event.get('timestamp', ''),
+                    'money_diff': event.get('money_diff', 0),
+                    'odds_from': event.get('odds_from'),
+                    'odds_to': event.get('odds_to'),
+                    'priority': group.get('priority', 99)
+                })
     
-    all_alarms = []
-    markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
+    match_alarms.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
     
-    for market in markets:
-        history = db.get_match_history(home, away, market)
-        if len(history) >= 2:
-            alarms = analyze_match_alarms(history, market)
-            for alarm in alarms:
-                formatted = format_alarm_for_modal(alarm)
-                formatted['market'] = market
-                all_alarms.append(formatted)
-    
-    all_alarms.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-    
-    match_alarm_cache[cache_key] = {
-        'alarms': all_alarms.copy(),
-        'timestamp': now
-    }
-    
-    if today_only:
-        all_alarms = [a for a in all_alarms if is_today_turkey(a.get('timestamp', ''))]
-    
-    return all_alarms
+    return match_alarms
 
 @app.route('/api/match/alarms')
 def get_match_alarms():
