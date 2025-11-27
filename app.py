@@ -677,10 +677,13 @@ def get_ticker_alarms():
                         formatted['date'] = date
                         all_alarms.append(formatted)
         
-        critical = get_critical_alarms(all_alarms, limit=20)
+        critical = get_critical_alarms(all_alarms, limit=10)
         
-        if len(critical) < 20:
+        if True:
             demo_matches = [
+                ('Tottenham', 'Arsenal', 'Premier League', '#06b6d4', 'momentum_change', '', '1→X', '', ''),
+                ('Sevilla', 'Betis', 'La Liga', '#06b6d4', 'momentum_change', '', 'X→2', '', ''),
+                ('AC Milan', 'Inter', 'Serie A', '#06b6d4', 'momentum_change', '', '2→1', '', ''),
                 ('Arsenal', 'Chelsea', 'Premier League', '#f85149', 'rlm', '+£450', '1', '2.10', '2.25'),
                 ('Real Madrid', 'Barcelona', 'La Liga', '#4ade80', 'sharp', '+£820', '2', '1.85', '1.72'),
                 ('Bayern', 'Dortmund', 'Bundesliga', '#f0883e', 'big_money', '+£1,200', 'X', '3.40', '3.55'),
@@ -709,6 +712,7 @@ def get_ticker_alarms():
                 'big_money': ('⚠', 'Big Money', '#f0883e'),
                 'line_freeze': ('🔵', 'Line Freeze', '#58a6ff'),
                 'momentum': ('🟣', 'Momentum', '#a371f7'),
+                'momentum_change': ('🔄', 'Momentum Change', '#06b6d4'),
             }
             
             for i, (home, away, league, color, atype, money, side, odds_from, odds_to) in enumerate(demo_matches):
