@@ -162,6 +162,7 @@ Environment variables:
 - **SUPABASE SECRET ADI** - Her zaman SUPABASE_ANON_KEY kullan (SUPABASE_KEY değil)
 
 ## Son Guncellemeler
+- **27 Kasim 2025:** Alarm listesi optimizasyonu: sayfalama (30'luk), server-side filtre/sort, lazy loading (scroll)
 - **27 Kasim 2025:** Tarih filtresi 3 modlu sistem: ALL (bugün+gelecek), TODAY (sadece bugün), YESTERDAY (sadece dün)
 - **27 Kasim 2025:** Drop BTTS Supabase sütun adları düzeltildi (oddsyes/oddsno)
 - **27 Kasim 2025:** Tarih parse hem "27.11" hem "27.Nov" formatını destekliyor
