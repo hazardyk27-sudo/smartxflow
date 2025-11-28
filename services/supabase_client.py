@@ -525,7 +525,7 @@ class SupabaseClient:
             return []
     
     def get_6h_odds_history(self, market: str) -> Dict[str, Dict[str, Any]]:
-        """Get odds history for DROP markets (last 24 hours only for performance).
+        """Get odds history for DROP markets (last 14 days).
         Returns dict: { "home|away": { "sel1": [values], "sel2": [values], ... } }
         """
         if not self.is_available:
@@ -542,14 +542,14 @@ class SupabaseClient:
             
             turkey_tz = pytz.timezone('Europe/Istanbul')
             now_turkey = datetime.now(turkey_tz)
-            # PERFORMANS: 14 gün yerine sadece 24 saat (önceki: 14 gün = 44000+ satır)
-            one_day_ago = now_turkey - timedelta(hours=24)
-            cutoff_iso = one_day_ago.strftime('%Y-%m-%d %H:%M:%S')
+            # 14 gün geriye git
+            fourteen_days_ago = now_turkey - timedelta(days=14)
+            cutoff_iso = fourteen_days_ago.strftime('%Y-%m-%d %H:%M:%S')
             
             all_rows = []
             offset = 0
             page_size = 1000
-            max_pages = 10  # Azaltıldı (önceki: 50)
+            max_pages = 50  # 14 gün için yeterli sayfa
             
             for page in range(max_pages):
                 url = f"{self._rest_url(history_table)}?scrapedat=gte.{cutoff_iso}&order=scrapedat.asc&limit={page_size}&offset={offset}"
