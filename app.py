@@ -1042,7 +1042,7 @@ def get_all_alarms():
                          search_query in a.get('away', '').lower()]
         
         if type_filter != 'all':
-            formatted = [a for a in formatted if type_filter in a.get('type', '')]
+            formatted = [a for a in formatted if a.get('type', '') == type_filter]
         
         if sort_by == 'money':
             formatted.sort(key=lambda x: x.get('max_money', 0), reverse=True)

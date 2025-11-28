@@ -1391,6 +1391,11 @@ function getTrendArrow(current, previous) {
 
 function closeModal() {
     document.getElementById('modalOverlay').classList.remove('active');
+    const chartTooltip = document.getElementById('chartjs-tooltip');
+    if (chartTooltip) {
+        chartTooltip.style.opacity = 0;
+    }
+    closeAlarmHistoryPopover();
 }
 
 function getBucketConfig() {
@@ -1422,17 +1427,9 @@ function roundToBucket(timestamp) {
 }
 
 function formatTimeLabel(date) {
-    const config = getBucketConfig();
     const dt = toTurkeyTime(date);
-    if (!dt) return '';
-    
-    if (config.labelFormat === 'date') {
-        return dt.format('DD.MM');
-    }
-    if (config.labelFormat === 'datetime') {
-        return dt.format('DD.MM HH:mm');
-    }
-    return dt.format('HH:mm');
+    if (!dt || !dt.isValid()) return '';
+    return dt.format('DD.MM • HH:mm');
 }
 
 async function loadChart(home, away, market) {
@@ -1801,9 +1798,28 @@ async function loadChart(home, away, market) {
                             const position = context.chart.canvas.getBoundingClientRect();
                             tooltipEl.style.opacity = 1;
                             tooltipEl.style.position = 'absolute';
-                            tooltipEl.style.left = position.left + window.pageXOffset + tooltipModel.caretX + 'px';
-                            tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY + 'px';
                             tooltipEl.style.pointerEvents = 'none';
+                            
+                            let left = position.left + window.pageXOffset + tooltipModel.caretX;
+                            let top = position.top + window.pageYOffset + tooltipModel.caretY;
+                            
+                            const tooltipWidth = tooltipEl.offsetWidth || 200;
+                            const tooltipHeight = tooltipEl.offsetHeight || 100;
+                            const viewportWidth = window.innerWidth;
+                            const viewportHeight = window.innerHeight;
+                            
+                            if (left + tooltipWidth > viewportWidth - 20) {
+                                left = viewportWidth - tooltipWidth - 20;
+                            }
+                            if (left < 10) left = 10;
+                            
+                            if (top + tooltipHeight > viewportHeight + window.pageYOffset - 20) {
+                                top = top - tooltipHeight - 20;
+                            }
+                            if (top < window.pageYOffset + 10) top = window.pageYOffset + 10;
+                            
+                            tooltipEl.style.left = left + 'px';
+                            tooltipEl.style.top = top + 'px';
                         }
                     }
                 },
@@ -2852,7 +2868,7 @@ function renderAlarmListFromMaster() {
     }
     
     if (typeFilter !== 'all') {
-        filtered = filtered.filter(a => (a.type || '').includes(typeFilter));
+        filtered = filtered.filter(a => (a.type || '') === typeFilter);
     }
     
     filtered.sort((a, b) => new Date(b.latest_time || 0) - new Date(a.latest_time || 0));
