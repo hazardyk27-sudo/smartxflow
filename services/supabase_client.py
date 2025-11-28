@@ -216,6 +216,9 @@ class SupabaseClient:
         }
     
     def get_match_history(self, home_team: str, away_team: str, market: str) -> List[Dict[str, Any]]:
+        """
+        Get history for a specific match with pagination to handle 1000 row limit.
+        """
         if not self.is_available:
             return []
         
@@ -225,13 +228,30 @@ class SupabaseClient:
             home_enc = urllib.parse.quote(home_team, safe='')
             away_enc = urllib.parse.quote(away_team, safe='')
             
-            url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}&order=scrapedat.asc"
-            resp = httpx.get(url, headers=self._headers(), timeout=15)
+            all_rows = []
+            offset = 0
+            page_size = 1000
+            max_pages = 10
             
-            if resp.status_code == 200:
+            for page in range(max_pages):
+                url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}&order=scrapedat.asc&limit={page_size}&offset={offset}"
+                resp = httpx.get(url, headers=self._headers(), timeout=15)
+                
+                if resp.status_code != 200:
+                    break
+                
                 rows = resp.json()
-                return [self._history_row_to_legacy(r, market) for r in rows]
-            return []
+                if not rows:
+                    break
+                
+                all_rows.extend(rows)
+                
+                if len(rows) < page_size:
+                    break
+                
+                offset += page_size
+            
+            return [self._history_row_to_legacy(r, market) for r in all_rows]
         except Exception as e:
             print(f"Error get_match_history from {market}_history: {e}")
             return []
@@ -299,7 +319,7 @@ class SupabaseClient:
     def get_bulk_history_for_alarms(self, market: str, match_pairs: List[tuple], lookback_hours: int = 168) -> Dict[tuple, List[Dict]]:
         """
         Fetch history for each match individually to ensure complete data.
-        Uses batch queries with OR conditions to minimize API calls.
+        Uses batch queries with OR conditions and pagination to handle 1000 row limit.
         
         Args:
             market: Market type (moneyway_1x2, etc.)
@@ -320,7 +340,9 @@ class SupabaseClient:
             
             result = {}
             total_rows = 0
-            batch_size = 20
+            batch_size = 10
+            page_size = 1000
+            max_pages_per_batch = 5
             
             for i in range(0, len(match_pairs), batch_size):
                 batch = match_pairs[i:i+batch_size]
@@ -332,22 +354,33 @@ class SupabaseClient:
                     or_conditions.append(f"and(home.eq.{home_enc},away.eq.{away_enc})")
                 
                 or_query = ",".join(or_conditions)
-                url = f"{self._rest_url(history_table)}?or=({or_query})&scrapedat=gte.{cutoff}&order=scrapedat.asc&limit=5000"
                 
-                headers = self._headers()
-                resp = httpx.get(url, headers=headers, timeout=60)
-                
-                if resp.status_code != 200:
-                    continue
-                
-                rows = resp.json()
-                total_rows += len(rows)
-                
-                for row in rows:
-                    key = (row.get('home', ''), row.get('away', ''))
-                    if key not in result:
-                        result[key] = []
-                    result[key].append(self._history_row_to_legacy(row, market))
+                offset = 0
+                for page in range(max_pages_per_batch):
+                    url = f"{self._rest_url(history_table)}?or=({or_query})&scrapedat=gte.{cutoff}&order=scrapedat.asc&limit={page_size}&offset={offset}"
+                    
+                    headers = self._headers()
+                    resp = httpx.get(url, headers=headers, timeout=60)
+                    
+                    if resp.status_code != 200:
+                        break
+                    
+                    rows = resp.json()
+                    if not rows:
+                        break
+                    
+                    total_rows += len(rows)
+                    
+                    for row in rows:
+                        key = (row.get('home', ''), row.get('away', ''))
+                        if key not in result:
+                            result[key] = []
+                        result[key].append(self._history_row_to_legacy(row, market))
+                    
+                    if len(rows) < page_size:
+                        break
+                    
+                    offset += page_size
             
             print(f"[Supabase] Bulk history ({market}): {total_rows} rows ({lookback_hours}h lookback), {len(result)} matches")
             return result
