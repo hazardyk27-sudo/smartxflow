@@ -168,8 +168,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setupModalChartTabs();
     checkStatus();
     loadMasterAlarms();
-    window.statusInterval = window.setInterval(checkStatus, 30000);
-    window.alarmInterval = window.setInterval(loadMasterAlarms, 60000);
+    // Performans için polling interval'leri artırıldı
+    window.statusInterval = window.setInterval(checkStatus, 60000);  // 60 saniye (önceki: 30)
+    window.alarmInterval = window.setInterval(loadMasterAlarms, 120000);  // 2 dakika (önceki: 1)
 });
 
 function setupTabs() {

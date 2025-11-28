@@ -805,7 +805,7 @@ def export_png():
 alarm_cache = {
     'data': None,
     'timestamp': 0,
-    'ttl': 120
+    'ttl': 300  # 5 dakika cache (önceki: 2 dakika) - performans için artırıldı
 }
 
 DEMO_TEAMS = {'Whale FC', 'Sharp FC', 'Pro Bettors XI', 'Casual City', 'Target United', 
@@ -1248,7 +1248,7 @@ def safety_check():
 ticker_cache = {
     'data': None,
     'timestamp': 0,
-    'ttl': 60
+    'ttl': 120  # 2 dakika cache (önceki: 1 dakika) - performans için artırıldı
 }
 
 @app.route('/api/alarms/ticker')

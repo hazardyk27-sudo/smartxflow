@@ -316,7 +316,7 @@ class SupabaseClient:
         
         return result
     
-    def get_bulk_history_for_alarms(self, market: str, match_pairs: List[tuple], lookback_hours: int = 168) -> Dict[tuple, List[Dict]]:
+    def get_bulk_history_for_alarms(self, market: str, match_pairs: List[tuple], lookback_hours: int = 48) -> Dict[tuple, List[Dict]]:
         """
         Fetch history for each match individually to ensure complete data.
         Uses batch queries with OR conditions and pagination to handle 1000 row limit.
@@ -324,7 +324,7 @@ class SupabaseClient:
         Args:
             market: Market type (moneyway_1x2, etc.)
             match_pairs: List of (home, away) tuples
-            lookback_hours: How far back to look (default 168 = 7 days)
+            lookback_hours: How far back to look (default 48 = 2 days, performans için azaltıldı)
         
         Returns: {(home, away): [history_records]}
         """
