@@ -163,6 +163,10 @@ Environment variables:
 - **SUPABASE SECRET ADI** - Her zaman SUPABASE_ANON_KEY kullan (SUPABASE_KEY değil)
 
 ## Son Guncellemeler
+- **28 Kasim 2025:** 3 AŞAMALI ALARM DOĞRULAMA TESTİ TAMAMLANDI - Tüm teorik alarmlar DB'de mevcut
+- **28 Kasim 2025:** get_bulk_history_for_alarms: Batch OR query ile 12000+ row çekiliyor (1000 limit aşıldı)
+- **28 Kasim 2025:** 6 market taranıyor: moneyway_1x2/ou25/btts + dropping_1x2/ou25/btts
+- **28 Kasim 2025:** "dropping" tipi alarmlar için window_start/window_end eklendi
 - **28 Kasim 2025:** KALICI ALARM SİSTEMİ - Alarmlar Supabase smart_money_alarms tablosuna kaydediliyor
 - **28 Kasim 2025:** Alarm bir kez üretildiğinde maç oynanana kadar görünür kalıyor (volatile değil)
 - **28 Kasim 2025:** detect_and_save_alarms() fonksiyonu - her 10 dakikada yeni alarmları tespit edip kaydediyor

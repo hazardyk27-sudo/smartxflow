@@ -320,7 +320,9 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None)
         
         if total_drop >= drop_config.get('min_total_drop', 0.30):
             if curr_pct >= drop_config.get('min_money_pct', 60):
-                alarm_key = ('dropping', side['key'])
+                first_ts = first.get('ScrapedAt', '') if first else ''
+                curr_ts = current.get('ScrapedAt', now_turkey_iso())
+                alarm_key = ('dropping', side['key'], first_ts[:13] if first_ts else '')
                 if alarm_key not in seen_alarms:
                     seen_alarms.add(alarm_key)
                     detected_alarms.append({
@@ -331,7 +333,9 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None)
                         'odds_to': curr_odds,
                         'total_drop': total_drop,
                         'money_pct': curr_pct,
-                        'timestamp': current.get('ScrapedAt', now_turkey_iso())
+                        'window_start': first_ts,
+                        'window_end': curr_ts,
+                        'timestamp': curr_ts
                     })
     
     big_money_result = check_big_money_all_windows(history, sides, WINDOW_MINUTES)
