@@ -200,6 +200,7 @@ Environment variables:
 - Detaylı rapor döner
 
 ## Son Guncellemeler
+- **28 Kasim 2025:** Frontend timezone tutarlılığı: roundToBucket/loadChart dayjs ile güncellendi, JS Date kaldırıldı
 - **28 Kasim 2025:** 7 MADDELİK ALARM GÜVENLİK SİSTEMİ TAMAMLANDI
 - **28 Kasim 2025:** core/alarm_safety.py: AlarmSafetyGuard, run_reconciliation, retry_failed_alarms
 - **28 Kasim 2025:** /api/alarms/reconcile, /api/alarms/safety-check endpoint'leri
