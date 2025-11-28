@@ -512,16 +512,36 @@ class SupabaseClient:
             fourteen_days_ago = now_turkey - timedelta(days=14)
             cutoff_iso = fourteen_days_ago.strftime('%Y-%m-%d %H:%M:%S')
             
-            url = f"{self._rest_url(history_table)}?scrapedat=gte.{cutoff_iso}&order=scrapedat.asc"
-            resp = httpx.get(url, headers=self._headers(), timeout=20)
+            all_rows = []
+            offset = 0
+            page_size = 1000
+            max_pages = 50
             
-            if resp.status_code != 200:
-                print(f"[6h History] Error {resp.status_code} from {history_table}")
+            for page in range(max_pages):
+                url = f"{self._rest_url(history_table)}?scrapedat=gte.{cutoff_iso}&order=scrapedat.asc&limit={page_size}&offset={offset}"
+                resp = httpx.get(url, headers=self._headers(), timeout=30)
+                
+                if resp.status_code != 200:
+                    print(f"[6h History] Error {resp.status_code} from {history_table}")
+                    break
+                
+                rows = resp.json()
+                if not rows:
+                    break
+                
+                all_rows.extend(rows)
+                
+                if len(rows) < page_size:
+                    break
+                
+                offset += page_size
+            
+            print(f"[6h History] Fetched {len(all_rows)} total rows from {history_table}")
+            
+            if not all_rows:
                 return {}
             
-            rows = resp.json()
-            if not rows:
-                return {}
+            rows = all_rows
             
             result = {}
             
