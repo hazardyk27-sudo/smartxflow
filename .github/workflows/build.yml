@@ -109,11 +109,23 @@ jobs:
               f.write(f"Debug log will be created as smartxflow_debug.log\n")
               f.write(f"in the same folder as the EXE when you run it.\n")
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: SmartXFlow-Windows-EXE
-          path: |
+          tag_name: v1.01-build-${{ github.run_number }}
+          name: SmartXFlow Desktop v1.01 (Build ${{ github.run_number }})
+          body: |
+            🖥️ **SmartXFlow Desktop Uygulaması**
+            
+            Otomatik build - ${{ github.event.head_commit.message }}
+            
+            **İndirme:**
+            - `SmartXFlowDesktop.exe` - Ana uygulama
+            - `BUILD_INFO.txt` - Build bilgileri
+          files: |
             dist/SmartXFlowDesktop.exe
             dist/BUILD_INFO.txt
-          retention-days: 30
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
