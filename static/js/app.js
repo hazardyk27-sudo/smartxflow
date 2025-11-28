@@ -2620,16 +2620,18 @@ async function loadMasterAlarms() {
     }
 }
 
-function renderSmartMoneyBand() {
+let tickerLastAlarmId = null;
+let tickerAnimationPaused = false;
+
+function renderSmartMoneyBand(highlightNewAlarm = false) {
     const tickerTrack = document.getElementById('tickerTrack');
     if (!tickerTrack) return;
     
     if (masterAlarmData.length === 0) {
         tickerTrack.innerHTML = '<div class="ticker-empty">Aktif kritik alarm yok</div>';
+        tickerTrack.style.animation = 'none';
         return;
     }
-    
-    tickerTrack.innerHTML = '';
     
     const allEvents = [];
     masterAlarmData.forEach(group => {
@@ -2653,13 +2655,23 @@ function renderSmartMoneyBand() {
     
     if (latest10.length === 0) {
         tickerTrack.innerHTML = '<div class="ticker-empty">Aktif kritik alarm yok</div>';
+        tickerTrack.style.animation = 'none';
         return;
     }
     
-    const createPill = (alarm, index) => {
+    const newFirstAlarmId = `${latest10[0].type}_${latest10[0].home}_${latest10[0].away}_${latest10[0].timestamp}`;
+    const hasNewAlarm = tickerLastAlarmId !== null && tickerLastAlarmId !== newFirstAlarmId;
+    tickerLastAlarmId = newFirstAlarmId;
+    
+    tickerTrack.style.animation = 'none';
+    tickerTrack.offsetHeight;
+    tickerTrack.innerHTML = '';
+    
+    const createPill = (alarm, index, isClone = false) => {
         const pill = document.createElement('div');
         pill.className = 'ticker-pill';
-        pill.style.order = index;
+        pill.dataset.alarmType = alarm.type;
+        pill.dataset.alarm = alarm.type;
         
         pill.dataset.matchId = alarm.match_id || '';
         pill.dataset.home = alarm.home;
@@ -2680,6 +2692,11 @@ function renderSmartMoneyBand() {
             ${sideText ? `<span class="pill-side">${sideText}</span>` : ''}
         `;
         
+        if (index === 0 && !isClone && (hasNewAlarm || highlightNewAlarm)) {
+            pill.classList.add('ticker-pill-new');
+            setTimeout(() => pill.classList.remove('ticker-pill-new'), 2000);
+        }
+        
         pill.onclick = () => {
             console.log('[Band→Match] Clicked:', alarm.home, 'vs', alarm.away, 'match_id:', alarm.match_id);
             openMatchModalById(
@@ -2694,13 +2711,23 @@ function renderSmartMoneyBand() {
         return pill;
     };
     
-    latest10.forEach((alarm, index) => tickerTrack.appendChild(createPill(alarm, index)));
-    latest10.forEach((alarm, index) => tickerTrack.appendChild(createPill(alarm, 10 + index)));
+    latest10.forEach((alarm, index) => tickerTrack.appendChild(createPill(alarm, index, false)));
+    latest10.forEach((alarm, index) => tickerTrack.appendChild(createPill(alarm, index, true)));
     
-    const totalWidth = tickerTrack.scrollWidth / 2;
-    const speed = 224;
-    const duration = totalWidth / speed;
-    tickerTrack.style.animationDuration = `${Math.max(duration, 4)}s`;
+    requestAnimationFrame(() => {
+        const pillCount = latest10.length;
+        const avgPillWidth = 320;
+        const gap = 16;
+        const totalWidth = (avgPillWidth + gap) * pillCount;
+        
+        const speed = 60;
+        const duration = totalWidth / speed;
+        const finalDuration = Math.max(duration, 20);
+        
+        tickerTrack.style.animation = `tickerScroll ${finalDuration}s linear infinite`;
+        
+        console.log(`[Ticker] ${pillCount} alarms, duration: ${finalDuration.toFixed(1)}s`);
+    });
 }
 
 function addToAlertsHistory(alarm) {
