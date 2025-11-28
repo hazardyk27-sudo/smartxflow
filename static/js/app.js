@@ -39,23 +39,46 @@ function toTurkeyTime(value) {
             };
             const day = parseInt(arbworldMatch[1]);
             const month = monthMap[arbworldMatch[2]];
+            if (month === undefined) return dayjs.tz(value, APP_TIMEZONE);
+            
             const timeParts = arbworldMatch[3].split(':').map(Number);
             const now = dayjs().tz(APP_TIMEZONE);
-            let year = now.year();
+            const currentYear = now.year();
             
-            if (month < now.month() - 1) {
-                year++;
-            }
-            
-            const utcDate = dayjs.utc()
-                .year(year)
+            const candidate1 = dayjs.utc()
+                .year(currentYear)
                 .month(month)
                 .date(day)
                 .hour(timeParts[0])
                 .minute(timeParts[1])
                 .second(timeParts[2] || 0);
             
-            return utcDate.tz(APP_TIMEZONE);
+            const candidate2 = dayjs.utc()
+                .year(currentYear - 1)
+                .month(month)
+                .date(day)
+                .hour(timeParts[0])
+                .minute(timeParts[1])
+                .second(timeParts[2] || 0);
+            
+            const candidate3 = dayjs.utc()
+                .year(currentYear + 1)
+                .month(month)
+                .date(day)
+                .hour(timeParts[0])
+                .minute(timeParts[1])
+                .second(timeParts[2] || 0);
+            
+            const nowUtc = dayjs.utc();
+            const diff1 = Math.abs(candidate1.diff(nowUtc, 'day'));
+            const diff2 = Math.abs(candidate2.diff(nowUtc, 'day'));
+            const diff3 = Math.abs(candidate3.diff(nowUtc, 'day'));
+            
+            let bestCandidate = candidate1;
+            if (diff2 < diff1 && diff2 < diff3) bestCandidate = candidate2;
+            if (diff3 < diff1 && diff3 < diff2) bestCandidate = candidate3;
+            
+            return bestCandidate.tz(APP_TIMEZONE);
         }
         
         return dayjs.tz(value, APP_TIMEZONE);
