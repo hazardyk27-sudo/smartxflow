@@ -95,7 +95,13 @@ def cleanup_old_matches():
 
 
 def start_cleanup_scheduler():
-    """Start daily cleanup scheduler - includes alarm state cleanup and alarm detection"""
+    """
+    Start daily cleanup scheduler - includes:
+    - Alarm state cleanup
+    - Periodic alarm detection (every 10 min)
+    - Hourly reconciliation job (self-check for missing alarms)
+    - Retry failed alarms
+    """
     global cleanup_thread
     
     try:
@@ -103,11 +109,19 @@ def start_cleanup_scheduler():
     except ImportError:
         cleanup_old_alarm_states = lambda *args: None
     
+    try:
+        from core.alarm_safety import run_reconciliation, retry_failed_alarms
+    except ImportError:
+        run_reconciliation = lambda *args, **kwargs: {}
+        retry_failed_alarms = lambda *args: {}
+    
     print("[Startup] Running initial alarm detection...")
     try:
         detect_and_save_alarms()
     except Exception as e:
         print(f"[Startup] Initial alarm detection error: {e}")
+    
+    loop_count = [0]
     
     def cleanup_loop():
         while True:
@@ -118,6 +132,23 @@ def start_cleanup_scheduler():
                 detect_and_save_alarms()
             except Exception as e:
                 print(f"[AlarmDetector] Error in periodic scan: {e}")
+            
+            loop_count[0] += 1
+            if loop_count[0] % 6 == 0:
+                print("[Reconciliation] Running hourly self-check...")
+                try:
+                    supabase = get_supabase_client()
+                    if supabase and supabase.is_available:
+                        retry_failed_alarms(supabase)
+                        
+                        markets = [
+                            'moneyway_1x2', 'moneyway_ou25', 'moneyway_btts',
+                            'dropping_1x2', 'dropping_ou25', 'dropping_btts'
+                        ]
+                        result = run_reconciliation(supabase, markets, lookback_days=7)
+                        print(f"[Reconciliation] Result: {result.get('status', 'unknown')}")
+                except Exception as e:
+                    print(f"[Reconciliation] Error: {e}")
             
             time.sleep(600)
     
@@ -786,9 +817,15 @@ def detect_and_save_alarms():
     STEP 1: Detect new alarms from history and SAVE them to Supabase.
     Called after scrape or periodically. Alarms are PERSISTENT once saved.
     Scans ALL 6 markets (3 moneyway + 3 dropping) for comprehensive detection.
+    
+    SAFETY FEATURES:
+    - Uses AlarmSafetyGuard for error handling and logging
+    - Failed inserts are logged for later retry
+    - No DELETE or UPDATE operations - append-only
     """
     import time
     from core.timezone import is_match_today_or_future
+    from core.alarm_safety import AlarmSafetyGuard, log_failed_alarm
     
     print("[AlarmDetector] Scanning for new alarms...")
     start_time = time.time()
@@ -843,7 +880,8 @@ def detect_and_save_alarms():
     
     supabase = get_supabase_client()
     if supabase and supabase.is_available and all_alarms:
-        saved = supabase.save_alarms_batch(all_alarms)
+        safety_guard = AlarmSafetyGuard(supabase)
+        saved = safety_guard.safe_save_batch(all_alarms)
         elapsed = time.time() - start_time
         print(f"[AlarmDetector] Scanned {len(match_pairs)} matches, detected {len(all_alarms)} alarms, saved {saved} new in {elapsed:.2f}s")
     
@@ -1049,6 +1087,100 @@ def trigger_alarm_scan():
         print(f"[Alarm Scan] Error: {e}")
         import traceback
         traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)})
+
+
+@app.route('/api/alarms/reconcile')
+def trigger_reconciliation():
+    """
+    RECONCILIATION ENDPOINT - Self-check for missing alarms.
+    
+    This endpoint:
+    1. Compares expected alarms (from history) with DB alarms
+    2. Inserts any missing alarms
+    3. Returns detailed report
+    
+    Can be called manually or by scheduled job.
+    """
+    try:
+        from core.alarm_safety import run_reconciliation, retry_failed_alarms
+        
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return jsonify({'status': 'error', 'error': 'Supabase not available'})
+        
+        retry_result = retry_failed_alarms(supabase)
+        
+        markets = [
+            'moneyway_1x2', 'moneyway_ou25', 'moneyway_btts',
+            'dropping_1x2', 'dropping_ou25', 'dropping_btts'
+        ]
+        result = run_reconciliation(supabase, markets, lookback_days=7)
+        
+        alarm_cache['data'] = None
+        alarm_cache['timestamp'] = 0
+        
+        return jsonify({
+            'status': result.get('status', 'unknown'),
+            'reconciliation': {
+                'expected': result.get('expected', 0),
+                'found': result.get('found', 0),
+                'missing': result.get('missing', 0),
+                'fixed': result.get('inserted', 0)
+            },
+            'retry': retry_result,
+            'message': f"Reconciliation complete: {result.get('missing', 0)} missing, {result.get('inserted', 0)} fixed"
+        })
+    except Exception as e:
+        print(f"[Reconciliation] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)})
+
+
+@app.route('/api/alarms/safety-check')
+def safety_check():
+    """
+    SAFETY CHECK ENDPOINT - Verify alarm system integrity.
+    
+    Checks:
+    1. No DELETE operations in code
+    2. Failed alarms log status
+    3. Last reconciliation result
+    """
+    try:
+        from core.alarm_safety import verify_no_delete_operations, get_failed_alarms
+        import os
+        import json
+        
+        delete_check = verify_no_delete_operations()
+        
+        failed_alarms = get_failed_alarms()
+        
+        recon_log_path = os.path.join(os.path.dirname(__file__), 'data', 'reconciliation_log.json')
+        last_recon = None
+        if os.path.exists(recon_log_path):
+            try:
+                with open(recon_log_path, 'r') as f:
+                    recon_log = json.load(f)
+                    if recon_log:
+                        last_recon = recon_log[-1]
+            except:
+                pass
+        
+        return jsonify({
+            'status': 'healthy' if delete_check['safe'] and len(failed_alarms) == 0 else 'warning',
+            'checks': {
+                'no_delete_operations': delete_check['safe'],
+                'delete_issues': delete_check.get('issues', []),
+                'failed_alarms_count': len(failed_alarms),
+                'failed_alarms_sample': failed_alarms[:3] if failed_alarms else [],
+                'last_reconciliation': last_recon
+            },
+            'message': 'Alarm system integrity verified' if delete_check['safe'] else 'Issues found - check details'
+        })
+    except Exception as e:
+        print(f"[Safety Check] Error: {e}")
         return jsonify({'status': 'error', 'error': str(e)})
 
 
