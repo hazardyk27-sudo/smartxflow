@@ -653,13 +653,12 @@ function applySorting(data) {
     
     sortedData = sortedData.filter(m => hasValidMarketData(m, currentMarket));
     
-    const now = new Date();
-    const todayDay = now.getDate();
-    const todayMonth = now.getMonth() + 1;
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 1);
-    const yesterdayDay = yesterday.getDate();
-    const yesterdayMonth = yesterday.getMonth() + 1;
+    const nowTR = nowTurkey();
+    const todayDay = nowTR.date();
+    const todayMonth = nowTR.month() + 1;
+    const yesterdayTR = nowTR.subtract(1, 'day');
+    const yesterdayDay = yesterdayTR.date();
+    const yesterdayMonth = yesterdayTR.month() + 1;
     
     const monthNames = {
         'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
@@ -1413,27 +1412,26 @@ function getBucketConfig() {
 }
 
 function roundToBucket(timestamp) {
-    const date = new Date(timestamp);
+    const dt = toTurkeyTime(timestamp);
+    if (!dt) return new Date();
     const config = getBucketConfig();
     const bucketMs = config.bucketMinutes * 60 * 1000;
-    const roundedTime = Math.floor(date.getTime() / bucketMs) * bucketMs;
+    const roundedTime = Math.floor(dt.valueOf() / bucketMs) * bucketMs;
     return new Date(roundedTime);
 }
 
 function formatTimeLabel(date) {
     const config = getBucketConfig();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const dt = toTurkeyTime(date);
+    if (!dt) return '';
     
     if (config.labelFormat === 'date') {
-        return `${day}.${month}`;
+        return dt.format('DD.MM');
     }
     if (config.labelFormat === 'datetime') {
-        return `${day}.${month} ${hours}:${minutes}`;
+        return dt.format('DD.MM HH:mm');
     }
-    return `${hours}:${minutes}`;
+    return dt.format('HH:mm');
 }
 
 async function loadChart(home, away, market) {
@@ -2376,7 +2374,7 @@ function exportChartCSV() {
     csvContent += `# Chart Type: ${marketLabel}\n`;
     csvContent += `# Time Range: ${timeRangeLabel}\n`;
     csvContent += `# Visible Series: ${visibleSeriesNames}\n`;
-    csvContent += `# Export Date: ${new Date().toLocaleString('tr-TR')}\n`;
+    csvContent += `# Export Date: ${nowTurkey().format('DD.MM.YYYY HH:mm')} (TR)\n`;
     csvContent += `#\n`;
     
     let headers = ['timestamp'];
@@ -2997,12 +2995,7 @@ function toggleAlarmGroup(groupId) {
 
 function formatAlarmTime(timestamp) {
     if (!timestamp) return '';
-    try {
-        const date = new Date(timestamp);
-        return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-    } catch {
-        return timestamp.substring(11, 16) || '';
-    }
+    return formatTurkeyTime(timestamp, 'HH:mm');
 }
 
 function renderAlarmList() {
@@ -3041,10 +3034,7 @@ function renderAlarmList() {
     
     container.innerHTML = filtered.map(alarm => {
         const timeAgo = getTimeAgo(alarm.timestamp);
-        const dateStr = new Date(alarm.timestamp).toLocaleString('tr-TR', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-        });
+        const dateStr = formatTurkeyDateTime(alarm.timestamp, 'DD.MM.YYYY HH:mm');
         const oddsText = (alarm.oddsOld && alarm.oddsNew) 
             ? `${parseFloat(alarm.oddsOld).toFixed(2)} → ${parseFloat(alarm.oddsNew).toFixed(2)}`
             : '';
@@ -3311,25 +3301,10 @@ function groupAlarmsByType(alarms) {
 
 function formatAlarmDateTime(timestamp) {
     if (!timestamp) return '';
-    try {
-        const date = new Date(timestamp);
-        if (isNaN(date.getTime())) {
-            if (timestamp.includes(' ')) {
-                const [datePart, timePart] = timestamp.split(' ');
-                const time = timePart ? timePart.substring(0, 5) : '';
-                return `${datePart.substring(5, 10)} · ${time}`;
-            }
-            return timestamp.substring(0, 16);
-        }
-        const day = date.getDate().toString().padStart(2, '0');
-        const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-        const month = months[date.getMonth()];
-        const hours = date.getHours().toString().padStart(2, '0');
-        const mins = date.getMinutes().toString().padStart(2, '0');
-        return `${day} ${month} · ${hours}:${mins}`;
-    } catch {
-        return timestamp.substring(0, 16) || '';
-    }
+    const dt = toTurkeyTime(timestamp);
+    if (!dt || !dt.isValid()) return '';
+    const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    return `${dt.format('DD')} ${months[dt.month()]} · ${dt.format('HH:mm')}`;
 }
 
 function showAlarmHistoryPopover(badge, data) {
@@ -3420,21 +3395,6 @@ function closePopoverOnClickOutside(e) {
     }
 }
 
-function formatAlarmTime(timestamp) {
-    if (!timestamp) return '';
-    try {
-        const date = new Date(timestamp);
-        if (isNaN(date.getTime())) {
-            if (timestamp.includes(' ')) {
-                return timestamp.split(' ')[1]?.substring(0, 5) || '';
-            }
-            return '';
-        }
-        return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-    } catch {
-        return timestamp.substring(11, 16) || '';
-    }
-}
 
 async function loadMatchAlarms(home, away) {
     try {
