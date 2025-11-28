@@ -2720,9 +2720,9 @@ function renderSmartMoneyBand(highlightNewAlarm = false) {
         const gap = 16;
         const totalWidth = (avgPillWidth + gap) * pillCount;
         
-        const speed = 60;
+        const speed = 240;
         const duration = totalWidth / speed;
-        const finalDuration = Math.max(duration, 20);
+        const finalDuration = Math.max(duration, 5);
         
         tickerTrack.style.animation = `tickerScroll ${finalDuration}s linear infinite`;
         
