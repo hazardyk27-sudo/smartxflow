@@ -3046,11 +3046,53 @@ function goToMatchFromAlarm(home, away, matchId, league) {
         m.away_team.trim().toLowerCase() === awayLower
     );
     
+    console.log('[Alarm→Match] Searching:', home, 'vs', away, '| Found index:', matchIndex);
+    
     if (matchIndex >= 0) {
         openMatchModal(matchIndex);
     } else {
-        console.log('[Alarm] Maç listede bulunamadı:', home, 'vs', away);
+        console.log('[Alarm→Match] Not in current list, opening directly');
+        openMatchDirectly(home, away, league);
     }
+}
+
+function openMatchDirectly(home, away, league) {
+    selectedMatch = { 
+        home_team: home, 
+        away_team: away, 
+        league: league || '', 
+        date: ''
+    };
+    selectedChartMarket = currentMarket;
+    previousOddsData = null;
+    modalOddsData = null;
+    
+    modalSmartMoneyEventsOpen = false;
+    const wrapper = document.getElementById('modalEventsGridWrapper');
+    const chevron = document.getElementById('modalEventsChevron');
+    if (wrapper) {
+        wrapper.classList.remove('expanded');
+        wrapper.classList.add('collapsed');
+    }
+    if (chevron) {
+        chevron.classList.remove('rotated');
+    }
+    
+    document.getElementById('modalMatchTitle').textContent = `${home} vs ${away}`;
+    document.getElementById('modalLeague').textContent = league || 'Yükleniyor...';
+    
+    updateMatchInfoCard();
+    
+    document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
+        t.classList.remove('active');
+        if (t.dataset.market === selectedChartMarket) {
+            t.classList.add('active');
+        }
+    });
+    
+    document.getElementById('modalOverlay').classList.add('active');
+    loadChartWithTrends(home, away, selectedChartMarket);
+    loadMatchAlarms(home, away);
 }
 
 function openMatchModalById(matchId, home, away, market, league, alarmType) {
