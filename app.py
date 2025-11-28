@@ -785,6 +785,7 @@ def detect_and_save_alarms():
     """
     STEP 1: Detect new alarms from history and SAVE them to Supabase.
     Called after scrape or periodically. Alarms are PERSISTENT once saved.
+    Scans ALL 6 markets (3 moneyway + 3 dropping) for comprehensive detection.
     """
     import time
     from core.timezone import is_match_today_or_future
@@ -793,7 +794,10 @@ def detect_and_save_alarms():
     start_time = time.time()
     
     all_alarms = []
-    markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
+    markets = [
+        'moneyway_1x2', 'moneyway_ou25', 'moneyway_btts',
+        'dropping_1x2', 'dropping_ou25', 'dropping_btts'
+    ]
     
     matches_data = db.get_all_matches_with_latest('moneyway_1x2')
     real_matches = [m for m in matches_data if not is_demo_match(m)]
