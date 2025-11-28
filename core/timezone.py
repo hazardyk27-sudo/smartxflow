@@ -5,6 +5,7 @@ All timestamps use Turkey timezone (Europe/Istanbul)
 
 import pytz
 from datetime import datetime
+from typing import Optional
 
 TURKEY_TZ = pytz.timezone('Europe/Istanbul')
 
@@ -87,6 +88,109 @@ def is_today_turkey(timestamp_str: str) -> bool:
         return dt.date() == today
     except Exception:
         return False
+
+def parse_match_datetime(match_date_str: str) -> Optional[datetime]:
+    """
+    Parse match date string to datetime object in Turkey timezone.
+    
+    Handles various formats:
+    - "DD.Mon HH:MM:SS" (with space)
+    - "DD.MonHH:MM:SS" (without space, from dropping markets)
+    - "DD.MM HH:MM"
+    - "DD.MMHH:MM" (without space)
+    
+    Args:
+        match_date_str: Match date string in various formats (Turkey time)
+    
+    Returns:
+        datetime object in Turkey timezone, or None if parsing fails
+    """
+    if not match_date_str:
+        return None
+    
+    try:
+        import re
+        
+        match_date_str = match_date_str.strip()
+        today = now_turkey()
+        current_year = today.year
+        
+        month_map = {
+            'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+            'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+            '01': 1, '02': 2, '03': 3, '04': 4, '05': 5, '06': 6,
+            '07': 7, '08': 8, '09': 9, '10': 10, '11': 11, '12': 12,
+            '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6,
+            '7': 7, '8': 8, '9': 9
+        }
+        
+        patterns = [
+            r'^(\d{1,2})\.(\w{3})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?',
+            r'^(\d{1,2})\.(\w{3})(\d{1,2}):(\d{2})(?::(\d{2}))?',
+            r'^(\d{1,2})\.(\d{1,2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?',
+            r'^(\d{1,2})\.(\d{1,2})(\d{1,2}):(\d{2})(?::(\d{2}))?',
+        ]
+        
+        for pattern in patterns:
+            match = re.match(pattern, match_date_str, re.IGNORECASE)
+            if match:
+                day = int(match.group(1))
+                month_part = match.group(2)
+                hour = int(match.group(3))
+                minute = int(match.group(4))
+                second = int(match.group(5)) if match.group(5) else 0
+                
+                month_lower = month_part.lower()[:3] if not month_part.isdigit() else month_part
+                month = month_map.get(month_lower, today.month)
+                
+                match_dt = TURKEY_TZ.localize(datetime(current_year, month, day, hour, minute, second))
+                return match_dt
+        
+        return None
+        
+    except Exception as e:
+        print(f"[Timezone] Error parsing match datetime '{match_date_str}': {e}")
+        return None
+
+
+def is_match_started(match_date_str: str) -> bool:
+    """
+    Check if match has already started (kickoff time passed).
+    
+    CRITICAL: This checks if the match kickoff time has passed.
+    Used to prevent processing data for matches that have already started.
+    
+    Args:
+        match_date_str: Match date in format "DD.Mon HH:MM:SS" or "DD.Mon HH:MM" (Turkey time)
+    
+    Returns:
+        True if match has started (kickoff time passed), False otherwise
+    """
+    kickoff_dt = parse_match_datetime(match_date_str)
+    if not kickoff_dt:
+        return False
+    
+    now = now_turkey()
+    return now >= kickoff_dt
+
+
+def get_kickoff_utc(match_date_str: str) -> Optional[str]:
+    """
+    Convert match kickoff time from Turkey timezone to UTC ISO format.
+    
+    Args:
+        match_date_str: Match date in format "DD.Mon HH:MM:SS" (Turkey time)
+    
+    Returns:
+        UTC ISO format string, or None if parsing fails
+    """
+    kickoff_tr = parse_match_datetime(match_date_str)
+    if not kickoff_tr:
+        return None
+    
+    kickoff_utc = kickoff_tr.astimezone(pytz.UTC)
+    return kickoff_utc.strftime('%Y-%m-%dT%H:%M:%S')
+
 
 def is_match_today_or_future(match_date_str: str) -> bool:
     """

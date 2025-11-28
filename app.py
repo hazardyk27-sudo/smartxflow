@@ -237,7 +237,7 @@ def index():
             
             history = db.get_match_history(home, away, 'moneyway_1x2')
             if len(history) >= 2:
-                alarms = analyze_match_alarms(history, 'moneyway_1x2')
+                alarms = analyze_match_alarms(history, 'moneyway_1x2', match_date=date)
                 for alarm in alarms:
                     formatted = format_alarm_for_ticker(alarm, home, away)
                     formatted['market'] = 'moneyway_1x2'
@@ -881,7 +881,7 @@ def detect_and_save_alarms():
                 if not is_match_today_or_future(match_date):
                     continue
                 
-                alarms = analyze_match_alarms(history, market)
+                alarms = analyze_match_alarms(history, market, match_date=match_date)
                 for alarm in alarms:
                     match_id = f"{home}|{away}|{league}|{match_date}"
                     alarm['match_id'] = match_id
@@ -1041,7 +1041,7 @@ def get_cached_alarms_volatile():
                 if not is_match_today_or_future(match_date):
                     continue
                 
-                alarms = analyze_match_alarms(history, market)
+                alarms = analyze_match_alarms(history, market, match_date=match_date)
                 for alarm in alarms:
                     alarm['home'] = home
                     alarm['away'] = away

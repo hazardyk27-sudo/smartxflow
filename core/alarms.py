@@ -189,14 +189,79 @@ def find_window_pairs(history: List[Dict], window_minutes: int = 10) -> List[tup
     
     return pairs
 
-def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None) -> List[Dict]:
+def filter_history_before_kickoff(history: List[Dict], match_date_str: str) -> List[Dict]:
+    """
+    Filter history records to only include data BEFORE match kickoff.
+    
+    CRITICAL: Scraper doesn't collect live data, so any data after kickoff
+    is stale/invalid and should not be used for alarm detection.
+    
+    Uses proper datetime comparison to avoid string comparison issues.
+    
+    Args:
+        history: List of history records with ScrapedAt field
+        match_date_str: Match date in format "DD.Mon HH:MM:SS" or "DD.MonHH:MM:SS" (Turkey time)
+    
+    Returns:
+        Filtered history with only pre-kickoff data
+    """
+    try:
+        from core.timezone import parse_match_datetime, parse_to_turkey
+        import pytz
+        
+        kickoff_tr = parse_match_datetime(match_date_str)
+        if not kickoff_tr:
+            return history
+        
+        kickoff_utc = kickoff_tr.astimezone(pytz.UTC)
+        
+        filtered = []
+        for record in history:
+            scraped_at = record.get('ScrapedAt', '')
+            if not scraped_at:
+                continue
+            
+            try:
+                scraped_dt = parse_to_turkey(scraped_at)
+                scraped_utc = scraped_dt.astimezone(pytz.UTC)
+                
+                if scraped_utc < kickoff_utc:
+                    filtered.append(record)
+            except Exception:
+                filtered.append(record)
+        
+        return filtered if filtered else history[:1]
+        
+    except Exception as e:
+        print(f"[Alarm] Error filtering history: {e}")
+        return history
+
+
+def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None, match_date: str = None) -> List[Dict]:
     """
     Analyze all 10-minute windows in match history for alarms.
     Scans entire history (up to LOOKBACK_MINUTES) looking for alarm conditions
     in every 10-minute window, not just the most recent one.
     
+    CRITICAL: Only analyzes data BEFORE match kickoff time.
+    
     Includes deduplication: Same movement won't trigger multiple alarms.
+    
+    Args:
+        history: Match history records
+        market: Market type (moneyway_1x2, etc.)
+        match_id: Optional match identifier
+        match_date: Match kickoff date/time string (Turkey time) for filtering
     """
+    if len(history) < 2:
+        return []
+    
+    if match_date:
+        original_count = len(history)
+        history = filter_history_before_kickoff(history, match_date)
+        if len(history) != original_count:
+            print(f"[Alarm] Filtered history: {original_count} -> {len(history)} (removed post-kickoff data)")
+    
     if len(history) < 2:
         return []
     

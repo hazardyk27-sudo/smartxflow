@@ -262,7 +262,7 @@ def run_reconciliation(
                 match_date = info.get('date', '')
                 league = info.get('league', '')
                 
-                alarms = analyze_match_alarms(history, market)
+                alarms = analyze_match_alarms(history, market, match_date=match_date)
                 
                 for alarm in alarms:
                     alarm['match_id'] = f"{home}|{away}|{league}|{match_date}"
