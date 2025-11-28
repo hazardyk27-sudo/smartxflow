@@ -1503,6 +1503,13 @@ async function loadChart(home, away, market) {
         const labels = sortedKeys.map(k => formatTimeLabel(k));
         const historyData = sortedKeys.map(k => timeBlocks[k]);
         
+        if (sortedKeys.length > 0) {
+            const lastKey = sortedKeys[sortedKeys.length - 1];
+            const lastLabel = formatTimeLabel(lastKey);
+            const lastData = timeBlocks[lastKey];
+            console.log('[Chart] Last bucket:', lastLabel, 'ScrapedAt:', lastData?.ScrapedAt);
+        }
+        
         let datasets = [];
         const colors = {
             '1': '#3b82f6',
