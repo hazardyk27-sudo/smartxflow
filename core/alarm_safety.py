@@ -365,27 +365,35 @@ def verify_no_delete_operations() -> Dict[str, Any]:
     """
     SAFETY CHECK: Verify that no DELETE operations exist in alarm-related code.
     This is a defensive check to ensure append-only behavior.
-    """
-    import subprocess
     
-    dangerous_patterns = ['DELETE FROM smart_money_alarms', 'delete_alarm', 'remove_alarm', 'clear_alarms']
+    Checks for actual executable DELETE SQL statements, not documentation strings.
+    """
+    import re
+    
+    dangerous_sql_patterns = [
+        r'\.delete\s*\(\s*\)',
+        r'DELETE\s+FROM\s+smart_money_alarms',
+        r'supabase.*\.delete\(',
+        r'execute.*DELETE',
+    ]
+    
     found_issues = []
     
     files_to_check = [
         'app.py',
         'services/supabase_client.py',
         'core/alarms.py',
-        'core/alarm_safety.py'
     ]
     
     for filepath in files_to_check:
         try:
             if os.path.exists(filepath):
                 with open(filepath, 'r') as f:
-                    content = f.read().lower()
-                    for pattern in dangerous_patterns:
-                        if pattern.lower() in content:
-                            found_issues.append(f"{filepath}: contains '{pattern}'")
+                    content = f.read()
+                    for pattern in dangerous_sql_patterns:
+                        matches = re.findall(pattern, content, re.IGNORECASE)
+                        if matches:
+                            found_issues.append(f"{filepath}: contains dangerous pattern '{pattern}'")
         except:
             pass
     
