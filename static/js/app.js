@@ -27,6 +27,7 @@ let alarmCurrentPage = 0;
 let alarmHasMore = false;
 let alarmIsLoading = false;
 let alarmTotalCount = 0;
+let alarmEventCount = 0;
 const ALARM_PAGE_SIZE = 30;
 
 
@@ -2805,6 +2806,7 @@ async function loadGroupedAlarms(isNewLoad = true) {
             groupedAlarmsData = [...groupedAlarmsData, ...data.alarms];
             alarmHasMore = data.has_more;
             alarmTotalCount = data.total;
+            alarmEventCount = data.event_count || 0;
             alarmCurrentPage++;
             renderGroupedAlarmList();
         } else if (isNewLoad) {
@@ -2871,7 +2873,7 @@ function renderGroupedAlarmList() {
     }
     
     const countInfo = alarmTotalCount > 0 
-        ? `<div class="alarm-count-info">${groupedAlarmsData.length} / ${alarmTotalCount} alarm gösteriliyor</div>` 
+        ? `<div class="alarm-count-info">${groupedAlarmsData.length} maç · ${alarmEventCount} alarm</div>` 
         : '';
     
     const alarmsHtml = groupedAlarmsData.map((group, idx) => {
