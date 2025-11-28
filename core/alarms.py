@@ -314,6 +314,8 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None)
     for side in sides:
         curr_amt_cache[side['key']] = parse_money(current.get(side['amt'], 0))
     
+    is_dropping_market = market.startswith('dropping_')
+    
     for side in sides:
         curr_odds = parse_odds(current.get(side['odds'], 0))
         first_odds = parse_odds(first.get(side['odds'], 0)) if first else 0
@@ -322,20 +324,24 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None)
         total_drop = first_odds - curr_odds if first_odds > 0 else 0
         
         if total_drop >= drop_config.get('min_total_drop', 0.30):
-            if curr_pct >= drop_config.get('min_money_pct', 60):
+            min_money_pct = drop_config.get('min_money_pct', 60)
+            pct_ok = is_dropping_market or curr_pct >= min_money_pct
+            
+            if pct_ok:
                 first_ts = first.get('ScrapedAt', '') if first else ''
                 curr_ts = current.get('ScrapedAt', now_turkey_iso())
                 alarm_key = ('dropping', side['key'], first_ts[:13] if first_ts else '')
                 if alarm_key not in seen_alarms:
                     seen_alarms.add(alarm_key)
+                    money_pct_val = -1 if is_dropping_market else curr_pct
                     detected_alarms.append({
                         'type': 'dropping',
                         'side': side['key'],
-                        'money_diff': 0,
+                        'money_diff': money_pct_val,
                         'odds_from': first_odds,
                         'odds_to': curr_odds,
                         'total_drop': total_drop,
-                        'money_pct': curr_pct,
+                        'money_pct': money_pct_val,
                         'window_start': first_ts,
                         'window_end': curr_ts,
                         'timestamp': curr_ts

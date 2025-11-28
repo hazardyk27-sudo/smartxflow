@@ -942,14 +942,24 @@ def get_cached_alarms():
                         except (ValueError, TypeError):
                             total_drop = 0.0
                     
+                    alarm_type = alarm.get('alarm_type', '')
+                    money_diff = float(alarm.get('money_diff', 0) or 0)
+                    
+                    if alarm_type == 'dropping':
+                        money_pct = money_diff
+                        money_diff_val = 0
+                    else:
+                        money_pct = 0
+                        money_diff_val = money_diff
+                    
                     filtered_alarms.append({
-                        'type': alarm.get('alarm_type', ''),
+                        'type': alarm_type,
                         'side': alarm.get('side', ''),
-                        'money_diff': float(alarm.get('money_diff', 0) or 0),
+                        'money_diff': money_diff_val,
                         'odds_from': odds_from,
                         'odds_to': odds_to,
                         'total_drop': total_drop,
-                        'money_pct': float(alarm.get('money_pct', 0) or 0),
+                        'money_pct': money_pct,
                         'timestamp': alarm.get('triggered_at', ''),
                         'window_start': alarm.get('window_start', ''),
                         'window_end': alarm.get('window_end', ''),
