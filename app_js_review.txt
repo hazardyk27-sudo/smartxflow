@@ -18,33 +18,44 @@ let isClientMode = true;
 
 const APP_TIMEZONE = 'Europe/Istanbul';
 
-function toTurkeyTime(value) {
-    if (!value) return null;
+/**
+ * TEK KAYNAK: Tüm timestamp dönüşümleri bu fonksiyon üzerinden yapılmalı
+ * 
+ * Formatlar:
+ * 1. UTC with offset (backend): "2025-11-28T22:48:21+00:00" veya "...Z" → UTC→TR dönüşümü
+ * 2. Other offset: "+01:00", "+02:00" vb → parseZone ile yorumla → TR'ye çevir
+ * 3. Arbworld format: "30.Nov 23:55:00" → ZATEN TR saatinde, direkt yorumla
+ * 4. ISO no offset: "2025-11-28T22:48:21" → UTC olarak kabul et → TR'ye çevir
+ * 5. Numeric (ms): timestamp → TR'ye çevir
+ */
+function toTurkeyTime(raw) {
+    if (!raw) return null;
+    
     try {
-        const str = String(value);
-        
-        if (str.includes('Z')) {
-            return dayjs.utc(value).tz(APP_TIMEZONE);
+        // 1) Numeric timestamp (ms)
+        if (typeof raw === 'number') {
+            return dayjs(raw).tz(APP_TIMEZONE);
         }
         
+        const str = String(raw).trim();
+        
+        // 2) UTC string with 'Z' suffix
+        if (str.endsWith('Z')) {
+            return dayjs.utc(str).tz(APP_TIMEZONE);
+        }
+        
+        // 3) UTC string with '+00:00' suffix
         if (str.endsWith('+00:00')) {
-            const utcStr = str.replace('+00:00', 'Z');
-            return dayjs.utc(utcStr).tz(APP_TIMEZONE);
+            return dayjs.utc(str.replace('+00:00', 'Z')).tz(APP_TIMEZONE);
         }
         
-        if (str.includes('+') || /T\d{2}:\d{2}:\d{2}-/.test(str)) {
-            const parsed = dayjs(value);
-            if (parsed.isValid()) {
-                return parsed.tz(APP_TIMEZONE);
-            }
+        // 4) Other timezone offset (e.g., +01:00, +02:00, +03:00, -05:00)
+        if (/[+-]\d{2}:\d{2}$/.test(str)) {
+            return dayjs.parseZone(str).tz(APP_TIMEZONE);
         }
         
-        const isoNoOffset = str.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/);
-        if (isoNoOffset) {
-            return dayjs.utc(value).tz(APP_TIMEZONE);
-        }
-        
-        const arbworldMatch = str.match(/(\d{1,2})\.(\w{3})\s*(\d{2}:\d{2}(?::\d{2})?)/i);
+        // 5) Arbworld format: "30.Nov 23:55:00" - ZATEN TR saatinde!
+        const arbworldMatch = str.match(/^(\d{1,2})\.(\w{3})\s*(\d{2}:\d{2}(?::\d{2})?)$/i);
         if (arbworldMatch) {
             const monthMap = {
                 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
@@ -52,51 +63,52 @@ function toTurkeyTime(value) {
             };
             const day = parseInt(arbworldMatch[1]);
             const month = monthMap[arbworldMatch[2]];
-            if (month === undefined) return dayjs.tz(value, APP_TIMEZONE);
+            if (month === undefined) return dayjs.tz(str, APP_TIMEZONE);
             
             const timeParts = arbworldMatch[3].split(':').map(Number);
             const now = dayjs().tz(APP_TIMEZONE);
             const currentYear = now.year();
             
-            const candidate1 = dayjs.utc()
-                .year(currentYear)
-                .month(month)
-                .date(day)
-                .hour(timeParts[0])
-                .minute(timeParts[1])
-                .second(timeParts[2] || 0);
+            // Year rollover logic: en yakın tarihi seç
+            const candidates = [currentYear - 1, currentYear, currentYear + 1].map(year => 
+                dayjs.tz(`${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')} ${arbworldMatch[3]}`, APP_TIMEZONE)
+            );
             
-            const candidate2 = dayjs.utc()
-                .year(currentYear - 1)
-                .month(month)
-                .date(day)
-                .hour(timeParts[0])
-                .minute(timeParts[1])
-                .second(timeParts[2] || 0);
+            const nowTR = dayjs().tz(APP_TIMEZONE);
+            let best = candidates[1]; // default: current year
+            let minDiff = Math.abs(candidates[1].diff(nowTR, 'day'));
             
-            const candidate3 = dayjs.utc()
-                .year(currentYear + 1)
-                .month(month)
-                .date(day)
-                .hour(timeParts[0])
-                .minute(timeParts[1])
-                .second(timeParts[2] || 0);
+            candidates.forEach(c => {
+                const diff = Math.abs(c.diff(nowTR, 'day'));
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    best = c;
+                }
+            });
             
-            const nowUtc = dayjs.utc();
-            const diff1 = Math.abs(candidate1.diff(nowUtc, 'day'));
-            const diff2 = Math.abs(candidate2.diff(nowUtc, 'day'));
-            const diff3 = Math.abs(candidate3.diff(nowUtc, 'day'));
-            
-            let bestCandidate = candidate1;
-            if (diff2 < diff1 && diff2 < diff3) bestCandidate = candidate2;
-            if (diff3 < diff1 && diff3 < diff2) bestCandidate = candidate3;
-            
-            return bestCandidate.tz(APP_TIMEZONE);
+            return best;
         }
         
-        return dayjs.tz(value, APP_TIMEZONE);
-    } catch {
-        return dayjs(value).tz(APP_TIMEZONE);
+        // 6) ISO format without offset: "2025-11-28T22:48:21" → assume UTC
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(str)) {
+            return dayjs.utc(str).tz(APP_TIMEZONE);
+        }
+        
+        // 7) ISO date only: "2025-11-28" → TR timezone'da yorumla
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+            return dayjs.tz(str, APP_TIMEZONE);
+        }
+        
+        // 8) Fallback: direkt TR'de yorumla (bilinmeyen format)
+        const parsed = dayjs(str);
+        if (parsed.isValid()) {
+            return parsed.tz(APP_TIMEZONE);
+        }
+        
+        return dayjs.tz(str, APP_TIMEZONE);
+    } catch (e) {
+        console.warn('[toTurkeyTime] Parse error:', raw, e);
+        return dayjs().tz(APP_TIMEZONE);
     }
 }
 
