@@ -2718,7 +2718,7 @@ function renderSmartMoneyBand(highlightNewAlarm = false) {
         const fullWidth = tickerTrack.scrollWidth;
         const halfWidth = fullWidth / 2;
         
-        const speed = 240;
+        const speed = 120;
         const duration = halfWidth / speed;
         const finalDuration = Math.max(duration, 5);
         
