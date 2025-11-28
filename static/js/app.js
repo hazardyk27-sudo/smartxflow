@@ -2715,18 +2715,31 @@ function renderSmartMoneyBand(highlightNewAlarm = false) {
     latest10.forEach((alarm, index) => tickerTrack.appendChild(createPill(alarm, index, true)));
     
     requestAnimationFrame(() => {
-        const pillCount = latest10.length;
-        const avgPillWidth = 320;
-        const gap = 16;
-        const totalWidth = (avgPillWidth + gap) * pillCount;
+        const fullWidth = tickerTrack.scrollWidth;
+        const halfWidth = fullWidth / 2;
         
         const speed = 240;
-        const duration = totalWidth / speed;
+        const duration = halfWidth / speed;
         const finalDuration = Math.max(duration, 5);
         
-        tickerTrack.style.animation = `tickerScroll ${finalDuration}s linear infinite`;
+        const styleId = 'ticker-dynamic-animation';
+        let styleEl = document.getElementById(styleId);
+        if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = styleId;
+            document.head.appendChild(styleEl);
+        }
         
-        console.log(`[Ticker] ${pillCount} alarms, duration: ${finalDuration.toFixed(1)}s`);
+        styleEl.textContent = `
+            @keyframes tickerScrollDynamic {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(-${halfWidth}px); }
+            }
+        `;
+        
+        tickerTrack.style.animation = `tickerScrollDynamic ${finalDuration}s linear infinite`;
+        
+        console.log(`[Ticker] ${latest10.length} alarms, width: ${halfWidth}px, duration: ${finalDuration.toFixed(1)}s`);
     });
 }
 
