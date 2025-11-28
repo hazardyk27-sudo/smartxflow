@@ -22,8 +22,11 @@ function toTurkeyTime(value) {
     if (!value) return null;
     try {
         const str = String(value);
-        if (str.includes('Z') || str.includes('+') || /T\d{2}:\d{2}:\d{2}-/.test(str)) {
+        if (str.includes('Z')) {
             return dayjs.utc(value).tz(APP_TIMEZONE);
+        }
+        if (str.includes('+') || /T\d{2}:\d{2}:\d{2}-/.test(str)) {
+            return dayjs(value).tz(APP_TIMEZONE);
         }
         return dayjs.tz(value, APP_TIMEZONE);
     } catch {
