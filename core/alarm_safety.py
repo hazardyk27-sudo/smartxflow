@@ -26,6 +26,13 @@ def generate_alarm_fingerprint(alarm: Dict[str, Any]) -> str:
     This is used for deduplication without losing alarms.
     
     Fingerprint = match_id|alarm_type|side|market|window_bucket
+    
+    window_bucket: 10-minute precision (e.g., "2025-11-28T14:10")
+    This ensures separate alarms for each 10-minute window:
+    - 14:00-14:09 → "2025-11-28T14:0"
+    - 14:10-14:19 → "2025-11-28T14:1"
+    - 14:20-14:29 → "2025-11-28T14:2"
+    etc.
     """
     match_id = alarm.get('match_id', '')
     alarm_type = alarm.get('type', alarm.get('alarm_type', ''))
@@ -33,7 +40,15 @@ def generate_alarm_fingerprint(alarm: Dict[str, Any]) -> str:
     market = alarm.get('market', '')
     
     window_start = alarm.get('window_start', '')
-    if window_start and len(window_start) >= 13:
+    if window_start and len(window_start) >= 16:
+        minute_str = window_start[14:16]
+        try:
+            minute = int(minute_str)
+            bucket_minute = (minute // 10) * 10
+            window_bucket = f"{window_start[:14]}{bucket_minute:02d}"
+        except ValueError:
+            window_bucket = window_start[:16]
+    elif window_start and len(window_start) >= 13:
         window_bucket = window_start[:13]
     else:
         window_bucket = ''
@@ -98,6 +113,50 @@ def clear_failed_alarm(fingerprint: str) -> None:
             json.dump(failed, f, indent=2, default=str)
     except:
         pass
+
+
+def cleanup_old_failed_alarms(days: int = 7) -> int:
+    """
+    Remove failed alarms older than specified days.
+    Called periodically to prevent log file from growing indefinitely.
+    
+    Returns number of removed entries.
+    """
+    try:
+        failed = get_failed_alarms()
+        if not failed:
+            return 0
+        
+        cutoff = datetime.now(TR_TZ) - timedelta(days=days)
+        original_count = len(failed)
+        
+        filtered = []
+        for entry in failed:
+            try:
+                ts = entry.get('timestamp', '')
+                if ts:
+                    entry_time = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                    if entry_time.tzinfo is None:
+                        entry_time = TR_TZ.localize(entry_time)
+                    if entry_time >= cutoff:
+                        filtered.append(entry)
+                else:
+                    filtered.append(entry)
+            except:
+                filtered.append(entry)
+        
+        removed_count = original_count - len(filtered)
+        
+        if removed_count > 0:
+            with open(FAILED_ALARMS_LOG, 'w') as f:
+                json.dump(filtered, f, indent=2, default=str)
+            print(f"[AlarmSafety] Cleaned up {removed_count} old failed alarms (>{days} days)")
+        
+        return removed_count
+        
+    except Exception as e:
+        print(f"[AlarmSafety] Cleanup error: {e}")
+        return 0
 
 
 def log_reconciliation_result(

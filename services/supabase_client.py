@@ -666,16 +666,26 @@ class SupabaseClient:
         Save a smart money alarm to persistent storage.
         Uses UPSERT to avoid duplicates.
         
-        Deduplication strategy: match_id + alarm_type + side + truncated_window (hour precision)
-        This prevents the same logical alarm from being saved multiple times even if
-        window_start shifts slightly between scrapes.
+        Deduplication strategy: match_id + alarm_type + side + truncated_window (10-min precision)
+        This allows separate alarms for each 10-minute window while preventing
+        exact duplicates within the same window.
+        
+        Example: 14:03 and 14:07 → same bucket (14:00)
+                 14:13 and 14:17 → different bucket (14:10)
         """
         if not self.is_available:
             return False
         
         try:
             window_start = alarm.get('window_start', '')
-            if window_start and len(window_start) >= 13:
+            if window_start and len(window_start) >= 16:
+                try:
+                    minute = int(window_start[14:16])
+                    bucket_minute = (minute // 10) * 10
+                    window_start_truncated = f"{window_start[:14]}{bucket_minute:02d}:00"
+                except ValueError:
+                    window_start_truncated = window_start[:16] + ':00'
+            elif window_start and len(window_start) >= 13:
                 window_start_truncated = window_start[:13] + ':00:00'
             else:
                 window_start_truncated = window_start

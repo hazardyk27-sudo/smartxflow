@@ -110,10 +110,11 @@ def start_cleanup_scheduler():
         cleanup_old_alarm_states = lambda *args: None
     
     try:
-        from core.alarm_safety import run_reconciliation, retry_failed_alarms
+        from core.alarm_safety import run_reconciliation, retry_failed_alarms, cleanup_old_failed_alarms
     except ImportError:
         run_reconciliation = lambda *args, **kwargs: {}
         retry_failed_alarms = lambda *args: {}
+        cleanup_old_failed_alarms = lambda *args: 0
     
     print("[Startup] Running initial alarm detection...")
     try:
@@ -139,6 +140,8 @@ def start_cleanup_scheduler():
                 try:
                     supabase = get_supabase_client()
                     if supabase and supabase.is_available:
+                        cleanup_old_failed_alarms(days=7)
+                        
                         retry_failed_alarms(supabase)
                         
                         markets = [
