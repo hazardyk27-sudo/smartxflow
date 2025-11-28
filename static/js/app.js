@@ -1664,7 +1664,7 @@ async function loadChart(home, away, market) {
                     datasets.push({
                         label: label,
                         data: historyData.map(h => {
-                            const val = h[key];
+                            const val = h['Odds' + key] || h[key];
                             if (!val) return null;
                             const num = parseFloat(String(val).split('\n')[0]);
                             return isNaN(num) ? null : num;
@@ -3642,7 +3642,8 @@ function renderOddsWithTrend(oddsValue, trendData) {
         old: trendData.old,
         new: trendData.new,
         pct: trendData.pct_change,
-        trend: trendData.trend
+        trend: trendData.trend,
+        first_scraped: trendData.first_scraped || null
     }).replace(/"/g, '&quot;');
     
     return `
@@ -3676,7 +3677,8 @@ function renderDrop1X2Cell(label, oddsValue, trendData) {
         old: trendData.old,
         new: trendData.new,
         pct: trendData.pct_change,
-        trend: trendData.trend
+        trend: trendData.trend,
+        first_scraped: trendData.first_scraped || null
     }).replace(/"/g, '&quot;');
     
     const changeClass = trendData.trend === 'up' ? 'positive' : (trendData.trend === 'down' ? 'negative' : '');
@@ -3728,14 +3730,22 @@ function showTrendTooltip(event) {
         const diff = data.new - data.old;
         const diffSign = diff > 0 ? '+' : '';
         
+        let firstScrapedText = '';
+        if (data.first_scraped) {
+            const dt = toTurkeyTime(data.first_scraped);
+            if (dt && dt.isValid()) {
+                firstScrapedText = dt.format('DD.MM HH:mm');
+            }
+        }
+        
         tooltip.innerHTML = `
-            <div class="tooltip-title">Son 6 Saatlik Değişim</div>
+            <div class="tooltip-title">Açılıştan Bugüne Değişim</div>
             <div class="tooltip-row">
-                <span class="tooltip-label">Eski oran:</span>
-                <span class="tooltip-value">${data.old ? data.old.toFixed(2) : '-'}</span>
+                <span class="tooltip-label">Açılış oranı:</span>
+                <span class="tooltip-value">${data.old ? data.old.toFixed(2) : '-'}${firstScrapedText ? ` <small>(${firstScrapedText})</small>` : ''}</span>
             </div>
             <div class="tooltip-row">
-                <span class="tooltip-label">Yeni oran:</span>
+                <span class="tooltip-label">Son oran:</span>
                 <span class="tooltip-value">${data.new ? data.new.toFixed(2) : '-'}</span>
             </div>
             <div class="tooltip-row">

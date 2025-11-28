@@ -492,7 +492,7 @@ class SupabaseClient:
             return []
     
     def get_6h_odds_history(self, market: str) -> Dict[str, Dict[str, Any]]:
-        """Get 6-hour odds history for DROP markets only.
+        """Get ALL odds history for DROP markets (from first scrape to now).
         Returns dict: { "home|away": { "sel1": [values], "sel2": [values], ... } }
         """
         if not self.is_available:
@@ -509,10 +509,10 @@ class SupabaseClient:
             
             turkey_tz = pytz.timezone('Europe/Istanbul')
             now_turkey = datetime.now(turkey_tz)
-            six_hours_ago = now_turkey - timedelta(hours=6)
-            six_hours_ago_iso = six_hours_ago.strftime('%Y-%m-%d %H:%M:%S')
+            fourteen_days_ago = now_turkey - timedelta(days=14)
+            cutoff_iso = fourteen_days_ago.strftime('%Y-%m-%d %H:%M:%S')
             
-            url = f"{self._rest_url(history_table)}?scrapedat=gte.{six_hours_ago_iso}&order=scrapedat.asc"
+            url = f"{self._rest_url(history_table)}?scrapedat=gte.{cutoff_iso}&order=scrapedat.asc"
             resp = httpx.get(url, headers=self._headers(), timeout=20)
             
             if resp.status_code != 200:
@@ -564,6 +564,9 @@ class SupabaseClient:
             
             for key in result:
                 data = result[key]
+                timestamps = data.get('timestamps', [])
+                first_scraped = timestamps[0] if timestamps else None
+                
                 for sel, values in data['values'].items():
                     valid_values = [v for v in values if v is not None]
                     if len(valid_values) >= 2:
@@ -586,7 +589,8 @@ class SupabaseClient:
                             'old': old_val,
                             'new': new_val,
                             'pct_change': round(pct_change, 1),
-                            'trend': trend
+                            'trend': trend,
+                            'first_scraped': first_scraped
                         }
                     else:
                         data['values'][sel] = {
@@ -594,7 +598,8 @@ class SupabaseClient:
                             'old': valid_values[0] if valid_values else None,
                             'new': valid_values[-1] if valid_values else None,
                             'pct_change': 0,
-                            'trend': 'stable'
+                            'trend': 'stable',
+                            'first_scraped': first_scraped
                         }
             
             print(f"[6h History] Got {len(result)} matches from {history_table}")
