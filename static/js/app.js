@@ -3035,13 +3035,21 @@ function getTimeAgo(timestamp) {
     return `${days} gün önce`;
 }
 
-async function goToMatchFromAlarm(home, away, matchId, league) {
+function goToMatchFromAlarm(home, away, matchId, league) {
     closeAlarmPanel();
-    await loadAllMarketsAtOnce(home, away);
-    if (matchId) {
-        openMatchModalById(matchId, home, away, currentMarket, league);
+    
+    const homeLower = home.trim().toLowerCase();
+    const awayLower = away.trim().toLowerCase();
+    
+    const matchIndex = matches.findIndex(m => 
+        m.home_team.trim().toLowerCase() === homeLower && 
+        m.away_team.trim().toLowerCase() === awayLower
+    );
+    
+    if (matchIndex >= 0) {
+        openMatchModal(matchIndex);
     } else {
-        openMatchModalByTeams(home, away);
+        console.log('[Alarm] Maç listede bulunamadı:', home, 'vs', away);
     }
 }
 
