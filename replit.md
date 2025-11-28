@@ -162,7 +162,48 @@ Environment variables:
 - **DEBUG DOSYASI** - Her EXE build'inde BUILD_INFO.txt ve smartxflow_debug.log dahil edilir
 - **SUPABASE SECRET ADI** - Her zaman SUPABASE_ANON_KEY kullan (SUPABASE_KEY değil)
 
+## Alarm Güvenlik Sistemi (7 Maddelik)
+
+### 1. Append-Only Depolama
+- Alarmlar asla silinmez veya üzerine yazılmaz
+- DELETE komutu hiçbir yerde yok (safety-check doğruladı)
+- Gizleme gerekirse is_active flag kullanılır
+
+### 2. İdempotent Dedupe
+- `generate_alarm_fingerprint()`: match_id|type|side|market|window_bucket
+- Aynı alarm birden fazla kez üretilmez
+- UNIQUE constraint ile koruma
+
+### 3. Periyodik Self-Check (Reconciliation)
+- Her saat çalışır (10dk döngünün her 6. iterasyonu)
+- SET A (beklenen) vs SET B (mevcut) karşılaştırması
+- Eksik alarm varsa otomatik ekleme
+
+### 4. Hata Loglama + Retry
+- `log_failed_alarm()`: Başarısız insert'ler data/failed_alarms.json'a yazılır
+- `retry_failed_alarms()`: Sonraki döngüde tekrar deneme
+- Sessiz yutma yok
+
+### 5. Safety Check Endpoint
+- `/api/alarms/safety-check`: DELETE operasyonu kontrolü
+- Failed alarms log durumu
+- Son reconciliation sonucu
+
+### 6. AlarmSafetyGuard
+- Tüm alarm kayıtları bu wrapper üzerinden geçer
+- Exception handling + logging
+- Fingerprint tabanlı in-memory dedupe
+
+### 7. Reconciliation Endpoint
+- `/api/alarms/reconcile`: Manuel tetikleme
+- 7 günlük lookback ile eksik alarm taraması
+- Detaylı rapor döner
+
 ## Son Guncellemeler
+- **28 Kasim 2025:** 7 MADDELİK ALARM GÜVENLİK SİSTEMİ TAMAMLANDI
+- **28 Kasim 2025:** core/alarm_safety.py: AlarmSafetyGuard, run_reconciliation, retry_failed_alarms
+- **28 Kasim 2025:** /api/alarms/reconcile, /api/alarms/safety-check endpoint'leri
+- **28 Kasim 2025:** Saatlik reconciliation job (scheduler entegrasyonu)
 - **28 Kasim 2025:** 3 AŞAMALI ALARM DOĞRULAMA TESTİ TAMAMLANDI - Tüm teorik alarmlar DB'de mevcut
 - **28 Kasim 2025:** get_bulk_history_for_alarms: Batch OR query ile 12000+ row çekiliyor (1000 limit aşıldı)
 - **28 Kasim 2025:** 6 market taranıyor: moneyway_1x2/ou25/btts + dropping_1x2/ou25/btts
