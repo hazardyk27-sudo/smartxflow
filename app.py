@@ -1013,10 +1013,15 @@ def get_cached_alarms():
 def get_cached_alarms_volatile():
     """
     FALLBACK: Volatile alarm calculation when Supabase is not available.
+    
+    Per REFERANS DOKÜMANI Section 3:
+    - D (Today) + Future: Show alarms
+    - D-1 (Yesterday): Show alarms (static mode)
+    - D-2+ (Old): DO NOT show
     """
     import time
     from core.alarms import group_alarms_by_match, format_grouped_alarm
-    from core.timezone import is_match_today_or_future
+    from core.timezone import is_match_d2_or_older, get_match_lifecycle_status
     
     print("[Alarms API] Using volatile alarm calculation (fallback)...")
     start_time = time.time()
@@ -1051,7 +1056,7 @@ def get_cached_alarms_volatile():
                 info = match_info.get((home, away), {})
                 match_date = info.get('date', '')
                 
-                if not is_match_today_or_future(match_date):
+                if is_match_d2_or_older(match_date):
                     continue
                 
                 alarms = analyze_match_alarms(history, market, match_date=match_date)
