@@ -95,7 +95,7 @@ def cleanup_old_matches():
 
 
 def start_cleanup_scheduler():
-    """Start daily cleanup scheduler - includes alarm state cleanup"""
+    """Start daily cleanup scheduler - includes alarm state cleanup and alarm detection"""
     global cleanup_thread
     
     try:
@@ -103,11 +103,23 @@ def start_cleanup_scheduler():
     except ImportError:
         cleanup_old_alarm_states = lambda *args: None
     
+    print("[Startup] Running initial alarm detection...")
+    try:
+        detect_and_save_alarms()
+    except Exception as e:
+        print(f"[Startup] Initial alarm detection error: {e}")
+    
     def cleanup_loop():
         while True:
             cleanup_old_matches()
             cleanup_old_alarm_states(hours=48)
-            time.sleep(3600)
+            
+            try:
+                detect_and_save_alarms()
+            except Exception as e:
+                print(f"[AlarmDetector] Error in periodic scan: {e}")
+            
+            time.sleep(600)
     
     cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
     cleanup_thread.start()
@@ -769,24 +781,15 @@ def is_demo_match(match):
         return True
     return False
 
-def get_cached_alarms():
-    """Get alarms from cache or refresh if expired.
-    SYNCHRONIZED: Single source of truth for all 3 UIs (ticker, alarm list, match modal).
-    Returns alarms for matches that are TODAY or in the FUTURE (Europe/Istanbul timezone).
-    - Match date >= today: Show alarm
-    - Match date < today: Don't show (past match)
-    - Alarm triggered_at: No filter (we care about match date, not alarm date)
+def detect_and_save_alarms():
+    """
+    STEP 1: Detect new alarms from history and SAVE them to Supabase.
+    Called after scrape or periodically. Alarms are PERSISTENT once saved.
     """
     import time
-    from core.alarms import group_alarms_by_match, format_grouped_alarm
-    from core.timezone import now_turkey, is_match_today_or_future
+    from core.timezone import is_match_today_or_future
     
-    now = time.time()
-    if alarm_cache['data'] is not None and (now - alarm_cache['timestamp']) < alarm_cache['ttl']:
-        print("[Alarms API] Using cached data")
-        return alarm_cache['data'].copy()
-    
-    print("[Alarms API] Refreshing alarm cache (bulk query)...")
+    print("[AlarmDetector] Scanning for new alarms...")
     start_time = time.time()
     
     all_alarms = []
@@ -811,12 +814,126 @@ def get_cached_alarms():
         'date': m.get('date', '')
     } for m in all_unique_matches}
     
-    future_match_count = 0
-    for m in all_unique_matches:
-        if is_match_today_or_future(m.get('date', '')):
-            future_match_count += 1
+    for market in markets:
+        bulk_history = db.get_bulk_history_for_alarms(market, match_pairs)
+        
+        for (home, away), history in bulk_history.items():
+            if len(history) >= 2:
+                info = match_info.get((home, away), {})
+                match_date = info.get('date', '')
+                league = info.get('league', '')
+                
+                if not is_match_today_or_future(match_date):
+                    continue
+                
+                alarms = analyze_match_alarms(history, market)
+                for alarm in alarms:
+                    match_id = f"{home}|{away}|{league}|{match_date}"
+                    alarm['match_id'] = match_id
+                    alarm['home'] = home
+                    alarm['away'] = away
+                    alarm['market'] = market
+                    alarm['league'] = league
+                    alarm['match_date'] = match_date
+                    all_alarms.append(alarm)
     
-    print(f"[Alarms API] Checking {len(match_pairs)} unique matches ({future_match_count} today/future) for alarms")
+    supabase = get_supabase_client()
+    if supabase and supabase.is_available and all_alarms:
+        saved = supabase.save_alarms_batch(all_alarms)
+        elapsed = time.time() - start_time
+        print(f"[AlarmDetector] Scanned {len(match_pairs)} matches, detected {len(all_alarms)} alarms, saved {saved} new in {elapsed:.2f}s")
+    
+    return len(all_alarms)
+
+def get_cached_alarms():
+    """
+    STEP 2: Get PERSISTENT alarms from Supabase (not volatile calculation).
+    Returns alarms for matches that are TODAY or in the FUTURE.
+    Alarms stay visible until match is played, regardless of subsequent odds movements.
+    """
+    import time
+    from core.alarms import group_alarms_by_match, format_grouped_alarm
+    from core.timezone import is_match_today_or_future
+    
+    now = time.time()
+    if alarm_cache['data'] is not None and (now - alarm_cache['timestamp']) < alarm_cache['ttl']:
+        print("[Alarms API] Using cached data")
+        return alarm_cache['data'].copy()
+    
+    print("[Alarms API] Loading persistent alarms from Supabase...")
+    start_time = time.time()
+    
+    supabase = get_supabase_client()
+    
+    if supabase and supabase.is_available:
+        raw_alarms = supabase.get_persistent_alarms()
+        
+        filtered_alarms = []
+        for alarm in raw_alarms:
+            match_date = alarm.get('match_date', '')
+            if is_match_today_or_future(match_date):
+                filtered_alarms.append({
+                    'type': alarm.get('alarm_type', ''),
+                    'side': alarm.get('side', ''),
+                    'money_diff': float(alarm.get('money_diff', 0) or 0),
+                    'odds_from': alarm.get('odds_from'),
+                    'odds_to': alarm.get('odds_to'),
+                    'timestamp': alarm.get('triggered_at', ''),
+                    'window_start': alarm.get('window_start', ''),
+                    'window_end': alarm.get('window_end', ''),
+                    'home': alarm.get('home', ''),
+                    'away': alarm.get('away', ''),
+                    'market': alarm.get('market', ''),
+                    'league': alarm.get('league', ''),
+                    'match_date': match_date
+                })
+        
+        grouped = group_alarms_by_match(filtered_alarms)
+        formatted = [format_grouped_alarm(g) for g in grouped]
+        
+        elapsed = time.time() - start_time
+        print(f"[Alarms API] Loaded {len(raw_alarms)} total, {len(filtered_alarms)} for today/future matches, {len(formatted)} groups in {elapsed:.2f}s")
+        
+        alarm_cache['data'] = formatted
+        alarm_cache['timestamp'] = now
+        
+        return formatted.copy()
+    else:
+        print("[Alarms API] Supabase not available, falling back to volatile calculation")
+        return get_cached_alarms_volatile()
+
+def get_cached_alarms_volatile():
+    """
+    FALLBACK: Volatile alarm calculation when Supabase is not available.
+    """
+    import time
+    from core.alarms import group_alarms_by_match, format_grouped_alarm
+    from core.timezone import is_match_today_or_future
+    
+    print("[Alarms API] Using volatile alarm calculation (fallback)...")
+    start_time = time.time()
+    
+    all_alarms = []
+    markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
+    
+    matches_data = db.get_all_matches_with_latest('moneyway_1x2')
+    real_matches = [m for m in matches_data if not is_demo_match(m)]
+    
+    all_unique_matches = []
+    seen_pairs = set()
+    for m in real_matches:
+        home = m.get('home_team', '')
+        away = m.get('away_team', '')
+        pair = (home, away)
+        if pair not in seen_pairs:
+            all_unique_matches.append(m)
+            seen_pairs.add(pair)
+    
+    match_pairs = [(m.get('home_team', ''), m.get('away_team', '')) for m in all_unique_matches]
+    match_info = {(m.get('home_team', ''), m.get('away_team', '')): {
+        'league': m.get('league', ''),
+        'date': m.get('date', '')
+    } for m in all_unique_matches}
     
     for market in markets:
         bulk_history = db.get_bulk_history_for_alarms(market, match_pairs)
@@ -842,10 +959,10 @@ def get_cached_alarms():
     formatted = [format_grouped_alarm(g) for g in grouped]
     
     elapsed = time.time() - start_time
-    print(f"[Alarms API] Cache refreshed in {elapsed:.2f}s, checked {len(match_pairs)} matches (bulk), found {len(formatted)} alarm groups ({len(all_alarms)} events for today/future matches)")
+    print(f"[Alarms API] Volatile calculation in {elapsed:.2f}s, {len(formatted)} alarm groups")
     
     alarm_cache['data'] = formatted
-    alarm_cache['timestamp'] = now
+    alarm_cache['timestamp'] = time.time()
     
     return formatted.copy()
 
@@ -899,6 +1016,26 @@ def get_all_alarms():
         import traceback
         traceback.print_exc()
         return jsonify({'alarms': [], 'total': 0, 'page': 0, 'has_more': False, 'error': str(e)})
+
+
+@app.route('/api/alarms/scan')
+def trigger_alarm_scan():
+    """Manually trigger alarm detection and save to database"""
+    try:
+        count = detect_and_save_alarms()
+        alarm_cache['data'] = None
+        alarm_cache['timestamp'] = 0
+        
+        return jsonify({
+            'status': 'success',
+            'detected': count,
+            'message': f'Scanned and saved {count} alarms'
+        })
+    except Exception as e:
+        print(f"[Alarm Scan] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)})
 
 
 ticker_cache = {
