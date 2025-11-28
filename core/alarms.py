@@ -315,7 +315,7 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None)
         curr_amt_cache[side['key']] = parse_money(current.get(side['amt'], 0))
     
     is_dropping_market = market.startswith('dropping_')
-    drop_volume = parse_money(current.get('volume', 0)) if is_dropping_market else 0
+    drop_volume = parse_money(current.get('Volume', current.get('volume', 0))) if is_dropping_market else 0
     
     for side in sides:
         curr_odds = parse_odds(current.get(side['odds'], 0))
