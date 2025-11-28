@@ -2,6 +2,13 @@
 Smart Money Alarm System
 6 alarm types with priority ordering
 Configurable thresholds from config/alarm_thresholds.py
+
+REAL SHARP SYSTEM (v2.0):
+- 4 ana kriter ile profesyonel sharp tespiti
+- Sharp Skor: 0-100 arası hesaplama
+- 70+ = Gerçek Sharp alarmı
+- 40-69 = Orta Seviye Hareket (alarm yok, UI'da göster)
+- <40 = Yok say
 """
 
 from datetime import datetime, timedelta
@@ -12,8 +19,14 @@ try:
     from core.config.alarm_thresholds import ALARM_CONFIG, get_threshold, WINDOW_MINUTES, LOOKBACK_MINUTES
     from core.timezone import now_turkey, now_turkey_iso, format_time_only, TURKEY_TZ
     from core.alarm_state import should_fire_alarm, record_alarm_fired, cleanup_old_alarm_states
+    from core.real_sharp import detect_real_sharp, RealSharpDetector
 except ImportError:
-    from config.alarm_thresholds import ALARM_CONFIG, get_threshold, WINDOW_MINUTES, LOOKBACK_MINUTES
+    try:
+        from config.alarm_thresholds import ALARM_CONFIG, get_threshold, WINDOW_MINUTES, LOOKBACK_MINUTES
+        from real_sharp import detect_real_sharp, RealSharpDetector
+    except ImportError:
+        detect_real_sharp = None
+        RealSharpDetector = None
     import pytz
     TURKEY_TZ = pytz.timezone('Europe/Istanbul')
     def now_turkey():
@@ -39,12 +52,20 @@ ALARM_TYPES = {
         'critical': True
     },
     'sharp': {
-        'name': 'Sharp Move',
+        'name': 'Real Sharp',
         'icon': '🟢',
         'color': '#22c55e',
         'priority': 2,
-        'description': 'Profesyonel yatırımcı girişi.',
+        'description': 'Gerçek Sharp: 4 kriter (Hacim Şoku + Pazar Payı + Oran Düşüşü + Pay Artışı) sağlandı. Skor 70+.',
         'critical': True
+    },
+    'medium_movement': {
+        'name': 'Orta Hareket',
+        'icon': '🔶',
+        'color': '#f97316',
+        'priority': 9,
+        'description': 'Orta Seviye Hareket: Sharp skor 40-69 arası. Kriterlerin bir kısmı sağlandı.',
+        'critical': False
     },
     'big_money': {
         'name': 'Big Money Move',
@@ -296,17 +317,43 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
         date = current.get('Date', '')
         match_id = f"{home}|{away}|{league}|{date}"
     
-    sharp_config = ALARM_CONFIG.get('sharp_money', {})
     rlm_config = ALARM_CONFIG.get('rlm', {})
     drop_config = ALARM_CONFIG.get('dropping', {})
     surge_config = ALARM_CONFIG.get('public_surge', {})
     
-    sharp_min_money = sharp_config.get('min_money_inflow', 3000)
-    sharp_min_drop = sharp_config.get('min_odds_drop', 0.03)
     rlm_min_money = rlm_config.get('min_money_inflow', 3000)
     rlm_min_up = rlm_config.get('min_odds_up', 0.03)
     surge_min_money = surge_config.get('min_money_diff', 500)
     surge_max_odds = surge_config.get('max_odds_change', 0.02)
+    
+    if detect_real_sharp is not None:
+        try:
+            real_sharp_results = detect_real_sharp(history, market, match_id)
+            for sharp in real_sharp_results:
+                if sharp.get('is_real_sharp', False):
+                    alarm_key = ('sharp', sharp['side'], f"{sharp['odds_from']:.2f}-{sharp['odds_to']:.2f}")
+                    if alarm_key not in seen_alarms:
+                        seen_alarms.add(alarm_key)
+                        detected_alarms.append({
+                            'type': 'sharp',
+                            'side': sharp['side'],
+                            'money_diff': sharp['money_diff'],
+                            'odds_from': sharp['odds_from'],
+                            'odds_to': sharp['odds_to'],
+                            'window_start': sharp['window_start'],
+                            'window_end': sharp['window_end'],
+                            'timestamp': sharp['timestamp'],
+                            'is_real_sharp': True,
+                            'sharp_score': sharp['sharp_score'],
+                            'volume_shock': sharp['volume_shock'],
+                            'market_share': sharp['market_share'],
+                            'odds_drop_percent': sharp['odds_drop_percent'],
+                            'share_shift_points': sharp['share_shift_points'],
+                            'criteria': sharp['criteria'],
+                            'raw_data': sharp['raw_data']
+                        })
+        except Exception as e:
+            print(f"[RealSharp] Error in detection: {e}")
     
     window_pairs = find_window_pairs(history, WINDOW_MINUTES)
     
@@ -325,22 +372,6 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
             
             money_diff = target_amt - base_amt
             odds_diff = target_odds - base_odds
-            
-            if money_diff >= sharp_min_money and odds_diff < -sharp_min_drop:
-                odds_bucket = f"{base_odds:.2f}-{target_odds:.2f}"
-                alarm_key_sharp = ('sharp', side['key'], odds_bucket)
-                if alarm_key_sharp not in seen_alarms:
-                    seen_alarms.add(alarm_key_sharp)
-                    detected_alarms.append({
-                        'type': 'sharp',
-                        'side': side['key'],
-                        'money_diff': money_diff,
-                        'odds_from': base_odds,
-                        'odds_to': target_odds,
-                        'window_start': base_ts,
-                        'window_end': target_ts,
-                        'timestamp': target_ts
-                    })
             
             if money_diff >= rlm_min_money and odds_diff > rlm_min_up:
                 odds_bucket = f"{base_odds:.2f}-{target_odds:.2f}"
