@@ -315,6 +315,7 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None)
         curr_amt_cache[side['key']] = parse_money(current.get(side['amt'], 0))
     
     is_dropping_market = market.startswith('dropping_')
+    drop_volume = parse_money(current.get('volume', 0)) if is_dropping_market else 0
     
     for side in sides:
         curr_odds = parse_odds(current.get(side['odds'], 0))
@@ -333,15 +334,15 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None)
                 alarm_key = ('dropping', side['key'], first_ts[:13] if first_ts else '')
                 if alarm_key not in seen_alarms:
                     seen_alarms.add(alarm_key)
-                    money_pct_val = -1 if is_dropping_market else curr_pct
+                    money_val = drop_volume if is_dropping_market else curr_amt
                     detected_alarms.append({
                         'type': 'dropping',
                         'side': side['key'],
-                        'money_diff': money_pct_val,
+                        'money_diff': money_val,
                         'odds_from': first_odds,
                         'odds_to': curr_odds,
                         'total_drop': total_drop,
-                        'money_pct': money_pct_val,
+                        'money_pct': curr_pct,
                         'window_start': first_ts,
                         'window_end': curr_ts,
                         'timestamp': curr_ts
@@ -716,8 +717,8 @@ def format_alarm_for_modal(alarm: Dict) -> Dict:
         detail_text = f"+£{int(money_diff):,} (son scrape)"
     elif alarm['type'] == 'dropping':
         drop = alarm.get('total_drop', 0)
-        pct = alarm.get('money_pct', 0)
-        detail_text = f"Toplam düşüş: {drop:.2f} — Para: {pct:.0f}%"
+        money = alarm.get('money_diff', 0)
+        detail_text = f"Toplam düşüş: {drop:.2f} — Para: £{int(money):,}"
     elif alarm['type'] == 'public_surge':
         detail_text = f"Para artıyor (+£{int(money_diff):,}), oran sabit."
     elif alarm['type'] == 'momentum':

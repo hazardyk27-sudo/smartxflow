@@ -944,13 +944,8 @@ def get_cached_alarms():
                     
                     alarm_type = alarm.get('alarm_type', '')
                     money_diff = float(alarm.get('money_diff', 0) or 0)
-                    
-                    if alarm_type == 'dropping':
-                        money_pct = money_diff
-                        money_diff_val = 0
-                    else:
-                        money_pct = 0
-                        money_diff_val = money_diff
+                    money_pct = 0
+                    money_diff_val = money_diff
                     
                     filtered_alarms.append({
                         'type': alarm_type,
