@@ -34,6 +34,10 @@ def parse_to_turkey(timestamp_str: str) -> datetime:
     try:
         timestamp_str = timestamp_str.replace('Z', '+00:00')
         
+        if '+03:00' in timestamp_str:
+            dt = datetime.fromisoformat(timestamp_str)
+            return dt.replace(tzinfo=TURKEY_TZ)
+        
         if '+' in timestamp_str or '-' in timestamp_str[10:]:
             dt = datetime.fromisoformat(timestamp_str)
         else:

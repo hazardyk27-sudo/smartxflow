@@ -518,22 +518,35 @@ function formatDateTwoLine(dateStr) {
     if (!dateStr || dateStr === '-') return '<div class="date-line">-</div>';
     
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthMap = {
+        'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'may': 4, 'jun': 5,
+        'jul': 6, 'aug': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dec': 11
+    };
+    
+    function addHoursToTime(timeStr, hours) {
+        const [h, m] = timeStr.split(':').map(Number);
+        let newH = h + hours;
+        if (newH >= 24) newH -= 24;
+        return `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
     
     const pattern1 = dateStr.match(/(\d{1,2})\.(\w{3})\s*(\d{2}:\d{2})/i);
     if (pattern1) {
-        return `<div class="date-line">${pattern1[1]}.${pattern1[2]}</div><div class="time-line">${pattern1[3]}</div>`;
+        const trTime = addHoursToTime(pattern1[3], 3);
+        return `<div class="date-line">${pattern1[1]}.${pattern1[2]}</div><div class="time-line">${trTime}</div>`;
     }
     
     const pattern2 = dateStr.match(/(\d{1,2})\.(\w{3})(\d{2}:\d{2})/i);
     if (pattern2) {
-        return `<div class="date-line">${pattern2[1]}.${pattern2[2]}</div><div class="time-line">${pattern2[3]}</div>`;
+        const trTime = addHoursToTime(pattern2[3], 3);
+        return `<div class="date-line">${pattern2[1]}.${pattern2[2]}</div><div class="time-line">${trTime}</div>`;
     }
     
     const pattern3 = dateStr.match(/(\d{4})-(\d{2})-(\d{2})\s*(\d{2}:\d{2})?/);
     if (pattern3) {
         const day = parseInt(pattern3[3]);
         const monthIdx = parseInt(pattern3[2]) - 1;
-        const time = pattern3[4] || '00:00';
+        const time = pattern3[4] ? addHoursToTime(pattern3[4], 3) : '00:00';
         return `<div class="date-line">${day}.${months[monthIdx]}</div><div class="time-line">${time}</div>`;
     }
     
