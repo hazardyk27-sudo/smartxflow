@@ -747,6 +747,9 @@ def format_grouped_alarm(group: Dict) -> Dict:
     alarm_info = ALARM_TYPES.get(group['type'], {})
     latest = group['latest']
     
+    formatted_events = [format_alarm_for_modal(e) for e in group['events']]
+    latest_detail = formatted_events[0].get('detail', '') if formatted_events else ''
+    
     return {
         'type': group['type'],
         'icon': alarm_info.get('icon', ''),
@@ -762,9 +765,15 @@ def format_grouped_alarm(group: Dict) -> Dict:
         'latest_time': latest.get('timestamp', ''),
         'max_money': group['max_money'],
         'max_drop': group['max_drop'],
-        'events': [format_alarm_for_modal(e) for e in group['events']],
+        'events': formatted_events,
         'priority': group['priority'],
-        'critical': alarm_info.get('critical', False)
+        'critical': alarm_info.get('critical', False),
+        'detail': latest_detail,
+        'description': alarm_info.get('description', ''),
+        'total_drop': latest.get('total_drop', 0),
+        'money_diff': latest.get('money_diff', 0),
+        'odds_from': latest.get('odds_from'),
+        'odds_to': latest.get('odds_to')
     }
 
 

@@ -951,7 +951,7 @@ def get_cached_alarms():
                     money_pct = 0
                     money_diff_val = money_diff
                     
-                    filtered_alarms.append({
+                    alarm_data = {
                         'type': alarm_type,
                         'side': alarm.get('side', ''),
                         'money_diff': money_diff_val,
@@ -967,7 +967,16 @@ def get_cached_alarms():
                         'market': alarm.get('market', ''),
                         'league': alarm.get('league', ''),
                         'match_date': match_date
-                    })
+                    }
+                    
+                    db_detail = alarm.get('detail', '')
+                    if db_detail:
+                        alarm_data['detail'] = db_detail
+                    else:
+                        formatted = format_alarm_for_modal(alarm_data)
+                        alarm_data['detail'] = formatted.get('detail', '')
+                    
+                    filtered_alarms.append(alarm_data)
             
             grouped = group_alarms_by_match(filtered_alarms)
             formatted = [format_grouped_alarm(g) for g in grouped]
