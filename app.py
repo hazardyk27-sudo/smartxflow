@@ -127,11 +127,9 @@ def start_cleanup_scheduler():
     except Exception as e:
         print(f"[Startup] Duplicate cleanup error: {e}")
     
-    print("[Startup] Running initial alarm detection...")
-    try:
-        detect_and_save_alarms()
-    except Exception as e:
-        print(f"[Startup] Initial alarm detection error: {e}")
+    # PERFORMANS: Startup'ta alarm detection DEVRE DIŞI
+    # Alarm detection arka plan thread'inde çalışacak (cleanup_loop içinde)
+    print("[Startup] Alarm detection skipped (will run in background thread)")
     
     loop_count = [0]
     
@@ -260,11 +258,26 @@ def match_detail(home, away):
     return render_template('match_detail.html', home=home, away=away)
 
 
+matches_cache = {
+    'data': {},  # market -> data
+    'timestamp': {},  # market -> timestamp
+    'ttl': 60  # 1 dakika cache (sık güncellenen veri)
+}
+
 @app.route('/api/matches')
 def get_matches():
-    """Get all matches from database - optimized single query"""
+    """Get all matches from database - optimized with cache"""
+    import time
     market = request.args.get('market', 'moneyway_1x2')
     is_dropping = market.startswith('dropping')
+    
+    now = time.time()
+    
+    # Cache kontrolü
+    if market in matches_cache['data']:
+        last_time = matches_cache['timestamp'].get(market, 0)
+        if (now - last_time) < matches_cache['ttl']:
+            return jsonify(matches_cache['data'][market])
     
     matches_with_latest = db.get_all_matches_with_latest(market)
     
@@ -346,6 +359,10 @@ def get_matches():
             'odds': {**odds, **prev_odds},
             'history_count': 1
         })
+    
+    # Cache'e kaydet
+    matches_cache['data'][market] = enriched
+    matches_cache['timestamp'][market] = now
     
     return jsonify(enriched)
 
@@ -1320,20 +1337,47 @@ def get_ticker_alarms():
         return jsonify({'alarms': [], 'total': 0})
 
 
+odds_trend_cache = {
+    'data': {},  # market -> data
+    'timestamp': {},  # market -> timestamp
+    'ttl': 300  # 5 dakika cache
+}
+
 @app.route('/api/odds-trend/<market>')
 def get_odds_trend(market):
-    """Get 6-hour odds trend data for DROP markets only.
+    """Get odds trend data for DROP markets only (with cache).
     Returns sparkline data, percent change, and trend direction.
     """
+    import time
+    
     if not market.startswith('dropping'):
         return jsonify({'error': 'Only DROP markets supported', 'data': {}})
     
     try:
+        now = time.time()
+        
+        # Cache kontrolü
+        if market in odds_trend_cache['data']:
+            last_time = odds_trend_cache['timestamp'].get(market, 0)
+            if (now - last_time) < odds_trend_cache['ttl']:
+                print(f"[Odds Trend] Using cached data for {market}")
+                return jsonify({
+                    'market': market,
+                    'data': odds_trend_cache['data'][market],
+                    'count': len(odds_trend_cache['data'][market]),
+                    'cached': True
+                })
+        
         sb_client = get_supabase_client()
         if sb_client:
             trend_data = sb_client.get_6h_odds_history(market)
         else:
             trend_data = {}
+        
+        # Cache'e kaydet
+        odds_trend_cache['data'][market] = trend_data
+        odds_trend_cache['timestamp'][market] = now
+        
         return jsonify({
             'market': market,
             'data': trend_data,
