@@ -3134,72 +3134,37 @@ function openMatchDirectly(home, away, league) {
 }
 
 function openMatchModalById(matchId, home, away, market, league, alarmType) {
-    console.log('[Modal] Opening match by ID:', matchId, 'home:', home, 'away:', away, 'league:', league);
+    console.log('[Ticker→Match] Searching:', home, 'vs', away);
     
-    let matchIndex = -1;
+    const homeLower = home.trim().toLowerCase();
+    const awayLower = away.trim().toLowerCase();
     
-    matchIndex = matches.findIndex(m => 
-        m.home_team === home && m.away_team === away && 
-        (!league || m.league === league || m.league?.includes(league) || league?.includes(m.league))
+    const foundMatch = matches.find(m => 
+        m.home_team.trim().toLowerCase() === homeLower && 
+        m.away_team.trim().toLowerCase() === awayLower
     );
     
-    if (matchIndex < 0) {
-        matchIndex = matches.findIndex(m => m.home_team === home && m.away_team === away);
-    }
+    console.log('[Ticker→Match] Found:', foundMatch ? 'YES' : 'NO');
     
-    if (matchIndex < 0 && matchId) {
-        matchIndex = matches.findIndex(m => m.match_id === matchId);
-    }
-    
-    console.log('[Modal] Found match at index:', matchIndex, 'out of', matches.length, 'matches');
-    
-    if (matchIndex >= 0) {
-        openMatchModal(matchIndex);
+    if (foundMatch) {
+        openMatchModalDirect(foundMatch);
     } else {
-        selectedMatch = { 
-            home_team: home, 
-            away_team: away, 
-            league: league || '', 
-            date: '',
-            match_id: matchId
-        };
-        selectedChartMarket = market || currentMarket;
-        previousOddsData = null;
-        modalOddsData = null;
-        
-        modalSmartMoneyEventsOpen = false;
-        const wrapper = document.getElementById('modalEventsGridWrapper');
-        const chevron = document.getElementById('modalEventsChevron');
-        if (wrapper) {
-            wrapper.classList.remove('expanded');
-            wrapper.classList.add('collapsed');
-        }
-        if (chevron) {
-            chevron.classList.remove('rotated');
-        }
-        
-        document.getElementById('modalMatchTitle').textContent = `${home} vs ${away}`;
-        document.getElementById('modalLeague').textContent = league || '';
-        
-        updateMatchInfoCard();
-        
-        document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
-            t.classList.remove('active');
-            if (t.dataset.market === selectedChartMarket) {
-                t.classList.add('active');
-            }
-        });
-        
-        document.getElementById('modalOverlay').classList.add('active');
-        loadChartWithTrends(home, away, selectedChartMarket);
-        loadMatchAlarms(home, away);
+        console.log('[Ticker→Match] Not in matches list, opening directly with API');
+        openMatchDirectly(home, away, league);
     }
 }
 
 async function openMatchModalByTeams(home, away, alarmType) {
-    const matchIndex = matches.findIndex(m => m.home_team === home && m.away_team === away);
-    if (matchIndex >= 0) {
-        openMatchModal(matchIndex);
+    const homeLower = home.trim().toLowerCase();
+    const awayLower = away.trim().toLowerCase();
+    
+    const foundMatch = matches.find(m => 
+        m.home_team.trim().toLowerCase() === homeLower && 
+        m.away_team.trim().toLowerCase() === awayLower
+    );
+    
+    if (foundMatch) {
+        openMatchModalDirect(foundMatch);
     } else {
         console.log('[Modal] Match not in current list, fetching from API:', home, 'vs', away);
         
