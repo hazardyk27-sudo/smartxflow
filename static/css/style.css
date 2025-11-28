@@ -1371,11 +1371,11 @@ body {
     align-items: center;
     justify-content: center;
     background: linear-gradient(90deg, 
-        rgba(13, 17, 23, 0.98) 0%,
-        rgba(13, 17, 23, 0.85) 30%,
-        rgba(13, 17, 23, 0.7) 50%,
-        rgba(13, 17, 23, 0.85) 70%,
-        rgba(13, 17, 23, 0.98) 100%
+        rgba(13, 17, 23, 0.95) 0%,
+        rgba(13, 17, 23, 0.7) 40%,
+        rgba(13, 17, 23, 0.5) 50%,
+        rgba(13, 17, 23, 0.7) 60%,
+        rgba(13, 17, 23, 0.95) 100%
     );
     z-index: 100;
     opacity: 0;
@@ -1392,26 +1392,27 @@ body {
 .spotlight-pill {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 20px;
+    gap: 8px;
+    padding: 6px 14px;
     background: rgba(22, 27, 34, 0.98);
-    border: 3px solid var(--spotlight-color, #ffd700);
-    border-radius: 25px;
+    border: 2px solid var(--spotlight-color, #ffd700);
+    border-radius: 20px;
     transform: scale(0.5);
     opacity: 0;
     box-shadow: 
-        0 0 30px rgba(255, 215, 0, 0.6),
-        0 0 60px rgba(255, 215, 0, 0.3),
-        inset 0 0 20px rgba(255, 215, 0, 0.1);
+        0 0 15px rgba(255, 215, 0, 0.5),
+        0 0 30px rgba(255, 215, 0, 0.2),
+        inset 0 0 10px rgba(255, 215, 0, 0.1);
     animation: none;
+    font-size: 12px;
 }
 
 .ticker-spotlight.active .spotlight-pill {
-    animation: spotlightEnter 0.5s ease-out forwards;
+    animation: spotlightEnter 0.4s ease-out forwards;
 }
 
 .ticker-spotlight.exiting .spotlight-pill {
-    animation: spotlightExit 0.4s ease-in forwards;
+    animation: spotlightExit 0.3s ease-in forwards;
 }
 
 @keyframes spotlightEnter {
