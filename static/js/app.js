@@ -22,12 +22,42 @@ function toTurkeyTime(value) {
     if (!value) return null;
     try {
         const str = String(value);
+        
         if (str.includes('Z')) {
             return dayjs.utc(value).tz(APP_TIMEZONE);
         }
+        
         if (str.includes('+') || /T\d{2}:\d{2}:\d{2}-/.test(str)) {
             return dayjs(value).tz(APP_TIMEZONE);
         }
+        
+        const arbworldMatch = str.match(/(\d{1,2})\.(\w{3})\s*(\d{2}:\d{2}(?::\d{2})?)/i);
+        if (arbworldMatch) {
+            const monthMap = {
+                'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+                'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+            };
+            const day = parseInt(arbworldMatch[1]);
+            const month = monthMap[arbworldMatch[2]];
+            const timeParts = arbworldMatch[3].split(':').map(Number);
+            const now = dayjs().tz(APP_TIMEZONE);
+            let year = now.year();
+            
+            if (month < now.month() - 1) {
+                year++;
+            }
+            
+            const utcDate = dayjs.utc()
+                .year(year)
+                .month(month)
+                .date(day)
+                .hour(timeParts[0])
+                .minute(timeParts[1])
+                .second(timeParts[2] || 0);
+            
+            return utcDate.tz(APP_TIMEZONE);
+        }
+        
         return dayjs.tz(value, APP_TIMEZONE);
     } catch {
         return dayjs(value).tz(APP_TIMEZONE);
@@ -524,49 +554,13 @@ function formatVolume(value) {
 function formatDateTwoLine(dateStr) {
     if (!dateStr || dateStr === '-') return '<div class="date-line">-</div>';
     
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const monthMap = {
-        'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'may': 4, 'jun': 5,
-        'jul': 6, 'aug': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dec': 11
-    };
-    
-    function addHoursToTime(timeStr, hours) {
-        const [h, m] = timeStr.split(':').map(Number);
-        let newH = h + hours;
-        if (newH >= 24) newH -= 24;
-        return `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-    }
-    
-    const pattern1 = dateStr.match(/(\d{1,2})\.(\w{3})\s*(\d{2}:\d{2})/i);
-    if (pattern1) {
-        const trTime = addHoursToTime(pattern1[3], 3);
-        return `<div class="date-line">${pattern1[1]}.${pattern1[2]}</div><div class="time-line">${trTime}</div>`;
-    }
-    
-    const pattern2 = dateStr.match(/(\d{1,2})\.(\w{3})(\d{2}:\d{2})/i);
-    if (pattern2) {
-        const trTime = addHoursToTime(pattern2[3], 3);
-        return `<div class="date-line">${pattern2[1]}.${pattern2[2]}</div><div class="time-line">${trTime}</div>`;
-    }
-    
-    const pattern3 = dateStr.match(/(\d{4})-(\d{2})-(\d{2})\s*(\d{2}:\d{2})?/);
-    if (pattern3) {
-        const day = parseInt(pattern3[3]);
-        const monthIdx = parseInt(pattern3[2]) - 1;
-        const time = pattern3[4] ? addHoursToTime(pattern3[4], 3) : '00:00';
-        return `<div class="date-line">${day}.${months[monthIdx]}</div><div class="time-line">${time}</div>`;
-    }
-    
-    const pattern4 = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
-    if (pattern4) {
-        const day = parseInt(pattern4[3]);
-        const monthIdx = parseInt(pattern4[2]) - 1;
-        return `<div class="date-line">${day}.${months[monthIdx]}</div><div class="time-line">-</div>`;
-    }
-    
-    const pattern5 = dateStr.match(/(\d{4})/);
-    if (pattern5 && dateStr.length === 4) {
-        return `<div class="date-line">${dateStr}</div><div class="time-line">-</div>`;
+    const dt = toTurkeyTime(dateStr);
+    if (dt && dt.isValid()) {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const day = dt.date();
+        const month = months[dt.month()];
+        const time = dt.format('HH:mm');
+        return `<div class="date-line">${day}.${month}</div><div class="time-line">${time}</div>`;
     }
     
     return `<div class="date-line">${dateStr}</div>`;
@@ -674,61 +668,41 @@ function applySorting(data) {
     sortedData = sortedData.filter(m => hasValidMarketData(m, currentMarket));
     
     const nowTR = nowTurkey();
-    const todayDay = nowTR.date();
-    const todayMonth = nowTR.month() + 1;
-    const yesterdayTR = nowTR.subtract(1, 'day');
-    const yesterdayDay = yesterdayTR.date();
-    const yesterdayMonth = yesterdayTR.month() + 1;
+    const todayStr = nowTR.format('YYYY-MM-DD');
+    const yesterdayStr = nowTR.subtract(1, 'day').format('YYYY-MM-DD');
     
-    const monthNames = {
-        'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
-        'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
-    };
-    
-    function parseMatchDate(dateStr) {
-        if (!dateStr) return null;
-        const numericMatch = dateStr.match(/^(\d{1,2})\.(\d{1,2})/);
-        if (numericMatch) {
-            return { day: parseInt(numericMatch[1], 10), month: parseInt(numericMatch[2], 10) };
-        }
-        const textMatch = dateStr.match(/^(\d{1,2})\.(\w{3})/);
-        if (textMatch) {
-            const day = parseInt(textMatch[1], 10);
-            const monthStr = textMatch[2];
-            const month = monthNames[monthStr];
-            if (month) return { day, month };
-        }
-        return null;
+    function getMatchDateTR(dateStr) {
+        const dt = toTurkeyTime(dateStr);
+        if (!dt || !dt.isValid()) return null;
+        return dt.format('YYYY-MM-DD');
     }
     
-    function isDateTodayOrFuture(parsed) {
-        if (!parsed) return false;
-        if (parsed.month > todayMonth) return true;
-        if (parsed.month === todayMonth && parsed.day >= todayDay) return true;
-        return false;
+    function isDateTodayOrFutureTR(dateStr) {
+        const dt = toTurkeyTime(dateStr);
+        if (!dt || !dt.isValid()) return false;
+        return dt.format('YYYY-MM-DD') >= todayStr;
     }
     
     if (dateFilterMode === 'YESTERDAY') {
-        console.log('[Filter] YESTERDAY mode:', yesterdayDay + '.' + yesterdayMonth);
+        console.log('[Filter] YESTERDAY mode:', yesterdayStr);
         sortedData = sortedData.filter(m => {
-            const parsed = parseMatchDate(m.date);
-            if (!parsed) return false;
-            return parsed.day === yesterdayDay && parsed.month === yesterdayMonth;
+            const matchDateStr = getMatchDateTR(m.date);
+            if (!matchDateStr) return false;
+            return matchDateStr === yesterdayStr;
         });
         console.log('[Filter] YESTERDAY filtered count:', sortedData.length);
     } else if (dateFilterMode === 'TODAY') {
-        console.log('[Filter] TODAY mode:', todayDay + '.' + todayMonth);
+        console.log('[Filter] TODAY mode:', todayStr);
         sortedData = sortedData.filter(m => {
-            const parsed = parseMatchDate(m.date);
-            if (!parsed) return false;
-            return parsed.day === todayDay && parsed.month === todayMonth;
+            const matchDateStr = getMatchDateTR(m.date);
+            if (!matchDateStr) return false;
+            return matchDateStr === todayStr;
         });
         console.log('[Filter] TODAY filtered count:', sortedData.length);
     } else {
-        console.log('[Filter] ALL mode (today + future):', todayDay + '.' + todayMonth, '+');
+        console.log('[Filter] ALL mode (today + future):', todayStr, '+');
         sortedData = sortedData.filter(m => {
-            const parsed = parseMatchDate(m.date);
-            return isDateTodayOrFuture(parsed);
+            return isDateTodayOrFutureTR(m.date);
         });
         console.log('[Filter] ALL filtered count:', sortedData.length);
     }
