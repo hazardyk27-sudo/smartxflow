@@ -1408,10 +1408,25 @@ function getTrendArrow(current, previous) {
 
 function closeModal() {
     document.getElementById('modalOverlay').classList.remove('active');
+    
     const chartTooltip = document.getElementById('chartjs-tooltip');
     if (chartTooltip) {
         chartTooltip.style.opacity = 0;
+        chartTooltip.style.visibility = 'hidden';
+        chartTooltip.style.display = 'none';
     }
+    
+    const trendTooltip = document.querySelector('.odds-trend-tooltip');
+    if (trendTooltip) {
+        trendTooltip.classList.remove('visible');
+    }
+    
+    if (chart) {
+        chart.options.plugins.tooltip.enabled = false;
+        chart.update('none');
+        chart.options.plugins.tooltip.enabled = true;
+    }
+    
     closeAlarmHistoryPopover();
 }
 
@@ -1706,8 +1721,12 @@ async function loadChart(home, away, market) {
                             const tooltipModel = context.tooltip;
                             if (tooltipModel.opacity === 0) {
                                 tooltipEl.style.opacity = 0;
+                                tooltipEl.style.visibility = 'hidden';
                                 return;
                             }
+                            
+                            tooltipEl.style.display = 'block';
+                            tooltipEl.style.visibility = 'visible';
                             
                             if (tooltipModel.body) {
                                 const dataIndex = tooltipModel.dataPoints[0].dataIndex;
