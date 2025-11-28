@@ -27,8 +27,16 @@ function toTurkeyTime(value) {
             return dayjs.utc(value).tz(APP_TIMEZONE);
         }
         
+        if (str.endsWith('+00:00')) {
+            const utcStr = str.replace('+00:00', 'Z');
+            return dayjs.utc(utcStr).tz(APP_TIMEZONE);
+        }
+        
         if (str.includes('+') || /T\d{2}:\d{2}:\d{2}-/.test(str)) {
-            return dayjs(value).tz(APP_TIMEZONE);
+            const parsed = dayjs(value);
+            if (parsed.isValid()) {
+                return parsed.tz(APP_TIMEZONE);
+            }
         }
         
         const arbworldMatch = str.match(/(\d{1,2})\.(\w{3})\s*(\d{2}:\d{2}(?::\d{2})?)/i);
