@@ -933,12 +933,23 @@ def get_cached_alarms():
             for alarm in raw_alarms:
                 match_date = alarm.get('match_date', '')
                 if is_match_today_or_future(match_date):
+                    odds_from = alarm.get('odds_from')
+                    odds_to = alarm.get('odds_to')
+                    total_drop = 0.0
+                    if odds_from is not None and odds_to is not None:
+                        try:
+                            total_drop = float(odds_from) - float(odds_to)
+                        except (ValueError, TypeError):
+                            total_drop = 0.0
+                    
                     filtered_alarms.append({
                         'type': alarm.get('alarm_type', ''),
                         'side': alarm.get('side', ''),
                         'money_diff': float(alarm.get('money_diff', 0) or 0),
-                        'odds_from': alarm.get('odds_from'),
-                        'odds_to': alarm.get('odds_to'),
+                        'odds_from': odds_from,
+                        'odds_to': odds_to,
+                        'total_drop': total_drop,
+                        'money_pct': float(alarm.get('money_pct', 0) or 0),
                         'timestamp': alarm.get('triggered_at', ''),
                         'window_start': alarm.get('window_start', ''),
                         'window_end': alarm.get('window_end', ''),

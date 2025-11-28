@@ -729,7 +729,11 @@ def format_alarm_for_modal(alarm: Dict) -> Dict:
         'description': alarm_info.get('description', ''),
         'priority': alarm_info.get('priority', 99),
         'timestamp': alarm.get('timestamp', ''),
-        'money_diff': money_diff
+        'money_diff': money_diff,
+        'total_drop': alarm.get('total_drop', 0),
+        'money_pct': alarm.get('money_pct', 0),
+        'odds_from': alarm.get('odds_from'),
+        'odds_to': alarm.get('odds_to')
     }
 
 def format_grouped_alarm(group: Dict) -> Dict:
