@@ -163,6 +163,13 @@ Environment variables:
 - **SUPABASE SECRET ADI** - Her zaman SUPABASE_ANON_KEY kullan (SUPABASE_KEY değil)
 
 ## Son Guncellemeler
+- **28 Kasim 2025:** KALICI ALARM SİSTEMİ - Alarmlar Supabase smart_money_alarms tablosuna kaydediliyor
+- **28 Kasim 2025:** Alarm bir kez üretildiğinde maç oynanana kadar görünür kalıyor (volatile değil)
+- **28 Kasim 2025:** detect_and_save_alarms() fonksiyonu - her 10 dakikada yeni alarmları tespit edip kaydediyor
+- **28 Kasim 2025:** get_cached_alarms() artık Supabase'den okuyor, volatile hesaplama yapmıyor
+- **28 Kasim 2025:** Deduplication: window_start saat hassasiyetine truncate ediliyor (duplicate önleme)
+- **28 Kasim 2025:** Fallback: Supabase hata verirse volatile hesaplamaya düşüyor
+- **28 Kasim 2025:** /api/alarms/scan endpoint - manuel alarm taraması tetikleme
 - **27 Kasim 2025:** Alarm deduplication sistemi - aynı window için tekrar alarm üretilmez (core/alarm_state.py)
 - **27 Kasim 2025:** Window-based alarmlar (sharp/rlm/big_money/public_surge): benzersiz window_start ile kontrol
 - **27 Kasim 2025:** Non-windowed alarmlar: 15dk cooldown VEYA £5000+ artış ile yeni alarm
