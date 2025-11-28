@@ -16,6 +16,43 @@ let alertsHistory = [];
 const MAX_ALERTS_HISTORY = 500;
 let isClientMode = true;
 
+const APP_TIMEZONE = 'Europe/Istanbul';
+
+function toTurkeyTime(value) {
+    if (!value) return null;
+    try {
+        return dayjs.utc(value).tz(APP_TIMEZONE);
+    } catch {
+        return dayjs(value).tz(APP_TIMEZONE);
+    }
+}
+
+function nowTurkey() {
+    return dayjs().tz(APP_TIMEZONE);
+}
+
+function formatTurkeyTime(value, format = 'HH:mm') {
+    const dt = toTurkeyTime(value);
+    return dt ? dt.format(format) : '';
+}
+
+function formatTurkeyDateTime(value, format = 'DD.MM HH:mm') {
+    const dt = toTurkeyTime(value);
+    return dt ? dt.format(format) : '';
+}
+
+function isTodayTurkey(value) {
+    const dt = toTurkeyTime(value);
+    if (!dt) return false;
+    return dt.format('YYYY-MM-DD') === nowTurkey().format('YYYY-MM-DD');
+}
+
+function isYesterdayTurkey(value) {
+    const dt = toTurkeyTime(value);
+    if (!dt) return false;
+    return dt.format('YYYY-MM-DD') === nowTurkey().subtract(1, 'day').format('YYYY-MM-DD');
+}
+
 function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/[&<>"']/g, c => ({
