@@ -1282,6 +1282,7 @@ body {
     border-bottom: 1px solid #30363d;
     height: 42px;
     overflow: hidden;
+    gap: 0;
 }
 
 .ticker-label {
@@ -1305,8 +1306,10 @@ body {
 
 .ticker-wrapper {
     flex: 1;
+    min-width: 0;
     overflow: hidden;
     position: relative;
+    height: 100%;
 }
 
 .ticker-track {
@@ -1832,17 +1835,19 @@ body {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
+    padding: 6px 16px;
     background: rgba(74, 222, 128, 0.1);
     border: 1px solid rgba(74, 222, 128, 0.3);
-    border-radius: 20px;
+    border-left: 1px solid #30363d;
+    border-radius: 0;
     color: #4ade80;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    margin-left: auto;
     flex-shrink: 0;
+    height: 100%;
+    margin: 0;
 }
 
 .alarm-list-btn:hover {
