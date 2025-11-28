@@ -27,12 +27,19 @@ def utc_to_turkey(dt: datetime) -> datetime:
     return dt.astimezone(TURKEY_TZ)
 
 def parse_to_turkey(timestamp_str: str) -> datetime:
-    """Parse ISO timestamp string and convert to Turkey timezone"""
+    """Parse ISO timestamp string and convert to Turkey timezone.
+    
+    Note: Standalone scraper saves timestamps in TR time without offset.
+    So if no offset is present, assume it's already TR time (not UTC).
+    """
     if not timestamp_str:
         return now_turkey()
     
     try:
-        timestamp_str = timestamp_str.replace('Z', '+00:00')
+        if 'Z' in timestamp_str:
+            timestamp_str = timestamp_str.replace('Z', '+00:00')
+            dt = datetime.fromisoformat(timestamp_str)
+            return dt.astimezone(TURKEY_TZ)
         
         if '+03:00' in timestamp_str:
             dt = datetime.fromisoformat(timestamp_str)
@@ -40,11 +47,10 @@ def parse_to_turkey(timestamp_str: str) -> datetime:
         
         if '+' in timestamp_str or '-' in timestamp_str[10:]:
             dt = datetime.fromisoformat(timestamp_str)
-        else:
-            dt = datetime.fromisoformat(timestamp_str)
-            dt = pytz.utc.localize(dt)
+            return dt.astimezone(TURKEY_TZ)
         
-        return dt.astimezone(TURKEY_TZ)
+        dt = datetime.fromisoformat(timestamp_str)
+        return TURKEY_TZ.localize(dt)
     except Exception:
         return now_turkey()
 
