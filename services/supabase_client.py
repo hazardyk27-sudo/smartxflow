@@ -664,19 +664,33 @@ class SupabaseClient:
     def save_smart_money_alarm(self, alarm: Dict[str, Any]) -> bool:
         """
         Save a smart money alarm to persistent storage.
-        Uses UPSERT to avoid duplicates.
+        Uses odds-based deduplication to prevent duplicate alarms for same price movement.
         
-        Deduplication strategy: match_id + alarm_type + side + truncated_window (10-min precision)
-        This allows separate alarms for each 10-minute window while preventing
-        exact duplicates within the same window.
-        
-        Example: 14:03 and 14:07 → same bucket (14:00)
-                 14:13 and 14:17 → different bucket (14:10)
+        Deduplication strategy: match_id + alarm_type + side + odds_from + odds_to
+        This ensures each unique price movement generates only one alarm.
         """
         if not self.is_available:
             return False
         
         try:
+            match_id = alarm.get('match_id', '')
+            alarm_type = alarm.get('type', '')
+            side = alarm.get('side', '')
+            odds_from = alarm.get('odds_from')
+            odds_to = alarm.get('odds_to')
+            
+            check_url = f"{self._rest_url('smart_money_alarms')}?match_id=eq.{match_id}&alarm_type=eq.{alarm_type}&side=eq.{side}"
+            if odds_from is not None:
+                check_url += f"&odds_from=eq.{odds_from}"
+            if odds_to is not None:
+                check_url += f"&odds_to=eq.{odds_to}"
+            
+            check_resp = httpx.get(check_url, headers=self._headers(), timeout=5)
+            if check_resp.status_code == 200:
+                existing = check_resp.json()
+                if existing:
+                    return True
+            
             window_start = alarm.get('window_start', '')
             if window_start and len(window_start) >= 16:
                 try:
@@ -691,17 +705,17 @@ class SupabaseClient:
                 window_start_truncated = window_start
             
             data = {
-                'match_id': alarm.get('match_id', ''),
+                'match_id': match_id,
                 'home': alarm.get('home', ''),
                 'away': alarm.get('away', ''),
                 'league': alarm.get('league', ''),
                 'match_date': alarm.get('match_date', ''),
                 'market': alarm.get('market', ''),
-                'alarm_type': alarm.get('type', ''),
-                'side': alarm.get('side', ''),
+                'alarm_type': alarm_type,
+                'side': side,
                 'money_diff': alarm.get('money_diff', 0),
-                'odds_from': alarm.get('odds_from'),
-                'odds_to': alarm.get('odds_to'),
+                'odds_from': odds_from,
+                'odds_to': odds_to,
                 'detail': alarm.get('detail', ''),
                 'window_start': window_start_truncated,
                 'window_end': alarm.get('window_end', ''),
@@ -723,6 +737,57 @@ class SupabaseClient:
         except Exception as e:
             print(f"[SaveAlarm] Exception: {e}")
             return False
+    
+    def cleanup_duplicate_alarms(self) -> int:
+        """
+        Remove duplicate alarms from database.
+        Keeps only one alarm per match_id + alarm_type + side + odds_from + odds_to combination.
+        Returns count of deleted duplicates.
+        """
+        if not self.is_available:
+            return 0
+        
+        try:
+            url = f"{self._rest_url('smart_money_alarms')}?select=*&order=triggered_at.desc"
+            resp = httpx.get(url, headers=self._headers(), timeout=15)
+            
+            if resp.status_code != 200:
+                return 0
+            
+            alarms = resp.json()
+            seen = {}
+            duplicates = []
+            
+            for alarm in alarms:
+                key = (
+                    alarm.get('match_id', ''),
+                    alarm.get('alarm_type', ''),
+                    alarm.get('side', ''),
+                    str(alarm.get('odds_from', '')),
+                    str(alarm.get('odds_to', ''))
+                )
+                
+                if key in seen:
+                    duplicates.append(alarm.get('id'))
+                else:
+                    seen[key] = alarm.get('id')
+            
+            deleted = 0
+            for dup_id in duplicates:
+                if dup_id:
+                    del_url = f"{self._rest_url('smart_money_alarms')}?id=eq.{dup_id}"
+                    del_resp = httpx.delete(del_url, headers=self._headers(), timeout=5)
+                    if del_resp.status_code in [200, 204]:
+                        deleted += 1
+            
+            if deleted > 0:
+                print(f"[CleanupDuplicates] Removed {deleted} duplicate alarms")
+            
+            return deleted
+            
+        except Exception as e:
+            print(f"[CleanupDuplicates] Exception: {e}")
+            return 0
     
     def get_persistent_alarms(self, match_date_filter: str = 'today_future') -> List[Dict[str, Any]]:
         """

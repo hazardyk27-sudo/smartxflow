@@ -116,6 +116,17 @@ def start_cleanup_scheduler():
         retry_failed_alarms = lambda *args: {}
         cleanup_old_failed_alarms = lambda *args: 0
     
+    print("[Startup] Cleaning up duplicate alarms...")
+    try:
+        from services.supabase_client import get_database
+        db = get_database()
+        if db.is_supabase_available:
+            deleted = db.supabase.cleanup_duplicate_alarms()
+            if deleted > 0:
+                print(f"[Startup] Cleaned {deleted} duplicate alarms")
+    except Exception as e:
+        print(f"[Startup] Duplicate cleanup error: {e}")
+    
     print("[Startup] Running initial alarm detection...")
     try:
         detect_and_save_alarms()

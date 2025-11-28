@@ -261,8 +261,9 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None)
             money_diff = target_amt - base_amt
             odds_diff = target_odds - base_odds
             
-            alarm_key_sharp = ('sharp', side['key'], base_ts[:16] if base_ts else '')
             if money_diff >= sharp_min_money and odds_diff < -sharp_min_drop:
+                odds_bucket = f"{base_odds:.2f}-{target_odds:.2f}"
+                alarm_key_sharp = ('sharp', side['key'], odds_bucket)
                 if alarm_key_sharp not in seen_alarms:
                     seen_alarms.add(alarm_key_sharp)
                     detected_alarms.append({
@@ -276,8 +277,9 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None)
                         'timestamp': target_ts
                     })
             
-            alarm_key_rlm = ('rlm', side['key'], base_ts[:16] if base_ts else '')
             if money_diff >= rlm_min_money and odds_diff > rlm_min_up:
+                odds_bucket = f"{base_odds:.2f}-{target_odds:.2f}"
+                alarm_key_rlm = ('rlm', side['key'], odds_bucket)
                 if alarm_key_rlm not in seen_alarms:
                     seen_alarms.add(alarm_key_rlm)
                     detected_alarms.append({
@@ -291,9 +293,10 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None)
                         'timestamp': target_ts
                     })
             
-            alarm_key_surge = ('public_surge', side['key'], base_ts[:16] if base_ts else '')
             odds_flat = abs(odds_diff) <= surge_max_odds
             if money_diff >= surge_min_money and odds_flat:
+                odds_bucket = f"{base_odds:.2f}-{target_odds:.2f}"
+                alarm_key_surge = ('public_surge', side['key'], odds_bucket)
                 if alarm_key_surge not in seen_alarms:
                     seen_alarms.add(alarm_key_surge)
                     detected_alarms.append({
