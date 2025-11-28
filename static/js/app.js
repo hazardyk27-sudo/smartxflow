@@ -2724,6 +2724,8 @@ function getAlarmColor(alarmType) {
     return AlarmColors[alarmType] || AlarmColors.default;
 }
 
+let previousFirstAlarmId = null;
+
 async function loadMasterAlarms() {
     try {
         const response = await fetch('/api/alarms?page=0&page_size=100&filter=all&sort=newest');
@@ -2742,7 +2744,39 @@ async function loadMasterAlarms() {
         
         updateAlarmBadge(data.total || masterAlarmData.length);
         
-        renderSmartMoneyBand();
+        const allEvents = [];
+        masterAlarmData.forEach(group => {
+            if (group.events && group.events.length > 0) {
+                group.events.forEach(event => {
+                    allEvents.push({
+                        ...event,
+                        home: group.home,
+                        away: group.away,
+                        league: group.league,
+                        match_id: group.match_id,
+                        date: group.date
+                    });
+                });
+            }
+        });
+        allEvents.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+        
+        if (allEvents.length > 0) {
+            const newestAlarm = allEvents[0];
+            const newAlarmId = `${newestAlarm.type}_${newestAlarm.home}_${newestAlarm.away}_${newestAlarm.timestamp}`;
+            
+            if (previousFirstAlarmId !== null && previousFirstAlarmId !== newAlarmId && !spotlightInProgress) {
+                console.log('[MasterAlarms] New alarm detected, showing spotlight');
+                await showSpotlightAlarm(newestAlarm);
+                renderSmartMoneyBand(true);
+            } else {
+                renderSmartMoneyBand();
+            }
+            
+            previousFirstAlarmId = newAlarmId;
+        } else {
+            renderSmartMoneyBand();
+        }
         
     } catch (error) {
         console.error('[MasterAlarms] Error:', error);
@@ -2751,8 +2785,48 @@ async function loadMasterAlarms() {
 
 let tickerLastAlarmId = null;
 let tickerAnimationPaused = false;
+let spotlightInProgress = false;
 
-function renderSmartMoneyBand(highlightNewAlarm = false) {
+function showSpotlightAlarm(alarm) {
+    const spotlight = document.getElementById('tickerSpotlight');
+    const spotlightPill = document.getElementById('spotlightPill');
+    if (!spotlight || !spotlightPill) return Promise.resolve();
+    
+    return new Promise((resolve) => {
+        const alarmInfo = getAlarmColor(alarm.type);
+        const color = alarmInfo.hex;
+        const shortName = alarm.name ? alarm.name.split(' ')[0].toUpperCase() : alarm.type.toUpperCase();
+        const moneyText = alarm.money_diff ? `+£${alarm.money_diff.toLocaleString()}` : '';
+        const sideText = alarm.side ? `(${alarm.side})` : '';
+        
+        spotlightPill.style.setProperty('--spotlight-color', color);
+        spotlightPill.innerHTML = `
+            <span class="pill-dot" style="background: ${color}; color: ${color};"></span>
+            <span class="pill-type" style="color: ${color};">${shortName}</span>
+            <span class="pill-match">${alarm.home} – ${alarm.away}</span>
+            ${moneyText ? `<span class="pill-money">${moneyText}</span>` : ''}
+            ${sideText ? `<span class="pill-side">${sideText}</span>` : ''}
+        `;
+        
+        spotlight.classList.remove('exiting');
+        spotlight.classList.add('active');
+        spotlightInProgress = true;
+        
+        console.log('[Spotlight] Showing new alarm:', alarm.type, alarm.home, 'vs', alarm.away);
+        
+        setTimeout(() => {
+            spotlight.classList.add('exiting');
+            
+            setTimeout(() => {
+                spotlight.classList.remove('active', 'exiting');
+                spotlightInProgress = false;
+                resolve();
+            }, 400);
+        }, 2500);
+    });
+}
+
+function renderSmartMoneyBand(highlightNewAlarm = false, newAlarmToSpotlight = null) {
     const tickerTrack = document.getElementById('tickerTrack');
     if (!tickerTrack) return;
     
