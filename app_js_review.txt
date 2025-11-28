@@ -21,11 +21,16 @@ const APP_TIMEZONE = 'Europe/Istanbul';
 /**
  * TEK KAYNAK: Tüm timestamp dönüşümleri bu fonksiyon üzerinden yapılmalı
  * 
+ * VERİ SÖZLEŞMESİ:
+ * - Backend (Supabase) offset'li timestamp gönderdiğinde: UTC (+00:00 veya Z) → TR'ye çevrilir
+ * - Backend offset'siz ISO gönderdiğinde: ZATEN TR saatinde (scraper TR'de çalışıyor)
+ * - Arbworld formatı: ZATEN TR saatinde (Türkiye'ye göre maç saatleri)
+ * 
  * Formatlar:
- * 1. UTC with offset (backend): "2025-11-28T22:48:21+00:00" veya "...Z" → UTC→TR dönüşümü
- * 2. Other offset: "+01:00", "+02:00" vb → parseZone ile yorumla → TR'ye çevir
+ * 1. UTC with offset: "2025-11-28T22:48:21+00:00" veya "...Z" → UTC→TR dönüşümü
+ * 2. Other offset: "+01:00", "+02:00" vb → parseZone ile yorumla → TR'ye çevir  
  * 3. Arbworld format: "30.Nov 23:55:00" → ZATEN TR saatinde, direkt yorumla
- * 4. ISO no offset: "2025-11-28T22:48:21" → UTC olarak kabul et → TR'ye çevir
+ * 4. ISO no offset: "2025-11-29T01:21:38" → ZATEN TR saatinde (backend TR-local)
  * 5. Numeric (ms): timestamp → TR'ye çevir
  */
 function toTurkeyTime(raw) {
@@ -89,9 +94,10 @@ function toTurkeyTime(raw) {
             return best;
         }
         
-        // 6) ISO format without offset: "2025-11-28T22:48:21" → assume UTC
+        // 6) ISO format without offset: "2025-11-28T22:48:21" → already TR time
+        //    Backend sends TR-local timestamps without offset
         if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(str)) {
-            return dayjs.utc(str).tz(APP_TIMEZONE);
+            return dayjs.tz(str, APP_TIMEZONE);
         }
         
         // 7) ISO date only: "2025-11-28" → TR timezone'da yorumla
