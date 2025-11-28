@@ -890,6 +890,10 @@ def detect_and_save_alarms():
                     alarm['market'] = market
                     alarm['league'] = league
                     alarm['match_date'] = match_date
+                    
+                    formatted = format_alarm_for_modal(alarm)
+                    alarm['detail'] = formatted.get('detail', '')
+                    
                     all_alarms.append(alarm)
     
     supabase = get_supabase_client()
