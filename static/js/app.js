@@ -2595,62 +2595,70 @@ function getAlarmColor(alarmType) {
     return AlarmColors[alarmType] || AlarmColors.default;
 }
 
-async function loadSmartMoneyBand() {
+async function loadMasterAlarms() {
     try {
-        const response = await fetch('/api/alarms?page=0&page_size=30&filter=all&sort=newest');
+        const response = await fetch('/api/alarms?page=0&page_size=100&filter=all&sort=newest');
         const data = await response.json();
         
-        const tickerTrack = document.getElementById('tickerTrack');
-        if (!tickerTrack) return;
-        
-        if (!data.alarms || data.alarms.length === 0) {
-            tickerTrack.innerHTML = '<div class="ticker-empty">Aktif kritik alarm yok</div>';
+        if (!data.alarms) {
+            masterAlarmData = [];
             updateAlarmBadge(0);
+            renderSmartMoneyBand();
             return;
         }
         
-        const allEvents = [];
-        data.alarms.forEach(group => {
-            if (group.events && group.events.length > 0) {
-                group.events.forEach(event => {
-                    allEvents.push({
-                        ...event,
-                        home: group.home,
-                        away: group.away,
-                        league: group.league,
-                        match_id: group.match_id,
-                        date: group.date
-                    });
-                });
-            }
-        });
+        masterAlarmData = data.alarms;
         
-        allEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        masterAlarmData.sort((a, b) => new Date(b.latest_time || 0) - new Date(a.latest_time || 0));
         
-        smartMoneyBandData = allEvents.slice(0, 10);
+        updateAlarmBadge(data.total || masterAlarmData.length);
         
-        updateAlarmBadge(data.total || data.alarms.length);
         renderSmartMoneyBand();
         
     } catch (error) {
-        console.error('[Band] Error:', error);
+        console.error('[MasterAlarms] Error:', error);
     }
 }
 
 function renderSmartMoneyBand() {
     const tickerTrack = document.getElementById('tickerTrack');
-    if (!tickerTrack || smartMoneyBandData.length === 0) return;
+    if (!tickerTrack) return;
+    
+    if (masterAlarmData.length === 0) {
+        tickerTrack.innerHTML = '<div class="ticker-empty">Aktif kritik alarm yok</div>';
+        return;
+    }
     
     tickerTrack.innerHTML = '';
     
-    const latest10 = smartMoneyBandData;
+    const allEvents = [];
+    masterAlarmData.forEach(group => {
+        if (group.events && group.events.length > 0) {
+            group.events.forEach(event => {
+                allEvents.push({
+                    ...event,
+                    home: group.home,
+                    away: group.away,
+                    league: group.league,
+                    match_id: group.match_id,
+                    date: group.date
+                });
+            });
+        }
+    });
     
-    latest10.forEach((alarm, index) => {
+    allEvents.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+    
+    const latest10 = allEvents.slice(0, 10);
+    
+    if (latest10.length === 0) {
+        tickerTrack.innerHTML = '<div class="ticker-empty">Aktif kritik alarm yok</div>';
+        return;
+    }
+    
+    const createPill = (alarm, index) => {
         const pill = document.createElement('div');
         pill.className = 'ticker-pill';
-        
-        const position = latest10.length > 1 ? index / (latest10.length - 1) : 0;
-        pill.style.position = 'relative';
         pill.style.order = index;
         
         pill.dataset.matchId = alarm.match_id || '';
@@ -2683,46 +2691,11 @@ function renderSmartMoneyBand() {
             );
         };
         
-        tickerTrack.appendChild(pill);
-    });
+        return pill;
+    };
     
-    latest10.forEach((alarm, index) => {
-        const pill = document.createElement('div');
-        pill.className = 'ticker-pill';
-        pill.style.order = 10 + index;
-        
-        pill.dataset.matchId = alarm.match_id || '';
-        pill.dataset.home = alarm.home;
-        pill.dataset.away = alarm.away;
-        pill.dataset.league = alarm.league || '';
-        
-        const alarmInfo = getAlarmColor(alarm.type);
-        const color = alarmInfo.hex;
-        const shortName = alarm.name ? alarm.name.split(' ')[0].toUpperCase() : '';
-        const moneyText = alarm.money_diff ? `+£${alarm.money_diff.toLocaleString()}` : '';
-        const sideText = alarm.side ? `(${alarm.side})` : '';
-        
-        pill.innerHTML = `
-            <span class="pill-dot" style="background: ${color};"></span>
-            <span class="pill-type" style="color: ${color};">${shortName}</span>
-            <span class="pill-match">${alarm.home} – ${alarm.away}</span>
-            ${moneyText ? `<span class="pill-money">${moneyText}</span>` : ''}
-            ${sideText ? `<span class="pill-side">${sideText}</span>` : ''}
-        `;
-        
-        pill.onclick = () => {
-            console.log('[Band→Match] Clicked:', alarm.home, 'vs', alarm.away, 'match_id:', alarm.match_id);
-            openMatchModalById(
-                alarm.match_id, 
-                alarm.home, 
-                alarm.away, 
-                'moneyway_1x2', 
-                alarm.league
-            );
-        };
-        
-        tickerTrack.appendChild(pill);
-    });
+    latest10.forEach((alarm, index) => tickerTrack.appendChild(createPill(alarm, index)));
+    latest10.forEach((alarm, index) => tickerTrack.appendChild(createPill(alarm, 10 + index)));
     
     const totalWidth = tickerTrack.scrollWidth / 2;
     const speed = 224;
@@ -2783,99 +2756,51 @@ function openAlarmPanel() {
     document.getElementById('alarmDrawer').classList.add('open');
     document.body.style.overflow = 'hidden';
     
-    alarmCurrentPage = 0;
-    groupedAlarmsData = [];
-    alarmHasMore = false;
-    loadGroupedAlarms(true);
-    
-    const content = document.getElementById('alarmDrawerContent');
-    if (content) {
-        content.removeEventListener('scroll', handleAlarmScroll);
-        content.addEventListener('scroll', handleAlarmScroll);
-    }
+    renderAlarmListFromMaster();
 }
 
 function closeAlarmPanel() {
     document.getElementById('alarmDrawerOverlay').classList.remove('open');
     document.getElementById('alarmDrawer').classList.remove('open');
     document.body.style.overflow = '';
-    
-    const content = document.getElementById('alarmDrawerContent');
-    if (content) {
-        content.removeEventListener('scroll', handleAlarmScroll);
-    }
 }
 
-function handleAlarmScroll(e) {
-    const container = e.target;
-    const scrollBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-    
-    if (scrollBottom < 100 && alarmHasMore && !alarmIsLoading) {
-        loadGroupedAlarms(false);
-    }
-}
-
-async function loadGroupedAlarms(isNewLoad = true) {
+function renderAlarmListFromMaster() {
     const container = document.getElementById('alarmDrawerContent');
-    if (!container || alarmIsLoading) return;
+    if (!container) return;
     
-    alarmIsLoading = true;
+    const typeFilter = document.getElementById('alarmTypeFilter')?.value || 'all';
+    const searchQuery = document.getElementById('alarmTeamSearch')?.value.trim().toLowerCase() || '';
     
-    if (isNewLoad) {
-        alarmCurrentPage = 0;
-        groupedAlarmsData = [];
-        container.innerHTML = '<div class="alarm-loading">Alarmlar yükleniyor...</div>';
-    } else {
-        const loadingMore = document.createElement('div');
-        loadingMore.className = 'alarm-loading-more';
-        loadingMore.id = 'alarmLoadingMore';
-        loadingMore.innerHTML = 'Daha fazla yükleniyor...';
-        container.appendChild(loadingMore);
+    let filtered = [...masterAlarmData];
+    
+    if (searchQuery) {
+        filtered = filtered.filter(a => 
+            (a.home || '').toLowerCase().includes(searchQuery) || 
+            (a.away || '').toLowerCase().includes(searchQuery)
+        );
     }
     
-    try {
-        const typeFilter = document.getElementById('alarmTypeFilter')?.value || 'all';
-        const sortBy = document.getElementById('alarmSortBy')?.value || 'newest';
-        const searchQuery = document.getElementById('alarmTeamSearch')?.value.trim() || '';
-        
-        let url = `/api/alarms?page=${alarmCurrentPage}&page_size=${ALARM_PAGE_SIZE}&filter=${typeFilter}&sort=${sortBy}`;
-        if (searchQuery) {
-            url += `&search=${encodeURIComponent(searchQuery)}`;
-        }
-        console.log('[Alarms] Fetching:', url);
-        const response = await fetch(url);
-        const data = await response.json();
-        console.log('[Alarms] Response:', data);
-        
-        const loadingMore = document.getElementById('alarmLoadingMore');
-        if (loadingMore) loadingMore.remove();
-        
-        if (data.alarms && data.alarms.length > 0) {
-            groupedAlarmsData = [...groupedAlarmsData, ...data.alarms];
-            alarmHasMore = data.has_more;
-            alarmTotalCount = data.total;
-            alarmEventCount = data.event_count || 0;
-            alarmCurrentPage++;
-            renderGroupedAlarmList();
-        } else if (isNewLoad) {
-            console.log('[Alarms] No alarms found, total:', data.total);
-            container.innerHTML = '<div class="alarm-empty">Aktif alarm yok</div>';
-            alarmHasMore = false;
-        }
-    } catch (error) {
-        console.error('[Alarms] Load error:', error);
-        if (isNewLoad) {
-            container.innerHTML = '<div class="alarm-empty">Alarm yüklenirken hata oluştu</div>';
-        }
-    } finally {
-        alarmIsLoading = false;
+    if (typeFilter !== 'all') {
+        filtered = filtered.filter(a => (a.type || '').includes(typeFilter));
     }
+    
+    filtered.sort((a, b) => new Date(b.latest_time || 0) - new Date(a.latest_time || 0));
+    
+    groupedAlarmsData = filtered;
+    alarmTotalCount = filtered.length;
+    alarmEventCount = filtered.reduce((sum, g) => sum + (g.count || 0), 0);
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="alarm-empty">Aktif alarm yok</div>';
+        return;
+    }
+    
+    renderGroupedAlarmList();
 }
 
 function filterAlarms() {
-    alarmCurrentPage = 0;
-    groupedAlarmsData = [];
-    loadGroupedAlarms(true);
+    renderAlarmListFromMaster();
 }
 
 let alarmSearchTimeout = null;

@@ -772,11 +772,14 @@ def is_demo_match(match):
 def get_cached_alarms():
     """Get alarms from cache or refresh if expired.
     SYNCHRONIZED: Single source of truth for all 3 UIs (ticker, alarm list, match modal).
-    Returns only TODAY's alarms (Europe/Istanbul timezone).
+    Returns alarms for matches that are TODAY or in the FUTURE (Europe/Istanbul timezone).
+    - Match date >= today: Show alarm
+    - Match date < today: Don't show (past match)
+    - Alarm triggered_at: No filter (we care about match date, not alarm date)
     """
     import time
     from core.alarms import group_alarms_by_match, format_grouped_alarm
-    from core.timezone import now_turkey, is_today_turkey
+    from core.timezone import now_turkey, is_match_today_or_future
     
     now = time.time()
     if alarm_cache['data'] is not None and (now - alarm_cache['timestamp']) < alarm_cache['ttl']:
@@ -803,30 +806,43 @@ def get_cached_alarms():
             seen_pairs.add(pair)
     
     match_pairs = [(m.get('home_team', ''), m.get('away_team', '')) for m in all_unique_matches]
-    match_info = {(m.get('home_team', ''), m.get('away_team', '')): m.get('league', '') for m in all_unique_matches}
+    match_info = {(m.get('home_team', ''), m.get('away_team', '')): {
+        'league': m.get('league', ''),
+        'date': m.get('date', '')
+    } for m in all_unique_matches}
     
-    print(f"[Alarms API] Checking {len(match_pairs)} unique matches for alarms")
+    future_match_count = 0
+    for m in all_unique_matches:
+        if is_match_today_or_future(m.get('date', '')):
+            future_match_count += 1
+    
+    print(f"[Alarms API] Checking {len(match_pairs)} unique matches ({future_match_count} today/future) for alarms")
     
     for market in markets:
         bulk_history = db.get_bulk_history_for_alarms(market, match_pairs)
         
         for (home, away), history in bulk_history.items():
             if len(history) >= 2:
+                info = match_info.get((home, away), {})
+                match_date = info.get('date', '')
+                
+                if not is_match_today_or_future(match_date):
+                    continue
+                
                 alarms = analyze_match_alarms(history, market)
                 for alarm in alarms:
-                    if not is_today_turkey(alarm.get('timestamp', '')):
-                        continue
                     alarm['home'] = home
                     alarm['away'] = away
                     alarm['market'] = market
-                    alarm['league'] = match_info.get((home, away), '')
+                    alarm['league'] = info.get('league', '')
+                    alarm['match_date'] = match_date
                     all_alarms.append(alarm)
     
     grouped = group_alarms_by_match(all_alarms)
     formatted = [format_grouped_alarm(g) for g in grouped]
     
     elapsed = time.time() - start_time
-    print(f"[Alarms API] Cache refreshed in {elapsed:.2f}s, checked {len(match_pairs)} matches (bulk), found {len(formatted)} alarm groups ({len(all_alarms)} today events)")
+    print(f"[Alarms API] Cache refreshed in {elapsed:.2f}s, checked {len(match_pairs)} matches (bulk), found {len(formatted)} alarm groups ({len(all_alarms)} events for today/future matches)")
     
     alarm_cache['data'] = formatted
     alarm_cache['timestamp'] = now
