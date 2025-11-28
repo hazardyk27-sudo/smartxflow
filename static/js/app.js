@@ -1413,11 +1413,12 @@ function getBucketConfig() {
 
 function roundToBucket(timestamp) {
     const dt = toTurkeyTime(timestamp);
-    if (!dt) return new Date();
+    if (!dt || !dt.isValid()) return dayjs().tz(APP_TIMEZONE);
     const config = getBucketConfig();
-    const bucketMs = config.bucketMinutes * 60 * 1000;
-    const roundedTime = Math.floor(dt.valueOf() / bucketMs) * bucketMs;
-    return new Date(roundedTime);
+    const bucketMinutes = config.bucketMinutes;
+    const minutes = dt.hour() * 60 + dt.minute();
+    const roundedMinutes = Math.floor(minutes / bucketMinutes) * bucketMinutes;
+    return dt.startOf('day').add(roundedMinutes, 'minute');
 }
 
 function formatTimeLabel(date) {
@@ -1464,19 +1465,13 @@ async function loadChart(home, away, market) {
         const timeBlocks = {};
         filteredHistory.forEach(h => {
             const ts = h.ScrapedAt || '';
-            let date;
-            try {
-                date = new Date(ts);
-            } catch {
-                date = new Date();
-            }
-            const rounded = roundToBucket(date);
-            const key = rounded.getTime();
+            const rounded = roundToBucket(ts);
+            const key = rounded.valueOf();
             timeBlocks[key] = h;
         });
         
         const sortedKeys = Object.keys(timeBlocks).map(Number).sort((a, b) => a - b);
-        const labels = sortedKeys.map(k => formatTimeLabel(new Date(k)));
+        const labels = sortedKeys.map(k => formatTimeLabel(k));
         const historyData = sortedKeys.map(k => timeBlocks[k]);
         
         let datasets = [];
@@ -3325,9 +3320,10 @@ function showAlarmHistoryPopover(badge, data) {
     }
     
     events.sort((a, b) => {
-        const dateA = new Date(a.timestamp);
-        const dateB = new Date(b.timestamp);
-        return dateB - dateA;
+        const dateA = toTurkeyTime(a.timestamp);
+        const dateB = toTurkeyTime(b.timestamp);
+        if (!dateA || !dateB) return 0;
+        return dateB.valueOf() - dateA.valueOf();
     });
     
     const eventsList = events.map(event => {
