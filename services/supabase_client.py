@@ -662,6 +662,96 @@ class SupabaseClient:
             })
         
         return result
+    
+    def save_smart_money_alarm(self, alarm: Dict[str, Any]) -> bool:
+        """
+        Save a smart money alarm to persistent storage.
+        Uses UPSERT to avoid duplicates (match_id + alarm_type + side + window_start).
+        """
+        if not self.is_available:
+            return False
+        
+        try:
+            data = {
+                'match_id': alarm.get('match_id', ''),
+                'home': alarm.get('home', ''),
+                'away': alarm.get('away', ''),
+                'league': alarm.get('league', ''),
+                'match_date': alarm.get('match_date', ''),
+                'market': alarm.get('market', ''),
+                'alarm_type': alarm.get('type', ''),
+                'side': alarm.get('side', ''),
+                'money_diff': alarm.get('money_diff', 0),
+                'odds_from': alarm.get('odds_from'),
+                'odds_to': alarm.get('odds_to'),
+                'detail': alarm.get('detail', ''),
+                'window_start': alarm.get('window_start', ''),
+                'window_end': alarm.get('window_end', ''),
+                'triggered_at': alarm.get('timestamp', '')
+            }
+            
+            url = f"{self._rest_url('smart_money_alarms')}"
+            headers = self._headers()
+            headers['Prefer'] = 'resolution=ignore-duplicates'
+            
+            resp = httpx.post(url, headers=headers, json=data, timeout=10)
+            
+            if resp.status_code in [200, 201, 409]:
+                return True
+            else:
+                print(f"[SaveAlarm] Error {resp.status_code}: {resp.text[:200]}")
+                return False
+                
+        except Exception as e:
+            print(f"[SaveAlarm] Exception: {e}")
+            return False
+    
+    def get_persistent_alarms(self, match_date_filter: str = 'today_future') -> List[Dict[str, Any]]:
+        """
+        Get all persistent alarms for matches that are today or in the future.
+        This is the source of truth for alarm visibility.
+        
+        Args:
+            match_date_filter: 'today_future' (default), 'all', or specific date
+        """
+        if not self.is_available:
+            return []
+        
+        try:
+            url = f"{self._rest_url('smart_money_alarms')}?select=*&order=triggered_at.desc"
+            resp = httpx.get(url, headers=self._headers(), timeout=15)
+            
+            if resp.status_code == 200:
+                alarms = resp.json()
+                print(f"[PersistentAlarms] Got {len(alarms)} alarms from database")
+                return alarms
+            elif resp.status_code == 404:
+                print(f"[PersistentAlarms] Table not found - creating...")
+                return []
+            else:
+                print(f"[PersistentAlarms] Error {resp.status_code}")
+                return []
+                
+        except Exception as e:
+            print(f"[PersistentAlarms] Exception: {e}")
+            return []
+    
+    def save_alarms_batch(self, alarms: List[Dict[str, Any]]) -> int:
+        """
+        Save multiple alarms in batch. Returns count of successfully saved.
+        """
+        if not self.is_available or not alarms:
+            return 0
+        
+        saved = 0
+        for alarm in alarms:
+            if self.save_smart_money_alarm(alarm):
+                saved += 1
+        
+        if saved > 0:
+            print(f"[SaveAlarmsBatch] Saved {saved}/{len(alarms)} alarms")
+        
+        return saved
 
 
 class LocalDatabase:
