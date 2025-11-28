@@ -55,6 +55,77 @@ The system uses a hybrid architecture:
 - **Scrape Interval:** Fixed at 10 minutes.
 - **Data Formats:** Trend as "up"/"down", volume with "£" and thousands separator, date/time as DD.MM.YYYY HH:MM (Turkey time).
 
+---
+
+## REFERANS DOKÜMANI - PREMATCH SİSTEMİ KURALLARI
+
+### 1. Temel Prensip: Prematch Sistemi (Canlı Değil)
+- Uygulama CANLI MAÇ VERİSİYLE ÇALIŞMIYOR
+- Sadece maç başlamadan önceki para & oran hareketleri takip ediliyor
+- Maç başladıktan sonra: Yeni odds/stake kaydı OLMAMALI, yeni alarm ÜRETİLMEMELİ
+
+### 2. Arbworld Entegrasyonu
+- Arbworld, maç başladığında o maçı listeden kaldırır
+- Arbworld'de görünmeyen maç = "Bitti, sadece geçmiş verisi okunur"
+- Scraper: Arbworld listesinden kalkan maçlara veri YAZMAMALI
+
+### 3. Tarih Bazlı Yaşam Döngüsü (TR Saati)
+
+| Gün | Tanım | UI | Veri Yazma | Alarm Üretme |
+|-----|-------|----|-----------:|-------------:|
+| **D** (Bugün) | `fixture_date == today` | "Günün Maçları" | Arbworld'deyse EVET | EVET |
+| **D-1** (Dün) | `fixture_date == yesterday` | "Dünün Maçları" | HAYIR | HAYIR (sadece statik) |
+| **D-2+** (Eski) | `fixture_date <= D-2` | GÖSTERİLMEZ | HAYIR | SİL/ARŞİVLE |
+
+### 4. Veri Güvenliği Kuralları
+```
+when inserting odds_history row:
+    if fixture_date < D: REJECT (dünkü/eski maça veri yazma)
+    if fixture_date == D and match not in arbworld: REJECT (başlamış)
+
+when evaluating alarms:
+    only consider: fixture_date == D AND match in arbworld list
+```
+
+### 5. Timezone Sistemi - TEK KAYNAK KURALI
+
+**Backend / DB:**
+- Tüm timestamp'ler UTC olarak saklanır
+- Fields: `kickoff_utc`, `timestamp_utc`, `triggered_at_utc`, `scraped_at_utc`
+
+**Frontend:**
+- Varsayılan timezone: `Europe/Istanbul`
+- Tüm tarih/saat gösterimleri: `dayjs.utc(...).tz('Europe/Istanbul')`
+- Uygulanan yerler: Maç saati, Son Güncelleme, Grafik X ekseni, Tooltip, Alarm Listesi, Alarm Geçmişi
+
+### 6. Alarm Kuralları
+
+**A. Alarm Saatleri:**
+- `triggered_at_utc` → UI'de TR saati olarak gösterilir
+- Alarm Listesi, Alarm Geçmişi, Maç Detayı → AYNI helper kullanır
+
+**B. Alarm Tutarlılığı:**
+- Alarm Listesi sorgusu = Maç Detayı alarm sorgusu
+- Aynı `match_id + type` filtreleri kullanılmalı
+
+**C. Big Money & Dropping Mantığı:**
+- Big Money: `delta stake = stake_curr - stake_prev` (TOTAL DEĞİL)
+- Dropping: Oran değişimi YOKSA alarm tetiklenmemeli
+
+### 7. Update Politikası
+
+Timezone/tarih mantığına dokunan her update için:
+1. Merge/publish öncesi kontrol edilecek alanlar:
+   - Maç listesi saatleri
+   - Son Güncelleme alanı
+   - Grafik tooltip saatleri
+   - Alarm Listesi saatleri
+   - Maç detayı alarm saatleri
+2. Başka modüllerde değişiklik gerekiyorsa → HABER VER
+3. Değişiklik notu (changelog) yaz
+
+---
+
 ### External Dependencies
 - **arbworld.net:** Source for Moneyway and Dropping Odds data.
 - **Supabase:** Cloud-based PostgreSQL database for data storage and retrieval.

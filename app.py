@@ -832,13 +832,18 @@ def detect_and_save_alarms():
     Called after scrape or periodically. Alarms are PERSISTENT once saved.
     Scans ALL 6 markets (3 moneyway + 3 dropping) for comprehensive detection.
     
+    Per REFERANS DOKÜMANI Section 3:
+    - D (Today) + Future: Generate alarms (if match in arbworld)
+    - D-1 (Yesterday): NO new alarms (static mode only)
+    - D-2+ (Old): Skip entirely
+    
     SAFETY FEATURES:
     - Uses AlarmSafetyGuard for error handling and logging
     - Failed inserts are logged for later retry
     - No DELETE or UPDATE operations - append-only
     """
     import time
-    from core.timezone import is_match_today_or_future
+    from core.timezone import is_match_today, is_yesterday_turkey, is_match_d2_or_older, get_match_lifecycle_status
     from core.alarm_safety import AlarmSafetyGuard, log_failed_alarm
     
     print("[AlarmDetector] Scanning for new alarms...")
@@ -878,7 +883,10 @@ def detect_and_save_alarms():
                 match_date = info.get('date', '')
                 league = info.get('league', '')
                 
-                if not is_match_today_or_future(match_date):
+                lifecycle = get_match_lifecycle_status(match_date)
+                if lifecycle in ['D-1', 'D-2+']:
+                    continue
+                if lifecycle == 'UNKNOWN':
                     continue
                 
                 alarms = analyze_match_alarms(history, market, match_date=match_date)
@@ -908,12 +916,17 @@ def detect_and_save_alarms():
 def get_cached_alarms():
     """
     STEP 2: Get PERSISTENT alarms from Supabase (not volatile calculation).
-    Returns alarms for matches that are TODAY or in the FUTURE.
-    Alarms stay visible until match is played, regardless of subsequent odds movements.
+    
+    Per REFERANS DOKÜMANI Section 3:
+    - D (Today) + Future: Show alarms
+    - D-1 (Yesterday): Show alarms (static mode)
+    - D-2+ (Old): DO NOT show (archive/delete)
+    
+    Alarms stay visible until match is D-2 or older.
     """
     import time
     from core.alarms import group_alarms_by_match, format_grouped_alarm
-    from core.timezone import is_match_today_or_future
+    from core.timezone import is_match_d2_or_older
     
     now = time.time()
     if alarm_cache['data'] is not None and (now - alarm_cache['timestamp']) < alarm_cache['ttl']:
@@ -936,7 +949,7 @@ def get_cached_alarms():
             filtered_alarms = []
             for alarm in raw_alarms:
                 match_date = alarm.get('match_date', '')
-                if is_match_today_or_future(match_date):
+                if not is_match_d2_or_older(match_date):
                     odds_from = alarm.get('odds_from')
                     odds_to = alarm.get('odds_to')
                     total_drop = 0.0

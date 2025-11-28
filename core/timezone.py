@@ -245,47 +245,152 @@ def is_match_today_or_future(match_date_str: str) -> bool:
     except Exception as e:
         return True
 
-def is_yesterday_turkey(match_date_str: str) -> bool:
+def _extract_match_date(match_date_str: str):
     """
-    Check if match date is yesterday (Turkey timezone).
-    Used for "Yesterday's Matches" filter.
+    Internal helper to extract date from match date string.
+    Returns (day, month, year) tuple or None if parsing fails.
     """
     if not match_date_str:
-        return False
+        return None
     
     try:
-        from datetime import timedelta
-        today = now_turkey().date()
-        yesterday = today - timedelta(days=1)
-        current_year = today.year
-        
         import re
+        from datetime import date
+        
+        today = now_turkey().date()
+        current_year = today.year
         
         match_date_str = match_date_str.strip()
         
         day_match = re.match(r'^(\d{1,2})\.(\w+)', match_date_str)
-        if day_match:
-            day = int(day_match.group(1))
-            month_part = day_match.group(2)
+        if not day_match:
+            return None
             
-            month_map = {
-                'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
-                'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
-                '01': 1, '02': 2, '03': 3, '04': 4, '05': 5, '06': 6,
-                '07': 7, '08': 8, '09': 9, '10': 10, '11': 11, '12': 12,
-                '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6,
-                '7': 7, '8': 8, '9': 9
-            }
-            
-            month_lower = month_part.lower()[:3] if not month_part.isdigit() else month_part
-            month = month_map.get(month_lower, today.month)
-            
-            from datetime import date
-            match_date = date(current_year, month, day)
-            
-            return match_date == yesterday
+        day = int(day_match.group(1))
+        month_part = day_match.group(2)
         
-        return False
+        month_map = {
+            'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+            'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+            '01': 1, '02': 2, '03': 3, '04': 4, '05': 5, '06': 6,
+            '07': 7, '08': 8, '09': 9, '10': 10, '11': 11, '12': 12,
+            '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6,
+            '7': 7, '8': 8, '9': 9
+        }
+        
+        month_lower = month_part.lower()[:3] if not month_part.isdigit() else month_part
+        month = month_map.get(month_lower, today.month)
+        
+        return date(current_year, month, day)
         
     except Exception:
+        return None
+
+
+def is_match_today(match_date_str: str) -> bool:
+    """
+    Check if match date is today (D) - Turkey timezone.
+    
+    Per REFERANS DOKÜMANI Section 3:
+    - D (Today): fixture_date == today
+    - Shows in "Günün Maçları"
+    - Can receive data & generate alarms (if in arbworld)
+    
+    Args:
+        match_date_str: Match date in format "DD.Mon HH:MM:SS" etc.
+    
+    Returns:
+        True if match is today, False otherwise
+    """
+    match_date = _extract_match_date(match_date_str)
+    if not match_date:
         return False
+    
+    today = now_turkey().date()
+    return match_date == today
+
+
+def is_yesterday_turkey(match_date_str: str) -> bool:
+    """
+    Check if match date is yesterday (D-1) - Turkey timezone.
+    
+    Per REFERANS DOKÜMANI Section 3:
+    - D-1 (Yesterday): fixture_date == yesterday
+    - Shows in "Dünün Maçları"
+    - NO new data, NO new alarms (static mode only)
+    
+    Args:
+        match_date_str: Match date in format "DD.Mon HH:MM:SS" etc.
+    
+    Returns:
+        True if match is yesterday, False otherwise
+    """
+    match_date = _extract_match_date(match_date_str)
+    if not match_date:
+        return False
+    
+    from datetime import timedelta
+    today = now_turkey().date()
+    yesterday = today - timedelta(days=1)
+    
+    return match_date == yesterday
+
+
+def is_match_d2_or_older(match_date_str: str) -> bool:
+    """
+    Check if match date is D-2 or older - Turkey timezone.
+    
+    Per REFERANS DOKÜMANI Section 3:
+    - D-2+ (Old): fixture_date <= D-2
+    - Should NOT be shown in UI
+    - Alarms should be archived/deleted
+    
+    Args:
+        match_date_str: Match date in format "DD.Mon HH:MM:SS" etc.
+    
+    Returns:
+        True if match is D-2 or older, False otherwise
+    """
+    match_date = _extract_match_date(match_date_str)
+    if not match_date:
+        return False
+    
+    from datetime import timedelta
+    today = now_turkey().date()
+    d_minus_2 = today - timedelta(days=2)
+    
+    return match_date <= d_minus_2
+
+
+def get_match_lifecycle_status(match_date_str: str) -> str:
+    """
+    Get the lifecycle status of a match based on its date.
+    
+    Per REFERANS DOKÜMANI Section 3:
+    - "D": Today's match (can show, can update if in arbworld)
+    - "D-1": Yesterday's match (can show, static only)
+    - "D-2+": Old match (should not show, archive/delete alarms)
+    - "FUTURE": Future match
+    
+    Args:
+        match_date_str: Match date in format "DD.Mon HH:MM:SS" etc.
+    
+    Returns:
+        Lifecycle status string
+    """
+    match_date = _extract_match_date(match_date_str)
+    if not match_date:
+        return "UNKNOWN"
+    
+    from datetime import timedelta
+    today = now_turkey().date()
+    yesterday = today - timedelta(days=1)
+    
+    if match_date > today:
+        return "FUTURE"
+    elif match_date == today:
+        return "D"
+    elif match_date == yesterday:
+        return "D-1"
+    else:
+        return "D-2+"
