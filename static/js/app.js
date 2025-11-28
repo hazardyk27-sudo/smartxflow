@@ -610,10 +610,13 @@ function formatDateTwoLine(dateStr) {
     
     const dt = toTurkeyTime(dateStr);
     if (dt && dt.isValid()) {
+        // Maç listesi saati: +3 saat düzeltme (veri UTC-like geliyor)
+        const adj = dt.add(3, 'hour');
+        
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const day = dt.date();
-        const month = months[dt.month()];
-        const time = dt.format('HH:mm');
+        const day = adj.date();
+        const month = months[adj.month()];
+        const time = adj.format('HH:mm');
         return `<div class="date-line">${day}.${month}</div><div class="time-line">${time}</div>`;
     }
     
@@ -1081,8 +1084,16 @@ function openMatchModal(index) {
         
         document.getElementById('modalMatchTitle').textContent = 
             `${selectedMatch.home_team} vs ${selectedMatch.away_team}`;
+        
+        // Maç detay başlığı: +3 saat düzeltme
+        const headerDt = toTurkeyTime(selectedMatch.date);
+        let headerDateText = selectedMatch.date || '';
+        if (headerDt && headerDt.isValid()) {
+            const adj = headerDt.add(3, 'hour');
+            headerDateText = adj.format('DD.MM HH:mm');
+        }
         document.getElementById('modalLeague').textContent = 
-            `${selectedMatch.league || ''} • ${selectedMatch.date || ''}`;
+            `${selectedMatch.league || ''} • ${headerDateText}`;
         
         updateMatchInfoCard();
         
@@ -3078,7 +3089,12 @@ function toggleAlarmGroup(groupId) {
 
 function formatAlarmTime(timestamp) {
     if (!timestamp) return '';
-    return formatTurkeyTime(timestamp, 'HH:mm');
+    const dt = toTurkeyTime(timestamp);
+    if (!dt || !dt.isValid()) return '';
+    
+    // Alarm saati: -3 saat düzeltme (veri UTC+3-like geliyor)
+    const adj = dt.subtract(3, 'hour');
+    return adj.format('HH:mm');
 }
 
 function renderAlarmList() {
@@ -3200,8 +3216,16 @@ function openMatchModalDirect(match) {
     
     document.getElementById('modalMatchTitle').textContent = 
         `${match.home_team} vs ${match.away_team}`;
+    
+    // Maç detay başlığı: +3 saat düzeltme
+    const headerDt2 = toTurkeyTime(match.date);
+    let headerDateText2 = match.date || '';
+    if (headerDt2 && headerDt2.isValid()) {
+        const adj2 = headerDt2.add(3, 'hour');
+        headerDateText2 = adj2.format('DD.MM HH:mm');
+    }
     document.getElementById('modalLeague').textContent = 
-        `${match.league || ''} • ${match.date || ''}`;
+        `${match.league || ''} • ${headerDateText2}`;
     
     updateMatchInfoCard();
     
@@ -3386,8 +3410,12 @@ function formatAlarmDateTime(timestamp) {
     if (!timestamp) return '';
     const dt = toTurkeyTime(timestamp);
     if (!dt || !dt.isValid()) return '';
+    
+    // Alarm saati: -3 saat düzeltme (veri UTC+3-like geliyor)
+    const adj = dt.subtract(3, 'hour');
+    
     const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-    return `${dt.format('DD')} ${months[dt.month()]} · ${dt.format('HH:mm')}`;
+    return `${adj.format('DD')} ${months[adj.month()]} · ${adj.format('HH:mm')}`;
 }
 
 function showAlarmHistoryPopover(badge, data) {
