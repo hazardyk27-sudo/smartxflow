@@ -3739,18 +3739,25 @@ function showTrendTooltip(event) {
         }
         
         tooltip.innerHTML = `
-            <div class="tooltip-title">Açılıştan Bugüne Değişim</div>
-            <div class="tooltip-row">
-                <span class="tooltip-label">Açılış oranı:</span>
-                <span class="tooltip-value">${data.old ? data.old.toFixed(2) : '-'}${firstScrapedText ? ` <small>(${firstScrapedText})</small>` : ''}</span>
+            <div class="tooltip-title">AÇILIŞTAN BUGÜNE DEĞİŞİM</div>
+            <div class="tooltip-block">
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Açılış oranı:</span>
+                    <span class="tooltip-value">${data.old ? data.old.toFixed(2) : '-'}</span>
+                </div>
+                ${firstScrapedText ? `<div class="tooltip-date">(${firstScrapedText})</div>` : ''}
             </div>
-            <div class="tooltip-row">
-                <span class="tooltip-label">Son oran:</span>
-                <span class="tooltip-value">${data.new ? data.new.toFixed(2) : '-'}</span>
+            <div class="tooltip-block">
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Son oran:</span>
+                    <span class="tooltip-value">${data.new ? data.new.toFixed(2) : '-'}</span>
+                </div>
             </div>
-            <div class="tooltip-row">
-                <span class="tooltip-label">Değişim:</span>
-                <span class="tooltip-value ${trendClass}">${diffSign}${diff.toFixed(2)} (${data.pct > 0 ? '+' : ''}${data.pct}%)</span>
+            <div class="tooltip-block">
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Değişim:</span>
+                    <span class="tooltip-value ${trendClass}">${diffSign}${diff.toFixed(2)} (${data.pct > 0 ? '+' : ''}${data.pct}%)</span>
+                </div>
             </div>
             <div class="tooltip-trend ${trendClass}">${trendText}</div>
         `;

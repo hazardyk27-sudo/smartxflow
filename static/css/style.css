@@ -2938,32 +2938,51 @@ td.volume,
 }
 
 .odds-trend-tooltip .tooltip-title {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     color: #8b949e;
     text-transform: uppercase;
-    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
     padding-bottom: 8px;
     border-bottom: 1px solid #30363d;
+}
+
+.odds-trend-tooltip .tooltip-block {
+    margin-bottom: 10px;
+}
+
+.odds-trend-tooltip .tooltip-block:last-of-type {
+    margin-bottom: 0;
 }
 
 .odds-trend-tooltip .tooltip-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 4px 0;
+    gap: 16px;
+}
+
+.odds-trend-tooltip .tooltip-date {
+    font-size: 10px;
+    color: #6b7280;
+    opacity: 0.8;
+    text-align: right;
+    margin-top: 2px;
 }
 
 .odds-trend-tooltip .tooltip-label {
     color: #8b949e;
     font-size: 12px;
+    white-space: nowrap;
 }
 
 .odds-trend-tooltip .tooltip-value {
     color: #c9d1d9;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     font-family: 'JetBrains Mono', monospace;
+    text-align: right;
 }
 
 .odds-trend-tooltip .tooltip-value.tooltip-down {
