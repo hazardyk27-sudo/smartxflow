@@ -3041,19 +3041,57 @@ function goToMatchFromAlarm(home, away, matchId, league) {
     const homeLower = home.trim().toLowerCase();
     const awayLower = away.trim().toLowerCase();
     
-    const matchIndex = matches.findIndex(m => 
+    const foundMatch = matches.find(m => 
         m.home_team.trim().toLowerCase() === homeLower && 
         m.away_team.trim().toLowerCase() === awayLower
     );
     
-    console.log('[Alarm→Match] Searching:', home, 'vs', away, '| Found index:', matchIndex);
+    console.log('[Alarm→Match] Searching:', home, 'vs', away, '| Found:', foundMatch ? 'YES' : 'NO');
     
-    if (matchIndex >= 0) {
-        openMatchModal(matchIndex);
+    if (foundMatch) {
+        openMatchModalDirect(foundMatch);
     } else {
-        console.log('[Alarm→Match] Not in current list, opening directly');
+        console.log('[Alarm→Match] Not in matches list, opening directly with API');
         openMatchDirectly(home, away, league);
     }
+}
+
+function openMatchModalDirect(match) {
+    selectedMatch = match;
+    selectedChartMarket = currentMarket;
+    previousOddsData = null;
+    modalOddsData = match.odds || match.details || null;
+    
+    modalSmartMoneyEventsOpen = false;
+    const wrapper = document.getElementById('modalEventsGridWrapper');
+    const chevron = document.getElementById('modalEventsChevron');
+    if (wrapper) {
+        wrapper.classList.remove('expanded');
+        wrapper.classList.add('collapsed');
+    }
+    if (chevron) {
+        chevron.classList.remove('rotated');
+    }
+    
+    console.log('[Alarm→Match] Opening modal for:', match.home_team, 'vs', match.away_team);
+    
+    document.getElementById('modalMatchTitle').textContent = 
+        `${match.home_team} vs ${match.away_team}`;
+    document.getElementById('modalLeague').textContent = 
+        `${match.league || ''} • ${match.date || ''}`;
+    
+    updateMatchInfoCard();
+    
+    document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
+        t.classList.remove('active');
+        if (t.dataset.market === selectedChartMarket) {
+            t.classList.add('active');
+        }
+    });
+    
+    document.getElementById('modalOverlay').classList.add('active');
+    loadChartWithTrends(match.home_team, match.away_team, selectedChartMarket);
+    loadMatchAlarms(match.home_team, match.away_team);
 }
 
 function openMatchDirectly(home, away, league) {
