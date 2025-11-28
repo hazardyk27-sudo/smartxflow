@@ -39,6 +39,11 @@ function toTurkeyTime(value) {
             }
         }
         
+        const isoNoOffset = str.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/);
+        if (isoNoOffset) {
+            return dayjs.utc(value).tz(APP_TIMEZONE);
+        }
+        
         const arbworldMatch = str.match(/(\d{1,2})\.(\w{3})\s*(\d{2}:\d{2}(?::\d{2})?)/i);
         if (arbworldMatch) {
             const monthMap = {
@@ -1002,11 +1007,8 @@ function toggleYesterdayFilter() {
 
 function parseDate(dateStr) {
     if (!dateStr || dateStr === '-') return 0;
-    const parts = dateStr.match(/(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/);
-    if (parts) {
-        return new Date(parts[3], parts[2] - 1, parts[1], parts[4], parts[5]).getTime();
-    }
-    return new Date(dateStr).getTime() || 0;
+    const dt = toTurkeyTime(dateStr);
+    return dt && dt.isValid() ? dt.valueOf() : 0;
 }
 
 function parseVolume(match) {
@@ -2795,12 +2797,13 @@ function renderSmartMoneyBand(highlightNewAlarm = false) {
         }
         
         pill.onclick = () => {
-            console.log('[Band→Match] Clicked:', alarm.home, 'vs', alarm.away, 'match_id:', alarm.match_id);
+            console.log('[Band→Match] Clicked:', alarm.home, 'vs', alarm.away, 'market:', alarm.market);
+            const market = alarm.market || 'moneyway_1x2';
             openMatchModalById(
                 alarm.match_id, 
                 alarm.home, 
                 alarm.away, 
-                'moneyway_1x2', 
+                market, 
                 alarm.league
             );
         };
