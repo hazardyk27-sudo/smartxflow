@@ -31,15 +31,17 @@ let alarmEventCount = 0;
 const ALARM_PAGE_SIZE = 30;
 
 
+let smartMoneyBandData = [];
+
 document.addEventListener('DOMContentLoaded', () => {
     loadMatches();
     setupTabs();
     setupSearch();
     setupModalChartTabs();
     checkStatus();
-    loadSmartMoneyTicker();
+    loadSmartMoneyBand();
     window.statusInterval = window.setInterval(checkStatus, 30000);
-    window.tickerInterval = window.setInterval(loadSmartMoneyTicker, 60000);
+    window.bandInterval = window.setInterval(loadSmartMoneyBand, 60000);
 });
 
 function setupTabs() {
@@ -2593,13 +2595,9 @@ function getAlarmColor(alarmType) {
     return AlarmColors[alarmType] || AlarmColors.default;
 }
 
-let tickerAlarms = [];
-let tickerPaused = false;
-let tickerIndex = 0;
-
-async function loadSmartMoneyTicker() {
+async function loadSmartMoneyBand() {
     try {
-        const response = await fetch('/api/alarms/ticker');
+        const response = await fetch('/api/alarms?page=0&page_size=30&filter=all&sort=newest');
         const data = await response.json();
         
         const tickerTrack = document.getElementById('tickerTrack');
@@ -2607,42 +2605,64 @@ async function loadSmartMoneyTicker() {
         
         if (!data.alarms || data.alarms.length === 0) {
             tickerTrack.innerHTML = '<div class="ticker-empty">Aktif kritik alarm yok</div>';
-            updateAlarmBadge(data.total || 0);
+            updateAlarmBadge(0);
             return;
         }
         
-        tickerAlarms = data.alarms;
-        updateAlarmBadge(data.total);
-        renderTickerPills();
+        const allEvents = [];
+        data.alarms.forEach(group => {
+            if (group.events && group.events.length > 0) {
+                group.events.forEach(event => {
+                    allEvents.push({
+                        ...event,
+                        home: group.home,
+                        away: group.away,
+                        league: group.league,
+                        match_id: group.match_id,
+                        date: group.date
+                    });
+                });
+            }
+        });
+        
+        allEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
+        smartMoneyBandData = allEvents.slice(0, 10);
+        
+        updateAlarmBadge(data.total || data.alarms.length);
+        renderSmartMoneyBand();
         
     } catch (error) {
-        console.error('[Ticker] Error:', error);
+        console.error('[Band] Error:', error);
     }
 }
 
-function renderTickerPills() {
+function renderSmartMoneyBand() {
     const tickerTrack = document.getElementById('tickerTrack');
-    if (!tickerTrack || tickerAlarms.length === 0) return;
+    if (!tickerTrack || smartMoneyBandData.length === 0) return;
     
     tickerTrack.innerHTML = '';
     
-    const createPill = (alarm) => {
+    const latest10 = smartMoneyBandData;
+    
+    latest10.forEach((alarm, index) => {
         const pill = document.createElement('div');
         pill.className = 'ticker-pill';
+        
+        const position = latest10.length > 1 ? index / (latest10.length - 1) : 0;
+        pill.style.position = 'relative';
+        pill.style.order = index;
+        
         pill.dataset.matchId = alarm.match_id || '';
         pill.dataset.home = alarm.home;
         pill.dataset.away = alarm.away;
-        pill.dataset.market = alarm.market || 'moneyway_1x2';
         pill.dataset.league = alarm.league || '';
-        pill.dataset.date = alarm.date || '';
-        pill.dataset.alarm = alarm.type || 'default';
         
         const alarmInfo = getAlarmColor(alarm.type);
         const color = alarmInfo.hex;
         const shortName = alarm.name ? alarm.name.split(' ')[0].toUpperCase() : '';
-        const moneyText = alarm.money_text || '';
+        const moneyText = alarm.money_diff ? `+£${alarm.money_diff.toLocaleString()}` : '';
         const sideText = alarm.side ? `(${alarm.side})` : '';
-        const oddsText = (alarm.odds_from && alarm.odds_to) ? `${alarm.odds_from} → ${alarm.odds_to}` : '';
         
         pill.innerHTML = `
             <span class="pill-dot" style="background: ${color};"></span>
@@ -2650,36 +2670,64 @@ function renderTickerPills() {
             <span class="pill-match">${alarm.home} – ${alarm.away}</span>
             ${moneyText ? `<span class="pill-money">${moneyText}</span>` : ''}
             ${sideText ? `<span class="pill-side">${sideText}</span>` : ''}
-            ${oddsText ? `<span class="pill-odds">${oddsText}</span>` : ''}
         `;
         
-        pill.onclick = () => openMatchModalById(
-            pill.dataset.matchId, 
-            pill.dataset.home, 
-            pill.dataset.away, 
-            pill.dataset.market, 
-            pill.dataset.league, 
-            pill.dataset.date
-        );
+        pill.onclick = () => {
+            console.log('[Band→Match] Clicked:', alarm.home, 'vs', alarm.away, 'match_id:', alarm.match_id);
+            openMatchModalById(
+                alarm.match_id, 
+                alarm.home, 
+                alarm.away, 
+                'moneyway_1x2', 
+                alarm.league
+            );
+        };
         
-        return pill;
-    };
+        tickerTrack.appendChild(pill);
+    });
     
-    tickerAlarms.forEach(alarm => tickerTrack.appendChild(createPill(alarm)));
-    tickerAlarms.forEach(alarm => tickerTrack.appendChild(createPill(alarm)));
+    latest10.forEach((alarm, index) => {
+        const pill = document.createElement('div');
+        pill.className = 'ticker-pill';
+        pill.style.order = 10 + index;
+        
+        pill.dataset.matchId = alarm.match_id || '';
+        pill.dataset.home = alarm.home;
+        pill.dataset.away = alarm.away;
+        pill.dataset.league = alarm.league || '';
+        
+        const alarmInfo = getAlarmColor(alarm.type);
+        const color = alarmInfo.hex;
+        const shortName = alarm.name ? alarm.name.split(' ')[0].toUpperCase() : '';
+        const moneyText = alarm.money_diff ? `+£${alarm.money_diff.toLocaleString()}` : '';
+        const sideText = alarm.side ? `(${alarm.side})` : '';
+        
+        pill.innerHTML = `
+            <span class="pill-dot" style="background: ${color};"></span>
+            <span class="pill-type" style="color: ${color};">${shortName}</span>
+            <span class="pill-match">${alarm.home} – ${alarm.away}</span>
+            ${moneyText ? `<span class="pill-money">${moneyText}</span>` : ''}
+            ${sideText ? `<span class="pill-side">${sideText}</span>` : ''}
+        `;
+        
+        pill.onclick = () => {
+            console.log('[Band→Match] Clicked:', alarm.home, 'vs', alarm.away, 'match_id:', alarm.match_id);
+            openMatchModalById(
+                alarm.match_id, 
+                alarm.home, 
+                alarm.away, 
+                'moneyway_1x2', 
+                alarm.league
+            );
+        };
+        
+        tickerTrack.appendChild(pill);
+    });
     
     const totalWidth = tickerTrack.scrollWidth / 2;
     const speed = 224;
     const duration = totalWidth / speed;
     tickerTrack.style.animationDuration = `${Math.max(duration, 4)}s`;
-}
-
-function pauseTicker() {
-    tickerPaused = true;
-}
-
-function resumeTicker() {
-    tickerPaused = false;
 }
 
 function addToAlertsHistory(alarm) {
