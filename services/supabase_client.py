@@ -666,12 +666,22 @@ class SupabaseClient:
     def save_smart_money_alarm(self, alarm: Dict[str, Any]) -> bool:
         """
         Save a smart money alarm to persistent storage.
-        Uses UPSERT to avoid duplicates (match_id + alarm_type + side + window_start).
+        Uses UPSERT to avoid duplicates.
+        
+        Deduplication strategy: match_id + alarm_type + side + truncated_window (hour precision)
+        This prevents the same logical alarm from being saved multiple times even if
+        window_start shifts slightly between scrapes.
         """
         if not self.is_available:
             return False
         
         try:
+            window_start = alarm.get('window_start', '')
+            if window_start and len(window_start) >= 13:
+                window_start_truncated = window_start[:13] + ':00:00'
+            else:
+                window_start_truncated = window_start
+            
             data = {
                 'match_id': alarm.get('match_id', ''),
                 'home': alarm.get('home', ''),
@@ -685,7 +695,7 @@ class SupabaseClient:
                 'odds_from': alarm.get('odds_from'),
                 'odds_to': alarm.get('odds_to'),
                 'detail': alarm.get('detail', ''),
-                'window_start': alarm.get('window_start', ''),
+                'window_start': window_start_truncated,
                 'window_end': alarm.get('window_end', ''),
                 'triggered_at': alarm.get('timestamp', '')
             }

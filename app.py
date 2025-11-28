@@ -865,41 +865,51 @@ def get_cached_alarms():
     
     supabase = get_supabase_client()
     
-    if supabase and supabase.is_available:
-        raw_alarms = supabase.get_persistent_alarms()
-        
-        filtered_alarms = []
-        for alarm in raw_alarms:
-            match_date = alarm.get('match_date', '')
-            if is_match_today_or_future(match_date):
-                filtered_alarms.append({
-                    'type': alarm.get('alarm_type', ''),
-                    'side': alarm.get('side', ''),
-                    'money_diff': float(alarm.get('money_diff', 0) or 0),
-                    'odds_from': alarm.get('odds_from'),
-                    'odds_to': alarm.get('odds_to'),
-                    'timestamp': alarm.get('triggered_at', ''),
-                    'window_start': alarm.get('window_start', ''),
-                    'window_end': alarm.get('window_end', ''),
-                    'home': alarm.get('home', ''),
-                    'away': alarm.get('away', ''),
-                    'market': alarm.get('market', ''),
-                    'league': alarm.get('league', ''),
-                    'match_date': match_date
-                })
-        
-        grouped = group_alarms_by_match(filtered_alarms)
-        formatted = [format_grouped_alarm(g) for g in grouped]
-        
-        elapsed = time.time() - start_time
-        print(f"[Alarms API] Loaded {len(raw_alarms)} total, {len(filtered_alarms)} for today/future matches, {len(formatted)} groups in {elapsed:.2f}s")
-        
-        alarm_cache['data'] = formatted
-        alarm_cache['timestamp'] = now
-        
-        return formatted.copy()
-    else:
-        print("[Alarms API] Supabase not available, falling back to volatile calculation")
+    try:
+        if supabase and supabase.is_available:
+            raw_alarms = supabase.get_persistent_alarms()
+            
+            if raw_alarms is None:
+                print("[Alarms API] Supabase returned None, falling back to volatile")
+                return get_cached_alarms_volatile()
+            
+            filtered_alarms = []
+            for alarm in raw_alarms:
+                match_date = alarm.get('match_date', '')
+                if is_match_today_or_future(match_date):
+                    filtered_alarms.append({
+                        'type': alarm.get('alarm_type', ''),
+                        'side': alarm.get('side', ''),
+                        'money_diff': float(alarm.get('money_diff', 0) or 0),
+                        'odds_from': alarm.get('odds_from'),
+                        'odds_to': alarm.get('odds_to'),
+                        'timestamp': alarm.get('triggered_at', ''),
+                        'window_start': alarm.get('window_start', ''),
+                        'window_end': alarm.get('window_end', ''),
+                        'home': alarm.get('home', ''),
+                        'away': alarm.get('away', ''),
+                        'market': alarm.get('market', ''),
+                        'league': alarm.get('league', ''),
+                        'match_date': match_date
+                    })
+            
+            grouped = group_alarms_by_match(filtered_alarms)
+            formatted = [format_grouped_alarm(g) for g in grouped]
+            
+            elapsed = time.time() - start_time
+            print(f"[Alarms API] Loaded {len(raw_alarms)} total, {len(filtered_alarms)} for today/future matches, {len(formatted)} groups in {elapsed:.2f}s")
+            
+            alarm_cache['data'] = formatted
+            alarm_cache['timestamp'] = now
+            
+            return formatted.copy()
+        else:
+            print("[Alarms API] Supabase not available, falling back to volatile calculation")
+            return get_cached_alarms_volatile()
+    except Exception as e:
+        print(f"[Alarms API] Error loading persistent alarms: {e}, falling back to volatile")
+        import traceback
+        traceback.print_exc()
         return get_cached_alarms_volatile()
 
 def get_cached_alarms_volatile():
