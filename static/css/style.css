@@ -1541,6 +1541,11 @@ body {
     --pill-color-rgb: 239, 68, 68;
 }
 
+.ticker-pill[data-alarm="medium_movement"] {
+    --pill-color: #f97316;
+    --pill-color-rgb: 249, 115, 22;
+}
+
 .pill-dot {
     width: 8px;
     height: 8px;

@@ -89,63 +89,95 @@ class RealSharpDetector:
             ]
         return []
     
+    def parse_timestamp(self, ts: str) -> Optional[datetime]:
+        """Parse timestamp string to datetime"""
+        if not ts:
+            return None
+        try:
+            if 'T' in ts:
+                return datetime.fromisoformat(ts.replace('Z', '+00:00').split('+')[0])
+            else:
+                return datetime.strptime(ts[:19], '%Y-%m-%d %H:%M:%S')
+        except:
+            return None
+    
     def calculate_normal_volume(self, history: List[Dict], side: Dict[str, str]) -> float:
         """
         Son 1 saat içindeki 10 dakikalık hacim pencerelerinin medyanını hesapla.
         Bu "normal" hacmi temsil eder.
+        
+        Her satır için ~10 dakika önceki satırı bul ve aradaki hacim farkını hesapla.
         """
         if len(history) < 2:
             return 0.0
         
         try:
-            now_ts = history[-1].get('ScrapedAt', '')
-            if not now_ts:
+            now_dt = self.parse_timestamp(history[-1].get('ScrapedAt', ''))
+            if not now_dt:
                 return 0.0
-            
-            if 'T' in now_ts:
-                now_dt = datetime.fromisoformat(now_ts.replace('Z', '+00:00').split('+')[0])
-            else:
-                now_dt = datetime.strptime(now_ts[:19], '%Y-%m-%d %H:%M:%S')
             
             one_hour_ago = now_dt - timedelta(minutes=self.LOOKBACK_MINUTES)
             
+            history_with_dt = []
+            for row in history:
+                dt = self.parse_timestamp(row.get('ScrapedAt', ''))
+                if dt:
+                    history_with_dt.append((dt, row))
+            
+            if len(history_with_dt) < 2:
+                return 0.0
+            
             ten_min_volumes = []
-            for i in range(len(history) - 1):
-                row = history[i]
-                next_row = history[i + 1]
-                
-                row_ts = row.get('ScrapedAt', '')
-                if not row_ts:
+            
+            for i, (target_dt, target_row) in enumerate(history_with_dt):
+                if target_dt < one_hour_ago:
                     continue
                 
-                if 'T' in row_ts:
-                    row_dt = datetime.fromisoformat(row_ts.replace('Z', '+00:00').split('+')[0])
-                else:
-                    row_dt = datetime.strptime(row_ts[:19], '%Y-%m-%d %H:%M:%S')
+                target_minus_10 = target_dt - timedelta(minutes=self.WINDOW_MINUTES)
                 
-                if row_dt < one_hour_ago:
-                    continue
+                best_base = None
+                best_diff = float('inf')
                 
-                next_ts = next_row.get('ScrapedAt', '')
-                if not next_ts:
-                    continue
+                for j in range(i - 1, -1, -1):
+                    base_dt, base_row = history_with_dt[j]
+                    time_diff = abs((base_dt - target_minus_10).total_seconds())
+                    
+                    if time_diff < best_diff:
+                        best_diff = time_diff
+                        best_base = (base_dt, base_row)
+                    
+                    if base_dt < target_minus_10 - timedelta(minutes=5):
+                        break
                 
-                if 'T' in next_ts:
-                    next_dt = datetime.fromisoformat(next_ts.replace('Z', '+00:00').split('+')[0])
-                else:
-                    next_dt = datetime.strptime(next_ts[:19], '%Y-%m-%d %H:%M:%S')
-                
-                time_diff = (next_dt - row_dt).total_seconds() / 60
-                if 8 <= time_diff <= 12:
-                    amt_diff = parse_money(next_row.get(side['amt'], 0)) - parse_money(row.get(side['amt'], 0))
-                    if amt_diff > 0:
-                        ten_min_volumes.append(amt_diff)
+                if best_base and best_diff <= 300:
+                    base_dt, base_row = best_base
+                    actual_window = (target_dt - base_dt).total_seconds() / 60
+                    
+                    if 5 <= actual_window <= 15:
+                        base_amt = parse_money(base_row.get(side['amt'], 0))
+                        target_amt = parse_money(target_row.get(side['amt'], 0))
+                        amt_diff = target_amt - base_amt
+                        
+                        if amt_diff > 0:
+                            normalized = amt_diff * (10.0 / actual_window)
+                            ten_min_volumes.append(normalized)
             
             if len(ten_min_volumes) >= 2:
                 return median(ten_min_volumes)
             elif len(ten_min_volumes) == 1:
                 return ten_min_volumes[0]
             else:
+                total_volume_change = (
+                    parse_money(history[-1].get(side['amt'], 0)) - 
+                    parse_money(history[0].get(side['amt'], 0))
+                )
+                if total_volume_change > 0 and len(history) >= 2:
+                    first_dt = self.parse_timestamp(history[0].get('ScrapedAt', ''))
+                    last_dt = self.parse_timestamp(history[-1].get('ScrapedAt', ''))
+                    if first_dt and last_dt:
+                        total_minutes = (last_dt - first_dt).total_seconds() / 60
+                        if total_minutes > 0:
+                            return (total_volume_change / total_minutes) * 10
                 return 0.0
                 
         except Exception as e:

@@ -2709,14 +2709,15 @@ document.addEventListener('keydown', (e) => {
 let highlightedAlarmType = null;
 
 const AlarmColors = {
-    sharp: { hex: '#22c55e', name: 'Sharp Money', icon: '🟢', priority: 1 },
-    rlm: { hex: '#f97316', name: 'Reverse Line Move', icon: '🔴', priority: 2 },
-    big_money: { hex: '#eab308', name: 'Big Money', icon: '💰', priority: 3 },
-    momentum_change: { hex: '#06b6d4', name: 'Momentum Change', icon: '🔄', priority: 4 },
-    momentum: { hex: '#a855f7', name: 'Momentum', icon: '🟣', priority: 5 },
-    line_freeze: { hex: '#3b82f6', name: 'Line Freeze', icon: '🔵', priority: 6 },
-    public_surge: { hex: '#eab308', name: 'Public Surge', icon: '🟡', priority: 7 },
-    dropping: { hex: '#ef4444', name: 'Dropping', icon: '📉', priority: 8 },
+    sharp: { hex: '#22c55e', name: 'Real Sharp', icon: '🟢', priority: 1 },
+    medium_movement: { hex: '#f97316', name: 'Orta Hareket', icon: '🔶', priority: 2 },
+    rlm: { hex: '#ef4444', name: 'Reverse Line Move', icon: '🔴', priority: 3 },
+    big_money: { hex: '#eab308', name: 'Big Money', icon: '💰', priority: 4 },
+    momentum_change: { hex: '#06b6d4', name: 'Momentum Change', icon: '🔄', priority: 5 },
+    momentum: { hex: '#a855f7', name: 'Momentum', icon: '🟣', priority: 6 },
+    line_freeze: { hex: '#3b82f6', name: 'Line Freeze', icon: '🔵', priority: 7 },
+    public_surge: { hex: '#eab308', name: 'Public Surge', icon: '🟡', priority: 8 },
+    dropping: { hex: '#ef4444', name: 'Dropping', icon: '📉', priority: 9 },
     default: { hex: '#666666', name: 'Alert', icon: '⚡', priority: 99 }
 };
 
