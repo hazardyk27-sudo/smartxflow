@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartXFlow - Betting Odds Monitor</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=218">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/utc.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/timezone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/customParseFormat.js"></script>
+    <script>
+        dayjs.extend(dayjs_plugin_utc);
+        dayjs.extend(dayjs_plugin_timezone);
+        dayjs.extend(dayjs_plugin_customParseFormat);
+    </script>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <circle cx="16" cy="16" r="14" stroke="#4ade80" stroke-width="2"/>
+                    <path d="M10 16L14 20L22 12" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div class="brand">
+                <h1>SmartXFlow</h1>
+                <span class="subtitle">Betting Odds Monitor</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="status-indicator" id="statusIndicator">
+                <span class="status-dot"></span>
+                <span class="status-text">Ready</span>
+            </div>
+            <div class="last-update-info" id="lastUpdateInfo">
+                <span class="last-update-label">Son Guncelleme:</span>
+                <span class="last-update-time" id="lastUpdateTime">--:--</span>
+                <span class="last-update-tz">(TR)</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="smart-money-ticker" id="smartMoneyTicker">
+        <div class="ticker-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+            <span>Smart Money</span>
+        </div>
+        <div class="ticker-wrapper">
+            <div class="ticker-track" id="tickerTrack">
+                {% if ticker_alarms %}
+                    {% for alarm in ticker_alarms %}
+                    <div class="ticker-pill" 
+                         data-match-id="{{ alarm.match_id or '' }}"
+                         data-home="{{ alarm.home }}"
+                         data-away="{{ alarm.away }}"
+                         data-market="{{ alarm.market or 'moneyway_1x2' }}"
+                         data-league="{{ alarm.league or '' }}"
+                         data-date="{{ alarm.date or '' }}"
+                         onclick="openMatchModalById(this.dataset.matchId, this.dataset.home, this.dataset.away, this.dataset.market, this.dataset.league, this.dataset.date)">
+                        <span class="pill-dot" style="background: {{ alarm.color }};"></span>
+                        <span class="pill-type" style="color: {{ alarm.color }};">{{ alarm.name.split(' ')[0].upper() }}</span>
+                        <span class="pill-match">{{ alarm.home }} – {{ alarm.away }}</span>
+                        {% if alarm.money_text %}<span class="pill-money">{{ alarm.money_text }}</span>{% endif %}
+                        {% if alarm.side %}<span class="pill-side">({{ alarm.side }})</span>{% endif %}
+                        {% if alarm.odds_from and alarm.odds_to %}<span class="pill-odds">{{ alarm.odds_from }} → {{ alarm.odds_to }}</span>{% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="ticker-empty">Aktif kritik alarm yok</div>
+                {% endif %}
+            </div>
+        </div>
+        <button class="alarm-list-btn" onclick="openAlarmPanel()">
+            <span class="alarm-bell">🔔</span>
+            <span class="alarm-btn-text">Alarmlar</span>
+            <span class="alarm-count-badge" id="alarmCountBadge">0</span>
+        </button>
+    </div>
+
+    <div class="alarm-drawer-overlay" id="alarmDrawerOverlay" onclick="closeAlarmPanel()"></div>
+    <div class="alarm-drawer" id="alarmDrawer">
+        <div class="alarm-drawer-header">
+            <h2>🔔 Alarm Listesi</h2>
+            <button class="drawer-close-btn" onclick="closeAlarmPanel()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="alarm-drawer-filters">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Filtre:</label>
+                    <select id="alarmTypeFilter" onchange="filterAlarms()">
+                        <option value="all">Tümü</option>
+                        <option value="sharp">🟢 Sharp Move</option>
+                        <option value="rlm">🔴 Reverse Line Move</option>
+                        <option value="big_money">💰 Big Money Move</option>
+                        <option value="dropping">📉 Dropping Alert</option>
+                        <option value="line_freeze">🔵 Line Freeze</option>
+                        <option value="public_surge">🟡 Public Money Surge</option>
+                        <option value="momentum">🟣 Momentum Spike</option>
+                        <option value="momentum_change">🔄 Momentum Change</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Sırala:</label>
+                    <select id="alarmSortBy" onchange="filterAlarms()">
+                        <option value="newest">En yeni</option>
+                        <option value="money">Para miktarı</option>
+                        <option value="odds">Oran değişimi</option>
+                    </select>
+                </div>
+            </div>
+            <div class="search-row">
+                <input type="text" 
+                       id="alarmTeamSearch" 
+                       class="alarm-search-input" 
+                       placeholder="Takım ara (örn: West Ham, Liverpool)"
+                       oninput="debounceAlarmSearch()">
+                <button class="search-clear-btn" onclick="clearAlarmSearch()" id="searchClearBtn" style="display: none;">✕</button>
+            </div>
+        </div>
+        <div class="alarm-drawer-content" id="alarmDrawerContent">
+            <div class="alarm-empty">Henüz alarm yok</div>
+        </div>
+    </div>
+
+    <nav class="market-tabs">
+        <button class="tab active" data-market="moneyway_1x2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            Moneyway 1X2
+        </button>
+        <button class="tab" data-market="moneyway_ou25">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            Moneyway 2.5
+        </button>
+        <button class="tab" data-market="moneyway_btts">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            Moneyway BTTS
+        </button>
+        <button class="tab" data-market="dropping_1x2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
+                <polyline points="17 18 23 18 23 12"/>
+            </svg>
+            Drop 1X2
+        </button>
+        <button class="tab" data-market="dropping_ou25">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
+                <polyline points="17 18 23 18 23 12"/>
+            </svg>
+            Drop 2.5
+        </button>
+        <button class="tab" data-market="dropping_btts">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
+                <polyline points="17 18 23 18 23 12"/>
+            </svg>
+            Drop BTTS
+        </button>
+    </nav>
+
+    <main class="main-content">
+        <section class="matches-section">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <div class="search-box">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                        <input type="text" id="searchInput" placeholder="Search teams or leagues...">
+                    </div>
+                    <button class="btn btn-today" id="todayBtn" onclick="toggleTodayFilter()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        Günün Maçları
+                    </button>
+                    <button class="btn btn-today" id="yesterdayBtn" onclick="toggleYesterdayFilter()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        Dünün Maçları
+                    </button>
+                </div>
+                
+                <div class="match-count">
+                    <span id="matchCount">0</span> Matches
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="matches-table" data-selection-count="3">
+                    <colgroup>
+                        <col class="col-date">
+                        <col class="col-league">
+                        <col class="col-match">
+                        <col class="col-selection">
+                        <col class="col-selection">
+                        <col class="col-selection">
+                        <col class="col-volume">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th class="col-date sortable" data-sort="date" onclick="sortByColumn('date')">DATE <span class="sort-arrow"></span></th>
+                            <th class="col-league sortable" data-sort="league" onclick="sortByColumn('league')">LEAGUE <span class="sort-arrow"></span></th>
+                            <th class="col-match sortable" data-sort="match" onclick="sortByColumn('match')">MATCH <span class="sort-arrow"></span></th>
+                            <th class="col-selection sortable" data-sort="sel1" onclick="sortByColumn('sel1')">1 <span class="sort-arrow"></span></th>
+                            <th class="col-selection sortable" data-sort="selX" onclick="sortByColumn('selX')">X <span class="sort-arrow"></span></th>
+                            <th class="col-selection sortable" data-sort="sel2" onclick="sortByColumn('sel2')">2 <span class="sort-arrow"></span></th>
+                            <th class="col-volume sortable" data-sort="volume" onclick="sortByColumn('volume')">VOLUME <span class="sort-arrow"></span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="matchesTableBody">
+                        <tr class="loading-row">
+                            <td colspan="7">
+                                <div class="loading-spinner"></div>
+                                Loading matches...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <h2 id="modalMatchTitle">Match Details</h2>
+                    <span class="modal-subtitle" id="modalLeague">League</span>
+                </div>
+                <button class="modal-close" onclick="closeModal()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="smart-money-events" id="smartMoneyEvents">
+                    <div class="events-header events-header-collapsible" onclick="toggleModalSmartMoneyEvents()">
+                        <div class="events-header-left">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                            </svg>
+                            <span>Smart Money Events</span>
+                        </div>
+                        <svg class="events-chevron" id="modalEventsChevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 9l6 6 6-6"/>
+                        </svg>
+                    </div>
+                    <div class="events-grid-wrapper collapsed" id="modalEventsGridWrapper">
+                        <div class="events-grid" id="matchAlarmsContainer">
+                            <div class="no-alarms">Alarm analizi yapılıyor...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="match-info-card" id="matchInfoCard"></div>
+                
+                <div class="chart-tabs" id="modalChartTabs">
+                    <button class="chart-tab active" data-market="moneyway_1x2">Moneyway 1X2</button>
+                    <button class="chart-tab" data-market="moneyway_ou25">Moneyway 2.5</button>
+                    <button class="chart-tab" data-market="moneyway_btts">Moneyway BTTS</button>
+                    <button class="chart-tab" data-market="dropping_1x2">Drop 1X2</button>
+                    <button class="chart-tab" data-market="dropping_ou25">Drop 2.5</button>
+                    <button class="chart-tab" data-market="dropping_btts">Drop BTTS</button>
+                </div>
+                
+                <div class="chart-legend-filters" id="chartLegendFilters"></div>
+                
+                <div class="chart-wrapper">
+                    <canvas id="oddsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js?v=226"></script>
+</body>
+</html>
