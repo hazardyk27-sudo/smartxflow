@@ -31,7 +31,7 @@ let alarmEventCount = 0;
 const ALARM_PAGE_SIZE = 30;
 
 
-let smartMoneyBandData = [];
+let masterAlarmData = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     loadMatches();
@@ -39,9 +39,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSearch();
     setupModalChartTabs();
     checkStatus();
-    loadSmartMoneyBand();
+    loadMasterAlarms();
     window.statusInterval = window.setInterval(checkStatus, 30000);
-    window.bandInterval = window.setInterval(loadSmartMoneyBand, 60000);
+    window.alarmInterval = window.setInterval(loadMasterAlarms, 60000);
 });
 
 function setupTabs() {
