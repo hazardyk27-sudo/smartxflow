@@ -1323,7 +1323,7 @@ body {
 }
 
 .ticker-wrapper:hover .ticker-track {
-    animation-play-state: paused;
+    animation-play-state: paused !important;
 }
 
 @keyframes tickerScroll {
