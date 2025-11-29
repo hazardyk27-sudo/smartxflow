@@ -915,8 +915,8 @@ class SupabaseClient:
         """
         Remove legacy alarms that don't meet new criteria:
         - Old 'dropping' type alarms (new format: dropping_l1, dropping_l2, dropping_l3)
-        - Sharp alarms with score < 70
-        - Medium movement alarms with score < 40
+        - Sharp alarms with score < 20 (yeni eşik)
+        - Reversal alarms with conditions_met < 3
         Returns count of deleted alarms.
         """
         if not self.is_available:
@@ -949,12 +949,9 @@ class SupabaseClient:
                 if alarm_type == 'dropping':
                     should_delete = True
                     reason = "old dropping format"
-                elif alarm_type == 'sharp' and sharp_score < 70:
+                elif alarm_type == 'sharp' and sharp_score < 20:
                     should_delete = True
-                    reason = f"sharp score {sharp_score} < 70"
-                elif alarm_type == 'medium_movement' and sharp_score < 40:
-                    should_delete = True
-                    reason = f"medium score {sharp_score} < 40"
+                    reason = f"sharp score {sharp_score} < 20"
                 elif alarm_type == 'reversal_move':
                     conditions_met = alarm.get('conditions_met')
                     try:

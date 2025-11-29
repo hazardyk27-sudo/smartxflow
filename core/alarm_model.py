@@ -119,11 +119,10 @@ def build_sharp_alarm(
         Liste (boş veya 1 elemanlı)
         
     Kurallar:
-        - sharp_score >= 70 ve tüm 3 kriter → GERÇEK ALARM
-        - 40 <= sharp_score < 70 → Sadece log (maç detayında gösterilir)
-        - sharp_score < 40 → Hiç üretme
+        - sharp_score >= 20 → GERÇEK ALARM (skor bazlı)
+        - sharp_score < 20 → Hiç üretme
         
-    NOT: Market Share kriteri DEVRE DIŞI (sadece skor hesaplamasında)
+    NOT: Kriter kontrolü DEVRE DIŞI - sadece skor bazlı alarm
     """
     market_key = market.replace('moneyway_', '').replace('dropping_', '')
     min_volume = MARKET_VOLUME_THRESHOLDS.get(market_key, 5000)
@@ -131,52 +130,37 @@ def build_sharp_alarm(
     if total_volume < min_volume:
         return []
     
-    if sharp_score < 40:
+    if sharp_score < 20:
         return []
     
     all_criteria_met = all(criteria_flags.values())
     criteria_count = sum(1 for v in criteria_flags.values() if v)
     
-    if sharp_score >= 70 and all_criteria_met:
+    # Skor 20+ = GERÇEK ALARM
+    if sharp_score >= 70:
         severity = 3 if sharp_score >= 85 else 2
-        return [create_base_alarm(
-            match_id=match_id,
-            market=market,
-            side=side,
-            category='sharp',
-            is_alarm=True,
-            is_preview=False,
-            severity=severity,
-            score=int(sharp_score),
-            message=f"Sharp {int(sharp_score)}/100",
-            extra={
-                'criteria': criteria_flags,
-                'criteria_count': criteria_count,
-                'total_volume': total_volume,
-                'all_criteria_met': True
-            }
-        )]
+    elif sharp_score >= 50:
+        severity = 2
+    else:
+        severity = 1
     
-    elif sharp_score >= 40:
-        return [create_base_alarm(
-            match_id=match_id,
-            market=market,
-            side=side,
-            category='sharp',
-            is_alarm=False,
-            is_preview=True,
-            severity=1,
-            score=int(sharp_score),
-            message=f"Sharp Skor: {int(sharp_score)}/100 (orta seviye)",
-            extra={
-                'criteria': criteria_flags,
-                'criteria_count': criteria_count,
-                'total_volume': total_volume,
-                'all_criteria_met': all_criteria_met
-            }
-        )]
-    
-    return []
+    return [create_base_alarm(
+        match_id=match_id,
+        market=market,
+        side=side,
+        category='sharp',
+        is_alarm=True,
+        is_preview=False,
+        severity=severity,
+        score=int(sharp_score),
+        message=f"Sharp {int(sharp_score)}/100",
+        extra={
+            'criteria': criteria_flags,
+            'criteria_count': criteria_count,
+            'total_volume': total_volume,
+            'all_criteria_met': all_criteria_met
+        }
+    )]
 
 
 def build_dropping_alarm(
