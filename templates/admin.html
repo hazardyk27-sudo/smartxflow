@@ -356,40 +356,62 @@
         .color-section {
             background: #0d1117;
             border-radius: 8px;
-            padding: 12px;
             margin-top: 16px;
             border: 1px dashed #30363d;
+            overflow: hidden;
+        }
+        .color-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .color-section-header:hover {
+            background: #161b22;
         }
         .color-section-title {
             color: #8b949e;
             font-size: 11px;
-            margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            margin: 0;
+        }
+        .color-section-toggle {
+            color: #6e7681;
+            font-size: 10px;
+            transition: transform 0.2s;
+        }
+        .color-section.open .color-section-toggle {
+            transform: rotate(180deg);
+        }
+        .color-section-body {
+            display: none;
+            padding: 0 12px 12px 12px;
+        }
+        .color-section.open .color-section-body {
+            display: block;
         }
         .color-row {
             display: flex;
-            gap: 12px;
+            gap: 16px;
             flex-wrap: wrap;
         }
         .color-group {
-            flex: 1;
-            min-width: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
         }
         .color-group label {
             display: block;
             color: #6e7681;
             font-size: 10px;
-            margin-bottom: 4px;
             text-transform: uppercase;
         }
-        .color-input-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
         input[type="color"] {
-            width: 32px;
+            width: 40px;
             height: 32px;
             padding: 0;
             border: 2px solid #30363d;
@@ -403,13 +425,6 @@
         input[type="color"]::-webkit-color-swatch {
             border-radius: 4px;
             border: none;
-        }
-        .color-hex {
-            width: 70px;
-            padding: 6px 8px;
-            font-size: 11px;
-            font-family: monospace;
-            text-transform: uppercase;
         }
         .color-preview {
             display: inline-block;
@@ -530,32 +545,28 @@
                             <input type="number" id="sharp-score_threshold_medium" step="1">
                         </div>
                     </div>
-                    <div class="color-section">
-                        <div class="color-section-title">Gorunum Ayarlari</div>
-                        <div class="color-row">
-                            <div class="color-group">
-                                <label>Cerceve</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="sharp-color_border" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="sharp-color_border_hex" onchange="syncColorPicker(this, 'sharp-color_border')">
-                                </div>
-                            </div>
-                            <div class="color-group">
-                                <label>Buton</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="sharp-color_button" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="sharp-color_button_hex" onchange="syncColorPicker(this, 'sharp-color_button')">
-                                </div>
-                            </div>
-                            <div class="color-group">
-                                <label>Yazi</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="sharp-color_text" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="sharp-color_text_hex" onchange="syncColorPicker(this, 'sharp-color_text')">
-                                </div>
-                            </div>
+                    <div class="color-section" id="color-section-sharp">
+                        <div class="color-section-header" onclick="toggleColorSection('sharp')">
+                            <span class="color-section-title">Gorunum Ayarlari</span>
+                            <span class="color-section-toggle">▼</span>
                         </div>
-                        <div class="color-preview" id="sharp-preview" style="border: 2px solid #f0883e; background: #f0883e; color: #ffffff;">Sharp Alarm</div>
+                        <div class="color-section-body">
+                            <div class="color-row">
+                                <div class="color-group">
+                                    <label>Cerceve</label>
+                                    <input type="color" id="sharp-color_border">
+                                </div>
+                                <div class="color-group">
+                                    <label>Buton</label>
+                                    <input type="color" id="sharp-color_button">
+                                </div>
+                                <div class="color-group">
+                                    <label>Yazi</label>
+                                    <input type="color" id="sharp-color_text">
+                                </div>
+                            </div>
+                            <div class="color-preview" id="sharp-preview" style="border: 2px solid #f0883e; background: #f0883e; color: #ffffff;">Sharp</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -617,32 +628,28 @@
                         </div>
                         <span class="help-text">Aktifse: Dusus bu sure boyunca devam etmeli</span>
                     </div>
-                    <div class="color-section">
-                        <div class="color-section-title">Gorunum Ayarlari</div>
-                        <div class="color-row">
-                            <div class="color-group">
-                                <label>Cerceve</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="dropping-color_border" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="dropping-color_border_hex" onchange="syncColorPicker(this, 'dropping-color_border')">
-                                </div>
-                            </div>
-                            <div class="color-group">
-                                <label>Buton</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="dropping-color_button" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="dropping-color_button_hex" onchange="syncColorPicker(this, 'dropping-color_button')">
-                                </div>
-                            </div>
-                            <div class="color-group">
-                                <label>Yazi</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="dropping-color_text" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="dropping-color_text_hex" onchange="syncColorPicker(this, 'dropping-color_text')">
-                                </div>
-                            </div>
+                    <div class="color-section" id="color-section-dropping">
+                        <div class="color-section-header" onclick="toggleColorSection('dropping')">
+                            <span class="color-section-title">Gorunum Ayarlari</span>
+                            <span class="color-section-toggle">▼</span>
                         </div>
-                        <div class="color-preview" id="dropping-preview" style="border: 2px solid #da3633; background: #da3633; color: #ffffff;">Dropping Alarm</div>
+                        <div class="color-section-body">
+                            <div class="color-row">
+                                <div class="color-group">
+                                    <label>Cerceve</label>
+                                    <input type="color" id="dropping-color_border">
+                                </div>
+                                <div class="color-group">
+                                    <label>Buton</label>
+                                    <input type="color" id="dropping-color_button">
+                                </div>
+                                <div class="color-group">
+                                    <label>Yazi</label>
+                                    <input type="color" id="dropping-color_text">
+                                </div>
+                            </div>
+                            <div class="color-preview" id="dropping-preview" style="border: 2px solid #da3633; background: #da3633; color: #ffffff;">Dropping</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -745,32 +752,28 @@
                             <input type="number" id="momentum-level3_money" step="100">
                         </div>
                     </div>
-                    <div class="color-section">
-                        <div class="color-section-title">Gorunum Ayarlari</div>
-                        <div class="color-row">
-                            <div class="color-group">
-                                <label>Cerceve</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="momentum-color_border" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="momentum-color_border_hex" onchange="syncColorPicker(this, 'momentum-color_border')">
-                                </div>
-                            </div>
-                            <div class="color-group">
-                                <label>Buton</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="momentum-color_button" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="momentum-color_button_hex" onchange="syncColorPicker(this, 'momentum-color_button')">
-                                </div>
-                            </div>
-                            <div class="color-group">
-                                <label>Yazi</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="momentum-color_text" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="momentum-color_text_hex" onchange="syncColorPicker(this, 'momentum-color_text')">
-                                </div>
-                            </div>
+                    <div class="color-section" id="color-section-momentum">
+                        <div class="color-section-header" onclick="toggleColorSection('momentum')">
+                            <span class="color-section-title">Gorunum Ayarlari</span>
+                            <span class="color-section-toggle">▼</span>
                         </div>
-                        <div class="color-preview" id="momentum-preview" style="border: 2px solid #58a6ff; background: #58a6ff; color: #ffffff;">Momentum Alarm</div>
+                        <div class="color-section-body">
+                            <div class="color-row">
+                                <div class="color-group">
+                                    <label>Cerceve</label>
+                                    <input type="color" id="momentum-color_border">
+                                </div>
+                                <div class="color-group">
+                                    <label>Buton</label>
+                                    <input type="color" id="momentum-color_button">
+                                </div>
+                                <div class="color-group">
+                                    <label>Yazi</label>
+                                    <input type="color" id="momentum-color_text">
+                                </div>
+                            </div>
+                            <div class="color-preview" id="momentum-preview" style="border: 2px solid #58a6ff; background: #58a6ff; color: #ffffff;">Momentum</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -868,32 +871,28 @@
                         </div>
                         <span class="help-text">Aktifse: Oran degisimi bu sinirin altinda olmali</span>
                     </div>
-                    <div class="color-section">
-                        <div class="color-section-title">Gorunum Ayarlari</div>
-                        <div class="color-row">
-                            <div class="color-group">
-                                <label>Cerceve</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="line_freeze-color_border" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="line_freeze-color_border_hex" onchange="syncColorPicker(this, 'line_freeze-color_border')">
-                                </div>
-                            </div>
-                            <div class="color-group">
-                                <label>Buton</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="line_freeze-color_button" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="line_freeze-color_button_hex" onchange="syncColorPicker(this, 'line_freeze-color_button')">
-                                </div>
-                            </div>
-                            <div class="color-group">
-                                <label>Yazi</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="line_freeze-color_text" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="line_freeze-color_text_hex" onchange="syncColorPicker(this, 'line_freeze-color_text')">
-                                </div>
-                            </div>
+                    <div class="color-section" id="color-section-line_freeze">
+                        <div class="color-section-header" onclick="toggleColorSection('line_freeze')">
+                            <span class="color-section-title">Gorunum Ayarlari</span>
+                            <span class="color-section-toggle">▼</span>
                         </div>
-                        <div class="color-preview" id="line_freeze-preview" style="border: 2px solid #7ee787; background: #238636; color: #ffffff;">Line Freeze Alarm</div>
+                        <div class="color-section-body">
+                            <div class="color-row">
+                                <div class="color-group">
+                                    <label>Cerceve</label>
+                                    <input type="color" id="line_freeze-color_border">
+                                </div>
+                                <div class="color-group">
+                                    <label>Buton</label>
+                                    <input type="color" id="line_freeze-color_button">
+                                </div>
+                                <div class="color-group">
+                                    <label>Yazi</label>
+                                    <input type="color" id="line_freeze-color_text">
+                                </div>
+                            </div>
+                            <div class="color-preview" id="line_freeze-preview" style="border: 2px solid #7ee787; background: #238636; color: #ffffff;">Line Freeze</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -952,32 +951,28 @@
                         </div>
                         <span class="help-text">Aktifse: Lider sayilmak icin minimum pay %</span>
                     </div>
-                    <div class="color-section">
-                        <div class="color-section-title">Gorunum Ayarlari</div>
-                        <div class="color-row">
-                            <div class="color-group">
-                                <label>Cerceve</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="volume_shift-color_border" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="volume_shift-color_border_hex" onchange="syncColorPicker(this, 'volume_shift-color_border')">
-                                </div>
-                            </div>
-                            <div class="color-group">
-                                <label>Buton</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="volume_shift-color_button" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="volume_shift-color_button_hex" onchange="syncColorPicker(this, 'volume_shift-color_button')">
-                                </div>
-                            </div>
-                            <div class="color-group">
-                                <label>Yazi</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="volume_shift-color_text" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="volume_shift-color_text_hex" onchange="syncColorPicker(this, 'volume_shift-color_text')">
-                                </div>
-                            </div>
+                    <div class="color-section" id="color-section-volume_shift">
+                        <div class="color-section-header" onclick="toggleColorSection('volume_shift')">
+                            <span class="color-section-title">Gorunum Ayarlari</span>
+                            <span class="color-section-toggle">▼</span>
                         </div>
-                        <div class="color-preview" id="volume_shift-preview" style="border: 2px solid #f778ba; background: #f778ba; color: #ffffff;">Volume Shift Alarm</div>
+                        <div class="color-section-body">
+                            <div class="color-row">
+                                <div class="color-group">
+                                    <label>Cerceve</label>
+                                    <input type="color" id="volume_shift-color_border">
+                                </div>
+                                <div class="color-group">
+                                    <label>Buton</label>
+                                    <input type="color" id="volume_shift-color_button">
+                                </div>
+                                <div class="color-group">
+                                    <label>Yazi</label>
+                                    <input type="color" id="volume_shift-color_text">
+                                </div>
+                            </div>
+                            <div class="color-preview" id="volume_shift-preview" style="border: 2px solid #f778ba; background: #f778ba; color: #ffffff;">Volume Shift</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1023,32 +1018,28 @@
                         </div>
                         <span class="help-text">Aktifse: Reversal oncesi minimum dusus</span>
                     </div>
-                    <div class="color-section">
-                        <div class="color-section-title">Gorunum Ayarlari</div>
-                        <div class="color-row">
-                            <div class="color-group">
-                                <label>Cerceve</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="reversal-color_border" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="reversal-color_border_hex" onchange="syncColorPicker(this, 'reversal-color_border')">
-                                </div>
-                            </div>
-                            <div class="color-group">
-                                <label>Buton</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="reversal-color_button" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="reversal-color_button_hex" onchange="syncColorPicker(this, 'reversal-color_button')">
-                                </div>
-                            </div>
-                            <div class="color-group">
-                                <label>Yazi</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="reversal-color_text" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="reversal-color_text_hex" onchange="syncColorPicker(this, 'reversal-color_text')">
-                                </div>
-                            </div>
+                    <div class="color-section" id="color-section-reversal">
+                        <div class="color-section-header" onclick="toggleColorSection('reversal')">
+                            <span class="color-section-title">Gorunum Ayarlari</span>
+                            <span class="color-section-toggle">▼</span>
                         </div>
-                        <div class="color-preview" id="reversal-preview" style="border: 2px solid #a371f7; background: #a371f7; color: #ffffff;">Reversal Alarm</div>
+                        <div class="color-section-body">
+                            <div class="color-row">
+                                <div class="color-group">
+                                    <label>Cerceve</label>
+                                    <input type="color" id="reversal-color_border">
+                                </div>
+                                <div class="color-group">
+                                    <label>Buton</label>
+                                    <input type="color" id="reversal-color_button">
+                                </div>
+                                <div class="color-group">
+                                    <label>Yazi</label>
+                                    <input type="color" id="reversal-color_text">
+                                </div>
+                            </div>
+                            <div class="color-preview" id="reversal-preview" style="border: 2px solid #a371f7; background: #a371f7; color: #ffffff;">Reversal</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1094,32 +1085,28 @@
                         </div>
                         <span class="help-text">Aktifse: Tek bir guncelleme bu kadar olmali</span>
                     </div>
-                    <div class="color-section">
-                        <div class="color-section-title">Gorunum Ayarlari</div>
-                        <div class="color-row">
-                            <div class="color-group">
-                                <label>Cerceve</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="big_money-color_border" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="big_money-color_border_hex" onchange="syncColorPicker(this, 'big_money-color_border')">
-                                </div>
-                            </div>
-                            <div class="color-group">
-                                <label>Buton</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="big_money-color_button" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="big_money-color_button_hex" onchange="syncColorPicker(this, 'big_money-color_button')">
-                                </div>
-                            </div>
-                            <div class="color-group">
-                                <label>Yazi</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="big_money-color_text" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="big_money-color_text_hex" onchange="syncColorPicker(this, 'big_money-color_text')">
-                                </div>
-                            </div>
+                    <div class="color-section" id="color-section-big_money">
+                        <div class="color-section-header" onclick="toggleColorSection('big_money')">
+                            <span class="color-section-title">Gorunum Ayarlari</span>
+                            <span class="color-section-toggle">▼</span>
                         </div>
-                        <div class="color-preview" id="big_money-preview" style="border: 2px solid #ffd700; background: #c5a000; color: #000000;">Big Money Alarm</div>
+                        <div class="color-section-body">
+                            <div class="color-row">
+                                <div class="color-group">
+                                    <label>Cerceve</label>
+                                    <input type="color" id="big_money-color_border">
+                                </div>
+                                <div class="color-group">
+                                    <label>Buton</label>
+                                    <input type="color" id="big_money-color_button">
+                                </div>
+                                <div class="color-group">
+                                    <label>Yazi</label>
+                                    <input type="color" id="big_money-color_text">
+                                </div>
+                            </div>
+                            <div class="color-preview" id="big_money-preview" style="border: 2px solid #ffd700; background: #c5a000; color: #000000;">Big Money</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1165,32 +1152,28 @@
                         </div>
                         <span class="help-text">Aktifse: Oran degisimi bu sinirin altinda</span>
                     </div>
-                    <div class="color-section">
-                        <div class="color-section-title">Gorunum Ayarlari</div>
-                        <div class="color-row">
-                            <div class="color-group">
-                                <label>Cerceve</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="public_surge-color_border" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="public_surge-color_border_hex" onchange="syncColorPicker(this, 'public_surge-color_border')">
-                                </div>
-                            </div>
-                            <div class="color-group">
-                                <label>Buton</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="public_surge-color_button" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="public_surge-color_button_hex" onchange="syncColorPicker(this, 'public_surge-color_button')">
-                                </div>
-                            </div>
-                            <div class="color-group">
-                                <label>Yazi</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="public_surge-color_text" onchange="syncColorHex(this)">
-                                    <input type="text" class="color-hex" id="public_surge-color_text_hex" onchange="syncColorPicker(this, 'public_surge-color_text')">
-                                </div>
-                            </div>
+                    <div class="color-section" id="color-section-public_surge">
+                        <div class="color-section-header" onclick="toggleColorSection('public_surge')">
+                            <span class="color-section-title">Gorunum Ayarlari</span>
+                            <span class="color-section-toggle">▼</span>
                         </div>
-                        <div class="color-preview" id="public_surge-preview" style="border: 2px solid #79c0ff; background: #1f6feb; color: #ffffff;">Public Surge Alarm</div>
+                        <div class="color-section-body">
+                            <div class="color-row">
+                                <div class="color-group">
+                                    <label>Cerceve</label>
+                                    <input type="color" id="public_surge-color_border">
+                                </div>
+                                <div class="color-group">
+                                    <label>Buton</label>
+                                    <input type="color" id="public_surge-color_button">
+                                </div>
+                                <div class="color-group">
+                                    <label>Yazi</label>
+                                    <input type="color" id="public_surge-color_text">
+                                </div>
+                            </div>
+                            <div class="color-preview" id="public_surge-preview" style="border: 2px solid #79c0ff; background: #1f6feb; color: #ffffff;">Public Surge</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1202,19 +1185,10 @@
     <script>
         let config = null;
 
-        function syncColorHex(colorInput) {
-            const hexInput = document.getElementById(colorInput.id + '_hex');
-            if (hexInput) {
-                hexInput.value = colorInput.value.toUpperCase();
-            }
-            updateColorPreview(colorInput.id.split('-')[0]);
-        }
-        
-        function syncColorPicker(hexInput, colorInputId) {
-            const colorInput = document.getElementById(colorInputId);
-            if (colorInput && /^#[0-9A-Fa-f]{6}$/.test(hexInput.value)) {
-                colorInput.value = hexInput.value;
-                updateColorPreview(colorInputId.split('-')[0]);
+        function toggleColorSection(alarmType) {
+            const section = document.getElementById('color-section-' + alarmType);
+            if (section) {
+                section.classList.toggle('open');
             }
         }
         
@@ -1235,12 +1209,9 @@
             const colorFields = ['color_border', 'color_button', 'color_text'];
             colorFields.forEach(field => {
                 const colorInput = document.getElementById(alarmType + '-' + field);
-                const hexInput = document.getElementById(alarmType + '-' + field + '_hex');
                 if (colorInput && data[field]) {
                     colorInput.value = data[field];
-                    if (hexInput) {
-                        hexInput.value = data[field].toUpperCase();
-                    }
+                    colorInput.addEventListener('input', () => updateColorPreview(alarmType));
                 }
             });
             updateColorPreview(alarmType);
