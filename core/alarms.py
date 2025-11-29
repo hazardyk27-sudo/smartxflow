@@ -3,11 +3,12 @@ Smart Money Alarm System
 6 alarm types with priority ordering
 Configurable thresholds from config/alarm_thresholds.py
 
-REAL SHARP SYSTEM (v2.0):
+SHARP SYSTEM (v2.1):
 - 4 ana kriter ile profesyonel sharp tespiti
+- Market hacmi filtresi (1X2: 5000, O/U: 3000, BTTS: 2000 GBP)
 - Sharp Skor: 0-100 arası hesaplama
-- 70+ = Gerçek Sharp alarmı
-- 40-69 = Orta Seviye Hareket (alarm yok, UI'da göster)
+- 70+ = Sharp alarmı (gösterim: "Sharp 86/100")
+- 40-69 = Orta Seviye (alarm yok, UI'da "Sharp Skor: 58/100 (orta seviye)" göster)
 - <40 = Yok say
 """
 
@@ -19,16 +20,16 @@ try:
     from core.config.alarm_thresholds import ALARM_CONFIG, get_threshold, WINDOW_MINUTES, LOOKBACK_MINUTES
     from core.timezone import now_turkey, now_turkey_iso, format_time_only, TURKEY_TZ
     from core.alarm_state import should_fire_alarm, record_alarm_fired, cleanup_old_alarm_states
-    from core.real_sharp import detect_real_sharp, RealSharpDetector
+    from core.real_sharp import detect_sharp, SharpDetector
     from core.dropping_alert import detect_dropping_alerts, DroppingAlertDetector, DROP_THRESHOLD_PERCENT
 except ImportError:
     try:
         from config.alarm_thresholds import ALARM_CONFIG, get_threshold, WINDOW_MINUTES, LOOKBACK_MINUTES
-        from real_sharp import detect_real_sharp, RealSharpDetector
+        from real_sharp import detect_sharp, SharpDetector
         from dropping_alert import detect_dropping_alerts, DroppingAlertDetector, DROP_THRESHOLD_PERCENT
     except ImportError:
-        detect_real_sharp = None
-        RealSharpDetector = None
+        detect_sharp = None
+        SharpDetector = None
         detect_dropping_alerts = None
         DroppingAlertDetector = None
         DROP_THRESHOLD_PERCENT = 7.0
@@ -57,11 +58,11 @@ ALARM_TYPES = {
         'critical': True
     },
     'sharp': {
-        'name': 'Real Sharp',
+        'name': 'Sharp',
         'icon': '🟢',
         'color': '#22c55e',
         'priority': 2,
-        'description': 'Gerçek Sharp: 4 kriter (Hacim Şoku + Pazar Payı + Oran Düşüşü + Pay Artışı) sağlandı. Skor 70+.',
+        'description': 'Sharp: 4 kriter + market hacmi filtresi sağlandı. Skor 70+.',
         'critical': True
     },
     'medium_movement': {
@@ -331,11 +332,11 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
     surge_min_money = surge_config.get('min_money_diff', 500)
     surge_max_odds = surge_config.get('max_odds_change', 0.02)
     
-    if detect_real_sharp is not None:
+    if detect_sharp is not None:
         try:
-            real_sharp_results = detect_real_sharp(history, market, match_id)
-            for sharp in real_sharp_results:
-                if sharp.get('is_real_sharp', False):
+            sharp_results = detect_sharp(history, market, match_id)
+            for sharp in sharp_results:
+                if sharp.get('is_sharp', False):
                     alarm_key = ('sharp', sharp['side'], f"{sharp['odds_from']:.2f}-{sharp['odds_to']:.2f}")
                     if alarm_key not in seen_alarms:
                         seen_alarms.add(alarm_key)
@@ -348,17 +349,18 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                             'window_start': sharp['window_start'],
                             'window_end': sharp['window_end'],
                             'timestamp': sharp['timestamp'],
-                            'is_real_sharp': True,
+                            'is_sharp': True,
                             'sharp_score': sharp['sharp_score'],
                             'volume_shock': sharp['volume_shock'],
                             'market_share': sharp['market_share'],
                             'odds_drop_percent': sharp['odds_drop_percent'],
                             'share_shift_points': sharp['share_shift_points'],
                             'criteria': sharp['criteria'],
-                            'raw_data': sharp['raw_data']
+                            'raw_data': sharp['raw_data'],
+                            'market_volume': sharp.get('market_volume', 0)
                         })
         except Exception as e:
-            print(f"[RealSharp] Error in detection: {e}")
+            print(f"[Sharp] Error in detection: {e}")
     
     window_pairs = find_window_pairs(history, WINDOW_MINUTES)
     
