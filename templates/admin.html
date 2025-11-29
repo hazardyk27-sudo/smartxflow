@@ -837,7 +837,7 @@
         }
 
         function loadConfig() {
-            fetch('/admin/config')
+            fetch('/admin/alarm-config')
                 .then(res => res.json())
                 .then(data => {
                     if (data.error) {
@@ -855,8 +855,15 @@
 
         function saveConfig() {
             const data = collectFormData();
+            
+            const saveBtn = document.querySelector('.btn-primary');
+            const originalText = saveBtn.textContent;
+            saveBtn.textContent = 'Kaydediliyor ve alarmlar hesaplaniyor...';
+            saveBtn.disabled = true;
+            
+            showToast('Ayarlar kaydediliyor ve alarmlar yeniden hesaplaniyor...', 'success');
 
-            fetch('/admin/config', {
+            fetch('/admin/alarm-config', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -865,14 +872,28 @@
             })
                 .then(res => res.json())
                 .then(result => {
+                    saveBtn.textContent = originalText;
+                    saveBtn.disabled = false;
+                    
                     if (result.error) {
                         showToast(result.error, 'error');
                     } else {
                         config = result.config;
-                        showToast('Yapilandirma kaydedildi!');
+                        
+                        if (result.recalculation) {
+                            const recalc = result.recalculation;
+                            showToast(
+                                `Ayarlar kaydedildi! ${recalc.deleted} alarm silindi, ${recalc.detected} yeni alarm olusturuldu (${recalc.elapsed_seconds}s)`,
+                                'success'
+                            );
+                        } else {
+                            showToast('Ayarlar kaydedildi!', 'success');
+                        }
                     }
                 })
                 .catch(err => {
+                    saveBtn.textContent = originalText;
+                    saveBtn.disabled = false;
                     showToast('Kaydetme hatasi: ' + err, 'error');
                 });
         }

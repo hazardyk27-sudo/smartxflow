@@ -1532,7 +1532,18 @@ def get_alarm_config():
 
 @app.route('/admin/alarm-config', methods=['POST'])
 def update_alarm_config():
-    """Update alarm configuration"""
+    """
+    Update alarm configuration and automatically recalculate all alarms.
+    
+    Flow:
+    1. Save config to alarm_config.json
+    2. Reload config into RAM (global config)
+    3. Delete all active alarms (today+future)
+    4. Recalculate alarms from historical data with new config
+    5. Clear cache for fresh data
+    """
+    import time as time_module
+    
     try:
         from core.alarm_config import dict_to_config, save_alarm_config, config_to_dict, reload_alarm_config
         
@@ -1543,18 +1554,59 @@ def update_alarm_config():
         cfg = dict_to_config(data)
         success = save_alarm_config(cfg)
         
-        if success:
-            reload_alarm_config()
-            
-            return jsonify({
-                'success': True,
-                'message': 'Configuration saved successfully',
-                'config': config_to_dict(cfg)
-            })
-        else:
+        if not success:
             return jsonify({'error': 'Failed to save configuration'}), 500
+        
+        print("[AdminConfig] Config saved to file, reloading into RAM...")
+        reload_alarm_config()
+        print("[AdminConfig] RAM config updated with new values")
+        
+        print("[AdminConfig] Starting automatic alarm recalculation...")
+        start_time = time_module.time()
+        
+        deleted = 0
+        detected = 0
+        
+        try:
+            deleted = db.supabase.delete_all_active_alarms()
+            print(f"[AdminConfig] Deleted {deleted} active alarms (historical preserved)")
+            
+            try:
+                detected = detect_and_save_alarms()
+                print(f"[AdminConfig] Detected and saved {detected} new alarms")
+            except Exception as detect_err:
+                print(f"[AdminConfig] Detection error: {detect_err}")
+                import traceback
+                traceback.print_exc()
+            
+            global _alarm_cache, _alarm_cache_time
+            _alarm_cache = None
+            _alarm_cache_time = 0
+            print("[AdminConfig] Cache cleared for fresh data")
+            
+        except Exception as recalc_err:
+            print(f"[AdminConfig] Recalculation error: {recalc_err}")
+            import traceback
+            traceback.print_exc()
+        
+        elapsed = time_module.time() - start_time
+        print(f"[AdminConfig] Completed in {elapsed:.2f}s - Deleted: {deleted}, New: {detected}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Ayarlar kaydedildi ve alarmlar yeniden hesaplandi: {deleted} silindi, {detected} yeni alarm olusturuldu',
+            'config': config_to_dict(cfg),
+            'recalculation': {
+                'deleted': deleted,
+                'detected': detected,
+                'elapsed_seconds': round(elapsed, 2)
+            }
+        })
+        
     except Exception as e:
         print(f"[Admin API] Error saving config: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 
