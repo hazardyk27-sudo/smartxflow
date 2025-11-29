@@ -853,15 +853,42 @@
                 });
         }
 
+        let statusPollInterval = null;
+        
+        function pollRecalcStatus(onComplete) {
+            fetch('/admin/recalc-status')
+                .then(res => res.json())
+                .then(status => {
+                    if (status.running) {
+                        showToast(`Hesaplaniyor... (${status.elapsed_seconds || 0}s)`, 'success');
+                    } else {
+                        if (statusPollInterval) {
+                            clearInterval(statusPollInterval);
+                            statusPollInterval = null;
+                        }
+                        if (status.error) {
+                            showToast('Hata: ' + status.error, 'error');
+                        } else {
+                            showToast(
+                                `Tamamlandi! ${status.deleted} silindi, ${status.detected} olusturuldu (${status.elapsed_seconds}s)`,
+                                'success'
+                            );
+                        }
+                        if (onComplete) onComplete();
+                    }
+                })
+                .catch(err => {
+                    console.error('Status poll error:', err);
+                });
+        }
+        
         function saveConfig() {
             const data = collectFormData();
             
             const saveBtn = document.querySelector('.btn-primary');
             const originalText = saveBtn.textContent;
-            saveBtn.textContent = 'Kaydediliyor ve alarmlar hesaplaniyor...';
+            saveBtn.textContent = 'Kaydediliyor...';
             saveBtn.disabled = true;
-            
-            showToast('Ayarlar kaydediliyor ve alarmlar yeniden hesaplaniyor...', 'success');
 
             fetch('/admin/alarm-config', {
                 method: 'POST',
@@ -872,22 +899,23 @@
             })
                 .then(res => res.json())
                 .then(result => {
-                    saveBtn.textContent = originalText;
-                    saveBtn.disabled = false;
-                    
                     if (result.error) {
+                        saveBtn.textContent = originalText;
+                        saveBtn.disabled = false;
                         showToast(result.error, 'error');
                     } else {
                         config = result.config;
+                        showToast(result.message, 'success');
                         
-                        if (result.recalculation) {
-                            const recalc = result.recalculation;
-                            showToast(
-                                `Ayarlar kaydedildi! ${recalc.deleted} alarm silindi, ${recalc.detected} yeni alarm olusturuldu (${recalc.elapsed_seconds}s)`,
-                                'success'
-                            );
+                        if (result.recalculation && result.recalculation.status === 'started') {
+                            saveBtn.textContent = 'Alarmlar hesaplaniyor...';
+                            statusPollInterval = setInterval(() => pollRecalcStatus(() => {
+                                saveBtn.textContent = originalText;
+                                saveBtn.disabled = false;
+                            }), 3000);
                         } else {
-                            showToast('Ayarlar kaydedildi!', 'success');
+                            saveBtn.textContent = originalText;
+                            saveBtn.disabled = false;
                         }
                     }
                 })
@@ -918,29 +946,37 @@
         }
 
         function recalculateAlarms() {
-            if (!confirm('Bu islem TUM aktif alarmlari silecek ve yeni yapilandirma ile yeniden hesaplayacak.\n\nGecmis alarmlar korunacaktir.\n\nBu islem birkac dakika surebilir. Devam etmek istiyor musunuz?')) {
+            if (!confirm('Bu islem TUM alarmlari (gecmis dahil) silecek ve yeni yapilandirma ile yeniden hesaplayacak.\n\nBu islem birkac dakika surebilir. Devam etmek istiyor musunuz?')) {
                 return;
             }
             
             const btn = document.getElementById('recalc-btn');
             const originalText = btn.textContent;
-            btn.textContent = 'Hesaplaniyor...';
+            btn.textContent = 'Baslatiliyor...';
             btn.disabled = true;
-            
-            showToast('Alarmlar yeniden hesaplaniyor, lutfen bekleyin...', 'success');
             
             fetch('/admin/recalculate-alarms', {
                 method: 'POST'
             })
                 .then(res => res.json())
                 .then(result => {
-                    btn.textContent = originalText;
-                    btn.disabled = false;
-                    
                     if (result.error) {
+                        btn.textContent = originalText;
+                        btn.disabled = false;
                         showToast('Hata: ' + result.error, 'error');
                     } else {
-                        showToast(result.message + ' (' + result.elapsed_seconds + 's)', 'success');
+                        showToast(result.message, 'success');
+                        
+                        if (result.status === 'started' || result.status === 'already_running') {
+                            btn.textContent = 'Hesaplaniyor...';
+                            statusPollInterval = setInterval(() => pollRecalcStatus(() => {
+                                btn.textContent = originalText;
+                                btn.disabled = false;
+                            }), 3000);
+                        } else {
+                            btn.textContent = originalText;
+                            btn.disabled = false;
+                        }
                     }
                 })
                 .catch(err => {

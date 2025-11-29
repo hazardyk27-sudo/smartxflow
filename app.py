@@ -1530,19 +1530,61 @@ def get_alarm_config():
         return jsonify({'error': str(e)}), 500
 
 
+_recalc_status = {
+    'running': False,
+    'deleted': 0,
+    'detected': 0,
+    'started_at': None,
+    'completed_at': None,
+    'error': None
+}
+
+def _background_recalculate():
+    """Background thread for alarm recalculation"""
+    import time as time_module
+    global _recalc_status, _alarm_cache, _alarm_cache_time
+    
+    _recalc_status['running'] = True
+    _recalc_status['started_at'] = time_module.time()
+    _recalc_status['error'] = None
+    
+    try:
+        deleted = db.supabase.delete_all_active_alarms(include_historical=True)
+        _recalc_status['deleted'] = deleted
+        print(f"[BackgroundRecalc] Deleted {deleted} alarms (ALL including historical)")
+        
+        detected = detect_and_save_alarms()
+        _recalc_status['detected'] = detected
+        print(f"[BackgroundRecalc] Detected and saved {detected} new alarms")
+        
+        _alarm_cache = None
+        _alarm_cache_time = 0
+        print("[BackgroundRecalc] Cache cleared")
+        
+    except Exception as e:
+        _recalc_status['error'] = str(e)
+        print(f"[BackgroundRecalc] Error: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        _recalc_status['running'] = False
+        _recalc_status['completed_at'] = time_module.time()
+        elapsed = _recalc_status['completed_at'] - _recalc_status['started_at']
+        print(f"[BackgroundRecalc] Completed in {elapsed:.2f}s")
+
+
 @app.route('/admin/alarm-config', methods=['POST'])
 def update_alarm_config():
     """
-    Update alarm configuration and automatically recalculate all alarms.
+    Update alarm configuration and trigger background recalculation.
     
     Flow:
     1. Save config to alarm_config.json
     2. Reload config into RAM (global config)
-    3. Delete ALL alarms (including historical) - user requested full recalculation
-    4. Recalculate alarms from historical data with new config
-    5. Clear cache for fresh data
+    3. Start background thread to delete and recalculate alarms
+    4. Return immediately with success
     """
-    import time as time_module
+    import threading
     
     try:
         from core.alarm_config import dict_to_config, save_alarm_config, config_to_dict, reload_alarm_config
@@ -1561,46 +1603,23 @@ def update_alarm_config():
         reload_alarm_config()
         print("[AdminConfig] RAM config updated with new values")
         
-        print("[AdminConfig] Starting automatic alarm recalculation (ALL alarms including historical)...")
-        start_time = time_module.time()
+        if _recalc_status['running']:
+            return jsonify({
+                'success': True,
+                'message': 'Ayarlar kaydedildi. Alarm hesaplama zaten devam ediyor...',
+                'config': config_to_dict(cfg),
+                'recalculation': {'status': 'already_running'}
+            })
         
-        deleted = 0
-        detected = 0
-        
-        try:
-            deleted = db.supabase.delete_all_active_alarms(include_historical=True)
-            print(f"[AdminConfig] Deleted {deleted} alarms (ALL including historical)")
-            
-            try:
-                detected = detect_and_save_alarms()
-                print(f"[AdminConfig] Detected and saved {detected} new alarms")
-            except Exception as detect_err:
-                print(f"[AdminConfig] Detection error: {detect_err}")
-                import traceback
-                traceback.print_exc()
-            
-            global _alarm_cache, _alarm_cache_time
-            _alarm_cache = None
-            _alarm_cache_time = 0
-            print("[AdminConfig] Cache cleared for fresh data")
-            
-        except Exception as recalc_err:
-            print(f"[AdminConfig] Recalculation error: {recalc_err}")
-            import traceback
-            traceback.print_exc()
-        
-        elapsed = time_module.time() - start_time
-        print(f"[AdminConfig] Completed in {elapsed:.2f}s - Deleted: {deleted}, New: {detected}")
+        print("[AdminConfig] Starting background alarm recalculation...")
+        thread = threading.Thread(target=_background_recalculate, daemon=True)
+        thread.start()
         
         return jsonify({
             'success': True,
-            'message': f'Ayarlar kaydedildi ve alarmlar yeniden hesaplandi: {deleted} silindi, {detected} yeni alarm olusturuldu',
+            'message': 'Ayarlar kaydedildi. Alarmlar arka planda yeniden hesaplaniyor (birkaç dakika surebilir)...',
             'config': config_to_dict(cfg),
-            'recalculation': {
-                'deleted': deleted,
-                'detected': detected,
-                'elapsed_seconds': round(elapsed, 2)
-            }
+            'recalculation': {'status': 'started'}
         })
         
     except Exception as e:
@@ -1613,46 +1632,32 @@ def update_alarm_config():
 @app.route('/admin/recalculate-alarms', methods=['POST'])
 def recalculate_all_alarms():
     """
-    Delete ALL alarms (including historical) and recalculate them with current config.
-    This is triggered from admin panel to apply new thresholds to all data.
+    Start background alarm recalculation.
+    Returns immediately, recalculation runs in background thread.
     """
-    import time
+    import threading
     
     try:
         from core.alarm_config import reload_alarm_config
         
-        print("[RecalcAlarms] Starting alarm recalculation (ALL alarms including historical)...")
-        start_time = time.time()
-        
         reload_alarm_config()
         print("[RecalcAlarms] Config reloaded from file")
         
-        deleted = db.supabase.delete_all_active_alarms(include_historical=True)
-        print(f"[RecalcAlarms] Deleted {deleted} alarms (ALL including historical)")
+        if _recalc_status['running']:
+            return jsonify({
+                'success': True,
+                'message': 'Alarm hesaplama zaten devam ediyor...',
+                'status': 'already_running'
+            })
         
-        global _alarm_cache, _alarm_cache_time
-        
-        try:
-            detected = detect_and_save_alarms()
-        except Exception as detect_err:
-            print(f"[RecalcAlarms] Detection error: {detect_err}")
-            _alarm_cache = None
-            _alarm_cache_time = 0
-            raise detect_err
-        
-        _alarm_cache = None
-        _alarm_cache_time = 0
-        print("[RecalcAlarms] Cache cleared for fresh data")
-        
-        elapsed = time.time() - start_time
-        print(f"[RecalcAlarms] Completed in {elapsed:.2f}s - Deleted: {deleted}, New: {detected}")
+        print("[RecalcAlarms] Starting background alarm recalculation...")
+        thread = threading.Thread(target=_background_recalculate, daemon=True)
+        thread.start()
         
         return jsonify({
             'success': True,
-            'message': f'Tum alarmlar yeniden hesaplandi: {deleted} silindi, {detected} yeni alarm olusturuldu',
-            'deleted': deleted,
-            'detected': detected,
-            'elapsed_seconds': round(elapsed, 2)
+            'message': 'Alarmlar arka planda yeniden hesaplaniyor (birkaç dakika surebilir)...',
+            'status': 'started'
         })
         
     except Exception as e:
@@ -1660,6 +1665,27 @@ def recalculate_all_alarms():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/recalc-status', methods=['GET'])
+def get_recalc_status():
+    """Get current recalculation status"""
+    import time as time_module
+    
+    status = {
+        'running': _recalc_status['running'],
+        'deleted': _recalc_status['deleted'],
+        'detected': _recalc_status['detected'],
+        'error': _recalc_status['error']
+    }
+    
+    if _recalc_status['started_at']:
+        if _recalc_status['running']:
+            status['elapsed_seconds'] = round(time_module.time() - _recalc_status['started_at'], 1)
+        elif _recalc_status['completed_at']:
+            status['elapsed_seconds'] = round(_recalc_status['completed_at'] - _recalc_status['started_at'], 1)
+    
+    return jsonify(status)
 
 
 @app.route('/admin/reload-config', methods=['POST'])
