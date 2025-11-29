@@ -870,21 +870,26 @@ class SupabaseClient:
             
             to_delete = []
             for alarm in alarms:
-                drop_percent = alarm.get('drop_percent', 0)
-                if drop_percent is None:
-                    drop_percent = 0
-                try:
-                    drop_percent = float(drop_percent)
-                except:
-                    drop_percent = 0
+                drop_percent = alarm.get('drop_percent')
                 
-                if drop_percent < threshold:
+                should_delete = False
+                if drop_percent is None:
+                    should_delete = True
+                else:
+                    try:
+                        if float(drop_percent) < threshold:
+                            should_delete = True
+                    except:
+                        should_delete = True
+                
+                if should_delete:
+                    dp_val = drop_percent if drop_percent is not None else 0
                     to_delete.append({
                         'id': alarm.get('id'),
                         'home': alarm.get('home', ''),
                         'away': alarm.get('away', ''),
                         'side': alarm.get('side', ''),
-                        'drop_percent': drop_percent
+                        'drop_percent': dp_val
                     })
             
             print(f"[CleanupLowDrop] {len(to_delete)} alarms below {threshold}% threshold will be deleted")
