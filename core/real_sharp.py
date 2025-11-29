@@ -84,8 +84,8 @@ class SharpDetector:
     SHARE_SHIFT_THRESHOLD = 2.0    # +2 puan (eskiden +5)
     
     SCORE_THRESHOLDS = {
-        'sharp': 70,
-        'medium_movement': 40
+        'sharp': 20,           # Skor 20-100 arası = Sharp alarm
+        'medium_movement': 10  # Skor 10-19 arası = Log only
     }
     
     def __init__(self):
@@ -441,14 +441,15 @@ class SharpDetector:
                 share_shift_pts
             )
             
-            # Market Share filtre DEĞİL, sadece 3 kriter kontrol edilir
+            # Kriter bilgisi (sadece loglama için)
             all_criteria_met = vol_shock_ok and odds_drop_ok and share_shift_ok
             
-            is_sharp = all_criteria_met and sharp_score >= self.SCORE_THRESHOLDS['sharp']
+            # YENI: Sadece skor 20-100 arası = Sharp alarm
+            is_sharp = sharp_score >= self.SCORE_THRESHOLDS['sharp']  # 20+
             
             is_medium_movement = (
                 not is_sharp and 
-                sharp_score >= self.SCORE_THRESHOLDS['medium_movement']
+                sharp_score >= self.SCORE_THRESHOLDS['medium_movement']  # 10-19
             )
             
             if sharp_score >= self.SCORE_THRESHOLDS['medium_movement']:
