@@ -2713,7 +2713,7 @@ const AlarmColors = {
     medium_movement: { hex: '#f97316', name: 'Orta Hareket', icon: '🔶', priority: 2 },
     reversal_move: { hex: '#ef4444', name: 'Reversal Move', icon: '🔄', priority: 3 },
     big_money: { hex: '#eab308', name: 'Big Money', icon: '💰', priority: 4 },
-    momentum_change: { hex: '#06b6d4', name: 'Momentum Change', icon: '🔄', priority: 5 },
+    volume_shift: { hex: '#0ea5e9', name: 'Volume Shift', icon: '📊', priority: 2 },
     momentum_spike: { hex: '#a855f7', name: 'Momentum Spike', icon: '🚀', priority: 2 },
     momentum_spike_l1: { hex: '#a855f7', name: 'Spike L1', icon: '🚀', priority: 2 },
     momentum_spike_l2: { hex: '#7c3aed', name: 'Spike L2', icon: '🚀', priority: 2 },

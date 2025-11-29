@@ -25,6 +25,7 @@ try:
     from core.reversal_move import detect_reversal_move, apply_reversal_effects, ReversalMoveDetector
     from core.momentum_spike import check_momentum_spike_for_match, detect_momentum_spike
     from core.line_freeze import check_line_freeze_for_match, detect_line_freeze, LineFreezeDetector
+    from core.volume_shift import check_volume_shift_for_match, detect_volume_shift, VolumeShiftDetector
 except ImportError:
     try:
         from config.alarm_thresholds import ALARM_CONFIG, get_threshold, WINDOW_MINUTES, LOOKBACK_MINUTES
@@ -33,6 +34,7 @@ except ImportError:
         from reversal_move import detect_reversal_move, apply_reversal_effects, ReversalMoveDetector
         from momentum_spike import check_momentum_spike_for_match, detect_momentum_spike
         from line_freeze import check_line_freeze_for_match, detect_line_freeze, LineFreezeDetector
+        from volume_shift import check_volume_shift_for_match, detect_volume_shift, VolumeShiftDetector
     except ImportError:
         detect_sharp = None
         SharpDetector = None
@@ -46,6 +48,9 @@ except ImportError:
         check_line_freeze_for_match = None
         detect_line_freeze = None
         LineFreezeDetector = None
+        check_volume_shift_for_match = None
+        detect_volume_shift = None
+        VolumeShiftDetector = None
         DROP_THRESHOLD_PERCENT = 7.0
     import pytz
     TURKEY_TZ = pytz.timezone('Europe/Istanbul')
@@ -183,12 +188,12 @@ ALARM_TYPES = {
         'description': 'Trend oluşumu. Sürekli aynı yöne para akışı.',
         'critical': False
     },
-    'momentum_change': {
-        'name': 'Momentum Change',
-        'icon': '🔄',
-        'color': '#06b6d4',
-        'priority': 8,
-        'description': 'Dominasyon değişimi. %50+ paya sahip seçenek değişti.',
+    'volume_shift': {
+        'name': 'Volume Shift',
+        'icon': '📊',
+        'color': '#0ea5e9',
+        'priority': 2,
+        'description': 'Lider değişimi. %50+ dominant seçenek değişti + hacim eşiği karşılandı.',
         'critical': True
     },
     'momentum_spike': {
@@ -626,23 +631,6 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                     'timestamp': current.get('ScrapedAt', now_turkey_iso())
                 })
     
-    if len(history) >= 2:
-        momentum_change_result = check_momentum_change(history, sides)
-        if momentum_change_result:
-            to_option = momentum_change_result['to_option']
-            from_option = momentum_change_result['from_option']
-            alarm_key = ('momentum_change', to_option)
-            if alarm_key not in seen_alarms:
-                seen_alarms.add(alarm_key)
-                detected_alarms.append({
-                    'type': 'momentum_change',
-                    'side': to_option,
-                    'from_option': from_option,
-                    'from_pct': momentum_change_result['from_pct'],
-                    'to_pct': momentum_change_result['to_pct'],
-                    'detail': f"{from_option}→{to_option} ({momentum_change_result['from_pct']:.0f}%→{momentum_change_result['to_pct']:.0f}%)",
-                    'timestamp': current.get('ScrapedAt', now_turkey_iso())
-                })
     
     if len(history) >= 4 and check_momentum_spike_for_match is not None:
         home = current.get('Home', '')
@@ -664,6 +652,26 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                     'd4_volume': spike.get('d4_volume', 0),
                     'baseline_10': spike.get('baseline_10', 0),
                     'detail': spike.get('detail', ''),
+                    'timestamp': current.get('ScrapedAt', now_turkey_iso())
+                })
+    
+    if len(history) >= 2 and check_volume_shift_for_match is not None:
+        home = current.get('Home', '')
+        away = current.get('Away', '')
+        volume_shifts = check_volume_shift_for_match(history, market, home, away)
+        for vs in volume_shifts:
+            alarm_key = ('volume_shift', vs.get('current_leader', ''), market)
+            if alarm_key not in seen_alarms:
+                seen_alarms.add(alarm_key)
+                detected_alarms.append({
+                    'type': 'volume_shift',
+                    'side': vs.get('current_leader', ''),
+                    'previous_leader': vs.get('previous_leader', ''),
+                    'current_leader': vs.get('current_leader', ''),
+                    'previous_share': vs.get('previous_share', 0),
+                    'current_share': vs.get('current_share', 0),
+                    'new_money_market': vs.get('new_money_market', 0),
+                    'detail': vs.get('detail', ''),
                     'timestamp': current.get('ScrapedAt', now_turkey_iso())
                 })
     
@@ -786,72 +794,6 @@ def check_momentum(history: List[Dict], sides: List[Dict]) -> Optional[Dict]:
     
     return None
 
-
-def check_momentum_change(history: List[Dict], sides: List[Dict]) -> Optional[Dict]:
-    """
-    Momentum Change Alarm - Dominasyon Değişimi
-    
-    Koşullar:
-    1. Şu anda bir seçenek %50+ paya sahip olmalı
-    2. En yakın önceki %50+ dominant farklı bir seçenek olmalı
-    3. Süre sınırı yok - herhangi bir zaman diliminde olabilir
-    
-    Mantık:
-    - Tarihçeyi sondan başa doğru tara
-    - Şu anki dominant'ı bul
-    - En yakın önceki %50+ dominant'ı bul
-    - Sadece bunlar farklıysa alarm tetikle (böylece tekrar tetiklenmez)
-    
-    Örnek: Saat 13:00'te 1=%63, Saat 22:00'de X=%54 → Alarm!
-    """
-    config = ALARM_CONFIG.get('momentum_change', {})
-    dominance_threshold = config.get('dominance_threshold', 50)
-    
-    if len(history) < 2:
-        return None
-    
-    def get_dominant(record):
-        """Bir kayıttaki %50+ dominant seçeneği bul"""
-        best_option = None
-        best_pct = 0
-        for side in sides:
-            pct = parse_pct(record.get(side['pct'], 0))
-            if pct > dominance_threshold and pct > best_pct:
-                best_option = side['key']
-                best_pct = pct
-        return best_option, best_pct
-    
-    current = history[-1]
-    current_dominant, current_pct = get_dominant(current)
-    
-    if not current_dominant:
-        return None
-    
-    previous_dominant = None
-    previous_pct = 0
-    previous_timestamp = ''
-    
-    for i in range(len(history) - 2, -1, -1):
-        record = history[i]
-        dominant, pct = get_dominant(record)
-        if dominant:
-            previous_dominant = dominant
-            previous_pct = pct
-            previous_timestamp = record.get('ScrapedAt', '')
-            break
-    
-    if previous_dominant and previous_dominant != current_dominant:
-        return {
-            'key': current_dominant,
-            'from_option': previous_dominant,
-            'from_pct': previous_pct,
-            'to_option': current_dominant,
-            'to_pct': current_pct,
-            'previous_timestamp': previous_timestamp,
-            'current_timestamp': current.get('ScrapedAt', '')
-        }
-    
-    return None
 
 def group_alarms_by_match(alarms: List[Dict]) -> List[Dict]:
     grouped = defaultdict(lambda: defaultdict(list))
