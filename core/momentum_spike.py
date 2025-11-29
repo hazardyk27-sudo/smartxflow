@@ -4,16 +4,21 @@ Momentum Spike Detection Algorithm V2
 
 10 dakikalık ardışık güncelleme aralığında Momentum Spike tespiti.
 
+Market Bazlı Hacim Eşikleri:
+- 1X2: £1,000
+- O/U 2.5: £750
+- BTTS: £500
+
 Spike tetiklenmesi için aşağıdaki 4 kriterden EN AZ 2'si aynı anda sağlanmalı:
-1. new_money >= 2500
+1. new_money >= market eşiği
 2. share_now >= 6%
 3. percentage_change >= 7%
 4. odds_drop >= 4%
 
-Level Sistemi:
-- LEVEL 1: (new_money 1500-3000 veya %4-%6 change)
-- LEVEL 2: (new_money 3000-5000 veya %6-%10 change + odds_drop)
-- LEVEL 3: (new_money >5000 veya %10+ change + odds_drop >= %6)
+Level Sistemi (new_money bandlarına göre):
+- LEVEL 1: new_money 1500-3000
+- LEVEL 2: new_money 3000-5000
+- LEVEL 3: new_money >5000
 
 Önemli: Tüm hesaplamalar ardışık iki güncelleme (previous vs current) arasında yapılır.
 """
@@ -22,7 +27,12 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 
 
-NEW_MONEY_THRESHOLD = 2500
+MOMENTUM_VOLUME_THRESHOLDS = {
+    '1x2': 1000,
+    'ou25': 750,
+    'btts': 500,
+}
+
 SHARE_NOW_THRESHOLD = 6.0
 PERCENTAGE_CHANGE_THRESHOLD = 7.0
 ODDS_DROP_THRESHOLD = 4.0
@@ -148,7 +158,7 @@ def detect_momentum_spike(
     
     Ardışık iki güncelleme (previous vs current) arasında:
     4 kriterden EN AZ 2'si sağlanmalı:
-    1. new_money >= 2500
+    1. new_money >= market eşiği (1x2: £1000, ou25: £750, btts: £500)
     2. share_now >= 6%
     3. percentage_change >= 7%
     4. odds_drop >= 4%
@@ -175,6 +185,9 @@ def detect_momentum_spike(
     if not latest_ts:
         return None
     
+    market_type = get_market_type(market)
+    volume_threshold = MOMENTUM_VOLUME_THRESHOLDS.get(market_type, 1000)
+    
     keys = get_side_keys(market, side)
     
     curr_amt = parse_volume(current.get(keys['amt'], 0))
@@ -192,7 +205,7 @@ def detect_momentum_spike(
     criteria_met = 0
     criteria_details = []
     
-    if new_money >= NEW_MONEY_THRESHOLD:
+    if new_money >= volume_threshold:
         criteria_met += 1
         criteria_details.append(f"new_money=£{int(new_money):,}")
     
@@ -215,8 +228,6 @@ def detect_momentum_spike(
     
     if momentum_level == 0:
         return None
-    
-    market_type = get_market_type(market)
     
     alarm_type = f'momentum_spike_l{momentum_level}'
     
