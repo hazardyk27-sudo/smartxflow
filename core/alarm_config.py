@@ -31,6 +31,9 @@ class SharpConfig:
     share_shift_min: float = 2.0
     score_threshold_sharp: int = 20
     score_threshold_medium: int = 10
+    use_volume_shock: bool = True
+    use_odds_drop: bool = True
+    use_share_shift: bool = True
 
 
 @dataclass
@@ -41,6 +44,9 @@ class DroppingConfig:
     level2_drop: float = 10.0
     level3_drop: float = 15.0
     persistence_minutes: int = 30
+    use_level2: bool = True
+    use_level3: bool = True
+    use_persistence: bool = True
 
 
 @dataclass
@@ -49,6 +55,8 @@ class ReversalConfig:
     enabled: bool = True
     min_retracement: float = 50.0
     min_drop_before_reversal: float = 5.0
+    use_retracement: bool = True
+    use_min_drop: bool = True
 
 
 @dataclass
@@ -85,6 +93,9 @@ class LineFreezeConfig:
     l2_min_share: float = 4.0
     l3_min_share: float = 8.0
     max_odds_change: float = 0.02
+    use_money_thresholds: bool = True
+    use_share_thresholds: bool = True
+    use_max_odds_change: bool = True
 
 
 @dataclass
@@ -95,6 +106,8 @@ class VolumeShiftConfig:
     volume_ou25: float = 750.0
     volume_btts: float = 500.0
     dominance_threshold: float = 50.0
+    use_volume_thresholds: bool = True
+    use_dominance: bool = True
 
 
 @dataclass
@@ -103,6 +116,8 @@ class BigMoneyConfig:
     enabled: bool = True
     min_money_10min: float = 15000.0
     one_shot_min: float = 10000.0
+    use_10min_threshold: bool = True
+    use_one_shot: bool = True
 
 
 @dataclass
@@ -111,6 +126,8 @@ class PublicSurgeConfig:
     enabled: bool = True
     min_money: float = 500.0
     max_odds_change: float = 0.02
+    use_min_money: bool = True
+    use_max_odds_change: bool = True
 
 
 @dataclass

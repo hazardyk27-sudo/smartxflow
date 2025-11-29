@@ -128,15 +128,18 @@ def get_side_keys(market: str, side: str) -> Dict[str, str]:
 
 def calculate_freeze_duration(history: List[Dict], side: str, keys: Dict[str, str]) -> int:
     """
-    Freeze süresini dakika olarak hesapla.
-    Oranın değişmediği ardışık güncelleme sayısını bul.
-    Her güncelleme = 10dk
+    Freeze suresini dakika olarak hesapla.
+    Oranin degismedigi ardisik guncelleme sayisini bul.
+    Her guncelleme = 10dk
+    
+    use_max_odds_change kapaliysa, tam esitlik yerine kucuk degisimler de kabul edilir
     """
     if len(history) < 2:
         return 0
     
     cfg = get_line_freeze_config()
     max_odds_change = cfg.max_odds_change if cfg else 0.02
+    use_max_odds_change = cfg.use_max_odds_change if cfg else True
     
     sorted_history = sorted(history, key=lambda x: x.get('ScrapedAt', ''), reverse=True)
     
@@ -152,12 +155,14 @@ def calculate_freeze_duration(history: List[Dict], side: str, keys: Dict[str, st
         if prev_odds <= 0:
             break
         
-        odds_diff = abs(current_odds - prev_odds)
-        
-        if odds_diff <= max_odds_change:
-            freeze_updates += 1
+        if use_max_odds_change:
+            odds_diff = abs(current_odds - prev_odds)
+            if odds_diff <= max_odds_change:
+                freeze_updates += 1
+            else:
+                break
         else:
-            break
+            freeze_updates += 1
     
     return freeze_updates * 10
 
@@ -208,7 +213,8 @@ def get_freeze_level(
     LEVEL 2 (Hard Freeze): level2_duration + l2_min_share + (market hareketli veya l2_min_money)
     LEVEL 1 (Soft Freeze): min_freeze_duration + (l1_min_money veya l1_min_share)
     
-    Market movement bonus: Diğer seçenekler hareket ediyorsa freeze daha anlamlı
+    Market movement bonus: Diger secenekler hareket ediyorsa freeze daha anlamli
+    use_* parametreleri ile kriterler devre disi birakilabilir
     """
     cfg = get_line_freeze_config()
     
@@ -222,27 +228,35 @@ def get_freeze_level(
         l1_share = cfg.l1_min_share
         l2_share = cfg.l2_min_share
         l3_share = cfg.l3_min_share
+        use_money = cfg.use_money_thresholds
+        use_share = cfg.use_share_thresholds
     else:
         l1_duration, l2_duration, l3_duration = 20, 20, 40
         l1_money, l2_money, l3_money = 1500, 2000, 3000
         l1_share, l2_share, l3_share = 4.0, 4.0, 8.0
+        use_money, use_share = True, True
     
-    min_share_for_alarm = l1_share
-    has_volume_inflow = new_money >= l1_money or share_now >= min_share_for_alarm
+    money_ok = new_money >= l1_money if use_money else True
+    share_ok = share_now >= l1_share if use_share else True
+    has_volume_inflow = money_ok or share_ok
     
     if not has_volume_inflow:
         return 0
     
-    if freeze_duration >= l3_duration and share_now >= l3_share and new_money >= l3_money:
+    l3_money_ok = new_money >= l3_money if use_money else True
+    l3_share_ok = share_now >= l3_share if use_share else True
+    if freeze_duration >= l3_duration and l3_share_ok and l3_money_ok:
         return 3
     
+    l2_money_ok = new_money >= l2_money if use_money else True
+    l2_share_ok = share_now >= l2_share if use_share else True
     if freeze_duration >= l2_duration:
-        has_market_activity = market_movement >= 2.0 or new_money >= l2_money
-        if share_now >= l2_share and has_market_activity:
+        has_market_activity = market_movement >= 2.0 or l2_money_ok
+        if l2_share_ok and has_market_activity:
             return 2
     
     if freeze_duration >= l1_duration:
-        if new_money >= l1_money or share_now >= min_share_for_alarm:
+        if money_ok or share_ok:
             return 1
     
     return 0
@@ -304,7 +318,12 @@ def detect_line_freeze(
     
     min_money = cfg.l1_min_money if cfg else 1500
     min_share = cfg.l1_min_share if cfg else 4.0
-    has_volume_inflow = new_money >= min_money or share_now >= min_share
+    use_money = cfg.use_money_thresholds if cfg else True
+    use_share = cfg.use_share_thresholds if cfg else True
+    
+    money_ok = new_money >= min_money if use_money else True
+    share_ok = share_now >= min_share if use_share else True
+    has_volume_inflow = money_ok or share_ok
     
     if not has_volume_inflow:
         return None

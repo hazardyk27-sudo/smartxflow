@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartXFlow Admin - Alarm Configuration</title>
+    <title>SmartXFlow Admin - Alarm Yapilandirma</title>
     <style>
         * {
             margin: 0;
@@ -73,7 +73,7 @@
         }
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
             gap: 20px;
         }
         .card {
@@ -135,6 +135,7 @@
             position: relative;
             width: 44px;
             height: 24px;
+            flex-shrink: 0;
         }
         .switch input {
             opacity: 0;
@@ -235,6 +236,7 @@
             color: #8b949e;
             font-size: 12px;
             margin-bottom: 12px;
+            text-transform: uppercase;
         }
         .help-text {
             color: #6e7681;
@@ -249,23 +251,43 @@
         .back-link:hover {
             text-decoration: underline;
         }
+        .input-with-switch {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .input-with-switch input[type="number"] {
+            flex: 1;
+        }
+        .input-with-switch .switch {
+            width: 36px;
+            height: 20px;
+        }
+        .input-with-switch .slider:before {
+            height: 14px;
+            width: 14px;
+        }
+        .input-with-switch input:checked + .slider:before {
+            transform: translateX(16px);
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <div>
-                <h1>Alarm Configuration</h1>
-                <a href="/" class="back-link">Back to Dashboard</a>
+                <h1>Alarm Yapilandirma</h1>
+                <a href="/" class="back-link">Ana Sayfaya Don</a>
             </div>
             <div class="header-actions">
-                <button class="btn btn-secondary" onclick="reloadConfig()">Reload from File</button>
-                <button class="btn btn-primary" onclick="saveConfig()">Save Changes</button>
-                <button class="btn btn-danger" onclick="recalculateAlarms()" id="recalc-btn">Recalculate All Alarms</button>
+                <button class="btn btn-secondary" onclick="reloadConfig()">Dosyadan Yukle</button>
+                <button class="btn btn-primary" onclick="saveConfig()">Degisiklikleri Kaydet</button>
+                <button class="btn btn-danger" onclick="recalculateAlarms()" id="recalc-btn">Tum Alarmlari Yeniden Hesapla</button>
             </div>
         </div>
 
         <div class="grid">
+            <!-- Sharp Money -->
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">
@@ -278,7 +300,7 @@
                     </label>
                 </div>
                 <div class="card-body">
-                    <div class="section-title">Market Volume Thresholds</div>
+                    <div class="section-title">Piyasa Hacim Esikleri</div>
                     <div class="row">
                         <div class="form-group">
                             <label>1X2</label>
@@ -293,30 +315,54 @@
                             <input type="number" id="sharp-volume_btts" step="100">
                         </div>
                     </div>
-                    <div class="section-title">Detection Criteria</div>
-                    <div class="row">
-                        <div class="form-group">
-                            <label>Volume Shock (x)</label>
+                    <div class="section-title">Tespit Kriterleri</div>
+                    <div class="form-group">
+                        <label>Hacim Soku Katsayisi (X)</label>
+                        <div class="input-with-switch">
                             <input type="number" id="sharp-volume_shock_multiplier" step="0.1">
+                            <label class="switch" title="Bu kriteri kullan">
+                                <input type="checkbox" id="sharp-use_volume_shock">
+                                <span class="slider"></span>
+                            </label>
                         </div>
-                        <div class="form-group">
-                            <label>Odds Drop Min (%)</label>
+                        <span class="help-text">Aktifse: Hacim bu katsayi kadar artmissa tetiklenir</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Minimum Oran Dususu (%)</label>
+                        <div class="input-with-switch">
                             <input type="number" id="sharp-odds_drop_min" step="0.1">
+                            <label class="switch" title="Bu kriteri kullan">
+                                <input type="checkbox" id="sharp-use_odds_drop">
+                                <span class="slider"></span>
+                            </label>
                         </div>
+                        <span class="help-text">Aktifse: Oran bu kadar dusmusse tetiklenir</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Minimum Pay Degisimi (puan)</label>
+                        <div class="input-with-switch">
+                            <input type="number" id="sharp-share_shift_min" step="0.5">
+                            <label class="switch" title="Bu kriteri kullan">
+                                <input type="checkbox" id="sharp-use_share_shift">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <span class="help-text">Aktifse: Pay degisimi bu kadarsa tetiklenir</span>
                     </div>
                     <div class="row">
                         <div class="form-group">
-                            <label>Share Shift Min (pts)</label>
-                            <input type="number" id="sharp-share_shift_min" step="0.5">
+                            <label>Sharp Skor Esigi</label>
+                            <input type="number" id="sharp-score_threshold_sharp" step="1">
                         </div>
                         <div class="form-group">
-                            <label>Score Threshold</label>
-                            <input type="number" id="sharp-score_threshold_sharp" step="1">
+                            <label>Medium Skor Esigi</label>
+                            <input type="number" id="sharp-score_threshold_medium" step="1">
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Dropping Alert -->
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">
@@ -330,28 +376,47 @@
                 </div>
                 <div class="card-body">
                     <div class="form-group">
-                        <label>Min Drop Threshold (%)</label>
+                        <label>Minimum Dusus Esigi (%) - Seviye 1</label>
                         <input type="number" id="dropping-drop_threshold" step="0.5">
-                        <span class="help-text">Level 1 starts at this threshold</span>
-                    </div>
-                    <div class="row">
-                        <div class="form-group">
-                            <label>Level 2 Drop (%)</label>
-                            <input type="number" id="dropping-level2_drop" step="0.5">
-                        </div>
-                        <div class="form-group">
-                            <label>Level 3 Drop (%)</label>
-                            <input type="number" id="dropping-level3_drop" step="0.5">
-                        </div>
+                        <span class="help-text">Seviye 1 bu esikten baslar</span>
                     </div>
                     <div class="form-group">
-                        <label>Persistence Minutes</label>
-                        <input type="number" id="dropping-persistence_minutes" step="5">
-                        <span class="help-text">Drop must persist this long before alarm</span>
+                        <label>Seviye 2 Dusus (%)</label>
+                        <div class="input-with-switch">
+                            <input type="number" id="dropping-level2_drop" step="0.5">
+                            <label class="switch" title="Seviye 2 kullan">
+                                <input type="checkbox" id="dropping-use_level2">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <span class="help-text">Aktifse: Bu esik asildiginda Seviye 2 alarmi</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Seviye 3 Dusus (%)</label>
+                        <div class="input-with-switch">
+                            <input type="number" id="dropping-level3_drop" step="0.5">
+                            <label class="switch" title="Seviye 3 kullan">
+                                <input type="checkbox" id="dropping-use_level3">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <span class="help-text">Aktifse: Bu esik asildiginda Seviye 3 alarmi</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Kalicilik Suresi (dakika)</label>
+                        <div class="input-with-switch">
+                            <input type="number" id="dropping-persistence_minutes" step="5">
+                            <label class="switch" title="Kalicilik kontrolu kullan">
+                                <input type="checkbox" id="dropping-use_persistence">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <span class="help-text">Aktifse: Dusus bu sure boyunca devam etmeli</span>
                     </div>
                 </div>
             </div>
 
+            <!-- Momentum Spike -->
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">
@@ -364,7 +429,7 @@
                     </label>
                 </div>
                 <div class="card-body">
-                    <div class="section-title">Market Volume Thresholds</div>
+                    <div class="section-title">Piyasa Hacim Esikleri</div>
                     <div class="row">
                         <div class="form-group">
                             <label>1X2</label>
@@ -379,76 +444,74 @@
                             <input type="number" id="momentum-volume_btts" step="50">
                         </div>
                     </div>
-                    <div class="section-title">Criteria Thresholds</div>
-                    <div class="row">
-                        <div class="form-group">
-                            <label>Share Now Min (%)</label>
-                            <input type="number" id="momentum-share_now_min" step="0.5">
-                        </div>
-                        <div class="form-group">
-                            <label>Pct Change Min (%)</label>
-                            <input type="number" id="momentum-percentage_change_min" step="0.5">
-                        </div>
+                    <div class="section-title">Kriter Esikleri</div>
+                    <div class="form-group">
+                        <label>Minimum Anlik Pay (%)</label>
+                        <input type="number" id="momentum-share_now_min" step="0.5">
                     </div>
-                    <div class="row">
-                        <div class="form-group">
-                            <label>Odds Drop Min (%)</label>
-                            <input type="number" id="momentum-odds_drop_min" step="0.5">
-                        </div>
-                        <div class="form-group">
-                            <label>Min Criteria Count</label>
-                            <input type="number" id="momentum-min_criteria_to_trigger" min="1" max="4" step="1">
-                        </div>
+                    <div class="form-group">
+                        <label>Minimum Pay Degisimi (%)</label>
+                        <input type="number" id="momentum-percentage_change_min" step="0.5">
+                    </div>
+                    <div class="form-group">
+                        <label>Minimum Oran Dususu (%)</label>
+                        <input type="number" id="momentum-odds_drop_min" step="0.5">
+                    </div>
+                    <div class="form-group">
+                        <label>Minimum Kriter Sayisi</label>
+                        <input type="number" id="momentum-min_criteria_to_trigger" min="1" max="4" step="1">
+                        <span class="help-text">Alarm icin kac kriterin saglanmasi gerekir</span>
                     </div>
                     <div class="criteria-section">
-                        <div class="criteria-title">Active Criteria (which ones to check)</div>
+                        <div class="criteria-title">Aktif Kriterler (kontrol edilecekler)</div>
                         <div class="switch-container" style="margin-bottom: 8px;">
                             <label class="switch">
                                 <input type="checkbox" id="momentum-use_new_money">
                                 <span class="slider"></span>
                             </label>
-                            <span class="switch-label">New Money (volume threshold)</span>
+                            <span class="switch-label">Yeni Para (hacim esigi)</span>
                         </div>
                         <div class="switch-container" style="margin-bottom: 8px;">
                             <label class="switch">
                                 <input type="checkbox" id="momentum-use_share_now">
                                 <span class="slider"></span>
                             </label>
-                            <span class="switch-label">Share Now</span>
+                            <span class="switch-label">Anlik Pay kriteri</span>
                         </div>
                         <div class="switch-container" style="margin-bottom: 8px;">
                             <label class="switch">
                                 <input type="checkbox" id="momentum-use_percentage_change">
                                 <span class="slider"></span>
                             </label>
-                            <span class="switch-label">Percentage Change</span>
+                            <span class="switch-label">Pay Degisimi kriteri</span>
                         </div>
                         <div class="switch-container">
                             <label class="switch">
                                 <input type="checkbox" id="momentum-use_odds_drop">
                                 <span class="slider"></span>
                             </label>
-                            <span class="switch-label">Odds Drop</span>
+                            <span class="switch-label">Oran Dususu kriteri</span>
                         </div>
                     </div>
-                    <div class="section-title">Level Thresholds (New Money)</div>
+                    <div class="section-title">Seviye Esikleri (Yeni Para)</div>
                     <div class="row">
                         <div class="form-group">
-                            <label>L1 Min</label>
+                            <label>S1 Min</label>
                             <input type="number" id="momentum-level1_money" step="100">
                         </div>
                         <div class="form-group">
-                            <label>L2 Min</label>
+                            <label>S2 Min</label>
                             <input type="number" id="momentum-level2_money" step="100">
                         </div>
                         <div class="form-group">
-                            <label>L3 Min</label>
+                            <label>S3 Min</label>
                             <input type="number" id="momentum-level3_money" step="100">
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Line Freeze -->
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">
@@ -461,59 +524,84 @@
                     </label>
                 </div>
                 <div class="card-body">
-                    <div class="section-title">Duration Thresholds (minutes)</div>
+                    <div class="section-title">Sure Esikleri (dakika)</div>
                     <div class="row">
                         <div class="form-group">
-                            <label>Min Freeze</label>
+                            <label>Min Donma</label>
                             <input type="number" id="line_freeze-min_freeze_duration" step="5">
                         </div>
                         <div class="form-group">
-                            <label>L2 Duration</label>
+                            <label>S2 Sure</label>
                             <input type="number" id="line_freeze-level2_duration" step="5">
                         </div>
                         <div class="form-group">
-                            <label>L3 Duration</label>
+                            <label>S3 Sure</label>
                             <input type="number" id="line_freeze-level3_duration" step="5">
                         </div>
                     </div>
-                    <div class="section-title">Money Thresholds</div>
-                    <div class="row">
-                        <div class="form-group">
-                            <label>L1 Min Money</label>
-                            <input type="number" id="line_freeze-l1_min_money" step="100">
+                    <div class="section-title">Para Esikleri</div>
+                    <div class="criteria-section">
+                        <div class="switch-container" style="margin-bottom: 12px;">
+                            <label class="switch">
+                                <input type="checkbox" id="line_freeze-use_money_thresholds">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="switch-label">Para esiklerini kullan</span>
                         </div>
-                        <div class="form-group">
-                            <label>L2 Min Money</label>
-                            <input type="number" id="line_freeze-l2_min_money" step="100">
-                        </div>
-                        <div class="form-group">
-                            <label>L3 Min Money</label>
-                            <input type="number" id="line_freeze-l3_min_money" step="100">
-                        </div>
-                    </div>
-                    <div class="section-title">Share Thresholds (%)</div>
-                    <div class="row">
-                        <div class="form-group">
-                            <label>L1 Min Share</label>
-                            <input type="number" id="line_freeze-l1_min_share" step="0.5">
-                        </div>
-                        <div class="form-group">
-                            <label>L2 Min Share</label>
-                            <input type="number" id="line_freeze-l2_min_share" step="0.5">
-                        </div>
-                        <div class="form-group">
-                            <label>L3 Min Share</label>
-                            <input type="number" id="line_freeze-l3_min_share" step="0.5">
+                        <div class="row">
+                            <div class="form-group">
+                                <label>S1 Min Para</label>
+                                <input type="number" id="line_freeze-l1_min_money" step="100">
+                            </div>
+                            <div class="form-group">
+                                <label>S2 Min Para</label>
+                                <input type="number" id="line_freeze-l2_min_money" step="100">
+                            </div>
+                            <div class="form-group">
+                                <label>S3 Min Para</label>
+                                <input type="number" id="line_freeze-l3_min_money" step="100">
+                            </div>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Max Odds Change</label>
-                        <input type="number" id="line_freeze-max_odds_change" step="0.01">
-                        <span class="help-text">Maximum allowed odds change for freeze detection</span>
+                    <div class="section-title">Pay Esikleri (%)</div>
+                    <div class="criteria-section">
+                        <div class="switch-container" style="margin-bottom: 12px;">
+                            <label class="switch">
+                                <input type="checkbox" id="line_freeze-use_share_thresholds">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="switch-label">Pay esiklerini kullan</span>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <label>S1 Min Pay</label>
+                                <input type="number" id="line_freeze-l1_min_share" step="0.5">
+                            </div>
+                            <div class="form-group">
+                                <label>S2 Min Pay</label>
+                                <input type="number" id="line_freeze-l2_min_share" step="0.5">
+                            </div>
+                            <div class="form-group">
+                                <label>S3 Min Pay</label>
+                                <input type="number" id="line_freeze-l3_min_share" step="0.5">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top: 16px;">
+                        <label>Maksimum Oran Degisimi</label>
+                        <div class="input-with-switch">
+                            <input type="number" id="line_freeze-max_odds_change" step="0.01">
+                            <label class="switch" title="Bu kriteri kullan">
+                                <input type="checkbox" id="line_freeze-use_max_odds_change">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <span class="help-text">Aktifse: Oran degisimi bu sinirin altinda olmali</span>
                     </div>
                 </div>
             </div>
 
+            <!-- Volume Shift -->
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">
@@ -526,29 +614,45 @@
                     </label>
                 </div>
                 <div class="card-body">
-                    <div class="section-title">Volume Thresholds</div>
-                    <div class="row">
-                        <div class="form-group">
-                            <label>1X2</label>
-                            <input type="number" id="volume_shift-volume_1x2" step="100">
+                    <div class="section-title">Hacim Esikleri</div>
+                    <div class="criteria-section">
+                        <div class="switch-container" style="margin-bottom: 12px;">
+                            <label class="switch">
+                                <input type="checkbox" id="volume_shift-use_volume_thresholds">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="switch-label">Hacim esiklerini kullan</span>
                         </div>
-                        <div class="form-group">
-                            <label>O/U 2.5</label>
-                            <input type="number" id="volume_shift-volume_ou25" step="50">
-                        </div>
-                        <div class="form-group">
-                            <label>BTTS</label>
-                            <input type="number" id="volume_shift-volume_btts" step="50">
+                        <div class="row">
+                            <div class="form-group">
+                                <label>1X2</label>
+                                <input type="number" id="volume_shift-volume_1x2" step="100">
+                            </div>
+                            <div class="form-group">
+                                <label>O/U 2.5</label>
+                                <input type="number" id="volume_shift-volume_ou25" step="50">
+                            </div>
+                            <div class="form-group">
+                                <label>BTTS</label>
+                                <input type="number" id="volume_shift-volume_btts" step="50">
+                            </div>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Dominance Threshold (%)</label>
-                        <input type="number" id="volume_shift-dominance_threshold" step="1">
-                        <span class="help-text">Min share % to be considered leader</span>
+                    <div class="form-group" style="margin-top: 16px;">
+                        <label>Hakimiyet Esigi (%)</label>
+                        <div class="input-with-switch">
+                            <input type="number" id="volume_shift-dominance_threshold" step="1">
+                            <label class="switch" title="Bu kriteri kullan">
+                                <input type="checkbox" id="volume_shift-use_dominance">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <span class="help-text">Aktifse: Lider sayilmak icin minimum pay %</span>
                     </div>
                 </div>
             </div>
 
+            <!-- Reversal Move -->
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">
@@ -562,18 +666,31 @@
                 </div>
                 <div class="card-body">
                     <div class="form-group">
-                        <label>Min Retracement (%)</label>
-                        <input type="number" id="reversal-min_retracement" step="5">
-                        <span class="help-text">How much of the drop must be retraced</span>
+                        <label>Minimum Geri Donus (%)</label>
+                        <div class="input-with-switch">
+                            <input type="number" id="reversal-min_retracement" step="5">
+                            <label class="switch" title="Bu kriteri kullan">
+                                <input type="checkbox" id="reversal-use_retracement">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <span class="help-text">Aktifse: Dususun ne kadari geri alinmali</span>
                     </div>
                     <div class="form-group">
-                        <label>Min Drop Before Reversal (%)</label>
-                        <input type="number" id="reversal-min_drop_before_reversal" step="0.5">
-                        <span class="help-text">Min drop required before reversal counts</span>
+                        <label>Onceki Minimum Dusus (%)</label>
+                        <div class="input-with-switch">
+                            <input type="number" id="reversal-min_drop_before_reversal" step="0.5">
+                            <label class="switch" title="Bu kriteri kullan">
+                                <input type="checkbox" id="reversal-use_min_drop">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <span class="help-text">Aktifse: Reversal oncesi minimum dusus</span>
                     </div>
                 </div>
             </div>
 
+            <!-- Big Money -->
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">
@@ -587,18 +704,31 @@
                 </div>
                 <div class="card-body">
                     <div class="form-group">
-                        <label>10 Min Window Min</label>
-                        <input type="number" id="big_money-min_money_10min" step="1000">
-                        <span class="help-text">Total money in 10 min window</span>
+                        <label>10 Dakikada Minimum Para</label>
+                        <div class="input-with-switch">
+                            <input type="number" id="big_money-min_money_10min" step="1000">
+                            <label class="switch" title="Bu kriteri kullan">
+                                <input type="checkbox" id="big_money-use_10min_threshold">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <span class="help-text">Aktifse: 10 dk icinde bu kadar para girmeli</span>
                     </div>
                     <div class="form-group">
-                        <label>One Shot Min</label>
-                        <input type="number" id="big_money-one_shot_min" step="1000">
-                        <span class="help-text">Single update money threshold</span>
+                        <label>Tek Seferde Minimum</label>
+                        <div class="input-with-switch">
+                            <input type="number" id="big_money-one_shot_min" step="1000">
+                            <label class="switch" title="Bu kriteri kullan">
+                                <input type="checkbox" id="big_money-use_one_shot">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <span class="help-text">Aktifse: Tek bir guncelleme bu kadar olmali</span>
                     </div>
                 </div>
             </div>
 
+            <!-- Public Surge -->
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">
@@ -612,12 +742,26 @@
                 </div>
                 <div class="card-body">
                     <div class="form-group">
-                        <label>Min Money</label>
-                        <input type="number" id="public_surge-min_money" step="100">
+                        <label>Minimum Para</label>
+                        <div class="input-with-switch">
+                            <input type="number" id="public_surge-min_money" step="100">
+                            <label class="switch" title="Bu kriteri kullan">
+                                <input type="checkbox" id="public_surge-use_min_money">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <span class="help-text">Aktifse: Minimum para girisi esigi</span>
                     </div>
                     <div class="form-group">
-                        <label>Max Odds Change</label>
-                        <input type="number" id="public_surge-max_odds_change" step="0.01">
+                        <label>Maksimum Oran Degisimi</label>
+                        <div class="input-with-switch">
+                            <input type="number" id="public_surge-max_odds_change" step="0.01">
+                            <label class="switch" title="Bu kriteri kullan">
+                                <input type="checkbox" id="public_surge-use_max_odds_change">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <span class="help-text">Aktifse: Oran degisimi bu sinirin altinda</span>
                     </div>
                 </div>
             </div>
@@ -627,27 +771,73 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        let config = {};
+        let config = null;
 
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             toast.textContent = message;
-            toast.className = 'toast show ' + type;
+            toast.className = 'toast ' + type + ' show';
             setTimeout(() => {
-                toast.className = 'toast';
+                toast.classList.remove('show');
             }, 3000);
         }
 
-        function updateStatus(section) {
-            const checkbox = document.getElementById(section + '-enabled');
-            const dot = document.getElementById(section + '-status');
-            if (checkbox && dot) {
-                dot.className = 'status-dot ' + (checkbox.checked ? 'enabled' : 'disabled');
+        function updateStatus(type) {
+            const checkbox = document.getElementById(type + '-enabled');
+            const dot = document.getElementById(type + '-status');
+            if (checkbox.checked) {
+                dot.classList.remove('disabled');
+                dot.classList.add('enabled');
+            } else {
+                dot.classList.remove('enabled');
+                dot.classList.add('disabled');
             }
         }
 
+        function populateForm(data) {
+            const alarmTypes = ['sharp', 'dropping', 'reversal', 'momentum', 'line_freeze', 'volume_shift', 'big_money', 'public_surge'];
+
+            alarmTypes.forEach(type => {
+                if (data[type]) {
+                    Object.keys(data[type]).forEach(key => {
+                        const el = document.getElementById(type + '-' + key);
+                        if (el) {
+                            if (el.type === 'checkbox') {
+                                el.checked = data[type][key];
+                            } else {
+                                el.value = data[type][key];
+                            }
+                        }
+                    });
+                    updateStatus(type);
+                }
+            });
+        }
+
+        function collectFormData() {
+            const data = {};
+            const alarmTypes = ['sharp', 'dropping', 'reversal', 'momentum', 'line_freeze', 'volume_shift', 'big_money', 'public_surge'];
+
+            alarmTypes.forEach(type => {
+                data[type] = {};
+                const inputs = document.querySelectorAll('[id^="' + type + '-"]');
+                inputs.forEach(input => {
+                    const key = input.id.replace(type + '-', '');
+                    if (input.type === 'checkbox') {
+                        data[type][key] = input.checked;
+                    } else if (input.type === 'number') {
+                        data[type][key] = parseFloat(input.value) || 0;
+                    } else {
+                        data[type][key] = input.value;
+                    }
+                });
+            });
+
+            return data;
+        }
+
         function loadConfig() {
-            fetch('/admin/alarm-config')
+            fetch('/admin/config')
                 .then(res => res.json())
                 .then(data => {
                     if (data.error) {
@@ -656,55 +846,17 @@
                     }
                     config = data;
                     populateForm(data);
-                    showToast('Configuration loaded');
+                    showToast('Yapilandirma yuklendi');
                 })
                 .catch(err => {
-                    showToast('Error loading config: ' + err, 'error');
+                    showToast('Yapilandirma yukleme hatasi: ' + err, 'error');
                 });
-        }
-
-        function populateForm(data) {
-            for (const section in data) {
-                for (const key in data[section]) {
-                    const el = document.getElementById(section + '-' + key);
-                    if (el) {
-                        if (el.type === 'checkbox') {
-                            el.checked = data[section][key];
-                        } else {
-                            el.value = data[section][key];
-                        }
-                    }
-                }
-                updateStatus(section);
-            }
-        }
-
-        function gatherFormData() {
-            const sections = ['sharp', 'dropping', 'reversal', 'momentum', 'line_freeze', 'volume_shift', 'big_money', 'public_surge'];
-            const result = {};
-            
-            for (const section of sections) {
-                result[section] = {};
-                const inputs = document.querySelectorAll('[id^="' + section + '-"]');
-                inputs.forEach(el => {
-                    const key = el.id.replace(section + '-', '');
-                    if (el.type === 'checkbox') {
-                        result[section][key] = el.checked;
-                    } else if (el.type === 'number') {
-                        result[section][key] = parseFloat(el.value) || 0;
-                    } else {
-                        result[section][key] = el.value;
-                    }
-                });
-            }
-            
-            return result;
         }
 
         function saveConfig() {
-            const data = gatherFormData();
-            
-            fetch('/admin/alarm-config', {
+            const data = collectFormData();
+
+            fetch('/admin/config', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -717,11 +869,11 @@
                         showToast(result.error, 'error');
                     } else {
                         config = result.config;
-                        showToast('Configuration saved successfully');
+                        showToast('Yapilandirma kaydedildi!');
                     }
                 })
                 .catch(err => {
-                    showToast('Error saving config: ' + err, 'error');
+                    showToast('Kaydetme hatasi: ' + err, 'error');
                 });
         }
 
@@ -736,16 +888,16 @@
                     } else {
                         config = result.config;
                         populateForm(result.config);
-                        showToast('Configuration reloaded from file');
+                        showToast('Yapilandirma dosyadan yuklendi');
                     }
                 })
                 .catch(err => {
-                    showToast('Error reloading config: ' + err, 'error');
+                    showToast('Yukleme hatasi: ' + err, 'error');
                 });
         }
 
         function recalculateAlarms() {
-            if (!confirm('Bu islem TUM alarmlari silecek ve yeni config ile yeniden hesaplayacak.\n\nBu islem birkaç dakika surebilir. Devam etmek istiyor musunuz?')) {
+            if (!confirm('Bu islem TUM aktif alarmlari silecek ve yeni yapilandirma ile yeniden hesaplayacak.\n\nGecmis alarmlar korunacaktir.\n\nBu islem birkac dakika surebilir. Devam etmek istiyor musunuz?')) {
                 return;
             }
             

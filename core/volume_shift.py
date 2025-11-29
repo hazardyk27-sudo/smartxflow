@@ -115,12 +115,19 @@ def get_all_sides(market: str) -> List[str]:
     return ['1', 'X', '2']
 
 
-def get_leader(record: Dict, market: str) -> tuple:
+def get_leader(record: Dict, market: str, require_dominance: bool = True) -> tuple:
     """
-    Bir kayıttaki lideri bul.
+    Bir kayittaki lideri bul.
+    
+    Args:
+        record: Veri kaydi
+        market: Market tipi
+        require_dominance: True ise dominance threshold kontrolu yapilir,
+                          False ise sadece en yuksek pay kontrol edilir
     
     Returns:
-        (leader_side, leader_share) - dominance_threshold+ payı olan lider, yoksa (None, 0)
+        (leader_side, leader_share) - dominance_threshold+ payi olan lider, yoksa (None, 0)
+        require_dominance=False ise her zaman en yuksek payli side doner
     """
     sides = get_all_sides(market)
     dominance = get_dominance_threshold()
@@ -136,10 +143,12 @@ def get_leader(record: Dict, market: str) -> tuple:
             best_side = side
             best_share = share
     
-    if best_share >= dominance:
+    if require_dominance:
+        if best_share >= dominance:
+            return (best_side, best_share)
+        return (None, 0.0)
+    else:
         return (best_side, best_share)
-    
-    return (None, 0.0)
 
 
 def get_total_volume(record: Dict, market: str) -> float:
@@ -161,15 +170,17 @@ def detect_volume_shift(
     away: str = ''
 ) -> Optional[Dict[str, Any]]:
     """
-    Volume Shift (Lider Değişimi) tespiti yapar.
+    Volume Shift (Lider Degisimi) tespiti yapar.
     
     Kriterler (config'den):
-    1. Önceki kayıtta bir seçenek dominance_threshold+ pay ile lider
-    2. Şimdiki kayıtta farklı bir seçenek dominance_threshold+ pay ile lider
-    3. Bu süreçte market'e yeni hacim girmiş (volume threshold karşılandı)
+    1. Onceki kayitta bir secenek dominance_threshold+ pay ile lider
+    2. Simdiki kayitta farkli bir secenek dominance_threshold+ pay ile lider
+    3. Bu surecte market'e yeni hacim girmis (volume threshold karsilandi)
+    
+    use_* parametreleri ile kriterler devre disi birakilabilir
     
     Args:
-        history: Maç geçmişi (en az 2 kayıt gerekli)
+        history: Mac gecmisi (en az 2 kayit gerekli)
         market: Market tipi
         home: Ev sahibi
         away: Deplasman
@@ -189,17 +200,19 @@ def detect_volume_shift(
     if market_type not in ['1x2', 'ou25', 'btts']:
         return None
     
+    use_volume = cfg.use_volume_thresholds if cfg else True
+    use_dominance = cfg.use_dominance if cfg else True
+    
     sorted_history = sorted(history, key=lambda x: x.get('ScrapedAt', ''), reverse=True)
     
     current = sorted_history[0]
     previous = sorted_history[1]
     
-    current_leader, current_share = get_leader(current, market)
-    previous_leader, previous_share = get_leader(previous, market)
+    current_leader, current_share = get_leader(current, market, require_dominance=use_dominance)
+    previous_leader, previous_share = get_leader(previous, market, require_dominance=use_dominance)
     
     if not current_leader or not previous_leader:
         return None
-    
     if previous_leader == current_leader:
         return None
     
@@ -209,7 +222,7 @@ def detect_volume_shift(
     
     threshold = get_vs_volume_threshold(market_type)
     
-    if new_money_market < threshold:
+    if use_volume and new_money_market < threshold:
         return None
     
     latest_ts = current.get('ScrapedAt', '')

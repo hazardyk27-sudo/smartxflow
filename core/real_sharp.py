@@ -69,24 +69,66 @@ def parse_pct(val: Any) -> float:
         return 0.0
 
 
+def get_sharp_config():
+    """Get sharp config from central config"""
+    try:
+        from core.alarm_config import load_alarm_config
+        return load_alarm_config().sharp
+    except ImportError:
+        return None
+
+
 class SharpDetector:
     """
     Sharp Tespit Sistemi
     4 ana kriter + market hacmi filtresi ile profesyonel sharp money tespiti yapar.
+    Tum esikler alarm_config.json uzerinden yonetilir.
     """
     
     WINDOW_MINUTES = 10
     LOOKBACK_MINUTES = 60
     
-    VOLUME_SHOCK_MULTIPLIER = 2.0
-    MARKET_SHARE_THRESHOLD = 35.0  # Sadece skor için, filtre değil
-    ODDS_DROP_THRESHOLD = 1.0      # %1 düşüş (eskiden %2)
-    SHARE_SHIFT_THRESHOLD = 2.0    # +2 puan (eskiden +5)
+    @property
+    def VOLUME_SHOCK_MULTIPLIER(self) -> float:
+        cfg = get_sharp_config()
+        return cfg.volume_shock_multiplier if cfg else 2.0
     
-    SCORE_THRESHOLDS = {
-        'sharp': 20,           # Skor 20-100 arası = Sharp alarm
-        'medium_movement': 10  # Skor 10-19 arası = Log only
-    }
+    @property
+    def ODDS_DROP_THRESHOLD(self) -> float:
+        cfg = get_sharp_config()
+        return cfg.odds_drop_min if cfg else 1.0
+    
+    @property
+    def SHARE_SHIFT_THRESHOLD(self) -> float:
+        cfg = get_sharp_config()
+        return cfg.share_shift_min if cfg else 2.0
+    
+    MARKET_SHARE_THRESHOLD = 35.0
+    
+    @property
+    def SCORE_THRESHOLDS(self) -> dict:
+        cfg = get_sharp_config()
+        if cfg:
+            return {
+                'sharp': cfg.score_threshold_sharp,
+                'medium_movement': cfg.score_threshold_medium
+            }
+        return {'sharp': 20, 'medium_movement': 10}
+    
+    @property
+    def use_volume_shock(self) -> bool:
+        cfg = get_sharp_config()
+        return cfg.use_volume_shock if cfg else True
+    
+    @property
+    def use_odds_drop(self) -> bool:
+        cfg = get_sharp_config()
+        return cfg.use_odds_drop if cfg else True
+    
+    @property
+    def use_share_shift(self) -> bool:
+        cfg = get_sharp_config()
+        return cfg.use_share_shift if cfg else True
     
     def __init__(self):
         pass
@@ -434,15 +476,22 @@ class SharpDetector:
             
             share_shift_ok, share_shift_pts = self.calculate_share_shift(base_pct, current_pct)
             
+            effective_vol_shock_ok = vol_shock_ok if self.use_volume_shock else True
+            effective_odds_drop_ok = odds_drop_ok if self.use_odds_drop else True
+            effective_share_shift_ok = share_shift_ok if self.use_share_shift else True
+            
+            score_vol_shock = vol_shock_mult if self.use_volume_shock else 0
+            score_odds_drop = odds_drop_pct if self.use_odds_drop else 0
+            score_share_shift = share_shift_pts if self.use_share_shift else 0
+            
             sharp_score = self.calculate_sharp_score(
-                vol_shock_mult,
+                score_vol_shock,
                 mkt_share_pct,
-                odds_drop_pct,
-                share_shift_pts
+                score_odds_drop,
+                score_share_shift
             )
             
-            # Kriter bilgisi (sadece loglama için)
-            all_criteria_met = vol_shock_ok and odds_drop_ok and share_shift_ok
+            all_criteria_met = effective_vol_shock_ok and effective_odds_drop_ok and effective_share_shift_ok
             
             # YENI: Sadece skor 20-100 arası = Sharp alarm
             is_sharp = sharp_score >= self.SCORE_THRESHOLDS['sharp']  # 20+
