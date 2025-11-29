@@ -152,7 +152,9 @@ def start_cleanup_scheduler():
                 print(f"[AlarmDetector] Error in periodic scan: {e}")
             
             loop_count[0] += 1
-            if loop_count[0] % 6 == 0:
+            # V1 ALARM DEVRE DIŞI - V2 hazırlanıyor
+            # Reconciliation, retry_failed_alarms kapatıldı
+            if False and loop_count[0] % 6 == 0:
                 print("[Reconciliation] Running hourly self-check...")
                 try:
                     supabase = get_supabase_client()
