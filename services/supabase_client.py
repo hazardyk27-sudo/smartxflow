@@ -848,6 +848,64 @@ class SupabaseClient:
             print(f"[CleanupDuplicates] Exception: {e}")
             return 0
     
+    def cleanup_low_drop_percent_alarms(self, threshold: float = 7.0) -> int:
+        """
+        Remove dropping alarms with drop_percent below threshold (default 7%).
+        Only affects 'dropping' type alarms.
+        Returns count of deleted alarms.
+        """
+        if not self.is_available:
+            return 0
+        
+        try:
+            url = f"{self._rest_url('smart_money_alarms')}?select=*&alarm_type=eq.dropping"
+            resp = httpx.get(url, headers=self._headers(), timeout=15)
+            
+            if resp.status_code != 200:
+                print(f"[CleanupLowDrop] Error fetching alarms: {resp.status_code}")
+                return 0
+            
+            alarms = resp.json()
+            print(f"[CleanupLowDrop] Found {len(alarms)} dropping alarms to check")
+            
+            to_delete = []
+            for alarm in alarms:
+                drop_percent = alarm.get('drop_percent', 0)
+                if drop_percent is None:
+                    drop_percent = 0
+                try:
+                    drop_percent = float(drop_percent)
+                except:
+                    drop_percent = 0
+                
+                if drop_percent < threshold:
+                    to_delete.append({
+                        'id': alarm.get('id'),
+                        'home': alarm.get('home', ''),
+                        'away': alarm.get('away', ''),
+                        'side': alarm.get('side', ''),
+                        'drop_percent': drop_percent
+                    })
+            
+            print(f"[CleanupLowDrop] {len(to_delete)} alarms below {threshold}% threshold will be deleted")
+            
+            deleted = 0
+            for alarm in to_delete:
+                alarm_id = alarm.get('id')
+                if alarm_id:
+                    del_url = f"{self._rest_url('smart_money_alarms')}?id=eq.{alarm_id}"
+                    del_resp = httpx.delete(del_url, headers=self._headers(), timeout=5)
+                    if del_resp.status_code in [200, 204]:
+                        deleted += 1
+                        print(f"  - Deleted: {alarm['home']} vs {alarm['away']} ({alarm['side']}) - {alarm['drop_percent']:.1f}%")
+            
+            print(f"[CleanupLowDrop] Successfully deleted {deleted} low drop% alarms")
+            return deleted
+            
+        except Exception as e:
+            print(f"[CleanupLowDrop] Exception: {e}")
+            return 0
+    
     def get_persistent_alarms(self, match_date_filter: str = 'today_future') -> List[Dict[str, Any]]:
         """
         Get all persistent alarms for matches that are today or in the future.

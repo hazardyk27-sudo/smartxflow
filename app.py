@@ -124,6 +124,10 @@ def start_cleanup_scheduler():
             deleted = db.supabase.cleanup_duplicate_alarms()
             if deleted > 0:
                 print(f"[Startup] Cleaned {deleted} duplicate alarms")
+            
+            low_drop_deleted = db.supabase.cleanup_low_drop_percent_alarms(threshold=7.0)
+            if low_drop_deleted > 0:
+                print(f"[Startup] Cleaned {low_drop_deleted} low drop% dropping alarms (<7%)")
     except Exception as e:
         print(f"[Startup] Duplicate cleanup error: {e}")
     
