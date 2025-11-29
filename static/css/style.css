@@ -1537,9 +1537,10 @@ body {
     --pill-color-rgb: 234, 179, 8;
 }
 
-.ticker-pill[data-alarm="dropping"] {
-    --pill-color: #ef4444;
-    --pill-color-rgb: 239, 68, 68;
+.ticker-pill[data-alarm="dropping"],
+.ticker-pill[data-alarm^="dropping_"] {
+    --pill-color: #f97316;
+    --pill-color-rgb: 249, 115, 22;
 }
 
 .ticker-pill[data-alarm="medium_movement"] {
