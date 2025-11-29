@@ -1178,6 +1178,87 @@ class SupabaseClient:
             print(f"[DeleteAlarms] Fallback exception: {e}")
             return 0
 
+    def delete_alarms_by_type(self, alarm_type: str, include_historical: bool = True) -> int:
+        """
+        Delete alarms of a specific type only.
+        
+        Args:
+            alarm_type: Base alarm type (e.g., 'sharp', 'momentum', 'dropping')
+            include_historical: If True, delete all; if False, only today+future
+        
+        Returns count of deleted alarms.
+        """
+        if not self.is_available:
+            return 0
+        
+        try:
+            from datetime import datetime
+            import pytz
+            import time
+            
+            start_time = time.time()
+            turkey_tz = pytz.timezone('Europe/Istanbul')
+            today = datetime.now(turkey_tz).strftime('%Y-%m-%d')
+            
+            type_pattern = f"{alarm_type}%"
+            
+            count_headers = self._headers()
+            count_headers['Prefer'] = 'count=exact'
+            count_headers['Range-Unit'] = 'items'
+            count_headers['Range'] = '0-0'
+            
+            if include_historical:
+                count_url = f"{self._rest_url('smart_money_alarms')}?select=id&type=like.{type_pattern}"
+            else:
+                count_url = f"{self._rest_url('smart_money_alarms')}?select=id&type=like.{type_pattern}&match_date=gte.{today}"
+            
+            count_resp = httpx.get(count_url, headers=count_headers, timeout=30)
+            
+            total_to_delete = 0
+            if 'Content-Range' in count_resp.headers:
+                range_header = count_resp.headers['Content-Range']
+                if '/' in range_header:
+                    total_to_delete = int(range_header.split('/')[-1])
+            else:
+                count_resp2 = httpx.get(count_url, headers=self._headers(), timeout=30)
+                if count_resp2.status_code == 200:
+                    total_to_delete = len(count_resp2.json())
+            
+            print(f"[DeleteByType] Found {total_to_delete} '{alarm_type}*' alarms to delete")
+            
+            if total_to_delete == 0:
+                return 0
+            
+            total_deleted = 0
+            batch_size = 1000
+            
+            while total_deleted < total_to_delete:
+                if include_historical:
+                    delete_url = f"{self._rest_url('smart_money_alarms')}?type=like.{type_pattern}&limit={batch_size}"
+                else:
+                    delete_url = f"{self._rest_url('smart_money_alarms')}?type=like.{type_pattern}&match_date=gte.{today}&limit={batch_size}"
+                
+                del_resp = httpx.delete(delete_url, headers=self._headers(), timeout=60)
+                
+                if del_resp.status_code in [200, 204]:
+                    batch_deleted = min(batch_size, total_to_delete - total_deleted)
+                    total_deleted += batch_deleted
+                    print(f"[DeleteByType] Batch deleted ~{batch_deleted} '{alarm_type}*', Total: {total_deleted}")
+                    
+                    if batch_deleted < batch_size:
+                        break
+                else:
+                    print(f"[DeleteByType] Delete failed: {del_resp.status_code}")
+                    break
+            
+            elapsed = time.time() - start_time
+            print(f"[DeleteByType] Deleted {total_deleted} '{alarm_type}*' alarms in {elapsed:.2f}s")
+            return total_deleted
+            
+        except Exception as e:
+            print(f"[DeleteByType] Exception: {e}")
+            return 0
+
     def get_alarm_type_counts(self) -> Dict[str, int]:
         """
         Get count of alarms grouped by type for debugging.

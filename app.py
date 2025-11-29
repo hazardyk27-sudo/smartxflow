@@ -851,11 +851,16 @@ def is_demo_match(match):
         return True
     return False
 
-def detect_and_save_alarms():
+def detect_and_save_alarms(filter_alarm_type: str = None):
     """
     STEP 1: Detect new alarms from history and SAVE them to Supabase.
     Called after scrape or periodically. Alarms are PERSISTENT once saved.
     Scans ALL 6 markets (3 moneyway + 3 dropping) for comprehensive detection.
+    
+    Args:
+        filter_alarm_type: If provided, only detect alarms matching this type prefix.
+                          e.g., 'sharp' will detect 'sharp', 'sharp_*' alarms.
+                          If None, detects all enabled alarm types.
     
     Per REFERANS DOKÜMANI Section 3:
     - D (Today) + Future: Generate alarms (if match in arbworld)
@@ -878,7 +883,8 @@ def detect_and_save_alarms():
     reload_alarm_config()
     config_ver = get_config_version()
     
-    print(f"[AlarmDetector] Scanning for new alarms (config v{config_ver})...")
+    filter_msg = f" (filter: {filter_alarm_type}*)" if filter_alarm_type else ""
+    print(f"[AlarmDetector] Scanning for new alarms (config v{config_ver}){filter_msg}...")
     start_time = time.time()
     
     all_alarms = []
@@ -925,6 +931,10 @@ def detect_and_save_alarms():
                 alarms = analyze_match_alarms(history, market, match_date=match_date)
                 for alarm in alarms:
                     alarm_type = alarm.get('type', '')
+                    
+                    if filter_alarm_type:
+                        if not alarm_type.lower().startswith(filter_alarm_type.lower()):
+                            continue
                     
                     if not is_alarm_enabled(alarm_type):
                         skipped_by_config += 1
@@ -1603,17 +1613,18 @@ def _background_recalculate():
 @app.route('/admin/alarm-config', methods=['POST'])
 def update_alarm_config():
     """
-    Update alarm configuration and trigger background recalculation.
+    Update alarm configuration - ONLY saves config, does NOT auto-recalculate.
     
     Flow:
     1. Increment config_version
     2. Save config to alarm_config.json
     3. Reload config into RAM (global config)
-    4. Start background thread to delete and recalculate alarms
-    5. Return immediately with job_id for polling
-    """
-    import threading
+    4. Return immediately - user can manually trigger recalc if needed
     
+    Recalculation options:
+    - Per-alarm-type: POST /admin/recalc-alarm/<type>
+    - All alarms: POST /admin/recalculate-alarms
+    """
     try:
         from core.alarm_config import dict_to_config, save_alarm_config, config_to_dict, reload_alarm_config, load_alarm_config
         
@@ -1637,27 +1648,12 @@ def update_alarm_config():
         
         print(f"[AdminConfig] Config v{cfg.config_version} saved to file, reloading into RAM...")
         reload_alarm_config()
-        print("[AdminConfig] RAM config updated with new values")
-        
-        if _recalc_status['running']:
-            return jsonify({
-                'success': True,
-                'message': f'Ayarlar kaydedildi (v{cfg.config_version}). Alarm hesaplama zaten devam ediyor...',
-                'config': config_to_dict(cfg),
-                'recalculation': {'status': 'already_running', 'job_id': _recalc_status['job_id']}
-            })
-        
-        print(f"[AdminConfig] Starting background alarm recalculation for v{cfg.config_version}...")
-        thread = threading.Thread(target=_background_recalculate, daemon=True)
-        thread.start()
-        
-        next_job_id = _recalc_status['job_id'] + 1
+        print("[AdminConfig] RAM config updated with new values (no auto-recalc)")
         
         return jsonify({
             'success': True,
-            'message': f'Ayarlar kaydedildi (v{cfg.config_version}). Alarmlar arka planda yeniden hesaplaniyor...',
-            'config': config_to_dict(cfg),
-            'recalculation': {'status': 'started', 'job_id': next_job_id}
+            'message': f'Ayarlar kaydedildi (v{cfg.config_version}). Alarmlari yeniden hesaplamak icin kart icerisindeki veya ustteki butonu kullanin.',
+            'config': config_to_dict(cfg)
         })
         
     except Exception as e:
@@ -1667,10 +1663,143 @@ def update_alarm_config():
         return jsonify({'error': str(e)}), 500
 
 
+_type_recalc_status = {}
+
+def _background_recalculate_type(alarm_type: str):
+    """Background thread for single alarm type recalculation"""
+    import time as time_module
+    global _type_recalc_status, _alarm_cache, _alarm_cache_time
+    
+    from core.alarm_config import get_config_version
+    
+    _type_recalc_status[alarm_type] = {
+        'running': True,
+        'deleted': 0,
+        'detected': 0,
+        'started_at': time_module.time(),
+        'completed_at': None,
+        'error': None,
+        'config_version': get_config_version()
+    }
+    
+    print(f"[RecalcType] Starting recalc for '{alarm_type}' (config v{_type_recalc_status[alarm_type]['config_version']})")
+    
+    try:
+        deleted = db.supabase.delete_alarms_by_type(alarm_type, include_historical=True)
+        _type_recalc_status[alarm_type]['deleted'] = deleted
+        print(f"[RecalcType] '{alarm_type}': Deleted {deleted} alarms")
+        
+        detected = detect_and_save_alarms(filter_alarm_type=alarm_type)
+        _type_recalc_status[alarm_type]['detected'] = detected
+        print(f"[RecalcType] '{alarm_type}': Detected {detected} new alarms")
+        
+        _alarm_cache = None
+        _alarm_cache_time = 0
+        print(f"[RecalcType] '{alarm_type}': Cache cleared")
+        
+        final_count = 0
+        if db.is_supabase_available:
+            counts = db.supabase.get_alarm_type_counts()
+            for k, v in counts.items():
+                if k.lower().startswith(alarm_type.lower()):
+                    final_count += v
+        print(f"[RecalcType] '{alarm_type}': Final DB count = {final_count}")
+        
+    except Exception as e:
+        _type_recalc_status[alarm_type]['error'] = str(e)
+        print(f"[RecalcType] '{alarm_type}' Error: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        _type_recalc_status[alarm_type]['running'] = False
+        _type_recalc_status[alarm_type]['completed_at'] = time_module.time()
+        elapsed = _type_recalc_status[alarm_type]['completed_at'] - _type_recalc_status[alarm_type]['started_at']
+        print(f"[RecalcType] '{alarm_type}' Completed in {elapsed:.2f}s")
+
+
+@app.route('/admin/recalc-alarm/<alarm_type>', methods=['POST'])
+def recalculate_single_alarm_type(alarm_type):
+    """
+    Recalculate only a specific alarm type.
+    Much faster than full recalc - only deletes and recalcs one type.
+    
+    Valid types: sharp, dropping, reversal, momentum, line_freeze, volume_shift, big_money, public_surge
+    """
+    import threading
+    
+    valid_types = ['sharp', 'dropping', 'reversal', 'momentum', 'line_freeze', 'volume_shift', 'big_money', 'public_surge']
+    
+    if alarm_type not in valid_types:
+        return jsonify({'error': f"Gecersiz alarm turu: {alarm_type}. Gecerli turler: {', '.join(valid_types)}"}), 400
+    
+    try:
+        from core.alarm_config import reload_alarm_config
+        
+        reload_alarm_config()
+        
+        if alarm_type in _type_recalc_status and _type_recalc_status[alarm_type].get('running'):
+            return jsonify({
+                'success': True,
+                'message': f"'{alarm_type}' hesaplama zaten devam ediyor...",
+                'status': 'already_running',
+                'alarm_type': alarm_type
+            })
+        
+        print(f"[RecalcAlarm] Starting single-type recalc for '{alarm_type}'...")
+        thread = threading.Thread(target=_background_recalculate_type, args=(alarm_type,), daemon=True)
+        thread.start()
+        
+        return jsonify({
+            'success': True,
+            'message': f"'{alarm_type}' alarmlari yeniden hesaplaniyor...",
+            'status': 'started',
+            'alarm_type': alarm_type
+        })
+        
+    except Exception as e:
+        print(f"[RecalcAlarm] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/recalc-alarm-status/<alarm_type>', methods=['GET'])
+def get_single_alarm_recalc_status(alarm_type):
+    """Get recalculation status for a specific alarm type"""
+    import time as time_module
+    
+    if alarm_type not in _type_recalc_status:
+        return jsonify({
+            'running': False,
+            'deleted': 0,
+            'detected': 0,
+            'error': None,
+            'alarm_type': alarm_type
+        })
+    
+    status = _type_recalc_status[alarm_type]
+    result = {
+        'running': status.get('running', False),
+        'deleted': status.get('deleted', 0),
+        'detected': status.get('detected', 0),
+        'error': status.get('error'),
+        'alarm_type': alarm_type,
+        'config_version': status.get('config_version', 0)
+    }
+    
+    if status.get('started_at'):
+        if status.get('running'):
+            result['elapsed_seconds'] = round(time_module.time() - status['started_at'], 1)
+        elif status.get('completed_at'):
+            result['elapsed_seconds'] = round(status['completed_at'] - status['started_at'], 1)
+    
+    return jsonify(result)
+
+
 @app.route('/admin/recalculate-alarms', methods=['POST'])
 def recalculate_all_alarms():
     """
-    Start background alarm recalculation.
+    Start background alarm recalculation for ALL alarm types.
     Returns immediately, recalculation runs in background thread.
     """
     import threading
@@ -1688,13 +1817,13 @@ def recalculate_all_alarms():
                 'status': 'already_running'
             })
         
-        print("[RecalcAlarms] Starting background alarm recalculation...")
+        print("[RecalcAlarms] Starting background alarm recalculation (ALL TYPES)...")
         thread = threading.Thread(target=_background_recalculate, daemon=True)
         thread.start()
         
         return jsonify({
             'success': True,
-            'message': 'Alarmlar arka planda yeniden hesaplaniyor (birkaç dakika surebilir)...',
+            'message': 'TUM alarmlar arka planda yeniden hesaplaniyor (birkac dakika surebilir)...',
             'status': 'started'
         })
         
