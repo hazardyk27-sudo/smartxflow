@@ -495,7 +495,9 @@ class SharpDetector:
                 
                 detected.append(result)
                 
-                print(f"[Sharp] {side['key']}: Score={sharp_score}/100, "
+                match_name = match_id.replace('|', ' vs ').split(' vs ')[:2] if match_id else ['?', '?']
+                match_str = f"{match_name[0]} vs {match_name[1]}" if len(match_name) >= 2 else match_id
+                print(f"[Sharp] {match_str} ({side['key']}): Score={sharp_score}/100, "
                       f"VolShock={vol_shock_mult:.1f}x, OddsDrop={odds_drop_pct:.1f}%, "
                       f"ShareShift={share_shift_pts:+.0f}pts, Sharp={is_sharp}")
         
