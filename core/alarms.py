@@ -858,6 +858,7 @@ def format_alarm_for_modal(alarm: Dict) -> Dict:
         'money_diff': money_diff,
         'total_drop': alarm.get('total_drop', 0),
         'money_pct': alarm.get('money_pct', 0),
+        'sharp_score': alarm.get('sharp_score', 0),
         'odds_from': alarm.get('odds_from'),
         'odds_to': alarm.get('odds_to')
     }
