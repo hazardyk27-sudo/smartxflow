@@ -390,7 +390,12 @@ class AlarmSafetyGuard:
         - Generates fingerprint for deduplication
         - Logs failures for later retry
         - Never throws exceptions to caller
+        - CRITICAL: Short-circuits if Supabase unavailable
         """
+        if not self.supabase or not getattr(self.supabase, 'is_available', False):
+            log_failed_alarm(alarm, "Supabase unavailable", "safe_save_unavailable")
+            return False
+        
         fingerprint = generate_alarm_fingerprint(alarm)
         
         if fingerprint in self.seen_fingerprints:
@@ -412,7 +417,17 @@ class AlarmSafetyGuard:
             return False
     
     def safe_save_batch(self, alarms: List[Dict[str, Any]]) -> int:
-        """Save multiple alarms safely."""
+        """
+        Save multiple alarms safely.
+        
+        CRITICAL: Returns immediately if Supabase is unavailable to prevent hanging.
+        """
+        if not self.supabase or not getattr(self.supabase, 'is_available', False):
+            print(f"[AlarmSafety] Supabase unavailable - skipping batch save of {len(alarms)} alarms")
+            for alarm in alarms:
+                log_failed_alarm(alarm, "Supabase unavailable", "batch_unavailable")
+            return 0
+        
         saved = 0
         for alarm in alarms:
             if self.safe_save_alarm(alarm):
