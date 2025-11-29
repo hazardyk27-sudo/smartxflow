@@ -3099,27 +3099,29 @@ function renderGroupedAlarmList() {
         const isExpanded = expandedAlarmGroups.has(groupId);
         const latestTime = group.latest_time ? formatAlarmTime(group.latest_time) : '';
         
-        const isDropping = group.type === 'dropping';
+        const isDropping = group.type.startsWith('dropping');
         const isSharp = group.type === 'sharp';
         const isMediumMovement = group.type === 'medium_movement';
         const droppingCount = group.dropping_sides_count || 0;
         const dropPercent = group.drop_percent || 0;
         const sharpScore = group.sharp_score || 0;
+        const droppingLevel = group.dropping_level || 0;
+        const persistedMinutes = group.persisted_minutes || 0;
         
         let displayName = group.name;
         if (isSharp && sharpScore >= 70) {
             displayName = `Sharp ${sharpScore}/100`;
         } else if (isMediumMovement && sharpScore >= 40) {
             displayName = `Sharp Skor: ${sharpScore}/100 (orta seviye)`;
+        } else if (isDropping && droppingLevel > 0) {
+            displayName = `Dropping L${droppingLevel} – ${dropPercent.toFixed(1)}% (30dk+ kalıcı)`;
         }
         
         const moneyText = group.max_money > 0 
             ? (isDropping ? `£${group.max_money.toLocaleString()}` : `+£${group.max_money.toLocaleString()}`) 
             : '';
-        const dropText = group.max_drop > 0 
-            ? (isDropping && dropPercent > 0 
-                ? `${group.max_drop.toFixed(2)} drop (-${dropPercent.toFixed(1)}%)` 
-                : `${group.max_drop.toFixed(2)} drop`) 
+        const dropText = (!isDropping && group.max_drop > 0)
+            ? `${group.max_drop.toFixed(2)} drop`
             : '';
         
         let eventsHtml = '';
