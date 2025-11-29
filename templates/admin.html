@@ -261,6 +261,7 @@
             <div class="header-actions">
                 <button class="btn btn-secondary" onclick="reloadConfig()">Reload from File</button>
                 <button class="btn btn-primary" onclick="saveConfig()">Save Changes</button>
+                <button class="btn btn-danger" onclick="recalculateAlarms()" id="recalc-btn">Recalculate All Alarms</button>
             </div>
         </div>
 
@@ -740,6 +741,39 @@
                 })
                 .catch(err => {
                     showToast('Error reloading config: ' + err, 'error');
+                });
+        }
+
+        function recalculateAlarms() {
+            if (!confirm('Bu islem TUM alarmlari silecek ve yeni config ile yeniden hesaplayacak.\n\nBu islem birkaç dakika surebilir. Devam etmek istiyor musunuz?')) {
+                return;
+            }
+            
+            const btn = document.getElementById('recalc-btn');
+            const originalText = btn.textContent;
+            btn.textContent = 'Hesaplaniyor...';
+            btn.disabled = true;
+            
+            showToast('Alarmlar yeniden hesaplaniyor, lutfen bekleyin...', 'success');
+            
+            fetch('/admin/recalculate-alarms', {
+                method: 'POST'
+            })
+                .then(res => res.json())
+                .then(result => {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    
+                    if (result.error) {
+                        showToast('Hata: ' + result.error, 'error');
+                    } else {
+                        showToast(result.message + ' (' + result.elapsed_seconds + 's)', 'success');
+                    }
+                })
+                .catch(err => {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    showToast('Hata: ' + err, 'error');
                 });
         }
 

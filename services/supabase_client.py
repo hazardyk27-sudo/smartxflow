@@ -1037,6 +1037,53 @@ class SupabaseClient:
         
         return saved
 
+    def delete_all_active_alarms(self) -> int:
+        """
+        Delete alarms ONLY for today and future matches.
+        Historical alarms (yesterday and older) are preserved.
+        Used when admin recalculates alarms with new config.
+        Returns count of deleted alarms.
+        """
+        if not self.is_available:
+            return 0
+        
+        try:
+            from datetime import datetime
+            import pytz
+            
+            turkey_tz = pytz.timezone('Europe/Istanbul')
+            today = datetime.now(turkey_tz).strftime('%Y-%m-%d')
+            
+            url = f"{self._rest_url('smart_money_alarms')}?select=id,home,away,match_date&match_date=gte.{today}"
+            resp = httpx.get(url, headers=self._headers(), timeout=30)
+            
+            if resp.status_code != 200:
+                print(f"[DeleteActiveAlarms] Error fetching alarms: {resp.status_code}")
+                return 0
+            
+            alarms = resp.json()
+            print(f"[DeleteActiveAlarms] Found {len(alarms)} active alarms (today+future) to delete")
+            print(f"[DeleteActiveAlarms] Historical alarms preserved (before {today})")
+            
+            if not alarms:
+                return 0
+            
+            deleted = 0
+            for alarm in alarms:
+                alarm_id = alarm.get('id')
+                if alarm_id:
+                    del_url = f"{self._rest_url('smart_money_alarms')}?id=eq.{alarm_id}"
+                    del_resp = httpx.delete(del_url, headers=self._headers(), timeout=5)
+                    if del_resp.status_code in [200, 204]:
+                        deleted += 1
+            
+            print(f"[DeleteActiveAlarms] Successfully deleted {deleted} active alarms")
+            return deleted
+            
+        except Exception as e:
+            print(f"[DeleteActiveAlarms] Exception: {e}")
+            return 0
+
 
 class LocalDatabase:
     """Fallback local SQLite database when Supabase is not available"""

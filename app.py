@@ -1534,7 +1534,7 @@ def get_alarm_config():
 def update_alarm_config():
     """Update alarm configuration"""
     try:
-        from core.alarm_config import dict_to_config, save_alarm_config, config_to_dict
+        from core.alarm_config import dict_to_config, save_alarm_config, config_to_dict, reload_alarm_config
         
         data = request.get_json()
         if not data:
@@ -1544,6 +1544,8 @@ def update_alarm_config():
         success = save_alarm_config(cfg)
         
         if success:
+            reload_alarm_config()
+            
             return jsonify({
                 'success': True,
                 'message': 'Configuration saved successfully',
@@ -1553,6 +1555,59 @@ def update_alarm_config():
             return jsonify({'error': 'Failed to save configuration'}), 500
     except Exception as e:
         print(f"[Admin API] Error saving config: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/recalculate-alarms', methods=['POST'])
+def recalculate_all_alarms():
+    """
+    Delete active alarms (today+future) and recalculate them with current config.
+    Historical alarms are preserved.
+    This is triggered after config changes to apply new thresholds to all data.
+    """
+    import time
+    
+    try:
+        from core.alarm_config import reload_alarm_config
+        
+        print("[RecalcAlarms] Starting alarm recalculation for active matches...")
+        start_time = time.time()
+        
+        reload_alarm_config()
+        print("[RecalcAlarms] Config reloaded from file")
+        
+        deleted = db.supabase.delete_all_active_alarms()
+        print(f"[RecalcAlarms] Deleted {deleted} active alarms (historical preserved)")
+        
+        global _alarm_cache, _alarm_cache_time
+        
+        try:
+            detected = detect_and_save_alarms()
+        except Exception as detect_err:
+            print(f"[RecalcAlarms] Detection error: {detect_err}")
+            _alarm_cache = None
+            _alarm_cache_time = 0
+            raise detect_err
+        
+        _alarm_cache = None
+        _alarm_cache_time = 0
+        print("[RecalcAlarms] Cache cleared for fresh data")
+        
+        elapsed = time.time() - start_time
+        print(f"[RecalcAlarms] Completed in {elapsed:.2f}s - Deleted: {deleted}, New: {detected}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Alarms recalculated: {deleted} deleted, {detected} new alarms created',
+            'deleted': deleted,
+            'detected': detected,
+            'elapsed_seconds': round(elapsed, 2)
+        })
+        
+    except Exception as e:
+        print(f"[RecalcAlarms] Error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 
