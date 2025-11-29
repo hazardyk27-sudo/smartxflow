@@ -1208,9 +1208,9 @@ class SupabaseClient:
             count_headers['Range'] = '0-0'
             
             if include_historical:
-                count_url = f"{self._rest_url('smart_money_alarms')}?select=id&type=like.{type_pattern}"
+                count_url = f"{self._rest_url('smart_money_alarms')}?select=id&alarm_type=like.{type_pattern}"
             else:
-                count_url = f"{self._rest_url('smart_money_alarms')}?select=id&type=like.{type_pattern}&match_date=gte.{today}"
+                count_url = f"{self._rest_url('smart_money_alarms')}?select=id&alarm_type=like.{type_pattern}&match_date=gte.{today}"
             
             count_resp = httpx.get(count_url, headers=count_headers, timeout=30)
             
@@ -1234,9 +1234,9 @@ class SupabaseClient:
             
             while total_deleted < total_to_delete:
                 if include_historical:
-                    delete_url = f"{self._rest_url('smart_money_alarms')}?type=like.{type_pattern}&limit={batch_size}"
+                    delete_url = f"{self._rest_url('smart_money_alarms')}?alarm_type=like.{type_pattern}&limit={batch_size}"
                 else:
-                    delete_url = f"{self._rest_url('smart_money_alarms')}?type=like.{type_pattern}&match_date=gte.{today}&limit={batch_size}"
+                    delete_url = f"{self._rest_url('smart_money_alarms')}?alarm_type=like.{type_pattern}&match_date=gte.{today}&limit={batch_size}"
                 
                 del_resp = httpx.delete(delete_url, headers=self._headers(), timeout=60)
                 
