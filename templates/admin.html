@@ -626,7 +626,6 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const password = new URLSearchParams(window.location.search).get('p') || '';
         let config = {};
 
         function showToast(message, type = 'success') {
@@ -647,7 +646,7 @@
         }
 
         function loadConfig() {
-            fetch('/admin/alarm-config?p=' + encodeURIComponent(password))
+            fetch('/admin/alarm-config')
                 .then(res => res.json())
                 .then(data => {
                     if (data.error) {
@@ -704,7 +703,7 @@
         function saveConfig() {
             const data = gatherFormData();
             
-            fetch('/admin/alarm-config?p=' + encodeURIComponent(password), {
+            fetch('/admin/alarm-config', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -726,7 +725,7 @@
         }
 
         function reloadConfig() {
-            fetch('/admin/reload-config?p=' + encodeURIComponent(password), {
+            fetch('/admin/reload-config', {
                 method: 'POST'
             })
                 .then(res => res.json())
