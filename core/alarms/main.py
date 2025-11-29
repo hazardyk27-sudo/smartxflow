@@ -736,7 +736,7 @@ def check_big_money_all_windows(history: List[Dict], sides: List[Dict], window_m
     """
     from core.alarms.alarm_config import get_big_money_config
     cfg = get_big_money_config()
-    min_inflow = cfg.window_10m_min if cfg else 15000
+    min_inflow = cfg.min_money_10min if cfg else 15000
     
     if len(history) < 2:
         return []
@@ -780,7 +780,7 @@ def check_big_money_10min(history: List[Dict], sides: List[Dict]) -> Optional[Di
     """
     from core.alarms.alarm_config import get_big_money_config
     cfg = get_big_money_config()
-    min_inflow = cfg.window_10m_min if cfg else 15000
+    min_inflow = cfg.min_money_10min if cfg else 15000
     time_window = 10
     
     if len(history) < 2:

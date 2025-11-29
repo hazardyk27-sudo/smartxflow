@@ -453,8 +453,6 @@ class SharpDetector:
         
         volume_threshold_ok = self.check_market_volume_threshold(market, total_current_volume)
         if not volume_threshold_ok:
-            market_type = get_market_type(market)
-            threshold = MARKET_VOLUME_THRESHOLDS.get(market_type, 5000)
             return []
         
         for side in sides:
