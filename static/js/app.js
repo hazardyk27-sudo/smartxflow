@@ -2711,7 +2711,7 @@ let highlightedAlarmType = null;
 const AlarmColors = {
     sharp: { hex: '#22c55e', name: 'Sharp', icon: '🟢', priority: 1 },
     medium_movement: { hex: '#f97316', name: 'Orta Hareket', icon: '🔶', priority: 2 },
-    rlm: { hex: '#ef4444', name: 'Reverse Line Move', icon: '🔴', priority: 3 },
+    reversal_move: { hex: '#ef4444', name: 'Reversal Move', icon: '🔄', priority: 3 },
     big_money: { hex: '#eab308', name: 'Big Money', icon: '💰', priority: 4 },
     momentum_change: { hex: '#06b6d4', name: 'Momentum Change', icon: '🔄', priority: 5 },
     momentum: { hex: '#a855f7', name: 'Momentum', icon: '🟣', priority: 6 },
@@ -3102,17 +3102,21 @@ function renderGroupedAlarmList() {
         const isDropping = group.type.startsWith('dropping');
         const isSharp = group.type === 'sharp';
         const isMediumMovement = group.type === 'medium_movement';
+        const isReversal = group.type === 'reversal_move';
         const droppingCount = group.dropping_sides_count || 0;
         const dropPercent = group.drop_percent || 0;
         const sharpScore = group.sharp_score || 0;
         const droppingLevel = group.dropping_level || 0;
         const persistedMinutes = group.persisted_minutes || 0;
+        const conditionsMet = group.conditions_met || 0;
         
         let displayName = group.name;
         if (isSharp && sharpScore >= 70) {
             displayName = `Sharp ${sharpScore}/100`;
         } else if (isMediumMovement && sharpScore >= 40) {
             displayName = `Sharp Skor: ${sharpScore}/100 (orta seviye)`;
+        } else if (isReversal && conditionsMet === 3) {
+            displayName = `Reversal Move – 3/3 kriter`;
         } else if (isDropping && droppingLevel > 0) {
             displayName = `Dropping L${droppingLevel} – ${dropPercent.toFixed(1)}% (30dk+ kalıcı)`;
         }
