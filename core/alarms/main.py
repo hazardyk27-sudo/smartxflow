@@ -732,9 +732,11 @@ def check_big_money_all_windows(history: List[Dict], sides: List[Dict], window_m
     """
     Big Money: Tum 10 dakikalik pencerelerde 15.000 £+ para girisini kontrol et.
     Her pencere icin ayri alarm uretir.
+    Esikler alarm_config.json'dan okunur.
     """
-    config = ALARM_CONFIG.get('big_money', {})
-    min_inflow = config.get('min_money_inflow', 15000)
+    from core.alarms.alarm_config import get_big_money_config
+    cfg = get_big_money_config()
+    min_inflow = cfg.window_10m_min if cfg else 15000
     
     if len(history) < 2:
         return []
@@ -774,11 +776,12 @@ def check_big_money_10min(history: List[Dict], sides: List[Dict]) -> Optional[Di
     """
     Big Money: 10 dakika icinde 15.000 £+ para girisi
     Oran sarti yok, sadece hacim onemli
-    (Geriye uyumluluk icin korundu)
+    Esikler alarm_config.json'dan okunur.
     """
-    config = ALARM_CONFIG.get('big_money', {})
-    min_inflow = config.get('min_money_inflow', 15000)
-    time_window = config.get('time_window_minutes', 10)
+    from core.alarms.alarm_config import get_big_money_config
+    cfg = get_big_money_config()
+    min_inflow = cfg.window_10m_min if cfg else 15000
+    time_window = 10
     
     if len(history) < 2:
         return None
@@ -821,9 +824,11 @@ def check_big_money_10min(history: List[Dict], sides: List[Dict]) -> Optional[Di
     return None
 
 def check_momentum(history: List[Dict], sides: List[Dict]) -> Optional[Dict]:
-    config = ALARM_CONFIG.get('momentum', {})
-    consecutive_needed = config.get('consecutive_count', 3)
-    min_diff = config.get('min_total_diff', 1000)
+    """Momentum: Ardisik hacim artisi kontrolu. Esikler alarm_config.json'dan okunur."""
+    from core.alarms.alarm_config import get_momentum_config
+    cfg = get_momentum_config()
+    consecutive_needed = 3
+    min_diff = cfg.volume_1x2 if cfg else 1000
     
     for side in sides:
         consecutive_increase = 0

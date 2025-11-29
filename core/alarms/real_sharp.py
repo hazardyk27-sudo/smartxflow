@@ -24,12 +24,6 @@ from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timedelta
 from statistics import median
 
-MARKET_VOLUME_THRESHOLDS = {
-    '1x2': 5000,
-    'ou25': 3000,
-    'btts': 2000
-}
-
 def get_market_type(market: str) -> str:
     """Get market type from market name"""
     if '1x2' in market.lower():
@@ -76,6 +70,19 @@ def get_sharp_config():
         return load_alarm_config().sharp
     except ImportError:
         return None
+
+
+def get_market_volume_threshold(market_type: str) -> float:
+    """Get market volume threshold from config"""
+    cfg = get_sharp_config()
+    if cfg:
+        thresholds = {
+            '1x2': cfg.volume_1x2,
+            'ou25': cfg.volume_ou25,
+            'btts': cfg.volume_btts,
+        }
+        return thresholds.get(market_type, cfg.volume_1x2)
+    return {'1x2': 5000, 'ou25': 3000, 'btts': 2000}.get(market_type, 5000)
 
 
 class SharpDetector:
@@ -169,14 +176,10 @@ class SharpDetector:
         """
         Market hacmi eşik kontrolü.
         Düşük hacimli liglerde Sharp alarmı çıkmasını engeller.
-        
-        Eşikler:
-        - 1X2: 5000 GBP
-        - O/U 2.5: 3000 GBP
-        - BTTS: 2000 GBP
+        Eşikler alarm_config.json'dan okunur.
         """
         market_type = get_market_type(market)
-        threshold = MARKET_VOLUME_THRESHOLDS.get(market_type, 5000)
+        threshold = get_market_volume_threshold(market_type)
         
         if total_market_volume < threshold:
             return False
