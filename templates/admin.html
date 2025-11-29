@@ -270,6 +270,52 @@
         .input-with-switch input:checked + .slider:before {
             transform: translateX(16px);
         }
+        .card-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-recalc {
+            padding: 4px 8px;
+            font-size: 11px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            color: #8b949e;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-recalc:hover {
+            background: #30363d;
+            color: #c9d1d9;
+            border-color: #58a6ff;
+        }
+        .btn-recalc:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-recalc.running {
+            background: #1f6feb;
+            border-color: #1f6feb;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .recalc-status {
+            font-size: 10px;
+            color: #8b949e;
+            margin-top: 4px;
+            padding: 4px 8px;
+            background: #0d1117;
+            border-radius: 4px;
+            display: none;
+        }
+        .recalc-status.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -294,11 +340,15 @@
                         <span class="status-dot" id="sharp-status"></span>
                         Sharp Money
                     </span>
-                    <label class="switch">
-                        <input type="checkbox" id="sharp-enabled" onchange="updateStatus('sharp')">
-                        <span class="slider"></span>
-                    </label>
+                    <div class="card-header-actions">
+                        <button class="btn-recalc" id="recalc-sharp" onclick="recalcAlarmType('sharp')">Yeniden Hesapla</button>
+                        <label class="switch">
+                            <input type="checkbox" id="sharp-enabled" onchange="updateStatus('sharp')">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                 </div>
+                <div class="recalc-status" id="recalc-status-sharp"></div>
                 <div class="card-body">
                     <div class="section-title">Piyasa Hacim Esikleri</div>
                     <div class="row">
@@ -369,11 +419,15 @@
                         <span class="status-dot" id="dropping-status"></span>
                         Dropping Alert
                     </span>
-                    <label class="switch">
-                        <input type="checkbox" id="dropping-enabled" onchange="updateStatus('dropping')">
-                        <span class="slider"></span>
-                    </label>
+                    <div class="card-header-actions">
+                        <button class="btn-recalc" id="recalc-dropping" onclick="recalcAlarmType('dropping')">Yeniden Hesapla</button>
+                        <label class="switch">
+                            <input type="checkbox" id="dropping-enabled" onchange="updateStatus('dropping')">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                 </div>
+                <div class="recalc-status" id="recalc-status-dropping"></div>
                 <div class="card-body">
                     <div class="form-group">
                         <label>Minimum Dusus Esigi (%) - Seviye 1</label>
@@ -423,11 +477,15 @@
                         <span class="status-dot" id="momentum-status"></span>
                         Momentum Spike
                     </span>
-                    <label class="switch">
-                        <input type="checkbox" id="momentum-enabled" onchange="updateStatus('momentum')">
-                        <span class="slider"></span>
-                    </label>
+                    <div class="card-header-actions">
+                        <button class="btn-recalc" id="recalc-momentum" onclick="recalcAlarmType('momentum')">Yeniden Hesapla</button>
+                        <label class="switch">
+                            <input type="checkbox" id="momentum-enabled" onchange="updateStatus('momentum')">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                 </div>
+                <div class="recalc-status" id="recalc-status-momentum"></div>
                 <div class="card-body">
                     <div class="section-title">Piyasa Hacim Esikleri</div>
                     <div class="row">
@@ -518,11 +576,15 @@
                         <span class="status-dot" id="line_freeze-status"></span>
                         Line Freeze
                     </span>
-                    <label class="switch">
-                        <input type="checkbox" id="line_freeze-enabled" onchange="updateStatus('line_freeze')">
-                        <span class="slider"></span>
-                    </label>
+                    <div class="card-header-actions">
+                        <button class="btn-recalc" id="recalc-line_freeze" onclick="recalcAlarmType('line_freeze')">Yeniden Hesapla</button>
+                        <label class="switch">
+                            <input type="checkbox" id="line_freeze-enabled" onchange="updateStatus('line_freeze')">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                 </div>
+                <div class="recalc-status" id="recalc-status-line_freeze"></div>
                 <div class="card-body">
                     <div class="section-title">Sure Esikleri (dakika)</div>
                     <div class="row">
@@ -608,11 +670,15 @@
                         <span class="status-dot" id="volume_shift-status"></span>
                         Volume Shift
                     </span>
-                    <label class="switch">
-                        <input type="checkbox" id="volume_shift-enabled" onchange="updateStatus('volume_shift')">
-                        <span class="slider"></span>
-                    </label>
+                    <div class="card-header-actions">
+                        <button class="btn-recalc" id="recalc-volume_shift" onclick="recalcAlarmType('volume_shift')">Yeniden Hesapla</button>
+                        <label class="switch">
+                            <input type="checkbox" id="volume_shift-enabled" onchange="updateStatus('volume_shift')">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                 </div>
+                <div class="recalc-status" id="recalc-status-volume_shift"></div>
                 <div class="card-body">
                     <div class="section-title">Hacim Esikleri</div>
                     <div class="criteria-section">
@@ -659,11 +725,15 @@
                         <span class="status-dot" id="reversal-status"></span>
                         Reversal Move
                     </span>
-                    <label class="switch">
-                        <input type="checkbox" id="reversal-enabled" onchange="updateStatus('reversal')">
-                        <span class="slider"></span>
-                    </label>
+                    <div class="card-header-actions">
+                        <button class="btn-recalc" id="recalc-reversal" onclick="recalcAlarmType('reversal')">Yeniden Hesapla</button>
+                        <label class="switch">
+                            <input type="checkbox" id="reversal-enabled" onchange="updateStatus('reversal')">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                 </div>
+                <div class="recalc-status" id="recalc-status-reversal"></div>
                 <div class="card-body">
                     <div class="form-group">
                         <label>Minimum Geri Donus (%)</label>
@@ -697,11 +767,15 @@
                         <span class="status-dot" id="big_money-status"></span>
                         Big Money
                     </span>
-                    <label class="switch">
-                        <input type="checkbox" id="big_money-enabled" onchange="updateStatus('big_money')">
-                        <span class="slider"></span>
-                    </label>
+                    <div class="card-header-actions">
+                        <button class="btn-recalc" id="recalc-big_money" onclick="recalcAlarmType('big_money')">Yeniden Hesapla</button>
+                        <label class="switch">
+                            <input type="checkbox" id="big_money-enabled" onchange="updateStatus('big_money')">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                 </div>
+                <div class="recalc-status" id="recalc-status-big_money"></div>
                 <div class="card-body">
                     <div class="form-group">
                         <label>10 Dakikada Minimum Para</label>
@@ -735,11 +809,15 @@
                         <span class="status-dot" id="public_surge-status"></span>
                         Public Surge
                     </span>
-                    <label class="switch">
-                        <input type="checkbox" id="public_surge-enabled" onchange="updateStatus('public_surge')">
-                        <span class="slider"></span>
-                    </label>
+                    <div class="card-header-actions">
+                        <button class="btn-recalc" id="recalc-public_surge" onclick="recalcAlarmType('public_surge')">Yeniden Hesapla</button>
+                        <label class="switch">
+                            <input type="checkbox" id="public_surge-enabled" onchange="updateStatus('public_surge')">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                 </div>
+                <div class="recalc-status" id="recalc-status-public_surge"></div>
                 <div class="card-body">
                     <div class="form-group">
                         <label>Minimum Para</label>
@@ -912,12 +990,6 @@
             const originalText = saveBtn.textContent;
             saveBtn.textContent = 'Kaydediliyor...';
             saveBtn.disabled = true;
-            
-            if (statusPollInterval) {
-                clearInterval(statusPollInterval);
-                statusPollInterval = null;
-            }
-            completionShown = false;
 
             fetch('/admin/alarm-config', {
                 method: 'POST',
@@ -928,35 +1000,135 @@
             })
                 .then(res => res.json())
                 .then(result => {
+                    saveBtn.textContent = originalText;
+                    saveBtn.disabled = false;
+                    
                     if (result.error) {
-                        saveBtn.textContent = originalText;
-                        saveBtn.disabled = false;
                         showToast(result.error, 'error');
                     } else {
                         config = result.config;
                         updateVersionBadge(result.config.config_version);
                         showToast(result.message, 'success');
-                        
-                        if (result.recalculation && (result.recalculation.status === 'started' || result.recalculation.status === 'already_running')) {
-                            const targetJob = result.recalculation.job_id;
-                            currentJobId = targetJob;
-                            console.log('[Admin] Started polling for job:', targetJob);
-                            
-                            saveBtn.textContent = 'Alarmlar hesaplaniyor...';
-                            statusPollInterval = setInterval(() => pollRecalcStatus(targetJob, () => {
-                                saveBtn.textContent = originalText;
-                                saveBtn.disabled = false;
-                            }), 3000);
-                        } else {
-                            saveBtn.textContent = originalText;
-                            saveBtn.disabled = false;
-                        }
                     }
                 })
                 .catch(err => {
                     saveBtn.textContent = originalText;
                     saveBtn.disabled = false;
                     showToast('Kaydetme hatasi: ' + err, 'error');
+                });
+        }
+        
+        let typeRecalcPolls = {};
+        
+        function recalcAlarmType(alarmType) {
+            const btn = document.getElementById('recalc-' + alarmType);
+            const statusDiv = document.getElementById('recalc-status-' + alarmType);
+            
+            if (!btn) return;
+            
+            btn.disabled = true;
+            btn.classList.add('running');
+            btn.textContent = 'Hesaplaniyor...';
+            
+            if (statusDiv) {
+                statusDiv.classList.add('show');
+                statusDiv.textContent = 'Baslatiliyor...';
+            }
+            
+            if (typeRecalcPolls[alarmType]) {
+                clearInterval(typeRecalcPolls[alarmType]);
+                typeRecalcPolls[alarmType] = null;
+            }
+            
+            fetch('/admin/recalc-alarm/' + alarmType, {
+                method: 'POST'
+            })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.error) {
+                        btn.disabled = false;
+                        btn.classList.remove('running');
+                        btn.textContent = 'Yeniden Hesapla';
+                        if (statusDiv) {
+                            statusDiv.textContent = 'Hata: ' + result.error;
+                        }
+                        showToast('Hata: ' + result.error, 'error');
+                    } else {
+                        showToast(result.message, 'success');
+                        
+                        if (result.status === 'started' || result.status === 'already_running') {
+                            typeRecalcPolls[alarmType] = setInterval(() => pollTypeRecalcStatus(alarmType), 2000);
+                        } else {
+                            btn.disabled = false;
+                            btn.classList.remove('running');
+                            btn.textContent = 'Yeniden Hesapla';
+                        }
+                    }
+                })
+                .catch(err => {
+                    btn.disabled = false;
+                    btn.classList.remove('running');
+                    btn.textContent = 'Yeniden Hesapla';
+                    if (statusDiv) {
+                        statusDiv.textContent = 'Hata: ' + err;
+                    }
+                    showToast('Hata: ' + err, 'error');
+                });
+        }
+        
+        function pollTypeRecalcStatus(alarmType) {
+            const btn = document.getElementById('recalc-' + alarmType);
+            const statusDiv = document.getElementById('recalc-status-' + alarmType);
+            
+            fetch('/admin/recalc-alarm-status/' + alarmType)
+                .then(res => res.json())
+                .then(status => {
+                    console.log('[Poll ' + alarmType + ']', status);
+                    
+                    if (status.running) {
+                        if (statusDiv) {
+                            statusDiv.textContent = `Hesaplaniyor... (${status.elapsed_seconds || 0}s)`;
+                        }
+                    } else {
+                        if (typeRecalcPolls[alarmType]) {
+                            clearInterval(typeRecalcPolls[alarmType]);
+                            typeRecalcPolls[alarmType] = null;
+                        }
+                        
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.classList.remove('running');
+                            btn.textContent = 'Yeniden Hesapla';
+                        }
+                        
+                        if (status.error) {
+                            if (statusDiv) {
+                                statusDiv.textContent = 'Hata: ' + status.error;
+                            }
+                            showToast(`${alarmType} Hatasi: ${status.error}`, 'error');
+                        } else {
+                            if (statusDiv) {
+                                statusDiv.textContent = `Tamamlandi: ${status.deleted} silindi, ${status.detected} eklendi (${status.elapsed_seconds || 0}s)`;
+                            }
+                            showToast(`${alarmType}: ${status.deleted} silindi, ${status.detected} eklendi`, 'success');
+                            
+                            setTimeout(() => {
+                                if (statusDiv) statusDiv.classList.remove('show');
+                            }, 5000);
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Type poll error:', err);
+                    if (typeRecalcPolls[alarmType]) {
+                        clearInterval(typeRecalcPolls[alarmType]);
+                        typeRecalcPolls[alarmType] = null;
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.classList.remove('running');
+                        btn.textContent = 'Yeniden Hesapla';
+                    }
                 });
         }
 
