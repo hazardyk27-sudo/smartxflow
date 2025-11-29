@@ -2717,11 +2717,14 @@ const AlarmColors = {
     momentum: { hex: '#a855f7', name: 'Momentum', icon: '🟣', priority: 6 },
     line_freeze: { hex: '#3b82f6', name: 'Line Freeze', icon: '🔵', priority: 7 },
     public_surge: { hex: '#eab308', name: 'Public Surge', icon: '🟡', priority: 8 },
-    dropping: { hex: '#ef4444', name: 'Dropping', icon: '📉', priority: 9 },
+    dropping: { hex: '#f97316', name: 'Dropping', icon: '📉', priority: 9 },
     default: { hex: '#666666', name: 'Alert', icon: '⚡', priority: 99 }
 };
 
 function getAlarmColor(alarmType) {
+    if (alarmType && alarmType.startsWith('dropping')) {
+        return AlarmColors.dropping;
+    }
     return AlarmColors[alarmType] || AlarmColors.default;
 }
 
