@@ -22,16 +22,21 @@ try:
     from core.alarm_state import should_fire_alarm, record_alarm_fired, cleanup_old_alarm_states
     from core.real_sharp import detect_sharp, SharpDetector
     from core.dropping_alert import detect_dropping_alerts, DroppingAlertDetector, DROP_THRESHOLD_PERCENT
+    from core.reversal_move import detect_reversal_move, apply_reversal_effects, ReversalMoveDetector
 except ImportError:
     try:
         from config.alarm_thresholds import ALARM_CONFIG, get_threshold, WINDOW_MINUTES, LOOKBACK_MINUTES
         from real_sharp import detect_sharp, SharpDetector
         from dropping_alert import detect_dropping_alerts, DroppingAlertDetector, DROP_THRESHOLD_PERCENT
+        from reversal_move import detect_reversal_move, apply_reversal_effects, ReversalMoveDetector
     except ImportError:
         detect_sharp = None
         SharpDetector = None
         detect_dropping_alerts = None
         DroppingAlertDetector = None
+        detect_reversal_move = None
+        apply_reversal_effects = None
+        ReversalMoveDetector = None
         DROP_THRESHOLD_PERCENT = 7.0
     import pytz
     TURKEY_TZ = pytz.timezone('Europe/Istanbul')
@@ -49,12 +54,12 @@ except ImportError:
         pass
 
 ALARM_TYPES = {
-    'rlm': {
-        'name': 'Reverse Line Move',
-        'icon': '🔴',
+    'reversal_move': {
+        'name': 'Reversal Move',
+        'icon': '🔄',
         'color': '#ef4444',
         'priority': 1,
-        'description': 'Para arttı, oran yükseldi. Ters yönde piyasa hareketi.',
+        'description': 'Trend tersine döndü. Drop sonrası fiyat geri dönüşü + momentum değişimi.',
         'critical': True
     },
     'sharp': {
@@ -355,14 +360,47 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
         date = current.get('Date', '')
         match_id = f"{home}|{away}|{league}|{date}"
     
-    rlm_config = ALARM_CONFIG.get('rlm', {})
     drop_config = ALARM_CONFIG.get('dropping', {})
     surge_config = ALARM_CONFIG.get('public_surge', {})
     
-    rlm_min_money = rlm_config.get('min_money_inflow', 3000)
-    rlm_min_up = rlm_config.get('min_odds_up', 0.03)
     surge_min_money = surge_config.get('min_money_diff', 500)
     surge_max_odds = surge_config.get('max_odds_change', 0.02)
+    
+    sharp_results_raw = []
+    dropping_alerts_raw = []
+    reversal_alerts = []
+    
+    if detect_reversal_move is not None:
+        try:
+            reversal_alerts = detect_reversal_move(
+                history=history,
+                market=market,
+                match_id=match_id,
+                home=current.get('Home', ''),
+                away=current.get('Away', '')
+            )
+            
+            for rev in reversal_alerts:
+                alarm_key = ('reversal_move', rev['side'], f"{rev['opening_odds']:.2f}")
+                if alarm_key not in seen_alarms:
+                    seen_alarms.add(alarm_key)
+                    detected_alarms.append({
+                        'type': 'reversal_move',
+                        'side': rev['side'],
+                        'opening_odds': rev['opening_odds'],
+                        'lowest_odds': rev['lowest_odds'],
+                        'current_odds': rev['current_odds'],
+                        'odds_from': rev['lowest_odds'],
+                        'odds_to': rev['current_odds'],
+                        'drop_percent': rev['drop_percent'],
+                        'reversal_percent': rev['reversal_percent'],
+                        'conditions_met': rev['conditions_met'],
+                        'criteria': rev['criteria'],
+                        'criteria_text': rev['criteria_text'],
+                        'timestamp': rev['timestamp']
+                    })
+        except Exception as e:
+            print(f"[Reversal] Error in detection: {e}")
     
     if detect_sharp is not None:
         try:
@@ -411,22 +449,6 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
             
             money_diff = target_amt - base_amt
             odds_diff = target_odds - base_odds
-            
-            if money_diff >= rlm_min_money and odds_diff > rlm_min_up:
-                odds_bucket = f"{base_odds:.2f}-{target_odds:.2f}"
-                alarm_key_rlm = ('rlm', side['key'], odds_bucket)
-                if alarm_key_rlm not in seen_alarms:
-                    seen_alarms.add(alarm_key_rlm)
-                    detected_alarms.append({
-                        'type': 'rlm',
-                        'side': side['key'],
-                        'money_diff': money_diff,
-                        'odds_from': base_odds,
-                        'odds_to': target_odds,
-                        'window_start': base_ts,
-                        'window_end': target_ts,
-                        'timestamp': target_ts
-                    })
             
             odds_flat = abs(odds_diff) <= surge_max_odds
             if money_diff >= surge_min_money and odds_flat:
@@ -873,8 +895,11 @@ def format_alarm_for_modal(alarm: Dict) -> Dict:
             detail_text = f"+£{int(money_diff):,} — Oran {alarm['odds_from']:.2f} → {alarm['odds_to']:.2f}"
         else:
             detail_text = f"+£{int(money_diff):,}"
-    elif alarm['type'] == 'rlm':
-        detail_text = f"Para arttı (+£{int(money_diff):,}), oran yükseldi."
+    elif alarm['type'] == 'reversal_move':
+        reversal_pct = alarm.get('reversal_percent', 0)
+        conditions = alarm.get('conditions_met', 0)
+        criteria_text = alarm.get('criteria_text', '')
+        detail_text = f"Trend tersine döndü — {conditions}/3 kriter | {criteria_text}"
     elif alarm['type'] == 'big_money':
         detail_text = f"+£{int(money_diff):,} (son scrape)"
     elif alarm['type'].startswith('dropping'):
@@ -974,9 +999,9 @@ def generate_demo_alarms() -> List[Dict]:
     ]
     
     demo_alarms = [
-        {'type': 'sharp', 'side': '1', 'money_diff': 3500, 'odds_from': 1.45, 'odds_to': 1.39},
+        {'type': 'sharp', 'side': '1', 'money_diff': 3500, 'odds_from': 1.45, 'odds_to': 1.39, 'sharp_score': 78},
         {'type': 'big_money', 'side': '2', 'money_diff': 18000, 'total_diff': 18000},
-        {'type': 'rlm', 'side': 'X', 'money_diff': 4200, 'odds_from': 5.20, 'odds_to': 5.40},
+        {'type': 'reversal_move', 'side': 'X', 'money_diff': 4200, 'odds_from': 3.80, 'odds_to': 4.10, 'reversal_percent': 65, 'conditions_met': 2, 'criteria_text': 'Retracement: 65% | Momentum: ↓→↑'},
         {'type': 'public_surge', 'side': '1', 'money_diff': 2800, 'odds_from': 1.31, 'odds_to': 1.31},
         {'type': 'momentum', 'side': '2', 'money_diff': 1500},
     ]
