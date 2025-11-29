@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartXFlow Admin - Alarm Configuration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .header {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            color: #58a6ff;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #238636;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2ea043;
+        }
+        .btn-secondary {
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+        }
+        .btn-secondary:hover {
+            background: #30363d;
+        }
+        .btn-danger {
+            background: #da3633;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #f85149;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-body {
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+        label {
+            display: block;
+            color: #8b949e;
+            font-size: 12px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 14px;
+        }
+        input[type="number"]:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        .switch-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #30363d;
+            border-radius: 24px;
+            transition: 0.3s;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: #c9d1d9;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        input:checked + .slider {
+            background: #238636;
+        }
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+        .switch-label {
+            color: #c9d1d9;
+            font-size: 14px;
+        }
+        .row {
+            display: flex;
+            gap: 12px;
+        }
+        .row .form-group {
+            flex: 1;
+        }
+        .section-title {
+            color: #58a6ff;
+            font-size: 13px;
+            font-weight: 600;
+            margin: 16px 0 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #21262d;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .toast.success {
+            background: #238636;
+            color: white;
+        }
+        .toast.error {
+            background: #da3633;
+            color: white;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-dot.enabled {
+            background: #238636;
+        }
+        .status-dot.disabled {
+            background: #6e7681;
+        }
+        .criteria-section {
+            background: #0d1117;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 12px;
+        }
+        .criteria-title {
+            color: #8b949e;
+            font-size: 12px;
+            margin-bottom: 12px;
+        }
+        .help-text {
+            color: #6e7681;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+        .back-link {
+            color: #58a6ff;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>Alarm Configuration</h1>
+                <a href="/" class="back-link">Back to Dashboard</a>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="reloadConfig()">Reload from File</button>
+                <button class="btn btn-primary" onclick="saveConfig()">Save Changes</button>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <span class="status-dot" id="sharp-status"></span>
+                        Sharp Money
+                    </span>
+                    <label class="switch">
+                        <input type="checkbox" id="sharp-enabled" onchange="updateStatus('sharp')">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="card-body">
+                    <div class="section-title">Market Volume Thresholds</div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>1X2</label>
+                            <input type="number" id="sharp-volume_1x2" step="100">
+                        </div>
+                        <div class="form-group">
+                            <label>O/U 2.5</label>
+                            <input type="number" id="sharp-volume_ou25" step="100">
+                        </div>
+                        <div class="form-group">
+                            <label>BTTS</label>
+                            <input type="number" id="sharp-volume_btts" step="100">
+                        </div>
+                    </div>
+                    <div class="section-title">Detection Criteria</div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>Volume Shock (x)</label>
+                            <input type="number" id="sharp-volume_shock_multiplier" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Odds Drop Min (%)</label>
+                            <input type="number" id="sharp-odds_drop_min" step="0.1">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>Share Shift Min (pts)</label>
+                            <input type="number" id="sharp-share_shift_min" step="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label>Score Threshold</label>
+                            <input type="number" id="sharp-score_threshold_sharp" step="1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <span class="status-dot" id="dropping-status"></span>
+                        Dropping Alert
+                    </span>
+                    <label class="switch">
+                        <input type="checkbox" id="dropping-enabled" onchange="updateStatus('dropping')">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Min Drop Threshold (%)</label>
+                        <input type="number" id="dropping-drop_threshold" step="0.5">
+                        <span class="help-text">Level 1 starts at this threshold</span>
+                    </div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>Level 2 Drop (%)</label>
+                            <input type="number" id="dropping-level2_drop" step="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label>Level 3 Drop (%)</label>
+                            <input type="number" id="dropping-level3_drop" step="0.5">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Persistence Minutes</label>
+                        <input type="number" id="dropping-persistence_minutes" step="5">
+                        <span class="help-text">Drop must persist this long before alarm</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <span class="status-dot" id="momentum-status"></span>
+                        Momentum Spike
+                    </span>
+                    <label class="switch">
+                        <input type="checkbox" id="momentum-enabled" onchange="updateStatus('momentum')">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="card-body">
+                    <div class="section-title">Market Volume Thresholds</div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>1X2</label>
+                            <input type="number" id="momentum-volume_1x2" step="100">
+                        </div>
+                        <div class="form-group">
+                            <label>O/U 2.5</label>
+                            <input type="number" id="momentum-volume_ou25" step="50">
+                        </div>
+                        <div class="form-group">
+                            <label>BTTS</label>
+                            <input type="number" id="momentum-volume_btts" step="50">
+                        </div>
+                    </div>
+                    <div class="section-title">Criteria Thresholds</div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>Share Now Min (%)</label>
+                            <input type="number" id="momentum-share_now_min" step="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label>Pct Change Min (%)</label>
+                            <input type="number" id="momentum-percentage_change_min" step="0.5">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>Odds Drop Min (%)</label>
+                            <input type="number" id="momentum-odds_drop_min" step="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label>Min Criteria Count</label>
+                            <input type="number" id="momentum-min_criteria_to_trigger" min="1" max="4" step="1">
+                        </div>
+                    </div>
+                    <div class="criteria-section">
+                        <div class="criteria-title">Active Criteria (which ones to check)</div>
+                        <div class="switch-container" style="margin-bottom: 8px;">
+                            <label class="switch">
+                                <input type="checkbox" id="momentum-use_new_money">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="switch-label">New Money (volume threshold)</span>
+                        </div>
+                        <div class="switch-container" style="margin-bottom: 8px;">
+                            <label class="switch">
+                                <input type="checkbox" id="momentum-use_share_now">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="switch-label">Share Now</span>
+                        </div>
+                        <div class="switch-container" style="margin-bottom: 8px;">
+                            <label class="switch">
+                                <input type="checkbox" id="momentum-use_percentage_change">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="switch-label">Percentage Change</span>
+                        </div>
+                        <div class="switch-container">
+                            <label class="switch">
+                                <input type="checkbox" id="momentum-use_odds_drop">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="switch-label">Odds Drop</span>
+                        </div>
+                    </div>
+                    <div class="section-title">Level Thresholds (New Money)</div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>L1 Min</label>
+                            <input type="number" id="momentum-level1_money" step="100">
+                        </div>
+                        <div class="form-group">
+                            <label>L2 Min</label>
+                            <input type="number" id="momentum-level2_money" step="100">
+                        </div>
+                        <div class="form-group">
+                            <label>L3 Min</label>
+                            <input type="number" id="momentum-level3_money" step="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <span class="status-dot" id="line_freeze-status"></span>
+                        Line Freeze
+                    </span>
+                    <label class="switch">
+                        <input type="checkbox" id="line_freeze-enabled" onchange="updateStatus('line_freeze')">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="card-body">
+                    <div class="section-title">Duration Thresholds (minutes)</div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>Min Freeze</label>
+                            <input type="number" id="line_freeze-min_freeze_duration" step="5">
+                        </div>
+                        <div class="form-group">
+                            <label>L2 Duration</label>
+                            <input type="number" id="line_freeze-level2_duration" step="5">
+                        </div>
+                        <div class="form-group">
+                            <label>L3 Duration</label>
+                            <input type="number" id="line_freeze-level3_duration" step="5">
+                        </div>
+                    </div>
+                    <div class="section-title">Money Thresholds</div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>L1 Min Money</label>
+                            <input type="number" id="line_freeze-l1_min_money" step="100">
+                        </div>
+                        <div class="form-group">
+                            <label>L2 Min Money</label>
+                            <input type="number" id="line_freeze-l2_min_money" step="100">
+                        </div>
+                        <div class="form-group">
+                            <label>L3 Min Money</label>
+                            <input type="number" id="line_freeze-l3_min_money" step="100">
+                        </div>
+                    </div>
+                    <div class="section-title">Share Thresholds (%)</div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>L1 Min Share</label>
+                            <input type="number" id="line_freeze-l1_min_share" step="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label>L2 Min Share</label>
+                            <input type="number" id="line_freeze-l2_min_share" step="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label>L3 Min Share</label>
+                            <input type="number" id="line_freeze-l3_min_share" step="0.5">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Max Odds Change</label>
+                        <input type="number" id="line_freeze-max_odds_change" step="0.01">
+                        <span class="help-text">Maximum allowed odds change for freeze detection</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <span class="status-dot" id="volume_shift-status"></span>
+                        Volume Shift
+                    </span>
+                    <label class="switch">
+                        <input type="checkbox" id="volume_shift-enabled" onchange="updateStatus('volume_shift')">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="card-body">
+                    <div class="section-title">Volume Thresholds</div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>1X2</label>
+                            <input type="number" id="volume_shift-volume_1x2" step="100">
+                        </div>
+                        <div class="form-group">
+                            <label>O/U 2.5</label>
+                            <input type="number" id="volume_shift-volume_ou25" step="50">
+                        </div>
+                        <div class="form-group">
+                            <label>BTTS</label>
+                            <input type="number" id="volume_shift-volume_btts" step="50">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Dominance Threshold (%)</label>
+                        <input type="number" id="volume_shift-dominance_threshold" step="1">
+                        <span class="help-text">Min share % to be considered leader</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <span class="status-dot" id="reversal-status"></span>
+                        Reversal Move
+                    </span>
+                    <label class="switch">
+                        <input type="checkbox" id="reversal-enabled" onchange="updateStatus('reversal')">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Min Retracement (%)</label>
+                        <input type="number" id="reversal-min_retracement" step="5">
+                        <span class="help-text">How much of the drop must be retraced</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Min Drop Before Reversal (%)</label>
+                        <input type="number" id="reversal-min_drop_before_reversal" step="0.5">
+                        <span class="help-text">Min drop required before reversal counts</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <span class="status-dot" id="big_money-status"></span>
+                        Big Money
+                    </span>
+                    <label class="switch">
+                        <input type="checkbox" id="big_money-enabled" onchange="updateStatus('big_money')">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>10 Min Window Min</label>
+                        <input type="number" id="big_money-min_money_10min" step="1000">
+                        <span class="help-text">Total money in 10 min window</span>
+                    </div>
+                    <div class="form-group">
+                        <label>One Shot Min</label>
+                        <input type="number" id="big_money-one_shot_min" step="1000">
+                        <span class="help-text">Single update money threshold</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <span class="status-dot" id="public_surge-status"></span>
+                        Public Surge
+                    </span>
+                    <label class="switch">
+                        <input type="checkbox" id="public_surge-enabled" onchange="updateStatus('public_surge')">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Min Money</label>
+                        <input type="number" id="public_surge-min_money" step="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Max Odds Change</label>
+                        <input type="number" id="public_surge-max_odds_change" step="0.01">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const password = new URLSearchParams(window.location.search).get('p') || '';
+        let config = {};
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast show ' + type;
+            setTimeout(() => {
+                toast.className = 'toast';
+            }, 3000);
+        }
+
+        function updateStatus(section) {
+            const checkbox = document.getElementById(section + '-enabled');
+            const dot = document.getElementById(section + '-status');
+            if (checkbox && dot) {
+                dot.className = 'status-dot ' + (checkbox.checked ? 'enabled' : 'disabled');
+            }
+        }
+
+        function loadConfig() {
+            fetch('/admin/alarm-config?p=' + encodeURIComponent(password))
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        showToast(data.error, 'error');
+                        return;
+                    }
+                    config = data;
+                    populateForm(data);
+                    showToast('Configuration loaded');
+                })
+                .catch(err => {
+                    showToast('Error loading config: ' + err, 'error');
+                });
+        }
+
+        function populateForm(data) {
+            for (const section in data) {
+                for (const key in data[section]) {
+                    const el = document.getElementById(section + '-' + key);
+                    if (el) {
+                        if (el.type === 'checkbox') {
+                            el.checked = data[section][key];
+                        } else {
+                            el.value = data[section][key];
+                        }
+                    }
+                }
+                updateStatus(section);
+            }
+        }
+
+        function gatherFormData() {
+            const sections = ['sharp', 'dropping', 'reversal', 'momentum', 'line_freeze', 'volume_shift', 'big_money', 'public_surge'];
+            const result = {};
+            
+            for (const section of sections) {
+                result[section] = {};
+                const inputs = document.querySelectorAll('[id^="' + section + '-"]');
+                inputs.forEach(el => {
+                    const key = el.id.replace(section + '-', '');
+                    if (el.type === 'checkbox') {
+                        result[section][key] = el.checked;
+                    } else if (el.type === 'number') {
+                        result[section][key] = parseFloat(el.value) || 0;
+                    } else {
+                        result[section][key] = el.value;
+                    }
+                });
+            }
+            
+            return result;
+        }
+
+        function saveConfig() {
+            const data = gatherFormData();
+            
+            fetch('/admin/alarm-config?p=' + encodeURIComponent(password), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.error) {
+                        showToast(result.error, 'error');
+                    } else {
+                        config = result.config;
+                        showToast('Configuration saved successfully');
+                    }
+                })
+                .catch(err => {
+                    showToast('Error saving config: ' + err, 'error');
+                });
+        }
+
+        function reloadConfig() {
+            fetch('/admin/reload-config?p=' + encodeURIComponent(password), {
+                method: 'POST'
+            })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.error) {
+                        showToast(result.error, 'error');
+                    } else {
+                        config = result.config;
+                        populateForm(result.config);
+                        showToast('Configuration reloaded from file');
+                    }
+                })
+                .catch(err => {
+                    showToast('Error reloading config: ' + err, 'error');
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadConfig);
+    </script>
+</body>
+</html>

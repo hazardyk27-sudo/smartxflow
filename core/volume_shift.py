@@ -9,19 +9,39 @@ Amaç:
 - Ve bu süreçte belirli miktarda hacim girdiyse
 → Volume Shift alarmı üret.
 
+Tüm eşikler alarm_config.json üzerinden yönetilir.
 Bu alarm, Momentum Spike'tan tamamen bağımsızdır.
 """
 
 from typing import Dict, List, Optional, Any
 
 
-VOLUME_SHIFT_THRESHOLDS = {
-    '1x2': 1000,
-    'ou25': 750,
-    'btts': 500,
-}
+def get_volume_shift_config():
+    """Get volume shift config from central config"""
+    try:
+        from core.alarm_config import load_alarm_config
+        return load_alarm_config().volume_shift
+    except ImportError:
+        return None
 
-DOMINANCE_THRESHOLD = 50.0
+
+def get_vs_volume_threshold(market_type: str) -> float:
+    """Get volume threshold for market type from config"""
+    cfg = get_volume_shift_config()
+    if cfg:
+        thresholds = {
+            '1x2': cfg.volume_1x2,
+            'ou25': cfg.volume_ou25,
+            'btts': cfg.volume_btts,
+        }
+        return thresholds.get(market_type, cfg.volume_1x2)
+    return {'1x2': 1000, 'ou25': 750, 'btts': 500}.get(market_type, 1000)
+
+
+def get_dominance_threshold() -> float:
+    """Get dominance threshold from config"""
+    cfg = get_volume_shift_config()
+    return cfg.dominance_threshold if cfg else 50.0
 
 
 def get_market_type(market: str) -> str:
@@ -100,9 +120,10 @@ def get_leader(record: Dict, market: str) -> tuple:
     Bir kayıttaki lideri bul.
     
     Returns:
-        (leader_side, leader_share) - %50+ payı olan lider, yoksa (None, 0)
+        (leader_side, leader_share) - dominance_threshold+ payı olan lider, yoksa (None, 0)
     """
     sides = get_all_sides(market)
+    dominance = get_dominance_threshold()
     
     best_side = None
     best_share = 0.0
@@ -115,7 +136,7 @@ def get_leader(record: Dict, market: str) -> tuple:
             best_side = side
             best_share = share
     
-    if best_share >= DOMINANCE_THRESHOLD:
+    if best_share >= dominance:
         return (best_side, best_share)
     
     return (None, 0.0)
@@ -142,10 +163,10 @@ def detect_volume_shift(
     """
     Volume Shift (Lider Değişimi) tespiti yapar.
     
-    Kriterler:
-    1. Önceki kayıtta bir seçenek %50+ pay ile lider
-    2. Şimdiki kayıtta farklı bir seçenek %50+ pay ile lider
-    3. Bu süreçte market'e yeni hacim girmiş (threshold karşılandı)
+    Kriterler (config'den):
+    1. Önceki kayıtta bir seçenek dominance_threshold+ pay ile lider
+    2. Şimdiki kayıtta farklı bir seçenek dominance_threshold+ pay ile lider
+    3. Bu süreçte market'e yeni hacim girmiş (volume threshold karşılandı)
     
     Args:
         history: Maç geçmişi (en az 2 kayıt gerekli)
@@ -156,12 +177,16 @@ def detect_volume_shift(
     Returns:
         Volume Shift alarm objesi veya None
     """
+    cfg = get_volume_shift_config()
+    if cfg and not cfg.enabled:
+        return None
+    
     if len(history) < 2:
         return None
     
     market_type = get_market_type(market)
     
-    if market_type not in VOLUME_SHIFT_THRESHOLDS:
+    if market_type not in ['1x2', 'ou25', 'btts']:
         return None
     
     sorted_history = sorted(history, key=lambda x: x.get('ScrapedAt', ''), reverse=True)
@@ -182,7 +207,7 @@ def detect_volume_shift(
     previous_total = get_total_volume(previous, market)
     new_money_market = current_total - previous_total
     
-    threshold = VOLUME_SHIFT_THRESHOLDS.get(market_type, 1000)
+    threshold = get_vs_volume_threshold(market_type)
     
     if new_money_market < threshold:
         return None
@@ -246,8 +271,17 @@ class VolumeShiftDetector:
     """Volume Shift alarmları için detector sınıfı"""
     
     def __init__(self):
-        self.thresholds = VOLUME_SHIFT_THRESHOLDS.copy()
-        self.dominance_threshold = DOMINANCE_THRESHOLD
+        cfg = get_volume_shift_config()
+        if cfg:
+            self.thresholds = {
+                '1x2': cfg.volume_1x2,
+                'ou25': cfg.volume_ou25,
+                'btts': cfg.volume_btts,
+            }
+            self.dominance_threshold = cfg.dominance_threshold
+        else:
+            self.thresholds = {'1x2': 1000, 'ou25': 750, 'btts': 500}
+            self.dominance_threshold = 50.0
     
     def detect(
         self,

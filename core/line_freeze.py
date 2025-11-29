@@ -3,16 +3,17 @@ Line Freeze Detection Algorithm V2
 ===================================
 
 Oran donukluğu tespiti - Hacim artmasına rağmen oran değişmiyorsa alarm tetiklenir.
+Tüm eşikler alarm_config.json üzerinden yönetilir.
 
 Ana Kriterler:
-1. Oran 2 ardışık güncellemede (20 dakika) HİÇ değişmeyecek
-2. Bu sırada hacim artacak: new_money >= 1500 VEYA share_now >= 6%
+1. Oran ardışık güncellemelerde HİÇ değişmeyecek
+2. Bu sırada hacim artacak veya share_now yeterli olacak
 3. Market ortalaması değişiyorsa freeze daha güçlü sayılır
 
-Level Sistemi:
-- LEVEL 1 (Soft Freeze): 20dk freeze + düşük hacim (1500-3000)
-- LEVEL 2 (Hard Freeze): 20-40dk freeze + share_now %4-%8 + market hareketli
-- LEVEL 3 (Critical Freeze): 40dk+ freeze + share_now >= 8% + new_money >= 3000
+Level Sistemi (config'den):
+- LEVEL 1 (Soft Freeze): min_freeze_duration + l1_min_money/share
+- LEVEL 2 (Hard Freeze): level2_duration + l2_min_money/share
+- LEVEL 3 (Critical Freeze): level3_duration + l3_min_money/share
 
 Önemli: Ardışık güncellemeler arasında hesaplama yapılır.
 """
@@ -21,21 +22,13 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 
 
-FREEZE_MIN_MONEY = 1500
-FREEZE_MIN_SHARE = 6.0
-FREEZE_MAX_ODDS_CHANGE = 0.02
-
-L1_MIN_DURATION = 20
-L2_MIN_DURATION = 20
-L3_MIN_DURATION = 40
-
-L1_MIN_MONEY = 1500
-L2_MIN_MONEY = 2000
-L3_MIN_MONEY = 3000
-
-L1_MIN_SHARE = 4.0
-L2_MIN_SHARE = 4.0
-L3_MIN_SHARE = 8.0
+def get_line_freeze_config():
+    """Get line freeze config from central config"""
+    try:
+        from core.alarm_config import load_alarm_config
+        return load_alarm_config().line_freeze
+    except ImportError:
+        return None
 
 
 def get_market_type(market: str) -> str:
@@ -142,6 +135,9 @@ def calculate_freeze_duration(history: List[Dict], side: str, keys: Dict[str, st
     if len(history) < 2:
         return 0
     
+    cfg = get_line_freeze_config()
+    max_odds_change = cfg.max_odds_change if cfg else 0.02
+    
     sorted_history = sorted(history, key=lambda x: x.get('ScrapedAt', ''), reverse=True)
     
     current_odds = parse_odds(sorted_history[0].get(keys['odds'], 0))
@@ -158,7 +154,7 @@ def calculate_freeze_duration(history: List[Dict], side: str, keys: Dict[str, st
         
         odds_diff = abs(current_odds - prev_odds)
         
-        if odds_diff <= FREEZE_MAX_ODDS_CHANGE:
+        if odds_diff <= max_odds_change:
             freeze_updates += 1
         else:
             break
@@ -206,29 +202,47 @@ def get_freeze_level(
     market_movement: float
 ) -> int:
     """
-    Freeze level belirleme:
+    Freeze level belirleme (config'den):
     
-    LEVEL 3 (Critical Freeze): 40dk+ freeze + share_now >= 8% + new_money >= 3000
-    LEVEL 2 (Hard Freeze): 20-40dk freeze + share_now >= 4% + (market hareketli veya money >= 2000)
-    LEVEL 1 (Soft Freeze): 20dk freeze + (new_money >= 1500 veya share_now >= 6%)
+    LEVEL 3 (Critical Freeze): level3_duration + l3_min_share + l3_min_money
+    LEVEL 2 (Hard Freeze): level2_duration + l2_min_share + (market hareketli veya l2_min_money)
+    LEVEL 1 (Soft Freeze): min_freeze_duration + (l1_min_money veya l1_min_share)
     
     Market movement bonus: Diğer seçenekler hareket ediyorsa freeze daha anlamlı
     """
-    has_volume_inflow = new_money >= FREEZE_MIN_MONEY or share_now >= FREEZE_MIN_SHARE
+    cfg = get_line_freeze_config()
+    
+    if cfg:
+        l1_duration = cfg.min_freeze_duration
+        l2_duration = cfg.level2_duration
+        l3_duration = cfg.level3_duration
+        l1_money = cfg.l1_min_money
+        l2_money = cfg.l2_min_money
+        l3_money = cfg.l3_min_money
+        l1_share = cfg.l1_min_share
+        l2_share = cfg.l2_min_share
+        l3_share = cfg.l3_min_share
+    else:
+        l1_duration, l2_duration, l3_duration = 20, 20, 40
+        l1_money, l2_money, l3_money = 1500, 2000, 3000
+        l1_share, l2_share, l3_share = 4.0, 4.0, 8.0
+    
+    min_share_for_alarm = l1_share
+    has_volume_inflow = new_money >= l1_money or share_now >= min_share_for_alarm
     
     if not has_volume_inflow:
         return 0
     
-    if freeze_duration >= L3_MIN_DURATION and share_now >= L3_MIN_SHARE and new_money >= L3_MIN_MONEY:
+    if freeze_duration >= l3_duration and share_now >= l3_share and new_money >= l3_money:
         return 3
     
-    if freeze_duration >= L2_MIN_DURATION:
-        has_market_activity = market_movement >= 2.0 or new_money >= L2_MIN_MONEY
-        if share_now >= L2_MIN_SHARE and has_market_activity:
+    if freeze_duration >= l2_duration:
+        has_market_activity = market_movement >= 2.0 or new_money >= l2_money
+        if share_now >= l2_share and has_market_activity:
             return 2
     
-    if freeze_duration >= L1_MIN_DURATION:
-        if new_money >= L1_MIN_MONEY or share_now >= FREEZE_MIN_SHARE:
+    if freeze_duration >= l1_duration:
+        if new_money >= l1_money or share_now >= min_share_for_alarm:
             return 1
     
     return 0
@@ -245,11 +259,11 @@ def detect_line_freeze(
     Line Freeze tespiti yapar.
     
     Kriterler:
-    1. Oran 2+ ardışık güncellemede (20dk+) değişmemeli
-    2. Hacim artmalı: new_money >= 1500 VEYA share_now >= 6%
+    1. Oran ardışık güncellemelerde değişmemeli (config'den süre)
+    2. Hacim veya share eşiği sağlanmalı (config'den)
     
     Args:
-        history: Maç geçmişi (en az 3 kayıt gerekli - 20dk freeze için)
+        history: Maç geçmişi
         market: Market tipi
         side: Seçenek
         home: Ev sahibi
@@ -258,6 +272,10 @@ def detect_line_freeze(
     Returns:
         Line Freeze alarm objesi veya None
     """
+    cfg = get_line_freeze_config()
+    if cfg and not cfg.enabled:
+        return None
+    
     if len(history) < 3:
         return None
     
@@ -272,9 +290,10 @@ def detect_line_freeze(
     
     keys = get_side_keys(market, side)
     
+    min_duration = cfg.min_freeze_duration if cfg else 20
     freeze_duration = calculate_freeze_duration(history, side, keys)
     
-    if freeze_duration < 20:
+    if freeze_duration < min_duration:
         return None
     
     curr_amt = parse_volume(current.get(keys['amt'], 0))
@@ -283,7 +302,9 @@ def detect_line_freeze(
     
     share_now = parse_share(current.get(keys['pct'], 0))
     
-    has_volume_inflow = new_money >= FREEZE_MIN_MONEY or share_now >= FREEZE_MIN_SHARE
+    min_money = cfg.l1_min_money if cfg else 1500
+    min_share = cfg.l1_min_share if cfg else 4.0
+    has_volume_inflow = new_money >= min_money or share_now >= min_share
     
     if not has_volume_inflow:
         return None
@@ -371,18 +392,29 @@ class LineFreezeDetector:
     """
     Line Freeze Detector - Oran Donukluğu Tespit Sistemi
     
-    Kriterler:
-    1. 20dk+ oran değişmemiş
+    Kriterler (config'den dinamik olarak okunur):
+    1. min_freeze_duration+ oran değişmemiş
     2. Hacim artışı var
     3. Market hareketliyse bonus
     """
     
-    MIN_FREEZE_DURATION = 20
-    MIN_MONEY_INFLOW = FREEZE_MIN_MONEY
-    MIN_SHARE = FREEZE_MIN_SHARE
+    @property
+    def MIN_FREEZE_DURATION(self) -> int:
+        """Dinamik config'den freeze duration oku"""
+        cfg = get_line_freeze_config()
+        return cfg.min_freeze_duration if cfg else 20
     
-    def __init__(self):
-        pass
+    @property
+    def MIN_MONEY_INFLOW(self) -> float:
+        """Dinamik config'den min money oku"""
+        cfg = get_line_freeze_config()
+        return cfg.l1_min_money if cfg else 1500.0
+    
+    @property
+    def MIN_SHARE(self) -> float:
+        """Dinamik config'den min share oku"""
+        cfg = get_line_freeze_config()
+        return cfg.l1_min_share if cfg else 4.0
     
     def detect(self, history: List[Dict], market: str, **kwargs) -> List[Dict]:
         """Line Freeze tespiti yap"""
@@ -399,12 +431,17 @@ line_freeze_detector = LineFreezeDetector()
 
 
 if __name__ == '__main__':
+    cfg = get_line_freeze_config()
+    min_duration = cfg.min_freeze_duration if cfg else 20
+    min_money = cfg.l1_min_money if cfg else 1500
+    min_share = cfg.l1_min_share if cfg else 4.0
+    
     print("Line Freeze Detection Module V2")
     print("=" * 50)
-    print(f"Minimum Freeze Duration: {20}dk (2 güncelleme)")
-    print(f"Minimum Money Inflow: £{FREEZE_MIN_MONEY:,}")
-    print(f"Minimum Share: {FREEZE_MIN_SHARE}%")
-    print("\nLevel System:")
-    print("  L1 (Soft): 20dk freeze + hacim 1500-3000")
-    print("  L2 (Hard): 20-40dk + share %4-8 + market hareketli")
-    print("  L3 (Critical): 40dk+ + share >= 8% + money >= 3000")
+    print(f"Minimum Freeze Duration: {min_duration}dk")
+    print(f"Minimum Money Inflow: £{int(min_money):,}")
+    print(f"Minimum Share: {min_share}%")
+    print("\nLevel System (from config):")
+    print("  L1 (Soft): min_freeze_duration + l1_min_money/share")
+    print("  L2 (Hard): level2_duration + l2_min_money/share + market hareketli")
+    print("  L3 (Critical): level3_duration + l3_min_money/share")

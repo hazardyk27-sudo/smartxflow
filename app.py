@@ -1512,6 +1512,90 @@ def get_match_alarms():
         return jsonify({'alarms': [], 'error': str(e)})
 
 
+@app.route('/admin')
+def admin_panel():
+    """Admin Panel - Alarm configuration UI (password protected)"""
+    password = request.args.get('p', '')
+    admin_pass = os.environ.get('ADMIN_PASSWORD', 'smartx2025')
+    
+    if password != admin_pass:
+        return render_template('admin_login.html')
+    
+    return render_template('admin.html')
+
+
+@app.route('/admin/alarm-config', methods=['GET'])
+def get_alarm_config():
+    """Get current alarm configuration (password protected)"""
+    password = request.args.get('p', '')
+    admin_pass = os.environ.get('ADMIN_PASSWORD', 'smartx2025')
+    
+    if password != admin_pass:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        from core.alarm_config import load_alarm_config, config_to_dict
+        cfg = load_alarm_config()
+        return jsonify(config_to_dict(cfg))
+    except Exception as e:
+        print(f"[Admin API] Error loading config: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/alarm-config', methods=['POST'])
+def update_alarm_config():
+    """Update alarm configuration (password protected)"""
+    password = request.args.get('p', '')
+    admin_pass = os.environ.get('ADMIN_PASSWORD', 'smartx2025')
+    
+    if password != admin_pass:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        from core.alarm_config import dict_to_config, save_alarm_config, config_to_dict
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        cfg = dict_to_config(data)
+        success = save_alarm_config(cfg)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Configuration saved successfully',
+                'config': config_to_dict(cfg)
+            })
+        else:
+            return jsonify({'error': 'Failed to save configuration'}), 500
+    except Exception as e:
+        print(f"[Admin API] Error saving config: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/reload-config', methods=['POST'])
+def reload_config():
+    """Reload configuration from file (password protected)"""
+    password = request.args.get('p', '')
+    admin_pass = os.environ.get('ADMIN_PASSWORD', 'smartx2025')
+    
+    if password != admin_pass:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        from core.alarm_config import reload_alarm_config, config_to_dict
+        cfg = reload_alarm_config()
+        return jsonify({
+            'success': True,
+            'message': 'Configuration reloaded',
+            'config': config_to_dict(cfg)
+        })
+    except Exception as e:
+        print(f"[Admin API] Error reloading config: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 def main():
     """Main entry point with error handling for EXE"""
     try:

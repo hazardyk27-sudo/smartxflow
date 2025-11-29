@@ -4,21 +4,18 @@ Momentum Spike Detection Algorithm V2
 
 10 dakikalık ardışık güncelleme aralığında Momentum Spike tespiti.
 
-Market Bazlı Hacim Eşikleri:
-- 1X2: £1,000
-- O/U 2.5: £750
-- BTTS: £500
+Tüm eşikler alarm_config.json üzerinden yönetilir.
 
 Spike tetiklenmesi için aşağıdaki 4 kriterden EN AZ 2'si aynı anda sağlanmalı:
-1. new_money >= market eşiği
-2. share_now >= 6%
-3. percentage_change >= 7%
-4. odds_drop >= 4%
+1. new_money >= market eşiği (config'den)
+2. share_now >= share_now_min (config'den)
+3. percentage_change >= percentage_change_min (config'den)
+4. odds_drop >= odds_drop_min (config'den)
 
-Level Sistemi (new_money bandlarına göre):
-- LEVEL 1: new_money 1500-3000
-- LEVEL 2: new_money 3000-5000
-- LEVEL 3: new_money >5000
+Level Sistemi (new_money bandlarına göre - config'den):
+- LEVEL 1: new_money >= level1_money
+- LEVEL 2: new_money >= level2_money
+- LEVEL 3: new_money >= level3_money
 
 Önemli: Tüm hesaplamalar ardışık iki güncelleme (previous vs current) arasında yapılır.
 """
@@ -27,17 +24,26 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 
 
-MOMENTUM_VOLUME_THRESHOLDS = {
-    '1x2': 1000,
-    'ou25': 750,
-    'btts': 500,
-}
+def get_momentum_config():
+    """Get momentum config from central config"""
+    try:
+        from core.alarm_config import load_alarm_config
+        return load_alarm_config().momentum
+    except ImportError:
+        return None
 
-SHARE_NOW_THRESHOLD = 6.0
-PERCENTAGE_CHANGE_THRESHOLD = 7.0
-ODDS_DROP_THRESHOLD = 4.0
 
-MIN_CRITERIA_COUNT = 2
+def get_volume_threshold(market_type: str) -> float:
+    """Get volume threshold for market type from config"""
+    cfg = get_momentum_config()
+    if cfg:
+        thresholds = {
+            '1x2': cfg.volume_1x2,
+            'ou25': cfg.volume_ou25,
+            'btts': cfg.volume_btts,
+        }
+        return thresholds.get(market_type, cfg.volume_1x2)
+    return {'1x2': 1000, 'ou25': 750, 'btts': 500}.get(market_type, 1000)
 
 
 def get_market_type(market: str) -> str:
@@ -108,17 +114,25 @@ def calculate_odds_drop_percent(odds_prev: float, odds_curr: float) -> float:
 
 def get_momentum_level(new_money: float) -> int:
     """
-    Level belirleme - SADECE new_money bandlarına göre:
-    LEVEL 0: new_money < 1500 (alarm üretilmemeli)
-    LEVEL 1: new_money 1500-3000
-    LEVEL 2: new_money 3000-5000
-    LEVEL 3: new_money >5000
+    Level belirleme - SADECE new_money bandlarına göre (config'den):
+    LEVEL 0: new_money < level1_money (alarm üretilmemeli)
+    LEVEL 1: new_money >= level1_money ve < level2_money
+    LEVEL 2: new_money >= level2_money ve < level3_money
+    LEVEL 3: new_money >= level3_money
     """
-    if new_money > 5000:
+    cfg = get_momentum_config()
+    if cfg:
+        l1 = cfg.level1_money
+        l2 = cfg.level2_money
+        l3 = cfg.level3_money
+    else:
+        l1, l2, l3 = 1500, 3000, 5000
+    
+    if new_money >= l3:
         return 3
-    elif new_money >= 3000:
+    elif new_money >= l2:
         return 2
-    elif new_money >= 1500:
+    elif new_money >= l1:
         return 1
     return 0
 
@@ -173,6 +187,10 @@ def detect_momentum_spike(
     Returns:
         Momentum Spike alarm objesi veya None
     """
+    cfg = get_momentum_config()
+    if cfg and not cfg.enabled:
+        return None
+    
     if len(history) < 2:
         return None
     
@@ -186,7 +204,26 @@ def detect_momentum_spike(
         return None
     
     market_type = get_market_type(market)
-    volume_threshold = MOMENTUM_VOLUME_THRESHOLDS.get(market_type, 1000)
+    volume_threshold = get_volume_threshold(market_type)
+    
+    if cfg:
+        share_threshold = cfg.share_now_min
+        pct_change_threshold = cfg.percentage_change_min
+        odds_drop_threshold = cfg.odds_drop_min
+        min_criteria = cfg.min_criteria_to_trigger
+        use_new_money = cfg.use_new_money
+        use_share_now = cfg.use_share_now
+        use_pct_change = cfg.use_percentage_change
+        use_odds_drop = cfg.use_odds_drop
+    else:
+        share_threshold = 6.0
+        pct_change_threshold = 7.0
+        odds_drop_threshold = 4.0
+        min_criteria = 2
+        use_new_money = True
+        use_share_now = True
+        use_pct_change = True
+        use_odds_drop = True
     
     keys = get_side_keys(market, side)
     
@@ -205,23 +242,23 @@ def detect_momentum_spike(
     criteria_met = 0
     criteria_details = []
     
-    if new_money >= volume_threshold:
+    if use_new_money and new_money >= volume_threshold:
         criteria_met += 1
         criteria_details.append(f"new_money=£{int(new_money):,}")
     
-    if share_now >= SHARE_NOW_THRESHOLD:
+    if use_share_now and share_now >= share_threshold:
         criteria_met += 1
         criteria_details.append(f"share_now={share_now:.1f}%")
     
-    if percentage_change >= PERCENTAGE_CHANGE_THRESHOLD:
+    if use_pct_change and percentage_change >= pct_change_threshold:
         criteria_met += 1
         criteria_details.append(f"pct_change=+{percentage_change:.1f}%")
     
-    if odds_drop >= ODDS_DROP_THRESHOLD:
+    if use_odds_drop and odds_drop >= odds_drop_threshold:
         criteria_met += 1
         criteria_details.append(f"odds_drop={odds_drop:.1f}%")
     
-    if criteria_met < MIN_CRITERIA_COUNT:
+    if criteria_met < min_criteria:
         return None
     
     momentum_level = get_momentum_level(new_money)
