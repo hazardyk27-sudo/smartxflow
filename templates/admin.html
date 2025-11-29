@@ -885,6 +885,10 @@
         function saveConfig() {
             const data = collectFormData();
             
+            console.log('[Admin] Saving config:', JSON.stringify(data, null, 2));
+            console.log('[Admin] public_surge.enabled:', data.public_surge?.enabled);
+            console.log('[Admin] line_freeze.enabled:', data.line_freeze?.enabled);
+            
             const saveBtn = document.querySelector('.btn-primary');
             const originalText = saveBtn.textContent;
             saveBtn.textContent = 'Kaydediliyor...';

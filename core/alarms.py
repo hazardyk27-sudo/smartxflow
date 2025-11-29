@@ -65,6 +65,14 @@ except ImportError:
         
         class _DummyConfig:
             enabled = True
+            min_money = 500
+            max_odds_change = 0.02
+            min_money_10min = 15000
+            one_shot_min = 10000
+            volume_1x2 = 1000
+            volume_ou25 = 750
+            volume_btts = 500
+            dominance_threshold = 50
         def get_sharp_config(): return _DummyConfig()
         def get_dropping_config(): return _DummyConfig()
         def get_reversal_config(): return _DummyConfig()
@@ -412,6 +420,29 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
     if len(history) < 2:
         return []
     
+    sharp_cfg = get_sharp_config()
+    dropping_cfg = get_dropping_config()
+    reversal_cfg = get_reversal_config()
+    momentum_cfg = get_momentum_config()
+    line_freeze_cfg = get_line_freeze_config()
+    volume_shift_cfg = get_volume_shift_config()
+    big_money_cfg = get_big_money_config()
+    public_surge_cfg = get_public_surge_config()
+    
+    any_enabled = (
+        (sharp_cfg and sharp_cfg.enabled) or
+        (dropping_cfg and dropping_cfg.enabled) or
+        (reversal_cfg and reversal_cfg.enabled) or
+        (momentum_cfg and momentum_cfg.enabled) or
+        (line_freeze_cfg and line_freeze_cfg.enabled) or
+        (volume_shift_cfg and volume_shift_cfg.enabled) or
+        (big_money_cfg and big_money_cfg.enabled) or
+        (public_surge_cfg and public_surge_cfg.enabled)
+    )
+    
+    if not any_enabled:
+        return []
+    
     if match_date:
         original_count = len(history)
         history = filter_history_before_kickoff(history, match_date)
@@ -452,17 +483,13 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
         date = current.get('Date', '')
         match_id = f"{home}|{away}|{league}|{date}"
     
-    drop_config = ALARM_CONFIG.get('dropping', {})
-    surge_config = ALARM_CONFIG.get('public_surge', {})
-    
-    surge_min_money = surge_config.get('min_money_diff', 500)
-    surge_max_odds = surge_config.get('max_odds_change', 0.02)
+    surge_min_money = public_surge_cfg.min_money if public_surge_cfg else 500
+    surge_max_odds = public_surge_cfg.max_odds_change if public_surge_cfg else 0.02
     
     sharp_results_raw = []
     dropping_alerts_raw = []
     reversal_alerts = []
     
-    reversal_cfg = get_reversal_config()
     if detect_reversal_move is not None and reversal_cfg and reversal_cfg.enabled:
         try:
             reversal_alerts = detect_reversal_move(
@@ -499,7 +526,6 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
         except Exception as e:
             print(f"[Reversal] Error in detection: {e}")
     
-    sharp_cfg = get_sharp_config()
     if detect_sharp is not None and sharp_cfg and sharp_cfg.enabled:
         try:
             sharp_results = detect_sharp(history, market, match_id)
@@ -532,7 +558,6 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
     
     window_pairs = find_window_pairs(history, WINDOW_MINUTES)
     
-    public_surge_cfg = get_public_surge_config()
     for base_idx, target_idx in window_pairs:
         base = history[base_idx]
         target = history[target_idx]
@@ -566,7 +591,6 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                         'timestamp': target_ts
                     })
     
-    dropping_cfg = get_dropping_config()
     if detect_dropping_alerts and first and dropping_cfg and dropping_cfg.enabled:
         real_alerts, preview_alerts = detect_dropping_alerts(
             history=history,
@@ -602,7 +626,6 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                     'timestamp': curr_ts
                 })
     
-    big_money_cfg = get_big_money_config()
     big_money_result = check_big_money_all_windows(history, sides, WINDOW_MINUTES) if big_money_cfg and big_money_cfg.enabled else []
     for result in big_money_result:
         alarm_key = ('big_money', result['key'], result.get('window_start', '')[:16])
@@ -636,7 +659,6 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                         'timestamp': current.get('ScrapedAt', now_turkey_iso())
                     })
     
-    line_freeze_cfg = get_line_freeze_config()
     if len(history) >= 3 and check_line_freeze_for_match is not None and line_freeze_cfg and line_freeze_cfg.enabled:
         home = current.get('Home', '')
         away = current.get('Away', '')
@@ -659,8 +681,6 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                     'timestamp': current.get('ScrapedAt', now_turkey_iso())
                 })
     
-    
-    momentum_cfg = get_momentum_config()
     if len(history) >= 4 and check_momentum_spike_for_match is not None and momentum_cfg and momentum_cfg.enabled:
         home = current.get('Home', '')
         away = current.get('Away', '')
@@ -684,7 +704,6 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                     'timestamp': current.get('ScrapedAt', now_turkey_iso())
                 })
     
-    volume_shift_cfg = get_volume_shift_config()
     if len(history) >= 2 and check_volume_shift_for_match is not None and volume_shift_cfg and volume_shift_cfg.enabled:
         home = current.get('Home', '')
         away = current.get('Away', '')

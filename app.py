@@ -1593,7 +1593,11 @@ def update_alarm_config():
         if not data:
             return jsonify({'error': 'No data provided'}), 400
         
+        print(f"[AdminConfig] Received data: public_surge.enabled={data.get('public_surge', {}).get('enabled')}, line_freeze.enabled={data.get('line_freeze', {}).get('enabled')}")
+        
         cfg = dict_to_config(data)
+        print(f"[AdminConfig] Parsed config: public_surge.enabled={cfg.public_surge.enabled}, line_freeze.enabled={cfg.line_freeze.enabled}")
+        
         success = save_alarm_config(cfg)
         
         if not success:
