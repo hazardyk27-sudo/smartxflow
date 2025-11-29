@@ -1,18 +1,19 @@
 """
 Sharp Detection System
-4 Ana Kriter ile Profesyonel Sharp Money Tespiti
+3 Ana Kriter ile Profesyonel Sharp Money Tespiti (Pure Price-Action + Hacim)
 
 Kriter 1: Hacim Şoku (Volume Shock) - 2x+ normal hacim
-Kriter 2: Pazar Payı (Market Concentration) - %35+ tek seçeneğe
-Kriter 3: Oran Düşüşü (Price Impact) - %2+ düşüş
-Kriter 4: Market Payı Artışı (Share Shift) - +5 puan artış
+Kriter 2: Oran Düşüşü (Odds Drop) - %1+ düşüş
+Kriter 3: Market Payı Artışı (Share Shift) - +2 puan artış
+
+NOT: Market Share kriteri DEVRE DIŞI (sadece skor hesaplamasında kullanılır, filtre değil)
 
 Minimum Market Hacmi Eşikleri:
 - 1X2: 5000 GBP
 - O/U 2.5: 3000 GBP
 - BTTS: 2000 GBP
 
-Tüm kriterler eş zamanlı sağlanmalı.
+Tüm 3 kriter eş zamanlı sağlanmalı.
 Sharp Skor: 0-100 arası hesaplanır.
 70+ = Sharp alarmı (gösterim: "Sharp 86/100")
 40-69 = Orta Seviye (alarm yok, UI'da "Sharp Skor: 58/100 (orta seviye)" göster)
@@ -78,9 +79,9 @@ class SharpDetector:
     LOOKBACK_MINUTES = 60
     
     VOLUME_SHOCK_MULTIPLIER = 2.0
-    MARKET_SHARE_THRESHOLD = 35.0
-    ODDS_DROP_THRESHOLD = 2.0
-    SHARE_SHIFT_THRESHOLD = 5.0
+    MARKET_SHARE_THRESHOLD = 35.0  # Sadece skor için, filtre değil
+    ODDS_DROP_THRESHOLD = 1.0      # %1 düşüş (eskiden %2)
+    SHARE_SHIFT_THRESHOLD = 2.0    # +2 puan (eskiden +5)
     
     SCORE_THRESHOLDS = {
         'sharp': 70,
@@ -440,7 +441,8 @@ class SharpDetector:
                 share_shift_pts
             )
             
-            all_criteria_met = vol_shock_ok and mkt_share_ok and odds_drop_ok and share_shift_ok
+            # Market Share filtre DEĞİL, sadece 3 kriter kontrol edilir
+            all_criteria_met = vol_shock_ok and odds_drop_ok and share_shift_ok
             
             is_sharp = all_criteria_met and sharp_score >= self.SCORE_THRESHOLDS['sharp']
             
@@ -494,9 +496,8 @@ class SharpDetector:
                 detected.append(result)
                 
                 print(f"[Sharp] {side['key']}: Score={sharp_score}/100, "
-                      f"VolShock={vol_shock_mult:.1f}x, MktShare={mkt_share_pct:.0f}%, "
-                      f"OddsDrop={odds_drop_pct:.1f}%, ShareShift={share_shift_pts:+.0f}pts, "
-                      f"Sharp={is_sharp}")
+                      f"VolShock={vol_shock_mult:.1f}x, OddsDrop={odds_drop_pct:.1f}%, "
+                      f"ShareShift={share_shift_pts:+.0f}pts, Sharp={is_sharp}")
         
         detected.sort(key=lambda x: x['sharp_score'], reverse=True)
         

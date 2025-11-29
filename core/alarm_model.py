@@ -109,10 +109,9 @@ def build_sharp_alarm(
         side: Seçim (1, X, 2, Over, Under, Yes, No)
         sharp_score: 0-100 arası skor
         criteria_flags: {
-            "volume_shock": True/False,
-            "market_share": True/False,
-            "odds_drop": True/False,
-            "share_shift": True/False
+            "volume_shock": True/False,     # 2x+ hacim şoku
+            "odds_drop": True/False,        # %1+ oran düşüşü
+            "share_shift": True/False       # +2pt pay artışı
         }
         total_volume: Market toplam hacmi
         
@@ -120,9 +119,11 @@ def build_sharp_alarm(
         Liste (boş veya 1 elemanlı)
         
     Kurallar:
-        - sharp_score >= 70 ve tüm kriterler → GERÇEK ALARM
+        - sharp_score >= 70 ve tüm 3 kriter → GERÇEK ALARM
         - 40 <= sharp_score < 70 → Sadece log (maç detayında gösterilir)
         - sharp_score < 40 → Hiç üretme
+        
+    NOT: Market Share kriteri DEVRE DIŞI (sadece skor hesaplamasında)
     """
     market_key = market.replace('moneyway_', '').replace('dropping_', '')
     min_volume = MARKET_VOLUME_THRESHOLDS.get(market_key, 5000)
