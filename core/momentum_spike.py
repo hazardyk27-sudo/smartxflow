@@ -3,13 +3,15 @@ Momentum Spike Detection Algorithm
 ==================================
 
 10 dakikalık veri sistemi için Momentum Spike tespiti.
-4 kriterin tamamı sağlandığında alarm tetiklenir.
+3 kriterin tamamı sağlandığında alarm tetiklenir.
 
 Kriterler:
 1. baseline_10 > 0 (son 30 dk ortalaması)
 2. spike_ratio >= 3.0 (d4 / baseline_10)
-3. d4 >= market_volume_threshold (mutlak hacim)
-4. share_shift >= +3 puan (pay değişimi)
+3. share_shift >= +3 puan (pay değişimi)
+
+NOT: Mutlak hacim eşiği (market_volume_threshold) KALDIRILDI.
+Sadece oran/tarihsel ortalama ve share_shift üzerinden çalışır.
 
 Level Sistemi:
 - L1: spike_ratio 3.0 - 4.0
@@ -20,18 +22,6 @@ Level Sistemi:
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 
-
-MARKET_VOLUME_THRESHOLDS = {
-    '1x2': 2000,
-    'ou25': 1000,
-    'btts': 800,
-    'moneyway_1x2': 2000,
-    'moneyway_ou25': 1000,
-    'moneyway_btts': 800,
-    'dropping_1x2': 2000,
-    'dropping_ou25': 1000,
-    'dropping_btts': 800,
-}
 
 SPIKE_RATIO_THRESHOLD = 3.0
 SHARE_SHIFT_THRESHOLD = 3.0
@@ -47,15 +37,6 @@ def get_market_type(market: str) -> str:
     elif 'btts' in market_lower:
         return 'btts'
     return '1x2'
-
-
-def get_volume_threshold(market: str) -> int:
-    """Market için minimum hacim eşiğini döndür"""
-    market_lower = market.lower()
-    if market_lower in MARKET_VOLUME_THRESHOLDS:
-        return MARKET_VOLUME_THRESHOLDS[market_lower]
-    market_type = get_market_type(market)
-    return MARKET_VOLUME_THRESHOLDS.get(market_type, 2000)
 
 
 def get_momentum_level(spike_ratio: float) -> int:
@@ -247,11 +228,12 @@ def detect_momentum_spike(
     """
     Momentum Spike tespiti yapar.
     
-    4 kriterin tamamı sağlanmalı:
+    3 kriterin tamamı sağlanmalı:
     1. baseline_10 > 0
     2. spike_ratio >= 3.0
-    3. d4 >= market_volume_threshold
-    4. share_shift >= +3 puan
+    3. share_shift >= +3 puan
+    
+    NOT: Mutlak hacim eşiği (market_volume_threshold) KALDIRILDI.
     
     IMPORTANT: Uses latest ScrapedAt for timestamp, not datetime.now()
     
@@ -284,14 +266,11 @@ def detect_momentum_spike(
     
     spike_ratio = d4 / baseline_10 if baseline_10 > 0 else 0
     
-    volume_threshold = get_volume_threshold(market)
-    
     share_shift = extract_share_shift(history, side)
     
     is_spike = (
         baseline_10 > 0 and
         spike_ratio >= SPIKE_RATIO_THRESHOLD and
-        d4 >= volume_threshold and
         share_shift >= SHARE_SHIFT_THRESHOLD
     )
     
@@ -315,7 +294,6 @@ def detect_momentum_spike(
         'd2_volume': round(d2, 0),
         'd3_volume': round(d3, 0),
         'baseline_10': round(baseline_10, 0),
-        'volume_threshold': volume_threshold,
         'is_alarm': True,
         'home': home,
         'away': away,
@@ -375,10 +353,7 @@ if __name__ == '__main__':
     print("=" * 50)
     print(f"Spike Ratio Threshold: >= {SPIKE_RATIO_THRESHOLD}x")
     print(f"Share Shift Threshold: >= +{SHARE_SHIFT_THRESHOLD} puan")
-    print("\nMarket Volume Thresholds:")
-    for market, threshold in MARKET_VOLUME_THRESHOLDS.items():
-        if '_' not in market:
-            print(f"  {market.upper()}: >= £{threshold:,}")
+    print("\nNOT: Mutlak hacim esigi (market_volume_threshold) KALDIRILDI")
     print("\nLevel System:")
     print("  L1: 3.0x - 4.0x")
     print("  L2: 4.0x - 6.0x")
