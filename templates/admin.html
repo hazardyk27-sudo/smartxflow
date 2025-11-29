@@ -325,6 +325,34 @@
             color: #0d1117;
             animation: pulse 1.5s infinite;
         }
+        .btn-save-card {
+            padding: 4px 10px;
+            font-size: 11px;
+            background: #238636;
+            border: 1px solid #238636;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+        .btn-save-card:hover {
+            background: #2ea043;
+            border-color: #2ea043;
+        }
+        .btn-save-card:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-save-card.saving {
+            background: #1f6feb;
+            border-color: #1f6feb;
+            animation: pulse 1s infinite;
+        }
+        .btn-save-card.saved {
+            background: #238636;
+            border-color: #238636;
+        }
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.6; }
@@ -366,6 +394,7 @@
                         Sharp Money
                     </span>
                     <div class="card-header-actions">
+                        <button class="btn-save-card" id="save-sharp" onclick="saveCardConfig('sharp')">Kaydet</button>
                         <button class="btn-recalc" id="recalc-sharp" onclick="recalcAlarmType('sharp')">Yeniden Hesapla</button>
                         <label class="switch">
                             <input type="checkbox" id="sharp-enabled" onchange="updateStatus('sharp')">
@@ -446,6 +475,7 @@
                         Dropping Alert
                     </span>
                     <div class="card-header-actions">
+                        <button class="btn-save-card" id="save-dropping" onclick="saveCardConfig('dropping')">Kaydet</button>
                         <button class="btn-recalc" id="recalc-dropping" onclick="recalcAlarmType('dropping')">Yeniden Hesapla</button>
                         <label class="switch">
                             <input type="checkbox" id="dropping-enabled" onchange="updateStatus('dropping')">
@@ -505,6 +535,7 @@
                         Momentum Spike
                     </span>
                     <div class="card-header-actions">
+                        <button class="btn-save-card" id="save-momentum" onclick="saveCardConfig('momentum')">Kaydet</button>
                         <button class="btn-recalc" id="recalc-momentum" onclick="recalcAlarmType('momentum')">Yeniden Hesapla</button>
                         <label class="switch">
                             <input type="checkbox" id="momentum-enabled" onchange="updateStatus('momentum')">
@@ -605,6 +636,7 @@
                         Line Freeze
                     </span>
                     <div class="card-header-actions">
+                        <button class="btn-save-card" id="save-line_freeze" onclick="saveCardConfig('line_freeze')">Kaydet</button>
                         <button class="btn-recalc" id="recalc-line_freeze" onclick="recalcAlarmType('line_freeze')">Yeniden Hesapla</button>
                         <label class="switch">
                             <input type="checkbox" id="line_freeze-enabled" onchange="updateStatus('line_freeze')">
@@ -700,6 +732,7 @@
                         Volume Shift
                     </span>
                     <div class="card-header-actions">
+                        <button class="btn-save-card" id="save-volume_shift" onclick="saveCardConfig('volume_shift')">Kaydet</button>
                         <button class="btn-recalc" id="recalc-volume_shift" onclick="recalcAlarmType('volume_shift')">Yeniden Hesapla</button>
                         <label class="switch">
                             <input type="checkbox" id="volume_shift-enabled" onchange="updateStatus('volume_shift')">
@@ -756,6 +789,7 @@
                         Reversal Move
                     </span>
                     <div class="card-header-actions">
+                        <button class="btn-save-card" id="save-reversal" onclick="saveCardConfig('reversal')">Kaydet</button>
                         <button class="btn-recalc" id="recalc-reversal" onclick="recalcAlarmType('reversal')">Yeniden Hesapla</button>
                         <label class="switch">
                             <input type="checkbox" id="reversal-enabled" onchange="updateStatus('reversal')">
@@ -799,6 +833,7 @@
                         Big Money
                     </span>
                     <div class="card-header-actions">
+                        <button class="btn-save-card" id="save-big_money" onclick="saveCardConfig('big_money')">Kaydet</button>
                         <button class="btn-recalc" id="recalc-big_money" onclick="recalcAlarmType('big_money')">Yeniden Hesapla</button>
                         <label class="switch">
                             <input type="checkbox" id="big_money-enabled" onchange="updateStatus('big_money')">
@@ -842,6 +877,7 @@
                         Public Surge
                     </span>
                     <div class="card-header-actions">
+                        <button class="btn-save-card" id="save-public_surge" onclick="saveCardConfig('public_surge')">Kaydet</button>
                         <button class="btn-recalc" id="recalc-public_surge" onclick="recalcAlarmType('public_surge')">Yeniden Hesapla</button>
                         <label class="switch">
                             <input type="checkbox" id="public_surge-enabled" onchange="updateStatus('public_surge')">
@@ -1009,6 +1045,74 @@
                         statusPollInterval = null;
                     }
                     if (onComplete) onComplete();
+                });
+        }
+        
+        function collectCardData(alarmType) {
+            const cardData = {};
+            const inputs = document.querySelectorAll('[id^="' + alarmType + '-"]');
+            inputs.forEach(input => {
+                const key = input.id.replace(alarmType + '-', '');
+                if (input.type === 'checkbox') {
+                    cardData[key] = input.checked;
+                } else if (input.type === 'number') {
+                    cardData[key] = parseFloat(input.value) || 0;
+                } else {
+                    cardData[key] = input.value;
+                }
+            });
+            return cardData;
+        }
+        
+        function saveCardConfig(alarmType) {
+            const cardData = collectCardData(alarmType);
+            const data = collectFormData();
+            data[alarmType] = cardData;
+            
+            console.log('[Admin] Saving ' + alarmType + ':', JSON.stringify(cardData, null, 2));
+            
+            const btn = document.getElementById('save-' + alarmType);
+            if (!btn) return;
+            
+            const originalText = btn.textContent;
+            btn.textContent = '...';
+            btn.disabled = true;
+            btn.classList.add('saving');
+
+            fetch('/admin/alarm-config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+                .then(res => res.json())
+                .then(result => {
+                    btn.classList.remove('saving');
+                    
+                    if (result.error) {
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                        showToast(result.error, 'error');
+                    } else {
+                        config = result.config;
+                        updateVersionBadge(result.config.config_version);
+                        btn.textContent = 'OK';
+                        btn.classList.add('saved');
+                        showToast(alarmType + ' ayarlari kaydedildi (v' + result.config.config_version + ')', 'success');
+                        
+                        setTimeout(() => {
+                            btn.textContent = originalText;
+                            btn.disabled = false;
+                            btn.classList.remove('saved');
+                        }, 1500);
+                    }
+                })
+                .catch(err => {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    btn.classList.remove('saving');
+                    showToast('Kaydetme hatasi: ' + err, 'error');
                 });
         }
         
