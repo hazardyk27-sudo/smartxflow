@@ -20,13 +20,18 @@ try:
     from core.timezone import now_turkey, now_turkey_iso, format_time_only, TURKEY_TZ
     from core.alarm_state import should_fire_alarm, record_alarm_fired, cleanup_old_alarm_states
     from core.real_sharp import detect_real_sharp, RealSharpDetector
+    from core.dropping_alert import detect_dropping_alerts, DroppingAlertDetector, DROP_THRESHOLD_PERCENT
 except ImportError:
     try:
         from config.alarm_thresholds import ALARM_CONFIG, get_threshold, WINDOW_MINUTES, LOOKBACK_MINUTES
         from real_sharp import detect_real_sharp, RealSharpDetector
+        from dropping_alert import detect_dropping_alerts, DroppingAlertDetector, DROP_THRESHOLD_PERCENT
     except ImportError:
         detect_real_sharp = None
         RealSharpDetector = None
+        detect_dropping_alerts = None
+        DroppingAlertDetector = None
+        DROP_THRESHOLD_PERCENT = 7.0
     import pytz
     TURKEY_TZ = pytz.timezone('Europe/Istanbul')
     def now_turkey():
@@ -406,43 +411,36 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                         'timestamp': target_ts
                     })
     
-    curr_amt_cache = {}
-    for side in sides:
-        curr_amt_cache[side['key']] = parse_money(current.get(side['amt'], 0))
-    
-    is_dropping_market = market.startswith('dropping_')
-    drop_volume = parse_money(current.get('Volume', current.get('volume', 0))) if is_dropping_market else 0
-    
-    for side in sides:
-        curr_odds = parse_odds(current.get(side['odds'], 0))
-        first_odds = parse_odds(first.get(side['odds'], 0)) if first else 0
-        curr_pct = parse_pct(current.get(side['pct'], 0))
-        curr_amt = curr_amt_cache.get(side['key'], 0)
-        total_drop = first_odds - curr_odds if first_odds > 0 else 0
+    if detect_dropping_alerts and first:
+        dropping_alerts = detect_dropping_alerts(
+            history=history,
+            market=market,
+            match_id=match_id,
+            home=home,
+            away=away
+        )
         
-        if total_drop >= drop_config.get('min_total_drop', 0.30):
-            min_money_pct = drop_config.get('min_money_pct', 60)
-            pct_ok = is_dropping_market or curr_pct >= min_money_pct
+        for drop_alert in dropping_alerts:
+            first_ts = first.get('ScrapedAt', '') if first else ''
+            curr_ts = current.get('ScrapedAt', now_turkey_iso())
+            alarm_key = ('dropping', drop_alert['side'], first_ts[:13] if first_ts else '')
             
-            if pct_ok:
-                first_ts = first.get('ScrapedAt', '') if first else ''
-                curr_ts = current.get('ScrapedAt', now_turkey_iso())
-                alarm_key = ('dropping', side['key'], first_ts[:13] if first_ts else '')
-                if alarm_key not in seen_alarms:
-                    seen_alarms.add(alarm_key)
-                    money_val = drop_volume if is_dropping_market else curr_amt
-                    detected_alarms.append({
-                        'type': 'dropping',
-                        'side': side['key'],
-                        'money_diff': money_val,
-                        'odds_from': first_odds,
-                        'odds_to': curr_odds,
-                        'total_drop': total_drop,
-                        'money_pct': curr_pct,
-                        'window_start': first_ts,
-                        'window_end': curr_ts,
-                        'timestamp': curr_ts
-                    })
+            if alarm_key not in seen_alarms:
+                seen_alarms.add(alarm_key)
+                detected_alarms.append({
+                    'type': 'dropping',
+                    'side': drop_alert['side'],
+                    'money_diff': drop_alert['selection_volume'],
+                    'selection_volume': drop_alert['selection_volume'],
+                    'odds_from': drop_alert['opening_odds'],
+                    'odds_to': drop_alert['current_odds'],
+                    'total_drop': drop_alert['drop_value'],
+                    'drop_percent': drop_alert['drop_percent'],
+                    'dropping_sides_count': drop_alert['dropping_sides_count'],
+                    'window_start': first_ts,
+                    'window_end': curr_ts,
+                    'timestamp': curr_ts
+                })
     
     big_money_result = check_big_money_all_windows(history, sides, WINDOW_MINUTES)
     for result in big_money_result:
@@ -746,8 +744,17 @@ def group_alarms_by_match(alarms: List[Dict]) -> List[Dict]:
         for alarm_type, events in type_alarms.items():
             events.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
             
-            max_money = max((e.get('money_diff', 0) for e in events), default=0)
-            max_drop = max((e.get('total_drop', 0) for e in events), default=0)
+            if alarm_type == 'dropping':
+                max_money = max((e.get('selection_volume', e.get('money_diff', 0)) for e in events), default=0)
+                max_drop = max((e.get('total_drop', 0) for e in events), default=0)
+                max_drop_percent = max((e.get('drop_percent', 0) for e in events), default=0)
+                unique_sides = set(e.get('side', '') for e in events if e.get('drop_percent', 0) >= 7)
+                dropping_sides_count = len(unique_sides) if unique_sides else 1
+            else:
+                max_money = max((e.get('money_diff', 0) for e in events), default=0)
+                max_drop = max((e.get('total_drop', 0) for e in events), default=0)
+                max_drop_percent = 0
+                dropping_sides_count = 0
             
             result.append({
                 'home': home,
@@ -761,6 +768,8 @@ def group_alarms_by_match(alarms: List[Dict]) -> List[Dict]:
                 'events': events,
                 'max_money': max_money,
                 'max_drop': max_drop,
+                'max_drop_percent': max_drop_percent,
+                'dropping_sides_count': dropping_sides_count,
                 'priority': ALARM_TYPES.get(alarm_type, {}).get('priority', 99)
             })
     
@@ -812,9 +821,12 @@ def format_alarm_for_modal(alarm: Dict) -> Dict:
     elif alarm['type'] == 'big_money':
         detail_text = f"+£{int(money_diff):,} (son scrape)"
     elif alarm['type'] == 'dropping':
-        drop = alarm.get('total_drop', 0)
-        money = alarm.get('money_diff', 0)
-        detail_text = f"Toplam düşüş: {drop:.2f} — Para: £{int(money):,}"
+        drop_value = alarm.get('total_drop', 0)
+        drop_percent = alarm.get('drop_percent', 0)
+        selection_volume = alarm.get('selection_volume', alarm.get('money_diff', 0))
+        dropping_count = alarm.get('dropping_sides_count', 1)
+        xn_text = f"x{dropping_count}" if dropping_count > 1 else ""
+        detail_text = f"{xn_text} {drop_value:.2f} drop (-{drop_percent:.1f}%) — £{int(selection_volume):,}".strip()
     elif alarm['type'] == 'public_surge':
         detail_text = f"Para artıyor (+£{int(money_diff):,}), oran sabit."
     elif alarm['type'] == 'momentum':
@@ -848,6 +860,10 @@ def format_grouped_alarm(group: Dict) -> Dict:
     
     latest_timestamp = latest.get('timestamp', '')
     
+    dropping_sides_count = group.get('dropping_sides_count', latest.get('dropping_sides_count', 1))
+    drop_percent = group.get('max_drop_percent', latest.get('drop_percent', 0))
+    selection_volume = latest.get('selection_volume', latest.get('money_diff', 0))
+    
     return {
         'type': group['type'],
         'icon': alarm_info.get('icon', ''),
@@ -871,6 +887,9 @@ def format_grouped_alarm(group: Dict) -> Dict:
         'description': alarm_info.get('description', ''),
         'total_drop': latest.get('total_drop', 0),
         'money_diff': latest.get('money_diff', 0),
+        'selection_volume': selection_volume,
+        'dropping_sides_count': dropping_sides_count,
+        'drop_percent': drop_percent,
         'odds_from': latest.get('odds_from'),
         'odds_to': latest.get('odds_to')
     }

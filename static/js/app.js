@@ -3098,8 +3098,19 @@ function renderGroupedAlarmList() {
         const groupId = `${group.type}_${group.home}_${group.away}`;
         const isExpanded = expandedAlarmGroups.has(groupId);
         const latestTime = group.latest_time ? formatAlarmTime(group.latest_time) : '';
-        const moneyText = group.max_money > 0 ? `+£${group.max_money.toLocaleString()}` : '';
-        const dropText = group.max_drop > 0 ? `${group.max_drop.toFixed(2)} drop` : '';
+        
+        const isDropping = group.type === 'dropping';
+        const droppingCount = group.dropping_sides_count || 0;
+        const dropPercent = group.drop_percent || 0;
+        
+        const moneyText = group.max_money > 0 
+            ? (isDropping ? `£${group.max_money.toLocaleString()}` : `+£${group.max_money.toLocaleString()}`) 
+            : '';
+        const dropText = group.max_drop > 0 
+            ? (isDropping && dropPercent > 0 
+                ? `${group.max_drop.toFixed(2)} drop (-${dropPercent.toFixed(1)}%)` 
+                : `${group.max_drop.toFixed(2)} drop`) 
+            : '';
         
         let eventsHtml = '';
         if (isExpanded && group.events && group.events.length > 0) {
@@ -3130,7 +3141,7 @@ function renderGroupedAlarmList() {
                         </div>
                     </div>
                     <div class="alarm-group-right">
-                        <div class="alarm-group-badge">x${group.count}</div>
+                        <div class="alarm-group-badge">x${isDropping && droppingCount > 0 ? droppingCount : group.count}</div>
                         <div class="alarm-group-stats">
                             ${moneyText ? `<span class="stat-money">${moneyText}</span>` : ''}
                             ${dropText ? `<span class="stat-drop">${dropText}</span>` : ''}
