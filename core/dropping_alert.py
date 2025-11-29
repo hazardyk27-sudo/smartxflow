@@ -154,13 +154,17 @@ def detect_dropping_alerts(
         drop_value = opening_odds - current_odds
         
         alert_data = {
-            'type': 'dropping',
+            'type': f'dropping_l{level}',
             'side': side['key'],
             'opening_odds': opening_odds,
             'current_odds': current_odds,
+            'odds_from': opening_odds,
+            'odds_to': current_odds,
             'drop_percent': round(drop_percent, 1),
             'drop_value': round(drop_value, 2),
+            'total_drop': round(drop_value, 2),
             'selection_volume': selection_volume,
+            'money_diff': selection_volume,
             'market': market,
             'match_id': match_id,
             'home': home,
