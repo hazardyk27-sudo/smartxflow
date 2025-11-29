@@ -1107,6 +1107,34 @@ class SupabaseClient:
             print(f"[DeleteAlarms] Exception: {e}")
             return 0
 
+    def get_alarm_type_counts(self) -> Dict[str, int]:
+        """
+        Get count of alarms grouped by type for debugging.
+        Returns dict like {'public_surge': 10, 'sharp': 5, ...}
+        """
+        if not self.is_available:
+            return {}
+        
+        try:
+            url = f"{self._rest_url('smart_money_alarms')}?select=type"
+            resp = httpx.get(url, headers=self._headers(), timeout=30)
+            
+            if resp.status_code != 200:
+                print(f"[AlarmStats] Error: {resp.status_code}")
+                return {}
+            
+            alarms = resp.json()
+            counts = {}
+            for alarm in alarms:
+                alarm_type = alarm.get('type', 'unknown')
+                counts[alarm_type] = counts.get(alarm_type, 0) + 1
+            
+            return counts
+            
+        except Exception as e:
+            print(f"[AlarmStats] Exception: {e}")
+            return {}
+
 
 class LocalDatabase:
     """Fallback local SQLite database when Supabase is not available"""

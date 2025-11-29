@@ -1536,7 +1536,9 @@ _recalc_status = {
     'detected': 0,
     'started_at': None,
     'completed_at': None,
-    'error': None
+    'error': None,
+    'job_id': 0,
+    'config_version': 1
 }
 
 def _background_recalculate():
@@ -1544,33 +1546,40 @@ def _background_recalculate():
     import time as time_module
     global _recalc_status, _alarm_cache, _alarm_cache_time
     
+    from core.alarm_config import get_config_version
+    
     _recalc_status['running'] = True
     _recalc_status['started_at'] = time_module.time()
     _recalc_status['error'] = None
+    _recalc_status['job_id'] += 1
+    _recalc_status['config_version'] = get_config_version()
+    current_job = _recalc_status['job_id']
+    
+    print(f"[BackgroundRecalc] Starting job #{current_job} with config_version={_recalc_status['config_version']}")
     
     try:
         deleted = db.supabase.delete_all_active_alarms(include_historical=True)
         _recalc_status['deleted'] = deleted
-        print(f"[BackgroundRecalc] Deleted {deleted} alarms (ALL including historical)")
+        print(f"[BackgroundRecalc] Job #{current_job}: Deleted {deleted} alarms")
         
         detected = detect_and_save_alarms()
         _recalc_status['detected'] = detected
-        print(f"[BackgroundRecalc] Detected and saved {detected} new alarms")
+        print(f"[BackgroundRecalc] Job #{current_job}: Detected {detected} new alarms")
         
         _alarm_cache = None
         _alarm_cache_time = 0
-        print("[BackgroundRecalc] Cache cleared")
+        print(f"[BackgroundRecalc] Job #{current_job}: Cache cleared")
         
     except Exception as e:
         _recalc_status['error'] = str(e)
-        print(f"[BackgroundRecalc] Error: {e}")
+        print(f"[BackgroundRecalc] Job #{current_job} Error: {e}")
         import traceback
         traceback.print_exc()
     finally:
         _recalc_status['running'] = False
         _recalc_status['completed_at'] = time_module.time()
         elapsed = _recalc_status['completed_at'] - _recalc_status['started_at']
-        print(f"[BackgroundRecalc] Completed in {elapsed:.2f}s")
+        print(f"[BackgroundRecalc] Job #{current_job} Completed in {elapsed:.2f}s")
 
 
 @app.route('/admin/alarm-config', methods=['POST'])
@@ -1579,15 +1588,16 @@ def update_alarm_config():
     Update alarm configuration and trigger background recalculation.
     
     Flow:
-    1. Save config to alarm_config.json
-    2. Reload config into RAM (global config)
-    3. Start background thread to delete and recalculate alarms
-    4. Return immediately with success
+    1. Increment config_version
+    2. Save config to alarm_config.json
+    3. Reload config into RAM (global config)
+    4. Start background thread to delete and recalculate alarms
+    5. Return immediately with job_id for polling
     """
     import threading
     
     try:
-        from core.alarm_config import dict_to_config, save_alarm_config, config_to_dict, reload_alarm_config
+        from core.alarm_config import dict_to_config, save_alarm_config, config_to_dict, reload_alarm_config, load_alarm_config
         
         data = request.get_json()
         if not data:
@@ -1595,35 +1605,41 @@ def update_alarm_config():
         
         print(f"[AdminConfig] Received data: public_surge.enabled={data.get('public_surge', {}).get('enabled')}, line_freeze.enabled={data.get('line_freeze', {}).get('enabled')}")
         
+        current_cfg = load_alarm_config()
+        new_version = current_cfg.config_version + 1
+        data['config_version'] = new_version
+        
         cfg = dict_to_config(data)
-        print(f"[AdminConfig] Parsed config: public_surge.enabled={cfg.public_surge.enabled}, line_freeze.enabled={cfg.line_freeze.enabled}")
+        print(f"[AdminConfig] Parsed config: version={cfg.config_version}, public_surge.enabled={cfg.public_surge.enabled}, line_freeze.enabled={cfg.line_freeze.enabled}")
         
         success = save_alarm_config(cfg)
         
         if not success:
             return jsonify({'error': 'Failed to save configuration'}), 500
         
-        print("[AdminConfig] Config saved to file, reloading into RAM...")
+        print(f"[AdminConfig] Config v{cfg.config_version} saved to file, reloading into RAM...")
         reload_alarm_config()
         print("[AdminConfig] RAM config updated with new values")
         
         if _recalc_status['running']:
             return jsonify({
                 'success': True,
-                'message': 'Ayarlar kaydedildi. Alarm hesaplama zaten devam ediyor...',
+                'message': f'Ayarlar kaydedildi (v{cfg.config_version}). Alarm hesaplama zaten devam ediyor...',
                 'config': config_to_dict(cfg),
-                'recalculation': {'status': 'already_running'}
+                'recalculation': {'status': 'already_running', 'job_id': _recalc_status['job_id']}
             })
         
-        print("[AdminConfig] Starting background alarm recalculation...")
+        print(f"[AdminConfig] Starting background alarm recalculation for v{cfg.config_version}...")
         thread = threading.Thread(target=_background_recalculate, daemon=True)
         thread.start()
         
+        next_job_id = _recalc_status['job_id'] + 1
+        
         return jsonify({
             'success': True,
-            'message': 'Ayarlar kaydedildi. Alarmlar arka planda yeniden hesaplaniyor (birkaç dakika surebilir)...',
+            'message': f'Ayarlar kaydedildi (v{cfg.config_version}). Alarmlar arka planda yeniden hesaplaniyor...',
             'config': config_to_dict(cfg),
-            'recalculation': {'status': 'started'}
+            'recalculation': {'status': 'started', 'job_id': next_job_id}
         })
         
     except Exception as e:
@@ -1673,14 +1689,16 @@ def recalculate_all_alarms():
 
 @app.route('/admin/recalc-status', methods=['GET'])
 def get_recalc_status():
-    """Get current recalculation status"""
+    """Get current recalculation status with job_id for proper polling"""
     import time as time_module
     
     status = {
         'running': _recalc_status['running'],
         'deleted': _recalc_status['deleted'],
         'detected': _recalc_status['detected'],
-        'error': _recalc_status['error']
+        'error': _recalc_status['error'],
+        'job_id': _recalc_status['job_id'],
+        'config_version': _recalc_status['config_version']
     }
     
     if _recalc_status['started_at']:
@@ -1690,6 +1708,36 @@ def get_recalc_status():
             status['elapsed_seconds'] = round(_recalc_status['completed_at'] - _recalc_status['started_at'], 1)
     
     return jsonify(status)
+
+
+@app.route('/api/alarm-stats', methods=['GET'])
+def get_alarm_stats():
+    """Get alarm statistics by type for debugging"""
+    try:
+        from core.alarm_config import load_alarm_config
+        
+        stats = db.supabase.get_alarm_type_counts() if db.is_supabase_available else {}
+        cfg = load_alarm_config()
+        
+        enabled_status = {
+            'sharp': cfg.sharp.enabled,
+            'dropping': cfg.dropping.enabled,
+            'reversal': cfg.reversal.enabled,
+            'momentum': cfg.momentum.enabled,
+            'line_freeze': cfg.line_freeze.enabled,
+            'volume_shift': cfg.volume_shift.enabled,
+            'big_money': cfg.big_money.enabled,
+            'public_surge': cfg.public_surge.enabled,
+        }
+        
+        return jsonify({
+            'config_version': cfg.config_version,
+            'enabled_status': enabled_status,
+            'alarm_counts': stats,
+            'total_alarms': sum(stats.values()) if stats else 0
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/admin/reload-config', methods=['POST'])

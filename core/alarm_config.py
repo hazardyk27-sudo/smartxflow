@@ -133,6 +133,7 @@ class PublicSurgeConfig:
 @dataclass
 class AlarmConfig:
     """Master Alarm Configuration"""
+    config_version: int = 1
     sharp: SharpConfig = field(default_factory=SharpConfig)
     dropping: DroppingConfig = field(default_factory=DroppingConfig)
     reversal: ReversalConfig = field(default_factory=ReversalConfig)
@@ -146,6 +147,7 @@ class AlarmConfig:
 def config_to_dict(cfg: AlarmConfig) -> Dict[str, Any]:
     """Convert AlarmConfig to dictionary"""
     return {
+        'config_version': cfg.config_version,
         'sharp': asdict(cfg.sharp),
         'dropping': asdict(cfg.dropping),
         'reversal': asdict(cfg.reversal),
@@ -160,6 +162,9 @@ def config_to_dict(cfg: AlarmConfig) -> Dict[str, Any]:
 def dict_to_config(data: Dict[str, Any]) -> AlarmConfig:
     """Convert dictionary to AlarmConfig"""
     cfg = AlarmConfig()
+    
+    if 'config_version' in data:
+        cfg.config_version = data['config_version']
     
     if 'sharp' in data:
         cfg.sharp = SharpConfig(**data['sharp'])
@@ -179,6 +184,20 @@ def dict_to_config(data: Dict[str, Any]) -> AlarmConfig:
         cfg.public_surge = PublicSurgeConfig(**data['public_surge'])
     
     return cfg
+
+
+def increment_config_version() -> int:
+    """Increment config version and return new version"""
+    cfg = load_alarm_config()
+    cfg.config_version += 1
+    save_alarm_config(cfg)
+    return cfg.config_version
+
+
+def get_config_version() -> int:
+    """Get current config version"""
+    cfg = load_alarm_config()
+    return cfg.config_version
 
 
 def load_alarm_config() -> AlarmConfig:
