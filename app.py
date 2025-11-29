@@ -851,7 +851,7 @@ def is_demo_match(match):
         return True
     return False
 
-def detect_and_save_alarms(filter_alarm_type: str = None):
+def detect_and_save_alarms(filter_alarm_type: str = None, include_historical: bool = False):
     """
     STEP 1: Detect new alarms from history and SAVE them to Supabase.
     Called after scrape or periodically. Alarms are PERSISTENT once saved.
@@ -861,11 +861,13 @@ def detect_and_save_alarms(filter_alarm_type: str = None):
         filter_alarm_type: If provided, only detect alarms matching this type prefix.
                           e.g., 'sharp' will detect 'sharp', 'sharp_*' alarms.
                           If None, detects all enabled alarm types.
+        include_historical: If True, includes historical matches (D-1, D-2+) for recalculation.
+                           If False (default), only processes today's matches.
     
     Per REFERANS DOKÜMANI Section 3:
     - D (Today) + Future: Generate alarms (if match in arbworld)
-    - D-1 (Yesterday): NO new alarms (static mode only)
-    - D-2+ (Old): Skip entirely
+    - D-1 (Yesterday): NO new alarms (static mode only) - UNLESS include_historical=True
+    - D-2+ (Old): Skip entirely - UNLESS include_historical=True
     
     CRITICAL: Respects alarm enable/disable settings from Admin Panel!
     Only generates alarms for enabled alarm types (is_alarm_enabled check).
@@ -883,8 +885,9 @@ def detect_and_save_alarms(filter_alarm_type: str = None):
     reload_alarm_config()
     config_ver = get_config_version()
     
+    scope_msg = " [TUM GECMIS]" if include_historical else ""
     filter_msg = f" (filter: {filter_alarm_type}*)" if filter_alarm_type else ""
-    print(f"[AlarmDetector] Scanning for new alarms (config v{config_ver}){filter_msg}...")
+    print(f"[AlarmDetector] Scanning for new alarms (config v{config_ver}){filter_msg}{scope_msg}...")
     start_time = time.time()
     
     all_alarms = []
@@ -923,10 +926,11 @@ def detect_and_save_alarms(filter_alarm_type: str = None):
                 league = info.get('league', '')
                 
                 lifecycle = get_match_lifecycle_status(match_date)
-                if lifecycle in ['D-1', 'D-2+']:
-                    continue
-                if lifecycle == 'UNKNOWN':
-                    continue
+                if not include_historical:
+                    if lifecycle in ['D-1', 'D-2+']:
+                        continue
+                    if lifecycle == 'UNKNOWN':
+                        continue
                 
                 alarms = analyze_match_alarms(history, market, match_date=match_date)
                 for alarm in alarms:
@@ -1665,12 +1669,21 @@ def update_alarm_config():
 
 _type_recalc_status = {}
 
-def _background_recalculate_type(alarm_type: str):
-    """Background thread for single alarm type recalculation"""
+def _background_recalculate_type(alarm_type: str, scope: str = 'current'):
+    """
+    Background thread for single alarm type recalculation.
+    
+    Args:
+        alarm_type: The alarm type to recalculate (sharp, dropping, etc.)
+        scope: 'current' for today's matches only, 'all' for all historical data
+    """
     import time as time_module
     global _type_recalc_status, _alarm_cache, _alarm_cache_time
     
     from core.alarms.alarm_config import get_config_version
+    
+    include_historical = (scope == 'all')
+    scope_label = "TUM GECMIS" if include_historical else "AKTIF MACLAR"
     
     _type_recalc_status[alarm_type] = {
         'running': True,
@@ -1679,19 +1692,20 @@ def _background_recalculate_type(alarm_type: str):
         'started_at': time_module.time(),
         'completed_at': None,
         'error': None,
-        'config_version': get_config_version()
+        'config_version': get_config_version(),
+        'scope': scope
     }
     
-    print(f"[RecalcType] Starting recalc for '{alarm_type}' (config v{_type_recalc_status[alarm_type]['config_version']})")
+    print(f"[RecalcType] Starting recalc for '{alarm_type}' [{scope_label}] (config v{_type_recalc_status[alarm_type]['config_version']})")
     
     try:
-        deleted = db.supabase.delete_alarms_by_type(alarm_type, include_historical=True)
+        deleted = db.supabase.delete_alarms_by_type(alarm_type, include_historical=include_historical)
         _type_recalc_status[alarm_type]['deleted'] = deleted
-        print(f"[RecalcType] '{alarm_type}': Deleted {deleted} alarms")
+        print(f"[RecalcType] '{alarm_type}' [{scope_label}]: Deleted {deleted} alarms")
         
-        detected = detect_and_save_alarms(filter_alarm_type=alarm_type)
+        detected = detect_and_save_alarms(filter_alarm_type=alarm_type, include_historical=include_historical)
         _type_recalc_status[alarm_type]['detected'] = detected
-        print(f"[RecalcType] '{alarm_type}': Detected {detected} new alarms")
+        print(f"[RecalcType] '{alarm_type}' [{scope_label}]: Detected {detected} new alarms")
         
         _alarm_cache = None
         _alarm_cache_time = 0
@@ -1724,6 +1738,10 @@ def recalculate_single_alarm_type(alarm_type):
     Much faster than full recalc - only deletes and recalcs one type.
     
     Valid types: sharp, dropping, reversal, momentum, line_freeze, volume_shift, big_money, public_surge
+    
+    Request JSON:
+        scope: 'current' (default) - only today's matches
+               'all' - all historical matches
     """
     import threading
     
@@ -1731,6 +1749,12 @@ def recalculate_single_alarm_type(alarm_type):
     
     if alarm_type not in valid_types:
         return jsonify({'error': f"Gecersiz alarm turu: {alarm_type}. Gecerli turler: {', '.join(valid_types)}"}), 400
+    
+    data = request.get_json() or {}
+    scope = data.get('scope', 'current')
+    
+    if scope not in ['current', 'all']:
+        return jsonify({'error': f"Gecersiz scope: {scope}. Gecerli degerler: current, all"}), 400
     
     try:
         from core.alarms.alarm_config import reload_alarm_config
@@ -1745,15 +1769,18 @@ def recalculate_single_alarm_type(alarm_type):
                 'alarm_type': alarm_type
             })
         
-        print(f"[RecalcAlarm] Starting single-type recalc for '{alarm_type}'...")
-        thread = threading.Thread(target=_background_recalculate_type, args=(alarm_type,), daemon=True)
+        scope_label = "TUM GECMIS" if scope == 'all' else "AKTIF MACLAR"
+        print(f"[RecalcAlarm] Starting single-type recalc for '{alarm_type}' [{scope_label}]...")
+        thread = threading.Thread(target=_background_recalculate_type, args=(alarm_type, scope), daemon=True)
         thread.start()
         
+        message = f"Tum gecmis '{alarm_type}' alarmlari yeniden hesaplaniyor..." if scope == 'all' else f"'{alarm_type}' alarmlari (aktif maclar) yeniden hesaplaniyor..."
         return jsonify({
             'success': True,
-            'message': f"'{alarm_type}' alarmlari yeniden hesaplaniyor...",
+            'message': message,
             'status': 'started',
-            'alarm_type': alarm_type
+            'alarm_type': alarm_type,
+            'scope': scope
         })
         
     except Exception as e:

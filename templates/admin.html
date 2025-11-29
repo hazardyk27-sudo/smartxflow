@@ -300,6 +300,31 @@
             color: white;
             animation: pulse 1.5s infinite;
         }
+        .btn-recalc-all {
+            padding: 6px 10px;
+            font-size: 11px;
+            background: #1c2128;
+            border: 1px solid #f0883e;
+            border-radius: 4px;
+            color: #f0883e;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+            width: 100%;
+        }
+        .btn-recalc-all:hover {
+            background: #f0883e;
+            color: #0d1117;
+        }
+        .btn-recalc-all:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-recalc-all.running {
+            background: #f0883e;
+            color: #0d1117;
+            animation: pulse 1.5s infinite;
+        }
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.6; }
@@ -349,6 +374,7 @@
                     </div>
                 </div>
                 <div class="recalc-status" id="recalc-status-sharp"></div>
+                <button class="btn-recalc-all" id="recalc-all-sharp" onclick="recalcAlarmType('sharp', 'all')">Tum Gecmis Sharp Alarmlarini Yeniden Hesapla</button>
                 <div class="card-body">
                     <div class="section-title">Piyasa Hacim Esikleri</div>
                     <div class="row">
@@ -428,6 +454,7 @@
                     </div>
                 </div>
                 <div class="recalc-status" id="recalc-status-dropping"></div>
+                <button class="btn-recalc-all" id="recalc-all-dropping" onclick="recalcAlarmType('dropping', 'all')">Tum Gecmis Dropping Alarmlarini Yeniden Hesapla</button>
                 <div class="card-body">
                     <div class="form-group">
                         <label>Minimum Dusus Esigi (%) - Seviye 1</label>
@@ -486,6 +513,7 @@
                     </div>
                 </div>
                 <div class="recalc-status" id="recalc-status-momentum"></div>
+                <button class="btn-recalc-all" id="recalc-all-momentum" onclick="recalcAlarmType('momentum', 'all')">Tum Gecmis Momentum Alarmlarini Yeniden Hesapla</button>
                 <div class="card-body">
                     <div class="section-title">Piyasa Hacim Esikleri</div>
                     <div class="row">
@@ -585,6 +613,7 @@
                     </div>
                 </div>
                 <div class="recalc-status" id="recalc-status-line_freeze"></div>
+                <button class="btn-recalc-all" id="recalc-all-line_freeze" onclick="recalcAlarmType('line_freeze', 'all')">Tum Gecmis Line Freeze Alarmlarini Yeniden Hesapla</button>
                 <div class="card-body">
                     <div class="section-title">Sure Esikleri (dakika)</div>
                     <div class="row">
@@ -679,6 +708,7 @@
                     </div>
                 </div>
                 <div class="recalc-status" id="recalc-status-volume_shift"></div>
+                <button class="btn-recalc-all" id="recalc-all-volume_shift" onclick="recalcAlarmType('volume_shift', 'all')">Tum Gecmis Volume Shift Alarmlarini Yeniden Hesapla</button>
                 <div class="card-body">
                     <div class="section-title">Hacim Esikleri</div>
                     <div class="criteria-section">
@@ -734,6 +764,7 @@
                     </div>
                 </div>
                 <div class="recalc-status" id="recalc-status-reversal"></div>
+                <button class="btn-recalc-all" id="recalc-all-reversal" onclick="recalcAlarmType('reversal', 'all')">Tum Gecmis Reversal Alarmlarini Yeniden Hesapla</button>
                 <div class="card-body">
                     <div class="form-group">
                         <label>Minimum Geri Donus (%)</label>
@@ -776,6 +807,7 @@
                     </div>
                 </div>
                 <div class="recalc-status" id="recalc-status-big_money"></div>
+                <button class="btn-recalc-all" id="recalc-all-big_money" onclick="recalcAlarmType('big_money', 'all')">Tum Gecmis Big Money Alarmlarini Yeniden Hesapla</button>
                 <div class="card-body">
                     <div class="form-group">
                         <label>10 Dakikada Minimum Para</label>
@@ -818,6 +850,7 @@
                     </div>
                 </div>
                 <div class="recalc-status" id="recalc-status-public_surge"></div>
+                <button class="btn-recalc-all" id="recalc-all-public_surge" onclick="recalcAlarmType('public_surge', 'all')">Tum Gecmis Public Surge Alarmlarini Yeniden Hesapla</button>
                 <div class="card-body">
                     <div class="form-group">
                         <label>Minimum Para</label>
@@ -1020,19 +1053,23 @@
         
         let typeRecalcPolls = {};
         
-        function recalcAlarmType(alarmType) {
-            const btn = document.getElementById('recalc-' + alarmType);
+        function recalcAlarmType(alarmType, scope = 'current') {
+            const isAll = (scope === 'all');
+            const btn = isAll 
+                ? document.getElementById('recalc-all-' + alarmType) 
+                : document.getElementById('recalc-' + alarmType);
             const statusDiv = document.getElementById('recalc-status-' + alarmType);
             
             if (!btn) return;
             
+            const originalText = btn.textContent;
             btn.disabled = true;
             btn.classList.add('running');
-            btn.textContent = 'Hesaplaniyor...';
+            btn.textContent = isAll ? 'Tum Gecmis Hesaplaniyor...' : 'Hesaplaniyor...';
             
             if (statusDiv) {
                 statusDiv.classList.add('show');
-                statusDiv.textContent = 'Baslatiliyor...';
+                statusDiv.textContent = isAll ? 'Tum gecmis alarmlar hesaplaniyor...' : 'Baslatiliyor...';
             }
             
             if (typeRecalcPolls[alarmType]) {
@@ -1041,14 +1078,16 @@
             }
             
             fetch('/admin/recalc-alarm/' + alarmType, {
-                method: 'POST'
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({scope: scope})
             })
                 .then(res => res.json())
                 .then(result => {
                     if (result.error) {
                         btn.disabled = false;
                         btn.classList.remove('running');
-                        btn.textContent = 'Yeniden Hesapla';
+                        btn.textContent = originalText;
                         if (statusDiv) {
                             statusDiv.textContent = 'Hata: ' + result.error;
                         }
@@ -1057,18 +1096,18 @@
                         showToast(result.message, 'success');
                         
                         if (result.status === 'started' || result.status === 'already_running') {
-                            typeRecalcPolls[alarmType] = setInterval(() => pollTypeRecalcStatus(alarmType), 2000);
+                            typeRecalcPolls[alarmType] = setInterval(() => pollTypeRecalcStatus(alarmType, originalText, isAll), 2000);
                         } else {
                             btn.disabled = false;
                             btn.classList.remove('running');
-                            btn.textContent = 'Yeniden Hesapla';
+                            btn.textContent = originalText;
                         }
                     }
                 })
                 .catch(err => {
                     btn.disabled = false;
                     btn.classList.remove('running');
-                    btn.textContent = 'Yeniden Hesapla';
+                    btn.textContent = originalText;
                     if (statusDiv) {
                         statusDiv.textContent = 'Hata: ' + err;
                     }
@@ -1076,8 +1115,10 @@
                 });
         }
         
-        function pollTypeRecalcStatus(alarmType) {
-            const btn = document.getElementById('recalc-' + alarmType);
+        function pollTypeRecalcStatus(alarmType, originalText = 'Yeniden Hesapla', isAll = false) {
+            const btn = isAll 
+                ? document.getElementById('recalc-all-' + alarmType) 
+                : document.getElementById('recalc-' + alarmType);
             const statusDiv = document.getElementById('recalc-status-' + alarmType);
             
             fetch('/admin/recalc-alarm-status/' + alarmType)
@@ -1087,7 +1128,8 @@
                     
                     if (status.running) {
                         if (statusDiv) {
-                            statusDiv.textContent = `Hesaplaniyor... (${status.elapsed_seconds || 0}s)`;
+                            const scopeLabel = isAll ? 'Tum gecmis hesaplaniyor' : 'Hesaplaniyor';
+                            statusDiv.textContent = `${scopeLabel}... (${status.elapsed_seconds || 0}s)`;
                         }
                     } else {
                         if (typeRecalcPolls[alarmType]) {
@@ -1098,7 +1140,7 @@
                         if (btn) {
                             btn.disabled = false;
                             btn.classList.remove('running');
-                            btn.textContent = 'Yeniden Hesapla';
+                            btn.textContent = originalText;
                         }
                         
                         if (status.error) {
@@ -1107,10 +1149,11 @@
                             }
                             showToast(`${alarmType} Hatasi: ${status.error}`, 'error');
                         } else {
+                            const scopeLabel = isAll ? '(Tum Gecmis) ' : '';
                             if (statusDiv) {
-                                statusDiv.textContent = `Tamamlandi: ${status.deleted} silindi, ${status.detected} eklendi (${status.elapsed_seconds || 0}s)`;
+                                statusDiv.textContent = `${scopeLabel}Tamamlandi: ${status.deleted} silindi, ${status.detected} eklendi (${status.elapsed_seconds || 0}s)`;
                             }
-                            showToast(`${alarmType}: ${status.deleted} silindi, ${status.detected} eklendi`, 'success');
+                            showToast(`${alarmType} ${scopeLabel}: ${status.deleted} silindi, ${status.detected} eklendi`, 'success');
                             
                             setTimeout(() => {
                                 if (statusDiv) statusDiv.classList.remove('show');
@@ -1127,7 +1170,7 @@
                     if (btn) {
                         btn.disabled = false;
                         btn.classList.remove('running');
-                        btn.textContent = 'Yeniden Hesapla';
+                        btn.textContent = originalText;
                     }
                 });
         }
