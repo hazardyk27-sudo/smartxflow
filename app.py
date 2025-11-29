@@ -1538,7 +1538,7 @@ def update_alarm_config():
     Flow:
     1. Save config to alarm_config.json
     2. Reload config into RAM (global config)
-    3. Delete all active alarms (today+future)
+    3. Delete ALL alarms (including historical) - user requested full recalculation
     4. Recalculate alarms from historical data with new config
     5. Clear cache for fresh data
     """
@@ -1561,15 +1561,15 @@ def update_alarm_config():
         reload_alarm_config()
         print("[AdminConfig] RAM config updated with new values")
         
-        print("[AdminConfig] Starting automatic alarm recalculation...")
+        print("[AdminConfig] Starting automatic alarm recalculation (ALL alarms including historical)...")
         start_time = time_module.time()
         
         deleted = 0
         detected = 0
         
         try:
-            deleted = db.supabase.delete_all_active_alarms()
-            print(f"[AdminConfig] Deleted {deleted} active alarms (historical preserved)")
+            deleted = db.supabase.delete_all_active_alarms(include_historical=True)
+            print(f"[AdminConfig] Deleted {deleted} alarms (ALL including historical)")
             
             try:
                 detected = detect_and_save_alarms()
@@ -1613,23 +1613,22 @@ def update_alarm_config():
 @app.route('/admin/recalculate-alarms', methods=['POST'])
 def recalculate_all_alarms():
     """
-    Delete active alarms (today+future) and recalculate them with current config.
-    Historical alarms are preserved.
-    This is triggered after config changes to apply new thresholds to all data.
+    Delete ALL alarms (including historical) and recalculate them with current config.
+    This is triggered from admin panel to apply new thresholds to all data.
     """
     import time
     
     try:
         from core.alarm_config import reload_alarm_config
         
-        print("[RecalcAlarms] Starting alarm recalculation for active matches...")
+        print("[RecalcAlarms] Starting alarm recalculation (ALL alarms including historical)...")
         start_time = time.time()
         
         reload_alarm_config()
         print("[RecalcAlarms] Config reloaded from file")
         
-        deleted = db.supabase.delete_all_active_alarms()
-        print(f"[RecalcAlarms] Deleted {deleted} active alarms (historical preserved)")
+        deleted = db.supabase.delete_all_active_alarms(include_historical=True)
+        print(f"[RecalcAlarms] Deleted {deleted} alarms (ALL including historical)")
         
         global _alarm_cache, _alarm_cache_time
         
@@ -1650,7 +1649,7 @@ def recalculate_all_alarms():
         
         return jsonify({
             'success': True,
-            'message': f'Alarms recalculated: {deleted} deleted, {detected} new alarms created',
+            'message': f'Tum alarmlar yeniden hesaplandi: {deleted} silindi, {detected} yeni alarm olusturuldu',
             'deleted': deleted,
             'detected': detected,
             'elapsed_seconds': round(elapsed, 2)

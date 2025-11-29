@@ -1037,10 +1037,14 @@ class SupabaseClient:
         
         return saved
 
-    def delete_all_active_alarms(self) -> int:
+    def delete_all_active_alarms(self, include_historical: bool = False) -> int:
         """
-        Delete alarms ONLY for today and future matches.
-        Historical alarms (yesterday and older) are preserved.
+        Delete alarms based on scope. Uses pagination to handle >1000 alarms.
+        
+        Args:
+            include_historical: If True, delete ALL alarms (including past matches).
+                               If False, only delete today+future alarms.
+        
         Used when admin recalculates alarms with new config.
         Returns count of deleted alarms.
         """
@@ -1054,34 +1058,53 @@ class SupabaseClient:
             turkey_tz = pytz.timezone('Europe/Istanbul')
             today = datetime.now(turkey_tz).strftime('%Y-%m-%d')
             
-            url = f"{self._rest_url('smart_money_alarms')}?select=id,home,away,match_date&match_date=gte.{today}"
-            resp = httpx.get(url, headers=self._headers(), timeout=30)
+            total_deleted = 0
+            page_size = 1000
             
-            if resp.status_code != 200:
-                print(f"[DeleteActiveAlarms] Error fetching alarms: {resp.status_code}")
-                return 0
+            if include_historical:
+                scope_msg = "ALL alarms (including historical)"
+            else:
+                scope_msg = f"active alarms (today+future, >= {today})"
             
-            alarms = resp.json()
-            print(f"[DeleteActiveAlarms] Found {len(alarms)} active alarms (today+future) to delete")
-            print(f"[DeleteActiveAlarms] Historical alarms preserved (before {today})")
+            print(f"[DeleteAlarms] Starting deletion of {scope_msg}...")
             
-            if not alarms:
-                return 0
+            while True:
+                if include_historical:
+                    url = f"{self._rest_url('smart_money_alarms')}?select=id&limit={page_size}"
+                else:
+                    url = f"{self._rest_url('smart_money_alarms')}?select=id&match_date=gte.{today}&limit={page_size}"
+                
+                resp = httpx.get(url, headers=self._headers(), timeout=30)
+                
+                if resp.status_code != 200:
+                    print(f"[DeleteAlarms] Error fetching alarms: {resp.status_code}")
+                    break
+                
+                alarms = resp.json()
+                
+                if not alarms:
+                    break
+                
+                batch_deleted = 0
+                for alarm in alarms:
+                    alarm_id = alarm.get('id')
+                    if alarm_id:
+                        del_url = f"{self._rest_url('smart_money_alarms')}?id=eq.{alarm_id}"
+                        del_resp = httpx.delete(del_url, headers=self._headers(), timeout=5)
+                        if del_resp.status_code in [200, 204]:
+                            batch_deleted += 1
+                
+                total_deleted += batch_deleted
+                print(f"[DeleteAlarms] Batch deleted: {batch_deleted}, Total: {total_deleted}")
+                
+                if len(alarms) < page_size:
+                    break
             
-            deleted = 0
-            for alarm in alarms:
-                alarm_id = alarm.get('id')
-                if alarm_id:
-                    del_url = f"{self._rest_url('smart_money_alarms')}?id=eq.{alarm_id}"
-                    del_resp = httpx.delete(del_url, headers=self._headers(), timeout=5)
-                    if del_resp.status_code in [200, 204]:
-                        deleted += 1
-            
-            print(f"[DeleteActiveAlarms] Successfully deleted {deleted} active alarms")
-            return deleted
+            print(f"[DeleteAlarms] Successfully deleted {total_deleted} {scope_msg}")
+            return total_deleted
             
         except Exception as e:
-            print(f"[DeleteActiveAlarms] Exception: {e}")
+            print(f"[DeleteAlarms] Exception: {e}")
             return 0
 
 
