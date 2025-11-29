@@ -353,87 +353,6 @@
             background: #238636;
             border-color: #238636;
         }
-        .color-section {
-            background: #0d1117;
-            border-radius: 8px;
-            margin-top: 16px;
-            border: 1px dashed #30363d;
-            overflow: hidden;
-        }
-        .color-section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 12px;
-            cursor: pointer;
-            user-select: none;
-        }
-        .color-section-header:hover {
-            background: #161b22;
-        }
-        .color-section-title {
-            color: #8b949e;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin: 0;
-        }
-        .color-section-toggle {
-            color: #6e7681;
-            font-size: 10px;
-            transition: transform 0.2s;
-        }
-        .color-section.open .color-section-toggle {
-            transform: rotate(180deg);
-        }
-        .color-section-body {
-            display: none;
-            padding: 0 12px 12px 12px;
-        }
-        .color-section.open .color-section-body {
-            display: block;
-        }
-        .color-row {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-        .color-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-        }
-        .color-group label {
-            display: block;
-            color: #6e7681;
-            font-size: 10px;
-            text-transform: uppercase;
-        }
-        input[type="color"] {
-            width: 40px;
-            height: 32px;
-            padding: 0;
-            border: 2px solid #30363d;
-            border-radius: 6px;
-            cursor: pointer;
-            background: transparent;
-        }
-        input[type="color"]::-webkit-color-swatch-wrapper {
-            padding: 2px;
-        }
-        input[type="color"]::-webkit-color-swatch {
-            border-radius: 4px;
-            border: none;
-        }
-        .color-preview {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 600;
-            margin-top: 8px;
-        }
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.6; }
@@ -545,29 +464,6 @@
                             <input type="number" id="sharp-score_threshold_medium" step="1">
                         </div>
                     </div>
-                    <div class="color-section" id="color-section-sharp">
-                        <div class="color-section-header" onclick="toggleColorSection('sharp')">
-                            <span class="color-section-title">Gorunum Ayarlari</span>
-                            <span class="color-section-toggle">▼</span>
-                        </div>
-                        <div class="color-section-body">
-                            <div class="color-row">
-                                <div class="color-group">
-                                    <label>Cerceve</label>
-                                    <input type="color" id="sharp-color_border">
-                                </div>
-                                <div class="color-group">
-                                    <label>Buton</label>
-                                    <input type="color" id="sharp-color_button">
-                                </div>
-                                <div class="color-group">
-                                    <label>Yazi</label>
-                                    <input type="color" id="sharp-color_text">
-                                </div>
-                            </div>
-                            <div class="color-preview" id="sharp-preview" style="border: 2px solid #f0883e; background: #f0883e; color: #ffffff;">Sharp</div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -627,29 +523,6 @@
                             </label>
                         </div>
                         <span class="help-text">Aktifse: Dusus bu sure boyunca devam etmeli</span>
-                    </div>
-                    <div class="color-section" id="color-section-dropping">
-                        <div class="color-section-header" onclick="toggleColorSection('dropping')">
-                            <span class="color-section-title">Gorunum Ayarlari</span>
-                            <span class="color-section-toggle">▼</span>
-                        </div>
-                        <div class="color-section-body">
-                            <div class="color-row">
-                                <div class="color-group">
-                                    <label>Cerceve</label>
-                                    <input type="color" id="dropping-color_border">
-                                </div>
-                                <div class="color-group">
-                                    <label>Buton</label>
-                                    <input type="color" id="dropping-color_button">
-                                </div>
-                                <div class="color-group">
-                                    <label>Yazi</label>
-                                    <input type="color" id="dropping-color_text">
-                                </div>
-                            </div>
-                            <div class="color-preview" id="dropping-preview" style="border: 2px solid #da3633; background: #da3633; color: #ffffff;">Dropping</div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -752,29 +625,6 @@
                             <input type="number" id="momentum-level3_money" step="100">
                         </div>
                     </div>
-                    <div class="color-section" id="color-section-momentum">
-                        <div class="color-section-header" onclick="toggleColorSection('momentum')">
-                            <span class="color-section-title">Gorunum Ayarlari</span>
-                            <span class="color-section-toggle">▼</span>
-                        </div>
-                        <div class="color-section-body">
-                            <div class="color-row">
-                                <div class="color-group">
-                                    <label>Cerceve</label>
-                                    <input type="color" id="momentum-color_border">
-                                </div>
-                                <div class="color-group">
-                                    <label>Buton</label>
-                                    <input type="color" id="momentum-color_button">
-                                </div>
-                                <div class="color-group">
-                                    <label>Yazi</label>
-                                    <input type="color" id="momentum-color_text">
-                                </div>
-                            </div>
-                            <div class="color-preview" id="momentum-preview" style="border: 2px solid #58a6ff; background: #58a6ff; color: #ffffff;">Momentum</div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -871,29 +721,6 @@
                         </div>
                         <span class="help-text">Aktifse: Oran degisimi bu sinirin altinda olmali</span>
                     </div>
-                    <div class="color-section" id="color-section-line_freeze">
-                        <div class="color-section-header" onclick="toggleColorSection('line_freeze')">
-                            <span class="color-section-title">Gorunum Ayarlari</span>
-                            <span class="color-section-toggle">▼</span>
-                        </div>
-                        <div class="color-section-body">
-                            <div class="color-row">
-                                <div class="color-group">
-                                    <label>Cerceve</label>
-                                    <input type="color" id="line_freeze-color_border">
-                                </div>
-                                <div class="color-group">
-                                    <label>Buton</label>
-                                    <input type="color" id="line_freeze-color_button">
-                                </div>
-                                <div class="color-group">
-                                    <label>Yazi</label>
-                                    <input type="color" id="line_freeze-color_text">
-                                </div>
-                            </div>
-                            <div class="color-preview" id="line_freeze-preview" style="border: 2px solid #7ee787; background: #238636; color: #ffffff;">Line Freeze</div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -951,29 +778,6 @@
                         </div>
                         <span class="help-text">Aktifse: Lider sayilmak icin minimum pay %</span>
                     </div>
-                    <div class="color-section" id="color-section-volume_shift">
-                        <div class="color-section-header" onclick="toggleColorSection('volume_shift')">
-                            <span class="color-section-title">Gorunum Ayarlari</span>
-                            <span class="color-section-toggle">▼</span>
-                        </div>
-                        <div class="color-section-body">
-                            <div class="color-row">
-                                <div class="color-group">
-                                    <label>Cerceve</label>
-                                    <input type="color" id="volume_shift-color_border">
-                                </div>
-                                <div class="color-group">
-                                    <label>Buton</label>
-                                    <input type="color" id="volume_shift-color_button">
-                                </div>
-                                <div class="color-group">
-                                    <label>Yazi</label>
-                                    <input type="color" id="volume_shift-color_text">
-                                </div>
-                            </div>
-                            <div class="color-preview" id="volume_shift-preview" style="border: 2px solid #f778ba; background: #f778ba; color: #ffffff;">Volume Shift</div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -1017,29 +821,6 @@
                             </label>
                         </div>
                         <span class="help-text">Aktifse: Reversal oncesi minimum dusus</span>
-                    </div>
-                    <div class="color-section" id="color-section-reversal">
-                        <div class="color-section-header" onclick="toggleColorSection('reversal')">
-                            <span class="color-section-title">Gorunum Ayarlari</span>
-                            <span class="color-section-toggle">▼</span>
-                        </div>
-                        <div class="color-section-body">
-                            <div class="color-row">
-                                <div class="color-group">
-                                    <label>Cerceve</label>
-                                    <input type="color" id="reversal-color_border">
-                                </div>
-                                <div class="color-group">
-                                    <label>Buton</label>
-                                    <input type="color" id="reversal-color_button">
-                                </div>
-                                <div class="color-group">
-                                    <label>Yazi</label>
-                                    <input type="color" id="reversal-color_text">
-                                </div>
-                            </div>
-                            <div class="color-preview" id="reversal-preview" style="border: 2px solid #a371f7; background: #a371f7; color: #ffffff;">Reversal</div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1085,29 +866,6 @@
                         </div>
                         <span class="help-text">Aktifse: Tek bir guncelleme bu kadar olmali</span>
                     </div>
-                    <div class="color-section" id="color-section-big_money">
-                        <div class="color-section-header" onclick="toggleColorSection('big_money')">
-                            <span class="color-section-title">Gorunum Ayarlari</span>
-                            <span class="color-section-toggle">▼</span>
-                        </div>
-                        <div class="color-section-body">
-                            <div class="color-row">
-                                <div class="color-group">
-                                    <label>Cerceve</label>
-                                    <input type="color" id="big_money-color_border">
-                                </div>
-                                <div class="color-group">
-                                    <label>Buton</label>
-                                    <input type="color" id="big_money-color_button">
-                                </div>
-                                <div class="color-group">
-                                    <label>Yazi</label>
-                                    <input type="color" id="big_money-color_text">
-                                </div>
-                            </div>
-                            <div class="color-preview" id="big_money-preview" style="border: 2px solid #ffd700; background: #c5a000; color: #000000;">Big Money</div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -1152,29 +910,6 @@
                         </div>
                         <span class="help-text">Aktifse: Oran degisimi bu sinirin altinda</span>
                     </div>
-                    <div class="color-section" id="color-section-public_surge">
-                        <div class="color-section-header" onclick="toggleColorSection('public_surge')">
-                            <span class="color-section-title">Gorunum Ayarlari</span>
-                            <span class="color-section-toggle">▼</span>
-                        </div>
-                        <div class="color-section-body">
-                            <div class="color-row">
-                                <div class="color-group">
-                                    <label>Cerceve</label>
-                                    <input type="color" id="public_surge-color_border">
-                                </div>
-                                <div class="color-group">
-                                    <label>Buton</label>
-                                    <input type="color" id="public_surge-color_button">
-                                </div>
-                                <div class="color-group">
-                                    <label>Yazi</label>
-                                    <input type="color" id="public_surge-color_text">
-                                </div>
-                            </div>
-                            <div class="color-preview" id="public_surge-preview" style="border: 2px solid #79c0ff; background: #1f6feb; color: #ffffff;">Public Surge</div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -1184,38 +919,6 @@
 
     <script>
         let config = null;
-
-        function toggleColorSection(alarmType) {
-            const section = document.getElementById('color-section-' + alarmType);
-            if (section) {
-                section.classList.toggle('open');
-            }
-        }
-        
-        function updateColorPreview(alarmType) {
-            const borderInput = document.getElementById(alarmType + '-color_border');
-            const buttonInput = document.getElementById(alarmType + '-color_button');
-            const textInput = document.getElementById(alarmType + '-color_text');
-            const preview = document.getElementById(alarmType + '-preview');
-            
-            if (preview && borderInput && buttonInput && textInput) {
-                preview.style.borderColor = borderInput.value;
-                preview.style.background = buttonInput.value;
-                preview.style.color = textInput.value;
-            }
-        }
-        
-        function initColorInputs(alarmType, data) {
-            const colorFields = ['color_border', 'color_button', 'color_text'];
-            colorFields.forEach(field => {
-                const colorInput = document.getElementById(alarmType + '-' + field);
-                if (colorInput && data[field]) {
-                    colorInput.value = data[field];
-                    colorInput.addEventListener('input', () => updateColorPreview(alarmType));
-                }
-            });
-            updateColorPreview(alarmType);
-        }
 
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
@@ -1248,15 +951,12 @@
                         if (el) {
                             if (el.type === 'checkbox') {
                                 el.checked = data[type][key];
-                            } else if (el.type === 'color') {
-                                el.value = data[type][key] || '#ffffff';
                             } else {
                                 el.value = data[type][key];
                             }
                         }
                     });
                     updateStatus(type);
-                    initColorInputs(type, data[type]);
                 }
             });
         }
@@ -1270,13 +970,10 @@
                 const inputs = document.querySelectorAll('[id^="' + type + '-"]');
                 inputs.forEach(input => {
                     const key = input.id.replace(type + '-', '');
-                    if (key.endsWith('_hex')) return;
                     if (input.type === 'checkbox') {
                         data[type][key] = input.checked;
                     } else if (input.type === 'number') {
                         data[type][key] = parseFloat(input.value) || 0;
-                    } else if (input.type === 'color') {
-                        data[type][key] = input.value;
                     } else {
                         data[type][key] = input.value;
                     }
