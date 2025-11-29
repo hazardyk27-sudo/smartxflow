@@ -1,30 +1,33 @@
 """
-Momentum Spike Detection Algorithm
-==================================
+Momentum Spike Detection Algorithm V2
+======================================
 
-10 dakikalık veri sistemi için Momentum Spike tespiti.
-3 kriterin tamamı sağlandığında alarm tetiklenir.
+10 dakikalık ardışık güncelleme aralığında Momentum Spike tespiti.
 
-Kriterler:
-1. baseline_10 > 0 (son 30 dk ortalaması)
-2. spike_ratio >= 3.0 (d4 / baseline_10)
-3. share_shift >= +3 puan (pay değişimi)
-
-NOT: Mutlak hacim eşiği (market_volume_threshold) KALDIRILDI.
-Sadece oran/tarihsel ortalama ve share_shift üzerinden çalışır.
+Spike tetiklenmesi için aşağıdaki 4 kriterden EN AZ 2'si aynı anda sağlanmalı:
+1. new_money >= 2500
+2. share_now >= 6%
+3. percentage_change >= 7%
+4. odds_drop >= 4%
 
 Level Sistemi:
-- L1: spike_ratio 3.0 - 4.0
-- L2: spike_ratio 4.0 - 6.0
-- L3: spike_ratio > 6.0
+- LEVEL 1: (new_money 1500-3000 veya %4-%6 change)
+- LEVEL 2: (new_money 3000-5000 veya %6-%10 change + odds_drop)
+- LEVEL 3: (new_money >5000 veya %10+ change + odds_drop >= %6)
+
+Önemli: Tüm hesaplamalar ardışık iki güncelleme (previous vs current) arasında yapılır.
 """
 
 from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
-SPIKE_RATIO_THRESHOLD = 3.0
-SHARE_SHIFT_THRESHOLD = 3.0
+NEW_MONEY_THRESHOLD = 2500
+SHARE_NOW_THRESHOLD = 6.0
+PERCENTAGE_CHANGE_THRESHOLD = 7.0
+ODDS_DROP_THRESHOLD = 4.0
+
+MIN_CRITERIA_COUNT = 2
 
 
 def get_market_type(market: str) -> str:
@@ -37,17 +40,6 @@ def get_market_type(market: str) -> str:
     elif 'btts' in market_lower:
         return 'btts'
     return '1x2'
-
-
-def get_momentum_level(spike_ratio: float) -> int:
-    """Spike ratio'ya göre level döndür (1, 2, 3)"""
-    if spike_ratio >= 6.0:
-        return 3
-    elif spike_ratio >= 4.0:
-        return 2
-    elif spike_ratio >= 3.0:
-        return 1
-    return 0
 
 
 def parse_volume(volume_str: Any) -> float:
@@ -80,142 +72,68 @@ def parse_share(share_str: Any) -> float:
     return 0.0
 
 
-def extract_volume_windows(history: List[Dict], side: str, market: str) -> Dict[str, float]:
-    """
-    Son 40 dk'lık history'den 4 pencere çıkar (her biri 10 dk).
-    
-    d1: 40-30 dk önce
-    d2: 30-20 dk önce
-    d3: 20-10 dk önce
-    d4: 10-0 dk (şu an)
-    
-    IMPORTANT: Uses latest ScrapedAt timestamp as reference, not datetime.now()
-    This ensures historical/backfilled data is correctly analyzed.
-    
-    Returns:
-        {'d1': float, 'd2': float, 'd3': float, 'd4': float}
-    """
-    if len(history) < 2:
-        return {'d1': 0, 'd2': 0, 'd3': 0, 'd4': 0}
-    
-    sorted_history = sorted(history, key=lambda x: x.get('ScrapedAt', ''), reverse=True)
-    
-    latest_ts = sorted_history[0].get('ScrapedAt', '')
-    if not latest_ts:
-        return {'d1': 0, 'd2': 0, 'd3': 0, 'd4': 0}
-    
-    try:
-        if 'T' in latest_ts:
-            reference_time = datetime.fromisoformat(latest_ts.replace('Z', '+00:00').split('+')[0])
-        else:
-            reference_time = datetime.strptime(latest_ts[:19], '%Y-%m-%d %H:%M:%S')
-    except (ValueError, TypeError):
-        return {'d1': 0, 'd2': 0, 'd3': 0, 'd4': 0}
-    
-    windows = {'d1': 0.0, 'd2': 0.0, 'd3': 0.0, 'd4': 0.0}
-    
-    side_amt_key = f'Amt{side}' if side in ['1', 'X', '2'] else f'Amt{side}'
-    side_stake_key = f'{side}Stake'
-    side_volume_key = f'{side}Volume'
-    
-    prev_volumes = {}
-    
-    for i, record in enumerate(reversed(sorted_history)):
-        scraped_at = record.get('ScrapedAt', '')
-        if not scraped_at:
-            continue
-        
-        try:
-            if 'T' in scraped_at:
-                record_time = datetime.fromisoformat(scraped_at.replace('Z', '+00:00').split('+')[0])
-            else:
-                record_time = datetime.strptime(scraped_at[:19], '%Y-%m-%d %H:%M:%S')
-        except (ValueError, TypeError):
-            continue
-        
-        minutes_before = (reference_time - record_time).total_seconds() / 60
-        
-        current_vol = parse_volume(
-            record.get(side_amt_key) or 
-            record.get(side_stake_key) or 
-            record.get(side_volume_key, 0)
-        )
-        
-        prev_vol = prev_volumes.get(side, 0)
-        volume_diff = max(0, current_vol - prev_vol)
-        prev_volumes[side] = current_vol
-        
-        if 0 <= minutes_before < 10:
-            windows['d4'] += volume_diff
-        elif 10 <= minutes_before < 20:
-            windows['d3'] += volume_diff
-        elif 20 <= minutes_before < 30:
-            windows['d2'] += volume_diff
-        elif 30 <= minutes_before < 40:
-            windows['d1'] += volume_diff
-    
-    return windows
-
-
-def extract_share_shift(history: List[Dict], side: str) -> float:
-    """
-    Son 30 dk'daki share değişimini hesapla.
-    
-    share_shift = share_now - share_30min_ago
-    
-    IMPORTANT: Uses latest ScrapedAt as reference, not datetime.now()
-    
-    Returns:
-        float: Pay değişimi (puan olarak)
-    """
-    if len(history) < 2:
+def parse_odds(val: Any) -> float:
+    """Parse odds value to float"""
+    if val is None:
         return 0.0
-    
-    sorted_history = sorted(history, key=lambda x: x.get('ScrapedAt', ''), reverse=True)
-    
-    latest_ts = sorted_history[0].get('ScrapedAt', '')
-    if not latest_ts:
-        return 0.0
-    
-    try:
-        if 'T' in latest_ts:
-            reference_time = datetime.fromisoformat(latest_ts.replace('Z', '+00:00').split('+')[0])
-        else:
-            reference_time = datetime.strptime(latest_ts[:19], '%Y-%m-%d %H:%M:%S')
-    except (ValueError, TypeError):
-        return 0.0
-    
-    side_share_key = f'Pct{side}' if side in ['1', 'X', '2'] else f'Pct{side}'
-    
-    share_now = parse_share(sorted_history[0].get(side_share_key, 0))
-    share_30min_ago = None
-    
-    for record in sorted_history:
-        scraped_at = record.get('ScrapedAt', '')
-        if not scraped_at:
-            continue
-        
-        try:
-            if 'T' in scraped_at:
-                record_time = datetime.fromisoformat(scraped_at.replace('Z', '+00:00').split('+')[0])
-            else:
-                record_time = datetime.strptime(scraped_at[:19], '%Y-%m-%d %H:%M:%S')
-        except (ValueError, TypeError):
-            continue
-        
-        minutes_before = (reference_time - record_time).total_seconds() / 60
-        
-        if 25 <= minutes_before <= 35:
-            share_30min_ago = parse_share(record.get(side_share_key, 0))
-            break
-    
-    if share_30min_ago is None:
-        if len(sorted_history) >= 3:
-            share_30min_ago = parse_share(sorted_history[-1].get(side_share_key, share_now))
-        else:
+    if isinstance(val, (int, float)):
+        return float(val)
+    if isinstance(val, str):
+        val = val.strip()
+        if not val or val == '-':
             return 0.0
-    
-    return share_now - share_30min_ago
+        try:
+            return float(val.replace(',', '.'))
+        except:
+            return 0.0
+    return 0.0
+
+
+def calculate_odds_drop_percent(odds_prev: float, odds_curr: float) -> float:
+    """Oran düşüş yüzdesini hesapla"""
+    if odds_prev <= 0:
+        return 0.0
+    return ((odds_prev - odds_curr) / odds_prev) * 100
+
+
+def get_momentum_level(new_money: float) -> int:
+    """
+    Level belirleme - SADECE new_money bandlarına göre:
+    LEVEL 0: new_money < 1500 (alarm üretilmemeli)
+    LEVEL 1: new_money 1500-3000
+    LEVEL 2: new_money 3000-5000
+    LEVEL 3: new_money >5000
+    """
+    if new_money > 5000:
+        return 3
+    elif new_money >= 3000:
+        return 2
+    elif new_money >= 1500:
+        return 1
+    return 0
+
+
+def get_side_keys(market: str, side: str) -> Dict[str, str]:
+    """Side için key'leri döndür"""
+    if side in ['1', 'X', '2']:
+        return {
+            'amt': f'Amt{side}',
+            'odds': f'Odds{side}',
+            'pct': f'Pct{side}'
+        }
+    elif side in ['Over', 'Under']:
+        return {
+            'amt': f'Amt{side}',
+            'odds': side,
+            'pct': f'Pct{side}'
+        }
+    elif side in ['Yes', 'No']:
+        return {
+            'amt': f'Amt{side}',
+            'odds': f'Odds{side}',
+            'pct': f'Pct{side}'
+        }
+    return {'amt': f'Amt{side}', 'odds': f'Odds{side}', 'pct': f'Pct{side}'}
 
 
 def detect_momentum_spike(
@@ -228,18 +146,16 @@ def detect_momentum_spike(
     """
     Momentum Spike tespiti yapar.
     
-    3 kriterin tamamı sağlanmalı:
-    1. baseline_10 > 0
-    2. spike_ratio >= 3.0
-    3. share_shift >= +3 puan
-    
-    NOT: Mutlak hacim eşiği (market_volume_threshold) KALDIRILDI.
-    
-    IMPORTANT: Uses latest ScrapedAt for timestamp, not datetime.now()
+    Ardışık iki güncelleme (previous vs current) arasında:
+    4 kriterden EN AZ 2'si sağlanmalı:
+    1. new_money >= 2500
+    2. share_now >= 6%
+    3. percentage_change >= 7%
+    4. odds_drop >= 4%
     
     Args:
-        history: Maç geçmişi (son 40+ dk'lık veriler)
-        market: Market tipi (moneyway_1x2, dropping_ou25, vb.)
+        history: Maç geçmişi (en az 2 kayıt gerekli)
+        market: Market tipi
         side: Seçenek (1, X, 2, Over, Under, Yes, No)
         home: Ev sahibi takım
         away: Deplasman takımı
@@ -251,58 +167,80 @@ def detect_momentum_spike(
         return None
     
     sorted_history = sorted(history, key=lambda x: x.get('ScrapedAt', ''), reverse=True)
-    latest_ts = sorted_history[0].get('ScrapedAt', '')
+    
+    current = sorted_history[0]
+    previous = sorted_history[1]
+    
+    latest_ts = current.get('ScrapedAt', '')
     if not latest_ts:
         return None
     
-    windows = extract_volume_windows(history, side, market)
+    keys = get_side_keys(market, side)
     
-    d1, d2, d3, d4 = windows['d1'], windows['d2'], windows['d3'], windows['d4']
+    curr_amt = parse_volume(current.get(keys['amt'], 0))
+    prev_amt = parse_volume(previous.get(keys['amt'], 0))
+    new_money = curr_amt - prev_amt
     
-    baseline_10 = (d1 + d2 + d3) / 3 if (d1 + d2 + d3) > 0 else 0
+    share_now = parse_share(current.get(keys['pct'], 0))
+    share_prev = parse_share(previous.get(keys['pct'], 0))
+    percentage_change = share_now - share_prev
     
-    if baseline_10 <= 0:
+    odds_curr = parse_odds(current.get(keys['odds'], 0))
+    odds_prev = parse_odds(previous.get(keys['odds'], 0))
+    odds_drop = calculate_odds_drop_percent(odds_prev, odds_curr)
+    
+    criteria_met = 0
+    criteria_details = []
+    
+    if new_money >= NEW_MONEY_THRESHOLD:
+        criteria_met += 1
+        criteria_details.append(f"new_money=£{int(new_money):,}")
+    
+    if share_now >= SHARE_NOW_THRESHOLD:
+        criteria_met += 1
+        criteria_details.append(f"share_now={share_now:.1f}%")
+    
+    if percentage_change >= PERCENTAGE_CHANGE_THRESHOLD:
+        criteria_met += 1
+        criteria_details.append(f"pct_change=+{percentage_change:.1f}%")
+    
+    if odds_drop >= ODDS_DROP_THRESHOLD:
+        criteria_met += 1
+        criteria_details.append(f"odds_drop={odds_drop:.1f}%")
+    
+    if criteria_met < MIN_CRITERIA_COUNT:
         return None
     
-    spike_ratio = d4 / baseline_10 if baseline_10 > 0 else 0
+    momentum_level = get_momentum_level(new_money)
     
-    share_shift = extract_share_shift(history, side)
-    
-    is_spike = (
-        baseline_10 > 0 and
-        spike_ratio >= SPIKE_RATIO_THRESHOLD and
-        share_shift >= SHARE_SHIFT_THRESHOLD
-    )
-    
-    if not is_spike:
+    if momentum_level == 0:
         return None
-    
-    momentum_level = get_momentum_level(spike_ratio)
     
     market_type = get_market_type(market)
     
+    alarm_type = f'momentum_spike_l{momentum_level}'
+    
     alarm = {
-        'type': 'momentum_spike',
+        'type': alarm_type,
         'market': market,
         'market_type': market_type,
         'side': side,
         'momentum_level': momentum_level,
-        'spike_ratio': round(spike_ratio, 2),
-        'share_shift': round(share_shift, 1),
-        'd4_volume': round(d4, 0),
-        'd1_volume': round(d1, 0),
-        'd2_volume': round(d2, 0),
-        'd3_volume': round(d3, 0),
-        'baseline_10': round(baseline_10, 0),
+        'new_money': round(new_money, 0),
+        'share_now': round(share_now, 1),
+        'percentage_change': round(percentage_change, 1),
+        'odds_drop': round(odds_drop, 2),
+        'criteria_met': criteria_met,
+        'criteria_details': criteria_details,
         'is_alarm': True,
         'home': home,
         'away': away,
-        'detail': f"L{momentum_level} ({spike_ratio:.1f}x, +{share_shift:.0f}pts, £{int(d4):,}/10dk)",
+        'detail': f"L{momentum_level} ({criteria_met}/4 kriter: {', '.join(criteria_details)})",
         'timestamp': latest_ts
     }
     
     print(f"[MomentumSpike] {home} vs {away} ({side}): L{momentum_level} | "
-          f"Spike={spike_ratio:.1f}x, Share=+{share_shift:.0f}pts, d4=£{int(d4):,}")
+          f"{criteria_met}/4 kriter: {', '.join(criteria_details)}")
     
     return alarm
 
@@ -322,7 +260,7 @@ def check_momentum_spike_for_match(
         market: Market tipi
         home: Ev sahibi
         away: Deplasman
-        sides: Kontrol edilecek side'lar (varsayılan: market'e göre belirlenir)
+        sides: Kontrol edilecek side'lar
     
     Returns:
         Tespit edilen momentum spike alarmları listesi
@@ -349,12 +287,15 @@ def check_momentum_spike_for_match(
 
 
 if __name__ == '__main__':
-    print("Momentum Spike Detection Module")
+    print("Momentum Spike Detection Module V2")
     print("=" * 50)
-    print(f"Spike Ratio Threshold: >= {SPIKE_RATIO_THRESHOLD}x")
-    print(f"Share Shift Threshold: >= +{SHARE_SHIFT_THRESHOLD} puan")
-    print("\nNOT: Mutlak hacim esigi (market_volume_threshold) KALDIRILDI")
+    print(f"Minimum Criteria: {MIN_CRITERIA_COUNT}/4")
+    print(f"\nKriterler:")
+    print(f"  1. new_money >= £{NEW_MONEY_THRESHOLD:,}")
+    print(f"  2. share_now >= {SHARE_NOW_THRESHOLD}%")
+    print(f"  3. percentage_change >= {PERCENTAGE_CHANGE_THRESHOLD}%")
+    print(f"  4. odds_drop >= {ODDS_DROP_THRESHOLD}%")
     print("\nLevel System:")
-    print("  L1: 3.0x - 4.0x")
-    print("  L2: 4.0x - 6.0x")
-    print("  L3: > 6.0x")
+    print("  L1: new_money 1500-3000 veya %4-%6 change")
+    print("  L2: new_money 3000-5000 veya %6-%10 + odds_drop")
+    print("  L3: new_money >5000 veya %10+ change + odds_drop >= %6")

@@ -24,6 +24,7 @@ try:
     from core.dropping_alert import detect_dropping_alerts, DroppingAlertDetector, DROP_THRESHOLD_PERCENT
     from core.reversal_move import detect_reversal_move, apply_reversal_effects, ReversalMoveDetector
     from core.momentum_spike import check_momentum_spike_for_match, detect_momentum_spike
+    from core.line_freeze import check_line_freeze_for_match, detect_line_freeze, LineFreezeDetector
 except ImportError:
     try:
         from config.alarm_thresholds import ALARM_CONFIG, get_threshold, WINDOW_MINUTES, LOOKBACK_MINUTES
@@ -31,6 +32,7 @@ except ImportError:
         from dropping_alert import detect_dropping_alerts, DroppingAlertDetector, DROP_THRESHOLD_PERCENT
         from reversal_move import detect_reversal_move, apply_reversal_effects, ReversalMoveDetector
         from momentum_spike import check_momentum_spike_for_match, detect_momentum_spike
+        from line_freeze import check_line_freeze_for_match, detect_line_freeze, LineFreezeDetector
     except ImportError:
         detect_sharp = None
         SharpDetector = None
@@ -41,6 +43,9 @@ except ImportError:
         ReversalMoveDetector = None
         check_momentum_spike_for_match = None
         detect_momentum_spike = None
+        check_line_freeze_for_match = None
+        detect_line_freeze = None
+        LineFreezeDetector = None
         DROP_THRESHOLD_PERCENT = 7.0
     import pytz
     TURKEY_TZ = pytz.timezone('Europe/Istanbul')
@@ -138,6 +143,30 @@ ALARM_TYPES = {
         'description': 'Şirket risk yönetimi. Para gelmesine rağmen oran donuk.',
         'critical': False
     },
+    'line_freeze_l1': {
+        'name': 'Freeze L1',
+        'icon': '🔵',
+        'color': '#60a5fa',
+        'priority': 6,
+        'description': 'Soft Freeze: 20dk+ donuk + (£1.5k+ veya %6+ share).',
+        'critical': False
+    },
+    'line_freeze_l2': {
+        'name': 'Freeze L2',
+        'icon': '🔵',
+        'color': '#3b82f6',
+        'priority': 5,
+        'description': 'Hard Freeze: 20dk+ donuk + %4+ share + market hareketli.',
+        'critical': True
+    },
+    'line_freeze_l3': {
+        'name': 'Freeze L3',
+        'icon': '🔵',
+        'color': '#1d4ed8',
+        'priority': 4,
+        'description': 'Critical Freeze: 40dk+ donuk + %8+ share + £3k+.',
+        'critical': True
+    },
     'public_surge': {
         'name': 'Public Money Surge',
         'icon': '🟡',
@@ -171,27 +200,27 @@ ALARM_TYPES = {
         'critical': True
     },
     'momentum_spike_l1': {
-        'name': 'Momentum Spike L1',
+        'name': 'Spike L1',
         'icon': '🚀',
         'color': '#a855f7',
-        'priority': 2,
-        'description': 'Momentum Spike Level 1: 3-4x hacim artışı.',
-        'critical': True
+        'priority': 3,
+        'description': 'Momentum Spike L1: £1.5k-3k new money (2/4 kriter).',
+        'critical': False
     },
     'momentum_spike_l2': {
-        'name': 'Momentum Spike L2',
+        'name': 'Spike L2',
         'icon': '🚀',
         'color': '#7c3aed',
         'priority': 2,
-        'description': 'Momentum Spike Level 2: 4-6x hacim artışı.',
+        'description': 'Momentum Spike L2: £3k-5k new money (2/4 kriter).',
         'critical': True
     },
     'momentum_spike_l3': {
-        'name': 'Momentum Spike L3',
+        'name': 'Spike L3',
         'icon': '🚀',
         'color': '#5b21b6',
         'priority': 1,
-        'description': 'Momentum Spike Level 3: 6x+ hacim artışı.',
+        'description': 'Momentum Spike L3: £5k+ new money (2/4 kriter).',
         'critical': True
     }
 }
@@ -575,19 +604,27 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                         'timestamp': current.get('ScrapedAt', now_turkey_iso())
                     })
     
-    if len(history) >= 3:
-        for side in sides:
-            freeze_result = check_line_freeze(history[-5:] if len(history) >= 5 else history, [side])
-            if freeze_result:
-                alarm_key = ('line_freeze', side['key'])
-                if alarm_key not in seen_alarms:
-                    seen_alarms.add(alarm_key)
-                    detected_alarms.append({
-                        'type': 'line_freeze',
-                        'side': freeze_result['key'],
-                        'money_diff': freeze_result['total_money'],
-                        'timestamp': current.get('ScrapedAt', now_turkey_iso())
-                    })
+    if len(history) >= 3 and check_line_freeze_for_match is not None:
+        home = current.get('Home', '')
+        away = current.get('Away', '')
+        side_keys = [s['key'] for s in sides]
+        line_freezes = check_line_freeze_for_match(history, market, home, away, side_keys)
+        for freeze in line_freezes:
+            level = freeze.get('freeze_level', 1)
+            alarm_key = ('line_freeze', freeze.get('side', ''), level)
+            if alarm_key not in seen_alarms:
+                seen_alarms.add(alarm_key)
+                alarm_type = f"line_freeze_l{level}" if level in [1, 2, 3] else 'line_freeze'
+                detected_alarms.append({
+                    'type': alarm_type,
+                    'side': freeze.get('side', ''),
+                    'freeze_level': level,
+                    'freeze_duration': freeze.get('freeze_duration', 0),
+                    'new_money': freeze.get('new_money', 0),
+                    'share_now': freeze.get('share_now', 0),
+                    'detail': freeze.get('detail', ''),
+                    'timestamp': current.get('ScrapedAt', now_turkey_iso())
+                })
     
     if len(history) >= 2:
         momentum_change_result = check_momentum_change(history, sides)
@@ -749,31 +786,6 @@ def check_momentum(history: List[Dict], sides: List[Dict]) -> Optional[Dict]:
     
     return None
 
-def check_line_freeze(history: List[Dict], sides: List[Dict]) -> Optional[Dict]:
-    config = ALARM_CONFIG.get('line_freeze', {})
-    max_change = config.get('max_odds_change', 0.02)
-    min_money = config.get('min_money_inflow', 1500)
-    
-    for side in sides:
-        total_money = 0
-        odds_stable = True
-        first_odds = parse_odds(history[0].get(side.get('odds', ''), 0))
-        
-        for i in range(1, len(history)):
-            curr_amt = parse_money(history[i].get(side['amt'], 0))
-            prev_amt = parse_money(history[i-1].get(side['amt'], 0))
-            curr_odds = parse_odds(history[i].get(side.get('odds', ''), 0))
-            
-            total_money += max(0, curr_amt - prev_amt)
-            
-            if first_odds > 0 and abs(curr_odds - first_odds) > max_change:
-                odds_stable = False
-                break
-        
-        if odds_stable and total_money >= min_money:
-            return {'key': side['key'], 'total_money': total_money}
-    
-    return None
 
 def check_momentum_change(history: List[Dict], sides: List[Dict]) -> Optional[Dict]:
     """
@@ -980,8 +992,17 @@ def format_alarm_for_modal(alarm: Dict) -> Dict:
         detail_text = f"Para artıyor (+£{int(money_diff):,}), oran sabit."
     elif alarm['type'] == 'momentum':
         detail_text = f"+£{int(money_diff):,} sürekli akış."
-    elif alarm['type'] == 'line_freeze':
-        detail_text = f"Para gelmesine rağmen oran donuk."
+    elif alarm['type'].startswith('line_freeze'):
+        freeze_duration = alarm.get('freeze_duration', 0)
+        new_money = alarm.get('new_money', 0)
+        share_now = alarm.get('share_now', 0)
+        freeze_level = alarm.get('freeze_level', 0)
+        if alarm.get('detail'):
+            detail_text = alarm.get('detail')
+        else:
+            level_names = {1: 'Soft', 2: 'Hard', 3: 'Critical'}
+            level_name = level_names.get(freeze_level, '')
+            detail_text = f"L{freeze_level} {level_name} Freeze ({freeze_duration}dk, £{int(new_money):,}, {share_now:.1f}%)"
     
     return {
         'type': alarm['type'],

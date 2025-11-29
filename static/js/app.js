@@ -2720,6 +2720,9 @@ const AlarmColors = {
     momentum_spike_l3: { hex: '#5b21b6', name: 'Spike L3', icon: '🚀', priority: 1 },
     momentum: { hex: '#a855f7', name: 'Momentum', icon: '🟣', priority: 6 },
     line_freeze: { hex: '#3b82f6', name: 'Line Freeze', icon: '🔵', priority: 7 },
+    line_freeze_l1: { hex: '#60a5fa', name: 'Freeze L1', icon: '🔵', priority: 7 },
+    line_freeze_l2: { hex: '#3b82f6', name: 'Freeze L2', icon: '🔵', priority: 6 },
+    line_freeze_l3: { hex: '#1d4ed8', name: 'Freeze L3', icon: '🔵', priority: 5 },
     public_surge: { hex: '#eab308', name: 'Public Surge', icon: '🟡', priority: 8 },
     dropping: { hex: '#f97316', name: 'Dropping', icon: '📉', priority: 9 },
     default: { hex: '#666666', name: 'Alert', icon: '⚡', priority: 99 }
@@ -2734,6 +2737,12 @@ function getAlarmColor(alarmType) {
         if (alarmType === 'momentum_spike_l2') return AlarmColors.momentum_spike_l2;
         if (alarmType === 'momentum_spike_l1') return AlarmColors.momentum_spike_l1;
         return AlarmColors.momentum_spike;
+    }
+    if (alarmType && alarmType.startsWith('line_freeze')) {
+        if (alarmType === 'line_freeze_l3') return AlarmColors.line_freeze_l3;
+        if (alarmType === 'line_freeze_l2') return AlarmColors.line_freeze_l2;
+        if (alarmType === 'line_freeze_l1') return AlarmColors.line_freeze_l1;
+        return AlarmColors.line_freeze;
     }
     return AlarmColors[alarmType] || AlarmColors.default;
 }
