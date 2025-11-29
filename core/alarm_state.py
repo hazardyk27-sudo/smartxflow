@@ -198,6 +198,216 @@ def cleanup_old_alarm_states(hours: int = 48):
         conn.close()
 
 
+DROPPING_PERSISTENCE_MINUTES = 30
+
+def init_dropping_state_db():
+    """Initialize the dropping_state table for 30-minute persistence tracking."""
+    conn = _get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS dropping_state (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                match_id TEXT NOT NULL,
+                market TEXT NOT NULL,
+                side TEXT NOT NULL,
+                drop_started INTEGER DEFAULT 0,
+                drop_start_time TEXT,
+                last_drop_pct REAL DEFAULT 0,
+                last_level INTEGER DEFAULT 0,
+                last_seen_at TEXT,
+                alarm_fired INTEGER DEFAULT 0,
+                UNIQUE(match_id, market, side)
+            )
+        ''')
+        cur.execute('CREATE INDEX IF NOT EXISTS idx_dropping_state_match ON dropping_state(match_id)')
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_dropping_level(drop_pct: float) -> int:
+    """
+    Calculate dropping level based on drop percentage.
+    
+    7% ≤ drop < 10% → Level 1
+    10% ≤ drop < 15% → Level 2
+    drop ≥ 15% → Level 3
+    """
+    if drop_pct < 7:
+        return 0
+    elif drop_pct < 10:
+        return 1
+    elif drop_pct < 15:
+        return 2
+    else:
+        return 3
+
+
+def get_dropping_state(match_id: str, market: str, side: str) -> Optional[Dict[str, Any]]:
+    """Get the current dropping state for a match/market/side."""
+    init_dropping_state_db()
+    conn = _get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute('''
+            SELECT * FROM dropping_state 
+            WHERE match_id = ? AND market = ? AND side = ?
+            LIMIT 1
+        ''', (match_id, market, side))
+        
+        row = cur.fetchone()
+        if row:
+            return dict(row)
+        return None
+    finally:
+        conn.close()
+
+
+def update_dropping_state(
+    match_id: str,
+    market: str,
+    side: str,
+    drop_pct: float,
+    level: int
+) -> Dict[str, Any]:
+    """
+    Update dropping state and return persistence info.
+    
+    Returns:
+        {
+            'drop_started': bool,
+            'drop_start_time': str (ISO),
+            'persisted_minutes': float,
+            'level': int,
+            'is_real_alert': bool (True if >= 30 minutes)
+        }
+    """
+    init_dropping_state_db()
+    conn = _get_connection()
+    try:
+        cur = conn.cursor()
+        now = now_turkey_iso()
+        
+        cur.execute('''
+            SELECT * FROM dropping_state 
+            WHERE match_id = ? AND market = ? AND side = ?
+            LIMIT 1
+        ''', (match_id, market, side))
+        
+        existing = cur.fetchone()
+        
+        if level == 0:
+            if existing:
+                cur.execute('''
+                    UPDATE dropping_state 
+                    SET drop_started = 0, drop_start_time = NULL, 
+                        last_drop_pct = 0, last_level = 0, last_seen_at = ?,
+                        alarm_fired = 0
+                    WHERE match_id = ? AND market = ? AND side = ?
+                ''', (now, match_id, market, side))
+                conn.commit()
+            
+            return {
+                'drop_started': False,
+                'drop_start_time': None,
+                'persisted_minutes': 0,
+                'level': 0,
+                'is_real_alert': False,
+                'alarm_fired': False
+            }
+        
+        if existing and existing['drop_started']:
+            drop_start_time = existing['drop_start_time']
+            alarm_fired = existing['alarm_fired'] == 1
+            
+            try:
+                start_dt = datetime.fromisoformat(drop_start_time.replace('Z', '+00:00'))
+                now_dt = datetime.fromisoformat(now.replace('Z', '+00:00'))
+                persisted_minutes = (now_dt - start_dt).total_seconds() / 60
+            except:
+                persisted_minutes = 0
+            
+            cur.execute('''
+                UPDATE dropping_state 
+                SET last_drop_pct = ?, last_level = ?, last_seen_at = ?
+                WHERE match_id = ? AND market = ? AND side = ?
+            ''', (drop_pct, level, now, match_id, market, side))
+            conn.commit()
+            
+            is_real_alert = persisted_minutes >= DROPPING_PERSISTENCE_MINUTES
+            
+            return {
+                'drop_started': True,
+                'drop_start_time': drop_start_time,
+                'persisted_minutes': round(persisted_minutes, 1),
+                'level': level,
+                'is_real_alert': is_real_alert,
+                'alarm_fired': alarm_fired
+            }
+        
+        else:
+            if existing:
+                cur.execute('''
+                    UPDATE dropping_state 
+                    SET drop_started = 1, drop_start_time = ?,
+                        last_drop_pct = ?, last_level = ?, last_seen_at = ?,
+                        alarm_fired = 0
+                    WHERE match_id = ? AND market = ? AND side = ?
+                ''', (now, drop_pct, level, now, match_id, market, side))
+            else:
+                cur.execute('''
+                    INSERT INTO dropping_state 
+                    (match_id, market, side, drop_started, drop_start_time, 
+                     last_drop_pct, last_level, last_seen_at, alarm_fired)
+                    VALUES (?, ?, ?, 1, ?, ?, ?, ?, 0)
+                ''', (match_id, market, side, now, drop_pct, level, now))
+            conn.commit()
+            
+            return {
+                'drop_started': True,
+                'drop_start_time': now,
+                'persisted_minutes': 0,
+                'level': level,
+                'is_real_alert': False,
+                'alarm_fired': False
+            }
+    finally:
+        conn.close()
+
+
+def mark_dropping_alarm_fired(match_id: str, market: str, side: str):
+    """Mark that a dropping alarm has been fired for this state."""
+    init_dropping_state_db()
+    conn = _get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute('''
+            UPDATE dropping_state 
+            SET alarm_fired = 1
+            WHERE match_id = ? AND market = ? AND side = ?
+        ''', (match_id, market, side))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def cleanup_old_dropping_states(hours: int = 48):
+    """Remove dropping states older than specified hours."""
+    init_dropping_state_db()
+    conn = _get_connection()
+    try:
+        cur = conn.cursor()
+        cutoff = (datetime.now() - timedelta(hours=hours)).isoformat()
+        cur.execute('DELETE FROM dropping_state WHERE last_seen_at < ?', (cutoff,))
+        deleted = cur.rowcount
+        conn.commit()
+        if deleted > 0:
+            print(f"[DroppingState] Cleaned up {deleted} old dropping states")
+    finally:
+        conn.close()
+
+
 def clear_match_alarm_states(match_id: str):
     """Clear all alarm states for a specific match (when match ends)."""
     init_alarm_state_db()
