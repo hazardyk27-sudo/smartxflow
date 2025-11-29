@@ -911,6 +911,79 @@ class SupabaseClient:
             print(f"[CleanupLowDrop] Exception: {e}")
             return 0
     
+    def cleanup_legacy_alarms(self) -> int:
+        """
+        Remove legacy alarms that don't meet new criteria:
+        - Old 'dropping' type alarms (new format: dropping_l1, dropping_l2, dropping_l3)
+        - Sharp alarms with score < 70
+        - Medium movement alarms with score < 40
+        Returns count of deleted alarms.
+        """
+        if not self.is_available:
+            return 0
+        
+        try:
+            url = f"{self._rest_url('smart_money_alarms')}?select=*"
+            resp = httpx.get(url, headers=self._headers(), timeout=15)
+            
+            if resp.status_code != 200:
+                print(f"[CleanupLegacy] Error fetching alarms: {resp.status_code}")
+                return 0
+            
+            alarms = resp.json()
+            print(f"[CleanupLegacy] Found {len(alarms)} total alarms to check")
+            
+            to_delete = []
+            for alarm in alarms:
+                alarm_type = alarm.get('alarm_type', '')
+                sharp_score = alarm.get('sharp_score') or 0
+                
+                try:
+                    sharp_score = float(sharp_score)
+                except:
+                    sharp_score = 0
+                
+                should_delete = False
+                reason = ""
+                
+                if alarm_type == 'dropping':
+                    should_delete = True
+                    reason = "old dropping format"
+                elif alarm_type == 'sharp' and sharp_score < 70:
+                    should_delete = True
+                    reason = f"sharp score {sharp_score} < 70"
+                elif alarm_type == 'medium_movement' and sharp_score < 40:
+                    should_delete = True
+                    reason = f"medium score {sharp_score} < 40"
+                
+                if should_delete:
+                    to_delete.append({
+                        'id': alarm.get('id'),
+                        'home': alarm.get('home', ''),
+                        'away': alarm.get('away', ''),
+                        'type': alarm_type,
+                        'reason': reason
+                    })
+            
+            print(f"[CleanupLegacy] {len(to_delete)} legacy alarms will be deleted")
+            
+            deleted = 0
+            for alarm in to_delete:
+                alarm_id = alarm.get('id')
+                if alarm_id:
+                    del_url = f"{self._rest_url('smart_money_alarms')}?id=eq.{alarm_id}"
+                    del_resp = httpx.delete(del_url, headers=self._headers(), timeout=5)
+                    if del_resp.status_code in [200, 204]:
+                        deleted += 1
+                        print(f"  - Deleted: {alarm['home']} vs {alarm['away']} ({alarm['type']}) - {alarm['reason']}")
+            
+            print(f"[CleanupLegacy] Successfully deleted {deleted} legacy alarms")
+            return deleted
+            
+        except Exception as e:
+            print(f"[CleanupLegacy] Exception: {e}")
+            return 0
+    
     def get_persistent_alarms(self, match_date_filter: str = 'today_future') -> List[Dict[str, Any]]:
         """
         Get all persistent alarms for matches that are today or in the future.
