@@ -286,6 +286,46 @@ def get_volume_shift_threshold(market_type: str) -> float:
     return thresholds.get(market_type, cfg.volume_1x2)
 
 
+def get_sharp_config() -> SharpConfig:
+    """Get sharp config"""
+    return load_alarm_config().sharp
+
+
+def get_dropping_config() -> DroppingConfig:
+    """Get dropping config"""
+    return load_alarm_config().dropping
+
+
+def get_reversal_config() -> ReversalConfig:
+    """Get reversal config"""
+    return load_alarm_config().reversal
+
+
+def get_momentum_config() -> MomentumConfig:
+    """Get momentum config"""
+    return load_alarm_config().momentum
+
+
+def get_line_freeze_config() -> LineFreezeConfig:
+    """Get line freeze config"""
+    return load_alarm_config().line_freeze
+
+
+def get_volume_shift_config() -> VolumeShiftConfig:
+    """Get volume shift config"""
+    return load_alarm_config().volume_shift
+
+
+def get_big_money_config() -> BigMoneyConfig:
+    """Get big money config"""
+    return load_alarm_config().big_money
+
+
+def get_public_surge_config() -> PublicSurgeConfig:
+    """Get public surge config"""
+    return load_alarm_config().public_surge
+
+
 def is_alarm_enabled(alarm_type: str) -> bool:
     """
     Check if an alarm type is enabled.

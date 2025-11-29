@@ -49,13 +49,15 @@ from core.alarms.alarm_state import (
 
 from core.alarms.main import (
     analyze_match_alarms,
-    format_alarm_list
+    format_alarm_for_ticker,
+    format_alarm_for_modal,
+    ALARM_TYPES
 )
 
 from core.alarms.real_sharp import SharpDetector
 from core.alarms.dropping_alert import DroppingAlertDetector, detect_dropping_alerts
 from core.alarms.line_freeze import LineFreezeDetector, detect_line_freeze
-from core.alarms.momentum_spike import MomentumSpikeDetector, detect_momentum_spike
+from core.alarms.momentum_spike import detect_momentum_spike, check_momentum_spike_for_match
 from core.alarms.volume_shift import VolumeShiftDetector, detect_volume_shift
 from core.alarms.reversal_move import ReversalMoveDetector
 
@@ -81,14 +83,16 @@ __all__ = [
     'mark_dropping_alarm_fired',
     'DROPPING_PERSISTENCE_MINUTES',
     'analyze_match_alarms',
-    'format_alarm_list',
+    'format_alarm_for_ticker',
+    'format_alarm_for_modal',
+    'ALARM_TYPES',
     'SharpDetector',
     'DroppingAlertDetector',
     'detect_dropping_alerts',
     'LineFreezeDetector',
     'detect_line_freeze',
-    'MomentumSpikeDetector',
     'detect_momentum_spike',
+    'check_momentum_spike_for_match',
     'VolumeShiftDetector',
     'detect_volume_shift',
     'ReversalMoveDetector',
