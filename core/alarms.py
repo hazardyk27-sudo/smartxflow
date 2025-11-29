@@ -86,8 +86,40 @@ ALARM_TYPES = {
         'icon': '📉',
         'color': '#ef4444',
         'priority': 4,
-        'description': 'Açılıştan bu yana ciddi oran düşüşü.',
+        'description': 'Açılıştan bu yana 30dk+ kalıcı oran düşüşü.',
         'critical': True
+    },
+    'dropping_l1': {
+        'name': 'Dropping L1',
+        'icon': '📉',
+        'color': '#f59e0b',
+        'priority': 4,
+        'description': 'Dropping Level 1: 7-10% drop, 30dk+ kalıcı.',
+        'critical': True
+    },
+    'dropping_l2': {
+        'name': 'Dropping L2',
+        'icon': '📉',
+        'color': '#ef4444',
+        'priority': 4,
+        'description': 'Dropping Level 2: 10-15% drop, 30dk+ kalıcı.',
+        'critical': True
+    },
+    'dropping_l3': {
+        'name': 'Dropping L3',
+        'icon': '📉',
+        'color': '#dc2626',
+        'priority': 4,
+        'description': 'Dropping Level 3: 15%+ drop, 30dk+ kalıcı.',
+        'critical': True
+    },
+    'dropping_preview': {
+        'name': 'Dropping Preview',
+        'icon': '📊',
+        'color': '#6b7280',
+        'priority': 20,
+        'description': 'Oran düşüşü başladı, 30dk dolmadı (preview).',
+        'critical': False
     },
     'line_freeze': {
         'name': 'Line Freeze',
@@ -414,7 +446,7 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                     })
     
     if detect_dropping_alerts and first:
-        dropping_alerts = detect_dropping_alerts(
+        real_alerts, preview_alerts = detect_dropping_alerts(
             history=history,
             market=market,
             match_id=match_id,
@@ -422,15 +454,17 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
             away=away
         )
         
-        for drop_alert in dropping_alerts:
+        for drop_alert in real_alerts:
             first_ts = first.get('ScrapedAt', '') if first else ''
             curr_ts = current.get('ScrapedAt', now_turkey_iso())
-            alarm_key = ('dropping', drop_alert['side'], first_ts[:13] if first_ts else '')
+            level = drop_alert.get('dropping_level', 1)
+            alarm_type = f"dropping_l{level}" if level > 0 else 'dropping'
+            alarm_key = (alarm_type, drop_alert['side'], first_ts[:13] if first_ts else '')
             
             if alarm_key not in seen_alarms:
                 seen_alarms.add(alarm_key)
                 detected_alarms.append({
-                    'type': 'dropping',
+                    'type': alarm_type,
                     'side': drop_alert['side'],
                     'money_diff': drop_alert['selection_volume'],
                     'selection_volume': drop_alert['selection_volume'],
@@ -439,6 +473,8 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                     'total_drop': drop_alert['drop_value'],
                     'drop_percent': drop_alert['drop_percent'],
                     'dropping_sides_count': drop_alert['dropping_sides_count'],
+                    'dropping_level': level,
+                    'persisted_minutes': drop_alert.get('persisted_minutes', 30),
                     'window_start': first_ts,
                     'window_end': curr_ts,
                     'timestamp': curr_ts
