@@ -72,7 +72,7 @@ def parse_pct(val: Any) -> float:
 def get_sharp_config():
     """Get sharp config from central config"""
     try:
-        from core.alarm_config import load_alarm_config
+        from core.alarms.alarm_config import load_alarm_config
         return load_alarm_config().sharp
     except ImportError:
         return None

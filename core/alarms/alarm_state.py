@@ -9,7 +9,14 @@ import sqlite3
 import os
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, Tuple
-from core.timezone import now_turkey_iso
+try:
+    from core.timezone import now_turkey_iso
+except ImportError:
+    import pytz
+    from datetime import datetime
+    TURKEY_TZ = pytz.timezone('Europe/Istanbul')
+    def now_turkey_iso():
+        return datetime.now(TURKEY_TZ).isoformat()
 
 DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'alarm_state.db')
 

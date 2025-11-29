@@ -216,7 +216,7 @@ def run_reconciliation(
     
     Returns summary of what was found/fixed.
     """
-    from core.alarms import analyze_match_alarms
+    from core.alarms.main import analyze_match_alarms
     from core.timezone import is_match_today_or_future
     
     print("[Reconciliation] Starting self-check...")

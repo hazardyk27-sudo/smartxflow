@@ -25,7 +25,7 @@ from datetime import datetime, timedelta
 def get_line_freeze_config():
     """Get line freeze config from central config"""
     try:
-        from core.alarm_config import load_alarm_config
+        from core.alarms.alarm_config import load_alarm_config
         return load_alarm_config().line_freeze
     except ImportError:
         return None

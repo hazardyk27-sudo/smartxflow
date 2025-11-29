@@ -19,7 +19,7 @@ from typing import Dict, List, Optional, Any
 def get_volume_shift_config():
     """Get volume shift config from central config"""
     try:
-        from core.alarm_config import load_alarm_config
+        from core.alarms.alarm_config import load_alarm_config
         return load_alarm_config().volume_shift
     except ImportError:
         return None

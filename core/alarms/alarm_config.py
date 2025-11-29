@@ -14,7 +14,7 @@ from dataclasses import dataclass, field, asdict
 from copy import deepcopy
 
 
-CONFIG_PATH = Path("alarm_config.json")
+CONFIG_PATH = Path(__file__).parent / "alarm_config.json"
 
 _alarm_config: Optional['AlarmConfig'] = None
 

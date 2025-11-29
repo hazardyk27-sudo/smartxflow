@@ -21,7 +21,7 @@ Kalıcılık Kuralı:
 
 from typing import List, Dict, Tuple, Optional
 from datetime import datetime, timedelta
-from core.alarm_state import (
+from core.alarms.alarm_state import (
     get_dropping_level,
     update_dropping_state,
     mark_dropping_alarm_fired,

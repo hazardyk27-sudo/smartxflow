@@ -27,7 +27,7 @@ from datetime import datetime
 def get_momentum_config():
     """Get momentum config from central config"""
     try:
-        from core.alarm_config import load_alarm_config
+        from core.alarms.alarm_config import load_alarm_config
         return load_alarm_config().momentum
     except ImportError:
         return None

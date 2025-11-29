@@ -30,7 +30,7 @@ static_dir = resource_path("static")
 from core.settings import init_mode, is_server_mode, is_client_mode, get_scrape_interval_seconds, is_scraper_disabled
 from core.timezone import now_turkey, now_turkey_iso, now_turkey_formatted, format_turkey_time, format_time_only, TURKEY_TZ
 from services.supabase_client import get_database, get_supabase_client
-from core.alarms import analyze_match_alarms, format_alarm_for_ticker, format_alarm_for_modal, ALARM_TYPES
+from core.alarms.main import analyze_match_alarms, format_alarm_for_ticker, format_alarm_for_modal, ALARM_TYPES
 import hashlib
 
 def generate_match_id(home, away, league, date=''):
@@ -105,12 +105,12 @@ def start_cleanup_scheduler():
     global cleanup_thread
     
     try:
-        from core.alarm_state import cleanup_old_alarm_states
+        from core.alarms.alarm_state import cleanup_old_alarm_states
     except ImportError:
         cleanup_old_alarm_states = lambda *args: None
     
     try:
-        from core.alarm_safety import run_reconciliation, retry_failed_alarms, cleanup_old_failed_alarms
+        from core.alarms.alarm_safety import run_reconciliation, retry_failed_alarms, cleanup_old_failed_alarms
     except ImportError:
         run_reconciliation = lambda *args, **kwargs: {}
         retry_failed_alarms = lambda *args: {}
@@ -231,7 +231,7 @@ def index():
     # Pre-render ticker alarms for server-side rendering
     ticker_alarms = []
     try:
-        from core.alarms import get_critical_alarms, format_alarm_for_ticker
+        from core.alarms.main import get_critical_alarms, format_alarm_for_ticker
         
         matches_data = db.get_all_matches_with_latest('moneyway_1x2')
         
@@ -877,8 +877,8 @@ def detect_and_save_alarms(filter_alarm_type: str = None):
     """
     import time
     from core.timezone import is_match_today, is_yesterday_turkey, is_match_d2_or_older, get_match_lifecycle_status
-    from core.alarm_safety import AlarmSafetyGuard, log_failed_alarm
-    from core.alarm_config import is_alarm_enabled, reload_alarm_config, get_config_version
+    from core.alarms.alarm_safety import AlarmSafetyGuard, log_failed_alarm
+    from core.alarms.alarm_config import is_alarm_enabled, reload_alarm_config, get_config_version
     
     reload_alarm_config()
     config_ver = get_config_version()
@@ -978,7 +978,7 @@ def get_cached_alarms():
     Alarms stay visible until match is D-2 or older.
     """
     import time
-    from core.alarms import group_alarms_by_match, format_grouped_alarm
+    from core.alarms.main import group_alarms_by_match, format_grouped_alarm
     from core.timezone import is_match_d2_or_older
     
     now = time.time()
@@ -1073,7 +1073,7 @@ def get_cached_alarms_volatile():
     - D-2+ (Old): DO NOT show
     """
     import time
-    from core.alarms import group_alarms_by_match, format_grouped_alarm
+    from core.alarms.main import group_alarms_by_match, format_grouped_alarm
     from core.timezone import is_match_d2_or_older, get_match_lifecycle_status
     
     print("[Alarms API] Using volatile alarm calculation (fallback)...")
@@ -1217,7 +1217,7 @@ def trigger_reconciliation():
     Can be called manually or by scheduled job.
     """
     try:
-        from core.alarm_safety import run_reconciliation, retry_failed_alarms
+        from core.alarms.alarm_safety import run_reconciliation, retry_failed_alarms
         
         supabase = get_supabase_client()
         if not supabase or not supabase.is_available:
@@ -1263,7 +1263,7 @@ def safety_check():
     3. Last reconciliation result
     """
     try:
-        from core.alarm_safety import verify_no_delete_operations, get_failed_alarms
+        from core.alarms.alarm_safety import verify_no_delete_operations, get_failed_alarms
         import os
         import json
         
@@ -1309,7 +1309,7 @@ def get_ticker_alarms():
     """Get critical alarms for borsa bandı - uses same cache as alarm list for consistency"""
     import time
     try:
-        from core.alarms import ALARM_TYPES
+        from core.alarms.main import ALARM_TYPES
         
         now = time.time()
         if ticker_cache['data'] is not None and (now - ticker_cache['timestamp']) < ticker_cache['ttl']:
@@ -1550,7 +1550,7 @@ def admin_panel():
 def get_alarm_config():
     """Get current alarm configuration"""
     try:
-        from core.alarm_config import load_alarm_config, config_to_dict
+        from core.alarms.alarm_config import load_alarm_config, config_to_dict
         cfg = load_alarm_config()
         return jsonify(config_to_dict(cfg))
     except Exception as e:
@@ -1574,7 +1574,7 @@ def _background_recalculate():
     import time as time_module
     global _recalc_status, _alarm_cache, _alarm_cache_time
     
-    from core.alarm_config import get_config_version
+    from core.alarms.alarm_config import get_config_version
     
     _recalc_status['running'] = True
     _recalc_status['started_at'] = time_module.time()
@@ -1626,7 +1626,7 @@ def update_alarm_config():
     - All alarms: POST /admin/recalculate-alarms
     """
     try:
-        from core.alarm_config import dict_to_config, save_alarm_config, config_to_dict, reload_alarm_config, load_alarm_config
+        from core.alarms.alarm_config import dict_to_config, save_alarm_config, config_to_dict, reload_alarm_config, load_alarm_config
         
         data = request.get_json()
         if not data:
@@ -1670,7 +1670,7 @@ def _background_recalculate_type(alarm_type: str):
     import time as time_module
     global _type_recalc_status, _alarm_cache, _alarm_cache_time
     
-    from core.alarm_config import get_config_version
+    from core.alarms.alarm_config import get_config_version
     
     _type_recalc_status[alarm_type] = {
         'running': True,
@@ -1733,7 +1733,7 @@ def recalculate_single_alarm_type(alarm_type):
         return jsonify({'error': f"Gecersiz alarm turu: {alarm_type}. Gecerli turler: {', '.join(valid_types)}"}), 400
     
     try:
-        from core.alarm_config import reload_alarm_config
+        from core.alarms.alarm_config import reload_alarm_config
         
         reload_alarm_config()
         
@@ -1805,7 +1805,7 @@ def recalculate_all_alarms():
     import threading
     
     try:
-        from core.alarm_config import reload_alarm_config
+        from core.alarms.alarm_config import reload_alarm_config
         
         reload_alarm_config()
         print("[RecalcAlarms] Config reloaded from file")
@@ -1861,7 +1861,7 @@ def get_recalc_status():
 def get_alarm_stats():
     """Get alarm statistics by type for debugging"""
     try:
-        from core.alarm_config import load_alarm_config
+        from core.alarms.alarm_config import load_alarm_config
         
         stats = db.supabase.get_alarm_type_counts() if db.is_supabase_available else {}
         cfg = load_alarm_config()
@@ -1891,7 +1891,7 @@ def get_alarm_stats():
 def reload_config():
     """Reload configuration from file"""
     try:
-        from core.alarm_config import reload_alarm_config, config_to_dict
+        from core.alarms.alarm_config import reload_alarm_config, config_to_dict
         cfg = reload_alarm_config()
         return jsonify({
             'success': True,
