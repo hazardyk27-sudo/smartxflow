@@ -2714,6 +2714,10 @@ const AlarmColors = {
     reversal_move: { hex: '#ef4444', name: 'Reversal Move', icon: '🔄', priority: 3 },
     big_money: { hex: '#eab308', name: 'Big Money', icon: '💰', priority: 4 },
     momentum_change: { hex: '#06b6d4', name: 'Momentum Change', icon: '🔄', priority: 5 },
+    momentum_spike: { hex: '#a855f7', name: 'Momentum Spike', icon: '🚀', priority: 2 },
+    momentum_spike_l1: { hex: '#a855f7', name: 'Spike L1', icon: '🚀', priority: 2 },
+    momentum_spike_l2: { hex: '#7c3aed', name: 'Spike L2', icon: '🚀', priority: 2 },
+    momentum_spike_l3: { hex: '#5b21b6', name: 'Spike L3', icon: '🚀', priority: 1 },
     momentum: { hex: '#a855f7', name: 'Momentum', icon: '🟣', priority: 6 },
     line_freeze: { hex: '#3b82f6', name: 'Line Freeze', icon: '🔵', priority: 7 },
     public_surge: { hex: '#eab308', name: 'Public Surge', icon: '🟡', priority: 8 },
@@ -2724,6 +2728,12 @@ const AlarmColors = {
 function getAlarmColor(alarmType) {
     if (alarmType && alarmType.startsWith('dropping')) {
         return AlarmColors.dropping;
+    }
+    if (alarmType && alarmType.startsWith('momentum_spike')) {
+        if (alarmType === 'momentum_spike_l3') return AlarmColors.momentum_spike_l3;
+        if (alarmType === 'momentum_spike_l2') return AlarmColors.momentum_spike_l2;
+        if (alarmType === 'momentum_spike_l1') return AlarmColors.momentum_spike_l1;
+        return AlarmColors.momentum_spike;
     }
     return AlarmColors[alarmType] || AlarmColors.default;
 }

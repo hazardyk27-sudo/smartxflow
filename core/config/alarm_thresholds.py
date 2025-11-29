@@ -58,6 +58,22 @@ ALARM_CONFIG = {
     'momentum_change': {
         'dominance_threshold': 50,
         'description': 'Dominance change - when >50% share switches to different option'
+    },
+    
+    'momentum_spike': {
+        'spike_ratio_threshold': 3.0,
+        'share_shift_threshold': 3.0,
+        'volume_thresholds': {
+            '1x2': 2000,
+            'ou25': 1000,
+            'btts': 800
+        },
+        'level_thresholds': {
+            'L1': (3.0, 4.0),
+            'L2': (4.0, 6.0),
+            'L3': (6.0, 100.0)
+        },
+        'description': 'Momentum Spike: Son 10dk hacmi, onceki 30dk ortalamasinin 3+ kati + +3pts pay artisi'
     }
 }
 

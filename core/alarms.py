@@ -23,12 +23,14 @@ try:
     from core.real_sharp import detect_sharp, SharpDetector
     from core.dropping_alert import detect_dropping_alerts, DroppingAlertDetector, DROP_THRESHOLD_PERCENT
     from core.reversal_move import detect_reversal_move, apply_reversal_effects, ReversalMoveDetector
+    from core.momentum_spike import check_momentum_spike_for_match, detect_momentum_spike
 except ImportError:
     try:
         from config.alarm_thresholds import ALARM_CONFIG, get_threshold, WINDOW_MINUTES, LOOKBACK_MINUTES
         from real_sharp import detect_sharp, SharpDetector
         from dropping_alert import detect_dropping_alerts, DroppingAlertDetector, DROP_THRESHOLD_PERCENT
         from reversal_move import detect_reversal_move, apply_reversal_effects, ReversalMoveDetector
+        from momentum_spike import check_momentum_spike_for_match, detect_momentum_spike
     except ImportError:
         detect_sharp = None
         SharpDetector = None
@@ -37,6 +39,8 @@ except ImportError:
         detect_reversal_move = None
         apply_reversal_effects = None
         ReversalMoveDetector = None
+        check_momentum_spike_for_match = None
+        detect_momentum_spike = None
         DROP_THRESHOLD_PERCENT = 7.0
     import pytz
     TURKEY_TZ = pytz.timezone('Europe/Istanbul')
@@ -156,6 +160,38 @@ ALARM_TYPES = {
         'color': '#06b6d4',
         'priority': 8,
         'description': 'Dominasyon değişimi. %50+ paya sahip seçenek değişti.',
+        'critical': True
+    },
+    'momentum_spike': {
+        'name': 'Momentum Spike',
+        'icon': '🚀',
+        'color': '#a855f7',
+        'priority': 2,
+        'description': 'Hacim spike: Son 10dk hacmi, önceki 30dk ortalamasının 3+ katı.',
+        'critical': True
+    },
+    'momentum_spike_l1': {
+        'name': 'Momentum Spike L1',
+        'icon': '🚀',
+        'color': '#a855f7',
+        'priority': 2,
+        'description': 'Momentum Spike Level 1: 3-4x hacim artışı.',
+        'critical': True
+    },
+    'momentum_spike_l2': {
+        'name': 'Momentum Spike L2',
+        'icon': '🚀',
+        'color': '#7c3aed',
+        'priority': 2,
+        'description': 'Momentum Spike Level 2: 4-6x hacim artışı.',
+        'critical': True
+    },
+    'momentum_spike_l3': {
+        'name': 'Momentum Spike L3',
+        'icon': '🚀',
+        'color': '#5b21b6',
+        'priority': 1,
+        'description': 'Momentum Spike Level 3: 6x+ hacim artışı.',
         'critical': True
     }
 }
@@ -568,6 +604,29 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                     'from_pct': momentum_change_result['from_pct'],
                     'to_pct': momentum_change_result['to_pct'],
                     'detail': f"{from_option}→{to_option} ({momentum_change_result['from_pct']:.0f}%→{momentum_change_result['to_pct']:.0f}%)",
+                    'timestamp': current.get('ScrapedAt', now_turkey_iso())
+                })
+    
+    if len(history) >= 4 and check_momentum_spike_for_match is not None:
+        home = current.get('Home', '')
+        away = current.get('Away', '')
+        side_keys = [s['key'] for s in sides]
+        momentum_spikes = check_momentum_spike_for_match(history, market, home, away, side_keys)
+        for spike in momentum_spikes:
+            level = spike.get('momentum_level', 1)
+            alarm_key = ('momentum_spike', spike.get('side', ''), level)
+            if alarm_key not in seen_alarms:
+                seen_alarms.add(alarm_key)
+                alarm_type = f"momentum_spike_l{level}" if level in [1, 2, 3] else 'momentum_spike'
+                detected_alarms.append({
+                    'type': alarm_type,
+                    'side': spike.get('side', ''),
+                    'momentum_level': level,
+                    'spike_ratio': spike.get('spike_ratio', 0),
+                    'share_shift': spike.get('share_shift', 0),
+                    'd4_volume': spike.get('d4_volume', 0),
+                    'baseline_10': spike.get('baseline_10', 0),
+                    'detail': spike.get('detail', ''),
                     'timestamp': current.get('ScrapedAt', now_turkey_iso())
                 })
     

@@ -414,6 +414,72 @@ def generate_example_alarms() -> List[Dict[str, Any]]:
     return alarms
 
 
+def build_momentum_spike_alarm(
+    match_id: str,
+    market: str,
+    side: str,
+    momentum_level: int,
+    spike_ratio: float,
+    share_shift: float,
+    d4_volume: float,
+    baseline_10: float,
+    home: str = '',
+    away: str = ''
+) -> Dict[str, Any]:
+    """
+    Momentum Spike alarm objesi oluştur.
+    
+    Args:
+        match_id: Maç ID'si
+        market: Market tipi (1x2, ou25, btts)
+        side: Seçim (1, X, 2, Over, Under, Yes, No)
+        momentum_level: 1, 2 veya 3 (L1/L2/L3)
+        spike_ratio: Hacim spike oranı (d4 / baseline_10)
+        share_shift: Pay değişimi (puan)
+        d4_volume: Son 10 dk hacim
+        baseline_10: Önceki 30 dk ortalama hacim
+        home: Ev sahibi takım
+        away: Deplasman takımı
+        
+    Returns:
+        Momentum Spike alarm objesi
+        
+    Kurallar:
+        - momentum_level >= 1 → GERÇEK ALARM
+        - L1: spike_ratio 3.0 - 4.0
+        - L2: spike_ratio 4.0 - 6.0
+        - L3: spike_ratio > 6.0
+    """
+    is_alarm = momentum_level >= 1
+    
+    if momentum_level == 3:
+        message = f"Momentum Spike L3 ({spike_ratio:.1f}x, +{share_shift:.0f}pts, £{int(d4_volume):,}/10dk)"
+    elif momentum_level == 2:
+        message = f"Momentum Spike L2 ({spike_ratio:.1f}x, +{share_shift:.0f}pts, £{int(d4_volume):,}/10dk)"
+    else:
+        message = f"Momentum Spike L1 ({spike_ratio:.1f}x, +{share_shift:.0f}pts, £{int(d4_volume):,}/10dk)"
+    
+    return create_base_alarm(
+        match_id=match_id,
+        market=market,
+        side=side,
+        category='momentum_spike',
+        is_alarm=is_alarm,
+        message=message,
+        severity=momentum_level,
+        score=int(spike_ratio * 10),
+        extra={
+            'momentum_level': momentum_level,
+            'spike_ratio': round(spike_ratio, 2),
+            'share_shift': round(share_shift, 1),
+            'd4_volume': round(d4_volume, 0),
+            'baseline_10': round(baseline_10, 0),
+            'home': home,
+            'away': away
+        }
+    )
+
+
 def filter_real_alarms(alarms: List[Dict]) -> List[Dict]:
     """
     Sadece gerçek alarmları filtrele (is_alarm === True).
