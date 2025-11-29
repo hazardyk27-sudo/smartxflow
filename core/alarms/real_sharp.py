@@ -326,55 +326,50 @@ class SharpDetector:
         share_shift_points: float
     ) -> int:
         """
-        Sharp Skoru Hesaplama (0-100)
+        Sharp Skoru Hesaplama (0-100) - YENİ FORMÜL
         
-        Hacim şoku (max 30 puan):
-            2 kat = 20, 3+ kat = 30
+        ÖN FİLTRE: odds_drop_pct <= 0 ise (oran düşmemiş/artmış) → skor = 0
         
-        Pazar payı (max 25 puan):
-            %35-50 = 18, %50+ = 25
+        3 Bileşen:
+        - Hacim Şoku (max 40 puan): Eşik üstü ne kadar güçlü ise o kadar puan
+        - Oran Düşüşü (max 35 puan): Eşik üstü düşüş yüzdesi
+        - Pay Değişimi (max 25 puan): Eşik üstü puan değişimi
         
-        Oran düşüşü (max 25 puan):
-            %2-4 = 12, %4-7 = 18, %7+ = 25
-        
-        Pay artışı (max 20 puan):
-            +5-8 puan = 10, +8-12 puan = 15, +12+ puan = 20
+        Toplam: 40 + 35 + 25 = 100 puan
         """
-        score = 0
         
-        if volume_shock_multiplier >= 3.0:
-            score += 30
-        elif volume_shock_multiplier >= 2.0:
-            score += 20
-        elif volume_shock_multiplier >= 1.5:
-            score += 10
+        def clamp01(x: float) -> float:
+            return max(0.0, min(1.0, x))
         
-        if market_share_pct >= 50.0:
-            score += 25
-        elif market_share_pct >= 35.0:
-            score += 18
-        elif market_share_pct >= 25.0:
-            score += 10
+        VOL_CAP = 10.0
+        DROP_CAP = 20.0
+        SHARE_CAP = 40.0
         
-        if odds_drop_pct >= 7.0:
-            score += 25
-        elif odds_drop_pct >= 4.0:
-            score += 18
-        elif odds_drop_pct >= 2.0:
-            score += 12
-        elif odds_drop_pct >= 1.0:
-            score += 5
+        vol_threshold = self.VOLUME_SHOCK_MULTIPLIER
+        odds_threshold = self.ODDS_DROP_THRESHOLD
+        share_threshold = self.SHARE_SHIFT_THRESHOLD
         
-        if share_shift_points >= 12.0:
-            score += 20
-        elif share_shift_points >= 8.0:
-            score += 15
-        elif share_shift_points >= 5.0:
-            score += 10
-        elif share_shift_points >= 3.0:
-            score += 5
+        if volume_shock_multiplier < vol_threshold:
+            vol_norm = 0.0
+        else:
+            excess_ratio = volume_shock_multiplier / vol_threshold
+            vol_norm = clamp01((excess_ratio - 1.0) / (VOL_CAP / vol_threshold - 1.0))
+        volume_score = 40.0 * vol_norm
         
-        return min(score, 100)
+        if odds_drop_pct < odds_threshold:
+            odds_norm = 0.0
+        else:
+            odds_norm = clamp01((odds_drop_pct - odds_threshold) / (DROP_CAP - odds_threshold))
+        odds_score = 35.0 * odds_norm
+        
+        if share_shift_points < share_threshold:
+            share_norm = 0.0
+        else:
+            share_norm = clamp01((share_shift_points - share_threshold) / (SHARE_CAP - share_threshold))
+        share_score = 25.0 * share_norm
+        
+        raw_score = volume_score + odds_score + share_score
+        return round(raw_score)
     
     def detect_sharp(
         self,
@@ -477,6 +472,13 @@ class SharpDetector:
             
             share_shift_ok, share_shift_pts = self.calculate_share_shift(base_pct, current_pct)
             
+            if odds_drop_pct <= 0:
+                match_name = match_id.replace('|', ' vs ').split(' vs ')[:2] if match_id else ['?', '?']
+                match_str = f"{match_name[0]} vs {match_name[1]}" if len(match_name) >= 2 else match_id
+                if vol_shock_mult >= self.VOLUME_SHOCK_MULTIPLIER:
+                    print(f"[Sharp] {match_str} ({side['key']}): Odds not dropping ({base_odds:.2f}→{current_odds:.2f}, change={odds_drop_pct:.2f}%) → Sharp=False")
+                continue
+            
             effective_vol_shock_ok = vol_shock_ok if self.use_volume_shock else True
             effective_odds_drop_ok = odds_drop_ok if self.use_odds_drop else True
             effective_share_shift_ok = share_shift_ok if self.use_share_shift else True
@@ -494,12 +496,11 @@ class SharpDetector:
             
             all_criteria_met = effective_vol_shock_ok and effective_odds_drop_ok and effective_share_shift_ok
             
-            # YENI: Sadece skor 20-100 arası = Sharp alarm
-            is_sharp = sharp_score >= self.SCORE_THRESHOLDS['sharp']  # 20+
+            is_sharp = sharp_score >= self.SCORE_THRESHOLDS['sharp']
             
             is_medium_movement = (
                 not is_sharp and 
-                sharp_score >= self.SCORE_THRESHOLDS['medium_movement']  # 10-19
+                sharp_score >= self.SCORE_THRESHOLDS['medium_movement']
             )
             
             if sharp_score >= self.SCORE_THRESHOLDS['medium_movement']:
@@ -548,9 +549,10 @@ class SharpDetector:
                 
                 match_name = match_id.replace('|', ' vs ').split(' vs ')[:2] if match_id else ['?', '?']
                 match_str = f"{match_name[0]} vs {match_name[1]}" if len(match_name) >= 2 else match_id
+                level_str = "SHARP" if is_sharp else "medium"
                 print(f"[Sharp] {match_str} ({side['key']}): Score={sharp_score}/100, "
-                      f"VolShock={vol_shock_mult:.1f}x, OddsDrop={odds_drop_pct:.1f}%, "
-                      f"ShareShift={share_shift_pts:+.0f}pts, Sharp={is_sharp}")
+                      f"VolShock={vol_shock_mult:.1f}x, OddsDrop=+{odds_drop_pct:.1f}% ({base_odds:.2f}→{current_odds:.2f}), "
+                      f"ShareShift={share_shift_pts:+.0f}pts → {level_str}")
         
         detected.sort(key=lambda x: x['sharp_score'], reverse=True)
         
