@@ -790,11 +790,14 @@ class SupabaseClient:
             if resp.status_code in [200, 201, 409]:
                 return True
             else:
-                print(f"[SaveAlarm] Error {resp.status_code}: {resp.text[:200]}")
+                print(
+                    f"[SaveAlarm] Error {resp.status_code} for type={alarm_type}, "
+                    f"match_id={match_id}, side={side}, odds={odds_from}->{odds_to}: {resp.text[:200]}"
+                )
                 return False
                 
         except Exception as e:
-            print(f"[SaveAlarm] Exception: {e}")
+            print(f"[SaveAlarm] Exception for type={alarm.get('type', '?')}, match={alarm.get('match_id', '?')}: {e}")
             return False
     
     def cleanup_duplicate_alarms(self) -> int:

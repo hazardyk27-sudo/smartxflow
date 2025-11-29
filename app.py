@@ -958,6 +958,14 @@ def detect_and_save_alarms(filter_alarm_type: str = None, include_historical: bo
                     
                     all_alarms.append(alarm)
     
+    # --- DEBUG: Alarm tip dağılımını logla ---
+    type_counts = {}
+    for a in all_alarms:
+        t = a.get('type', 'unknown')
+        type_counts[t] = type_counts.get(t, 0) + 1
+    print(f"[AlarmDetector] Type distribution before save: {type_counts}")
+    # -----------------------------------------
+    
     supabase = get_supabase_client()
     if supabase and supabase.is_available and all_alarms:
         safety_guard = AlarmSafetyGuard(supabase)
@@ -1700,16 +1708,16 @@ def _background_recalculate_type(alarm_type: str, scope: str = 'current'):
         'scope': scope
     }
     
-    print(f"[RecalcType] Starting recalc for '{alarm_type}' [{scope_label}] (config v{_type_recalc_status[alarm_type]['config_version']})")
+    print(f"[RecalcType] START '{alarm_type}' [{scope_label}] include_historical={include_historical} (config v{_type_recalc_status[alarm_type]['config_version']})")
     
     try:
         deleted = db.supabase.delete_alarms_by_type(alarm_type, include_historical=include_historical)
         _type_recalc_status[alarm_type]['deleted'] = deleted
-        print(f"[RecalcType] '{alarm_type}' [{scope_label}]: Deleted {deleted} alarms")
+        print(f"[RecalcType] '{alarm_type}' [{scope_label}]: Deleted {deleted} alarms from Supabase")
         
         detected = detect_and_save_alarms(filter_alarm_type=alarm_type, include_historical=include_historical)
         _type_recalc_status[alarm_type]['detected'] = detected
-        print(f"[RecalcType] '{alarm_type}' [{scope_label}]: Detected {detected} new alarms")
+        print(f"[RecalcType] '{alarm_type}' [{scope_label}]: detect_and_save_alarms returned {detected}")
         
         _alarm_cache = None
         _alarm_cache_time = 0

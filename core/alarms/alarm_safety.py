@@ -404,8 +404,12 @@ class AlarmSafetyGuard:
         try:
             success = self.supabase.save_smart_money_alarm(alarm)
             
+            if not success:
+                print(f"[AlarmSafety] Save returned False for alarm_type={alarm.get('type')} match_id={alarm.get('match_id')}")
+            
             if success:
                 self.seen_fingerprints.add(fingerprint)
+                print(f"[AlarmSafety] Saved alarm_type={alarm.get('type')} side={alarm.get('side')} odds={alarm.get('odds_from')}->{alarm.get('odds_to')}")
                 return True
             else:
                 log_failed_alarm(alarm, "Insert returned False", "safe_save")
@@ -413,7 +417,7 @@ class AlarmSafetyGuard:
                 
         except Exception as e:
             log_failed_alarm(alarm, str(e), "safe_save_exception")
-            print(f"[AlarmSafety] Save failed: {e}")
+            print(f"[AlarmSafety] Save failed for {alarm.get('type')}: {e}")
             return False
     
     def safe_save_batch(self, alarms: List[Dict[str, Any]]) -> int:
