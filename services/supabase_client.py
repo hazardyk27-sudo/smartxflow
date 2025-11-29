@@ -955,6 +955,15 @@ class SupabaseClient:
                 elif alarm_type == 'medium_movement' and sharp_score < 40:
                     should_delete = True
                     reason = f"medium score {sharp_score} < 40"
+                elif alarm_type == 'reversal_move':
+                    conditions_met = alarm.get('conditions_met')
+                    try:
+                        conditions_met = int(conditions_met) if conditions_met is not None else 0
+                    except:
+                        conditions_met = 0
+                    if conditions_met < 3:
+                        should_delete = True
+                        reason = f"reversal conditions {conditions_met}/3 < 3"
                 
                 if should_delete:
                     to_delete.append({

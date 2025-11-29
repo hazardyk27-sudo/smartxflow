@@ -288,9 +288,9 @@ def detect_reversal_move(
                   f"Drop={drop_pct:.1f}% → Reversal={reversal_pct:.1f}% | "
                   f"{' | '.join(criteria_details)}")
         
-        reversal_move_detected = conditions_met == 3
+        is_alarm = conditions_met == 3
         
-        if reversal_move_detected:
+        if is_alarm:
             alert_data = {
                 'type': 'reversal_move',
                 'side': side['key'],
@@ -304,6 +304,7 @@ def detect_reversal_move(
                 'drop_percent': round(drop_pct, 1),
                 'reversal_percent': round(reversal_pct, 1),
                 'conditions_met': conditions_met,
+                'is_alarm': True,
                 'criteria': {
                     'retracement_ok': reversal_pct >= 50,
                     'momentum_changed': momentum_changed,

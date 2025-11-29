@@ -381,6 +381,9 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
             )
             
             for rev in reversal_alerts:
+                if not rev.get('is_alarm', False):
+                    continue
+                
                 alarm_key = ('reversal_move', rev['side'], f"{rev['opening_odds']:.2f}")
                 if alarm_key not in seen_alarms:
                     seen_alarms.add(alarm_key)
@@ -395,6 +398,7 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                         'drop_percent': rev['drop_percent'],
                         'reversal_percent': rev['reversal_percent'],
                         'conditions_met': rev['conditions_met'],
+                        'is_alarm': True,
                         'criteria': rev['criteria'],
                         'criteria_text': rev['criteria_text'],
                         'timestamp': rev['timestamp']
