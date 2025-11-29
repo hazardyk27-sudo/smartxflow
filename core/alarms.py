@@ -26,6 +26,11 @@ try:
     from core.momentum_spike import check_momentum_spike_for_match, detect_momentum_spike
     from core.line_freeze import check_line_freeze_for_match, detect_line_freeze, LineFreezeDetector
     from core.volume_shift import check_volume_shift_for_match, detect_volume_shift, VolumeShiftDetector
+    from core.alarm_config import (
+        get_sharp_config, get_dropping_config, get_reversal_config,
+        get_momentum_config, get_line_freeze_config, get_volume_shift_config,
+        get_big_money_config, get_public_surge_config
+    )
 except ImportError:
     try:
         from config.alarm_thresholds import ALARM_CONFIG, get_threshold, WINDOW_MINUTES, LOOKBACK_MINUTES
@@ -35,6 +40,11 @@ except ImportError:
         from momentum_spike import check_momentum_spike_for_match, detect_momentum_spike
         from line_freeze import check_line_freeze_for_match, detect_line_freeze, LineFreezeDetector
         from volume_shift import check_volume_shift_for_match, detect_volume_shift, VolumeShiftDetector
+        from alarm_config import (
+            get_sharp_config, get_dropping_config, get_reversal_config,
+            get_momentum_config, get_line_freeze_config, get_volume_shift_config,
+            get_big_money_config, get_public_surge_config
+        )
     except ImportError:
         detect_sharp = None
         SharpDetector = None
@@ -52,6 +62,18 @@ except ImportError:
         detect_volume_shift = None
         VolumeShiftDetector = None
         DROP_THRESHOLD_PERCENT = 7.0
+        
+        class _DummyConfig:
+            enabled = True
+        def get_sharp_config(): return _DummyConfig()
+        def get_dropping_config(): return _DummyConfig()
+        def get_reversal_config(): return _DummyConfig()
+        def get_momentum_config(): return _DummyConfig()
+        def get_line_freeze_config(): return _DummyConfig()
+        def get_volume_shift_config(): return _DummyConfig()
+        def get_big_money_config(): return _DummyConfig()
+        def get_public_surge_config(): return _DummyConfig()
+        
     import pytz
     TURKEY_TZ = pytz.timezone('Europe/Istanbul')
     def now_turkey():
@@ -440,7 +462,8 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
     dropping_alerts_raw = []
     reversal_alerts = []
     
-    if detect_reversal_move is not None:
+    reversal_cfg = get_reversal_config()
+    if detect_reversal_move is not None and reversal_cfg and reversal_cfg.enabled:
         try:
             reversal_alerts = detect_reversal_move(
                 history=history,
@@ -476,7 +499,8 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
         except Exception as e:
             print(f"[Reversal] Error in detection: {e}")
     
-    if detect_sharp is not None:
+    sharp_cfg = get_sharp_config()
+    if detect_sharp is not None and sharp_cfg and sharp_cfg.enabled:
         try:
             sharp_results = detect_sharp(history, market, match_id)
             for sharp in sharp_results:
@@ -508,6 +532,7 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
     
     window_pairs = find_window_pairs(history, WINDOW_MINUTES)
     
+    public_surge_cfg = get_public_surge_config()
     for base_idx, target_idx in window_pairs:
         base = history[base_idx]
         target = history[target_idx]
@@ -525,7 +550,7 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
             odds_diff = target_odds - base_odds
             
             odds_flat = abs(odds_diff) <= surge_max_odds
-            if money_diff >= surge_min_money and odds_flat:
+            if public_surge_cfg and public_surge_cfg.enabled and money_diff >= surge_min_money and odds_flat:
                 odds_bucket = f"{base_odds:.2f}-{target_odds:.2f}"
                 alarm_key_surge = ('public_surge', side['key'], odds_bucket)
                 if alarm_key_surge not in seen_alarms:
@@ -541,7 +566,8 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                         'timestamp': target_ts
                     })
     
-    if detect_dropping_alerts and first:
+    dropping_cfg = get_dropping_config()
+    if detect_dropping_alerts and first and dropping_cfg and dropping_cfg.enabled:
         real_alerts, preview_alerts = detect_dropping_alerts(
             history=history,
             market=market,
@@ -576,7 +602,8 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                     'timestamp': curr_ts
                 })
     
-    big_money_result = check_big_money_all_windows(history, sides, WINDOW_MINUTES)
+    big_money_cfg = get_big_money_config()
+    big_money_result = check_big_money_all_windows(history, sides, WINDOW_MINUTES) if big_money_cfg and big_money_cfg.enabled else []
     for result in big_money_result:
         alarm_key = ('big_money', result['key'], result.get('window_start', '')[:16])
         if alarm_key not in seen_alarms:
@@ -609,7 +636,8 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                         'timestamp': current.get('ScrapedAt', now_turkey_iso())
                     })
     
-    if len(history) >= 3 and check_line_freeze_for_match is not None:
+    line_freeze_cfg = get_line_freeze_config()
+    if len(history) >= 3 and check_line_freeze_for_match is not None and line_freeze_cfg and line_freeze_cfg.enabled:
         home = current.get('Home', '')
         away = current.get('Away', '')
         side_keys = [s['key'] for s in sides]
@@ -632,7 +660,8 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                 })
     
     
-    if len(history) >= 4 and check_momentum_spike_for_match is not None:
+    momentum_cfg = get_momentum_config()
+    if len(history) >= 4 and check_momentum_spike_for_match is not None and momentum_cfg and momentum_cfg.enabled:
         home = current.get('Home', '')
         away = current.get('Away', '')
         side_keys = [s['key'] for s in sides]
@@ -655,7 +684,8 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
                     'timestamp': current.get('ScrapedAt', now_turkey_iso())
                 })
     
-    if len(history) >= 2 and check_volume_shift_for_match is not None:
+    volume_shift_cfg = get_volume_shift_config()
+    if len(history) >= 2 and check_volume_shift_for_match is not None and volume_shift_cfg and volume_shift_cfg.enabled:
         home = current.get('Home', '')
         away = current.get('Away', '')
         volume_shifts = check_volume_shift_for_match(history, market, home, away)
