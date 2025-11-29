@@ -752,11 +752,19 @@ def group_alarms_by_match(alarms: List[Dict]) -> List[Dict]:
                 max_drop_percent = max((e.get('drop_percent', 0) for e in events), default=0)
                 unique_sides = set(e.get('side', '') for e in events if e.get('drop_percent', 0) >= 7)
                 dropping_sides_count = len(unique_sides) if unique_sides else 1
+                sharp_score = 0
+            elif alarm_type in ['sharp', 'medium_movement']:
+                max_money = max((e.get('money_diff', 0) for e in events), default=0)
+                max_drop = max((e.get('total_drop', 0) for e in events), default=0)
+                max_drop_percent = 0
+                dropping_sides_count = 0
+                sharp_score = max((e.get('sharp_score', 0) for e in events), default=0)
             else:
                 max_money = max((e.get('money_diff', 0) for e in events), default=0)
                 max_drop = max((e.get('total_drop', 0) for e in events), default=0)
                 max_drop_percent = 0
                 dropping_sides_count = 0
+                sharp_score = 0
             
             result.append({
                 'home': home,
@@ -772,6 +780,7 @@ def group_alarms_by_match(alarms: List[Dict]) -> List[Dict]:
                 'max_drop': max_drop,
                 'max_drop_percent': max_drop_percent,
                 'dropping_sides_count': dropping_sides_count,
+                'sharp_score': sharp_score,
                 'priority': ALARM_TYPES.get(alarm_type, {}).get('priority', 99)
             })
     
@@ -865,6 +874,7 @@ def format_grouped_alarm(group: Dict) -> Dict:
     dropping_sides_count = group.get('dropping_sides_count', latest.get('dropping_sides_count', 1))
     drop_percent = group.get('max_drop_percent', latest.get('drop_percent', 0))
     selection_volume = latest.get('selection_volume', latest.get('money_diff', 0))
+    sharp_score = group.get('sharp_score', latest.get('sharp_score', 0))
     
     return {
         'type': group['type'],
@@ -892,6 +902,7 @@ def format_grouped_alarm(group: Dict) -> Dict:
         'selection_volume': selection_volume,
         'dropping_sides_count': dropping_sides_count,
         'drop_percent': drop_percent,
+        'sharp_score': sharp_score,
         'odds_from': latest.get('odds_from'),
         'odds_to': latest.get('odds_to')
     }

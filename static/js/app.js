@@ -2709,7 +2709,7 @@ document.addEventListener('keydown', (e) => {
 let highlightedAlarmType = null;
 
 const AlarmColors = {
-    sharp: { hex: '#22c55e', name: 'Real Sharp', icon: '🟢', priority: 1 },
+    sharp: { hex: '#22c55e', name: 'Sharp', icon: '🟢', priority: 1 },
     medium_movement: { hex: '#f97316', name: 'Orta Hareket', icon: '🔶', priority: 2 },
     rlm: { hex: '#ef4444', name: 'Reverse Line Move', icon: '🔴', priority: 3 },
     big_money: { hex: '#eab308', name: 'Big Money', icon: '💰', priority: 4 },
@@ -3100,8 +3100,18 @@ function renderGroupedAlarmList() {
         const latestTime = group.latest_time ? formatAlarmTime(group.latest_time) : '';
         
         const isDropping = group.type === 'dropping';
+        const isSharp = group.type === 'sharp';
+        const isMediumMovement = group.type === 'medium_movement';
         const droppingCount = group.dropping_sides_count || 0;
         const dropPercent = group.drop_percent || 0;
+        const sharpScore = group.sharp_score || 0;
+        
+        let displayName = group.name;
+        if (isSharp && sharpScore >= 70) {
+            displayName = `Sharp ${sharpScore}/100`;
+        } else if (isMediumMovement && sharpScore >= 40) {
+            displayName = `Sharp Skor: ${sharpScore}/100 (orta seviye)`;
+        }
         
         const moneyText = group.max_money > 0 
             ? (isDropping ? `£${group.max_money.toLocaleString()}` : `+£${group.max_money.toLocaleString()}`) 
@@ -3136,7 +3146,7 @@ function renderGroupedAlarmList() {
                     <div class="alarm-group-left">
                         <span class="alarm-icon">${group.icon}</span>
                         <div class="alarm-group-info">
-                            <div class="alarm-group-type">${group.name}</div>
+                            <div class="alarm-group-type">${displayName}</div>
                             <div class="alarm-group-match">${group.home} - ${group.away}</div>
                         </div>
                     </div>

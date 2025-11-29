@@ -1,5 +1,5 @@
 """
-Real Sharp Detection System
+Sharp Detection System
 4 Ana Kriter ile Profesyonel Sharp Money Tespiti
 
 Kriter 1: Hacim Şoku (Volume Shock) - 2x+ normal hacim
@@ -7,16 +7,37 @@ Kriter 2: Pazar Payı (Market Concentration) - %35+ tek seçeneğe
 Kriter 3: Oran Düşüşü (Price Impact) - %2+ düşüş
 Kriter 4: Market Payı Artışı (Share Shift) - +5 puan artış
 
+Minimum Market Hacmi Eşikleri:
+- 1X2: 5000 GBP
+- O/U 2.5: 3000 GBP
+- BTTS: 2000 GBP
+
 Tüm kriterler eş zamanlı sağlanmalı.
 Sharp Skor: 0-100 arası hesaplanır.
-70+ = Gerçek Sharp alarmı
-40-69 = Orta Seviye Hareket (alarm yok, UI'da göster)
+70+ = Sharp alarmı (gösterim: "Sharp 86/100")
+40-69 = Orta Seviye (alarm yok, UI'da "Sharp Skor: 58/100 (orta seviye)" göster)
 <40 = Yok say
 """
 
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timedelta
 from statistics import median
+
+MARKET_VOLUME_THRESHOLDS = {
+    '1x2': 5000,
+    'ou25': 3000,
+    'btts': 2000
+}
+
+def get_market_type(market: str) -> str:
+    """Get market type from market name"""
+    if '1x2' in market.lower():
+        return '1x2'
+    elif 'ou25' in market.lower() or 'ou_2_5' in market.lower():
+        return 'ou25'
+    elif 'btts' in market.lower():
+        return 'btts'
+    return '1x2'
 
 def parse_money(val: Any) -> float:
     """Parse money value from string"""
@@ -47,10 +68,10 @@ def parse_pct(val: Any) -> float:
         return 0.0
 
 
-class RealSharpDetector:
+class SharpDetector:
     """
-    Gerçek Sharp Tespit Sistemi
-    4 ana kriter ile profesyonel sharp money tespiti yapar.
+    Sharp Tespit Sistemi
+    4 ana kriter + market hacmi filtresi ile profesyonel sharp money tespiti yapar.
     """
     
     WINDOW_MINUTES = 10
@@ -62,7 +83,7 @@ class RealSharpDetector:
     SHARE_SHIFT_THRESHOLD = 5.0
     
     SCORE_THRESHOLDS = {
-        'real_sharp': 70,
+        'sharp': 70,
         'medium_movement': 40
     }
     
@@ -100,6 +121,24 @@ class RealSharpDetector:
                 return datetime.strptime(ts[:19], '%Y-%m-%d %H:%M:%S')
         except:
             return None
+    
+    def check_market_volume_threshold(self, market: str, total_market_volume: float) -> bool:
+        """
+        Market hacmi eşik kontrolü.
+        Düşük hacimli liglerde Sharp alarmı çıkmasını engeller.
+        
+        Eşikler:
+        - 1X2: 5000 GBP
+        - O/U 2.5: 3000 GBP
+        - BTTS: 2000 GBP
+        """
+        market_type = get_market_type(market)
+        threshold = MARKET_VOLUME_THRESHOLDS.get(market_type, 5000)
+        
+        if total_market_volume < threshold:
+            return False
+        
+        return True
     
     def calculate_normal_volume(self, history: List[Dict], side: Dict[str, str]) -> float:
         """
@@ -181,7 +220,7 @@ class RealSharpDetector:
                 return 0.0
                 
         except Exception as e:
-            print(f"[RealSharp] Error calculating normal volume: {e}")
+            print(f"[Sharp] Error calculating normal volume: {e}")
             return 0.0
     
     def calculate_volume_shock(self, current_volume: float, normal_volume: float) -> Tuple[bool, float]:
@@ -291,7 +330,7 @@ class RealSharpDetector:
         
         return min(score, 100)
     
-    def detect_real_sharp(
+    def detect_sharp(
         self,
         history: List[Dict],
         market: str,
@@ -299,7 +338,7 @@ class RealSharpDetector:
     ) -> List[Dict[str, Any]]:
         """
         Ana Tespit Fonksiyonu
-        History verisini analiz eder ve Real Sharp tespiti yapar.
+        History verisini analiz eder ve Sharp tespiti yapar.
         
         Returns: List of detected sharp movements with full details
         """
@@ -326,7 +365,7 @@ class RealSharpDetector:
             window_start = now_dt - timedelta(minutes=self.WINDOW_MINUTES)
             
         except Exception as e:
-            print(f"[RealSharp] Error parsing timestamp: {e}")
+            print(f"[Sharp] Error parsing timestamp: {e}")
             return []
         
         base_row = None
@@ -364,6 +403,14 @@ class RealSharpDetector:
         if total_market_volume <= 0:
             total_market_volume = 1.0
         
+        total_current_volume = total_volume_after
+        
+        volume_threshold_ok = self.check_market_volume_threshold(market, total_current_volume)
+        if not volume_threshold_ok:
+            market_type = get_market_type(market)
+            threshold = MARKET_VOLUME_THRESHOLDS.get(market_type, 5000)
+            return []
+        
         for side in sides:
             base_amt = parse_money(base_row.get(side['amt'], 0))
             current_amt = parse_money(current.get(side['amt'], 0))
@@ -395,10 +442,10 @@ class RealSharpDetector:
             
             all_criteria_met = vol_shock_ok and mkt_share_ok and odds_drop_ok and share_shift_ok
             
-            is_real_sharp = all_criteria_met and sharp_score >= self.SCORE_THRESHOLDS['real_sharp']
+            is_sharp = all_criteria_met and sharp_score >= self.SCORE_THRESHOLDS['sharp']
             
             is_medium_movement = (
-                not is_real_sharp and 
+                not is_sharp and 
                 sharp_score >= self.SCORE_THRESHOLDS['medium_movement']
             )
             
@@ -407,8 +454,8 @@ class RealSharpDetector:
                 current_ts = current.get('ScrapedAt', '')
                 
                 result = {
-                    'type': 'sharp' if is_real_sharp else 'medium_movement',
-                    'is_real_sharp': is_real_sharp,
+                    'type': 'sharp' if is_sharp else 'medium_movement',
+                    'is_sharp': is_sharp,
                     'is_medium_movement': is_medium_movement,
                     'sharp_score': sharp_score,
                     'side': side['key'],
@@ -418,6 +465,7 @@ class RealSharpDetector:
                     'window_start': base_ts,
                     'window_end': current_ts,
                     'timestamp': current_ts,
+                    'market_volume': total_current_volume,
                     
                     'criteria': {
                         'volume_shock_ok': vol_shock_ok,
@@ -445,19 +493,29 @@ class RealSharpDetector:
                 
                 detected.append(result)
                 
-                print(f"[RealSharp] {side['key']}: Score={sharp_score}, "
+                print(f"[Sharp] {side['key']}: Score={sharp_score}/100, "
                       f"VolShock={vol_shock_mult:.1f}x, MktShare={mkt_share_pct:.0f}%, "
                       f"OddsDrop={odds_drop_pct:.1f}%, ShareShift={share_shift_pts:+.0f}pts, "
-                      f"RealSharp={is_real_sharp}")
+                      f"Sharp={is_sharp}")
         
         detected.sort(key=lambda x: x['sharp_score'], reverse=True)
         
         return detected
 
 
-real_sharp_detector = RealSharpDetector()
+sharp_detector = SharpDetector()
+
+RealSharpDetector = SharpDetector
+
+
+def detect_sharp(history: List[Dict], market: str, match_id: str = '') -> List[Dict[str, Any]]:
+    """Main function for Sharp detection"""
+    return sharp_detector.detect_sharp(history, market, match_id)
 
 
 def detect_real_sharp(history: List[Dict], market: str, match_id: str = '') -> List[Dict[str, Any]]:
-    """Convenience function for Real Sharp detection"""
-    return real_sharp_detector.detect_real_sharp(history, market, match_id)
+    """Backward compatibility wrapper for detect_sharp"""
+    return detect_sharp(history, market, match_id)
+
+
+real_sharp_detector = sharp_detector
