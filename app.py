@@ -1680,7 +1680,11 @@ def _background_recalculate_type(alarm_type: str, scope: str = 'current'):
     import time as time_module
     global _type_recalc_status, _alarm_cache, _alarm_cache_time
     
-    from core.alarms.alarm_config import get_config_version
+    from core.alarms.alarm_config import get_config_version, reload_alarm_config
+    
+    reload_alarm_config()
+    cfg = reload_alarm_config()
+    print(f"[RecalcType] Config reloaded in thread - Sharp score threshold: {cfg.sharp.score_threshold_sharp}")
     
     include_historical = (scope == 'all')
     scope_label = "TUM GECMIS" if include_historical else "AKTIF MACLAR"
