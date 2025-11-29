@@ -853,30 +853,14 @@ def is_demo_match(match):
 
 def detect_and_save_alarms(filter_alarm_type: str = None, include_historical: bool = False):
     """
-    STEP 1: Detect new alarms from history and SAVE them to Supabase.
-    Called after scrape or periodically. Alarms are PERSISTENT once saved.
-    Scans ALL 6 markets (3 moneyway + 3 dropping) for comprehensive detection.
+    V1 ALARM MOTORU - DEVRE DIŞI
     
-    Args:
-        filter_alarm_type: If provided, only detect alarms matching this type prefix.
-                          e.g., 'sharp' will detect 'sharp', 'sharp_*' alarms.
-                          If None, detects all enabled alarm types.
-        include_historical: If True, includes historical matches (D-1, D-2+) for recalculation.
-                           If False (default), only processes today's matches.
-    
-    Per REFERANS DOKÜMANI Section 3:
-    - D (Today) + Future: Generate alarms (if match in arbworld)
-    - D-1 (Yesterday): NO new alarms (static mode only) - UNLESS include_historical=True
-    - D-2+ (Old): Skip entirely - UNLESS include_historical=True
-    
-    CRITICAL: Respects alarm enable/disable settings from Admin Panel!
-    Only generates alarms for enabled alarm types (is_alarm_enabled check).
-    
-    SAFETY FEATURES:
-    - Uses AlarmSafetyGuard for error handling and logging
-    - Failed inserts are logged for later retry
-    - No DELETE or UPDATE operations - append-only
+    Alarm sistemi V2'ye geçiş için tamamen devre dışı bırakıldı.
+    Bu fonksiyon artık hiçbir alarm üretmiyor.
     """
+    print("[AlarmDetector] V1 alarm motoru devre disi - V2 hazirlanıyor...")
+    return 0
+    
     import time
     from core.timezone import is_match_today, is_yesterday_turkey, is_match_d2_or_older, get_match_lifecycle_status
     from core.alarms.alarm_safety import AlarmSafetyGuard, log_failed_alarm

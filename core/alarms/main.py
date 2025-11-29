@@ -416,7 +416,11 @@ def analyze_match_alarms(history: List[Dict], market: str, match_id: str = None,
         market: Market type (moneyway_1x2, etc.)
         match_id: Optional match identifier
         match_date: Match kickoff date/time string (Turkey time) for filtering
+    
+    NOTE: V1 alarm sistemi devre dışı - V2 hazırlanıyor
     """
+    return []
+    
     if len(history) < 2:
         return []
     
