@@ -6,7 +6,8 @@ Reversal Move Detection System
 2. Momentum/Trend Değişimi: Yön değiştirmiş
 3. Hacim Taraf Değiştirmesi (Volume Switch): Para karşı tarafa geçmiş
 
-En az 2 kriter sağlanınca reversal_move_detected = True
+3 kriterin TAMAMI sağlanınca reversal_move_detected = True
+2/3 kriter: Sadece log kaydı (alarm tetiklenmez)
 
 Reversal tespit edilince:
 - Sharp sinyali iptal edilir
@@ -221,7 +222,8 @@ def detect_reversal_move(
     2. Momentum/Trend Değişimi
     3. Hacim Taraf Değiştirmesi (Volume Switch)
     
-    En az 2 kriter sağlanınca reversal_move_detected = True
+    3 kriterin TAMAMI sağlanınca reversal_move_detected = True
+    2/3 kriter: Sadece log kaydı (alarm tetiklenmez)
     
     Returns:
         List of reversal move alerts with details
@@ -281,7 +283,12 @@ def detect_reversal_move(
             conditions_met += 1
             criteria_details.append(f"Volume Switch: £{int(vol_on_opposite):,} > £{int(vol_on_drop):,}")
         
-        reversal_move_detected = conditions_met >= 2
+        if conditions_met >= 2:
+            print(f"[Reversal] {side['key']}: {conditions_met}/3 kriter | "
+                  f"Drop={drop_pct:.1f}% → Reversal={reversal_pct:.1f}% | "
+                  f"{' | '.join(criteria_details)}")
+        
+        reversal_move_detected = conditions_met == 3
         
         if reversal_move_detected:
             alert_data = {
@@ -312,10 +319,7 @@ def detect_reversal_move(
             }
             
             reversal_alerts.append(alert_data)
-            
-            print(f"[Reversal] {side['key']}: {conditions_met}/3 kriter | "
-                  f"Drop={drop_pct:.1f}% → Reversal={reversal_pct:.1f}% | "
-                  f"{' | '.join(criteria_details)}")
+            print(f"[Reversal ALARM] {side['key']}: 3/3 kriter met! Alarm triggered")
     
     return reversal_alerts
 
