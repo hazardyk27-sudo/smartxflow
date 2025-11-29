@@ -287,31 +287,35 @@ def get_volume_shift_threshold(market_type: str) -> float:
 
 
 def is_alarm_enabled(alarm_type: str) -> bool:
-    """Check if an alarm type is enabled"""
+    """
+    Check if an alarm type is enabled.
+    
+    IMPORTANT: Default is False for unknown types to prevent 
+    accidentally saving alarms when toggles are off.
+    """
+    if not alarm_type:
+        return False
+    
     cfg = load_alarm_config()
     
-    type_map = {
-        'sharp': cfg.sharp.enabled,
-        'medium_movement': cfg.sharp.enabled,
-        'dropping': cfg.dropping.enabled,
-        'dropping_l1': cfg.dropping.enabled,
-        'dropping_l2': cfg.dropping.enabled,
-        'dropping_l3': cfg.dropping.enabled,
-        'dropping_preview': cfg.dropping.enabled,
-        'reversal': cfg.reversal.enabled,
-        'reversal_move': cfg.reversal.enabled,
-        'momentum': cfg.momentum.enabled,
-        'momentum_spike': cfg.momentum.enabled,
-        'momentum_spike_l1': cfg.momentum.enabled,
-        'momentum_spike_l2': cfg.momentum.enabled,
-        'momentum_spike_l3': cfg.momentum.enabled,
-        'line_freeze': cfg.line_freeze.enabled,
-        'line_freeze_l1': cfg.line_freeze.enabled,
-        'line_freeze_l2': cfg.line_freeze.enabled,
-        'line_freeze_l3': cfg.line_freeze.enabled,
-        'volume_shift': cfg.volume_shift.enabled,
-        'big_money': cfg.big_money.enabled,
-        'public_surge': cfg.public_surge.enabled,
-    }
+    alarm_type_lower = alarm_type.lower()
     
-    return type_map.get(alarm_type, True)
+    if alarm_type_lower.startswith('sharp') or alarm_type_lower.startswith('medium'):
+        return cfg.sharp.enabled
+    elif alarm_type_lower.startswith('dropping'):
+        return cfg.dropping.enabled
+    elif alarm_type_lower.startswith('reversal'):
+        return cfg.reversal.enabled
+    elif alarm_type_lower.startswith('momentum'):
+        return cfg.momentum.enabled
+    elif alarm_type_lower.startswith('line_freeze') or alarm_type_lower.startswith('linefreeze'):
+        return cfg.line_freeze.enabled
+    elif alarm_type_lower.startswith('volume_shift') or alarm_type_lower.startswith('volumeshift'):
+        return cfg.volume_shift.enabled
+    elif alarm_type_lower.startswith('big_money') or alarm_type_lower.startswith('bigmoney'):
+        return cfg.big_money.enabled
+    elif alarm_type_lower.startswith('public_surge') or alarm_type_lower.startswith('publicsurge'):
+        return cfg.public_surge.enabled
+    
+    print(f"[AlarmConfig] WARNING: Unknown alarm type '{alarm_type}' - defaulting to disabled")
+    return False

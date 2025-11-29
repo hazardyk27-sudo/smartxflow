@@ -1039,7 +1039,7 @@ class SupabaseClient:
 
     def delete_all_active_alarms(self, include_historical: bool = False) -> int:
         """
-        Delete alarms based on scope. Uses pagination to handle >1000 alarms.
+        Delete alarms based on scope using BATCH DELETE with pagination.
         
         Args:
             include_historical: If True, delete ALL alarms (including past matches).
@@ -1047,10 +1047,95 @@ class SupabaseClient:
         
         Used when admin recalculates alarms with new config.
         Returns count of deleted alarms.
+        
+        PERFORMANCE: Uses filter-based DELETE with pagination for >1000 rows.
         """
         if not self.is_available:
             return 0
         
+        try:
+            from datetime import datetime
+            import pytz
+            import time
+            
+            start_time = time.time()
+            turkey_tz = pytz.timezone('Europe/Istanbul')
+            today = datetime.now(turkey_tz).strftime('%Y-%m-%d')
+            
+            if include_historical:
+                base_filter = ""
+                scope_msg = "ALL alarms (including historical)"
+            else:
+                base_filter = f"match_date=gte.{today}"
+                scope_msg = f"active alarms (today+future, >= {today})"
+            
+            print(f"[DeleteAlarms] Starting BATCH deletion of {scope_msg}...")
+            
+            count_headers = self._headers()
+            count_headers['Prefer'] = 'count=exact'
+            count_headers['Range-Unit'] = 'items'
+            count_headers['Range'] = '0-0'
+            
+            count_url = f"{self._rest_url('smart_money_alarms')}?select=id"
+            if base_filter:
+                count_url += f"&{base_filter}"
+            
+            count_resp = httpx.get(count_url, headers=count_headers, timeout=30)
+            
+            total_to_delete = 0
+            if 'Content-Range' in count_resp.headers:
+                range_header = count_resp.headers['Content-Range']
+                if '/' in range_header:
+                    total_to_delete = int(range_header.split('/')[-1])
+            else:
+                count_resp2 = httpx.get(count_url.replace('&limit=', ''), headers=self._headers(), timeout=30)
+                if count_resp2.status_code == 200:
+                    total_to_delete = len(count_resp2.json())
+            
+            print(f"[DeleteAlarms] Found {total_to_delete} alarms to delete")
+            
+            if total_to_delete == 0:
+                return 0
+            
+            total_deleted = 0
+            batch_size = 1000
+            
+            while total_deleted < total_to_delete:
+                delete_url = f"{self._rest_url('smart_money_alarms')}?select=id&limit={batch_size}"
+                if base_filter:
+                    delete_url += f"&{base_filter}"
+                
+                del_resp = httpx.delete(delete_url, headers=self._headers(), timeout=60)
+                
+                if del_resp.status_code in [200, 204]:
+                    batch_deleted = batch_size
+                    if del_resp.status_code == 200:
+                        try:
+                            deleted_items = del_resp.json()
+                            batch_deleted = len(deleted_items) if isinstance(deleted_items, list) else batch_size
+                        except:
+                            pass
+                    
+                    total_deleted += batch_deleted
+                    print(f"[DeleteAlarms] Batch deleted {batch_deleted}, Total: {total_deleted}")
+                    
+                    if batch_deleted < batch_size:
+                        break
+                else:
+                    print(f"[DeleteAlarms] Batch delete failed: {del_resp.status_code}, falling back")
+                    total_deleted += self._delete_alarms_one_by_one(include_historical)
+                    break
+            
+            elapsed = time.time() - start_time
+            print(f"[DeleteAlarms] BATCH deleted {total_deleted} {scope_msg} in {elapsed:.2f}s")
+            return total_deleted
+            
+        except Exception as e:
+            print(f"[DeleteAlarms] Exception: {e}")
+            return 0
+
+    def _delete_alarms_one_by_one(self, include_historical: bool = False) -> int:
+        """Fallback: Delete alarms one by one if batch fails"""
         try:
             from datetime import datetime
             import pytz
@@ -1061,13 +1146,6 @@ class SupabaseClient:
             total_deleted = 0
             page_size = 1000
             
-            if include_historical:
-                scope_msg = "ALL alarms (including historical)"
-            else:
-                scope_msg = f"active alarms (today+future, >= {today})"
-            
-            print(f"[DeleteAlarms] Starting deletion of {scope_msg}...")
-            
             while True:
                 if include_historical:
                     url = f"{self._rest_url('smart_money_alarms')}?select=id&limit={page_size}"
@@ -1075,36 +1153,29 @@ class SupabaseClient:
                     url = f"{self._rest_url('smart_money_alarms')}?select=id&match_date=gte.{today}&limit={page_size}"
                 
                 resp = httpx.get(url, headers=self._headers(), timeout=30)
-                
                 if resp.status_code != 200:
-                    print(f"[DeleteAlarms] Error fetching alarms: {resp.status_code}")
                     break
                 
                 alarms = resp.json()
-                
                 if not alarms:
                     break
                 
-                batch_deleted = 0
                 for alarm in alarms:
                     alarm_id = alarm.get('id')
                     if alarm_id:
                         del_url = f"{self._rest_url('smart_money_alarms')}?id=eq.{alarm_id}"
                         del_resp = httpx.delete(del_url, headers=self._headers(), timeout=5)
                         if del_resp.status_code in [200, 204]:
-                            batch_deleted += 1
-                
-                total_deleted += batch_deleted
-                print(f"[DeleteAlarms] Batch deleted: {batch_deleted}, Total: {total_deleted}")
+                            total_deleted += 1
                 
                 if len(alarms) < page_size:
                     break
             
-            print(f"[DeleteAlarms] Successfully deleted {total_deleted} {scope_msg}")
+            print(f"[DeleteAlarms] Fallback deleted {total_deleted} alarms one-by-one")
             return total_deleted
             
         except Exception as e:
-            print(f"[DeleteAlarms] Exception: {e}")
+            print(f"[DeleteAlarms] Fallback exception: {e}")
             return 0
 
     def get_alarm_type_counts(self) -> Dict[str, int]:

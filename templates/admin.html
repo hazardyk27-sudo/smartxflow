@@ -276,7 +276,7 @@
     <div class="container">
         <div class="header">
             <div>
-                <h1>Alarm Yapilandirma</h1>
+                <h1>Alarm Yapilandirma <span id="config-version-badge" style="font-size: 12px; background: #238636; padding: 2px 8px; border-radius: 12px; margin-left: 8px;">v-</span></h1>
                 <a href="/" class="back-link">Ana Sayfaya Don</a>
             </div>
             <div class="header-actions">
@@ -836,6 +836,13 @@
             return data;
         }
 
+        function updateVersionBadge(version) {
+            const badge = document.getElementById('config-version-badge');
+            if (badge && version) {
+                badge.textContent = 'v' + version;
+            }
+        }
+        
         function loadConfig() {
             fetch('/admin/alarm-config')
                 .then(res => res.json())
@@ -846,6 +853,7 @@
                     }
                     config = data;
                     populateForm(data);
+                    updateVersionBadge(data.config_version);
                     showToast('Yapilandirma yuklendi');
                 })
                 .catch(err => {
@@ -854,27 +862,35 @@
         }
 
         let statusPollInterval = null;
+        let currentJobId = null;
+        let completionShown = false;
         
-        function pollRecalcStatus(onComplete) {
+        function pollRecalcStatus(targetJobId, onComplete) {
             fetch('/admin/recalc-status')
                 .then(res => res.json())
                 .then(status => {
-                    if (status.running) {
-                        showToast(`Hesaplaniyor... (${status.elapsed_seconds || 0}s)`, 'success');
-                    } else {
+                    console.log('[Poll] Status:', status, 'Target job:', targetJobId);
+                    
+                    if (status.running && status.job_id === targetJobId) {
+                        showToast(`Hesaplaniyor... (${status.elapsed_seconds || 0}s, v${status.config_version})`, 'success');
+                    } else if (!status.running && status.job_id === targetJobId && !completionShown) {
                         if (statusPollInterval) {
                             clearInterval(statusPollInterval);
                             statusPollInterval = null;
                         }
+                        completionShown = true;
+                        
                         if (status.error) {
                             showToast('Hata: ' + status.error, 'error');
                         } else {
                             showToast(
-                                `Tamamlandi! ${status.deleted} silindi, ${status.detected} olusturuldu (${status.elapsed_seconds}s)`,
+                                `Tamamlandi! ${status.deleted} silindi, ${status.detected} olusturuldu (${status.elapsed_seconds}s) - v${status.config_version}`,
                                 'success'
                             );
                         }
                         if (onComplete) onComplete();
+                    } else if (status.job_id !== targetJobId) {
+                        console.log('[Poll] Different job, waiting for target job...');
                     }
                 })
                 .catch(err => {
@@ -893,6 +909,12 @@
             const originalText = saveBtn.textContent;
             saveBtn.textContent = 'Kaydediliyor...';
             saveBtn.disabled = true;
+            
+            if (statusPollInterval) {
+                clearInterval(statusPollInterval);
+                statusPollInterval = null;
+            }
+            completionShown = false;
 
             fetch('/admin/alarm-config', {
                 method: 'POST',
@@ -909,11 +931,16 @@
                         showToast(result.error, 'error');
                     } else {
                         config = result.config;
+                        updateVersionBadge(result.config.config_version);
                         showToast(result.message, 'success');
                         
-                        if (result.recalculation && result.recalculation.status === 'started') {
+                        if (result.recalculation && (result.recalculation.status === 'started' || result.recalculation.status === 'already_running')) {
+                            const targetJob = result.recalculation.job_id;
+                            currentJobId = targetJob;
+                            console.log('[Admin] Started polling for job:', targetJob);
+                            
                             saveBtn.textContent = 'Alarmlar hesaplaniyor...';
-                            statusPollInterval = setInterval(() => pollRecalcStatus(() => {
+                            statusPollInterval = setInterval(() => pollRecalcStatus(targetJob, () => {
                                 saveBtn.textContent = originalText;
                                 saveBtn.disabled = false;
                             }), 3000);
@@ -959,6 +986,12 @@
             btn.textContent = 'Baslatiliyor...';
             btn.disabled = true;
             
+            if (statusPollInterval) {
+                clearInterval(statusPollInterval);
+                statusPollInterval = null;
+            }
+            completionShown = false;
+            
             fetch('/admin/recalculate-alarms', {
                 method: 'POST'
             })
@@ -972,8 +1005,12 @@
                         showToast(result.message, 'success');
                         
                         if (result.status === 'started' || result.status === 'already_running') {
+                            const targetJob = result.job_id || (currentJobId + 1);
+                            currentJobId = targetJob;
+                            console.log('[Admin] Started recalc polling for job:', targetJob);
+                            
                             btn.textContent = 'Hesaplaniyor...';
-                            statusPollInterval = setInterval(() => pollRecalcStatus(() => {
+                            statusPollInterval = setInterval(() => pollRecalcStatus(targetJob, () => {
                                 btn.textContent = originalText;
                                 btn.disabled = false;
                             }), 3000);

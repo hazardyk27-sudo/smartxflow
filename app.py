@@ -862,6 +862,9 @@ def detect_and_save_alarms():
     - D-1 (Yesterday): NO new alarms (static mode only)
     - D-2+ (Old): Skip entirely
     
+    CRITICAL: Respects alarm enable/disable settings from Admin Panel!
+    Only generates alarms for enabled alarm types (is_alarm_enabled check).
+    
     SAFETY FEATURES:
     - Uses AlarmSafetyGuard for error handling and logging
     - Failed inserts are logged for later retry
@@ -870,11 +873,16 @@ def detect_and_save_alarms():
     import time
     from core.timezone import is_match_today, is_yesterday_turkey, is_match_d2_or_older, get_match_lifecycle_status
     from core.alarm_safety import AlarmSafetyGuard, log_failed_alarm
+    from core.alarm_config import is_alarm_enabled, reload_alarm_config, get_config_version
     
-    print("[AlarmDetector] Scanning for new alarms...")
+    reload_alarm_config()
+    config_ver = get_config_version()
+    
+    print(f"[AlarmDetector] Scanning for new alarms (config v{config_ver})...")
     start_time = time.time()
     
     all_alarms = []
+    skipped_by_config = 0
     markets = [
         'moneyway_1x2', 'moneyway_ou25', 'moneyway_btts',
         'dropping_1x2', 'dropping_ou25', 'dropping_btts'
@@ -916,6 +924,12 @@ def detect_and_save_alarms():
                 
                 alarms = analyze_match_alarms(history, market, match_date=match_date)
                 for alarm in alarms:
+                    alarm_type = alarm.get('type', '')
+                    
+                    if not is_alarm_enabled(alarm_type):
+                        skipped_by_config += 1
+                        continue
+                    
                     match_id = f"{home}|{away}|{league}|{match_date}"
                     alarm['match_id'] = match_id
                     alarm['home'] = home
@@ -923,6 +937,7 @@ def detect_and_save_alarms():
                     alarm['market'] = market
                     alarm['league'] = league
                     alarm['match_date'] = match_date
+                    alarm['config_version'] = config_ver
                     
                     formatted = format_alarm_for_modal(alarm)
                     alarm['detail'] = formatted.get('detail', '')
@@ -934,7 +949,10 @@ def detect_and_save_alarms():
         safety_guard = AlarmSafetyGuard(supabase)
         saved = safety_guard.safe_save_batch(all_alarms)
         elapsed = time.time() - start_time
-        print(f"[AlarmDetector] Scanned {len(match_pairs)} matches, detected {len(all_alarms)} alarms, saved {saved} new in {elapsed:.2f}s")
+        print(f"[AlarmDetector] Scanned {len(match_pairs)} matches, detected {len(all_alarms)} alarms (skipped {skipped_by_config} disabled), saved {saved} new in {elapsed:.2f}s")
+    else:
+        elapsed = time.time() - start_time
+        print(f"[AlarmDetector] Scanned {len(match_pairs)} matches, detected {len(all_alarms)} alarms (skipped {skipped_by_config} disabled) in {elapsed:.2f}s")
     
     return len(all_alarms)
 
