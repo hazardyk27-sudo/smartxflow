@@ -2839,14 +2839,16 @@ td.volume,
     cursor: pointer;
 }
 
-.drop-spark {
-    width: 70px;
-    height: 16px;
+.drop-trend-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 14px;
 }
 
-.drop-spark svg {
-    width: 70px;
-    height: 16px;
+.drop-trend-icon svg {
+    width: 22px;
+    height: 12px;
 }
 
 .drop-odds {
@@ -2897,14 +2899,13 @@ td.volume,
         gap: 1px;
     }
     
-    .drop-spark {
-        width: 52px;
+    .drop-trend-icon {
         height: 12px;
     }
     
-    .drop-spark svg {
-        width: 52px;
-        height: 12px;
+    .drop-trend-icon svg {
+        width: 20px;
+        height: 10px;
     }
     
     .drop-odds {
@@ -2926,14 +2927,13 @@ td.volume,
         min-width: 50px;
     }
     
-    .drop-spark {
-        width: 44px;
+    .drop-trend-icon {
         height: 10px;
     }
     
-    .drop-spark svg {
-        width: 44px;
-        height: 10px;
+    .drop-trend-icon svg {
+        width: 18px;
+        height: 9px;
     }
     
     .drop-odds {
@@ -3008,6 +3008,17 @@ td.volume,
 }
 
 .sparkline-svg {
+    display: block;
+}
+
+.trend-icon-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.trend-icon-svg {
     display: block;
 }
 

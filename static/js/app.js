@@ -2922,37 +2922,22 @@ async function loadOddsTrend(market) {
     }
 }
 
-function generateSparklineSVG(values, trend) {
-    if (!values || values.length < 2) {
-        return '';
-    }
+function generateTrendIconSVG(trend) {
+    let color, path;
     
-    const width = 40;
-    const height = 16;
-    const padding = 2;
-    
-    const validValues = values.filter(v => v !== null && v !== undefined);
-    if (validValues.length < 2) return '';
-    
-    const min = Math.min(...validValues);
-    const max = Math.max(...validValues);
-    const range = max - min || 1;
-    
-    const points = validValues.map((val, idx) => {
-        const x = padding + (idx / (validValues.length - 1)) * (width - 2 * padding);
-        const y = height - padding - ((val - min) / range) * (height - 2 * padding);
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(' ');
-    
-    let strokeColor = '#6b7280';
     if (trend === 'down') {
-        strokeColor = '#ef4444';
+        color = '#F97373';
+        path = 'M2 4 L8 8 L14 6 L20 10';
     } else if (trend === 'up') {
-        strokeColor = '#22c55e';
+        color = '#22C55E';
+        path = 'M2 10 L8 6 L14 8 L20 4';
+    } else {
+        color = '#6B7280';
+        path = 'M2 7 L20 7';
     }
     
-    return `<svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-        <polyline points="${points}" fill="none" stroke="${strokeColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    return `<svg class="trend-icon-svg" width="22" height="12" viewBox="0 0 22 12">
+        <path d="${path}" stroke="${color}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
 }
 
@@ -2998,34 +2983,23 @@ function renderOddsWithTrend(oddsValue, trendData) {
     const formattedOdds = formatOdds(oddsValue);
     
     if (!trendData || !trendData.history || trendData.history.length < 2) {
-        const flatSparkline = generateFlatSparklineSVG();
+        const trendIcon = generateTrendIconSVG('flat');
         return `
             <div class="odds-trend-cell odds-trend-no-data">
-                <div class="sparkline-container">${flatSparkline}</div>
+                <div class="trend-icon-container">${trendIcon}</div>
                 <div class="odds-value-trend">${formattedOdds}</div>
-                <span class="trend-arrow-drop trend-stable-drop">→</span>
             </div>
         `;
     }
     
-    const sparkline = generateSparklineSVG(trendData.history, trendData.trend);
+    const trendIcon = generateTrendIconSVG(trendData.trend);
     const pctHtml = formatPctChange(trendData.pct_change, trendData.trend);
-    const arrowHtml = getTrendArrowHTML(trendData.trend, trendData.pct_change);
-    
-    const tooltipData = JSON.stringify({
-        old: trendData.old,
-        new: trendData.new,
-        pct: trendData.pct_change,
-        trend: trendData.trend,
-        first_scraped: trendData.first_scraped || null
-    }).replace(/"/g, '&quot;');
     
     return `
-        <div class="odds-trend-cell" data-tooltip="${tooltipData}">
-            <div class="sparkline-container">${sparkline}</div>
+        <div class="odds-trend-cell">
+            <div class="trend-icon-container">${trendIcon}</div>
             <div class="odds-value-trend">${formattedOdds}</div>
             ${pctHtml}
-            ${arrowHtml}
         </div>
     `;
 }
@@ -3034,34 +3008,25 @@ function renderDrop1X2Cell(label, oddsValue, trendData) {
     const formattedOdds = formatOdds(oddsValue);
     
     if (!trendData || !trendData.history || trendData.history.length < 2) {
-        const flatSparkline = generateFlatSparklineSVG();
+        const trendIcon = generateTrendIconSVG('flat');
         return `
             <div class="drop-mini-card">
-                <div class="drop-spark">${flatSparkline}</div>
+                <div class="drop-trend-icon">${trendIcon}</div>
                 <div class="drop-odds">${formattedOdds}</div>
             </div>
         `;
     }
     
-    const sparkline = generateSparklineSVG(trendData.history, trendData.trend);
+    const trendIcon = generateTrendIconSVG(trendData.trend);
     const pctHtml = formatPctChange(trendData.pct_change, trendData.trend);
-    const arrowHtml = getTrendArrowHTML(trendData.trend, trendData.pct_change);
-    
-    const tooltipData = JSON.stringify({
-        old: trendData.old,
-        new: trendData.new,
-        pct: trendData.pct_change,
-        trend: trendData.trend,
-        first_scraped: trendData.first_scraped || null
-    }).replace(/"/g, '&quot;');
     
     const changeClass = trendData.trend === 'up' ? 'positive' : (trendData.trend === 'down' ? 'negative' : '');
     
     return `
-        <div class="drop-mini-card" data-tooltip="${tooltipData}">
-            <div class="drop-spark">${sparkline}</div>
+        <div class="drop-mini-card">
+            <div class="drop-trend-icon">${trendIcon}</div>
             <div class="drop-odds">${formattedOdds}</div>
-            <div class="drop-change ${changeClass}">${pctHtml}${arrowHtml}</div>
+            <div class="drop-change ${changeClass}">${pctHtml}</div>
         </div>
     `;
 }
