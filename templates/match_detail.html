@@ -74,11 +74,11 @@
 
         async function loadMatchData() {
             try {
-                const response = await fetch('/api/matches?market=' + currentMarket);
+                const response = await fetch('/api/match/details?home=' + encodeURIComponent(matchHome) + '&away=' + encodeURIComponent(matchAway));
                 const data = await response.json();
-                matchData = data.find ? data.find(m => m.home_team === matchHome && m.away_team === matchAway) : (data.matches && data.matches.find(m => m.home_team === matchHome && m.away_team === matchAway));
-                if (matchData) {
-                    document.getElementById('matchMeta').innerHTML = '<span class="match-league">' + (matchData.league || '') + '</span><span class="match-date">' + (matchData.start_time || matchData.date || '') + '</span>';
+                if (data.success && data.match) {
+                    matchData = data.match;
+                    document.getElementById('matchMeta').innerHTML = '<span class="match-league">' + (matchData.league || '') + '</span><span class="match-date">' + (matchData.date || '') + '</span>';
                     loadMatchHistory(currentMarket);
                     renderMatchInfoCard();
                 }
