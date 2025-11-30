@@ -4351,14 +4351,24 @@ td.volume,
 }
 
 .alarms-toggle-btn svg {
-    stroke: #ffd700;
+    stroke: #fff;
     stroke-width: 2.5;
     width: 18px;
     height: 18px;
 }
 
 .alarms-toggle-badge {
-    display: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    background: #da3633;
+    color: #000;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 800;
 }
 
 /* Sidebar Overlay */
