@@ -715,6 +715,7 @@
 
             if (pageId === 'dashboard') loadDashboard();
             if (pageId === 'markets') loadMarkets();
+            if (pageId === 'sharp') loadAlarms();
         }
 
         function showToast(message, type = 'info') {
@@ -794,6 +795,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             loadDashboard();
+            loadAlarms();
         });
 
         function getSharpConfig() {
