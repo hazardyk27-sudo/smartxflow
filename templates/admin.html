@@ -236,6 +236,175 @@
         }
         .badge.active { background: rgba(63, 185, 80, 0.2); color: #3fb950; }
         .badge.inactive { background: rgba(139, 148, 158, 0.2); color: #8b949e; }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #238636; color: white; }
+        .btn-primary:hover { background: #2ea043; }
+        .btn-warning { background: #9e6a03; color: white; }
+        .btn-warning:hover { background: #bb8009; }
+        .btn-danger { background: #da3633; color: white; }
+        .btn-danger:hover { background: #f85149; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            color: #8b949e;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 14px;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        .form-hint {
+            color: #8b949e;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+        
+        .alarm-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .alarm-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #21262d;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .alarm-item:hover {
+            background: #21262d;
+        }
+        .alarm-item:last-child {
+            border-bottom: none;
+        }
+        .alarm-info {
+            flex: 1;
+        }
+        .alarm-match {
+            color: #c9d1d9;
+            font-weight: 500;
+        }
+        .alarm-meta {
+            color: #8b949e;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        .alarm-score {
+            font-size: 18px;
+            font-weight: 700;
+            color: #f0883e;
+            padding: 4px 12px;
+            background: rgba(240, 136, 62, 0.15);
+            border-radius: 6px;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow: hidden;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #30363d;
+        }
+        .modal-header h3 {
+            color: #58a6ff;
+            margin: 0;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            color: #8b949e;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .close-btn:hover {
+            color: #c9d1d9;
+        }
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            max-height: calc(80vh - 60px);
+        }
+        .detail-section {
+            margin-bottom: 20px;
+        }
+        .detail-section h4 {
+            color: #f0883e;
+            font-size: 14px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #21262d;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+        }
+        .detail-label {
+            color: #8b949e;
+            font-size: 13px;
+        }
+        .detail-value {
+            color: #c9d1d9;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .detail-value.highlight {
+            color: #3fb950;
+        }
     </style>
 </head>
 <body>
@@ -376,13 +545,94 @@
             <div class="page-header">
                 <div>
                     <h2 class="page-title">Sharp</h2>
-                    <p class="page-subtitle">Sharp alarm ayarlari</p>
+                    <p class="page-subtitle">Sharp Money alarm ayarlari ve yonetimi</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-danger" onclick="deleteAllAlarms()">Tum Alarmlari Sil</button>
+                    <button class="btn btn-warning" onclick="recalculateAlarms()">Alarmlari Yeniden Hesapla</button>
+                    <button class="btn btn-primary" onclick="saveSharpConfig()">Kaydet</button>
                 </div>
             </div>
 
-            <div class="info-card">
-                <h3>🎯 Sharp Alarmlar</h3>
-                <p style="color: #8b949e; padding: 20px 0;">Yakin zamanda eklenecek...</p>
+            <div class="config-grid">
+                <div class="info-card">
+                    <h3>📊 Minimum Market Volume Esikleri</h3>
+                    <div class="form-group">
+                        <label>1X2 Minimum Volume</label>
+                        <input type="number" id="min_volume_1x2" value="3000" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>O/U 2.5 Minimum Volume</label>
+                        <input type="number" id="min_volume_ou25" value="1000" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>BTTS Minimum Volume</label>
+                        <input type="number" id="min_volume_btts" value="500" class="form-input">
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>✖️ Carpanlar</h3>
+                    <div class="form-group">
+                        <label>Hacim Carpani (volume_multiplier)</label>
+                        <input type="number" id="volume_multiplier" value="1" step="0.1" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Oran Carpani (odds_multiplier)</label>
+                        <input type="number" id="odds_multiplier" value="1" step="0.1" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Pay Carpani (share_multiplier)</label>
+                        <input type="number" id="share_multiplier" value="1" step="0.1" class="form-input">
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>⚖️ Agirliklar (%)</h3>
+                    <div class="form-group">
+                        <label>Hacim Agirligi (w_volume)</label>
+                        <input type="number" id="w_volume" value="40" min="0" max="100" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Oran Agirligi (w_odds)</label>
+                        <input type="number" id="w_odds" value="35" min="0" max="100" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Pay Agirligi (w_share)</label>
+                        <input type="number" id="w_share" value="25" min="0" max="100" class="form-input">
+                    </div>
+                    <p class="form-hint">Toplam: <span id="weightTotal">100</span>%</p>
+                </div>
+
+                <div class="info-card">
+                    <h3>🎯 Esik Degerleri</h3>
+                    <div class="form-group">
+                        <label>Minimum Pay (min_share %)</label>
+                        <input type="number" id="min_share" value="5" step="0.1" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Minimum Sharp Skoru (min_sharp_score)</label>
+                        <input type="number" id="min_sharp_score" value="10" step="0.1" class="form-input">
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-card" style="margin-top: 20px;">
+                <h3>🔔 Sharp Alarmlar <span id="alarmCount" class="badge active">0</span></h3>
+                <div id="alarmList" class="alarm-list">
+                    <p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz alarm yok. Ayarlari kaydedip "Alarmlari Yeniden Hesapla" butonuna basin.</p>
+                </div>
+            </div>
+
+            <div id="alarmDetailModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Alarm Detaylari</h3>
+                        <button class="close-btn" onclick="closeAlarmModal()">&times;</button>
+                    </div>
+                    <div class="modal-body" id="alarmDetailBody">
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -535,7 +785,226 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             loadDashboard();
+            setupWeightListeners();
         });
+
+        function setupWeightListeners() {
+            ['w_volume', 'w_odds', 'w_share'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', updateWeightTotal);
+                }
+            });
+        }
+
+        function updateWeightTotal() {
+            const w1 = parseFloat(document.getElementById('w_volume').value) || 0;
+            const w2 = parseFloat(document.getElementById('w_odds').value) || 0;
+            const w3 = parseFloat(document.getElementById('w_share').value) || 0;
+            const total = w1 + w2 + w3;
+            const el = document.getElementById('weightTotal');
+            if (el) {
+                el.textContent = total;
+                el.style.color = total === 100 ? '#3fb950' : '#f85149';
+            }
+        }
+
+        function getSharpConfig() {
+            return {
+                min_volume_1x2: parseInt(document.getElementById('min_volume_1x2').value) || 3000,
+                min_volume_ou25: parseInt(document.getElementById('min_volume_ou25').value) || 1000,
+                min_volume_btts: parseInt(document.getElementById('min_volume_btts').value) || 500,
+                volume_multiplier: parseFloat(document.getElementById('volume_multiplier').value) || 1,
+                odds_multiplier: parseFloat(document.getElementById('odds_multiplier').value) || 1,
+                share_multiplier: parseFloat(document.getElementById('share_multiplier').value) || 1,
+                w_volume: parseFloat(document.getElementById('w_volume').value) || 40,
+                w_odds: parseFloat(document.getElementById('w_odds').value) || 35,
+                w_share: parseFloat(document.getElementById('w_share').value) || 25,
+                min_share: parseFloat(document.getElementById('min_share').value) || 5,
+                min_sharp_score: parseFloat(document.getElementById('min_sharp_score').value) || 10
+            };
+        }
+
+        function setSharpConfig(config) {
+            if (!config) return;
+            document.getElementById('min_volume_1x2').value = config.min_volume_1x2 || 3000;
+            document.getElementById('min_volume_ou25').value = config.min_volume_ou25 || 1000;
+            document.getElementById('min_volume_btts').value = config.min_volume_btts || 500;
+            document.getElementById('volume_multiplier').value = config.volume_multiplier || 1;
+            document.getElementById('odds_multiplier').value = config.odds_multiplier || 1;
+            document.getElementById('share_multiplier').value = config.share_multiplier || 1;
+            document.getElementById('w_volume').value = config.w_volume || 40;
+            document.getElementById('w_odds').value = config.w_odds || 35;
+            document.getElementById('w_share').value = config.w_share || 25;
+            document.getElementById('min_share').value = config.min_share || 5;
+            document.getElementById('min_sharp_score').value = config.min_sharp_score || 10;
+            updateWeightTotal();
+        }
+
+        async function saveSharpConfig() {
+            const config = getSharpConfig();
+            try {
+                const response = await fetch('/api/sharp/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                if (response.ok) {
+                    showToast('Ayarlar kaydedildi!', 'success');
+                } else {
+                    showToast('Kaydetme hatasi!', 'error');
+                }
+            } catch (error) {
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+
+        async function loadSharpConfig() {
+            try {
+                const response = await fetch('/api/sharp/config');
+                if (response.ok) {
+                    const config = await response.json();
+                    setSharpConfig(config);
+                }
+            } catch (error) {
+                console.error('Config yukleme hatasi:', error);
+            }
+        }
+
+        async function deleteAllAlarms() {
+            if (!confirm('Tum Sharp alarmlarini silmek istediginizden emin misiniz?')) return;
+            try {
+                const response = await fetch('/api/sharp/alarms', { method: 'DELETE' });
+                if (response.ok) {
+                    showToast('Tum alarmlar silindi!', 'success');
+                    loadAlarms();
+                } else {
+                    showToast('Silme hatasi!', 'error');
+                }
+            } catch (error) {
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+
+        async function recalculateAlarms() {
+            showToast('Alarmlar hesaplaniyor...', 'info');
+            try {
+                const response = await fetch('/api/sharp/calculate', { method: 'POST' });
+                if (response.ok) {
+                    const result = await response.json();
+                    showToast(`${result.count || 0} alarm uretildi!`, 'success');
+                    loadAlarms();
+                } else {
+                    showToast('Hesaplama hatasi!', 'error');
+                }
+            } catch (error) {
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+
+        async function loadAlarms() {
+            try {
+                const response = await fetch('/api/sharp/alarms');
+                if (response.ok) {
+                    const alarms = await response.json();
+                    renderAlarms(alarms);
+                }
+            } catch (error) {
+                console.error('Alarm yukleme hatasi:', error);
+            }
+        }
+
+        function renderAlarms(alarms) {
+            const container = document.getElementById('alarmList');
+            const countEl = document.getElementById('alarmCount');
+            
+            if (!alarms || alarms.length === 0) {
+                container.innerHTML = '<p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz alarm yok.</p>';
+                countEl.textContent = '0';
+                return;
+            }
+
+            countEl.textContent = alarms.length;
+            container.innerHTML = alarms.map((alarm, idx) => `
+                <div class="alarm-item" onclick="showAlarmDetail(${idx})">
+                    <div class="alarm-info">
+                        <div class="alarm-match">${alarm.home} vs ${alarm.away}</div>
+                        <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
+                    </div>
+                    <div class="alarm-score">${(alarm.sharp_score || 0).toFixed(1)}</div>
+                </div>
+            `).join('');
+
+            window.currentAlarms = alarms;
+        }
+
+        function showAlarmDetail(idx) {
+            const alarm = window.currentAlarms[idx];
+            if (!alarm) return;
+
+            const modal = document.getElementById('alarmDetailModal');
+            const body = document.getElementById('alarmDetailBody');
+
+            body.innerHTML = `
+                <div class="detail-section">
+                    <h4>Mac ve Secim Bilgisi</h4>
+                    <div class="detail-row"><span class="detail-label">Mac</span><span class="detail-value">${alarm.home} vs ${alarm.away}</span></div>
+                    <div class="detail-row"><span class="detail-label">Market</span><span class="detail-value">${alarm.market}</span></div>
+                    <div class="detail-row"><span class="detail-label">Secenek</span><span class="detail-value">${alarm.selection}</span></div>
+                    <div class="detail-row"><span class="detail-label">Tarih</span><span class="detail-value">${alarm.created_at || '-'}</span></div>
+                </div>
+                <div class="detail-section">
+                    <h4>Hacim Soku</h4>
+                    <div class="detail-row"><span class="detail-label">last_stake</span><span class="detail-value">${alarm.last_stake || 0}</span></div>
+                    <div class="detail-row"><span class="detail-label">avg_last_10_stakes</span><span class="detail-value">${(alarm.avg_last_10_stakes || 0).toFixed(2)}</span></div>
+                    <div class="detail-row"><span class="detail-label">shock_raw</span><span class="detail-value">${(alarm.shock_raw || 0).toFixed(2)}</span></div>
+                    <div class="detail-row"><span class="detail-label">volume_multiplier</span><span class="detail-value">${alarm.volume_multiplier || 1}</span></div>
+                    <div class="detail-row"><span class="detail-label">shock_value</span><span class="detail-value highlight">${(alarm.shock_value || 0).toFixed(2)}</span></div>
+                    <div class="detail-row"><span class="detail-label">w_volume</span><span class="detail-value">${alarm.w_volume || 0}%</span></div>
+                    <div class="detail-row"><span class="detail-label">volume_contrib</span><span class="detail-value highlight">${(alarm.volume_contrib || 0).toFixed(2)}</span></div>
+                </div>
+                <div class="detail-section">
+                    <h4>Oran Dususu</h4>
+                    <div class="detail-row"><span class="detail-label">previous_odds</span><span class="detail-value">${alarm.previous_odds || 0}</span></div>
+                    <div class="detail-row"><span class="detail-label">current_odds</span><span class="detail-value">${alarm.current_odds || 0}</span></div>
+                    <div class="detail-row"><span class="detail-label">drop_pct</span><span class="detail-value">${(alarm.drop_pct || 0).toFixed(2)}%</span></div>
+                    <div class="detail-row"><span class="detail-label">odds_multiplier</span><span class="detail-value">${alarm.odds_multiplier || 1}</span></div>
+                    <div class="detail-row"><span class="detail-label">odds_value</span><span class="detail-value highlight">${(alarm.odds_value || 0).toFixed(2)}</span></div>
+                    <div class="detail-row"><span class="detail-label">w_odds</span><span class="detail-value">${alarm.w_odds || 0}%</span></div>
+                    <div class="detail-row"><span class="detail-label">odds_contrib</span><span class="detail-value highlight">${(alarm.odds_contrib || 0).toFixed(2)}</span></div>
+                </div>
+                <div class="detail-section">
+                    <h4>Pay Degisimi</h4>
+                    <div class="detail-row"><span class="detail-label">previous_share</span><span class="detail-value">${alarm.previous_share || 0}%</span></div>
+                    <div class="detail-row"><span class="detail-label">current_share</span><span class="detail-value">${alarm.current_share || 0}%</span></div>
+                    <div class="detail-row"><span class="detail-label">share_diff</span><span class="detail-value">${(alarm.share_diff || 0).toFixed(2)}%</span></div>
+                    <div class="detail-row"><span class="detail-label">share_multiplier</span><span class="detail-value">${alarm.share_multiplier || 1}</span></div>
+                    <div class="detail-row"><span class="detail-label">share_value</span><span class="detail-value highlight">${(alarm.share_value || 0).toFixed(2)}</span></div>
+                    <div class="detail-row"><span class="detail-label">w_share</span><span class="detail-value">${alarm.w_share || 0}%</span></div>
+                    <div class="detail-row"><span class="detail-label">share_contrib</span><span class="detail-value highlight">${(alarm.share_contrib || 0).toFixed(2)}</span></div>
+                </div>
+                <div class="detail-section">
+                    <h4>Final Skor</h4>
+                    <div class="detail-row"><span class="detail-label">SharpScore</span><span class="detail-value highlight" style="font-size: 18px; color: #f0883e;">${(alarm.sharp_score || 0).toFixed(2)}</span></div>
+                    <div class="detail-row"><span class="detail-label">min_sharp_score</span><span class="detail-value">${alarm.min_sharp_score || 0}</span></div>
+                    <div class="detail-row"><span class="detail-label">Durum</span><span class="detail-value" style="color: ${alarm.triggered ? '#3fb950' : '#f85149'};">${alarm.triggered ? 'TETIKLENDI' : 'Tetiklenmedi'}</span></div>
+                </div>
+            `;
+
+            modal.style.display = 'flex';
+        }
+
+        function closeAlarmModal() {
+            document.getElementById('alarmDetailModal').style.display = 'none';
+        }
+
+        if (location.hash === '#sharp' || new URLSearchParams(location.search).get('page') === 'sharp') {
+            setTimeout(() => {
+                showPage('sharp');
+                loadSharpConfig();
+                loadAlarms();
+            }, 100);
+        }
     </script>
 </body>
 </html>

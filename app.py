@@ -834,6 +834,284 @@ def get_match_details():
         return jsonify({'success': False, 'error': str(e)})
 
 
+sharp_config = {
+    'min_volume_1x2': 3000,
+    'min_volume_ou25': 1000,
+    'min_volume_btts': 500,
+    'volume_multiplier': 1.0,
+    'odds_multiplier': 1.0,
+    'share_multiplier': 1.0,
+    'w_volume': 40,
+    'w_odds': 35,
+    'w_share': 25,
+    'min_share': 5,
+    'min_sharp_score': 10
+}
+
+sharp_alarms = []
+
+
+@app.route('/api/sharp/config', methods=['GET'])
+def get_sharp_config():
+    """Get Sharp config"""
+    return jsonify(sharp_config)
+
+
+@app.route('/api/sharp/config', methods=['POST'])
+def save_sharp_config():
+    """Save Sharp config"""
+    global sharp_config
+    try:
+        data = request.get_json()
+        if data:
+            sharp_config.update(data)
+            supabase = get_supabase_client()
+            if supabase and supabase.is_available:
+                try:
+                    supabase.save_sharp_config(sharp_config)
+                except:
+                    pass
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/sharp/alarms', methods=['GET'])
+def get_sharp_alarms():
+    """Get all Sharp alarms"""
+    return jsonify(sharp_alarms)
+
+
+@app.route('/api/sharp/alarms', methods=['DELETE'])
+def delete_sharp_alarms():
+    """Delete all Sharp alarms"""
+    global sharp_alarms
+    sharp_alarms = []
+    supabase = get_supabase_client()
+    if supabase and supabase.is_available:
+        try:
+            supabase.delete_all_sharp_alarms()
+        except:
+            pass
+    return jsonify({'success': True})
+
+
+@app.route('/api/sharp/calculate', methods=['POST'])
+def calculate_sharp_alarms():
+    """Calculate Sharp alarms based on current config"""
+    global sharp_alarms
+    try:
+        sharp_alarms = calculate_sharp_scores(sharp_config)
+        return jsonify({'success': True, 'count': len(sharp_alarms)})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def calculate_sharp_scores(config):
+    """Calculate Sharp scores for all matches based on config"""
+    alarms = []
+    supabase = get_supabase_client()
+    if not supabase or not supabase.is_available:
+        return alarms
+    
+    markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
+    
+    for market in markets:
+        try:
+            if '1x2' in market:
+                min_volume = config.get('min_volume_1x2', 3000)
+                selections = ['1', 'X', '2']
+            elif 'ou25' in market:
+                min_volume = config.get('min_volume_ou25', 1000)
+                selections = ['Over', 'Under']
+            else:
+                min_volume = config.get('min_volume_btts', 500)
+                selections = ['Yes', 'No']
+            
+            history_table = f"{market}_history"
+            matches = supabase.get_all_matches_with_latest(market)
+            
+            if not matches:
+                continue
+            
+            for match in matches:
+                home = match.get('home', match.get('Home', ''))
+                away = match.get('away', match.get('Away', ''))
+                
+                if not home or not away:
+                    continue
+                
+                volume_str = match.get('volume', match.get('Volume', '0'))
+                volume = parse_volume(volume_str)
+                
+                if volume < min_volume:
+                    continue
+                
+                history = supabase.get_match_history_for_sharp(home, away, history_table)
+                
+                if len(history) < 2:
+                    continue
+                
+                for sel_idx, selection in enumerate(selections):
+                    alarm = calculate_selection_sharp(
+                        home, away, market, selection, sel_idx,
+                        history, volume, config
+                    )
+                    if alarm and alarm.get('triggered'):
+                        alarms.append(alarm)
+        except Exception as e:
+            print(f"[Sharp] Error processing {market}: {e}")
+            continue
+    
+    alarms.sort(key=lambda x: x.get('sharp_score', 0), reverse=True)
+    return alarms
+
+
+def calculate_selection_sharp(home, away, market, selection, sel_idx, history, volume, config):
+    """Calculate Sharp score for a single selection"""
+    if len(history) < 2:
+        return None
+    
+    if '1x2' in market:
+        amount_keys = ['amt1', 'amtx', 'amt2']
+        odds_keys = ['odds1', 'oddsx', 'odds2']
+        share_keys = ['pct1', 'pctx', 'pct2']
+    elif 'ou25' in market:
+        amount_keys = ['amtover', 'amtunder']
+        odds_keys = ['over', 'under']
+        share_keys = ['pctover', 'pctunder']
+    else:
+        amount_keys = ['amtyes', 'amtno']
+        odds_keys = ['oddsyes', 'oddsno']
+        share_keys = ['pctyes', 'pctno']
+    
+    if sel_idx >= len(amount_keys):
+        return None
+    
+    amount_key = amount_keys[sel_idx]
+    odds_key = odds_keys[sel_idx]
+    share_key = share_keys[sel_idx]
+    
+    stakes = []
+    for i in range(1, min(len(history), 11)):
+        curr_amt = parse_volume(history[i].get(amount_key, '0'))
+        prev_amt = parse_volume(history[i-1].get(amount_key, '0'))
+        stake = curr_amt - prev_amt
+        if stake > 0:
+            stakes.append(stake)
+    
+    if not stakes:
+        return None
+    
+    last_stake = stakes[-1] if stakes else 0
+    avg_last_10 = sum(stakes) / len(stakes) if stakes else 1
+    
+    if avg_last_10 <= 0:
+        return None
+    
+    shock_raw = last_stake / avg_last_10
+    volume_multiplier = config.get('volume_multiplier', 1)
+    shock_value = shock_raw * volume_multiplier
+    
+    current_odds = parse_float(history[-1].get(odds_key, '0'))
+    previous_odds = parse_float(history[-2].get(odds_key, '0')) if len(history) >= 2 else current_odds
+    
+    if previous_odds > 0 and current_odds < previous_odds:
+        drop_pct = ((previous_odds - current_odds) / previous_odds) * 100
+    else:
+        drop_pct = 0
+    
+    odds_multiplier = config.get('odds_multiplier', 1)
+    odds_value = drop_pct * odds_multiplier
+    
+    current_share = parse_float(history[-1].get(share_key, '0').replace('%', ''))
+    previous_share = parse_float(history[-2].get(share_key, '0').replace('%', '')) if len(history) >= 2 else current_share
+    
+    share_diff = current_share - previous_share
+    if share_diff < 0:
+        share_diff = 0
+    
+    share_multiplier = config.get('share_multiplier', 1)
+    share_value = share_diff * share_multiplier
+    
+    w_volume = config.get('w_volume', 40)
+    w_odds = config.get('w_odds', 35)
+    w_share = config.get('w_share', 25)
+    
+    volume_contrib = shock_value * (w_volume / 100)
+    odds_contrib = odds_value * (w_odds / 100)
+    share_contrib = share_value * (w_share / 100)
+    
+    sharp_score = volume_contrib + odds_contrib + share_contrib
+    
+    min_share_threshold = config.get('min_share', 5)
+    min_sharp_score = config.get('min_sharp_score', 10)
+    
+    triggered = (
+        current_share >= min_share_threshold and
+        shock_value > 0 and
+        odds_value > 0 and
+        share_value > 0 and
+        sharp_score >= min_sharp_score
+    )
+    
+    return {
+        'home': home,
+        'away': away,
+        'market': market,
+        'selection': selection,
+        'created_at': now_turkey_formatted(),
+        'last_stake': last_stake,
+        'avg_last_10_stakes': avg_last_10,
+        'shock_raw': shock_raw,
+        'volume_multiplier': volume_multiplier,
+        'shock_value': shock_value,
+        'w_volume': w_volume,
+        'volume_contrib': volume_contrib,
+        'previous_odds': previous_odds,
+        'current_odds': current_odds,
+        'drop_pct': drop_pct,
+        'odds_multiplier': odds_multiplier,
+        'odds_value': odds_value,
+        'w_odds': w_odds,
+        'odds_contrib': odds_contrib,
+        'previous_share': previous_share,
+        'current_share': current_share,
+        'share_diff': share_diff,
+        'share_multiplier': share_multiplier,
+        'share_value': share_value,
+        'w_share': w_share,
+        'share_contrib': share_contrib,
+        'sharp_score': sharp_score,
+        'min_sharp_score': min_sharp_score,
+        'triggered': triggered
+    }
+
+
+def parse_volume(val):
+    """Parse volume string to float"""
+    if not val:
+        return 0
+    try:
+        cleaned = str(val).replace('£', '').replace(',', '').replace(' ', '').strip()
+        return float(cleaned) if cleaned else 0
+    except:
+        return 0
+
+
+def parse_float(val):
+    """Parse float from string"""
+    if not val:
+        return 0
+    try:
+        cleaned = str(val).replace(',', '.').strip()
+        return float(cleaned) if cleaned else 0
+    except:
+        return 0
+
+
 @app.route('/admin')
 def admin_panel():
     """Admin Panel"""

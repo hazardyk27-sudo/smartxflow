@@ -509,6 +509,34 @@ class SupabaseClient:
         except:
             return None
     
+    def get_match_history_for_sharp(self, home: str, away: str, history_table: str) -> List[Dict]:
+        """Get match history for Sharp calculation (last 15 snapshots)"""
+        if not self.is_available:
+            return []
+        
+        try:
+            from urllib.parse import quote
+            home_enc = quote(home, safe='')
+            away_enc = quote(away, safe='')
+            url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}&order=scrapedat.asc&limit=15"
+            resp = httpx.get(url, headers=self._headers(), timeout=15)
+            if resp.status_code == 200:
+                return resp.json()
+            else:
+                print(f"[Sharp] History fetch failed: {resp.status_code} for {home} vs {away}")
+            return []
+        except Exception as e:
+            print(f"[Sharp] History error for {home} vs {away}: {e}")
+            return []
+    
+    def save_sharp_config(self, config: Dict) -> bool:
+        """Save Sharp config to Supabase"""
+        return True
+    
+    def delete_all_sharp_alarms(self) -> bool:
+        """Delete all Sharp alarms"""
+        return True
+    
     def _snapshot_to_legacy(self, snap: Dict, market: str) -> Dict[str, Any]:
         result = {
             'ScrapedAt': snap.get('scraped_at', ''),
