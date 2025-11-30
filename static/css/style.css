@@ -4363,17 +4363,18 @@ td.volume,
 }
 
 .alarms-toggle-badge {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 18px;
+    width: 18px;
     height: 18px;
-    padding: 0 5px;
+    padding: 0;
     background: #EF4444;
     color: #FFFFFF;
     border-radius: 50%;
     font-size: 11px;
     font-weight: 700;
+    line-height: 1;
 }
 
 /* Sidebar Overlay */
