@@ -218,9 +218,10 @@ function setupSearch() {
 
 async function loadMatches() {
     const tbody = document.getElementById('matchesTableBody');
+    const colspan = currentMarket.includes('1x2') ? 7 : 6;
     tbody.innerHTML = `
         <tr class="loading-row">
-            <td colspan="7">
+            <td colspan="${colspan}">
                 <div class="loading-spinner"></div>
                 Loading matches...
             </td>
