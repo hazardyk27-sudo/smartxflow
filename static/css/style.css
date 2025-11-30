@@ -4334,7 +4334,7 @@ td.volume,
     background-color: #1A8F4B;
     border: 1px solid #0F6F37;
     border-radius: 8px;
-    color: #FFFFFF;
+    color: #0d1117;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -4350,7 +4350,7 @@ td.volume,
 }
 
 .alarms-toggle-btn svg {
-    stroke: #FFFFFF;
+    stroke: #0d1117;
 }
 
 .alarms-toggle-badge {
@@ -4361,7 +4361,7 @@ td.volume,
     height: 20px;
     padding: 0 6px;
     background-color: #FF3B30;
-    color: #FFFFFF;
+    color: #0d1117;
     border-radius: 10px;
     font-size: 11px;
     font-weight: 700;
