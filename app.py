@@ -988,6 +988,11 @@ def calculate_sharp_scores(config):
             sharp_calc_progress = f"{market_names.get(market, market)} isleniyor... ({idx+1}/3)"
             print(f"[Sharp] Processing {len(matches)} matches for {market}, min_volume: {min_volume}")
             processed = 0
+            skipped_old = 0
+            
+            # Prematch kuralı: D-2+ maçlar hariç tutulur
+            today = now_turkey().date()
+            yesterday = today - timedelta(days=1)
             
             for match in matches:
                 home = match.get('home_team', match.get('home', match.get('Home', '')))
@@ -995,6 +1000,46 @@ def calculate_sharp_scores(config):
                 
                 if not home or not away:
                     continue
+                
+                # Maç tarihini kontrol et (D-2+ filtresi)
+                match_date_str = match.get('date', '')
+                if match_date_str:
+                    try:
+                        # Format: "29.Nov 15:00:00" veya "DD.MM.YYYY" veya "YYYY-MM-DD"
+                        date_part = match_date_str.split()[0]  # "29.Nov" veya "29.11.2025"
+                        
+                        if '.' in date_part:
+                            parts = date_part.split('.')
+                            if len(parts) == 2:
+                                # Format: "29.Nov" - gün ve ay kısaltması
+                                day = int(parts[0])
+                                month_abbr = parts[1][:3]  # İlk 3 karakter
+                                month_map = {
+                                    'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+                                    'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+                                }
+                                month = month_map.get(month_abbr, today.month)
+                                # Yıl: Eğer ay gelecekte ise geçen yıl, değilse bu yıl
+                                year = today.year
+                                match_date = datetime(year, month, day).date()
+                            elif len(parts) == 3:
+                                # Format: "29.11.2025"
+                                match_date = datetime.strptime(date_part, '%d.%m.%Y').date()
+                            else:
+                                match_date = today
+                        elif '-' in date_part:
+                            # Format: "2025-11-29"
+                            match_date = datetime.strptime(date_part.split('T')[0], '%Y-%m-%d').date()
+                        else:
+                            match_date = today  # Parse edilemezse bugün kabul et
+                        
+                        # D-2 veya daha eski maçları atla
+                        if match_date < yesterday:
+                            skipped_old += 1
+                            continue
+                    except Exception as e:
+                        print(f"[Sharp] Date parse error for {home} vs {away}: {match_date_str} - {e}")
+                        # Parse hatası varsa devam et
                 
                 latest = match.get('latest', {})
                 volume_str = latest.get('Volume', match.get('volume', match.get('Volume', '0')))
@@ -1020,7 +1065,7 @@ def calculate_sharp_scores(config):
                         if alarm.get('triggered'):
                             alarms.append(alarm)
             
-            print(f"[Sharp] Processed {processed} matches with sufficient volume for {market}")
+            print(f"[Sharp] Processed {processed} matches with sufficient volume for {market}, skipped {skipped_old} old (D-2+) matches")
         except Exception as e:
             print(f"[Sharp] Error processing {market}: {e}")
             import traceback
