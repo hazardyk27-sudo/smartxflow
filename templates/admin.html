@@ -930,6 +930,11 @@
                     <div class="alarm-info">
                         <div class="alarm-match">${alarm.home} vs ${alarm.away}</div>
                         <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
+                        <div class="alarm-breakdown" style="display: flex; gap: 12px; margin-top: 6px; font-size: 11px;">
+                            <span style="color: #f0883e;" title="Hacim Soku">⚡ ${(alarm.shock_value || 0).toFixed(1)}</span>
+                            <span style="color: #58a6ff;" title="Oran Degisimi">📉 ${(alarm.odds_value || 0).toFixed(1)}</span>
+                            <span style="color: #3fb950;" title="Pay Degisimi">📊 ${(alarm.share_value || 0).toFixed(1)}</span>
+                        </div>
                     </div>
                     <div class="alarm-score">${(alarm.sharp_score || 0).toFixed(1)}</div>
                 </div>
