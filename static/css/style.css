@@ -789,16 +789,16 @@ body {
 }
 
 .modal-title h2 {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
-    color: #E5E7EB;
+    color: var(--color-text-primary);
     margin-bottom: 4px;
     letter-spacing: -0.2px;
 }
 
 .modal-subtitle {
     font-size: 12px;
-    color: #9CA3AF;
+    color: var(--color-text-secondary);
     font-weight: 500;
 }
 
@@ -865,7 +865,7 @@ body {
 .column-header {
     font-size: 14px;
     font-weight: 600;
-    color: #E5E7EB;
+    color: var(--color-text-primary);
     margin-bottom: 16px;
     padding-bottom: 12px;
     border-bottom: 1px solid #1c2533;
@@ -884,8 +884,8 @@ body {
 }
 
 .column-value.odds {
-    color: #22C55E;
-    font-size: 18px;
+    color: var(--color-accent);
+    font-size: 15px;
     font-weight: 600;
 }
 
@@ -895,9 +895,9 @@ body {
 }
 
 .column-value.pct {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    color: #22C55E;
+    color: var(--color-accent);
 }
 
 .column-row {
@@ -934,14 +934,14 @@ body {
     font-family: 'JetBrains Mono', monospace;
     font-weight: 600;
     font-size: 14px;
-    color: #E5E7EB;
+    color: var(--color-text-primary);
 }
 
 .row-value.odds {
-    color: #22C55E;
-    font-size: 16px;
+    color: var(--color-accent);
+    font-size: 15px;
     font-weight: 600;
-    font-style: italic;
+    font-style: normal;
 }
 
 .row-value.money {
@@ -951,9 +951,9 @@ body {
 }
 
 .row-value.pct {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    color: #22C55E;
+    color: var(--color-accent);
 }
 
 .volume-bar {
@@ -988,9 +988,9 @@ body {
 
 .volume-value {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 700;
-    color: #22C55E;
+    color: var(--color-accent);
 }
 
 .info-row {
@@ -1020,14 +1020,14 @@ body {
 }
 
 .info-value {
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 700;
-    color: #fff;
+    color: var(--color-text-primary);
     font-family: 'JetBrains Mono', monospace;
 }
 
 .info-value.odds {
-    color: #4ade80;
+    color: var(--color-accent);
 }
 
 .info-value.money {
@@ -1035,7 +1035,7 @@ body {
 }
 
 .info-value.volume {
-    color: #4ade80;
+    color: var(--color-accent);
 }
 
 .info-value.pct {
