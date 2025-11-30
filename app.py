@@ -194,9 +194,7 @@ def get_matches():
         if (now - last_time) < matches_cache['ttl']:
             return jsonify(matches_cache['data'][cache_key])
     
-    result = db.get_all_matches_with_latest(market, offset, limit)
-    matches_with_latest = result.get('matches', [])
-    total_count = result.get('total_count', 0)
+    matches_with_latest = db.get_all_matches_with_latest(market, offset, limit)
     
     enriched = []
     for m in matches_with_latest:
@@ -277,15 +275,11 @@ def get_matches():
             'history_count': 1
         })
     
-    response_data = {
-        'matches': enriched,
-        'total_count': total_count
-    }
-    
-    matches_cache['data'][cache_key] = response_data
+    # Cache'e kaydet
+    matches_cache['data'][cache_key] = enriched
     matches_cache['timestamp'][cache_key] = now
     
-    return jsonify(response_data)
+    return jsonify(enriched)
 
 
 @app.route('/api/match/history/bulk')
@@ -744,7 +738,7 @@ def export_png():
 odds_trend_cache = {
     'data': {},  # market -> data
     'timestamp': {},  # market -> timestamp
-    'ttl': 600  # 10 dakika cache
+    'ttl': 300  # 5 dakika cache
 }
 
 @app.route('/api/odds-trend/<market>')

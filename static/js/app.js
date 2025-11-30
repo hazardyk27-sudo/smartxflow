@@ -18,7 +18,6 @@ const PAGE_SIZE = 30;
 let currentPage = 0;
 let isLoadingMore = false;
 let hasMoreMatches = true;
-let totalMatchCount = 0;
 
 const APP_TIMEZONE = 'Europe/Istanbul';
 
@@ -261,14 +260,15 @@ async function loadMatches() {
     updateTableHeaders();
     
     try {
-        if (!currentMarket.startsWith('dropping')) {
+        if (currentMarket.startsWith('dropping')) {
+            await loadOddsTrend(currentMarket);
+        } else {
             oddsTrendCache = {};
         }
         
         const response = await fetch(`/api/matches?market=${currentMarket}&offset=0&limit=${PAGE_SIZE}`);
-        const data = await response.json();
-        matches = data.matches || [];
-        totalMatchCount = data.total_count || 0;
+        const apiMatches = await response.json();
+        matches = apiMatches || [];
         
         if (matches.length < PAGE_SIZE) {
             hasMoreMatches = false;
@@ -277,11 +277,11 @@ async function loadMatches() {
         filteredMatches = applySorting(matches);
         renderMatches(filteredMatches);
         
-        updateMatchCount();
-        
         if (currentMarket.startsWith('dropping')) {
-            loadOddsTrendAsync(currentMarket);
+            attachTrendTooltipListeners();
         }
+        
+        updateMatchCount();
     } catch (error) {
         console.error('Error loading matches:', error);
         matches = [];
@@ -302,8 +302,7 @@ async function loadMoreMatches() {
     
     try {
         const response = await fetch(`/api/matches?market=${currentMarket}&offset=${offset}&limit=${PAGE_SIZE}`);
-        const data = await response.json();
-        const newMatches = data.matches || [];
+        const newMatches = await response.json();
         
         if (!newMatches || newMatches.length === 0) {
             hasMoreMatches = false;
@@ -360,11 +359,8 @@ function hideLoadingIndicator() {
 function updateMatchCount() {
     const countEl = document.querySelector('.match-count');
     if (countEl) {
-        if (totalMatchCount > 0) {
-            countEl.textContent = `${totalMatchCount} Matches`;
-        } else {
-            countEl.textContent = `${matches.length} Matches`;
-        }
+        const suffix = hasMoreMatches ? '+' : '';
+        countEl.textContent = `${matches.length}${suffix} Matches`;
     }
 }
 
@@ -3187,29 +3183,6 @@ async function loadOddsTrend(market) {
     }
 }
 
-function loadOddsTrendAsync(market) {
-    if (!market.startsWith('dropping')) {
-        oddsTrendCache = {};
-        return;
-    }
-    
-    fetch(`/api/odds-trend/${market}`)
-        .then(response => response.json())
-        .then(result => {
-            oddsTrendCache = result.data || {};
-            console.log(`[Odds Trend] Loaded ${Object.keys(oddsTrendCache).length} matches for ${market}`);
-            
-            if (currentMarket === market) {
-                renderMatches(filteredMatches);
-                attachTrendTooltipListeners();
-            }
-        })
-        .catch(error => {
-            console.error('[Odds Trend] Error loading:', error);
-            oddsTrendCache = {};
-        });
-}
-
 function generateSparklineSVG(values, trend) {
     if (!values || values.length < 2) {
         return '';
@@ -3401,12 +3374,13 @@ function showTrendTooltip(event) {
         }
         
         tooltip.innerHTML = `
-            <div class="tooltip-title">SON 12 SAAT DEĞİŞİM</div>
+            <div class="tooltip-title">AÇILIŞTAN BUGÜNE DEĞİŞİM</div>
             <div class="tooltip-block">
                 <div class="tooltip-row">
-                    <span class="tooltip-label">12 saat önce:</span>
+                    <span class="tooltip-label">Açılış oranı:</span>
                     <span class="tooltip-value">${data.old ? data.old.toFixed(2) : '-'}</span>
                 </div>
+                ${firstScrapedText ? `<div class="tooltip-date">(${firstScrapedText})</div>` : ''}
             </div>
             <div class="tooltip-block">
                 <div class="tooltip-row">
