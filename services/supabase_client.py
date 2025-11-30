@@ -407,129 +407,83 @@ class SupabaseClient:
         return latest_time
     
     def get_6h_odds_history(self, market: str) -> Dict[str, Dict[str, Any]]:
-        """Get odds history for DROP markets - OPENING vs CURRENT.
-        Returns dict: { "home|away": { "sel1": {old, new, trend}, ... } }
-        Strategy: Get active matches, then batch fetch opening & latest from history.
-        """
-        if not self.is_available:
-            return {}
-        
-        if not market.startswith('dropping'):
+        """Drop markets: İlk snapshot vs Son snapshot = Açılıştan bu yana değişim."""
+        if not self.is_available or not market.startswith('dropping'):
             return {}
         
         history_table = f"{market}_history"
-        main_table = market
         
         try:
-            main_url = f"{self._rest_url(main_table)}?select=home,away"
-            main_resp = httpx.get(main_url, headers=self._headers(), timeout=10)
-            if main_resp.status_code != 200:
-                return {}
-            
-            active_matches = main_resp.json()
-            match_list = [(m.get('home', ''), m.get('away', '')) for m in active_matches]
-            
+            first_url = f"{self._rest_url(history_table)}?order=scrapedat.asc&limit=10000"
             last_url = f"{self._rest_url(history_table)}?order=scrapedat.desc&limit=3000"
+            
+            first_resp = httpx.get(first_url, headers=self._headers(), timeout=20)
             last_resp = httpx.get(last_url, headers=self._headers(), timeout=15)
             
-            if last_resp.status_code != 200:
+            if first_resp.status_code != 200 or last_resp.status_code != 200:
                 return {}
             
-            last_rows = last_resp.json()
+            first_by_match = {}
+            for row in first_resp.json():
+                key = f"{row.get('home', '')}|{row.get('away', '')}"
+                if key not in first_by_match:
+                    first_by_match[key] = row
             
             last_by_match = {}
-            for row in last_rows:
+            for row in last_resp.json():
                 key = f"{row.get('home', '')}|{row.get('away', '')}"
                 if key not in last_by_match:
                     last_by_match[key] = row
             
-            opening_by_match = {}
-            batch_size = 20
-            for i in range(0, min(len(match_list), 200), batch_size):
-                batch = match_list[i:i+batch_size]
-                for home, away in batch:
-                    key = f"{home}|{away}"
-                    if key in opening_by_match:
-                        continue
-                    try:
-                        from urllib.parse import quote
-                        open_url = f"{self._rest_url(history_table)}?home=eq.{quote(home)}&away=eq.{quote(away)}&order=scrapedat.asc&limit=1"
-                        open_resp = httpx.get(open_url, headers=self._headers(), timeout=5)
-                        if open_resp.status_code == 200:
-                            rows = open_resp.json()
-                            if rows:
-                                opening_by_match[key] = rows[0]
-                    except:
-                        pass
+            print(f"[Drop History] {len(first_by_match)} first + {len(last_by_match)} last from {history_table}")
             
-            print(f"[Odds History] Got {len(opening_by_match)} opening + {len(last_by_match)} latest for {market}")
+            if market == 'dropping_1x2':
+                sels = ['odds1', 'oddsx', 'odds2']
+            elif market == 'dropping_ou25':
+                sels = ['under', 'over']
+            elif market == 'dropping_btts':
+                sels = ['yes', 'no']
+            else:
+                sels = []
             
             result = {}
-            
-            for home, away in match_list:
-                key = f"{home}|{away}"
-                first_row = opening_by_match.get(key)
-                last_row = last_by_match.get(key)
-                
-                if not last_row:
-                    continue
+            for key in last_by_match:
+                first_row = first_by_match.get(key)
+                last_row = last_by_match[key]
                 
                 if not first_row:
                     first_row = last_row
                 
-                first_scraped = first_row.get('scrapedat', '') if first_row else None
-                
                 result[key] = {
-                    'home': home,
-                    'away': away,
+                    'home': last_row.get('home', ''),
+                    'away': last_row.get('away', ''),
                     'values': {}
                 }
                 
-                if market == 'dropping_1x2':
-                    sels = ['odds1', 'oddsx', 'odds2']
-                elif market == 'dropping_ou25':
-                    sels = ['under', 'over']
-                elif market == 'dropping_btts':
-                    sels = ['yes', 'no']
-                else:
-                    sels = []
-                
                 for sel in sels:
-                    old_val = self._parse_numeric(first_row.get(sel, '')) if first_row else None
-                    new_val = self._parse_numeric(last_row.get(sel, '')) if last_row else None
+                    old_val = self._parse_numeric(first_row.get(sel, ''))
+                    new_val = self._parse_numeric(last_row.get(sel, ''))
                     
-                    if old_val is None:
-                        old_val = new_val
-                    if new_val is None:
-                        new_val = old_val
+                    if old_val is None: old_val = new_val
+                    if new_val is None: new_val = old_val
                     
+                    pct_change = 0
+                    trend = 'stable'
                     if old_val and new_val and old_val > 0:
                         pct_change = ((new_val - old_val) / old_val) * 100
-                        if new_val < old_val:
-                            trend = 'down'
-                        elif new_val > old_val:
-                            trend = 'up'
-                        else:
-                            trend = 'stable'
-                    else:
-                        pct_change = 0
-                        trend = 'stable'
+                        trend = 'down' if new_val < old_val else ('up' if new_val > old_val else 'stable')
                     
                     result[key]['values'][sel] = {
-                        'history': [old_val, new_val] if old_val and new_val else [],
                         'old': old_val,
                         'new': new_val,
                         'pct_change': round(pct_change, 1),
-                        'trend': trend,
-                        'first_scraped': first_scraped
+                        'trend': trend
                     }
             
             return result
             
         except Exception as e:
-            print(f"[Odds History] Error: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"[Drop History] Error: {e}")
             return {}
     
     def _parse_numeric(self, val: Any) -> Optional[float]:
