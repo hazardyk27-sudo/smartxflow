@@ -286,8 +286,14 @@ class SupabaseClient:
         
         return result
     
-    def get_all_matches_with_latest(self, market: str) -> List[Dict[str, Any]]:
-        """Get all matches from market table (moneyway_1x2, dropping_ou25, etc.)"""
+    def get_all_matches_with_latest(self, market: str, offset: int = 0, limit: int = 0) -> List[Dict[str, Any]]:
+        """Get all matches from market table (moneyway_1x2, dropping_ou25, etc.)
+        
+        Args:
+            market: Market name (e.g., 'moneyway_1x2')
+            offset: Number of rows to skip (for pagination)
+            limit: Maximum number of rows to return (0 = all)
+        """
         if not self.is_available:
             print(f"[Supabase] ERROR: Not available - URL or KEY missing")
             return []
@@ -295,9 +301,18 @@ class SupabaseClient:
         try:
             url = f"{self._rest_url(market)}?select=*&order=date.desc"
             print(f"[Supabase] Fetching: {url}")
-            resp = httpx.get(url, headers=self._headers(), timeout=15)
             
-            if resp.status_code == 200:
+            headers = self._headers()
+            if limit > 0:
+                range_start = offset
+                range_end = offset + limit - 1
+                headers["Range"] = f"{range_start}-{range_end}"
+                headers["Prefer"] = "count=exact"
+                print(f"[Supabase] Pagination: Range {range_start}-{range_end}")
+            
+            resp = httpx.get(url, headers=headers, timeout=15)
+            
+            if resp.status_code in [200, 206]:
                 rows = resp.json()
                 matches = []
                 for row in rows:
@@ -309,7 +324,7 @@ class SupabaseClient:
                         'date': row.get('date', ''),
                         'latest': latest
                     })
-                print(f"[Supabase] Got {len(matches)} matches from {market}")
+                print(f"[Supabase] Got {len(matches)} matches from {market} (offset={offset}, limit={limit})")
                 return matches
             elif resp.status_code == 404:
                 print(f"[Supabase] ERROR 404: Table '{market}' not found!")
@@ -766,10 +781,16 @@ class HybridDatabase:
                 return history
         return self.local.get_match_history(home, away, market)
     
-    def get_all_matches_with_latest(self, market: str) -> List[Dict[str, Any]]:
-        """Get all matches with latest snapshot from Supabase or local"""
+    def get_all_matches_with_latest(self, market: str, offset: int = 0, limit: int = 0) -> List[Dict[str, Any]]:
+        """Get all matches with latest snapshot from Supabase or local
+        
+        Args:
+            market: Market name
+            offset: Number of rows to skip (for pagination)
+            limit: Maximum number of rows to return (0 = all)
+        """
         if self.supabase.is_available:
-            matches = self.supabase.get_all_matches_with_latest(market)
+            matches = self.supabase.get_all_matches_with_latest(market, offset, limit)
             if matches:
                 return matches
         return self.local.get_all_matches_with_latest(market)
