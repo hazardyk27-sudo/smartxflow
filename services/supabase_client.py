@@ -18,6 +18,9 @@ class SupabaseClient:
     def __init__(self):
         self.url = None
         self.key = None
+        self._last_data_update_cache = None
+        self._last_data_update_cache_time = None
+        self._cache_duration = 60
         self._load_credentials()
     
     def _load_credentials(self):
@@ -381,9 +384,15 @@ class SupabaseClient:
         return row
     
     def get_last_data_update(self) -> Optional[str]:
-        """Get the most recent ScrapedAt timestamp from history tables"""
+        """Get the most recent ScrapedAt timestamp from history tables (cached for 60s)"""
         if not self.is_available:
             return None
+        
+        now = datetime.now()
+        if (self._last_data_update_cache is not None and 
+            self._last_data_update_cache_time is not None and
+            (now - self._last_data_update_cache_time).total_seconds() < self._cache_duration):
+            return self._last_data_update_cache
         
         latest_time = None
         history_tables = [
@@ -403,6 +412,9 @@ class SupabaseClient:
                             latest_time = ts
             except Exception as e:
                 continue
+        
+        self._last_data_update_cache = latest_time
+        self._last_data_update_cache_time = now
         
         return latest_time
     
