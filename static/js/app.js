@@ -3210,38 +3210,79 @@ function loadOddsTrendAsync(market) {
         });
 }
 
-function generateSparklineSVG(values, trend) {
-    if (!values || values.length < 2) {
-        return '';
-    }
-    
+function generateSparklineSVG(values, trend, pctChange) {
     const width = 40;
     const height = 16;
-    const padding = 2;
+    const absChange = Math.abs(pctChange || 0);
     
-    const validValues = values.filter(v => v !== null && v !== undefined);
-    if (validValues.length < 2) return '';
-    
-    const min = Math.min(...validValues);
-    const max = Math.max(...validValues);
-    const range = max - min || 1;
-    
-    const points = validValues.map((val, idx) => {
-        const x = padding + (idx / (validValues.length - 1)) * (width - 2 * padding);
-        const y = height - padding - ((val - min) / range) * (height - 2 * padding);
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(' ');
-    
-    let strokeColor = '#6b7280';
     if (trend === 'down') {
-        strokeColor = '#ef4444';
+        if (absChange >= 10) {
+            return `<svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+                <rect x="2" y="2" width="7" height="12" rx="1" fill="#ef4444"/>
+                <rect x="11" y="4" width="7" height="10" rx="1" fill="#ef4444" opacity="0.75"/>
+                <rect x="20" y="7" width="7" height="7" rx="1" fill="#ef4444" opacity="0.5"/>
+                <rect x="29" y="10" width="7" height="4" rx="1" fill="#ef4444" opacity="0.3"/>
+            </svg>`;
+        } else if (absChange >= 5) {
+            return `<svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+                <rect x="2" y="3" width="7" height="11" rx="1" fill="#f97316"/>
+                <rect x="11" y="5" width="7" height="9" rx="1" fill="#f97316" opacity="0.75"/>
+                <rect x="20" y="7" width="7" height="7" rx="1" fill="#f97316" opacity="0.5"/>
+                <rect x="29" y="9" width="7" height="5" rx="1" fill="#f97316" opacity="0.3"/>
+            </svg>`;
+        } else if (absChange >= 2) {
+            return `<svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+                <rect x="4" y="4" width="6" height="10" rx="1" fill="#fb923c"/>
+                <rect x="12" y="5" width="6" height="9" rx="1" fill="#fb923c" opacity="0.7"/>
+                <rect x="20" y="6" width="6" height="8" rx="1" fill="#fb923c" opacity="0.5"/>
+                <rect x="28" y="7" width="6" height="7" rx="1" fill="#fb923c" opacity="0.35"/>
+            </svg>`;
+        } else {
+            return `<svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+                <rect x="5" y="5" width="6" height="8" rx="1" fill="#fbbf24"/>
+                <rect x="13" y="5" width="6" height="8" rx="1" fill="#fbbf24" opacity="0.7"/>
+                <rect x="21" y="6" width="6" height="7" rx="1" fill="#fbbf24" opacity="0.5"/>
+                <rect x="29" y="6" width="6" height="7" rx="1" fill="#fbbf24" opacity="0.4"/>
+            </svg>`;
+        }
     } else if (trend === 'up') {
-        strokeColor = '#22c55e';
+        if (absChange >= 10) {
+            return `<svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+                <rect x="2" y="10" width="7" height="4" rx="1" fill="#22c55e" opacity="0.3"/>
+                <rect x="11" y="7" width="7" height="7" rx="1" fill="#22c55e" opacity="0.5"/>
+                <rect x="20" y="4" width="7" height="10" rx="1" fill="#22c55e" opacity="0.75"/>
+                <rect x="29" y="2" width="7" height="12" rx="1" fill="#22c55e"/>
+            </svg>`;
+        } else if (absChange >= 5) {
+            return `<svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+                <rect x="2" y="9" width="7" height="5" rx="1" fill="#4ade80" opacity="0.3"/>
+                <rect x="11" y="7" width="7" height="7" rx="1" fill="#4ade80" opacity="0.5"/>
+                <rect x="20" y="5" width="7" height="9" rx="1" fill="#4ade80" opacity="0.75"/>
+                <rect x="29" y="3" width="7" height="11" rx="1" fill="#4ade80"/>
+            </svg>`;
+        } else if (absChange >= 2) {
+            return `<svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+                <rect x="4" y="7" width="6" height="7" rx="1" fill="#86efac" opacity="0.35"/>
+                <rect x="12" y="6" width="6" height="8" rx="1" fill="#86efac" opacity="0.5"/>
+                <rect x="20" y="5" width="6" height="9" rx="1" fill="#86efac" opacity="0.7"/>
+                <rect x="28" y="4" width="6" height="10" rx="1" fill="#86efac"/>
+            </svg>`;
+        } else {
+            return `<svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+                <rect x="5" y="6" width="6" height="7" rx="1" fill="#bbf7d0" opacity="0.4"/>
+                <rect x="13" y="6" width="6" height="7" rx="1" fill="#bbf7d0" opacity="0.5"/>
+                <rect x="21" y="5" width="6" height="8" rx="1" fill="#bbf7d0" opacity="0.7"/>
+                <rect x="29" y="5" width="6" height="8" rx="1" fill="#bbf7d0"/>
+            </svg>`;
+        }
+    } else {
+        return `<svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+            <rect x="4" y="6" width="6" height="6" rx="1" fill="#6b7280" opacity="0.4"/>
+            <rect x="12" y="5" width="6" height="7" rx="1" fill="#6b7280" opacity="0.5"/>
+            <rect x="20" y="5" width="6" height="7" rx="1" fill="#6b7280" opacity="0.5"/>
+            <rect x="28" y="6" width="6" height="6" rx="1" fill="#6b7280" opacity="0.4"/>
+        </svg>`;
     }
-    
-    return `<svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-        <polyline points="${points}" fill="none" stroke="${strokeColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>`;
 }
 
 function getTrendArrowHTML(trend, pctChange) {
@@ -3296,7 +3337,7 @@ function renderOddsWithTrend(oddsValue, trendData) {
         `;
     }
     
-    const sparkline = generateSparklineSVG(trendData.history, trendData.trend);
+    const sparkline = generateSparklineSVG(trendData.history, trendData.trend, trendData.pct_change);
     const pctHtml = formatPctChange(trendData.pct_change, trendData.trend);
     const arrowHtml = getTrendArrowHTML(trendData.trend, trendData.pct_change);
     
@@ -3331,7 +3372,7 @@ function renderDrop1X2Cell(label, oddsValue, trendData) {
         `;
     }
     
-    const sparkline = generateSparklineSVG(trendData.history, trendData.trend);
+    const sparkline = generateSparklineSVG(trendData.history, trendData.trend, trendData.pct_change);
     const pctHtml = formatPctChange(trendData.pct_change, trendData.trend);
     const arrowHtml = getTrendArrowHTML(trendData.trend, trendData.pct_change);
     
