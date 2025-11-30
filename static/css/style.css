@@ -4330,13 +4330,13 @@ td.volume,
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 0 16px;
+    gap: 8px;
+    padding: 0 20px;
     background: #238636;
     border: none;
     border-radius: 0;
     color: #000;
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -4351,21 +4351,21 @@ td.volume,
 
 .alarms-toggle-btn svg {
     stroke: #000;
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
 }
 
 .alarms-toggle-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
     background: #da3633;
     color: #000;
     border-radius: 50%;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
 }
 
