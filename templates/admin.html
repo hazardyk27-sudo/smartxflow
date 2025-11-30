@@ -78,16 +78,6 @@
             width: 20px;
             text-align: center;
         }
-        .nav-submenu {
-            display: none;
-        }
-        .nav-submenu.open {
-            display: block;
-        }
-        .nav-submenu .nav-item {
-            padding-left: 50px;
-            font-size: 13px;
-        }
         .sidebar-footer {
             padding: 16px 20px;
             border-top: 1px solid #30363d;
@@ -131,314 +121,16 @@
             font-size: 13px;
             margin-top: 4px;
         }
-        .header-actions {
-            display: flex;
-            gap: 12px;
-        }
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .btn-primary {
-            background: #238636;
-            color: white;
-        }
-        .btn-primary:hover {
-            background: #2ea043;
-        }
-        .btn-primary:disabled {
-            background: #1c2128;
-            color: #484f58;
-            cursor: not-allowed;
-        }
-        .btn-secondary {
-            background: #21262d;
-            color: #c9d1d9;
-            border: 1px solid #30363d;
-        }
-        .btn-secondary:hover {
-            background: #30363d;
-        }
-        .btn-danger {
-            background: #da3633;
-            color: white;
-        }
-        .btn-danger:hover {
-            background: #f85149;
-        }
-        .btn-warning {
-            background: #9e6a03;
-            color: white;
-        }
-        .btn-warning:hover {
-            background: #bb8009;
-        }
-        .action-bar {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .action-bar-title {
-            color: #8b949e;
-            font-size: 13px;
-            margin-right: auto;
-        }
-        .section {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
-        }
-        .section-title {
-            color: #f0883e;
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #21262d;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .section-title-icon {
-            font-size: 18px;
-        }
-        .section-desc {
-            color: #8b949e;
-            font-size: 13px;
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
-        }
-        .form-grid-2 {
-            grid-template-columns: repeat(2, 1fr);
-        }
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        .form-group label {
-            color: #8b949e;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        .form-group input {
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            padding: 10px 12px;
-            color: #c9d1d9;
-            font-size: 14px;
-            transition: border-color 0.2s;
-        }
-        .form-group input:focus {
-            outline: none;
-            border-color: #58a6ff;
-        }
-        .form-group input:disabled {
-            background: #161b22;
-            color: #484f58;
-        }
-        .form-group select {
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            padding: 10px 12px;
-            color: #c9d1d9;
-            font-size: 14px;
-        }
-        .test-section {
-            background: #1c2128;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 16px;
-        }
-        .test-title {
-            color: #58a6ff;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 16px;
-        }
-        .test-result {
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            padding: 16px;
-            margin-top: 16px;
-            display: none;
-        }
-        .test-result.show {
-            display: block;
-        }
-        .test-result-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #21262d;
-        }
-        .test-result-row:last-child {
-            border-bottom: none;
-        }
-        .test-result-label {
-            color: #8b949e;
-            font-size: 13px;
-        }
-        .test-result-value {
-            font-weight: 600;
-            font-size: 14px;
-        }
-        .test-result-value.alarm {
-            color: #f85149;
-        }
-        .test-result-value.no-alarm {
-            color: #8b949e;
-        }
-        .status-bar {
-            background: #1c2128;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-        }
-        .status-text {
-            color: #8b949e;
-        }
-        .status-value {
-            color: #58a6ff;
-        }
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 40px;
-            color: #8b949e;
-        }
-        .loading.show {
-            display: block;
-        }
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 14px 24px;
-            border-radius: 8px;
-            font-size: 14px;
-            z-index: 1000;
-            transform: translateX(120%);
-            transition: transform 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            max-width: 400px;
-        }
-        .toast.show {
-            transform: translateX(0);
-        }
-        .toast.success {
-            background: #238636;
-            color: white;
-        }
-        .toast.error {
-            background: #f85149;
-            color: white;
-        }
-        .toast.info {
-            background: #1f6feb;
-            color: white;
-        }
-        .toast.warning {
-            background: #9e6a03;
-            color: white;
-        }
-        .info-note {
-            background: #1c2128;
-            border-left: 3px solid #58a6ff;
-            padding: 12px 16px;
-            margin-top: 12px;
-            font-size: 12px;
-            color: #8b949e;
-            line-height: 1.5;
-        }
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.7);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        .modal-overlay.show {
-            display: flex;
-        }
-        .modal {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            padding: 24px;
-            max-width: 480px;
-            width: 90%;
-        }
-        .modal-title {
-            color: #f0883e;
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 12px;
-        }
-        .modal-body {
-            color: #c9d1d9;
-            font-size: 14px;
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-        }
-        .page-content {
-            display: none;
-        }
-        .page-content.active {
-            display: block;
-        }
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 16px;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
         .stat-card {
             background: #161b22;
             border: 1px solid #30363d;
-            border-radius: 12px;
+            border-radius: 8px;
             padding: 20px;
             text-align: center;
         }
@@ -446,58 +138,125 @@
             font-size: 32px;
             font-weight: 700;
             color: #58a6ff;
+            margin-bottom: 4px;
         }
         .stat-label {
-            font-size: 13px;
             color: #8b949e;
-            margin-top: 4px;
+            font-size: 13px;
         }
-        @media (max-width: 1024px) {
-            .sidebar {
-                width: 220px;
-            }
-            .main-content {
-                margin-left: 220px;
-            }
+        .stat-value.green { color: #3fb950; }
+        .stat-value.orange { color: #f0883e; }
+        .stat-value.red { color: #f85149; }
+        .info-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 16px;
         }
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                position: relative;
-                min-height: auto;
-            }
-            .main-content {
-                margin-left: 0;
-            }
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-            .form-grid-2 {
-                grid-template-columns: 1fr;
-            }
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
+        .info-card h3 {
+            color: #58a6ff;
+            font-size: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #21262d;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            color: #8b949e;
+        }
+        .info-value {
+            color: #c9d1d9;
+            font-weight: 500;
+        }
+        .info-value.success { color: #3fb950; }
+        .info-value.warning { color: #f0883e; }
+        .info-value.error { color: #f85149; }
+        .page-content {
+            display: none;
+        }
+        .page-content.active {
+            display: block;
+        }
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .toast.success { background: #238636; }
+        .toast.error { background: #da3633; }
+        .toast.info { background: #1f6feb; }
+        .market-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+        .market-table th,
+        .market-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #21262d;
+        }
+        .market-table th {
+            color: #8b949e;
+            font-weight: 500;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        .market-table td {
+            color: #c9d1d9;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge.active { background: rgba(63, 185, 80, 0.2); color: #3fb950; }
+        .badge.inactive { background: rgba(139, 148, 158, 0.2); color: #8b949e; }
     </style>
 </head>
 <body>
     <aside class="sidebar">
         <div class="sidebar-header">
-            <h1>SmartXFlow Admin</h1>
-            <span>V2 Kontrol Paneli</span>
+            <h1>SmartXFlow</h1>
+            <span>Admin Panel</span>
         </div>
         <nav class="sidebar-nav">
-            <div class="nav-category">Alarm Yonetimi</div>
-            <div class="nav-item" onclick="toggleSubmenu('alarms-menu')">
-                <span class="nav-item-icon">🔔</span>
-                <span>Alarmlar</span>
+            <div class="nav-category">Sistem</div>
+            <div class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard">
+                <span class="nav-item-icon">📊</span>
+                <span>Dashboard</span>
             </div>
-            <div class="nav-submenu open" id="alarms-menu">
-                <div class="nav-item active" onclick="showPage('sharp-money')" data-page="sharp-money">
-                    <span class="nav-item-icon">💰</span>
-                    <span>Sharp Money</span>
-                </div>
+            <div class="nav-item" onclick="showPage('markets')" data-page="markets">
+                <span class="nav-item-icon">📈</span>
+                <span>Market Durumu</span>
+            </div>
+            <div class="nav-item" onclick="showPage('system')" data-page="system">
+                <span class="nav-item-icon">⚙️</span>
+                <span>Sistem Bilgisi</span>
             </div>
         </nav>
         <div class="sidebar-footer">
@@ -509,540 +268,236 @@
     </aside>
 
     <main class="main-content">
-        <div id="page-sharp-money" class="page-content active">
+        <div id="page-dashboard" class="page-content active">
             <div class="page-header">
                 <div>
-                    <h2 class="page-title">Sharp Money Alarm Ayarlari</h2>
-                    <p class="page-subtitle">V2 Sharp alarm sistemi konfigurasyonu</p>
-                </div>
-                <div class="header-actions">
-                    <button class="btn btn-secondary" onclick="loadConfig()">
-                        <span>🔄</span> Yenile
-                    </button>
-                    <button class="btn btn-primary" id="saveBtn" onclick="saveConfig()" disabled>
-                        <span>💾</span> Kaydet
-                    </button>
+                    <h2 class="page-title">Dashboard</h2>
+                    <p class="page-subtitle">Sistem durumu ve ozet bilgiler</p>
                 </div>
             </div>
 
-            <div class="action-bar">
-                <span class="action-bar-title">Alarm Islemleri:</span>
-                <button class="btn btn-danger" onclick="showDeleteAllModal()">
-                    <span>🗑️</span> Tum Alarmlari Sil
-                </button>
-                <button class="btn btn-warning" onclick="regenerateAlarms()">
-                    <span>⚡</span> Yeni Alarmlar Olustur
-                </button>
-            </div>
-
-            <div class="stats-grid" id="alarmStats">
+            <div class="stats-grid" id="dashboardStats">
                 <div class="stat-card">
-                    <div class="stat-value" id="totalAlarms">-</div>
-                    <div class="stat-label">Toplam Alarm</div>
+                    <div class="stat-value" id="totalMatches">-</div>
+                    <div class="stat-label">Toplam Mac</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="todayAlarms">-</div>
-                    <div class="stat-label">Bugunun Alarmlari</div>
+                    <div class="stat-value green" id="activeMarkets">6</div>
+                    <div class="stat-label">Aktif Market</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="sharpAlarms">-</div>
-                    <div class="stat-label">Sharp Money</div>
+                    <div class="stat-value orange" id="lastUpdate">-</div>
+                    <div class="stat-label">Son Guncelleme</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="dbStatus">-</div>
+                    <div class="stat-label">Supabase Durumu</div>
                 </div>
             </div>
 
-            <div class="status-bar">
-                <span class="status-text">Son Guncelleme: <span id="lastUpdate" class="status-value">-</span></span>
-                <span class="status-text">Guncelleyen: <span id="updatedBy" class="status-value">-</span></span>
+            <div class="info-card">
+                <h3>📡 Baglanti Durumu</h3>
+                <div class="info-row">
+                    <span class="info-label">Supabase</span>
+                    <span class="info-value success" id="supabaseStatus">Bagli</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Scraper Modu</span>
+                    <span class="info-value" id="scraperMode">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Calisma Modu</span>
+                    <span class="info-value" id="workMode">-</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-markets" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title">Market Durumu</h2>
+                    <p class="page-subtitle">6 market icin veri durumu</p>
+                </div>
             </div>
 
-            <div class="loading" id="loading">Yukleniyor...</div>
+            <div class="info-card">
+                <h3>📊 Market Verileri</h3>
+                <table class="market-table">
+                    <thead>
+                        <tr>
+                            <th>Market</th>
+                            <th>Mac Sayisi</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody id="marketTableBody">
+                        <tr>
+                            <td>Moneyway 1X2</td>
+                            <td id="mw1x2Count">-</td>
+                            <td><span class="badge active">Aktif</span></td>
+                        </tr>
+                        <tr>
+                            <td>Moneyway O/U 2.5</td>
+                            <td id="mwou25Count">-</td>
+                            <td><span class="badge active">Aktif</span></td>
+                        </tr>
+                        <tr>
+                            <td>Moneyway BTTS</td>
+                            <td id="mwbttsCount">-</td>
+                            <td><span class="badge active">Aktif</span></td>
+                        </tr>
+                        <tr>
+                            <td>Dropping 1X2</td>
+                            <td id="dp1x2Count">-</td>
+                            <td><span class="badge active">Aktif</span></td>
+                        </tr>
+                        <tr>
+                            <td>Dropping O/U 2.5</td>
+                            <td id="dpou25Count">-</td>
+                            <td><span class="badge active">Aktif</span></td>
+                        </tr>
+                        <tr>
+                            <td>Dropping BTTS</td>
+                            <td id="dpbttsCount">-</td>
+                            <td><span class="badge active">Aktif</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-            <div id="configForm">
-                <div class="section">
-                    <h3 class="section-title">
-                        <span class="section-title-icon">📊</span>
-                        Piyasa Hacim Esikleri
-                    </h3>
-                    <p class="section-desc">
-                        Bu hacimlerin altindaki piyasalarda Sharp alarm hesaplanmaz. Dusuk hacimli piyasalar goz ardi edilir.
-                    </p>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Min 1X2 Hacmi (GBP)</label>
-                            <input type="number" id="min_volume_1x2" placeholder="3000">
-                        </div>
-                        <div class="form-group">
-                            <label>Min O/U 2.5 Hacmi (GBP)</label>
-                            <input type="number" id="min_volume_ou25" placeholder="2000">
-                        </div>
-                        <div class="form-group">
-                            <label>Min BTTS Hacmi (GBP)</label>
-                            <input type="number" id="min_volume_btts" placeholder="1500">
-                        </div>
-                    </div>
+        <div id="page-system" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title">Sistem Bilgisi</h2>
+                    <p class="page-subtitle">Teknik detaylar ve konfigurasyonlar</p>
                 </div>
+            </div>
 
-                <div class="section">
-                    <h3 class="section-title">
-                        <span class="section-title-icon">🎯</span>
-                        Skor ve Pay Esikleri
-                    </h3>
-                    <p class="section-desc">
-                        Sharp skor esigi: Bu degerden dusuk skorlar alarm uretmez.
-                        Min pazar payi: Secenegin piyasadaki minimum payi (%). Dusuk paylar filtrelenir.
-                    </p>
-                    <div class="form-grid form-grid-2">
-                        <div class="form-group">
-                            <label>Sharp Skor Esigi</label>
-                            <input type="number" id="sharp_score_threshold" placeholder="50">
-                        </div>
-                        <div class="form-group">
-                            <label>Min Pazar Payi (%)</label>
-                            <input type="number" id="min_market_share" placeholder="5">
-                        </div>
-                    </div>
-                    <div class="info-note">
-                        Ornek: Secenegin payi %15'in altindaysa, SharpScore yuksek olsa bile alarm uretilmez.
-                    </div>
+            <div class="info-card">
+                <h3>🖥️ Uygulama Bilgileri</h3>
+                <div class="info-row">
+                    <span class="info-label">Uygulama</span>
+                    <span class="info-value">SmartXFlow Monitor</span>
                 </div>
-
-                <div class="section">
-                    <h3 class="section-title">
-                        <span class="section-title-icon">🔢</span>
-                        Carpanlar (Multipliers)
-                    </h3>
-                    <p class="section-desc">
-                        Ham degerleri 0-100 skora cevirirler. Ornek: shockX=2.0 ve k_volume=50 ise volume_score = clamp(2.0 × 50, 0, 100) = 100
-                    </p>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Hacim Soku Carpani (k_volume)</label>
-                            <input type="number" step="1" id="k_volume" placeholder="20">
-                        </div>
-                        <div class="form-group">
-                            <label>Oran Dususu Carpani (k_odds)</label>
-                            <input type="number" step="1" id="k_odds" placeholder="10">
-                        </div>
-                        <div class="form-group">
-                            <label>Pay Artisi Carpani (k_share)</label>
-                            <input type="number" step="1" id="k_share" placeholder="5">
-                        </div>
-                    </div>
-                    <div class="info-note">
-                        volume_score = clamp(shockX × k_volume, 0, 100)<br>
-                        odds_score = clamp(drop_pct × k_odds, 0, 100)<br>
-                        share_score = clamp(share_diff × k_share, 0, 100)
-                    </div>
+                <div class="info-row">
+                    <span class="info-label">Versiyon</span>
+                    <span class="info-value">1.0</span>
                 </div>
-
-                <div class="section">
-                    <h3 class="section-title">
-                        <span class="section-title-icon">⚖️</span>
-                        Agirliklar (Weights) - Toplam %100
-                    </h3>
-                    <p class="section-desc">
-                        Her bilesenin final skora katkisi. Toplam %100 olmali (otomatik normalize edilir).
-                    </p>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Hacim Soku Agirligi % (w_volume)</label>
-                            <input type="number" step="1" id="w_volume" placeholder="40">
-                        </div>
-                        <div class="form-group">
-                            <label>Oran Dususu Agirligi % (w_odds)</label>
-                            <input type="number" step="1" id="w_odds" placeholder="30">
-                        </div>
-                        <div class="form-group">
-                            <label>Pay Artisi Agirligi % (w_share)</label>
-                            <input type="number" step="1" id="w_share" placeholder="30">
-                        </div>
-                    </div>
-                    <div class="info-note">
-                        SharpScore = (volume_score × w_volume + odds_score × w_odds + share_score × w_share) / 100
-                    </div>
+                <div class="info-row">
+                    <span class="info-label">Timezone</span>
+                    <span class="info-value">Europe/Istanbul (TR)</span>
                 </div>
+                <div class="info-row">
+                    <span class="info-label">Scrape Araligi</span>
+                    <span class="info-value">10 dakika</span>
+                </div>
+            </div>
 
-                <div class="section">
-                    <h3 class="section-title">
-                        <span class="section-title-icon">🧪</span>
-                        Test Alani
-                    </h3>
-                    <p class="section-desc">
-                        Kaydetmeden once ayarlari test edin. Ornek degerler girip sonucu gorun.
-                    </p>
-                    <div class="test-section">
-                        <div class="test-title">Simule Alarm Testi</div>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Piyasa Tipi</label>
-                                <select id="test_market_type">
-                                    <option value="1x2">1X2</option>
-                                    <option value="ou25">O/U 2.5</option>
-                                    <option value="btts">BTTS</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Toplam Hacim (GBP)</label>
-                                <input type="number" id="test_total_volume" value="5000">
-                            </div>
-                            <div class="form-group">
-                                <label>Mevcut Pay (%)</label>
-                                <input type="number" id="test_share_pct" value="35">
-                            </div>
-                            <div class="form-group">
-                                <label>Hacim Soku (shockX)</label>
-                                <input type="number" step="0.1" id="test_shock_x" value="2.0">
-                            </div>
-                            <div class="form-group">
-                                <label>Oran Dususu (%)</label>
-                                <input type="number" step="0.1" id="test_drop_pct" value="5.0">
-                            </div>
-                            <div class="form-group">
-                                <label>Pay Artisi (%)</label>
-                                <input type="number" step="0.1" id="test_share_diff" value="3.0">
-                            </div>
-                        </div>
-                        <button class="btn btn-secondary" style="margin-top: 16px; width: 100%;" onclick="runTest()">
-                            Test Et
-                        </button>
-                        <div class="test-result" id="testResult">
-                            <div class="test-result-row">
-                                <span class="test-result-label">Volume Score</span>
-                                <span class="test-result-value" id="resultVolumeScore">-</span>
-                            </div>
-                            <div class="test-result-row">
-                                <span class="test-result-label">Odds Score</span>
-                                <span class="test-result-value" id="resultOddsScore">-</span>
-                            </div>
-                            <div class="test-result-row">
-                                <span class="test-result-label">Share Score</span>
-                                <span class="test-result-value" id="resultShareScore">-</span>
-                            </div>
-                            <div class="test-result-row" style="border-top: 2px solid #58a6ff; padding-top: 12px;">
-                                <span class="test-result-label"><strong>Sharp Skor (Final)</strong></span>
-                                <span class="test-result-value" id="resultScore">-</span>
-                            </div>
-                            <div class="test-result-row">
-                                <span class="test-result-label">Alarm Durumu</span>
-                                <span class="test-result-value" id="resultAlarm">-</span>
-                            </div>
-                            <div class="test-result-row">
-                                <span class="test-result-label">Engelleme Sebebi</span>
-                                <span class="test-result-value" id="resultReason">-</span>
-                            </div>
-                        </div>
-                    </div>
+            <div class="info-card">
+                <h3>🗄️ Veritabani</h3>
+                <div class="info-row">
+                    <span class="info-label">Provider</span>
+                    <span class="info-value">Supabase (PostgreSQL)</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Baglanti</span>
+                    <span class="info-value success" id="dbConnection">Aktif</span>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>📋 Veri Kaynaklari</h3>
+                <div class="info-row">
+                    <span class="info-label">Moneyway</span>
+                    <span class="info-value">arbworld.net</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Dropping Odds</span>
+                    <span class="info-value">arbworld.net</span>
                 </div>
             </div>
         </div>
     </main>
 
-    <div class="modal-overlay" id="deleteModal">
-        <div class="modal">
-            <h3 class="modal-title">⚠️ Tum Alarmlari Sil</h3>
-            <div class="modal-body">
-                <p>Bu islem geri alinamaz! Veritabanindaki <strong>tum alarmlar</strong> kalici olarak silinecek.</p>
-                <p style="margin-top: 12px; color: #f85149;">Emin misiniz?</p>
-            </div>
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="hideDeleteModal()">Iptal</button>
-                <button class="btn btn-danger" onclick="deleteAllAlarms()">Evet, Hepsini Sil</button>
-            </div>
-        </div>
-    </div>
-
     <div class="toast" id="toast"></div>
 
     <script>
-        let originalConfig = null;
-        let hasChanges = false;
+        function showPage(pageId) {
+            document.querySelectorAll('.page-content').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
 
-        const configFields = [
-            'k_odds', 'k_volume', 'k_share',
-            'w_odds', 'w_volume', 'w_share',
-            'min_volume_1x2', 'min_volume_ou25', 'min_volume_btts',
-            'sharp_score_threshold', 'min_market_share'
-        ];
+            document.getElementById('page-' + pageId).classList.add('active');
+            document.querySelector(`[data-page="${pageId}"]`).classList.add('active');
 
-        function showToast(message, type = 'success') {
+            if (pageId === 'dashboard') loadDashboard();
+            if (pageId === 'markets') loadMarkets();
+        }
+
+        function showToast(message, type = 'info') {
             const toast = document.getElementById('toast');
             toast.textContent = message;
-            toast.className = 'toast ' + type;
-            setTimeout(() => toast.classList.add('show'), 10);
-            setTimeout(() => toast.classList.remove('show'), 4000);
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        function formatDate(isoString) {
-            if (!isoString) return '-';
+        async function loadDashboard() {
             try {
-                const date = new Date(isoString);
-                return date.toLocaleString('tr-TR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            } catch (e) {
-                return isoString;
-            }
-        }
-
-        function toggleSubmenu(id) {
-            const submenu = document.getElementById(id);
-            submenu.classList.toggle('open');
-        }
-
-        function showPage(pageId) {
-            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav-item[data-page]').forEach(n => n.classList.remove('active'));
-            
-            document.getElementById('page-' + pageId).classList.add('active');
-            document.querySelector(`.nav-item[data-page="${pageId}"]`).classList.add('active');
-        }
-
-        function showDeleteModal() {
-            document.getElementById('deleteModal').classList.add('show');
-        }
-
-        function hideDeleteModal() {
-            document.getElementById('deleteModal').classList.remove('show');
-        }
-
-        function showDeleteAllModal() {
-            showDeleteModal();
-        }
-
-        async function loadAlarmStats() {
-            try {
-                const response = await fetch('/api/admin/alarm-stats');
+                const response = await fetch('/api/status');
                 if (response.ok) {
-                    const stats = await response.json();
-                    document.getElementById('totalAlarms').textContent = stats.total || 0;
-                    document.getElementById('todayAlarms').textContent = stats.today || 0;
-                    document.getElementById('sharpAlarms').textContent = stats.sharp || 0;
+                    const data = await response.json();
+                    document.getElementById('lastUpdate').textContent = data.last_update || '-';
+                    document.getElementById('supabaseStatus').textContent = data.supabase ? 'Bagli' : 'Bagli Degil';
+                    document.getElementById('supabaseStatus').className = 'info-value ' + (data.supabase ? 'success' : 'error');
+                    document.getElementById('scraperMode').textContent = data.scraper_enabled ? 'Aktif' : 'Devre Disi';
+                    document.getElementById('workMode').textContent = data.mode || 'SERVER';
+                    document.getElementById('dbStatus').textContent = data.supabase ? 'OK' : 'Hata';
+                    document.getElementById('dbStatus').className = 'stat-value ' + (data.supabase ? 'green' : 'red');
                 }
             } catch (error) {
-                console.error('Stats yukleme hatasi:', error);
+                console.error('Dashboard yukleme hatasi:', error);
+            }
+
+            try {
+                const response = await fetch('/api/matches?market=moneyway_1x2');
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('totalMatches').textContent = data.matches?.length || 0;
+                }
+            } catch (error) {
+                console.error('Mac sayisi yukleme hatasi:', error);
             }
         }
 
-        async function loadConfig() {
-            document.getElementById('loading').classList.add('show');
-            document.getElementById('configForm').style.opacity = '0.5';
+        async function loadMarkets() {
+            const markets = [
+                { id: 'mw1x2Count', market: 'moneyway_1x2' },
+                { id: 'mwou25Count', market: 'moneyway_ou25' },
+                { id: 'mwbttsCount', market: 'moneyway_btts' },
+                { id: 'dp1x2Count', market: 'dropping_1x2' },
+                { id: 'dpou25Count', market: 'dropping_ou25' },
+                { id: 'dpbttsCount', market: 'dropping_btts' }
+            ];
 
-            try {
-                const response = await fetch('/api/admin/sharp-config');
-                if (!response.ok) throw new Error('Config yuklenemedi');
-
-                const config = await response.json();
-                originalConfig = config;
-
-                configFields.forEach(field => {
-                    const input = document.getElementById(field);
-                    if (input && config[field] !== undefined) {
-                        input.value = config[field];
+            for (const m of markets) {
+                try {
+                    const response = await fetch(`/api/matches?market=${m.market}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        document.getElementById(m.id).textContent = data.matches?.length || 0;
                     }
-                });
-
-                document.getElementById('lastUpdate').textContent = formatDate(config.updated_at);
-                document.getElementById('updatedBy').textContent = config.updated_by || '-';
-
-                hasChanges = false;
-                document.getElementById('saveBtn').disabled = true;
-
-                loadAlarmStats();
-
-            } catch (error) {
-                console.error('Config yukleme hatasi:', error);
-                showToast('Config yuklenemedi: ' + error.message, 'error');
-            } finally {
-                document.getElementById('loading').classList.remove('show');
-                document.getElementById('configForm').style.opacity = '1';
-            }
-        }
-
-        async function saveConfig() {
-            const config = {};
-
-            configFields.forEach(field => {
-                const input = document.getElementById(field);
-                if (input) {
-                    let rawValue = input.value.replace(',', '.');
-                    const value = parseFloat(rawValue);
-                    if (!isNaN(value)) {
-                        config[field] = value;
-                    }
+                } catch (error) {
+                    document.getElementById(m.id).textContent = 'Hata';
                 }
-            });
-
-            if (originalConfig && originalConfig.shock_ranges) {
-                config.shock_ranges = originalConfig.shock_ranges;
             }
-
-            document.getElementById('saveBtn').disabled = true;
-            document.getElementById('saveBtn').innerHTML = '<span>⏳</span> Kaydediliyor...';
-
-            try {
-                const response = await fetch('/api/admin/sharp-config', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(config)
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Kaydetme hatasi');
-                }
-
-                const savedConfig = await response.json();
-                originalConfig = savedConfig;
-                hasChanges = false;
-
-                document.getElementById('lastUpdate').textContent = formatDate(savedConfig.updated_at);
-                document.getElementById('updatedBy').textContent = savedConfig.updated_by || '-';
-
-                showToast('✅ Ayarlar basariyla kaydedildi', 'success');
-
-            } catch (error) {
-                console.error('Kaydetme hatasi:', error);
-                showToast('Kaydetme hatasi: ' + error.message, 'error');
-            } finally {
-                document.getElementById('saveBtn').disabled = false;
-                document.getElementById('saveBtn').innerHTML = '<span>💾</span> Kaydet';
-            }
-        }
-
-        async function deleteAllAlarms() {
-            hideDeleteModal();
-            showToast('🗑️ Alarmlar siliniyor...', 'info');
-
-            try {
-                const response = await fetch('/api/admin/alarms/delete-all', {
-                    method: 'DELETE'
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Silme hatasi');
-                }
-
-                const result = await response.json();
-                showToast(`✅ ${result.deleted_count} alarm silindi`, 'success');
-                loadAlarmStats();
-
-            } catch (error) {
-                console.error('Silme hatasi:', error);
-                showToast('Silme hatasi: ' + error.message, 'error');
-            }
-        }
-
-        async function regenerateAlarms() {
-            showToast('⚡ Alarmlar olusturuluyor...', 'info');
-
-            try {
-                const response = await fetch('/api/admin/alarms/regenerate', {
-                    method: 'POST'
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Olusturma hatasi');
-                }
-
-                const result = await response.json();
-                showToast(`✅ ${result.generated_count} yeni alarm olusturuldu`, 'success');
-                loadAlarmStats();
-
-            } catch (error) {
-                console.error('Olusturma hatasi:', error);
-                showToast('Olusturma hatasi: ' + error.message, 'error');
-            }
-        }
-
-        async function runTest() {
-            const testData = {
-                market_type: document.getElementById('test_market_type').value,
-                total_market_volume: parseFloat(document.getElementById('test_total_volume').value) || 0,
-                current_share_pct: parseFloat(document.getElementById('test_share_pct').value) || 0,
-                shock_x: parseFloat(document.getElementById('test_shock_x').value) || 0,
-                drop_pct: parseFloat(document.getElementById('test_drop_pct').value) || 0,
-                share_diff: parseFloat(document.getElementById('test_share_diff').value) || 0
-            };
-
-            try {
-                const response = await fetch('/api/admin/sharp-config/test', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(testData)
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Test hatasi');
-                }
-
-                const result = await response.json();
-
-                document.getElementById('testResult').classList.add('show');
-
-                document.getElementById('resultVolumeScore').textContent = 
-                    result.details?.volume_score?.toFixed(1) || '-';
-                document.getElementById('resultOddsScore').textContent = 
-                    result.details?.odds_score?.toFixed(1) || '-';
-                document.getElementById('resultShareScore').textContent = 
-                    result.details?.share_score?.toFixed(1) || '-';
-
-                const scoreEl = document.getElementById('resultScore');
-                scoreEl.textContent = result.sharp_score?.toFixed(1) || result.sharp_score;
-                scoreEl.className = 'test-result-value' + (result.alarm ? ' alarm' : '');
-
-                const alarmEl = document.getElementById('resultAlarm');
-                alarmEl.textContent = result.alarm ? 'ALARM URETILDI' : 'Alarm Yok';
-                alarmEl.className = 'test-result-value ' + (result.alarm ? 'alarm' : 'no-alarm');
-
-                const reasonEl = document.getElementById('resultReason');
-                reasonEl.textContent = result.blocked_reason || '-';
-                reasonEl.className = 'test-result-value no-alarm';
-
-            } catch (error) {
-                console.error('Test hatasi:', error);
-                showToast('Test hatasi: ' + error.message, 'error');
-            }
-        }
-
-        function checkChanges() {
-            if (!originalConfig) return;
-
-            let changed = false;
-            configFields.forEach(field => {
-                const input = document.getElementById(field);
-                if (input) {
-                    const currentValue = parseFloat(input.value);
-                    const originalValue = originalConfig[field];
-                    if (!isNaN(currentValue) && currentValue !== originalValue) {
-                        changed = true;
-                    }
-                }
-            });
-
-            hasChanges = changed;
-            document.getElementById('saveBtn').disabled = !changed;
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadConfig();
-
-            configFields.forEach(field => {
-                const input = document.getElementById(field);
-                if (input) {
-                    input.addEventListener('input', checkChanges);
-                }
-            });
+            loadDashboard();
         });
     </script>
 </body>
