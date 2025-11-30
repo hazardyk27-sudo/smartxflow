@@ -5,7 +5,7 @@ SharpScore hesaplama algoritması ve alarm tespiti.
 """
 
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, List, Tuple, Union
 from datetime import datetime
 
 from .base import AlarmDetectorV2, AlarmResult
@@ -52,6 +52,21 @@ def calculate_shock_x(current_stake: float, avg_stake: float) -> float:
     if avg_stake <= 0:
         return 0.0
     return current_stake / avg_stake
+
+
+def get_value(data: Dict, key: str, default: Any = None) -> Any:
+    """Case-insensitive dict value getter - both 'Volume' and 'volume' work"""
+    if not data:
+        return default
+    if key in data:
+        return data[key]
+    key_lower = key.lower()
+    if key_lower in data:
+        return data[key_lower]
+    key_upper = key[0].upper() + key[1:] if key else key
+    if key_upper in data:
+        return data[key_upper]
+    return default
 
 
 def evaluate_sharp_alarm(
@@ -243,7 +258,7 @@ class SharpDetectorV2(AlarmDetectorV2):
         current = history[-1]
         previous = history[-2] if len(history) >= 2 else None
         
-        total_volume = parse_volume(current.get('Volume', '0'))
+        total_volume = parse_volume(get_value(current, 'Volume', '0'))
         
         current_pct = self._get_percentage(current, side, market_type)
         prev_pct = self._get_percentage(previous, side, market_type) if previous else current_pct
@@ -321,7 +336,7 @@ class SharpDetectorV2(AlarmDetectorV2):
         }
         
         key = key_map.get(market_type, {}).get(side, f'Pct{side}')
-        return parse_percentage(data.get(key, '0'))
+        return parse_percentage(get_value(data, key, '0'))
     
     def _get_odds(self, data: Dict, side: str, market_type: str) -> float:
         """Seçenek için oran değerini al"""
@@ -335,7 +350,7 @@ class SharpDetectorV2(AlarmDetectorV2):
         }
         
         key = key_map.get(market_type, {}).get(side, f'Odds{side}')
-        val = data.get(key, 0)
+        val = get_value(data, key, 0)
         
         try:
             return float(str(val).split('\n')[0]) if val else 0.0
@@ -354,7 +369,7 @@ class SharpDetectorV2(AlarmDetectorV2):
         }
         
         key = key_map.get(market_type, {}).get(side, f'Amt{side}')
-        return data.get(key, '0')
+        return get_value(data, key, '0')
     
     def _calculate_momentum(self, history: List[Dict], side: str, market_type: str) -> float:
         """Momentum skoru hesapla (0-10)"""

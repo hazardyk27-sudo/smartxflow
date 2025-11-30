@@ -995,9 +995,10 @@ class SupabaseClient:
                 if alarm_type == 'dropping':
                     should_delete = True
                     reason = "old dropping format"
-                elif alarm_type == 'sharp' and sharp_score < 20:
-                    should_delete = True
-                    reason = f"sharp score {sharp_score} < 20"
+                elif alarm_type == 'sharp':
+                    if sharp_score > 0 and sharp_score < 20:
+                        should_delete = True
+                        reason = f"sharp score {sharp_score} < 20"
                 elif alarm_type == 'reversal_move':
                     conditions_met = alarm.get('conditions_met')
                     try:

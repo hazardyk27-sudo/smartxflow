@@ -2051,15 +2051,15 @@ def get_alarm_stats_api():
         if not db.is_supabase_available:
             return jsonify({'total': 0, 'today': 0, 'sharp': 0})
         
-        url = f"{db.supabase.url}/rest/v1/alarms?select=id,category,created_at"
+        url = f"{db.supabase.url}/rest/v1/smart_money_alarms?select=id,alarm_type,triggered_at"
         headers = db.supabase._headers()
         
         resp = httpx.get(url, headers=headers, timeout=10)
         all_alarms = resp.json() if resp.status_code == 200 else []
         
         total = len(all_alarms)
-        today_count = sum(1 for a in all_alarms if a.get('created_at', '')[:10] == today)
-        sharp_count = sum(1 for a in all_alarms if a.get('category') == 'sharp')
+        today_count = sum(1 for a in all_alarms if today in a.get('triggered_at', '')[:10])
+        sharp_count = sum(1 for a in all_alarms if a.get('alarm_type') == 'sharp')
         
         return jsonify({
             'total': total,
@@ -2082,14 +2082,14 @@ def delete_all_alarms_api():
         if not db.is_supabase_available:
             return jsonify({'error': 'Supabase not available'}), 500
         
-        count_url = f"{db.supabase.url}/rest/v1/alarms?select=id"
+        count_url = f"{db.supabase.url}/rest/v1/smart_money_alarms?select=id"
         headers = db.supabase._headers()
         
         resp = httpx.get(count_url, headers=headers, timeout=10)
         count = len(resp.json()) if resp.status_code == 200 else 0
         
         if count > 0:
-            delete_url = f"{db.supabase.url}/rest/v1/alarms?id=gt.0"
+            delete_url = f"{db.supabase.url}/rest/v1/smart_money_alarms?id=gt.0"
             httpx.delete(delete_url, headers=headers, timeout=30)
             print(f"[Admin API] Deleted {count} alarms")
         
@@ -2139,17 +2139,18 @@ def regenerate_alarms_api():
         
         for table in market_tables:
             try:
-                url = f"{base_url}/rest/v1/{table}?select=*"
-                print(f"[Admin API] Fetching {table}...")
-                resp = httpx.get(url, headers=headers, timeout=30)
-                print(f"[Admin API] {table} response: {resp.status_code}")
+                history_table = f"{table}_history"
+                url = f"{base_url}/rest/v1/{history_table}?select=*&order=scrapedat.asc"
+                print(f"[Admin API] Fetching {history_table}...")
+                resp = httpx.get(url, headers=headers, timeout=60)
+                print(f"[Admin API] {history_table} response: {resp.status_code}")
                 
                 if resp.status_code != 200:
-                    print(f"[Admin API] {table} error: {resp.text[:200]}")
+                    print(f"[Admin API] {history_table} error: {resp.text[:200]}")
                     continue
                     
                 all_snapshots = resp.json()
-                print(f"[Admin API] {table} snapshots: {len(all_snapshots)}")
+                print(f"[Admin API] {history_table} snapshots: {len(all_snapshots)}")
                 
                 if not all_snapshots:
                     continue
@@ -2161,51 +2162,72 @@ def regenerate_alarms_api():
                     if not is_today:
                         continue
                     
-                    match_id = snapshot.get('match_id', '')
-                    if not match_id:
-                        home = snapshot.get('home', snapshot.get('Home', ''))
-                        away = snapshot.get('away', snapshot.get('Away', ''))
-                        match_id = f"{home} vs {away} ({date_str})"
+                    home = snapshot.get('home', snapshot.get('Home', ''))
+                    away = snapshot.get('away', snapshot.get('Away', ''))
+                    match_id = f"{home} vs {away}"
                     
                     if match_id not in matches_grouped:
                         matches_grouped[match_id] = []
                     matches_grouped[match_id].append(snapshot)
                 
-                print(f"[Admin API] Processing {table}: {len(matches_grouped)} matches, {len(all_snapshots)} snapshots")
+                print(f"[Admin API] Processing {table}: {len(matches_grouped)} matches with history")
                 
+                first_match_logged = False
                 for match_id, history in matches_grouped.items():
                     try:
                         if len(history) < 2:
                             continue
                         
+                        if not first_match_logged:
+                            print(f"[Admin API] Sample match: {match_id}, history_len: {len(history)}")
+                            print(f"[Admin API] First snapshot keys: {list(history[0].keys())[:10]}")
+                            first_match_logged = True
+                        
                         alarms = detector.detect(history, table, match_id)
                         
+                        if not first_match_logged or alarms:
+                            print(f"[Admin API] {match_id}: {len(alarms)} alarms detected")
+                        
                         for alarm in alarms:
-                            if alarm.is_alarm:
+                            if alarm.is_triggered:
+                                first_snap = history[0]
+                                last_snap = history[-1]
+                                home = first_snap.get('home', first_snap.get('Home', ''))
+                                away = first_snap.get('away', first_snap.get('Away', ''))
+                                league = first_snap.get('league', first_snap.get('League', ''))
+                                match_date = first_snap.get('date', first_snap.get('Date', ''))
+                                detail = f"Sharp {alarm.side}: Score {alarm.sharp_score:.0f}, Drop {alarm.drop_pct:.1f}%, NewBet £{alarm.new_bet_amount:,.0f}"
+                                
                                 alarm_data = {
-                                    'match_id': alarm.match_id,
-                                    'type': alarm.alarm_type,
-                                    'category': 'sharp',
+                                    'match_id': match_id,
+                                    'home': home,
+                                    'away': away,
+                                    'league': league,
+                                    'match_date': match_date,
+                                    'market': table,
+                                    'alarm_type': alarm.alarm_type,
                                     'side': alarm.side,
-                                    'message': alarm.message,
-                                    'severity': alarm.severity,
-                                    'sharp_score': alarm.sharp_score,
-                                    'new_bet_amount': alarm.new_bet_amount,
-                                    'drop_pct': alarm.drop_pct,
-                                    'created_at': datetime.now(turkey_tz).isoformat()
+                                    'money_diff': int(alarm.new_bet_amount),
+                                    'odds_from': alarm.drop_pct,
+                                    'odds_to': alarm.sharp_score,
+                                    'detail': detail,
+                                    'triggered_at': datetime.now(turkey_tz).isoformat()
                                 }
                                 
                                 from urllib.parse import quote
-                                safe_match_id = quote(str(alarm.match_id), safe='')
-                                check_url = f"{base_url}/rest/v1/alarms?match_id=eq.{safe_match_id}&type=eq.{alarm.alarm_type}&side=eq.{alarm.side}"
+                                safe_match_id = quote(str(match_id), safe='')
+                                check_url = f"{base_url}/rest/v1/smart_money_alarms?match_id=eq.{safe_match_id}&alarm_type=eq.{alarm.alarm_type}&side=eq.{alarm.side}"
                                 check_resp = httpx.get(check_url, headers=headers, timeout=10)
                                 existing = check_resp.json() if check_resp.status_code == 200 else []
                                 
                                 if not existing or len(existing) == 0:
-                                    insert_url = f"{base_url}/rest/v1/alarms"
-                                    httpx.post(insert_url, headers=headers, json=alarm_data, timeout=10)
-                                    generated_count += 1
-                                    print(f"[Admin API] Generated alarm: {alarm.match_id} - {alarm.alarm_type} - {alarm.side}")
+                                    insert_url = f"{base_url}/rest/v1/smart_money_alarms"
+                                    insert_resp = httpx.post(insert_url, headers=headers, json=alarm_data, timeout=10)
+                                    if insert_resp.status_code in [200, 201]:
+                                        generated_count += 1
+                                        print(f"[Admin API] Generated alarm: {match_id} - {alarm.alarm_type} - {alarm.side}")
+                                    else:
+                                        print(f"[Admin API] Insert failed: {insert_resp.status_code} - {insert_resp.text[:200]}")
                     except Exception as match_error:
                         print(f"[Admin API] Error processing match {match_id}: {match_error}")
                         continue
