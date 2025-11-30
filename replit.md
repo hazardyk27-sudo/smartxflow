@@ -1,7 +1,9 @@
-# SmartXFlow Alarm V1.01 – Odds & Volume Monitor
+# SmartXFlow Monitor – Odds & Volume Tracker
 
 ### Overview
-SmartXFlow Alarm is a professional betting analysis tool designed to scrape Moneyway and Dropping Odds data from arbworld.net, store it as time series, and provide graphical analysis. It identifies "Smart Money" movements in sports betting markets to provide users with an edge. The project aims for a zero-cost, 24/7 data collection and analysis solution through a hybrid architecture, minimizing reliance on Replit's free tier limitations.
+SmartXFlow Monitor is a professional betting odds tracking tool designed to scrape Moneyway and Dropping Odds data from arbworld.net, store it as time series, and provide graphical analysis. The project aims for a zero-cost, 24/7 data collection and visualization solution through a hybrid architecture, minimizing reliance on Replit's free tier limitations.
+
+**Note:** The alarm/notification system has been removed. This is now a pure data collection and visualization tool (BANT system).
 
 ### User Preferences
 - **UYGULAMA = desktop_app.py** - "uygulama" dendiğinde HER ZAMAN desktop_app.py build edilir (pywebview masaüstü)
@@ -32,23 +34,7 @@ The system uses a hybrid architecture:
 - **Data Collection (6 Markets):**
     - Moneyway Markets: 1X2, O/U 2.5, BTTS
     - Dropping Odds Markets: 1X2, O/U 2.5, BTTS
-- **Web UI:** Modern dark theme (GitHub style), Chart.js graphs, match detail modals, Smart Money Alarm System, Ticker animation.
-- **Smart Money Alarm System:** Detects various betting market anomalies:
-    - **Reverse Line Move (RLM):** Significant money inflow opposite to odds movement.
-    - **Sharp Move:** Significant money inflow with odds drop.
-    - **Big Money Move:** Large money inflow within a short period, regardless of odds movement.
-    - **Line Freeze**
-    - **Public Money Surge**
-    - **Momentum Spike**
-    - **Momentum Change:** Shift in market dominance.
-- **Alarm Safety System:**
-    - **Append-Only Storage:** Alarms are never deleted or overwritten.
-    - **Idempotent Deduplication:** Prevents duplicate alarms using a unique fingerprint.
-    - **Periodic Self-Check (Reconciliation):** Hourly check for missing alarms.
-    - **Error Logging + Retry:** Failed alarm insertions are logged and retried.
-    - **Safety Check Endpoint:** Verifies system integrity.
-    - **AlarmSafetyGuard:** Wrapper for all alarm records with exception handling and logging.
-    - **Reconciliation Endpoint:** Manual trigger for alarm reconciliation.
+- **Web UI:** Modern dark theme (GitHub style), Chart.js graphs, match detail modals.
 
 **Technical Specifications:**
 - **Timezone:** Turkey (Europe/Istanbul) is consistently used across the application.
@@ -62,7 +48,7 @@ The system uses a hybrid architecture:
 ### 1. Temel Prensip: Prematch Sistemi (Canlı Değil)
 - Uygulama CANLI MAÇ VERİSİYLE ÇALIŞMIYOR
 - Sadece maç başlamadan önceki para & oran hareketleri takip ediliyor
-- Maç başladıktan sonra: Yeni odds/stake kaydı OLMAMALI, yeni alarm ÜRETİLMEMELİ
+- Maç başladıktan sonra: Yeni odds/stake kaydı OLMAMALI
 
 ### 2. Arbworld Entegrasyonu
 - Arbworld, maç başladığında o maçı listeden kaldırır
@@ -71,58 +57,29 @@ The system uses a hybrid architecture:
 
 ### 3. Tarih Bazlı Yaşam Döngüsü (TR Saati)
 
-| Gün | Tanım | UI | Veri Yazma | Alarm Üretme |
-|-----|-------|----|-----------:|-------------:|
-| **D** (Bugün) | `fixture_date == today` | "Günün Maçları" | Arbworld'deyse EVET | EVET |
-| **D-1** (Dün) | `fixture_date == yesterday` | "Dünün Maçları" | HAYIR | HAYIR (sadece statik) |
-| **D-2+** (Eski) | `fixture_date <= D-2` | GÖSTERİLMEZ | HAYIR | SİL/ARŞİVLE |
+| Gün | Tanım | UI | Veri Yazma |
+|-----|-------|----|----------:|
+| **D** (Bugün) | `fixture_date == today` | "Günün Maçları" | Arbworld'deyse EVET |
+| **D-1** (Dün) | `fixture_date == yesterday` | "Dünün Maçları" | HAYIR |
+| **D-2+** (Eski) | `fixture_date <= D-2` | GÖSTERİLMEZ | HAYIR |
 
 ### 4. Veri Güvenliği Kuralları
 ```
 when inserting odds_history row:
     if fixture_date < D: REJECT (dünkü/eski maça veri yazma)
     if fixture_date == D and match not in arbworld: REJECT (başlamış)
-
-when evaluating alarms:
-    only consider: fixture_date == D AND match in arbworld list
 ```
 
 ### 5. Timezone Sistemi - TEK KAYNAK KURALI
 
 **Backend / DB:**
 - Tüm timestamp'ler UTC olarak saklanır
-- Fields: `kickoff_utc`, `timestamp_utc`, `triggered_at_utc`, `scraped_at_utc`
+- Fields: `kickoff_utc`, `timestamp_utc`, `scraped_at_utc`
 
 **Frontend:**
 - Varsayılan timezone: `Europe/Istanbul`
 - Tüm tarih/saat gösterimleri: `dayjs.utc(...).tz('Europe/Istanbul')`
-- Uygulanan yerler: Maç saati, Son Güncelleme, Grafik X ekseni, Tooltip, Alarm Listesi, Alarm Geçmişi
-
-### 6. Alarm Kuralları
-
-**A. Alarm Saatleri:**
-- `triggered_at_utc` → UI'de TR saati olarak gösterilir
-- Alarm Listesi, Alarm Geçmişi, Maç Detayı → AYNI helper kullanır
-
-**B. Alarm Tutarlılığı:**
-- Alarm Listesi sorgusu = Maç Detayı alarm sorgusu
-- Aynı `match_id + type` filtreleri kullanılmalı
-
-**C. Big Money & Dropping Mantığı:**
-- Big Money: `delta stake = stake_curr - stake_prev` (TOTAL DEĞİL)
-- Dropping: Oran değişimi YOKSA alarm tetiklenmemeli
-
-### 7. Update Politikası
-
-Timezone/tarih mantığına dokunan her update için:
-1. Merge/publish öncesi kontrol edilecek alanlar:
-   - Maç listesi saatleri
-   - Son Güncelleme alanı
-   - Grafik tooltip saatleri
-   - Alarm Listesi saatleri
-   - Maç detayı alarm saatleri
-2. Başka modüllerde değişiklik gerekiyorsa → HABER VER
-3. Değişiklik notu (changelog) yaz
+- Uygulanan yerler: Maç saati, Son Güncelleme, Grafik X ekseni, Tooltip
 
 ---
 
