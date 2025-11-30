@@ -598,7 +598,7 @@
                         </div>
                         <div class="form-group">
                             <label>Min Pazar Payi (%)</label>
-                            <input type="number" id="min_share_pct_threshold" placeholder="15">
+                            <input type="number" id="min_market_share" placeholder="5">
                         </div>
                     </div>
                     <div class="info-note">
@@ -608,40 +608,57 @@
 
                 <div class="section">
                     <h3 class="section-title">
-                        <span class="section-title-icon">⚖️</span>
-                        Agirliklar ve Carpanlar
+                        <span class="section-title-icon">🔢</span>
+                        Carpanlar (Multipliers)
                     </h3>
                     <p class="section-desc">
-                        SharpScore hesaplamasi icin kullanilan agirliklar. Her bilesen kendi agirligi ile carpilir.
+                        Ham degerleri 0-100 skora cevirirler. Ornek: shockX=2.0 ve k_volume=50 ise volume_score = clamp(2.0 × 50, 0, 100) = 100
                     </p>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label>Hacim Agirligi (weight_volume)</label>
-                            <input type="number" step="0.1" id="weight_volume" placeholder="1.0">
+                            <label>Hacim Soku Carpani (k_volume)</label>
+                            <input type="number" step="1" id="k_volume" placeholder="20">
                         </div>
                         <div class="form-group">
-                            <label>Oran Agirligi (weight_odds)</label>
-                            <input type="number" step="0.1" id="weight_odds" placeholder="1.0">
+                            <label>Oran Dususu Carpani (k_odds)</label>
+                            <input type="number" step="1" id="k_odds" placeholder="10">
                         </div>
                         <div class="form-group">
-                            <label>Pay Agirligi (weight_share)</label>
-                            <input type="number" step="0.1" id="weight_share" placeholder="0.5">
-                        </div>
-                        <div class="form-group">
-                            <label>Momentum Agirligi (weight_momentum)</label>
-                            <input type="number" step="0.1" id="weight_momentum" placeholder="0.5">
-                        </div>
-                        <div class="form-group">
-                            <label>Hacim Carpani (volume_multiplier)</label>
-                            <input type="number" step="0.1" id="volume_multiplier" placeholder="10.0">
-                        </div>
-                        <div class="form-group">
-                            <label>Normalizasyon Faktoru</label>
-                            <input type="number" step="0.1" id="normalization_factor" placeholder="1.0">
+                            <label>Pay Artisi Carpani (k_share)</label>
+                            <input type="number" step="1" id="k_share" placeholder="5">
                         </div>
                     </div>
                     <div class="info-note">
-                        SharpScore = (hacim_base × w_volume + oran_dususu × w_odds + pay_degisimi × w_share + momentum × w_momentum) / normalizasyon
+                        volume_score = clamp(shockX × k_volume, 0, 100)<br>
+                        odds_score = clamp(drop_pct × k_odds, 0, 100)<br>
+                        share_score = clamp(share_diff × k_share, 0, 100)
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3 class="section-title">
+                        <span class="section-title-icon">⚖️</span>
+                        Agirliklar (Weights) - Toplam %100
+                    </h3>
+                    <p class="section-desc">
+                        Her bilesenin final skora katkisi. Toplam %100 olmali (otomatik normalize edilir).
+                    </p>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Hacim Soku Agirligi % (w_volume)</label>
+                            <input type="number" step="1" id="w_volume" placeholder="40">
+                        </div>
+                        <div class="form-group">
+                            <label>Oran Dususu Agirligi % (w_odds)</label>
+                            <input type="number" step="1" id="w_odds" placeholder="30">
+                        </div>
+                        <div class="form-group">
+                            <label>Pay Artisi Agirligi % (w_share)</label>
+                            <input type="number" step="1" id="w_share" placeholder="30">
+                        </div>
+                    </div>
+                    <div class="info-note">
+                        SharpScore = (volume_score × w_volume + odds_score × w_odds + share_score × w_share) / 100
                     </div>
                 </div>
 
@@ -674,19 +691,15 @@
                             </div>
                             <div class="form-group">
                                 <label>Hacim Soku (shockX)</label>
-                                <input type="number" step="0.1" id="test_shock_x" value="5.0">
+                                <input type="number" step="0.1" id="test_shock_x" value="2.0">
                             </div>
                             <div class="form-group">
                                 <label>Oran Dususu (%)</label>
-                                <input type="number" step="0.1" id="test_drop_pct" value="8.0">
+                                <input type="number" step="0.1" id="test_drop_pct" value="5.0">
                             </div>
                             <div class="form-group">
-                                <label>Pay Degisimi</label>
-                                <input type="number" step="0.1" id="test_share_shift" value="5.0">
-                            </div>
-                            <div class="form-group">
-                                <label>Momentum Skoru (0-10)</label>
-                                <input type="number" step="0.1" id="test_momentum" value="3.0" min="0" max="10">
+                                <label>Pay Artisi (%)</label>
+                                <input type="number" step="0.1" id="test_share_diff" value="3.0">
                             </div>
                         </div>
                         <button class="btn btn-secondary" style="margin-top: 16px; width: 100%;" onclick="runTest()">
@@ -694,7 +707,19 @@
                         </button>
                         <div class="test-result" id="testResult">
                             <div class="test-result-row">
-                                <span class="test-result-label">Sharp Skor</span>
+                                <span class="test-result-label">Volume Score</span>
+                                <span class="test-result-value" id="resultVolumeScore">-</span>
+                            </div>
+                            <div class="test-result-row">
+                                <span class="test-result-label">Odds Score</span>
+                                <span class="test-result-value" id="resultOddsScore">-</span>
+                            </div>
+                            <div class="test-result-row">
+                                <span class="test-result-label">Share Score</span>
+                                <span class="test-result-value" id="resultShareScore">-</span>
+                            </div>
+                            <div class="test-result-row" style="border-top: 2px solid #58a6ff; padding-top: 12px;">
+                                <span class="test-result-label"><strong>Sharp Skor (Final)</strong></span>
                                 <span class="test-result-value" id="resultScore">-</span>
                             </div>
                             <div class="test-result-row">
@@ -733,10 +758,10 @@
         let hasChanges = false;
 
         const configFields = [
-            'weight_volume', 'weight_odds', 'weight_share', 'weight_momentum',
-            'volume_multiplier', 'normalization_factor',
+            'k_odds', 'k_volume', 'k_share',
+            'w_odds', 'w_volume', 'w_share',
             'min_volume_1x2', 'min_volume_ou25', 'min_volume_btts',
-            'sharp_score_threshold', 'min_share_pct_threshold'
+            'sharp_score_threshold', 'min_market_share'
         ];
 
         function showToast(message, type = 'success') {
@@ -944,8 +969,7 @@
                 current_share_pct: parseFloat(document.getElementById('test_share_pct').value) || 0,
                 shock_x: parseFloat(document.getElementById('test_shock_x').value) || 0,
                 drop_pct: parseFloat(document.getElementById('test_drop_pct').value) || 0,
-                share_shift: parseFloat(document.getElementById('test_share_shift').value) || 0,
-                momentum_score: parseFloat(document.getElementById('test_momentum').value) || 0
+                share_diff: parseFloat(document.getElementById('test_share_diff').value) || 0
             };
 
             try {
@@ -966,8 +990,15 @@
 
                 document.getElementById('testResult').classList.add('show');
 
+                document.getElementById('resultVolumeScore').textContent = 
+                    result.details?.volume_score?.toFixed(1) || '-';
+                document.getElementById('resultOddsScore').textContent = 
+                    result.details?.odds_score?.toFixed(1) || '-';
+                document.getElementById('resultShareScore').textContent = 
+                    result.details?.share_score?.toFixed(1) || '-';
+
                 const scoreEl = document.getElementById('resultScore');
-                scoreEl.textContent = result.sharp_score;
+                scoreEl.textContent = result.sharp_score?.toFixed(1) || result.sharp_score;
                 scoreEl.className = 'test-result-value' + (result.alarm ? ' alarm' : '');
 
                 const alarmEl = document.getElementById('resultAlarm');

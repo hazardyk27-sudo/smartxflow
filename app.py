@@ -2006,8 +2006,7 @@ def test_sharp_config_api():
             current_share_pct=safe_float(data.get('current_share_pct'), 0),
             shock_x=safe_float(data.get('shock_x'), 0),
             drop_pct=safe_float(data.get('drop_pct'), 0),
-            share_shift=safe_float(data.get('share_shift'), 0),
-            momentum_score=safe_float(data.get('momentum_score'), 0)
+            share_diff=safe_float(data.get('share_diff'), 0)
         )
         
         return jsonify({
