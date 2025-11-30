@@ -3395,13 +3395,12 @@ function showTrendTooltip(event) {
         }
         
         tooltip.innerHTML = `
-            <div class="tooltip-title">AÇILIŞTAN BUGÜNE DEĞİŞİM</div>
+            <div class="tooltip-title">SON 6 SAAT DEĞİŞİM</div>
             <div class="tooltip-block">
                 <div class="tooltip-row">
-                    <span class="tooltip-label">Açılış oranı:</span>
+                    <span class="tooltip-label">6 saat önce:</span>
                     <span class="tooltip-value">${data.old ? data.old.toFixed(2) : '-'}</span>
                 </div>
-                ${firstScrapedText ? `<div class="tooltip-date">(${firstScrapedText})</div>` : ''}
             </div>
             <div class="tooltip-block">
                 <div class="tooltip-row">
