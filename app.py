@@ -1019,7 +1019,7 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
     share_key = share_keys[sel_idx]
     
     stakes = []
-    for i in range(1, min(len(history), 11)):
+    for i in range(1, len(history)):
         curr_amt = parse_volume(history[i].get(amount_key, '0'))
         prev_amt = parse_volume(history[i-1].get(amount_key, '0'))
         stake = curr_amt - prev_amt
@@ -1029,13 +1029,13 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
     if not stakes:
         return None
     
-    last_stake = stakes[-1] if stakes else 0
-    avg_last_10 = sum(stakes) / len(stakes) if stakes else 1
+    max_stake = max(stakes)
+    avg_stake = sum(stakes) / len(stakes) if stakes else 1
     
-    if avg_last_10 <= 0:
+    if avg_stake <= 0:
         return None
     
-    shock_raw = last_stake / avg_last_10
+    shock_raw = max_stake / avg_stake
     volume_multiplier = config.get('volume_multiplier', 1)
     shock_value = shock_raw * volume_multiplier
     
@@ -1087,8 +1087,8 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         'market': market,
         'selection': selection,
         'created_at': now_turkey_formatted(),
-        'last_stake': last_stake,
-        'avg_last_10_stakes': avg_last_10,
+        'max_stake': max_stake,
+        'avg_stake': avg_stake,
         'shock_raw': shock_raw,
         'volume_multiplier': volume_multiplier,
         'shock_value': shock_value,

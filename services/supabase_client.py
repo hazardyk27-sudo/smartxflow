@@ -510,7 +510,7 @@ class SupabaseClient:
             return None
     
     def get_match_history_for_sharp(self, home: str, away: str, history_table: str) -> List[Dict]:
-        """Get match history for Sharp calculation (last 15 snapshots)"""
+        """Get match history for Sharp calculation (all snapshots)"""
         if not self.is_available:
             return []
         
@@ -518,7 +518,7 @@ class SupabaseClient:
             from urllib.parse import quote
             home_enc = quote(home, safe='')
             away_enc = quote(away, safe='')
-            url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}&order=scrapedat.asc&limit=15"
+            url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}&order=scrapedat.asc&limit=500"
             resp = httpx.get(url, headers=self._headers(), timeout=15)
             if resp.status_code == 200:
                 return resp.json()
