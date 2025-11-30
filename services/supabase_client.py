@@ -461,7 +461,7 @@ class SupabaseClient:
                         if old_val and new_val and old_val > 0:
                             pct_change = ((new_val - old_val) / old_val) * 100
                             trend = 'down' if new_val < old_val else ('up' if new_val > old_val else 'stable')
-                        match_data['values'][sel] = {'old': old_val, 'new': new_val, 'pct_change': round(pct_change, 1), 'trend': trend}
+                        match_data['values'][sel] = {'old': old_val, 'new': new_val, 'pct_change': round(pct_change, 1), 'trend': trend, 'history': [old_val, new_val]}
                     return (key, match_data)
                 except:
                     return None
