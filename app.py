@@ -1080,13 +1080,6 @@ def calculate_insider_scores(config):
             
             print(f"[Insider] Processing {len(filtered_matches)}/{len(matches)} matches for {market} (D-2+ filtered)")
             
-            # Ön-filtre: Yüksek hacimli maçları atla (insider potansiyeli düşük)
-            # Insider düşük hacim + düşük para akışı arıyor, yüksek hacimli maçlar uygun değil
-            volume_prefilter_limit = max_para * 20  # örn: 5000 * 20 = 100k
-            
-            api_calls = 0
-            skipped_high_volume = 0
-            
             for match in filtered_matches:
                 home = match.get('home_team', match.get('home', match.get('Home', '')))
                 away = match.get('away_team', match.get('away', match.get('Away', '')))
@@ -1094,24 +1087,7 @@ def calculate_insider_scores(config):
                 if not home or not away:
                     continue
                 
-                # Ön-filtre: Latest snapshot'ta toplam volume çok yüksekse atla
-                if '1x2' in market:
-                    total_vol = (parse_volume(match.get('amt1', '0')) + 
-                                parse_volume(match.get('amtx', '0')) + 
-                                parse_volume(match.get('amt2', '0')))
-                elif 'ou25' in market:
-                    total_vol = (parse_volume(match.get('amtover', '0')) + 
-                                parse_volume(match.get('amtunder', '0')))
-                else:  # btts
-                    total_vol = (parse_volume(match.get('amtyes', '0')) + 
-                                parse_volume(match.get('amtno', '0')))
-                
-                if total_vol > volume_prefilter_limit:
-                    skipped_high_volume += 1
-                    continue
-                
                 # Use faster history fetch (same as Sharp) - tek request
-                api_calls += 1
                 history = supabase.get_match_history_for_sharp(home, away, history_table)
                 if not history or len(history) < required_streak + 1:
                     continue
