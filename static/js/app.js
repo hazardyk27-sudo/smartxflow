@@ -3210,50 +3210,14 @@ function loadOddsTrendAsync(market) {
         });
 }
 
-function generateSparklineSVG(values, trend, pctChange) {
+function generateSparklineSVG(values, trend) {
+    if (!values || values.length < 2) {
+        return '';
+    }
+    
     const width = 40;
     const height = 16;
-    const absChange = Math.abs(pctChange || 0);
     const padding = 2;
-    
-    let strokeColor = '#6b7280';
-    let strokeWidth = 2;
-    
-    if (trend === 'down') {
-        if (absChange >= 10) strokeColor = '#ef4444';
-        else if (absChange >= 5) strokeColor = '#f97316';
-        else if (absChange >= 2) strokeColor = '#fb923c';
-        else strokeColor = '#fbbf24';
-    } else if (trend === 'up') {
-        if (absChange >= 10) strokeColor = '#22c55e';
-        else if (absChange >= 5) strokeColor = '#4ade80';
-        else if (absChange >= 2) strokeColor = '#86efac';
-        else strokeColor = '#bbf7d0';
-    }
-    
-    if (!values || values.length < 2) {
-        const oldVal = values && values[0] ? values[0] : 1;
-        const newVal = oldVal;
-        let y1 = height / 2;
-        let y2 = height / 2;
-        
-        if (trend === 'down') {
-            y1 = padding + 2;
-            y2 = height - padding - 2;
-        } else if (trend === 'up') {
-            y1 = height - padding - 2;
-            y2 = padding + 2;
-        }
-        
-        const midX = width / 2;
-        const midY = (y1 + y2) / 2 + (trend === 'down' ? -1 : (trend === 'up' ? 1 : 0));
-        
-        return `<svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-            <polyline points="${padding},${y1} ${midX},${midY} ${width - padding},${y2}" fill="none" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="${padding}" cy="${y1}" r="2" fill="${strokeColor}"/>
-            <circle cx="${width - padding}" cy="${y2}" r="2" fill="${strokeColor}"/>
-        </svg>`;
-    }
     
     const validValues = values.filter(v => v !== null && v !== undefined);
     if (validValues.length < 2) return '';
@@ -3268,13 +3232,15 @@ function generateSparklineSVG(values, trend, pctChange) {
         return `${x.toFixed(1)},${y.toFixed(1)}`;
     }).join(' ');
     
-    const firstY = height - padding - ((validValues[0] - min) / range) * (height - 2 * padding);
-    const lastY = height - padding - ((validValues[validValues.length - 1] - min) / range) * (height - 2 * padding);
+    let strokeColor = '#6b7280';
+    if (trend === 'down') {
+        strokeColor = '#ef4444';
+    } else if (trend === 'up') {
+        strokeColor = '#22c55e';
+    }
     
     return `<svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-        <polyline points="${points}" fill="none" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="${padding}" cy="${firstY.toFixed(1)}" r="2" fill="${strokeColor}"/>
-        <circle cx="${width - padding}" cy="${lastY.toFixed(1)}" r="2" fill="${strokeColor}"/>
+        <polyline points="${points}" fill="none" stroke="${strokeColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
 }
 
@@ -3330,7 +3296,7 @@ function renderOddsWithTrend(oddsValue, trendData) {
         `;
     }
     
-    const sparkline = generateSparklineSVG(trendData.history, trendData.trend, trendData.pct_change);
+    const sparkline = generateSparklineSVG(trendData.history, trendData.trend);
     const pctHtml = formatPctChange(trendData.pct_change, trendData.trend);
     const arrowHtml = getTrendArrowHTML(trendData.trend, trendData.pct_change);
     
@@ -3365,7 +3331,7 @@ function renderDrop1X2Cell(label, oddsValue, trendData) {
         `;
     }
     
-    const sparkline = generateSparklineSVG(trendData.history, trendData.trend, trendData.pct_change);
+    const sparkline = generateSparklineSVG(trendData.history, trendData.trend);
     const pctHtml = formatPctChange(trendData.pct_change, trendData.trend);
     const arrowHtml = getTrendArrowHTML(trendData.trend, trendData.pct_change);
     
