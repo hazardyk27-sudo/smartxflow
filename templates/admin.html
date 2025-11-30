@@ -710,6 +710,11 @@
                         <input type="number" id="insider_max_para" value="5000" step="500" class="form-input">
                         <p class="form-hint" style="font-size: 10px; color: #8b949e;">Gelen para miktari bu degerden DUSUK olmali</p>
                     </div>
+                    <div class="form-group">
+                        <label>Max Oran Esigi</label>
+                        <input type="number" id="insider_max_odds_esigi" value="10.0" step="0.5" min="1.0" class="form-input">
+                        <p class="form-hint" style="font-size: 10px; color: #8b949e;">Secenegin orani bu degerden YUKSEKSE elenir (ornek: 2.5)</p>
+                    </div>
                 </div>
 
                 <div class="info-card">
@@ -1260,6 +1265,7 @@
                     document.getElementById('insider_oran_dusus_esigi').value = config.insider_oran_dusus_esigi || 3;
                     document.getElementById('insider_sure_dakika').value = config.insider_sure_dakika || 30;
                     document.getElementById('insider_max_para').value = config.insider_max_para || 5000;
+                    document.getElementById('insider_max_odds_esigi').value = config.insider_max_odds_esigi || 10.0;
                 }
             } catch (error) {
                 console.error('Insider config yukleme hatasi:', error);
@@ -1308,6 +1314,7 @@
                             <span style="color: #f0883e;" title="Hacim Soku">⚡ HacimSok &lt; ${alarm.insider_hacim_sok_esigi || 2}: ${(alarm.hacim_sok || 0).toFixed(2)}x</span>
                             <span style="color: #a371f7;" title="Oran Dususu">📉 OranDusus ≥ ${alarm.insider_oran_dusus_esigi || 3}%: ${(alarm.oran_dusus_pct || 0).toFixed(1)}%</span>
                             <span style="color: #58a6ff;" title="Gelen Para">💰 GelenPara &lt; £${alarm.insider_max_para || 5000}: £${Math.round(alarm.gelen_para || 0).toLocaleString()}</span>
+                            <span style="color: #f0b429;" title="Son Oran">🎯 Oran ≤ ${alarm.insider_max_odds_esigi || 10}: ${(alarm.last_odds || 0).toFixed(2)}</span>
                             <span style="color: #3fb950;" title="Sure">⏱️ ${alarm.insider_sure_dakika || 30}dk (${alarm.snapshot_count || 3} snapshot)</span>
                         </div>
                     </div>
@@ -1336,7 +1343,8 @@
                 insider_hacim_sok_esigi: parseFloat(document.getElementById('insider_hacim_sok_esigi').value) || 2,
                 insider_oran_dusus_esigi: parseFloat(document.getElementById('insider_oran_dusus_esigi').value) || 3,
                 insider_sure_dakika: parseInt(document.getElementById('insider_sure_dakika').value) || 30,
-                insider_max_para: parseFloat(document.getElementById('insider_max_para').value) || 5000
+                insider_max_para: parseFloat(document.getElementById('insider_max_para').value) || 5000,
+                insider_max_odds_esigi: parseFloat(document.getElementById('insider_max_odds_esigi').value) || 10.0
             };
             
             try {
@@ -1399,6 +1407,8 @@
                     <div class="detail-row"><span class="detail-label">Hacim Sok Esigi</span><span class="detail-value">&lt; ${alarm.insider_hacim_sok_esigi || 2}x</span></div>
                     <div class="detail-row"><span class="detail-label">Ortalama Gelen Para</span><span class="detail-value">£${Math.round(alarm.gelen_para || 0).toLocaleString()}</span></div>
                     <div class="detail-row"><span class="detail-label">Max Para Esigi</span><span class="detail-value">&lt; £${alarm.insider_max_para || 5000}</span></div>
+                    <div class="detail-row"><span class="detail-label">Son Oran</span><span class="detail-value" style="color: #f0b429;">${(alarm.last_odds || 0).toFixed(2)}</span></div>
+                    <div class="detail-row"><span class="detail-label">Max Oran Esigi</span><span class="detail-value">≤ ${alarm.insider_max_odds_esigi || 10}</span></div>
                 </div>
                 <div class="detail-section">
                     <h4>⏱️ Sure & Snapshot</h4>

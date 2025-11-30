@@ -1010,12 +1010,13 @@ def calculate_insider_scores(config):
     oran_dusus_esigi = config.get('insider_oran_dusus_esigi', 3)
     sure_dakika = config.get('insider_sure_dakika', 30)
     max_para = config.get('insider_max_para', 5000)
+    max_odds_esigi = config.get('insider_max_odds_esigi', 10.0)  # Max odds threshold - filter out high odds
     
     # Calculate required consecutive snapshots (10 min per snapshot)
     snapshot_interval = 10  # minutes
     required_streak = max(1, sure_dakika // snapshot_interval)
     
-    print(f"[Insider] Config: HacimSok<{hacim_sok_esigi}, OranDusus>={oran_dusus_esigi}%, Sure={sure_dakika}dk ({required_streak} snapshot), MaxPara<{max_para}")
+    print(f"[Insider] Config: HacimSok<{hacim_sok_esigi}, OranDusus>={oran_dusus_esigi}%, Sure={sure_dakika}dk ({required_streak} snapshot), MaxPara<{max_para}, MaxOdds<{max_odds_esigi}")
     
     markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
     market_names = {'moneyway_1x2': '1X2', 'moneyway_ou25': 'O/U 2.5', 'moneyway_btts': 'BTTS'}
@@ -1102,6 +1103,11 @@ def calculate_insider_scores(config):
                     opening_odds = parse_float(history[0].get(odds_key, '0'))
                     if opening_odds <= 0:
                         continue
+                    
+                    # Max odds filter - skip selections with odds higher than threshold
+                    last_odds = parse_float(history[-1].get(odds_key, '0'))
+                    if last_odds > max_odds_esigi:
+                        continue  # Skip this selection - odds too high
                     
                     # Calculate metrics for each snapshot
                     snapshot_metrics = []
@@ -1204,6 +1210,7 @@ def calculate_insider_scores(config):
                             'insider_oran_dusus_esigi': oran_dusus_esigi,
                             'insider_sure_dakika': sure_dakika,
                             'insider_max_para': max_para,
+                            'insider_max_odds_esigi': max_odds_esigi,
                             'snapshot_count': required_streak,
                             'match_date': match_date_str,
                             'created_at': created_at,
