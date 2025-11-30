@@ -4337,7 +4337,7 @@ td.volume,
     border-radius: 0;
     color: #000;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
     cursor: pointer;
     transition: all 0.2s;
@@ -4352,6 +4352,7 @@ td.volume,
 
 .alarms-toggle-btn svg {
     stroke: #000;
+    stroke-width: 2.5;
     width: 18px;
     height: 18px;
 }
@@ -4367,7 +4368,7 @@ td.volume,
     color: #000;
     border-radius: 50%;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 800;
 }
 
 /* Sidebar Overlay */
