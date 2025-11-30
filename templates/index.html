@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=238">
+    <link rel="stylesheet" href="/static/css/style.css?v=239">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -45,6 +45,20 @@
             </div>
         </div>
     </header>
+
+    <div class="smart-money-ticker" id="smartMoneyTicker">
+        <div class="ticker-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+            SHARP MONEY
+        </div>
+        <div class="ticker-wrapper">
+            <div class="ticker-track" id="tickerTrack">
+                <span class="ticker-empty">Alarm hesaplaması bekleniyor...</span>
+            </div>
+        </div>
+    </div>
 
     <nav class="market-tabs">
         <button class="tab active" data-market="moneyway_1x2">
@@ -195,6 +209,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=238"></script>
+    <script src="/static/js/app.js?v=239"></script>
 </body>
 </html>
