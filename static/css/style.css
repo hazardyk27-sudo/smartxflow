@@ -4329,16 +4329,14 @@ td.volume,
 .alarms-toggle-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    background-color: #1A8F4B;
-    border: 1px solid #0F6F37;
-    border-radius: 8px;
-    color: #0d1117;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    gap: 6px;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #c9d1d9;
+    font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
     flex-shrink: 0;
@@ -4346,27 +4344,33 @@ td.volume,
 }
 
 .alarms-toggle-btn:hover {
-    background-color: #0F6F37;
-    transform: scale(1.02);
-    box-shadow: 0 4px 12px rgba(26, 143, 75, 0.3);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: #8b949e;
+    color: #fff;
 }
 
 .alarms-toggle-btn svg {
-    stroke: #0d1117;
+    stroke: #8b949e;
+    width: 14px;
+    height: 14px;
+}
+
+.alarms-toggle-btn:hover svg {
+    stroke: #c9d1d9;
 }
 
 .alarms-toggle-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 6px;
-    background-color: #FF3B30;
-    color: #0d1117;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: #238636;
+    color: #fff;
+    border-radius: 9px;
+    font-size: 10px;
+    font-weight: 600;
 }
 
 /* Sidebar Overlay */
