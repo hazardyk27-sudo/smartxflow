@@ -1,5 +1,5 @@
 """
-SmartXFlow Alarm V1.01 - Standalone Scraper
+SmartXFlow Monitor V1.01 - Standalone Scraper
 PC'de çalışan bağımsız scraper - Supabase'e direkt yazar
 """
 

@@ -18,7 +18,7 @@ SmartXFlow Monitor is a professional betting odds tracking tool designed to scra
 
 **Core Architecture:**
 The system uses a hybrid architecture:
-- **Standalone Scraper (PC-based):** A Python application (`SmartXFlow Alarm V1.01Scraper.exe`) runs on a Windows PC, scraping data from arbworld.net every 10 minutes and directly writing it to Supabase. This ensures continuous data collection even if the Replit environment is dormant.
+- **Standalone Scraper (PC-based):** A Python application (`SmartXFlow Monitor V1.01Scraper.exe`) runs on a Windows PC, scraping data from arbworld.net every 10 minutes and directly writing it to Supabase. This ensures continuous data collection even if the Replit environment is dormant.
 - **Web UI (Replit-based):** A Flask web application hosted on Replit acts as a read-only interface. It fetches data from Supabase and displays it graphically. The scraper functionality is explicitly disabled in the Replit environment (`DISABLE_SCRAPER=true`).
 - **Desktop Application:** A PyInstaller-built desktop application (`SmartXFlowDesktop.exe`) provides a native user experience. It embeds a Flask backend running locally (127.0.0.1:5000) within a pywebview (Edge WebView2) window, eliminating the need for external browser tabs or console windows.
 

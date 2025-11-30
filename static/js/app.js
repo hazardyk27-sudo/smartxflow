@@ -12,8 +12,6 @@ let dateFilterMode = 'ALL';
 let chartTimeRange = '10min';
 let currentChartHistoryData = [];
 let chartViewMode = 'percent';
-let alertsHistory = [];
-const MAX_ALERTS_HISTORY = 500;
 let isClientMode = true;
 
 const APP_TIMEZONE = 'Europe/Istanbul';

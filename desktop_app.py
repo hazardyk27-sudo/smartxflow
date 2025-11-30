@@ -1,5 +1,5 @@
 """
-SmartXFlow Alarm V1.01 - Desktop Application
+SmartXFlow Monitor V1.01 - Desktop Application
 Masaüstü uygulaması: Flask backend + pywebview penceresi
 """
 import sys
@@ -103,7 +103,7 @@ def main():
     port = find_free_port()
     if port is None:
         logging.error("No free port found!")
-        show_error_dialog("SmartXFlow Alarm", "Port bulunamadı! Lütfen diğer uygulamaları kapatın.")
+        show_error_dialog("SmartXFlow Monitor", "Port bulunamadı! Lütfen diğer uygulamaları kapatın.")
         sys.exit(1)
     
     logging.info(f"Using port: {port}")
@@ -125,7 +125,7 @@ def main():
     
     if not wait_for_server(port):
         logging.error("Flask server failed to start!")
-        show_error_dialog("SmartXFlow Alarm", "Sunucu başlatılamadı!")
+        show_error_dialog("SmartXFlow Monitor", "Sunucu başlatılamadı!")
         sys.exit(1)
     
     logging.info("Flask server started successfully!")
@@ -151,7 +151,7 @@ def main():
         logging.info("Creating webview window...")
         
         window = webview.create_window(
-            title="SmartXFlow Alarm V1.01",
+            title="SmartXFlow Monitor V1.01",
             url=f"http://127.0.0.1:{port}",
             width=1400,
             height=850,
@@ -174,7 +174,7 @@ def main():
                 "https://developer.microsoft.com/microsoft-edge/webview2/"
             )
         else:
-            show_error_dialog("SmartXFlow Alarm Hatası", f"Uygulama başlatılamadı:\n{error_msg}")
+            show_error_dialog("SmartXFlow Monitor Hatası", f"Uygulama başlatılamadı:\n{error_msg}")
         sys.exit(1)
 
 if __name__ == "__main__":

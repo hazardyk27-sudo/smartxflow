@@ -784,7 +784,7 @@ def get_odds_trend(market):
 
 @app.route('/api/match/details')
 def get_match_details():
-    """Get match details by team names - used when opening from alarm list"""
+    """Get match details by team names"""
     home = request.args.get('home', '')
     away = request.args.get('away', '')
     

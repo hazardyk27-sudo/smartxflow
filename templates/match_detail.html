@@ -35,25 +35,6 @@
             <div class="match-meta" id="matchMeta"></div>
         </div>
 
-        <div class="smart-money-events" id="smartMoneyEvents">
-            <div class="events-header events-header-collapsible" onclick="toggleSmartMoneyEvents()">
-                <div class="events-header-left">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                    </svg>
-                    <span>Smart Money Events</span>
-                </div>
-                <svg class="events-chevron" id="eventsChevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M6 9l6 6 6-6"/>
-                </svg>
-            </div>
-            <div class="events-grid-wrapper collapsed" id="eventsGridWrapper">
-                <div class="events-grid" id="matchAlarmsContainer">
-                    <div class="no-alarms">Alarm analizi yapılıyor...</div>
-                </div>
-            </div>
-        </div>
-
         <div class="match-info-card" id="matchInfoCard"></div>
 
         <div class="chart-section">
@@ -85,27 +66,9 @@
         let chartTimeRange = '5min';
         let chartViewMode = 'percent';
         let currentChartHistoryData = [];
-        let smartMoneyEventsOpen = false;
-
-        function toggleSmartMoneyEvents() {
-            const wrapper = document.getElementById('eventsGridWrapper');
-            const chevron = document.getElementById('eventsChevron');
-            smartMoneyEventsOpen = !smartMoneyEventsOpen;
-            
-            if (smartMoneyEventsOpen) {
-                wrapper.classList.remove('collapsed');
-                wrapper.classList.add('expanded');
-                chevron.classList.add('rotated');
-            } else {
-                wrapper.classList.remove('expanded');
-                wrapper.classList.add('collapsed');
-                chevron.classList.remove('rotated');
-            }
-        }
 
         document.addEventListener('DOMContentLoaded', function() {
             loadMatchData();
-            loadMatchAlarms();
             setupChartTabs();
         });
 
@@ -120,28 +83,6 @@
                     renderMatchInfoCard();
                 }
             } catch (error) { console.error('[Match Detail] Error:', error); }
-        }
-
-        async function loadMatchAlarms() {
-            try {
-                const response = await fetch('/api/match/alarms?home=' + encodeURIComponent(matchHome) + '&away=' + encodeURIComponent(matchAway));
-                const data = await response.json();
-                const container = document.getElementById('matchAlarmsContainer');
-                if (!data.alarms || data.alarms.length === 0) {
-                    container.innerHTML = '<div class="no-alarms">Bu maç için aktif alarm yok</div>';
-                    return;
-                }
-                const grouped = {};
-                data.alarms.forEach(a => {
-                    if (!grouped[a.type]) grouped[a.type] = { ...a, count: 1, sides: [a.side] };
-                    else { grouped[a.type].count++; if (a.side && !grouped[a.type].sides.includes(a.side)) grouped[a.type].sides.push(a.side); }
-                });
-                container.innerHTML = Object.values(grouped).map(alarm => {
-                    const rgb = {'#ef4444':'239,68,68','#22c55e':'34,197,94','#f59e0b':'245,158,11','#3b82f6':'59,130,246','#eab308':'234,179,8','#a855f7':'168,85,247'}[alarm.color] || '88,166,255';
-                    const sides = alarm.sides.filter(s=>s).join(', ');
-                    return '<div class="alarm-card" style="--alarm-color:' + alarm.color + ';--alarm-rgb:' + rgb + '"><div class="alarm-header"><div class="alarm-header-left"><span class="alarm-icon">' + alarm.icon + '</span><span class="alarm-name">' + alarm.name + '</span>' + (alarm.count>1?'<span class="alarm-count">x' + alarm.count + '</span>':'') + '</div><div class="alarm-tags">' + (sides?'<span class="alarm-tag market">' + sides + '</span>':'') + '<span class="alarm-tag time">Son 5 dk</span></div></div><div class="alarm-detail">' + alarm.detail + '</div><div class="alarm-description">' + alarm.description + '</div></div>';
-                }).join('');
-            } catch (error) { console.error('[Match Alarms] Error:', error); }
         }
 
         function setupChartTabs() {
@@ -206,7 +147,7 @@
             const timeButtons = timeRanges.map(tr => '<button class="chart-time-btn ' + (chartTimeRange===tr.key?'active':'') + '" data-range="' + tr.key + '" onclick="setChartTimeRange(\'' + tr.key + '\')">' + tr.label + '</button>').join('');
             
             const isMoneyway = market.startsWith('moneyway');
-            const viewModeButtons = isMoneyway ? '<div class="chart-filter-group view-mode-filters"><button class="chart-view-btn ' + (chartViewMode==='percent'?'active':'') + '" onclick="setChartViewMode(\'percent\')">% Yüzde</button><button class="chart-view-btn ' + (chartViewMode==='money'?'active':'') + '" onclick="setChartViewMode(\'money\')">£ Para</button></div><div class="chart-filter-divider"></div>' : '';
+            const viewModeButtons = isMoneyway ? '<div class="chart-filter-group view-mode-filters"><button class="chart-view-btn ' + (chartViewMode==='percent'?'active':'') + '" onclick="setChartViewMode(\'percent\')">% Yuzde</button><button class="chart-view-btn ' + (chartViewMode==='money'?'active':'') + '" onclick="setChartViewMode(\'money\')">£ Para</button></div><div class="chart-filter-divider"></div>' : '';
             
             container.innerHTML = viewModeButtons + '<div class="chart-filter-group series-filters">' + seriesButtons + '</div><div class="chart-filter-divider"></div><div class="chart-filter-group time-filters">' + timeButtons + '</div><div class="chart-filter-divider"></div><div class="chart-export-btns"><button class="chart-export-btn" onclick="exportChartPNG()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>PNG</button><button class="chart-export-btn" onclick="exportChartCSV()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>CSV</button></div>';
         }

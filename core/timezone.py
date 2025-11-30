@@ -195,7 +195,7 @@ def get_kickoff_utc(match_date_str: str) -> Optional[str]:
 def is_match_today_or_future(match_date_str: str) -> bool:
     """
     Check if match date is today or in the future (Turkey timezone).
-    Used for alarm filtering - show alarms for matches that haven't happened yet.
+    Used for filtering matches that haven't happened yet.
     
     Args:
         match_date_str: Match date in format "DD.Mon HH:MM:SS" or "DD.MM HH:MM" etc.
@@ -293,8 +293,8 @@ def is_match_today(match_date_str: str) -> bool:
     
     Per REFERANS DOKÜMANI Section 3:
     - D (Today): fixture_date == today
-    - Shows in "Günün Maçları"
-    - Can receive data & generate alarms (if in arbworld)
+    - Shows in "Gunun Maclari"
+    - Can receive data (if in arbworld)
     
     Args:
         match_date_str: Match date in format "DD.Mon HH:MM:SS" etc.
@@ -316,8 +316,8 @@ def is_yesterday_turkey(match_date_str: str) -> bool:
     
     Per REFERANS DOKÜMANI Section 3:
     - D-1 (Yesterday): fixture_date == yesterday
-    - Shows in "Dünün Maçları"
-    - NO new data, NO new alarms (static mode only)
+    - Shows in "Dunun Maclari"
+    - NO new data (static mode only)
     
     Args:
         match_date_str: Match date in format "DD.Mon HH:MM:SS" etc.
@@ -343,7 +343,6 @@ def is_match_d2_or_older(match_date_str: str) -> bool:
     Per REFERANS DOKÜMANI Section 3:
     - D-2+ (Old): fixture_date <= D-2
     - Should NOT be shown in UI
-    - Alarms should be archived/deleted
     
     Args:
         match_date_str: Match date in format "DD.Mon HH:MM:SS" etc.
@@ -369,7 +368,7 @@ def get_match_lifecycle_status(match_date_str: str) -> str:
     Per REFERANS DOKÜMANI Section 3:
     - "D": Today's match (can show, can update if in arbworld)
     - "D-1": Yesterday's match (can show, static only)
-    - "D-2+": Old match (should not show, archive/delete alarms)
+    - "D-2+": Old match (should not show)
     - "FUTURE": Future match
     
     Args:
