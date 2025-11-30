@@ -446,30 +446,47 @@
         }
 
         async function loadDashboard() {
+            console.log('[Admin] loadDashboard started');
             try {
-                const response = await fetch('/api/status');
+                const response = await fetch('/api/status?t=' + Date.now());
+                console.log('[Admin] Status response:', response.ok);
                 if (response.ok) {
                     const data = await response.json();
-                    document.getElementById('lastUpdate').textContent = data.last_update || '-';
-                    document.getElementById('supabaseStatus').textContent = data.supabase ? 'Bagli' : 'Bagli Degil';
-                    document.getElementById('supabaseStatus').className = 'info-value ' + (data.supabase ? 'success' : 'error');
-                    document.getElementById('scraperMode').textContent = data.scraper_enabled ? 'Aktif' : 'Devre Disi';
-                    document.getElementById('workMode').textContent = data.mode || 'SERVER';
-                    document.getElementById('dbStatus').textContent = data.supabase ? 'OK' : 'Hata';
-                    document.getElementById('dbStatus').className = 'stat-value ' + (data.supabase ? 'green' : 'red');
+                    console.log('[Admin] Status data:', data);
+                    
+                    const lastUpdateEl = document.getElementById('lastUpdate');
+                    const supabaseStatusEl = document.getElementById('supabaseStatus');
+                    const scraperModeEl = document.getElementById('scraperMode');
+                    const workModeEl = document.getElementById('workMode');
+                    const dbStatusEl = document.getElementById('dbStatus');
+                    
+                    if (lastUpdateEl) lastUpdateEl.textContent = data.last_data_update_tr || '-';
+                    if (supabaseStatusEl) {
+                        supabaseStatusEl.textContent = data.supabase_connected ? 'Bagli' : 'Bagli Degil';
+                        supabaseStatusEl.className = 'info-value ' + (data.supabase_connected ? 'success' : 'error');
+                    }
+                    if (scraperModeEl) scraperModeEl.textContent = data.scraping_enabled ? 'Aktif' : 'Devre Disi';
+                    if (workModeEl) workModeEl.textContent = data.mode || 'server';
+                    if (dbStatusEl) {
+                        dbStatusEl.textContent = data.supabase_connected ? 'OK' : 'Hata';
+                        dbStatusEl.className = 'stat-value ' + (data.supabase_connected ? 'green' : 'red');
+                    }
                 }
             } catch (error) {
-                console.error('Dashboard yukleme hatasi:', error);
+                console.error('[Admin] Dashboard yukleme hatasi:', error);
             }
 
             try {
-                const response = await fetch('/api/matches?market=moneyway_1x2');
+                const response = await fetch('/api/matches?market=moneyway_1x2&t=' + Date.now());
+                console.log('[Admin] Matches response:', response.ok);
                 if (response.ok) {
                     const data = await response.json();
-                    document.getElementById('totalMatches').textContent = data.matches?.length || 0;
+                    console.log('[Admin] Matches count:', Array.isArray(data) ? data.length : 0);
+                    const totalMatchesEl = document.getElementById('totalMatches');
+                    if (totalMatchesEl) totalMatchesEl.textContent = Array.isArray(data) ? data.length : 0;
                 }
             } catch (error) {
-                console.error('Mac sayisi yukleme hatasi:', error);
+                console.error('[Admin] Mac sayisi yukleme hatasi:', error);
             }
         }
 
@@ -488,7 +505,7 @@
                     const response = await fetch(`/api/matches?market=${m.market}`);
                     if (response.ok) {
                         const data = await response.json();
-                        document.getElementById(m.id).textContent = data.matches?.length || 0;
+                        document.getElementById(m.id).textContent = Array.isArray(data) ? data.length : 0;
                     }
                 } catch (error) {
                     document.getElementById(m.id).textContent = 'Hata';

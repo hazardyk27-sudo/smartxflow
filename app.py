@@ -633,7 +633,7 @@ def get_status():
         'cookie_set': bool(get_cookie_string()) if is_server_mode() else False,
         'supabase_connected': db.is_supabase_available,
         'mode': mode,
-        'scraping_enabled': is_server_mode(),
+        'scraping_enabled': not is_server_mode(),
         'last_data_update': last_data_update,
         'last_data_update_tr': last_data_update_tr
     })
