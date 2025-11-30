@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartXFlow Admin - Sharp Alarm Ayarlari</title>
+    <title>SmartXFlow Admin Panel</title>
     <style>
         * {
             margin: 0;
@@ -15,44 +15,125 @@
             background: #0d1117;
             color: #c9d1d9;
             min-height: 100vh;
-            padding: 20px;
+            display: flex;
         }
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        .header {
+        .sidebar {
+            width: 260px;
             background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            padding: 20px 30px;
-            margin-bottom: 20px;
+            border-right: 1px solid #30363d;
+            min-height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #30363d;
+        }
+        .sidebar-header h1 {
+            color: #58a6ff;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .sidebar-header span {
+            color: #8b949e;
+            font-size: 11px;
+        }
+        .sidebar-nav {
+            flex: 1;
+            padding: 12px 0;
+        }
+        .nav-category {
+            padding: 8px 20px;
+            color: #8b949e;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            color: #c9d1d9;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+        .nav-item:hover {
+            background: #21262d;
+        }
+        .nav-item.active {
+            background: #1c2128;
+            border-left-color: #58a6ff;
+            color: #58a6ff;
+        }
+        .nav-item-icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+        .nav-submenu {
+            display: none;
+        }
+        .nav-submenu.open {
+            display: block;
+        }
+        .nav-submenu .nav-item {
+            padding-left: 50px;
+            font-size: 13px;
+        }
+        .sidebar-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #30363d;
+        }
+        .back-home {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #8b949e;
+            text-decoration: none;
+            font-size: 13px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .back-home:hover {
+            background: #21262d;
+            color: #58a6ff;
+        }
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 24px;
+            min-height: 100vh;
+        }
+        .page-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #30363d;
         }
-        .header h1 {
-            color: #58a6ff;
-            font-size: 24px;
+        .page-title {
+            color: #f0883e;
+            font-size: 22px;
             font-weight: 600;
+        }
+        .page-subtitle {
+            color: #8b949e;
+            font-size: 13px;
+            margin-top: 4px;
         }
         .header-actions {
             display: flex;
             gap: 12px;
-            align-items: center;
-        }
-        .back-link {
-            color: #8b949e;
-            text-decoration: none;
-            font-size: 14px;
-            padding: 8px 16px;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
-        .back-link:hover {
-            color: #58a6ff;
-            border-color: #58a6ff;
         }
         .btn {
             padding: 10px 20px;
@@ -62,6 +143,9 @@
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .btn-primary {
             background: #238636;
@@ -82,6 +166,36 @@
         }
         .btn-secondary:hover {
             background: #30363d;
+        }
+        .btn-danger {
+            background: #da3633;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #f85149;
+        }
+        .btn-warning {
+            background: #9e6a03;
+            color: white;
+        }
+        .btn-warning:hover {
+            background: #bb8009;
+        }
+        .action-bar {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .action-bar-title {
+            color: #8b949e;
+            font-size: 13px;
+            margin-right: auto;
         }
         .section {
             background: #161b22;
@@ -200,19 +314,6 @@
         .test-result-value.no-alarm {
             color: #8b949e;
         }
-        .test-result-value.level-sharp {
-            color: #f0883e;
-        }
-        .test-result-value.level-strong {
-            color: #db6d28;
-        }
-        .test-result-value.level-very {
-            color: #f85149;
-        }
-        .test-result-value.level-real {
-            color: #ff7b72;
-            text-shadow: 0 0 8px rgba(255, 123, 114, 0.5);
-        }
         .status-bar {
             background: #1c2128;
             border: 1px solid #30363d;
@@ -243,12 +344,16 @@
             position: fixed;
             top: 20px;
             right: 20px;
-            padding: 12px 20px;
+            padding: 14px 24px;
             border-radius: 8px;
             font-size: 14px;
             z-index: 1000;
             transform: translateX(120%);
             transition: transform 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 400px;
         }
         .toast.show {
             transform: translateX(0);
@@ -261,6 +366,14 @@
             background: #f85149;
             color: white;
         }
+        .toast.info {
+            background: #1f6feb;
+            color: white;
+        }
+        .toast.warning {
+            background: #9e6a03;
+            color: white;
+        }
         .info-note {
             background: #1c2128;
             border-left: 3px solid #58a6ff;
@@ -270,187 +383,345 @@
             color: #8b949e;
             line-height: 1.5;
         }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-overlay.show {
+            display: flex;
+        }
+        .modal {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 480px;
+            width: 90%;
+        }
+        .modal-title {
+            color: #f0883e;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .modal-body {
+            color: #c9d1d9;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        .page-content {
+            display: none;
+        }
+        .page-content.active {
+            display: block;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #58a6ff;
+        }
+        .stat-label {
+            font-size: 13px;
+            color: #8b949e;
+            margin-top: 4px;
+        }
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 220px;
+            }
+            .main-content {
+                margin-left: 220px;
+            }
+        }
         @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: relative;
+                min-height: auto;
+            }
+            .main-content {
+                margin-left: 0;
+            }
             .form-grid {
                 grid-template-columns: 1fr;
             }
             .form-grid-2 {
                 grid-template-columns: 1fr;
             }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div>
-                <h1>Sharp Alarm Ayarlari</h1>
-                <span style="color: #8b949e; font-size: 12px;">V2 Alarm Sistemi Konfigurasyonu</span>
-            </div>
-            <div class="header-actions">
-                <a href="/" class="back-link">Ana Sayfa</a>
-                <button class="btn btn-secondary" onclick="loadConfig()">Yenile</button>
-                <button class="btn btn-primary" id="saveBtn" onclick="saveConfig()">Kaydet</button>
-            </div>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>SmartXFlow Admin</h1>
+            <span>V2 Kontrol Paneli</span>
         </div>
-
-        <div class="status-bar">
-            <span class="status-text">Son Guncelleme: <span id="lastUpdate" class="status-value">-</span></span>
-            <span class="status-text">Guncelleyen: <span id="updatedBy" class="status-value">-</span></span>
+        <nav class="sidebar-nav">
+            <div class="nav-category">Alarm Yonetimi</div>
+            <div class="nav-item" onclick="toggleSubmenu('alarms-menu')">
+                <span class="nav-item-icon">🔔</span>
+                <span>Alarmlar</span>
+            </div>
+            <div class="nav-submenu open" id="alarms-menu">
+                <div class="nav-item active" onclick="showPage('sharp-money')" data-page="sharp-money">
+                    <span class="nav-item-icon">💰</span>
+                    <span>Sharp Money</span>
+                </div>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="/" class="back-home">
+                <span>←</span>
+                <span>Ana Sayfaya Don</span>
+            </a>
         </div>
+    </aside>
 
-        <div class="loading" id="loading">Yukleniyor...</div>
-
-        <div id="configForm">
-            <div class="section">
-                <h3 class="section-title">
-                    <span class="section-title-icon">📊</span>
-                    Piyasa Hacim Esikleri
-                </h3>
-                <p class="section-desc">
-                    Bu hacimlerin altindaki piyasalarda Sharp alarm hesaplanmaz. Dusuk hacimli piyasalar goz ardi edilir.
-                </p>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Min 1X2 Hacmi (GBP)</label>
-                        <input type="number" id="min_volume_1x2" placeholder="3000">
-                    </div>
-                    <div class="form-group">
-                        <label>Min O/U 2.5 Hacmi (GBP)</label>
-                        <input type="number" id="min_volume_ou25" placeholder="2000">
-                    </div>
-                    <div class="form-group">
-                        <label>Min BTTS Hacmi (GBP)</label>
-                        <input type="number" id="min_volume_btts" placeholder="1500">
-                    </div>
+    <main class="main-content">
+        <div id="page-sharp-money" class="page-content active">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title">Sharp Money Alarm Ayarlari</h2>
+                    <p class="page-subtitle">V2 Sharp alarm sistemi konfigurasyonu</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="loadConfig()">
+                        <span>🔄</span> Yenile
+                    </button>
+                    <button class="btn btn-primary" id="saveBtn" onclick="saveConfig()" disabled>
+                        <span>💾</span> Kaydet
+                    </button>
                 </div>
             </div>
 
-            <div class="section">
-                <h3 class="section-title">
-                    <span class="section-title-icon">🎯</span>
-                    Skor ve Pay Esikleri
-                </h3>
-                <p class="section-desc">
-                    Sharp skor esigi: Bu degerden dusuk skorlar alarm uretmez.
-                    Min pazar payi: Secenegin piyasadaki minimum payi (%). Dusuk paylar filtrelenir.
-                </p>
-                <div class="form-grid form-grid-2">
-                    <div class="form-group">
-                        <label>Sharp Skor Esigi</label>
-                        <input type="number" id="sharp_score_threshold" placeholder="50">
-                    </div>
-                    <div class="form-group">
-                        <label>Min Pazar Payi (%)</label>
-                        <input type="number" id="min_share_pct_threshold" placeholder="15">
-                    </div>
+            <div class="action-bar">
+                <span class="action-bar-title">Alarm Islemleri:</span>
+                <button class="btn btn-danger" onclick="showDeleteAllModal()">
+                    <span>🗑️</span> Tum Alarmlari Sil
+                </button>
+                <button class="btn btn-warning" onclick="regenerateAlarms()">
+                    <span>⚡</span> Yeni Alarmlar Olustur
+                </button>
+            </div>
+
+            <div class="stats-grid" id="alarmStats">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalAlarms">-</div>
+                    <div class="stat-label">Toplam Alarm</div>
                 </div>
-                <div class="info-note">
-                    Ornek: Secenegin payi %15'in altindaysa, SharpScore yuksek olsa bile alarm uretilmez.
+                <div class="stat-card">
+                    <div class="stat-value" id="todayAlarms">-</div>
+                    <div class="stat-label">Bugunun Alarmlari</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="sharpAlarms">-</div>
+                    <div class="stat-label">Sharp Money</div>
                 </div>
             </div>
 
-            <div class="section">
-                <h3 class="section-title">
-                    <span class="section-title-icon">⚖️</span>
-                    Agirliklar ve Carpanlar
-                </h3>
-                <p class="section-desc">
-                    SharpScore hesaplamasi icin kullanilan agirliklar. Her bilesen kendi agirligi ile carpilir.
-                </p>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Hacim Agirligi (weight_volume)</label>
-                        <input type="number" step="0.1" id="weight_volume" placeholder="1.0">
-                    </div>
-                    <div class="form-group">
-                        <label>Oran Agirligi (weight_odds)</label>
-                        <input type="number" step="0.1" id="weight_odds" placeholder="1.0">
-                    </div>
-                    <div class="form-group">
-                        <label>Pay Agirligi (weight_share)</label>
-                        <input type="number" step="0.1" id="weight_share" placeholder="0.5">
-                    </div>
-                    <div class="form-group">
-                        <label>Momentum Agirligi (weight_momentum)</label>
-                        <input type="number" step="0.1" id="weight_momentum" placeholder="0.5">
-                    </div>
-                    <div class="form-group">
-                        <label>Hacim Carpani (volume_multiplier)</label>
-                        <input type="number" step="0.1" id="volume_multiplier" placeholder="10.0">
-                    </div>
-                    <div class="form-group">
-                        <label>Normalizasyon Faktoru</label>
-                        <input type="number" step="0.1" id="normalization_factor" placeholder="1.0">
-                    </div>
-                </div>
-                <div class="info-note">
-                    SharpScore = (hacim_base × w_volume + oran_dususu × w_odds + pay_degisimi × w_share + momentum × w_momentum) / normalizasyon
-                </div>
+            <div class="status-bar">
+                <span class="status-text">Son Guncelleme: <span id="lastUpdate" class="status-value">-</span></span>
+                <span class="status-text">Guncelleyen: <span id="updatedBy" class="status-value">-</span></span>
             </div>
 
-            <div class="section">
-                <h3 class="section-title">
-                    <span class="section-title-icon">🧪</span>
-                    Test Alani
-                </h3>
-                <p class="section-desc">
-                    Kaydetmeden once ayarlari test edin. Ornek degerler girip sonucu gorun.
-                </p>
-                <div class="test-section">
-                    <div class="test-title">Simule Alarm Testi</div>
+            <div class="loading" id="loading">Yukleniyor...</div>
+
+            <div id="configForm">
+                <div class="section">
+                    <h3 class="section-title">
+                        <span class="section-title-icon">📊</span>
+                        Piyasa Hacim Esikleri
+                    </h3>
+                    <p class="section-desc">
+                        Bu hacimlerin altindaki piyasalarda Sharp alarm hesaplanmaz. Dusuk hacimli piyasalar goz ardi edilir.
+                    </p>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label>Piyasa Tipi</label>
-                            <select id="test_market_type">
-                                <option value="1x2">1X2</option>
-                                <option value="ou25">O/U 2.5</option>
-                                <option value="btts">BTTS</option>
-                            </select>
+                            <label>Min 1X2 Hacmi (GBP)</label>
+                            <input type="number" id="min_volume_1x2" placeholder="3000">
                         </div>
                         <div class="form-group">
-                            <label>Toplam Hacim (GBP)</label>
-                            <input type="number" id="test_total_volume" value="5000">
+                            <label>Min O/U 2.5 Hacmi (GBP)</label>
+                            <input type="number" id="min_volume_ou25" placeholder="2000">
                         </div>
                         <div class="form-group">
-                            <label>Mevcut Pay (%)</label>
-                            <input type="number" id="test_share_pct" value="35">
-                        </div>
-                        <div class="form-group">
-                            <label>Hacim Soku (shockX)</label>
-                            <input type="number" step="0.1" id="test_shock_x" value="5.0">
-                        </div>
-                        <div class="form-group">
-                            <label>Oran Dususu (%)</label>
-                            <input type="number" step="0.1" id="test_drop_pct" value="8.0">
-                        </div>
-                        <div class="form-group">
-                            <label>Pay Degisimi</label>
-                            <input type="number" step="0.1" id="test_share_shift" value="5.0">
-                        </div>
-                        <div class="form-group">
-                            <label>Momentum Skoru (0-10)</label>
-                            <input type="number" step="0.1" id="test_momentum" value="3.0" min="0" max="10">
-                        </div>
-                    </div>
-                    <button class="btn btn-secondary" style="margin-top: 16px; width: 100%;" onclick="runTest()">
-                        Test Et
-                    </button>
-                    <div class="test-result" id="testResult">
-                        <div class="test-result-row">
-                            <span class="test-result-label">Sharp Skor</span>
-                            <span class="test-result-value" id="resultScore">-</span>
-                        </div>
-                        <div class="test-result-row">
-                            <span class="test-result-label">Alarm Durumu</span>
-                            <span class="test-result-value" id="resultAlarm">-</span>
-                        </div>
-                        <div class="test-result-row">
-                            <span class="test-result-label">Engelleme Sebebi</span>
-                            <span class="test-result-value" id="resultReason">-</span>
+                            <label>Min BTTS Hacmi (GBP)</label>
+                            <input type="number" id="min_volume_btts" placeholder="1500">
                         </div>
                     </div>
                 </div>
+
+                <div class="section">
+                    <h3 class="section-title">
+                        <span class="section-title-icon">🎯</span>
+                        Skor ve Pay Esikleri
+                    </h3>
+                    <p class="section-desc">
+                        Sharp skor esigi: Bu degerden dusuk skorlar alarm uretmez.
+                        Min pazar payi: Secenegin piyasadaki minimum payi (%). Dusuk paylar filtrelenir.
+                    </p>
+                    <div class="form-grid form-grid-2">
+                        <div class="form-group">
+                            <label>Sharp Skor Esigi</label>
+                            <input type="number" id="sharp_score_threshold" placeholder="50">
+                        </div>
+                        <div class="form-group">
+                            <label>Min Pazar Payi (%)</label>
+                            <input type="number" id="min_share_pct_threshold" placeholder="15">
+                        </div>
+                    </div>
+                    <div class="info-note">
+                        Ornek: Secenegin payi %15'in altindaysa, SharpScore yuksek olsa bile alarm uretilmez.
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3 class="section-title">
+                        <span class="section-title-icon">⚖️</span>
+                        Agirliklar ve Carpanlar
+                    </h3>
+                    <p class="section-desc">
+                        SharpScore hesaplamasi icin kullanilan agirliklar. Her bilesen kendi agirligi ile carpilir.
+                    </p>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Hacim Agirligi (weight_volume)</label>
+                            <input type="number" step="0.1" id="weight_volume" placeholder="1.0">
+                        </div>
+                        <div class="form-group">
+                            <label>Oran Agirligi (weight_odds)</label>
+                            <input type="number" step="0.1" id="weight_odds" placeholder="1.0">
+                        </div>
+                        <div class="form-group">
+                            <label>Pay Agirligi (weight_share)</label>
+                            <input type="number" step="0.1" id="weight_share" placeholder="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label>Momentum Agirligi (weight_momentum)</label>
+                            <input type="number" step="0.1" id="weight_momentum" placeholder="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label>Hacim Carpani (volume_multiplier)</label>
+                            <input type="number" step="0.1" id="volume_multiplier" placeholder="10.0">
+                        </div>
+                        <div class="form-group">
+                            <label>Normalizasyon Faktoru</label>
+                            <input type="number" step="0.1" id="normalization_factor" placeholder="1.0">
+                        </div>
+                    </div>
+                    <div class="info-note">
+                        SharpScore = (hacim_base × w_volume + oran_dususu × w_odds + pay_degisimi × w_share + momentum × w_momentum) / normalizasyon
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3 class="section-title">
+                        <span class="section-title-icon">🧪</span>
+                        Test Alani
+                    </h3>
+                    <p class="section-desc">
+                        Kaydetmeden once ayarlari test edin. Ornek degerler girip sonucu gorun.
+                    </p>
+                    <div class="test-section">
+                        <div class="test-title">Simule Alarm Testi</div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Piyasa Tipi</label>
+                                <select id="test_market_type">
+                                    <option value="1x2">1X2</option>
+                                    <option value="ou25">O/U 2.5</option>
+                                    <option value="btts">BTTS</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Toplam Hacim (GBP)</label>
+                                <input type="number" id="test_total_volume" value="5000">
+                            </div>
+                            <div class="form-group">
+                                <label>Mevcut Pay (%)</label>
+                                <input type="number" id="test_share_pct" value="35">
+                            </div>
+                            <div class="form-group">
+                                <label>Hacim Soku (shockX)</label>
+                                <input type="number" step="0.1" id="test_shock_x" value="5.0">
+                            </div>
+                            <div class="form-group">
+                                <label>Oran Dususu (%)</label>
+                                <input type="number" step="0.1" id="test_drop_pct" value="8.0">
+                            </div>
+                            <div class="form-group">
+                                <label>Pay Degisimi</label>
+                                <input type="number" step="0.1" id="test_share_shift" value="5.0">
+                            </div>
+                            <div class="form-group">
+                                <label>Momentum Skoru (0-10)</label>
+                                <input type="number" step="0.1" id="test_momentum" value="3.0" min="0" max="10">
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary" style="margin-top: 16px; width: 100%;" onclick="runTest()">
+                            Test Et
+                        </button>
+                        <div class="test-result" id="testResult">
+                            <div class="test-result-row">
+                                <span class="test-result-label">Sharp Skor</span>
+                                <span class="test-result-value" id="resultScore">-</span>
+                            </div>
+                            <div class="test-result-row">
+                                <span class="test-result-label">Alarm Durumu</span>
+                                <span class="test-result-value" id="resultAlarm">-</span>
+                            </div>
+                            <div class="test-result-row">
+                                <span class="test-result-label">Engelleme Sebebi</span>
+                                <span class="test-result-value" id="resultReason">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal">
+            <h3 class="modal-title">⚠️ Tum Alarmlari Sil</h3>
+            <div class="modal-body">
+                <p>Bu islem geri alinamaz! Veritabanindaki <strong>tum alarmlar</strong> kalici olarak silinecek.</p>
+                <p style="margin-top: 12px; color: #f85149;">Emin misiniz?</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="hideDeleteModal()">Iptal</button>
+                <button class="btn btn-danger" onclick="deleteAllAlarms()">Evet, Hepsini Sil</button>
             </div>
         </div>
     </div>
@@ -473,7 +744,7 @@
             toast.textContent = message;
             toast.className = 'toast ' + type;
             setTimeout(() => toast.classList.add('show'), 10);
-            setTimeout(() => toast.classList.remove('show'), 3000);
+            setTimeout(() => toast.classList.remove('show'), 4000);
         }
 
         function formatDate(isoString) {
@@ -489,6 +760,45 @@
                 });
             } catch (e) {
                 return isoString;
+            }
+        }
+
+        function toggleSubmenu(id) {
+            const submenu = document.getElementById(id);
+            submenu.classList.toggle('open');
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item[data-page]').forEach(n => n.classList.remove('active'));
+            
+            document.getElementById('page-' + pageId).classList.add('active');
+            document.querySelector(`.nav-item[data-page="${pageId}"]`).classList.add('active');
+        }
+
+        function showDeleteModal() {
+            document.getElementById('deleteModal').classList.add('show');
+        }
+
+        function hideDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('show');
+        }
+
+        function showDeleteAllModal() {
+            showDeleteModal();
+        }
+
+        async function loadAlarmStats() {
+            try {
+                const response = await fetch('/api/admin/alarm-stats');
+                if (response.ok) {
+                    const stats = await response.json();
+                    document.getElementById('totalAlarms').textContent = stats.total || 0;
+                    document.getElementById('todayAlarms').textContent = stats.today || 0;
+                    document.getElementById('sharpAlarms').textContent = stats.sharp || 0;
+                }
+            } catch (error) {
+                console.error('Stats yukleme hatasi:', error);
             }
         }
 
@@ -515,6 +825,8 @@
 
                 hasChanges = false;
                 document.getElementById('saveBtn').disabled = true;
+
+                loadAlarmStats();
 
             } catch (error) {
                 console.error('Config yukleme hatasi:', error);
@@ -543,7 +855,7 @@
             }
 
             document.getElementById('saveBtn').disabled = true;
-            document.getElementById('saveBtn').textContent = 'Kaydediliyor...';
+            document.getElementById('saveBtn').innerHTML = '<span>⏳</span> Kaydediliyor...';
 
             try {
                 const response = await fetch('/api/admin/sharp-config', {
@@ -566,14 +878,61 @@
                 document.getElementById('lastUpdate').textContent = formatDate(savedConfig.updated_at);
                 document.getElementById('updatedBy').textContent = savedConfig.updated_by || '-';
 
-                showToast('Ayarlar basariyla kaydedildi', 'success');
+                showToast('✅ Ayarlar basariyla kaydedildi', 'success');
 
             } catch (error) {
                 console.error('Kaydetme hatasi:', error);
                 showToast('Kaydetme hatasi: ' + error.message, 'error');
             } finally {
                 document.getElementById('saveBtn').disabled = false;
-                document.getElementById('saveBtn').textContent = 'Kaydet';
+                document.getElementById('saveBtn').innerHTML = '<span>💾</span> Kaydet';
+            }
+        }
+
+        async function deleteAllAlarms() {
+            hideDeleteModal();
+            showToast('🗑️ Alarmlar siliniyor...', 'info');
+
+            try {
+                const response = await fetch('/api/admin/alarms/delete-all', {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Silme hatasi');
+                }
+
+                const result = await response.json();
+                showToast(`✅ ${result.deleted_count} alarm silindi`, 'success');
+                loadAlarmStats();
+
+            } catch (error) {
+                console.error('Silme hatasi:', error);
+                showToast('Silme hatasi: ' + error.message, 'error');
+            }
+        }
+
+        async function regenerateAlarms() {
+            showToast('⚡ Alarmlar olusturuluyor...', 'info');
+
+            try {
+                const response = await fetch('/api/admin/alarms/regenerate', {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Olusturma hatasi');
+                }
+
+                const result = await response.json();
+                showToast(`✅ ${result.generated_count} yeni alarm olusturuldu`, 'success');
+                loadAlarmStats();
+
+            } catch (error) {
+                console.error('Olusturma hatasi:', error);
+                showToast('Olusturma hatasi: ' + error.message, 'error');
             }
         }
 
@@ -615,12 +974,8 @@
                 alarmEl.className = 'test-result-value ' + (result.alarm ? 'alarm' : 'no-alarm');
 
                 const reasonEl = document.getElementById('resultReason');
-                const reasonMap = {
-                    'LOW_MARKET_VOLUME': 'Dusuk piyasa hacmi',
-                    'LOW_SHARE_PCT': 'Dusuk pazar payi',
-                    'LOW_SHARP_SCORE': 'Dusuk sharp skor'
-                };
-                reasonEl.textContent = result.blocked_reason ? (reasonMap[result.blocked_reason] || result.blocked_reason) : '-';
+                reasonEl.textContent = result.blocked_reason || '-';
+                reasonEl.className = 'test-result-value no-alarm';
 
             } catch (error) {
                 console.error('Test hatasi:', error);
@@ -628,17 +983,35 @@
             }
         }
 
-        configFields.forEach(field => {
-            const input = document.getElementById(field);
-            if (input) {
-                input.addEventListener('input', () => {
-                    hasChanges = true;
-                    document.getElementById('saveBtn').disabled = false;
-                });
-            }
-        });
+        function checkChanges() {
+            if (!originalConfig) return;
 
-        document.addEventListener('DOMContentLoaded', loadConfig);
+            let changed = false;
+            configFields.forEach(field => {
+                const input = document.getElementById(field);
+                if (input) {
+                    const currentValue = parseFloat(input.value);
+                    const originalValue = originalConfig[field];
+                    if (!isNaN(currentValue) && currentValue !== originalValue) {
+                        changed = true;
+                    }
+                }
+            });
+
+            hasChanges = changed;
+            document.getElementById('saveBtn').disabled = !changed;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConfig();
+
+            configFields.forEach(field => {
+                const input = document.getElementById(field);
+                if (input) {
+                    input.addEventListener('input', checkChanges);
+                }
+            });
+        });
     </script>
 </body>
 </html>

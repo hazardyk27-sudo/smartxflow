@@ -2037,6 +2037,158 @@ def recalculate_sharp_alarms_api():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/admin/alarm-stats', methods=['GET'])
+def get_alarm_stats_api():
+    """Get alarm statistics for admin panel"""
+    try:
+        import httpx
+        from datetime import datetime
+        import pytz
+        
+        turkey_tz = pytz.timezone('Europe/Istanbul')
+        today = datetime.now(turkey_tz).strftime('%Y-%m-%d')
+        
+        if not db.is_supabase_available:
+            return jsonify({'total': 0, 'today': 0, 'sharp': 0})
+        
+        url = f"{db.supabase.url}/rest/v1/alarms?select=id,category,created_at"
+        headers = db.supabase._headers()
+        
+        resp = httpx.get(url, headers=headers, timeout=10)
+        all_alarms = resp.json() if resp.status_code == 200 else []
+        
+        total = len(all_alarms)
+        today_count = sum(1 for a in all_alarms if a.get('created_at', '')[:10] == today)
+        sharp_count = sum(1 for a in all_alarms if a.get('category') == 'sharp')
+        
+        return jsonify({
+            'total': total,
+            'today': today_count,
+            'sharp': sharp_count
+        })
+    except Exception as e:
+        print(f"[Admin API] Error getting alarm stats: {e}")
+        return jsonify({'total': 0, 'today': 0, 'sharp': 0})
+
+
+@app.route('/api/admin/alarms/delete-all', methods=['DELETE'])
+def delete_all_alarms_api():
+    """Delete all alarms from database"""
+    try:
+        import httpx
+        
+        print("[Admin API] Deleting all alarms...")
+        
+        if not db.is_supabase_available:
+            return jsonify({'error': 'Supabase not available'}), 500
+        
+        count_url = f"{db.supabase.url}/rest/v1/alarms?select=id"
+        headers = db.supabase._headers()
+        
+        resp = httpx.get(count_url, headers=headers, timeout=10)
+        count = len(resp.json()) if resp.status_code == 200 else 0
+        
+        if count > 0:
+            delete_url = f"{db.supabase.url}/rest/v1/alarms?id=gt.0"
+            httpx.delete(delete_url, headers=headers, timeout=30)
+            print(f"[Admin API] Deleted {count} alarms")
+        
+        return jsonify({
+            'success': True,
+            'deleted_count': count,
+            'message': f'{count} alarm silindi'
+        })
+    except Exception as e:
+        print(f"[Admin API] Error deleting alarms: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/alarms/regenerate', methods=['POST'])
+def regenerate_alarms_api():
+    """Regenerate alarms using current config"""
+    try:
+        import httpx
+        from core.alarms_v2.sharp_detector import SharpDetector
+        from core.alarms_v2.sharp_config import SharpConfigManager
+        from datetime import datetime
+        import pytz
+        
+        print("[Admin API] Regenerating alarms with current config...")
+        
+        if not db.is_supabase_available:
+            return jsonify({'error': 'Supabase not available'}), 500
+        
+        config = SharpConfigManager.get_config()
+        detector = SharpDetector(config)
+        
+        turkey_tz = pytz.timezone('Europe/Istanbul')
+        today = datetime.now(turkey_tz).strftime('%Y-%m-%d')
+        
+        headers = db.supabase._headers()
+        base_url = db.supabase.url
+        
+        market_tables = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts', 
+                         'dropping_1x2', 'dropping_ou25', 'dropping_btts']
+        
+        generated_count = 0
+        
+        for table in market_tables:
+            try:
+                url = f"{base_url}/rest/v1/{table}?select=*&date=gte.{today}"
+                resp = httpx.get(url, headers=headers, timeout=30)
+                matches = resp.json() if resp.status_code == 200 else []
+                
+                if not matches:
+                    continue
+                
+                for match in matches:
+                    try:
+                        alarms = detector.detect(match, table)
+                        
+                        for alarm in alarms:
+                            if alarm.is_alarm:
+                                alarm_data = {
+                                    'match_id': alarm.match_id,
+                                    'type': alarm.alarm_type,
+                                    'category': 'sharp',
+                                    'side': alarm.side,
+                                    'message': alarm.message,
+                                    'severity': alarm.severity,
+                                    'sharp_score': alarm.sharp_score,
+                                    'new_bet_amount': alarm.new_bet_amount,
+                                    'drop_pct': alarm.drop_pct,
+                                    'created_at': datetime.now(turkey_tz).isoformat()
+                                }
+                                
+                                check_url = f"{base_url}/rest/v1/alarms?match_id=eq.{alarm.match_id}&type=eq.{alarm.alarm_type}&side=eq.{alarm.side}"
+                                check_resp = httpx.get(check_url, headers=headers, timeout=10)
+                                existing = check_resp.json() if check_resp.status_code == 200 else []
+                                
+                                if not existing or len(existing) == 0:
+                                    insert_url = f"{base_url}/rest/v1/alarms"
+                                    httpx.post(insert_url, headers=headers, json=alarm_data, timeout=10)
+                                    generated_count += 1
+                                    print(f"[Admin API] Generated alarm: {alarm.match_id} - {alarm.alarm_type}")
+                    except Exception as match_error:
+                        print(f"[Admin API] Error processing match: {match_error}")
+                        continue
+                        
+            except Exception as table_error:
+                print(f"[Admin API] Error processing table {table}: {table_error}")
+                continue
+        
+        print(f"[Admin API] Generated {generated_count} new alarms")
+        
+        return jsonify({
+            'success': True,
+            'generated_count': generated_count,
+            'message': f'{generated_count} yeni alarm olusturuldu'
+        })
+    except Exception as e:
+        print(f"[Admin API] Error regenerating alarms: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 def main():
     """Main entry point with error handling for EXE"""
     try:
