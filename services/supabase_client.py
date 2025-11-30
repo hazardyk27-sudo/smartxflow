@@ -408,7 +408,7 @@ class SupabaseClient:
     
     def get_6h_odds_history(self, market: str) -> Dict[str, Dict[str, Any]]:
         """Drop markets: İlk snapshot vs Son snapshot = Açılıştan bu yana değişim.
-        Optimized: Bulk query with 48h filter."""
+        Optimized: 2 bulk queries (first + last) per market."""
         if not self.is_available or not market.startswith('dropping'):
             return {}
         
@@ -416,10 +416,8 @@ class SupabaseClient:
         
         try:
             import time
-            from datetime import datetime, timedelta
+            from concurrent.futures import ThreadPoolExecutor, as_completed
             start_time = time.time()
-            
-            cutoff = (datetime.utcnow() - timedelta(hours=48)).strftime('%Y-%m-%dT%H:%M:%S')
             
             if market == 'dropping_1x2':
                 sels = ['odds1', 'oddsx', 'odds2']
@@ -433,59 +431,46 @@ class SupabaseClient:
             else:
                 return {}
             
-            from concurrent.futures import ThreadPoolExecutor, as_completed
+            def fetch_all_rows(order_dir):
+                """Fetch all rows with given order direction using pagination"""
+                rows = []
+                offset = 0
+                while True:
+                    url = f"{self._rest_url(history_table)}?select={select_cols}&order=scrapedat.{order_dir}&offset={offset}&limit=1000"
+                    resp = httpx.get(url, headers=self._headers(), timeout=30)
+                    if resp.status_code != 200:
+                        break
+                    batch = resp.json()
+                    if not batch:
+                        break
+                    rows.extend(batch)
+                    if len(batch) < 1000:
+                        break
+                    offset += 1000
+                    if offset > 50000:
+                        break
+                return rows
             
-            first_url = f"{self._rest_url(history_table)}?select={select_cols}&scrapedat=gte.{cutoff}&order=scrapedat.asc&limit=1000"
-            first_resp = httpx.get(first_url, headers=self._headers(), timeout=30)
-            if first_resp.status_code != 200:
-                return {}
-            first_batch = first_resp.json()
-            if not first_batch:
-                return {}
-            
-            all_rows = list(first_batch)
-            
-            if len(first_batch) == 1000:
-                count_url = f"{self._rest_url(history_table)}?select=id&scrapedat=gte.{cutoff}"
-                headers = self._headers()
-                headers['Prefer'] = 'count=exact'
-                headers['Range'] = '0-0'
-                count_resp = httpx.head(count_url, headers=headers, timeout=10)
-                total = 0
-                if 'content-range' in count_resp.headers:
-                    try:
-                        total = int(count_resp.headers['content-range'].split('/')[-1])
-                    except:
-                        total = 10000
-                
-                if total > 1000:
-                    offsets = list(range(1000, min(total, 50000), 1000))
-                    
-                    def fetch_batch(off):
-                        url = f"{self._rest_url(history_table)}?select={select_cols}&scrapedat=gte.{cutoff}&order=scrapedat.asc&offset={off}&limit=1000"
-                        resp = httpx.get(url, headers=self._headers(), timeout=30)
-                        return resp.json() if resp.status_code == 200 else []
-                    
-                    with ThreadPoolExecutor(max_workers=10) as executor:
-                        futures = {executor.submit(fetch_batch, off): off for off in offsets}
-                        for future in as_completed(futures):
-                            batch = future.result()
-                            if batch:
-                                all_rows.extend(batch)
-            
-            if not all_rows:
-                return {}
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                future_first = executor.submit(fetch_all_rows, 'asc')
+                future_last = executor.submit(fetch_all_rows, 'desc')
+                first_rows = future_first.result()
+                last_rows = future_last.result()
             
             match_first = {}
-            match_last = {}
-            
-            for row in all_rows:
+            for row in first_rows:
                 key = f"{row.get('home', '')}|{row.get('away', '')}"
-                ts = row.get('scrapedat', '')
-                
                 if key not in match_first:
                     match_first[key] = row
-                match_last[key] = row
+            
+            match_last = {}
+            for row in last_rows:
+                key = f"{row.get('home', '')}|{row.get('away', '')}"
+                if key not in match_last:
+                    match_last[key] = row
+            
+            if not match_first and not match_last:
+                return {}
             
             result = {}
             for key in match_last.keys():
