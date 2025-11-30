@@ -1076,20 +1076,33 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
     if len(amounts) < 2:
         return None
     
-    current_amount = amounts[-1]
+    # GELEN PARA = Son snapshot - Bir önceki snapshot
+    # Örnek: amounts = [..., 414, 1629]
+    # amount_change = 1629 - 414 = 1215 (son aralıkta gelen para)
+    last_amount = amounts[-1]
+    previous_amount = amounts[-2]
+    amount_change = last_amount - previous_amount
     
-    # Son amount HARİÇ, önceki amount'ların ortalaması
-    # Örnek: amounts = [10, 10, 30, 30, 54, 54, 100, 150, 200, 857]
-    # previous_amounts = [10, 10, 30, 30, 54, 54, 100, 150, 200] (857 hariç)
-    # avg = sum(previous_amounts) / len(previous_amounts)
-    previous_amounts = amounts[:-1]
-    avg_last_10_amounts = sum(previous_amounts) / len(previous_amounts) if len(previous_amounts) > 0 else 1
-    
-    if avg_last_10_amounts <= 0:
+    # Negatif değişim (para çekilmesi) alarm tetiklememeli
+    if amount_change <= 0:
         return None
     
-    # Son amount / önceki ortalaması = shock
-    shock_raw = current_amount / avg_last_10_amounts
+    # Son 2 amount HARİÇ, önceki amount'ların ortalaması
+    # Örnek: amounts = [10, 10, 30, 30, 54, 54, 100, 150, 414, 1629]
+    # previous_amounts = [10, 10, 30, 30, 54, 54, 100, 150] (son 2 hariç: 414, 1629)
+    # avg = sum(previous_amounts) / len(previous_amounts)
+    if len(amounts) >= 3:
+        previous_amounts = amounts[:-2]  # Son 2 hariç
+        avg_last_amounts = sum(previous_amounts) / len(previous_amounts)
+    else:
+        # Sadece 2 snapshot varsa, bir öncekini ortalama olarak kullan
+        avg_last_amounts = previous_amount
+    
+    if avg_last_amounts <= 0:
+        return None
+    
+    # Gelen para / önceki ortalaması = shock
+    shock_raw = amount_change / avg_last_amounts
     volume_multiplier = config.get('volume_multiplier', 1)
     shock_value = shock_raw * volume_multiplier
     
@@ -1146,8 +1159,8 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         'market': market,
         'selection': selection,
         'created_at': now_turkey_formatted(),
-        'current_amount': current_amount,
-        'avg_last_10_amounts': avg_last_10_amounts,
+        'amount_change': amount_change,
+        'avg_last_amounts': avg_last_amounts,
         'shock_raw': shock_raw,
         'volume_multiplier': volume_multiplier,
         'shock_value': shock_value,
