@@ -429,7 +429,7 @@ class SupabaseClient:
             elif market == 'dropping_ou25':
                 sels = ['under', 'over']
             elif market == 'dropping_btts':
-                sels = ['yes', 'no']
+                sels = ['oddsyes', 'oddsno']
             else:
                 sels = []
             

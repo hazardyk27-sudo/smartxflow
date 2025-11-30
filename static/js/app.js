@@ -531,8 +531,8 @@ function renderMatches(data) {
                     </tr>
                 `;
             } else {
-                const trendYesData = getOddsTrendData(match.home_team, match.away_team, 'yes');
-                const trendNoData = getOddsTrendData(match.home_team, match.away_team, 'no');
+                const trendYesData = getOddsTrendData(match.home_team, match.away_team, 'oddsyes');
+                const trendNoData = getOddsTrendData(match.home_team, match.away_team, 'oddsno');
                 
                 const cellYes = renderOddsWithTrend(d.OddsYes || d.Yes, trendYesData);
                 const cellNo = renderOddsWithTrend(d.OddsNo || d.No, trendNoData);
