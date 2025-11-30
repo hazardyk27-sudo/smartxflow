@@ -283,6 +283,8 @@ body {
     padding: 12px;
     height: calc(100vh - 110px);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .matches-section {
@@ -429,7 +431,7 @@ body {
     overflow-x: auto;
     border: 1px solid #30363d;
     flex: 1;
-    max-height: calc(100vh - 280px);
+    min-height: 0;
 }
 
 .table-container::-webkit-scrollbar {

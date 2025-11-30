@@ -158,6 +158,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupModalChartTabs();
     checkStatus();
     window.statusInterval = window.setInterval(checkStatus, 60000);
+    
+    setTimeout(() => preloadDropMarkets(), 2000);
 });
 
 function setupTabs() {
@@ -2968,8 +2970,30 @@ document.addEventListener('keydown', (e) => {
 
 
 let oddsTrendCache = {};
-
 let oddsTrendCacheByMarket = {};
+let dropMarketsPreloaded = false;
+
+async function preloadDropMarkets() {
+    if (dropMarketsPreloaded) return;
+    dropMarketsPreloaded = true;
+    
+    const dropMarkets = ['dropping_1x2', 'dropping_ou25', 'dropping_btts'];
+    console.log('[Preload] Starting background load for drop markets...');
+    
+    for (const market of dropMarkets) {
+        if (!oddsTrendCacheByMarket[market]) {
+            try {
+                const response = await fetch(`/api/odds-trend/${market}`);
+                const result = await response.json();
+                oddsTrendCacheByMarket[market] = result.data || {};
+                console.log(`[Preload] Cached ${market}: ${Object.keys(oddsTrendCacheByMarket[market]).length} matches`);
+            } catch (e) {
+                console.warn(`[Preload] Failed ${market}:`, e.message);
+            }
+        }
+    }
+    console.log('[Preload] Drop markets ready');
+}
 
 async function loadOddsTrend(market) {
     if (!market.startsWith('dropping')) {
