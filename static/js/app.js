@@ -1956,17 +1956,196 @@ async function loadChart(home, away, market) {
             resetBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Reset Zoom';
             resetBtn.onclick = function() {
                 chart.resetZoom();
+                resetBrushSlider();
             };
             chartContainer.style.position = 'relative';
             chartContainer.appendChild(resetBtn);
         } else {
             resetBtn.onclick = function() {
                 chart.resetZoom();
+                resetBrushSlider();
             };
         }
+        
+        createBrushSlider(chartContainer, historyData, chart);
     } catch (error) {
         console.error('Error loading chart:', error);
     }
+}
+
+let brushStartIndex = 0;
+let brushEndIndex = 100;
+let brushDataLength = 0;
+
+function createBrushSlider(container, historyData, mainChart) {
+    brushDataLength = historyData.length;
+    brushStartIndex = 0;
+    brushEndIndex = brushDataLength - 1;
+    
+    let brushContainer = container.parentElement.querySelector('.chart-brush-container');
+    if (!brushContainer) {
+        brushContainer = document.createElement('div');
+        brushContainer.className = 'chart-brush-container';
+        brushContainer.innerHTML = `
+            <div class="range-slider-container">
+                <div class="range-slider-track"></div>
+                <div class="range-slider-highlight" id="brushHighlight"></div>
+                <canvas id="brushMiniChart" class="chart-brush-mini" height="40"></canvas>
+                <input type="range" class="range-slider-input" id="brushStart" min="0" max="100" value="0">
+                <input type="range" class="range-slider-input" id="brushEnd" min="0" max="100" value="100">
+            </div>
+            <div class="brush-info">
+                <span class="brush-info-label">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"/>
+                    </svg>
+                    Drag handles to zoom
+                </span>
+                <span id="brushRange">Showing all data</span>
+            </div>
+        `;
+        container.parentElement.appendChild(brushContainer);
+    }
+    
+    const brushStart = brushContainer.querySelector('#brushStart');
+    const brushEnd = brushContainer.querySelector('#brushEnd');
+    const brushHighlight = brushContainer.querySelector('#brushHighlight');
+    const brushRangeInfo = brushContainer.querySelector('#brushRange');
+    
+    brushStart.max = brushDataLength - 1;
+    brushEnd.max = brushDataLength - 1;
+    brushStart.value = 0;
+    brushEnd.value = brushDataLength - 1;
+    
+    drawMiniChart(brushContainer.querySelector('#brushMiniChart'), historyData);
+    updateBrushHighlight();
+    
+    function updateBrushHighlight() {
+        const startPct = (parseInt(brushStart.value) / (brushDataLength - 1)) * 100;
+        const endPct = (parseInt(brushEnd.value) / (brushDataLength - 1)) * 100;
+        brushHighlight.style.left = `${startPct}%`;
+        brushHighlight.style.width = `${endPct - startPct}%`;
+        
+        const startIdx = parseInt(brushStart.value);
+        const endIdx = parseInt(brushEnd.value);
+        const showing = endIdx - startIdx + 1;
+        brushRangeInfo.textContent = showing === brushDataLength 
+            ? 'Showing all data' 
+            : `Showing ${showing} of ${brushDataLength} points`;
+    }
+    
+    function applyZoom() {
+        const startIdx = parseInt(brushStart.value);
+        const endIdx = parseInt(brushEnd.value);
+        
+        if (startIdx >= endIdx) return;
+        
+        const labels = mainChart.data.labels;
+        if (!labels || labels.length === 0) return;
+        
+        const minLabel = labels[startIdx];
+        const maxLabel = labels[endIdx];
+        
+        mainChart.options.scales.x.min = minLabel;
+        mainChart.options.scales.x.max = maxLabel;
+        mainChart.update('none');
+        
+        updateBrushHighlight();
+    }
+    
+    brushStart.addEventListener('input', function() {
+        if (parseInt(brushStart.value) >= parseInt(brushEnd.value) - 1) {
+            brushStart.value = parseInt(brushEnd.value) - 1;
+        }
+        applyZoom();
+    });
+    
+    brushEnd.addEventListener('input', function() {
+        if (parseInt(brushEnd.value) <= parseInt(brushStart.value) + 1) {
+            brushEnd.value = parseInt(brushStart.value) + 1;
+        }
+        applyZoom();
+    });
+}
+
+function resetBrushSlider() {
+    const brushStart = document.querySelector('#brushStart');
+    const brushEnd = document.querySelector('#brushEnd');
+    if (brushStart && brushEnd) {
+        brushStart.value = 0;
+        brushEnd.value = brushDataLength - 1;
+        const brushHighlight = document.querySelector('#brushHighlight');
+        if (brushHighlight) {
+            brushHighlight.style.left = '0%';
+            brushHighlight.style.width = '100%';
+        }
+        const brushRangeInfo = document.querySelector('#brushRange');
+        if (brushRangeInfo) {
+            brushRangeInfo.textContent = 'Showing all data';
+        }
+    }
+}
+
+function drawMiniChart(canvas, historyData) {
+    if (!canvas || !historyData || historyData.length === 0) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.parentElement.offsetWidth || 400;
+    const height = 40;
+    
+    canvas.width = width;
+    canvas.height = height;
+    
+    ctx.clearRect(0, 0, width, height);
+    
+    let values = [];
+    historyData.forEach(h => {
+        const val = h.Odds1 || h['1'] || h.Over || h.Yes || h.Pct1 || h.Amt1 || 0;
+        const num = parseFloat(String(val).replace(/[^0-9.]/g, ''));
+        if (!isNaN(num)) values.push(num);
+    });
+    
+    if (values.length < 2) return;
+    
+    const minVal = Math.min(...values);
+    const maxVal = Math.max(...values);
+    const range = maxVal - minVal || 1;
+    
+    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, 'rgba(76, 139, 245, 0.4)');
+    gradient.addColorStop(1, 'rgba(76, 139, 245, 0.05)');
+    
+    ctx.beginPath();
+    ctx.moveTo(0, height);
+    
+    values.forEach((val, i) => {
+        const x = (i / (values.length - 1)) * width;
+        const y = height - ((val - minVal) / range) * (height - 8) - 4;
+        if (i === 0) {
+            ctx.lineTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+    
+    ctx.lineTo(width, height);
+    ctx.closePath();
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    
+    ctx.beginPath();
+    values.forEach((val, i) => {
+        const x = (i / (values.length - 1)) * width;
+        const y = height - ((val - minVal) / range) * (height - 8) - 4;
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+    ctx.strokeStyle = '#4C8BF5';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
 }
 
 function renderChartLegendFilters(datasets, market) {
