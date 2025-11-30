@@ -29,10 +29,6 @@ class SharpConfig:
     sharp_score_threshold: int = 50
     min_share_pct_threshold: int = 15
     
-    threshold_strong_sharp: int = 60
-    threshold_very_sharp: int = 75
-    threshold_real_sharp: int = 90
-    
     shock_ranges: Dict[str, Tuple[float, float]] = field(default_factory=lambda: {
         "normal": (0, 2),
         "light": (2, 4),
@@ -72,9 +68,6 @@ class SharpConfig:
             min_volume_btts=int(data.get('min_volume_btts', 1500)),
             sharp_score_threshold=int(data.get('sharp_score_threshold', 50)),
             min_share_pct_threshold=int(data.get('min_share_pct_threshold', 15)),
-            threshold_strong_sharp=int(data.get('threshold_strong_sharp', 60)),
-            threshold_very_sharp=int(data.get('threshold_very_sharp', 75)),
-            threshold_real_sharp=int(data.get('threshold_real_sharp', 90)),
             shock_ranges=shock_ranges,
             updated_at=data.get('updated_at'),
             updated_by=data.get('updated_by')

@@ -190,6 +190,15 @@ function filterPreviewAlarms(alarms) {
 }
 
 /**
+ * Para miktarını formatla
+ */
+function formatMoney(amount) {
+    if (!amount || amount === 0) return '';
+    const num = parseFloat(amount);
+    return num.toLocaleString('en-GB') + ' £';
+}
+
+/**
  * ============================================================
  * ALARM KARTI RENDER FONKSİYONU
  * ============================================================
@@ -199,6 +208,28 @@ function renderAlarmCard(alarm) {
     const match = parseMatchId(alarm.match_id);
     const time = formatTime(alarm.created_at);
     
+    let displayText = alarm.message;
+    
+    if (alarm.category === 'sharp') {
+        const score = alarm.sharp_score || alarm.score || 0;
+        const newBet = alarm.new_bet_amount || alarm.extra?.new_bet_amount || 0;
+        const oddOld = alarm.odd_old || alarm.extra?.odd_old || 0;
+        const oddNew = alarm.odd_new || alarm.extra?.odd_new || 0;
+        const dropPct = alarm.drop_pct || alarm.extra?.drop_pct || 0;
+        
+        let parts = [`Sharp Money`, `Skor: ${score.toFixed(1)}`];
+        
+        if (newBet > 0) {
+            parts.push(`Gelen Para: ${formatMoney(newBet)}`);
+        }
+        
+        if (oddOld > 0 && oddNew > 0 && dropPct > 0) {
+            parts.push(`Oran: ${oddOld.toFixed(2)} → ${oddNew.toFixed(2)} (${dropPct.toFixed(1)}%)`);
+        }
+        
+        displayText = parts.join(' | ');
+    }
+    
     return `
         <div class="alarm-card" 
              style="border-left: 4px solid ${config.color}; background: ${config.bgColor};"
@@ -206,8 +237,7 @@ function renderAlarmCard(alarm) {
              data-category="${alarm.category}">
             <div class="alarm-card-header">
                 <span class="alarm-icon">${config.icon}</span>
-                <span class="alarm-type" style="color: ${config.color};">${alarm.message}</span>
-                ${alarm.severity > 1 ? `<span class="alarm-severity" style="background: ${AlarmConfig.severityColors[alarm.severity]};">L${alarm.severity}</span>` : ''}
+                <span class="alarm-type" style="color: ${config.color};">${displayText}</span>
             </div>
             <div class="alarm-card-match">
                 ${match.home} - ${match.away}

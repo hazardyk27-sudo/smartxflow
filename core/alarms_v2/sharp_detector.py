@@ -17,9 +17,12 @@ class SharpEvaluationResult:
     """Sharp alarm değerlendirme sonucu"""
     alarm: bool
     sharp_score: float
-    level: str
     reason: Optional[str]
     details: Dict[str, Any]
+    new_bet_amount: float = 0.0
+    odd_old: float = 0.0
+    odd_new: float = 0.0
+    drop_pct: float = 0.0
 
 
 def parse_volume(volume_str: str) -> float:
@@ -59,7 +62,10 @@ def evaluate_sharp_alarm(
     shock_x: float,
     drop_pct: float,
     share_shift: float,
-    momentum_score: float
+    momentum_score: float,
+    new_bet_amount: float = 0.0,
+    odd_old: float = 0.0,
+    odd_new: float = 0.0
 ) -> SharpEvaluationResult:
     """
     Sharp alarm değerlendirmesi.
@@ -73,6 +79,9 @@ def evaluate_sharp_alarm(
         drop_pct: Oran düşüş yüzdesi (%)
         share_shift: Pazar payı değişimi (eski pay - yeni pay)
         momentum_score: Momentum skoru (0-10)
+        new_bet_amount: Gelen yeni bahis miktarı
+        odd_old: Eski oran
+        odd_new: Yeni oran
     
     Returns:
         SharpEvaluationResult
@@ -93,7 +102,6 @@ def evaluate_sharp_alarm(
         return SharpEvaluationResult(
             alarm=False,
             sharp_score=0.0,
-            level="none",
             reason="LOW_MARKET_VOLUME",
             details={**details, "min_volume": min_volume}
         )
@@ -102,7 +110,6 @@ def evaluate_sharp_alarm(
         return SharpEvaluationResult(
             alarm=False,
             sharp_score=0.0,
-            level="none",
             reason="LOW_SHARE_PCT",
             details={**details, "min_share_pct": config.min_share_pct_threshold}
         )
@@ -126,26 +133,19 @@ def evaluate_sharp_alarm(
         return SharpEvaluationResult(
             alarm=False,
             sharp_score=sharp_score,
-            level="none",
             reason="LOW_SHARP_SCORE",
             details=details
         )
     
-    if sharp_score >= config.threshold_real_sharp:
-        level = "Real Sharp"
-    elif sharp_score >= config.threshold_very_sharp:
-        level = "Very Sharp"
-    elif sharp_score >= config.threshold_strong_sharp:
-        level = "Strong Sharp"
-    else:
-        level = "Sharp"
-    
     return SharpEvaluationResult(
         alarm=True,
         sharp_score=sharp_score,
-        level=level,
         reason=None,
-        details=details
+        details=details,
+        new_bet_amount=new_bet_amount,
+        odd_old=odd_old,
+        odd_new=odd_new,
+        drop_pct=drop_pct
     )
 
 
@@ -269,6 +269,9 @@ class SharpDetectorV2(AlarmDetectorV2):
         
         momentum_score = self._calculate_momentum(history, side, market_type)
         
+        prev_stake = parse_volume(self._get_amount(previous, side, market_type)) if previous else 0
+        new_bet_amount = current_stake - prev_stake if prev_stake > 0 else current_stake
+        
         result = evaluate_sharp_alarm(
             config=config,
             market_type=market_type,
@@ -277,7 +280,10 @@ class SharpDetectorV2(AlarmDetectorV2):
             shock_x=shock_x,
             drop_pct=drop_pct,
             share_shift=share_shift,
-            momentum_score=momentum_score
+            momentum_score=momentum_score,
+            new_bet_amount=new_bet_amount,
+            odd_old=prev_odds,
+            odd_new=current_odds
         )
         
         if not result.alarm:
@@ -286,20 +292,21 @@ class SharpDetectorV2(AlarmDetectorV2):
         return AlarmResult(
             alarm_type="sharp",
             score=int(result.sharp_score),
-            level=result.level.lower().replace(" ", "_"),
             is_triggered=True,
             side=side,
             odds_from=prev_odds,
             odds_to=current_odds,
-            money_diff=current_stake - avg_stake if avg_stake > 0 else 0,
+            money_diff=new_bet_amount,
             timestamp=datetime.utcnow(),
             details={
                 **result.details,
                 "match_id": match_id,
-                "market": market,
-                "sharp_level": result.level
+                "market": market
             },
-            reason=None
+            reason=None,
+            sharp_score=result.sharp_score,
+            new_bet_amount=new_bet_amount,
+            drop_pct=drop_pct
         )
     
     def _get_percentage(self, data: Dict, side: str, market_type: str) -> float:

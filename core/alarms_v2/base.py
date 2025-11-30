@@ -15,7 +15,6 @@ class AlarmResult:
     """Alarm tespit sonucu"""
     alarm_type: str
     score: int
-    level: str  # "alarm", "medium", "none"
     is_triggered: bool
     side: str
     odds_from: float
@@ -24,6 +23,9 @@ class AlarmResult:
     timestamp: datetime
     details: Dict[str, Any]
     reason: Optional[str] = None
+    sharp_score: float = 0.0
+    new_bet_amount: float = 0.0
+    drop_pct: float = 0.0
 
 
 class AlarmDetectorV2(ABC):

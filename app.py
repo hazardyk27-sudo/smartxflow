@@ -2004,10 +2004,13 @@ def test_sharp_config_api():
         
         return jsonify({
             'sharp_score': round(result.sharp_score, 2),
-            'level': result.level,
             'alarm': result.alarm,
             'blocked_reason': result.reason,
-            'details': result.details
+            'details': result.details,
+            'new_bet_amount': result.new_bet_amount,
+            'odd_old': result.odd_old,
+            'odd_new': result.odd_new,
+            'drop_pct': result.drop_pct
         })
     except Exception as e:
         print(f"[Admin API] Error testing sharp config: {e}")

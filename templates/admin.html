@@ -391,33 +391,6 @@
 
             <div class="section">
                 <h3 class="section-title">
-                    <span class="section-title-icon">📈</span>
-                    Sharp Seviye Esikleri
-                </h3>
-                <p class="section-desc">
-                    SharpScore'a gore alarm seviyesi belirlenir. Yuksek skorlar daha ciddi alarmlar uretir.
-                </p>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Strong Sharp Esigi</label>
-                        <input type="number" id="threshold_strong_sharp" placeholder="60">
-                    </div>
-                    <div class="form-group">
-                        <label>Very Sharp Esigi</label>
-                        <input type="number" id="threshold_very_sharp" placeholder="75">
-                    </div>
-                    <div class="form-group">
-                        <label>Real Sharp Esigi</label>
-                        <input type="number" id="threshold_real_sharp" placeholder="90">
-                    </div>
-                </div>
-                <div class="info-note">
-                    Seviye sirasi: Sharp (50+) → Strong Sharp (60+) → Very Sharp (75+) → Real Sharp (90+)
-                </div>
-            </div>
-
-            <div class="section">
-                <h3 class="section-title">
                     <span class="section-title-icon">🧪</span>
                     Test Alani
                 </h3>
@@ -469,10 +442,6 @@
                             <span class="test-result-value" id="resultScore">-</span>
                         </div>
                         <div class="test-result-row">
-                            <span class="test-result-label">Seviye</span>
-                            <span class="test-result-value" id="resultLevel">-</span>
-                        </div>
-                        <div class="test-result-row">
                             <span class="test-result-label">Alarm Durumu</span>
                             <span class="test-result-value" id="resultAlarm">-</span>
                         </div>
@@ -496,8 +465,7 @@
             'weight_volume', 'weight_odds', 'weight_share', 'weight_momentum',
             'volume_multiplier', 'normalization_factor',
             'min_volume_1x2', 'min_volume_ou25', 'min_volume_btts',
-            'sharp_score_threshold', 'min_share_pct_threshold',
-            'threshold_strong_sharp', 'threshold_very_sharp', 'threshold_real_sharp'
+            'sharp_score_threshold', 'min_share_pct_threshold'
         ];
 
         function showToast(message, type = 'success') {
@@ -640,15 +608,7 @@
 
                 const scoreEl = document.getElementById('resultScore');
                 scoreEl.textContent = result.sharp_score;
-                scoreEl.className = 'test-result-value';
-
-                const levelEl = document.getElementById('resultLevel');
-                levelEl.textContent = result.level || 'none';
-                levelEl.className = 'test-result-value';
-                if (result.level === 'Real Sharp') levelEl.classList.add('level-real');
-                else if (result.level === 'Very Sharp') levelEl.classList.add('level-very');
-                else if (result.level === 'Strong Sharp') levelEl.classList.add('level-strong');
-                else if (result.level === 'Sharp') levelEl.classList.add('level-sharp');
+                scoreEl.className = 'test-result-value' + (result.alarm ? ' alarm' : '');
 
                 const alarmEl = document.getElementById('resultAlarm');
                 alarmEl.textContent = result.alarm ? 'ALARM URETILDI' : 'Alarm Yok';
