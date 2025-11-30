@@ -275,21 +275,42 @@ class SharpDetectorV2(AlarmDetectorV2):
         
         current_stake = parse_volume(self._get_amount(current, side, market_type))
         
-        lookback = min(10, len(history) - 1)
-        if lookback > 0:
-            stake_sum = 0.0
-            for i in range(lookback):
-                stake_sum += parse_volume(self._get_amount(history[-(i+2)], side, market_type))
-            avg_stake = stake_sum / lookback
-        else:
-            avg_stake = current_stake
+        # V2 Shock Hesaplama: Uzun vadeli karşılaştırma
+        # Son 3 snapshot ortalaması vs önceki 6-30 snapshot ortalaması
+        history_len = len(history)
         
-        if avg_stake > 0:
-            shock_x = current_stake / avg_stake
+        # Recent: Son 3 snapshot (30 dakika)
+        recent_count = min(3, history_len)
+        recent_sum = 0.0
+        for i in range(recent_count):
+            recent_sum += parse_volume(self._get_amount(history[-(i+1)], side, market_type))
+        recent_avg = recent_sum / recent_count if recent_count > 0 else current_stake
+        
+        # Older: 4. snapshot'tan geriye doğru (30 dk - 5 saat öncesi arası)
+        older_start = 3  # 4. snapshot'tan başla
+        older_count = min(27, history_len - older_start)  # En fazla 27 snapshot (4.5 saat)
+        
+        if older_count > 0:
+            older_sum = 0.0
+            for i in range(older_count):
+                idx = -(older_start + i + 1)
+                if abs(idx) <= history_len:
+                    older_sum += parse_volume(self._get_amount(history[idx], side, market_type))
+            older_avg = older_sum / older_count
+        else:
+            older_avg = recent_avg
+        
+        # Shock X hesapla
+        if older_avg > 0:
+            shock_x = recent_avg / older_avg
             if shock_x < 1:
                 shock_x = 1.0
         else:
             shock_x = 1.0
+        
+        # Debug: Yüksek shock varsa logla
+        if shock_x >= 1.5:
+            print(f"[ShockDebug] {match_id}/{side}: recent_avg=£{recent_avg:,.0f} older_avg=£{older_avg:,.0f} shock={shock_x:.2f}x (history={history_len})")
         
         drop_pct = 0.0
         if prev_odds > 0 and current_odds > 0 and current_odds < prev_odds:

@@ -2147,37 +2147,56 @@ def regenerate_alarms_api():
         for table in market_tables:
             try:
                 history_table = f"{table}_history"
-                url = f"{base_url}/rest/v1/{history_table}?select=*&order=scrapedat.asc"
-                print(f"[Admin API] Fetching {history_table}...")
-                resp = httpx.get(url, headers=headers, timeout=60)
-                print(f"[Admin API] {history_table} response: {resp.status_code}")
                 
-                if resp.status_code != 200:
-                    print(f"[Admin API] {history_table} error: {resp.text[:200]}")
-                    continue
-                    
-                all_snapshots = resp.json()
-                print(f"[Admin API] {history_table} snapshots: {len(all_snapshots)}")
+                # 1. Önce ana tablodan bugünün maçlarını al
+                main_url = f"{base_url}/rest/v1/{table}?select=home,away,date&limit=500"
+                print(f"[Admin API] Fetching today's matches from {table}...")
+                main_resp = httpx.get(main_url, headers=headers, timeout=30)
                 
-                if not all_snapshots:
+                if main_resp.status_code != 200:
+                    print(f"[Admin API] {table} error: {main_resp.text[:200]}")
                     continue
                 
+                all_matches = main_resp.json()
+                
+                # Bugünün maçlarını filtrele
+                today_matches = []
+                for match in all_matches:
+                    date_str = match.get('date', match.get('Date', ''))
+                    if any(pattern in date_str for pattern in today_patterns):
+                        home = match.get('home', match.get('Home', ''))
+                        away = match.get('away', match.get('Away', ''))
+                        if home and away:
+                            today_matches.append((home, away))
+                
+                # Unique maçlar
+                today_matches = list(set(today_matches))
+                print(f"[Admin API] Found {len(today_matches)} today's matches in {table}")
+                
+                if not today_matches:
+                    continue
+                
+                # 2. Her maç için ayrı history query'si (tam veri!)
                 matches_grouped = {}
-                for snapshot in all_snapshots:
-                    date_str = snapshot.get('date', snapshot.get('Date', ''))
-                    is_today = any(pattern in date_str for pattern in today_patterns)
-                    if not is_today:
+                for home, away in today_matches[:50]:  # Max 50 maç
+                    try:
+                        from urllib.parse import quote
+                        safe_home = quote(home, safe='')
+                        safe_away = quote(away, safe='')
+                        
+                        hist_url = f"{base_url}/rest/v1/{history_table}?home=eq.{safe_home}&away=eq.{safe_away}&select=*&order=scrapedat.asc&limit=1000"
+                        hist_resp = httpx.get(hist_url, headers=headers, timeout=30)
+                        
+                        if hist_resp.status_code == 200:
+                            snapshots = hist_resp.json()
+                            if snapshots and len(snapshots) >= 2:
+                                match_id = f"{home} vs {away}"
+                                matches_grouped[match_id] = snapshots
+                    except Exception as e:
+                        print(f"[Admin API] Error fetching history for {home} vs {away}: {e}")
                         continue
-                    
-                    home = snapshot.get('home', snapshot.get('Home', ''))
-                    away = snapshot.get('away', snapshot.get('Away', ''))
-                    match_id = f"{home} vs {away}"
-                    
-                    if match_id not in matches_grouped:
-                        matches_grouped[match_id] = []
-                    matches_grouped[match_id].append(snapshot)
                 
-                print(f"[Admin API] Processing {table}: {len(matches_grouped)} matches with history")
+                print(f"[Admin API] Processing {table}: {len(matches_grouped)} matches with full history")
                 
                 first_match_logged = False
                 for match_id, history in matches_grouped.items():
