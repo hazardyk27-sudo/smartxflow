@@ -275,20 +275,25 @@ class SharpDetectorV2(AlarmDetectorV2):
         
         current_stake = parse_volume(self._get_amount(current, side, market_type))
         
+        # Volume Kriteri: Minimum hacim kontrolü
+        min_volume = config.get_min_volume(market_type)
+        if total_volume < min_volume:
+            return None  # Minimum hacim karşılanmadı
+        
         # V2 Shock Hesaplama: Uzun vadeli karşılaştırma
-        # Son 3 snapshot ortalaması vs önceki 6-30 snapshot ortalaması
+        # Son 10 snapshot ortalaması vs önceki 20-40 snapshot ortalaması
         history_len = len(history)
         
-        # Recent: Son 3 snapshot (30 dakika)
-        recent_count = min(3, history_len)
+        # Recent: Son 10 snapshot (100 dakika ~ 1.5 saat)
+        recent_count = min(10, history_len)
         recent_sum = 0.0
         for i in range(recent_count):
             recent_sum += parse_volume(self._get_amount(history[-(i+1)], side, market_type))
         recent_avg = recent_sum / recent_count if recent_count > 0 else current_stake
         
-        # Older: 4. snapshot'tan geriye doğru (30 dk - 5 saat öncesi arası)
-        older_start = 3  # 4. snapshot'tan başla
-        older_count = min(27, history_len - older_start)  # En fazla 27 snapshot (4.5 saat)
+        # Older: 11. snapshot'tan geriye doğru (1.5 saat - 6 saat öncesi arası)
+        older_start = 10  # 11. snapshot'tan başla
+        older_count = min(30, history_len - older_start)  # En fazla 30 snapshot (5 saat)
         
         if older_count > 0:
             older_sum = 0.0
