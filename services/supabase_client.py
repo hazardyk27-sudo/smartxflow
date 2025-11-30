@@ -407,7 +407,7 @@ class SupabaseClient:
         return latest_time
     
     def get_6h_odds_history(self, market: str) -> Dict[str, Dict[str, Any]]:
-        """Get odds history for DROP markets (last 14 days).
+        """Get odds history for DROP markets (last 48 hours only - optimized).
         Returns dict: { "home|away": { "sel1": [values], "sel2": [values], ... } }
         """
         if not self.is_available:
@@ -424,17 +424,17 @@ class SupabaseClient:
             
             turkey_tz = pytz.timezone('Europe/Istanbul')
             now_turkey = datetime.now(turkey_tz)
-            fourteen_days_ago = now_turkey - timedelta(days=14)
-            cutoff_iso = fourteen_days_ago.strftime('%Y-%m-%d %H:%M:%S')
+            two_days_ago = now_turkey - timedelta(hours=48)
+            cutoff_iso = two_days_ago.strftime('%Y-%m-%d %H:%M:%S')
             
             all_rows = []
             offset = 0
             page_size = 1000
-            max_pages = 50
+            max_pages = 10
             
             for page in range(max_pages):
                 url = f"{self._rest_url(history_table)}?scrapedat=gte.{cutoff_iso}&order=scrapedat.asc&limit={page_size}&offset={offset}"
-                resp = httpx.get(url, headers=self._headers(), timeout=30)
+                resp = httpx.get(url, headers=self._headers(), timeout=15)
                 
                 if resp.status_code != 200:
                     print(f"[6h History] Error {resp.status_code} from {history_table}")
@@ -451,7 +451,7 @@ class SupabaseClient:
                 
                 offset += page_size
             
-            print(f"[6h History] Fetched {len(all_rows)} total rows from {history_table}")
+            print(f"[6h History] Fetched {len(all_rows)} rows from {history_table} (48h window)")
             
             if not all_rows:
                 return {}
