@@ -924,6 +924,187 @@ sharp_alarms = load_sharp_alarms_from_file()
 sharp_calculating = False
 sharp_calc_progress = ""
 
+# ==================== INSIDER INFO ALARM SYSTEM ====================
+INSIDER_ALARMS_FILE = 'insider_alarms.json'
+
+def load_insider_alarms_from_file():
+    """Load Insider alarms from JSON file"""
+    try:
+        if os.path.exists(INSIDER_ALARMS_FILE):
+            with open(INSIDER_ALARMS_FILE, 'r') as f:
+                alarms = json.load(f)
+                print(f"[Insider] Loaded {len(alarms)} alarms from {INSIDER_ALARMS_FILE}")
+                return alarms
+    except Exception as e:
+        print(f"[Insider] Alarms load error: {e}")
+    return []
+
+def save_insider_alarms_to_file(alarms):
+    """Save Insider alarms to JSON file"""
+    try:
+        with open(INSIDER_ALARMS_FILE, 'w') as f:
+            json.dump(alarms, f, indent=2, ensure_ascii=False)
+        print(f"[Insider] Saved {len(alarms)} alarms to {INSIDER_ALARMS_FILE}")
+        return True
+    except Exception as e:
+        print(f"[Insider] Alarms save error: {e}")
+        return False
+
+insider_alarms = load_insider_alarms_from_file()
+
+
+@app.route('/api/insider/alarms', methods=['GET'])
+def get_insider_alarms():
+    """Get all Insider alarms"""
+    return jsonify(insider_alarms)
+
+
+@app.route('/api/insider/calculate', methods=['POST'])
+def calculate_insider_alarms_endpoint():
+    """Calculate Insider Info alarms based on config"""
+    global insider_alarms
+    try:
+        insider_alarms = calculate_insider_scores(sharp_config)
+        save_insider_alarms_to_file(insider_alarms)
+        return jsonify({'success': True, 'count': len(insider_alarms)})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def calculate_insider_scores(config):
+    """
+    Calculate Insider Info alarms.
+    Formula: IF (HacimSok < insider_shock_threshold) AND (OranDususu >= insider_odds_drop_threshold) THEN INSIDER ALARM
+    Opening odds = first snapshot, Last odds = most recent snapshot
+    """
+    alarms = []
+    supabase = get_supabase_client()
+    if not supabase or not supabase.is_available:
+        print("[Insider] Supabase not available")
+        return alarms
+    
+    insider_shock_threshold = config.get('insider_shock_threshold', 2)
+    insider_odds_drop_threshold = config.get('insider_odds_drop_threshold', 3)
+    
+    print(f"[Insider] Calculating with shock_threshold={insider_shock_threshold}, odds_drop_threshold={insider_odds_drop_threshold}%")
+    
+    markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
+    market_names = {'moneyway_1x2': '1X2', 'moneyway_ou25': 'O/U 2.5', 'moneyway_btts': 'BTTS'}
+    
+    today = now_turkey().date()
+    yesterday = today - timedelta(days=1)
+    
+    for market in markets:
+        try:
+            if '1x2' in market:
+                selections = ['1', 'X', '2']
+                odds_keys = ['odds1', 'oddsx', 'odds2']
+                amount_keys = ['amt1', 'amtx', 'amt2']
+            elif 'ou25' in market:
+                selections = ['Over', 'Under']
+                odds_keys = ['over', 'under']
+                amount_keys = ['amtover', 'amtunder']
+            else:
+                selections = ['Yes', 'No']
+                odds_keys = ['oddsyes', 'oddsno']
+                amount_keys = ['amtyes', 'amtno']
+            
+            matches = supabase.get_all_matches_with_latest(market)
+            if not matches:
+                continue
+            
+            print(f"[Insider] Processing {len(matches)} matches for {market}")
+            
+            for match in matches:
+                home = match.get('home_team', match.get('home', match.get('Home', '')))
+                away = match.get('away_team', match.get('away', match.get('Away', '')))
+                
+                if not home or not away:
+                    continue
+                
+                # Get full history for this match
+                history = supabase.get_match_history(home, away, market)
+                if not history or len(history) < 2:
+                    continue
+                
+                match_date_str = match.get('date', '')
+                
+                for sel_idx, selection in enumerate(selections):
+                    odds_key = odds_keys[sel_idx]
+                    amount_key = amount_keys[sel_idx]
+                    
+                    # Get opening odds (first snapshot) and last odds (most recent)
+                    opening_odds = parse_float(history[0].get(odds_key, '0'))
+                    last_odds = parse_float(history[-1].get(odds_key, '0'))
+                    
+                    if opening_odds <= 0 or last_odds <= 0:
+                        continue
+                    
+                    # Calculate odds drop percentage
+                    if last_odds < opening_odds:
+                        odds_drop_pct = ((opening_odds - last_odds) / opening_odds) * 100
+                    else:
+                        odds_drop_pct = 0
+                    
+                    # Calculate shock (same as Sharp calculation)
+                    amounts = []
+                    for snap in history[-10:]:
+                        amt = parse_volume(snap.get(amount_key, '0'))
+                        if amt > 0:
+                            amounts.append(amt)
+                    
+                    if len(amounts) < 2:
+                        shock_raw = 0
+                    else:
+                        last_amount = amounts[-1]
+                        previous_amount = amounts[-2]
+                        amount_change = last_amount - previous_amount
+                        
+                        if amount_change <= 0:
+                            shock_raw = 0
+                        else:
+                            if len(amounts) >= 3:
+                                previous_amounts = amounts[:-2]
+                                avg_last_amounts = sum(previous_amounts) / len(previous_amounts)
+                            else:
+                                avg_last_amounts = previous_amount
+                            
+                            if avg_last_amounts > 0:
+                                shock_raw = amount_change / avg_last_amounts
+                            else:
+                                shock_raw = 0
+                    
+                    # INSIDER FORMULA: shock < threshold AND odds_drop >= threshold
+                    if shock_raw < insider_shock_threshold and odds_drop_pct >= insider_odds_drop_threshold:
+                        created_at = now_turkey().strftime('%d.%m.%Y %H:%M')
+                        
+                        alarm = {
+                            'home': home,
+                            'away': away,
+                            'market': market_names.get(market, market),
+                            'selection': selection,
+                            'shock_raw': shock_raw,
+                            'odds_drop_pct': odds_drop_pct,
+                            'opening_odds': opening_odds,
+                            'last_odds': last_odds,
+                            'insider_shock_threshold': insider_shock_threshold,
+                            'insider_odds_drop_threshold': insider_odds_drop_threshold,
+                            'match_date': match_date_str,
+                            'created_at': created_at,
+                            'triggered': True
+                        }
+                        alarms.append(alarm)
+                        print(f"[Insider] ALARM: {home} vs {away} [{selection}] shock={shock_raw:.2f}x, drop={odds_drop_pct:.1f}%")
+        
+        except Exception as e:
+            print(f"[Insider] Error processing {market}: {e}")
+            continue
+    
+    print(f"[Insider] Total alarms found: {len(alarms)}")
+    return alarms
+
 
 @app.route('/api/sharp/status', methods=['GET'])
 def get_sharp_status():
