@@ -537,6 +537,54 @@ class SupabaseClient:
         """Delete all Sharp alarms"""
         return True
     
+    def cleanup_old_matches(self, cutoff_date: str) -> Dict[str, int]:
+        """
+        Delete D-2+ matches from all tables.
+        cutoff_date format: YYYY-MM-DD (matches older than this date will be deleted)
+        Returns count of deleted records per table.
+        """
+        if not self.is_available:
+            return {}
+        
+        deleted = {}
+        
+        # History tabloları
+        history_tables = ['moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history', 
+                          'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history']
+        
+        # History tablolarını sil (scrapedat < cutoff_date)
+        for table in history_tables:
+            try:
+                # Prefer header ile silinen kayıtları döndür
+                headers = self._headers()
+                headers['Prefer'] = 'return=representation'
+                
+                # scrapedat sütunu ile filtrele
+                url = f"{self._rest_url(table)}?scrapedat=lt.{cutoff_date}T00:00:00"
+                resp = httpx.delete(url, headers=headers, timeout=60)
+                
+                if resp.status_code == 200:
+                    # Silinen kayıtları say
+                    try:
+                        deleted_rows = resp.json()
+                        count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
+                        if count > 0:
+                            deleted[table] = count
+                            print(f"[Cleanup] Deleted {count} old records from {table}")
+                    except:
+                        pass
+                elif resp.status_code == 204:
+                    # No content - silme başarılı ama kayıt yok
+                    pass
+                elif resp.status_code == 404:
+                    pass  # Tablo yok, sorun değil
+                else:
+                    print(f"[Cleanup] Error deleting from {table}: {resp.status_code} - {resp.text[:100]}")
+            except Exception as e:
+                print(f"[Cleanup] Exception for {table}: {e}")
+        
+        return deleted
+    
     def _snapshot_to_legacy(self, snap: Dict, market: str) -> Dict[str, Any]:
         result = {
             'ScrapedAt': snap.get('scraped_at', ''),

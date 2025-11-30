@@ -80,8 +80,8 @@ last_cleanup_date = None
 def cleanup_old_matches():
     """
     Delete matches older than yesterday (keep today and yesterday only).
+    D-2+ maçların history kayıtları silinir.
     Runs once per day on server startup or scheduler.
-    Note: Currently read-only mode - cleanup is handled by standalone scraper.
     """
     global last_cleanup_date
     
@@ -90,6 +90,27 @@ def cleanup_old_matches():
         return
     
     last_cleanup_date = today
+    
+    # D-2 = Dünden önceki gün (silinecek)
+    cutoff = today - timedelta(days=2)
+    cutoff_str = cutoff.strftime('%Y-%m-%d')
+    
+    print(f"[Cleanup] Starting cleanup for matches before {cutoff_str}...")
+    
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            deleted = supabase.cleanup_old_matches(cutoff_str)
+            total = sum(deleted.values())
+            if total > 0:
+                print(f"[Cleanup] Deleted {total} old records from {len(deleted)} tables")
+            else:
+                print(f"[Cleanup] No old records to delete")
+        else:
+            print(f"[Cleanup] Supabase not available, skipping cleanup")
+    except Exception as e:
+        print(f"[Cleanup] Error: {e}")
+    
     print(f"[Cleanup] Old matches cleanup completed for {today}")
 
 
@@ -928,6 +949,21 @@ def delete_sharp_alarms():
         except:
             pass
     return jsonify({'success': True})
+
+
+@app.route('/api/cleanup', methods=['POST'])
+def run_cleanup():
+    """Manual cleanup of D-2+ match data"""
+    global last_cleanup_date
+    
+    # Reset last cleanup date to force cleanup
+    last_cleanup_date = None
+    
+    try:
+        cleanup_old_matches()
+        return jsonify({'success': True, 'message': 'Cleanup completed'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/api/sharp/calculate', methods=['POST'])
