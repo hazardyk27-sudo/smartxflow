@@ -834,19 +834,45 @@ def get_match_details():
         return jsonify({'success': False, 'error': str(e)})
 
 
-sharp_config = {
-    'min_volume_1x2': 3000,
-    'min_volume_ou25': 1000,
-    'min_volume_btts': 500,
-    'volume_multiplier': 1.0,
-    'odds_multiplier': 1.0,
-    'share_multiplier': 1.0,
-    'w_volume': 40,
-    'w_odds': 35,
-    'w_share': 25,
-    'min_share': 5,
-    'min_sharp_score': 10
-}
+SHARP_CONFIG_FILE = 'sharp_config.json'
+
+def load_sharp_config_from_file():
+    """Load Sharp config from JSON file"""
+    default_config = {
+        'min_volume_1x2': 3000,
+        'min_volume_ou25': 1000,
+        'min_volume_btts': 500,
+        'volume_multiplier': 1.0,
+        'odds_multiplier': 1.0,
+        'share_multiplier': 1.0,
+        'w_volume': 40,
+        'w_odds': 35,
+        'w_share': 25,
+        'min_share': 5,
+        'min_sharp_score': 10
+    }
+    try:
+        if os.path.exists(SHARP_CONFIG_FILE):
+            with open(SHARP_CONFIG_FILE, 'r') as f:
+                saved_config = json.load(f)
+                default_config.update(saved_config)
+                print(f"[Sharp] Config loaded from {SHARP_CONFIG_FILE}: min_sharp_score={default_config.get('min_sharp_score')}")
+    except Exception as e:
+        print(f"[Sharp] Config load error: {e}")
+    return default_config
+
+def save_sharp_config_to_file(config):
+    """Save Sharp config to JSON file"""
+    try:
+        with open(SHARP_CONFIG_FILE, 'w') as f:
+            json.dump(config, f, indent=2)
+        print(f"[Sharp] Config saved to {SHARP_CONFIG_FILE}")
+        return True
+    except Exception as e:
+        print(f"[Sharp] Config save error: {e}")
+        return False
+
+sharp_config = load_sharp_config_from_file()
 
 sharp_alarms = []
 sharp_calculating = False
@@ -877,12 +903,8 @@ def save_sharp_config():
         data = request.get_json()
         if data:
             sharp_config.update(data)
-            supabase = get_supabase_client()
-            if supabase and supabase.is_available:
-                try:
-                    supabase.save_sharp_config(sharp_config)
-                except:
-                    pass
+            save_sharp_config_to_file(sharp_config)
+            print(f"[Sharp] Config updated: min_sharp_score={sharp_config.get('min_sharp_score')}, volume_mult={sharp_config.get('volume_multiplier')}, odds_mult={sharp_config.get('odds_multiplier')}, share_mult={sharp_config.get('share_multiplier')}")
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
