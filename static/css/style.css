@@ -4590,6 +4590,7 @@ td.volume,
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
+    height: 16px;
 }
 
 .alert-status-dot {
@@ -4598,6 +4599,7 @@ td.volume,
     height: 6px;
     border-radius: 50%;
     flex-shrink: 0;
+    align-self: center;
 }
 
 .alert-status-dot.sharp {
@@ -4618,15 +4620,20 @@ td.volume,
     text-transform: uppercase;
     color: #8b949e;
     letter-spacing: 0.5px;
+    line-height: 1;
+    height: 16px;
+    display: flex;
+    align-items: center;
 }
 
 /* Alert Main Section - Match + Market */
 .alert-main {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 4px;
     flex: 1;
     min-width: 0;
+    height: 16px;
 }
 
 .alert-match {
@@ -4636,6 +4643,9 @@ td.volume,
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1;
+    display: flex;
+    align-items: center;
 }
 
 .alert-market {
@@ -4643,6 +4653,10 @@ td.volume,
     color: #6e7681;
     white-space: nowrap;
     flex-shrink: 0;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    height: 16px;
 }
 
 /* Alert Score */
@@ -4653,6 +4667,11 @@ td.volume,
     font-weight: 700;
     color: #22c55e;
     flex-shrink: 0;
+    line-height: 1;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
 }
 
 /* Alert Time */
@@ -4661,6 +4680,10 @@ td.volume,
     color: #6e7681;
     white-space: nowrap;
     flex-shrink: 0;
+    line-height: 1;
+    height: 16px;
+    display: flex;
+    align-items: center;
 }
 
 /* Responsive */
