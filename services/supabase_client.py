@@ -407,74 +407,109 @@ class SupabaseClient:
         return latest_time
     
     def get_6h_odds_history(self, market: str) -> Dict[str, Dict[str, Any]]:
-        """Drop markets: İlk snapshot vs Son snapshot = Açılıştan bu yana değişim."""
+        """Drop markets: İlk snapshot vs Son snapshot = Açılıştan bu yana değişim.
+        Optimized: Bulk query with 48h filter."""
         if not self.is_available or not market.startswith('dropping'):
             return {}
         
         history_table = f"{market}_history"
-        main_table = market
         
         try:
-            from urllib.parse import quote
-            from concurrent.futures import ThreadPoolExecutor, as_completed
+            import time
+            from datetime import datetime, timedelta
+            start_time = time.time()
             
-            main_resp = httpx.get(f"{self._rest_url(main_table)}?select=home,away", headers=self._headers(), timeout=10)
-            if main_resp.status_code != 200:
-                return {}
-            
-            matches = [(m.get('home', ''), m.get('away', '')) for m in main_resp.json()]
+            cutoff = (datetime.utcnow() - timedelta(hours=48)).strftime('%Y-%m-%dT%H:%M:%S')
             
             if market == 'dropping_1x2':
                 sels = ['odds1', 'oddsx', 'odds2']
+                select_cols = 'home,away,odds1,oddsx,odds2,scrapedat'
             elif market == 'dropping_ou25':
                 sels = ['under', 'over']
+                select_cols = 'home,away,under,over,scrapedat'
             elif market == 'dropping_btts':
                 sels = ['oddsyes', 'oddsno']
+                select_cols = 'home,away,oddsyes,oddsno,scrapedat'
             else:
-                sels = []
+                return {}
             
-            def fetch_match(home, away):
-                key = f"{home}|{away}"
-                try:
-                    first_url = f"{self._rest_url(history_table)}?home=eq.{quote(home)}&away=eq.{quote(away)}&order=scrapedat.asc&limit=1"
-                    last_url = f"{self._rest_url(history_table)}?home=eq.{quote(home)}&away=eq.{quote(away)}&order=scrapedat.desc&limit=1"
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            
+            first_url = f"{self._rest_url(history_table)}?select={select_cols}&scrapedat=gte.{cutoff}&order=scrapedat.asc&limit=1000"
+            first_resp = httpx.get(first_url, headers=self._headers(), timeout=30)
+            if first_resp.status_code != 200:
+                return {}
+            first_batch = first_resp.json()
+            if not first_batch:
+                return {}
+            
+            all_rows = list(first_batch)
+            
+            if len(first_batch) == 1000:
+                count_url = f"{self._rest_url(history_table)}?select=id&scrapedat=gte.{cutoff}"
+                headers = self._headers()
+                headers['Prefer'] = 'count=exact'
+                headers['Range'] = '0-0'
+                count_resp = httpx.head(count_url, headers=headers, timeout=10)
+                total = 0
+                if 'content-range' in count_resp.headers:
+                    try:
+                        total = int(count_resp.headers['content-range'].split('/')[-1])
+                    except:
+                        total = 10000
+                
+                if total > 1000:
+                    offsets = list(range(1000, min(total, 50000), 1000))
                     
-                    first_resp = httpx.get(first_url, headers=self._headers(), timeout=5)
-                    last_resp = httpx.get(last_url, headers=self._headers(), timeout=5)
+                    def fetch_batch(off):
+                        url = f"{self._rest_url(history_table)}?select={select_cols}&scrapedat=gte.{cutoff}&order=scrapedat.asc&offset={off}&limit=1000"
+                        resp = httpx.get(url, headers=self._headers(), timeout=30)
+                        return resp.json() if resp.status_code == 200 else []
                     
-                    first_row = first_resp.json()[0] if first_resp.status_code == 200 and first_resp.json() else None
-                    last_row = last_resp.json()[0] if last_resp.status_code == 200 and last_resp.json() else None
-                    
-                    if not last_row:
-                        return None
-                    if not first_row:
-                        first_row = last_row
-                    
-                    match_data = {'home': home, 'away': away, 'values': {}}
-                    for sel in sels:
-                        old_val = self._parse_numeric(first_row.get(sel, ''))
-                        new_val = self._parse_numeric(last_row.get(sel, ''))
-                        if old_val is None: old_val = new_val
-                        if new_val is None: new_val = old_val
-                        pct_change = 0
-                        trend = 'stable'
-                        if old_val and new_val and old_val > 0:
-                            pct_change = ((new_val - old_val) / old_val) * 100
-                            trend = 'down' if new_val < old_val else ('up' if new_val > old_val else 'stable')
-                        match_data['values'][sel] = {'old': old_val, 'new': new_val, 'pct_change': round(pct_change, 1), 'trend': trend, 'history': [old_val, new_val]}
-                    return (key, match_data)
-                except:
-                    return None
+                    with ThreadPoolExecutor(max_workers=10) as executor:
+                        futures = {executor.submit(fetch_batch, off): off for off in offsets}
+                        for future in as_completed(futures):
+                            batch = future.result()
+                            if batch:
+                                all_rows.extend(batch)
+            
+            if not all_rows:
+                return {}
+            
+            match_first = {}
+            match_last = {}
+            
+            for row in all_rows:
+                key = f"{row.get('home', '')}|{row.get('away', '')}"
+                ts = row.get('scrapedat', '')
+                
+                if key not in match_first:
+                    match_first[key] = row
+                match_last[key] = row
             
             result = {}
-            with ThreadPoolExecutor(max_workers=20) as executor:
-                futures = {executor.submit(fetch_match, h, a): (h, a) for h, a in matches}
-                for future in as_completed(futures):
-                    r = future.result()
-                    if r:
-                        result[r[0]] = r[1]
+            for key in match_last.keys():
+                first_row = match_first.get(key, {})
+                last_row = match_last.get(key, {})
+                
+                home, away = key.split('|', 1) if '|' in key else (key, '')
+                
+                match_data = {'home': home, 'away': away, 'values': {}}
+                for sel in sels:
+                    old_val = self._parse_numeric(first_row.get(sel, ''))
+                    new_val = self._parse_numeric(last_row.get(sel, ''))
+                    if old_val is None: old_val = new_val
+                    if new_val is None: new_val = old_val
+                    pct_change = 0
+                    trend = 'stable'
+                    if old_val and new_val and old_val > 0:
+                        pct_change = ((new_val - old_val) / old_val) * 100
+                        trend = 'down' if new_val < old_val else ('up' if new_val > old_val else 'stable')
+                    match_data['values'][sel] = {'old': old_val, 'new': new_val, 'pct_change': round(pct_change, 1), 'trend': trend, 'history': [old_val, new_val]}
+                result[key] = match_data
             
-            print(f"[Drop] Got {len(result)} matches for {market}")
+            elapsed = time.time() - start_time
+            print(f"[Drop] Got {len(result)} matches for {market} in {elapsed:.1f}s (bulk query)")
             return result
             
         except Exception as e:
