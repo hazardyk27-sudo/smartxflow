@@ -194,7 +194,9 @@ def get_matches():
         if (now - last_time) < matches_cache['ttl']:
             return jsonify(matches_cache['data'][cache_key])
     
-    matches_with_latest = db.get_all_matches_with_latest(market, offset, limit)
+    result = db.get_all_matches_with_latest(market, offset, limit)
+    matches_with_latest = result.get('matches', [])
+    total_count = result.get('total_count', 0)
     
     enriched = []
     for m in matches_with_latest:
@@ -275,11 +277,15 @@ def get_matches():
             'history_count': 1
         })
     
-    # Cache'e kaydet
-    matches_cache['data'][cache_key] = enriched
+    response_data = {
+        'matches': enriched,
+        'total_count': total_count
+    }
+    
+    matches_cache['data'][cache_key] = response_data
     matches_cache['timestamp'][cache_key] = now
     
-    return jsonify(enriched)
+    return jsonify(response_data)
 
 
 @app.route('/api/match/history/bulk')

@@ -18,6 +18,7 @@ const PAGE_SIZE = 30;
 let currentPage = 0;
 let isLoadingMore = false;
 let hasMoreMatches = true;
+let totalMatchCount = 0;
 
 const APP_TIMEZONE = 'Europe/Istanbul';
 
@@ -265,8 +266,9 @@ async function loadMatches() {
         }
         
         const response = await fetch(`/api/matches?market=${currentMarket}&offset=0&limit=${PAGE_SIZE}`);
-        const apiMatches = await response.json();
-        matches = apiMatches || [];
+        const data = await response.json();
+        matches = data.matches || [];
+        totalMatchCount = data.total_count || 0;
         
         if (matches.length < PAGE_SIZE) {
             hasMoreMatches = false;
@@ -300,7 +302,8 @@ async function loadMoreMatches() {
     
     try {
         const response = await fetch(`/api/matches?market=${currentMarket}&offset=${offset}&limit=${PAGE_SIZE}`);
-        const newMatches = await response.json();
+        const data = await response.json();
+        const newMatches = data.matches || [];
         
         if (!newMatches || newMatches.length === 0) {
             hasMoreMatches = false;
@@ -357,8 +360,11 @@ function hideLoadingIndicator() {
 function updateMatchCount() {
     const countEl = document.querySelector('.match-count');
     if (countEl) {
-        const suffix = hasMoreMatches ? '+' : '';
-        countEl.textContent = `${matches.length}${suffix} Matches`;
+        if (totalMatchCount > 0) {
+            countEl.textContent = `${totalMatchCount} Matches`;
+        } else {
+            countEl.textContent = `${matches.length} Matches`;
+        }
     }
 }
 
@@ -3395,10 +3401,10 @@ function showTrendTooltip(event) {
         }
         
         tooltip.innerHTML = `
-            <div class="tooltip-title">SON 6 SAAT DEĞİŞİM</div>
+            <div class="tooltip-title">SON 12 SAAT DEĞİŞİM</div>
             <div class="tooltip-block">
                 <div class="tooltip-row">
-                    <span class="tooltip-label">6 saat önce:</span>
+                    <span class="tooltip-label">12 saat önce:</span>
                     <span class="tooltip-value">${data.old ? data.old.toFixed(2) : '-'}</span>
                 </div>
             </div>

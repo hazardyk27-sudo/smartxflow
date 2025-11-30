@@ -286,31 +286,42 @@ class SupabaseClient:
         
         return result
     
-    def get_all_matches_with_latest(self, market: str, offset: int = 0, limit: int = 0) -> List[Dict[str, Any]]:
+    def get_all_matches_with_latest(self, market: str, offset: int = 0, limit: int = 0) -> Dict[str, Any]:
         """Get all matches from market table (moneyway_1x2, dropping_ou25, etc.)
         
         Args:
             market: Market name (e.g., 'moneyway_1x2')
             offset: Number of rows to skip (for pagination)
             limit: Maximum number of rows to return (0 = all)
+            
+        Returns:
+            Dict with 'matches' list and 'total_count' int
         """
         if not self.is_available:
             print(f"[Supabase] ERROR: Not available - URL or KEY missing")
-            return []
+            return {'matches': [], 'total_count': 0}
         
         try:
             url = f"{self._rest_url(market)}?select=*&order=date.desc"
             print(f"[Supabase] Fetching: {url}")
             
             headers = self._headers()
+            headers["Prefer"] = "count=exact"
             if limit > 0:
                 range_start = offset
                 range_end = offset + limit - 1
                 headers["Range"] = f"{range_start}-{range_end}"
-                headers["Prefer"] = "count=exact"
                 print(f"[Supabase] Pagination: Range {range_start}-{range_end}")
             
             resp = httpx.get(url, headers=headers, timeout=15)
+            
+            total_count = 0
+            content_range = resp.headers.get('content-range', '')
+            if '/' in content_range:
+                try:
+                    total_count = int(content_range.split('/')[-1])
+                except:
+                    pass
             
             if resp.status_code in [200, 206]:
                 rows = resp.json()
@@ -324,20 +335,22 @@ class SupabaseClient:
                         'date': row.get('date', ''),
                         'latest': latest
                     })
-                print(f"[Supabase] Got {len(matches)} matches from {market} (offset={offset}, limit={limit})")
-                return matches
+                if total_count == 0:
+                    total_count = len(matches)
+                print(f"[Supabase] Got {len(matches)} matches from {market} (total: {total_count})")
+                return {'matches': matches, 'total_count': total_count}
             elif resp.status_code == 404:
                 print(f"[Supabase] ERROR 404: Table '{market}' not found!")
                 print(f"[Supabase] Check if URL is correct API endpoint (not dashboard link)")
                 print(f"[Supabase] Current URL base: {self.url}")
-                return []
+                return {'matches': [], 'total_count': 0}
             else:
                 print(f"[Supabase] ERROR {resp.status_code} fetching {market}")
                 print(f"[Supabase] Response: {resp.text[:200]}")
-                return []
+                return {'matches': [], 'total_count': 0}
         except Exception as e:
             print(f"[Supabase] EXCEPTION in get_all_matches_with_latest: {e}")
-            return []
+            return {'matches': [], 'total_count': 0}
     
     def _normalize_row(self, row: Dict, market: str) -> Dict[str, Any]:
         """Convert lowercase Supabase columns to expected format"""
@@ -422,7 +435,7 @@ class SupabaseClient:
         return latest_time
     
     def get_6h_odds_history(self, market: str) -> Dict[str, Dict[str, Any]]:
-        """Get odds history for DROP markets (last 6 hours).
+        """Get odds history for DROP markets (last 12 hours).
         Returns dict: { "home|away": { "sel1": [values], "sel2": [values], ... } }
         """
         if not self.is_available:
@@ -439,13 +452,13 @@ class SupabaseClient:
             
             turkey_tz = pytz.timezone('Europe/Istanbul')
             now_turkey = datetime.now(turkey_tz)
-            six_hours_ago = now_turkey - timedelta(hours=6)
-            cutoff_iso = six_hours_ago.strftime('%Y-%m-%d %H:%M:%S')
+            twelve_hours_ago = now_turkey - timedelta(hours=12)
+            cutoff_iso = twelve_hours_ago.strftime('%Y-%m-%d %H:%M:%S')
             
             all_rows = []
             offset = 0
             page_size = 1000
-            max_pages = 5
+            max_pages = 8
             
             for page in range(max_pages):
                 url = f"{self._rest_url(history_table)}?scrapedat=gte.{cutoff_iso}&order=scrapedat.asc&limit={page_size}&offset={offset}"
@@ -466,7 +479,7 @@ class SupabaseClient:
                 
                 offset += page_size
             
-            print(f"[6h Trend] Fetched {len(all_rows)} rows from {history_table}")
+            print(f"[12h Trend] Fetched {len(all_rows)} rows from {history_table}")
             
             if not all_rows:
                 return {}
@@ -781,19 +794,23 @@ class HybridDatabase:
                 return history
         return self.local.get_match_history(home, away, market)
     
-    def get_all_matches_with_latest(self, market: str, offset: int = 0, limit: int = 0) -> List[Dict[str, Any]]:
+    def get_all_matches_with_latest(self, market: str, offset: int = 0, limit: int = 0) -> Dict[str, Any]:
         """Get all matches with latest snapshot from Supabase or local
         
         Args:
             market: Market name
             offset: Number of rows to skip (for pagination)
             limit: Maximum number of rows to return (0 = all)
+            
+        Returns:
+            Dict with 'matches' list and 'total_count' int
         """
         if self.supabase.is_available:
-            matches = self.supabase.get_all_matches_with_latest(market, offset, limit)
-            if matches:
-                return matches
-        return self.local.get_all_matches_with_latest(market)
+            result = self.supabase.get_all_matches_with_latest(market, offset, limit)
+            if result.get('matches'):
+                return result
+        local_matches = self.local.get_all_matches_with_latest(market)
+        return {'matches': local_matches, 'total_count': len(local_matches)}
     
     def save_scraped_data(self, market: str, rows: List[Dict[str, Any]]) -> int:
         if not self.supabase.is_available:
