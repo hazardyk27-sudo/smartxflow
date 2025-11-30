@@ -1,13 +1,14 @@
 """
 V2 Sharp Alarm Configuration Manager
 
-Supabase'den config okuma/yazma ve cache yönetimi.
+Yeni Sharp Money Algoritması - Basit ve Net Formül
 """
 
 from dataclasses import dataclass, asdict, field
-from typing import Dict, Any, Optional, Tuple, Union
+from typing import Dict, Any, Optional, Union
 from datetime import datetime
 import json
+import os
 
 
 def parse_decimal(value: Union[str, int, float], default: float = 0.0) -> float:
@@ -28,69 +29,76 @@ def parse_decimal(value: Union[str, int, float], default: float = 0.0) -> float:
     return default
 
 
+def clamp(x: float, min_val: float, max_val: float) -> float:
+    """Değeri min-max aralığına sınırla"""
+    if x < min_val:
+        return min_val
+    if x > max_val:
+        return max_val
+    return x
+
+
 @dataclass
 class SharpConfig:
-    """Sharp Alarm Sistemi Konfigürasyonu"""
+    """
+    Sharp Alarm Sistemi Konfigürasyonu
     
-    weight_volume: float = 1.0
-    weight_odds: float = 1.0
-    weight_share: float = 0.5
-    weight_momentum: float = 0.5
+    Yeni Algoritma:
+    - Çarpanlar (k_): Ham değeri skor bileşenine çevirir
+    - Ağırlıklar (w_): Toplam %100 olmalı
+    - Her kriter skoru 0-100 arasında clamp edilir
+    - Final skor = (vol*w_vol + odds*w_odds + share*w_share) / 100
+    """
     
-    volume_multiplier: float = 10.0
-    normalization_factor: float = 20.0
+    k_odds: float = 10.0
+    k_volume: float = 20.0
+    k_share: float = 5.0
+    
+    w_odds: float = 30.0
+    w_volume: float = 40.0
+    w_share: float = 30.0
     
     min_volume_1x2: int = 3000
     min_volume_ou25: int = 2000
     min_volume_btts: int = 1500
     
-    sharp_score_threshold: int = 50
-    min_share_pct_threshold: int = 15
-    
-    shock_ranges: Dict[str, Tuple[float, float]] = field(default_factory=lambda: {
-        "normal": (0, 2),
-        "light": (2, 4),
-        "strong": (4, 6),
-        "very_strong": (6, 8),
-        "extreme": (8, 999)
-    })
+    sharp_score_threshold: int = 40
+    min_market_share: float = 5.0
     
     updated_at: Optional[str] = None
     updated_by: Optional[str] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Config'i dictionary olarak döndür"""
-        d = asdict(self)
-        if isinstance(d.get('shock_ranges'), dict):
-            d['shock_ranges'] = {k: list(v) for k, v in d['shock_ranges'].items()}
-        return d
+        return asdict(self)
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'SharpConfig':
         """Dictionary'den SharpConfig oluştur - virgül/nokta dönüşümü destekli"""
-        shock_ranges = data.get('shock_ranges', {})
-        if isinstance(shock_ranges, str):
-            shock_ranges = json.loads(shock_ranges)
-        if isinstance(shock_ranges, dict):
-            shock_ranges = {k: tuple(v) if isinstance(v, list) else v for k, v in shock_ranges.items()}
         
-        normalization = parse_decimal(data.get('normalization_factor'), 20.0)
-        if normalization < 1:
-            normalization = 20.0
+        w_odds = parse_decimal(data.get('w_odds'), 30.0)
+        w_volume = parse_decimal(data.get('w_volume'), 40.0)
+        w_share = parse_decimal(data.get('w_share'), 30.0)
+        
+        total_weight = w_odds + w_volume + w_share
+        if total_weight != 100:
+            scale = 100 / total_weight if total_weight > 0 else 1
+            w_odds *= scale
+            w_volume *= scale
+            w_share *= scale
         
         return cls(
-            weight_volume=parse_decimal(data.get('weight_volume'), 1.0),
-            weight_odds=parse_decimal(data.get('weight_odds'), 1.0),
-            weight_share=parse_decimal(data.get('weight_share'), 0.5),
-            weight_momentum=parse_decimal(data.get('weight_momentum'), 0.5),
-            volume_multiplier=parse_decimal(data.get('volume_multiplier'), 10.0),
-            normalization_factor=normalization,
+            k_odds=parse_decimal(data.get('k_odds'), 10.0),
+            k_volume=parse_decimal(data.get('k_volume'), 20.0),
+            k_share=parse_decimal(data.get('k_share'), 5.0),
+            w_odds=w_odds,
+            w_volume=w_volume,
+            w_share=w_share,
             min_volume_1x2=int(parse_decimal(data.get('min_volume_1x2'), 3000)),
             min_volume_ou25=int(parse_decimal(data.get('min_volume_ou25'), 2000)),
             min_volume_btts=int(parse_decimal(data.get('min_volume_btts'), 1500)),
-            sharp_score_threshold=int(parse_decimal(data.get('sharp_score_threshold'), 50)),
-            min_share_pct_threshold=int(parse_decimal(data.get('min_share_pct_threshold'), 15)),
-            shock_ranges=shock_ranges,
+            sharp_score_threshold=int(parse_decimal(data.get('sharp_score_threshold'), 40)),
+            min_market_share=parse_decimal(data.get('min_market_share'), 5.0),
             updated_at=data.get('updated_at'),
             updated_by=data.get('updated_by')
         )
@@ -104,17 +112,7 @@ class SharpConfig:
         elif 'btts' in market_type.lower():
             return self.min_volume_btts
         return self.min_volume_1x2
-    
-    def get_shock_level(self, shock_x: float) -> str:
-        """shockX değerine göre şok seviyesini döndür"""
-        for level, (min_val, max_val) in self.shock_ranges.items():
-            if min_val <= shock_x < max_val:
-                return level
-        return "extreme"
 
-
-import json
-import os
 
 CONFIG_FILE_PATH = os.path.join(os.path.dirname(__file__), 'sharp_config.json')
 
@@ -167,7 +165,7 @@ class SharpConfigManager:
         if file_config:
             self._config = SharpConfig.from_dict(file_config)
             self._last_fetch = now
-            print(f"[SharpConfig] Loaded from file: score_threshold={self._config.sharp_score_threshold}")
+            print(f"[SharpConfig] Loaded: threshold={self._config.sharp_score_threshold}, k_odds={self._config.k_odds}, k_vol={self._config.k_volume}, k_share={self._config.k_share}")
             return self._config
         
         supabase = get_supabase_client()
@@ -178,7 +176,7 @@ class SharpConfigManager:
                     self._config = SharpConfig.from_dict(config_data)
                     self._last_fetch = now
                     self._save_to_file(config_data)
-                    print(f"[SharpConfig] Loaded from Supabase: score_threshold={self._config.sharp_score_threshold}")
+                    print(f"[SharpConfig] Loaded from Supabase: threshold={self._config.sharp_score_threshold}")
                     return self._config
             except Exception as e:
                 print(f"[SharpConfig] Error loading from Supabase: {e}")

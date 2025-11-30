@@ -1,15 +1,24 @@
 """
 V2 Sharp Alarm Detector
 
-SharpScore hesaplama algoritması ve alarm tespiti.
+Yeni Sharp Money Algoritması:
+- drop_pct = ((prev_odds - curr_odds) / prev_odds) * 100  (negatif ise 0)
+- shockX = current_volume / avg_previous_volume  (min 1, üst limit yok)
+- share_diff = current_share - previous_share  (negatif ise 0)
+
+- odds_score = clamp(drop_pct * k_odds, 0, 100)
+- volume_score = clamp(shockX * k_volume, 0, 100)
+- share_score = clamp(share_diff * k_share, 0, 100)
+
+- SharpScore = (volume_score * w_volume + odds_score * w_odds + share_score * w_share) / 100
 """
 
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, List, Tuple, Union
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 
 from .base import AlarmDetectorV2, AlarmResult
-from .sharp_config import SharpConfig, get_sharp_config
+from .sharp_config import SharpConfig, get_sharp_config, clamp
 
 
 @dataclass
@@ -47,13 +56,6 @@ def parse_percentage(pct_str: str) -> float:
         return 0.0
 
 
-def calculate_shock_x(current_stake: float, avg_stake: float) -> float:
-    """Hacim şoku hesapla (yeni bahis / son N ortalama)"""
-    if avg_stake <= 0:
-        return 0.0
-    return current_stake / avg_stake
-
-
 def get_value(data: Dict, key: str, default: Any = None) -> Any:
     """Case-insensitive dict value getter - both 'Volume' and 'volume' work"""
     if not data:
@@ -76,24 +78,22 @@ def evaluate_sharp_alarm(
     current_share_pct: float,
     shock_x: float,
     drop_pct: float,
-    share_shift: float,
-    momentum_score: float,
+    share_diff: float,
     new_bet_amount: float = 0.0,
     odd_old: float = 0.0,
     odd_new: float = 0.0
 ) -> SharpEvaluationResult:
     """
-    Sharp alarm değerlendirmesi.
+    Sharp alarm değerlendirmesi - YENİ ALGORİTMA
     
     Args:
         config: SharpConfig ayarları
         market_type: '1x2' | 'ou25' | 'btts'
         total_market_volume: Toplam piyasa hacmi
         current_share_pct: Seçeneğin mevcut pazar payı (%)
-        shock_x: Hacim şoku (yeni bahis / son 10 ortalama)
-        drop_pct: Oran düşüş yüzdesi (%)
-        share_shift: Pazar payı değişimi (eski pay - yeni pay)
-        momentum_score: Momentum skoru (0-10)
+        shock_x: Hacim şoku (current_vol / avg_prev_vol, min 1)
+        drop_pct: Oran düşüş yüzdesi (%, negatif ise 0)
+        share_diff: Pazar payı değişimi (%, negatif ise 0)
         new_bet_amount: Gelen yeni bahis miktarı
         odd_old: Eski oran
         odd_new: Yeni oran
@@ -108,8 +108,7 @@ def evaluate_sharp_alarm(
         "current_share_pct": current_share_pct,
         "shock_x": shock_x,
         "drop_pct": drop_pct,
-        "share_shift": share_shift,
-        "momentum_score": momentum_score
+        "share_diff": share_diff
     }
     
     min_volume = config.get_min_volume(market_type)
@@ -121,33 +120,35 @@ def evaluate_sharp_alarm(
             details={**details, "min_volume": min_volume}
         )
     
-    if current_share_pct < config.min_share_pct_threshold:
+    if current_share_pct < config.min_market_share:
         return SharpEvaluationResult(
             alarm=False,
             sharp_score=0.0,
-            reason="LOW_SHARE_PCT",
-            details={**details, "min_share_pct": config.min_share_pct_threshold}
+            reason="LOW_MARKET_SHARE",
+            details={**details, "min_market_share": config.min_market_share}
         )
     
-    volume_base_score = shock_x * config.volume_multiplier
+    odds_score_raw = drop_pct * config.k_odds
+    odds_score = clamp(odds_score_raw, 0, 100)
     
-    volume_contrib = volume_base_score * config.weight_volume
-    odds_contrib = drop_pct * config.weight_odds
-    share_contrib = share_shift * config.weight_share
-    momentum_contrib = momentum_score * config.weight_momentum
+    volume_score_raw = shock_x * config.k_volume
+    volume_score = clamp(volume_score_raw, 0, 100)
     
-    sharp_score_raw = volume_contrib + odds_contrib + share_contrib + momentum_contrib
+    share_score_raw = share_diff * config.k_share
+    share_score = clamp(share_score_raw, 0, 100)
     
-    norm_factor = config.normalization_factor if config.normalization_factor >= 1 else 100.0
-    sharp_score = sharp_score_raw / norm_factor
+    sharp_score = (volume_score * config.w_volume + 
+                   odds_score * config.w_odds + 
+                   share_score * config.w_share) / 100
     
-    print(f"[SharpScore] market={market_type} shockX={shock_x:.2f} vol_base={volume_base_score:.1f}")
-    print(f"[SharpScore] contrib: vol={volume_contrib:.1f} odds={odds_contrib:.1f} share={share_contrib:.1f} mom={momentum_contrib:.1f}")
-    print(f"[SharpScore] raw={sharp_score_raw:.1f} / norm={norm_factor:.1f} = score={sharp_score:.1f}")
+    print(f"[SharpScore] market={market_type} shockX={shock_x:.2f} drop={drop_pct:.1f}% share_diff={share_diff:+.1f}%")
+    print(f"[SharpScore] raw: vol={volume_score_raw:.1f} odds={odds_score_raw:.1f} share={share_score_raw:.1f}")
+    print(f"[SharpScore] clamped: vol={volume_score:.1f} odds={odds_score:.1f} share={share_score:.1f}")
+    print(f"[SharpScore] final = ({volume_score:.1f}*{config.w_volume} + {odds_score:.1f}*{config.w_odds} + {share_score:.1f}*{config.w_share}) / 100 = {sharp_score:.1f}")
     
-    details["volume_base_score"] = volume_base_score
-    details["sharp_score_raw"] = sharp_score_raw
-    details["normalization_factor"] = norm_factor
+    details["odds_score"] = odds_score
+    details["volume_score"] = volume_score
+    details["share_score"] = share_score
     details["sharp_score"] = sharp_score
     
     if sharp_score < config.sharp_score_threshold:
@@ -274,21 +275,29 @@ class SharpDetectorV2(AlarmDetectorV2):
         
         current_stake = parse_volume(self._get_amount(current, side, market_type))
         
-        lookback = min(10, len(history))
-        stake_sum = 0.0
-        for i in range(lookback):
-            stake_sum += parse_volume(self._get_amount(history[-(i+1)], side, market_type))
-        avg_stake = stake_sum / lookback if lookback > 0 else 0
+        lookback = min(10, len(history) - 1)
+        if lookback > 0:
+            stake_sum = 0.0
+            for i in range(lookback):
+                stake_sum += parse_volume(self._get_amount(history[-(i+2)], side, market_type))
+            avg_stake = stake_sum / lookback
+        else:
+            avg_stake = current_stake
         
-        shock_x = calculate_shock_x(current_stake, avg_stake)
+        if avg_stake > 0:
+            shock_x = current_stake / avg_stake
+            if shock_x < 1:
+                shock_x = 1.0
+        else:
+            shock_x = 1.0
         
         drop_pct = 0.0
         if prev_odds > 0 and current_odds > 0 and current_odds < prev_odds:
             drop_pct = ((prev_odds - current_odds) / prev_odds) * 100
         
-        share_shift = current_pct - prev_pct
-        
-        momentum_score = self._calculate_momentum(history, side, market_type)
+        share_diff = current_pct - prev_pct
+        if share_diff < 0:
+            share_diff = 0.0
         
         prev_stake = parse_volume(self._get_amount(previous, side, market_type)) if previous else 0
         new_bet_amount = current_stake - prev_stake if prev_stake > 0 else current_stake
@@ -300,8 +309,7 @@ class SharpDetectorV2(AlarmDetectorV2):
             current_share_pct=current_pct,
             shock_x=shock_x,
             drop_pct=drop_pct,
-            share_shift=share_shift,
-            momentum_score=momentum_score,
+            share_diff=share_diff,
             new_bet_amount=new_bet_amount,
             odd_old=prev_odds,
             odd_new=current_odds
@@ -376,19 +384,3 @@ class SharpDetectorV2(AlarmDetectorV2):
         
         key = key_map.get(market_type, {}).get(side, f'Amt{side}')
         return get_value(data, key, '0')
-    
-    def _calculate_momentum(self, history: List[Dict], side: str, market_type: str) -> float:
-        """Momentum skoru hesapla (0-10)"""
-        if len(history) < 3:
-            return 0.0
-        
-        recent = history[-3:]
-        pcts = [self._get_percentage(h, side, market_type) for h in recent]
-        
-        if len(pcts) < 3:
-            return 0.0
-        
-        trend = (pcts[-1] - pcts[0])
-        momentum = min(10, max(0, abs(trend) / 2))
-        
-        return momentum
