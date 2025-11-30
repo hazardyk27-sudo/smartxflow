@@ -912,8 +912,10 @@ def calculate_sharp_alarms():
 def calculate_sharp_scores(config):
     """Calculate Sharp scores for all matches based on config"""
     alarms = []
+    all_candidates = []
     supabase = get_supabase_client()
     if not supabase or not supabase.is_available:
+        print("[Sharp] Supabase not available")
         return alarms
     
     markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -934,16 +936,21 @@ def calculate_sharp_scores(config):
             matches = supabase.get_all_matches_with_latest(market)
             
             if not matches:
+                print(f"[Sharp] No matches for {market}")
                 continue
             
+            print(f"[Sharp] Processing {len(matches)} matches for {market}, min_volume: {min_volume}")
+            processed = 0
+            
             for match in matches:
-                home = match.get('home', match.get('Home', ''))
-                away = match.get('away', match.get('Away', ''))
+                home = match.get('home_team', match.get('home', match.get('Home', '')))
+                away = match.get('away_team', match.get('away', match.get('Away', '')))
                 
                 if not home or not away:
                     continue
                 
-                volume_str = match.get('volume', match.get('Volume', '0'))
+                latest = match.get('latest', {})
+                volume_str = latest.get('Volume', match.get('volume', match.get('Volume', '0')))
                 volume = parse_volume(volume_str)
                 
                 if volume < min_volume:
@@ -954,16 +961,33 @@ def calculate_sharp_scores(config):
                 if len(history) < 2:
                     continue
                 
+                processed += 1
+                
                 for sel_idx, selection in enumerate(selections):
                     alarm = calculate_selection_sharp(
                         home, away, market, selection, sel_idx,
                         history, volume, config
                     )
-                    if alarm and alarm.get('triggered'):
-                        alarms.append(alarm)
+                    if alarm:
+                        all_candidates.append(alarm)
+                        if alarm.get('triggered'):
+                            alarms.append(alarm)
+            
+            print(f"[Sharp] Processed {processed} matches with sufficient volume for {market}")
         except Exception as e:
             print(f"[Sharp] Error processing {market}: {e}")
+            import traceback
+            traceback.print_exc()
             continue
+    
+    print(f"[Sharp] Total candidates: {len(all_candidates)}, Triggered alarms: {len(alarms)}")
+    
+    if len(alarms) == 0 and len(all_candidates) > 0:
+        top_candidates = sorted(all_candidates, key=lambda x: x.get('sharp_score', 0), reverse=True)[:5]
+        print("[Sharp] Top 5 candidates (not triggered):")
+        for c in top_candidates:
+            print(f"  {c.get('home')} vs {c.get('away')} [{c.get('selection')}]: score={c.get('sharp_score', 0):.2f}, triggered={c.get('triggered')}")
+            print(f"    shock={c.get('shock_value', 0):.2f}, odds={c.get('odds_value', 0):.2f}, share={c.get('share_value', 0):.2f}")
     
     alarms.sort(key=lambda x: x.get('sharp_score', 0), reverse=True)
     return alarms
