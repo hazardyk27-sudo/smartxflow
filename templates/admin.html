@@ -620,6 +620,28 @@
                         <input type="number" id="min_sharp_score" value="10" step="0.1" class="form-input">
                     </div>
                 </div>
+
+                <div class="info-card" style="border-left: 3px solid #a371f7;">
+                    <h3>🕵️ Insider Info Alarm</h3>
+                    <p class="form-hint" style="font-size: 11px; color: #8b949e; margin-bottom: 12px;">
+                        Hacim şoku düşük ama oran düşüşü yüksek = Insider bilgisi şüphesi
+                    </p>
+                    <div class="form-group">
+                        <label>Hacim Şok Eşiği (insider_shock_threshold)</label>
+                        <input type="number" id="insider_shock_threshold" value="2" step="0.1" class="form-input">
+                        <p class="form-hint" style="font-size: 10px; color: #8b949e;">Hacim şoku bu değerden DÜŞÜK olmalı</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Oran Düşüş Eşiği % (insider_odds_drop_threshold)</label>
+                        <input type="number" id="insider_odds_drop_threshold" value="3" step="0.1" class="form-input">
+                        <p class="form-hint" style="font-size: 10px; color: #8b949e;">Oran düşüşü bu değere EŞİT veya YÜKSEK olmalı</p>
+                    </div>
+                    <div class="form-group" style="margin-top: 10px;">
+                        <button class="btn btn-secondary" onclick="recalculateInsiderAlarms()" style="background: #a371f7; border-color: #a371f7;">
+                            🕵️ Insider Alarmları Hesapla
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div class="info-card" style="margin-top: 20px;">
@@ -827,7 +849,9 @@
                 max_odds_cap: parseFloat(document.getElementById('max_odds_cap').value) || 35,
                 max_share_cap: parseFloat(document.getElementById('max_share_cap').value) || 25,
                 min_share: parseFloat(document.getElementById('min_share').value) || 5,
-                min_sharp_score: parseFloat(document.getElementById('min_sharp_score').value) || 10
+                min_sharp_score: parseFloat(document.getElementById('min_sharp_score').value) || 10,
+                insider_shock_threshold: parseFloat(document.getElementById('insider_shock_threshold').value) || 2,
+                insider_odds_drop_threshold: parseFloat(document.getElementById('insider_odds_drop_threshold').value) || 3
             };
         }
 
@@ -845,6 +869,8 @@
             document.getElementById('max_share_cap').value = config.max_share_cap || 25;
             document.getElementById('min_share').value = config.min_share || 5;
             document.getElementById('min_sharp_score').value = config.min_sharp_score || 10;
+            document.getElementById('insider_shock_threshold').value = config.insider_shock_threshold || 2;
+            document.getElementById('insider_odds_drop_threshold').value = config.insider_odds_drop_threshold || 3;
         }
 
         async function saveSharpConfig() {
@@ -923,6 +949,30 @@
             }
         }
 
+        async function recalculateInsiderAlarms() {
+            showToast('Insider alarmlar hesaplaniyor...', 'info');
+            showCalcStatus(true, 'Insider alarm hesaplama baslatiliyor...');
+            
+            try {
+                const response = await fetch('/api/insider/calculate', { method: 'POST' });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showCalcStatus(false, `Tamamlandi! ${result.count || 0} Insider alarm bulundu.`);
+                    showToast(`${result.count || 0} Insider alarm uretildi!`, 'success');
+                    loadAlarms();
+                    
+                    setTimeout(() => hideCalcStatus(), 3000);
+                } else {
+                    showCalcStatus(false, 'Insider hesaplama hatasi!');
+                    showToast('Insider hesaplama hatasi!', 'error');
+                }
+            } catch (error) {
+                showCalcStatus(false, 'Baglanti hatasi!');
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+
         function showCalcStatus(isCalculating, message) {
             const statusEl = document.getElementById('calcStatus');
             const progressEl = document.getElementById('calcProgress');
@@ -971,12 +1021,23 @@
         
         async function loadAlarms() {
             try {
-                const response = await fetch('/api/sharp/alarms');
-                if (response.ok) {
-                    const alarms = await response.json();
-                    allAlarms = alarms;
-                    renderAlarms(alarms);
+                const [sharpRes, insiderRes] = await Promise.all([
+                    fetch('/api/sharp/alarms'),
+                    fetch('/api/insider/alarms')
+                ]);
+                
+                let sharpAlarms = [];
+                let insiderAlarms = [];
+                
+                if (sharpRes.ok) {
+                    sharpAlarms = (await sharpRes.json()).map(a => ({...a, alarm_type: 'SHARP'}));
                 }
+                if (insiderRes.ok) {
+                    insiderAlarms = (await insiderRes.json()).map(a => ({...a, alarm_type: 'INSIDER'}));
+                }
+                
+                allAlarms = [...insiderAlarms, ...sharpAlarms];
+                renderAlarms(allAlarms);
             } catch (error) {
                 console.error('Alarm yukleme hatasi:', error);
             }
@@ -1012,20 +1073,42 @@
             }
 
             countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
-            container.innerHTML = alarms.map((alarm, idx) => `
-                <div class="alarm-item" onclick="showAlarmDetail(${idx})">
-                    <div class="alarm-info">
-                        <div class="alarm-match">${alarm.home} vs ${alarm.away}</div>
-                        <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
-                        <div class="alarm-breakdown" style="display: flex; gap: 12px; margin-top: 6px; font-size: 11px;">
-                            <span style="color: #f0883e;" title="Hacim Soku">⚡ ${(alarm.shock_value || 0).toFixed(1)}</span>
-                            <span style="color: #58a6ff;" title="Oran Degisimi">📉 ${(alarm.odds_value || 0).toFixed(1)}</span>
-                            <span style="color: #3fb950;" title="Pay Degisimi">📊 ${(alarm.share_value || 0).toFixed(1)}</span>
+            container.innerHTML = alarms.map((alarm, idx) => {
+                const isInsider = alarm.alarm_type === 'INSIDER';
+                const borderColor = isInsider ? '#a371f7' : '#30363d';
+                const typeLabel = isInsider ? '<span style="background:#a371f7;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">🕵️ INSIDER</span>' : '';
+                
+                if (isInsider) {
+                    return `
+                        <div class="alarm-item" onclick="showAlarmDetail(${idx})" style="border-left: 3px solid ${borderColor};">
+                            <div class="alarm-info">
+                                <div class="alarm-match">${typeLabel}${alarm.home} vs ${alarm.away}</div>
+                                <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
+                                <div class="alarm-breakdown" style="display: flex; gap: 12px; margin-top: 6px; font-size: 11px;">
+                                    <span style="color: #f0883e;" title="Hacim Soku">⚡ HacimŞok: ${(alarm.shock_raw || 0).toFixed(2)}x</span>
+                                    <span style="color: #a371f7;" title="Oran Dususu">📉 OranDüşüş: ${(alarm.odds_drop_pct || 0).toFixed(1)}%</span>
+                                </div>
+                            </div>
+                            <div class="alarm-score" style="background: linear-gradient(135deg, #a371f7, #8b5cf6);">🕵️</div>
                         </div>
-                    </div>
-                    <div class="alarm-score">${(alarm.sharp_score || 0).toFixed(1)}</div>
-                </div>
-            `).join('');
+                    `;
+                } else {
+                    return `
+                        <div class="alarm-item" onclick="showAlarmDetail(${idx})">
+                            <div class="alarm-info">
+                                <div class="alarm-match">${alarm.home} vs ${alarm.away}</div>
+                                <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
+                                <div class="alarm-breakdown" style="display: flex; gap: 12px; margin-top: 6px; font-size: 11px;">
+                                    <span style="color: #f0883e;" title="Hacim Soku">⚡ ${(alarm.shock_value || 0).toFixed(1)}</span>
+                                    <span style="color: #58a6ff;" title="Oran Degisimi">📉 ${(alarm.odds_value || 0).toFixed(1)}</span>
+                                    <span style="color: #3fb950;" title="Pay Degisimi">📊 ${(alarm.share_value || 0).toFixed(1)}</span>
+                                </div>
+                            </div>
+                            <div class="alarm-score">${(alarm.sharp_score || 0).toFixed(1)}</div>
+                        </div>
+                    `;
+                }
+            }).join('');
 
             window.currentAlarms = alarms;
         }
