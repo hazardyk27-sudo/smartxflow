@@ -3253,33 +3253,15 @@ td.volume,
     }
 }
 
-/* Chart Zoom Reset Button */
-.chart-zoom-reset {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: rgba(76, 139, 245, 0.15);
-    border: 1px solid #4C8BF5;
-    border-radius: 6px;
-    color: #4C8BF5;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    z-index: 10;
+/* Chart Reset Zoom Button (next to PNG/CSV) */
+.chart-reset-zoom-btn {
+    background: rgba(76, 139, 245, 0.15) !important;
+    border-color: #4C8BF5 !important;
+    color: #4C8BF5 !important;
 }
 
-.chart-zoom-reset:hover {
-    background: rgba(76, 139, 245, 0.25);
-    transform: scale(1.02);
-}
-
-.chart-zoom-reset svg {
-    flex-shrink: 0;
+.chart-reset-zoom-btn:hover {
+    background: rgba(76, 139, 245, 0.25) !important;
 }
 
 /* Chart Zoom Instructions */

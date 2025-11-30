@@ -1949,23 +1949,6 @@ async function loadChart(home, away, market) {
         });
         
         const chartContainer = document.getElementById('oddsChart').parentElement;
-        let resetBtn = chartContainer.querySelector('.chart-zoom-reset');
-        if (!resetBtn) {
-            resetBtn = document.createElement('button');
-            resetBtn.className = 'chart-zoom-reset';
-            resetBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Reset Zoom';
-            resetBtn.onclick = function() {
-                chart.resetZoom();
-                resetBrushSlider();
-            };
-            chartContainer.style.position = 'relative';
-            chartContainer.appendChild(resetBtn);
-        } else {
-            resetBtn.onclick = function() {
-                chart.resetZoom();
-                resetBrushSlider();
-            };
-        }
         
         createBrushSlider(chartContainer, historyData, chart);
     } catch (error) {
@@ -2084,6 +2067,16 @@ function resetBrushSlider() {
             brushRangeInfo.textContent = 'Showing all data';
         }
     }
+}
+
+function resetChartZoom() {
+    if (chart) {
+        chart.resetZoom();
+        chart.options.scales.x.min = undefined;
+        chart.options.scales.x.max = undefined;
+        chart.update('none');
+    }
+    resetBrushSlider();
 }
 
 function drawMiniChart(canvas, historyData) {
@@ -2261,6 +2254,13 @@ function renderChartLegendFilters(datasets, market) {
                     <line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
                 CSV
+            </button>
+            <button class="chart-export-btn chart-reset-zoom-btn" onclick="resetChartZoom()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                </svg>
+                Reset Zoom
             </button>
         </div>
     `;
