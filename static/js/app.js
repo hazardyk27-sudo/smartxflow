@@ -13,6 +13,7 @@ let chartTimeRange = '10min';
 let currentChartHistoryData = [];
 let chartViewMode = 'percent';
 let isClientMode = true;
+let isAlarmsPageActive = false;
 
 const APP_TIMEZONE = 'Europe/Istanbul';
 
@@ -3355,7 +3356,6 @@ let alarmsDataByType = {
 };
 let alarmSearchQuery = '';
 let alarmsDisplayCount = 30;
-let isAlarmsPageActive = false;
 
 function showAlarmsPage() {
     isAlarmsPageActive = true;
