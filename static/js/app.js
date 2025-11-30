@@ -1031,7 +1031,16 @@ function parseVolume(match) {
     const d = match.odds || match.details || {};
     let vol = d.Volume || '0';
     if (typeof vol === 'string') {
-        vol = vol.replace(/[£€$,\s]/g, '').replace(/k/i, '000').replace(/m/i, '000000');
+        let str = vol.replace(/[£€$,\s]/g, '');
+        let multiplier = 1;
+        if (str.toUpperCase().includes('M')) {
+            multiplier = 1000000;
+            str = str.replace(/M/gi, '');
+        } else if (str.toUpperCase().includes('K')) {
+            multiplier = 1000;
+            str = str.replace(/K/gi, '');
+        }
+        return parseFloat(str) * multiplier || 0;
     }
     return parseFloat(vol) || 0;
 }
