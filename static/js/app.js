@@ -3515,7 +3515,8 @@ function groupAlarmsByType(alarms) {
                 allSides: [alarm.side],
                 allDetails: [alarm.detail],
                 allTimestamps: [alarm.timestamp],
-                allMoneyDiffs: [alarm.money_diff || 0]
+                allMoneyDiffs: [alarm.money_diff || 0],
+                allSharpScores: [alarm.sharp_score || 0]
             };
         } else {
             grouped[key].count++;
@@ -3526,6 +3527,7 @@ function groupAlarmsByType(alarms) {
             grouped[key].allDetails.push(alarm.detail);
             grouped[key].allTimestamps.push(alarm.timestamp);
             grouped[key].allMoneyDiffs.push(alarm.money_diff || 0);
+            grouped[key].allSharpScores.push(alarm.sharp_score || 0);
         }
     });
     return Object.values(grouped);
@@ -3556,7 +3558,8 @@ function showAlarmHistoryPopover(badge, data) {
             timestamp: data.timestamps[i] || '',
             detail: data.details[i] || data.name,
             moneyDiff: data.moneyDiffs[i] || 0,
-            side: data.sides ? data.sides[i] : ''
+            side: data.sides ? data.sides[i] : '',
+            sharpScore: data.sharpScores ? data.sharpScores[i] || 0 : 0
         });
     }
     
@@ -3567,15 +3570,24 @@ function showAlarmHistoryPopover(badge, data) {
         return dateB.valueOf() - dateA.valueOf();
     });
     
+    const isSharpAlarm = data.name && data.name.toLowerCase().includes('sharp');
+    
     const eventsList = events.map(event => {
         const timeStr = formatAlarmTime(event.timestamp);
         const sidePill = event.side ? `<span class="selection-pill">${event.side}</span>` : '';
+        
+        let valueDisplay = '';
+        if (isSharpAlarm && event.sharpScore > 0) {
+            valueDisplay = `<div class="popover-event-money" style="color: ${data.color};">Skor ${Math.round(event.sharpScore)} · +£${event.moneyDiff.toLocaleString()}</div>`;
+        } else {
+            valueDisplay = `<div class="popover-event-money" style="color: ${data.color};">+£${event.moneyDiff.toLocaleString()}</div>`;
+        }
+        
         return `
             <div class="popover-event-item">
                 <div class="popover-event-time">${timeStr}</div>
                 ${sidePill}
-                <div class="popover-event-detail">${event.detail}</div>
-                ${event.moneyDiff > 0 ? `<div class="popover-event-money" style="color: ${data.color};">+£${event.moneyDiff.toLocaleString()}</div>` : ''}
+                ${valueDisplay}
             </div>
         `;
     });
@@ -3677,7 +3689,8 @@ async function loadMatchAlarms(home, away) {
                     timestamps: alarm.allTimestamps,
                     details: alarm.allDetails,
                     moneyDiffs: alarm.allMoneyDiffs || [],
-                    sides: alarm.allSides || []
+                    sides: alarm.allSides || [],
+                    sharpScores: alarm.allSharpScores || []
                 };
                 countBadge = `<span class="alarm-count-badge clickable" data-badge-id="${badgeId}" onclick="event.stopPropagation(); showAlarmHistoryPopover(this, window['${badgeId}'])">x${alarm.count}</span>`;
             }
