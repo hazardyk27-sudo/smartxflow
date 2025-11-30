@@ -3584,15 +3584,16 @@ function renderAlarmsList(filterType) {
         
         return `
             <div class="sidebar-alarm-card ${type}" onclick="showAlarmDetailFromList(${idx})">
-                <div class="sidebar-alarm-teams">${home} vs ${away}</div>
-                <div class="sidebar-alarm-meta">
-                    <span class="sidebar-alarm-type ${type}">${typeLabels[type]}</span>
-                    <span>${market} ${selection ? '• ' + selection : ''}</span>
+                <div class="alert-left">
+                    <span class="alert-status-dot ${type}"></span>
+                    <span class="alert-status-text">${typeLabels[type]}</span>
                 </div>
-                <div class="sidebar-alarm-meta">
-                    <span class="sidebar-alarm-score">${scoreText}</span>
-                    <span>${timeAgo}</span>
+                <div class="alert-main">
+                    <span class="alert-match">${home} vs ${away}</span>
+                    <span class="alert-market">[${selection}]</span>
                 </div>
+                <div class="alert-score">${scoreText}</div>
+                <div class="alert-time">${timeAgo}</div>
             </div>
         `;
     }).join('');
