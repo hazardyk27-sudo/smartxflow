@@ -1094,7 +1094,7 @@ def calculate_sharp_scores(config):
                 for sel_idx, selection in enumerate(selections):
                     alarm = calculate_selection_sharp(
                         home, away, market, selection, sel_idx,
-                        history, volume, config
+                        history, volume, config, match_date_str
                     )
                     if alarm:
                         all_candidates.append(alarm)
@@ -1121,7 +1121,7 @@ def calculate_sharp_scores(config):
     return alarms
 
 
-def calculate_selection_sharp(home, away, market, selection, sel_idx, history, volume, config):
+def calculate_selection_sharp(home, away, market, selection, sel_idx, history, volume, config, match_date_str=''):
     """Calculate Sharp score for a single selection"""
     if len(history) < 2:
         return None
@@ -1242,6 +1242,7 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         'away': away,
         'market': market,
         'selection': selection,
+        'match_date': match_date_str,
         'created_at': now_turkey_formatted(),
         'amount_change': amount_change,
         'avg_last_amounts': avg_last_amounts,
