@@ -667,8 +667,8 @@ function getMatchTrendPct(match, selection) {
         if (selection === 'sel1') selKey = 'under';
         else if (selection === 'sel2') selKey = 'over';
     } else if (currentMarket.includes('btts')) {
-        if (selection === 'sel1') selKey = 'yes';
-        else if (selection === 'sel2') selKey = 'no';
+        if (selection === 'sel1') selKey = 'oddsyes';
+        else if (selection === 'sel2') selKey = 'oddsno';
     }
     
     if (!matchData.values[selKey]) return 0;
