@@ -4331,10 +4331,13 @@ td.volume,
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 6px 12px;
+    padding: 0 14px;
+    margin: 0;
+    margin-left: auto;
     background: #1F2937;
-    border: 1px solid #374151;
-    border-radius: 8px;
+    border: none;
+    border-left: 1px solid #374151;
+    border-radius: 0;
     color: #FFFFFF;
     font-size: 14px;
     font-weight: 600;
@@ -4342,8 +4345,7 @@ td.volume,
     cursor: pointer;
     transition: all 0.2s;
     flex-shrink: 0;
-    margin-left: auto;
-    height: auto;
+    height: 42px;
 }
 
 .alarms-toggle-btn:hover {
