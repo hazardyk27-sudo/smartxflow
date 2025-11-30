@@ -989,9 +989,15 @@ def calculate_insider_alarms_endpoint():
 
 def calculate_insider_scores(config):
     """
-    Calculate Insider Info alarms.
-    Formula: IF (HacimSok < insider_shock_threshold) AND (OranDususu >= insider_odds_drop_threshold) THEN INSIDER ALARM
-    Opening odds = first snapshot, Last odds = most recent snapshot
+    Calculate Insider Info alarms with rolling window approach.
+    
+    INSIDER ALARM CONDITIONS (must be met for consecutive snapshots):
+    1. HacimSok < insider_hacim_sok_esigi (default: 2)
+    2. OranDususu >= insider_oran_dusus_esigi (default: 3%)
+    3. GelenPara < insider_max_para (default: 5000)
+    
+    These conditions must persist for insider_sure_dakika minutes (default: 30)
+    which equals 3 consecutive 10-minute snapshots.
     """
     alarms = []
     supabase = get_supabase_client()
@@ -999,16 +1005,20 @@ def calculate_insider_scores(config):
         print("[Insider] Supabase not available")
         return alarms
     
-    insider_shock_threshold = config.get('insider_shock_threshold', 2)
-    insider_odds_drop_threshold = config.get('insider_odds_drop_threshold', 3)
+    # Get config parameters with Turkish names
+    hacim_sok_esigi = config.get('insider_hacim_sok_esigi', 2)
+    oran_dusus_esigi = config.get('insider_oran_dusus_esigi', 3)
+    sure_dakika = config.get('insider_sure_dakika', 30)
+    max_para = config.get('insider_max_para', 5000)
     
-    print(f"[Insider] Calculating with shock_threshold={insider_shock_threshold}, odds_drop_threshold={insider_odds_drop_threshold}%")
+    # Calculate required consecutive snapshots (10 min per snapshot)
+    snapshot_interval = 10  # minutes
+    required_streak = max(1, sure_dakika // snapshot_interval)
+    
+    print(f"[Insider] Config: HacimSok<{hacim_sok_esigi}, OranDusus>={oran_dusus_esigi}%, Sure={sure_dakika}dk ({required_streak} snapshot), MaxPara<{max_para}")
     
     markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
     market_names = {'moneyway_1x2': '1X2', 'moneyway_ou25': 'O/U 2.5', 'moneyway_btts': 'BTTS'}
-    
-    today = now_turkey().date()
-    yesterday = today - timedelta(days=1)
     
     for market in markets:
         try:
@@ -1038,9 +1048,9 @@ def calculate_insider_scores(config):
                 if not home or not away:
                     continue
                 
-                # Get full history for this match
+                # Get full history for this match (sorted by time, oldest first)
                 history = supabase.get_match_history(home, away, market)
-                if not history or len(history) < 2:
+                if not history or len(history) < required_streak + 1:
                     continue
                 
                 match_date_str = match.get('date', '')
@@ -1049,71 +1059,124 @@ def calculate_insider_scores(config):
                     odds_key = odds_keys[sel_idx]
                     amount_key = amount_keys[sel_idx]
                     
-                    # Get opening odds (first snapshot) and last odds (most recent)
+                    # Get opening odds (first snapshot)
                     opening_odds = parse_float(history[0].get(odds_key, '0'))
-                    last_odds = parse_float(history[-1].get(odds_key, '0'))
-                    
-                    if opening_odds <= 0 or last_odds <= 0:
+                    if opening_odds <= 0:
                         continue
                     
-                    # Calculate odds drop percentage
-                    if last_odds < opening_odds:
-                        odds_drop_pct = ((opening_odds - last_odds) / opening_odds) * 100
-                    else:
-                        odds_drop_pct = 0
-                    
-                    # Calculate shock (same as Sharp calculation)
-                    amounts = []
-                    for snap in history[-10:]:
-                        amt = parse_volume(snap.get(amount_key, '0'))
-                        if amt > 0:
-                            amounts.append(amt)
-                    
-                    if len(amounts) < 2:
-                        shock_raw = 0
-                    else:
-                        last_amount = amounts[-1]
-                        previous_amount = amounts[-2]
-                        amount_change = last_amount - previous_amount
+                    # Calculate metrics for each snapshot
+                    snapshot_metrics = []
+                    for i, snap in enumerate(history):
+                        current_odds = parse_float(snap.get(odds_key, '0'))
+                        current_amount = parse_volume(snap.get(amount_key, '0'))
                         
-                        if amount_change <= 0:
-                            shock_raw = 0
+                        # Calculate odds drop from opening
+                        if current_odds > 0 and current_odds < opening_odds:
+                            odds_drop_pct = ((opening_odds - current_odds) / opening_odds) * 100
                         else:
-                            if len(amounts) >= 3:
-                                previous_amounts = amounts[:-2]
-                                avg_last_amounts = sum(previous_amounts) / len(previous_amounts)
-                            else:
-                                avg_last_amounts = previous_amount
+                            odds_drop_pct = 0
+                        
+                        # Calculate amount change and shock from previous snapshot
+                        if i > 0:
+                            prev_amount = parse_volume(history[i-1].get(amount_key, '0'))
+                            amount_change = current_amount - prev_amount
                             
-                            if avg_last_amounts > 0:
-                                shock_raw = amount_change / avg_last_amounts
+                            # Calculate average of previous amounts for shock
+                            prev_amounts = []
+                            for j in range(max(0, i-5), i):
+                                amt = parse_volume(history[j].get(amount_key, '0'))
+                                if amt > 0:
+                                    prev_amounts.append(amt)
+                            
+                            if prev_amounts and amount_change > 0:
+                                avg_prev = sum(prev_amounts) / len(prev_amounts)
+                                hacim_sok = amount_change / avg_prev if avg_prev > 0 else 0
                             else:
-                                shock_raw = 0
+                                hacim_sok = 0
+                            
+                            # Gelen para = amount_change (positive money flow)
+                            gelen_para = max(0, amount_change)
+                        else:
+                            hacim_sok = 0
+                            gelen_para = 0
+                            amount_change = 0
+                        
+                        snapshot_metrics.append({
+                            'index': i,
+                            'odds': current_odds,
+                            'odds_drop_pct': odds_drop_pct,
+                            'hacim_sok': hacim_sok,
+                            'gelen_para': gelen_para,
+                            'amount_change': amount_change
+                        })
                     
-                    # INSIDER FORMULA: shock < threshold AND odds_drop >= threshold
-                    if shock_raw < insider_shock_threshold and odds_drop_pct >= insider_odds_drop_threshold:
+                    # Check rolling windows for consecutive qualifying snapshots
+                    alarm_triggered = False
+                    best_window = None
+                    
+                    for window_start in range(1, len(snapshot_metrics) - required_streak + 1):
+                        window = snapshot_metrics[window_start:window_start + required_streak]
+                        
+                        # Check if ALL snapshots in window meet conditions
+                        all_qualify = True
+                        for snap_metric in window:
+                            # Condition 1: HacimSok < esik
+                            if snap_metric['hacim_sok'] >= hacim_sok_esigi:
+                                all_qualify = False
+                                break
+                            # Condition 2: OranDusus >= esik
+                            if snap_metric['odds_drop_pct'] < oran_dusus_esigi:
+                                all_qualify = False
+                                break
+                            # Condition 3: GelenPara < max_para
+                            if snap_metric['gelen_para'] >= max_para:
+                                all_qualify = False
+                                break
+                        
+                        if all_qualify:
+                            alarm_triggered = True
+                            best_window = window
+                            break  # Take first qualifying window
+                    
+                    if alarm_triggered and best_window:
+                        # Use last snapshot in window for alarm details
+                        last_snap = best_window[-1]
+                        first_snap = best_window[0]
+                        
+                        # Calculate averages over the window
+                        avg_hacim_sok = sum(s['hacim_sok'] for s in best_window) / len(best_window)
+                        avg_gelen_para = sum(s['gelen_para'] for s in best_window) / len(best_window)
+                        max_odds_drop = max(s['odds_drop_pct'] for s in best_window)
+                        
                         created_at = now_turkey().strftime('%d.%m.%Y %H:%M')
+                        last_odds = parse_float(history[-1].get(odds_key, '0'))
                         
                         alarm = {
                             'home': home,
                             'away': away,
                             'market': market_names.get(market, market),
                             'selection': selection,
-                            'shock_raw': shock_raw,
-                            'odds_drop_pct': odds_drop_pct,
+                            'hacim_sok': avg_hacim_sok,
+                            'oran_dusus_pct': max_odds_drop,
+                            'gelen_para': avg_gelen_para,
                             'opening_odds': opening_odds,
                             'last_odds': last_odds,
-                            'insider_shock_threshold': insider_shock_threshold,
-                            'insider_odds_drop_threshold': insider_odds_drop_threshold,
+                            'insider_hacim_sok_esigi': hacim_sok_esigi,
+                            'insider_oran_dusus_esigi': oran_dusus_esigi,
+                            'insider_sure_dakika': sure_dakika,
+                            'insider_max_para': max_para,
+                            'snapshot_count': required_streak,
                             'match_date': match_date_str,
                             'created_at': created_at,
                             'triggered': True
                         }
                         alarms.append(alarm)
-                        print(f"[Insider] ALARM: {home} vs {away} [{selection}] shock={shock_raw:.2f}x, drop={odds_drop_pct:.1f}%")
+                        print(f"[Insider] ALARM: {home} vs {away} [{selection}] HacimSok={avg_hacim_sok:.2f}x, OranDusus={max_odds_drop:.1f}%, GelenPara=£{avg_gelen_para:.0f}")
         
         except Exception as e:
             print(f"[Insider] Error processing {market}: {e}")
+            import traceback
+            traceback.print_exc()
             continue
     
     print(f"[Insider] Total alarms found: {len(alarms)}")
