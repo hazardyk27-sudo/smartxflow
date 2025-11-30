@@ -2108,8 +2108,7 @@ def regenerate_alarms_api():
     """Regenerate alarms using current config"""
     try:
         import httpx
-        from core.alarms_v2.sharp_detector import SharpDetector
-        from core.alarms_v2.sharp_config import SharpConfigManager
+        from core.alarms_v2.sharp_detector import SharpDetectorV2
         from datetime import datetime
         import pytz
         
@@ -2118,8 +2117,7 @@ def regenerate_alarms_api():
         if not db.is_supabase_available:
             return jsonify({'error': 'Supabase not available'}), 500
         
-        config = SharpConfigManager.get_config()
-        detector = SharpDetector(config)
+        detector = SharpDetectorV2()
         
         turkey_tz = pytz.timezone('Europe/Istanbul')
         today = datetime.now(turkey_tz).strftime('%Y-%m-%d')
