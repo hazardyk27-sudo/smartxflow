@@ -822,6 +822,9 @@ body {
     overflow-y: auto;
     flex: 1;
     background: #050812;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--color-text-primary);
 }
 
 .match-info-card {
@@ -863,20 +866,24 @@ body {
 }
 
 .column-header {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--color-text-primary);
     margin-bottom: 16px;
     padding-bottom: 12px;
     border-bottom: 1px solid #1c2533;
     text-align: center;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
 .column-value {
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
     margin-bottom: 10px;
     font-size: 14px;
+    color: var(--color-text-primary);
 }
 
 .column-value:last-child {
@@ -891,7 +898,8 @@ body {
 
 .column-value.money {
     font-size: 13px;
-    color: #7C8797;
+    color: var(--color-text-muted);
+    font-weight: 500;
 }
 
 .column-value.pct {
@@ -924,14 +932,15 @@ body {
 
 .row-label {
     font-size: 12px;
-    color: #9CA3AF;
+    color: var(--color-text-secondary);
     font-weight: 500;
     text-transform: capitalize;
     letter-spacing: 0.2px;
+    font-family: 'Inter', sans-serif;
 }
 
 .row-value {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Inter', sans-serif;
     font-weight: 600;
     font-size: 14px;
     color: var(--color-text-primary);
@@ -946,8 +955,9 @@ body {
 
 .row-value.money {
     font-size: 13px;
-    color: #7C8797;
+    color: var(--color-text-muted);
     font-style: normal;
+    font-weight: 500;
 }
 
 .row-value.pct {
@@ -987,10 +997,10 @@ body {
 }
 
 .volume-value {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--color-accent);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--mw-text-money);
 }
 
 .info-row {
@@ -1011,31 +1021,33 @@ body {
 }
 
 .info-label {
-    font-size: 11px;
-    color: #8899a6;
+    font-size: 12px;
+    color: var(--color-text-secondary);
     text-transform: uppercase;
     margin-bottom: 8px;
     font-weight: 600;
     letter-spacing: 0.5px;
+    font-family: 'Inter', sans-serif;
 }
 
 .info-value {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 600;
     color: var(--color-text-primary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Inter', sans-serif;
 }
 
 .info-value.odds {
     color: var(--color-accent);
+    font-size: 15px;
 }
 
 .info-value.money {
-    color: #fbbf24;
+    color: var(--mw-text-money);
 }
 
 .info-value.volume {
-    color: var(--color-accent);
+    color: var(--mw-text-money);
 }
 
 .info-value.pct {
