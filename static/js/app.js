@@ -2937,21 +2937,29 @@ function generateTrendIconSVG(trend, pctChange) {
     
     if (trend === 'down') {
         color = '#ef4444';
-        if (absPct >= 15) {
+        if (absPct >= 20) {
+            path = 'M2 1 L6 1 L6 4 L10 4 L10 7 L14 7 L14 10 L18 10 L18 11 L26 11';
+        } else if (absPct >= 10) {
             path = 'M2 2 L8 2 L8 5 L14 5 L14 8 L20 8 L20 10 L26 10';
         } else if (absPct >= 5) {
-            path = 'M2 3 L9 3 L9 6 L16 6 L16 9 L26 9';
+            path = 'M2 3 L10 3 L10 6 L18 6 L18 9 L26 9';
+        } else if (absPct >= 2) {
+            path = 'M2 4 L12 4 L12 7 L26 7 L26 8';
         } else {
-            path = 'M2 4 L10 4 L10 6 L18 6 L18 8 L26 8';
+            path = 'M2 5 L14 5 L14 7 L26 7';
         }
     } else if (trend === 'up') {
         color = '#22c55e';
-        if (absPct >= 15) {
+        if (absPct >= 20) {
+            path = 'M2 11 L6 11 L6 8 L10 8 L10 5 L14 5 L14 2 L18 2 L18 1 L26 1';
+        } else if (absPct >= 10) {
             path = 'M2 10 L8 10 L8 7 L14 7 L14 4 L20 4 L20 2 L26 2';
         } else if (absPct >= 5) {
-            path = 'M2 9 L9 9 L9 6 L16 6 L16 3 L26 3';
+            path = 'M2 9 L10 9 L10 6 L18 6 L18 3 L26 3';
+        } else if (absPct >= 2) {
+            path = 'M2 8 L12 8 L12 5 L26 5 L26 4';
         } else {
-            path = 'M2 8 L10 8 L10 6 L18 6 L18 4 L26 4';
+            path = 'M2 7 L14 7 L14 5 L26 5';
         }
     } else {
         color = '#6B7280';
