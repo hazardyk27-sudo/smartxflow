@@ -1028,8 +1028,8 @@
                 </div>
                 <div class="detail-section">
                     <h4>Hacim Soku</h4>
-                    <div class="detail-row"><span class="detail-label">current_amount</span><span class="detail-value">£${(alarm.current_amount || 0).toLocaleString()}</span></div>
-                    <div class="detail-row"><span class="detail-label">avg_last_10_amounts</span><span class="detail-value">£${(alarm.avg_last_10_amounts || 0).toLocaleString()}</span></div>
+                    <div class="detail-row"><span class="detail-label">current_amount</span><span class="detail-value">£${Math.round(alarm.current_amount || 0).toLocaleString()}</span></div>
+                    <div class="detail-row"><span class="detail-label">avg_last_10_amounts</span><span class="detail-value">£${(alarm.avg_last_10_amounts || 0).toFixed(2)}</span></div>
                     <div class="detail-row"><span class="detail-label">shock_raw</span><span class="detail-value">${(alarm.shock_raw || 0).toFixed(2)}x</span></div>
                     <div class="detail-row"><span class="detail-label">volume_multiplier</span><span class="detail-value">${alarm.volume_multiplier || 1}</span></div>
                     <div class="detail-row"><span class="detail-label">shock_value</span><span class="detail-value highlight">${(alarm.shock_value || 0).toFixed(2)}</span></div>
