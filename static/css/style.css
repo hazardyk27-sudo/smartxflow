@@ -460,9 +460,9 @@ body {
 }
 
 .matches-table colgroup col.col-date { width: 65px; }
-.matches-table colgroup col.col-league { width: 100px; }
+.matches-table colgroup col.col-league { width: 130px; }
 .matches-table colgroup col.col-match { width: 200px; }
-.matches-table colgroup col.col-volume { width: 100px; }
+.matches-table colgroup col.col-volume { width: 70px; }
 
 .matches-table[data-selection-count="3"] colgroup col.col-selection { width: 90px; }
 .matches-table[data-selection-count="2"] colgroup col.col-selection { width: 110px; }
@@ -537,7 +537,7 @@ body {
 }
 
 .col-date {
-    text-align: left;
+    text-align: center;
 }
 
 .col-league {
@@ -561,7 +561,7 @@ body {
     font-size: var(--font-secondary);
     font-weight: var(--weight-medium);
     font-family: 'Inter', sans-serif;
-    text-align: left;
+    text-align: center;
     vertical-align: middle;
     line-height: 1.3;
     white-space: nowrap;
