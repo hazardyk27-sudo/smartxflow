@@ -586,9 +586,18 @@ function formatOdds(value) {
 
 function formatVolume(value) {
     if (!value || value === '-') return '-';
-    const num = parseInt(String(value).replace(/[^0-9]/g, ''));
+    let str = String(value).replace(/[£€$,\s]/g, '');
+    let multiplier = 1;
+    if (str.toUpperCase().includes('M')) { 
+        multiplier = 1000000; 
+        str = str.replace(/M/gi, ''); 
+    } else if (str.toUpperCase().includes('K')) { 
+        multiplier = 1000; 
+        str = str.replace(/K/gi, ''); 
+    }
+    const num = parseFloat(str) * multiplier;
     if (isNaN(num)) return '-';
-    return '£' + num.toLocaleString('en-GB');
+    return '£' + Math.round(num).toLocaleString('en-GB');
 }
 
 function formatDateTwoLine(dateStr) {

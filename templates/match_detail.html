@@ -112,11 +112,27 @@
             } catch (error) { console.error('[Match History] Error:', error); }
         }
 
+        function parseAmount(val) {
+            if (!val) return 0;
+            let str = String(val).replace(/[£,\s]/g, '');
+            let multiplier = 1;
+            if (str.includes('M')) { multiplier = 1000000; str = str.replace('M', ''); }
+            if (str.includes('K')) { multiplier = 1000; str = str.replace('K', ''); }
+            return parseFloat(str) * multiplier || 0;
+        }
+
         function renderMatchInfoCard() {
             const card = document.getElementById('matchInfoCard');
             if (!matchData || !modalOddsData) return;
-            let vol = modalOddsData.Volume || '0';
-            vol = parseInt(String(vol).replace(/[£,]/g, '')).toLocaleString('en-GB');
+            let totalVol = 0;
+            if (currentMarket.includes('1x2')) {
+                totalVol = parseAmount(modalOddsData.Amt1) + parseAmount(modalOddsData.AmtX) + parseAmount(modalOddsData.Amt2);
+            } else if (currentMarket.includes('ou25')) {
+                totalVol = parseAmount(modalOddsData.AmtOver) + parseAmount(modalOddsData.AmtUnder);
+            } else if (currentMarket.includes('btts')) {
+                totalVol = parseAmount(modalOddsData.AmtYes) + parseAmount(modalOddsData.AmtNo);
+            }
+            let vol = totalVol > 0 ? Math.round(totalVol).toLocaleString('en-GB') : '0';
             let html = '<div class="info-row total-volume"><span class="info-label">TOTAL VOLUME</span><span class="info-value volume">£' + vol + '</span></div>';
             if (currentMarket.includes('1x2')) {
                 html += '<div class="selections-grid"><div class="selection-card"><div class="selection-label">' + matchHome + '</div><div class="selection-odds">' + (modalOddsData.Odds1||'-') + '</div><div class="selection-pct">' + (modalOddsData.Pct1||'-') + '%</div>' + (modalOddsData.Amt1?'<div class="selection-amt">£' + parseInt(modalOddsData.Amt1).toLocaleString('en-GB') + '</div>':'') + '</div><div class="selection-card"><div class="selection-label">Draw</div><div class="selection-odds">' + (modalOddsData.OddsX||'-') + '</div><div class="selection-pct">' + (modalOddsData.PctX||'-') + '%</div>' + (modalOddsData.AmtX?'<div class="selection-amt">£' + parseInt(modalOddsData.AmtX).toLocaleString('en-GB') + '</div>':'') + '</div><div class="selection-card"><div class="selection-label">' + matchAway + '</div><div class="selection-odds">' + (modalOddsData.Odds2||'-') + '</div><div class="selection-pct">' + (modalOddsData.Pct2||'-') + '%</div>' + (modalOddsData.Amt2?'<div class="selection-amt">£' + parseInt(modalOddsData.Amt2).toLocaleString('en-GB') + '</div>':'') + '</div></div>';
