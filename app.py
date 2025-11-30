@@ -1928,6 +1928,112 @@ def reload_config():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/admin/sharp-config', methods=['GET'])
+def get_sharp_config_api():
+    """V2: Get Sharp alarm configuration"""
+    try:
+        from core.alarms_v2.sharp_config import get_sharp_config
+        config = get_sharp_config(force_refresh=True)
+        return jsonify(config.to_dict())
+    except Exception as e:
+        print(f"[Admin API] Error getting sharp config: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/sharp-config', methods=['PUT'])
+def update_sharp_config_api():
+    """V2: Update Sharp alarm configuration"""
+    try:
+        from core.alarms_v2.sharp_config import SharpConfig, save_sharp_config, SharpConfigManager, get_sharp_config
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        config = SharpConfig.from_dict(data)
+        
+        success = save_sharp_config(config, updated_by="admin")
+        
+        if success:
+            SharpConfigManager().invalidate_cache()
+            fresh_config = get_sharp_config(force_refresh=True)
+            return jsonify(fresh_config.to_dict())
+        else:
+            return jsonify({'error': 'Failed to save configuration'}), 500
+    except Exception as e:
+        print(f"[Admin API] Error updating sharp config: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/sharp-config/test', methods=['POST'])
+def test_sharp_config_api():
+    """V2: Test Sharp alarm with given parameters"""
+    try:
+        from core.alarms_v2.sharp_config import get_sharp_config
+        from core.alarms_v2.sharp_detector import evaluate_sharp_alarm
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        def safe_float(value, default=0.0):
+            try:
+                result = float(value) if value is not None else default
+                if result != result:
+                    return default
+                return result
+            except (ValueError, TypeError):
+                return default
+        
+        market_type = str(data.get('market_type', '1x2'))
+        if market_type not in ['1x2', 'ou25', 'btts']:
+            market_type = '1x2'
+        
+        config = get_sharp_config(force_refresh=True)
+        
+        result = evaluate_sharp_alarm(
+            config=config,
+            market_type=market_type,
+            total_market_volume=safe_float(data.get('total_market_volume'), 0),
+            current_share_pct=safe_float(data.get('current_share_pct'), 0),
+            shock_x=safe_float(data.get('shock_x'), 0),
+            drop_pct=safe_float(data.get('drop_pct'), 0),
+            share_shift=safe_float(data.get('share_shift'), 0),
+            momentum_score=safe_float(data.get('momentum_score'), 0)
+        )
+        
+        return jsonify({
+            'sharp_score': round(result.sharp_score, 2),
+            'level': result.level,
+            'alarm': result.alarm,
+            'blocked_reason': result.reason,
+            'details': result.details
+        })
+    except Exception as e:
+        print(f"[Admin API] Error testing sharp config: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/sharp/recalculate', methods=['POST'])
+def recalculate_sharp_alarms_api():
+    """V2: Recalculate Sharp alarms for a date range (placeholder - not yet implemented)"""
+    try:
+        data = request.get_json() or {}
+        from_date = data.get('from', '')
+        to_date = data.get('to', '')
+        
+        return jsonify({
+            'status': 'not_implemented',
+            'message': 'Sharp alarm recalculation will be implemented in the next phase',
+            'from': from_date,
+            'to': to_date,
+            'recalculated': 0
+        })
+    except Exception as e:
+        print(f"[Admin API] Error recalculating sharp alarms: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 def main():
     """Main entry point with error handling for EXE"""
     try:

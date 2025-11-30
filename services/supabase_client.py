@@ -510,6 +510,49 @@ class SupabaseClient:
         
         return latest_time
     
+    def get_sharp_config(self) -> Optional[Dict[str, Any]]:
+        """Get sharp alarm configuration from Supabase"""
+        if not self.is_available:
+            return None
+        
+        try:
+            url = f"{self._rest_url('sharp_config')}?id=eq.1&select=*"
+            resp = httpx.get(url, headers=self._headers(), timeout=10)
+            if resp.status_code == 200:
+                rows = resp.json()
+                if rows:
+                    return rows[0]
+            return None
+        except Exception as e:
+            print(f"[Supabase] Error get_sharp_config: {e}")
+            return None
+    
+    def save_sharp_config(self, config: Dict[str, Any]) -> bool:
+        """Save sharp alarm configuration to Supabase"""
+        if not self.is_available:
+            return False
+        
+        try:
+            data = {k: v for k, v in config.items() if k not in ['id']}
+            
+            data['updated_at'] = datetime.utcnow().isoformat()
+            
+            url = f"{self._rest_url('sharp_config')}?id=eq.1"
+            headers = self._headers()
+            headers['Prefer'] = 'return=representation'
+            
+            resp = httpx.patch(url, headers=headers, json=data, timeout=10)
+            
+            if resp.status_code in [200, 204]:
+                print(f"[Supabase] Sharp config saved successfully")
+                return True
+            else:
+                print(f"[Supabase] Error saving sharp config: {resp.status_code} - {resp.text}")
+                return False
+        except Exception as e:
+            print(f"[Supabase] Error save_sharp_config: {e}")
+            return False
+    
     def get_active_alerts(self, limit: int = 50) -> List[Dict[str, Any]]:
         if not self.is_available:
             return []
