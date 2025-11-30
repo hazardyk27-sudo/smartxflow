@@ -4335,7 +4335,7 @@ td.volume,
     background: #238636;
     border: none;
     border-radius: 0;
-    color: #000;
+    color: #fff;
     font-size: 14px;
     font-weight: 700;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
@@ -4351,24 +4351,14 @@ td.volume,
 }
 
 .alarms-toggle-btn svg {
-    stroke: #000;
+    stroke: #ffd700;
     stroke-width: 2.5;
     width: 18px;
     height: 18px;
 }
 
 .alarms-toggle-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 22px;
-    height: 22px;
-    padding: 0 6px;
-    background: #da3633;
-    color: #000;
-    border-radius: 50%;
-    font-size: 12px;
-    font-weight: 800;
+    display: none;
 }
 
 /* Sidebar Overlay */
