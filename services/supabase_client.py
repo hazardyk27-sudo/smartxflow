@@ -407,8 +407,9 @@ class SupabaseClient:
         return latest_time
     
     def get_6h_odds_history(self, market: str) -> Dict[str, Dict[str, Any]]:
-        """Get odds history for DROP markets - OPTIMIZED: only first and last snapshots.
+        """Get odds history for DROP markets - OPENING vs CURRENT.
         Returns dict: { "home|away": { "sel1": {old, new, trend}, ... } }
+        Strategy: Get active matches, then batch fetch opening & latest from history.
         """
         if not self.is_available:
             return {}
@@ -417,34 +418,24 @@ class SupabaseClient:
             return {}
         
         history_table = f"{market}_history"
+        main_table = market
         
         try:
-            from datetime import datetime, timedelta
-            import pytz
-            
-            turkey_tz = pytz.timezone('Europe/Istanbul')
-            now_turkey = datetime.now(turkey_tz)
-            two_days_ago = now_turkey - timedelta(hours=48)
-            cutoff_iso = two_days_ago.strftime('%Y-%m-%dT%H:%M:%S')
-            
-            first_url = f"{self._rest_url(history_table)}?scrapedat=gte.{cutoff_iso}&order=scrapedat.asc&limit=500"
-            first_resp = httpx.get(first_url, headers=self._headers(), timeout=10)
-            
-            last_url = f"{self._rest_url(history_table)}?scrapedat=gte.{cutoff_iso}&order=scrapedat.desc&limit=500"
-            last_resp = httpx.get(last_url, headers=self._headers(), timeout=10)
-            
-            if first_resp.status_code != 200 or last_resp.status_code != 200:
-                print(f"[6h History] Error fetching from {history_table}")
+            main_url = f"{self._rest_url(main_table)}?select=home,away"
+            main_resp = httpx.get(main_url, headers=self._headers(), timeout=10)
+            if main_resp.status_code != 200:
                 return {}
             
-            first_rows = first_resp.json()
-            last_rows = last_resp.json()
+            active_matches = main_resp.json()
+            match_list = [(m.get('home', ''), m.get('away', '')) for m in active_matches]
             
-            first_by_match = {}
-            for row in first_rows:
-                key = f"{row.get('home', '')}|{row.get('away', '')}"
-                if key not in first_by_match:
-                    first_by_match[key] = row
+            last_url = f"{self._rest_url(history_table)}?order=scrapedat.desc&limit=3000"
+            last_resp = httpx.get(last_url, headers=self._headers(), timeout=15)
+            
+            if last_resp.status_code != 200:
+                return {}
+            
+            last_rows = last_resp.json()
             
             last_by_match = {}
             for row in last_rows:
@@ -452,23 +443,40 @@ class SupabaseClient:
                 if key not in last_by_match:
                     last_by_match[key] = row
             
-            print(f"[6h History] Fetched {len(first_by_match)} first + {len(last_by_match)} last from {history_table}")
+            opening_by_match = {}
+            batch_size = 20
+            for i in range(0, min(len(match_list), 200), batch_size):
+                batch = match_list[i:i+batch_size]
+                for home, away in batch:
+                    key = f"{home}|{away}"
+                    if key in opening_by_match:
+                        continue
+                    try:
+                        from urllib.parse import quote
+                        open_url = f"{self._rest_url(history_table)}?home=eq.{quote(home)}&away=eq.{quote(away)}&order=scrapedat.asc&limit=1"
+                        open_resp = httpx.get(open_url, headers=self._headers(), timeout=5)
+                        if open_resp.status_code == 200:
+                            rows = open_resp.json()
+                            if rows:
+                                opening_by_match[key] = rows[0]
+                    except:
+                        pass
             
-            all_keys = set(first_by_match.keys()) | set(last_by_match.keys())
-            if not all_keys:
-                return {}
+            print(f"[Odds History] Got {len(opening_by_match)} opening + {len(last_by_match)} latest for {market}")
             
             result = {}
             
-            for key in all_keys:
-                first_row = first_by_match.get(key)
+            for home, away in match_list:
+                key = f"{home}|{away}"
+                first_row = opening_by_match.get(key)
                 last_row = last_by_match.get(key)
                 
-                if not first_row and not last_row:
+                if not last_row:
                     continue
                 
-                home = (first_row or last_row).get('home', '')
-                away = (first_row or last_row).get('away', '')
+                if not first_row:
+                    first_row = last_row
+                
                 first_scraped = first_row.get('scrapedat', '') if first_row else None
                 
                 result[key] = {
@@ -516,11 +524,10 @@ class SupabaseClient:
                         'first_scraped': first_scraped
                     }
             
-            print(f"[6h History] Got {len(result)} matches from {history_table}")
             return result
             
         except Exception as e:
-            print(f"[6h History] Error: {e}")
+            print(f"[Odds History] Error: {e}")
             import traceback
             traceback.print_exc()
             return {}
