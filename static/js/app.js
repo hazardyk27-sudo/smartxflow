@@ -228,11 +228,7 @@ async function loadMatches() {
     updateTableHeaders();
     
     try {
-        if (currentMarket.startsWith('dropping')) {
-            await loadOddsTrend(currentMarket);
-        } else {
-            oddsTrendCache = {};
-        }
+        oddsTrendCache = {};
         
         const response = await fetch(`/api/matches?market=${currentMarket}`);
         const apiMatches = await response.json();
