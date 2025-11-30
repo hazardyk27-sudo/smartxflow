@@ -3331,3 +3331,202 @@ setInterval(loadTickerAlarms, 60000);
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(loadTickerAlarms, 1000);
 });
+
+// ============================================
+// ALARMS MODAL FUNCTIONALITY
+// ============================================
+
+let currentAlarmTab = 'sharp';
+let alarmsData = {
+    sharp: [],
+    insider: [],
+    bigmoney: []
+};
+
+async function openAlarmsModal() {
+    document.getElementById('alarmsModal').style.display = 'flex';
+    await loadAllAlarms();
+}
+
+function closeAlarmsModal() {
+    document.getElementById('alarmsModal').style.display = 'none';
+}
+
+async function loadAllAlarms() {
+    const body = document.getElementById('alarmsModalBody');
+    body.innerHTML = '<div class="alarms-loading">Alarmlar yukleniyor...</div>';
+    
+    try {
+        const [sharpRes, insiderRes, bigMoneyRes] = await Promise.all([
+            fetch('/api/sharp/alarms').catch(() => ({ ok: false })),
+            fetch('/api/insider/alarms').catch(() => ({ ok: false })),
+            fetch('/api/bigmoney/alarms').catch(() => ({ ok: false }))
+        ]);
+        
+        alarmsData.sharp = sharpRes.ok ? await sharpRes.json() : [];
+        alarmsData.insider = insiderRes.ok ? await insiderRes.json() : [];
+        alarmsData.bigmoney = bigMoneyRes.ok ? await bigMoneyRes.json() : [];
+        
+        // Update counts
+        document.getElementById('sharpCount').textContent = alarmsData.sharp.length;
+        document.getElementById('insiderCount').textContent = alarmsData.insider.length;
+        document.getElementById('bigMoneyCount').textContent = alarmsData.bigmoney.length;
+        
+        // Update badge
+        const total = alarmsData.sharp.length + alarmsData.insider.length + alarmsData.bigmoney.length;
+        document.getElementById('alarmBadge').textContent = total;
+        
+        renderAlarmsTab(currentAlarmTab);
+    } catch (error) {
+        console.error('Alarm yukleme hatasi:', error);
+        body.innerHTML = '<div class="no-alarms-message"><p>Alarmlar yuklenirken hata olustu.</p></div>';
+    }
+}
+
+function switchAlarmTab(type) {
+    currentAlarmTab = type;
+    document.querySelectorAll('.alarm-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.type === type);
+    });
+    renderAlarmsTab(type);
+}
+
+function renderAlarmsTab(type) {
+    const body = document.getElementById('alarmsModalBody');
+    const alarms = alarmsData[type] || [];
+    
+    if (alarms.length === 0) {
+        const typeNames = { sharp: 'Sharp', insider: 'Insider', bigmoney: 'Big Money' };
+        body.innerHTML = `
+            <div class="no-alarms-message">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                <p>${typeNames[type]} alarm bulunamadi.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    body.innerHTML = alarms.map((alarm, idx) => {
+        const home = alarm.home || alarm.home_team || '-';
+        const away = alarm.away || alarm.away_team || '-';
+        const market = alarm.market || '-';
+        const selection = alarm.selection || alarm.side || '-';
+        const score = type === 'sharp' ? (alarm.sharp_score || 0).toFixed(1) 
+                    : type === 'insider' ? (alarm.insider_score || 0).toFixed(1)
+                    : formatVolume(alarm.stake || alarm.volume || 0);
+        const createdAt = alarm.created_at || '';
+        
+        return `
+            <div class="alarm-list-item" onclick="showAlarmDetailFromModal('${type}', ${idx})">
+                <div class="alarm-icon ${type}">
+                    ${type === 'sharp' ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>'
+                    : type === 'insider' ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>'
+                    : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'}
+                </div>
+                <div class="alarm-details">
+                    <div class="alarm-match-name">${home} vs ${away}</div>
+                    <div class="alarm-meta-info">
+                        <span>${market}</span>
+                        <span>${selection}</span>
+                        ${createdAt ? `<span>${createdAt}</span>` : ''}
+                    </div>
+                </div>
+                <div class="alarm-score-badge">${score}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+function showAlarmDetailFromModal(type, index) {
+    const alarm = alarmsData[type][index];
+    if (!alarm) return;
+    
+    closeAlarmsModal();
+    
+    // Show detail based on alarm type
+    if (type === 'sharp') {
+        showTickerAlarmDetail(encodeURIComponent(JSON.stringify(alarm)));
+    } else {
+        // Generic alarm detail modal
+        const typeNames = { insider: 'Insider', bigmoney: 'Big Money' };
+        const typeColors = { insider: '#60a5fa', bigmoney: '#fbbf24' };
+        
+        const home = alarm.home || alarm.home_team || '-';
+        const away = alarm.away || alarm.away_team || '-';
+        const score = type === 'insider' ? (alarm.insider_score || 0).toFixed(1) : formatVolume(alarm.stake || alarm.volume || 0);
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.id = 'alarmDetailModal';
+        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+        
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2 style="display: flex; align-items: center; gap: 10px;">
+                        <span style="background: ${typeColors[type]}; width: 14px; height: 14px; border-radius: 50%; display: inline-block;"></span>
+                        ${typeNames[type]} Alarm
+                    </h2>
+                    <button class="close-btn" onclick="document.getElementById('alarmDetailModal').remove()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body" style="padding: 20px;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 36px; font-weight: 700; color: ${typeColors[type]};">${score}</div>
+                        <div style="color: #8b949e; font-size: 14px;">${type === 'insider' ? 'Insider Score' : 'Stake'}</div>
+                    </div>
+                    <div style="background: #0d1117; border-radius: 8px; padding: 16px;">
+                        <div style="font-size: 18px; font-weight: 600; color: #fff; text-align: center; margin-bottom: 12px;">
+                            ${home} vs ${away}
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
+                            <div><span style="color: #8b949e;">Market:</span> <span style="color: #fff;">${alarm.market || '-'}</span></div>
+                            <div><span style="color: #8b949e;">Selection:</span> <span style="color: #fff;">${alarm.selection || alarm.side || '-'}</span></div>
+                            ${alarm.stake ? `<div><span style="color: #8b949e;">Stake:</span> <span style="color: #22c55e;">${formatVolume(alarm.stake)}</span></div>` : ''}
+                            ${alarm.odds_drop_pct ? `<div><span style="color: #8b949e;">Odds Drop:</span> <span style="color: #f87171;">${alarm.odds_drop_pct.toFixed(2)}%</span></div>` : ''}
+                            ${alarm.created_at ? `<div style="grid-column: span 2;"><span style="color: #8b949e;">Tarih:</span> <span style="color: #fff;">${alarm.created_at}</span></div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+}
+
+// Update badge on page load
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const [sharpRes, insiderRes, bigMoneyRes] = await Promise.all([
+            fetch('/api/sharp/alarms').catch(() => ({ ok: false })),
+            fetch('/api/insider/alarms').catch(() => ({ ok: false })),
+            fetch('/api/bigmoney/alarms').catch(() => ({ ok: false }))
+        ]);
+        
+        const sharpCount = sharpRes.ok ? (await sharpRes.json()).length : 0;
+        const insiderCount = insiderRes.ok ? (await insiderRes.json()).length : 0;
+        const bigMoneyCount = bigMoneyRes.ok ? (await bigMoneyRes.json()).length : 0;
+        
+        const total = sharpCount + insiderCount + bigMoneyCount;
+        const badge = document.getElementById('alarmBadge');
+        if (badge) badge.textContent = total;
+    } catch (e) {
+        console.log('Badge guncelleme hatasi:', e);
+    }
+});
+
+// Close modal with ESC key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('alarmsModal');
+        if (modal && modal.style.display !== 'none') {
+            closeAlarmsModal();
+        }
+    }
+});
