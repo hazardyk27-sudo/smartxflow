@@ -1222,6 +1222,292 @@ def calculate_insider_scores(config):
     return alarms
 
 
+# ============================================================================
+# BIG MONEY ALARM SYSTEM
+# ============================================================================
+
+BIG_MONEY_CONFIG_FILE = 'big_money_config.json'
+BIG_MONEY_ALARMS_FILE = 'big_money_alarms.json'
+
+big_money_calculating = False
+big_money_calc_progress = ""
+
+def load_big_money_config():
+    """Load Big Money config from JSON file"""
+    try:
+        if os.path.exists(BIG_MONEY_CONFIG_FILE):
+            with open(BIG_MONEY_CONFIG_FILE, 'r') as f:
+                config = json.load(f)
+                print(f"[BigMoney] Config loaded: limit={config.get('big_money_limit', 15000)}")
+                return config
+    except Exception as e:
+        print(f"[BigMoney] Config load error: {e}")
+    return {'big_money_limit': 15000}
+
+def save_big_money_config(config):
+    """Save Big Money config to JSON file"""
+    try:
+        with open(BIG_MONEY_CONFIG_FILE, 'w') as f:
+            json.dump(config, f, indent=2)
+        print(f"[BigMoney] Config saved: limit={config.get('big_money_limit')}")
+        return True
+    except Exception as e:
+        print(f"[BigMoney] Config save error: {e}")
+        return False
+
+def load_big_money_alarms_from_file():
+    """Load Big Money alarms from JSON file"""
+    try:
+        if os.path.exists(BIG_MONEY_ALARMS_FILE):
+            with open(BIG_MONEY_ALARMS_FILE, 'r') as f:
+                alarms = json.load(f)
+                print(f"[BigMoney] Loaded {len(alarms)} alarms from {BIG_MONEY_ALARMS_FILE}")
+                return alarms
+    except Exception as e:
+        print(f"[BigMoney] Alarms load error: {e}")
+    return []
+
+def save_big_money_alarms_to_file(alarms):
+    """Save Big Money alarms to JSON file"""
+    try:
+        with open(BIG_MONEY_ALARMS_FILE, 'w') as f:
+            json.dump(alarms, f, indent=2, ensure_ascii=False)
+        print(f"[BigMoney] Saved {len(alarms)} alarms to {BIG_MONEY_ALARMS_FILE}")
+        return True
+    except Exception as e:
+        print(f"[BigMoney] Alarms save error: {e}")
+        return False
+
+big_money_config = load_big_money_config()
+big_money_alarms = load_big_money_alarms_from_file()
+
+
+@app.route('/api/bigmoney/config', methods=['GET'])
+def get_big_money_config():
+    """Get Big Money config"""
+    return jsonify(big_money_config)
+
+
+@app.route('/api/bigmoney/config', methods=['POST'])
+def save_big_money_config_endpoint():
+    """Save Big Money config"""
+    global big_money_config
+    try:
+        data = request.get_json()
+        if data:
+            big_money_config.update(data)
+            save_big_money_config(big_money_config)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/bigmoney/alarms', methods=['GET'])
+def get_big_money_alarms():
+    """Get all Big Money alarms"""
+    return jsonify(big_money_alarms)
+
+
+@app.route('/api/bigmoney/delete', methods=['POST'])
+def delete_big_money_alarms():
+    """Delete all Big Money alarms"""
+    global big_money_alarms
+    try:
+        big_money_alarms = []
+        save_big_money_alarms_to_file(big_money_alarms)
+        print("[BigMoney] All alarms deleted")
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"[BigMoney] Delete error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/bigmoney/status', methods=['GET'])
+def get_big_money_status():
+    """Get Big Money calculation status"""
+    return jsonify({
+        'calculating': big_money_calculating,
+        'progress': big_money_calc_progress,
+        'alarm_count': len(big_money_alarms)
+    })
+
+
+@app.route('/api/bigmoney/calculate', methods=['POST'])
+def calculate_big_money_alarms_endpoint():
+    """Calculate Big Money alarms based on config"""
+    global big_money_alarms, big_money_calculating
+    try:
+        big_money_calculating = True
+        big_money_alarms = calculate_big_money_scores(big_money_config)
+        save_big_money_alarms_to_file(big_money_alarms)
+        big_money_calculating = False
+        return jsonify({'success': True, 'count': len(big_money_alarms)})
+    except Exception as e:
+        big_money_calculating = False
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def calculate_big_money_scores(config):
+    """
+    Calculate Big Money and Huge Money alarms.
+    
+    BIG MONEY: Single snapshot with incoming money >= limit (default 15000)
+    HUGE MONEY: 2 consecutive snapshots BOTH with incoming money >= limit
+    """
+    global big_money_calc_progress
+    alarms = []
+    supabase = get_supabase_client()
+    if not supabase or not supabase.is_available:
+        print("[BigMoney] Supabase not available")
+        return alarms
+    
+    limit = config.get('big_money_limit', 15000)
+    print(f"[BigMoney] Config: limit={limit}")
+    
+    markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
+    market_names = {'moneyway_1x2': '1X2', 'moneyway_ou25': 'O/U 2.5', 'moneyway_btts': 'BTTS'}
+    
+    # Prematch kuralı: D-2+ maçlar hariç
+    today = now_turkey().date()
+    yesterday = today - timedelta(days=1)
+    
+    for idx, market in enumerate(markets):
+        try:
+            if '1x2' in market:
+                selections = ['1', 'X', '2']
+                amount_keys = ['amt1', 'amtx', 'amt2']
+            elif 'ou25' in market:
+                selections = ['Over', 'Under']
+                amount_keys = ['amtover', 'amtunder']
+            else:
+                selections = ['Yes', 'No']
+                amount_keys = ['amtyes', 'amtno']
+            
+            history_table = f"{market}_history"
+            matches = supabase.get_all_matches_with_latest(market)
+            if not matches:
+                continue
+            
+            big_money_calc_progress = f"{market_names.get(market, market)} isleniyor... ({idx+1}/3)"
+            
+            # D-2+ filtresi
+            filtered_matches = []
+            for match in matches:
+                match_date_str = match.get('date', '')
+                if match_date_str:
+                    try:
+                        date_part = match_date_str.split()[0]
+                        if '.' in date_part:
+                            parts = date_part.split('.')
+                            if len(parts) == 2:
+                                day = int(parts[0])
+                                month_abbr = parts[1][:3]
+                                month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+                                            'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
+                                month = month_map.get(month_abbr, today.month)
+                                match_date = datetime(today.year, month, day).date()
+                            elif len(parts) == 3:
+                                match_date = datetime.strptime(date_part, '%d.%m.%Y').date()
+                            else:
+                                match_date = today
+                        elif '-' in date_part:
+                            match_date = datetime.strptime(date_part.split('T')[0], '%Y-%m-%d').date()
+                        else:
+                            match_date = today
+                        
+                        if match_date < yesterday:
+                            continue
+                        filtered_matches.append(match)
+                    except:
+                        filtered_matches.append(match)
+                else:
+                    filtered_matches.append(match)
+            
+            print(f"[BigMoney] Processing {len(filtered_matches)}/{len(matches)} matches for {market}")
+            
+            for match in filtered_matches:
+                home = match.get('home_team', match.get('home', match.get('Home', '')))
+                away = match.get('away_team', match.get('away', match.get('Away', '')))
+                
+                if not home or not away:
+                    continue
+                
+                history = supabase.get_match_history_for_sharp(home, away, history_table)
+                if not history or len(history) < 2:
+                    continue
+                
+                match_date_str = match.get('date', '')
+                
+                for sel_idx, selection in enumerate(selections):
+                    amount_key = amount_keys[sel_idx]
+                    
+                    # Her snapshot için gelen parayı hesapla
+                    big_money_snapshots = []
+                    
+                    for i in range(1, len(history)):
+                        current_amount = parse_volume(history[i].get(amount_key, '0'))
+                        prev_amount = parse_volume(history[i-1].get(amount_key, '0'))
+                        incoming_money = current_amount - prev_amount
+                        
+                        if incoming_money >= limit:
+                            big_money_snapshots.append({
+                                'index': i,
+                                'incoming': incoming_money,
+                                'scrapedat': history[i].get('scrapedat', '')
+                            })
+                    
+                    if not big_money_snapshots:
+                        continue
+                    
+                    # Huge Money kontrolü: 2 ardışık snapshot
+                    is_huge = False
+                    huge_total = 0
+                    for j in range(len(big_money_snapshots) - 1):
+                        if big_money_snapshots[j+1]['index'] - big_money_snapshots[j]['index'] == 1:
+                            is_huge = True
+                            huge_total = big_money_snapshots[j]['incoming'] + big_money_snapshots[j+1]['incoming']
+                            break
+                    
+                    # En büyük gelen parayı bul
+                    max_incoming = max(s['incoming'] for s in big_money_snapshots)
+                    last_snapshot = big_money_snapshots[-1]
+                    
+                    created_at = now_turkey().strftime('%d.%m.%Y %H:%M')
+                    
+                    alarm = {
+                        'home': home,
+                        'away': away,
+                        'market': market_names.get(market, market),
+                        'selection': selection,
+                        'incoming_money': max_incoming,
+                        'is_huge': is_huge,
+                        'huge_total': huge_total if is_huge else 0,
+                        'alarm_type': 'HUGE MONEY' if is_huge else 'BIG MONEY',
+                        'big_money_limit': limit,
+                        'snapshot_count': len(big_money_snapshots),
+                        'match_date': match_date_str,
+                        'created_at': created_at
+                    }
+                    alarms.append(alarm)
+                    
+                    alarm_type = "HUGE MONEY" if is_huge else "BIG MONEY"
+                    print(f"[BigMoney] {alarm_type}: {home} vs {away} [{selection}] £{max_incoming:,.0f}")
+        
+        except Exception as e:
+            print(f"[BigMoney] Error processing {market}: {e}")
+            import traceback
+            traceback.print_exc()
+            continue
+    
+    # Huge Money önce, sonra Big Money (en yüksek incoming'e göre sırala)
+    alarms.sort(key=lambda x: (not x['is_huge'], -x['incoming_money']))
+    
+    print(f"[BigMoney] Total alarms found: {len(alarms)}")
+    return alarms
+
+
 @app.route('/api/sharp/status', methods=['GET'])
 def get_sharp_status():
     """Get Sharp calculation status"""
