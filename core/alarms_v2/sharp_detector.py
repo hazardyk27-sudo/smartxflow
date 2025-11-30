@@ -131,17 +131,23 @@ def evaluate_sharp_alarm(
     
     volume_base_score = shock_x * config.volume_multiplier
     
-    sharp_score_raw = (
-        volume_base_score * config.weight_volume +
-        drop_pct * config.weight_odds +
-        share_shift * config.weight_share +
-        momentum_score * config.weight_momentum
-    )
+    volume_contrib = volume_base_score * config.weight_volume
+    odds_contrib = drop_pct * config.weight_odds
+    share_contrib = share_shift * config.weight_share
+    momentum_contrib = momentum_score * config.weight_momentum
     
-    sharp_score = sharp_score_raw / config.normalization_factor if config.normalization_factor else sharp_score_raw
+    sharp_score_raw = volume_contrib + odds_contrib + share_contrib + momentum_contrib
+    
+    norm_factor = config.normalization_factor if config.normalization_factor >= 1 else 100.0
+    sharp_score = sharp_score_raw / norm_factor
+    
+    print(f"[SharpScore] market={market_type} shockX={shock_x:.2f} vol_base={volume_base_score:.1f}")
+    print(f"[SharpScore] contrib: vol={volume_contrib:.1f} odds={odds_contrib:.1f} share={share_contrib:.1f} mom={momentum_contrib:.1f}")
+    print(f"[SharpScore] raw={sharp_score_raw:.1f} / norm={norm_factor:.1f} = score={sharp_score:.1f}")
     
     details["volume_base_score"] = volume_base_score
     details["sharp_score_raw"] = sharp_score_raw
+    details["normalization_factor"] = norm_factor
     details["sharp_score"] = sharp_score
     
     if sharp_score < config.sharp_score_threshold:

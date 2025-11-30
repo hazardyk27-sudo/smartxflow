@@ -5,9 +5,27 @@ Supabase'den config okuma/yazma ve cache yönetimi.
 """
 
 from dataclasses import dataclass, asdict, field
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, Union
 from datetime import datetime
 import json
+
+
+def parse_decimal(value: Union[str, int, float], default: float = 0.0) -> float:
+    """
+    Parse decimal value with comma or dot support.
+    Handles: "0,8" -> 0.8, "1.2" -> 1.2, 0.8 -> 0.8
+    """
+    if value is None:
+        return default
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        cleaned = value.strip().replace(',', '.')
+        try:
+            return float(cleaned)
+        except ValueError:
+            return default
+    return default
 
 
 @dataclass
@@ -20,7 +38,7 @@ class SharpConfig:
     weight_momentum: float = 0.5
     
     volume_multiplier: float = 10.0
-    normalization_factor: float = 1.0
+    normalization_factor: float = 20.0
     
     min_volume_1x2: int = 3000
     min_volume_ou25: int = 2000
@@ -49,25 +67,29 @@ class SharpConfig:
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'SharpConfig':
-        """Dictionary'den SharpConfig oluştur"""
+        """Dictionary'den SharpConfig oluştur - virgül/nokta dönüşümü destekli"""
         shock_ranges = data.get('shock_ranges', {})
         if isinstance(shock_ranges, str):
             shock_ranges = json.loads(shock_ranges)
         if isinstance(shock_ranges, dict):
             shock_ranges = {k: tuple(v) if isinstance(v, list) else v for k, v in shock_ranges.items()}
         
+        normalization = parse_decimal(data.get('normalization_factor'), 20.0)
+        if normalization < 1:
+            normalization = 20.0
+        
         return cls(
-            weight_volume=float(data.get('weight_volume', 1.0)),
-            weight_odds=float(data.get('weight_odds', 1.0)),
-            weight_share=float(data.get('weight_share', 0.5)),
-            weight_momentum=float(data.get('weight_momentum', 0.5)),
-            volume_multiplier=float(data.get('volume_multiplier', 10.0)),
-            normalization_factor=float(data.get('normalization_factor', 1.0)),
-            min_volume_1x2=int(data.get('min_volume_1x2', 3000)),
-            min_volume_ou25=int(data.get('min_volume_ou25', 2000)),
-            min_volume_btts=int(data.get('min_volume_btts', 1500)),
-            sharp_score_threshold=int(data.get('sharp_score_threshold', 50)),
-            min_share_pct_threshold=int(data.get('min_share_pct_threshold', 15)),
+            weight_volume=parse_decimal(data.get('weight_volume'), 1.0),
+            weight_odds=parse_decimal(data.get('weight_odds'), 1.0),
+            weight_share=parse_decimal(data.get('weight_share'), 0.5),
+            weight_momentum=parse_decimal(data.get('weight_momentum'), 0.5),
+            volume_multiplier=parse_decimal(data.get('volume_multiplier'), 10.0),
+            normalization_factor=normalization,
+            min_volume_1x2=int(parse_decimal(data.get('min_volume_1x2'), 3000)),
+            min_volume_ou25=int(parse_decimal(data.get('min_volume_ou25'), 2000)),
+            min_volume_btts=int(parse_decimal(data.get('min_volume_btts'), 1500)),
+            sharp_score_threshold=int(parse_decimal(data.get('sharp_score_threshold'), 50)),
+            min_share_pct_threshold=int(parse_decimal(data.get('min_share_pct_threshold'), 15)),
             shock_ranges=shock_ranges,
             updated_at=data.get('updated_at'),
             updated_by=data.get('updated_by')

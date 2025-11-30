@@ -843,7 +843,8 @@
             configFields.forEach(field => {
                 const input = document.getElementById(field);
                 if (input) {
-                    const value = parseFloat(input.value);
+                    let rawValue = input.value.replace(',', '.');
+                    const value = parseFloat(rawValue);
                     if (!isNaN(value)) {
                         config[field] = value;
                     }
