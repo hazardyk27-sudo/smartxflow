@@ -3336,8 +3336,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // ALARMS MODAL FUNCTIONALITY
 // ============================================
 
-let currentAlarmTab = 'sharp';
-let alarmsData = {
+let currentAlarmFilter = 'all';
+let allAlarmsData = [];
+let alarmsDataByType = {
     sharp: [],
     insider: [],
     bigmoney: []
@@ -3363,53 +3364,82 @@ async function loadAllAlarms() {
             fetch('/api/bigmoney/alarms').catch(() => ({ ok: false }))
         ]);
         
-        alarmsData.sharp = sharpRes.ok ? await sharpRes.json() : [];
-        alarmsData.insider = insiderRes.ok ? await insiderRes.json() : [];
-        alarmsData.bigmoney = bigMoneyRes.ok ? await bigMoneyRes.json() : [];
+        alarmsDataByType.sharp = sharpRes.ok ? await sharpRes.json() : [];
+        alarmsDataByType.insider = insiderRes.ok ? await insiderRes.json() : [];
+        alarmsDataByType.bigmoney = bigMoneyRes.ok ? await bigMoneyRes.json() : [];
+        
+        // Add type to each alarm and merge
+        const sharpWithType = alarmsDataByType.sharp.map(a => ({ ...a, _type: 'sharp' }));
+        const insiderWithType = alarmsDataByType.insider.map(a => ({ ...a, _type: 'insider' }));
+        const bigmoneyWithType = alarmsDataByType.bigmoney.map(a => ({ ...a, _type: 'bigmoney' }));
+        
+        allAlarmsData = [...sharpWithType, ...insiderWithType, ...bigmoneyWithType];
+        
+        // Sort by created_at (newest first)
+        allAlarmsData.sort((a, b) => {
+            const dateA = parseAlarmDate(a.created_at);
+            const dateB = parseAlarmDate(b.created_at);
+            return dateB - dateA;
+        });
         
         // Update counts
-        document.getElementById('sharpCount').textContent = alarmsData.sharp.length;
-        document.getElementById('insiderCount').textContent = alarmsData.insider.length;
-        document.getElementById('bigMoneyCount').textContent = alarmsData.bigmoney.length;
+        document.getElementById('sharpCount').textContent = alarmsDataByType.sharp.length;
+        document.getElementById('insiderCount').textContent = alarmsDataByType.insider.length;
+        document.getElementById('bigMoneyCount').textContent = alarmsDataByType.bigmoney.length;
+        document.getElementById('allCount').textContent = allAlarmsData.length;
         
         // Update badge
-        const total = alarmsData.sharp.length + alarmsData.insider.length + alarmsData.bigmoney.length;
-        document.getElementById('alarmBadge').textContent = total;
+        document.getElementById('alarmBadge').textContent = allAlarmsData.length;
         
-        renderAlarmsTab(currentAlarmTab);
+        renderAlarmsList(currentAlarmFilter);
     } catch (error) {
         console.error('Alarm yukleme hatasi:', error);
         body.innerHTML = '<div class="no-alarms-message"><p>Alarmlar yuklenirken hata olustu.</p></div>';
     }
 }
 
-function switchAlarmTab(type) {
-    currentAlarmTab = type;
-    document.querySelectorAll('.alarm-tab').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.type === type);
-    });
-    renderAlarmsTab(type);
+function parseAlarmDate(dateStr) {
+    if (!dateStr) return new Date(0);
+    // Handle format: "01.12.2025 01:14" or ISO format
+    if (dateStr.includes('.')) {
+        const [datePart, timePart] = dateStr.split(' ');
+        const [day, month, year] = datePart.split('.');
+        const [hour, min] = (timePart || '00:00').split(':');
+        return new Date(year, month - 1, day, hour, min);
+    }
+    return new Date(dateStr);
 }
 
-function renderAlarmsTab(type) {
+function filterAlarms(type) {
+    currentAlarmFilter = type;
+    document.querySelectorAll('.alarm-filter').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.type === type);
+    });
+    renderAlarmsList(type);
+}
+
+function renderAlarmsList(filterType) {
     const body = document.getElementById('alarmsModalBody');
-    const alarms = alarmsData[type] || [];
+    
+    let alarms = filterType === 'all' 
+        ? allAlarmsData 
+        : allAlarmsData.filter(a => a._type === filterType);
     
     if (alarms.length === 0) {
-        const typeNames = { sharp: 'Sharp', insider: 'Insider', bigmoney: 'Big Money' };
         body.innerHTML = `
             <div class="no-alarms-message">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
-                <p>${typeNames[type]} alarm bulunamadi.</p>
+                <p>Alarm bulunamadi.</p>
             </div>
         `;
         return;
     }
     
     body.innerHTML = alarms.map((alarm, idx) => {
+        const type = alarm._type;
         const home = alarm.home || alarm.home_team || '-';
         const away = alarm.away || alarm.away_team || '-';
         const market = alarm.market || '-';
@@ -3418,39 +3448,46 @@ function renderAlarmsTab(type) {
                     : type === 'insider' ? (alarm.insider_score || 0).toFixed(1)
                     : formatVolume(alarm.stake || alarm.volume || 0);
         const createdAt = alarm.created_at || '';
+        const typeLabels = { sharp: 'Sharp', insider: 'Insider', bigmoney: 'Big Money' };
         
         return `
-            <div class="alarm-list-item" onclick="showAlarmDetailFromModal('${type}', ${idx})">
+            <div class="alarm-list-item" onclick="showAlarmDetailFromList(${idx}, '${filterType}')">
                 <div class="alarm-icon ${type}">
                     ${type === 'sharp' ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>'
                     : type === 'insider' ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>'
                     : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'}
                 </div>
                 <div class="alarm-details">
-                    <div class="alarm-match-name">${home} vs ${away}</div>
+                    <div class="alarm-match-name">
+                        <span class="alarm-type-badge ${type}">${typeLabels[type]}</span>
+                        ${home} vs ${away}
+                    </div>
                     <div class="alarm-meta-info">
                         <span>${market}</span>
                         <span>${selection}</span>
-                        ${createdAt ? `<span>${createdAt}</span>` : ''}
                     </div>
                 </div>
+                <span class="alarm-time">${createdAt}</span>
                 <div class="alarm-score-badge">${score}</div>
             </div>
         `;
     }).join('');
 }
 
-function showAlarmDetailFromModal(type, index) {
-    const alarm = alarmsData[type][index];
+function showAlarmDetailFromList(index, filterType) {
+    const alarms = filterType === 'all' 
+        ? allAlarmsData 
+        : allAlarmsData.filter(a => a._type === filterType);
+    
+    const alarm = alarms[index];
     if (!alarm) return;
     
+    const type = alarm._type;
     closeAlarmsModal();
     
-    // Show detail based on alarm type
     if (type === 'sharp') {
         showTickerAlarmDetail(encodeURIComponent(JSON.stringify(alarm)));
     } else {
-        // Generic alarm detail modal
         const typeNames = { insider: 'Insider', bigmoney: 'Big Money' };
         const typeColors = { insider: '#60a5fa', bigmoney: '#fbbf24' };
         
