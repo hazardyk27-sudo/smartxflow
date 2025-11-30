@@ -895,7 +895,32 @@ def save_sharp_config_to_file(config):
 
 sharp_config = load_sharp_config_from_file()
 
-sharp_alarms = []
+SHARP_ALARMS_FILE = 'sharp_alarms.json'
+
+def load_sharp_alarms_from_file():
+    """Load Sharp alarms from JSON file"""
+    try:
+        if os.path.exists(SHARP_ALARMS_FILE):
+            with open(SHARP_ALARMS_FILE, 'r') as f:
+                alarms = json.load(f)
+                print(f"[Sharp] Loaded {len(alarms)} alarms from {SHARP_ALARMS_FILE}")
+                return alarms
+    except Exception as e:
+        print(f"[Sharp] Alarms load error: {e}")
+    return []
+
+def save_sharp_alarms_to_file(alarms):
+    """Save Sharp alarms to JSON file"""
+    try:
+        with open(SHARP_ALARMS_FILE, 'w') as f:
+            json.dump(alarms, f, indent=2, ensure_ascii=False)
+        print(f"[Sharp] Saved {len(alarms)} alarms to {SHARP_ALARMS_FILE}")
+        return True
+    except Exception as e:
+        print(f"[Sharp] Alarms save error: {e}")
+        return False
+
+sharp_alarms = load_sharp_alarms_from_file()
 sharp_calculating = False
 sharp_calc_progress = ""
 
@@ -942,6 +967,7 @@ def delete_sharp_alarms():
     """Delete all Sharp alarms"""
     global sharp_alarms
     sharp_alarms = []
+    save_sharp_alarms_to_file(sharp_alarms)
     supabase = get_supabase_client()
     if supabase and supabase.is_available:
         try:
@@ -978,6 +1004,7 @@ def calculate_sharp_alarms():
         sharp_calculating = True
         sharp_calc_progress = "Hesaplama baslatiliyor..."
         sharp_alarms = calculate_sharp_scores(sharp_config)
+        save_sharp_alarms_to_file(sharp_alarms)
         sharp_calc_progress = f"Tamamlandi! {len(sharp_alarms)} alarm bulundu."
         sharp_calculating = False
         return jsonify({'success': True, 'count': len(sharp_alarms)})
