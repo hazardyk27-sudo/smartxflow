@@ -458,7 +458,7 @@ class SupabaseClient:
             all_rows = []
             offset = 0
             page_size = 1000
-            max_pages = 8
+            max_pages = 3
             
             for page in range(max_pages):
                 url = f"{self._rest_url(history_table)}?scrapedat=gte.{cutoff_iso}&order=scrapedat.asc&limit={page_size}&offset={offset}"
