@@ -959,6 +959,20 @@ def get_insider_alarms():
     return jsonify(insider_alarms)
 
 
+@app.route('/api/insider/delete', methods=['POST'])
+def delete_insider_alarms():
+    """Delete all Insider alarms"""
+    global insider_alarms
+    try:
+        insider_alarms = []
+        save_insider_alarms_to_file(insider_alarms)
+        print("[Insider] All alarms deleted")
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"[Insider] Delete error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/insider/calculate', methods=['POST'])
 def calculate_insider_alarms_endpoint():
     """Calculate Insider Info alarms based on config"""
