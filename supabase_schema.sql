@@ -94,3 +94,50 @@ DROP POLICY IF EXISTS "Allow all alerts" ON alerts;
 CREATE POLICY "Allow all matches" ON matches FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all snapshots" ON odds_snapshots FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all alerts" ON alerts FOR ALL USING (true) WITH CHECK (true);
+
+-- 4. SHARP_CONFIG TABLE - V2 Alarm System Configuration
+CREATE TABLE IF NOT EXISTS sharp_config (
+    id INT PRIMARY KEY DEFAULT 1,
+    
+    -- Ağırlıklar (Weights)
+    weight_volume NUMERIC DEFAULT 1.0,
+    weight_odds NUMERIC DEFAULT 1.0,
+    weight_share NUMERIC DEFAULT 0.5,
+    weight_momentum NUMERIC DEFAULT 0.5,
+    
+    -- Çarpanlar
+    volume_multiplier NUMERIC DEFAULT 10.0,
+    normalization_factor NUMERIC DEFAULT 1.0,
+    
+    -- Piyasa Hacim Eşikleri (Min Market Volume)
+    min_volume_1x2 INT DEFAULT 3000,
+    min_volume_ou25 INT DEFAULT 2000,
+    min_volume_btts INT DEFAULT 1500,
+    
+    -- Skor Eşikleri
+    sharp_score_threshold INT DEFAULT 50,
+    min_share_pct_threshold INT DEFAULT 15,
+    
+    -- Seviye Eşikleri
+    threshold_strong_sharp INT DEFAULT 60,
+    threshold_very_sharp INT DEFAULT 75,
+    threshold_real_sharp INT DEFAULT 90,
+    
+    -- Hacim Şoku Aralıkları (JSON)
+    shock_ranges JSONB DEFAULT '{"normal": [0, 2], "light": [2, 4], "strong": [4, 6], "very_strong": [6, 8], "extreme": [8, 999]}',
+    
+    -- Meta
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_by VARCHAR(100),
+    
+    -- Tek satır constraint
+    CONSTRAINT single_row CHECK (id = 1)
+);
+
+-- Varsayılan satırı ekle
+INSERT INTO sharp_config (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+
+-- RLS for sharp_config
+ALTER TABLE sharp_config ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all sharp_config" ON sharp_config;
+CREATE POLICY "Allow all sharp_config" ON sharp_config FOR ALL USING (true) WITH CHECK (true);
