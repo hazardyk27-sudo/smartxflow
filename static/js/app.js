@@ -218,37 +218,14 @@ function setupSearch() {
 
 async function loadMatches() {
     const tbody = document.getElementById('matchesTableBody');
-    
-    // Show placeholder rows to maintain table layout during loading
-    // 1X2 has 7 columns, OU25/BTTS have 6 columns
-    let placeholderHTML = '';
-    if (currentMarket.includes('1x2')) {
-        // 1X2: DATE, LEAGUE, MATCH, 1, X, 2, VOLUME (7 cols)
-        placeholderHTML = Array(6).fill(`
-            <tr class="placeholder-row">
-                <td class="col-date"></td>
-                <td class="col-league"></td>
-                <td class="col-match"></td>
-                <td class="col-selection"></td>
-                <td class="col-selection"></td>
-                <td class="col-selection"></td>
-                <td class="col-volume"></td>
-            </tr>
-        `).join('');
-    } else {
-        // OU25/BTTS: DATE, LEAGUE, MATCH, UNDER/YES, OVER/NO, VOLUME (6 cols)
-        placeholderHTML = Array(6).fill(`
-            <tr class="placeholder-row">
-                <td class="col-date"></td>
-                <td class="col-league"></td>
-                <td class="col-match"></td>
-                <td class="col-selection"></td>
-                <td class="col-selection"></td>
-                <td class="col-volume"></td>
-            </tr>
-        `).join('');
-    }
-    tbody.innerHTML = placeholderHTML;
+    tbody.innerHTML = `
+        <tr class="loading-row">
+            <td colspan="7">
+                <div class="loading-spinner"></div>
+                Loading matches...
+            </td>
+        </tr>
+    `;
     
     updateTableHeaders();
     
