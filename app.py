@@ -866,9 +866,9 @@ def load_sharp_config_from_file():
         'volume_multiplier': 1.0,
         'odds_multiplier': 1.0,
         'share_multiplier': 1.0,
-        'w_volume': 40,
-        'w_odds': 35,
-        'w_share': 25,
+        'max_volume_cap': 40,
+        'max_odds_cap': 35,
+        'max_share_cap': 25,
         'min_share': 5,
         'min_sharp_score': 10
     }
@@ -1213,14 +1213,17 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
     share_multiplier = config.get('share_multiplier', 1)
     share_value = share_diff * share_multiplier
     
-    w_volume = config.get('w_volume', 40)
-    w_odds = config.get('w_odds', 35)
-    w_share = config.get('w_share', 25)
+    # CAP değerleri - her kriterin maksimum katkısını sınırlar
+    max_volume_cap = config.get('max_volume_cap', 40)
+    max_odds_cap = config.get('max_odds_cap', 35)
+    max_share_cap = config.get('max_share_cap', 25)
     
-    volume_contrib = shock_value * (w_volume / 100)
-    odds_contrib = odds_value * (w_odds / 100)
-    share_contrib = share_value * (w_share / 100)
+    # Her kriter için puan hesapla (CAP ile sınırla)
+    volume_contrib = min(shock_value, max_volume_cap)
+    odds_contrib = min(odds_value, max_odds_cap)
+    share_contrib = min(share_value, max_share_cap)
     
+    # SharpScore = hacim_puani + oran_puani + pay_puani
     sharp_score = volume_contrib + odds_contrib + share_contrib
     
     min_share_threshold = config.get('min_share', 5)
@@ -1245,21 +1248,21 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         'shock_raw': shock_raw,
         'volume_multiplier': volume_multiplier,
         'shock_value': shock_value,
-        'w_volume': w_volume,
+        'max_volume_cap': max_volume_cap,
         'volume_contrib': volume_contrib,
         'previous_odds': odds_before,
         'current_odds': odds_after,
         'drop_pct': drop_pct,
         'odds_multiplier': odds_multiplier,
         'odds_value': odds_value,
-        'w_odds': w_odds,
+        'max_odds_cap': max_odds_cap,
         'odds_contrib': odds_contrib,
         'previous_share': share_before,
         'current_share': share_after,
         'share_diff': share_diff,
         'share_multiplier': share_multiplier,
         'share_value': share_value,
-        'w_share': w_share,
+        'max_share_cap': max_share_cap,
         'share_contrib': share_contrib,
         'sharp_score': sharp_score,
         'min_sharp_score': min_sharp_score,

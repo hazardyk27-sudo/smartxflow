@@ -588,20 +588,20 @@
                 </div>
 
                 <div class="info-card">
-                    <h3>⚖️ Agirliklar (%)</h3>
+                    <h3>📈 Maksimum Degerler (CAP)</h3>
                     <div class="form-group">
-                        <label>Hacim Agirligi (w_volume)</label>
-                        <input type="number" id="w_volume" value="40" min="0" max="100" class="form-input">
+                        <label>Hacim Soku Maks (max_volume_cap)</label>
+                        <input type="number" id="max_volume_cap" value="40" min="0" class="form-input">
                     </div>
                     <div class="form-group">
-                        <label>Oran Agirligi (w_odds)</label>
-                        <input type="number" id="w_odds" value="35" min="0" max="100" class="form-input">
+                        <label>Oran Degisimi Maks (max_odds_cap)</label>
+                        <input type="number" id="max_odds_cap" value="35" min="0" class="form-input">
                     </div>
                     <div class="form-group">
-                        <label>Pay Agirligi (w_share)</label>
-                        <input type="number" id="w_share" value="25" min="0" max="100" class="form-input">
+                        <label>Pay Degisimi Maks (max_share_cap)</label>
+                        <input type="number" id="max_share_cap" value="25" min="0" class="form-input">
                     </div>
-                    <p class="form-hint">Toplam: <span id="weightTotal">100</span>%</p>
+                    <p class="form-hint">Her kriter bu degerle sinirlanir. Ornek: shock=50 → cap=40 ise kullanilan=40</p>
                 </div>
 
                 <div class="info-card">
@@ -794,29 +794,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             loadDashboard();
-            setupWeightListeners();
         });
-
-        function setupWeightListeners() {
-            ['w_volume', 'w_odds', 'w_share'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.addEventListener('input', updateWeightTotal);
-                }
-            });
-        }
-
-        function updateWeightTotal() {
-            const w1 = parseFloat(document.getElementById('w_volume').value) || 0;
-            const w2 = parseFloat(document.getElementById('w_odds').value) || 0;
-            const w3 = parseFloat(document.getElementById('w_share').value) || 0;
-            const total = w1 + w2 + w3;
-            const el = document.getElementById('weightTotal');
-            if (el) {
-                el.textContent = total;
-                el.style.color = total === 100 ? '#3fb950' : '#f85149';
-            }
-        }
 
         function getSharpConfig() {
             return {
@@ -826,9 +804,9 @@
                 volume_multiplier: parseFloat(document.getElementById('volume_multiplier').value) || 1,
                 odds_multiplier: parseFloat(document.getElementById('odds_multiplier').value) || 1,
                 share_multiplier: parseFloat(document.getElementById('share_multiplier').value) || 1,
-                w_volume: parseFloat(document.getElementById('w_volume').value) || 40,
-                w_odds: parseFloat(document.getElementById('w_odds').value) || 35,
-                w_share: parseFloat(document.getElementById('w_share').value) || 25,
+                max_volume_cap: parseFloat(document.getElementById('max_volume_cap').value) || 40,
+                max_odds_cap: parseFloat(document.getElementById('max_odds_cap').value) || 35,
+                max_share_cap: parseFloat(document.getElementById('max_share_cap').value) || 25,
                 min_share: parseFloat(document.getElementById('min_share').value) || 5,
                 min_sharp_score: parseFloat(document.getElementById('min_sharp_score').value) || 10
             };
@@ -842,12 +820,11 @@
             document.getElementById('volume_multiplier').value = config.volume_multiplier || 1;
             document.getElementById('odds_multiplier').value = config.odds_multiplier || 1;
             document.getElementById('share_multiplier').value = config.share_multiplier || 1;
-            document.getElementById('w_volume').value = config.w_volume || 40;
-            document.getElementById('w_odds').value = config.w_odds || 35;
-            document.getElementById('w_share').value = config.w_share || 25;
+            document.getElementById('max_volume_cap').value = config.max_volume_cap || 40;
+            document.getElementById('max_odds_cap').value = config.max_odds_cap || 35;
+            document.getElementById('max_share_cap').value = config.max_share_cap || 25;
             document.getElementById('min_share').value = config.min_share || 5;
             document.getElementById('min_sharp_score').value = config.min_sharp_score || 10;
-            updateWeightTotal();
         }
 
         async function saveSharpConfig() {
@@ -1033,8 +1010,8 @@
                     <div class="detail-row"><span class="detail-label">shock_raw</span><span class="detail-value">${(alarm.shock_raw || 0).toFixed(2)}x</span></div>
                     <div class="detail-row"><span class="detail-label">volume_multiplier</span><span class="detail-value">${alarm.volume_multiplier || 1}</span></div>
                     <div class="detail-row"><span class="detail-label">shock_value</span><span class="detail-value highlight">${(alarm.shock_value || 0).toFixed(2)}</span></div>
-                    <div class="detail-row"><span class="detail-label">w_volume</span><span class="detail-value">${alarm.w_volume || 0}%</span></div>
-                    <div class="detail-row"><span class="detail-label">volume_contrib</span><span class="detail-value highlight">${(alarm.volume_contrib || 0).toFixed(2)}</span></div>
+                    <div class="detail-row"><span class="detail-label">max_volume_cap</span><span class="detail-value">${alarm.max_volume_cap || 0}</span></div>
+                    <div class="detail-row"><span class="detail-label">volume_contrib (capped)</span><span class="detail-value highlight">${(alarm.volume_contrib || 0).toFixed(2)}</span></div>
                 </div>
                 <div class="detail-section">
                     <h4>Oran Dususu</h4>
@@ -1043,8 +1020,8 @@
                     <div class="detail-row"><span class="detail-label">drop_pct</span><span class="detail-value">${(alarm.drop_pct || 0).toFixed(2)}%</span></div>
                     <div class="detail-row"><span class="detail-label">odds_multiplier</span><span class="detail-value">${alarm.odds_multiplier || 1}</span></div>
                     <div class="detail-row"><span class="detail-label">odds_value</span><span class="detail-value highlight">${(alarm.odds_value || 0).toFixed(2)}</span></div>
-                    <div class="detail-row"><span class="detail-label">w_odds</span><span class="detail-value">${alarm.w_odds || 0}%</span></div>
-                    <div class="detail-row"><span class="detail-label">odds_contrib</span><span class="detail-value highlight">${(alarm.odds_contrib || 0).toFixed(2)}</span></div>
+                    <div class="detail-row"><span class="detail-label">max_odds_cap</span><span class="detail-value">${alarm.max_odds_cap || 0}</span></div>
+                    <div class="detail-row"><span class="detail-label">odds_contrib (capped)</span><span class="detail-value highlight">${(alarm.odds_contrib || 0).toFixed(2)}</span></div>
                 </div>
                 <div class="detail-section">
                     <h4>Pay Degisimi</h4>
@@ -1053,8 +1030,8 @@
                     <div class="detail-row"><span class="detail-label">share_diff</span><span class="detail-value">${(alarm.share_diff || 0).toFixed(2)}%</span></div>
                     <div class="detail-row"><span class="detail-label">share_multiplier</span><span class="detail-value">${alarm.share_multiplier || 1}</span></div>
                     <div class="detail-row"><span class="detail-label">share_value</span><span class="detail-value highlight">${(alarm.share_value || 0).toFixed(2)}</span></div>
-                    <div class="detail-row"><span class="detail-label">w_share</span><span class="detail-value">${alarm.w_share || 0}%</span></div>
-                    <div class="detail-row"><span class="detail-label">share_contrib</span><span class="detail-value highlight">${(alarm.share_contrib || 0).toFixed(2)}</span></div>
+                    <div class="detail-row"><span class="detail-label">max_share_cap</span><span class="detail-value">${alarm.max_share_cap || 0}</span></div>
+                    <div class="detail-row"><span class="detail-label">share_contrib (capped)</span><span class="detail-value highlight">${(alarm.share_contrib || 0).toFixed(2)}</span></div>
                 </div>
                 <div class="detail-section">
                     <h4>Final Skor</h4>
