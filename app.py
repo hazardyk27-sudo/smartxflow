@@ -1195,6 +1195,11 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
     if amount_change <= 0:
         return None
     
+    # Gelen para minimum eşik kontrolü
+    min_amount_change = config.get('min_amount_change', 500)
+    if amount_change < min_amount_change:
+        return None
+    
     # Son 2 amount HARİÇ, önceki amount'ların ortalaması
     # Örnek: amounts = [10, 10, 30, 30, 54, 54, 100, 150, 414, 1629]
     # previous_amounts = [10, 10, 30, 30, 54, 54, 100, 150] (son 2 hariç: 414, 1629)
