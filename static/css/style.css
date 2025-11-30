@@ -4335,8 +4335,10 @@ td.volume,
     border: 1px solid #0F6F37;
     border-radius: 8px;
     color: #0d1117;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     cursor: pointer;
     transition: all 0.2s;
     flex-shrink: 0;
