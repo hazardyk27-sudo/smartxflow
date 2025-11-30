@@ -1311,16 +1311,8 @@ def save_big_money_config_endpoint():
 
 @app.route('/api/bigmoney/alarms', methods=['GET'])
 def get_big_money_alarms():
-    """Get all Big Money alarms (single snapshot >= limit)"""
-    single_alarms = [a for a in big_money_alarms if a.get('consecutive_count', 1) == 1]
-    return jsonify(single_alarms)
-
-
-@app.route('/api/hugemoney/alarms', methods=['GET'])
-def get_huge_money_alarms():
-    """Get all Huge Money alarms (consecutive snapshots >= limit)"""
-    consecutive_alarms = [a for a in big_money_alarms if a.get('consecutive_count', 1) >= 2]
-    return jsonify(consecutive_alarms)
+    """Get all Big Money alarms"""
+    return jsonify(big_money_alarms)
 
 
 @app.route('/api/bigmoney/delete', methods=['POST'])

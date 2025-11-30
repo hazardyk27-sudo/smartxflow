@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=241">
+    <link rel="stylesheet" href="/static/css/style.css?v=240">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -46,49 +46,16 @@
         </div>
     </header>
 
-    <div class="alarm-bar" id="alarmBar">
-        <div class="alarm-dropdown">
-            <button class="alarm-dropdown-btn" id="alarmDropdownBtn" onclick="toggleAlarmDropdown()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                </svg>
-                <span id="selectedAlarmType">ALARM LİSTESİ</span>
-                <span class="alarm-count" id="totalAlarmCount">0</span>
-                <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="6 9 12 15 18 9"/>
-                </svg>
-            </button>
-            <div class="alarm-dropdown-menu" id="alarmDropdownMenu">
-                <div class="alarm-type-item active" data-type="all" onclick="selectAlarmType('all')">
-                    <span class="alarm-type-icon" style="background: #8b949e;">●</span>
-                    <span>Tüm Alarmlar</span>
-                    <span class="alarm-type-count" id="allAlarmCount">0</span>
-                </div>
-                <div class="alarm-type-item" data-type="sharp" onclick="selectAlarmType('sharp')">
-                    <span class="alarm-type-icon" style="background: #f0883e;">●</span>
-                    <span>Sharp Money</span>
-                    <span class="alarm-type-count" id="sharpAlarmCount">0</span>
-                </div>
-                <div class="alarm-type-item" data-type="insider" onclick="selectAlarmType('insider')">
-                    <span class="alarm-type-icon" style="background: #a855f7;">●</span>
-                    <span>Insider Info</span>
-                    <span class="alarm-type-count" id="insiderAlarmCount">0</span>
-                </div>
-                <div class="alarm-type-item" data-type="bigmoney" onclick="selectAlarmType('bigmoney')">
-                    <span class="alarm-type-icon" style="background: #22c55e;">●</span>
-                    <span>Big Money</span>
-                    <span class="alarm-type-count" id="bigmoneyAlarmCount">0</span>
-                </div>
-                <div class="alarm-type-item" data-type="hugemoney" onclick="selectAlarmType('hugemoney')">
-                    <span class="alarm-type-icon" style="background: #ef4444;">●</span>
-                    <span>Huge Money</span>
-                    <span class="alarm-type-count" id="hugemoneyAlarmCount">0</span>
-                </div>
-            </div>
+    <div class="smart-money-ticker" id="smartMoneyTicker">
+        <div class="ticker-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+            SHARP MONEY
         </div>
-        <div class="alarm-list-wrapper" id="alarmListWrapper">
-            <div class="alarm-list" id="alarmList">
-                <span class="alarm-empty">Alarm hesaplaması bekleniyor...</span>
+        <div class="ticker-wrapper">
+            <div class="ticker-track" id="tickerTrack">
+                <span class="ticker-empty">Alarm hesaplaması bekleniyor...</span>
             </div>
         </div>
     </div>
@@ -242,6 +209,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=241"></script>
+    <script src="/static/js/app.js?v=240"></script>
 </body>
 </html>

@@ -1285,205 +1285,55 @@ body {
     }
 }
 
-.alarm-bar {
+.smart-money-ticker {
     display: flex;
     align-items: center;
     background: linear-gradient(90deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
     border-bottom: 1px solid #30363d;
     height: 42px;
-    overflow: visible;
+    overflow: hidden;
     gap: 0;
-    position: relative;
-    z-index: 100;
 }
 
-.alarm-dropdown {
-    position: relative;
-    height: 100%;
-    flex-shrink: 0;
-}
-
-.alarm-dropdown-btn {
+.ticker-label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     padding: 0 16px;
     background: #21262d;
     height: 100%;
-    border: none;
     border-right: 1px solid #30363d;
     color: #f0883e;
     font-size: 11px;
     font-weight: 600;
     white-space: nowrap;
-    cursor: pointer;
-    transition: background 0.2s;
+    flex-shrink: 0;
 }
 
-.alarm-dropdown-btn:hover {
-    background: #30363d;
-}
-
-.alarm-dropdown-btn svg {
+.ticker-label svg {
     stroke: #f0883e;
 }
 
-.alarm-dropdown-btn .dropdown-arrow {
-    stroke: #8b949e;
-    transition: transform 0.2s;
-}
-
-.alarm-dropdown.open .dropdown-arrow {
-    transform: rotate(180deg);
-}
-
-.alarm-count {
-    background: #f0883e;
-    color: #0d1117;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 10px;
-    min-width: 20px;
-    text-align: center;
-}
-
-.alarm-dropdown-menu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background: #21262d;
-    border: 1px solid #30363d;
-    border-radius: 0 0 8px 8px;
-    min-width: 200px;
-    display: none;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    z-index: 1000;
-}
-
-.alarm-dropdown.open .alarm-dropdown-menu {
-    display: block;
-}
-
-.alarm-type-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 16px;
-    cursor: pointer;
-    transition: background 0.15s;
-    color: #e6edf3;
-    font-size: 13px;
-}
-
-.alarm-type-item:hover {
-    background: #30363d;
-}
-
-.alarm-type-item.active {
-    background: #161b22;
-    border-left: 3px solid #f0883e;
-}
-
-.alarm-type-icon {
-    font-size: 10px;
-}
-
-.alarm-type-count {
-    margin-left: auto;
-    background: #30363d;
-    color: #8b949e;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 10px;
-}
-
-.alarm-list-wrapper {
+.ticker-wrapper {
     flex: 1;
     min-width: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: hidden;
+    position: relative;
     height: 100%;
-    scrollbar-width: thin;
-    scrollbar-color: #30363d #161b22;
 }
 
-.alarm-list-wrapper::-webkit-scrollbar {
-    height: 4px;
-}
-
-.alarm-list-wrapper::-webkit-scrollbar-track {
-    background: #161b22;
-}
-
-.alarm-list-wrapper::-webkit-scrollbar-thumb {
-    background: #30363d;
-    border-radius: 2px;
-}
-
-.alarm-list {
+.ticker-track {
     display: flex;
-    gap: 10px;
+    gap: 16px;
     padding: 0 16px;
     white-space: nowrap;
     align-items: center;
     height: 42px;
+    animation: tickerScroll 0.6s linear infinite;
 }
 
-.alarm-empty {
-    color: #8b949e;
-    font-size: 12px;
-    font-style: italic;
-}
-
-.alarm-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
-    background: rgba(var(--pill-color-rgb, 102, 102, 102), 0.15);
-    border: 1px solid rgba(var(--pill-color-rgb, 102, 102, 102), 0.4);
-    border-radius: 20px;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 12px;
-}
-
-.alarm-pill:hover {
-    background: rgba(var(--pill-color-rgb, 102, 102, 102), 0.25);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(var(--pill-color-rgb, 102, 102, 102), 0.3);
-}
-
-.alarm-pill .pill-type {
-    font-weight: 700;
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.alarm-pill .pill-match {
-    color: #e6edf3;
-    font-weight: 500;
-    max-width: 180px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.alarm-pill .pill-side {
-    color: #58a6ff;
-    font-weight: 600;
-}
-
-.alarm-pill .pill-score {
-    font-weight: 700;
-    font-size: 13px;
-}
-
-.alarm-pill .pill-money {
-    color: #4ade80;
-    font-weight: 600;
+.ticker-wrapper:hover .ticker-track {
+    animation-play-state: paused !important;
 }
 
 @keyframes tickerScroll {

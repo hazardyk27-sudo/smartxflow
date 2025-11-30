@@ -3188,58 +3188,19 @@ function attachTrendTooltipListeners() {
     });
 }
 
-let allAlarms = {
-    sharp: [],
-    insider: [],
-    bigmoney: [],
-    hugemoney: []
-};
-let selectedAlarmType = 'all';
+let tickerAlarms = [];
+let tickerAnimationSpeed = 30;
 
-async function loadAllAlarms() {
+async function loadTickerAlarms() {
     try {
-        const [sharpResp, insiderResp, bigmoneyResp, hugemoneyResp] = await Promise.all([
-            fetch('/api/sharp/alarms').catch(() => ({ ok: false })),
-            fetch('/api/insider/alarms').catch(() => ({ ok: false })),
-            fetch('/api/bigmoney/alarms').catch(() => ({ ok: false })),
-            fetch('/api/hugemoney/alarms').catch(() => ({ ok: false }))
-        ]);
-        
-        if (sharpResp.ok) allAlarms.sharp = await sharpResp.json();
-        if (insiderResp.ok) allAlarms.insider = await insiderResp.json();
-        if (bigmoneyResp.ok) allAlarms.bigmoney = await bigmoneyResp.json();
-        if (hugemoneyResp.ok) allAlarms.hugemoney = await hugemoneyResp.json();
-        
-        updateAlarmCounts();
-        renderAlarmList();
+        const resp = await fetch('/api/sharp/alarms');
+        if (resp.ok) {
+            tickerAlarms = await resp.json();
+            renderTicker();
+        }
     } catch (e) {
-        console.error('[AlarmList] Load error:', e);
+        console.error('[Ticker] Load error:', e);
     }
-}
-
-function updateAlarmCounts() {
-    const sharpCount = allAlarms.sharp.length;
-    const insiderCount = allAlarms.insider.length;
-    const bigmoneyCount = allAlarms.bigmoney.length;
-    const hugemoneyCount = allAlarms.hugemoney.length;
-    const totalCount = sharpCount + insiderCount + bigmoneyCount + hugemoneyCount;
-    
-    document.getElementById('totalAlarmCount').textContent = totalCount;
-    document.getElementById('allAlarmCount').textContent = totalCount;
-    document.getElementById('sharpAlarmCount').textContent = sharpCount;
-    document.getElementById('insiderAlarmCount').textContent = insiderCount;
-    document.getElementById('bigmoneyAlarmCount').textContent = bigmoneyCount;
-    document.getElementById('hugemoneyAlarmCount').textContent = hugemoneyCount;
-}
-
-function getAlarmTypeInfo(type) {
-    const types = {
-        sharp: { color: '#f0883e', rgb: '240, 136, 62', label: 'SHARP' },
-        insider: { color: '#a855f7', rgb: '168, 85, 247', label: 'INSIDER' },
-        bigmoney: { color: '#22c55e', rgb: '34, 197, 94', label: 'BIG' },
-        hugemoney: { color: '#ef4444', rgb: '239, 68, 68', label: 'HUGE' }
-    };
-    return types[type] || { color: '#8b949e', rgb: '139, 148, 158', label: 'UNKNOWN' };
 }
 
 function getScoreColor(score) {
@@ -3249,134 +3210,78 @@ function getScoreColor(score) {
     return { color: '#4ade80', rgb: '74, 222, 128', label: 'LOW' };
 }
 
-function toggleAlarmDropdown() {
-    const dropdown = document.querySelector('.alarm-dropdown');
-    dropdown.classList.toggle('open');
+function renderTicker() {
+    const track = document.getElementById('tickerTrack');
+    if (!track) return;
     
-    document.addEventListener('click', function closeDropdown(e) {
-        if (!dropdown.contains(e.target)) {
-            dropdown.classList.remove('open');
-            document.removeEventListener('click', closeDropdown);
-        }
-    });
-}
-
-function selectAlarmType(type) {
-    selectedAlarmType = type;
-    
-    document.querySelectorAll('.alarm-type-item').forEach(item => {
-        item.classList.remove('active');
-        if (item.dataset.type === type) {
-            item.classList.add('active');
-        }
-    });
-    
-    const typeNames = {
-        all: 'TÜM ALARMLAR',
-        sharp: 'SHARP MONEY',
-        insider: 'INSIDER INFO',
-        bigmoney: 'BIG MONEY',
-        hugemoney: 'HUGE MONEY'
-    };
-    document.getElementById('selectedAlarmType').textContent = typeNames[type] || 'ALARM LİSTESİ';
-    
-    document.querySelector('.alarm-dropdown').classList.remove('open');
-    renderAlarmList();
-}
-
-function renderAlarmList() {
-    const list = document.getElementById('alarmList');
-    if (!list) return;
-    
-    let alarmsToShow = [];
-    
-    if (selectedAlarmType === 'all') {
-        allAlarms.sharp.forEach(a => alarmsToShow.push({ ...a, alarmType: 'sharp' }));
-        allAlarms.insider.forEach(a => alarmsToShow.push({ ...a, alarmType: 'insider' }));
-        allAlarms.bigmoney.forEach(a => alarmsToShow.push({ ...a, alarmType: 'bigmoney' }));
-        allAlarms.hugemoney.forEach(a => alarmsToShow.push({ ...a, alarmType: 'hugemoney' }));
-    } else {
-        (allAlarms[selectedAlarmType] || []).forEach(a => alarmsToShow.push({ ...a, alarmType: selectedAlarmType }));
-    }
-    
-    alarmsToShow.sort((a, b) => {
-        const scoreA = a.sharp_score || a.insider_score || a.stake || 0;
-        const scoreB = b.sharp_score || b.insider_score || b.stake || 0;
-        return scoreB - scoreA;
-    });
-    
-    if (alarmsToShow.length === 0) {
-        list.innerHTML = '<span class="alarm-empty">Alarm bulunamadı. Admin panelinden hesaplama yapın.</span>';
+    if (!tickerAlarms || tickerAlarms.length === 0) {
+        track.innerHTML = '<span class="ticker-empty">Alarm bulunamadı. Admin panelinden hesaplama yapın.</span>';
+        track.style.animation = 'none';
         return;
     }
     
-    const pillsHtml = alarmsToShow.slice(0, 50).map(alarm => {
-        const typeInfo = getAlarmTypeInfo(alarm.alarmType);
+    const sortedAlarms = [...tickerAlarms].sort((a, b) => (b.sharp_score || 0) - (a.sharp_score || 0));
+    const topAlarms = sortedAlarms.slice(0, 20);
+    
+    let pillsHtml = topAlarms.map(alarm => {
+        const scoreInfo = getScoreColor(alarm.sharp_score || 0);
         const home = alarm.home || '?';
         const away = alarm.away || '?';
         const selection = alarm.selection || '-';
-        const score = (alarm.sharp_score || alarm.insider_score || 0).toFixed(0);
-        const volume = alarm.volume || alarm.stake;
-        const volumeStr = volume ? `£${formatVolume(volume)}` : '';
+        const score = (alarm.sharp_score || 0).toFixed(0);
+        const volume = alarm.volume ? `£${Number(alarm.volume).toLocaleString()}` : '';
         
         return `
-            <div class="alarm-pill" style="--pill-color: ${typeInfo.color}; --pill-color-rgb: ${typeInfo.rgb};" 
-                 onclick="showAlarmDetail('${encodeURIComponent(JSON.stringify(alarm))}')">
-                <span class="pill-type" style="color: ${typeInfo.color};">${typeInfo.label}</span>
+            <div class="ticker-pill" style="--pill-color: ${scoreInfo.color}; --pill-color-rgb: ${scoreInfo.rgb};" 
+                 onclick="showTickerAlarmDetail('${encodeURIComponent(JSON.stringify(alarm))}')">
+                <span class="pill-dot" style="background: ${scoreInfo.color};"></span>
+                <span class="pill-type" style="color: ${scoreInfo.color};">${scoreInfo.label}</span>
                 <span class="pill-match">${home} vs ${away}</span>
                 <span class="pill-side">[${selection}]</span>
-                <span class="pill-money">${volumeStr}</span>
-                ${score > 0 ? `<span class="pill-score" style="color: ${typeInfo.color};">${score}</span>` : ''}
+                <span class="pill-money">${volume}</span>
+                <span class="pill-score" style="color: ${scoreInfo.color}; font-weight: 700;">${score}</span>
             </div>
         `;
     }).join('');
     
-    list.innerHTML = pillsHtml;
+    track.innerHTML = pillsHtml + pillsHtml;
+    
+    const totalWidth = track.scrollWidth / 2;
+    const duration = totalWidth / tickerAnimationSpeed;
+    track.style.animation = `tickerScroll ${duration}s linear infinite`;
 }
 
-function showAlarmDetail(encodedAlarm) {
+function showTickerAlarmDetail(encodedAlarm) {
     try {
         const alarm = JSON.parse(decodeURIComponent(encodedAlarm));
-        const typeInfo = getAlarmTypeInfo(alarm.alarmType || 'sharp');
-        const score = alarm.sharp_score || alarm.insider_score || 0;
-        const volume = alarm.volume || alarm.stake;
+        const scoreInfo = getScoreColor(alarm.sharp_score || 0);
         
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
-        modal.id = 'alarmDetailModal';
+        modal.id = 'tickerAlarmModal';
         modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
         
         const matchDate = alarm.match_date || '-';
         const createdAt = alarm.created_at || '-';
         
-        const typeNames = {
-            sharp: 'Sharp Money Alarm',
-            insider: 'Insider Info Alarm',
-            bigmoney: 'Big Money Alarm',
-            hugemoney: 'Huge Money Alarm'
-        };
-        const alarmTitle = typeNames[alarm.alarmType] || 'Alarm Detayı';
-        
         modal.innerHTML = `
             <div class="modal-content" style="max-width: 500px;">
                 <div class="modal-header">
                     <h2 style="display: flex; align-items: center; gap: 10px;">
-                        <span style="background: ${typeInfo.color}; width: 14px; height: 14px; border-radius: 50%; display: inline-block;"></span>
-                        ${alarmTitle}
+                        <span class="pill-dot" style="background: ${scoreInfo.color}; width: 14px; height: 14px; border-radius: 50%; display: inline-block;"></span>
+                        Sharp Money Alarm
                     </h2>
-                    <button class="close-btn" onclick="document.getElementById('alarmDetailModal').remove()">
+                    <button class="close-btn" onclick="document.getElementById('tickerAlarmModal').remove()">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                         </svg>
                     </button>
                 </div>
                 <div class="modal-body" style="padding: 20px;">
-                    ${score > 0 ? `
                     <div style="text-align: center; margin-bottom: 20px;">
-                        <div style="font-size: 48px; font-weight: 700; color: ${typeInfo.color};">${score.toFixed(1)}</div>
-                        <div style="color: #8b949e; font-size: 14px;">${alarm.alarmType === 'insider' ? 'Insider Score' : 'Sharp Score'}</div>
+                        <div style="font-size: 48px; font-weight: 700; color: ${scoreInfo.color};">${(alarm.sharp_score || 0).toFixed(1)}</div>
+                        <div style="color: #8b949e; font-size: 14px;">Sharp Score</div>
                     </div>
-                    ` : ''}
                     
                     <div style="background: #21262d; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
                         <div style="color: #8b949e; font-size: 12px; margin-bottom: 8px;">MAÇ VE SEÇİM</div>
@@ -3392,33 +3297,21 @@ function showAlarmDetail(encodedAlarm) {
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                         <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="color: #4ade80; font-size: 20px; font-weight: 700;">${volume ? '£' + formatVolume(volume) : '-'}</div>
-                            <div style="color: #8b949e; font-size: 11px;">Volume / Stake</div>
+                            <div style="color: #4ade80; font-size: 20px; font-weight: 700;">${alarm.volume ? '£' + Number(alarm.volume).toLocaleString() : '-'}</div>
+                            <div style="color: #8b949e; font-size: 11px;">Volume</div>
                         </div>
-                        ${alarm.stake_share ? `
                         <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="color: #f0883e; font-size: 20px; font-weight: 700;">${alarm.stake_share.toFixed(1)}%</div>
+                            <div style="color: #f0883e; font-size: 20px; font-weight: 700;">${alarm.stake_share ? alarm.stake_share.toFixed(1) + '%' : '-'}</div>
                             <div style="color: #8b949e; font-size: 11px;">Stake Share</div>
                         </div>
-                        ` : ''}
-                        ${alarm.odds_move ? `
                         <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="color: #58a6ff; font-size: 20px; font-weight: 700;">${(alarm.odds_move > 0 ? '+' : '') + alarm.odds_move.toFixed(2)}</div>
+                            <div style="color: #58a6ff; font-size: 20px; font-weight: 700;">${alarm.odds_move ? (alarm.odds_move > 0 ? '+' : '') + alarm.odds_move.toFixed(2) : '-'}</div>
                             <div style="color: #8b949e; font-size: 11px;">Odds Move</div>
                         </div>
-                        ` : ''}
-                        ${alarm.volume_shock ? `
                         <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="color: #a371f7; font-size: 20px; font-weight: 700;">${alarm.volume_shock.toFixed(1)}x</div>
+                            <div style="color: #a371f7; font-size: 20px; font-weight: 700;">${alarm.volume_shock ? alarm.volume_shock.toFixed(1) + 'x' : '-'}</div>
                             <div style="color: #8b949e; font-size: 11px;">Volume Shock</div>
                         </div>
-                        ` : ''}
-                        ${alarm.consecutive_count ? `
-                        <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="color: #22c55e; font-size: 20px; font-weight: 700;">${alarm.consecutive_count}x</div>
-                            <div style="color: #8b949e; font-size: 11px;">Ardışık Sayı</div>
-                        </div>
-                        ` : ''}
                     </div>
                     
                     <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #30363d; color: #8b949e; font-size: 11px; text-align: right;">
@@ -3430,21 +3323,11 @@ function showAlarmDetail(encodedAlarm) {
         
         document.body.appendChild(modal);
     } catch (e) {
-        console.error('[AlarmDetail] Error:', e);
+        console.error('[Ticker] Detail error:', e);
     }
 }
 
-setInterval(loadAllAlarms, 60000);
-
-(function initAlarmList() {
-    console.log('[AlarmList] Initializing...');
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('[AlarmList] DOM ready, loading alarms...');
-            setTimeout(loadAllAlarms, 500);
-        });
-    } else {
-        console.log('[AlarmList] DOM already loaded, loading alarms...');
-        setTimeout(loadAllAlarms, 500);
-    }
-})();
+setInterval(loadTickerAlarms, 60000);
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(loadTickerAlarms, 1000);
+});
