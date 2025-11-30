@@ -425,9 +425,30 @@ body {
 .table-container {
     background: #161b22;
     border-radius: 8px;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: auto;
     border: 1px solid #30363d;
     flex: 1;
+    max-height: calc(100vh - 280px);
+}
+
+.table-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: #21262d;
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: #484f58;
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: #6e7681;
 }
 
 .matches-table {
