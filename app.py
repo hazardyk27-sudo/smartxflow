@@ -1015,10 +1015,18 @@ def get_cached_alarms():
                     money_pct = 0
                     money_diff_val = money_diff
                     
+                    sharp_score = 0
+                    if alarm_type == 'sharp' and odds_to is not None:
+                        try:
+                            sharp_score = float(odds_to)
+                        except (ValueError, TypeError):
+                            sharp_score = 0
+                    
                     alarm_data = {
                         'type': alarm_type,
                         'side': alarm.get('side', ''),
                         'money_diff': money_diff_val,
+                        'sharp_score': sharp_score,
                         'odds_from': odds_from,
                         'odds_to': odds_to,
                         'total_drop': total_drop,

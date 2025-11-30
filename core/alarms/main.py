@@ -111,7 +111,7 @@ ALARM_TYPES = {
         'icon': '🟢',
         'color': '#22c55e',
         'priority': 2,
-        'description': 'Sharp: 4 kriter + market hacmi filtresi sağlandı. Skor 70+.',
+        'description': 'Sharp: 4 kriter + market hacmi filtresi sağlandı.',
         'critical': True
     },
     'medium_movement': {
@@ -963,13 +963,14 @@ def format_alarm_for_ticker(alarm: Dict, home: str, away: str) -> Dict:
 def format_alarm_for_modal(alarm: Dict) -> Dict:
     alarm_info = ALARM_TYPES.get(alarm['type'], {})
     money_diff = alarm.get('money_diff', 0)
+    sharp_score = alarm.get('sharp_score', 0)
     
     detail_text = ''
     if alarm['type'] == 'sharp':
-        if alarm.get('odds_from') and alarm.get('odds_to'):
-            detail_text = f"+£{int(money_diff):,} — Oran {alarm['odds_from']:.2f} → {alarm['odds_to']:.2f}"
-        else:
+        if money_diff > 0:
             detail_text = f"+£{int(money_diff):,}"
+        else:
+            detail_text = f"+£0"
     elif alarm['type'] == 'reversal_move':
         reversal_pct = alarm.get('reversal_percent', 0)
         conditions = alarm.get('conditions_met', 0)
@@ -1004,6 +1005,10 @@ def format_alarm_for_modal(alarm: Dict) -> Dict:
             level_name = level_names.get(freeze_level, '')
             detail_text = f"L{freeze_level} {level_name} Freeze ({freeze_duration}dk, £{int(new_money):,}, {share_now:.1f}%)"
     
+    description = alarm_info.get('description', '')
+    if alarm['type'] == 'sharp' and sharp_score > 0:
+        description = f"Sharp: 4 kriter + market hacmi filtresi sağlandı. Skor {sharp_score:.0f}."
+    
     return {
         'type': alarm['type'],
         'icon': alarm_info.get('icon', ''),
@@ -1011,13 +1016,13 @@ def format_alarm_for_modal(alarm: Dict) -> Dict:
         'color': alarm_info.get('color', '#fff'),
         'side': alarm.get('side', ''),
         'detail': detail_text,
-        'description': alarm_info.get('description', ''),
+        'description': description,
         'priority': alarm_info.get('priority', 99),
         'timestamp': alarm.get('timestamp', ''),
         'money_diff': money_diff,
         'total_drop': alarm.get('total_drop', 0),
         'money_pct': alarm.get('money_pct', 0),
-        'sharp_score': alarm.get('sharp_score', 0),
+        'sharp_score': sharp_score,
         'odds_from': alarm.get('odds_from'),
         'odds_to': alarm.get('odds_to')
     }
@@ -1037,6 +1042,11 @@ def format_grouped_alarm(group: Dict) -> Dict:
     sharp_score = group.get('sharp_score', latest.get('sharp_score', 0))
     dropping_level = group.get('dropping_level', latest.get('dropping_level', 0))
     persisted_minutes = group.get('persisted_minutes', latest.get('persisted_minutes', 0))
+    
+    description = alarm_info.get('description', '')
+    if group['type'] == 'sharp' and sharp_score > 0:
+        money_diff_val = latest.get('money_diff', 0)
+        description = f"Sharp: 4 kriter + market hacmi filtresi sağlandı. Skor {sharp_score:.0f}."
     
     return {
         'type': group['type'],
@@ -1058,7 +1068,7 @@ def format_grouped_alarm(group: Dict) -> Dict:
         'priority': group['priority'],
         'critical': alarm_info.get('critical', False),
         'detail': latest_detail,
-        'description': alarm_info.get('description', ''),
+        'description': description,
         'total_drop': latest.get('total_drop', 0),
         'money_diff': latest.get('money_diff', 0),
         'selection_volume': selection_volume,
