@@ -3840,3 +3840,429 @@ td.volume,
     margin-left: auto;
     flex-shrink: 0;
 }
+
+/* =====================================================
+   ALARMS TAB & PAGE STYLES
+   ===================================================== */
+
+/* Tab içindeki alarm badge */
+.tab-alarms {
+    position: relative;
+}
+
+.tab-alarm-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: #f87171;
+    color: #fff;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-left: 6px;
+}
+
+.tab-alarms.active .tab-alarm-badge {
+    background: #4ade80;
+    color: #000;
+}
+
+/* Alarms Section */
+.alarms-section {
+    padding: 0 16px 16px;
+}
+
+.alarms-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #21262d;
+}
+
+/* Alarm Pill Filters */
+.alarms-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.alarm-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid #30363d;
+    border-radius: 20px;
+    color: #8b949e;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.alarm-pill:hover {
+    background: #21262d;
+    border-color: #484f58;
+    color: #c9d1d9;
+}
+
+.alarm-pill.active {
+    background: #21262d;
+    border-color: #4ade80;
+    color: #fff;
+}
+
+.pill-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 6px;
+    background: #30363d;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.alarm-pill.active .pill-count {
+    background: #4ade80;
+    color: #000;
+}
+
+/* Alarm Search */
+.alarms-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 8px 12px;
+    min-width: 200px;
+    max-width: 300px;
+}
+
+.alarms-search svg {
+    color: #6e7681;
+    flex-shrink: 0;
+}
+
+.alarms-search input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #c9d1d9;
+    font-size: 13px;
+}
+
+.alarms-search input::placeholder {
+    color: #6e7681;
+}
+
+/* Alarms List Container */
+.alarms-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: calc(100vh - 250px);
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.alarms-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.alarms-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.alarms-list::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 3px;
+}
+
+.alarms-list::-webkit-scrollbar-thumb:hover {
+    background: #484f58;
+}
+
+.alarms-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: #6e7681;
+    font-size: 14px;
+}
+
+.alarms-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: #6e7681;
+    text-align: center;
+}
+
+.alarms-empty svg {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+.alarms-empty-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: #8b949e;
+    margin-bottom: 4px;
+}
+
+.alarms-empty-desc {
+    font-size: 13px;
+}
+
+/* Alarm Card Row */
+.alarm-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.alarm-card:hover {
+    background: #1c2128;
+    border-color: #30363d;
+    transform: translateX(2px);
+}
+
+/* Alarm Type Indicator (renkli çizgi) */
+.alarm-card::before {
+    content: '';
+    width: 4px;
+    height: 100%;
+    border-radius: 2px;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.alarm-card {
+    position: relative;
+    padding-left: 20px;
+}
+
+.alarm-card.sharp-alarm::before {
+    background: #4ade80;
+}
+
+.alarm-card.insider-alarm::before {
+    background: #60a5fa;
+}
+
+.alarm-card.bigmoney-alarm::before {
+    background: #fbbf24;
+}
+
+/* Alarm Card Left: Match Info */
+.alarm-match-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.alarm-match-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+}
+
+.alarm-teams {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e6edf3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.alarm-league {
+    font-size: 12px;
+    color: #6e7681;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Alarm Card Center: Type Badge */
+.alarm-type-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+}
+
+.alarm-type-tag.sharp {
+    background: rgba(74, 222, 128, 0.12);
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.25);
+}
+
+.alarm-type-tag.insider {
+    background: rgba(96, 165, 250, 0.12);
+    color: #60a5fa;
+    border: 1px solid rgba(96, 165, 250, 0.25);
+}
+
+.alarm-type-tag.bigmoney {
+    background: rgba(251, 191, 36, 0.12);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+/* Alarm Card Right: Details */
+.alarm-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    flex-shrink: 0;
+    min-width: 100px;
+}
+
+.alarm-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #22c55e;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.alarm-meta {
+    font-size: 11px;
+    color: #6e7681;
+}
+
+/* Alarm Card: Timestamp */
+.alarm-time-ago {
+    font-size: 11px;
+    color: #6e7681;
+    flex-shrink: 0;
+    min-width: 60px;
+    text-align: right;
+}
+
+/* Load More Button */
+.load-more-container {
+    display: flex;
+    justify-content: center;
+    padding: 16px;
+}
+
+.load-more-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 24px;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    color: #c9d1d9;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.load-more-btn:hover {
+    background: #30363d;
+    border-color: #484f58;
+}
+
+.load-more-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .alarms-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .alarms-filters {
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+    
+    .alarms-search {
+        max-width: none;
+        min-width: auto;
+    }
+    
+    .alarm-card {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .alarm-match-info {
+        flex: 1 1 100%;
+        order: 1;
+    }
+    
+    .alarm-type-tag {
+        order: 2;
+    }
+    
+    .alarm-details {
+        flex: 1;
+        order: 3;
+        align-items: flex-start;
+    }
+    
+    .alarm-time-ago {
+        order: 4;
+    }
+}
+
+@media (max-width: 480px) {
+    .alarms-filters {
+        gap: 6px;
+    }
+    
+    .alarm-pill {
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+    
+    .pill-count {
+        min-width: 18px;
+        height: 16px;
+        font-size: 10px;
+    }
+}
