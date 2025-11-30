@@ -1012,26 +1012,50 @@
 
         async function recalculateInsiderAlarms() {
             showToast('Insider alarmlar hesaplaniyor...', 'info');
-            showCalcStatus(true, 'Insider alarm hesaplama baslatiliyor...');
+            showInsiderCalcStatus(true, 'Insider alarm hesaplama baslatiliyor...');
             
             try {
                 const response = await fetch('/api/insider/calculate', { method: 'POST' });
                 
                 if (response.ok) {
                     const result = await response.json();
-                    showCalcStatus(false, `Tamamlandi! ${result.count || 0} Insider alarm bulundu.`);
+                    showInsiderCalcStatus(false, `Tamamlandi! ${result.count || 0} Insider alarm bulundu.`);
                     showToast(`${result.count || 0} Insider alarm uretildi!`, 'success');
-                    loadAlarms();
+                    loadInsiderAlarms();
                     
-                    setTimeout(() => hideCalcStatus(), 3000);
+                    setTimeout(() => hideInsiderCalcStatus(), 3000);
                 } else {
-                    showCalcStatus(false, 'Insider hesaplama hatasi!');
+                    showInsiderCalcStatus(false, 'Insider hesaplama hatasi!');
                     showToast('Insider hesaplama hatasi!', 'error');
                 }
             } catch (error) {
-                showCalcStatus(false, 'Baglanti hatasi!');
+                showInsiderCalcStatus(false, 'Baglanti hatasi!');
                 showToast('Baglanti hatasi!', 'error');
             }
+        }
+
+        function showInsiderCalcStatus(isCalculating, message) {
+            const statusEl = document.getElementById('insiderCalcStatus');
+            const progressEl = document.getElementById('insiderCalcProgress');
+            const spinnerEl = statusEl.querySelector('.spinner');
+            
+            statusEl.style.display = 'block';
+            progressEl.textContent = message;
+            
+            if (isCalculating) {
+                spinnerEl.style.display = 'block';
+                progressEl.style.color = '#a371f7';
+                statusEl.style.borderLeftColor = '#a371f7';
+            } else {
+                spinnerEl.style.display = 'none';
+                progressEl.style.color = '#3fb950';
+                statusEl.style.borderLeftColor = '#3fb950';
+            }
+        }
+
+        function hideInsiderCalcStatus() {
+            const statusEl = document.getElementById('insiderCalcStatus');
+            statusEl.style.display = 'none';
         }
 
         function showCalcStatus(isCalculating, message) {
