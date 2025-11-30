@@ -1020,6 +1020,10 @@ def calculate_insider_scores(config):
     markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
     market_names = {'moneyway_1x2': '1X2', 'moneyway_ou25': 'O/U 2.5', 'moneyway_btts': 'BTTS'}
     
+    # Prematch kuralı: D-2+ maçlar hariç tutulur (Sharp ile aynı)
+    today = now_turkey().date()
+    yesterday = today - timedelta(days=1)
+    
     for market in markets:
         try:
             if '1x2' in market:
@@ -1035,21 +1039,56 @@ def calculate_insider_scores(config):
                 odds_keys = ['oddsyes', 'oddsno']
                 amount_keys = ['amtyes', 'amtno']
             
+            history_table = f"{market}_history"
             matches = supabase.get_all_matches_with_latest(market)
             if not matches:
                 continue
             
-            print(f"[Insider] Processing {len(matches)} matches for {market}")
-            
+            # D-2+ filtresi uygula - sadece bugün ve yarın maçlarını işle
+            filtered_matches = []
             for match in matches:
+                match_date_str = match.get('date', '')
+                if match_date_str:
+                    try:
+                        date_part = match_date_str.split()[0]
+                        if '.' in date_part:
+                            parts = date_part.split('.')
+                            if len(parts) == 2:
+                                day = int(parts[0])
+                                month_abbr = parts[1][:3]
+                                month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+                                            'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
+                                month = month_map.get(month_abbr, today.month)
+                                match_date = datetime(today.year, month, day).date()
+                            elif len(parts) == 3:
+                                match_date = datetime.strptime(date_part, '%d.%m.%Y').date()
+                            else:
+                                match_date = today
+                        elif '-' in date_part:
+                            match_date = datetime.strptime(date_part.split('T')[0], '%Y-%m-%d').date()
+                        else:
+                            match_date = today
+                        
+                        # D-2 veya daha eski maçları atla
+                        if match_date < yesterday:
+                            continue
+                        filtered_matches.append(match)
+                    except:
+                        filtered_matches.append(match)
+                else:
+                    filtered_matches.append(match)
+            
+            print(f"[Insider] Processing {len(filtered_matches)}/{len(matches)} matches for {market} (D-2+ filtered)")
+            
+            for match in filtered_matches:
                 home = match.get('home_team', match.get('home', match.get('Home', '')))
                 away = match.get('away_team', match.get('away', match.get('Away', '')))
                 
                 if not home or not away:
                     continue
                 
-                # Get full history for this match (sorted by time, oldest first)
-                history = supabase.get_match_history(home, away, market)
+                # Use faster history fetch (same as Sharp) - tek request
+                history = supabase.get_match_history_for_sharp(home, away, history_table)
                 if not history or len(history) < required_streak + 1:
                     continue
                 
