@@ -2130,18 +2130,55 @@ def regenerate_alarms_api():
         
         generated_count = 0
         
+        today_patterns = [
+            datetime.now(turkey_tz).strftime('%d.%b'),  # 30.Nov
+            datetime.now(turkey_tz).strftime('%d.%m.%Y'),  # 30.11.2025
+            datetime.now(turkey_tz).strftime('%Y-%m-%d'),  # 2025-11-30
+        ]
+        print(f"[Admin API] Today patterns: {today_patterns}")
+        
         for table in market_tables:
             try:
-                url = f"{base_url}/rest/v1/{table}?select=*&date=gte.{today}"
+                url = f"{base_url}/rest/v1/{table}?select=*"
+                print(f"[Admin API] Fetching {table}...")
                 resp = httpx.get(url, headers=headers, timeout=30)
-                matches = resp.json() if resp.status_code == 200 else []
+                print(f"[Admin API] {table} response: {resp.status_code}")
                 
-                if not matches:
+                if resp.status_code != 200:
+                    print(f"[Admin API] {table} error: {resp.text[:200]}")
+                    continue
+                    
+                all_snapshots = resp.json()
+                print(f"[Admin API] {table} snapshots: {len(all_snapshots)}")
+                
+                if not all_snapshots:
                     continue
                 
-                for match in matches:
+                matches_grouped = {}
+                for snapshot in all_snapshots:
+                    date_str = snapshot.get('date', snapshot.get('Date', ''))
+                    is_today = any(pattern in date_str for pattern in today_patterns)
+                    if not is_today:
+                        continue
+                    
+                    match_id = snapshot.get('match_id', '')
+                    if not match_id:
+                        home = snapshot.get('home', snapshot.get('Home', ''))
+                        away = snapshot.get('away', snapshot.get('Away', ''))
+                        match_id = f"{home} vs {away} ({date_str})"
+                    
+                    if match_id not in matches_grouped:
+                        matches_grouped[match_id] = []
+                    matches_grouped[match_id].append(snapshot)
+                
+                print(f"[Admin API] Processing {table}: {len(matches_grouped)} matches, {len(all_snapshots)} snapshots")
+                
+                for match_id, history in matches_grouped.items():
                     try:
-                        alarms = detector.detect(match, table)
+                        if len(history) < 2:
+                            continue
+                        
+                        alarms = detector.detect(history, table, match_id)
                         
                         for alarm in alarms:
                             if alarm.is_alarm:
@@ -2158,7 +2195,9 @@ def regenerate_alarms_api():
                                     'created_at': datetime.now(turkey_tz).isoformat()
                                 }
                                 
-                                check_url = f"{base_url}/rest/v1/alarms?match_id=eq.{alarm.match_id}&type=eq.{alarm.alarm_type}&side=eq.{alarm.side}"
+                                from urllib.parse import quote
+                                safe_match_id = quote(str(alarm.match_id), safe='')
+                                check_url = f"{base_url}/rest/v1/alarms?match_id=eq.{safe_match_id}&type=eq.{alarm.alarm_type}&side=eq.{alarm.side}"
                                 check_resp = httpx.get(check_url, headers=headers, timeout=10)
                                 existing = check_resp.json() if check_resp.status_code == 200 else []
                                 
@@ -2166,9 +2205,9 @@ def regenerate_alarms_api():
                                     insert_url = f"{base_url}/rest/v1/alarms"
                                     httpx.post(insert_url, headers=headers, json=alarm_data, timeout=10)
                                     generated_count += 1
-                                    print(f"[Admin API] Generated alarm: {alarm.match_id} - {alarm.alarm_type}")
+                                    print(f"[Admin API] Generated alarm: {alarm.match_id} - {alarm.alarm_type} - {alarm.side}")
                     except Exception as match_error:
-                        print(f"[Admin API] Error processing match: {match_error}")
+                        print(f"[Admin API] Error processing match {match_id}: {match_error}")
                         continue
                         
             except Exception as table_error:
