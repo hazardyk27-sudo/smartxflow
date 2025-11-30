@@ -425,7 +425,7 @@ class SupabaseClient:
             turkey_tz = pytz.timezone('Europe/Istanbul')
             now_turkey = datetime.now(turkey_tz)
             two_days_ago = now_turkey - timedelta(hours=48)
-            cutoff_iso = two_days_ago.strftime('%Y-%m-%d %H:%M:%S')
+            cutoff_iso = two_days_ago.strftime('%Y-%m-%dT%H:%M:%S')
             
             first_url = f"{self._rest_url(history_table)}?scrapedat=gte.{cutoff_iso}&order=scrapedat.asc&limit=500"
             first_resp = httpx.get(first_url, headers=self._headers(), timeout=10)
