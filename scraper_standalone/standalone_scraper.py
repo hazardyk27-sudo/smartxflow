@@ -249,7 +249,7 @@ def _parse_pct_amt_cell(td) -> tuple:
     joined = " ".join(list(td.stripped_strings))
     m_pct = re.search(r"(\d+(?:\.\d+)?)\s*%", joined)
     pct = f"{m_pct.group(1)}%" if m_pct else ""
-    m_amt = re.search(r"£\s*([\d\s]+)", joined)
+    m_amt = re.search(r"£\s*([\d\s\.]+\s*[MKmk]?)", joined)
     amt = f"£ {m_amt.group(1).strip()}" if m_amt else ""
     return pct, amt
 
