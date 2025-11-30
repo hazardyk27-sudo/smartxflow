@@ -14,11 +14,6 @@ let currentChartHistoryData = [];
 let chartViewMode = 'percent';
 let isClientMode = true;
 
-const PAGE_SIZE = 30;
-let currentPage = 0;
-let isLoadingMore = false;
-let hasMoreMatches = true;
-
 const APP_TIMEZONE = 'Europe/Istanbul';
 
 /**
@@ -159,44 +154,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setupTabs();
     setupSearch();
     setupModalChartTabs();
-    setupInfiniteScroll();
     checkStatus();
     window.statusInterval = window.setInterval(checkStatus, 60000);
 });
-
-function setupInfiniteScroll() {
-    const tableContainer = document.querySelector('.table-container');
-    if (!tableContainer) {
-        window.addEventListener('scroll', handleScroll);
-        return;
-    }
-    
-    tableContainer.addEventListener('scroll', handleScroll);
-    window.addEventListener('scroll', handleScroll);
-}
-
-function handleScroll() {
-    if (isLoadingMore || !hasMoreMatches) return;
-    
-    const tableContainer = document.querySelector('.table-container');
-    let scrollTop, scrollHeight, clientHeight;
-    
-    if (tableContainer && tableContainer.scrollHeight > tableContainer.clientHeight) {
-        scrollTop = tableContainer.scrollTop;
-        scrollHeight = tableContainer.scrollHeight;
-        clientHeight = tableContainer.clientHeight;
-    } else {
-        scrollTop = window.scrollY || document.documentElement.scrollTop;
-        scrollHeight = document.documentElement.scrollHeight;
-        clientHeight = window.innerHeight;
-    }
-    
-    const scrollThreshold = 200;
-    
-    if (scrollTop + clientHeight >= scrollHeight - scrollThreshold) {
-        loadMoreMatches();
-    }
-}
 
 function setupTabs() {
     document.querySelectorAll('.market-tabs .tab').forEach(tab => {
@@ -252,11 +212,6 @@ async function loadMatches() {
         </tr>
     `;
     
-    currentPage = 0;
-    hasMoreMatches = true;
-    matches = [];
-    filteredMatches = [];
-    
     updateTableHeaders();
     
     try {
@@ -266,101 +221,20 @@ async function loadMatches() {
             oddsTrendCache = {};
         }
         
-        const response = await fetch(`/api/matches?market=${currentMarket}&offset=0&limit=${PAGE_SIZE}`);
+        const response = await fetch(`/api/matches?market=${currentMarket}`);
         const apiMatches = await response.json();
         matches = apiMatches || [];
-        
-        if (matches.length < PAGE_SIZE) {
-            hasMoreMatches = false;
-        }
-        
         filteredMatches = applySorting(matches);
         renderMatches(filteredMatches);
         
         if (currentMarket.startsWith('dropping')) {
             attachTrendTooltipListeners();
         }
-        
-        updateMatchCount();
     } catch (error) {
         console.error('Error loading matches:', error);
         matches = [];
         filteredMatches = [];
         renderMatches([]);
-    }
-}
-
-async function loadMoreMatches() {
-    if (isLoadingMore || !hasMoreMatches) return;
-    
-    isLoadingMore = true;
-    currentPage++;
-    
-    const offset = currentPage * PAGE_SIZE;
-    
-    showLoadingIndicator();
-    
-    try {
-        const response = await fetch(`/api/matches?market=${currentMarket}&offset=${offset}&limit=${PAGE_SIZE}`);
-        const newMatches = await response.json();
-        
-        if (!newMatches || newMatches.length === 0) {
-            hasMoreMatches = false;
-            hideLoadingIndicator();
-            isLoadingMore = false;
-            return;
-        }
-        
-        if (newMatches.length < PAGE_SIZE) {
-            hasMoreMatches = false;
-        }
-        
-        matches = [...matches, ...newMatches];
-        filteredMatches = applySorting(matches);
-        
-        appendMatches(newMatches);
-        
-        if (currentMarket.startsWith('dropping')) {
-            attachTrendTooltipListeners();
-        }
-        
-        updateMatchCount();
-        
-    } catch (error) {
-        console.error('Error loading more matches:', error);
-        currentPage--;
-    } finally {
-        hideLoadingIndicator();
-        isLoadingMore = false;
-    }
-}
-
-function showLoadingIndicator() {
-    const tbody = document.getElementById('matchesTableBody');
-    const existingLoader = document.getElementById('loadMoreRow');
-    if (existingLoader) existingLoader.remove();
-    
-    const loadingRow = document.createElement('tr');
-    loadingRow.id = 'loadMoreRow';
-    loadingRow.innerHTML = `
-        <td colspan="7" style="text-align: center; padding: 20px;">
-            <div class="loading-spinner" style="display: inline-block; margin-right: 10px;"></div>
-            Loading more matches...
-        </td>
-    `;
-    tbody.appendChild(loadingRow);
-}
-
-function hideLoadingIndicator() {
-    const loadingRow = document.getElementById('loadMoreRow');
-    if (loadingRow) loadingRow.remove();
-}
-
-function updateMatchCount() {
-    const countEl = document.querySelector('.match-count');
-    if (countEl) {
-        const suffix = hasMoreMatches ? '+' : '';
-        countEl.textContent = `${matches.length}${suffix} Matches`;
     }
 }
 
@@ -676,141 +550,6 @@ function renderMatches(data) {
             }
         }
     }).join('');
-    
-    if (currentMarket.startsWith('dropping')) {
-        setTimeout(() => attachTrendTooltipListeners(), 50);
-    }
-}
-
-function appendMatches(newData) {
-    const tbody = document.getElementById('matchesTableBody');
-    if (!tbody) return;
-    
-    const startIdx = matches.length - newData.length;
-    const isDropping = currentMarket.startsWith('dropping');
-    const isMoneyway = currentMarket.startsWith('moneyway');
-    
-    const html = newData.map((match, i) => {
-        const idx = startIdx + i;
-        const d = match.details || match.odds || {};
-        
-        if (currentMarket.includes('1x2')) {
-            if (isMoneyway) {
-                const block1 = renderMoneywayBlock('1', d.Pct1, d.Odds1 || d['1'], d.Amt1);
-                const blockX = renderMoneywayBlock('X', d.PctX, d.OddsX || d['X'], d.AmtX);
-                const block2 = renderMoneywayBlock('2', d.Pct2, d.Odds2 || d['2'], d.Amt2);
-                return `
-                    <tr data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
-                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="mw-outcomes-cell" colspan="3">
-                            <div class="mw-grid mw-grid-3">
-                                ${block1}
-                                ${blockX}
-                                ${block2}
-                            </div>
-                        </td>
-                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
-                    </tr>
-                `;
-            } else {
-                const trend1Data = getOddsTrendData(match.home_team, match.away_team, 'odds1');
-                const trendXData = getOddsTrendData(match.home_team, match.away_team, 'oddsx');
-                const trend2Data = getOddsTrendData(match.home_team, match.away_team, 'odds2');
-                
-                const cell1 = renderDrop1X2Cell('1', d.Odds1 || d['1'], trend1Data);
-                const cellX = renderDrop1X2Cell('X', d.OddsX || d['X'], trendXData);
-                const cell2 = renderDrop1X2Cell('2', d.Odds2 || d['2'], trend2Data);
-                
-                return `
-                    <tr class="dropping-1x2-row" data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
-                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="drop-cell">${cell1}</td>
-                        <td class="drop-cell">${cellX}</td>
-                        <td class="drop-cell">${cell2}</td>
-                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
-                    </tr>
-                `;
-            }
-        } else if (currentMarket.includes('ou25')) {
-            if (isMoneyway) {
-                const blockUnder = renderMoneywayBlock('U 2.5', d.PctUnder, d.Under, d.AmtUnder);
-                const blockOver = renderMoneywayBlock('O 2.5', d.PctOver, d.Over, d.AmtOver);
-                return `
-                    <tr data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
-                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="mw-outcomes-cell" colspan="2">
-                            <div class="mw-grid mw-grid-2">
-                                ${blockUnder}
-                                ${blockOver}
-                            </div>
-                        </td>
-                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
-                    </tr>
-                `;
-            } else {
-                const trendUnderData = getOddsTrendData(match.home_team, match.away_team, 'under');
-                const trendOverData = getOddsTrendData(match.home_team, match.away_team, 'over');
-                
-                const cellUnder = renderOddsWithTrend(d.Under, trendUnderData);
-                const cellOver = renderOddsWithTrend(d.Over, trendOverData);
-                
-                return `
-                    <tr data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
-                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="selection-cell"><div>${cellUnder}</div></td>
-                        <td class="selection-cell"><div>${cellOver}</div></td>
-                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
-                    </tr>
-                `;
-            }
-        } else {
-            if (isMoneyway) {
-                const blockYes = renderMoneywayBlock('Yes', d.PctYes, d.OddsYes || d.Yes, d.AmtYes);
-                const blockNo = renderMoneywayBlock('No', d.PctNo, d.OddsNo || d.No, d.AmtNo);
-                return `
-                    <tr data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
-                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="mw-outcomes-cell" colspan="2">
-                            <div class="mw-grid mw-grid-2">
-                                ${blockYes}
-                                ${blockNo}
-                            </div>
-                        </td>
-                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
-                    </tr>
-                `;
-            } else {
-                const trendYesData = getOddsTrendData(match.home_team, match.away_team, 'yes');
-                const trendNoData = getOddsTrendData(match.home_team, match.away_team, 'no');
-                
-                const cellYes = renderOddsWithTrend(d.OddsYes || d.Yes, trendYesData);
-                const cellNo = renderOddsWithTrend(d.OddsNo || d.No, trendNoData);
-                
-                return `
-                    <tr data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
-                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
-                        <td class="selection-cell"><div>${cellYes}</div></td>
-                        <td class="selection-cell"><div>${cellNo}</div></td>
-                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
-                    </tr>
-                `;
-            }
-        }
-    }).join('');
-    
-    tbody.insertAdjacentHTML('beforeend', html);
     
     if (currentMarket.startsWith('dropping')) {
         setTimeout(() => attachTrendTooltipListeners(), 50);

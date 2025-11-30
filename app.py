@@ -175,26 +175,20 @@ matches_cache = {
 
 @app.route('/api/matches')
 def get_matches():
-    """Get matches from database with pagination support"""
+    """Get all matches from database - optimized with cache"""
     import time
     market = request.args.get('market', 'moneyway_1x2')
-    offset = request.args.get('offset', 0, type=int)
-    limit = request.args.get('limit', 0, type=int)
     is_dropping = market.startswith('dropping')
     
     now = time.time()
     
-    if limit > 0:
-        cache_key = f"{market}_{offset}_{limit}"
-    else:
-        cache_key = market
-    
-    if cache_key in matches_cache['data']:
-        last_time = matches_cache['timestamp'].get(cache_key, 0)
+    # Cache kontrolü
+    if market in matches_cache['data']:
+        last_time = matches_cache['timestamp'].get(market, 0)
         if (now - last_time) < matches_cache['ttl']:
-            return jsonify(matches_cache['data'][cache_key])
+            return jsonify(matches_cache['data'][market])
     
-    matches_with_latest = db.get_all_matches_with_latest(market, offset, limit)
+    matches_with_latest = db.get_all_matches_with_latest(market)
     
     enriched = []
     for m in matches_with_latest:
@@ -276,8 +270,8 @@ def get_matches():
         })
     
     # Cache'e kaydet
-    matches_cache['data'][cache_key] = enriched
-    matches_cache['timestamp'][cache_key] = now
+    matches_cache['data'][market] = enriched
+    matches_cache['timestamp'][market] = now
     
     return jsonify(enriched)
 
