@@ -4331,10 +4331,10 @@ td.volume,
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    border: none;
+    background-color: #1A8F4B;
+    border: 1px solid #0F6F37;
     border-radius: 8px;
-    color: #000;
+    color: #FFFFFF;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -4344,12 +4344,13 @@ td.volume,
 }
 
 .alarms-toggle-btn:hover {
+    background-color: #0F6F37;
     transform: scale(1.02);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 4px 12px rgba(26, 143, 75, 0.3);
 }
 
 .alarms-toggle-btn svg {
-    stroke: #000;
+    stroke: #FFFFFF;
 }
 
 .alarms-toggle-badge {
@@ -4359,8 +4360,8 @@ td.volume,
     min-width: 20px;
     height: 20px;
     padding: 0 6px;
-    background: #000;
-    color: #f59e0b;
+    background-color: #FF3B30;
+    color: #FFFFFF;
     border-radius: 10px;
     font-size: 11px;
     font-weight: 700;
