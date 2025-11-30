@@ -260,9 +260,7 @@ async function loadMatches() {
     updateTableHeaders();
     
     try {
-        if (currentMarket.startsWith('dropping')) {
-            await loadOddsTrend(currentMarket);
-        } else {
+        if (!currentMarket.startsWith('dropping')) {
             oddsTrendCache = {};
         }
         
@@ -277,11 +275,11 @@ async function loadMatches() {
         filteredMatches = applySorting(matches);
         renderMatches(filteredMatches);
         
-        if (currentMarket.startsWith('dropping')) {
-            attachTrendTooltipListeners();
-        }
-        
         updateMatchCount();
+        
+        if (currentMarket.startsWith('dropping')) {
+            loadOddsTrendAsync(currentMarket);
+        }
     } catch (error) {
         console.error('Error loading matches:', error);
         matches = [];
@@ -3181,6 +3179,29 @@ async function loadOddsTrend(market) {
         console.error('[Odds Trend] Error loading:', error);
         oddsTrendCache = {};
     }
+}
+
+function loadOddsTrendAsync(market) {
+    if (!market.startsWith('dropping')) {
+        oddsTrendCache = {};
+        return;
+    }
+    
+    fetch(`/api/odds-trend/${market}`)
+        .then(response => response.json())
+        .then(result => {
+            oddsTrendCache = result.data || {};
+            console.log(`[Odds Trend] Loaded ${Object.keys(oddsTrendCache).length} matches for ${market}`);
+            
+            if (currentMarket === market) {
+                renderMatches(filteredMatches);
+                attachTrendTooltipListeners();
+            }
+        })
+        .catch(error => {
+            console.error('[Odds Trend] Error loading:', error);
+            oddsTrendCache = {};
+        });
 }
 
 function generateSparklineSVG(values, trend) {
