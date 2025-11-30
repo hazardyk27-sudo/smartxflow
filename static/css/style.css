@@ -2847,7 +2847,7 @@ td.volume,
 }
 
 .drop-trend-icon svg {
-    width: 22px;
+    width: 36px;
     height: 12px;
 }
 
@@ -2904,7 +2904,7 @@ td.volume,
     }
     
     .drop-trend-icon svg {
-        width: 20px;
+        width: 32px;
         height: 10px;
     }
     
@@ -2932,7 +2932,7 @@ td.volume,
     }
     
     .drop-trend-icon svg {
-        width: 18px;
+        width: 28px;
         height: 9px;
     }
     
@@ -3020,6 +3020,8 @@ td.volume,
 
 .trend-icon-svg {
     display: block;
+    width: 36px;
+    height: 12px;
 }
 
 .odds-value-trend {
@@ -3037,11 +3039,11 @@ td.volume,
 }
 
 .pct-change.pct-down {
-    color: #ef4444;
+    color: #ff0000;
 }
 
 .pct-change.pct-up {
-    color: #22c55e;
+    color: #00ff03;
 }
 
 .pct-change.pct-stable {
@@ -3055,11 +3057,11 @@ td.volume,
 }
 
 .trend-down-drop {
-    color: #ef4444;
+    color: #ff0000;
 }
 
 .trend-up-drop {
-    color: #22c55e;
+    color: #00ff03;
 }
 
 .trend-stable-drop {

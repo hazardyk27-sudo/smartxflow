@@ -2922,21 +2922,34 @@ async function loadOddsTrend(market) {
     }
 }
 
-function generateTrendIconSVG(trend) {
+function generateTrendIconSVG(trend, pctChange) {
     let color, path;
+    const absPct = Math.abs(pctChange || 0);
     
     if (trend === 'down') {
-        color = '#F97373';
-        path = 'M2 4 L8 8 L14 6 L20 10';
+        color = '#ff0000';
+        if (absPct >= 15) {
+            path = 'M2 2 L10 6 L18 4 L26 10 L34 8';
+        } else if (absPct >= 5) {
+            path = 'M2 3 L10 5 L18 4 L26 7 L34 9';
+        } else {
+            path = 'M2 4 L10 5 L18 5 L26 6 L34 7';
+        }
     } else if (trend === 'up') {
-        color = '#22C55E';
-        path = 'M2 10 L8 6 L14 8 L20 4';
+        color = '#00ff03';
+        if (absPct >= 15) {
+            path = 'M2 10 L10 6 L18 8 L26 2 L34 4';
+        } else if (absPct >= 5) {
+            path = 'M2 9 L10 7 L18 8 L26 5 L34 3';
+        } else {
+            path = 'M2 7 L10 6 L18 6 L26 5 L34 4';
+        }
     } else {
         color = '#6B7280';
-        path = 'M2 7 L20 7';
+        path = 'M2 6 L34 6';
     }
     
-    return `<svg class="trend-icon-svg" width="22" height="12" viewBox="0 0 22 12">
+    return `<svg class="trend-icon-svg" width="36" height="12" viewBox="0 0 36 12">
         <path d="${path}" stroke="${color}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
 }
@@ -2983,7 +2996,7 @@ function renderOddsWithTrend(oddsValue, trendData) {
     const formattedOdds = formatOdds(oddsValue);
     
     if (!trendData || !trendData.history || trendData.history.length < 2) {
-        const trendIcon = generateTrendIconSVG('flat');
+        const trendIcon = generateTrendIconSVG('flat', 0);
         return `
             <div class="odds-trend-cell odds-trend-no-data">
                 <div class="trend-icon-container">${trendIcon}</div>
@@ -2992,11 +3005,19 @@ function renderOddsWithTrend(oddsValue, trendData) {
         `;
     }
     
-    const trendIcon = generateTrendIconSVG(trendData.trend);
+    const trendIcon = generateTrendIconSVG(trendData.trend, trendData.pct_change);
     const pctHtml = formatPctChange(trendData.pct_change, trendData.trend);
     
+    const tooltipData = JSON.stringify({
+        old: trendData.old,
+        new: trendData.new,
+        pct: trendData.pct_change,
+        trend: trendData.trend,
+        first_scraped: trendData.first_scraped || null
+    }).replace(/"/g, '&quot;');
+    
     return `
-        <div class="odds-trend-cell">
+        <div class="odds-trend-cell" data-tooltip="${tooltipData}">
             <div class="trend-icon-container">${trendIcon}</div>
             <div class="odds-value-trend">${formattedOdds}</div>
             ${pctHtml}
@@ -3008,7 +3029,7 @@ function renderDrop1X2Cell(label, oddsValue, trendData) {
     const formattedOdds = formatOdds(oddsValue);
     
     if (!trendData || !trendData.history || trendData.history.length < 2) {
-        const trendIcon = generateTrendIconSVG('flat');
+        const trendIcon = generateTrendIconSVG('flat', 0);
         return `
             <div class="drop-mini-card">
                 <div class="drop-trend-icon">${trendIcon}</div>
@@ -3017,13 +3038,21 @@ function renderDrop1X2Cell(label, oddsValue, trendData) {
         `;
     }
     
-    const trendIcon = generateTrendIconSVG(trendData.trend);
+    const trendIcon = generateTrendIconSVG(trendData.trend, trendData.pct_change);
     const pctHtml = formatPctChange(trendData.pct_change, trendData.trend);
+    
+    const tooltipData = JSON.stringify({
+        old: trendData.old,
+        new: trendData.new,
+        pct: trendData.pct_change,
+        trend: trendData.trend,
+        first_scraped: trendData.first_scraped || null
+    }).replace(/"/g, '&quot;');
     
     const changeClass = trendData.trend === 'up' ? 'positive' : (trendData.trend === 'down' ? 'negative' : '');
     
     return `
-        <div class="drop-mini-card">
+        <div class="drop-mini-card" data-tooltip="${tooltipData}">
             <div class="drop-trend-icon">${trendIcon}</div>
             <div class="drop-odds">${formattedOdds}</div>
             <div class="drop-change ${changeClass}">${pctHtml}</div>
