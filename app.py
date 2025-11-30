@@ -1019,17 +1019,22 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
     share_key = share_keys[sel_idx]
     
     stakes = []
+    max_stake = 0
+    max_stake_idx = 0
+    
     for i in range(1, len(history)):
         curr_amt = parse_volume(history[i].get(amount_key, '0'))
         prev_amt = parse_volume(history[i-1].get(amount_key, '0'))
         stake = curr_amt - prev_amt
         if stake > 0:
             stakes.append(stake)
+            if stake > max_stake:
+                max_stake = stake
+                max_stake_idx = i
     
-    if not stakes:
+    if not stakes or max_stake_idx == 0:
         return None
     
-    max_stake = max(stakes)
     avg_stake = sum(stakes) / len(stakes) if stakes else 1
     
     if avg_stake <= 0:
@@ -1039,23 +1044,28 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
     volume_multiplier = config.get('volume_multiplier', 1)
     shock_value = shock_raw * volume_multiplier
     
-    current_odds = parse_float(history[-1].get(odds_key, '0'))
-    previous_odds = parse_float(history[-2].get(odds_key, '0')) if len(history) >= 2 else current_odds
+    shock_before = history[max_stake_idx - 1]
+    shock_after = history[max_stake_idx]
     
-    if previous_odds > 0 and current_odds < previous_odds:
-        drop_pct = ((previous_odds - current_odds) / previous_odds) * 100
+    odds_before = parse_float(shock_before.get(odds_key, '0'))
+    odds_after = parse_float(shock_after.get(odds_key, '0'))
+    
+    if odds_before > 0 and odds_after < odds_before:
+        drop_pct = ((odds_before - odds_after) / odds_before) * 100
     else:
         drop_pct = 0
     
     odds_multiplier = config.get('odds_multiplier', 1)
     odds_value = drop_pct * odds_multiplier
     
-    current_share = parse_float(history[-1].get(share_key, '0').replace('%', ''))
-    previous_share = parse_float(history[-2].get(share_key, '0').replace('%', '')) if len(history) >= 2 else current_share
+    share_before = parse_float(str(shock_before.get(share_key, '0')).replace('%', ''))
+    share_after = parse_float(str(shock_after.get(share_key, '0')).replace('%', ''))
     
-    share_diff = current_share - previous_share
+    share_diff = share_after - share_before
     if share_diff < 0:
         share_diff = 0
+    
+    current_share = share_after
     
     share_multiplier = config.get('share_multiplier', 1)
     share_value = share_diff * share_multiplier
@@ -1094,15 +1104,15 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         'shock_value': shock_value,
         'w_volume': w_volume,
         'volume_contrib': volume_contrib,
-        'previous_odds': previous_odds,
-        'current_odds': current_odds,
+        'previous_odds': odds_before,
+        'current_odds': odds_after,
         'drop_pct': drop_pct,
         'odds_multiplier': odds_multiplier,
         'odds_value': odds_value,
         'w_odds': w_odds,
         'odds_contrib': odds_contrib,
-        'previous_share': previous_share,
-        'current_share': current_share,
+        'previous_share': share_before,
+        'current_share': share_after,
         'share_diff': share_diff,
         'share_multiplier': share_multiplier,
         'share_value': share_value,
