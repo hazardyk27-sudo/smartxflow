@@ -459,13 +459,13 @@ body {
     table-layout: fixed;
 }
 
-.matches-table colgroup col.col-date { width: 90px; }
-.matches-table colgroup col.col-league { width: 120px; }
-.matches-table colgroup col.col-match { width: auto; }
-.matches-table colgroup col.col-volume { width: 110px; }
+.matches-table colgroup col.col-date { width: 65px; }
+.matches-table colgroup col.col-league { width: 100px; }
+.matches-table colgroup col.col-match { width: 200px; }
+.matches-table colgroup col.col-volume { width: 100px; }
 
-.matches-table[data-selection-count="3"] colgroup col.col-selection { width: 130px; }
-.matches-table[data-selection-count="2"] colgroup col.col-selection { width: 180px; }
+.matches-table[data-selection-count="3"] colgroup col.col-selection { width: 90px; }
+.matches-table[data-selection-count="2"] colgroup col.col-selection { width: 110px; }
 
 .matches-table th {
     padding: 8px 10px;
