@@ -370,7 +370,7 @@ function renderMoneywayBlock(label, percent, odds, money) {
         <div class="mw-outcome-block">
             <div class="mw-info-stack">
                 <div class="mw-odds">${formatOdds(odds)}</div>
-                ${money ? `<div class="mw-money">${money}</div>` : ''}
+                ${money ? `<div class="mw-money">${formatVolume(money)}</div>` : ''}
             </div>
             <div class="mw-donut">${donut}</div>
         </div>
@@ -1191,7 +1191,7 @@ function updateMatchInfoCard() {
                             </div>
                             <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2f3336;">
                                 <span style="font-size:12px;color:#8899a6;">Stake</span>
-                                <span class="money ${c1}" style="font-family:'JetBrains Mono',monospace;font-size:14px;">${d.Amt1 || '-'}</span>
+                                <span class="money ${c1}" style="font-family:'JetBrains Mono',monospace;font-size:14px;">${formatVolume(d.Amt1)}</span>
                             </div>
                             <div style="display:flex;justify-content:space-between;padding:8px 0;">
                                 <span style="font-size:12px;color:#8899a6;">%</span>
@@ -1206,7 +1206,7 @@ function updateMatchInfoCard() {
                             </div>
                             <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2f3336;">
                                 <span style="font-size:12px;color:#8899a6;">Stake</span>
-                                <span class="money ${cX}" style="font-family:'JetBrains Mono',monospace;font-size:14px;">${d.AmtX || '-'}</span>
+                                <span class="money ${cX}" style="font-family:'JetBrains Mono',monospace;font-size:14px;">${formatVolume(d.AmtX)}</span>
                             </div>
                             <div style="display:flex;justify-content:space-between;padding:8px 0;">
                                 <span style="font-size:12px;color:#8899a6;">%</span>
@@ -1221,7 +1221,7 @@ function updateMatchInfoCard() {
                             </div>
                             <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2f3336;">
                                 <span style="font-size:12px;color:#8899a6;">Stake</span>
-                                <span class="money ${c2}" style="font-family:'JetBrains Mono',monospace;font-size:14px;">${d.Amt2 || '-'}</span>
+                                <span class="money ${c2}" style="font-family:'JetBrains Mono',monospace;font-size:14px;">${formatVolume(d.Amt2)}</span>
                             </div>
                             <div style="display:flex;justify-content:space-between;padding:8px 0;">
                                 <span style="font-size:12px;color:#8899a6;">%</span>
@@ -1283,7 +1283,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
-                            <span class="row-value money ${cU}">${d.AmtUnder || '-'}</span>
+                            <span class="row-value money ${cU}">${formatVolume(d.AmtUnder)}</span>
                         </div>
                         <div class="column-row">
                             <span class="row-label">%</span>
@@ -1298,7 +1298,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
-                            <span class="row-value money ${cO}">${d.AmtOver || '-'}</span>
+                            <span class="row-value money ${cO}">${formatVolume(d.AmtOver)}</span>
                         </div>
                         <div class="column-row">
                             <span class="row-label">%</span>
@@ -1352,7 +1352,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
-                            <span class="row-value money ${cY}">${d.AmtYes || '-'}</span>
+                            <span class="row-value money ${cY}">${formatVolume(d.AmtYes)}</span>
                         </div>
                         <div class="column-row">
                             <span class="row-label">%</span>
@@ -1367,7 +1367,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
-                            <span class="row-value money ${cN}">${d.AmtNo || '-'}</span>
+                            <span class="row-value money ${cN}">${formatVolume(d.AmtNo)}</span>
                         </div>
                         <div class="column-row">
                             <span class="row-label">%</span>
