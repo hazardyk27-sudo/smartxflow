@@ -13,6 +13,10 @@ SmartXFlow Monitor is a professional betting odds tracking tool designed to scra
 - **PUSH KOMUTU:** `git push --force` kullan (conflict varsa)
 - **DEBUG DOSYASI** - Her EXE build'inde BUILD_INFO.txt ve smartxflow_debug.log dahil edilir
 - **SUPABASE SECRET ADI** - Her zaman SUPABASE_ANON_KEY kullan (SUPABASE_KEY değil)
+- **ALARM CALC STATUS KURALI** - Her alarm türü için AYRI CalcStatus elementi olmalı:
+  - Sharp: `calcStatus`, `calcProgress` elementleri + `showCalcStatus()`, `hideCalcStatus()` fonksiyonları
+  - Insider: `insiderCalcStatus`, `insiderCalcProgress` elementleri + `showInsiderCalcStatus()`, `hideInsiderCalcStatus()` fonksiyonları
+  - Yeni alarm eklendiğinde: `[alarmName]CalcStatus`, `[alarmName]CalcProgress` + `show[AlarmName]CalcStatus()`, `hide[AlarmName]CalcStatus()` oluştur
 
 ### System Architecture
 
