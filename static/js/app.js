@@ -161,9 +161,19 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupTabs() {
     document.querySelectorAll('.market-tabs .tab').forEach(tab => {
         tab.addEventListener('click', () => {
+            const market = tab.dataset.market;
+            
+            if (market === 'alarms') {
+                return;
+            }
+            
+            if (isAlarmsPageActive) {
+                hideAlarmsPage();
+            }
+            
             document.querySelectorAll('.market-tabs .tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-            currentMarket = tab.dataset.market;
+            currentMarket = market;
             
             const isDropMarket = currentMarket.startsWith('dropping_');
             showTrendSortButtons(isDropMarket);
@@ -3333,7 +3343,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============================================
-// ALARMS MODAL FUNCTIONALITY
+// ALARMS PAGE FUNCTIONALITY
 // ============================================
 
 let currentAlarmFilter = 'all';
@@ -3343,18 +3353,31 @@ let alarmsDataByType = {
     insider: [],
     bigmoney: []
 };
+let alarmSearchQuery = '';
+let alarmsDisplayCount = 30;
+let isAlarmsPageActive = false;
 
-async function openAlarmsModal() {
-    document.getElementById('alarmsModal').style.display = 'flex';
-    await loadAllAlarms();
+function showAlarmsPage() {
+    isAlarmsPageActive = true;
+    
+    document.querySelectorAll('.market-tabs .tab').forEach(t => t.classList.remove('active'));
+    document.querySelector('.tab-alarms').classList.add('active');
+    
+    document.querySelector('.matches-section').style.display = 'none';
+    document.getElementById('alarmsSection').style.display = 'block';
+    
+    loadAllAlarms();
 }
 
-function closeAlarmsModal() {
-    document.getElementById('alarmsModal').style.display = 'none';
+function hideAlarmsPage() {
+    isAlarmsPageActive = false;
+    document.getElementById('alarmsSection').style.display = 'none';
+    document.querySelector('.matches-section').style.display = 'block';
+    document.querySelector('.tab-alarms').classList.remove('active');
 }
 
 async function loadAllAlarms() {
-    const body = document.getElementById('alarmsModalBody');
+    const body = document.getElementById('alarmsList');
     body.innerHTML = '<div class="alarms-loading">Alarmlar yukleniyor...</div>';
     
     try {
@@ -3368,39 +3391,43 @@ async function loadAllAlarms() {
         alarmsDataByType.insider = insiderRes.ok ? await insiderRes.json() : [];
         alarmsDataByType.bigmoney = bigMoneyRes.ok ? await bigMoneyRes.json() : [];
         
-        // Add type to each alarm and merge
         const sharpWithType = alarmsDataByType.sharp.map(a => ({ ...a, _type: 'sharp' }));
         const insiderWithType = alarmsDataByType.insider.map(a => ({ ...a, _type: 'insider' }));
         const bigmoneyWithType = alarmsDataByType.bigmoney.map(a => ({ ...a, _type: 'bigmoney' }));
         
         allAlarmsData = [...sharpWithType, ...insiderWithType, ...bigmoneyWithType];
         
-        // Sort by created_at (newest first)
         allAlarmsData.sort((a, b) => {
             const dateA = parseAlarmDate(a.created_at);
             const dateB = parseAlarmDate(b.created_at);
             return dateB - dateA;
         });
         
-        // Update counts
-        document.getElementById('sharpCount').textContent = alarmsDataByType.sharp.length;
-        document.getElementById('insiderCount').textContent = alarmsDataByType.insider.length;
-        document.getElementById('bigMoneyCount').textContent = alarmsDataByType.bigmoney.length;
-        document.getElementById('allCount').textContent = allAlarmsData.length;
-        
-        // Update badge
-        document.getElementById('alarmBadge').textContent = allAlarmsData.length;
-        
+        updateAlarmCounts();
+        alarmsDisplayCount = 30;
         renderAlarmsList(currentAlarmFilter);
     } catch (error) {
         console.error('Alarm yukleme hatasi:', error);
-        body.innerHTML = '<div class="no-alarms-message"><p>Alarmlar yuklenirken hata olustu.</p></div>';
+        body.innerHTML = '<div class="alarms-empty"><p>Alarmlar yuklenirken hata olustu.</p></div>';
     }
+}
+
+function updateAlarmCounts() {
+    const sharpCountEl = document.getElementById('sharpCount');
+    const insiderCountEl = document.getElementById('insiderCount');
+    const bigMoneyCountEl = document.getElementById('bigMoneyCount');
+    const allCountEl = document.getElementById('allCount');
+    const tabBadge = document.getElementById('tabAlarmBadge');
+    
+    if (sharpCountEl) sharpCountEl.textContent = alarmsDataByType.sharp.length;
+    if (insiderCountEl) insiderCountEl.textContent = alarmsDataByType.insider.length;
+    if (bigMoneyCountEl) bigMoneyCountEl.textContent = alarmsDataByType.bigmoney.length;
+    if (allCountEl) allCountEl.textContent = allAlarmsData.length;
+    if (tabBadge) tabBadge.textContent = allAlarmsData.length;
 }
 
 function parseAlarmDate(dateStr) {
     if (!dateStr) return new Date(0);
-    // Handle format: "01.12.2025 01:14" or ISO format
     if (dateStr.includes('.')) {
         const [datePart, timePart] = dateStr.split(' ');
         const [day, month, year] = datePart.split('.');
@@ -3412,78 +3439,148 @@ function parseAlarmDate(dateStr) {
 
 function filterAlarms(type) {
     currentAlarmFilter = type;
-    document.querySelectorAll('.alarm-filter').forEach(btn => {
+    alarmsDisplayCount = 30;
+    
+    document.querySelectorAll('.alarm-pill').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.type === type);
     });
+    
     renderAlarmsList(type);
 }
 
-function renderAlarmsList(filterType) {
-    const body = document.getElementById('alarmsModalBody');
-    
-    let alarms = filterType === 'all' 
+function searchAlarms(query) {
+    alarmSearchQuery = query.toLowerCase().trim();
+    alarmsDisplayCount = 30;
+    renderAlarmsList(currentAlarmFilter);
+}
+
+function getFilteredAlarms() {
+    let alarms = currentAlarmFilter === 'all' 
         ? allAlarmsData 
-        : allAlarmsData.filter(a => a._type === filterType);
+        : allAlarmsData.filter(a => a._type === currentAlarmFilter);
+    
+    if (alarmSearchQuery) {
+        alarms = alarms.filter(a => {
+            const home = (a.home || a.home_team || '').toLowerCase();
+            const away = (a.away || a.away_team || '').toLowerCase();
+            const league = (a.league || '').toLowerCase();
+            return home.includes(alarmSearchQuery) || 
+                   away.includes(alarmSearchQuery) || 
+                   league.includes(alarmSearchQuery);
+        });
+    }
+    
+    return alarms;
+}
+
+function renderAlarmsList(filterType) {
+    const body = document.getElementById('alarmsList');
+    const alarms = getFilteredAlarms();
     
     if (alarms.length === 0) {
         body.innerHTML = `
-            <div class="no-alarms-message">
+            <div class="alarms-empty">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
-                <p>Alarm bulunamadi.</p>
+                <div class="alarms-empty-title">Alarm bulunamadi</div>
+                <div class="alarms-empty-desc">${alarmSearchQuery ? 'Arama kriterlerine uygun alarm yok.' : 'Henuz aktif alarm bulunmuyor.'}</div>
             </div>
         `;
         return;
     }
     
-    body.innerHTML = alarms.map((alarm, idx) => {
+    const displayAlarms = alarms.slice(0, alarmsDisplayCount);
+    const hasMore = alarms.length > alarmsDisplayCount;
+    
+    let html = displayAlarms.map((alarm, idx) => {
         const type = alarm._type;
         const home = alarm.home || alarm.home_team || '-';
         const away = alarm.away || alarm.away_team || '-';
-        const market = alarm.market || '-';
-        const selection = alarm.selection || alarm.side || '-';
-        const score = type === 'sharp' ? (alarm.sharp_score || 0).toFixed(1) 
-                    : type === 'insider' ? (alarm.insider_score || 0).toFixed(1)
-                    : formatVolume(alarm.stake || alarm.volume || 0);
-        const createdAt = alarm.created_at || '';
+        const league = alarm.league || '';
+        const market = alarm.market || '';
+        const selection = alarm.selection || alarm.side || '';
+        
+        let valueText = '';
+        if (type === 'sharp') {
+            valueText = `Score: ${(alarm.sharp_score || 0).toFixed(1)}`;
+        } else if (type === 'insider') {
+            valueText = `Score: ${(alarm.insider_score || 0).toFixed(1)}`;
+        } else {
+            valueText = formatVolume(alarm.stake || alarm.volume || 0);
+        }
+        
+        const metaText = [market, selection].filter(Boolean).join(' - ');
+        const timeAgo = formatTimeAgo(alarm.created_at);
         const typeLabels = { sharp: 'Sharp', insider: 'Insider', bigmoney: 'Big Money' };
         
         return `
-            <div class="alarm-list-item" onclick="showAlarmDetailFromList(${idx}, '${filterType}')">
-                <div class="alarm-icon ${type}">
-                    ${type === 'sharp' ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>'
-                    : type === 'insider' ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>'
-                    : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'}
+            <div class="alarm-card ${type}-alarm" onclick="showAlarmDetailFromList(${idx})">
+                <div class="alarm-match-info">
+                    <div class="alarm-match-title">
+                        <span class="alarm-teams">${home} vs ${away}</span>
+                    </div>
+                    <div class="alarm-league">${league} ${metaText ? '• ' + metaText : ''}</div>
                 </div>
+                <span class="alarm-type-tag ${type}">${typeLabels[type]}</span>
                 <div class="alarm-details">
-                    <div class="alarm-match-name">
-                        <span class="alarm-type-badge ${type}">${typeLabels[type]}</span>
-                        ${home} vs ${away}
-                    </div>
-                    <div class="alarm-meta-info">
-                        <span>${market}</span>
-                        <span>${selection}</span>
-                    </div>
+                    <span class="alarm-value">${valueText}</span>
                 </div>
-                <span class="alarm-time">${createdAt}</span>
-                <div class="alarm-score-badge">${score}</div>
+                <span class="alarm-time-ago">${timeAgo}</span>
             </div>
         `;
     }).join('');
+    
+    if (hasMore) {
+        html += `
+            <div class="load-more-container">
+                <button class="load-more-btn" onclick="loadMoreAlarms()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                    Daha Fazla Yukle (${alarms.length - alarmsDisplayCount} kaldi)
+                </button>
+            </div>
+        `;
+    }
+    
+    body.innerHTML = html;
 }
 
-function showAlarmDetailFromList(index, filterType) {
-    const alarms = filterType === 'all' 
-        ? allAlarmsData 
-        : allAlarmsData.filter(a => a._type === filterType);
+function loadMoreAlarms() {
+    alarmsDisplayCount += 30;
+    renderAlarmsList(currentAlarmFilter);
     
+    const container = document.getElementById('alarmsList');
+    const cards = container.querySelectorAll('.alarm-card');
+    if (cards.length > 0) {
+        cards[cards.length - 30]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function formatTimeAgo(dateStr) {
+    if (!dateStr) return '';
+    const date = parseAlarmDate(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffMins < 1) return 'Simdi';
+    if (diffMins < 60) return `${diffMins}dk once`;
+    if (diffHours < 24) return `${diffHours}sa once`;
+    if (diffDays < 7) return `${diffDays}g once`;
+    return dateStr.split(' ')[0];
+}
+
+function showAlarmDetailFromList(index) {
+    const alarms = getFilteredAlarms();
     const alarm = alarms[index];
     if (!alarm) return;
     
     const type = alarm._type;
-    closeAlarmsModal();
     
     if (type === 'sharp') {
         showTickerAlarmDetail(encodeURIComponent(JSON.stringify(alarm)));
@@ -3551,19 +3648,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const bigMoneyCount = bigMoneyRes.ok ? (await bigMoneyRes.json()).length : 0;
         
         const total = sharpCount + insiderCount + bigMoneyCount;
-        const badge = document.getElementById('alarmBadge');
+        const badge = document.getElementById('tabAlarmBadge');
         if (badge) badge.textContent = total;
     } catch (e) {
         console.log('Badge guncelleme hatasi:', e);
-    }
-});
-
-// Close modal with ESC key
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        const modal = document.getElementById('alarmsModal');
-        if (modal && modal.style.display !== 'none') {
-            closeAlarmsModal();
-        }
     }
 });
