@@ -4331,10 +4331,10 @@ td.volume,
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    background: transparent;
-    border: 1px solid #30363d;
+    background: #238636;
+    border: none;
     border-radius: 6px;
-    color: #c9d1d9;
+    color: #fff;
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
@@ -4344,19 +4344,13 @@ td.volume,
 }
 
 .alarms-toggle-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: #8b949e;
-    color: #fff;
+    background: #2ea043;
 }
 
 .alarms-toggle-btn svg {
-    stroke: #8b949e;
+    stroke: #fff;
     width: 14px;
     height: 14px;
-}
-
-.alarms-toggle-btn:hover svg {
-    stroke: #c9d1d9;
 }
 
 .alarms-toggle-badge {
