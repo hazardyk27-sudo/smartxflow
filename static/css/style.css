@@ -480,6 +480,18 @@ body {
     top: 0;
     z-index: 1;
     line-height: var(--line-height);
+    vertical-align: middle;
+}
+
+.matches-table th.col-date,
+.matches-table th.col-league,
+.matches-table th.col-match {
+    text-align: left;
+}
+
+.matches-table th.col-selection,
+.matches-table th.col-volume {
+    text-align: right;
 }
 
 .matches-table th.sortable {
