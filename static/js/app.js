@@ -218,14 +218,20 @@ function setupSearch() {
 
 async function loadMatches() {
     const tbody = document.getElementById('matchesTableBody');
-    tbody.innerHTML = `
-        <tr class="loading-row">
-            <td colspan="7">
-                <div class="loading-spinner"></div>
-                Loading matches...
-            </td>
+    
+    // Show placeholder rows to maintain table layout during loading
+    const placeholderRows = Array(6).fill(`
+        <tr class="placeholder-row">
+            <td class="col-date"></td>
+            <td class="col-league"></td>
+            <td class="col-match"></td>
+            <td class="col-selection"></td>
+            <td class="col-selection"></td>
+            <td class="col-selection"></td>
+            <td class="col-volume"></td>
         </tr>
-    `;
+    `).join('');
+    tbody.innerHTML = placeholderRows;
     
     updateTableHeaders();
     
