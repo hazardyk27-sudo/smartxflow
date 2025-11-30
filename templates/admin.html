@@ -619,10 +619,19 @@
 
             <div class="info-card" style="margin-top: 20px;">
                 <h3>🔔 Sharp Alarmlar <span id="alarmCount" class="badge active">0</span></h3>
+                <div id="calcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #f0883e;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="spinner" style="width: 20px; height: 20px; border: 3px solid #30363d; border-top-color: #f0883e; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span id="calcProgress" style="color: #f0883e; font-weight: 500;">Hesaplama devam ediyor...</span>
+                    </div>
+                </div>
                 <div id="alarmList" class="alarm-list">
                     <p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz alarm yok. Ayarlari kaydedip "Alarmlari Yeniden Hesapla" butonuna basin.</p>
                 </div>
             </div>
+            <style>
+                @keyframes spin { to { transform: rotate(360deg); } }
+            </style>
 
             <div id="alarmDetailModal" class="modal" style="display: none;">
                 <div class="modal-content">
@@ -886,19 +895,78 @@
             }
         }
 
+        let calcStatusInterval = null;
+
         async function recalculateAlarms() {
             showToast('Alarmlar hesaplaniyor...', 'info');
+            showCalcStatus(true, 'Hesaplama baslatiliyor...');
+            
             try {
+                startCalcStatusCheck();
+                
                 const response = await fetch('/api/sharp/calculate', { method: 'POST' });
+                
+                stopCalcStatusCheck();
+                
                 if (response.ok) {
                     const result = await response.json();
+                    showCalcStatus(false, `Tamamlandi! ${result.count || 0} alarm bulundu.`);
                     showToast(`${result.count || 0} alarm uretildi!`, 'success');
                     loadAlarms();
+                    
+                    setTimeout(() => hideCalcStatus(), 3000);
                 } else {
+                    showCalcStatus(false, 'Hesaplama hatasi!');
                     showToast('Hesaplama hatasi!', 'error');
                 }
             } catch (error) {
+                stopCalcStatusCheck();
+                showCalcStatus(false, 'Baglanti hatasi!');
                 showToast('Baglanti hatasi!', 'error');
+            }
+        }
+
+        function showCalcStatus(isCalculating, message) {
+            const statusEl = document.getElementById('calcStatus');
+            const progressEl = document.getElementById('calcProgress');
+            const spinnerEl = statusEl.querySelector('.spinner');
+            
+            statusEl.style.display = 'block';
+            progressEl.textContent = message;
+            
+            if (isCalculating) {
+                spinnerEl.style.display = 'block';
+                progressEl.style.color = '#f0883e';
+                statusEl.style.borderLeftColor = '#f0883e';
+            } else {
+                spinnerEl.style.display = 'none';
+                progressEl.style.color = '#3fb950';
+                statusEl.style.borderLeftColor = '#3fb950';
+            }
+        }
+
+        function hideCalcStatus() {
+            document.getElementById('calcStatus').style.display = 'none';
+        }
+
+        function startCalcStatusCheck() {
+            calcStatusInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/api/sharp/status');
+                    if (response.ok) {
+                        const status = await response.json();
+                        if (status.calculating) {
+                            showCalcStatus(true, status.progress || 'Hesaplama devam ediyor...');
+                        }
+                    }
+                } catch (e) {}
+            }, 1000);
+        }
+
+        function stopCalcStatusCheck() {
+            if (calcStatusInterval) {
+                clearInterval(calcStatusInterval);
+                calcStatusInterval = null;
             }
         }
 

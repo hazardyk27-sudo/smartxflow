@@ -849,6 +849,18 @@ sharp_config = {
 }
 
 sharp_alarms = []
+sharp_calculating = False
+sharp_calc_progress = ""
+
+
+@app.route('/api/sharp/status', methods=['GET'])
+def get_sharp_status():
+    """Get Sharp calculation status"""
+    return jsonify({
+        'calculating': sharp_calculating,
+        'progress': sharp_calc_progress,
+        'alarm_count': len(sharp_alarms)
+    })
 
 
 @app.route('/api/sharp/config', methods=['GET'])
@@ -899,18 +911,29 @@ def delete_sharp_alarms():
 @app.route('/api/sharp/calculate', methods=['POST'])
 def calculate_sharp_alarms():
     """Calculate Sharp alarms based on current config"""
-    global sharp_alarms
+    global sharp_alarms, sharp_calculating, sharp_calc_progress
+    
+    if sharp_calculating:
+        return jsonify({'success': False, 'error': 'Hesaplama zaten devam ediyor', 'calculating': True})
+    
     try:
+        sharp_calculating = True
+        sharp_calc_progress = "Hesaplama baslatiliyor..."
         sharp_alarms = calculate_sharp_scores(sharp_config)
+        sharp_calc_progress = f"Tamamlandi! {len(sharp_alarms)} alarm bulundu."
+        sharp_calculating = False
         return jsonify({'success': True, 'count': len(sharp_alarms)})
     except Exception as e:
         import traceback
         traceback.print_exc()
+        sharp_calculating = False
+        sharp_calc_progress = f"Hata: {str(e)}"
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 def calculate_sharp_scores(config):
     """Calculate Sharp scores for all matches based on config"""
+    global sharp_calc_progress
     alarms = []
     all_candidates = []
     supabase = get_supabase_client()
@@ -919,8 +942,9 @@ def calculate_sharp_scores(config):
         return alarms
     
     markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
+    market_names = {'moneyway_1x2': '1X2', 'moneyway_ou25': 'O/U 2.5', 'moneyway_btts': 'BTTS'}
     
-    for market in markets:
+    for idx, market in enumerate(markets):
         try:
             if '1x2' in market:
                 min_volume = config.get('min_volume_1x2', 3000)
@@ -939,6 +963,7 @@ def calculate_sharp_scores(config):
                 print(f"[Sharp] No matches for {market}")
                 continue
             
+            sharp_calc_progress = f"{market_names.get(market, market)} isleniyor... ({idx+1}/3)"
             print(f"[Sharp] Processing {len(matches)} matches for {market}, min_volume: {min_volume}")
             processed = 0
             
