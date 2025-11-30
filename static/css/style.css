@@ -3242,3 +3242,48 @@ td.volume,
         gap: 4px;
     }
 }
+
+/* Chart Zoom Reset Button */
+.chart-zoom-reset {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(76, 139, 245, 0.15);
+    border: 1px solid #4C8BF5;
+    border-radius: 6px;
+    color: #4C8BF5;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.chart-zoom-reset:hover {
+    background: rgba(76, 139, 245, 0.25);
+    transform: scale(1.02);
+}
+
+.chart-zoom-reset svg {
+    flex-shrink: 0;
+}
+
+/* Chart Zoom Instructions */
+.chart-zoom-hint {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 10px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 4px;
+    color: #9ca3af;
+    font-size: 11px;
+    pointer-events: none;
+    opacity: 0.7;
+    z-index: 5;
+}
