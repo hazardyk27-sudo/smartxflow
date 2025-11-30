@@ -407,8 +407,8 @@ class SupabaseClient:
         return latest_time
     
     def get_6h_odds_history(self, market: str) -> Dict[str, Dict[str, Any]]:
-        """Get odds history for DROP markets (last 48 hours only - optimized).
-        Returns dict: { "home|away": { "sel1": [values], "sel2": [values], ... } }
+        """Get odds history for DROP markets - OPTIMIZED: only first and last snapshots.
+        Returns dict: { "home|away": { "sel1": {old, new, trend}, ... } }
         """
         if not self.is_available:
             return {}
@@ -427,115 +427,94 @@ class SupabaseClient:
             two_days_ago = now_turkey - timedelta(hours=48)
             cutoff_iso = two_days_ago.strftime('%Y-%m-%d %H:%M:%S')
             
-            all_rows = []
-            offset = 0
-            page_size = 1000
-            max_pages = 10
+            first_url = f"{self._rest_url(history_table)}?scrapedat=gte.{cutoff_iso}&order=scrapedat.asc&limit=500"
+            first_resp = httpx.get(first_url, headers=self._headers(), timeout=10)
             
-            for page in range(max_pages):
-                url = f"{self._rest_url(history_table)}?scrapedat=gte.{cutoff_iso}&order=scrapedat.asc&limit={page_size}&offset={offset}"
-                resp = httpx.get(url, headers=self._headers(), timeout=15)
-                
-                if resp.status_code != 200:
-                    print(f"[6h History] Error {resp.status_code} from {history_table}")
-                    break
-                
-                rows = resp.json()
-                if not rows:
-                    break
-                
-                all_rows.extend(rows)
-                
-                if len(rows) < page_size:
-                    break
-                
-                offset += page_size
+            last_url = f"{self._rest_url(history_table)}?scrapedat=gte.{cutoff_iso}&order=scrapedat.desc&limit=500"
+            last_resp = httpx.get(last_url, headers=self._headers(), timeout=10)
             
-            print(f"[6h History] Fetched {len(all_rows)} rows from {history_table} (48h window)")
-            
-            if not all_rows:
+            if first_resp.status_code != 200 or last_resp.status_code != 200:
+                print(f"[6h History] Error fetching from {history_table}")
                 return {}
             
-            rows = all_rows
+            first_rows = first_resp.json()
+            last_rows = last_resp.json()
+            
+            first_by_match = {}
+            for row in first_rows:
+                key = f"{row.get('home', '')}|{row.get('away', '')}"
+                if key not in first_by_match:
+                    first_by_match[key] = row
+            
+            last_by_match = {}
+            for row in last_rows:
+                key = f"{row.get('home', '')}|{row.get('away', '')}"
+                if key not in last_by_match:
+                    last_by_match[key] = row
+            
+            print(f"[6h History] Fetched {len(first_by_match)} first + {len(last_by_match)} last from {history_table}")
+            
+            all_keys = set(first_by_match.keys()) | set(last_by_match.keys())
+            if not all_keys:
+                return {}
             
             result = {}
             
-            for row in rows:
-                home = row.get('home', '')
-                away = row.get('away', '')
-                key = f"{home}|{away}"
+            for key in all_keys:
+                first_row = first_by_match.get(key)
+                last_row = last_by_match.get(key)
                 
-                if key not in result:
-                    result[key] = {
-                        'home': home,
-                        'away': away,
-                        'timestamps': [],
-                        'values': {}
-                    }
+                if not first_row and not last_row:
+                    continue
                 
-                ts = row.get('scrapedat', '')
-                result[key]['timestamps'].append(ts)
+                home = (first_row or last_row).get('home', '')
+                away = (first_row or last_row).get('away', '')
+                first_scraped = first_row.get('scrapedat', '') if first_row else None
+                
+                result[key] = {
+                    'home': home,
+                    'away': away,
+                    'values': {}
+                }
                 
                 if market == 'dropping_1x2':
-                    for sel in ['odds1', 'oddsx', 'odds2']:
-                        if sel not in result[key]['values']:
-                            result[key]['values'][sel] = []
-                        val = self._parse_numeric(row.get(sel, ''))
-                        result[key]['values'][sel].append(val)
-                        
+                    sels = ['odds1', 'oddsx', 'odds2']
                 elif market == 'dropping_ou25':
-                    for sel in ['under', 'over']:
-                        if sel not in result[key]['values']:
-                            result[key]['values'][sel] = []
-                        val = self._parse_numeric(row.get(sel, ''))
-                        result[key]['values'][sel].append(val)
-                        
+                    sels = ['under', 'over']
                 elif market == 'dropping_btts':
-                    for sel in ['yes', 'no']:
-                        if sel not in result[key]['values']:
-                            result[key]['values'][sel] = []
-                        val = self._parse_numeric(row.get(sel, row.get('odds' + sel, '')))
-                        result[key]['values'][sel].append(val)
-            
-            for key in result:
-                data = result[key]
-                timestamps = data.get('timestamps', [])
-                first_scraped = timestamps[0] if timestamps else None
+                    sels = ['yes', 'no']
+                else:
+                    sels = []
                 
-                for sel, values in data['values'].items():
-                    valid_values = [v for v in values if v is not None]
-                    if len(valid_values) >= 2:
-                        old_val = valid_values[0]
-                        new_val = valid_values[-1]
-                        if old_val > 0:
-                            pct_change = ((new_val - old_val) / old_val) * 100
-                            if new_val < old_val:
-                                trend = 'down'
-                            elif new_val > old_val:
-                                trend = 'up'
-                            else:
-                                trend = 'stable'
+                for sel in sels:
+                    old_val = self._parse_numeric(first_row.get(sel, '')) if first_row else None
+                    new_val = self._parse_numeric(last_row.get(sel, '')) if last_row else None
+                    
+                    if old_val is None:
+                        old_val = new_val
+                    if new_val is None:
+                        new_val = old_val
+                    
+                    if old_val and new_val and old_val > 0:
+                        pct_change = ((new_val - old_val) / old_val) * 100
+                        if new_val < old_val:
+                            trend = 'down'
+                        elif new_val > old_val:
+                            trend = 'up'
                         else:
-                            pct_change = 0
                             trend = 'stable'
-                        
-                        data['values'][sel] = {
-                            'history': valid_values[-10:],
-                            'old': old_val,
-                            'new': new_val,
-                            'pct_change': round(pct_change, 1),
-                            'trend': trend,
-                            'first_scraped': first_scraped
-                        }
                     else:
-                        data['values'][sel] = {
-                            'history': valid_values,
-                            'old': valid_values[0] if valid_values else None,
-                            'new': valid_values[-1] if valid_values else None,
-                            'pct_change': 0,
-                            'trend': 'stable',
-                            'first_scraped': first_scraped
-                        }
+                        pct_change = 0
+                        trend = 'stable'
+                    
+                    result[key]['values'][sel] = {
+                        'history': [old_val, new_val] if old_val and new_val else [],
+                        'old': old_val,
+                        'new': new_val,
+                        'pct_change': round(pct_change, 1),
+                        'trend': trend,
+                        'first_scraped': first_scraped
+                    }
             
             print(f"[6h History] Got {len(result)} matches from {history_table}")
             return result

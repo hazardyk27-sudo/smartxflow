@@ -2905,9 +2905,17 @@ document.addEventListener('keydown', (e) => {
 
 let oddsTrendCache = {};
 
+let oddsTrendCacheByMarket = {};
+
 async function loadOddsTrend(market) {
     if (!market.startsWith('dropping')) {
         oddsTrendCache = {};
+        return;
+    }
+    
+    if (oddsTrendCacheByMarket[market]) {
+        oddsTrendCache = oddsTrendCacheByMarket[market];
+        console.log(`[Odds Trend] Using JS cache for ${market}`);
         return;
     }
     
@@ -2915,6 +2923,7 @@ async function loadOddsTrend(market) {
         const response = await fetch(`/api/odds-trend/${market}`);
         const result = await response.json();
         oddsTrendCache = result.data || {};
+        oddsTrendCacheByMarket[market] = oddsTrendCache;
         console.log(`[Odds Trend] Loaded ${Object.keys(oddsTrendCache).length} matches for ${market}`);
     } catch (error) {
         console.error('[Odds Trend] Error loading:', error);
