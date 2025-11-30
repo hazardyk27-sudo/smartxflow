@@ -2927,30 +2927,30 @@ function generateTrendIconSVG(trend, pctChange) {
     const absPct = Math.abs(pctChange || 0);
     
     if (trend === 'down') {
-        color = '#ff0000';
+        color = '#ef4444';
         if (absPct >= 15) {
-            path = 'M2 2 L10 6 L18 4 L26 10 L34 8';
+            path = 'M2 2 L8 2 L8 5 L14 5 L14 8 L20 8 L20 10 L26 10';
         } else if (absPct >= 5) {
-            path = 'M2 3 L10 5 L18 4 L26 7 L34 9';
+            path = 'M2 3 L9 3 L9 6 L16 6 L16 9 L26 9';
         } else {
-            path = 'M2 4 L10 5 L18 5 L26 6 L34 7';
+            path = 'M2 4 L10 4 L10 6 L18 6 L18 8 L26 8';
         }
     } else if (trend === 'up') {
-        color = '#00ff03';
+        color = '#22c55e';
         if (absPct >= 15) {
-            path = 'M2 10 L10 6 L18 8 L26 2 L34 4';
+            path = 'M2 10 L8 10 L8 7 L14 7 L14 4 L20 4 L20 2 L26 2';
         } else if (absPct >= 5) {
-            path = 'M2 9 L10 7 L18 8 L26 5 L34 3';
+            path = 'M2 9 L9 9 L9 6 L16 6 L16 3 L26 3';
         } else {
-            path = 'M2 7 L10 6 L18 6 L26 5 L34 4';
+            path = 'M2 8 L10 8 L10 6 L18 6 L18 4 L26 4';
         }
     } else {
         color = '#6B7280';
-        path = 'M2 6 L34 6';
+        path = 'M2 6 L26 6';
     }
     
-    return `<svg class="trend-icon-svg" width="36" height="12" viewBox="0 0 36 12">
-        <path d="${path}" stroke="${color}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    return `<svg class="trend-icon-svg" width="28" height="12" viewBox="0 0 28 12">
+        <path d="${path}" stroke="${color}" stroke-width="2" fill="none" stroke-linecap="square" stroke-linejoin="miter"/>
     </svg>`;
 }
 

@@ -2847,7 +2847,7 @@ td.volume,
 }
 
 .drop-trend-icon svg {
-    width: 36px;
+    width: 28px;
     height: 12px;
 }
 
@@ -3020,7 +3020,7 @@ td.volume,
 
 .trend-icon-svg {
     display: block;
-    width: 36px;
+    width: 28px;
     height: 12px;
 }
 
@@ -3039,11 +3039,11 @@ td.volume,
 }
 
 .pct-change.pct-down {
-    color: #ff0000;
+    color: #ef4444;
 }
 
 .pct-change.pct-up {
-    color: #00ff03;
+    color: #22c55e;
 }
 
 .pct-change.pct-stable {
@@ -3057,11 +3057,11 @@ td.volume,
 }
 
 .trend-down-drop {
-    color: #ff0000;
+    color: #ef4444;
 }
 
 .trend-up-drop {
-    color: #00ff03;
+    color: #22c55e;
 }
 
 .trend-stable-drop {
