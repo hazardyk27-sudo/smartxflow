@@ -4266,3 +4266,34 @@ td.volume,
         font-size: 10px;
     }
 }
+
+/* Load More Row for Matches Table */
+.load-more-row td {
+    padding: 16px;
+    text-align: center;
+    background: transparent;
+}
+
+.load-more-row .load-more-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    color: #c9d1d9;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.load-more-row .load-more-btn:hover {
+    background: #30363d;
+    border-color: #484f58;
+}
+
+.load-more-row .load-more-btn svg {
+    opacity: 0.7;
+}

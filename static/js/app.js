@@ -14,6 +14,7 @@ let currentChartHistoryData = [];
 let chartViewMode = 'percent';
 let isClientMode = true;
 let isAlarmsPageActive = false;
+let matchesDisplayCount = 20;
 
 const APP_TIMEZONE = 'Europe/Istanbul';
 
@@ -184,6 +185,7 @@ function setupTabs() {
                 currentSortDirection = 'desc';
             }
             
+            matchesDisplayCount = 20;
             loadMatches();
         });
     });
@@ -433,7 +435,12 @@ function renderMatches(data) {
     const isDropping = currentMarket.startsWith('dropping');
     const isMoneyway = currentMarket.startsWith('moneyway');
     
-    tbody.innerHTML = data.map((match, idx) => {
+    const displayData = data.slice(0, matchesDisplayCount);
+    const hasMore = data.length > matchesDisplayCount;
+    const remainingCount = data.length - matchesDisplayCount;
+    const colspan = currentMarket.includes('1x2') ? 7 : 6;
+    
+    let html = displayData.map((match, idx) => {
         const d = match.details || match.odds || {};
         
         if (currentMarket.includes('1x2')) {
@@ -562,8 +569,36 @@ function renderMatches(data) {
         }
     }).join('');
     
+    if (hasMore) {
+        html += `
+            <tr class="load-more-row">
+                <td colspan="${colspan}">
+                    <button class="load-more-btn" onclick="loadMoreMatches()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                        Daha Fazla Yukle (${remainingCount} kaldi)
+                    </button>
+                </td>
+            </tr>
+        `;
+    }
+    
+    tbody.innerHTML = html;
+    
     if (currentMarket.startsWith('dropping')) {
         setTimeout(() => attachTrendTooltipListeners(), 50);
+    }
+}
+
+function loadMoreMatches() {
+    matchesDisplayCount += 20;
+    renderMatches(filteredMatches);
+    
+    const tbody = document.getElementById('matchesTableBody');
+    const rows = tbody.querySelectorAll('tr:not(.load-more-row)');
+    if (rows.length > 20) {
+        rows[rows.length - 20]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 }
 
