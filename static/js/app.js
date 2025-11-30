@@ -3379,10 +3379,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============================================
-// ALARMS PAGE FUNCTIONALITY
+// ALARMS SIDEBAR FUNCTIONALITY
 // ============================================
 
 let currentAlarmFilter = 'all';
+let currentAlarmSort = 'newest';
 let allAlarmsData = [];
 let alarmsDataByType = {
     sharp: [],
@@ -3391,24 +3392,29 @@ let alarmsDataByType = {
 };
 let alarmSearchQuery = '';
 let alarmsDisplayCount = 30;
+let alarmsSidebarOpen = false;
 
-function showAlarmsPage() {
-    isAlarmsPageActive = true;
-    
-    document.querySelectorAll('.market-tabs .tab').forEach(t => t.classList.remove('active'));
-    document.querySelector('.tab-alarms').classList.add('active');
-    
-    document.querySelector('.matches-section').style.display = 'none';
-    document.getElementById('alarmsSection').style.display = 'block';
-    
+function toggleAlarmsSidebar() {
+    if (alarmsSidebarOpen) {
+        closeAlarmsSidebar();
+    } else {
+        openAlarmsSidebar();
+    }
+}
+
+function openAlarmsSidebar() {
+    alarmsSidebarOpen = true;
+    document.getElementById('alarmsSidebar').classList.add('open');
+    document.getElementById('alarmsSidebarOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
     loadAllAlarms();
 }
 
-function hideAlarmsPage() {
-    isAlarmsPageActive = false;
-    document.getElementById('alarmsSection').style.display = 'none';
-    document.querySelector('.matches-section').style.display = 'block';
-    document.querySelector('.tab-alarms').classList.remove('active');
+function closeAlarmsSidebar() {
+    alarmsSidebarOpen = false;
+    document.getElementById('alarmsSidebar').classList.remove('open');
+    document.getElementById('alarmsSidebarOverlay').classList.remove('open');
+    document.body.style.overflow = '';
 }
 
 async function loadAllAlarms() {
@@ -3448,17 +3454,13 @@ async function loadAllAlarms() {
 }
 
 function updateAlarmCounts() {
-    const sharpCountEl = document.getElementById('sharpCount');
-    const insiderCountEl = document.getElementById('insiderCount');
-    const bigMoneyCountEl = document.getElementById('bigMoneyCount');
-    const allCountEl = document.getElementById('allCount');
-    const tabBadge = document.getElementById('tabAlarmBadge');
-    
-    if (sharpCountEl) sharpCountEl.textContent = alarmsDataByType.sharp.length;
-    if (insiderCountEl) insiderCountEl.textContent = alarmsDataByType.insider.length;
-    if (bigMoneyCountEl) bigMoneyCountEl.textContent = alarmsDataByType.bigmoney.length;
-    if (allCountEl) allCountEl.textContent = allAlarmsData.length;
-    if (tabBadge) tabBadge.textContent = allAlarmsData.length;
+    const badge = document.getElementById('alarmsBadge');
+    if (badge) badge.textContent = allAlarmsData.length;
+}
+
+function sortAlarms(sortType) {
+    currentAlarmSort = sortType;
+    renderAlarmsList(currentAlarmFilter);
 }
 
 function parseAlarmDate(dateStr) {
@@ -3491,7 +3493,7 @@ function searchAlarms(query) {
 
 function getFilteredAlarms() {
     let alarms = currentAlarmFilter === 'all' 
-        ? allAlarmsData 
+        ? [...allAlarmsData]
         : allAlarmsData.filter(a => a._type === currentAlarmFilter);
     
     if (alarmSearchQuery) {
@@ -3505,6 +3507,23 @@ function getFilteredAlarms() {
         });
     }
     
+    alarms.sort((a, b) => {
+        if (currentAlarmSort === 'newest') {
+            return parseAlarmDate(b.created_at) - parseAlarmDate(a.created_at);
+        } else if (currentAlarmSort === 'oldest') {
+            return parseAlarmDate(a.created_at) - parseAlarmDate(b.created_at);
+        } else if (currentAlarmSort === 'score_high') {
+            const scoreA = a.sharp_score || a.insider_score || a.stake || 0;
+            const scoreB = b.sharp_score || b.insider_score || b.stake || 0;
+            return scoreB - scoreA;
+        } else if (currentAlarmSort === 'score_low') {
+            const scoreA = a.sharp_score || a.insider_score || a.stake || 0;
+            const scoreB = b.sharp_score || b.insider_score || b.stake || 0;
+            return scoreA - scoreB;
+        }
+        return 0;
+    });
+    
     return alarms;
 }
 
@@ -3513,68 +3532,52 @@ function renderAlarmsList(filterType) {
     const alarms = getFilteredAlarms();
     
     if (alarms.length === 0) {
-        body.innerHTML = `
-            <div class="alarms-empty">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-                <div class="alarms-empty-title">Alarm bulunamadi</div>
-                <div class="alarms-empty-desc">${alarmSearchQuery ? 'Arama kriterlerine uygun alarm yok.' : 'Henuz aktif alarm bulunmuyor.'}</div>
-            </div>
-        `;
+        body.innerHTML = `<div class="alarms-empty">${alarmSearchQuery ? 'Arama sonucu bulunamadi' : 'Aktif alarm yok'}</div>`;
         return;
     }
     
     const displayAlarms = alarms.slice(0, alarmsDisplayCount);
     const hasMore = alarms.length > alarmsDisplayCount;
+    const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY' };
     
     let html = displayAlarms.map((alarm, idx) => {
         const type = alarm._type;
         const home = alarm.home || alarm.home_team || '-';
         const away = alarm.away || alarm.away_team || '-';
-        const league = alarm.league || '';
         const market = alarm.market || '';
         const selection = alarm.selection || alarm.side || '';
         
-        let valueText = '';
+        let scoreText = '';
         if (type === 'sharp') {
-            valueText = `Score: ${(alarm.sharp_score || 0).toFixed(1)}`;
+            scoreText = `${(alarm.sharp_score || 0).toFixed(1)}`;
         } else if (type === 'insider') {
-            valueText = `Score: ${(alarm.insider_score || 0).toFixed(1)}`;
+            scoreText = `${(alarm.insider_score || 0).toFixed(1)}`;
         } else {
-            valueText = formatVolume(alarm.stake || alarm.volume || 0);
+            scoreText = formatVolume(alarm.stake || alarm.volume || 0);
         }
         
-        const metaText = [market, selection].filter(Boolean).join(' - ');
         const timeAgo = formatTimeAgo(alarm.created_at);
-        const typeLabels = { sharp: 'Sharp', insider: 'Insider', bigmoney: 'Big Money' };
         
         return `
-            <div class="alarm-card ${type}-alarm" onclick="showAlarmDetailFromList(${idx})">
-                <div class="alarm-match-info">
-                    <div class="alarm-match-title">
-                        <span class="alarm-teams">${home} vs ${away}</span>
-                    </div>
-                    <div class="alarm-league">${league} ${metaText ? '• ' + metaText : ''}</div>
+            <div class="sidebar-alarm-card ${type}" onclick="showAlarmDetailFromList(${idx})">
+                <div class="sidebar-alarm-teams">${home} vs ${away}</div>
+                <div class="sidebar-alarm-meta">
+                    <span class="sidebar-alarm-type ${type}">${typeLabels[type]}</span>
+                    <span>${market} ${selection ? '• ' + selection : ''}</span>
                 </div>
-                <span class="alarm-type-tag ${type}">${typeLabels[type]}</span>
-                <div class="alarm-details">
-                    <span class="alarm-value">${valueText}</span>
+                <div class="sidebar-alarm-meta">
+                    <span class="sidebar-alarm-score">${scoreText}</span>
+                    <span>${timeAgo}</span>
                 </div>
-                <span class="alarm-time-ago">${timeAgo}</span>
             </div>
         `;
     }).join('');
     
     if (hasMore) {
         html += `
-            <div class="load-more-container">
-                <button class="load-more-btn" onclick="loadMoreAlarms()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="6 9 12 15 18 9"/>
-                    </svg>
-                    Daha Fazla Yukle (${alarms.length - alarmsDisplayCount} kaldi)
+            <div class="load-more-container" style="padding: 8px;">
+                <button class="load-more-btn" style="width: 100%;" onclick="loadMoreAlarms()">
+                    Daha Fazla (${alarms.length - alarmsDisplayCount})
                 </button>
             </div>
         `;

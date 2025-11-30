@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=252">
+    <link rel="stylesheet" href="/static/css/style.css?v=253">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -58,6 +58,14 @@
                 <span class="ticker-empty">Aktif kritik alarm yok</span>
             </div>
         </div>
+        <button class="alarms-toggle-btn" id="alarmsToggleBtn" onclick="toggleAlarmsSidebar()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            Alarmlar
+            <span class="alarms-toggle-badge" id="alarmsBadge">0</span>
+        </button>
     </div>
 
     <nav class="market-tabs">
@@ -99,14 +107,6 @@
                 <polyline points="17 18 23 18 23 12"/>
             </svg>
             Drop BTTS
-        </button>
-        <button class="tab tab-alarms" data-market="alarms" onclick="showAlarmsPage()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-            Alarmlar
-            <span class="tab-alarm-badge" id="tabAlarmBadge">0</span>
         </button>
     </nav>
 
@@ -180,35 +180,54 @@
             </div>
         </section>
 
-        <section class="alarms-section" id="alarmsSection" style="display: none;">
-            <div class="alarms-toolbar">
-                <div class="alarms-filters" id="alarmsFilters">
-                    <button class="alarm-pill active" data-type="all" onclick="filterAlarms('all')">
-                        Tum Alarmlar <span class="pill-count" id="allCount">0</span>
-                    </button>
-                    <button class="alarm-pill" data-type="sharp" onclick="filterAlarms('sharp')">
-                        Sharp <span class="pill-count" id="sharpCount">0</span>
-                    </button>
-                    <button class="alarm-pill" data-type="insider" onclick="filterAlarms('insider')">
-                        Insider Info <span class="pill-count" id="insiderCount">0</span>
-                    </button>
-                    <button class="alarm-pill" data-type="bigmoney" onclick="filterAlarms('bigmoney')">
-                        Big Money <span class="pill-count" id="bigMoneyCount">0</span>
-                    </button>
-                </div>
-                <div class="alarms-search">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"/>
-                        <path d="M21 21l-4.35-4.35"/>
-                    </svg>
-                    <input type="text" id="alarmSearchInput" placeholder="Mac adiyla ara..." oninput="searchAlarms(this.value)">
-                </div>
-            </div>
-            <div class="alarms-list" id="alarmsList">
-                <div class="alarms-loading">Alarmlar yukleniyor...</div>
-            </div>
-        </section>
     </main>
+
+    <div class="alarms-sidebar" id="alarmsSidebar">
+        <div class="alarms-sidebar-header">
+            <div class="alarms-sidebar-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                Alarm Listesi
+            </div>
+            <button class="alarms-sidebar-close" onclick="closeAlarmsSidebar()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="alarms-sidebar-controls">
+            <div class="alarms-sidebar-row">
+                <div class="alarms-sidebar-field">
+                    <label>FILTRE:</label>
+                    <select id="alarmFilterSelect" onchange="filterAlarms(this.value)">
+                        <option value="all">Tumu</option>
+                        <option value="sharp">Sharp</option>
+                        <option value="insider">Insider</option>
+                        <option value="bigmoney">Big Money</option>
+                    </select>
+                </div>
+                <div class="alarms-sidebar-field">
+                    <label>SIRALA:</label>
+                    <select id="alarmSortSelect" onchange="sortAlarms(this.value)">
+                        <option value="newest">En yeni</option>
+                        <option value="oldest">En eski</option>
+                        <option value="score_high">Score (yuksek)</option>
+                        <option value="score_low">Score (dusuk)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="alarms-sidebar-search">
+                <input type="text" id="alarmSearchInput" placeholder="Takim ara (orn: West Ham, Liverpool)" oninput="searchAlarms(this.value)">
+            </div>
+        </div>
+        <div class="alarms-sidebar-list" id="alarmsList">
+            <div class="alarms-empty">Aktif alarm yok</div>
+        </div>
+    </div>
+    <div class="alarms-sidebar-overlay" id="alarmsSidebarOverlay" onclick="closeAlarmsSidebar()"></div>
 
     <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
@@ -246,6 +265,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=252"></script>
+    <script src="/static/js/app.js?v=253"></script>
 </body>
 </html>
