@@ -1077,11 +1077,14 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         return None
     
     current_amount = amounts[-1]
-    avg_last_10_amounts = sum(amounts[:-1]) / len(amounts[:-1]) if len(amounts) > 1 else 1
+    
+    # Son 10 amount'u topla, 10'a böl (veya mevcut sayıya)
+    avg_last_10_amounts = sum(amounts) / len(amounts)
     
     if avg_last_10_amounts <= 0:
         return None
     
+    # Son amount / son 10 ortalaması
     shock_raw = current_amount / avg_last_10_amounts
     volume_multiplier = config.get('volume_multiplier', 1)
     shock_value = shock_raw * volume_multiplier
