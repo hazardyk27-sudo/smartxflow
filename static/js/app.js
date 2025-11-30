@@ -229,7 +229,7 @@ async function loadMatches() {
     
     try {
         if (currentMarket.startsWith('dropping')) {
-            loadOddsTrend(currentMarket);
+            await loadOddsTrend(currentMarket);
         } else {
             oddsTrendCache = {};
         }
