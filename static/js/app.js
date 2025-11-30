@@ -151,26 +151,13 @@ function escapeHtml(str) {
     })[c]);
 }
 
-let alarmCurrentPage = 0;
-let alarmHasMore = false;
-let alarmIsLoading = false;
-let alarmTotalCount = 0;
-let alarmEventCount = 0;
-const ALARM_PAGE_SIZE = 30;
-
-
-let masterAlarmData = [];
-
 document.addEventListener('DOMContentLoaded', () => {
     loadMatches();
     setupTabs();
     setupSearch();
     setupModalChartTabs();
     checkStatus();
-    loadMasterAlarms();
-    // Performans için polling interval'leri artırıldı
-    window.statusInterval = window.setInterval(checkStatus, 60000);  // 60 saniye (önceki: 30)
-    window.alarmInterval = window.setInterval(loadMasterAlarms, 120000);  // 2 dakika (önceki: 1)
+    window.statusInterval = window.setInterval(checkStatus, 60000);
 });
 
 function setupTabs() {
@@ -1107,7 +1094,6 @@ function openMatchModal(index) {
         
         document.getElementById('modalOverlay').classList.add('active');
         loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
-        loadMatchAlarms(selectedMatch.home_team, selectedMatch.away_team);
     }
 }
 
@@ -3363,7 +3349,6 @@ function openMatchModalDirect(match) {
     
     document.getElementById('modalOverlay').classList.add('active');
     loadChartWithTrends(match.home_team, match.away_team, selectedChartMarket);
-    loadMatchAlarms(match.home_team, match.away_team);
 }
 
 function openMatchDirectly(home, away, league) {
@@ -3402,7 +3387,6 @@ function openMatchDirectly(home, away, league) {
     
     document.getElementById('modalOverlay').classList.add('active');
     loadChartWithTrends(home, away, selectedChartMarket);
-    loadMatchAlarms(home, away);
 }
 
 function openMatchModalById(matchId, home, away, market, league, alarmType) {
@@ -3487,7 +3471,6 @@ async function openMatchModalByTeams(home, away, alarmType) {
         
         updateMatchInfoCard();
         loadChartWithTrends(home, away, selectedChartMarket);
-        loadMatchAlarms(home, away);
     }
 }
 

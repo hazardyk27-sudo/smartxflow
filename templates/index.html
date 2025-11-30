@@ -44,83 +44,6 @@
         </div>
     </header>
 
-    <div class="smart-money-ticker" id="smartMoneyTicker">
-        <div class="ticker-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-            </svg>
-            <span>Smart Money</span>
-        </div>
-        <div class="ticker-wrapper">
-            <!-- Spotlight overlay for new alarms (inside ticker-wrapper) -->
-            <div class="ticker-spotlight" id="tickerSpotlight">
-                <div class="spotlight-pill" id="spotlightPill"></div>
-            </div>
-            <div class="ticker-track" id="tickerTrack">
-                {% if ticker_alarms %}
-                    {% for alarm in ticker_alarms %}
-                    <div class="ticker-pill" 
-                         data-match-id="{{ alarm.match_id or '' }}"
-                         data-home="{{ alarm.home }}"
-                         data-away="{{ alarm.away }}"
-                         data-market="{{ alarm.market or 'moneyway_1x2' }}"
-                         data-league="{{ alarm.league or '' }}"
-                         data-date="{{ alarm.date or '' }}"
-                         onclick="openMatchModalById(this.dataset.matchId, this.dataset.home, this.dataset.away, this.dataset.market, this.dataset.league, this.dataset.date)">
-                        <span class="pill-dot" style="background: {{ alarm.color }};"></span>
-                        <span class="pill-type" style="color: {{ alarm.color }};">{{ alarm.name.split(' ')[0].upper() }}</span>
-                        <span class="pill-match">{{ alarm.home }} – {{ alarm.away }}</span>
-                        {% if alarm.money_text %}<span class="pill-money">{{ alarm.money_text }}</span>{% endif %}
-                        {% if alarm.side %}<span class="pill-side">({{ alarm.side }})</span>{% endif %}
-                        {% if alarm.odds_from and alarm.odds_to %}<span class="pill-odds">{{ alarm.odds_from }} → {{ alarm.odds_to }}</span>{% endif %}
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="ticker-empty">Aktif kritik alarm yok</div>
-                {% endif %}
-            </div>
-        </div>
-        <button class="alarm-list-btn" onclick="openAlarmPanel()">
-            <span class="alarm-bell">🔔</span>
-            <span class="alarm-btn-text">Alarmlar</span>
-            <span class="alarm-count-badge" id="alarmCountBadge">0</span>
-        </button>
-    </div>
-
-    <div class="alarm-drawer-overlay" id="alarmDrawerOverlay" onclick="closeAlarmPanel()"></div>
-    <div class="alarm-drawer" id="alarmDrawer">
-        <div class="alarm-drawer-header">
-            <h2>🔔 Alarm Listesi</h2>
-            <button class="drawer-close-btn" onclick="closeAlarmPanel()">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-            </button>
-        </div>
-        <div class="alarm-drawer-filters">
-            <div class="v2-info-banner" style="background: linear-gradient(135deg, #1e3a5f 0%, #0d1f33 100%); border: 1px solid #3b82f6; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 18px;">🔧</span>
-                    <span style="color: #93c5fd; font-size: 13px;">V2 Alarm Sistemi geliştiriliyor...</span>
-                </div>
-            </div>
-            <div class="search-row">
-                <input type="text" 
-                       id="alarmTeamSearch" 
-                       class="alarm-search-input" 
-                       placeholder="Takım ara (örn: West Ham, Liverpool)"
-                       oninput="debounceAlarmSearch()">
-                <button class="search-clear-btn" onclick="clearAlarmSearch()" id="searchClearBtn" style="display: none;">✕</button>
-            </div>
-            <select id="alarmTypeFilter" style="display:none;"><option value="all">Tümü</option></select>
-            <select id="alarmSortBy" style="display:none;"><option value="newest">En yeni</option></select>
-        </div>
-        <div class="alarm-drawer-content" id="alarmDrawerContent">
-            <div class="alarm-empty">Henüz alarm yok</div>
-        </div>
-    </div>
-
     <nav class="market-tabs">
         <button class="tab active" data-market="moneyway_1x2">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -250,25 +173,6 @@
             </div>
             
             <div class="modal-body">
-                <div class="smart-money-events" id="smartMoneyEvents">
-                    <div class="events-header events-header-collapsible" onclick="toggleModalSmartMoneyEvents()">
-                        <div class="events-header-left">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                            </svg>
-                            <span>Smart Money Events</span>
-                        </div>
-                        <svg class="events-chevron" id="modalEventsChevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M6 9l6 6 6-6"/>
-                        </svg>
-                    </div>
-                    <div class="events-grid-wrapper collapsed" id="modalEventsGridWrapper">
-                        <div class="events-grid" id="matchAlarmsContainer">
-                            <div class="no-alarms">Alarm analizi yapılıyor...</div>
-                        </div>
-                    </div>
-                </div>
-                
                 <div class="match-info-card" id="matchInfoCard"></div>
                 
                 <div class="chart-tabs" id="modalChartTabs">
