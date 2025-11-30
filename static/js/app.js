@@ -1482,6 +1482,27 @@ async function loadChart(home, away, market) {
         const isMoneyway = market.startsWith('moneyway');
         const isDropping = market.startsWith('dropping');
         
+        function createGradient(color) {
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, color.replace(')', ', 0.35)').replace('rgb', 'rgba'));
+            gradient.addColorStop(1, color.replace(')', ', 0.02)').replace('rgb', 'rgba'));
+            return gradient;
+        }
+        
+        function hexToRgba(hex, alpha) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+        
+        function createHexGradient(hex) {
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, hexToRgba(hex, 0.35));
+            gradient.addColorStop(1, hexToRgba(hex, 0.02));
+            return gradient;
+        }
+        
         const filteredHistory = filterHistoryByTimeRange(data.history);
         
         const timeBlocks = {};
@@ -1531,16 +1552,16 @@ async function loadChart(home, away, market) {
                             return val ? parseFloat(String(val).replace(/[^0-9.]/g, '')) : null;
                         }),
                         borderColor: color,
-                        backgroundColor: color,
-                        tension: 0.1,
-                        fill: false,
-                        pointRadius: 3,
-                        pointHoverRadius: 5,
+                        backgroundColor: createHexGradient(color),
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
                         pointBackgroundColor: color,
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2,
                         pointStyle: 'circle',
-                        borderWidth: 3
+                        borderWidth: 2
                     });
                 });
             } else {
@@ -1557,16 +1578,16 @@ async function loadChart(home, away, market) {
                             return isNaN(num) ? null : num;
                         }),
                         borderColor: color,
-                        backgroundColor: color,
-                        tension: 0.1,
-                        fill: false,
-                        pointRadius: 3,
-                        pointHoverRadius: 5,
+                        backgroundColor: createHexGradient(color),
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
                         pointBackgroundColor: color,
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2,
                         pointStyle: 'circle',
-                        borderWidth: 3
+                        borderWidth: 2
                     });
                 });
             }
@@ -1585,16 +1606,16 @@ async function loadChart(home, away, market) {
                             return val ? parseFloat(String(val).replace(/[^0-9.]/g, '')) : null;
                         }),
                         borderColor: color,
-                        backgroundColor: color,
-                        tension: 0.1,
-                        fill: false,
-                        pointRadius: 3,
-                        pointHoverRadius: 5,
+                        backgroundColor: createHexGradient(color),
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
                         pointBackgroundColor: color,
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2,
                         pointStyle: 'circle',
-                        borderWidth: 3
+                        borderWidth: 2
                     });
                 });
             } else {
@@ -1610,16 +1631,16 @@ async function loadChart(home, away, market) {
                             return isNaN(num) ? null : num;
                         }),
                         borderColor: color,
-                        backgroundColor: color,
-                        tension: 0.1,
-                        fill: false,
-                        pointRadius: 3,
-                        pointHoverRadius: 5,
+                        backgroundColor: createHexGradient(color),
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
                         pointBackgroundColor: color,
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2,
                         pointStyle: 'circle',
-                        borderWidth: 3
+                        borderWidth: 2
                     });
                 });
             }
@@ -1638,16 +1659,16 @@ async function loadChart(home, away, market) {
                             return val ? parseFloat(String(val).replace(/[^0-9.]/g, '')) : null;
                         }),
                         borderColor: color,
-                        backgroundColor: color,
-                        tension: 0.1,
-                        fill: false,
-                        pointRadius: 3,
-                        pointHoverRadius: 5,
+                        backgroundColor: createHexGradient(color),
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
                         pointBackgroundColor: color,
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2,
                         pointStyle: 'circle',
-                        borderWidth: 3
+                        borderWidth: 2
                     });
                 });
             } else {
@@ -1663,16 +1684,16 @@ async function loadChart(home, away, market) {
                             return isNaN(num) ? null : num;
                         }),
                         borderColor: color,
-                        backgroundColor: color,
-                        tension: 0.1,
-                        fill: false,
-                        pointRadius: 3,
-                        pointHoverRadius: 5,
+                        backgroundColor: createHexGradient(color),
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
                         pointBackgroundColor: color,
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2,
                         pointStyle: 'circle',
-                        borderWidth: 3
+                        borderWidth: 2
                     });
                 });
             }
@@ -1862,33 +1883,39 @@ async function loadChart(home, away, market) {
                 scales: {
                     x: {
                         grid: {
-                            color: 'rgba(55, 65, 81, 0.5)',
+                            color: 'rgba(255, 255, 255, 0.06)',
                             drawBorder: false
                         },
+                        border: {
+                            display: false
+                        },
                         ticks: {
-                            color: '#8899a6',
-                            font: { size: 12 }
+                            color: '#a1a1aa',
+                            font: { size: 11 }
                         }
                     },
                     y: {
                         grid: {
-                            color: 'rgba(55, 65, 81, 0.5)',
+                            color: 'rgba(255, 255, 255, 0.06)',
                             drawBorder: false
                         },
+                        border: {
+                            display: false
+                        },
                         ticks: {
-                            color: '#8899a6',
-                            font: { size: 12 }
+                            color: '#8e8e95',
+                            font: { size: 11 }
                         }
                     }
                 },
                 elements: {
                     point: {
-                        radius: 6,
-                        hoverRadius: 9,
+                        radius: 0,
+                        hoverRadius: 4,
                         borderWidth: 2
                     },
                     line: {
-                        borderWidth: 3
+                        borderWidth: 2
                     }
                 }
             }
