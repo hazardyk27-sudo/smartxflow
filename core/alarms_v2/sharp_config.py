@@ -91,6 +91,12 @@ class SharpConfig:
         return "extreme"
 
 
+import json
+import os
+
+CONFIG_FILE_PATH = os.path.join(os.path.dirname(__file__), 'sharp_config.json')
+
+
 class SharpConfigManager:
     """Sharp Config yönetimi ve cache"""
     
@@ -104,6 +110,26 @@ class SharpConfigManager:
             cls._instance = super().__new__(cls)
         return cls._instance
     
+    def _load_from_file(self) -> Optional[dict]:
+        """Yerel JSON dosyasından config oku"""
+        try:
+            if os.path.exists(CONFIG_FILE_PATH):
+                with open(CONFIG_FILE_PATH, 'r') as f:
+                    return json.load(f)
+        except Exception as e:
+            print(f"[SharpConfig] Error loading from file: {e}")
+        return None
+    
+    def _save_to_file(self, config_data: dict) -> bool:
+        """Yerel JSON dosyasına config kaydet"""
+        try:
+            with open(CONFIG_FILE_PATH, 'w') as f:
+                json.dump(config_data, f, indent=2)
+            return True
+        except Exception as e:
+            print(f"[SharpConfig] Error saving to file: {e}")
+            return False
+    
     def get_config(self, force_refresh: bool = False) -> SharpConfig:
         """Config'i getir (cache'li)"""
         from services.supabase_client import get_supabase_client
@@ -115,42 +141,52 @@ class SharpConfigManager:
             if elapsed < self._cache_ttl_seconds:
                 return self._config
         
-        supabase = get_supabase_client()
-        if not supabase or not supabase.is_available:
-            print("[SharpConfig] Supabase not available, using defaults")
-            return SharpConfig()
+        file_config = self._load_from_file()
+        if file_config:
+            self._config = SharpConfig.from_dict(file_config)
+            self._last_fetch = now
+            print(f"[SharpConfig] Loaded from file: score_threshold={self._config.sharp_score_threshold}")
+            return self._config
         
-        try:
-            config_data = supabase.get_sharp_config()
-            if config_data:
-                self._config = SharpConfig.from_dict(config_data)
-                self._last_fetch = now
-                print(f"[SharpConfig] Loaded from Supabase: score_threshold={self._config.sharp_score_threshold}")
-                return self._config
-        except Exception as e:
-            print(f"[SharpConfig] Error loading: {e}")
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            try:
+                config_data = supabase.get_sharp_config()
+                if config_data:
+                    self._config = SharpConfig.from_dict(config_data)
+                    self._last_fetch = now
+                    self._save_to_file(config_data)
+                    print(f"[SharpConfig] Loaded from Supabase: score_threshold={self._config.sharp_score_threshold}")
+                    return self._config
+            except Exception as e:
+                print(f"[SharpConfig] Error loading from Supabase: {e}")
         
         return SharpConfig()
     
     def save_config(self, config: SharpConfig, updated_by: str = "admin") -> bool:
-        """Config'i Supabase'e kaydet"""
+        """Config'i kaydet (yerel dosya + Supabase)"""
         from services.supabase_client import get_supabase_client
-        
-        supabase = get_supabase_client()
-        if not supabase or not supabase.is_available:
-            print("[SharpConfig] Supabase not available")
-            return False
         
         try:
             config.updated_by = updated_by
             config.updated_at = datetime.utcnow().isoformat()
+            config_data = config.to_dict()
             
-            success = supabase.save_sharp_config(config.to_dict())
-            if success:
+            file_saved = self._save_to_file(config_data)
+            if file_saved:
                 self._config = config
                 self._last_fetch = datetime.utcnow()
-                print(f"[SharpConfig] Saved to Supabase by {updated_by}")
-            return success
+                print(f"[SharpConfig] Saved to file by {updated_by}")
+            
+            supabase = get_supabase_client()
+            if supabase and supabase.is_available:
+                try:
+                    supabase.save_sharp_config(config_data)
+                    print(f"[SharpConfig] Also saved to Supabase")
+                except Exception as e:
+                    print(f"[SharpConfig] Supabase save failed (non-critical): {e}")
+            
+            return file_saved
         except Exception as e:
             print(f"[SharpConfig] Error saving: {e}")
             return False
