@@ -212,9 +212,9 @@ function renderAlarmCard(alarm) {
     
     if (alarm.category === 'sharp') {
         const score = alarm.sharp_score || alarm.score || 0;
-        const newBet = alarm.new_bet_amount || alarm.extra?.new_bet_amount || 0;
-        const oddOld = alarm.odd_old || alarm.extra?.odd_old || 0;
-        const oddNew = alarm.odd_new || alarm.extra?.odd_new || 0;
+        const newBet = alarm.new_bet_amount || alarm.money_diff || alarm.extra?.new_bet_amount || 0;
+        const oddOld = alarm.odd_old || alarm.odds_from || alarm.extra?.odd_old || alarm.extra?.odds_from || 0;
+        const oddNew = alarm.odd_new || alarm.odds_to || alarm.extra?.odd_new || alarm.extra?.odds_to || 0;
         const dropPct = alarm.drop_pct || alarm.extra?.drop_pct || 0;
         
         let parts = [`Sharp Money`, `Skor: ${score.toFixed(1)}`];
