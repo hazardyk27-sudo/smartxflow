@@ -3260,7 +3260,6 @@ function attachTrendTooltipListeners() {
 }
 
 let tickerAlarms = [];
-let tickerAnimationSpeed = 30;
 
 async function loadTickerAlarms() {
     try {
@@ -3315,9 +3314,7 @@ function renderTicker() {
     
     track.innerHTML = pillsHtml + pillsHtml;
     
-    const totalWidth = track.scrollWidth / 2;
-    const duration = totalWidth / tickerAnimationSpeed;
-    track.style.animation = `tickerScroll ${duration}s linear infinite`;
+    track.style.animation = `tickerScroll 30s linear infinite`;
 }
 
 function showTickerAlarmDetail(encodedAlarm) {
