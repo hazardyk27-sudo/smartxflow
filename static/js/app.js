@@ -4299,10 +4299,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Badge guncelleme hatasi:', e);
     }
     
-    // Add admin panel trigger button
-    addAdminTrigger();
-    
-    // Keyboard shortcut: Ctrl+Shift+A for Admin Panel
+    // Keyboard shortcut: Ctrl+Shift+A for Admin Panel (hidden feature)
     document.addEventListener('keydown', (e) => {
         if (e.ctrlKey && e.shiftKey && e.key === 'A') {
             e.preventDefault();
@@ -4310,17 +4307,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 });
-
-// ===== ADMIN PANEL FUNCTIONS =====
-
-function addAdminTrigger() {
-    const trigger = document.createElement('div');
-    trigger.className = 'admin-trigger';
-    trigger.innerHTML = '🔐';
-    trigger.title = 'Admin Panel (Ctrl+Shift+A)';
-    trigger.onclick = openAdminPanel;
-    document.body.appendChild(trigger);
-}
 
 function openAdminPanel() {
     const overlay = document.getElementById('adminPanelOverlay');

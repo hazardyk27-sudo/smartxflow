@@ -4641,29 +4641,7 @@ td.volume,
     font-size: 14px;
 }
 
-/* Admin Panel Trigger (Hidden link) */
-.admin-trigger {
-    position: fixed;
-    bottom: 10px;
-    right: 10px;
-    width: 40px;
-    height: 40px;
-    background: rgba(168, 85, 247, 0.2);
-    border: 1px solid #a855f7;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    opacity: 0.3;
-    transition: all 0.3s;
-    z-index: 9999;
-}
-
-.admin-trigger:hover {
-    opacity: 1;
-    transform: scale(1.1);
-}
+/* Admin Panel: Open with Ctrl+Shift+A */
 
 /* Detail Panel Styles - DEPRECATED but kept for compatibility */
 .alarm-detail-title h3 {
