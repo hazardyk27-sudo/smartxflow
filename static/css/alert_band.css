@@ -218,6 +218,10 @@
     border-color: #273549;
 }
 
+.btn-alarms:hover svg {
+    color: #f97316;
+}
+
 .btn-alarms.active {
     background: #111827;
     border-color: #4C8BF5;
