@@ -4374,20 +4374,11 @@ td.volume,
     height: 16px;
 }
 
-.alarms-toggle-badge {
-    box-sizing: border-box;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 18px;
-    padding: 0 8px;
-    margin: 0;
-    border-radius: 9999px;
-    background-color: #EF4444;
-    color: #FFFFFF;
-    font-size: 11px;
+.alarm-count {
+    margin-left: 4px;
+    color: #EF4444;
     font-weight: 600;
-    line-height: 1;
+    font-size: 12px;
 }
 
 /* Sidebar Overlay */
