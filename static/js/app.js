@@ -3260,6 +3260,205 @@ function attachTrendTooltipListeners() {
 }
 
 // ============================================
+// ALERT BAND - Top Notification Strip
+// ============================================
+
+let alertBandData = [];
+
+async function loadAlertBand() {
+    try {
+        const [sharpRes, insiderRes, bigMoneyRes] = await Promise.all([
+            fetch('/api/sharp/alarms'),
+            fetch('/api/insider/alarms'),
+            fetch('/api/bigmoney/alarms')
+        ]);
+        
+        let allAlarms = [];
+        
+        if (sharpRes.ok) {
+            const sharp = await sharpRes.json();
+            sharp.forEach(a => { a._type = 'sharp'; a._score = a.sharp_score || 0; });
+            allAlarms = allAlarms.concat(sharp);
+        }
+        
+        if (insiderRes.ok) {
+            const insider = await insiderRes.json();
+            insider.forEach(a => { a._type = 'insider'; a._score = a.insider_score || 0; });
+            allAlarms = allAlarms.concat(insider);
+        }
+        
+        if (bigMoneyRes.ok) {
+            const bigmoney = await bigMoneyRes.json();
+            bigmoney.forEach(a => { a._type = 'bigmoney'; a._score = a.stake || a.volume || 0; });
+            allAlarms = allAlarms.concat(bigmoney);
+        }
+        
+        alertBandData = allAlarms.sort((a, b) => (b._score || 0) - (a._score || 0));
+        renderAlertBand();
+        updateAlertBandBadge();
+    } catch (e) {
+        console.error('[AlertBand] Load error:', e);
+    }
+}
+
+function getAlertType(alarm) {
+    const type = alarm._type;
+    if (type === 'sharp') return { label: 'Sharp Move', color: 'red' };
+    if (type === 'insider') return { label: 'Insider Info', color: 'orange' };
+    if (type === 'bigmoney') return { label: 'Big Money', color: 'yellow' };
+    return { label: 'Alert', color: 'green' };
+}
+
+function formatAlertValue(alarm) {
+    const type = alarm._type;
+    if (type === 'sharp') {
+        return '+' + (alarm.sharp_score || 0).toFixed(0);
+    }
+    if (type === 'insider') {
+        return (alarm.insider_score || 0).toFixed(1);
+    }
+    if (type === 'bigmoney') {
+        const val = alarm.stake || alarm.volume || 0;
+        return '+£' + Number(val).toLocaleString();
+    }
+    return '';
+}
+
+function renderAlertBand() {
+    const track = document.getElementById('alertBandTrack');
+    if (!track) return;
+    
+    if (!alertBandData || alertBandData.length === 0) {
+        track.innerHTML = '<span class="alert-band-empty">Alarm bekleniyor...</span>';
+        return;
+    }
+    
+    const top = alertBandData.slice(0, 30);
+    
+    track.innerHTML = top.map((alarm, idx) => {
+        const info = getAlertType(alarm);
+        const home = alarm.home || alarm.home_team || '?';
+        const away = alarm.away || alarm.away_team || '?';
+        const value = formatAlertValue(alarm);
+        
+        return `
+            <div class="alert-band-pill" onclick="showAlertBandDetail(${idx})">
+                <span class="alert-band-dot ${info.color}"></span>
+                <span class="alert-band-type">${info.label}</span>
+                <span class="alert-band-match">${home} - ${away}</span>
+                <span class="alert-band-value">${value}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function updateAlertBandBadge() {
+    const badge = document.getElementById('alertBandBadge');
+    if (badge) {
+        badge.textContent = alertBandData.length;
+    }
+}
+
+function showAlertBandDetail(index) {
+    const alarm = alertBandData[index];
+    if (!alarm) return;
+    
+    const info = getAlertType(alarm);
+    const home = alarm.home || alarm.home_team || '-';
+    const away = alarm.away || alarm.away_team || '-';
+    const value = formatAlertValue(alarm);
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'alertBandModal';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    
+    let detailsHtml = '';
+    if (alarm._type === 'sharp') {
+        detailsHtml = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                    <div style="color: #4ade80; font-size: 20px; font-weight: 700;">${alarm.volume ? '£' + Number(alarm.volume).toLocaleString() : '-'}</div>
+                    <div style="color: #8b949e; font-size: 11px;">Volume</div>
+                </div>
+                <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                    <div style="color: #f0883e; font-size: 20px; font-weight: 700;">${alarm.stake_share ? alarm.stake_share.toFixed(1) + '%' : '-'}</div>
+                    <div style="color: #8b949e; font-size: 11px;">Stake Share</div>
+                </div>
+                <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                    <div style="color: #58a6ff; font-size: 20px; font-weight: 700;">${alarm.odds_move ? (alarm.odds_move > 0 ? '+' : '') + alarm.odds_move.toFixed(2) : '-'}</div>
+                    <div style="color: #8b949e; font-size: 11px;">Odds Move</div>
+                </div>
+                <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                    <div style="color: #a371f7; font-size: 20px; font-weight: 700;">${alarm.volume_shock ? alarm.volume_shock.toFixed(1) + 'x' : '-'}</div>
+                    <div style="color: #8b949e; font-size: 11px;">Volume Shock</div>
+                </div>
+            </div>
+        `;
+    } else if (alarm._type === 'insider') {
+        detailsHtml = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                    <div style="color: #60a5fa; font-size: 20px; font-weight: 700;">${alarm.stake ? '£' + Number(alarm.stake).toLocaleString() : '-'}</div>
+                    <div style="color: #8b949e; font-size: 11px;">Stake</div>
+                </div>
+                <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                    <div style="color: #f87171; font-size: 20px; font-weight: 700;">${alarm.odds_drop_pct ? alarm.odds_drop_pct.toFixed(2) + '%' : '-'}</div>
+                    <div style="color: #8b949e; font-size: 11px;">Odds Drop</div>
+                </div>
+            </div>
+        `;
+    } else {
+        detailsHtml = `
+            <div style="background: #21262d; border-radius: 8px; padding: 16px; text-align: center;">
+                <div style="color: #fbbf24; font-size: 28px; font-weight: 700;">${alarm.stake ? '£' + Number(alarm.stake).toLocaleString() : (alarm.volume ? '£' + Number(alarm.volume).toLocaleString() : '-')}</div>
+                <div style="color: #8b949e; font-size: 12px; margin-top: 4px;">Stake Amount</div>
+            </div>
+        `;
+    }
+    
+    const typeColors = { sharp: '#ef4444', insider: '#60a5fa', bigmoney: '#fbbf24' };
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <h2 style="display: flex; align-items: center; gap: 10px;">
+                    <span style="background: ${typeColors[alarm._type] || '#8b949e'}; width: 12px; height: 12px; border-radius: 50%;"></span>
+                    ${info.label}
+                </h2>
+                <button class="close-btn" onclick="document.getElementById('alertBandModal').remove()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 42px; font-weight: 700; color: ${typeColors[alarm._type] || '#8b949e'};">${value}</div>
+                    <div style="color: #8b949e; font-size: 13px;">${alarm._type === 'sharp' ? 'Sharp Score' : (alarm._type === 'insider' ? 'Insider Score' : 'Stake')}</div>
+                </div>
+                <div style="background: #0d1117; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                    <div style="font-size: 18px; font-weight: 600; color: #fff; text-align: center; margin-bottom: 8px;">
+                        ${home} vs ${away}
+                    </div>
+                    <div style="text-align: center; color: #8b949e; font-size: 13px;">
+                        ${alarm.market || '-'} | <span style="color: #58a6ff;">${alarm.selection || alarm.side || '-'}</span>
+                    </div>
+                </div>
+                ${detailsHtml}
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+setInterval(loadAlertBand, 60000);
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(loadAlertBand, 500);
+});
+
+// ============================================
 // ALARMS SIDEBAR FUNCTIONALITY
 // ============================================
 
