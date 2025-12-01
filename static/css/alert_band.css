@@ -151,17 +151,30 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 4px 12px;
 }
 
-.sx-alert-pill-text {
+/* Her alert pill içindeki tüm içerik için JEWELBOX container */
+.sx-alert-pill-inner {
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 8px;
+    width: 100%;
+    height: 100%;
 }
 
+/* Dot, text ve score aynı hizada olmalı */
+.sx-alert-pill-dot,
+.sx-alert-pill-type,
+.sx-alert-pill-match,
 .sx-alert-pill-score {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.sx-alert-pill-text {
     display: flex;
     align-items: center;
     justify-content: center;
