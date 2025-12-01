@@ -137,10 +137,11 @@
 
 /* Alert Type Label */
 .alert-band-type {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.05em;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .alert-band-type.sharp {
@@ -161,16 +162,18 @@
 
 /* Match Name */
 .alert-band-match {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     color: #ffffff;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* Value/Score */
 .alert-band-value {
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
     color: #4ade80;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
 }
 
 .alert-band-value.negative,
