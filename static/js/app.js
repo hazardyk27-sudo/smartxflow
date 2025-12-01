@@ -1230,58 +1230,56 @@ function updateMatchInfoCard() {
             const cX = getColorClass(d.PctX);
             const c2 = getColorClass(d.Pct2);
             html = `
-                <table style="width:100%;border-collapse:separate;border-spacing:10px 0;">
-                    <tr>
-                        <td style="width:33%;vertical-align:top;text-align:center;padding:16px;background:#0f1419;border-radius:10px;">
-                            <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #2f3336;">1</div>
-                            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2f3336;">
-                                <span style="font-size:12px;color:#8899a6;">Odds</span>
-                                <span style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#4ade80;">${formatOdds(d.Odds1 || d['1'])}</span>
-                            </div>
-                            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2f3336;">
-                                <span style="font-size:12px;color:#8899a6;">Stake</span>
-                                <span class="money ${c1}" style="font-family:'JetBrains Mono',monospace;font-size:14px;">${formatVolume(d.Amt1)}</span>
-                            </div>
-                            <div style="display:flex;justify-content:space-between;padding:8px 0;">
-                                <span style="font-size:12px;color:#8899a6;">%</span>
-                                <span class="pct ${c1}" style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;">${formatPct(d.Pct1)}</span>
-                            </div>
-                        </td>
-                        <td style="width:33%;vertical-align:top;text-align:center;padding:16px;background:#0f1419;border-radius:10px;">
-                            <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #2f3336;">X</div>
-                            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2f3336;">
-                                <span style="font-size:12px;color:#8899a6;">Odds</span>
-                                <span style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#4ade80;">${formatOdds(d.OddsX || d['X'])}</span>
-                            </div>
-                            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2f3336;">
-                                <span style="font-size:12px;color:#8899a6;">Stake</span>
-                                <span class="money ${cX}" style="font-family:'JetBrains Mono',monospace;font-size:14px;">${formatVolume(d.AmtX)}</span>
-                            </div>
-                            <div style="display:flex;justify-content:space-between;padding:8px 0;">
-                                <span style="font-size:12px;color:#8899a6;">%</span>
-                                <span class="pct ${cX}" style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;">${formatPct(d.PctX)}</span>
-                            </div>
-                        </td>
-                        <td style="width:33%;vertical-align:top;text-align:center;padding:16px;background:#0f1419;border-radius:10px;">
-                            <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #2f3336;">2</div>
-                            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2f3336;">
-                                <span style="font-size:12px;color:#8899a6;">Odds</span>
-                                <span style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#4ade80;">${formatOdds(d.Odds2 || d['2'])}</span>
-                            </div>
-                            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2f3336;">
-                                <span style="font-size:12px;color:#8899a6;">Stake</span>
-                                <span class="money ${c2}" style="font-family:'JetBrains Mono',monospace;font-size:14px;">${formatVolume(d.Amt2)}</span>
-                            </div>
-                            <div style="display:flex;justify-content:space-between;padding:8px 0;">
-                                <span style="font-size:12px;color:#8899a6;">%</span>
-                                <span class="pct ${c2}" style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;">${formatPct(d.Pct2)}</span>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:14px 20px;background:#0f1419;border-radius:10px;border:1px solid #2f3336;">
-                    <span style="font-size:12px;color:#8899a6;text-transform:uppercase;font-weight:600;">Total Volume</span>
-                    <span style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#4ade80;">${formatVolume(d.Volume)}</span>
+                <div class="info-columns info-columns-3">
+                    <div class="info-column">
+                        <div class="column-header">1</div>
+                        <div class="column-row">
+                            <span class="row-label">Odds</span>
+                            <span class="row-value odds">${formatOdds(d.Odds1 || d['1'])}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">Stake</span>
+                            <span class="row-value money ${c1}">${formatVolume(d.Amt1)}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">%</span>
+                            <span class="row-value pct ${c1}">${formatPct(d.Pct1)}</span>
+                        </div>
+                    </div>
+                    <div class="info-column">
+                        <div class="column-header">X</div>
+                        <div class="column-row">
+                            <span class="row-label">Odds</span>
+                            <span class="row-value odds">${formatOdds(d.OddsX || d['X'])}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">Stake</span>
+                            <span class="row-value money ${cX}">${formatVolume(d.AmtX)}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">%</span>
+                            <span class="row-value pct ${cX}">${formatPct(d.PctX)}</span>
+                        </div>
+                    </div>
+                    <div class="info-column">
+                        <div class="column-header">2</div>
+                        <div class="column-row">
+                            <span class="row-label">Odds</span>
+                            <span class="row-value odds">${formatOdds(d.Odds2 || d['2'])}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">Stake</span>
+                            <span class="row-value money ${c2}">${formatVolume(d.Amt2)}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">%</span>
+                            <span class="row-value pct ${c2}">${formatPct(d.Pct2)}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="volume-bar">
+                    <span class="volume-label">TOTAL VOLUME</span>
+                    <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;
         } else {

@@ -848,6 +848,15 @@ body {
     width: 100%;
 }
 
+.info-columns.info-columns-3 {
+    gap: 12px;
+}
+
+.info-columns-3 .info-column {
+    min-width: 100px;
+    padding: 14px 16px;
+}
+
 .info-column {
     -webkit-box-flex: 1;
     -webkit-flex: 1;
