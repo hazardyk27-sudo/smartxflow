@@ -4473,6 +4473,82 @@ td.volume,
     background: #15803D;
 }
 
+/* Admin Control Panel for Insider Alarms */
+.admin-section {
+    background: #1a1f2e;
+    border: 1px solid #a855f7;
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 12px;
+}
+
+.admin-section .detail-label {
+    color: #a855f7;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.admin-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.admin-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    background: #111827;
+    padding: 10px;
+    border-radius: 6px;
+}
+
+.admin-label {
+    font-size: 11px;
+    color: #94A3B8;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.admin-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: #E2E8F0;
+}
+
+.admin-value.positive {
+    color: #22C55E;
+}
+
+.admin-value.negative {
+    color: #EF4444;
+}
+
+.admin-timestamps {
+    margin-top: 12px;
+    background: #111827;
+    padding: 10px;
+    border-radius: 6px;
+}
+
+.admin-timestamps .admin-label {
+    margin-bottom: 6px;
+}
+
+.admin-timestamp-value {
+    font-size: 14px;
+    font-weight: 500;
+    color: #60A5FA;
+    font-family: monospace;
+}
+
+.log-extra {
+    color: #EF4444;
+    font-size: 12px;
+    font-weight: 600;
+}
+
 /* Detail Panel Styles - DEPRECATED but kept for compatibility */
 .alarm-detail-title h3 {
     font-size: 16px;
