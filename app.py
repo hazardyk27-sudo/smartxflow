@@ -1260,7 +1260,29 @@ def calculate_insider_scores(config):
                         
                         # Event time: hareketin tespit edildiği snapshot zamanı
                         last_snap_idx = last_snap['index']
+                        first_snap_idx = first_snap['index']
                         event_time = history[last_snap_idx].get('scrapedat', '') if last_snap_idx < len(history) else ''
+                        
+                        # 3 Snapshot oran bilgileri (window içindeki oranlar)
+                        window_start_odds = first_snap['odds']  # Window başındaki oran
+                        window_end_odds = last_snap['odds']     # Window sonundaki oran
+                        
+                        # Window içindeki oran düşüşü (açılıştan değil, window içinde)
+                        if window_start_odds > 0 and window_end_odds < window_start_odds:
+                            window_odds_drop_pct = ((window_start_odds - window_end_odds) / window_start_odds) * 100
+                        else:
+                            window_odds_drop_pct = 0
+                        
+                        # Snapshot detayları (her snapshot için oran ve zaman)
+                        snapshot_details = []
+                        for snap in best_window:
+                            snap_idx = snap['index']
+                            snap_odds = snap['odds']
+                            snap_time = history[snap_idx].get('scrapedat', '') if snap_idx < len(history) else ''
+                            snapshot_details.append({
+                                'odds': snap_odds,
+                                'time': snap_time
+                            })
                         
                         created_at = now_turkey().strftime('%d.%m.%Y %H:%M')
                         last_odds = parse_float(history[-1].get(odds_key, '0'))
@@ -1275,6 +1297,12 @@ def calculate_insider_scores(config):
                             'gelen_para': avg_gelen_para,
                             'opening_odds': opening_odds,
                             'last_odds': last_odds,
+                            # 3 Snapshot window oranları
+                            'window_start_odds': window_start_odds,
+                            'window_end_odds': window_end_odds,
+                            'window_odds_drop_pct': window_odds_drop_pct,
+                            'snapshot_details': snapshot_details,
+                            # Config
                             'insider_hacim_sok_esigi': hacim_sok_esigi,
                             'insider_oran_dusus_esigi': oran_dusus_esigi,
                             'insider_sure_dakika': sure_dakika,
@@ -1287,7 +1315,7 @@ def calculate_insider_scores(config):
                             'triggered': True
                         }
                         alarms.append(alarm)
-                        print(f"[Insider] ALARM: {home} vs {away} [{selection}] HacimSok={avg_hacim_sok:.2f}x, OranDusus={max_odds_drop:.1f}%, GelenPara=£{avg_gelen_para:.0f}")
+                        print(f"[Insider] ALARM: {home} vs {away} [{selection}] Window: {window_start_odds:.2f}→{window_end_odds:.2f} ({window_odds_drop_pct:.1f}%), GelenPara=£{avg_gelen_para:.0f}")
         
         except Exception as e:
             print(f"[Insider] Error processing {market}: {e}")

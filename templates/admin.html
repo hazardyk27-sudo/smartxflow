@@ -1404,18 +1404,18 @@
                     <div class="insider-detail-panel" id="insider_detail_${idx}" style="display: ${isExpanded ? 'block' : 'none'};">
                         <div class="insider-detail-grid">
                             <div class="insider-detail-section">
-                                <div class="insider-detail-title">📊 ORAN DEĞİŞİMİ</div>
+                                <div class="insider-detail-title">📊 3 SNAPSHOT ORAN DEĞİŞİMİ</div>
                                 <div class="insider-detail-row">
-                                    <span class="insider-detail-label">Oran Hareketi:</span>
+                                    <span class="insider-detail-label">Window Oranı:</span>
                                     <span class="insider-detail-value">
-                                        <span style="color: #94a3b8;">${alarm.opening_odds || '-'}</span>
-                                        <span style="color: #ef4444; margin: 0 6px;">→</span>
-                                        <span style="color: #22c55e; font-weight: 700;">${alarm.last_odds || '-'}</span>
+                                        <span style="color: #94a3b8; font-size: 16px;">${(alarm.window_start_odds || alarm.opening_odds || 0).toFixed(2)}</span>
+                                        <span style="color: #ef4444; margin: 0 8px; font-size: 18px;">→</span>
+                                        <span style="color: #22c55e; font-weight: 700; font-size: 16px;">${(alarm.window_end_odds || alarm.last_odds || 0).toFixed(2)}</span>
                                     </span>
                                 </div>
                                 <div class="insider-detail-row">
-                                    <span class="insider-detail-label">Düşüş Yüzdesi:</span>
-                                    <span class="insider-detail-value" style="color: #ef4444; font-weight: 700;">%${(alarm.oran_dusus_pct || 0).toFixed(2)}</span>
+                                    <span class="insider-detail-label">Window Düşüş:</span>
+                                    <span class="insider-detail-value" style="color: #ef4444; font-weight: 700; font-size: 15px;">%${(alarm.window_odds_drop_pct || alarm.oran_dusus_pct || 0).toFixed(2)}</span>
                                 </div>
                                 <div class="insider-detail-row">
                                     <span class="insider-detail-label">Seçenek:</span>
@@ -1423,7 +1423,7 @@
                                 </div>
                             </div>
                             <div class="insider-detail-section">
-                                <div class="insider-detail-title">💰 PARA HAREKETİ</div>
+                                <div class="insider-detail-title">💰 PARA & HAÇİM</div>
                                 <div class="insider-detail-row">
                                     <span class="insider-detail-label">Gelen Para:</span>
                                     <span class="insider-detail-value" style="color: #22c55e; font-weight: 700;">£${Math.round(alarm.gelen_para || 0).toLocaleString()}</span>
@@ -1438,18 +1438,23 @@
                                 </div>
                             </div>
                             <div class="insider-detail-section">
-                                <div class="insider-detail-title">📸 SNAPSHOT BİLGİSİ</div>
-                                <div class="insider-detail-row">
-                                    <span class="insider-detail-label">Snapshot Sayısı:</span>
-                                    <span class="insider-detail-value" style="color: #3fb950;">${alarm.snapshot_count || 3}</span>
-                                </div>
-                                <div class="insider-detail-row">
-                                    <span class="insider-detail-label">Alarm Zamanı:</span>
-                                    <span class="insider-detail-value" style="color: #a371f7; font-size: 12px;">${formattedEventTime}</span>
-                                </div>
-                                <div class="insider-detail-row">
+                                <div class="insider-detail-title">📸 SNAPSHOT DETAYLARI</div>
+                                ${(alarm.snapshot_details && alarm.snapshot_details.length > 0) ? 
+                                    alarm.snapshot_details.map((snap, i) => {
+                                        let snapTime = '-';
+                                        if (snap.time) {
+                                            try {
+                                                const dt = new Date(snap.time);
+                                                snapTime = dt.toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
+                                            } catch(e) { snapTime = snap.time; }
+                                        }
+                                        return '<div class="insider-detail-row"><span class="insider-detail-label">Snap ' + (i+1) + ':</span><span class="insider-detail-value"><span style="color:#a371f7;font-weight:600;">' + (snap.odds || 0).toFixed(2) + '</span> <span style="color:#64748b;font-size:11px;">(' + snapTime + ')</span></span></div>';
+                                    }).join('') 
+                                    : '<div class="insider-detail-row"><span class="insider-detail-label">Detay:</span><span class="insider-detail-value" style="color:#64748b;">Yeniden hesaplayın</span></div>'
+                                }
+                                <div class="insider-detail-row" style="border-top: 1px solid #30363d; margin-top: 8px; padding-top: 8px;">
                                     <span class="insider-detail-label">Hesaplama:</span>
-                                    <span class="insider-detail-value" style="font-size: 12px;">${alarm.created_at || '-'}</span>
+                                    <span class="insider-detail-value" style="font-size: 11px; color: #64748b;">${alarm.created_at || '-'}</span>
                                 </div>
                             </div>
                         </div>
