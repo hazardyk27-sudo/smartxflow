@@ -190,15 +190,15 @@
 .btn-alarms {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    height: 32px;
-    padding: 0 14px;
+    gap: 8px;
+    height: 38px;
+    padding: 0 18px;
     margin-right: 12px;
     background: #020617;
     border: 1px solid #1F2937;
     border-radius: 9999px;
     color: #E5E7EB;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -207,8 +207,8 @@
 }
 
 .btn-alarms svg {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     color: #9CA3AF;
     transition: color 0.2s ease;
 }
@@ -233,12 +233,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 20px;
-    height: 18px;
-    padding: 0 6px;
+    min-width: 24px;
+    height: 20px;
+    padding: 0 7px;
     background: #4ade80;
     color: #000;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     border-radius: 9999px;
     font-family: 'JetBrains Mono', monospace;
