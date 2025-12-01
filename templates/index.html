@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=310">
+    <link rel="stylesheet" href="/static/css/style.css?v=311">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=29">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
@@ -241,6 +241,18 @@
             <div class="modal-body">
                 <div class="match-info-card" id="matchInfoCard"></div>
                 
+                <div class="match-alarms-section" id="matchAlarmsSection">
+                    <div class="match-alarms-header">
+                        <span class="match-alarms-title">Mac Alarmlari</span>
+                        <div class="match-alarms-badges" id="matchAlarmsBadges"></div>
+                    </div>
+                    <div class="match-alarms-toggle" id="matchAlarmsToggle" onclick="toggleMatchAlarmsList()">
+                        <span class="toggle-icon">▶</span>
+                        <span class="toggle-text">Alarmlari Goster</span>
+                    </div>
+                    <div class="match-alarms-list" id="matchAlarmsList"></div>
+                </div>
+                
                 <div class="chart-tabs" id="modalChartTabs">
                     <button class="chart-tab active" data-market="moneyway_1x2">Moneyway 1X2</button>
                     <button class="chart-tab" data-market="moneyway_ou25">Moneyway 2.5</button>
@@ -259,6 +271,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=309"></script>
+    <script src="/static/js/app.js?v=310"></script>
 </body>
 </html>
