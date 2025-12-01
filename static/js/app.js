@@ -3303,16 +3303,16 @@ async function loadAlertBand() {
 
 function getAlertType(alarm) {
     const type = alarm._type;
-    if (type === 'sharp') return { label: 'SHARP MOVE', color: 'green', pillClass: 'sharp' };
-    if (type === 'insider') return { label: 'INSIDER INFO', color: 'purple', pillClass: 'insider' };
+    if (type === 'sharp') return { label: 'SHARP', icon: '⚡', chipClass: 'sharp' };
+    if (type === 'insider') return { label: 'INSIDER INFO', icon: '🕵️', chipClass: 'insider' };
     if (type === 'bigmoney') {
         const stake = alarm.stake || alarm.volume || 0;
         if (stake >= 50000) {
-            return { label: 'HUGE MONEY', color: 'orange-red', pillClass: 'hugemoney' };
+            return { label: 'HUGE MONEY', icon: '💰', chipClass: 'hugemoney' };
         }
-        return { label: 'BIG MONEY', color: 'orange', pillClass: 'bigmoney' };
+        return { label: 'BIG MONEY', icon: '💰', chipClass: 'bigmoney' };
     }
-    return { label: 'ALERT', color: 'green', pillClass: '' };
+    return { label: 'ALERT', icon: '🔔', chipClass: '' };
 }
 
 function formatAlertValue(alarm) {
@@ -3332,40 +3332,52 @@ function formatAlertValue(alarm) {
 }
 
 function renderAlertBand() {
-    const track = document.getElementById('alertBandTrack');
-    if (!track) return;
+    const scroll = document.getElementById('alertBandScroll');
+    if (!scroll) return;
     
     if (!alertBandData || alertBandData.length === 0) {
-        track.innerHTML = '<span class="alert-band-empty">Alarm bekleniyor...</span>';
+        scroll.innerHTML = '<span class="alert-band-empty">Alarm bekleniyor...</span>';
         return;
     }
     
     const top = alertBandData.slice(0, 30);
+    const now = Date.now();
     
-    const pillsHtml = top.map((alarm, idx) => {
+    const chipsHtml = top.map((alarm, idx) => {
         const info = getAlertType(alarm);
         const home = alarm.home || alarm.home_team || '?';
         const away = alarm.away || alarm.away_team || '?';
         const value = formatAlertValue(alarm);
+        const value2 = formatAlertValue2(alarm);
         
-        const valueClass = alarm._type === 'insider' ? 'insider' : '';
+        const isNew = alarm._addedAt && (now - alarm._addedAt < 5000);
+        const glowClass = isNew ? 'glow' : '';
+        
         return `
-            <div class="alert-band-pill ${info.pillClass}" onclick="showAlertBandDetail(${idx})">
-                <span class="alert-band-dot ${info.color}"></span>
-                <span class="alert-band-type ${info.pillClass}">${info.label}</span>
-                <span class="alert-band-match">${home} - ${away}</span>
-                <span class="alert-band-value ${valueClass}">${value}</span>
+            <div class="alert-chip ${info.chipClass} ${glowClass}" onclick="showAlertBandDetail(${idx})">
+                <span class="alert-chip-icon">${info.icon}</span>
+                <span class="alert-chip-type">${info.label}</span>
+                <span class="alert-chip-divider">|</span>
+                <span class="alert-chip-match">${home} – ${away}</span>
+                <span class="alert-chip-divider">|</span>
+                <span class="alert-chip-value">${value}</span>
+                ${value2 ? `<span class="alert-chip-divider">|</span><span class="alert-chip-value">${value2}</span>` : ''}
             </div>
         `;
     }).join('');
     
-    // Duplicate for seamless scrolling
-    track.innerHTML = `
-        <div class="alert-band-track-inner">
-            ${pillsHtml}
-            ${pillsHtml}
-        </div>
-    `;
+    scroll.innerHTML = chipsHtml + chipsHtml;
+}
+
+function formatAlertValue2(alarm) {
+    const type = alarm._type;
+    if (type === 'sharp') {
+        if (alarm.volume) return '£' + Number(alarm.volume).toLocaleString();
+    }
+    if (type === 'insider') {
+        if (alarm.stake) return '£' + Number(alarm.stake).toLocaleString();
+    }
+    return '';
 }
 
 function updateAlertBandBadge() {
