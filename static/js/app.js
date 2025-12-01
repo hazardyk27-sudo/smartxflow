@@ -4138,25 +4138,22 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
     
     const cardConfigs = {
         sharp: {
-            title: 'Sharp Move',
+            title: 'Sharp',
             color: '#22C55E',
-            bgColor: '#16A34A',
-            icon: '●',
+            icon: '⚡',
             description: 'Profesyonel yatirimci girisi.'
         },
         bigmoney: {
-            title: 'Public Money Surge',
-            color: '#FACC15',
-            bgColor: '#EAB308',
-            icon: '●',
-            description: 'Halk yuklenmesi. Para artiyor, oran sabit.'
+            title: 'Big Money',
+            color: '#f97316',
+            icon: '💰',
+            description: 'Yuksek hacimli para girisi.'
         },
         insider: {
-            title: 'Momentum Spike',
+            title: 'Insider',
             color: '#A855F7',
-            bgColor: '#9333EA',
-            icon: '●',
-            description: 'Trend olusumu. Surekli ayni yone para akisi.'
+            icon: '🕵',
+            description: 'Dusuk hacim, yuksek oran dususu.'
         }
     };
     
@@ -4191,10 +4188,10 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
         }
         
         cardsHtml += `
-            <div class="smart-money-card ${type}" style="border-color: ${config.color};">
+            <div class="smart-money-card ${type}">
                 <div class="smc-top-row">
                     <div class="smc-left">
-                        <span class="smc-dot" style="color: ${config.color};">${config.icon}</span>
+                        <span class="smc-icon">${config.icon}</span>
                         <span class="smc-title">${config.title}</span>
                         <span class="smc-count" style="background: ${config.color};">×${count}</span>
                     </div>
