@@ -3590,8 +3590,8 @@ async function loadAllAlarms() {
         allAlarmsData = [...sharpWithType, ...insiderWithType, ...bigmoneyWithType];
         
         allAlarmsData.sort((a, b) => {
-            const dateA = parseAlarmDate(a.created_at);
-            const dateB = parseAlarmDate(b.created_at);
+            const dateA = parseAlarmDate(a.event_time || a.created_at);
+            const dateB = parseAlarmDate(b.event_time || b.created_at);
             return dateB - dateA;
         });
         
@@ -3637,20 +3637,20 @@ function groupAlarmsByMatch(alarms) {
         groups[groupKey].history.push(alarm);
         groups[groupKey].triggerCount++;
         
-        const currentLatest = parseAlarmDate(groups[groupKey].latestAlarm.created_at);
-        const thisDate = parseAlarmDate(alarm.created_at);
+        const currentLatest = parseAlarmDate(groups[groupKey].latestAlarm.event_time || groups[groupKey].latestAlarm.created_at);
+        const thisDate = parseAlarmDate(alarm.event_time || alarm.created_at);
         if (thisDate > currentLatest) {
             groups[groupKey].latestAlarm = alarm;
         }
     });
     
     Object.values(groups).forEach(group => {
-        group.history.sort((a, b) => parseAlarmDate(b.created_at) - parseAlarmDate(a.created_at));
+        group.history.sort((a, b) => parseAlarmDate(b.event_time || b.created_at) - parseAlarmDate(a.event_time || a.created_at));
     });
     
     return Object.values(groups).sort((a, b) => {
-        const dateA = parseAlarmDate(a.latestAlarm.created_at);
-        const dateB = parseAlarmDate(b.latestAlarm.created_at);
+        const dateA = parseAlarmDate(a.latestAlarm.event_time || a.latestAlarm.created_at);
+        const dateB = parseAlarmDate(b.latestAlarm.event_time || b.latestAlarm.created_at);
         return dateB - dateA;
     });
 }
@@ -3711,9 +3711,9 @@ function getFilteredAlarms() {
     
     groups.sort((a, b) => {
         if (currentAlarmSort === 'newest') {
-            return parseAlarmDate(b.latestAlarm.created_at) - parseAlarmDate(a.latestAlarm.created_at);
+            return parseAlarmDate(b.latestAlarm.event_time || b.latestAlarm.created_at) - parseAlarmDate(a.latestAlarm.event_time || a.latestAlarm.created_at);
         } else if (currentAlarmSort === 'oldest') {
-            return parseAlarmDate(a.latestAlarm.created_at) - parseAlarmDate(b.latestAlarm.created_at);
+            return parseAlarmDate(a.latestAlarm.event_time || a.latestAlarm.created_at) - parseAlarmDate(b.latestAlarm.event_time || b.latestAlarm.created_at);
         } else if (currentAlarmSort === 'score_high') {
             const scoreA = a.latestAlarm.sharp_score || a.latestAlarm.insider_score || a.latestAlarm.incoming_money || 0;
             const scoreB = b.latestAlarm.sharp_score || b.latestAlarm.insider_score || b.latestAlarm.incoming_money || 0;
@@ -3779,13 +3779,13 @@ function renderAlarmsList(filterType) {
             }
         }
         
-        const timeAgo = formatTimeAgoTR(alarm.created_at);
+        const timeAgo = formatTimeAgoTR(alarm.event_time || alarm.created_at);
         const triggerPill = group.triggerCount > 1 ? `<span class="trigger-pill">×${group.triggerCount}</span>` : '';
         const marketLabel = formatMarketChip(market, selection);
         const expandIcon = isOpen ? '▼' : '▶';
         
         let historyHtml = group.history.map((a, i) => {
-            const time = formatTriggerTime(a.created_at);
+            const time = formatTriggerTime(a.event_time || a.created_at);
             let valuesHtml = '';
             
             if (type === 'sharp') {
