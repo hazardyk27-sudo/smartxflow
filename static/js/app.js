@@ -4091,6 +4091,16 @@ function getMatchAlarms(homeTeam, awayTeam) {
 
 function formatSmartMoneyTime(dateStr) {
     if (!dateStr) return '-';
+    
+    // Direct parse for DD.MM.YYYY HH:MM format
+    const match = dateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/);
+    if (match) {
+        const [, day, month, year, hour, min] = match;
+        const monthNames = ['Oca', 'Sub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Agu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+        const monthName = monthNames[parseInt(month) - 1] || month;
+        return `${day} ${monthName} • ${hour}:${min}`;
+    }
+    
     const dt = parseAlarmDateTR(dateStr);
     if (!dt || !dt.isValid()) return '-';
     return dt.format('DD MMM • HH:mm');
