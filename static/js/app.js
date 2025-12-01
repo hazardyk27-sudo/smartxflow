@@ -3296,10 +3296,11 @@ function isMatchTodayOrFuture(alarm) {
 
 async function loadAlertBand() {
     try {
-        const [sharpRes, insiderRes, bigMoneyRes] = await Promise.all([
+        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes] = await Promise.all([
             fetch('/api/sharp/alarms'),
             fetch('/api/insider/alarms'),
-            fetch('/api/bigmoney/alarms')
+            fetch('/api/bigmoney/alarms'),
+            fetch('/api/volumeshock/alarms')
         ]);
         
         let allAlarms = [];
@@ -3320,6 +3321,12 @@ async function loadAlertBand() {
             const bigmoney = await bigMoneyRes.json();
             bigmoney.forEach(a => { a._type = 'bigmoney'; a._score = a.incoming_money || a.stake || a.volume || 0; });
             allAlarms = allAlarms.concat(bigmoney);
+        }
+        
+        if (volumeShockRes.ok) {
+            const volumeshock = await volumeShockRes.json();
+            volumeshock.forEach(a => { a._type = 'volumeshock'; a._score = (a.volume_shock_value || 0) * 100; });
+            allAlarms = allAlarms.concat(volumeshock);
         }
         
         console.log('[AlertBand] Total alarms before filter:', allAlarms.length);
@@ -3345,6 +3352,7 @@ function getAlertType(alarm) {
         }
         return { label: 'BIG MONEY', color: 'orange', pillClass: 'bigmoney' };
     }
+    if (type === 'volumeshock') return { label: 'HACIM SOKU', color: 'red', pillClass: 'volumeshock' };
     return { label: 'ALERT', color: 'green', pillClass: '' };
 }
 
@@ -3360,6 +3368,10 @@ function formatAlertValue(alarm) {
     if (type === 'bigmoney') {
         const val = alarm.incoming_money || alarm.stake || alarm.volume || 0;
         return '£' + Number(val).toLocaleString();
+    }
+    if (type === 'volumeshock') {
+        const shockValue = alarm.volume_shock_value || 0;
+        return shockValue.toFixed(1) + 'x';
     }
     return '';
 }
@@ -3530,7 +3542,8 @@ let groupedAlarmsData = [];
 let alarmsDataByType = {
     sharp: [],
     insider: [],
-    bigmoney: []
+    bigmoney: [],
+    volumeshock: []
 };
 let alarmSearchQuery = '';
 let alarmsDisplayCount = 30;

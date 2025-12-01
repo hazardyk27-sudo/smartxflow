@@ -92,6 +92,15 @@
     border-color: #f97316;
 }
 
+/* VolumeShock - Red */
+.alert-band-pill.volumeshock {
+    border-color: rgba(255, 107, 107, 0.6);
+}
+.alert-band-pill.volumeshock:hover {
+    background: rgba(255, 107, 107, 0.1);
+    border-color: #ff6b6b;
+}
+
 /* Pill child elements - perfect vertical alignment */
 .alert-band-pill > * {
     vertical-align: middle;
@@ -131,6 +140,11 @@
     background: #f97316;
 }
 
+/* VolumeShock dot - Red */
+.alert-band-dot.red {
+    background: #ff6b6b;
+}
+
 .alert-band-dot.green {
     background: #4ade80;
 }
@@ -158,6 +172,10 @@
 
 .alert-band-type.hugemoney {
     color: #f97316;
+}
+
+.alert-band-type.volumeshock {
+    color: #ff6b6b;
 }
 
 /* Match Name */
@@ -189,6 +207,10 @@
 
 .alert-band-pill.hugemoney .alert-band-selection {
     color: #f97316;
+}
+
+.alert-band-pill.volumeshock .alert-band-selection {
+    color: #ff6b6b;
 }
 
 /* Value/Score */
