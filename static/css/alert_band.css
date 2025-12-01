@@ -5,7 +5,7 @@
 .alert-band {
     display: flex;
     align-items: center;
-    height: 36px;
+    height: 48px;
     background: #161b22;
     border-bottom: 1px solid #30363d;
     padding: 0;
@@ -44,9 +44,9 @@
 .alert-band-pill {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 12px;
-    height: 26px;
+    gap: 8px;
+    padding: 0 16px;
+    height: 32px;
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid transparent;
     border-radius: 9999px;
