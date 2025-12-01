@@ -1332,6 +1332,10 @@ body {
     gap: 0;
 }
 
+.smart-money-ticker.hidden {
+    display: none;
+}
+
 .ticker-label {
     display: flex;
     align-items: center;
@@ -1600,6 +1604,8 @@ body {
     height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
 }
 
 .pill-type {
@@ -1607,92 +1613,41 @@ body {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.3px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1;
+    display: flex;
+    align-items: center;
 }
 
 .pill-match {
-    color: #fff;
+    color: #e6edf3;
     font-size: 12px;
     font-weight: 500;
-}
-
-.pill-money {
-    color: #4ade80;
-    font-size: 12px;
-    font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
-}
-
-.pill-side {
-    color: #4ade80;
-    font-size: 11px;
-    font-weight: 600;
-}
-
-.pill-odds {
-    color: #f0883e;
-    font-size: 11px;
-    font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
-}
-
-.ticker-item {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--alarm-color, #30363d);
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s;
-    flex-shrink: 0;
 }
 
-.ticker-item:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: var(--alarm-color, #58a6ff);
-    transform: scale(1.02);
-}
-
-.ticker-icon {
-    font-size: 14px;
-}
-
-.ticker-type {
-    color: var(--alarm-color, #c9d1d9);
-    font-size: 11px;
-    font-weight: 600;
-}
-
-.ticker-divider {
-    color: #30363d;
-    font-size: 10px;
-}
-
-.ticker-match {
-    color: #c9d1d9;
-    font-size: 12px;
-    font-weight: 500;
-}
-
-.ticker-money {
-    color: #4ade80;
-    font-size: 12px;
+.pill-score {
+    font-size: 13px;
     font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
-}
-
-.ticker-odds {
-    color: #f0883e;
-    font-size: 11px;
-    font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'JetBrains Mono', 'Inter', monospace;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    min-width: 28px;
+    justify-content: center;
 }
 
 .ticker-empty {
     color: #8b949e;
     font-size: 12px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     padding: 0 20px;
+    display: flex;
+    align-items: center;
+    height: 100%;
 }
 
 .smart-money-events {

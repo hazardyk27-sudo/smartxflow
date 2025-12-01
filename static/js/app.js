@@ -3283,13 +3283,15 @@ function getScoreColor(score) {
 
 function renderTicker() {
     const track = document.getElementById('tickerTrack');
-    if (!track) return;
+    const ticker = document.getElementById('smartMoneyTicker');
+    if (!track || !ticker) return;
     
     if (!tickerAlarms || tickerAlarms.length === 0) {
-        track.innerHTML = '<span class="ticker-empty">Alarm bulunamadı. Admin panelinden hesaplama yapın.</span>';
-        track.style.animation = 'none';
+        ticker.classList.add('hidden');
         return;
     }
+    
+    ticker.classList.remove('hidden');
     
     const sortedAlarms = [...tickerAlarms].sort((a, b) => (b.sharp_score || 0) - (a.sharp_score || 0));
     const topAlarms = sortedAlarms.slice(0, 20);
@@ -3298,9 +3300,7 @@ function renderTicker() {
         const scoreInfo = getScoreColor(alarm.sharp_score || 0);
         const home = alarm.home || '?';
         const away = alarm.away || '?';
-        const selection = alarm.selection || '-';
         const score = (alarm.sharp_score || 0).toFixed(0);
-        const volume = alarm.volume ? `£${Number(alarm.volume).toLocaleString()}` : '';
         
         return `
             <div class="ticker-pill" style="--pill-color: ${scoreInfo.color}; --pill-color-rgb: ${scoreInfo.rgb};" 
@@ -3308,9 +3308,7 @@ function renderTicker() {
                 <span class="pill-dot" style="background: ${scoreInfo.color};"></span>
                 <span class="pill-type" style="color: ${scoreInfo.color};">${scoreInfo.label}</span>
                 <span class="pill-match">${home} vs ${away}</span>
-                <span class="pill-side">[${selection}]</span>
-                <span class="pill-money">${volume}</span>
-                <span class="pill-score" style="color: ${scoreInfo.color}; font-weight: 700;">${score}</span>
+                <span class="pill-score" style="color: ${scoreInfo.color};">${score}</span>
             </div>
         `;
     }).join('');
