@@ -1915,9 +1915,11 @@ def calculate_volume_shock_scores(config):
                 if 'Citizen AA' in home or 'Lucky Mile' in away:
                     continue
                 
-                # Market toplam hacim kontrolü
-                total_volume = parse_volume(match.get('volume', match.get('Volume', '0')))
+                # Market toplam hacim kontrolü - latest objesinden al
+                latest = match.get('latest', {})
+                total_volume = parse_volume(latest.get('Volume', match.get('volume', '0')))
                 if total_volume < min_volume:
+                    print(f"[VolumeShock] Skipping {home} vs {away}: volume {total_volume} < min {min_volume}")
                     continue
                 
                 # Parse match kickoff time
