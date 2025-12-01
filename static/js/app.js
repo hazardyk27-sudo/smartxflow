@@ -3265,6 +3265,39 @@ function attachTrendTooltipListeners() {
 
 let alertBandData = [];
 
+function isMatchTodayOrFuture(alarm) {
+    const matchDateStr = alarm.match_date || alarm.fixture_date || '';
+    if (!matchDateStr) return true;
+    
+    const today = dayjs().tz('Europe/Istanbul').startOf('day');
+    
+    let matchDate;
+    if (matchDateStr.includes('.')) {
+        const parts = matchDateStr.split(' ')[0];
+        if (parts.includes('.')) {
+            const [day, monthStr] = parts.split('.');
+            const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
+                              'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
+            const month = monthMap[monthStr];
+            if (month !== undefined) {
+                const year = today.year();
+                matchDate = dayjs().year(year).month(month).date(parseInt(day)).startOf('day');
+                if (matchDate.isBefore(today.subtract(30, 'day'))) {
+                    matchDate = matchDate.add(1, 'year');
+                }
+            }
+        }
+    }
+    
+    if (!matchDate || !matchDate.isValid()) {
+        matchDate = dayjs(matchDateStr, ['DD.MM.YYYY', 'YYYY-MM-DD', 'DD.MMM HH:mm:ss']).tz('Europe/Istanbul');
+    }
+    
+    if (!matchDate.isValid()) return true;
+    
+    return matchDate.isSame(today, 'day') || matchDate.isAfter(today);
+}
+
 async function loadAlertBand() {
     try {
         const [sharpRes, insiderRes, bigMoneyRes] = await Promise.all([
@@ -3289,11 +3322,13 @@ async function loadAlertBand() {
         
         if (bigMoneyRes.ok) {
             const bigmoney = await bigMoneyRes.json();
-            bigmoney.forEach(a => { a._type = 'bigmoney'; a._score = a.stake || a.volume || 0; });
+            bigmoney.forEach(a => { a._type = 'bigmoney'; a._score = a.incoming_money || a.stake || a.volume || 0; });
             allAlarms = allAlarms.concat(bigmoney);
         }
         
-        alertBandData = allAlarms.sort((a, b) => (b._score || 0) - (a._score || 0));
+        const filteredAlarms = allAlarms.filter(isMatchTodayOrFuture);
+        
+        alertBandData = filteredAlarms.sort((a, b) => (b._score || 0) - (a._score || 0));
         renderAlertBand();
         updateAlertBandBadge();
     } catch (e) {
@@ -3530,9 +3565,13 @@ async function loadAllAlarms() {
             fetch('/api/bigmoney/alarms').catch(() => ({ ok: false }))
         ]);
         
-        alarmsDataByType.sharp = sharpRes.ok ? await sharpRes.json() : [];
-        alarmsDataByType.insider = insiderRes.ok ? await insiderRes.json() : [];
-        alarmsDataByType.bigmoney = bigMoneyRes.ok ? await bigMoneyRes.json() : [];
+        const rawSharp = sharpRes.ok ? await sharpRes.json() : [];
+        const rawInsider = insiderRes.ok ? await insiderRes.json() : [];
+        const rawBigmoney = bigMoneyRes.ok ? await bigMoneyRes.json() : [];
+        
+        alarmsDataByType.sharp = rawSharp.filter(isMatchTodayOrFuture);
+        alarmsDataByType.insider = rawInsider.filter(isMatchTodayOrFuture);
+        alarmsDataByType.bigmoney = rawBigmoney.filter(isMatchTodayOrFuture);
         
         const sharpWithType = alarmsDataByType.sharp.map(a => ({ ...a, _type: 'sharp' }));
         const insiderWithType = alarmsDataByType.insider.map(a => ({ ...a, _type: 'insider' }));
