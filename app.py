@@ -1818,11 +1818,17 @@ def calculate_volume_shock_scores(config):
     min_esik = config.get('hacim_soku_min_esik', 4)
     enabled = config.get('enabled', True)
     
+    # Minimum volume eşikleri
+    min_volume_1x2 = config.get('min_volume_1x2', 1000)
+    min_volume_ou25 = config.get('min_volume_ou25', 500)
+    min_volume_btts = config.get('min_volume_btts', 300)
+    min_son_snapshot_para = config.get('min_son_snapshot_para', 300)
+    
     if not enabled:
         print("[VolumeShock] Disabled, skipping calculation")
         return []
     
-    print(f"[VolumeShock] Config: min_saat={min_saat}, min_esik={min_esik}")
+    print(f"[VolumeShock] Config: min_saat={min_saat}, min_esik={min_esik}, min_vol_1x2={min_volume_1x2}, min_vol_ou25={min_volume_ou25}, min_vol_btts={min_volume_btts}, min_snapshot={min_son_snapshot_para}")
     
     supabase = get_supabase_client()
     if not supabase or not supabase.is_available:
@@ -1849,12 +1855,15 @@ def calculate_volume_shock_scores(config):
             if '1x2' in market:
                 selections = ['1', 'X', '2']
                 amount_keys = ['amt1', 'amtx', 'amt2']
+                min_volume = min_volume_1x2
             elif 'ou25' in market:
                 selections = ['Over', 'Under']
                 amount_keys = ['amtover', 'amtunder']
+                min_volume = min_volume_ou25
             else:
                 selections = ['Yes', 'No']
                 amount_keys = ['amtyes', 'amtno']
+                min_volume = min_volume_btts
             
             history_table = f"{market}_history"
             matches = supabase.get_all_matches_with_latest(market)
@@ -1906,6 +1915,11 @@ def calculate_volume_shock_scores(config):
                 if 'Citizen AA' in home or 'Lucky Mile' in away:
                     continue
                 
+                # Market toplam hacim kontrolü
+                total_volume = parse_volume(match.get('volume', match.get('Volume', '0')))
+                if total_volume < min_volume:
+                    continue
+                
                 # Parse match kickoff time
                 match_kickoff = parse_match_datetime(match_date_str)
                 if not match_kickoff:
@@ -1944,6 +1958,10 @@ def calculate_volume_shock_scores(config):
                         # Hacim şoku hesapla
                         if prev_amount > 0 and current_amount > prev_amount:
                             amount_change = current_amount - prev_amount
+                            
+                            # Gelen para minimum kontrolü
+                            if amount_change < min_son_snapshot_para:
+                                continue
                             
                             # Son 5 snapshot'ın ortalamasını al
                             prev_amounts = []
