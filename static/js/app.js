@@ -3335,7 +3335,7 @@ function renderAlertBand() {
     
     const top = alertBandData.slice(0, 30);
     
-    track.innerHTML = top.map((alarm, idx) => {
+    const pillsHtml = top.map((alarm, idx) => {
         const info = getAlertType(alarm);
         const home = alarm.home || alarm.home_team || '?';
         const away = alarm.away || alarm.away_team || '?';
@@ -3350,6 +3350,14 @@ function renderAlertBand() {
             </div>
         `;
     }).join('');
+    
+    // Duplicate for seamless scrolling
+    track.innerHTML = `
+        <div class="alert-band-track-inner">
+            ${pillsHtml}
+            ${pillsHtml}
+        </div>
+    `;
 }
 
 function updateAlertBandBadge() {
