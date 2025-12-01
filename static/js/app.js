@@ -4030,11 +4030,11 @@ function goToMatchFromAlarm(homeTeam, awayTeam) {
 }
 
 // ============================================
-// MATCH ALARMS - Alarms in Match Detail Modal
+// SMART MONEY EVENTS - Match Detail Modal
 // ============================================
 
 let cachedAllAlarms = null;
-let matchAlarmsListOpen = false;
+let smartMoneySectionOpen = true;
 
 async function loadAllAlarmsOnce() {
     if (cachedAllAlarms) return cachedAllAlarms;
@@ -4069,7 +4069,7 @@ async function loadAllAlarmsOnce() {
         cachedAllAlarms = allAlarms;
         return allAlarms;
     } catch (e) {
-        console.error('[MatchAlarms] Load error:', e);
+        console.error('[SmartMoney] Load error:', e);
         return [];
     }
 }
@@ -4089,117 +4089,150 @@ function getMatchAlarms(homeTeam, awayTeam) {
     });
 }
 
+function formatSmartMoneyTime(dateStr) {
+    if (!dateStr) return '-';
+    const dt = parseAlarmDateTR(dateStr);
+    if (!dt || !dt.isValid()) return '-';
+    return dt.format('DD MMM • HH:mm');
+}
+
 async function renderMatchAlarmsSection(homeTeam, awayTeam) {
-    const section = document.getElementById('matchAlarmsSection');
-    const badgesContainer = document.getElementById('matchAlarmsBadges');
-    const toggle = document.getElementById('matchAlarmsToggle');
-    const list = document.getElementById('matchAlarmsList');
+    const section = document.getElementById('smartMoneySection');
+    const grid = document.getElementById('smartMoneyGrid');
+    const empty = document.getElementById('smartMoneyEmpty');
+    const chevron = document.getElementById('smartMoneyChevron');
     
     if (!section) return;
     
     await loadAllAlarmsOnce();
     const matchAlarms = getMatchAlarms(homeTeam, awayTeam);
     
-    matchAlarmsListOpen = false;
-    list.style.display = 'none';
-    toggle.querySelector('.toggle-icon').textContent = '▶';
-    toggle.querySelector('.toggle-text').textContent = 'Alarmlari Goster';
+    smartMoneySectionOpen = true;
+    chevron.textContent = '▼';
+    grid.style.display = 'grid';
     
     if (matchAlarms.length === 0) {
-        section.classList.add('no-alarms');
-        badgesContainer.innerHTML = '<span class="no-alarms-text">Bu mac icin kayitli alarm yok.</span>';
-        toggle.style.display = 'none';
-        list.innerHTML = '';
+        grid.style.display = 'none';
+        empty.style.display = 'block';
         return;
     }
     
-    section.classList.remove('no-alarms');
-    toggle.style.display = 'flex';
+    empty.style.display = 'none';
     
-    const counts = { sharp: 0, insider: 0, bigmoney: 0 };
+    const grouped = { sharp: [], insider: [], bigmoney: [] };
     matchAlarms.forEach(a => {
-        if (a._type) counts[a._type]++;
+        if (a._type && grouped[a._type]) {
+            grouped[a._type].push(a);
+        }
     });
     
-    const badgeColors = {
-        sharp: { bg: 'rgba(34, 197, 94, 0.15)', border: '#22c55e', text: '#22c55e', icon: '⚡' },
-        insider: { bg: 'rgba(168, 85, 247, 0.15)', border: '#a855f7', text: '#a855f7', icon: '🕵' },
-        bigmoney: { bg: 'rgba(249, 115, 22, 0.15)', border: '#f97316', text: '#f97316', icon: '💰' }
+    Object.keys(grouped).forEach(type => {
+        grouped[type].sort((a, b) => {
+            const getTime = (alarm) => {
+                const dt = parseAlarmDateTR(alarm.created_at || alarm.triggered_at);
+                return dt && dt.isValid() ? dt.valueOf() : 0;
+            };
+            return getTime(b) - getTime(a);
+        });
+    });
+    
+    const cardConfigs = {
+        sharp: {
+            title: 'Sharp Move',
+            color: '#22C55E',
+            bgColor: '#16A34A',
+            icon: '●',
+            description: 'Profesyonel yatirimci girisi.'
+        },
+        bigmoney: {
+            title: 'Public Money Surge',
+            color: '#FACC15',
+            bgColor: '#EAB308',
+            icon: '●',
+            description: 'Halk yuklenmesi. Para artiyor, oran sabit.'
+        },
+        insider: {
+            title: 'Momentum Spike',
+            color: '#A855F7',
+            bgColor: '#9333EA',
+            icon: '●',
+            description: 'Trend olusumu. Surekli ayni yone para akisi.'
+        }
     };
     
-    let badgesHtml = '';
-    if (counts.sharp > 0) {
-        const c = badgeColors.sharp;
-        badgesHtml += `<span class="match-alarm-badge sharp" style="background:${c.bg};border-color:${c.border};color:${c.text}">${c.icon} Sharp ×${counts.sharp}</span>`;
-    }
-    if (counts.insider > 0) {
-        const c = badgeColors.insider;
-        badgesHtml += `<span class="match-alarm-badge insider" style="background:${c.bg};border-color:${c.border};color:${c.text}">${c.icon} Insider ×${counts.insider}</span>`;
-    }
-    if (counts.bigmoney > 0) {
-        const c = badgeColors.bigmoney;
-        badgesHtml += `<span class="match-alarm-badge bigmoney" style="background:${c.bg};border-color:${c.border};color:${c.text}">${c.icon} Big Money ×${counts.bigmoney}</span>`;
-    }
+    let cardsHtml = '';
     
-    badgesContainer.innerHTML = badgesHtml;
-    
-    const sorted = matchAlarms.sort((a, b) => {
-        const getTime = (alarm) => {
-            const dt = parseAlarmDateTR(alarm.created_at || alarm.triggered_at);
-            return dt && dt.isValid() ? dt.valueOf() : 0;
-        };
-        return getTime(b) - getTime(a);
-    });
-    
-    const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY' };
-    const typeColors = { sharp: '#22c55e', insider: '#a855f7', bigmoney: '#f97316' };
-    
-    list.innerHTML = sorted.map(a => {
-        const type = a._type || 'sharp';
-        const market = a.market || '1X2';
-        const selection = a.selection || a.side || '-';
-        const timeAgo = formatTimeAgoTR(a.created_at || a.triggered_at);
+    Object.keys(cardConfigs).forEach(type => {
+        const alarms = grouped[type];
+        if (alarms.length === 0) return;
         
-        let mainValue = '';
+        const config = cardConfigs[type];
+        const latest = alarms[0];
+        const count = alarms.length;
+        
+        const markets = [...new Set(alarms.map(a => a.selection || a.side || a.market || '-'))];
+        const marketText = markets.slice(0, 3).join(', ');
+        
+        const lastTime = formatSmartMoneyTime(latest.created_at || latest.triggered_at);
+        
+        let mainText = '';
         if (type === 'sharp') {
-            const score = a.sharp_score || 0;
-            const dropPct = a.oran_dusus_pct || a.odds_drop_pct || 0;
-            mainValue = `Skor ${score.toFixed(1)} • %${dropPct >= 0 ? '-' : '+'}${Math.abs(dropPct).toFixed(1)}`;
-        } else if (type === 'insider') {
-            const insiderScore = a.insider_score || 0;
-            const dropPct = a.oran_dusus_pct || a.odds_drop_pct || 0;
-            mainValue = `Skor ${insiderScore.toFixed(1)} • %${dropPct >= 0 ? '-' : '+'}${Math.abs(dropPct).toFixed(1)}`;
+            const money = latest.volume || latest.stake || 0;
+            const score = latest.sharp_score || 0;
+            const dropPct = latest.oran_dusus_pct || latest.odds_drop_pct || 0;
+            mainText = `<span class="money-value">+£${Number(money).toLocaleString('en-GB')}</span> — Score: ${score.toFixed(0)}, %${dropPct >= 0 ? '-' : '+'}${Math.abs(dropPct).toFixed(1)}`;
         } else if (type === 'bigmoney') {
-            const money = a.incoming_money || a.stake || 0;
-            const isHuge = money >= 50000;
-            mainValue = `£${Number(money).toLocaleString('en-GB')}${isHuge ? ' 🔥' : ''}`;
+            const money = latest.incoming_money || latest.stake || 0;
+            mainText = `<span class="money-value">+£${Number(money).toLocaleString('en-GB')}</span> ek para girisi`;
+        } else if (type === 'insider') {
+            const money = latest.stake || latest.volume || 0;
+            const score = latest.insider_score || 0;
+            mainText = `<span class="money-value">+£${Number(money).toLocaleString('en-GB')}</span> surekli akis (Skor: ${score.toFixed(1)})`;
         }
         
-        return `
-            <div class="match-alarm-row ${type}">
-                <span class="match-alarm-type-badge ${type}" style="background:${typeColors[type]}20;color:${typeColors[type]};border:1px solid ${typeColors[type]}40">${typeLabels[type]}</span>
-                <span class="match-alarm-market">${market} · ${selection}</span>
-                <span class="match-alarm-value">${mainValue}</span>
-                <span class="match-alarm-time">${timeAgo}</span>
+        cardsHtml += `
+            <div class="smart-money-card ${type}" style="border-color: ${config.color};">
+                <div class="smc-top-row">
+                    <div class="smc-left">
+                        <span class="smc-dot" style="color: ${config.color};">${config.icon}</span>
+                        <span class="smc-title">${config.title}</span>
+                        <span class="smc-count" style="background: ${config.color};">×${count}</span>
+                    </div>
+                    <div class="smc-right">
+                        <span class="smc-market">${marketText}</span>
+                        <span class="smc-time">${lastTime}</span>
+                    </div>
+                </div>
+                <div class="smc-main-row">${mainText}</div>
+                <div class="smc-desc-row">${config.description}</div>
             </div>
         `;
-    }).join('');
+    });
+    
+    grid.innerHTML = cardsHtml;
 }
 
-function toggleMatchAlarmsList() {
-    const toggle = document.getElementById('matchAlarmsToggle');
-    const list = document.getElementById('matchAlarmsList');
+function toggleSmartMoneySection() {
+    const grid = document.getElementById('smartMoneyGrid');
+    const empty = document.getElementById('smartMoneyEmpty');
+    const chevron = document.getElementById('smartMoneyChevron');
     
-    matchAlarmsListOpen = !matchAlarmsListOpen;
+    smartMoneySectionOpen = !smartMoneySectionOpen;
     
-    if (matchAlarmsListOpen) {
-        list.style.display = 'block';
-        toggle.querySelector('.toggle-icon').textContent = '▼';
-        toggle.querySelector('.toggle-text').textContent = 'Alarmlari Gizle';
+    if (smartMoneySectionOpen) {
+        chevron.textContent = '▼';
+        const hasAlarms = grid.innerHTML.trim() !== '';
+        if (hasAlarms) {
+            grid.style.display = 'grid';
+            empty.style.display = 'none';
+        } else {
+            grid.style.display = 'none';
+            empty.style.display = 'block';
+        }
     } else {
-        list.style.display = 'none';
-        toggle.querySelector('.toggle-icon').textContent = '▶';
-        toggle.querySelector('.toggle-text').textContent = 'Alarmlari Goster';
+        chevron.textContent = '▲';
+        grid.style.display = 'none';
+        empty.style.display = 'none';
     }
 }
 

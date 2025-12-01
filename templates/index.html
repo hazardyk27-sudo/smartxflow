@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=311">
+    <link rel="stylesheet" href="/static/css/style.css?v=312">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=29">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
@@ -241,16 +241,20 @@
             <div class="modal-body">
                 <div class="match-info-card" id="matchInfoCard"></div>
                 
-                <div class="match-alarms-section" id="matchAlarmsSection">
-                    <div class="match-alarms-header">
-                        <span class="match-alarms-title">Mac Alarmlari</span>
-                        <div class="match-alarms-badges" id="matchAlarmsBadges"></div>
+                <div class="smart-money-section" id="smartMoneySection">
+                    <div class="smart-money-header" onclick="toggleSmartMoneySection()">
+                        <div class="smart-money-header-left">
+                            <span class="smart-money-icon">⚡</span>
+                            <span class="smart-money-title">Smart Money Events</span>
+                        </div>
+                        <div class="smart-money-header-right">
+                            <span class="smart-money-chevron" id="smartMoneyChevron">▼</span>
+                        </div>
                     </div>
-                    <div class="match-alarms-toggle" id="matchAlarmsToggle" onclick="toggleMatchAlarmsList()">
-                        <span class="toggle-icon">▶</span>
-                        <span class="toggle-text">Alarmlari Goster</span>
+                    <div class="smart-money-grid" id="smartMoneyGrid"></div>
+                    <div class="smart-money-empty" id="smartMoneyEmpty" style="display:none;">
+                        Bu mac icin smart money eventi yok.
                     </div>
-                    <div class="match-alarms-list" id="matchAlarmsList"></div>
                 </div>
                 
                 <div class="chart-tabs" id="modalChartTabs">
@@ -271,6 +275,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=310"></script>
+    <script src="/static/js/app.js?v=311"></script>
 </body>
 </html>
