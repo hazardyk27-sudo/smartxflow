@@ -137,7 +137,7 @@
 
 /* Alert Type Label */
 .alert-band-type {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.02em;
@@ -161,14 +161,14 @@
 
 /* Match Name */
 .alert-band-match {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
-    color: #c9d1d9;
+    color: #ffffff;
 }
 
 /* Value/Score */
 .alert-band-value {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     color: #4ade80;
 }
