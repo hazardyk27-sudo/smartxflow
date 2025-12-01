@@ -30,8 +30,11 @@
 
 /* Minimal Chip Style Pills */
 .alert-band-pill {
-    display: flex;
+    display: grid;
+    grid-auto-flow: column;
     align-items: center;
+    justify-items: center;
+    place-items: center;
     gap: 6px;
     padding: 4px 10px;
     background: #111827;
@@ -41,6 +44,20 @@
     white-space: nowrap;
     flex-shrink: 0;
     transition: all 0.2s ease;
+    height: 28px;
+}
+
+/* Normalize all children of pills */
+.alert-band-pill > * {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
 }
 
 .alert-band-pill:hover {
@@ -51,6 +68,7 @@
 /* Small Dot Indicator */
 .alert-band-dot {
     width: 6px;
+    min-width: 6px;
     height: 6px;
     border-radius: 50%;
     flex-shrink: 0;
@@ -93,7 +111,6 @@
     font-size: 13px;
     font-weight: 600;
     color: #22c55e;
-    margin-left: 4px;
 }
 
 .alert-band-value.negative {
