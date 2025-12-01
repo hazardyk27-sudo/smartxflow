@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=303">
-    <link rel="stylesheet" href="/static/css/alert_band.css?v=9">
+    <link rel="stylesheet" href="/static/css/style.css?v=302">
+    <link rel="stylesheet" href="/static/css/alert_band.css?v=8">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -35,35 +35,15 @@
             </div>
         </div>
         <div class="header-right">
-            <div class="header-control">
-                <select class="header-select" id="refreshInterval">
-                    <option value="5">5 dk</option>
-                    <option value="10" selected>10 dk</option>
-                    <option value="15">15 dk</option>
-                    <option value="30">30 dk</option>
-                </select>
-            </div>
-            <label class="header-toggle">
-                <input type="checkbox" id="autoRefresh" checked>
-                <span class="toggle-icon">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                </span>
-                <span>Auto</span>
-            </label>
             <div class="status-indicator" id="statusIndicator">
                 <span class="status-dot"></span>
                 <span class="status-text">Ready</span>
             </div>
-            <button class="btn-scrape" id="scrapeNowBtn" onclick="manualScrape()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 12a9 9 0 11-9-9"/>
-                    <polyline points="21 3 21 9 15 9"/>
-                </svg>
-                Scrape Now
-            </button>
+            <div class="last-update-info" id="lastUpdateInfo">
+                <span class="last-update-label">Son Guncelleme:</span>
+                <span class="last-update-time" id="lastUpdateTime">--:--</span>
+                <span class="last-update-tz">(TR)</span>
+            </div>
         </div>
     </header>
 
