@@ -3640,47 +3640,72 @@ function renderAlarmsList(filterType) {
     
     const displayAlarms = alarms.slice(0, alarmsDisplayCount);
     const hasMore = alarms.length > alarmsDisplayCount;
-    const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY' };
+    const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY', hugemoney: 'HUGE MONEY' };
     
     let html = displayAlarms.map((alarm, idx) => {
         const type = alarm._type;
         const home = alarm.home || alarm.home_team || '-';
         const away = alarm.away || alarm.away_team || '-';
-        const market = alarm.market || '';
+        const league = alarm.league || '';
+        const kickoff = alarm.kickoff || alarm.match_time || '';
         const selection = alarm.selection || alarm.side || '';
+        const market = alarm.market || '';
         
-        let scoreText = '';
+        // Determine badge type (hugemoney for stake >= 50000)
+        let badgeType = type;
+        if (type === 'bigmoney' && (alarm.stake || 0) >= 50000) {
+            badgeType = 'hugemoney';
+        }
+        
+        // Build summary values based on alarm type
+        let summaryHtml = '';
         if (type === 'sharp') {
-            scoreText = `${(alarm.sharp_score || 0).toFixed(1)}`;
+            const score = (alarm.sharp_score || 0).toFixed(1);
+            const volShock = alarm.volume_shock ? `${alarm.volume_shock.toFixed(1)}x` : '-';
+            const oddsDrop = alarm.odds_move ? `${alarm.odds_move > 0 ? '+' : ''}${alarm.odds_move.toFixed(2)}` : '';
+            summaryHtml = `
+                <span class="alarm-summary-value positive">Skor: ${score}</span>
+                <span class="alarm-summary-label">Hacim Sok: ${volShock}</span>
+            `;
         } else if (type === 'insider') {
-            scoreText = `${(alarm.insider_score || 0).toFixed(1)}`;
+            const oddsDrop = alarm.odds_drop_pct ? `${alarm.odds_drop_pct.toFixed(1)}%` : '-';
+            summaryHtml = `
+                <span class="alarm-summary-value negative">-${oddsDrop}</span>
+                <span class="alarm-summary-label">Oran dususu</span>
+            `;
         } else {
-            scoreText = formatVolume(alarm.stake || alarm.volume || 0);
+            const stake = alarm.stake || alarm.volume || 0;
+            const stakeText = '£' + Number(stake).toLocaleString();
+            const valueClass = stake >= 50000 ? 'positive' : '';
+            summaryHtml = `
+                <span class="alarm-summary-value ${valueClass}">${stakeText}</span>
+                <span class="alarm-summary-label">${selection}</span>
+            `;
         }
         
         const timeAgo = formatTimeAgo(alarm.created_at);
+        const metaText = league ? `${league} • ${kickoff}` : kickoff;
         
         return `
-            <div class="sidebar-alarm-card ${type}" onclick="showAlarmDetailFromList(${idx})">
-                <div class="alert-left">
-                    <span class="alert-status-dot ${type}"></span>
-                    <span class="alert-status-text">${typeLabels[type]}</span>
+            <div class="alarm-card-row" onclick="showAlarmDetailFromList(${idx})">
+                <span class="alarm-badge ${badgeType}">${typeLabels[badgeType] || typeLabels[type]}</span>
+                <div class="alarm-match-info">
+                    <span class="alarm-match-name">${home} – ${away}</span>
+                    <span class="alarm-match-meta">${metaText}</span>
                 </div>
-                <div class="alert-main">
-                    <span class="alert-match">${home} vs ${away}</span>
-                    <span class="alert-market">[${selection}]</span>
+                <div class="alarm-summary">
+                    ${summaryHtml}
                 </div>
-                <div class="alert-score">${scoreText}</div>
-                <div class="alert-time">${timeAgo}</div>
+                <span class="alarm-time">${timeAgo}</span>
             </div>
         `;
     }).join('');
     
     if (hasMore) {
         html += `
-            <div class="load-more-container" style="padding: 8px;">
+            <div class="load-more-container" style="padding: 8px; text-align: center;">
                 <button class="load-more-btn" style="width: 100%;" onclick="loadMoreAlarms()">
-                    Daha Fazla (${alarms.length - alarmsDisplayCount})
+                    Daha Fazla Goster (${alarms.length - alarmsDisplayCount})
                 </button>
             </div>
         `;
@@ -3722,110 +3747,176 @@ function showAlarmDetailFromList(index) {
     if (!alarm) return;
     
     const type = alarm._type;
-    const typeNames = { sharp: 'Sharp', insider: 'Insider', bigmoney: 'Big Money' };
-    const typeColors = { sharp: '#ef4444', insider: '#60a5fa', bigmoney: '#fbbf24' };
+    const home = alarm.home || alarm.home_team || '-';
+    const away = alarm.away || alarm.away_team || '-';
+    const league = alarm.league || '';
+    const kickoff = alarm.kickoff || alarm.match_time || '';
+    const market = alarm.market || '-';
+    const selection = alarm.selection || alarm.side || '-';
+    const createdAt = alarm.created_at || '';
+    
+    // Determine badge type
+    let badgeType = type;
+    let badgeLabel = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY', hugemoney: 'HUGE MONEY' };
+    if (type === 'bigmoney' && (alarm.stake || 0) >= 50000) {
+        badgeType = 'hugemoney';
+    }
+    
+    // Calculate odds change
+    const openOdds = alarm.opening_odds || alarm.first_odds || '-';
+    const currentOdds = alarm.current_odds || alarm.latest_odds || '-';
+    const oddsChange = alarm.odds_move || alarm.odds_drop_pct || 0;
+    const oddsChangeClass = oddsChange < 0 ? 'negative' : (oddsChange > 0 ? 'positive' : '');
+    const oddsChangeText = oddsChange ? `${oddsChange > 0 ? '+' : ''}${oddsChange.toFixed(2)}%` : '';
+    
+    // Build type-specific blocks
+    let typeSpecificHtml = '';
     
     if (type === 'sharp') {
-        const home = alarm.home || '-';
-        const away = alarm.away || '-';
         const score = (alarm.sharp_score || 0).toFixed(1);
+        const volShock = alarm.volume_shock ? alarm.volume_shock.toFixed(1) + 'x' : '-';
+        const volume = alarm.volume ? '£' + Number(alarm.volume).toLocaleString() : '-';
+        const stakeShare = alarm.stake_share ? alarm.stake_share.toFixed(1) + '%' : '-';
         
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.id = 'alarmDetailModal';
-        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-        
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width: 500px;">
-                <div class="modal-header">
-                    <h2 style="display: flex; align-items: center; gap: 10px;">
-                        <span style="background: ${typeColors.sharp}; width: 14px; height: 14px; border-radius: 50%; display: inline-block;"></span>
-                        Sharp Alarm
-                    </h2>
-                    <button class="close-btn" onclick="document.getElementById('alarmDetailModal').remove()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="modal-body" style="padding: 20px;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <div style="font-size: 48px; font-weight: 700; color: #ef4444;">${score}</div>
-                        <div style="color: #8b949e; font-size: 14px;">Sharp Score</div>
+        typeSpecificHtml = `
+            <div class="alarm-info-block">
+                <div class="alarm-info-block-title">Sharp Bilgileri</div>
+                <div class="alarm-info-grid">
+                    <div class="alarm-info-item">
+                        <span class="alarm-info-label">Sharp Skor</span>
+                        <span class="alarm-info-value accent">${score}</span>
                     </div>
-                    <div style="background: #21262d; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-                        <div style="color: #8b949e; font-size: 12px; margin-bottom: 8px;">MAC VE SECIM</div>
-                        <div style="font-size: 18px; font-weight: 600; color: #e6edf3;">${home} vs ${away}</div>
-                        <div style="color: #8b949e; margin-top: 4px;">${alarm.market || '-'} | Secim: <span style="color: #58a6ff; font-weight: 600;">${alarm.selection || '-'}</span></div>
+                    <div class="alarm-info-item">
+                        <span class="alarm-info-label">Hacim Sok</span>
+                        <span class="alarm-info-value">${volShock}</span>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                        <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="color: #4ade80; font-size: 20px; font-weight: 700;">${alarm.volume ? '£' + Number(alarm.volume).toLocaleString() : '-'}</div>
-                            <div style="color: #8b949e; font-size: 11px;">Volume</div>
-                        </div>
-                        <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="color: #f0883e; font-size: 20px; font-weight: 700;">${alarm.stake_share ? alarm.stake_share.toFixed(1) + '%' : '-'}</div>
-                            <div style="color: #8b949e; font-size: 11px;">Stake Share</div>
-                        </div>
-                        <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="color: #58a6ff; font-size: 20px; font-weight: 700;">${alarm.odds_move ? (alarm.odds_move > 0 ? '+' : '') + alarm.odds_move.toFixed(2) : '-'}</div>
-                            <div style="color: #8b949e; font-size: 11px;">Odds Move</div>
-                        </div>
-                        <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="color: #a371f7; font-size: 20px; font-weight: 700;">${alarm.volume_shock ? alarm.volume_shock.toFixed(1) + 'x' : '-'}</div>
-                            <div style="color: #8b949e; font-size: 11px;">Volume Shock</div>
-                        </div>
+                    <div class="alarm-info-item">
+                        <span class="alarm-info-label">Volume</span>
+                        <span class="alarm-info-value positive">${volume}</span>
+                    </div>
+                    <div class="alarm-info-item">
+                        <span class="alarm-info-label">Stake Payi</span>
+                        <span class="alarm-info-value">${stakeShare}</span>
                     </div>
                 </div>
             </div>
         `;
-        document.body.appendChild(modal);
+    } else if (type === 'insider') {
+        const oddsDrop = alarm.odds_drop_pct ? alarm.odds_drop_pct.toFixed(2) + '%' : '-';
+        const volShock = alarm.volume_shock ? alarm.volume_shock.toFixed(1) + 'x' : '-';
+        const stake = alarm.stake ? '£' + Number(alarm.stake).toLocaleString() : '-';
+        
+        typeSpecificHtml = `
+            <div class="alarm-info-block">
+                <div class="alarm-info-block-title">Insider Info Kriterleri</div>
+                <div class="alarm-info-grid">
+                    <div class="alarm-info-item">
+                        <span class="alarm-info-label">Oran Dususu</span>
+                        <span class="alarm-info-value negative">-${oddsDrop}</span>
+                    </div>
+                    <div class="alarm-info-item">
+                        <span class="alarm-info-label">Hacim Sok</span>
+                        <span class="alarm-info-value">${volShock}</span>
+                    </div>
+                    <div class="alarm-info-item full">
+                        <span class="alarm-info-label">Stake</span>
+                        <span class="alarm-info-value">${stake}</span>
+                    </div>
+                </div>
+            </div>
+        `;
     } else {
+        const stake = alarm.stake || alarm.volume || 0;
+        const stakeText = '£' + Number(stake).toLocaleString();
+        const stakeShare = alarm.stake_share ? alarm.stake_share.toFixed(1) + '%' : '-';
         
-        const home = alarm.home || alarm.home_team || '-';
-        const away = alarm.away || alarm.away_team || '-';
-        const score = type === 'insider' ? (alarm.insider_score || 0).toFixed(1) : formatVolume(alarm.stake || alarm.volume || 0);
-        
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.id = 'alarmDetailModal';
-        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-        
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width: 500px;">
-                <div class="modal-header">
-                    <h2 style="display: flex; align-items: center; gap: 10px;">
-                        <span style="background: ${typeColors[type]}; width: 14px; height: 14px; border-radius: 50%; display: inline-block;"></span>
-                        ${typeNames[type]} Alarm
-                    </h2>
-                    <button class="close-btn" onclick="document.getElementById('alarmDetailModal').remove()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="modal-body" style="padding: 20px;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <div style="font-size: 36px; font-weight: 700; color: ${typeColors[type]};">${score}</div>
-                        <div style="color: #8b949e; font-size: 14px;">${type === 'insider' ? 'Insider Score' : 'Stake'}</div>
+        typeSpecificHtml = `
+            <div class="alarm-info-block">
+                <div class="alarm-info-block-title">Buyuk Para Girisi</div>
+                <div class="alarm-info-grid">
+                    <div class="alarm-info-item">
+                        <span class="alarm-info-label">Para Miktari</span>
+                        <span class="alarm-info-value positive">${stakeText}</span>
                     </div>
-                    <div style="background: #0d1117; border-radius: 8px; padding: 16px;">
-                        <div style="font-size: 18px; font-weight: 600; color: #fff; text-align: center; margin-bottom: 12px;">
-                            ${home} vs ${away}
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
-                            <div><span style="color: #8b949e;">Market:</span> <span style="color: #fff;">${alarm.market || '-'}</span></div>
-                            <div><span style="color: #8b949e;">Selection:</span> <span style="color: #fff;">${alarm.selection || alarm.side || '-'}</span></div>
-                            ${alarm.stake ? `<div><span style="color: #8b949e;">Stake:</span> <span style="color: #22c55e;">${formatVolume(alarm.stake)}</span></div>` : ''}
-                            ${alarm.odds_drop_pct ? `<div><span style="color: #8b949e;">Odds Drop:</span> <span style="color: #f87171;">${alarm.odds_drop_pct.toFixed(2)}%</span></div>` : ''}
-                            ${alarm.created_at ? `<div style="grid-column: span 2;"><span style="color: #8b949e;">Tarih:</span> <span style="color: #fff;">${alarm.created_at}</span></div>` : ''}
-                        </div>
+                    <div class="alarm-info-item">
+                        <span class="alarm-info-label">Market Payi</span>
+                        <span class="alarm-info-value">${stakeShare}</span>
                     </div>
                 </div>
             </div>
         `;
-        document.body.appendChild(modal);
     }
+    
+    // Build meta text
+    const metaParts = [];
+    if (league) metaParts.push(league);
+    if (kickoff) metaParts.push(kickoff);
+    if (createdAt) metaParts.push(`Alarm: ${createdAt.split(' ')[1] || createdAt}`);
+    const metaText = metaParts.join(' • ');
+    
+    const modal = document.createElement('div');
+    modal.className = 'alarm-detail-modal';
+    modal.id = 'alarmDetailModal';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    
+    modal.innerHTML = `
+        <div class="alarm-detail-content" onclick="event.stopPropagation()">
+            <div class="alarm-detail-header">
+                <div class="alarm-detail-title">
+                    <div class="alarm-detail-title-row">
+                        <span class="alarm-badge ${badgeType}">${badgeLabel[badgeType]}</span>
+                        <span class="alarm-detail-match">${home} – ${away}</span>
+                    </div>
+                    <span class="alarm-detail-meta">${metaText}</span>
+                </div>
+                <button class="alarm-detail-close" onclick="document.getElementById('alarmDetailModal').remove()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="alarm-detail-body">
+                <div class="alarm-info-block">
+                    <div class="alarm-info-block-title">Ortak Bilgi</div>
+                    <div class="alarm-info-grid">
+                        <div class="alarm-info-item">
+                            <span class="alarm-info-label">Market</span>
+                            <span class="alarm-info-value">${market}</span>
+                        </div>
+                        <div class="alarm-info-item">
+                            <span class="alarm-info-label">Secenek</span>
+                            <span class="alarm-info-value accent">${selection}</span>
+                        </div>
+                        <div class="alarm-info-item">
+                            <span class="alarm-info-label">Ilk Oran</span>
+                            <span class="alarm-info-value">${openOdds}</span>
+                        </div>
+                        <div class="alarm-info-item">
+                            <span class="alarm-info-label">Son Oran</span>
+                            <span class="alarm-info-value">${currentOdds}</span>
+                        </div>
+                        ${oddsChangeText ? `
+                        <div class="alarm-info-item full">
+                            <span class="alarm-info-label">Oran Degisimi</span>
+                            <div class="alarm-odds-change">
+                                <span>${openOdds}</span>
+                                <span class="arrow">→</span>
+                                <span>${currentOdds}</span>
+                                <span class="change ${oddsChangeClass}">${oddsChangeText}</span>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                ${typeSpecificHtml}
+            </div>
+            <div class="alarm-detail-footer">
+                <p class="alarm-detail-note">Bu alarm karar vermez, sadece uyarir.</p>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
 }
 
 // Update badge on page load

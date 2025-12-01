@@ -4001,121 +4001,326 @@ td.volume,
     font-size: 14px;
 }
 
-/* Sidebar Alarm Card */
-.sidebar-alarm-card {
+/* =====================================================
+   ALARM CARD - New Design (Card-Row Style)
+   ===================================================== */
+
+.alarm-card-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    background: #161b22;
-    border: 1px solid #21262d;
-    border-radius: 6px;
-    margin-bottom: 8px;
+    gap: 12px;
+    padding: 10px 12px;
+    background: #020617;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    margin-bottom: 6px;
     cursor: pointer;
     transition: all 0.15s ease;
-    border-left: 3px solid transparent;
-    min-height: 24px;
 }
 
-.sidebar-alarm-card:hover {
-    background: #1c2128;
-    border-color: #30363d;
+.alarm-card-row:hover {
+    background: #050814;
+    border-color: #1F2937;
 }
 
-.sidebar-alarm-card.sharp {
-    border-left-color: #4ade80;
-}
-
-.sidebar-alarm-card.insider {
-    border-left-color: #60a5fa;
-}
-
-.sidebar-alarm-card.bigmoney {
-    border-left-color: #fbbf24;
-}
-
-/* Alert Left Section - Status Dot + Type */
-.alert-left {
-    display: flex;
+/* Alarm Type Badge */
+.alarm-badge {
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-}
-
-.alert-status-dot {
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.alert-status-dot.sharp {
-    background: #4ade80;
-}
-
-.alert-status-dot.insider {
-    background: #60a5fa;
-}
-
-.alert-status-dot.bigmoney {
-    background: #fbbf24;
-}
-
-.alert-status-text {
+    padding: 3px 10px;
+    border-radius: 9999px;
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
-    color: #8b949e;
-    letter-spacing: 0.5px;
-    line-height: 1.4;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
-/* Alert Main Section - Match + Market */
-.alert-main {
-    display: flex;
-    align-items: center;
-    gap: 4px;
+.alarm-badge.sharp {
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+}
+
+.alarm-badge.insider {
+    background: rgba(239, 68, 68, 0.15);
+    color: #F87171;
+}
+
+.alarm-badge.bigmoney {
+    background: rgba(234, 179, 8, 0.15);
+    color: #EAB308;
+}
+
+.alarm-badge.hugemoney {
+    background: rgba(249, 115, 22, 0.15);
+    color: #F97316;
+}
+
+/* Match Info Block */
+.alarm-match-info {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
-.alert-match {
+.alarm-match-name {
     font-size: 13px;
     font-weight: 600;
-    color: #e6edf3;
+    color: #E5E7EB;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.4;
 }
 
-.alert-market {
-    font-size: 12px;
-    color: #6e7681;
-    white-space: nowrap;
-    flex-shrink: 0;
-    line-height: 1.4;
-}
-
-/* Alert Score */
-.alert-score {
-    min-width: 40px;
-    text-align: right;
-    font-size: 13px;
-    font-weight: 700;
-    color: #22c55e;
-    flex-shrink: 0;
-    line-height: 1.4;
-}
-
-/* Alert Time */
-.alert-time {
+.alarm-match-meta {
     font-size: 11px;
-    color: #6e7681;
+    color: #9CA3AF;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Summary Values Block */
+.alarm-summary {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    flex-shrink: 0;
+    text-align: right;
+}
+
+.alarm-summary-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #E5E7EB;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.alarm-summary-value.positive {
+    color: #4ADE80;
+}
+
+.alarm-summary-value.negative {
+    color: #F87171;
+}
+
+.alarm-summary-label {
+    font-size: 10px;
+    color: #9CA3AF;
+}
+
+/* Time Badge */
+.alarm-time {
+    font-size: 10px;
+    color: #6B7280;
     white-space: nowrap;
     flex-shrink: 0;
-    line-height: 1.4;
+}
+
+/* =====================================================
+   ALARM DETAIL MODAL
+   ===================================================== */
+
+.alarm-detail-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.alarm-detail-content {
+    background: #0B1017;
+    border: 1px solid #1F2937;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.alarm-detail-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #1F2937;
+    background: #050A12;
+}
+
+.alarm-detail-title {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.alarm-detail-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alarm-detail-match {
+    font-size: 16px;
+    font-weight: 600;
+    color: #E5E7EB;
+}
+
+.alarm-detail-meta {
+    font-size: 12px;
+    color: #9CA3AF;
+}
+
+.alarm-detail-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: #9CA3AF;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.alarm-detail-close:hover {
+    background: #1F2937;
+    color: #E5E7EB;
+}
+
+/* Detail Body */
+.alarm-detail-body {
+    padding: 16px 20px;
+}
+
+/* Info Block */
+.alarm-info-block {
+    background: #050A12;
+    border: 1px solid #1F2937;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+}
+
+.alarm-info-block-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #1F2937;
+}
+
+.alarm-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.alarm-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.alarm-info-label {
+    font-size: 10px;
+    color: #9CA3AF;
+    text-transform: uppercase;
+}
+
+.alarm-info-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #E5E7EB;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.alarm-info-value.positive {
+    color: #4ADE80;
+}
+
+.alarm-info-value.negative {
+    color: #F87171;
+}
+
+.alarm-info-value.accent {
+    color: #4C8BF5;
+}
+
+/* Full Width Item */
+.alarm-info-item.full {
+    grid-column: span 2;
+}
+
+/* Odds Change Display */
+.alarm-odds-change {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #E5E7EB;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.alarm-odds-change .arrow {
+    color: #9CA3AF;
+}
+
+.alarm-odds-change .change {
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.alarm-odds-change .change.negative {
+    background: rgba(239, 68, 68, 0.15);
+    color: #F87171;
+}
+
+.alarm-odds-change .change.positive {
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ADE80;
+}
+
+/* Detail Footer Note */
+.alarm-detail-footer {
+    padding: 12px 20px;
+    border-top: 1px solid #1F2937;
+    background: #050A12;
+}
+
+.alarm-detail-note {
+    font-size: 11px;
+    color: #6B7280;
+    text-align: center;
+    font-style: italic;
+}
+
+/* Loading State */
+.alarms-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: #9CA3AF;
+    font-size: 13px;
 }
 
 /* Responsive */
@@ -4125,4 +4330,8 @@ td.volume,
         right: -100%;
     }
     
+    .alarm-detail-content {
+        max-width: 100%;
+        margin: 10px;
+    }
 }
