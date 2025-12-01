@@ -3819,7 +3819,7 @@ function renderAlarmsList(filterType) {
         const awayEscaped = away.replace(/'/g, "\\'");
         
         const inlineDetail = `
-            <div class="alarm-inline-detail ${isOpen ? 'open' : ''}" id="detail_${alarmId}">
+            <div class="alarm-inline-detail ${isOpen ? 'open' : ''}" id="detail_${alarmId}" onclick="event.stopPropagation()">
                 <div class="inline-detail-divider"></div>
                 <div class="inline-detail-section">
                     <div class="inline-detail-title">Mac Bilgisi</div>
