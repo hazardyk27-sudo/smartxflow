@@ -3526,6 +3526,7 @@ document.addEventListener('DOMContentLoaded', () => {
 let currentAlarmFilter = 'all';
 let currentAlarmSort = 'newest';
 let allAlarmsData = [];
+let groupedAlarmsData = [];
 let alarmsDataByType = {
     sharp: [],
     insider: [],
@@ -3593,6 +3594,8 @@ async function loadAllAlarms() {
             return dateB - dateA;
         });
         
+        groupedAlarmsData = groupAlarmsByMatch(allAlarmsData);
+        
         updateAlarmCounts();
         alarmsDisplayCount = 30;
         renderAlarmsList(currentAlarmFilter);
@@ -3600,6 +3603,55 @@ async function loadAllAlarms() {
         console.error('Alarm yukleme hatasi:', error);
         body.innerHTML = '<div class="alarms-empty"><p>Alarmlar yuklenirken hata olustu.</p></div>';
     }
+}
+
+function groupAlarmsByMatch(alarms) {
+    const groups = {};
+    
+    alarms.forEach(alarm => {
+        const home = (alarm.home || alarm.home_team || '').toLowerCase().trim();
+        const away = (alarm.away || alarm.away_team || '').toLowerCase().trim();
+        const market = (alarm.market || '').toLowerCase().trim();
+        const selection = (alarm.selection || alarm.side || '').toLowerCase().trim();
+        const type = alarm._type;
+        
+        const groupKey = `${type}|${home}|${away}|${market}|${selection}`;
+        
+        if (!groups[groupKey]) {
+            groups[groupKey] = {
+                key: groupKey,
+                type: type,
+                home: alarm.home || alarm.home_team || '-',
+                away: alarm.away || alarm.away_team || '-',
+                market: alarm.market || '',
+                selection: alarm.selection || alarm.side || '',
+                league: alarm.league || '',
+                match_date: alarm.match_date || '',
+                latestAlarm: alarm,
+                history: [],
+                triggerCount: 0
+            };
+        }
+        
+        groups[groupKey].history.push(alarm);
+        groups[groupKey].triggerCount++;
+        
+        const currentLatest = parseAlarmDate(groups[groupKey].latestAlarm.created_at);
+        const thisDate = parseAlarmDate(alarm.created_at);
+        if (thisDate > currentLatest) {
+            groups[groupKey].latestAlarm = alarm;
+        }
+    });
+    
+    Object.values(groups).forEach(group => {
+        group.history.sort((a, b) => parseAlarmDate(b.created_at) - parseAlarmDate(a.created_at));
+    });
+    
+    return Object.values(groups).sort((a, b) => {
+        const dateA = parseAlarmDate(a.latestAlarm.created_at);
+        const dateB = parseAlarmDate(b.latestAlarm.created_at);
+        return dateB - dateA;
+    });
 }
 
 function updateAlarmCounts() {
@@ -3641,87 +3693,98 @@ function searchAlarms(query) {
 }
 
 function getFilteredAlarms() {
-    let alarms = currentAlarmFilter === 'all' 
-        ? [...allAlarmsData]
-        : allAlarmsData.filter(a => a._type === currentAlarmFilter);
+    let groups = currentAlarmFilter === 'all' 
+        ? [...groupedAlarmsData]
+        : groupedAlarmsData.filter(g => g.type === currentAlarmFilter);
     
     if (alarmSearchQuery) {
-        alarms = alarms.filter(a => {
-            const home = (a.home || a.home_team || '').toLowerCase();
-            const away = (a.away || a.away_team || '').toLowerCase();
-            const league = (a.league || '').toLowerCase();
+        groups = groups.filter(g => {
+            const home = g.home.toLowerCase();
+            const away = g.away.toLowerCase();
+            const league = (g.league || '').toLowerCase();
             return home.includes(alarmSearchQuery) || 
                    away.includes(alarmSearchQuery) || 
                    league.includes(alarmSearchQuery);
         });
     }
     
-    alarms.sort((a, b) => {
+    groups.sort((a, b) => {
         if (currentAlarmSort === 'newest') {
-            return parseAlarmDate(b.created_at) - parseAlarmDate(a.created_at);
+            return parseAlarmDate(b.latestAlarm.created_at) - parseAlarmDate(a.latestAlarm.created_at);
         } else if (currentAlarmSort === 'oldest') {
-            return parseAlarmDate(a.created_at) - parseAlarmDate(b.created_at);
+            return parseAlarmDate(a.latestAlarm.created_at) - parseAlarmDate(b.latestAlarm.created_at);
         } else if (currentAlarmSort === 'score_high') {
-            const scoreA = a.sharp_score || a.insider_score || a.stake || 0;
-            const scoreB = b.sharp_score || b.insider_score || b.stake || 0;
+            const scoreA = a.latestAlarm.sharp_score || a.latestAlarm.insider_score || a.latestAlarm.incoming_money || 0;
+            const scoreB = b.latestAlarm.sharp_score || b.latestAlarm.insider_score || b.latestAlarm.incoming_money || 0;
             return scoreB - scoreA;
         } else if (currentAlarmSort === 'score_low') {
-            const scoreA = a.sharp_score || a.insider_score || a.stake || 0;
-            const scoreB = b.sharp_score || b.insider_score || b.stake || 0;
+            const scoreA = a.latestAlarm.sharp_score || a.latestAlarm.insider_score || a.latestAlarm.incoming_money || 0;
+            const scoreB = b.latestAlarm.sharp_score || b.latestAlarm.insider_score || b.latestAlarm.incoming_money || 0;
             return scoreA - scoreB;
         }
         return 0;
     });
     
-    return alarms;
+    return groups;
 }
 
 function renderAlarmsList(filterType) {
     const body = document.getElementById('alarmsList');
-    const alarms = getFilteredAlarms();
+    const groups = getFilteredAlarms();
     
-    if (alarms.length === 0) {
+    if (groups.length === 0) {
         body.innerHTML = `<div class="alarms-empty">${alarmSearchQuery ? 'Arama sonucu bulunamadi' : 'Aktif alarm yok'}</div>`;
         return;
     }
     
-    const displayAlarms = alarms.slice(0, alarmsDisplayCount);
-    const hasMore = alarms.length > alarmsDisplayCount;
+    const displayGroups = groups.slice(0, alarmsDisplayCount);
+    const hasMore = groups.length > alarmsDisplayCount;
     const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY' };
     
-    let html = displayAlarms.map((alarm, idx) => {
-        const type = alarm._type;
-        const home = alarm.home || alarm.home_team || '-';
-        const away = alarm.away || alarm.away_team || '-';
-        const market = alarm.market || '';
-        const selection = alarm.selection || alarm.side || '';
+    let html = displayGroups.map((group, idx) => {
+        const type = group.type;
+        const alarm = group.latestAlarm;
+        const home = group.home;
+        const away = group.away;
+        const market = group.market;
+        const selection = group.selection;
         
-        let scoreText = '';
+        let moneyText = '';
+        let summaryText = '';
+        
         if (type === 'sharp') {
-            scoreText = `${(alarm.sharp_score || 0).toFixed(1)}`;
+            const score = (alarm.sharp_score || 0).toFixed(1);
+            moneyText = alarm.volume ? '£' + Number(alarm.volume).toLocaleString('en-GB') : '';
+            summaryText = `Skor: <span class="highlight">${score}</span> • Vol. Shock: ${alarm.volume_shock ? alarm.volume_shock.toFixed(1) + 'x' : '-'}`;
         } else if (type === 'insider') {
-            scoreText = `${(alarm.insider_score || 0).toFixed(1)}`;
+            const score = (alarm.insider_score || 0).toFixed(1);
+            moneyText = alarm.stake ? '£' + Number(alarm.stake).toLocaleString('en-GB') : '';
+            summaryText = `Skor: <span class="highlight">${score}</span> • Odds: ${alarm.odds_drop_pct ? alarm.odds_drop_pct.toFixed(1) + '%' : '-'}`;
         } else if (type === 'bigmoney') {
-            const money = alarm.incoming_money || alarm.stake || alarm.volume || 0;
-            scoreText = '£' + Number(money).toLocaleString('en-GB');
-        } else {
-            scoreText = formatVolume(alarm.stake || alarm.volume || 0);
+            const money = alarm.incoming_money || alarm.stake || 0;
+            moneyText = '£' + Number(money).toLocaleString('en-GB');
+            const isHuge = alarm.is_huge || alarm.alarm_type === 'HUGE MONEY';
+            summaryText = isHuge ? '<span class="highlight">HUGE MONEY</span> • Snapshot: ' + (alarm.snapshot_count || '-') : 'Snapshot: ' + (alarm.snapshot_count || '-');
         }
         
-        const timeAgo = formatTimeAgo(alarm.created_at);
+        const timeAgo = formatTimeAgoTR(alarm.created_at);
+        const triggerBadge = group.triggerCount > 1 ? `<span class="alarm-trigger-count">${group.triggerCount}</span>` : '';
         
         return `
-            <div class="sidebar-alarm-card ${type}" onclick="showAlarmDetailFromList(${idx})">
-                <div class="alert-left">
-                    <span class="alert-status-dot ${type}"></span>
-                    <span class="alert-status-text">${typeLabels[type]}</span>
+            <div class="sidebar-alarm-card ${type}" onclick="openAlarmDetailPanel(${idx})">
+                <div class="alarm-row-1">
+                    <span class="alarm-type-badge ${type}">${typeLabels[type]}</span>
+                    <span class="alarm-match-name">${home} - ${away}</span>
+                    <span class="alarm-market-chip">${market}: <span class="selection">${selection}</span></span>
                 </div>
-                <div class="alert-main">
-                    <span class="alert-match">${home} vs ${away}</span>
-                    <span class="alert-market">[${market}: ${selection}]</span>
+                <div class="alarm-row-2">
+                    <span class="alarm-summary">${summaryText}</span>
+                    <div class="alarm-right-info">
+                        ${triggerBadge}
+                        <span class="alarm-money">${moneyText}</span>
+                        <span class="alarm-time">${timeAgo}</span>
+                    </div>
                 </div>
-                <div class="alert-score">${scoreText}</div>
-                <div class="alert-time">${timeAgo}</div>
             </div>
         `;
     }).join('');
@@ -3730,7 +3793,7 @@ function renderAlarmsList(filterType) {
         html += `
             <div class="load-more-container" style="padding: 8px;">
                 <button class="load-more-btn" style="width: 100%;" onclick="loadMoreAlarms()">
-                    Daha Fazla (${alarms.length - alarmsDisplayCount})
+                    Daha Fazla (${groups.length - alarmsDisplayCount})
                 </button>
             </div>
         `;
@@ -3766,115 +3829,216 @@ function formatTimeAgo(dateStr) {
     return dateStr.split(' ')[0];
 }
 
-function showAlarmDetailFromList(index) {
-    const alarms = getFilteredAlarms();
-    const alarm = alarms[index];
-    if (!alarm) return;
+function formatTimeAgoTR(dateStr) {
+    if (!dateStr) return '';
     
-    const type = alarm._type;
-    const typeNames = { sharp: 'Sharp', insider: 'Insider', bigmoney: 'Big Money' };
-    const typeColors = { sharp: '#ef4444', insider: '#60a5fa', bigmoney: '#fbbf24' };
+    const alarmDT = parseAlarmDateTR(dateStr);
+    if (!alarmDT || !alarmDT.isValid()) return '';
     
-    if (type === 'sharp') {
-        const home = alarm.home || '-';
-        const away = alarm.away || '-';
-        const score = (alarm.sharp_score || 0).toFixed(1);
+    const now = nowTurkey();
+    const diffMins = now.diff(alarmDT, 'minute');
+    const diffHours = now.diff(alarmDT, 'hour');
+    const diffDays = now.diff(alarmDT, 'day');
+    
+    if (diffMins < 0) return 'Simdi';
+    if (diffMins < 1) return 'Simdi';
+    if (diffMins < 60) return `${diffMins}dk once`;
+    if (diffHours < 24) return `${diffHours}sa once`;
+    if (diffDays < 7) return `${diffDays}g once`;
+    
+    return alarmDT.format('DD.MM');
+}
+
+function parseAlarmDateTR(dateStr) {
+    if (!dateStr) return null;
+    
+    if (dateStr.includes('.') && dateStr.includes(' ')) {
+        const [datePart, timePart] = dateStr.split(' ');
+        const dateParts = datePart.split('.');
+        if (dateParts.length === 3) {
+            const [day, month, year] = dateParts;
+            const [hour, min] = (timePart || '00:00').split(':');
+            const isoStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour.padStart(2, '0')}:${min.padStart(2, '0')}:00`;
+            return dayjs.tz(isoStr, APP_TIMEZONE);
+        }
+    }
+    
+    return toTurkeyTime(dateStr);
+}
+
+function formatTriggerTime(dateStr) {
+    if (!dateStr) return '-';
+    const dt = parseAlarmDateTR(dateStr);
+    if (!dt || !dt.isValid()) return '-';
+    return dt.format('HH:mm');
+}
+
+function openAlarmDetailPanel(index) {
+    const groups = getFilteredAlarms();
+    const group = groups[index];
+    if (!group) return;
+    
+    const existingPanel = document.getElementById('alarmDetailPanel');
+    if (existingPanel) existingPanel.remove();
+    
+    const type = group.type;
+    const typeLabels = { sharp: 'Sharp Alarm', insider: 'Insider Alarm', bigmoney: 'Big Money Alarm' };
+    const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#fb923c' };
+    
+    let historyHtml = group.history.map((alarm, i) => {
+        const time = formatTriggerTime(alarm.created_at);
+        let valuesHtml = '';
         
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.id = 'alarmDetailModal';
-        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+        if (type === 'sharp') {
+            valuesHtml = `
+                <span class="trigger-value"><span class="label">Score:</span> <span class="value">${(alarm.sharp_score || 0).toFixed(1)}</span></span>
+                <span class="trigger-value"><span class="label">Vol:</span> <span class="value positive">${alarm.volume ? '£' + Number(alarm.volume).toLocaleString('en-GB') : '-'}</span></span>
+                <span class="trigger-value"><span class="label">Shock:</span> <span class="value">${alarm.volume_shock ? alarm.volume_shock.toFixed(1) + 'x' : '-'}</span></span>
+            `;
+        } else if (type === 'insider') {
+            valuesHtml = `
+                <span class="trigger-value"><span class="label">Score:</span> <span class="value">${(alarm.insider_score || 0).toFixed(1)}</span></span>
+                <span class="trigger-value"><span class="label">Stake:</span> <span class="value positive">${alarm.stake ? '£' + Number(alarm.stake).toLocaleString('en-GB') : '-'}</span></span>
+                <span class="trigger-value"><span class="label">Odds:</span> <span class="value negative">${alarm.odds_drop_pct ? alarm.odds_drop_pct.toFixed(1) + '%' : '-'}</span></span>
+            `;
+        } else if (type === 'bigmoney') {
+            const money = alarm.incoming_money || alarm.stake || 0;
+            valuesHtml = `
+                <span class="trigger-value"><span class="label">Para:</span> <span class="value positive">£${Number(money).toLocaleString('en-GB')}</span></span>
+                <span class="trigger-value"><span class="label">Snap:</span> <span class="value">${alarm.snapshot_count || '-'}</span></span>
+                ${alarm.is_huge ? '<span class="trigger-value"><span class="value" style="color: #f97316;">HUGE</span></span>' : ''}
+            `;
+        }
         
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width: 500px;">
-                <div class="modal-header">
-                    <h2 style="display: flex; align-items: center; gap: 10px;">
-                        <span style="background: ${typeColors.sharp}; width: 14px; height: 14px; border-radius: 50%; display: inline-block;"></span>
-                        Sharp Alarm
-                    </h2>
-                    <button class="close-btn" onclick="document.getElementById('alarmDetailModal').remove()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="modal-body" style="padding: 20px;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <div style="font-size: 48px; font-weight: 700; color: #ef4444;">${score}</div>
-                        <div style="color: #8b949e; font-size: 14px;">Sharp Score</div>
-                    </div>
-                    <div style="background: #21262d; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-                        <div style="color: #8b949e; font-size: 12px; margin-bottom: 8px;">MAC VE SECIM</div>
-                        <div style="font-size: 18px; font-weight: 600; color: #e6edf3;">${home} vs ${away}</div>
-                        <div style="color: #8b949e; margin-top: 4px;">${alarm.market || '-'} | Secim: <span style="color: #58a6ff; font-weight: 600;">${alarm.selection || '-'}</span></div>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                        <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="color: #4ade80; font-size: 20px; font-weight: 700;">${alarm.volume ? '£' + Number(alarm.volume).toLocaleString() : '-'}</div>
-                            <div style="color: #8b949e; font-size: 11px;">Volume</div>
-                        </div>
-                        <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="color: #f0883e; font-size: 20px; font-weight: 700;">${alarm.stake_share ? alarm.stake_share.toFixed(1) + '%' : '-'}</div>
-                            <div style="color: #8b949e; font-size: 11px;">Stake Share</div>
-                        </div>
-                        <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="color: #58a6ff; font-size: 20px; font-weight: 700;">${alarm.odds_move ? (alarm.odds_move > 0 ? '+' : '') + alarm.odds_move.toFixed(2) : '-'}</div>
-                            <div style="color: #8b949e; font-size: 11px;">Odds Move</div>
-                        </div>
-                        <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="color: #a371f7; font-size: 20px; font-weight: 700;">${alarm.volume_shock ? alarm.volume_shock.toFixed(1) + 'x' : '-'}</div>
-                            <div style="color: #8b949e; font-size: 11px;">Volume Shock</div>
-                        </div>
-                    </div>
-                </div>
+        return `
+            <div class="trigger-history-item ${i === 0 ? 'latest' : ''}">
+                <span class="trigger-time">${time}</span>
+                <div class="trigger-values">${valuesHtml}</div>
             </div>
         `;
-        document.body.appendChild(modal);
+    }).join('');
+    
+    const homeEscaped = group.home.replace(/'/g, "\\'");
+    const awayEscaped = group.away.replace(/'/g, "\\'");
+    
+    const panel = document.createElement('div');
+    panel.className = 'alarm-detail-panel';
+    panel.id = 'alarmDetailPanel';
+    
+    panel.innerHTML = `
+        <div class="alarm-detail-header">
+            <div class="alarm-detail-title">
+                <span class="alarm-type-badge ${type}" style="font-size: 11px; padding: 4px 8px;">${typeLabels[type].toUpperCase()}</span>
+                <h3>Alarm Detay</h3>
+            </div>
+            <button class="alarm-detail-close" onclick="closeAlarmDetailPanel()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="alarm-detail-body">
+            <div class="alarm-detail-section">
+                <div class="alarm-detail-section-title">Mac Bilgisi</div>
+                <div class="alarm-detail-match">${group.home} - ${group.away}</div>
+                ${group.league ? `<div class="alarm-detail-league">${group.league}</div>` : ''}
+                ${group.match_date ? `<div class="alarm-detail-league">Tarih: ${group.match_date}</div>` : ''}
+                <div style="margin-top: 8px;">
+                    <span class="alarm-detail-market">${group.market}: <span class="selection" style="color: ${typeColors[type]};">${group.selection}</span></span>
+                </div>
+            </div>
+            
+            <div class="alarm-detail-section">
+                <div class="alarm-detail-section-title">Tetiklenme Gecmisi (${group.triggerCount} kez)</div>
+                <div class="trigger-history-list">
+                    ${historyHtml}
+                </div>
+            </div>
+            
+            <button class="alarm-goto-match-btn" onclick="goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/>
+                    <line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                Mac Sayfasini Ac
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(panel);
+    
+    setTimeout(() => panel.classList.add('open'), 10);
+    
+    const overlay = document.createElement('div');
+    overlay.id = 'alarmDetailOverlay';
+    overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1050;';
+    overlay.onclick = closeAlarmDetailPanel;
+    document.body.appendChild(overlay);
+}
+
+function closeAlarmDetailPanel() {
+    const panel = document.getElementById('alarmDetailPanel');
+    const overlay = document.getElementById('alarmDetailOverlay');
+    
+    if (panel) {
+        panel.classList.remove('open');
+        setTimeout(() => panel.remove(), 300);
+    }
+    if (overlay) overlay.remove();
+}
+
+function generateMatchIdFromAlarm(group) {
+    const home = (group.home || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const away = (group.away || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const dateMatch = (group.match_date || '').match(/(\d{1,2})\.?(\w+)?/);
+    const datePart = dateMatch ? dateMatch[0].replace(/\./g, '') : '';
+    return `${home}_${away}_${datePart}`;
+}
+
+function goToMatchFromAlarm(homeTeam, awayTeam) {
+    closeAlarmDetailPanel();
+    closeAlarmsSidebar();
+    
+    const homeLower = homeTeam.toLowerCase().trim();
+    const awayLower = awayTeam.toLowerCase().trim();
+    
+    const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
+    let foundIndex = -1;
+    
+    for (let i = 0; i < dataSource.length; i++) {
+        const m = dataSource[i];
+        const mHome = (m.home_team || m.Home || '').toLowerCase().trim();
+        const mAway = (m.away_team || m.Away || '').toLowerCase().trim();
+        
+        if ((mHome.includes(homeLower) || homeLower.includes(mHome)) &&
+            (mAway.includes(awayLower) || awayLower.includes(mAway))) {
+            foundIndex = i;
+            break;
+        }
+    }
+    
+    if (foundIndex >= 0) {
+        openMatchModal(foundIndex);
     } else {
+        const tbody = document.getElementById('matchesTableBody');
+        if (tbody) {
+            const rows = tbody.querySelectorAll('tr[onclick*="openMatchModal"]');
+            for (let row of rows) {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(homeLower) && text.includes(awayLower)) {
+                    const onclickAttr = row.getAttribute('onclick');
+                    const indexMatch = onclickAttr?.match(/openMatchModal\((\d+)\)/);
+                    if (indexMatch) {
+                        openMatchModal(parseInt(indexMatch[1]));
+                        return;
+                    }
+                }
+            }
+        }
         
-        const home = alarm.home || alarm.home_team || '-';
-        const away = alarm.away || alarm.away_team || '-';
-        const score = type === 'insider' ? (alarm.insider_score || 0).toFixed(1) : formatVolume(alarm.stake || alarm.volume || 0);
-        
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.id = 'alarmDetailModal';
-        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-        
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width: 500px;">
-                <div class="modal-header">
-                    <h2 style="display: flex; align-items: center; gap: 10px;">
-                        <span style="background: ${typeColors[type]}; width: 14px; height: 14px; border-radius: 50%; display: inline-block;"></span>
-                        ${typeNames[type]} Alarm
-                    </h2>
-                    <button class="close-btn" onclick="document.getElementById('alarmDetailModal').remove()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="modal-body" style="padding: 20px;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <div style="font-size: 36px; font-weight: 700; color: ${typeColors[type]};">${score}</div>
-                        <div style="color: #8b949e; font-size: 14px;">${type === 'insider' ? 'Insider Score' : 'Stake'}</div>
-                    </div>
-                    <div style="background: #0d1117; border-radius: 8px; padding: 16px;">
-                        <div style="font-size: 18px; font-weight: 600; color: #fff; text-align: center; margin-bottom: 12px;">
-                            ${home} vs ${away}
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
-                            <div><span style="color: #8b949e;">Market:</span> <span style="color: #fff;">${alarm.market || '-'}</span></div>
-                            <div><span style="color: #8b949e;">Selection:</span> <span style="color: #fff;">${alarm.selection || alarm.side || '-'}</span></div>
-                            ${alarm.stake ? `<div><span style="color: #8b949e;">Stake:</span> <span style="color: #22c55e;">${formatVolume(alarm.stake)}</span></div>` : ''}
-                            ${alarm.odds_drop_pct ? `<div><span style="color: #8b949e;">Odds Drop:</span> <span style="color: #f87171;">${alarm.odds_drop_pct.toFixed(2)}%</span></div>` : ''}
-                            ${alarm.created_at ? `<div style="grid-column: span 2;"><span style="color: #8b949e;">Tarih:</span> <span style="color: #fff;">${alarm.created_at}</span></div>` : ''}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
+        console.log('Mac bulunamadi:', homeTeam, 'vs', awayTeam);
+        alert(`Maç bulunamadı: ${homeTeam} - ${awayTeam}\nLütfen ana listede bu maçı arayın.`);
     }
 }
 

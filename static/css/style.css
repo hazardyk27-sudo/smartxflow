@@ -4001,12 +4001,12 @@ td.volume,
     font-size: 14px;
 }
 
-/* Sidebar Alarm Card */
+/* Sidebar Alarm Card - 2-Line Layout */
 .sidebar-alarm-card {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
     background: #161b22;
     border: 1px solid #21262d;
     border-radius: 6px;
@@ -4014,7 +4014,6 @@ td.volume,
     cursor: pointer;
     transition: all 0.15s ease;
     border-left: 3px solid transparent;
-    min-height: 24px;
 }
 
 .sidebar-alarm-card:hover {
@@ -4027,108 +4026,357 @@ td.volume,
 }
 
 .sidebar-alarm-card.insider {
-    border-left-color: #60a5fa;
+    border-left-color: #a855f7;
 }
 
 .sidebar-alarm-card.bigmoney {
-    border-left-color: #fbbf24;
+    border-left-color: #fb923c;
 }
 
-/* Alert Left Section - Status Dot + Type */
-.alert-left {
+/* Line 1: Badge + Match + Market */
+.alarm-row-1 {
     display: flex;
     align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
+    gap: 8px;
+    width: 100%;
 }
 
-.alert-status-dot {
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.alert-status-dot.sharp {
-    background: #4ade80;
-}
-
-.alert-status-dot.insider {
-    background: #60a5fa;
-}
-
-.alert-status-dot.bigmoney {
-    background: #fbbf24;
-}
-
-.alert-status-text {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: #8b949e;
-    letter-spacing: 0.5px;
-    line-height: 1.4;
-}
-
-/* Alert Main Section - Match + Market */
-.alert-main {
-    display: flex;
+.alarm-type-badge {
+    display: inline-flex;
     align-items: center;
     gap: 4px;
-    flex: 1;
-    min-width: 0;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
 }
 
-.alert-match {
+.alarm-type-badge.sharp {
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+}
+
+.alarm-type-badge.insider {
+    background: rgba(168, 85, 247, 0.15);
+    color: #a855f7;
+}
+
+.alarm-type-badge.bigmoney {
+    background: rgba(251, 146, 60, 0.15);
+    color: #fb923c;
+}
+
+.alarm-match-name {
+    flex: 1;
     font-size: 13px;
     font-weight: 600;
     color: #e6edf3;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.4;
+    line-height: 1.3;
 }
 
-.alert-market {
-    font-size: 12px;
+.alarm-market-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    background: #21262d;
+    border-radius: 3px;
+    font-size: 11px;
     font-weight: 600;
-    white-space: nowrap;
+    color: #8b949e;
     flex-shrink: 0;
-    line-height: 1.4;
 }
 
-/* Alert market color matches alarm type */
-.sidebar-alarm-card.sharp .alert-market {
+.alarm-market-chip .selection {
+    color: #58a6ff;
+}
+
+.sidebar-alarm-card.sharp .alarm-market-chip .selection {
     color: #4ade80;
 }
 
-.sidebar-alarm-card.insider .alert-market {
+.sidebar-alarm-card.insider .alarm-market-chip .selection {
     color: #a855f7;
 }
 
-.sidebar-alarm-card.bigmoney .alert-market {
+.sidebar-alarm-card.bigmoney .alarm-market-chip .selection {
     color: #fb923c;
 }
 
-/* Alert Score */
-.alert-score {
-    min-width: 40px;
-    text-align: right;
-    font-size: 13px;
-    font-weight: 700;
-    color: #22c55e;
-    flex-shrink: 0;
-    line-height: 1.4;
+/* Line 2: Summary + Money + Time */
+.alarm-row-2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
 }
 
-/* Alert Time */
-.alert-time {
+.alarm-summary {
+    flex: 1;
     font-size: 11px;
+    color: #8b949e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.alarm-summary .highlight {
+    color: #22c55e;
+    font-weight: 600;
+}
+
+.alarm-right-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.alarm-money {
+    font-size: 12px;
+    font-weight: 700;
+    color: #22c55e;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.alarm-time {
+    font-size: 10px;
     color: #6e7681;
     white-space: nowrap;
-    flex-shrink: 0;
-    line-height: 1.4;
+}
+
+/* Trigger count badge */
+.alarm-trigger-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    background: #30363d;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #8b949e;
+}
+
+.sidebar-alarm-card.sharp .alarm-trigger-count {
+    background: rgba(74, 222, 128, 0.2);
+    color: #4ade80;
+}
+
+.sidebar-alarm-card.insider .alarm-trigger-count {
+    background: rgba(168, 85, 247, 0.2);
+    color: #a855f7;
+}
+
+.sidebar-alarm-card.bigmoney .alarm-trigger-count {
+    background: rgba(251, 146, 60, 0.2);
+    color: #fb923c;
+}
+
+/* Detail Panel Styles */
+.alarm-detail-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 420px;
+    height: 100vh;
+    background: #0d1117;
+    border-left: 1px solid #30363d;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+}
+
+.alarm-detail-panel.open {
+    transform: translateX(0);
+}
+
+.alarm-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+}
+
+.alarm-detail-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alarm-detail-title h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e6edf3;
+    margin: 0;
+}
+
+.alarm-detail-close {
+    background: none;
+    border: none;
+    color: #8b949e;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.alarm-detail-close:hover {
+    color: #e6edf3;
+}
+
+.alarm-detail-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.alarm-detail-section {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 12px;
+}
+
+.alarm-detail-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+
+.alarm-detail-match {
+    font-size: 18px;
+    font-weight: 700;
+    color: #e6edf3;
+    margin-bottom: 6px;
+}
+
+.alarm-detail-league {
+    font-size: 12px;
+    color: #8b949e;
+    margin-bottom: 4px;
+}
+
+.alarm-detail-market {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: #21262d;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #c9d1d9;
+}
+
+.alarm-detail-market .selection {
+    font-weight: 600;
+    color: #58a6ff;
+}
+
+/* Trigger History List */
+.trigger-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.trigger-history-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px;
+    background: #0d1117;
+    border-radius: 6px;
+    border-left: 2px solid #30363d;
+}
+
+.trigger-history-item.latest {
+    border-left-color: #22c55e;
+    background: rgba(34, 197, 94, 0.05);
+}
+
+.trigger-time {
+    font-size: 11px;
+    font-weight: 600;
+    color: #8b949e;
+    white-space: nowrap;
+    min-width: 50px;
+}
+
+.trigger-values {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 11px;
+}
+
+.trigger-value {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.trigger-value .label {
+    color: #6e7681;
+}
+
+.trigger-value .value {
+    color: #e6edf3;
+    font-weight: 600;
+}
+
+.trigger-value .value.positive {
+    color: #22c55e;
+}
+
+.trigger-value .value.negative {
+    color: #f87171;
+}
+
+/* Go to Match Button */
+.alarm-goto-match-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    background: #238636;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.alarm-goto-match-btn:hover {
+    background: #2ea043;
+}
+
+/* Legacy support - hide old elements */
+.alert-left, .alert-main, .alert-score, .alert-status-dot, .alert-status-text, .alert-match, .alert-market {
+    display: none;
 }
 
 /* Responsive */
