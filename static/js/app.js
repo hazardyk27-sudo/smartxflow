@@ -3399,7 +3399,6 @@ function renderAlertBand() {
                 <span class="alert-band-match">${home} - ${away}</span>
                 <span class="alert-band-selection">${selection}</span>
                 <span class="alert-band-value ${valueClass}">${value}</span>
-                <span class="alert-band-time">${timeStr}</span>
             </div>
         `;
     }).join('');
