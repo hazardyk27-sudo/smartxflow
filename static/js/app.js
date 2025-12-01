@@ -3325,7 +3325,7 @@ function formatAlertValue(alarm) {
         return '-' + dropPct.toFixed(1) + '%';
     }
     if (type === 'bigmoney') {
-        const val = alarm.stake || alarm.volume || 0;
+        const val = alarm.incoming_money || alarm.stake || alarm.volume || 0;
         return '£' + Number(val).toLocaleString();
     }
     return '';
