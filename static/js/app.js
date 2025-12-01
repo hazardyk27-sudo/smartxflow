@@ -3806,71 +3806,20 @@ function renderAlarmsList(filterType) {
         } else if (type === 'sharp') {
             mainMoney = alarm.volume || alarm.stake || 0;
         } else if (type === 'insider') {
-            mainMoney = alarm.gelen_para || alarm.stake || alarm.volume || 0;
-        }
-        
-        let insiderAdminHtml = '';
-        if (type === 'insider') {
-            const oranDusus = alarm.oran_dusus_pct || alarm.odds_drop_pct || 0;
-            const gelenPara = alarm.gelen_para || alarm.stake || 0;
-            const hacimSok = alarm.hacim_sok || alarm.volume_shock || 0;
-            const openOdds = alarm.opening_odds || '-';
-            const lastOdds = alarm.last_odds || '-';
-            const matchDate = group.match_date || alarm.match_date || '-';
-            const eventTime = alarm.event_time ? formatTriggerTime(alarm.event_time) : '-';
-            const snapshotCount = alarm.snapshot_count || '-';
-            
-            insiderAdminHtml = `
-                <div class="detail-section admin-section">
-                    <div class="detail-label">🔍 ADMİN KONTROL PANELİ</div>
-                    <div class="admin-grid">
-                        <div class="admin-item">
-                            <span class="admin-label">Oran Düşüşü</span>
-                            <span class="admin-value negative">${oranDusus.toFixed(2)}%</span>
-                        </div>
-                        <div class="admin-item">
-                            <span class="admin-label">Oran Değişimi</span>
-                            <span class="admin-value">${openOdds} → ${lastOdds}</span>
-                        </div>
-                        <div class="admin-item">
-                            <span class="admin-label">Gelen Para</span>
-                            <span class="admin-value positive">£${Number(gelenPara).toLocaleString('en-GB', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
-                        </div>
-                        <div class="admin-item">
-                            <span class="admin-label">Hacim Şok</span>
-                            <span class="admin-value">${hacimSok.toFixed(3)}x</span>
-                        </div>
-                        <div class="admin-item">
-                            <span class="admin-label">Maç Saati</span>
-                            <span class="admin-value">${matchDate}</span>
-                        </div>
-                        <div class="admin-item">
-                            <span class="admin-label">Snapshot Sayısı</span>
-                            <span class="admin-value">${snapshotCount}</span>
-                        </div>
-                    </div>
-                    <div class="admin-timestamps">
-                        <div class="admin-label">Snapshot Zamanı</div>
-                        <div class="admin-timestamp-value">${eventTime}</div>
-                    </div>
-                </div>
-            `;
+            mainMoney = alarm.stake || alarm.volume || 0;
         }
         
         let historyHtml = group.history.map((a, i) => {
             const time = formatTriggerTime(a.event_time || a.created_at);
             let money = 0;
             let badge = '';
-            let extraInfo = '';
             
             if (type === 'sharp') {
                 money = a.volume || a.stake || 0;
                 badge = 'SHARP';
             } else if (type === 'insider') {
-                money = a.gelen_para || a.stake || a.volume || 0;
+                money = a.stake || a.volume || 0;
                 badge = 'INSIDER';
-                const dropPct = a.oran_dusus_pct || a.odds_drop_pct || 0;
-                extraInfo = `<span class="log-extra">↓${dropPct.toFixed(1)}%</span>`;
             } else if (type === 'bigmoney') {
                 money = a.incoming_money || a.stake || 0;
                 badge = a.is_huge ? 'HUGE' : 'BIG';
@@ -3881,7 +3830,6 @@ function renderAlarmsList(filterType) {
                     <span class="log-time">${time}</span>
                     <span class="log-sep">–</span>
                     <span class="log-money">£${Number(money).toLocaleString('en-GB')}</span>
-                    ${extraInfo}
                     <span class="log-sep">–</span>
                     <span class="log-badge ${type}">${badge}</span>
                 </div>
@@ -3914,10 +3862,8 @@ function renderAlarmsList(filterType) {
                         </div>
                     </div>
                     
-                    ${insiderAdminHtml}
-                    
                     <div class="detail-section">
-                        <div class="detail-label">TETİKLENME GEÇMİŞİ</div>
+                        <div class="detail-label">DETAY</div>
                         <div class="detail-logs-container">
                             ${historyHtml}
                         </div>
