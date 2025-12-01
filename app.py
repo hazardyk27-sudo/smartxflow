@@ -1441,8 +1441,9 @@ def calculate_big_money_scores(config):
     markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
     market_names = {'moneyway_1x2': '1X2', 'moneyway_ou25': 'O/U 2.5', 'moneyway_btts': 'BTTS'}
     
-    # Prematch kuralı: Sadece bugün ve gelecek maçlar (D-1 hariç)
+    # Prematch kuralı: D-2+ maçlar hariç
     today = now_turkey().date()
+    yesterday = today - timedelta(days=1)
     
     for idx, market in enumerate(markets):
         try:
