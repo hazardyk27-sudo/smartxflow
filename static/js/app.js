@@ -3693,6 +3693,9 @@ function renderAlarmsList(filterType) {
             scoreText = `${(alarm.sharp_score || 0).toFixed(1)}`;
         } else if (type === 'insider') {
             scoreText = `${(alarm.insider_score || 0).toFixed(1)}`;
+        } else if (type === 'bigmoney') {
+            const money = alarm.incoming_money || alarm.stake || alarm.volume || 0;
+            scoreText = '£' + Number(money).toLocaleString('en-GB');
         } else {
             scoreText = formatVolume(alarm.stake || alarm.volume || 0);
         }
