@@ -44,9 +44,10 @@
 .alert-band-pill {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 12px;
-    height: 24px;
+    gap: 8px;
+    padding: 0 14px;
+    height: 26px;
+    min-width: 280px;
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid transparent;
     border-radius: 9999px;
@@ -94,10 +95,10 @@
     line-height: 1;
 }
 
-/* Small Dot Indicator */
+/* Dot Indicator - Large & Visible */
 .alert-band-dot {
-    width: 5px;
-    height: 5px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     flex-shrink: 0;
 }
@@ -127,6 +128,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.02em;
+    min-width: 90px;
 }
 
 .alert-band-type.sharp {
@@ -143,9 +145,10 @@
 
 /* Match Name */
 .alert-band-match {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     color: #c9d1d9;
+    flex: 1;
 }
 
 /* Value/Score */
@@ -153,6 +156,8 @@
     font-size: 11px;
     font-weight: 600;
     color: #4ade80;
+    min-width: 50px;
+    text-align: right;
 }
 
 .alert-band-value.negative {
