@@ -1,13 +1,13 @@
 /* =====================================================
-   ALERT BAND - Top Notification Strip
+   ALERT BAND - Minimal Dark Theme
    ===================================================== */
 
 .alert-band {
     display: flex;
     align-items: center;
-    height: 42px;
-    background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
-    border-bottom: 1px solid #334155;
+    height: 44px;
+    background: #0d1117;
+    border-bottom: 1px solid #21262d;
     padding: 0;
     overflow: hidden;
 }
@@ -18,9 +18,9 @@
     gap: 6px;
     padding: 0 14px;
     height: 100%;
-    background: #10b981;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
     color: #fff;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -38,9 +38,9 @@
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
     overflow-x: auto;
-    padding: 0 16px;
+    padding: 0 12px;
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -49,14 +49,15 @@
     display: none;
 }
 
+/* Minimal Chip Style Pills */
 .alert-band-pill {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 6px 14px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
+    gap: 6px;
+    padding: 4px 10px;
+    background: #111827;
+    border: 1px solid rgba(248, 113, 113, 0.5);
+    border-radius: 9999px;
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
@@ -64,78 +65,73 @@
 }
 
 .alert-band-pill:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: #1f2937;
+    border-color: rgba(248, 113, 113, 0.8);
 }
 
+/* Small Dot Indicator */
 .alert-band-dot {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     flex-shrink: 0;
-    animation: pulse-dot 2s infinite;
 }
 
 .alert-band-dot.red {
     background: #ef4444;
-    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
 }
 
 .alert-band-dot.orange {
     background: #f97316;
-    box-shadow: 0 0 8px rgba(249, 115, 22, 0.6);
 }
 
 .alert-band-dot.yellow {
     background: #eab308;
-    box-shadow: 0 0 8px rgba(234, 179, 8, 0.6);
 }
 
 .alert-band-dot.green {
     background: #22c55e;
-    box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
 }
 
-@keyframes pulse-dot {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
+/* Alert Type Label */
 .alert-band-type {
     font-size: 11px;
     font-weight: 600;
     color: #f87171;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.03em;
 }
 
+/* Match Name */
 .alert-band-match {
     font-size: 13px;
     font-weight: 500;
-    color: #e2e8f0;
+    color: #e5e7eb;
 }
 
+/* Value/Score */
 .alert-band-value {
     font-size: 13px;
-    font-weight: 700;
-    color: #4ade80;
-    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: #22c55e;
+    margin-left: 4px;
 }
 
 .alert-band-value.negative {
     color: #f87171;
 }
 
+/* Alarms Button */
 .alert-band-btn {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0 16px;
+    padding: 0 14px;
     height: 100%;
-    background: #1f2937;
+    background: #161b22;
     border: none;
-    border-left: 1px solid #374151;
-    color: #fff;
+    border-left: 1px solid #30363d;
+    color: #e5e7eb;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -144,7 +140,7 @@
 }
 
 .alert-band-btn:hover {
-    background: #374151;
+    background: #21262d;
 }
 
 .alert-band-btn svg {
@@ -168,10 +164,10 @@
 }
 
 .alert-band-empty {
-    color: #64748b;
+    color: #6b7280;
     font-size: 13px;
     font-style: italic;
-    padding: 0 20px;
+    padding: 0 16px;
 }
 
 /* Hidden state */
