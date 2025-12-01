@@ -394,6 +394,45 @@
             font-size: 14px;
         }
         
+        /* Volume Shock Expandable Detail Styles */
+        .vs-alarm-wrapper {
+            border-bottom: 1px solid #21262d;
+        }
+        .vs-alarm-wrapper:last-child {
+            border-bottom: none;
+        }
+        .vs-alarm-wrapper .alarm-item {
+            border-bottom: none;
+        }
+        .vs-alarm-detail {
+            animation: slideDown 0.2s ease-out;
+        }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .vs-detail-section {
+            background: #0d1117;
+            border-radius: 6px;
+            padding: 10px;
+        }
+        .vs-detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            font-size: 12px;
+        }
+        .vs-detail-row:not(:last-child) {
+            border-bottom: 1px solid #21262d;
+        }
+        
         .modal {
             position: fixed;
             top: 0;
@@ -1871,26 +1910,76 @@
             container.innerHTML = alarms.map((alarm, idx) => {
                 const shockValue = alarm.volume_shock_value || 0;
                 const hoursToKickoff = alarm.hours_to_kickoff || 0;
+                const incomingMoney = alarm.incoming_money || 0;
+                const matchDate = alarm.match_date || '-';
+                const eventTime = alarm.event_time || '-';
+                const createdAt = alarm.created_at || '-';
+                const minSaat = alarm.hacim_soku_min_saat || 5;
+                const minEsik = alarm.hacim_soku_min_esik || 4;
                 
                 return `
-                <div class="alarm-item" onclick="showVolumeShockAlarmDetail(${idx})" style="border-left: 3px solid #ff6b6b;">
-                    <div class="alarm-info">
-                        <div class="alarm-match">
-                            <span style="background:#ff6b6b;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">⚡ HACIM SOKU</span>
-                            ${alarm.home} vs ${alarm.away}
+                <div class="vs-alarm-wrapper" id="vs-alarm-${idx}">
+                    <div class="alarm-item" onclick="toggleVolumeShockDetail(${idx})" style="border-left: 3px solid #ff6b6b; cursor: pointer;">
+                        <div class="alarm-info">
+                            <div class="alarm-match">
+                                <span style="background:#ff6b6b;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">⚡ HACIM SOKU</span>
+                                ${alarm.home} vs ${alarm.away}
+                                <span id="vs-toggle-icon-${idx}" style="margin-left: 8px; color: #8b949e; font-size: 12px;">▼</span>
+                            </div>
+                            <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${createdAt}</div>
+                            <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
+                                <span style="color: #ff6b6b;" title="Sok Degeri">⚡ Sok: ${shockValue.toFixed(1)}x</span>
+                                <span style="color: #58a6ff;" title="Mactan Once">⏰ Mactan ${hoursToKickoff.toFixed(1)}s once</span>
+                                <span style="color: #3fb950;" title="Gelen Para">💰 £${Math.round(incomingMoney).toLocaleString()}</span>
+                            </div>
                         </div>
-                        <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
-                        <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
-                            <span style="color: #ff6b6b;" title="Sok Degeri">⚡ Sok: ${shockValue.toFixed(1)}x</span>
-                            <span style="color: #58a6ff;" title="Mactan Once">⏰ Mactan ${hoursToKickoff.toFixed(1)}s once</span>
-                            <span style="color: #3fb950;" title="Gelen Para">💰 £${Math.round(alarm.incoming_money || 0).toLocaleString()}</span>
+                        <div class="alarm-score" style="background: linear-gradient(135deg, #ff6b6b, #ff4757);">${shockValue.toFixed(1)}x</div>
+                    </div>
+                    <div id="vs-detail-${idx}" class="vs-alarm-detail" style="display: none; background: #161b22; border: 1px solid #30363d; border-top: none; border-radius: 0 0 8px 8px; padding: 15px; margin-top: -5px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div class="vs-detail-section">
+                                <div style="color: #58a6ff; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📅 ZAMAN BILGILERI</div>
+                                <div class="vs-detail-row"><span style="color: #8b949e;">Mac Saati:</span> <span style="color: #f0f6fc;">${matchDate}</span></div>
+                                <div class="vs-detail-row"><span style="color: #8b949e;">Olay Zamani:</span> <span style="color: #f0f6fc;">${eventTime}</span></div>
+                                <div class="vs-detail-row"><span style="color: #8b949e;">Hesaplama:</span> <span style="color: #f0f6fc;">${createdAt}</span></div>
+                                <div class="vs-detail-row"><span style="color: #8b949e;">Mactan Once:</span> <span style="color: #58a6ff; font-weight: 600;">${hoursToKickoff.toFixed(2)} saat</span></div>
+                            </div>
+                            <div class="vs-detail-section">
+                                <div style="color: #ff6b6b; font-weight: 600; margin-bottom: 8px; font-size: 12px;">⚡ SOK METRIKLERI</div>
+                                <div class="vs-detail-row"><span style="color: #8b949e;">Sok Degeri:</span> <span style="color: #ff6b6b; font-weight: 700; font-size: 16px;">${shockValue.toFixed(3)}x</span></div>
+                                <div class="vs-detail-row"><span style="color: #8b949e;">Gelen Para:</span> <span style="color: #3fb950; font-weight: 600;">£${Math.round(incomingMoney).toLocaleString()}</span></div>
+                            </div>
+                            <div class="vs-detail-section">
+                                <div style="color: #a371f7; font-weight: 600; margin-bottom: 8px; font-size: 12px;">⚙️ KULLANILAN ESIKLER</div>
+                                <div class="vs-detail-row"><span style="color: #8b949e;">Min Saat:</span> <span style="color: #f0f6fc;">${minSaat} saat</span></div>
+                                <div class="vs-detail-row"><span style="color: #8b949e;">Min Sok Esigi:</span> <span style="color: #f0f6fc;">${minEsik}x</span></div>
+                            </div>
+                            <div class="vs-detail-section">
+                                <div style="color: #f0883e; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📊 MAC BILGILERI</div>
+                                <div class="vs-detail-row"><span style="color: #8b949e;">Ev Sahibi:</span> <span style="color: #f0f6fc;">${alarm.home}</span></div>
+                                <div class="vs-detail-row"><span style="color: #8b949e;">Deplasman:</span> <span style="color: #f0f6fc;">${alarm.away}</span></div>
+                                <div class="vs-detail-row"><span style="color: #8b949e;">Market:</span> <span style="color: #f0f6fc;">${alarm.market}</span></div>
+                                <div class="vs-detail-row"><span style="color: #8b949e;">Secenek:</span> <span style="color: #f0f6fc;">${alarm.selection}</span></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="alarm-score" style="background: linear-gradient(135deg, #ff6b6b, #ff4757);">${shockValue.toFixed(1)}x</div>
                 </div>
             `}).join('');
             
             window.currentVolumeShockAlarms = alarms;
+        }
+        
+        function toggleVolumeShockDetail(idx) {
+            const detailEl = document.getElementById(`vs-detail-${idx}`);
+            const toggleIcon = document.getElementById(`vs-toggle-icon-${idx}`);
+            
+            if (detailEl.style.display === 'none') {
+                detailEl.style.display = 'block';
+                if (toggleIcon) toggleIcon.textContent = '▲';
+            } else {
+                detailEl.style.display = 'none';
+                if (toggleIcon) toggleIcon.textContent = '▼';
+            }
         }
         
         function filterVolumeShockAlarms() {
