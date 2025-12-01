@@ -3533,6 +3533,7 @@ let alarmsDataByType = {
 let alarmSearchQuery = '';
 let alarmsDisplayCount = 30;
 let alarmsSidebarOpen = false;
+let openAlarmId = null;
 
 function toggleAlarmsSidebar() {
     if (alarmsSidebarOpen) {
@@ -3738,6 +3739,7 @@ function renderAlarmsList(filterType) {
     const displayGroups = groups.slice(0, alarmsDisplayCount);
     const hasMore = groups.length > alarmsDisplayCount;
     const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY' };
+    const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#fb923c' };
     
     let html = displayGroups.map((group, idx) => {
         const type = group.type;
@@ -3746,6 +3748,8 @@ function renderAlarmsList(filterType) {
         const away = group.away;
         const market = group.market;
         const selection = group.selection;
+        const alarmId = `alarm_${type}_${idx}`;
+        const isOpen = openAlarmId === alarmId;
         
         let mainValue = '';
         let centerBadge = '';
@@ -3775,24 +3779,93 @@ function renderAlarmsList(filterType) {
         
         const timeAgo = formatTimeAgoTR(alarm.created_at);
         const triggerPill = group.triggerCount > 1 ? `<span class="trigger-pill">×${group.triggerCount}</span>` : '';
-        
         const marketLabel = formatMarketChip(market, selection);
+        const expandIcon = isOpen ? '▼' : '▶';
+        
+        let historyHtml = group.history.map((a, i) => {
+            const time = formatTriggerTime(a.created_at);
+            let valuesHtml = '';
+            
+            if (type === 'sharp') {
+                valuesHtml = `
+                    <span class="trigger-value"><span class="label">Score:</span> <span class="value">${(a.sharp_score || 0).toFixed(1)}</span></span>
+                    <span class="trigger-value"><span class="label">Vol:</span> <span class="value positive">${a.volume ? '£' + Number(a.volume).toLocaleString('en-GB') : '-'}</span></span>
+                    <span class="trigger-value"><span class="label">Shock:</span> <span class="value">${a.volume_shock ? a.volume_shock.toFixed(1) + 'x' : '-'}</span></span>
+                `;
+            } else if (type === 'insider') {
+                valuesHtml = `
+                    <span class="trigger-value"><span class="label">Score:</span> <span class="value">${(a.insider_score || 0).toFixed(1)}</span></span>
+                    <span class="trigger-value"><span class="label">Stake:</span> <span class="value positive">${a.stake ? '£' + Number(a.stake).toLocaleString('en-GB') : '-'}</span></span>
+                    <span class="trigger-value"><span class="label">Odds:</span> <span class="value negative">${a.odds_drop_pct ? a.odds_drop_pct.toFixed(1) + '%' : '-'}</span></span>
+                `;
+            } else if (type === 'bigmoney') {
+                const money = a.incoming_money || a.stake || 0;
+                valuesHtml = `
+                    <span class="trigger-value"><span class="label">Para:</span> <span class="value positive">£${Number(money).toLocaleString('en-GB')}</span></span>
+                    <span class="trigger-value"><span class="label">Snap:</span> <span class="value">${a.snapshot_count || '-'}</span></span>
+                    ${a.is_huge ? '<span class="trigger-value"><span class="value" style="color: #f97316;">HUGE</span></span>' : ''}
+                `;
+            }
+            
+            return `
+                <div class="trigger-history-item ${i === 0 ? 'latest' : ''}">
+                    <span class="trigger-time">${time}</span>
+                    <div class="trigger-values">${valuesHtml}</div>
+                </div>
+            `;
+        }).join('');
+        
+        const homeEscaped = home.replace(/'/g, "\\'");
+        const awayEscaped = away.replace(/'/g, "\\'");
+        
+        const inlineDetail = `
+            <div class="alarm-inline-detail ${isOpen ? 'open' : ''}" id="detail_${alarmId}">
+                <div class="inline-detail-divider"></div>
+                <div class="inline-detail-section">
+                    <div class="inline-detail-title">Mac Bilgisi</div>
+                    <div class="inline-detail-match">${home} - ${away}</div>
+                    ${group.league ? `<div class="inline-detail-league">${group.league}</div>` : ''}
+                    ${group.match_date ? `<div class="inline-detail-league">Tarih: ${group.match_date}</div>` : ''}
+                    <div class="inline-detail-market">
+                        <span class="alarm-detail-market">${market}: <span class="selection" style="color: ${typeColors[type]};">${selection}</span></span>
+                    </div>
+                </div>
+                <div class="inline-detail-section">
+                    <div class="inline-detail-title">Tetiklenme Gecmisi (${group.triggerCount} kez)</div>
+                    <div class="trigger-history-list">
+                        ${historyHtml}
+                    </div>
+                </div>
+                <button class="inline-goto-match-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                        <polyline points="15 3 21 3 21 9"/>
+                        <line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                    Mac Sayfasini Ac
+                </button>
+            </div>
+        `;
         
         return `
-            <div class="sidebar-alarm-card ${type}" onclick="openAlarmDetailPanel(${idx})">
-                <div class="alarm-row-1">
-                    <span class="alarm-type-badge ${type}">${typeLabels[type]}</span>
-                    <span class="alarm-match-name">${home} – ${away}</span>
-                    <span class="alarm-market-chip">${marketLabel}</span>
-                </div>
-                <div class="alarm-row-2">
-                    <span class="alarm-main-value">${mainValue}</span>
-                    <div class="alarm-center-info">
-                        ${centerBadge}
-                        ${triggerPill}
+            <div class="alarm-accordion-wrapper">
+                <div class="sidebar-alarm-card ${type} ${isOpen ? 'expanded' : ''}" onclick="toggleAlarmDetail('${alarmId}')">
+                    <div class="alarm-row-1">
+                        <span class="alarm-expand-icon">${expandIcon}</span>
+                        <span class="alarm-type-badge ${type}">${typeLabels[type]}</span>
+                        <span class="alarm-match-name">${home} – ${away}</span>
+                        <span class="alarm-market-chip">${marketLabel}</span>
                     </div>
-                    <span class="alarm-time">${timeAgo}</span>
+                    <div class="alarm-row-2">
+                        <span class="alarm-main-value">${mainValue}</span>
+                        <div class="alarm-center-info">
+                            ${centerBadge}
+                            ${triggerPill}
+                        </div>
+                        <span class="alarm-time">${timeAgo}</span>
+                    </div>
                 </div>
+                ${inlineDetail}
             </div>
         `;
     }).join('');
@@ -3808,6 +3881,24 @@ function renderAlarmsList(filterType) {
     }
     
     body.innerHTML = html;
+}
+
+function toggleAlarmDetail(alarmId) {
+    if (openAlarmId === alarmId) {
+        openAlarmId = null;
+    } else {
+        openAlarmId = alarmId;
+    }
+    renderAlarmsList(currentAlarmFilter);
+    
+    if (openAlarmId) {
+        setTimeout(() => {
+            const detailEl = document.getElementById('detail_' + alarmId);
+            if (detailEl) {
+                detailEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }, 50);
+    }
 }
 
 function formatMarketChip(market, selection) {
