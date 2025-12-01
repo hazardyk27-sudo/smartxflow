@@ -3267,35 +3267,31 @@ let alertBandData = [];
 
 function isMatchTodayOrFuture(alarm) {
     const matchDateStr = alarm.match_date || alarm.fixture_date || '';
-    if (!matchDateStr) return true;
+    if (!matchDateStr) return false;
     
-    const today = dayjs().tz('Europe/Istanbul').startOf('day');
+    const now = new Date();
+    const todayStr = String(now.getDate()).padStart(2, '0') + '.' + 
+                     ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][now.getMonth()];
     
-    let matchDate;
-    if (matchDateStr.includes('.')) {
-        const parts = matchDateStr.split(' ')[0];
-        if (parts.includes('.')) {
-            const [day, monthStr] = parts.split('.');
-            const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
-                              'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
-            const month = monthMap[monthStr];
-            if (month !== undefined) {
-                const year = today.year();
-                matchDate = dayjs().year(year).month(month).date(parseInt(day)).startOf('day');
-                if (matchDate.isBefore(today.subtract(30, 'day'))) {
-                    matchDate = matchDate.add(1, 'year');
-                }
-            }
-        }
-    }
+    const parts = matchDateStr.split(' ')[0];
+    if (!parts || !parts.includes('.')) return false;
     
-    if (!matchDate || !matchDate.isValid()) {
-        matchDate = dayjs(matchDateStr, ['DD.MM.YYYY', 'YYYY-MM-DD', 'DD.MMM HH:mm:ss']).tz('Europe/Istanbul');
-    }
+    const [dayStr, monthStr] = parts.split('.');
+    const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
+                      'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
+    const matchMonth = monthMap[monthStr];
+    const matchDay = parseInt(dayStr);
     
-    if (!matchDate.isValid()) return true;
+    if (matchMonth === undefined || isNaN(matchDay)) return false;
     
-    return matchDate.isSame(today, 'day') || matchDate.isAfter(today);
+    const currentMonth = now.getMonth();
+    const currentDay = now.getDate();
+    
+    if (matchMonth > currentMonth) return true;
+    if (matchMonth === currentMonth && matchDay >= currentDay) return true;
+    if (matchMonth < currentMonth && currentMonth >= 10 && matchMonth <= 2) return true;
+    
+    return false;
 }
 
 async function loadAlertBand() {
@@ -3326,7 +3322,9 @@ async function loadAlertBand() {
             allAlarms = allAlarms.concat(bigmoney);
         }
         
+        console.log('[AlertBand] Total alarms before filter:', allAlarms.length);
         const filteredAlarms = allAlarms.filter(isMatchTodayOrFuture);
+        console.log('[AlertBand] Alarms after filter (today+future):', filteredAlarms.length);
         
         alertBandData = filteredAlarms.sort((a, b) => (b._score || 0) - (a._score || 0));
         renderAlertBand();
