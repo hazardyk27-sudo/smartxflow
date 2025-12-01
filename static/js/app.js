@@ -3569,25 +3569,29 @@ async function loadAllAlarms() {
     body.innerHTML = '<div class="alarms-loading">Alarmlar yukleniyor...</div>';
     
     try {
-        const [sharpRes, insiderRes, bigMoneyRes] = await Promise.all([
+        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes] = await Promise.all([
             fetch('/api/sharp/alarms').catch(() => ({ ok: false })),
             fetch('/api/insider/alarms').catch(() => ({ ok: false })),
-            fetch('/api/bigmoney/alarms').catch(() => ({ ok: false }))
+            fetch('/api/bigmoney/alarms').catch(() => ({ ok: false })),
+            fetch('/api/volumeshock/alarms').catch(() => ({ ok: false }))
         ]);
         
         const rawSharp = sharpRes.ok ? await sharpRes.json() : [];
         const rawInsider = insiderRes.ok ? await insiderRes.json() : [];
         const rawBigmoney = bigMoneyRes.ok ? await bigMoneyRes.json() : [];
+        const rawVolumeshock = volumeShockRes.ok ? await volumeShockRes.json() : [];
         
         alarmsDataByType.sharp = rawSharp.filter(isMatchTodayOrFuture);
         alarmsDataByType.insider = rawInsider.filter(isMatchTodayOrFuture);
         alarmsDataByType.bigmoney = rawBigmoney.filter(isMatchTodayOrFuture);
+        alarmsDataByType.volumeshock = rawVolumeshock.filter(isMatchTodayOrFuture);
         
         const sharpWithType = alarmsDataByType.sharp.map(a => ({ ...a, _type: 'sharp' }));
         const insiderWithType = alarmsDataByType.insider.map(a => ({ ...a, _type: 'insider' }));
         const bigmoneyWithType = alarmsDataByType.bigmoney.map(a => ({ ...a, _type: 'bigmoney' }));
+        const volumeshockWithType = alarmsDataByType.volumeshock.map(a => ({ ...a, _type: 'volumeshock' }));
         
-        allAlarmsData = [...sharpWithType, ...insiderWithType, ...bigmoneyWithType];
+        allAlarmsData = [...sharpWithType, ...insiderWithType, ...bigmoneyWithType, ...volumeshockWithType];
         
         allAlarmsData.sort((a, b) => {
             const dateA = parseAlarmDate(a.event_time || a.created_at);
@@ -3740,8 +3744,8 @@ function renderAlarmsList(filterType) {
     
     const displayGroups = groups.slice(0, alarmsDisplayCount);
     const hasMore = groups.length > alarmsDisplayCount;
-    const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY' };
-    const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#fb923c' };
+    const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY', volumeshock: 'HACIM SOKU' };
+    const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#fb923c', volumeshock: '#ff6b6b' };
     
     let html = displayGroups.map((group, idx) => {
         const type = group.type;
@@ -3777,6 +3781,10 @@ function renderAlarmsList(filterType) {
             if (isHuge) {
                 centerBadge = '<span class="huge-badge">HUGE</span>';
             }
+        } else if (type === 'volumeshock') {
+            const shockValue = alarm.volume_shock_value || 0;
+            const hoursToKickoff = alarm.hours_to_kickoff || 0;
+            mainValue = `<span class="value-highlight">${shockValue.toFixed(1)}x</span><span class="sep">•</span><span class="value-pct">${hoursToKickoff.toFixed(1)}s önce</span>`;
         }
         
         const timeAgo = formatTimeAgoTR(alarm.event_time || alarm.created_at);
@@ -3788,7 +3796,8 @@ function renderAlarmsList(filterType) {
             'bigmoney': '#fbbf24',
             'sharp': '#22c55e',
             'insider': '#a855f7',
-            'dropping': '#ef4444'
+            'dropping': '#ef4444',
+            'volumeshock': '#ff6b6b'
         };
         const stripeColor = stripeColors[type] || '#64748b';
         
@@ -3796,7 +3805,8 @@ function renderAlarmsList(filterType) {
             'bigmoney': alarm.is_huge ? 'HUGE' : 'BIG',
             'sharp': 'SHARP',
             'insider': 'INSIDER',
-            'dropping': 'DROP'
+            'dropping': 'DROP',
+            'volumeshock': 'HS'
         };
         const typeBadge = typeBadges[type] || type.toUpperCase();
         
@@ -3807,6 +3817,8 @@ function renderAlarmsList(filterType) {
             mainMoney = alarm.volume || alarm.stake || 0;
         } else if (type === 'insider') {
             mainMoney = alarm.stake || alarm.volume || 0;
+        } else if (type === 'volumeshock') {
+            mainMoney = alarm.incoming_money || 0;
         }
         
         let historyHtml = group.history.map((a, i) => {
@@ -3823,17 +3835,24 @@ function renderAlarmsList(filterType) {
             } else if (type === 'bigmoney') {
                 money = a.incoming_money || a.stake || 0;
                 badge = a.is_huge ? 'HUGE' : 'BIG';
+            } else if (type === 'volumeshock') {
+                money = a.incoming_money || 0;
+                badge = 'HS';
             }
             
-            return `
-                <div class="detail-log-item">
-                    <span class="log-time">${time}</span>
-                    <span class="log-sep">–</span>
-                    <span class="log-money">£${Number(money).toLocaleString('en-GB')}</span>
-                    <span class="log-sep">–</span>
-                    <span class="log-badge ${type}">${badge}</span>
-                </div>
-            `;
+            const logContent = type === 'volumeshock' 
+                ? `<span class="log-time">${time}</span>
+                   <span class="log-sep">–</span>
+                   <span class="log-money">${(a.volume_shock_value || 0).toFixed(1)}x</span>
+                   <span class="log-sep">–</span>
+                   <span class="log-badge ${type}">${badge}</span>`
+                : `<span class="log-time">${time}</span>
+                   <span class="log-sep">–</span>
+                   <span class="log-money">£${Number(money).toLocaleString('en-GB')}</span>
+                   <span class="log-sep">–</span>
+                   <span class="log-badge ${type}">${badge}</span>`;
+            
+            return `<div class="detail-log-item">${logContent}</div>`;
         }).join('');
         
         const homeEscaped = home.replace(/'/g, "\\'");
@@ -4067,10 +4086,11 @@ async function loadAllAlarmsOnce() {
     if (cachedAllAlarms) return cachedAllAlarms;
     
     try {
-        const [sharpRes, insiderRes, bigMoneyRes] = await Promise.all([
+        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes] = await Promise.all([
             fetch('/api/sharp/alarms').catch(() => ({ ok: false })),
             fetch('/api/insider/alarms').catch(() => ({ ok: false })),
-            fetch('/api/bigmoney/alarms').catch(() => ({ ok: false }))
+            fetch('/api/bigmoney/alarms').catch(() => ({ ok: false })),
+            fetch('/api/volumeshock/alarms').catch(() => ({ ok: false }))
         ]);
         
         let allAlarms = [];
@@ -4091,6 +4111,12 @@ async function loadAllAlarmsOnce() {
             const bigmoney = await bigMoneyRes.json();
             bigmoney.forEach(a => { a._type = 'bigmoney'; });
             allAlarms = allAlarms.concat(bigmoney);
+        }
+        
+        if (volumeShockRes.ok) {
+            const volumeshock = await volumeShockRes.json();
+            volumeshock.forEach(a => { a._type = 'volumeshock'; });
+            allAlarms = allAlarms.concat(volumeshock);
         }
         
         cachedAllAlarms = allAlarms;
@@ -4165,7 +4191,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
     
     empty.style.display = 'none';
     
-    const grouped = { sharp: [], insider: [], bigmoney: [] };
+    const grouped = { sharp: [], insider: [], bigmoney: [], volumeshock: [] };
     matchAlarms.forEach(a => {
         if (a._type && grouped[a._type]) {
             grouped[a._type].push(a);
@@ -4200,6 +4226,12 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             color: '#A855F7',
             icon: '🕵',
             description: 'Dusuk hacim, yuksek oran dususu.'
+        },
+        volumeshock: {
+            title: 'Hacim Soku',
+            color: '#ff6b6b',
+            icon: '⚡',
+            description: 'Mactan once erken hacim artisi.'
         }
     };
     
@@ -4231,6 +4263,10 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const money = latest.stake || latest.volume || 0;
             const score = latest.insider_score || 0;
             mainText = `<span class="money-value">+£${Number(money).toLocaleString('en-GB')}</span> surekli akis (Skor: ${score.toFixed(1)})`;
+        } else if (type === 'volumeshock') {
+            const shockValue = latest.volume_shock_value || 0;
+            const hoursToKickoff = latest.hours_to_kickoff || 0;
+            mainText = `<span class="money-value">${shockValue.toFixed(1)}x</span> hacim artisi — Mactan ${hoursToKickoff.toFixed(1)}s once`;
         }
         
         cardsHtml += `
@@ -4282,17 +4318,19 @@ function toggleSmartMoneySection() {
 // Update badge on page load
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        const [sharpRes, insiderRes, bigMoneyRes] = await Promise.all([
+        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes] = await Promise.all([
             fetch('/api/sharp/alarms').catch(() => ({ ok: false })),
             fetch('/api/insider/alarms').catch(() => ({ ok: false })),
-            fetch('/api/bigmoney/alarms').catch(() => ({ ok: false }))
+            fetch('/api/bigmoney/alarms').catch(() => ({ ok: false })),
+            fetch('/api/volumeshock/alarms').catch(() => ({ ok: false }))
         ]);
         
         const sharpCount = sharpRes.ok ? (await sharpRes.json()).length : 0;
         const insiderCount = insiderRes.ok ? (await insiderRes.json()).length : 0;
         const bigMoneyCount = bigMoneyRes.ok ? (await bigMoneyRes.json()).length : 0;
+        const volumeShockCount = volumeShockRes.ok ? (await volumeShockRes.json()).length : 0;
         
-        const total = sharpCount + insiderCount + bigMoneyCount;
+        const total = sharpCount + insiderCount + bigMoneyCount + volumeShockCount;
         const badge = document.getElementById('tabAlarmBadge');
         if (badge) badge.textContent = total;
     } catch (e) {
