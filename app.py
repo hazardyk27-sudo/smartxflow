@@ -1547,12 +1547,12 @@ def calculate_big_money_scores(config):
                             huge_total = big_money_snapshots[j]['incoming'] + big_money_snapshots[j+1]['incoming']
                             break
                     
-                    # En büyük gelen parayı bul
-                    max_incoming = max(s['incoming'] for s in big_money_snapshots)
-                    last_snapshot = big_money_snapshots[-1]
+                    # En büyük gelen parayı bulan snapshot'ı bul
+                    max_snapshot = max(big_money_snapshots, key=lambda s: s['incoming'])
+                    max_incoming = max_snapshot['incoming']
                     
-                    # Event time: hareketin gerçekleştiği snapshot zamanı
-                    event_time = last_snapshot.get('scrapedat', '')
+                    # Event time: en büyük para girişinin olduğu snapshot zamanı
+                    event_time = max_snapshot.get('scrapedat', '')
                     created_at = now_turkey().strftime('%d.%m.%Y %H:%M')
                     
                     alarm = {
