@@ -504,6 +504,10 @@
                 <span class="nav-item-icon">💰</span>
                 <span>Big Money</span>
             </div>
+            <div class="nav-item" onclick="showPage('volumeshock')" data-page="volumeshock">
+                <span class="nav-item-icon">⚡</span>
+                <span>Hacim Soku</span>
+            </div>
         </nav>
         <div class="sidebar-footer">
             <a href="/" class="back-home">
@@ -883,6 +887,78 @@
             </div>
         </div>
 
+        <!-- VOLUME SHOCK (HACIM SOKU) PAGE -->
+        <div id="page-volumeshock" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title" style="color: #ff6b6b;">⚡ Hacim Soku</h2>
+                    <p class="page-subtitle">Mactan yeterince once gelen buyuk hacim artislarini tespit et</p>
+                </div>
+            </div>
+
+            <div class="grid-two-col">
+                <div class="info-card">
+                    <h3>⚡ Hacim Soku Alarm Ayarlari</h3>
+                    <div class="info-row">
+                        <span class="info-label">Hacim Soku Minimum Saat</span>
+                        <input type="number" id="volumeShockMinSaat" class="config-input" value="5" min="1" max="24" step="0.5" style="width: 80px;">
+                        <span style="color: #8b949e; font-size: 11px; margin-left: 8px;">Mactan en az kac saat once?</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Hacim Soku Minimum Deger</span>
+                        <input type="number" id="volumeShockMinEsik" class="config-input" value="4" min="2" max="20" step="0.5" style="width: 80px;">
+                        <span style="color: #8b949e; font-size: 11px; margin-left: 8px;">Kac katlik sok? (ornegin 4 = 4x)</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="saveVolumeShockConfig()" style="background: #ff6b6b;">
+                            <span class="btn-icon">💾</span> Kaydet
+                        </button>
+                        <button class="btn btn-success" onclick="calculateVolumeShock()" style="background: #238636;">
+                            <span class="btn-icon">⚡</span> Hacim Soku Hesapla
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteVolumeShockAlarms()" style="background: #da3633;">
+                            <span class="btn-icon">🗑️</span> Alarmlari Sil
+                        </button>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>📖 Nasil Calisir?</h3>
+                    <div style="font-size: 12px; color: #8b949e; line-height: 1.6;">
+                        <p><strong style="color: #ff6b6b;">⚡ HACIM SOKU:</strong> Mactan yeterince ONCE gelen yuksek hacim artisi</p>
+                        <p>Ornek: Mactan 6 saat once 5x hacim soku → ALARM</p>
+                        <p>Ornek: Mactan 1 saat once 10x hacim soku → ALARM YOK (maca cok yakin)</p>
+                        <p style="margin-top: 10px; padding: 8px; background: #21262d; border-radius: 6px;">
+                            <strong style="color: #ff6b6b;">Mantik:</strong> Gercek "inside info" mac saatinden cok once gelir. Mac yaklastiginda gelen hacim normal market hareketleri olabilir.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-card" style="margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0; color: #ff6b6b;">⚡ Hacim Soku Alarmlar <span id="volumeShockAlarmCount" class="badge" style="background: #ff6b6b;">0</span></h3>
+                    <div style="position: relative;">
+                        <input type="text" id="volumeShockSearchInput" placeholder="Takim ara..." 
+                               oninput="filterVolumeShockAlarms()" 
+                               style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 200px;">
+                        <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                    </div>
+                </div>
+                <div id="volumeShockCalcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #ff6b6b;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="spinner" style="width: 20px; height: 20px; border: 3px solid #30363d; border-top-color: #ff6b6b; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span id="volumeShockCalcProgress" style="color: #ff6b6b; font-weight: 500;">Hesaplama devam ediyor...</span>
+                    </div>
+                </div>
+                <div id="volumeShockAlarmList" class="alarm-list">
+                    <p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz Hacim Soku alarm yok. "⚡ Hacim Soku Hesapla" butonuna basin.</p>
+                </div>
+            </div>
+        </div>
+
         <div id="page-system" class="page-content">
             <div class="page-header">
                 <div>
@@ -956,6 +1032,7 @@
             if (pageId === 'sharp') loadSharpAlarms();
             if (pageId === 'insider') loadInsiderPage();
             if (pageId === 'bigmoney') loadBigMoneyPage();
+            if (pageId === 'volumeshock') loadVolumeShockPage();
         }
 
         function showToast(message, type = 'info') {
@@ -1717,6 +1794,213 @@
                 showToast('Baglanti hatasi!', 'error');
             }
         }
+
+        // =====================================================
+        // VOLUME SHOCK (HACIM SOKU) FUNCTIONS
+        // =====================================================
+        
+        let allVolumeShockAlarms = [];
+        
+        async function loadVolumeShockPage() {
+            await loadVolumeShockConfig();
+            await loadVolumeShockAlarms();
+        }
+        
+        async function loadVolumeShockConfig() {
+            try {
+                const response = await fetch('/api/volumeshock/config');
+                const config = await response.json();
+                document.getElementById('volumeShockMinSaat').value = config.hacim_soku_min_saat || 5;
+                document.getElementById('volumeShockMinEsik').value = config.hacim_soku_min_esik || 4;
+            } catch (error) {
+                console.error('Volume Shock config load error:', error);
+            }
+        }
+        
+        async function loadVolumeShockAlarms() {
+            try {
+                const response = await fetch('/api/volumeshock/alarms');
+                const alarms = await response.json();
+                allVolumeShockAlarms = alarms;
+                renderVolumeShockAlarms(alarms);
+            } catch (error) {
+                console.error('Volume Shock alarms load error:', error);
+            }
+        }
+        
+        function renderVolumeShockAlarms(alarms, totalCount = null) {
+            const container = document.getElementById('volumeShockAlarmList');
+            const countBadge = document.getElementById('volumeShockAlarmCount');
+            
+            countBadge.textContent = totalCount !== null ? `${alarms.length}/${totalCount}` : alarms.length;
+            
+            if (!alarms || alarms.length === 0) {
+                container.innerHTML = '<p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz Hacim Soku alarm yok.</p>';
+                return;
+            }
+            
+            container.innerHTML = alarms.map((alarm, idx) => {
+                const shockValue = alarm.volume_shock_value || 0;
+                const hoursToKickoff = alarm.hours_to_kickoff || 0;
+                
+                return `
+                <div class="alarm-item" onclick="showVolumeShockAlarmDetail(${idx})" style="border-left: 3px solid #ff6b6b;">
+                    <div class="alarm-info">
+                        <div class="alarm-match">
+                            <span style="background:#ff6b6b;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">⚡ HACIM SOKU</span>
+                            ${alarm.home} vs ${alarm.away}
+                        </div>
+                        <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
+                        <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
+                            <span style="color: #ff6b6b;" title="Sok Degeri">⚡ Sok: ${shockValue.toFixed(1)}x</span>
+                            <span style="color: #58a6ff;" title="Mactan Once">⏰ Mactan ${hoursToKickoff.toFixed(1)}s once</span>
+                            <span style="color: #3fb950;" title="Gelen Para">💰 £${Math.round(alarm.incoming_money || 0).toLocaleString()}</span>
+                        </div>
+                    </div>
+                    <div class="alarm-score" style="background: linear-gradient(135deg, #ff6b6b, #ff4757);">${shockValue.toFixed(1)}x</div>
+                </div>
+            `}).join('');
+            
+            window.currentVolumeShockAlarms = alarms;
+        }
+        
+        function filterVolumeShockAlarms() {
+            const searchTerm = document.getElementById('volumeShockSearchInput').value.toLowerCase().trim();
+            if (!searchTerm) {
+                renderVolumeShockAlarms(allVolumeShockAlarms);
+                return;
+            }
+            const filtered = allVolumeShockAlarms.filter(alarm => 
+                (alarm.home || '').toLowerCase().includes(searchTerm) ||
+                (alarm.away || '').toLowerCase().includes(searchTerm)
+            );
+            renderVolumeShockAlarms(filtered, allVolumeShockAlarms.length);
+        }
+        
+        async function saveVolumeShockConfig() {
+            const config = {
+                hacim_soku_min_saat: parseFloat(document.getElementById('volumeShockMinSaat').value) || 5,
+                hacim_soku_min_esik: parseFloat(document.getElementById('volumeShockMinEsik').value) || 4
+            };
+            
+            try {
+                const response = await fetch('/api/volumeshock/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                if (response.ok) {
+                    showToast('Hacim Soku ayarlari kaydedildi!', 'success');
+                } else {
+                    showToast('Kayit hatasi!', 'error');
+                }
+            } catch (error) {
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+        
+        async function deleteVolumeShockAlarms() {
+            if (!confirm('Tum Hacim Soku alarmlari silinecek. Emin misiniz?')) return;
+            
+            try {
+                const response = await fetch('/api/volumeshock/delete', { method: 'POST' });
+                if (response.ok) {
+                    showToast('Tum Hacim Soku alarmlar silindi!', 'success');
+                    loadVolumeShockAlarms();
+                } else {
+                    showToast('Silme hatasi!', 'error');
+                }
+            } catch (error) {
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+        
+        function showVolumeShockCalcStatus() {
+            const statusEl = document.getElementById('volumeShockCalcStatus');
+            if (statusEl) statusEl.style.display = 'block';
+        }
+        
+        function hideVolumeShockCalcStatus() {
+            const statusEl = document.getElementById('volumeShockCalcStatus');
+            if (statusEl) statusEl.style.display = 'none';
+        }
+        
+        async function calculateVolumeShock() {
+            showVolumeShockCalcStatus();
+            document.getElementById('volumeShockCalcProgress').textContent = 'Hacim Soku hesaplaniyor...';
+            
+            try {
+                const response = await fetch('/api/volumeshock/calculate', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Poll for completion
+                    let checkCount = 0;
+                    const maxChecks = 60;
+                    const checkInterval = setInterval(async () => {
+                        checkCount++;
+                        try {
+                            const statusRes = await fetch('/api/volumeshock/status');
+                            const status = await statusRes.json();
+                            
+                            document.getElementById('volumeShockCalcProgress').textContent = status.progress || 'Hesaplaniyor...';
+                            
+                            if (!status.calculating || checkCount >= maxChecks) {
+                                clearInterval(checkInterval);
+                                hideVolumeShockCalcStatus();
+                                showToast(`Hacim Soku hesaplandi! ${status.alarm_count || 0} alarm bulundu.`, 'success');
+                                loadVolumeShockAlarms();
+                            }
+                        } catch (e) {
+                            clearInterval(checkInterval);
+                            hideVolumeShockCalcStatus();
+                        }
+                    }, 2000);
+                } else {
+                    hideVolumeShockCalcStatus();
+                    showToast('Hesaplama hatasi: ' + (data.error || 'Bilinmeyen hata'), 'error');
+                }
+            } catch (error) {
+                hideVolumeShockCalcStatus();
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+        
+        function showVolumeShockAlarmDetail(idx) {
+            const alarm = window.currentVolumeShockAlarms[idx];
+            if (!alarm) return;
+
+            const modal = document.getElementById('alarmDetailModal');
+            const body = document.getElementById('alarmDetailBody');
+
+            body.innerHTML = `
+                <div class="detail-section">
+                    <h4>⚡ Hacim Soku Alarm Detayi</h4>
+                    <div class="detail-row"><span class="detail-label">Mac</span><span class="detail-value">${alarm.home} vs ${alarm.away}</span></div>
+                    <div class="detail-row"><span class="detail-label">Market</span><span class="detail-value">${alarm.market}</span></div>
+                    <div class="detail-row"><span class="detail-label">Secenek</span><span class="detail-value">${alarm.selection}</span></div>
+                    <div class="detail-row"><span class="detail-label">Mac Tarihi</span><span class="detail-value" style="color: #58a6ff;">${alarm.match_date || '-'}</span></div>
+                    <div class="detail-row"><span class="detail-label">Hesaplama Tarihi</span><span class="detail-value">${alarm.created_at || '-'}</span></div>
+                </div>
+                <div class="detail-section">
+                    <h4 style="color: #ff6b6b;">⚡ Hacim Soku Metrikleri</h4>
+                    <div class="detail-row"><span class="detail-label">Sok Degeri</span><span class="detail-value highlight" style="color: #ff6b6b;">${(alarm.volume_shock_value || 0).toFixed(2)}x</span></div>
+                    <div class="detail-row"><span class="detail-label">Mactan Once</span><span class="detail-value" style="color: #58a6ff;">${(alarm.hours_to_kickoff || 0).toFixed(1)} saat</span></div>
+                    <div class="detail-row"><span class="detail-label">Gelen Para</span><span class="detail-value" style="color: #3fb950;">£${Math.round(alarm.incoming_money || 0).toLocaleString()}</span></div>
+                </div>
+                <div class="detail-section">
+                    <h4>⚙️ Kullanilan Esikler</h4>
+                    <div class="detail-row"><span class="detail-label">Min Saat Esigi</span><span class="detail-value">${alarm.hacim_soku_min_saat || 5} saat</span></div>
+                    <div class="detail-row"><span class="detail-label">Min Sok Esigi</span><span class="detail-value">${alarm.hacim_soku_min_esik || 4}x</span></div>
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+        
+        // =====================================================
+        // END VOLUME SHOCK FUNCTIONS
+        // =====================================================
 
         function showBigMoneyCalcStatus() {
             const statusEl = document.getElementById('bigMoneyCalcStatus');
