@@ -3388,7 +3388,7 @@ function renderAlertBand() {
                 <span class="alert-band-dot ${info.color}"></span>
                 <span class="alert-band-type ${info.pillClass}">${info.label}</span>
                 <span class="alert-band-match">${home} - ${away}</span>
-                <span class="alert-band-selection">[${selection}]</span>
+                <span class="alert-band-selection">${selection}</span>
                 <span class="alert-band-value ${valueClass}">${value}</span>
             </div>
         `;
