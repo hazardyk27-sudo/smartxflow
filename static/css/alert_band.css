@@ -173,7 +173,8 @@
     color: #4ade80;
 }
 
-.alert-band-value.negative {
+.alert-band-value.negative,
+.alert-band-value.insider {
     color: #f87171;
 }
 

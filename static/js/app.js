@@ -3348,12 +3348,13 @@ function renderAlertBand() {
         const away = alarm.away || alarm.away_team || '?';
         const value = formatAlertValue(alarm);
         
+        const valueClass = alarm._type === 'insider' ? 'insider' : '';
         return `
             <div class="alert-band-pill ${info.pillClass}" onclick="showAlertBandDetail(${idx})">
                 <span class="alert-band-dot ${info.color}"></span>
                 <span class="alert-band-type ${info.pillClass}">${info.label}</span>
                 <span class="alert-band-match">${home} - ${away}</span>
-                <span class="alert-band-value">${value}</span>
+                <span class="alert-band-value ${valueClass}">${value}</span>
             </div>
         `;
     }).join('');
