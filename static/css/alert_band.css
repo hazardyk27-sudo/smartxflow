@@ -145,3 +145,24 @@
 .alert-band.hidden {
     display: none;
 }
+
+/* SX Alert Pill - Centered content */
+.sx-alert-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 4px 12px;
+}
+
+.sx-alert-pill-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sx-alert-pill-score {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
