@@ -3259,85 +3259,87 @@ function attachTrendTooltipListeners() {
     });
 }
 
-let tickerAlarms = [];
+// ============================================
+// SX ALERT STRIP - YENİ BANT FONKSİYONLARI
+// ============================================
 
-async function loadTickerAlarms() {
+let sxAlerts = [];
+
+async function loadSxAlerts() {
     try {
         const resp = await fetch('/api/sharp/alarms');
         if (resp.ok) {
-            tickerAlarms = await resp.json();
-            renderTicker();
+            sxAlerts = await resp.json();
+            renderSxAlertStrip();
         }
     } catch (e) {
-        console.error('[Ticker] Load error:', e);
+        console.error('[SxAlert] Load error:', e);
     }
 }
 
-function getScoreColor(score) {
-    if (score >= 80) return { color: '#ff4444', rgb: '255, 68, 68', label: 'CRITICAL' };
-    if (score >= 60) return { color: '#ff8800', rgb: '255, 136, 0', label: 'HIGH' };
-    if (score >= 40) return { color: '#ffcc00', rgb: '255, 204, 0', label: 'MEDIUM' };
-    return { color: '#4ade80', rgb: '74, 222, 128', label: 'LOW' };
+function getSxAlertLevel(score) {
+    if (score >= 80) return { level: 'critical', label: 'CRITICAL' };
+    if (score >= 60) return { level: 'high', label: 'HIGH' };
+    if (score >= 40) return { level: 'medium', label: 'MEDIUM' };
+    return { level: 'low', label: 'LOW' };
 }
 
-function renderTicker() {
-    const track = document.getElementById('tickerTrack');
-    const ticker = document.getElementById('smartMoneyTicker');
-    if (!track || !ticker) return;
+function renderSxAlertStrip() {
+    const track = document.getElementById('sxAlertTrack');
+    const strip = document.getElementById('sxAlertStrip');
+    if (!track || !strip) return;
     
-    if (!tickerAlarms || tickerAlarms.length === 0) {
-        ticker.classList.add('hidden');
+    if (!sxAlerts || sxAlerts.length === 0) {
+        strip.classList.add('hidden');
         return;
     }
     
-    ticker.classList.remove('hidden');
+    strip.classList.remove('hidden');
     
-    const sortedAlarms = [...tickerAlarms].sort((a, b) => (b.sharp_score || 0) - (a.sharp_score || 0));
-    const topAlarms = sortedAlarms.slice(0, 20);
+    const sortedAlerts = [...sxAlerts].sort((a, b) => (b.sharp_score || 0) - (a.sharp_score || 0));
+    const topAlerts = sortedAlerts.slice(0, 20);
     
-    let pillsHtml = topAlarms.map(alarm => {
-        const scoreInfo = getScoreColor(alarm.sharp_score || 0);
-        const home = alarm.home || '?';
-        const away = alarm.away || '?';
-        const score = (alarm.sharp_score || 0).toFixed(0);
+    let pillsHtml = topAlerts.map(alert => {
+        const levelInfo = getSxAlertLevel(alert.sharp_score || 0);
+        const home = alert.home || '?';
+        const away = alert.away || '?';
+        const score = (alert.sharp_score || 0).toFixed(0);
         
         return `
-            <div class="ticker-pill" style="--pill-color: ${scoreInfo.color}; --pill-color-rgb: ${scoreInfo.rgb};" 
-                 onclick="showTickerAlarmDetail('${encodeURIComponent(JSON.stringify(alarm))}')">
-                <span class="pill-dot" style="background: ${scoreInfo.color};"></span>
-                <span class="pill-type" style="color: ${scoreInfo.color};">${scoreInfo.label}</span>
-                <span class="pill-match">${home} vs ${away}</span>
-                <span class="pill-score" style="color: ${scoreInfo.color};">${score}</span>
+            <div class="sx-alert-pill" data-level="${levelInfo.level}" 
+                 onclick="showSxAlertDetail('${encodeURIComponent(JSON.stringify(alert))}')">
+                <span class="sx-alert-dot"></span>
+                <span class="sx-alert-type">${levelInfo.label}</span>
+                <span class="sx-alert-match">${home} vs ${away}</span>
+                <span class="sx-alert-score">${score}</span>
             </div>
         `;
     }).join('');
     
-    track.innerHTML = pillsHtml + pillsHtml;
-    
-    track.style.animation = `tickerScroll 30s linear infinite`;
+    track.innerHTML = pillsHtml;
 }
 
-function showTickerAlarmDetail(encodedAlarm) {
+function showSxAlertDetail(encodedAlert) {
     try {
-        const alarm = JSON.parse(decodeURIComponent(encodedAlarm));
-        const scoreInfo = getScoreColor(alarm.sharp_score || 0);
+        const alert = JSON.parse(decodeURIComponent(encodedAlert));
+        const levelInfo = getSxAlertLevel(alert.sharp_score || 0);
         
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
-        modal.id = 'tickerAlarmModal';
+        modal.id = 'sxAlertModal';
         modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
         
-        const matchDate = alarm.match_date || '-';
-        const createdAt = alarm.created_at || '-';
+        const matchDate = alert.match_date || '-';
+        const createdAt = alert.created_at || '-';
         
         modal.innerHTML = `
             <div class="modal-content" style="max-width: 500px;">
                 <div class="modal-header">
                     <h2 style="display: flex; align-items: center; gap: 10px;">
-                        <span class="pill-dot" style="background: ${scoreInfo.color}; width: 14px; height: 14px; border-radius: 50%; display: inline-block;"></span>
+                        <span class="sx-alert-dot" style="width: 14px; height: 14px;"></span>
                         Sharp Money Alarm
                     </h2>
-                    <button class="close-btn" onclick="document.getElementById('tickerAlarmModal').remove()">
+                    <button class="close-btn" onclick="document.getElementById('sxAlertModal').remove()">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                         </svg>
@@ -3345,14 +3347,14 @@ function showTickerAlarmDetail(encodedAlarm) {
                 </div>
                 <div class="modal-body" style="padding: 20px;">
                     <div style="text-align: center; margin-bottom: 20px;">
-                        <div style="font-size: 48px; font-weight: 700; color: ${scoreInfo.color};">${(alarm.sharp_score || 0).toFixed(1)}</div>
+                        <div style="font-size: 48px; font-weight: 700; color: #ef4444;">${(alert.sharp_score || 0).toFixed(1)}</div>
                         <div style="color: #8b949e; font-size: 14px;">Sharp Score</div>
                     </div>
                     
                     <div style="background: #21262d; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
                         <div style="color: #8b949e; font-size: 12px; margin-bottom: 8px;">MAÇ VE SEÇİM</div>
-                        <div style="font-size: 18px; font-weight: 600; color: #e6edf3;">${alarm.home || '?'} vs ${alarm.away || '?'}</div>
-                        <div style="color: #8b949e; margin-top: 4px;">${alarm.market || '-'} | Seçim: <span style="color: #58a6ff; font-weight: 600;">${alarm.selection || '-'}</span></div>
+                        <div style="font-size: 18px; font-weight: 600; color: #e6edf3;">${alert.home || '?'} vs ${alert.away || '?'}</div>
+                        <div style="color: #8b949e; margin-top: 4px;">${alert.market || '-'} | Seçim: <span style="color: #58a6ff; font-weight: 600;">${alert.selection || '-'}</span></div>
                         <div style="color: #58a6ff; margin-top: 8px; font-size: 13px;">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
                                 <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
@@ -3363,19 +3365,19 @@ function showTickerAlarmDetail(encodedAlarm) {
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                         <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="color: #4ade80; font-size: 20px; font-weight: 700;">${alarm.volume ? '£' + Number(alarm.volume).toLocaleString() : '-'}</div>
+                            <div style="color: #4ade80; font-size: 20px; font-weight: 700;">${alert.volume ? '£' + Number(alert.volume).toLocaleString() : '-'}</div>
                             <div style="color: #8b949e; font-size: 11px;">Volume</div>
                         </div>
                         <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="color: #f0883e; font-size: 20px; font-weight: 700;">${alarm.stake_share ? alarm.stake_share.toFixed(1) + '%' : '-'}</div>
+                            <div style="color: #f0883e; font-size: 20px; font-weight: 700;">${alert.stake_share ? alert.stake_share.toFixed(1) + '%' : '-'}</div>
                             <div style="color: #8b949e; font-size: 11px;">Stake Share</div>
                         </div>
                         <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="color: #58a6ff; font-size: 20px; font-weight: 700;">${alarm.odds_move ? (alarm.odds_move > 0 ? '+' : '') + alarm.odds_move.toFixed(2) : '-'}</div>
+                            <div style="color: #58a6ff; font-size: 20px; font-weight: 700;">${alert.odds_move ? (alert.odds_move > 0 ? '+' : '') + alert.odds_move.toFixed(2) : '-'}</div>
                             <div style="color: #8b949e; font-size: 11px;">Odds Move</div>
                         </div>
                         <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="color: #a371f7; font-size: 20px; font-weight: 700;">${alarm.volume_shock ? alarm.volume_shock.toFixed(1) + 'x' : '-'}</div>
+                            <div style="color: #a371f7; font-size: 20px; font-weight: 700;">${alert.volume_shock ? alert.volume_shock.toFixed(1) + 'x' : '-'}</div>
                             <div style="color: #8b949e; font-size: 11px;">Volume Shock</div>
                         </div>
                     </div>
@@ -3389,13 +3391,13 @@ function showTickerAlarmDetail(encodedAlarm) {
         
         document.body.appendChild(modal);
     } catch (e) {
-        console.error('[Ticker] Detail error:', e);
+        console.error('[SxAlert] Detail error:', e);
     }
 }
 
-setInterval(loadTickerAlarms, 60000);
+setInterval(loadSxAlerts, 60000);
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(loadTickerAlarms, 1000);
+    setTimeout(loadSxAlerts, 1000);
 });
 
 // ============================================
