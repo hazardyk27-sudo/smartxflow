@@ -331,6 +331,69 @@
             border-radius: 6px;
         }
         
+        /* Insider Accordion Styles */
+        .insider-accordion-wrapper {
+            border-bottom: 1px solid #21262d;
+        }
+        .insider-accordion-wrapper:last-child {
+            border-bottom: none;
+        }
+        .insider-accordion-wrapper .alarm-item {
+            border-bottom: none;
+        }
+        .insider-accordion-wrapper .alarm-item.expanded {
+            background: #1c2128;
+            border-bottom: 1px solid #30363d;
+        }
+        .insider-detail-panel {
+            background: #0d1117;
+            border-left: 3px solid #a371f7;
+            padding: 16px 20px;
+            margin-left: 3px;
+        }
+        .insider-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        @media (max-width: 900px) {
+            .insider-detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .insider-detail-section {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .insider-detail-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #a371f7;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .insider-detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #21262d;
+        }
+        .insider-detail-row:last-child {
+            border-bottom: none;
+        }
+        .insider-detail-label {
+            color: #8b949e;
+            font-size: 13px;
+        }
+        .insider-detail-value {
+            color: #e6edf3;
+            font-size: 14px;
+        }
+        
         .modal {
             position: fixed;
             top: 0;
@@ -1285,6 +1348,8 @@
             }
         }
 
+        let expandedInsiderAlarms = {};
+        
         function renderInsiderAlarms(alarms, totalCount = null) {
             const container = document.getElementById('insiderAlarmList');
             const countEl = document.getElementById('insiderAlarmCount');
@@ -1302,27 +1367,113 @@
             }
 
             countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
-            container.innerHTML = alarms.map((alarm, idx) => `
-                <div class="alarm-item" onclick="showInsiderAlarmDetail(${idx})" style="border-left: 3px solid #a371f7;">
-                    <div class="alarm-info">
-                        <div class="alarm-match">
-                            <span style="background:#a371f7;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">🕵️ INSIDER</span>
-                            ${alarm.home} vs ${alarm.away}
+            container.innerHTML = alarms.map((alarm, idx) => {
+                const alarmKey = `${alarm.home}_${alarm.away}_${alarm.market}_${alarm.selection}`;
+                const isExpanded = expandedInsiderAlarms[alarmKey] || false;
+                const expandIcon = isExpanded ? '▼' : '▶';
+                
+                const eventTime = alarm.event_time || alarm.created_at || '-';
+                let formattedEventTime = '-';
+                if (eventTime && eventTime !== '-') {
+                    try {
+                        const dt = new Date(eventTime);
+                        formattedEventTime = dt.toLocaleString('tr-TR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit'});
+                    } catch(e) { formattedEventTime = eventTime; }
+                }
+                
+                return `
+                <div class="insider-accordion-wrapper">
+                    <div class="alarm-item ${isExpanded ? 'expanded' : ''}" onclick="toggleInsiderAccordion('${alarmKey}', ${idx})" style="border-left: 3px solid #a371f7; cursor: pointer;">
+                        <div class="alarm-info">
+                            <div class="alarm-match">
+                                <span style="margin-right: 6px; color: #8b949e; font-size: 10px;">${expandIcon}</span>
+                                <span style="background:#a371f7;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">🕵️ INSIDER</span>
+                                ${alarm.home} vs ${alarm.away}
+                            </div>
+                            <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
+                            <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
+                                <span style="color: #f0883e;" title="Hacim Soku">⚡ HacimSok &lt; ${alarm.insider_hacim_sok_esigi || 2}: ${(alarm.hacim_sok || 0).toFixed(2)}x</span>
+                                <span style="color: #a371f7;" title="Oran Dususu">📉 OranDusus ≥ ${alarm.insider_oran_dusus_esigi || 3}%: ${(alarm.oran_dusus_pct || 0).toFixed(1)}%</span>
+                                <span style="color: #58a6ff;" title="Gelen Para">💰 GelenPara &lt; £${alarm.insider_max_para || 5000}: £${Math.round(alarm.gelen_para || 0).toLocaleString()}</span>
+                                <span style="color: #f0b429;" title="Son Oran">🎯 Oran ≤ ${alarm.insider_max_odds_esigi || 10}: ${(alarm.last_odds || 0).toFixed(2)}</span>
+                                <span style="color: #3fb950;" title="Sure">⏱️ ${alarm.insider_sure_dakika || 30}dk (${alarm.snapshot_count || 3} snapshot)</span>
+                            </div>
                         </div>
-                        <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
-                        <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
-                            <span style="color: #f0883e;" title="Hacim Soku">⚡ HacimSok &lt; ${alarm.insider_hacim_sok_esigi || 2}: ${(alarm.hacim_sok || 0).toFixed(2)}x</span>
-                            <span style="color: #a371f7;" title="Oran Dususu">📉 OranDusus ≥ ${alarm.insider_oran_dusus_esigi || 3}%: ${(alarm.oran_dusus_pct || 0).toFixed(1)}%</span>
-                            <span style="color: #58a6ff;" title="Gelen Para">💰 GelenPara &lt; £${alarm.insider_max_para || 5000}: £${Math.round(alarm.gelen_para || 0).toLocaleString()}</span>
-                            <span style="color: #f0b429;" title="Son Oran">🎯 Oran ≤ ${alarm.insider_max_odds_esigi || 10}: ${(alarm.last_odds || 0).toFixed(2)}</span>
-                            <span style="color: #3fb950;" title="Sure">⏱️ ${alarm.insider_sure_dakika || 30}dk (${alarm.snapshot_count || 3} snapshot)</span>
+                        <div class="alarm-score" style="background: linear-gradient(135deg, #a371f7, #8b5cf6);">🕵️</div>
+                    </div>
+                    <div class="insider-detail-panel" id="insider_detail_${idx}" style="display: ${isExpanded ? 'block' : 'none'};">
+                        <div class="insider-detail-grid">
+                            <div class="insider-detail-section">
+                                <div class="insider-detail-title">📊 DOĞRULAMA BİLGİLERİ</div>
+                                <div class="insider-detail-row">
+                                    <span class="insider-detail-label">Oran Düşüşü:</span>
+                                    <span class="insider-detail-value" style="color: #ef4444; font-weight: 700;">${(alarm.oran_dusus_pct || 0).toFixed(2)}%</span>
+                                </div>
+                                <div class="insider-detail-row">
+                                    <span class="insider-detail-label">Gelen Para:</span>
+                                    <span class="insider-detail-value" style="color: #22c55e; font-weight: 700;">£${Math.round(alarm.gelen_para || 0).toLocaleString()}</span>
+                                </div>
+                                <div class="insider-detail-row">
+                                    <span class="insider-detail-label">Hacim Şok:</span>
+                                    <span class="insider-detail-value" style="color: #f59e0b; font-weight: 700;">${(alarm.hacim_sok || 0).toFixed(4)}x</span>
+                                </div>
+                            </div>
+                            <div class="insider-detail-section">
+                                <div class="insider-detail-title">⚽ MAÇ BİLGİSİ</div>
+                                <div class="insider-detail-row">
+                                    <span class="insider-detail-label">Maç Saati:</span>
+                                    <span class="insider-detail-value" style="color: #58a6ff;">${alarm.match_date || '-'}</span>
+                                </div>
+                                <div class="insider-detail-row">
+                                    <span class="insider-detail-label">Açılış Oranı:</span>
+                                    <span class="insider-detail-value">${alarm.opening_odds || '-'}</span>
+                                </div>
+                                <div class="insider-detail-row">
+                                    <span class="insider-detail-label">Son Oran:</span>
+                                    <span class="insider-detail-value">${alarm.last_odds || '-'}</span>
+                                </div>
+                            </div>
+                            <div class="insider-detail-section">
+                                <div class="insider-detail-title">📸 SNAPSHOT BİLGİSİ</div>
+                                <div class="insider-detail-row">
+                                    <span class="insider-detail-label">Snapshot Sayısı:</span>
+                                    <span class="insider-detail-value" style="color: #3fb950;">${alarm.snapshot_count || 3}</span>
+                                </div>
+                                <div class="insider-detail-row">
+                                    <span class="insider-detail-label">Alarm Zamanı:</span>
+                                    <span class="insider-detail-value" style="color: #a371f7; font-size: 12px;">${formattedEventTime}</span>
+                                </div>
+                                <div class="insider-detail-row">
+                                    <span class="insider-detail-label">Hesaplama:</span>
+                                    <span class="insider-detail-value" style="font-size: 12px;">${alarm.created_at || '-'}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="alarm-score" style="background: linear-gradient(135deg, #a371f7, #8b5cf6);">🕵️</div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
 
             window.currentInsiderAlarms = alarms;
+        }
+        
+        function toggleInsiderAccordion(alarmKey, idx) {
+            expandedInsiderAlarms[alarmKey] = !expandedInsiderAlarms[alarmKey];
+            const detailPanel = document.getElementById('insider_detail_' + idx);
+            const alarmItem = detailPanel?.previousElementSibling;
+            
+            if (expandedInsiderAlarms[alarmKey]) {
+                detailPanel.style.display = 'block';
+                if (alarmItem) alarmItem.classList.add('expanded');
+            } else {
+                detailPanel.style.display = 'none';
+                if (alarmItem) alarmItem.classList.remove('expanded');
+            }
+            
+            const expandIcon = alarmItem?.querySelector('.alarm-match span:first-child');
+            if (expandIcon) {
+                expandIcon.textContent = expandedInsiderAlarms[alarmKey] ? '▼' : '▶';
+            }
         }
 
         function filterInsiderAlarms() {
