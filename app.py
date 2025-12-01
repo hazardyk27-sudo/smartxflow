@@ -131,7 +131,7 @@ def start_cleanup_scheduler():
 
 def run_alarm_calculations():
     """Run all alarm calculations"""
-    global sharp_alarms, insider_alarms, big_money_alarms, last_alarm_calc_time
+    global sharp_alarms, insider_alarms, big_money_alarms, volume_shock_alarms, last_alarm_calc_time
     
     try:
         print(f"[Alarm Scheduler] Starting alarm calculations at {now_turkey_iso()}")
@@ -165,6 +165,16 @@ def run_alarm_calculations():
                 print(f"[Alarm Scheduler] BigMoney: {len(big_money_alarms)} alarms")
         except Exception as e:
             print(f"[Alarm Scheduler] BigMoney error: {e}")
+        
+        # Volume Shock alarms
+        try:
+            new_volumeshock = calculate_volume_shock_scores(volume_shock_config)
+            if new_volumeshock:
+                volume_shock_alarms = new_volumeshock
+                save_volume_shock_alarms_to_file(volume_shock_alarms)
+                print(f"[Alarm Scheduler] VolumeShock: {len(volume_shock_alarms)} alarms")
+        except Exception as e:
+            print(f"[Alarm Scheduler] VolumeShock error: {e}")
         
         last_alarm_calc_time = now_turkey_iso()
         print(f"[Alarm Scheduler] Completed at {last_alarm_calc_time}")
@@ -1217,7 +1227,8 @@ def calculate_insider_scores(config):
                             'odds_drop_pct': odds_drop_pct,
                             'hacim_sok': hacim_sok,
                             'gelen_para': gelen_para,
-                            'amount_change': amount_change
+                            'amount_change': amount_change,
+                            'amount': current_amount  # Store actual amount for window calculation
                         })
                     
                     # Check rolling windows for consecutive qualifying snapshots
@@ -1268,7 +1279,11 @@ def calculate_insider_scores(config):
                         
                         # Calculate averages over the window
                         avg_hacim_sok = sum(s['hacim_sok'] for s in best_window) / len(best_window)
-                        avg_gelen_para = sum(s['gelen_para'] for s in best_window) / len(best_window)
+                        
+                        # Gelen Para: Window boyunca gelen toplam para (son - ilk)
+                        window_first_amount = first_snap.get('amount', 0)
+                        window_last_amount = last_snap.get('amount', 0)
+                        window_gelen_para = max(0, window_last_amount - window_first_amount)
                         
                         # Event time: hareketin tespit edildiği snapshot zamanı
                         last_snap_idx = last_snap['index']
@@ -1282,14 +1297,16 @@ def calculate_insider_scores(config):
                         # Window düşüş yüzdesi (zaten hesaplandı ve eşik kontrolü yapıldı)
                         window_odds_drop_pct = best_window_drop_pct
                         
-                        # Snapshot detayları (her snapshot için oran ve zaman)
+                        # Snapshot detayları (her snapshot için oran, zaman ve para)
                         snapshot_details = []
                         for snap in best_window:
                             snap_idx = snap['index']
                             snap_odds = snap['odds']
+                            snap_amount = snap.get('amount', 0)
                             snap_time = history[snap_idx].get('scrapedat', '') if snap_idx < len(history) else ''
                             snapshot_details.append({
                                 'odds': snap_odds,
+                                'amount': snap_amount,
                                 'time': snap_time
                             })
                         
@@ -1303,7 +1320,7 @@ def calculate_insider_scores(config):
                             'selection': selection,
                             'hacim_sok': avg_hacim_sok,
                             'oran_dusus_pct': window_odds_drop_pct,  # Window içindeki düşüş
-                            'gelen_para': avg_gelen_para,
+                            'gelen_para': window_gelen_para,  # Window boyunca toplam gelen para (son - ilk)
                             'opening_odds': opening_odds,
                             'last_odds': last_odds,
                             # 3 Snapshot window oranları
@@ -1324,7 +1341,7 @@ def calculate_insider_scores(config):
                             'triggered': True
                         }
                         alarms.append(alarm)
-                        print(f"[Insider] ALARM: {home} vs {away} [{selection}] Window: {window_start_odds:.2f}→{window_end_odds:.2f} ({window_odds_drop_pct:.1f}%), GelenPara=£{avg_gelen_para:.0f}")
+                        print(f"[Insider] ALARM: {home} vs {away} [{selection}] Window: {window_start_odds:.2f}→{window_end_odds:.2f} ({window_odds_drop_pct:.1f}%), GelenPara=£{window_gelen_para:.0f}")
         
         except Exception as e:
             print(f"[Insider] Error processing {market}: {e}")
@@ -1622,6 +1639,369 @@ def calculate_big_money_scores(config):
     alarms.sort(key=lambda x: (not x['is_huge'], -x['incoming_money']))
     
     print(f"[BigMoney] Total alarms found: {len(alarms)}")
+    return alarms
+
+
+# ============================================================================
+# VOLUME SHOCK (HACİM ŞOKU) ALARM SYSTEM
+# ============================================================================
+
+VOLUME_SHOCK_CONFIG_FILE = 'volume_shock_config.json'
+VOLUME_SHOCK_ALARMS_FILE = 'volume_shock_alarms.json'
+
+volume_shock_calculating = False
+volume_shock_calc_progress = ""
+volume_shock_alarms = []
+
+def load_volume_shock_config():
+    """Load Volume Shock config from JSON file"""
+    try:
+        if os.path.exists(VOLUME_SHOCK_CONFIG_FILE):
+            with open(VOLUME_SHOCK_CONFIG_FILE, 'r') as f:
+                config = json.load(f)
+                print(f"[VolumeShock] Config loaded: min_saat={config.get('hacim_soku_min_saat', 5)}, min_esik={config.get('hacim_soku_min_esik', 4)}")
+                return config
+    except Exception as e:
+        print(f"[VolumeShock] Config load error: {e}")
+    return {'hacim_soku_min_saat': 5, 'hacim_soku_min_esik': 4, 'enabled': True}
+
+def save_volume_shock_config(config):
+    """Save Volume Shock config to JSON file"""
+    try:
+        with open(VOLUME_SHOCK_CONFIG_FILE, 'w') as f:
+            json.dump(config, f, indent=2)
+        print(f"[VolumeShock] Config saved: min_saat={config.get('hacim_soku_min_saat')}, min_esik={config.get('hacim_soku_min_esik')}")
+        return True
+    except Exception as e:
+        print(f"[VolumeShock] Config save error: {e}")
+        return False
+
+def load_volume_shock_alarms_from_file():
+    """Load Volume Shock alarms from JSON file"""
+    try:
+        if os.path.exists(VOLUME_SHOCK_ALARMS_FILE):
+            with open(VOLUME_SHOCK_ALARMS_FILE, 'r') as f:
+                alarms = json.load(f)
+                print(f"[VolumeShock] Loaded {len(alarms)} alarms from {VOLUME_SHOCK_ALARMS_FILE}")
+                return alarms
+    except Exception as e:
+        print(f"[VolumeShock] Alarms load error: {e}")
+    return []
+
+def save_volume_shock_alarms_to_file(alarms):
+    """Save Volume Shock alarms to JSON file"""
+    try:
+        with open(VOLUME_SHOCK_ALARMS_FILE, 'w') as f:
+            json.dump(alarms, f, indent=2, ensure_ascii=False)
+        print(f"[VolumeShock] Saved {len(alarms)} alarms to {VOLUME_SHOCK_ALARMS_FILE}")
+        return True
+    except Exception as e:
+        print(f"[VolumeShock] Alarms save error: {e}")
+        return False
+
+volume_shock_config = load_volume_shock_config()
+volume_shock_alarms = load_volume_shock_alarms_from_file()
+
+@app.route('/api/volumeshock/config', methods=['GET'])
+def get_volume_shock_config():
+    """Get Volume Shock config"""
+    return jsonify(volume_shock_config)
+
+@app.route('/api/volumeshock/config', methods=['POST'])
+def save_volume_shock_config_api():
+    """Save Volume Shock config"""
+    global volume_shock_config
+    try:
+        data = request.get_json()
+        if data:
+            volume_shock_config.update(data)
+            save_volume_shock_config(volume_shock_config)
+            print(f"[VolumeShock] Config updated: min_saat={volume_shock_config.get('hacim_soku_min_saat')}, min_esik={volume_shock_config.get('hacim_soku_min_esik')}")
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/volumeshock/alarms', methods=['GET'])
+def get_volume_shock_alarms():
+    """Get all Volume Shock alarms"""
+    return jsonify(volume_shock_alarms)
+
+@app.route('/api/volumeshock/delete', methods=['POST'])
+def delete_volume_shock_alarms():
+    """Delete all Volume Shock alarms"""
+    global volume_shock_alarms
+    volume_shock_alarms = []
+    save_volume_shock_alarms_to_file(volume_shock_alarms)
+    return jsonify({'success': True})
+
+@app.route('/api/volumeshock/status', methods=['GET'])
+def get_volume_shock_status():
+    """Get Volume Shock calculation status"""
+    return jsonify({
+        'calculating': volume_shock_calculating,
+        'progress': volume_shock_calc_progress,
+        'alarm_count': len(volume_shock_alarms)
+    })
+
+@app.route('/api/volumeshock/calculate', methods=['POST'])
+def calculate_volume_shock_alarms():
+    """Calculate Volume Shock alarms based on current config"""
+    global volume_shock_calculating, volume_shock_calc_progress, volume_shock_alarms
+    
+    if volume_shock_calculating:
+        return jsonify({'success': False, 'error': 'Calculation already in progress'})
+    
+    def run_calculation():
+        global volume_shock_calculating, volume_shock_calc_progress, volume_shock_alarms
+        volume_shock_calculating = True
+        volume_shock_calc_progress = "Starting..."
+        
+        try:
+            alarms = calculate_volume_shock_scores(volume_shock_config)
+            volume_shock_alarms = alarms
+            save_volume_shock_alarms_to_file(alarms)
+            volume_shock_calc_progress = f"Completed: {len(alarms)} alarms"
+        except Exception as e:
+            volume_shock_calc_progress = f"Error: {str(e)}"
+            print(f"[VolumeShock] Calculation error: {e}")
+            import traceback
+            traceback.print_exc()
+        finally:
+            volume_shock_calculating = False
+    
+    import threading
+    thread = threading.Thread(target=run_calculation)
+    thread.start()
+    
+    return jsonify({'success': True, 'message': 'Calculation started'})
+
+def parse_match_datetime(date_str):
+    """Parse match date/time string to datetime object (Turkey timezone)"""
+    try:
+        if not date_str:
+            return None
+        
+        today = now_turkey().date()
+        
+        # Format: "03.Dec 17:00:00" or "03.Dec17:00:00"
+        date_str = date_str.replace('  ', ' ').strip()
+        
+        # Try various formats
+        formats = [
+            '%d.%b %H:%M:%S',  # 03.Dec 17:00:00
+            '%d.%b%H:%M:%S',   # 03.Dec17:00:00
+            '%d.%m.%Y %H:%M',  # 03.12.2025 17:00
+            '%d.%m.%Y %H:%M:%S'  # 03.12.2025 17:00:00
+        ]
+        
+        for fmt in formats:
+            try:
+                if '%Y' in fmt:
+                    dt = datetime.strptime(date_str, fmt)
+                else:
+                    dt = datetime.strptime(date_str, fmt)
+                    dt = dt.replace(year=today.year)
+                return TURKEY_TZ.localize(dt)
+            except ValueError:
+                continue
+        
+        return None
+    except Exception as e:
+        print(f"[VolumeShock] Date parse error: {e} for '{date_str}'")
+        return None
+
+def calculate_volume_shock_scores(config):
+    """Calculate Volume Shock alarms - only for movements well before match"""
+    global volume_shock_calc_progress
+    
+    min_saat = config.get('hacim_soku_min_saat', 5)
+    min_esik = config.get('hacim_soku_min_esik', 4)
+    enabled = config.get('enabled', True)
+    
+    if not enabled:
+        print("[VolumeShock] Disabled, skipping calculation")
+        return []
+    
+    print(f"[VolumeShock] Config: min_saat={min_saat}, min_esik={min_esik}")
+    
+    supabase = get_supabase_client()
+    if not supabase or not supabase.is_available:
+        print("[VolumeShock] Supabase not available")
+        return []
+    
+    alarms = []
+    
+    markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
+    market_names = {
+        'moneyway_1x2': 'Moneyway 1X2',
+        'moneyway_ou25': 'Moneyway O/U 2.5',
+        'moneyway_btts': 'Moneyway BTTS'
+    }
+    
+    today = now_turkey().date()
+    yesterday = today - timedelta(days=1)
+    now = now_turkey()
+    
+    for market in markets:
+        volume_shock_calc_progress = f"Processing {market}..."
+        
+        try:
+            if '1x2' in market:
+                selections = ['1', 'X', '2']
+                amount_keys = ['amt1', 'amtx', 'amt2']
+            elif 'ou25' in market:
+                selections = ['Over', 'Under']
+                amount_keys = ['amtover', 'amtunder']
+            else:
+                selections = ['Yes', 'No']
+                amount_keys = ['amtyes', 'amtno']
+            
+            history_table = f"{market}_history"
+            matches = supabase.get_all_matches_with_latest(market)
+            if not matches:
+                continue
+            
+            # D-2+ filtresi - sadece bugün ve yarın
+            filtered_matches = []
+            for match in matches:
+                match_date_str = match.get('date', '')
+                if match_date_str:
+                    try:
+                        date_part = match_date_str.split()[0]
+                        if '.' in date_part:
+                            parts = date_part.split('.')
+                            if len(parts) == 2:
+                                day = int(parts[0])
+                                month_abbr = parts[1][:3]
+                                month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+                                            'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
+                                month = month_map.get(month_abbr, today.month)
+                                match_date = datetime(today.year, month, day).date()
+                            elif len(parts) == 3:
+                                match_date = datetime.strptime(date_part, '%d.%m.%Y').date()
+                            else:
+                                match_date = today
+                        else:
+                            match_date = today
+                        
+                        if match_date < yesterday:
+                            continue
+                        filtered_matches.append(match)
+                    except:
+                        filtered_matches.append(match)
+                else:
+                    filtered_matches.append(match)
+            
+            print(f"[VolumeShock] Processing {len(filtered_matches)}/{len(matches)} matches for {market}")
+            
+            for match in filtered_matches:
+                home = match.get('home_team', match.get('home', match.get('Home', '')))
+                away = match.get('away_team', match.get('away', match.get('Away', '')))
+                match_date_str = match.get('date', '')
+                
+                if not home or not away:
+                    continue
+                
+                # Demo maçları filtrele
+                if 'Citizen AA' in home or 'Lucky Mile' in away:
+                    continue
+                
+                # Parse match kickoff time
+                match_kickoff = parse_match_datetime(match_date_str)
+                if not match_kickoff:
+                    continue
+                
+                history = supabase.get_match_history_for_sharp(home, away, history_table)
+                if not history or len(history) < 2:
+                    continue
+                
+                for sel_idx, selection in enumerate(selections):
+                    amount_key = amount_keys[sel_idx]
+                    
+                    # Her snapshot için hacim şoku hesapla
+                    for i in range(1, len(history)):
+                        current_amount = parse_volume(history[i].get(amount_key, '0'))
+                        prev_amount = parse_volume(history[i-1].get(amount_key, '0'))
+                        
+                        # Snapshot zamanı
+                        snapshot_time_str = history[i].get('scrapedat', '')
+                        if not snapshot_time_str:
+                            continue
+                        
+                        try:
+                            snapshot_time = datetime.fromisoformat(snapshot_time_str.replace('Z', '+00:00'))
+                            if snapshot_time.tzinfo is None:
+                                snapshot_time = TURKEY_TZ.localize(snapshot_time)
+                            else:
+                                snapshot_time = snapshot_time.astimezone(TURKEY_TZ)
+                        except:
+                            continue
+                        
+                        # Maça kaç saat kaldı?
+                        time_diff = match_kickoff - snapshot_time
+                        hours_to_kickoff = time_diff.total_seconds() / 3600.0
+                        
+                        # Hacim şoku hesapla
+                        if prev_amount > 0 and current_amount > prev_amount:
+                            amount_change = current_amount - prev_amount
+                            
+                            # Son 5 snapshot'ın ortalamasını al
+                            prev_amounts = []
+                            for j in range(max(0, i-5), i):
+                                amt = parse_volume(history[j].get(amount_key, '0'))
+                                if amt > 0:
+                                    prev_amounts.append(amt)
+                            
+                            if prev_amounts:
+                                avg_prev = sum(prev_amounts) / len(prev_amounts)
+                                if avg_prev > 0:
+                                    volume_shock = amount_change / avg_prev
+                                    
+                                    # KOŞUL: Maçtan yeterince önce VE yeterli şok
+                                    if hours_to_kickoff >= min_saat and volume_shock >= min_esik:
+                                        created_at = now_turkey().strftime('%d.%m.%Y %H:%M')
+                                        
+                                        alarm = {
+                                            'type': 'volume_shock',
+                                            'home': home,
+                                            'away': away,
+                                            'market': market_names.get(market, market),
+                                            'selection': selection,
+                                            'volume_shock_value': round(volume_shock, 2),
+                                            'hours_to_kickoff': round(hours_to_kickoff, 1),
+                                            'incoming_money': amount_change,
+                                            'hacim_soku_min_saat': min_saat,
+                                            'hacim_soku_min_esik': min_esik,
+                                            'match_date': match_date_str,
+                                            'event_time': snapshot_time_str,
+                                            'created_at': created_at
+                                        }
+                                        
+                                        # Aynı maç/selection için en büyük şoku tut
+                                        existing = None
+                                        for idx, a in enumerate(alarms):
+                                            if a['home'] == home and a['away'] == away and a['selection'] == selection and a['market'] == alarm['market']:
+                                                existing = idx
+                                                break
+                                        
+                                        if existing is not None:
+                                            if volume_shock > alarms[existing]['volume_shock_value']:
+                                                alarms[existing] = alarm
+                                        else:
+                                            alarms.append(alarm)
+                                        
+                                        print(f"[VolumeShock] ALARM: {home} vs {away} [{selection}] Şok: {volume_shock:.1f}x, Maçtan {hours_to_kickoff:.1f}s önce")
+        
+        except Exception as e:
+            print(f"[VolumeShock] Error processing {market}: {e}")
+            import traceback
+            traceback.print_exc()
+            continue
+    
+    # En yüksek şoka göre sırala
+    alarms.sort(key=lambda x: -x['volume_shock_value'])
+    
+    print(f"[VolumeShock] Total alarms found: {len(alarms)}")
     return alarms
 
 
