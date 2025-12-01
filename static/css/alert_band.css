@@ -56,13 +56,13 @@
     transition: all 0.15s ease;
 }
 
-/* Sharp - Red */
+/* Sharp - Green */
 .alert-band-pill.sharp {
-    border-color: rgba(248, 113, 113, 0.6);
+    border-color: rgba(74, 222, 128, 0.6);
 }
 .alert-band-pill.sharp:hover {
-    background: rgba(248, 113, 113, 0.1);
-    border-color: #f87171;
+    background: rgba(74, 222, 128, 0.1);
+    border-color: #4ade80;
 }
 
 /* Insider - Purple */
@@ -102,9 +102,9 @@
     flex-shrink: 0;
 }
 
-/* Sharp dot - Red */
-.alert-band-dot.red {
-    background: #f87171;
+/* Sharp dot - Green */
+.alert-band-dot.green {
+    background: #4ade80;
 }
 
 /* Insider dot - Purple */
@@ -130,7 +130,7 @@
 }
 
 .alert-band-type.sharp {
-    color: #f87171;
+    color: #4ade80;
 }
 
 .alert-band-type.insider {

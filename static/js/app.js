@@ -3303,7 +3303,7 @@ async function loadAlertBand() {
 
 function getAlertType(alarm) {
     const type = alarm._type;
-    if (type === 'sharp') return { label: 'SHARP MOVE', color: 'red', pillClass: 'sharp' };
+    if (type === 'sharp') return { label: 'SHARP MOVE', color: 'green', pillClass: 'sharp' };
     if (type === 'insider') return { label: 'INSIDER INFO', color: 'purple', pillClass: 'insider' };
     if (type === 'bigmoney') return { label: 'BIG MONEY', color: 'yellow', pillClass: 'bigmoney' };
     return { label: 'ALERT', color: 'green', pillClass: '' };
