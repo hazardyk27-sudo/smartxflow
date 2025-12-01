@@ -80,9 +80,9 @@ localPort = 41423
 externalPort = 3001
 
 [[ports]]
-localPort = 44075
-externalPort = 4200
+localPort = 43521
+externalPort = 5173
 
 [[ports]]
-localPort = 44607
-externalPort = 5173
+localPort = 44075
+externalPort = 4200

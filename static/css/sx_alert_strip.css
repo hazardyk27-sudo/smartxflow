@@ -1,0 +1,181 @@
+/* =============================================
+   SXAlertStrip Component
+   New Alert Banner - Built from scratch
+   ============================================= */
+
+.sx-alert-strip {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(90deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
+    border-bottom: 1px solid #30363d;
+    height: 44px;
+    overflow: hidden;
+}
+
+.sx-alert-strip.sx-alert-hidden {
+    display: none;
+}
+
+.sx-alert-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px;
+    background: #21262d;
+    height: 100%;
+    border-right: 1px solid #30363d;
+    color: #f0883e;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.sx-alert-label svg {
+    stroke: #f0883e;
+    flex-shrink: 0;
+}
+
+.sx-alert-track {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    overflow-x: auto;
+    height: 100%;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.sx-alert-track::-webkit-scrollbar {
+    display: none;
+}
+
+.sx-alert-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid;
+}
+
+.sx-alert-pill:hover {
+    transform: scale(1.02);
+    filter: brightness(1.1);
+}
+
+.sx-alert-pill[data-level="critical"] {
+    border-color: rgba(239, 68, 68, 0.8);
+    background: rgba(127, 29, 29, 0.5);
+}
+
+.sx-alert-pill[data-level="high"] {
+    border-color: rgba(249, 115, 22, 0.8);
+    background: rgba(124, 45, 18, 0.4);
+}
+
+.sx-alert-pill[data-level="medium"] {
+    border-color: rgba(234, 179, 8, 0.8);
+    background: rgba(113, 63, 18, 0.4);
+}
+
+.sx-alert-pill[data-level="low"] {
+    border-color: rgba(34, 197, 94, 0.8);
+    background: rgba(20, 83, 45, 0.4);
+}
+
+.sx-alert-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    flex-shrink: 0;
+}
+
+.sx-alert-pill[data-level="critical"] .sx-alert-dot { background: #ef4444; }
+.sx-alert-pill[data-level="high"] .sx-alert-dot { background: #f97316; }
+.sx-alert-pill[data-level="medium"] .sx-alert-dot { background: #eab308; }
+.sx-alert-pill[data-level="low"] .sx-alert-dot { background: #22c55e; }
+
+.sx-alert-type {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1;
+}
+
+.sx-alert-pill[data-level="critical"] .sx-alert-type { color: #fca5a5; }
+.sx-alert-pill[data-level="high"] .sx-alert-type { color: #fdba74; }
+.sx-alert-pill[data-level="medium"] .sx-alert-type { color: #fde047; }
+.sx-alert-pill[data-level="low"] .sx-alert-type { color: #86efac; }
+
+.sx-alert-match {
+    font-size: 12px;
+    font-weight: 500;
+    color: #f9fafb;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1;
+}
+
+.sx-alert-score {
+    font-size: 13px;
+    font-weight: 700;
+    color: #22c55e;
+    font-family: 'JetBrains Mono', 'Inter', monospace;
+    line-height: 1;
+    min-width: 28px;
+    text-align: center;
+}
+
+.sx-alert-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 16px;
+    background: #21262d;
+    height: 100%;
+    border: none;
+    border-left: 1px solid #30363d;
+    color: #c9d1d9;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+}
+
+.sx-alert-btn:hover {
+    background: #30363d;
+}
+
+.sx-alert-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.sx-alert-count {
+    margin-left: 4px;
+    color: #FF3B30;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.sx-alert-empty {
+    color: #8b949e;
+    font-size: 12px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
