@@ -186,44 +186,67 @@
     letter-spacing: 0.02em;
 }
 
-/* Alarms Button */
-.alert-band-btn {
-    display: flex;
+/* Alarms Button - Band Style */
+.btn-alarms {
+    display: inline-flex;
     align-items: center;
     gap: 6px;
+    height: 32px;
     padding: 0 14px;
-    height: 100%;
-    background: transparent;
-    border: none;
-    border-left: 1px solid #30363d;
-    color: #8b949e;
+    margin-right: 12px;
+    background: #020617;
+    border: 1px solid #1F2937;
+    border-radius: 9999px;
+    color: #E5E7EB;
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all 0.2s ease;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     flex-shrink: 0;
 }
 
-.alert-band-btn:hover {
-    background: rgba(255, 255, 255, 0.03);
-    color: #c9d1d9;
-}
-
-.alert-band-btn svg {
+.btn-alarms svg {
     width: 14px;
     height: 14px;
-    stroke: #8b949e;
-    transition: stroke 0.15s;
+    color: #9CA3AF;
+    transition: color 0.2s ease;
 }
 
-.alert-band-btn:hover svg {
-    stroke: #fbbf24;
+.btn-alarms:hover {
+    background: #0B1120;
+    border-color: #273549;
 }
 
-.alert-band-badge {
-    font-size: 12px;
-    font-weight: 600;
-    color: #f87171;
+.btn-alarms.active {
+    background: #111827;
+    border-color: #4C8BF5;
+    box-shadow: 0 0 0 1px rgba(76, 139, 245, 0.4);
+}
+
+.btn-alarms.active svg {
+    color: #4C8BF5;
+}
+
+/* Alarms Badge */
+.alarms-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 6px;
+    background: #f59e0b;
+    color: #000;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 9999px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.alarms-badge:empty,
+.alarms-badge[data-count="0"] {
+    display: none;
 }
 
 .alert-band-empty {

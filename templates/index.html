@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
     <link rel="stylesheet" href="/static/css/style.css?v=303">
-    <link rel="stylesheet" href="/static/css/alert_band.css?v=24">
+    <link rel="stylesheet" href="/static/css/alert_band.css?v=25">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -52,6 +52,14 @@
         <div class="alert-band-track" id="alertBandTrack">
             <span class="alert-band-empty">Alarm bekleniyor...</span>
         </div>
+        <button class="btn-alarms" id="alarmsBtn" onclick="toggleAlarmsSidebar()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span>Alarmlar</span>
+            <span class="alarms-badge" id="alarmsBadge">0</span>
+        </button>
     </div>
 
     <nav class="market-tabs">
@@ -127,18 +135,8 @@
                     </button>
                 </div>
                 
-                <div class="toolbar-right">
-                    <div class="match-count">
-                        <span id="matchCount">0</span> Matches
-                    </div>
-                    <button class="btn-alarms" id="alarmsBtn" onclick="toggleAlarmsSidebar()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                        </svg>
-                        <span>Alarmlar</span>
-                        <span class="alarms-badge" id="alarmsBadge">0</span>
-                    </button>
+                <div class="match-count">
+                    <span id="matchCount">0</span> Matches
                 </div>
             </div>
 
