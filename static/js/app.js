@@ -3749,41 +3749,51 @@ function renderAlarmsList(filterType) {
         const market = group.market;
         const selection = group.selection;
         
-        let moneyText = '';
-        let summaryText = '';
+        let mainValue = '';
+        let centerBadge = '';
         
         if (type === 'sharp') {
             const score = (alarm.sharp_score || 0).toFixed(1);
-            moneyText = alarm.volume ? '£' + Number(alarm.volume).toLocaleString('en-GB') : '';
-            summaryText = `Skor: <span class="highlight">${score}</span> • Vol. Shock: ${alarm.volume_shock ? alarm.volume_shock.toFixed(1) + 'x' : '-'}`;
+            const oddsDrop = alarm.odds_drop_pct || 0;
+            const oddsSign = oddsDrop < 0 ? '\u2212' : '+';
+            const volume = alarm.volume || alarm.stake || 0;
+            const moneyPart = volume > 0 ? `<span class="value-money">\u00A3${Number(volume).toLocaleString('en-GB')}</span><span class="sep">\u2022</span>` : '';
+            mainValue = `${moneyPart}<span class="value-highlight">Skor ${score}</span><span class="sep">\u2022</span><span class="value-pct">%${oddsSign}${Math.abs(oddsDrop).toFixed(1)}</span>`;
         } else if (type === 'insider') {
-            const score = (alarm.insider_score || 0).toFixed(1);
-            moneyText = alarm.stake ? '£' + Number(alarm.stake).toLocaleString('en-GB') : '';
-            summaryText = `Skor: <span class="highlight">${score}</span> • Odds: ${alarm.odds_drop_pct ? alarm.odds_drop_pct.toFixed(1) + '%' : '-'}`;
+            const volShock = alarm.volume_shock ? alarm.volume_shock.toFixed(1) : '0';
+            const oddsDrop = alarm.odds_drop_pct || 0;
+            const oddsSign = oddsDrop < 0 ? '\u2212' : '+';
+            const stake = alarm.stake || alarm.volume || 0;
+            const moneyPart = stake > 0 ? `<span class="value-money">\u00A3${Number(stake).toLocaleString('en-GB')}</span><span class="sep">\u2022</span>` : '';
+            mainValue = `${moneyPart}<span class="value-highlight">\u015Eok ${volShock}x</span><span class="sep">\u2022</span><span class="value-pct">Oran %${oddsSign}${Math.abs(oddsDrop).toFixed(1)}</span>`;
         } else if (type === 'bigmoney') {
             const money = alarm.incoming_money || alarm.stake || 0;
-            moneyText = '£' + Number(money).toLocaleString('en-GB');
+            mainValue = `<span class="value-money">£${Number(money).toLocaleString('en-GB')}</span>`;
             const isHuge = alarm.is_huge || alarm.alarm_type === 'HUGE MONEY';
-            summaryText = isHuge ? '<span class="highlight">HUGE MONEY</span> • Snapshot: ' + (alarm.snapshot_count || '-') : 'Snapshot: ' + (alarm.snapshot_count || '-');
+            if (isHuge) {
+                centerBadge = '<span class="huge-badge">HUGE</span>';
+            }
         }
         
         const timeAgo = formatTimeAgoTR(alarm.created_at);
-        const triggerBadge = group.triggerCount > 1 ? `<span class="alarm-trigger-count">${group.triggerCount}</span>` : '';
+        const triggerPill = group.triggerCount > 1 ? `<span class="trigger-pill">×${group.triggerCount}</span>` : '';
+        
+        const marketLabel = formatMarketChip(market, selection);
         
         return `
             <div class="sidebar-alarm-card ${type}" onclick="openAlarmDetailPanel(${idx})">
                 <div class="alarm-row-1">
                     <span class="alarm-type-badge ${type}">${typeLabels[type]}</span>
-                    <span class="alarm-match-name">${home} - ${away}</span>
-                    <span class="alarm-market-chip">${market}: <span class="selection">${selection}</span></span>
+                    <span class="alarm-match-name">${home} – ${away}</span>
+                    <span class="alarm-market-chip">${marketLabel}</span>
                 </div>
                 <div class="alarm-row-2">
-                    <span class="alarm-summary">${summaryText}</span>
-                    <div class="alarm-right-info">
-                        ${triggerBadge}
-                        <span class="alarm-money">${moneyText}</span>
-                        <span class="alarm-time">${timeAgo}</span>
+                    <span class="alarm-main-value">${mainValue}</span>
+                    <div class="alarm-center-info">
+                        ${centerBadge}
+                        ${triggerPill}
                     </div>
+                    <span class="alarm-time">${timeAgo}</span>
                 </div>
             </div>
         `;
@@ -3800,6 +3810,15 @@ function renderAlarmsList(filterType) {
     }
     
     body.innerHTML = html;
+}
+
+function formatMarketChip(market, selection) {
+    let marketShort = market;
+    if (market.toLowerCase().includes('1x2')) marketShort = '1X2';
+    else if (market.toLowerCase().includes('ou') || market.toLowerCase().includes('2.5')) marketShort = 'O/U 2.5';
+    else if (market.toLowerCase().includes('btts')) marketShort = 'BTTS';
+    
+    return `${marketShort} · ${selection}`;
 }
 
 function loadMoreAlarms() {

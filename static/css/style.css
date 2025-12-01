@@ -4097,7 +4097,7 @@ td.volume,
     flex: 1;
     font-size: 13px;
     font-weight: 600;
-    color: #e6edf3;
+    color: #E5E7EB;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -4109,31 +4109,15 @@ td.volume,
     align-items: center;
     gap: 3px;
     padding: 2px 6px;
-    background: #21262d;
+    background: #111827;
     border-radius: 3px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #8b949e;
+    font-size: 10px;
+    font-weight: 500;
+    color: #CBD5E1;
     flex-shrink: 0;
 }
 
-.alarm-market-chip .selection {
-    color: #58a6ff;
-}
-
-.sidebar-alarm-card.sharp .alarm-market-chip .selection {
-    color: #4ade80;
-}
-
-.sidebar-alarm-card.insider .alarm-market-chip .selection {
-    color: #a855f7;
-}
-
-.sidebar-alarm-card.bigmoney .alarm-market-chip .selection {
-    color: #fb923c;
-}
-
-/* Line 2: Summary + Money + Time */
+/* Line 2: Main Value + Center Info + Time */
 .alarm-row-2 {
     display: flex;
     align-items: center;
@@ -4142,68 +4126,77 @@ td.volume,
     width: 100%;
 }
 
-.alarm-summary {
+.alarm-main-value {
     flex: 1;
-    font-size: 11px;
+    font-size: 12px;
     color: #8b949e;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.alarm-summary .highlight {
+.alarm-main-value .value-highlight {
     color: #22c55e;
     font-weight: 600;
 }
 
-.alarm-right-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
+.alarm-main-value .sep {
+    color: #6e7681;
+    margin: 0 4px;
+    font-weight: 400;
 }
 
-.alarm-money {
-    font-size: 12px;
+.alarm-main-value .value-pct {
+    color: #9ca3af;
+    font-weight: 500;
+}
+
+.alarm-main-value .value-money {
+    font-size: 13px;
     font-weight: 700;
     color: #22c55e;
     font-family: 'JetBrains Mono', monospace;
 }
 
-.alarm-time {
-    font-size: 10px;
-    color: #6e7681;
-    white-space: nowrap;
+.alarm-center-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
 }
 
-/* Trigger count badge */
-.alarm-trigger-count {
+.alarm-time {
+    font-size: 11px;
+    color: #6b7280;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Trigger pill (×N) */
+.trigger-pill {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 4px;
+    padding: 1px 5px;
     background: #30363d;
     border-radius: 8px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
-    color: #8b949e;
+    color: #9ca3af;
 }
 
-.sidebar-alarm-card.sharp .alarm-trigger-count {
-    background: rgba(74, 222, 128, 0.2);
-    color: #4ade80;
-}
-
-.sidebar-alarm-card.insider .alarm-trigger-count {
-    background: rgba(168, 85, 247, 0.2);
-    color: #a855f7;
-}
-
-.sidebar-alarm-card.bigmoney .alarm-trigger-count {
+/* HUGE badge for bigmoney */
+.huge-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
     background: rgba(251, 146, 60, 0.2);
-    color: #fb923c;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #f97316;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
 /* Detail Panel Styles */
