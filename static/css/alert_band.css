@@ -32,6 +32,7 @@
 .alert-band-pill {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     padding: 4px 10px;
     background: #111827;
@@ -50,10 +51,14 @@
 
 /* Small Dot Indicator */
 .alert-band-dot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 6px;
     height: 6px;
     border-radius: 50%;
     flex-shrink: 0;
+    line-height: 1;
 }
 
 .alert-band-dot.red {
@@ -74,26 +79,38 @@
 
 /* Alert Type Label */
 .alert-band-type {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 11px;
     font-weight: 600;
     color: #f87171;
     text-transform: uppercase;
     letter-spacing: 0.03em;
+    line-height: 1;
 }
 
 /* Match Name */
 .alert-band-match {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 13px;
     font-weight: 500;
     color: #e5e7eb;
+    line-height: 1;
 }
 
 /* Value/Score */
 .alert-band-value {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 13px;
     font-weight: 600;
     color: #22c55e;
     margin-left: 4px;
+    line-height: 1;
 }
 
 .alert-band-value.negative {
@@ -146,36 +163,3 @@
     display: none;
 }
 
-/* SX Alert Pill - Centered content */
-.sx-alert-pill {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Her alert pill içindeki tüm içerik için JEWELBOX container */
-.sx-alert-pill-inner {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    height: 100%;
-}
-
-/* Dot, text ve score aynı hizada olmalı */
-.sx-alert-pill-dot,
-.sx-alert-pill-type,
-.sx-alert-pill-match,
-.sx-alert-pill-score {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-}
-
-.sx-alert-pill-text {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
