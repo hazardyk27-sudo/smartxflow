@@ -179,7 +179,11 @@
 
 .alert-band-value.negative,
 .alert-band-value.insider {
-    color: #f87171;
+    color: #ef4444;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    letter-spacing: 0.02em;
 }
 
 /* Alarms Button */
