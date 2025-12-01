@@ -42,11 +42,11 @@
 
 /* Pill with colored border */
 .alert-band-pill {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 4px 12px;
+    padding: 5px 14px;
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid transparent;
     border-radius: 9999px;
@@ -54,6 +54,7 @@
     white-space: nowrap;
     flex-shrink: 0;
     transition: all 0.15s ease;
+    height: 26px;
 }
 
 /* Sharp - Red */
@@ -85,9 +86,6 @@
 
 /* Small Dot Indicator */
 .alert-band-dot {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 6px;
     height: 6px;
     border-radius: 50%;
@@ -115,8 +113,6 @@
 
 /* Alert Type Label */
 .alert-band-type {
-    display: flex;
-    align-items: center;
     font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
@@ -138,8 +134,6 @@
 
 /* Match Name */
 .alert-band-match {
-    display: flex;
-    align-items: center;
     font-size: 13px;
     font-weight: 500;
     color: #c9d1d9;
@@ -148,8 +142,6 @@
 
 /* Value/Score */
 .alert-band-value {
-    display: flex;
-    align-items: center;
     font-size: 12px;
     font-weight: 600;
     color: #4ade80;
