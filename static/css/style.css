@@ -156,6 +156,95 @@ body {
     font-size: 10px;
 }
 
+/* Header Controls */
+.header-control {
+    display: flex;
+    align-items: center;
+}
+
+.header-select {
+    padding: 6px 28px 6px 12px;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #e5e7eb;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+}
+
+.header-select:hover {
+    border-color: #4ade80;
+}
+
+.header-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #9ca3af;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.header-toggle:hover {
+    border-color: #4ade80;
+}
+
+.header-toggle input {
+    display: none;
+}
+
+.header-toggle input:checked + .toggle-icon {
+    color: #4ade80;
+}
+
+.header-toggle input:checked + .toggle-icon + span {
+    color: #e5e7eb;
+}
+
+.toggle-icon {
+    display: flex;
+    align-items: center;
+    color: #6b7280;
+}
+
+.toggle-icon svg {
+    stroke: currentColor;
+}
+
+.btn-scrape {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: #22c55e;
+    border: none;
+    border-radius: 6px;
+    color: #000;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-scrape:hover {
+    background: #16a34a;
+}
+
+.btn-scrape svg {
+    stroke: currentColor;
+}
+
 .btn {
     display: flex;
     align-items: center;
