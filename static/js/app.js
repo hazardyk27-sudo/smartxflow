@@ -3382,6 +3382,15 @@ function renderAlertBand() {
         const value = formatAlertValue(alarm);
         const selection = alarm.selection || alarm.side || '';
         
+        // Extract time from created_at (format: "01.12.2025 16:58")
+        let timeStr = '';
+        if (alarm.created_at) {
+            const parts = alarm.created_at.split(' ');
+            if (parts.length >= 2) {
+                timeStr = parts[1]; // "16:58"
+            }
+        }
+        
         const valueClass = alarm._type === 'insider' ? 'insider' : '';
         return `
             <div class="alert-band-pill ${info.pillClass}" onclick="showAlertBandDetail(${idx})">
@@ -3390,14 +3399,14 @@ function renderAlertBand() {
                 <span class="alert-band-match">${home} - ${away}</span>
                 <span class="alert-band-selection">${selection}</span>
                 <span class="alert-band-value ${valueClass}">${value}</span>
+                <span class="alert-band-time">${timeStr}</span>
             </div>
         `;
     }).join('');
     
-    // Duplicate for seamless scrolling
+    // Single display (no duplication)
     track.innerHTML = `
         <div class="alert-band-track-inner">
-            ${pillsHtml}
             ${pillsHtml}
         </div>
     `;

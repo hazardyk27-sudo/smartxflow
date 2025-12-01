@@ -207,6 +207,14 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+/* Time indicator */
+.alert-band-time {
+    font-size: 12px;
+    font-weight: 500;
+    color: #8b949e;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
 /* Alarms Button - Band Style */
 .btn-alarms {
     display: inline-flex;
