@@ -168,12 +168,27 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Selection indicator */
+/* Selection indicator - matches alarm type color */
 .alert-band-selection {
     font-size: 12px;
     font-weight: 600;
-    color: #58a6ff;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.alert-band-pill.sharp .alert-band-selection {
+    color: #4ade80;
+}
+
+.alert-band-pill.insider .alert-band-selection {
+    color: #a855f7;
+}
+
+.alert-band-pill.bigmoney .alert-band-selection {
+    color: #fb923c;
+}
+
+.alert-band-pill.hugemoney .alert-band-selection {
+    color: #f97316;
 }
 
 /* Value/Score */
