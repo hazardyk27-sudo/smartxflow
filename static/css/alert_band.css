@@ -1,289 +1,238 @@
-/* =============================================
-   ALERT BAND - Chip Style Ticker
-   ============================================= */
+/* =====================================================
+   ALERT BAND - Minimal Theme (Menu Style)
+   ===================================================== */
 
-/* Band Container */
 .alert-band {
-    position: fixed;
-    top: 60px;
-    left: 0;
-    right: 0;
-    height: 40px;
-    background: #050A12;
-    z-index: 999;
-    overflow: hidden;
     display: flex;
     align-items: center;
+    height: 48px;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 0;
+    overflow: hidden;
 }
 
-/* Scrolling Container */
-.alert-band-scroll {
+.alert-band-track {
+    flex: 1;
     display: flex;
     align-items: center;
-    animation: ticker-scroll 60s linear infinite;
+    gap: 24px;
+    overflow: hidden;
+    padding: 0 16px;
+    mask-image: linear-gradient(90deg, transparent, black 40px, black calc(100% - 40px), transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, black 40px, black calc(100% - 40px), transparent);
+}
+
+.alert-band-track-inner {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    animation: scroll-left 60s linear infinite;
     white-space: nowrap;
 }
 
-@keyframes ticker-scroll {
-    0% {
-        transform: translateX(0);
-    }
-    100% {
-        transform: translateX(-50%);
-    }
+.alert-band-track-inner:hover {
+    animation-play-state: paused;
 }
 
-/* Pause on hover - disabled per request */
-/* .alert-band:hover .alert-band-scroll {
-    animation-play-state: paused;
-} */
+@keyframes scroll-left {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
 
-/* Chip Base Style */
-.alert-chip {
+/* Pill with colored border */
+.alert-band-pill {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    background: #0B1120;
-    color: #E5E7EB;
-    border-radius: 8px;
-    padding: 4px 10px;
-    margin-right: 16px;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    flex-shrink: 0;
+    gap: 8px;
+    padding: 0 16px;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.3);
     border: 1px solid transparent;
-    transition: box-shadow 0.3s ease;
+    border-radius: 9999px;
     cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
 }
 
-/* Chip Icon */
-.alert-chip-icon {
-    font-size: 14px;
+/* Sharp - Green */
+.alert-band-pill.sharp {
+    border-color: rgba(74, 222, 128, 0.6);
+}
+.alert-band-pill.sharp:hover {
+    background: rgba(74, 222, 128, 0.1);
+    border-color: #4ade80;
+}
+
+/* Insider - Purple */
+.alert-band-pill.insider {
+    border-color: rgba(168, 85, 247, 0.6);
+}
+.alert-band-pill.insider:hover {
+    background: rgba(168, 85, 247, 0.1);
+    border-color: #a855f7;
+}
+
+/* BigMoney - Yellow-Orange */
+.alert-band-pill.bigmoney {
+    border-color: rgba(251, 146, 60, 0.6);
+}
+.alert-band-pill.bigmoney:hover {
+    background: rgba(251, 146, 60, 0.1);
+    border-color: #fb923c;
+}
+
+/* HugeMoney - Red-Orange */
+.alert-band-pill.hugemoney {
+    border-color: rgba(249, 115, 22, 0.6);
+}
+.alert-band-pill.hugemoney:hover {
+    background: rgba(249, 115, 22, 0.1);
+    border-color: #f97316;
+}
+
+/* Pill child elements - perfect vertical alignment */
+.alert-band-pill > * {
+    vertical-align: middle;
+}
+
+.alert-band-pill > span {
+    display: inline-block;
+    vertical-align: middle;
     line-height: 1;
 }
 
-/* Chip Type Label */
-.alert-chip-type {
-    font-weight: 700;
+/* Dot Indicator - Large & Visible */
+.alert-band-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Sharp dot - Green */
+.alert-band-dot.green {
+    background: #4ade80;
+}
+
+/* Insider dot - Purple */
+.alert-band-dot.purple {
+    background: #a855f7;
+}
+
+/* BigMoney dot - Yellow-Orange */
+.alert-band-dot.orange {
+    background: #fb923c;
+}
+
+/* HugeMoney dot - Red-Orange */
+.alert-band-dot.orange-red {
+    background: #f97316;
+}
+
+.alert-band-dot.green {
+    background: #4ade80;
+}
+
+/* Alert Type Label */
+.alert-band-type {
     font-size: 11px;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Chip Divider */
-.alert-chip-divider {
-    color: #4B5563;
-    font-weight: 300;
+.alert-band-type.sharp {
+    color: #4ade80;
 }
 
-/* Chip Match Name */
-.alert-chip-match {
-    font-weight: 600;
-    color: #ffffff;
+.alert-band-type.insider {
+    color: #a855f7;
+}
+
+.alert-band-type.bigmoney {
+    color: #fb923c;
+}
+
+.alert-band-type.hugemoney {
+    color: #f97316;
+}
+
+/* Match Name */
+.alert-band-match {
     font-size: 13px;
+    font-weight: 500;
+    color: #ffffff;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Chip Value */
-.alert-chip-value {
-    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+/* Value/Score */
+.alert-band-value {
+    font-size: 13px;
     font-weight: 700;
-    font-size: 12px;
+    color: #4ade80;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
     letter-spacing: 0.02em;
 }
 
-/* =============================================
-   SHARP Alarm Style
-   ============================================= */
-.alert-chip.sharp {
-    border-color: rgba(76, 139, 245, 0.3);
-}
-
-.alert-chip.sharp .alert-chip-type {
-    color: #4C8BF5;
-}
-
-.alert-chip.sharp .alert-chip-value {
-    color: #4C8BF5;
-}
-
-.alert-chip.sharp.glow {
-    box-shadow: 0 0 12px rgba(76, 139, 245, 0.5), 0 0 24px rgba(76, 139, 245, 0.3);
-    animation: sharp-glow 3s ease-out forwards;
-}
-
-@keyframes sharp-glow {
-    0% {
-        box-shadow: 0 0 12px rgba(76, 139, 245, 0.6), 0 0 24px rgba(76, 139, 245, 0.4);
-    }
-    100% {
-        box-shadow: none;
-    }
-}
-
-/* =============================================
-   INSIDER INFO Alarm Style
-   ============================================= */
-.alert-chip.insider {
-    border-color: rgba(192, 69, 85, 0.4);
-}
-
-.alert-chip.insider .alert-chip-type {
-    color: #C04555;
-}
-
-.alert-chip.insider .alert-chip-value {
+.alert-band-value.negative,
+.alert-band-value.insider {
     color: #ef4444;
-    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 13px;
     font-weight: 700;
-    font-size: 12px;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    letter-spacing: 0.02em;
 }
 
-.alert-chip.insider.glow {
-    box-shadow: 0 0 12px rgba(192, 69, 85, 0.5), 0 0 24px rgba(192, 69, 85, 0.3);
-    animation: insider-glow 3s ease-out forwards;
-}
-
-@keyframes insider-glow {
-    0% {
-        box-shadow: 0 0 12px rgba(192, 69, 85, 0.6), 0 0 24px rgba(192, 69, 85, 0.4);
-    }
-    100% {
-        box-shadow: none;
-    }
-}
-
-/* =============================================
-   BIG MONEY Alarm Style
-   ============================================= */
-.alert-chip.bigmoney {
-    border-color: rgba(234, 179, 8, 0.4);
-}
-
-.alert-chip.bigmoney .alert-chip-type {
-    color: #EAB308;
-}
-
-.alert-chip.bigmoney .alert-chip-value {
-    color: #EAB308;
-}
-
-.alert-chip.bigmoney.glow {
-    box-shadow: 0 0 12px rgba(234, 179, 8, 0.5), 0 0 24px rgba(234, 179, 8, 0.3);
-    animation: bigmoney-glow 3s ease-out forwards;
-}
-
-@keyframes bigmoney-glow {
-    0% {
-        box-shadow: 0 0 12px rgba(234, 179, 8, 0.6), 0 0 24px rgba(234, 179, 8, 0.4);
-    }
-    100% {
-        box-shadow: none;
-    }
-}
-
-/* =============================================
-   HUGE MONEY Alarm Style (£50K+)
-   ============================================= */
-.alert-chip.hugemoney {
-    border-color: rgba(249, 115, 22, 0.4);
-}
-
-.alert-chip.hugemoney .alert-chip-type {
-    color: #f97316;
-}
-
-.alert-chip.hugemoney .alert-chip-value {
-    color: #f97316;
-}
-
-.alert-chip.hugemoney.glow {
-    box-shadow: 0 0 12px rgba(249, 115, 22, 0.5), 0 0 24px rgba(249, 115, 22, 0.3);
-    animation: hugemoney-glow 3s ease-out forwards;
-}
-
-@keyframes hugemoney-glow {
-    0% {
-        box-shadow: 0 0 12px rgba(249, 115, 22, 0.6), 0 0 24px rgba(249, 115, 22, 0.4);
-    }
-    100% {
-        box-shadow: none;
-    }
-}
-
-/* =============================================
-   Alarms Button (Right Side)
-   ============================================= */
+/* Alarms Button */
 .alert-band-btn {
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
     display: flex;
     align-items: center;
     gap: 6px;
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 6px;
-    padding: 6px 12px;
-    color: #c9d1d9;
-    font-size: 13px;
+    padding: 0 14px;
+    height: 100%;
+    background: transparent;
+    border: none;
+    border-left: 1px solid #30363d;
+    color: #8b949e;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
-    z-index: 10;
+    transition: all 0.15s;
+    flex-shrink: 0;
 }
 
 .alert-band-btn:hover {
-    background: #21262d;
-    border-color: #484f58;
+    background: rgba(255, 255, 255, 0.03);
+    color: #c9d1d9;
 }
 
-.alert-band-btn-icon {
-    font-size: 14px;
+.alert-band-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: #8b949e;
+    transition: stroke 0.15s;
 }
 
-.alert-band-btn-count {
-    background: #238636;
-    color: #ffffff;
-    font-size: 11px;
+.alert-band-btn:hover svg {
+    stroke: #fbbf24;
+}
+
+.alert-band-badge {
+    font-size: 12px;
     font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 10px;
-    min-width: 20px;
-    text-align: center;
+    color: #f87171;
 }
 
-/* Empty State */
 .alert-band-empty {
-    color: #6e7681;
-    font-size: 13px;
-    font-style: italic;
-    padding-left: 20px;
+    color: #484f58;
+    font-size: 12px;
+    padding: 0 16px;
 }
 
-/* Right fade effect for button area */
-.alert-band::after {
-    content: '';
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 180px;
-    background: linear-gradient(to right, transparent, #050A12 60%);
-    pointer-events: none;
-    z-index: 5;
-}
-
-/* Left fade effect */
-.alert-band::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 30px;
-    background: linear-gradient(to left, transparent, #050A12);
-    pointer-events: none;
-    z-index: 5;
+/* Hidden state */
+.alert-band.hidden {
+    display: none;
 }

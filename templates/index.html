@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
     <link rel="stylesheet" href="/static/css/style.css?v=302">
-    <link rel="stylesheet" href="/static/css/alert_band.css?v=31">
+    <link rel="stylesheet" href="/static/css/alert_band.css?v=24">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -49,13 +49,16 @@
 
     <!-- Alert Band -->
     <div class="alert-band" id="alertBand">
-        <div class="alert-band-scroll" id="alertBandScroll">
+        <div class="alert-band-track" id="alertBandTrack">
             <span class="alert-band-empty">Alarm bekleniyor...</span>
         </div>
         <button class="alert-band-btn" id="alertBandBtn" onclick="toggleAlarmsSidebar()">
-            <span class="alert-band-btn-icon">🔔</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
             Alarmlar
-            <span class="alert-band-btn-count" id="alertBandBadge">0</span>
+            <span class="alert-band-badge" id="alertBandBadge">0</span>
         </button>
     </div>
 
