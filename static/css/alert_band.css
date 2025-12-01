@@ -168,6 +168,14 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+/* Selection indicator */
+.alert-band-selection {
+    font-size: 12px;
+    font-weight: 600;
+    color: #58a6ff;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
 /* Value/Score */
 .alert-band-value {
     font-size: 13px;

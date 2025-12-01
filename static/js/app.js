@@ -3380,6 +3380,7 @@ function renderAlertBand() {
         const home = alarm.home || alarm.home_team || '?';
         const away = alarm.away || alarm.away_team || '?';
         const value = formatAlertValue(alarm);
+        const selection = alarm.selection || alarm.side || '';
         
         const valueClass = alarm._type === 'insider' ? 'insider' : '';
         return `
@@ -3387,6 +3388,7 @@ function renderAlertBand() {
                 <span class="alert-band-dot ${info.color}"></span>
                 <span class="alert-band-type ${info.pillClass}">${info.label}</span>
                 <span class="alert-band-match">${home} - ${away}</span>
+                <span class="alert-band-selection">[${selection}]</span>
                 <span class="alert-band-value ${valueClass}">${value}</span>
             </div>
         `;
@@ -3708,7 +3710,7 @@ function renderAlarmsList(filterType) {
                 </div>
                 <div class="alert-main">
                     <span class="alert-match">${home} vs ${away}</span>
-                    <span class="alert-market">[${selection}]</span>
+                    <span class="alert-market">[${market}: ${selection}]</span>
                 </div>
                 <div class="alert-score">${scoreText}</div>
                 <div class="alert-time">${timeAgo}</div>
