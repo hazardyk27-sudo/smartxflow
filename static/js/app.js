@@ -4093,9 +4093,18 @@ function formatSmartMoneyTime(dateStr) {
     if (!dateStr) return '-';
     
     // Direct parse for DD.MM.YYYY HH:MM format
-    const match = dateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/);
-    if (match) {
-        const [, day, month, year, hour, min] = match;
+    const match1 = dateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/);
+    if (match1) {
+        const [, day, month, year, hour, min] = match1;
+        const monthNames = ['Oca', 'Sub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Agu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+        const monthName = monthNames[parseInt(month) - 1] || month;
+        return `${day} ${monthName} • ${hour}:${min}`;
+    }
+    
+    // ISO format: 2025-12-01T18:31:21
+    const match2 = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (match2) {
+        const [, year, month, day, hour, min] = match2;
         const monthNames = ['Oca', 'Sub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Agu', 'Eyl', 'Eki', 'Kas', 'Ara'];
         const monthName = monthNames[parseInt(month) - 1] || month;
         return `${day} ${monthName} • ${hour}:${min}`;
@@ -4180,7 +4189,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
         const markets = [...new Set(alarms.map(a => a.selection || a.side || a.market || '-'))];
         const marketText = markets.slice(0, 3).join(', ');
         
-        const lastTime = formatSmartMoneyTime(latest.created_at || latest.triggered_at);
+        const lastTime = formatSmartMoneyTime(latest.event_time || latest.created_at || latest.triggered_at);
         
         let mainText = '';
         if (type === 'sharp') {

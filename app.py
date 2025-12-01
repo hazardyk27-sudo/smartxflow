@@ -1258,6 +1258,10 @@ def calculate_insider_scores(config):
                         avg_gelen_para = sum(s['gelen_para'] for s in best_window) / len(best_window)
                         max_odds_drop = max(s['odds_drop_pct'] for s in best_window)
                         
+                        # Event time: hareketin tespit edildiği snapshot zamanı
+                        last_snap_idx = last_snap['index']
+                        event_time = history[last_snap_idx].get('scrapedat', '') if last_snap_idx < len(history) else ''
+                        
                         created_at = now_turkey().strftime('%d.%m.%Y %H:%M')
                         last_odds = parse_float(history[-1].get(odds_key, '0'))
                         
@@ -1278,6 +1282,7 @@ def calculate_insider_scores(config):
                             'insider_max_odds_esigi': max_odds_esigi,
                             'snapshot_count': required_streak,
                             'match_date': match_date_str,
+                            'event_time': event_time,
                             'created_at': created_at,
                             'triggered': True
                         }
@@ -1546,6 +1551,8 @@ def calculate_big_money_scores(config):
                     max_incoming = max(s['incoming'] for s in big_money_snapshots)
                     last_snapshot = big_money_snapshots[-1]
                     
+                    # Event time: hareketin gerçekleştiği snapshot zamanı
+                    event_time = last_snapshot.get('scrapedat', '')
                     created_at = now_turkey().strftime('%d.%m.%Y %H:%M')
                     
                     alarm = {
@@ -1560,6 +1567,7 @@ def calculate_big_money_scores(config):
                         'big_money_limit': limit,
                         'snapshot_count': len(big_money_snapshots),
                         'match_date': match_date_str,
+                        'event_time': event_time,
                         'created_at': created_at
                     }
                     alarms.append(alarm)
@@ -1924,12 +1932,16 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         sharp_score >= min_sharp_score
     )
     
+    # Event time: hareketin tespit edildiği snapshot zamanı
+    event_time = latest.get('scrapedat', '')
+    
     return {
         'home': home,
         'away': away,
         'market': market,
         'selection': selection,
         'match_date': match_date_str,
+        'event_time': event_time,
         'created_at': now_turkey_formatted(),
         'amount_change': amount_change,
         'avg_last_amounts': avg_last_amounts,
