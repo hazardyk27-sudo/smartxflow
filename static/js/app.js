@@ -3305,7 +3305,13 @@ function getAlertType(alarm) {
     const type = alarm._type;
     if (type === 'sharp') return { label: 'SHARP MOVE', color: 'green', pillClass: 'sharp' };
     if (type === 'insider') return { label: 'INSIDER INFO', color: 'purple', pillClass: 'insider' };
-    if (type === 'bigmoney') return { label: 'BIG MONEY', color: 'yellow', pillClass: 'bigmoney' };
+    if (type === 'bigmoney') {
+        const stake = alarm.stake || alarm.volume || 0;
+        if (stake >= 50000) {
+            return { label: 'HUGE MONEY', color: 'orange-red', pillClass: 'hugemoney' };
+        }
+        return { label: 'BIG MONEY', color: 'orange', pillClass: 'bigmoney' };
+    }
     return { label: 'ALERT', color: 'green', pillClass: '' };
 }
 
@@ -3315,11 +3321,12 @@ function formatAlertValue(alarm) {
         return '+' + (alarm.sharp_score || 0).toFixed(0);
     }
     if (type === 'insider') {
-        return (alarm.insider_score || 0).toFixed(1);
+        const dropPct = alarm.oran_dusus_pct || alarm.odds_drop_pct || 0;
+        return '-' + dropPct.toFixed(1) + '%';
     }
     if (type === 'bigmoney') {
         const val = alarm.stake || alarm.volume || 0;
-        return '+£' + Number(val).toLocaleString();
+        return '£' + Number(val).toLocaleString();
     }
     return '';
 }
