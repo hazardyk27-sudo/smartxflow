@@ -3369,9 +3369,11 @@ function renderAlertBand() {
 }
 
 function updateAlertBandBadge() {
-    const badge = document.getElementById('alertBandBadge');
+    const badge = document.getElementById('alarmsBadge');
     if (badge) {
-        badge.textContent = alertBandData.length;
+        const count = alertBandData.length;
+        badge.textContent = count;
+        badge.setAttribute('data-count', count);
     }
 }
 
@@ -3503,6 +3505,8 @@ function openAlarmsSidebar() {
     document.getElementById('alarmsSidebar').classList.add('open');
     document.getElementById('alarmsSidebarOverlay').classList.add('open');
     document.body.style.overflow = 'hidden';
+    const btn = document.getElementById('alarmsBtn');
+    if (btn) btn.classList.add('active');
     loadAllAlarms();
 }
 
@@ -3511,6 +3515,8 @@ function closeAlarmsSidebar() {
     document.getElementById('alarmsSidebar').classList.remove('open');
     document.getElementById('alarmsSidebarOverlay').classList.remove('open');
     document.body.style.overflow = '';
+    const btn = document.getElementById('alarmsBtn');
+    if (btn) btn.classList.remove('active');
 }
 
 async function loadAllAlarms() {
