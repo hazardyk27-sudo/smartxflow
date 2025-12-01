@@ -3501,12 +3501,65 @@ function showAlarmDetailFromList(index) {
     if (!alarm) return;
     
     const type = alarm._type;
+    const typeNames = { sharp: 'Sharp', insider: 'Insider', bigmoney: 'Big Money' };
+    const typeColors = { sharp: '#ef4444', insider: '#60a5fa', bigmoney: '#fbbf24' };
     
     if (type === 'sharp') {
-        showTickerAlarmDetail(encodeURIComponent(JSON.stringify(alarm)));
+        const home = alarm.home || '-';
+        const away = alarm.away || '-';
+        const score = (alarm.sharp_score || 0).toFixed(1);
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.id = 'alarmDetailModal';
+        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+        
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2 style="display: flex; align-items: center; gap: 10px;">
+                        <span style="background: ${typeColors.sharp}; width: 14px; height: 14px; border-radius: 50%; display: inline-block;"></span>
+                        Sharp Alarm
+                    </h2>
+                    <button class="close-btn" onclick="document.getElementById('alarmDetailModal').remove()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body" style="padding: 20px;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 48px; font-weight: 700; color: #ef4444;">${score}</div>
+                        <div style="color: #8b949e; font-size: 14px;">Sharp Score</div>
+                    </div>
+                    <div style="background: #21262d; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                        <div style="color: #8b949e; font-size: 12px; margin-bottom: 8px;">MAC VE SECIM</div>
+                        <div style="font-size: 18px; font-weight: 600; color: #e6edf3;">${home} vs ${away}</div>
+                        <div style="color: #8b949e; margin-top: 4px;">${alarm.market || '-'} | Secim: <span style="color: #58a6ff; font-weight: 600;">${alarm.selection || '-'}</span></div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                            <div style="color: #4ade80; font-size: 20px; font-weight: 700;">${alarm.volume ? '£' + Number(alarm.volume).toLocaleString() : '-'}</div>
+                            <div style="color: #8b949e; font-size: 11px;">Volume</div>
+                        </div>
+                        <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                            <div style="color: #f0883e; font-size: 20px; font-weight: 700;">${alarm.stake_share ? alarm.stake_share.toFixed(1) + '%' : '-'}</div>
+                            <div style="color: #8b949e; font-size: 11px;">Stake Share</div>
+                        </div>
+                        <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                            <div style="color: #58a6ff; font-size: 20px; font-weight: 700;">${alarm.odds_move ? (alarm.odds_move > 0 ? '+' : '') + alarm.odds_move.toFixed(2) : '-'}</div>
+                            <div style="color: #8b949e; font-size: 11px;">Odds Move</div>
+                        </div>
+                        <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                            <div style="color: #a371f7; font-size: 20px; font-weight: 700;">${alarm.volume_shock ? alarm.volume_shock.toFixed(1) + 'x' : '-'}</div>
+                            <div style="color: #8b949e; font-size: 11px;">Volume Shock</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
     } else {
-        const typeNames = { insider: 'Insider', bigmoney: 'Big Money' };
-        const typeColors = { insider: '#60a5fa', bigmoney: '#fbbf24' };
         
         const home = alarm.home || alarm.home_team || '-';
         const away = alarm.away || alarm.away_team || '-';
