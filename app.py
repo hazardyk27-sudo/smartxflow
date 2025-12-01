@@ -74,7 +74,9 @@ stop_auto_event = threading.Event()
 server_scheduler_thread = None
 server_scheduler_stop = threading.Event()
 cleanup_thread = None
+alarm_scheduler_thread = None
 last_cleanup_date = None
+last_alarm_calc_time = None
 
 
 def cleanup_old_matches():
@@ -125,6 +127,69 @@ def start_cleanup_scheduler():
     
     cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
     cleanup_thread.start()
+
+
+def run_alarm_calculations():
+    """Run all alarm calculations"""
+    global sharp_alarms, insider_alarms, big_money_alarms, last_alarm_calc_time
+    
+    try:
+        print(f"[Alarm Scheduler] Starting alarm calculations at {now_turkey_iso()}")
+        
+        # Sharp alarms
+        try:
+            new_sharp = calculate_sharp_scores(sharp_config)
+            if new_sharp:
+                sharp_alarms = new_sharp
+                save_sharp_alarms_to_file(sharp_alarms)
+                print(f"[Alarm Scheduler] Sharp: {len(sharp_alarms)} alarms")
+        except Exception as e:
+            print(f"[Alarm Scheduler] Sharp error: {e}")
+        
+        # Insider alarms
+        try:
+            new_insider = calculate_insider_scores(sharp_config)
+            if new_insider:
+                insider_alarms = new_insider
+                save_insider_alarms_to_file(insider_alarms)
+                print(f"[Alarm Scheduler] Insider: {len(insider_alarms)} alarms")
+        except Exception as e:
+            print(f"[Alarm Scheduler] Insider error: {e}")
+        
+        # Big Money alarms
+        try:
+            new_bigmoney = calculate_big_money_scores(big_money_config)
+            if new_bigmoney:
+                big_money_alarms = new_bigmoney
+                save_big_money_alarms_to_file(big_money_alarms)
+                print(f"[Alarm Scheduler] BigMoney: {len(big_money_alarms)} alarms")
+        except Exception as e:
+            print(f"[Alarm Scheduler] BigMoney error: {e}")
+        
+        last_alarm_calc_time = now_turkey_iso()
+        print(f"[Alarm Scheduler] Completed at {last_alarm_calc_time}")
+        
+    except Exception as e:
+        print(f"[Alarm Scheduler] Error: {e}")
+
+
+def start_alarm_scheduler():
+    """Start periodic alarm calculation scheduler"""
+    global alarm_scheduler_thread
+    
+    interval_seconds = 600  # 10 minutes
+    
+    def alarm_loop():
+        print(f"[Alarm Scheduler] Started - interval: {interval_seconds // 60} minutes")
+        # Wait 60 seconds before first calculation (let server fully start)
+        time.sleep(60)
+        
+        while True:
+            run_alarm_calculations()
+            time.sleep(interval_seconds)
+    
+    alarm_scheduler_thread = threading.Thread(target=alarm_loop, daemon=True)
+    alarm_scheduler_thread.start()
 
 
 def start_server_scheduler():
@@ -1944,6 +2009,7 @@ def main():
         if is_server_mode():
             start_server_scheduler()
             start_cleanup_scheduler()
+            start_alarm_scheduler()
             host = '0.0.0.0'
         else:
             host = '127.0.0.1'
