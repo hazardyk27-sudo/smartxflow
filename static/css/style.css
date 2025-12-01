@@ -761,7 +761,7 @@ body {
 }
 
 .modal-content {
-    background: #0d1117;
+    background: #161b22;
     border-radius: 12px;
     width: 100%;
     max-width: calc(100vw - 32px);
@@ -784,28 +784,28 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 20px 24px;
-    border-bottom: 1px solid #1c2533;
-    background: #050812;
+    border-bottom: 1px solid #30363d;
+    background: #161b22;
 }
 
 .modal-title h2 {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 600;
-    color: var(--color-text-primary);
+    color: #c9d1d9;
     margin-bottom: 4px;
     letter-spacing: -0.2px;
 }
 
 .modal-subtitle {
-    font-size: 12px;
-    color: var(--color-text-secondary);
-    font-weight: 500;
+    font-size: 13px;
+    color: #8b949e;
+    font-weight: 400;
 }
 
 .modal-close {
     background: none;
     border: none;
-    color: #8899a6;
+    color: #9ca3af;
     cursor: pointer;
     padding: 8px;
     border-radius: 8px;
@@ -813,26 +813,26 @@ body {
 }
 
 .modal-close:hover {
-    background: #1c2533;
-    color: #E5E7EB;
+    background: #21262d;
+    color: #c9d1d9;
 }
 
 .modal-body {
     padding: 28px 32px;
     overflow-y: auto;
     flex: 1;
-    background: #050812;
+    background: #161b22;
     font-family: 'Inter', sans-serif;
     font-size: 14px;
-    color: var(--color-text-primary);
+    color: #c9d1d9;
 }
 
 .match-info-card {
-    background: #050812;
+    background: #21262d;
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 24px;
-    border: 1px solid #1c2533;
+    border: 1px solid #30363d;
 }
 
 .info-columns {
@@ -857,25 +857,25 @@ body {
     vertical-align: top;
     text-align: left;
     padding: 16px 20px;
-    background: #0B1017;
+    background: #21262d;
     border-radius: 10px;
     min-width: 120px;
     width: 30%;
     box-sizing: border-box;
-    border: 1px solid #1c2533;
+    border: 1px solid #30363d;
 }
 
 .column-header {
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 600;
-    color: var(--color-text-primary);
+    color: #c9d1d9;
     margin-bottom: 16px;
     padding-bottom: 12px;
-    border-bottom: 1px solid #1c2533;
+    border-bottom: 1px solid #30363d;
     text-align: center;
     font-family: 'Inter', sans-serif;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    text-transform: none;
 }
 
 .column-value {
@@ -883,7 +883,7 @@ body {
     font-weight: 500;
     margin-bottom: 10px;
     font-size: 14px;
-    color: var(--color-text-primary);
+    color: #c9d1d9;
 }
 
 .column-value:last-child {
@@ -891,21 +891,21 @@ body {
 }
 
 .column-value.odds {
-    color: var(--color-accent);
+    color: #dbeafe;
     font-size: 15px;
     font-weight: 600;
 }
 
 .column-value.money {
     font-size: 13px;
-    color: var(--color-text-muted);
+    color: #22c55e;
     font-weight: 500;
 }
 
 .column-value.pct {
     font-size: 13px;
-    font-weight: 600;
-    color: var(--color-accent);
+    font-weight: 500;
+    color: #4ade80;
 }
 
 .column-row {
@@ -922,7 +922,7 @@ body {
     -ms-flex-align: center;
     align-items: center;
     padding: 10px 0;
-    border-bottom: 1px solid #1c2533;
+    border-bottom: 1px solid #30363d;
     width: 100%;
 }
 
@@ -931,8 +931,8 @@ body {
 }
 
 .row-label {
-    font-size: 12px;
-    color: var(--color-text-secondary);
+    font-size: 13px;
+    color: #8b949e;
     font-weight: 500;
     text-transform: capitalize;
     letter-spacing: 0.2px;
@@ -943,11 +943,11 @@ body {
     font-family: 'Inter', sans-serif;
     font-weight: 600;
     font-size: 14px;
-    color: var(--color-text-primary);
+    color: #c9d1d9;
 }
 
 .row-value.odds {
-    color: var(--color-accent);
+    color: #dbeafe;
     font-size: 15px;
     font-weight: 600;
     font-style: normal;
@@ -955,15 +955,15 @@ body {
 
 .row-value.money {
     font-size: 13px;
-    color: var(--color-text-muted);
+    color: #22c55e;
     font-style: normal;
     font-weight: 500;
 }
 
 .row-value.pct {
     font-size: 13px;
-    font-weight: 600;
-    color: var(--color-accent);
+    font-weight: 500;
+    color: #4ade80;
 }
 
 .volume-bar {
@@ -981,16 +981,16 @@ body {
     align-items: center;
     margin-top: 16px;
     padding: 14px 20px;
-    background: #0B1017;
+    background: #21262d;
     border-radius: 10px;
-    border: 1px solid #1c2533;
+    border: 1px solid #30363d;
     width: 100%;
     box-sizing: border-box;
 }
 
 .volume-label {
-    font-size: 12px;
-    color: #9CA3AF;
+    font-size: 13px;
+    color: #8b949e;
     text-transform: uppercase;
     font-weight: 600;
     letter-spacing: 0.5px;
@@ -998,9 +998,9 @@ body {
 
 .volume-value {
     font-family: 'Inter', sans-serif;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
-    color: var(--mw-text-money);
+    color: #22c55e;
 }
 
 .info-row {
@@ -1008,7 +1008,7 @@ body {
     justify-content: space-around;
     gap: 16px;
     padding: 12px 0;
-    border-bottom: 1px solid #2f3336;
+    border-bottom: 1px solid #30363d;
 }
 
 .info-row:last-child {
@@ -1021,11 +1021,11 @@ body {
 }
 
 .info-label {
-    font-size: 12px;
-    color: var(--color-text-secondary);
+    font-size: 13px;
+    color: #8b949e;
     text-transform: uppercase;
     margin-bottom: 8px;
-    font-weight: 600;
+    font-weight: 500;
     letter-spacing: 0.5px;
     font-family: 'Inter', sans-serif;
 }
@@ -1033,26 +1033,33 @@ body {
 .info-value {
     font-size: 14px;
     font-weight: 600;
-    color: var(--color-text-primary);
+    color: #c9d1d9;
     font-family: 'Inter', sans-serif;
 }
 
 .info-value.odds {
-    color: var(--color-accent);
+    color: #dbeafe;
     font-size: 15px;
+    font-weight: 600;
 }
 
 .info-value.money {
-    color: var(--mw-text-money);
+    color: #22c55e;
+    font-size: 13px;
+    font-weight: 500;
 }
 
 .info-value.volume {
-    color: var(--mw-text-money);
+    color: #22c55e;
+    font-size: 15px;
+    font-weight: 600;
 }
 
 .info-value.pct {
     display: inline-block;
-    font-size: 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #4ade80;
 }
 
 .chart-tabs {
@@ -1060,7 +1067,7 @@ body {
     flex-wrap: wrap;
     gap: 6px;
     margin-bottom: 20px;
-    background: #161b22;
+    background: #21262d;
     padding: 8px;
     border-radius: 10px;
     border: 1px solid #30363d;
@@ -1070,9 +1077,10 @@ body {
     padding: 10px 16px;
     background: transparent;
     border: none;
-    color: #8b949e;
+    border-bottom: 2px solid transparent;
+    color: #9ca3af;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     border-radius: 8px;
     transition: all 0.2s;
@@ -1081,12 +1089,13 @@ body {
 
 .chart-tab:hover {
     color: #c9d1d9;
-    background: #21262d;
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .chart-tab.active {
-    background: #238636;
-    color: #fff;
+    background: rgba(74, 222, 128, 0.1);
+    border-bottom-color: #4ade80;
+    color: #ffffff;
 }
 
 .chart-legend-filters {
@@ -1119,9 +1128,9 @@ body {
     background: #21262d;
     border: 2px solid #30363d;
     border-radius: 8px;
-    color: #c9d1d9;
-    font-size: 12px;
-    font-weight: 600;
+    color: #9ca3af;
+    font-size: 13px;
+    font-weight: 500;
     font-family: 'Inter', sans-serif;
     cursor: pointer;
     transition: all 0.2s;
@@ -1129,17 +1138,19 @@ body {
 
 .chart-legend-btn:hover {
     background: #30363d;
+    color: #c9d1d9;
 }
 
 .chart-legend-btn.active {
-    border-color: var(--legend-color, #58a6ff);
-    background: rgba(56, 139, 253, 0.15);
+    border-color: var(--legend-color, #4ade80);
+    background: rgba(74, 222, 128, 0.1);
+    color: #ffffff;
 }
 
 .chart-legend-btn.inactive {
     opacity: 0.4;
     border-color: #30363d;
-    background: #0d1117;
+    background: #020617;
 }
 
 .legend-color-dot {
@@ -1151,12 +1162,12 @@ body {
 
 .chart-time-btn {
     padding: 6px 12px;
-    background: #0d1117;
+    background: #020617;
     border: 1px solid #30363d;
     border-radius: 6px;
-    color: #8b949e;
-    font-size: 11px;
-    font-weight: 600;
+    color: #9ca3af;
+    font-size: 12px;
+    font-weight: 500;
     font-family: 'Inter', sans-serif;
     cursor: pointer;
     transition: all 0.2s;
@@ -1168,15 +1179,15 @@ body {
 }
 
 .chart-time-btn.active {
-    background: #238636;
-    border-color: #238636;
-    color: #fff;
+    background: #21262d;
+    border-color: #4ade80;
+    color: #4ade80;
 }
 
 .view-mode-filters {
     display: flex;
     gap: 4px;
-    background: #161b22;
+    background: #21262d;
     padding: 3px;
     border-radius: 8px;
     border: 1px solid #30363d;
@@ -1187,9 +1198,9 @@ body {
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: #8b949e;
+    color: #9ca3af;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     font-family: 'Inter', sans-serif;
     cursor: pointer;
     transition: all 0.2s;
@@ -1201,8 +1212,9 @@ body {
 }
 
 .chart-view-btn.active {
-    background: #58a6ff;
-    color: #fff;
+    background: transparent;
+    border: 1px solid #4ade80;
+    color: #ffffff;
 }
 
 .chart-export-btns {
@@ -1243,7 +1255,7 @@ body {
 }
 
 .chart-wrapper {
-    background: #0d1117;
+    background: #21262d;
     border-radius: 12px;
     padding: 24px;
     height: 480px;
@@ -1546,23 +1558,35 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 16px;
-    background: rgba(74, 222, 128, 0.1);
-    border: 1px solid rgba(74, 222, 128, 0.2);
+    background: #21262d;
+    border: 1px solid #30363d;
     border-radius: 8px;
 }
 
-.info-label {
+.info-row.total-volume .volume-label {
+    font-size: 13px;
+    font-weight: 600;
     color: #8b949e;
-    font-size: 12px;
+}
+
+.info-row.total-volume .volume-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: #22c55e;
+}
+
+.info-row .info-label {
+    color: #8b949e;
+    font-size: 13px;
     font-weight: 600;
     text-transform: uppercase;
 }
 
-.info-value.volume {
-    color: #4ade80;
-    font-size: 24px;
-    font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
+.info-row .info-value.volume {
+    color: #22c55e;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
 }
 
 @media (max-width: 600px) {
