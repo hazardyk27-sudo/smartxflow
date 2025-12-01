@@ -40,23 +40,47 @@
     100% { transform: translateX(-50%); }
 }
 
-/* Minimal Pill Style */
+/* Pill with colored border */
 .alert-band-pill {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     padding: 4px 12px;
-    background: transparent;
-    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid transparent;
+    border-radius: 9999px;
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
-    transition: background 0.15s ease;
+    transition: all 0.15s ease;
 }
 
-.alert-band-pill:hover {
-    background: rgba(255, 255, 255, 0.05);
+/* Sharp - Red */
+.alert-band-pill.sharp {
+    border-color: rgba(248, 113, 113, 0.6);
+}
+.alert-band-pill.sharp:hover {
+    background: rgba(248, 113, 113, 0.1);
+    border-color: #f87171;
+}
+
+/* Insider - Purple */
+.alert-band-pill.insider {
+    border-color: rgba(168, 85, 247, 0.6);
+}
+.alert-band-pill.insider:hover {
+    background: rgba(168, 85, 247, 0.1);
+    border-color: #a855f7;
+}
+
+/* BigMoney - Yellow/Gold */
+.alert-band-pill.bigmoney {
+    border-color: rgba(251, 191, 36, 0.6);
+}
+.alert-band-pill.bigmoney:hover {
+    background: rgba(251, 191, 36, 0.1);
+    border-color: #fbbf24;
 }
 
 /* Small Dot Indicator */
@@ -70,14 +94,17 @@
     flex-shrink: 0;
 }
 
+/* Sharp dot - Red */
 .alert-band-dot.red {
     background: #f87171;
 }
 
-.alert-band-dot.orange {
-    background: #fb923c;
+/* Insider dot - Purple */
+.alert-band-dot.purple {
+    background: #a855f7;
 }
 
+/* BigMoney dot - Yellow */
 .alert-band-dot.yellow {
     background: #fbbf24;
 }
@@ -92,10 +119,21 @@
     align-items: center;
     font-size: 10px;
     font-weight: 600;
-    color: #f87171;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     line-height: 1;
+}
+
+.alert-band-type.sharp {
+    color: #f87171;
+}
+
+.alert-band-type.insider {
+    color: #a855f7;
+}
+
+.alert-band-type.bigmoney {
+    color: #fbbf24;
 }
 
 /* Match Name */

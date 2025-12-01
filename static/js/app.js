@@ -3303,10 +3303,10 @@ async function loadAlertBand() {
 
 function getAlertType(alarm) {
     const type = alarm._type;
-    if (type === 'sharp') return { label: 'Sharp Move', color: 'red' };
-    if (type === 'insider') return { label: 'Insider Info', color: 'orange' };
-    if (type === 'bigmoney') return { label: 'Big Money', color: 'yellow' };
-    return { label: 'Alert', color: 'green' };
+    if (type === 'sharp') return { label: 'SHARP MOVE', color: 'red', pillClass: 'sharp' };
+    if (type === 'insider') return { label: 'INSIDER INFO', color: 'purple', pillClass: 'insider' };
+    if (type === 'bigmoney') return { label: 'BIG MONEY', color: 'yellow', pillClass: 'bigmoney' };
+    return { label: 'ALERT', color: 'green', pillClass: '' };
 }
 
 function formatAlertValue(alarm) {
@@ -3342,9 +3342,9 @@ function renderAlertBand() {
         const value = formatAlertValue(alarm);
         
         return `
-            <div class="alert-band-pill" onclick="showAlertBandDetail(${idx})">
+            <div class="alert-band-pill ${info.pillClass}" onclick="showAlertBandDetail(${idx})">
                 <span class="alert-band-dot ${info.color}"></span>
-                <span class="alert-band-type">${info.label}</span>
+                <span class="alert-band-type ${info.pillClass}">${info.label}</span>
                 <span class="alert-band-match">${home} - ${away}</span>
                 <span class="alert-band-value">${value}</span>
             </div>
