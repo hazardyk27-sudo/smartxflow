@@ -1404,11 +1404,26 @@
                     <div class="insider-detail-panel" id="insider_detail_${idx}" style="display: ${isExpanded ? 'block' : 'none'};">
                         <div class="insider-detail-grid">
                             <div class="insider-detail-section">
-                                <div class="insider-detail-title">📊 DOĞRULAMA BİLGİLERİ</div>
+                                <div class="insider-detail-title">📊 ORAN DEĞİŞİMİ</div>
                                 <div class="insider-detail-row">
-                                    <span class="insider-detail-label">Oran Düşüşü:</span>
-                                    <span class="insider-detail-value" style="color: #ef4444; font-weight: 700;">${(alarm.oran_dusus_pct || 0).toFixed(2)}%</span>
+                                    <span class="insider-detail-label">Oran Hareketi:</span>
+                                    <span class="insider-detail-value">
+                                        <span style="color: #94a3b8;">${alarm.opening_odds || '-'}</span>
+                                        <span style="color: #ef4444; margin: 0 6px;">→</span>
+                                        <span style="color: #22c55e; font-weight: 700;">${alarm.last_odds || '-'}</span>
+                                    </span>
                                 </div>
+                                <div class="insider-detail-row">
+                                    <span class="insider-detail-label">Düşüş Yüzdesi:</span>
+                                    <span class="insider-detail-value" style="color: #ef4444; font-weight: 700;">%${(alarm.oran_dusus_pct || 0).toFixed(2)}</span>
+                                </div>
+                                <div class="insider-detail-row">
+                                    <span class="insider-detail-label">Seçenek:</span>
+                                    <span class="insider-detail-value" style="color: #a371f7; font-weight: 600;">${alarm.market} → ${alarm.selection}</span>
+                                </div>
+                            </div>
+                            <div class="insider-detail-section">
+                                <div class="insider-detail-title">💰 PARA HAREKETİ</div>
                                 <div class="insider-detail-row">
                                     <span class="insider-detail-label">Gelen Para:</span>
                                     <span class="insider-detail-value" style="color: #22c55e; font-weight: 700;">£${Math.round(alarm.gelen_para || 0).toLocaleString()}</span>
@@ -1417,20 +1432,9 @@
                                     <span class="insider-detail-label">Hacim Şok:</span>
                                     <span class="insider-detail-value" style="color: #f59e0b; font-weight: 700;">${(alarm.hacim_sok || 0).toFixed(4)}x</span>
                                 </div>
-                            </div>
-                            <div class="insider-detail-section">
-                                <div class="insider-detail-title">⚽ MAÇ BİLGİSİ</div>
                                 <div class="insider-detail-row">
                                     <span class="insider-detail-label">Maç Saati:</span>
                                     <span class="insider-detail-value" style="color: #58a6ff;">${alarm.match_date || '-'}</span>
-                                </div>
-                                <div class="insider-detail-row">
-                                    <span class="insider-detail-label">Açılış Oranı:</span>
-                                    <span class="insider-detail-value">${alarm.opening_odds || '-'}</span>
-                                </div>
-                                <div class="insider-detail-row">
-                                    <span class="insider-detail-label">Son Oran:</span>
-                                    <span class="insider-detail-value">${alarm.last_odds || '-'}</span>
                                 </div>
                             </div>
                             <div class="insider-detail-section">
