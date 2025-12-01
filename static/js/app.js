@@ -3784,35 +3784,54 @@ function renderAlarmsList(filterType) {
         const marketLabel = formatMarketChip(market, selection);
         const expandIcon = isOpen ? '▼' : '▶';
         
+        const stripeColors = {
+            'bigmoney': '#fbbf24',
+            'sharp': '#22c55e',
+            'insider': '#a855f7',
+            'dropping': '#ef4444'
+        };
+        const stripeColor = stripeColors[type] || '#64748b';
+        
+        const typeBadges = {
+            'bigmoney': alarm.is_huge ? 'HUGE' : 'BIG',
+            'sharp': 'SHARP',
+            'insider': 'INSIDER',
+            'dropping': 'DROP'
+        };
+        const typeBadge = typeBadges[type] || type.toUpperCase();
+        
+        let mainMoney = 0;
+        if (type === 'bigmoney') {
+            mainMoney = alarm.incoming_money || alarm.stake || 0;
+        } else if (type === 'sharp') {
+            mainMoney = alarm.volume || alarm.stake || 0;
+        } else if (type === 'insider') {
+            mainMoney = alarm.stake || alarm.volume || 0;
+        }
+        
         let historyHtml = group.history.map((a, i) => {
             const time = formatTriggerTime(a.event_time || a.created_at);
-            let valuesHtml = '';
+            let money = 0;
+            let badge = '';
             
             if (type === 'sharp') {
-                valuesHtml = `
-                    <span class="trigger-value"><span class="label">Score:</span> <span class="value">${(a.sharp_score || 0).toFixed(1)}</span></span>
-                    <span class="trigger-value"><span class="label">Vol:</span> <span class="value positive">${a.volume ? '£' + Number(a.volume).toLocaleString('en-GB') : '-'}</span></span>
-                    <span class="trigger-value"><span class="label">Shock:</span> <span class="value">${a.volume_shock ? a.volume_shock.toFixed(1) + 'x' : '-'}</span></span>
-                `;
+                money = a.volume || a.stake || 0;
+                badge = 'SHARP';
             } else if (type === 'insider') {
-                valuesHtml = `
-                    <span class="trigger-value"><span class="label">Score:</span> <span class="value">${(a.insider_score || 0).toFixed(1)}</span></span>
-                    <span class="trigger-value"><span class="label">Stake:</span> <span class="value positive">${a.stake ? '£' + Number(a.stake).toLocaleString('en-GB') : '-'}</span></span>
-                    <span class="trigger-value"><span class="label">Odds:</span> <span class="value negative">${a.odds_drop_pct ? a.odds_drop_pct.toFixed(1) + '%' : '-'}</span></span>
-                `;
+                money = a.stake || a.volume || 0;
+                badge = 'INSIDER';
             } else if (type === 'bigmoney') {
-                const money = a.incoming_money || a.stake || 0;
-                valuesHtml = `
-                    <span class="trigger-value"><span class="label">Para:</span> <span class="value positive">£${Number(money).toLocaleString('en-GB')}</span></span>
-                    <span class="trigger-value"><span class="label">Snap:</span> <span class="value">${a.snapshot_count || '-'}</span></span>
-                    ${a.is_huge ? '<span class="trigger-value"><span class="value" style="color: #f97316;">HUGE</span></span>' : ''}
-                `;
+                money = a.incoming_money || a.stake || 0;
+                badge = a.is_huge ? 'HUGE' : 'BIG';
             }
             
             return `
-                <div class="trigger-history-item ${i === 0 ? 'latest' : ''}">
-                    <span class="trigger-time">${time}</span>
-                    <div class="trigger-values">${valuesHtml}</div>
+                <div class="detail-log-item">
+                    <span class="log-time">${time}</span>
+                    <span class="log-sep">–</span>
+                    <span class="log-money">£${Number(money).toLocaleString('en-GB')}</span>
+                    <span class="log-sep">–</span>
+                    <span class="log-badge ${type}">${badge}</span>
                 </div>
             `;
         }).join('');
@@ -3820,32 +3839,40 @@ function renderAlarmsList(filterType) {
         const homeEscaped = home.replace(/'/g, "\\'");
         const awayEscaped = away.replace(/'/g, "\\'");
         
+        const leagueDate = `${group.league || '-'} • ${group.match_date || '-'}`;
+        
         const inlineDetail = `
             <div class="alarm-inline-detail ${isOpen ? 'open' : ''}" id="detail_${alarmId}" onclick="event.stopPropagation()">
-                <div class="inline-detail-divider"></div>
-                <div class="inline-detail-section">
-                    <div class="inline-detail-title">Mac Bilgisi</div>
-                    <div class="inline-detail-match">${home} - ${away}</div>
-                    ${group.league ? `<div class="inline-detail-league">${group.league}</div>` : ''}
-                    ${group.match_date ? `<div class="inline-detail-league">Tarih: ${group.match_date}</div>` : ''}
-                    <div class="inline-detail-market">
-                        <span class="alarm-detail-market">${market}: <span class="selection" style="color: ${typeColors[type]};">${selection}</span></span>
+                <div class="detail-card-wrapper" style="border-left: 6px solid ${stripeColor};">
+                    <div class="detail-header">
+                        <span class="detail-league-date">${leagueDate}</span>
                     </div>
-                </div>
-                <div class="inline-detail-section">
-                    <div class="inline-detail-title">Tetiklenme Gecmisi (${group.triggerCount} kez)</div>
-                    <div class="trigger-history-list">
-                        ${historyHtml}
+                    <div class="detail-match-name">${home} – ${away}</div>
+                    
+                    <div class="detail-section">
+                        <div class="detail-label">MARKET</div>
+                        <div class="detail-value-market">${market} → ${selection}</div>
                     </div>
+                    
+                    <div class="detail-section">
+                        <div class="detail-label">ALARM BİLGİSİ</div>
+                        <div class="detail-alarm-info">
+                            <span class="detail-money">£${Number(mainMoney).toLocaleString('en-GB')}</span>
+                            <span class="detail-type-badge ${type}">${typeBadge}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <div class="detail-label">DETAY</div>
+                        <div class="detail-logs-container">
+                            ${historyHtml}
+                        </div>
+                    </div>
+                    
+                    <button class="detail-goto-match-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}')">
+                        📈 Maç Sayfasını Aç
+                    </button>
                 </div>
-                <button class="inline-goto-match-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                        <polyline points="15 3 21 3 21 9"/>
-                        <line x1="10" y1="14" x2="21" y2="3"/>
-                    </svg>
-                    Mac Sayfasini Ac
-                </button>
             </div>
         `;
         
