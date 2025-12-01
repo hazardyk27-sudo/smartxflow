@@ -4298,4 +4298,147 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (e) {
         console.log('Badge guncelleme hatasi:', e);
     }
+    
+    // Add admin panel trigger button
+    addAdminTrigger();
+    
+    // Keyboard shortcut: Ctrl+Shift+A for Admin Panel
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+            e.preventDefault();
+            openAdminPanel();
+        }
+    });
 });
+
+// ===== ADMIN PANEL FUNCTIONS =====
+
+function addAdminTrigger() {
+    const trigger = document.createElement('div');
+    trigger.className = 'admin-trigger';
+    trigger.innerHTML = '🔐';
+    trigger.title = 'Admin Panel (Ctrl+Shift+A)';
+    trigger.onclick = openAdminPanel;
+    document.body.appendChild(trigger);
+}
+
+function openAdminPanel() {
+    const overlay = document.getElementById('adminPanelOverlay');
+    if (overlay) {
+        overlay.classList.add('open');
+        loadAdminInsiderData();
+    }
+}
+
+function closeAdminPanel() {
+    const overlay = document.getElementById('adminPanelOverlay');
+    if (overlay) {
+        overlay.classList.remove('open');
+    }
+}
+
+async function loadAdminInsiderData() {
+    const body = document.getElementById('adminPanelBody');
+    if (!body) return;
+    
+    body.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8;">Yükleniyor...</div>';
+    
+    try {
+        const res = await fetch('/api/insider/alarms');
+        if (!res.ok) throw new Error('API error');
+        
+        const alarms = await res.json();
+        
+        if (!alarms || alarms.length === 0) {
+            body.innerHTML = '<div class="admin-no-data">Insider alarm bulunamadı.</div>';
+            return;
+        }
+        
+        // Sort by event_time descending
+        alarms.sort((a, b) => {
+            const ta = new Date(a.event_time || a.created_at).getTime();
+            const tb = new Date(b.event_time || b.created_at).getTime();
+            return tb - ta;
+        });
+        
+        let tableHtml = `
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Maç</th>
+                        <th>Market</th>
+                        <th>Maç Saati</th>
+                        <th>Oran Düşüşü</th>
+                        <th>Gelen Para</th>
+                        <th>Hacim Şok</th>
+                        <th>Snapshot Sayısı</th>
+                        <th>Alarm Zamanı</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        alarms.forEach(alarm => {
+            const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
+            const market = `${alarm.market || '-'} → ${alarm.selection || '-'}`;
+            
+            // Match time
+            const matchDate = alarm.match_date || '-';
+            
+            // Odds drop percentage
+            const oddsDrop = alarm.oran_dusus_pct || alarm.odds_drop_pct || 0;
+            const oddsDropDisplay = oddsDrop > 0 ? `${oddsDrop.toFixed(1)}%` : '-';
+            
+            // Money in
+            const moneyIn = alarm.gelen_para || alarm.stake || alarm.incoming_money || 0;
+            const moneyDisplay = moneyIn > 0 ? `£${Number(moneyIn).toLocaleString('en-GB', {minimumFractionDigits: 0, maximumFractionDigits: 0})}` : '-';
+            
+            // Volume shock
+            const volShock = alarm.hacim_sok || alarm.volume_shock || 0;
+            const volShockDisplay = volShock > 0 ? `${volShock.toFixed(3)}x` : '-';
+            
+            // Snapshot count
+            const snapCount = alarm.snapshot_count || '-';
+            
+            // Event time (alarm creation time based on snapshot)
+            const eventTime = alarm.event_time || alarm.created_at;
+            let eventTimeDisplay = '-';
+            if (eventTime) {
+                const dt = toTurkeyTime(eventTime);
+                if (dt && dt.isValid()) {
+                    eventTimeDisplay = dt.format('DD.MM.YYYY HH:mm:ss');
+                }
+            }
+            
+            tableHtml += `
+                <tr>
+                    <td class="match-col">${matchName}</td>
+                    <td class="market-col"><span class="admin-badge insider">🕵️ ${market}</span></td>
+                    <td>${matchDate}</td>
+                    <td class="admin-value-negative">${oddsDropDisplay}</td>
+                    <td class="admin-value-positive">${moneyDisplay}</td>
+                    <td class="admin-value-warning">${volShockDisplay}</td>
+                    <td style="text-align:center;">${snapCount}</td>
+                    <td class="admin-value-muted">${eventTimeDisplay}</td>
+                </tr>
+            `;
+        });
+        
+        tableHtml += `
+                </tbody>
+            </table>
+            <div style="margin-top:16px; padding:12px; background:#161b22; border-radius:8px; font-size:12px; color:#64748b;">
+                <strong style="color:#a855f7;">📊 Özet:</strong> Toplam ${alarms.length} Insider alarm | 
+                Eşik: Hacim Şok &lt; ${alarms[0]?.insider_hacim_sok_esigi || 0.2}x, 
+                Oran Düşüş &gt; ${alarms[0]?.insider_oran_dusus_esigi || 8}%, 
+                Max Para &lt; £${alarms[0]?.insider_max_para || 300}
+            </div>
+        `;
+        
+        body.innerHTML = tableHtml;
+        
+    } catch (e) {
+        console.error('Admin panel veri yükleme hatası:', e);
+        body.innerHTML = '<div class="admin-no-data">Veri yüklenirken hata oluştu.</div>';
+    }
+}
