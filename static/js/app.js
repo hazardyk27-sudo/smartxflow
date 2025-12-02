@@ -3900,36 +3900,35 @@ function renderAlarmsList(filterType) {
         
         const fullMatchName = `${home} – ${away}`;
         
-        // İkon ve metrik
-        const icons = { sharp: '⚡', insider: '◆', volumeshock: '📈', bigmoney: '💰' };
+        // Metrik label ve değer
+        let metricLabel = '';
         let metricValue = '';
         if (type === 'sharp') {
-            metricValue = `<strong>${(alarm.sharp_score || 0).toFixed(1)}</strong>`;
+            metricLabel = 'Sharp Skoru';
+            metricValue = (alarm.sharp_score || 0).toFixed(1);
         } else if (type === 'insider') {
+            metricLabel = 'Oran Değişimi';
             const openOdds = (alarm.opening_odds || 0).toFixed(2);
             const lastOdds = (alarm.last_odds || 0).toFixed(2);
             const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
-            metricValue = `<span class="odds-val">${openOdds} → ${lastOdds}</span><span class="drop-val">▼ ${dropPct}%</span>`;
+            metricValue = `${openOdds} → ${lastOdds} <span class="pct-drop">▼ -${dropPct}%</span>`;
         } else if (type === 'volumeshock') {
-            metricValue = `<strong>${(alarm.volume_shock_value || 0).toFixed(1)}x</strong>`;
+            metricLabel = 'Hacim';
+            metricValue = `${(alarm.volume_shock_value || 0).toFixed(1)}x`;
         } else if (type === 'bigmoney') {
-            metricValue = `<strong>£${Number(alarm.incoming_money || alarm.stake || 0).toLocaleString('en-GB')}</strong>`;
+            metricLabel = 'Gelen Para';
+            metricValue = `£${Number(alarm.incoming_money || alarm.stake || 0).toLocaleString('en-GB')}`;
         }
         
         return `
             <div class="alarm-accordion-wrapper">
-                <div class="alarm-card ${type} ${isOpen ? 'expanded' : ''}" onclick="toggleAlarmDetail('${alarmId}')">
-                    <div class="card-row-top">
-                        <span class="card-badge ${type}">${icons[type]} ${typeLabels[type]}</span>
-                        <span class="card-metric-value ${type}">${metricValue}</span>
-                    </div>
-                    <div class="card-row-mid">
-                        <span class="card-match-name">${fullMatchName}</span>
-                        <span class="card-dot ${type}"></span>
-                    </div>
-                    <div class="card-row-bot">
-                        <span class="card-market-text">${marketLabel}</span>
-                        <span class="card-ago">${timeAgo}</span>
+                <div class="premium-card ${type} ${isOpen ? 'expanded' : ''}" onclick="toggleAlarmDetail('${alarmId}')">
+                    <div class="pc-header">${typeLabels[type]} · ${timeAgo}</div>
+                    <div class="pc-match">${fullMatchName}</div>
+                    <div class="pc-market">${marketLabel}</div>
+                    <div class="pc-metric">
+                        <div class="pc-metric-label">${metricLabel}</div>
+                        <div class="pc-metric-value">${metricValue}</div>
                     </div>
                 </div>
                 ${inlineDetail}
