@@ -1788,7 +1788,7 @@
                             <div class="insider-detail-section">
                                 <div class="insider-detail-title">📸 DÜŞÜŞ ANI ETRAFINDAKİ SNAPSHOTLAR</div>
                                 ${(alarm.snapshot_details && alarm.snapshot_details.length > 0) ? 
-                                    alarm.snapshot_details.map((snap, i) => {
+                                    alarm.snapshot_details.map((snap, i, arr) => {
                                         let snapTime = '-';
                                         if (snap.time) {
                                             try {
@@ -1796,12 +1796,21 @@
                                                 snapTime = dt.toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
                                             } catch(e) { snapTime = snap.time; }
                                         }
-                                        const halfIdx = Math.floor(alarm.snapshot_details.length / 2);
+                                        const halfIdx = Math.floor(arr.length / 2);
                                         const isDropMoment = (i === halfIdx);
                                         const labelStyle = isDropMoment ? 'color:#ef4444;font-weight:700;' : '';
                                         const valueStyle = isDropMoment ? 'color:#ef4444;font-weight:700;' : 'color:#a371f7;font-weight:600;';
                                         const marker = isDropMoment ? ' ← DÜŞÜŞ' : '';
-                                        return '<div class="insider-detail-row"><span class="insider-detail-label" style="' + labelStyle + '">Snap ' + (i+1) + ':</span><span class="insider-detail-value"><span style="' + valueStyle + '">' + (snap.odds || 0).toFixed(2) + '</span> <span style="color:#64748b;font-size:11px;">(' + snapTime + ')' + marker + '</span></span></div>';
+                                        // Gelen para hesapla (backend 'amount' kullanıyor)
+                                        let gelenPara = 0;
+                                        const snapAmt = snap.amount !== undefined ? snap.amount : snap.amt;
+                                        const prevAmt = i > 0 ? (arr[i-1].amount !== undefined ? arr[i-1].amount : arr[i-1].amt) : undefined;
+                                        if (i > 0 && snapAmt !== undefined && prevAmt !== undefined) {
+                                            gelenPara = (snapAmt || 0) - (prevAmt || 0);
+                                        }
+                                        const amtDisplay = snapAmt !== undefined ? '£' + Math.round(snapAmt) : '';
+                                        const gelenDisplay = gelenPara > 0 ? ' (+£' + Math.round(gelenPara) + ')' : '';
+                                        return '<div class="insider-detail-row"><span class="insider-detail-label" style="' + labelStyle + '">Snap ' + (i+1) + ':</span><span class="insider-detail-value"><span style="' + valueStyle + '">' + (snap.odds || 0).toFixed(2) + '</span> <span style="color:#22c55e;font-size:11px;">' + amtDisplay + gelenDisplay + '</span> <span style="color:#64748b;font-size:11px;">(' + snapTime + ')' + marker + '</span></span></div>';
                                     }).join('') 
                                     : '<div class="insider-detail-row"><span class="insider-detail-label">Detay:</span><span class="insider-detail-value" style="color:#64748b;">Yeniden hesaplayın</span></div>'
                                 }
