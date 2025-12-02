@@ -5982,8 +5982,8 @@ td.volume,
 }
 
 .drop-pct {
-    color: #fb7185;
-    font-weight: 600;
+    color: #ef4444;
+    font-weight: 700;
     margin-left: 12px;
 }
 
@@ -6030,7 +6030,7 @@ td.volume,
 }
 
 .drop-val {
-    color: #fb7185;
+    color: #ef4444;
     font-weight: 700;
     margin-left: 8px;
 }
@@ -6146,7 +6146,7 @@ td.volume,
 
 .pct-drop {
     font-size: 16px;
-    color: #fb7185;
+    color: #ef4444;
     margin-left: 8px;
 }
 
@@ -6240,7 +6240,7 @@ td.volume,
 
 .mc-value .pct-drop {
     font-size: 11px;
-    color: #fb7185;
+    color: #ef4444;
     display: block;
     margin-top: 1px;
 }
