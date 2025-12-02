@@ -3899,26 +3899,48 @@ function renderAlarmsList(filterType) {
         `;
         
         const fullMatchName = `${home} – ${away}`;
-        const shortHome = home.length > 12 ? home.substring(0, 12) + '.' : home;
-        const shortAway = away.length > 12 ? away.substring(0, 12) + '.' : away;
-        const displayMatchName = `${shortHome} – ${shortAway}`;
+        
+        // Minimal satır için kısa metrik
+        let shortMetric = '';
+        if (type === 'sharp') {
+            const score = (alarm.sharp_score || 0).toFixed(1);
+            const pct = Math.abs(alarm.oran_dusus_pct || 0).toFixed(1);
+            shortMetric = `<span class="row-metric sharp">Sharp ${score}</span>${pct > 0 ? `<span class="row-sep">•</span><span class="row-pct">%${pct}</span>` : ''}`;
+        } else if (type === 'insider') {
+            const openOdds = (alarm.opening_odds || 0).toFixed(2);
+            const lastOdds = (alarm.last_odds || 0).toFixed(2);
+            const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
+            shortMetric = `<span class="row-metric insider">${openOdds} → ${lastOdds}</span><span class="row-sep">•</span><span class="row-drop">-${dropPct}%</span>`;
+        } else if (type === 'volumeshock') {
+            const shockVal = (alarm.volume_shock_value || 0).toFixed(1);
+            const timeBefore = alarm.time_before_kickoff || alarm.hours_to_kickoff || 0;
+            const hours = Math.floor(timeBefore);
+            const mins = Math.round((timeBefore - hours) * 60);
+            const timeStr = hours > 0 ? `${hours}s ${mins}dk önce` : `${mins}dk önce`;
+            shortMetric = `<span class="row-metric volumeshock">${shockVal}x</span><span class="row-sep">•</span><span class="row-time-before">${timeStr}</span>`;
+        } else if (type === 'bigmoney') {
+            const money = alarm.incoming_money || alarm.stake || 0;
+            const timeBefore = alarm.time_before_kickoff || alarm.hours_to_kickoff || 0;
+            const hours = Math.floor(timeBefore);
+            const mins = Math.round((timeBefore - hours) * 60);
+            const timeStr = hours > 0 ? `${hours}s ${mins}dk önce` : `${mins}dk önce`;
+            shortMetric = `<span class="row-metric bigmoney">${(money/1000).toFixed(1)}k</span><span class="row-sep">•</span><span class="row-time-before">${timeStr}</span>`;
+        }
         
         return `
             <div class="alarm-accordion-wrapper">
-                <div class="sidebar-alarm-card ${type} ${isOpen ? 'expanded' : ''}" onclick="toggleAlarmDetail('${alarmId}')">
-                    <div class="alarm-row-1">
-                        <span class="alarm-expand-icon">${expandIcon}</span>
-                        <span class="alarm-type-badge ${type}">${typeLabels[type]}</span>
-                        <span class="alarm-match-name" title="${fullMatchName}">${displayMatchName}</span>
-                        <span class="alarm-market-chip">${marketLabel}</span>
-                    </div>
-                    <div class="alarm-row-2">
-                        <span class="alarm-main-value">${mainValue}</span>
-                        <div class="alarm-center-info">
-                            ${centerBadge}
-                            ${triggerPill}
+                <div class="alarm-row ${type} ${isOpen ? 'expanded' : ''}" onclick="toggleAlarmDetail('${alarmId}')">
+                    <div class="row-stripe"></div>
+                    <div class="row-content">
+                        <div class="row-top">
+                            <span class="row-badge ${type}">${typeLabels[type]}</span>
+                            <span class="row-match" title="${fullMatchName}">${fullMatchName}</span>
+                            <span class="row-market">${marketLabel}</span>
                         </div>
-                        <span class="alarm-time">${timeAgo}</span>
+                        <div class="row-bottom">
+                            ${shortMetric}
+                            <span class="row-ago">${timeAgo}</span>
+                        </div>
                     </div>
                 </div>
                 ${inlineDetail}
