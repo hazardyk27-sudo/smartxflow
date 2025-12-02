@@ -3906,7 +3906,7 @@ function renderAlarmsList(filterType) {
             metricValue = (alarm.sharp_score || 0).toFixed(1);
         } else if (type === 'insider') {
             const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
-            metricValue = `▼${dropPct}%`;
+            metricValue = `▼ ${dropPct}%`;
         } else if (type === 'volumeshock') {
             metricValue = `${(alarm.volume_shock_value || 0).toFixed(1)}x`;
         } else if (type === 'bigmoney') {
