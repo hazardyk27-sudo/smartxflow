@@ -3385,7 +3385,8 @@ function renderAlertBand() {
         return;
     }
     
-    const top = alertBandData.slice(0, 30);
+    // En yeni 10 alarm (en yeniden eskiye)
+    const top = alertBandData.slice(0, 10);
     
     const pillsHtml = top.map((alarm, idx) => {
         const info = getAlertType(alarm);
@@ -3419,10 +3420,10 @@ function renderAlertBand() {
         `;
     }).join('');
     
-    // Single display (no duplication)
+    // Sonsuz döngü için alarmları duplicate et (10. sonrası 1. gelsin)
     track.innerHTML = `
         <div class="alert-band-track-inner">
-            ${pillsHtml}
+            ${pillsHtml}${pillsHtml}
         </div>
     `;
 }
