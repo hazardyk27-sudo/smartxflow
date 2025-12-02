@@ -1418,7 +1418,18 @@
                 min_volume_btts: parseInt(document.getElementById('min_volume_btts').value) || 500,
                 min_amount_change: parseInt(document.getElementById('min_amount_change').value) || 500,
                 volume_multiplier: parseFloat(document.getElementById('volume_multiplier').value) || 1,
-                share_multiplier: parseFloat(document.getElementById('share_multiplier').value) || 1,
+                share_range_1_min: parseFloat(document.getElementById('share_range_1_min').value) || 0,
+                share_range_1_max: parseFloat(document.getElementById('share_range_1_max').value) || 50,
+                share_range_1_mult: parseFloat(document.getElementById('share_range_1_mult').value) || 1,
+                share_range_2_min: parseFloat(document.getElementById('share_range_2_min').value) || 50,
+                share_range_2_max: parseFloat(document.getElementById('share_range_2_max').value) || 75,
+                share_range_2_mult: parseFloat(document.getElementById('share_range_2_mult').value) || 1.5,
+                share_range_3_min: parseFloat(document.getElementById('share_range_3_min').value) || 75,
+                share_range_3_max: parseFloat(document.getElementById('share_range_3_max').value) || 90,
+                share_range_3_mult: parseFloat(document.getElementById('share_range_3_mult').value) || 2,
+                share_range_4_min: parseFloat(document.getElementById('share_range_4_min').value) || 90,
+                share_range_4_max: parseFloat(document.getElementById('share_range_4_max').value) || 100,
+                share_range_4_mult: parseFloat(document.getElementById('share_range_4_mult').value) || 3,
                 max_volume_cap: parseFloat(document.getElementById('max_volume_cap').value) || 40,
                 max_odds_cap: parseFloat(document.getElementById('max_odds_cap').value) || 35,
                 max_share_cap: parseFloat(document.getElementById('max_share_cap').value) || 25,
@@ -1458,7 +1469,18 @@
             document.getElementById('min_volume_btts').value = config.min_volume_btts || 500;
             document.getElementById('min_amount_change').value = config.min_amount_change || 500;
             document.getElementById('volume_multiplier').value = config.volume_multiplier || 1;
-            document.getElementById('share_multiplier').value = config.share_multiplier || 1;
+            document.getElementById('share_range_1_min').value = config.share_range_1_min || 0;
+            document.getElementById('share_range_1_max').value = config.share_range_1_max || 50;
+            document.getElementById('share_range_1_mult').value = config.share_range_1_mult || 1;
+            document.getElementById('share_range_2_min').value = config.share_range_2_min || 50;
+            document.getElementById('share_range_2_max').value = config.share_range_2_max || 75;
+            document.getElementById('share_range_2_mult').value = config.share_range_2_mult || 1.5;
+            document.getElementById('share_range_3_min').value = config.share_range_3_min || 75;
+            document.getElementById('share_range_3_max').value = config.share_range_3_max || 90;
+            document.getElementById('share_range_3_mult').value = config.share_range_3_mult || 2;
+            document.getElementById('share_range_4_min').value = config.share_range_4_min || 90;
+            document.getElementById('share_range_4_max').value = config.share_range_4_max || 100;
+            document.getElementById('share_range_4_mult').value = config.share_range_4_mult || 3;
             document.getElementById('max_volume_cap').value = config.max_volume_cap || 40;
             document.getElementById('max_odds_cap').value = config.max_odds_cap || 35;
             document.getElementById('max_share_cap').value = config.max_share_cap || 25;
