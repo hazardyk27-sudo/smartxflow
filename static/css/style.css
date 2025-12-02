@@ -1163,6 +1163,7 @@ h1, h2, h3, h4, h5, h6,
     justify-content: center;
     align-items: center;
     gap: 8px;
+    margin-top: 16px;
     margin-bottom: 16px;
     flex-wrap: wrap;
 }
@@ -4997,7 +4998,7 @@ td.volume,
     border: 1px solid #30363d;
     border-left: 3px solid;
     border-radius: 6px;
-    padding: 12px 14px;
+    padding: 12px 14px 14px;
     transition: background 0.15s ease, border-color 0.15s ease;
 }
 
