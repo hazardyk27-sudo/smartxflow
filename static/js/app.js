@@ -3352,7 +3352,7 @@ function getAlertType(alarm) {
         }
         return { label: 'BIG MONEY', color: 'orange', pillClass: 'bigmoney' };
     }
-    if (type === 'volumeshock') return { label: 'HACIM SOKU', color: 'red', pillClass: 'volumeshock' };
+    if (type === 'volumeshock') return { label: 'HACIM SOKU', color: 'gold', pillClass: 'volumeshock' };
     return { label: 'ALERT', color: 'green', pillClass: '' };
 }
 
@@ -3758,7 +3758,7 @@ function renderAlarmsList(filterType) {
     const displayGroups = groups.slice(0, alarmsDisplayCount);
     const hasMore = groups.length > alarmsDisplayCount;
     const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY', volumeshock: 'HACIM SOKU' };
-    const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#fb923c', volumeshock: '#ff6b6b' };
+    const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#fb923c', volumeshock: '#F6C343' };
     
     let html = displayGroups.map((group, idx) => {
         const type = group.type;
@@ -3808,7 +3808,7 @@ function renderAlarmsList(filterType) {
             'sharp': '#22c55e',
             'insider': '#a855f7',
             'dropping': '#ef4444',
-            'volumeshock': '#ff6b6b'
+            'volumeshock': '#F6C343'
         };
         const stripeColor = stripeColors[type] || '#64748b';
         

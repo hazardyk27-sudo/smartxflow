@@ -4111,8 +4111,8 @@ td.volume,
 }
 
 .alarm-type-badge.volumeshock {
-    background: rgba(255, 107, 107, 0.15);
-    color: #ff6b6b;
+    background: rgba(246, 195, 67, 0.15);
+    color: #F6C343;
 }
 
 .alarm-match-name {
@@ -4497,8 +4497,8 @@ td.volume,
 }
 
 .log-badge.volumeshock {
-    background: rgba(255, 107, 107, 0.2);
-    color: #ff6b6b;
+    background: rgba(246, 195, 67, 0.2);
+    color: #F6C343;
 }
 
 .detail-goto-match-btn {

@@ -92,13 +92,13 @@
     border-color: #f97316;
 }
 
-/* VolumeShock - Red */
+/* VolumeShock - Gold */
 .alert-band-pill.volumeshock {
-    border-color: rgba(255, 107, 107, 0.6);
+    border-color: rgba(246, 195, 67, 0.6);
 }
 .alert-band-pill.volumeshock:hover {
-    background: rgba(255, 107, 107, 0.1);
-    border-color: #ff6b6b;
+    background: rgba(246, 195, 67, 0.1);
+    border-color: #F6C343;
 }
 
 /* Pill child elements - perfect vertical alignment */
@@ -140,9 +140,9 @@
     background: #f97316;
 }
 
-/* VolumeShock dot - Red */
-.alert-band-dot.red {
-    background: #ff6b6b;
+/* VolumeShock dot - Gold */
+.alert-band-dot.gold {
+    background: #F6C343;
 }
 
 .alert-band-dot.green {
@@ -175,7 +175,7 @@
 }
 
 .alert-band-type.volumeshock {
-    color: #ff6b6b;
+    color: #F6C343;
 }
 
 /* Match Name */
@@ -210,7 +210,7 @@
 }
 
 .alert-band-pill.volumeshock .alert-band-selection {
-    color: #ff6b6b;
+    color: #F6C343;
 }
 
 /* Value/Score */
