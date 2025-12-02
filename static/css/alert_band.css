@@ -134,7 +134,7 @@
 .ab-pill {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     padding: 5px 10px;
     height: 30px;
     border-radius: 10px;
@@ -228,13 +228,13 @@
     border-color: rgba(249, 115, 22, 0.6);
 }
 
-/* Separator - Balanced spacing */
+/* Separator - Compact trading style */
 .ab-sep {
     color: #6E7681;
     font-size: 11px;
     font-weight: 400;
     opacity: 0.5;
-    margin: 0 4px;
+    margin: 0 2px;
 }
 
 /* Alarm Type Label */
@@ -244,7 +244,7 @@
     text-transform: uppercase;
     letter-spacing: 0.4px;
     line-height: 1;
-    margin-right: 2px;
+    margin-right: 0;
 }
 
 .ab-pill.sharp .ab-type { color: var(--ticker-sharp); }
