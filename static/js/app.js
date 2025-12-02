@@ -3265,6 +3265,31 @@ function attachTrendTooltipListeners() {
 
 let alertBandData = [];
 
+// Alarm zamanını parse et (format: "DD.MM.YYYY HH:MM")
+function parseAlarmTime(timeStr) {
+    if (!timeStr) return 0;
+    try {
+        // Format: "02.12.2024 14:35"
+        const parts = timeStr.split(' ');
+        if (parts.length < 2) return 0;
+        
+        const dateParts = parts[0].split('.');
+        const timeParts = parts[1].split(':');
+        
+        if (dateParts.length < 3 || timeParts.length < 2) return 0;
+        
+        const day = parseInt(dateParts[0]);
+        const month = parseInt(dateParts[1]) - 1;
+        const year = parseInt(dateParts[2]);
+        const hour = parseInt(timeParts[0]);
+        const minute = parseInt(timeParts[1]);
+        
+        return new Date(year, month, day, hour, minute).getTime();
+    } catch (e) {
+        return 0;
+    }
+}
+
 function isMatchTodayOrFuture(alarm) {
     const matchDateStr = alarm.match_date || alarm.fixture_date || '';
     if (!matchDateStr) return false;
@@ -3333,7 +3358,12 @@ async function loadAlertBand() {
         const filteredAlarms = allAlarms.filter(isMatchTodayOrFuture);
         console.log('[AlertBand] Alarms after filter (today+future):', filteredAlarms.length);
         
-        alertBandData = filteredAlarms.sort((a, b) => (b._score || 0) - (a._score || 0));
+        // Alarm tetiklenme zamanına göre sırala (en yeni önce)
+        alertBandData = filteredAlarms.sort((a, b) => {
+            const timeA = parseAlarmTime(a.created_at);
+            const timeB = parseAlarmTime(b.created_at);
+            return timeB - timeA; // En yeni önce
+        });
         renderAlertBand();
         updateAlertBandBadge();
     } catch (e) {
