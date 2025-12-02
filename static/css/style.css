@@ -4926,7 +4926,7 @@ td.volume,
    ============================================ */
 
 .smart-money-section {
-    background: #0d1117;
+    background: #14191F;
     border: 1px solid #30363d;
     border-radius: 8px;
     margin-bottom: 16px;
@@ -4937,7 +4937,7 @@ td.volume,
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 14px;
+    padding: 16px 14px 18px;
     background: #161b22;
     border-bottom: 1px solid #30363d;
     cursor: pointer;
@@ -4984,11 +4984,12 @@ td.volume,
 }
 
 .smart-money-empty {
-    padding: 20px 14px;
+    padding: 25px 14px;
     text-align: center;
     color: #8b949e;
-    font-size: 12px;
+    font-size: 13px;
     font-style: italic;
+    opacity: 0.6;
 }
 
 .smart-money-card {
