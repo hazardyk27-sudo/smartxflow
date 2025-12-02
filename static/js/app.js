@@ -3906,25 +3906,25 @@ function renderAlarmsList(filterType) {
         
         const inlineDetail = `
             <div class="alarm-inline-detail ${isOpen ? 'open' : ''}" id="detail_${alarmId}" onclick="event.stopPropagation()">
-                <div class="detail-card-new" style="--stripe-color: ${stripeColor};">
-                    <div class="detail-stripe"></div>
-                    <div class="detail-content">
-                        <div class="detail-top-row">
-                            <div class="detail-left">
-                                <div class="detail-match-time">${matchTimeFormatted}</div>
-                                <div class="detail-match-name-new">${home} – ${away}</div>
-                            </div>
-                            <div class="detail-right">
-                                <div class="detail-market-label">Market</div>
-                                <div class="detail-market-value">${marketLabel2}</div>
-                                <div class="detail-alarm-type-label">Alarm tipi: ${alarmTypeLabel}</div>
-                            </div>
+                <div class="detail-card-minimal" style="--stripe-color: ${stripeColor};">
+                    <div class="detail-stripe-minimal"></div>
+                    <div class="detail-body">
+                        <div class="detail-info-row">
+                            <span class="detail-datetime">🕒 ${matchTimeFormatted}</span>
+                        </div>
+                        <div class="detail-match-row">
+                            <span class="detail-match-icon">🏟</span>
+                            <span class="detail-match-text">${home} – ${away}</span>
+                        </div>
+                        <div class="detail-market-row">
+                            <span class="detail-market-icon">🎯</span>
+                            <span class="detail-market-text">${marketLabel2}</span>
                         </div>
                         ${middleBlockHtml}
-                        <div class="detail-bottom-row">
-                            <div class="detail-timeline">${timelineLabel}</div>
-                            <button class="detail-open-match-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}')">Maç Sayfasını Aç</button>
+                        <div class="detail-history-row">
+                            <span class="detail-history-text">${timelineLabel}</span>
                         </div>
+                        <button class="detail-goto-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}')">✅ Maç Sayfasını Aç</button>
                     </div>
                 </div>
             </div>
