@@ -3891,22 +3891,21 @@ function renderAlarmsList(filterType) {
             historyLine = `${triggerTime}`;
         } else if (type === 'volumeshock') {
             badgeLabel = 'HACİM ŞOKU';
-            const newMoney = alarm.incoming_money || alarm.new_volume || 0;
+            const newMoney = alarm.incoming_money || 0;
             const shockVal = (alarm.volume_shock_value || 0).toFixed(1);
-            const prevVolume = alarm.previous_volume || alarm.old_volume || 0;
-            metricContent = `<div class="acd-grid cols-3">
+            const hoursToKickoff = alarm.hours_to_kickoff || 0;
+            metricContent = `<div class="acd-grid cols-2">
                 <div class="acd-stat">
                     <div class="acd-stat-val volumeshock">${shockVal}x</div>
-                    <div class="acd-stat-lbl">Şok</div>
+                    <div class="acd-stat-lbl">Hacim Şoku</div>
                 </div>
                 <div class="acd-stat">
                     <div class="acd-stat-val">£${Number(newMoney).toLocaleString('en-GB')}</div>
-                    <div class="acd-stat-lbl">Yeni</div>
+                    <div class="acd-stat-lbl">Gelen Para</div>
                 </div>
-                <div class="acd-stat">
-                    <div class="acd-stat-val">£${Number(prevVolume).toLocaleString('en-GB')}</div>
-                    <div class="acd-stat-lbl">Önceki</div>
-                </div>
+            </div>
+            <div class="acd-info-row">
+                <span>Maça ${hoursToKickoff.toFixed(1)} saat kala</span>
             </div>`;
             historyLine = `${triggerTime}`;
         } else if (type === 'bigmoney') {
