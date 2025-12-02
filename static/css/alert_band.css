@@ -223,7 +223,7 @@
 
 .alert-band-value.negative,
 .alert-band-value.insider {
-    color: #ef4444;
+    color: #ff0000;
     font-size: 13px;
     font-weight: 600;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
