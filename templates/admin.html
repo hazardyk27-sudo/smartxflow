@@ -1801,9 +1801,7 @@
                                         const labelStyle = isDropMoment ? 'color:#ef4444;font-weight:700;' : '';
                                         const valueStyle = isDropMoment ? 'color:#ef4444;font-weight:700;' : 'color:#a371f7;font-weight:600;';
                                         const marker = isDropMoment ? ' ← DÜŞÜŞ' : '';
-                                        const stakeAmount = snap.amount || 0;
-                                        const stakeFormatted = stakeAmount > 0 ? '£' + stakeAmount.toLocaleString('en-GB') : '£0';
-                                        return '<div class="insider-detail-row"><span class="insider-detail-label" style="' + labelStyle + '">Snap ' + (i+1) + ':</span><span class="insider-detail-value"><span style="' + valueStyle + '">' + (snap.odds || 0).toFixed(2) + '</span> <span style="color:#22c55e;font-size:11px;margin-left:6px;">' + stakeFormatted + '</span> <span style="color:#64748b;font-size:11px;">(' + snapTime + ')' + marker + '</span></span></div>';
+                                        return '<div class="insider-detail-row"><span class="insider-detail-label" style="' + labelStyle + '">Snap ' + (i+1) + ':</span><span class="insider-detail-value"><span style="' + valueStyle + '">' + (snap.odds || 0).toFixed(2) + '</span> <span style="color:#64748b;font-size:11px;">(' + snapTime + ')' + marker + '</span></span></div>';
                                     }).join('') 
                                     : '<div class="insider-detail-row"><span class="insider-detail-label">Detay:</span><span class="insider-detail-value" style="color:#64748b;">Yeniden hesaplayın</span></div>'
                                 }

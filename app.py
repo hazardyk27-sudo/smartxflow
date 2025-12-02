@@ -1030,26 +1030,18 @@ def save_insider_alarms_to_file(alarms):
 def merge_insider_alarms(existing_alarms, new_alarms):
     """
     Merge existing and new insider alarms.
-    - Eski alarmlar SADECE hala koşulu sağlıyorsa (yeni hesaplamada da varsa) korunur
-    - Oran düzelirse (yeni hesaplamada yoksa) eski alarm SİLİNİR
-    - D-2+ alarmlar temizlenir
+    - Keep ALL existing alarms (eski alarmlar korunur)
+    - Add ALL new alarms (yeni alarmlar eklenir - duplicate kontrolü YOK)
+    - Remove only D-2+ alarms (sadece eski maçlar temizlenir)
     """
     today = now_turkey().date()
     yesterday = today - timedelta(days=1)
     
-    # Yeni alarmlar için match+selection+market key seti oluştur
-    def match_key(alarm):
-        return f"{alarm.get('home', '')}_{alarm.get('away', '')}_{alarm.get('market', '')}_{alarm.get('selection', '')}"
-    
-    new_keys = set(match_key(a) for a in new_alarms)
-    
     result = []
-    kept_count = 0
-    removed_count = 0
     
-    # Mevcut alarmları kontrol et
+    # Add existing alarms (filter out D-2+ ones)
+    kept_count = 0
     for alarm in existing_alarms:
-        # D-2+ kontrolü
         match_date_str = alarm.get('match_date', '')
         try:
             if match_date_str:
@@ -1070,29 +1062,20 @@ def merge_insider_alarms(existing_alarms, new_alarms):
                 else:
                     match_date = today
                 
-                # D-2+ alarmları sil
+                # Skip D-2+ alarms
                 if match_date < yesterday:
-                    removed_count += 1
                     continue
         except:
             pass
         
-        # Oran düzeldi mi kontrol et - yeni hesaplamada bu maç+selection var mı?
-        key = match_key(alarm)
-        if key in new_keys:
-            # Hala koşul sağlanıyor, alarmı tut
-            result.append(alarm)
-            kept_count += 1
-        else:
-            # Oran düzeldi, koşul artık sağlanmıyor - alarmı sil
-            removed_count += 1
-            print(f"[Insider] Alarm silindi (oran düzeldi): {alarm.get('home')} vs {alarm.get('away')} - {alarm.get('selection')}")
+        result.append(alarm)
+        kept_count += 1
     
-    # Yeni alarmları ekle
+    # Add ALL new alarms (no duplicate check - show both old and new)
     for alarm in new_alarms:
         result.append(alarm)
     
-    print(f"[Insider] Kept {kept_count} existing, Removed {removed_count}, Added {len(new_alarms)} new = {len(result)} total")
+    print(f"[Insider] Kept {kept_count} existing + Added {len(new_alarms)} new = {len(result)} total")
     
     return result
 
