@@ -65,7 +65,8 @@ body {
     font-size: var(--font-base);
     font-weight: var(--weight-medium);
     line-height: var(--line-height);
-    background: var(--color-bg-primary);
+    background: linear-gradient(180deg, #0D1117 0%, #0B0F15 100%);
+    background-attachment: fixed;
     color: var(--color-text-primary);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
