@@ -3882,19 +3882,6 @@ function renderAlarmsList(filterType) {
             historyLine = `${triggerTime} – £${Number(money).toLocaleString('en-GB')}`;
         }
         
-        const inlineDetail = `
-            <div class="alarm-inline-detail ${isOpen ? 'open' : ''}" id="detail_${alarmId}" onclick="event.stopPropagation()">
-                <div class="dp ${type}">
-                    <div class="dp-header">${matchTimeFormatted}</div>
-                    <div class="dp-match">${home} – ${away}</div>
-                    <div class="dp-market">${marketLabel2}</div>
-                    ${metricContent}
-                    <div class="dp-history">${historyLine}</div>
-                    <button class="dp-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}')">Maç Sayfasını Aç</button>
-                </div>
-            </div>
-        `;
-        
         const fullMatchName = `${home} – ${away}`;
         
         // Metrik değer (sağ tarafa)
@@ -3911,21 +3898,32 @@ function renderAlarmsList(filterType) {
         }
         
         return `
-            <div class="alarm-accordion-wrapper">
-                <div class="min-card ${type} ${isOpen ? 'expanded' : ''}" onclick="toggleAlarmDetail('${alarmId}')">
-                    <div class="mc-top">
-                        <span class="mc-dot"></span>
-                        <span class="mc-label">${typeLabels[type]}</span>
-                        <span class="mc-sep">·</span>
-                        <span class="mc-time">${timeAgo}</span>
+            <div class="ac ${type} ${isOpen ? 'open' : ''}" id="card_${alarmId}">
+                <div class="ac-stripe"></div>
+                <div class="ac-body" onclick="toggleAlarmDetail('${alarmId}')">
+                    <div class="ac-summary">
+                        <div class="ac-top">
+                            <span class="ac-dot"></span>
+                            <span class="ac-label">${typeLabels[type]}</span>
+                            <span class="ac-sep">·</span>
+                            <span class="ac-time">${timeAgo}</span>
+                        </div>
+                        <div class="ac-mid">
+                            <span class="ac-match">${fullMatchName}</span>
+                            <span class="ac-value">${metricValue}</span>
+                        </div>
+                        <div class="ac-bot">${marketLabel}</div>
                     </div>
-                    <div class="mc-mid">
-                        <span class="mc-match">${fullMatchName}</span>
-                        <span class="mc-value">${metricValue}</span>
+                    <div class="ac-detail" id="detail_${alarmId}" onclick="event.stopPropagation()">
+                        <div class="ac-detail-inner">
+                            <div class="acd-divider"></div>
+                            <div class="acd-header">${matchTimeFormatted}</div>
+                            ${metricContent}
+                            <div class="acd-history">${historyLine}</div>
+                            <button class="acd-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}')">Maç Sayfasını Aç</button>
+                        </div>
                     </div>
-                    <div class="mc-bot">${marketLabel}</div>
                 </div>
-                ${inlineDetail}
             </div>
         `;
     }).join('');
