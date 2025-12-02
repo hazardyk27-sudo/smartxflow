@@ -4122,7 +4122,8 @@ function formatTriggerTime(dateStr) {
     if (!dateStr) return '-';
     const dt = parseAlarmDateTR(dateStr);
     if (!dt || !dt.isValid()) return '-';
-    return dt.format('HH:mm');
+    // +3 saat Türkiye
+    return dt.add(3, 'hour').format('HH:mm');
 }
 
 function goToMatchFromAlarm(homeTeam, awayTeam) {
@@ -4241,22 +4242,32 @@ function getMatchAlarms(homeTeam, awayTeam) {
 function formatSmartMoneyTime(dateStr) {
     if (!dateStr) return '-';
     
-    // Direct parse for DD.MM.YYYY HH:MM format
+    const monthNames = ['Oca', 'Sub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Agu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    
+    // Direct parse for DD.MM.YYYY HH:MM format - +3 saat ekle
     const match1 = dateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/);
     if (match1) {
         const [, day, month, year, hour, min] = match1;
-        const monthNames = ['Oca', 'Sub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Agu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-        const monthName = monthNames[parseInt(month) - 1] || month;
-        return `${day} ${monthName} • ${hour}:${min}`;
+        const dt = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
+        dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
+        const monthName = monthNames[dt.getMonth()];
+        const h = String(dt.getHours()).padStart(2, '0');
+        const m = String(dt.getMinutes()).padStart(2, '0');
+        const d = String(dt.getDate()).padStart(2, '0');
+        return `${d} ${monthName} • ${h}:${m}`;
     }
     
-    // ISO format: 2025-12-01T18:31:21
+    // ISO format: 2025-12-01T18:31:21 - +3 saat ekle
     const match2 = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
     if (match2) {
         const [, year, month, day, hour, min] = match2;
-        const monthNames = ['Oca', 'Sub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Agu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-        const monthName = monthNames[parseInt(month) - 1] || month;
-        return `${day} ${monthName} • ${hour}:${min}`;
+        const dt = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
+        dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
+        const monthName = monthNames[dt.getMonth()];
+        const h = String(dt.getHours()).padStart(2, '0');
+        const m = String(dt.getMinutes()).padStart(2, '0');
+        const d = String(dt.getDate()).padStart(2, '0');
+        return `${d} ${monthName} • ${h}:${m}`;
     }
     
     const dt = parseAlarmDateTR(dateStr);
