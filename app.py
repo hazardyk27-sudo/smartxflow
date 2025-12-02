@@ -146,11 +146,12 @@ def run_alarm_calculations():
         except Exception as e:
             print(f"[Alarm Scheduler] Sharp error: {e}")
         
-        # Insider alarms
+        # Insider alarms - eski alarmlar korunur, yeniler eklenir
         try:
             new_insider = calculate_insider_scores(sharp_config)
             if new_insider:
-                insider_alarms = new_insider
+                # Mevcut alarmları koru, yenileri ekle
+                insider_alarms = merge_insider_alarms(insider_alarms, new_insider)
                 save_insider_alarms_to_file(insider_alarms)
                 print(f"[Alarm Scheduler] Insider: {len(insider_alarms)} alarms")
         except Exception as e:
@@ -1025,6 +1026,70 @@ def save_insider_alarms_to_file(alarms):
         print(f"[Insider] Alarms save error: {e}")
         return False
 
+
+def merge_insider_alarms(existing_alarms, new_alarms):
+    """
+    Merge existing and new insider alarms.
+    - Keep existing alarms (don't delete old ones)
+    - Add new alarms (avoid duplicates)
+    - Remove D-2+ alarms (old matches)
+    """
+    today = now_turkey().date()
+    yesterday = today - timedelta(days=1)
+    
+    # Create unique key for each alarm
+    def alarm_key(alarm):
+        return f"{alarm.get('home', '')}_{alarm.get('away', '')}_{alarm.get('market', '')}_{alarm.get('selection', '')}_{alarm.get('event_time', '')}"
+    
+    # Start with existing alarms
+    merged = {}
+    
+    # Add existing alarms (filter out D-2+ ones)
+    for alarm in existing_alarms:
+        match_date_str = alarm.get('match_date', '')
+        try:
+            # Parse match date
+            if match_date_str:
+                date_part = match_date_str.split()[0]
+                if '.' in date_part:
+                    parts = date_part.split('.')
+                    if len(parts) == 2:
+                        day = int(parts[0])
+                        month_abbr = parts[1][:3]
+                        month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+                                    'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
+                        month = month_map.get(month_abbr, today.month)
+                        match_date = datetime(today.year, month, day).date()
+                    elif len(parts) == 3:
+                        match_date = datetime.strptime(date_part, '%d.%m.%Y').date()
+                    else:
+                        match_date = today
+                else:
+                    match_date = today
+                
+                # Skip D-2+ alarms
+                if match_date < yesterday:
+                    continue
+        except:
+            pass  # Keep alarm if date parsing fails
+        
+        key = alarm_key(alarm)
+        merged[key] = alarm
+    
+    # Add new alarms
+    added_count = 0
+    for alarm in new_alarms:
+        key = alarm_key(alarm)
+        if key not in merged:
+            merged[key] = alarm
+            added_count += 1
+    
+    result = list(merged.values())
+    print(f"[Insider] Merged: {len(existing_alarms)} existing + {added_count} new = {len(result)} total (D-2+ filtered)")
+    
+    return result
+
+
 insider_alarms = load_insider_alarms_from_file()
 
 
@@ -1053,7 +1118,8 @@ def calculate_insider_alarms_endpoint():
     """Calculate Insider Info alarms based on config"""
     global insider_alarms
     try:
-        insider_alarms = calculate_insider_scores(sharp_config)
+        new_alarms = calculate_insider_scores(sharp_config)
+        insider_alarms = merge_insider_alarms(insider_alarms, new_alarms)
         save_insider_alarms_to_file(insider_alarms)
         return jsonify({'success': True, 'count': len(insider_alarms)})
     except Exception as e:
