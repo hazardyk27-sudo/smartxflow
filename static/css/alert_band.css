@@ -1,33 +1,54 @@
 /* =====================================================
-   ALERT BAND - Minimal Theme (Menu Style)
+   ALERT BAND - Premium Bloomberg/TradingView Style
    ===================================================== */
+
+/* Premium Color Variables */
+:root {
+    --ticker-sharp: #16A34A;
+    --ticker-volumeshock: #FACC15;
+    --ticker-insider: #8B5CF6;
+    --ticker-drop: #DC2626;
+    --ticker-bigmoney: #F08A24;
+    --ticker-hugemoney: #f97316;
+}
 
 .alert-band {
     display: flex;
     align-items: center;
     height: 48px;
-    background: #161b22;
-    border-bottom: 1px solid #30363d;
+    background: #0D1117;
+    border-bottom: 1px solid #21262d;
     padding: 0;
     overflow: hidden;
 }
 
+/* Premium Scroll Gradient - TradingView Style */
 .alert-band-track {
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     overflow: hidden;
     padding: 0 16px;
-    mask-image: linear-gradient(90deg, transparent, black 40px, black calc(100% - 40px), transparent);
-    -webkit-mask-image: linear-gradient(90deg, transparent, black 40px, black calc(100% - 40px), transparent);
+    mask-image: linear-gradient(to right,
+        transparent,
+        black 15%,
+        black 85%,
+        transparent
+    );
+    -webkit-mask-image: linear-gradient(to right,
+        transparent,
+        black 15%,
+        black 85%,
+        transparent
+    );
 }
 
 .alert-band-track-inner {
     display: flex;
     align-items: center;
-    gap: 8px;
-    animation: scroll-left 15s linear infinite;
+    gap: 10px;
+    animation: scroll-left 20s linear infinite;
     white-space: nowrap;
 }
 
@@ -40,212 +61,210 @@
     100% { transform: translateX(-50%); }
 }
 
-/* Pill with colored border */
-.alert-band-pill {
+/* New Alarm Highlight Animation */
+@keyframes fadeInHighlight-sharp {
+    0% { box-shadow: 0 0 12px rgba(22, 163, 74, 0.5); }
+    100% { box-shadow: none; }
+}
+
+@keyframes fadeInHighlight-volumeshock {
+    0% { box-shadow: 0 0 12px rgba(250, 204, 21, 0.5); }
+    100% { box-shadow: none; }
+}
+
+@keyframes fadeInHighlight-insider {
+    0% { box-shadow: 0 0 12px rgba(139, 92, 246, 0.5); }
+    100% { box-shadow: none; }
+}
+
+@keyframes fadeInHighlight-drop {
+    0% { box-shadow: 0 0 12px rgba(220, 38, 38, 0.5); }
+    100% { box-shadow: none; }
+}
+
+@keyframes fadeInHighlight-bigmoney {
+    0% { box-shadow: 0 0 12px rgba(240, 138, 36, 0.5); }
+    100% { box-shadow: none; }
+}
+
+/* ========== PREMIUM TICKER PILLS ========== */
+
+.ab-pill {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
+    gap: 6px;
+    padding: 4px 12px;
     height: 32px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid transparent;
-    border-radius: 8px;
+    border-radius: 12px;
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Sharp - Green */
-.alert-band-pill.sharp {
-    border-color: rgba(74, 222, 128, 0.6);
+/* Sharp Move - Premium Green */
+.ab-pill.sharp {
+    background: linear-gradient(90deg, rgba(22, 163, 74, 0.15), transparent);
+    border: 1px solid rgba(22, 163, 74, 0.35);
 }
-.alert-band-pill.sharp:hover {
-    background: rgba(74, 222, 128, 0.1);
-    border-color: #4ade80;
-}
-
-/* Insider - Purple */
-.alert-band-pill.insider {
-    border-color: rgba(168, 85, 247, 0.6);
-}
-.alert-band-pill.insider:hover {
-    background: rgba(168, 85, 247, 0.1);
-    border-color: #a855f7;
+.ab-pill.sharp.new { animation: fadeInHighlight-sharp 1s ease-out; }
+.ab-pill.sharp:hover {
+    background: rgba(22, 163, 74, 0.2);
+    border-color: rgba(22, 163, 74, 0.6);
 }
 
-/* BigMoney - Yellow-Orange */
-.alert-band-pill.bigmoney {
+/* Hacim Şoku - Gold Yellow */
+.ab-pill.volumeshock {
+    background: linear-gradient(90deg, rgba(250, 204, 21, 0.15), transparent);
+    border: 1px solid rgba(250, 204, 21, 0.35);
+}
+.ab-pill.volumeshock.new { animation: fadeInHighlight-volumeshock 1s ease-out; }
+.ab-pill.volumeshock:hover {
+    background: rgba(250, 204, 21, 0.2);
+    border-color: rgba(250, 204, 21, 0.6);
+}
+
+/* Insider Move - Purple */
+.ab-pill.insider {
+    background: linear-gradient(90deg, rgba(139, 92, 246, 0.15), transparent);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+}
+.ab-pill.insider.new { animation: fadeInHighlight-insider 1s ease-out; }
+.ab-pill.insider:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.6);
+}
+
+/* Drop Alert - Risk Red */
+.ab-pill.drop {
+    background: linear-gradient(90deg, rgba(220, 38, 38, 0.15), transparent);
+    border: 1px solid rgba(220, 38, 38, 0.35);
+}
+.ab-pill.drop.new { animation: fadeInHighlight-drop 1s ease-out; }
+.ab-pill.drop:hover {
+    background: rgba(220, 38, 38, 0.2);
+    border-color: rgba(220, 38, 38, 0.6);
+}
+
+/* BigMoney - Orange */
+.ab-pill.bigmoney {
+    background: linear-gradient(90deg, rgba(240, 138, 36, 0.15), transparent);
+    border: 1px solid rgba(240, 138, 36, 0.35);
+}
+.ab-pill.bigmoney.new { animation: fadeInHighlight-bigmoney 1s ease-out; }
+.ab-pill.bigmoney:hover {
+    background: rgba(240, 138, 36, 0.2);
     border-color: rgba(240, 138, 36, 0.6);
 }
-.alert-band-pill.bigmoney:hover {
-    background: rgba(240, 138, 36, 0.1);
-    border-color: #F08A24;
-}
 
-/* HugeMoney - Red-Orange */
-.alert-band-pill.hugemoney {
+/* HugeMoney - Red Orange */
+.ab-pill.hugemoney {
+    background: linear-gradient(90deg, rgba(249, 115, 22, 0.15), transparent);
+    border: 1px solid rgba(249, 115, 22, 0.35);
+}
+.ab-pill.hugemoney:hover {
+    background: rgba(249, 115, 22, 0.2);
     border-color: rgba(249, 115, 22, 0.6);
 }
-.alert-band-pill.hugemoney:hover {
-    background: rgba(249, 115, 22, 0.1);
-    border-color: #f97316;
+
+/* Separator */
+.ab-sep {
+    color: #6E7681;
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.6;
+    margin: 0 2px;
 }
 
-/* VolumeShock - Gold */
-.alert-band-pill.volumeshock {
-    border-color: rgba(246, 195, 67, 0.6);
-}
-.alert-band-pill.volumeshock:hover {
-    background: rgba(246, 195, 67, 0.1);
-    border-color: #F6C343;
-}
-
-/* Pill child elements - perfect vertical alignment */
-.alert-band-pill > * {
-    vertical-align: middle;
-}
-
-.alert-band-pill > span {
-    display: inline-block;
-    vertical-align: middle;
+/* Alarm Type Label */
+.ab-type {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
     line-height: 1;
 }
 
-/* Dot Indicator - Large & Visible */
-.alert-band-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-/* Sharp dot - Green */
-.alert-band-dot.green {
-    background: #4ade80;
-}
-
-/* Insider dot - Purple */
-.alert-band-dot.purple {
-    background: #a855f7;
-}
-
-/* BigMoney dot - Yellow-Orange */
-.alert-band-dot.orange {
-    background: #F08A24;
-}
-
-/* HugeMoney dot - Red-Orange */
-.alert-band-dot.orange-red {
-    background: #f97316;
-}
-
-/* VolumeShock dot - Gold */
-.alert-band-dot.gold {
-    background: #F6C343;
-}
-
-.alert-band-dot.green {
-    background: #4ade80;
-}
-
-/* Alert Type Label */
-.alert-band-type {
-    font-size: 13px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.alert-band-type.sharp {
-    color: #4ade80;
-}
-
-.alert-band-type.insider {
-    color: #a855f7;
-}
-
-.alert-band-type.bigmoney {
-    color: #F08A24;
-}
-
-.alert-band-type.hugemoney {
-    color: #f97316;
-}
-
-.alert-band-type.volumeshock {
-    color: #F6C343;
-}
+.ab-pill.sharp .ab-type { color: var(--ticker-sharp); }
+.ab-pill.volumeshock .ab-type { color: var(--ticker-volumeshock); }
+.ab-pill.insider .ab-type { color: var(--ticker-insider); }
+.ab-pill.drop .ab-type { color: var(--ticker-drop); }
+.ab-pill.bigmoney .ab-type { color: var(--ticker-bigmoney); }
+.ab-pill.hugemoney .ab-type { color: var(--ticker-hugemoney); }
 
 /* Match Name */
-.alert-band-match {
-    font-size: 13px;
-    font-weight: 600;
-    color: #ffffff;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-/* Selection indicator - matches alarm type color */
-.alert-band-selection {
-    font-size: 13px;
-    font-weight: 600;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.alert-band-pill.sharp .alert-band-selection {
-    color: #4ade80;
-}
-
-.alert-band-pill.insider .alert-band-selection {
-    color: #a855f7;
-}
-
-.alert-band-pill.bigmoney .alert-band-selection {
-    color: #F08A24;
-}
-
-.alert-band-pill.hugemoney .alert-band-selection {
-    color: #f97316;
-}
-
-.alert-band-pill.volumeshock .alert-band-selection {
-    color: #F6C343;
-}
-
-/* Value/Score */
-.alert-band-value {
-    font-size: 13px;
-    font-weight: 600;
-    color: #4ade80;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.alert-band-value.negative,
-.alert-band-value.insider {
-    color: #ff0000;
-    font-size: 13px;
-    font-weight: 600;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-/* Time indicator */
-.alert-band-time {
+.ab-match {
     font-size: 12px;
     font-weight: 500;
-    color: #8b949e;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #E6EDF3;
+    line-height: 1;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Alarms Button - Band Style */
+/* Selection */
+.ab-sel {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    color: #C9D1D9;
+}
+
+/* Premium Value Chip */
+.ab-val {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.ab-pill.sharp .ab-val {
+    background: rgba(22, 163, 74, 0.25);
+    color: var(--ticker-sharp);
+}
+
+.ab-pill.volumeshock .ab-val {
+    background: rgba(250, 204, 21, 0.25);
+    color: var(--ticker-volumeshock);
+}
+
+.ab-pill.insider .ab-val {
+    background: rgba(139, 92, 246, 0.25);
+    color: #ff0000;
+}
+
+.ab-pill.drop .ab-val {
+    background: rgba(220, 38, 38, 0.25);
+    color: var(--ticker-drop);
+}
+
+.ab-pill.bigmoney .ab-val {
+    background: rgba(240, 138, 36, 0.25);
+    color: var(--ticker-bigmoney);
+}
+
+.ab-pill.hugemoney .ab-val {
+    background: rgba(249, 115, 22, 0.25);
+    color: var(--ticker-hugemoney);
+}
+
+/* ========== ALARMS BUTTON ========== */
+
 .btn-alarms {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    height: 38px;
-    padding: 0 18px;
+    height: 36px;
+    padding: 0 16px;
     margin-right: 12px;
-    background: #020617;
+    background: #111827;
     border: 1px solid #1F2937;
     border-radius: 9999px;
     color: #E5E7EB;
@@ -265,22 +284,22 @@
 }
 
 .btn-alarms:hover {
-    background: #0B1120;
-    border-color: #273549;
+    background: #1F2937;
+    border-color: #374151;
 }
 
 .btn-alarms:hover svg {
-    color: #f97316;
+    color: #16A34A;
 }
 
 .btn-alarms.active {
-    background: #111827;
-    border-color: #4C8BF5;
-    box-shadow: 0 0 0 1px rgba(76, 139, 245, 0.4);
+    background: rgba(22, 163, 74, 0.1);
+    border-color: #16A34A;
+    box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.3);
 }
 
 .btn-alarms.active svg {
-    color: #4C8BF5;
+    color: #16A34A;
 }
 
 /* Alarms Badge */
@@ -288,12 +307,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 24px;
-    height: 20px;
-    padding: 0 7px;
-    background: #4ade80;
+    min-width: 22px;
+    height: 18px;
+    padding: 0 6px;
+    background: var(--ticker-sharp);
     color: #000;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     border-radius: 9999px;
     font-family: 'JetBrains Mono', monospace;
@@ -305,9 +324,11 @@
 }
 
 .alert-band-empty {
-    color: #484f58;
+    color: #6E7681;
     font-size: 12px;
+    font-weight: 400;
     padding: 0 16px;
+    font-style: italic;
 }
 
 /* Hidden state */
@@ -315,92 +336,130 @@
     display: none;
 }
 
-/* ========== NEW MINIMAL ALERT BAND PILLS ========== */
+/* ========== LEGACY SUPPORT ========== */
 
-.ab-pill {
+.alert-band-pill {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 0 14px;
-    height: 30px;
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 9999px;
+    gap: 6px;
+    padding: 4px 12px;
+    height: 32px;
+    background: linear-gradient(90deg, rgba(22, 163, 74, 0.12), transparent);
+    border: 1px solid rgba(22, 163, 74, 0.35);
+    border-radius: 12px;
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
 }
 
-.ab-pill.sharp { border-color: rgba(34, 197, 94, 0.5); }
-.ab-pill.insider { border-color: rgba(167, 139, 250, 0.5); }
-.ab-pill.volumeshock { border-color: rgba(251, 191, 36, 0.5); }
-.ab-pill.bigmoney { border-color: rgba(240, 138, 36, 0.5); }
-.ab-pill.hugemoney { border-color: rgba(249, 115, 22, 0.5); }
-
-.ab-pill:hover {
-    background: #1c2128;
+.alert-band-pill.sharp {
+    background: linear-gradient(90deg, rgba(22, 163, 74, 0.15), transparent);
+    border-color: rgba(22, 163, 74, 0.35);
 }
-.ab-pill.sharp:hover { border-color: #22c55e; }
-.ab-pill.insider:hover { border-color: #a78bfa; }
-.ab-pill.volumeshock:hover { border-color: #fbbf24; }
-.ab-pill.bigmoney:hover { border-color: #F08A24; }
-.ab-pill.hugemoney:hover { border-color: #f97316; }
+.alert-band-pill.sharp:hover {
+    background: rgba(22, 163, 74, 0.2);
+    border-color: rgba(22, 163, 74, 0.6);
+}
 
-.ab-dot {
-    width: 6px;
-    height: 6px;
+.alert-band-pill.insider {
+    background: linear-gradient(90deg, rgba(139, 92, 246, 0.15), transparent);
+    border-color: rgba(139, 92, 246, 0.35);
+}
+.alert-band-pill.insider:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.6);
+}
+
+.alert-band-pill.bigmoney {
+    background: linear-gradient(90deg, rgba(240, 138, 36, 0.15), transparent);
+    border-color: rgba(240, 138, 36, 0.35);
+}
+.alert-band-pill.bigmoney:hover {
+    background: rgba(240, 138, 36, 0.2);
+    border-color: rgba(240, 138, 36, 0.6);
+}
+
+.alert-band-pill.hugemoney {
+    background: linear-gradient(90deg, rgba(249, 115, 22, 0.15), transparent);
+    border-color: rgba(249, 115, 22, 0.35);
+}
+.alert-band-pill.hugemoney:hover {
+    background: rgba(249, 115, 22, 0.2);
+    border-color: rgba(249, 115, 22, 0.6);
+}
+
+.alert-band-pill.volumeshock {
+    background: linear-gradient(90deg, rgba(250, 204, 21, 0.15), transparent);
+    border-color: rgba(250, 204, 21, 0.35);
+}
+.alert-band-pill.volumeshock:hover {
+    background: rgba(250, 204, 21, 0.2);
+    border-color: rgba(250, 204, 21, 0.6);
+}
+
+.alert-band-dot {
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
 }
 
-.ab-pill.sharp .ab-dot { background: #22c55e; }
-.ab-pill.insider .ab-dot { background: #a78bfa; }
-.ab-pill.volumeshock .ab-dot { background: #fbbf24; }
-.ab-pill.bigmoney .ab-dot { background: #F08A24; }
-.ab-pill.hugemoney .ab-dot { background: #f97316; }
+.alert-band-dot.green { background: var(--ticker-sharp); }
+.alert-band-dot.purple { background: var(--ticker-insider); }
+.alert-band-dot.orange { background: var(--ticker-bigmoney); }
+.alert-band-dot.orange-red { background: var(--ticker-hugemoney); }
+.alert-band-dot.gold { background: var(--ticker-volumeshock); }
 
-.ab-type {
-    font-size: 12px;
+.alert-band-type {
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
-    line-height: 1;
+    letter-spacing: 0.4px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-.ab-pill.sharp .ab-type { color: #22c55e; }
-.ab-pill.insider .ab-type { color: #a78bfa; }
-.ab-pill.volumeshock .ab-type { color: #fbbf24; }
-.ab-pill.bigmoney .ab-type { color: #F08A24; }
-.ab-pill.hugemoney .ab-type { color: #f97316; }
+.alert-band-type.sharp { color: var(--ticker-sharp); }
+.alert-band-type.insider { color: var(--ticker-insider); }
+.alert-band-type.bigmoney { color: var(--ticker-bigmoney); }
+.alert-band-type.hugemoney { color: var(--ticker-hugemoney); }
+.alert-band-type.volumeshock { color: var(--ticker-volumeshock); }
 
-.ab-match {
+.alert-band-match {
     font-size: 12px;
     font-weight: 500;
-    color: #e6edf3;
-    line-height: 1;
+    color: #E6EDF3;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-.ab-sel {
+.alert-band-selection {
     font-size: 12px;
-    font-weight: 700;
-    line-height: 1;
+    font-weight: 600;
+    color: #C9D1D9;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-.ab-pill.sharp .ab-sel { color: #22c55e; }
-.ab-pill.insider .ab-sel { color: #a78bfa; }
-.ab-pill.volumeshock .ab-sel { color: #fbbf24; }
-.ab-pill.bigmoney .ab-sel { color: #F08A24; }
-.ab-pill.hugemoney .ab-sel { color: #f97316; }
-
-.ab-val {
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1;
+.alert-band-value {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(22, 163, 74, 0.25);
+    color: var(--ticker-sharp);
 }
 
-.ab-pill.sharp .ab-val { color: #22c55e; }
-.ab-pill.insider .ab-val { color: #ff0000; }
-.ab-pill.volumeshock .ab-val { color: #fbbf24; }
-.ab-pill.bigmoney .ab-val { color: #F08A24; }
-.ab-pill.hugemoney .ab-val { color: #f97316; }
+.alert-band-value.negative,
+.alert-band-value.insider {
+    background: rgba(255, 0, 0, 0.2);
+    color: #ff0000;
+}
+
+.alert-band-time {
+    font-size: 11px;
+    font-weight: 400;
+    color: #6E7681;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
