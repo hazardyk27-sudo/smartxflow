@@ -3781,12 +3781,10 @@ function renderAlarmsList(filterType) {
             const moneyPart = volume > 0 ? `<span class="value-money">\u00A3${Number(volume).toLocaleString('en-GB')}</span><span class="sep">\u2022</span>` : '';
             mainValue = `${moneyPart}<span class="value-highlight">Skor ${score}</span><span class="sep">\u2022</span><span class="value-pct">%${oddsSign}${Math.abs(oddsDrop).toFixed(1)}</span>`;
         } else if (type === 'insider') {
-            const volShock = alarm.volume_shock ? alarm.volume_shock.toFixed(1) : '0';
-            const oddsDrop = alarm.odds_drop_pct || 0;
-            const oddsSign = oddsDrop < 0 ? '\u2212' : '+';
-            const stake = alarm.stake || alarm.volume || 0;
-            const moneyPart = stake > 0 ? `<span class="value-money">\u00A3${Number(stake).toLocaleString('en-GB')}</span><span class="sep">\u2022</span>` : '';
-            mainValue = `${moneyPart}<span class="value-highlight">\u015Eok ${volShock}x</span><span class="sep">\u2022</span><span class="value-pct">Oran %${oddsSign}${Math.abs(oddsDrop).toFixed(1)}</span>`;
+            const openingOdds = alarm.opening_odds || 0;
+            const lastOdds = alarm.last_odds || 0;
+            const oddsDrop = alarm.oran_dusus_pct || alarm.odds_drop_pct || 0;
+            mainValue = `<span class="value-odds">${openingOdds.toFixed(2)}</span><span class="arrow">\u2192</span><span class="value-odds-new">${lastOdds.toFixed(2)}</span><span class="sep">\u2022</span><span class="value-pct-drop">\u2212${Math.abs(oddsDrop).toFixed(1)}%</span>`;
         } else if (type === 'bigmoney') {
             const money = alarm.incoming_money || alarm.stake || 0;
             mainValue = `<span class="value-money">£${Number(money).toLocaleString('en-GB')}</span>`;
@@ -3908,13 +3906,18 @@ function renderAlarmsList(filterType) {
             </div>
         `;
         
+        const fullMatchName = `${home} – ${away}`;
+        const shortHome = home.length > 12 ? home.substring(0, 12) + '.' : home;
+        const shortAway = away.length > 12 ? away.substring(0, 12) + '.' : away;
+        const displayMatchName = `${shortHome} – ${shortAway}`;
+        
         return `
             <div class="alarm-accordion-wrapper">
                 <div class="sidebar-alarm-card ${type} ${isOpen ? 'expanded' : ''}" onclick="toggleAlarmDetail('${alarmId}')">
                     <div class="alarm-row-1">
                         <span class="alarm-expand-icon">${expandIcon}</span>
                         <span class="alarm-type-badge ${type}">${typeLabels[type]}</span>
-                        <span class="alarm-match-name">${home} – ${away}</span>
+                        <span class="alarm-match-name" title="${fullMatchName}">${displayMatchName}</span>
                         <span class="alarm-market-chip">${marketLabel}</span>
                     </div>
                     <div class="alarm-row-2">

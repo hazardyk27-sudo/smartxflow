@@ -4070,8 +4070,16 @@ td.volume,
 .alarm-row-1 {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
+    min-width: 0;
+}
+
+.alarm-expand-icon {
+    font-size: 8px;
+    color: #6e7681;
+    flex-shrink: 0;
+    width: 10px;
 }
 
 .alarm-type-badge {
@@ -4109,13 +4117,21 @@ td.volume,
 
 .alarm-match-name {
     flex: 1;
-    font-size: 13px;
+    min-width: 0;
+    font-size: 12px;
     font-weight: 600;
     color: #E5E7EB;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.3;
+}
+
+.sidebar-alarm-card:hover .alarm-match-name {
+    white-space: normal;
+    word-break: break-word;
+    overflow: visible;
+    text-overflow: unset;
 }
 
 .alarm-market-chip {
@@ -4170,6 +4186,29 @@ td.volume,
     font-weight: 700;
     color: #22c55e;
     font-family: 'JetBrains Mono', monospace;
+}
+
+.alarm-main-value .value-odds {
+    color: #94a3b8;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.alarm-main-value .arrow {
+    color: #ef4444;
+    margin: 0 4px;
+    font-weight: 700;
+}
+
+.alarm-main-value .value-odds-new {
+    color: #22c55e;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.alarm-main-value .value-pct-drop {
+    color: #ef4444;
+    font-weight: 600;
 }
 
 .alarm-center-info {
