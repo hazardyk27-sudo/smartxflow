@@ -2314,6 +2314,7 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
     
     min_amount_change = config.get('min_amount_change', 500)
     volume_multiplier = config.get('volume_multiplier', 1)
+    share_multiplier = config.get('share_multiplier', 1)
     max_volume_cap = config.get('max_volume_cap', 40)
     max_odds_cap = config.get('max_odds_cap', 35)
     max_share_cap = config.get('max_share_cap', 25)
@@ -2327,14 +2328,6 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         (config.get('odds_range_4_min', 3.50), config.get('odds_range_4_max', 10.00), config.get('odds_range_4_mult', 3)),
     ]
     default_odds_multiplier = config.get('odds_multiplier', 1)
-    
-    share_ranges = [
-        (config.get('share_range_1_min', 0), config.get('share_range_1_max', 5), config.get('share_range_1_mult', 1)),
-        (config.get('share_range_2_min', 5), config.get('share_range_2_max', 10), config.get('share_range_2_mult', 1.5)),
-        (config.get('share_range_3_min', 10), config.get('share_range_3_max', 15), config.get('share_range_3_mult', 2)),
-        (config.get('share_range_4_min', 15), config.get('share_range_4_max', 100), config.get('share_range_4_mult', 3)),
-    ]
-    default_share_multiplier = config.get('share_multiplier', 1)
     
     best_candidate = None
     best_score = 0
@@ -2377,12 +2370,6 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         for range_min, range_max, range_mult in odds_ranges:
             if range_min <= curr_odds < range_max:
                 odds_multiplier = range_mult
-                break
-        
-        share_multiplier = default_share_multiplier
-        for range_min, range_max, range_mult in share_ranges:
-            if range_min <= share_diff < range_max:
-                share_multiplier = range_mult
                 break
         
         odds_value = drop_pct * odds_multiplier
