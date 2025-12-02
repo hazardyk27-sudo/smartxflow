@@ -142,6 +142,17 @@
     flex-shrink: 0;
     transition: all 0.2s ease;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    position: relative;
+}
+
+/* Ultra-soft inner shine overlay */
+.ab-pill::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.04), transparent 60%);
+    pointer-events: none;
 }
 
 /* Sharp Move - Premium Green */
@@ -240,7 +251,7 @@
     font-weight: 500;
     color: #E6EDF3;
     line-height: 1;
-    max-width: 220px;
+    max-width: 240px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -253,6 +264,28 @@
     line-height: 1;
     color: #C9D1D9;
     margin-right: 3px;
+}
+
+/* Value Chip Glow Animations */
+@keyframes chipGlow-sharp {
+    0% { box-shadow: 0 0 12px rgba(22, 163, 74, 0.5); }
+    100% { box-shadow: none; }
+}
+@keyframes chipGlow-volumeshock {
+    0% { box-shadow: 0 0 12px rgba(250, 204, 21, 0.5); }
+    100% { box-shadow: none; }
+}
+@keyframes chipGlow-insider {
+    0% { box-shadow: 0 0 12px rgba(255, 0, 0, 0.5); }
+    100% { box-shadow: none; }
+}
+@keyframes chipGlow-drop {
+    0% { box-shadow: 0 0 12px rgba(220, 38, 38, 0.5); }
+    100% { box-shadow: none; }
+}
+@keyframes chipGlow-bigmoney {
+    0% { box-shadow: 0 0 12px rgba(240, 138, 36, 0.5); }
+    100% { box-shadow: none; }
 }
 
 /* Premium Value Chip - High Visibility */
@@ -275,36 +308,42 @@
     color: #4ADE80;
     border: 1px solid rgba(22, 163, 74, 0.45);
 }
+.ab-pill.sharp.new .ab-val { animation: chipGlow-sharp 0.8s ease-out; }
 
 .ab-pill.volumeshock .ab-val {
     background: rgba(250, 204, 21, 0.18);
     color: #FDE047;
     border: 1px solid rgba(250, 204, 21, 0.45);
 }
+.ab-pill.volumeshock.new .ab-val { animation: chipGlow-volumeshock 0.8s ease-out; }
 
 .ab-pill.insider .ab-val {
     background: rgba(255, 0, 0, 0.18);
     color: #FF6B6B;
     border: 1px solid rgba(255, 0, 0, 0.45);
 }
+.ab-pill.insider.new .ab-val { animation: chipGlow-insider 0.8s ease-out; }
 
 .ab-pill.drop .ab-val {
     background: rgba(220, 38, 38, 0.18);
     color: #FCA5A5;
     border: 1px solid rgba(220, 38, 38, 0.45);
 }
+.ab-pill.drop.new .ab-val { animation: chipGlow-drop 0.8s ease-out; }
 
 .ab-pill.bigmoney .ab-val {
     background: rgba(240, 138, 36, 0.18);
     border: 1px solid rgba(240, 138, 36, 0.45);
     color: #FDBA74;
 }
+.ab-pill.bigmoney.new .ab-val { animation: chipGlow-bigmoney 0.8s ease-out; }
 
 .ab-pill.hugemoney .ab-val {
     background: rgba(249, 115, 22, 0.18);
     border: 1px solid rgba(249, 115, 22, 0.45);
     color: #FB923C;
 }
+.ab-pill.hugemoney.new .ab-val { animation: chipGlow-bigmoney 0.8s ease-out; }
 
 /* ========== ALARMS BUTTON ========== */
 
