@@ -1030,25 +1030,20 @@ def save_insider_alarms_to_file(alarms):
 def merge_insider_alarms(existing_alarms, new_alarms):
     """
     Merge existing and new insider alarms.
-    - Keep existing alarms (don't delete old ones)
-    - Add new alarms (avoid duplicates)
-    - Remove D-2+ alarms (old matches)
+    - Keep ALL existing alarms (eski alarmlar korunur)
+    - Add ALL new alarms (yeni alarmlar eklenir - duplicate kontrolü YOK)
+    - Remove only D-2+ alarms (sadece eski maçlar temizlenir)
     """
     today = now_turkey().date()
     yesterday = today - timedelta(days=1)
     
-    # Create unique key for each alarm
-    def alarm_key(alarm):
-        return f"{alarm.get('home', '')}_{alarm.get('away', '')}_{alarm.get('market', '')}_{alarm.get('selection', '')}_{alarm.get('event_time', '')}"
-    
-    # Start with existing alarms
-    merged = {}
+    result = []
     
     # Add existing alarms (filter out D-2+ ones)
+    kept_count = 0
     for alarm in existing_alarms:
         match_date_str = alarm.get('match_date', '')
         try:
-            # Parse match date
             if match_date_str:
                 date_part = match_date_str.split()[0]
                 if '.' in date_part:
@@ -1071,21 +1066,16 @@ def merge_insider_alarms(existing_alarms, new_alarms):
                 if match_date < yesterday:
                     continue
         except:
-            pass  # Keep alarm if date parsing fails
+            pass
         
-        key = alarm_key(alarm)
-        merged[key] = alarm
+        result.append(alarm)
+        kept_count += 1
     
-    # Add new alarms
-    added_count = 0
+    # Add ALL new alarms (no duplicate check - show both old and new)
     for alarm in new_alarms:
-        key = alarm_key(alarm)
-        if key not in merged:
-            merged[key] = alarm
-            added_count += 1
+        result.append(alarm)
     
-    result = list(merged.values())
-    print(f"[Insider] Merged: {len(existing_alarms)} existing + {added_count} new = {len(result)} total (D-2+ filtered)")
+    print(f"[Insider] Kept {kept_count} existing + Added {len(new_alarms)} new = {len(result)} total")
     
     return result
 
