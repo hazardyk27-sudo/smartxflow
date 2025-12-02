@@ -6073,76 +6073,79 @@ td.volume,
     color: #6e7681 !important;
 }
 
-/* ========== ALARM CARD - USER SPEC ========== */
+/* ========== PREMIUM CARD - SINGLE COLUMN MODERN ========== */
 
-.alarm-card {
-    padding: 6px 14px;
-    border-radius: 16px;
-    background: #161b22;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+.premium-card {
+    background: #1e2328;
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-bottom: 10px;
     cursor: pointer;
-    margin-bottom: 6px;
-    transition: background 0.15s;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
 }
 
-.alarm-card:hover {
-    background: #1c2128;
+.premium-card:hover {
+    background: #252a30;
+    border-color: #30363d;
 }
 
-.alarm-card.expanded {
-    background: #1c2128;
+.premium-card.expanded {
+    border-color: #30363d;
 }
 
-.alarm-card.sharp { --accent: #4ade80; }
-.alarm-card.insider { --accent: #a78bfa; }
-.alarm-card.volumeshock { --accent: #fbbf24; }
-.alarm-card.bigmoney { --accent: #F08A24; }
+.premium-card.sharp { --accent: #4ade80; }
+.premium-card.insider { --accent: #a78bfa; }
+.premium-card.volumeshock { --accent: #fbbf24; }
+.premium-card.bigmoney { --accent: #F08A24; }
 
-/* Satır 1: tip + süre + sağ değer */
-.alarm-row-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* Header: TYPE · time */
+.pc-header {
     font-size: 11px;
-    line-height: 1.2;
-    color: #8b949e;
-}
-
-/* tip + dot renkli */
-.alarm-type {
     font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
+    color: #6e7681;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
 }
 
-.type-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-}
-
-/* Maç adı */
-.alarm-match {
-    font-size: 14px;
+/* Match Name */
+.pc-match {
+    font-size: 16px;
     font-weight: 600;
-    line-height: 1.2;
-    color: #c9d1d9;
+    color: #e6edf3;
+    margin-bottom: 4px;
 }
 
-/* Market bilgisi */
-.alarm-market {
-    font-size: 11px;
-    line-height: 1.2;
-    color: #8b949e;
-}
-
-/* sağdaki ana değer */
-.alarm-value-strong {
+/* Market */
+.pc-market {
     font-size: 13px;
-    font-weight: 600;
+    color: #8b949e;
+    margin-bottom: 14px;
+}
+
+/* Metric Block */
+.pc-metric {
+    padding-top: 12px;
+    border-top: 1px solid #30363d;
+}
+
+.pc-metric-label {
+    font-size: 11px;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 4px;
+}
+
+.pc-metric-value {
+    font-size: 22px;
+    font-weight: 700;
     color: var(--accent);
+}
+
+.pct-drop {
+    font-size: 16px;
+    color: #fb7185;
+    margin-left: 8px;
 }
