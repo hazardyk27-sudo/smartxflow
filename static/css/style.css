@@ -6250,3 +6250,23 @@ td.volume,
 .alarm-card.bigmoney .label { color: #F08A24; }
 .alarm-card.bigmoney .money-val { color: #6e7681; }
 .alarm-card.bigmoney .money-val b { color: #F08A24; font-weight: 700; }
+
+/* Row Middle: maç + skor aynı satırda */
+.alarm-card .row-middle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.alarm-card .row-middle .match-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #c9d1d9;
+    margin: 0;
+}
+
+.alarm-card.sharp .sharp-score {
+    font-size: 15px;
+    font-weight: 700;
+    color: #22c55e;
+}

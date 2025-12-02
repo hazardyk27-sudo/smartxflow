@@ -3913,10 +3913,12 @@ function renderAlarmsList(filterType) {
                         <span class="sep">·</span>
                         <span class="time">${timeAgo}</span>
                     </div>
-                    <div class="match-name">${fullMatchName}</div>
+                    <div class="row-middle">
+                        <span class="match-name">${fullMatchName}</span>
+                        <span class="sharp-score">${score}</span>
+                    </div>
                     <div class="row-bottom">
                         <span class="market">${marketLabel}</span>
-                        <span class="sharp-score">Sharp Skoru: <b>${score}</b></span>
                     </div>
                 </div>`;
         } else if (type === 'insider') {
