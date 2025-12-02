@@ -3926,7 +3926,10 @@ function renderAlarmsList(filterType) {
                     <div class="detail-section">
                         <div class="detail-label">ALARM BİLGİSİ</div>
                         <div class="detail-alarm-info">
-                            <span class="detail-money">£${Number(mainMoney).toLocaleString('en-GB')}</span>
+                            ${type === 'sharp' ? 
+                                `<span class="detail-sharp-score">Sharp Skor : ${(alarm.sharp_score || 0).toFixed(0)}</span>` :
+                                `<span class="detail-money">£${Number(mainMoney).toLocaleString('en-GB')}</span>`
+                            }
                             <span class="detail-type-badge ${type}">${typeBadge}</span>
                         </div>
                     </div>

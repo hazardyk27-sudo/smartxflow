@@ -5066,3 +5066,9 @@ td.volume,
     letter-spacing: 0.3px;
     text-align: center;
 }
+
+.detail-sharp-score {
+    font-size: 16px;
+    font-weight: 600;
+    color: #22C55E;
+}
