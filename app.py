@@ -2324,7 +2324,8 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
     odds_ranges = [
         (config.get('odds_range_1_min', 1.01), config.get('odds_range_1_max', 1.50), config.get('odds_range_1_mult', 10)),
         (config.get('odds_range_2_min', 1.50), config.get('odds_range_2_max', 2.10), config.get('odds_range_2_mult', 8)),
-        (config.get('odds_range_3_min', 2.10), config.get('odds_range_3_max', 5.00), config.get('odds_range_3_mult', 5)),
+        (config.get('odds_range_3_min', 2.10), config.get('odds_range_3_max', 3.50), config.get('odds_range_3_mult', 5)),
+        (config.get('odds_range_4_min', 3.50), config.get('odds_range_4_max', 10.00), config.get('odds_range_4_mult', 3)),
     ]
     default_odds_multiplier = config.get('odds_multiplier', 1)
     
