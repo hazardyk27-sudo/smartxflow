@@ -3984,29 +3984,6 @@ function renderAlarmsList(filterType) {
             const lastOdds = (alarm.last_odds || 0).toFixed(2);
             const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
             const gelenPara = alarm.gelen_para || 0;
-            const dropIndex = alarm.drop_index || 0;
-            const snapshots = alarm.snapshot_details || [];
-            
-            let snapshotsHtml = '';
-            if (snapshots.length > 0) {
-                snapshotsHtml = `<div class="acd-snapshots">
-                    <div class="acd-snap-title">📊 DÜŞÜŞ ANI ETRAFINDAKİ SNAPSHOTLAR</div>
-                    ${snapshots.map((snap, i) => {
-                        const snapTime = snap.time ? formatSmartMoneyTime(snap.time) : '--:--';
-                        const snapOdds = (snap.odds || 0).toFixed(2);
-                        const snapAmount = snap.amount || 0;
-                        const isDropSnap = (i === Math.floor(snapshots.length / 2));
-                        return `<div class="acd-snap-row ${isDropSnap ? 'drop-snap' : ''}">
-                            <span class="snap-label">Snap ${i + 1}:</span>
-                            <span class="snap-odds">${snapOdds}</span>
-                            <span class="snap-amount">£${Number(snapAmount).toLocaleString('en-GB')}</span>
-                            <span class="snap-time">(${snapTime})</span>
-                            ${isDropSnap ? '<span class="drop-marker">← DÜŞÜŞ</span>' : ''}
-                        </div>`;
-                    }).join('')}
-                </div>`;
-            }
-            
             metricContent = `<div class="acd-grid cols-2">
                 <div class="acd-stat">
                     <div class="acd-stat-val insider">${openOdds} → ${lastOdds}</div>
@@ -4019,8 +3996,7 @@ function renderAlarmsList(filterType) {
             </div>
             <div class="acd-info-row">
                 <span>Gelen Para: £${Number(gelenPara).toLocaleString('en-GB')}</span>
-            </div>
-            ${snapshotsHtml}`;
+            </div>`;
             historyLine = `${triggerTime}`;
         } else if (type === 'volumeshock') {
             badgeLabel = 'HACİM ŞOKU';
