@@ -212,47 +212,55 @@
     color: #C9D1D9;
 }
 
-/* Premium Value Chip */
+/* Premium Value Chip - High Visibility */
 .ab-val {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 2px 6px;
+    padding: 3px 8px;
     border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 700;
     line-height: 1;
     font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.3px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 .ab-pill.sharp .ab-val {
-    background: rgba(22, 163, 74, 0.25);
-    color: var(--ticker-sharp);
+    background: rgba(22, 163, 74, 0.35);
+    color: #4ADE80;
+    border: 1px solid rgba(22, 163, 74, 0.5);
 }
 
 .ab-pill.volumeshock .ab-val {
-    background: rgba(250, 204, 21, 0.25);
-    color: var(--ticker-volumeshock);
+    background: rgba(250, 204, 21, 0.35);
+    color: #FDE047;
+    border: 1px solid rgba(250, 204, 21, 0.5);
 }
 
 .ab-pill.insider .ab-val {
-    background: rgba(139, 92, 246, 0.25);
-    color: #ff0000;
+    background: rgba(255, 0, 0, 0.3);
+    color: #FF6B6B;
+    border: 1px solid rgba(255, 0, 0, 0.5);
 }
 
 .ab-pill.drop .ab-val {
-    background: rgba(220, 38, 38, 0.25);
-    color: var(--ticker-drop);
+    background: rgba(220, 38, 38, 0.35);
+    color: #FCA5A5;
+    border: 1px solid rgba(220, 38, 38, 0.5);
 }
 
 .ab-pill.bigmoney .ab-val {
-    background: rgba(240, 138, 36, 0.25);
-    color: var(--ticker-bigmoney);
+    background: rgba(240, 138, 36, 0.35);
+    border: 1px solid rgba(240, 138, 36, 0.5);
+    color: #FDBA74;
 }
 
 .ab-pill.hugemoney .ab-val {
-    background: rgba(249, 115, 22, 0.25);
-    color: var(--ticker-hugemoney);
+    background: rgba(249, 115, 22, 0.35);
+    border: 1px solid rgba(249, 115, 22, 0.5);
+    color: #FB923C;
 }
 
 /* ========== ALARMS BUTTON ========== */
