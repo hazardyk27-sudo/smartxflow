@@ -1239,18 +1239,19 @@ def calculate_insider_scores(config):
                     for window_start in range(1, len(snapshot_metrics) - required_streak + 1):
                         window = snapshot_metrics[window_start:window_start + required_streak]
                         
-                        # CRITICAL: Window'un SON snapshot'ı ile AÇILIŞ oranı karşılaştır
-                        last_window_odds = window[-1]['odds']
+                        # CRITICAL: Window içinde oran DÜŞMÜŞ mü kontrol et
+                        first_odds = window[0]['odds']
+                        last_odds = window[-1]['odds']
                         
                         # Eğer oran artmış veya sabit kalmışsa, bu window geçersiz
-                        if last_window_odds >= opening_odds:
+                        if last_odds >= first_odds:
                             continue  # Oran düşmemiş, sonraki window'a geç
                         
-                        # AÇILIŞTAN SON SNAPSHOT'A düşüş yüzdesi (kullanıcı isteği)
-                        opening_to_last_drop_pct = ((opening_odds - last_window_odds) / opening_odds) * 100 if opening_odds > 0 else 0
+                        # Window içindeki düşüş yüzdesi
+                        window_drop_pct = ((first_odds - last_odds) / first_odds) * 100 if first_odds > 0 else 0
                         
-                        # CONDITION: Açılıştan son snapshot'a düşüş >= threshold
-                        if opening_to_last_drop_pct < oran_dusus_esigi:
+                        # CONDITION: Window düşüşü >= threshold
+                        if window_drop_pct < oran_dusus_esigi:
                             continue  # Düşüş yeterli değil
                         
                         # Check if ALL snapshots in window meet OTHER conditions (HacimSok, GelenPara)
@@ -1268,7 +1269,7 @@ def calculate_insider_scores(config):
                         if all_qualify:
                             alarm_triggered = True
                             best_window = window
-                            best_window_drop_pct = opening_to_last_drop_pct  # Açılıştan son snapshot'a düşüş
+                            best_window_drop_pct = window_drop_pct
                             break  # Take first qualifying window
                     
                     if alarm_triggered and best_window:
@@ -1340,7 +1341,7 @@ def calculate_insider_scores(config):
                             'triggered': True
                         }
                         alarms.append(alarm)
-                        print(f"[Insider] ALARM: {home} vs {away} [{selection}] Acilis: {opening_odds:.2f}→Son: {window_end_odds:.2f} ({window_odds_drop_pct:.1f}%), GelenPara=£{window_gelen_para:.0f}")
+                        print(f"[Insider] ALARM: {home} vs {away} [{selection}] Window: {window_start_odds:.2f}→{window_end_odds:.2f} ({window_odds_drop_pct:.1f}%), GelenPara=£{window_gelen_para:.0f}")
         
         except Exception as e:
             print(f"[Insider] Error processing {market}: {e}")
