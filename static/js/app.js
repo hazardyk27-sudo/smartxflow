@@ -3884,9 +3884,19 @@ function renderAlarmsList(filterType) {
             const openOdds = (alarm.opening_odds || 0).toFixed(2);
             const lastOdds = (alarm.last_odds || 0).toFixed(2);
             const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
-            metricContent = `<div class="acd-single">
-                <div class="acd-big-val insider">${openOdds} → ${lastOdds}</div>
-                <div class="acd-big-drop">▼ ${dropPct}%</div>
+            const gelenPara = alarm.gelen_para || 0;
+            metricContent = `<div class="acd-grid cols-2">
+                <div class="acd-stat">
+                    <div class="acd-stat-val insider">${openOdds} → ${lastOdds}</div>
+                    <div class="acd-stat-lbl">Oran Değişimi</div>
+                </div>
+                <div class="acd-stat">
+                    <div class="acd-stat-val drop">▼ ${dropPct}%</div>
+                    <div class="acd-stat-lbl">Düşüş</div>
+                </div>
+            </div>
+            <div class="acd-info-row">
+                <span>Gelen Para: £${Number(gelenPara).toLocaleString('en-GB')}</span>
             </div>`;
             historyLine = `${triggerTime}`;
         } else if (type === 'volumeshock') {
