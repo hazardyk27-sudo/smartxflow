@@ -410,6 +410,7 @@
     min-width: 22px;
     height: 18px;
     padding: 0 6px;
+    margin-left: 2px;
     background: rgba(22, 163, 74, 0.18);
     color: #16A34A;
     border: 1px solid rgba(22, 163, 74, 0.45);
