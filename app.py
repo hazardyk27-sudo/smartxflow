@@ -1342,17 +1342,23 @@ def calculate_insider_scores(config):
                         created_at = now_turkey().strftime('%d.%m.%Y %H:%M')
                         last_odds = parse_float(history[-1].get(odds_key, '0'))
                         
+                        # Düşüş anı zamanı (drop_time)
+                        drop_time = history[max_drop_index].get('scrapedat', '') if max_drop_index < len(history) else ''
+                        
                         alarm = {
                             'home': home,
                             'away': away,
                             'market': market_names.get(market, market),
                             'selection': selection,
                             'hacim_sok': avg_hacim_sok,
-                            'oran_dusus_pct': window_odds_drop_pct,  # Window içindeki düşüş
+                            'oran_dusus_pct': window_odds_drop_pct,  # Açılıştan bugüne düşüş
                             'gelen_para': window_gelen_para,  # Window boyunca toplam gelen para (son - ilk)
                             'opening_odds': opening_odds,
                             'last_odds': last_odds,
-                            # 3 Snapshot window oranları
+                            # Düşüş anı bilgisi (YENİ)
+                            'drop_time': drop_time,
+                            'drop_index': max_drop_index,
+                            # Snapshot window bilgileri
                             'window_start_odds': window_start_odds,
                             'window_end_odds': window_end_odds,
                             'window_odds_drop_pct': window_odds_drop_pct,
@@ -1370,7 +1376,7 @@ def calculate_insider_scores(config):
                             'triggered': True
                         }
                         alarms.append(alarm)
-                        drop_snap_time = history[max_drop_index].get('scrapedat', '')[:16] if max_drop_index < len(history) else ''
+                        drop_snap_time = drop_time[:16] if drop_time else ''
                         print(f"[Insider] ALARM: {home} vs {away} [{selection}] Acilis→Simdi: {opening_odds:.2f}→{current_odds:.2f} ({opening_to_now_drop_pct:.1f}%), DususAni: {drop_snap_time}, Window: {len(best_window)} snap")
         
         except Exception as e:
