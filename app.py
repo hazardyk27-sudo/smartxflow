@@ -1231,28 +1231,30 @@ def calculate_insider_scores(config):
                             'amount': current_amount  # Store actual amount for window calculation
                         })
                     
-                    # Check rolling windows for consecutive qualifying snapshots
+                    # ========================================================
+                    # YENİ MANTIK: Açılıştan bugüne oran düşüşü hesapla
+                    # ========================================================
+                    
+                    # Son snapshot'taki oran
+                    current_odds = snapshot_metrics[-1]['odds'] if snapshot_metrics else 0
+                    
+                    # Açılıştan bugüne oran düşüşü (%)
+                    if opening_odds > 0 and current_odds > 0 and current_odds < opening_odds:
+                        opening_to_now_drop_pct = ((opening_odds - current_odds) / opening_odds) * 100
+                    else:
+                        opening_to_now_drop_pct = 0
+                    
+                    # KOŞUL 1: Açılıştan bugüne oran düşüşü >= eşik
+                    if opening_to_now_drop_pct < oran_dusus_esigi:
+                        continue  # Yeterli düşüş yok, sonraki selection'a geç
+                    
+                    # Check rolling windows for consecutive qualifying snapshots (diğer koşullar için)
                     alarm_triggered = False
                     best_window = None
-                    best_window_drop_pct = 0
+                    best_window_drop_pct = opening_to_now_drop_pct  # Açılıştan bugüne düşüş
                     
                     for window_start in range(1, len(snapshot_metrics) - required_streak + 1):
                         window = snapshot_metrics[window_start:window_start + required_streak]
-                        
-                        # CRITICAL: Window içinde oran DÜŞMÜŞ mü kontrol et
-                        first_odds = window[0]['odds']
-                        last_odds = window[-1]['odds']
-                        
-                        # Eğer oran artmış veya sabit kalmışsa, bu window geçersiz
-                        if last_odds >= first_odds:
-                            continue  # Oran düşmemiş, sonraki window'a geç
-                        
-                        # Window içindeki düşüş yüzdesi
-                        window_drop_pct = ((first_odds - last_odds) / first_odds) * 100 if first_odds > 0 else 0
-                        
-                        # CONDITION: Window düşüşü >= threshold
-                        if window_drop_pct < oran_dusus_esigi:
-                            continue  # Düşüş yeterli değil
                         
                         # Check if ALL snapshots in window meet OTHER conditions (HacimSok, GelenPara)
                         all_qualify = True
@@ -1269,7 +1271,6 @@ def calculate_insider_scores(config):
                         if all_qualify:
                             alarm_triggered = True
                             best_window = window
-                            best_window_drop_pct = window_drop_pct
                             break  # Take first qualifying window
                     
                     if alarm_triggered and best_window:
@@ -1290,12 +1291,12 @@ def calculate_insider_scores(config):
                         first_snap_idx = first_snap['index']
                         event_time = history[last_snap_idx].get('scrapedat', '') if last_snap_idx < len(history) else ''
                         
-                        # 3 Snapshot oran bilgileri (window içindeki oranlar)
-                        window_start_odds = first_snap['odds']  # Window başındaki oran
-                        window_end_odds = last_snap['odds']     # Window sonundaki oran
+                        # Açılıştan bugüne oran bilgileri (YENİ)
+                        window_start_odds = opening_odds  # Açılış oranı
+                        window_end_odds = current_odds    # Şu anki oran (son snapshot)
                         
-                        # Window düşüş yüzdesi (zaten hesaplandı ve eşik kontrolü yapıldı)
-                        window_odds_drop_pct = best_window_drop_pct
+                        # Açılıştan bugüne düşüş yüzdesi
+                        window_odds_drop_pct = opening_to_now_drop_pct
                         
                         # Snapshot detayları (her snapshot için oran, zaman ve para)
                         snapshot_details = []
@@ -1341,7 +1342,7 @@ def calculate_insider_scores(config):
                             'triggered': True
                         }
                         alarms.append(alarm)
-                        print(f"[Insider] ALARM: {home} vs {away} [{selection}] Window: {window_start_odds:.2f}→{window_end_odds:.2f} ({window_odds_drop_pct:.1f}%), GelenPara=£{window_gelen_para:.0f}")
+                        print(f"[Insider] ALARM: {home} vs {away} [{selection}] Acilis→Simdi: {opening_odds:.2f}→{current_odds:.2f} ({opening_to_now_drop_pct:.1f}%), GelenPara=£{window_gelen_para:.0f}")
         
         except Exception as e:
             print(f"[Insider] Error processing {market}: {e}")
