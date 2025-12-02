@@ -3849,37 +3849,84 @@ function renderAlarmsList(filterType) {
         if (type === 'sharp') {
             badgeLabel = 'SHARP';
             const score = (alarm.sharp_score || 0).toFixed(1);
-            const dropPct = Math.abs(alarm.oran_dusus_pct || 0).toFixed(1);
-            metricContent = `<div class="detail-metric-box sharp">
-                <div class="metric-row">Sharp Puanı <span class="metric-val">${score}</span></div>
-                ${dropPct > 0 ? `<div class="metric-row">Oran Düşüşü <span class="metric-val">%${dropPct}</span></div>` : ''}
+            const volume = alarm.volume || 0;
+            const stakeShare = alarm.stake_share || 0;
+            const oddsMove = alarm.odds_move || 0;
+            metricContent = `<div class="acd-grid">
+                <div class="acd-stat">
+                    <div class="acd-stat-val sharp">${score}</div>
+                    <div class="acd-stat-lbl">Sharp Skor</div>
+                </div>
+                <div class="acd-stat">
+                    <div class="acd-stat-val">£${Number(volume).toLocaleString('en-GB')}</div>
+                    <div class="acd-stat-lbl">Hacim</div>
+                </div>
+                <div class="acd-stat">
+                    <div class="acd-stat-val">${stakeShare.toFixed(1)}%</div>
+                    <div class="acd-stat-lbl">Stake Pay</div>
+                </div>
+                <div class="acd-stat">
+                    <div class="acd-stat-val">${oddsMove > 0 ? '+' : ''}${oddsMove.toFixed(2)}</div>
+                    <div class="acd-stat-lbl">Oran Değişim</div>
+                </div>
             </div>`;
-            historyLine = `${triggerTime} – Sharp: ${score}`;
+            historyLine = `${triggerTime}`;
         } else if (type === 'insider') {
             badgeLabel = 'INSIDER';
             const openOdds = (alarm.opening_odds || 0).toFixed(2);
             const lastOdds = (alarm.last_odds || 0).toFixed(2);
             const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
-            metricContent = `<div class="detail-metric-box insider">
-                <div class="metric-row">${openOdds} → ${lastOdds} <span class="metric-drop">-${dropPct}%</span></div>
+            const stake = alarm.stake || 0;
+            metricContent = `<div class="acd-grid cols-3">
+                <div class="acd-stat wide">
+                    <div class="acd-stat-val insider">${openOdds} → ${lastOdds}</div>
+                    <div class="acd-stat-lbl">Oran Değişimi</div>
+                </div>
+                <div class="acd-stat">
+                    <div class="acd-stat-val drop">▼ ${dropPct}%</div>
+                    <div class="acd-stat-lbl">Düşüş</div>
+                </div>
+                <div class="acd-stat">
+                    <div class="acd-stat-val">£${Number(stake).toLocaleString('en-GB')}</div>
+                    <div class="acd-stat-lbl">Stake</div>
+                </div>
             </div>`;
-            historyLine = `${triggerTime} – ${openOdds} → ${lastOdds}`;
+            historyLine = `${triggerTime}`;
         } else if (type === 'volumeshock') {
             badgeLabel = 'HACİM ŞOKU';
             const newMoney = alarm.incoming_money || 0;
             const shockVal = (alarm.volume_shock_value || 0).toFixed(1);
-            metricContent = `<div class="detail-metric-box volumeshock">
-                ${newMoney > 0 ? `<div class="metric-row">Yeni Para: <span class="metric-val">£${Number(newMoney).toLocaleString('en-GB')}</span></div>` : ''}
-                ${shockVal > 0 ? `<div class="metric-row">Hacim Şoku: <span class="metric-val">${shockVal}x</span></div>` : ''}
+            const prevVolume = alarm.previous_volume || 0;
+            metricContent = `<div class="acd-grid cols-3">
+                <div class="acd-stat">
+                    <div class="acd-stat-val volumeshock">${shockVal}x</div>
+                    <div class="acd-stat-lbl">Hacim Şoku</div>
+                </div>
+                <div class="acd-stat">
+                    <div class="acd-stat-val">£${Number(newMoney).toLocaleString('en-GB')}</div>
+                    <div class="acd-stat-lbl">Gelen Para</div>
+                </div>
+                <div class="acd-stat">
+                    <div class="acd-stat-val">£${Number(prevVolume).toLocaleString('en-GB')}</div>
+                    <div class="acd-stat-lbl">Önceki Hacim</div>
+                </div>
             </div>`;
-            historyLine = `${triggerTime} – £${Number(newMoney).toLocaleString('en-GB')} – ${shockVal}x`;
+            historyLine = `${triggerTime}`;
         } else if (type === 'bigmoney') {
             badgeLabel = alarm.is_huge ? 'HUGE MONEY' : 'BIG MONEY';
             const money = alarm.incoming_money || alarm.stake || 0;
-            metricContent = `<div class="detail-metric-box bigmoney">
-                <div class="metric-row">Gelen Para: <span class="metric-val">£${Number(money).toLocaleString('en-GB')}</span></div>
+            const totalVolume = alarm.volume || alarm.total_volume || 0;
+            metricContent = `<div class="acd-grid cols-2">
+                <div class="acd-stat">
+                    <div class="acd-stat-val bigmoney">£${Number(money).toLocaleString('en-GB')}</div>
+                    <div class="acd-stat-lbl">Gelen Para</div>
+                </div>
+                <div class="acd-stat">
+                    <div class="acd-stat-val">£${Number(totalVolume).toLocaleString('en-GB')}</div>
+                    <div class="acd-stat-lbl">Toplam Hacim</div>
+                </div>
             </div>`;
-            historyLine = `${triggerTime} – £${Number(money).toLocaleString('en-GB')}`;
+            historyLine = `${triggerTime}`;
         }
         
         const fullMatchName = `${home} – ${away}`;

@@ -6525,3 +6525,51 @@ td.volume,
 .acd-btn:hover {
     background: #2ea043;
 }
+
+/* ========== ALARM DETAIL GRID ========== */
+
+.acd-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.acd-grid.cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.acd-grid.cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.acd-stat {
+    background: #21262d;
+    border-radius: 8px;
+    padding: 10px 8px;
+    text-align: center;
+}
+
+.acd-stat.wide {
+    grid-column: span 1;
+}
+
+.acd-stat-val {
+    font-size: 16px;
+    font-weight: 700;
+    color: #c9d1d9;
+    margin-bottom: 2px;
+}
+
+.acd-stat-val.sharp { color: #22c55e; }
+.acd-stat-val.insider { color: #a78bfa; }
+.acd-stat-val.volumeshock { color: #fbbf24; }
+.acd-stat-val.bigmoney { color: #F08A24; }
+.acd-stat-val.drop { color: #fb7185; }
+
+.acd-stat-lbl {
+    font-size: 10px;
+    color: #6e7681;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
