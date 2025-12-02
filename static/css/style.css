@@ -6073,17 +6073,16 @@ td.volume,
     color: #6e7681 !important;
 }
 
-/* ========== PREMIUM CARD - COMPACT SINGLE COLUMN ========== */
+/* ========== PREMIUM CARD - SINGLE COLUMN MODERN ========== */
 
 .premium-card {
     background: #1e2328;
-    border-radius: 12px;
-    padding: 10px 14px;
-    margin-bottom: 8px;
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-bottom: 10px;
     cursor: pointer;
     transition: all 0.15s ease;
     border: 1px solid transparent;
-    line-height: 1.2;
 }
 
 .premium-card:hover {
@@ -6095,73 +6094,58 @@ td.volume,
     border-color: #30363d;
 }
 
-.premium-card.sharp { --accent: #22c55e; }
-.premium-card.insider { --accent: #a855f7; }
+.premium-card.sharp { --accent: #4ade80; }
+.premium-card.insider { --accent: #a78bfa; }
 .premium-card.volumeshock { --accent: #fbbf24; }
 .premium-card.bigmoney { --accent: #F08A24; }
 
-/* Header: dot + TYPE · time */
+/* Header: TYPE · time */
 .pc-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
-    color: var(--accent);
+    color: #6e7681;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
-    margin-bottom: 4px;
-}
-
-.pc-header::before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    flex-shrink: 0;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
 }
 
 /* Match Name */
 .pc-match {
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 600;
     color: #e6edf3;
-    margin-bottom: 2px;
-    line-height: 1.2;
+    margin-bottom: 4px;
 }
 
 /* Market */
 .pc-market {
-    font-size: 11px;
+    font-size: 13px;
     color: #8b949e;
-    margin-bottom: 8px;
-    line-height: 1.1;
+    margin-bottom: 14px;
 }
 
 /* Metric Block */
 .pc-metric {
-    padding-top: 8px;
+    padding-top: 12px;
     border-top: 1px solid #30363d;
 }
 
 .pc-metric-label {
-    font-size: 10px;
-    color: #6e7681;
+    font-size: 11px;
+    color: #8b949e;
     text-transform: uppercase;
     letter-spacing: 0.3px;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
 }
 
 .pc-metric-value {
-    font-size: 14px;
+    font-size: 22px;
     font-weight: 700;
     color: var(--accent);
-    line-height: 1.2;
 }
 
 .pct-drop {
-    font-size: 12px;
+    font-size: 16px;
     color: #fb7185;
-    margin-left: 6px;
+    margin-left: 8px;
 }
