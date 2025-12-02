@@ -1646,7 +1646,7 @@ body {
 }
 
 .alarm-count-badge {
-    background: var(--alarm-color, #ef4444);
+    background: var(--alarm-color, #ff0000);
     color: white;
     font-size: 13px;
     font-weight: 700;
@@ -2435,7 +2435,7 @@ td.volume,
 
 .drop-change.negative .trend-pct,
 .drop-change.negative .trend-arrow-drop {
-    color: #ef4444;
+    color: #ff0000;
 }
 
 /* Responsive Dropping 1X2 - Dar ekran */
@@ -2593,7 +2593,7 @@ td.volume,
 }
 
 .pct-change.pct-down {
-    color: #ef4444;
+    color: #ff0000;
 }
 
 .pct-change.pct-up {
@@ -2611,7 +2611,7 @@ td.volume,
 }
 
 .trend-down-drop {
-    color: #ef4444;
+    color: #ff0000;
 }
 
 .trend-up-drop {
@@ -2692,7 +2692,7 @@ td.volume,
 }
 
 .odds-trend-tooltip .tooltip-value.tooltip-down {
-    color: #ef4444;
+    color: #ff0000;
 }
 
 .odds-trend-tooltip .tooltip-value.tooltip-up {
@@ -2713,7 +2713,7 @@ td.volume,
 }
 
 .odds-trend-tooltip .tooltip-trend.tooltip-down {
-    color: #ef4444;
+    color: #ff0000;
 }
 
 .odds-trend-tooltip .tooltip-trend.tooltip-up {
@@ -2784,7 +2784,7 @@ td.volume,
 }
 
 .trend-color-down {
-    color: #ef4444 !important;
+    color: #ff0000 !important;
     font-weight: 600;
 }
 
@@ -4195,7 +4195,7 @@ td.volume,
 }
 
 .alarm-main-value .arrow {
-    color: #ef4444;
+    color: #ff0000;
     margin: 0 4px;
     font-weight: 700;
 }
@@ -4207,7 +4207,7 @@ td.volume,
 }
 
 .alarm-main-value .value-pct-drop {
-    color: #ef4444;
+    color: #ff0000;
     font-weight: 600;
 }
 
@@ -4435,7 +4435,7 @@ td.volume,
 
 .detail-type-badge.dropping {
     background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    color: #ff0000;
 }
 
 .detail-logs-container {
@@ -4493,7 +4493,7 @@ td.volume,
 
 .log-badge.dropping {
     background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    color: #ff0000;
 }
 
 .log-badge.volumeshock {
@@ -4582,7 +4582,7 @@ td.volume,
 
 .admin-panel-close:hover {
     background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    color: #ff0000;
 }
 
 .admin-panel-body {
@@ -4639,7 +4639,7 @@ td.volume,
 }
 
 .admin-value-negative {
-    color: #ef4444;
+    color: #ff0000;
     font-weight: 600;
 }
 
@@ -5138,7 +5138,7 @@ td.volume,
 .odds-pct {
     font-size: 16px;
     font-weight: 600;
-    color: #ef4444;
+    color: #ff0000;
     background: rgba(239, 68, 68, 0.15);
     padding: 4px 10px;
     border-radius: 4px;
@@ -5313,7 +5313,7 @@ td.volume,
 }
 
 .detail-middle-block.insider .insider-drop-pct {
-    color: #ef4444;
+    color: #ff0000;
     font-size: 14px;
 }
 
@@ -5462,7 +5462,7 @@ td.volume,
 }
 
 .detail-middle-block.insider .insider-drop-pct {
-    color: #ef4444;
+    color: #ff0000;
     font-weight: 700;
 }
 
@@ -5598,7 +5598,7 @@ td.volume,
 }
 
 .metric-line.insider .drop {
-    color: #ef4444;
+    color: #ff0000;
     font-weight: 600;
 }
 
@@ -5732,7 +5732,7 @@ td.volume,
 }
 
 .metric-drop {
-    color: #ef4444;
+    color: #ff0000;
     font-weight: 600;
     margin-left: 6px;
 }
@@ -5875,7 +5875,7 @@ td.volume,
 
 .row-drop {
     font-size: 12px;
-    color: #ef4444;
+    color: #ff0000;
     font-weight: 500;
 }
 
@@ -5982,7 +5982,7 @@ td.volume,
 }
 
 .drop-pct {
-    color: #ef4444;
+    color: #ff0000;
     font-weight: 700;
     margin-left: 12px;
 }
@@ -6030,7 +6030,7 @@ td.volume,
 }
 
 .drop-val {
-    color: #ef4444;
+    color: #ff0000;
     font-weight: 700;
     margin-left: 8px;
 }
@@ -6146,7 +6146,7 @@ td.volume,
 
 .pct-drop {
     font-size: 16px;
-    color: #ef4444;
+    color: #ff0000;
     margin-left: 8px;
 }
 
@@ -6240,7 +6240,7 @@ td.volume,
 
 .mc-value .pct-drop {
     font-size: 11px;
-    color: #ef4444;
+    color: #ff0000;
     display: block;
     margin-top: 1px;
 }
@@ -6316,7 +6316,7 @@ td.volume,
 
 .detail-metric-box .metric-drop {
     font-weight: 700;
-    color: #ef4444;
+    color: #ff0000;
     margin-left: 8px;
 }
 
@@ -6499,7 +6499,7 @@ td.volume,
 
 .detail-metric-box .metric-drop {
     font-weight: 700;
-    color: #ef4444;
+    color: #ff0000;
     margin-left: 8px;
 }
 
@@ -6565,7 +6565,7 @@ td.volume,
 .acd-stat-val.insider { color: #a78bfa; }
 .acd-stat-val.volumeshock { color: #fbbf24; }
 .acd-stat-val.bigmoney { color: #F08A24; }
-.acd-stat-val.drop { color: #ef4444; }
+.acd-stat-val.drop { color: #ff0000; }
 
 .acd-stat-lbl {
     font-size: 10px;
@@ -6614,7 +6614,7 @@ td.volume,
 .acd-big-drop {
     font-size: 16px;
     font-weight: 700;
-    color: #ef4444;
+    color: #ff0000;
 }
 
 /* Match Detail Smart Money Cards - 4-Row Design */
