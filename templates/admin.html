@@ -697,13 +697,69 @@
                         <input type="number" id="volume_multiplier" value="1" step="0.1" class="form-input">
                     </div>
                     <div class="form-group">
-                        <label>Oran Carpani (odds_multiplier)</label>
-                        <input type="number" id="odds_multiplier" value="1" step="0.1" class="form-input">
-                    </div>
-                    <div class="form-group">
                         <label>Pay Carpani (share_multiplier)</label>
                         <input type="number" id="share_multiplier" value="1" step="0.1" class="form-input">
                     </div>
+                </div>
+                
+                <div class="info-card">
+                    <h3>📊 Oran Araligi Carpanlari</h3>
+                    <p class="form-hint" style="margin-bottom: 12px; color: #8b949e; font-size: 11px;">Her oran araligi icin farkli carpan. Oran bu aralikta ise o carpan kullanilir.</p>
+                    
+                    <div style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                        <label style="color: #58a6ff; font-weight: 600; font-size: 12px;">Aralik 1</label>
+                        <div style="display: flex; gap: 8px; margin-top: 6px;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Min</label>
+                                <input type="number" id="odds_range_1_min" value="1.01" step="0.01" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Max</label>
+                                <input type="number" id="odds_range_1_max" value="1.50" step="0.01" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
+                                <input type="number" id="odds_range_1_mult" value="10" step="0.1" class="form-input" style="font-size: 12px;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                        <label style="color: #a78bfa; font-weight: 600; font-size: 12px;">Aralik 2</label>
+                        <div style="display: flex; gap: 8px; margin-top: 6px;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Min</label>
+                                <input type="number" id="odds_range_2_min" value="1.50" step="0.01" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Max</label>
+                                <input type="number" id="odds_range_2_max" value="2.10" step="0.01" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
+                                <input type="number" id="odds_range_2_mult" value="8" step="0.1" class="form-input" style="font-size: 12px;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #161b22; padding: 10px; border-radius: 6px;">
+                        <label style="color: #22c55e; font-weight: 600; font-size: 12px;">Aralik 3</label>
+                        <div style="display: flex; gap: 8px; margin-top: 6px;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Min</label>
+                                <input type="number" id="odds_range_3_min" value="2.10" step="0.01" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Max</label>
+                                <input type="number" id="odds_range_3_max" value="5.00" step="0.01" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
+                                <input type="number" id="odds_range_3_mult" value="5" step="0.1" class="form-input" style="font-size: 12px;">
+                            </div>
+                        </div>
+                    </div>
+                    <p class="form-hint" style="margin-top: 8px; color: #8b949e; font-size: 10px;">Varsayilan carpan (odds_multiplier) aralik disindaki oranlar icin kullanilir.</p>
                 </div>
 
                 <div class="info-card">
@@ -1192,13 +1248,21 @@
                 min_volume_btts: parseInt(document.getElementById('min_volume_btts').value) || 500,
                 min_amount_change: parseInt(document.getElementById('min_amount_change').value) || 500,
                 volume_multiplier: parseFloat(document.getElementById('volume_multiplier').value) || 1,
-                odds_multiplier: parseFloat(document.getElementById('odds_multiplier').value) || 1,
                 share_multiplier: parseFloat(document.getElementById('share_multiplier').value) || 1,
                 max_volume_cap: parseFloat(document.getElementById('max_volume_cap').value) || 40,
                 max_odds_cap: parseFloat(document.getElementById('max_odds_cap').value) || 35,
                 max_share_cap: parseFloat(document.getElementById('max_share_cap').value) || 25,
                 min_share: parseFloat(document.getElementById('min_share').value) || 5,
-                min_sharp_score: parseFloat(document.getElementById('min_sharp_score').value) || 10
+                min_sharp_score: parseFloat(document.getElementById('min_sharp_score').value) || 10,
+                odds_range_1_min: parseFloat(document.getElementById('odds_range_1_min').value) || 1.01,
+                odds_range_1_max: parseFloat(document.getElementById('odds_range_1_max').value) || 1.50,
+                odds_range_1_mult: parseFloat(document.getElementById('odds_range_1_mult').value) || 10,
+                odds_range_2_min: parseFloat(document.getElementById('odds_range_2_min').value) || 1.50,
+                odds_range_2_max: parseFloat(document.getElementById('odds_range_2_max').value) || 2.10,
+                odds_range_2_mult: parseFloat(document.getElementById('odds_range_2_mult').value) || 8,
+                odds_range_3_min: parseFloat(document.getElementById('odds_range_3_min').value) || 2.10,
+                odds_range_3_max: parseFloat(document.getElementById('odds_range_3_max').value) || 5.00,
+                odds_range_3_mult: parseFloat(document.getElementById('odds_range_3_mult').value) || 5
             };
         }
 
@@ -1209,13 +1273,21 @@
             document.getElementById('min_volume_btts').value = config.min_volume_btts || 500;
             document.getElementById('min_amount_change').value = config.min_amount_change || 500;
             document.getElementById('volume_multiplier').value = config.volume_multiplier || 1;
-            document.getElementById('odds_multiplier').value = config.odds_multiplier || 1;
             document.getElementById('share_multiplier').value = config.share_multiplier || 1;
             document.getElementById('max_volume_cap').value = config.max_volume_cap || 40;
             document.getElementById('max_odds_cap').value = config.max_odds_cap || 35;
             document.getElementById('max_share_cap').value = config.max_share_cap || 25;
             document.getElementById('min_share').value = config.min_share || 5;
             document.getElementById('min_sharp_score').value = config.min_sharp_score || 10;
+            document.getElementById('odds_range_1_min').value = config.odds_range_1_min || 1.01;
+            document.getElementById('odds_range_1_max').value = config.odds_range_1_max || 1.50;
+            document.getElementById('odds_range_1_mult').value = config.odds_range_1_mult || 10;
+            document.getElementById('odds_range_2_min').value = config.odds_range_2_min || 1.50;
+            document.getElementById('odds_range_2_max').value = config.odds_range_2_max || 2.10;
+            document.getElementById('odds_range_2_mult').value = config.odds_range_2_mult || 8;
+            document.getElementById('odds_range_3_min').value = config.odds_range_3_min || 2.10;
+            document.getElementById('odds_range_3_max').value = config.odds_range_3_max || 5.00;
+            document.getElementById('odds_range_3_mult').value = config.odds_range_3_mult || 5;
         }
 
         async function saveSharpConfig() {

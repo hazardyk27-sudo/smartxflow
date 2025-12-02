@@ -2314,13 +2314,19 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
     
     min_amount_change = config.get('min_amount_change', 500)
     volume_multiplier = config.get('volume_multiplier', 1)
-    odds_multiplier = config.get('odds_multiplier', 1)
     share_multiplier = config.get('share_multiplier', 1)
     max_volume_cap = config.get('max_volume_cap', 40)
     max_odds_cap = config.get('max_odds_cap', 35)
     max_share_cap = config.get('max_share_cap', 25)
     min_share_threshold = config.get('min_share', 5)
     min_sharp_score = config.get('min_sharp_score', 10)
+    
+    odds_ranges = [
+        (config.get('odds_range_1_min', 1.01), config.get('odds_range_1_max', 1.50), config.get('odds_range_1_mult', 10)),
+        (config.get('odds_range_2_min', 1.50), config.get('odds_range_2_max', 2.10), config.get('odds_range_2_mult', 8)),
+        (config.get('odds_range_3_min', 2.10), config.get('odds_range_3_max', 5.00), config.get('odds_range_3_mult', 5)),
+    ]
+    default_odds_multiplier = config.get('odds_multiplier', 1)
     
     best_candidate = None
     best_score = 0
@@ -2358,6 +2364,13 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         
         shock_raw = amount_change / avg_prev if avg_prev > 0 else 0
         shock_value = shock_raw * volume_multiplier
+        
+        odds_multiplier = default_odds_multiplier
+        for range_min, range_max, range_mult in odds_ranges:
+            if range_min <= curr_odds < range_max:
+                odds_multiplier = range_mult
+                break
+        
         odds_value = drop_pct * odds_multiplier
         share_value = share_diff * share_multiplier
         
@@ -2388,6 +2401,7 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
                 'prev_odds': prev_odds,
                 'curr_odds': curr_odds,
                 'drop_pct': drop_pct,
+                'odds_multiplier': odds_multiplier,
                 'odds_value': odds_value,
                 'odds_contrib': odds_contrib,
                 'prev_share': prev_share,
@@ -2421,7 +2435,7 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         'previous_odds': best_candidate['prev_odds'],
         'current_odds': best_candidate['curr_odds'],
         'drop_pct': best_candidate['drop_pct'],
-        'odds_multiplier': odds_multiplier,
+        'odds_multiplier': best_candidate['odds_multiplier'],
         'odds_value': best_candidate['odds_value'],
         'max_odds_cap': max_odds_cap,
         'odds_contrib': best_candidate['odds_contrib'],
