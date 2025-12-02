@@ -3900,34 +3900,37 @@ function renderAlarmsList(filterType) {
         
         const fullMatchName = `${home} – ${away}`;
         
-        // Tip'e özel metrik satırı
-        let metricLine = '';
+        // İkon ve metrik
+        const icons = { sharp: '⚡', insider: '◆', volumeshock: '📈', bigmoney: '💰' };
+        let metricValue = '';
         if (type === 'sharp') {
-            const score = (alarm.sharp_score || 0).toFixed(1);
-            metricLine = `<div class="card-metric">Sharp Skoru: <strong>${score}</strong></div>`;
+            metricValue = `<strong>${(alarm.sharp_score || 0).toFixed(1)}</strong>`;
         } else if (type === 'insider') {
             const openOdds = (alarm.opening_odds || 0).toFixed(2);
             const lastOdds = (alarm.last_odds || 0).toFixed(2);
             const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
-            metricLine = `<div class="card-metric"><span class="odds-change">${openOdds} → ${lastOdds}</span><span class="drop-pct">▼ -${dropPct}%</span></div>`;
+            metricValue = `<span class="odds-val">${openOdds} → ${lastOdds}</span><span class="drop-val">▼ ${dropPct}%</span>`;
         } else if (type === 'volumeshock') {
-            const shockVal = (alarm.volume_shock_value || 0).toFixed(1);
-            metricLine = `<div class="card-metric">Hacim: <strong>${shockVal}x</strong></div>`;
+            metricValue = `<strong>${(alarm.volume_shock_value || 0).toFixed(1)}x</strong>`;
         } else if (type === 'bigmoney') {
-            const money = alarm.incoming_money || alarm.stake || 0;
-            metricLine = `<div class="card-metric">Gelen: <strong>£${Number(money).toLocaleString('en-GB')}</strong></div>`;
+            metricValue = `<strong>£${Number(alarm.incoming_money || alarm.stake || 0).toLocaleString('en-GB')}</strong>`;
         }
         
         return `
             <div class="alarm-accordion-wrapper">
                 <div class="alarm-card ${type} ${isOpen ? 'expanded' : ''}" onclick="toggleAlarmDetail('${alarmId}')">
-                    <div class="card-head">
-                        <span class="card-badge ${type}">${typeLabels[type]}</span>
+                    <div class="card-row-top">
+                        <span class="card-badge ${type}">${icons[type]} ${typeLabels[type]}</span>
+                        <span class="card-metric-value ${type}">${metricValue}</span>
+                    </div>
+                    <div class="card-row-mid">
+                        <span class="card-match-name">${fullMatchName}</span>
                         <span class="card-dot ${type}"></span>
+                    </div>
+                    <div class="card-row-bot">
+                        <span class="card-market-text">${marketLabel}</span>
                         <span class="card-ago">${timeAgo}</span>
                     </div>
-                    <div class="card-match">${fullMatchName} <span class="card-market">(${marketLabel})</span></div>
-                    ${metricLine}
                 </div>
                 ${inlineDetail}
             </div>
