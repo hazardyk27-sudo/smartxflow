@@ -5313,7 +5313,7 @@ td.volume,
 }
 
 .detail-middle-block.insider .insider-drop-pct {
-    color: #f97316;
+    color: #ef4444;
     font-size: 14px;
 }
 
@@ -5462,7 +5462,7 @@ td.volume,
 }
 
 .detail-middle-block.insider .insider-drop-pct {
-    color: #f97316;
+    color: #ef4444;
     font-weight: 700;
 }
 
@@ -5598,7 +5598,7 @@ td.volume,
 }
 
 .metric-line.insider .drop {
-    color: #f97316;
+    color: #ef4444;
     font-weight: 600;
 }
 
@@ -5732,7 +5732,7 @@ td.volume,
 }
 
 .metric-drop {
-    color: #f97316;
+    color: #ef4444;
     font-weight: 600;
     margin-left: 6px;
 }
@@ -5875,7 +5875,7 @@ td.volume,
 
 .row-drop {
     font-size: 12px;
-    color: #f97316;
+    color: #ef4444;
     font-weight: 500;
 }
 
@@ -6316,7 +6316,7 @@ td.volume,
 
 .detail-metric-box .metric-drop {
     font-weight: 700;
-    color: #fb7185;
+    color: #ef4444;
     margin-left: 8px;
 }
 
@@ -6499,7 +6499,7 @@ td.volume,
 
 .detail-metric-box .metric-drop {
     font-weight: 700;
-    color: #fb7185;
+    color: #ef4444;
     margin-left: 8px;
 }
 
@@ -6565,7 +6565,7 @@ td.volume,
 .acd-stat-val.insider { color: #a78bfa; }
 .acd-stat-val.volumeshock { color: #fbbf24; }
 .acd-stat-val.bigmoney { color: #F08A24; }
-.acd-stat-val.drop { color: #fb7185; }
+.acd-stat-val.drop { color: #ef4444; }
 
 .acd-stat-lbl {
     font-size: 10px;
@@ -6614,7 +6614,7 @@ td.volume,
 .acd-big-drop {
     font-size: 16px;
     font-weight: 700;
-    color: #fb7185;
+    color: #ef4444;
 }
 
 /* Match Detail Smart Money Cards - 4-Row Design */
