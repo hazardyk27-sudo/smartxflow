@@ -1586,25 +1586,26 @@ h1, h2, h3, h4, h5, h6,
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
+    padding: 14px 20px;
     background: #232A33;
     border: 1px solid #30363d;
     border-radius: 8px;
 }
 
 .info-row.total-volume .volume-label {
-    font-size: 13px;
-    font-weight: var(--weight-semibold);
-    color: #8b949e;
+    font-size: 12px;
+    font-weight: var(--weight-medium);
+    color: #8B949E;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .info-row.total-volume .volume-value {
-    font-size: 20px;
-    font-weight: 700;
-    color: #22c55e;
+    font-size: 16px;
+    font-weight: var(--weight-semibold);
+    color: #22C55E;
     font-family: 'JetBrains Mono', monospace;
+    text-align: right;
 }
 
 .info-row .info-label {
