@@ -3391,26 +3391,28 @@ function renderAlertBand() {
         const info = getAlertType(alarm);
         const home = alarm.home || alarm.home_team || '?';
         const away = alarm.away || alarm.away_team || '?';
-        const value = formatAlertValue(alarm);
         const selection = alarm.selection || alarm.side || '';
         
-        // Extract time from created_at (format: "01.12.2025 16:58")
-        let timeStr = '';
-        if (alarm.created_at) {
-            const parts = alarm.created_at.split(' ');
-            if (parts.length >= 2) {
-                timeStr = parts[1]; // "16:58"
-            }
+        // Minimal value format
+        let value = '';
+        if (alarm._type === 'sharp') {
+            value = (alarm.sharp_score || 0).toFixed(1);
+        } else if (alarm._type === 'insider') {
+            const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
+            value = `▼ ${dropPct}%`;
+        } else if (alarm._type === 'volumeshock') {
+            value = `${(alarm.volume_shock_value || 0).toFixed(1)}x`;
+        } else if (alarm._type === 'bigmoney') {
+            value = `£${Number(alarm.incoming_money || alarm.stake || 0).toLocaleString('en-GB')}`;
         }
         
-        const valueClass = alarm._type === 'insider' ? 'insider' : '';
         return `
-            <div class="alert-band-pill ${info.pillClass}" onclick="showAlertBandDetail(${idx})">
-                <span class="alert-band-dot ${info.color}"></span>
-                <span class="alert-band-type ${info.pillClass}">${info.label}</span>
-                <span class="alert-band-match">${home} - ${away}</span>
-                <span class="alert-band-selection">${selection}</span>
-                <span class="alert-band-value ${valueClass}">${value}</span>
+            <div class="ab-pill ${info.pillClass}" onclick="showAlertBandDetail(${idx})">
+                <span class="ab-dot"></span>
+                <span class="ab-type">${info.label}</span>
+                <span class="ab-match">${home} - ${away}</span>
+                <span class="ab-sel">${selection}</span>
+                <span class="ab-val">${value}</span>
             </div>
         `;
     }).join('');
