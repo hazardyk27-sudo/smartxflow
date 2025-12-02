@@ -3484,8 +3484,11 @@ function renderAlertBand() {
             value = `£${Number(alarm.incoming_money || alarm.stake || 0).toLocaleString('en-GB')}`;
         }
         
+        // Maç sayfasına yönlendirme için match_key oluştur
+        const matchKey = `${home}_vs_${away}`.replace(/\s+/g, '_');
+        
         return `
-            <div class="ab-pill ${info.pillClass}" onclick="showAlertBandDetail(${idx})">
+            <div class="ab-pill ${info.pillClass}" onclick="goToMatchPage('${matchKey}')" style="cursor: pointer;">
                 <span class="ab-dot dot-${info.pillClass}"></span>
                 <span class="ab-type">${info.label}</span>
                 <span class="ab-sep">—</span>
@@ -4171,6 +4174,16 @@ function formatTriggerTime(dateStr) {
     if (!dt || !dt.isValid()) return '-';
     // +3 saat Türkiye
     return dt.add(3, 'hour').format('HH:mm');
+}
+
+function goToMatchPage(matchKey) {
+    // matchKey format: "Home_vs_Away"
+    const parts = matchKey.split('_vs_');
+    if (parts.length === 2) {
+        const home = parts[0].replace(/_/g, ' ');
+        const away = parts[1].replace(/_/g, ' ');
+        goToMatchFromAlarm(home, away);
+    }
 }
 
 function goToMatchFromAlarm(homeTeam, awayTeam) {
