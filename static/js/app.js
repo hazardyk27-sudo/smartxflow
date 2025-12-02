@@ -3884,20 +3884,9 @@ function renderAlarmsList(filterType) {
             const openOdds = (alarm.opening_odds || 0).toFixed(2);
             const lastOdds = (alarm.last_odds || 0).toFixed(2);
             const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
-            const stake = alarm.stake || alarm.volume || 0;
-            metricContent = `<div class="acd-grid cols-3">
-                <div class="acd-stat">
-                    <div class="acd-stat-val insider">${openOdds} → ${lastOdds}</div>
-                    <div class="acd-stat-lbl">Oran</div>
-                </div>
-                <div class="acd-stat">
-                    <div class="acd-stat-val drop">▼ ${dropPct}%</div>
-                    <div class="acd-stat-lbl">Düşüş</div>
-                </div>
-                <div class="acd-stat">
-                    <div class="acd-stat-val">£${Number(stake).toLocaleString('en-GB')}</div>
-                    <div class="acd-stat-lbl">Stake</div>
-                </div>
+            metricContent = `<div class="acd-single">
+                <div class="acd-big-val insider">${openOdds} → ${lastOdds}</div>
+                <div class="acd-big-drop">▼ ${dropPct}%</div>
             </div>`;
             historyLine = `${triggerTime}`;
         } else if (type === 'volumeshock') {

@@ -6588,3 +6588,31 @@ td.volume,
 .acd-info-row span {
     color: #c9d1d9;
 }
+
+/* Single value display for Insider */
+.acd-single {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: #21262d;
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 12px;
+}
+
+.acd-big-val {
+    font-size: 20px;
+    font-weight: 700;
+    color: #c9d1d9;
+}
+
+.acd-big-val.insider {
+    color: #a78bfa;
+}
+
+.acd-big-drop {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fb7185;
+}
