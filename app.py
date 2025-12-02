@@ -1232,7 +1232,7 @@ def calculate_insider_scores(config):
                         })
                     
                     # ========================================================
-                    # YENİ MANTIK: Açılıştan bugüne oran düşüşü hesapla
+                    # YENİ MANTIK: Açılıştan bugüne oran düşüşü + düşüş anı etrafındaki snapshotlar
                     # ========================================================
                     
                     # Son snapshot'taki oran
@@ -1248,30 +1248,58 @@ def calculate_insider_scores(config):
                     if opening_to_now_drop_pct < oran_dusus_esigi:
                         continue  # Yeterli düşüş yok, sonraki selection'a geç
                     
-                    # Check rolling windows for consecutive qualifying snapshots (diğer koşullar için)
-                    alarm_triggered = False
-                    best_window = None
-                    best_window_drop_pct = opening_to_now_drop_pct  # Açılıştan bugüne düşüş
+                    # ========================================================
+                    # En büyük oran düşüşünün gerçekleştiği anı bul
+                    # ========================================================
+                    max_drop_index = -1
+                    max_single_drop = 0
                     
-                    for window_start in range(1, len(snapshot_metrics) - required_streak + 1):
-                        window = snapshot_metrics[window_start:window_start + required_streak]
+                    for i in range(1, len(snapshot_metrics)):
+                        prev_odds = snapshot_metrics[i-1]['odds']
+                        curr_odds = snapshot_metrics[i]['odds']
                         
-                        # Check if ALL snapshots in window meet OTHER conditions (HacimSok, GelenPara)
-                        all_qualify = True
-                        for snap_metric in window:
-                            # Condition 1: HacimSok < esik (düşük hacim şoku = sessiz hareket)
-                            if snap_metric['hacim_sok'] >= hacim_sok_esigi:
-                                all_qualify = False
-                                break
-                            # Condition 2: GelenPara < max_para (düşük para girişi)
-                            if snap_metric['gelen_para'] >= max_para:
-                                all_qualify = False
-                                break
-                        
-                        if all_qualify:
-                            alarm_triggered = True
-                            best_window = window
-                            break  # Take first qualifying window
+                        if prev_odds > 0 and curr_odds < prev_odds:
+                            single_drop = prev_odds - curr_odds
+                            if single_drop > max_single_drop:
+                                max_single_drop = single_drop
+                                max_drop_index = i
+                    
+                    # Eğer düşüş anı bulunamadıysa, son snapshot'ı kullan
+                    if max_drop_index == -1:
+                        max_drop_index = len(snapshot_metrics) - 1
+                    
+                    # ========================================================
+                    # Düşüş anının etrafındaki snapshotlara bak
+                    # required_streak: Toplam bakılacak snapshot sayısı (admin'den ayarlanabilir)
+                    # Örnek: 7 snapshot = 3 öncesi + 1 düşüş anı + 3 sonrası
+                    # ========================================================
+                    half_window = required_streak // 2
+                    
+                    # Window sınırlarını hesapla
+                    window_start_idx = max(0, max_drop_index - half_window)
+                    window_end_idx = min(len(snapshot_metrics), max_drop_index + half_window + 1)
+                    
+                    # Window'u al
+                    window = snapshot_metrics[window_start_idx:window_end_idx]
+                    
+                    if len(window) < 2:
+                        continue  # Yeterli snapshot yok
+                    
+                    # Check if ALL snapshots in window meet conditions (HacimSok, GelenPara)
+                    all_qualify = True
+                    for snap_metric in window:
+                        # Condition 1: HacimSok < esik (düşük hacim şoku = sessiz hareket)
+                        if snap_metric['hacim_sok'] >= hacim_sok_esigi:
+                            all_qualify = False
+                            break
+                        # Condition 2: GelenPara < max_para (düşük para girişi)
+                        if snap_metric['gelen_para'] >= max_para:
+                            all_qualify = False
+                            break
+                    
+                    alarm_triggered = all_qualify
+                    best_window = window if all_qualify else None
+                    best_window_drop_pct = opening_to_now_drop_pct  # Açılıştan bugüne düşüş
                     
                     if alarm_triggered and best_window:
                         # Use last snapshot in window for alarm details
@@ -1342,7 +1370,8 @@ def calculate_insider_scores(config):
                             'triggered': True
                         }
                         alarms.append(alarm)
-                        print(f"[Insider] ALARM: {home} vs {away} [{selection}] Acilis→Simdi: {opening_odds:.2f}→{current_odds:.2f} ({opening_to_now_drop_pct:.1f}%), GelenPara=£{window_gelen_para:.0f}")
+                        drop_snap_time = history[max_drop_index].get('scrapedat', '')[:16] if max_drop_index < len(history) else ''
+                        print(f"[Insider] ALARM: {home} vs {away} [{selection}] Acilis→Simdi: {opening_odds:.2f}→{current_odds:.2f} ({opening_to_now_drop_pct:.1f}%), DususAni: {drop_snap_time}, Window: {len(best_window)} snap")
         
         except Exception as e:
             print(f"[Insider] Error processing {market}: {e}")
