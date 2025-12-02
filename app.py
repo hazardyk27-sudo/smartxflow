@@ -2328,13 +2328,6 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
     ]
     default_odds_multiplier = config.get('odds_multiplier', 1)
     
-    stake_ranges = [
-        (config.get('stake_range_1_min', 500), config.get('stake_range_1_max', 2000), config.get('stake_range_1_mult', 1)),
-        (config.get('stake_range_2_min', 2000), config.get('stake_range_2_max', 5000), config.get('stake_range_2_mult', 1.5)),
-        (config.get('stake_range_3_min', 5000), config.get('stake_range_3_max', 15000), config.get('stake_range_3_mult', 2)),
-        (config.get('stake_range_4_min', 15000), config.get('stake_range_4_max', 100000), config.get('stake_range_4_mult', 3)),
-    ]
-    default_stake_multiplier = 1
     
     share_ranges = [
         (config.get('share_range_1_min', 0), config.get('share_range_1_max', 50), config.get('share_range_1_mult', 1)),
@@ -2379,14 +2372,7 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
             avg_prev = prev_amt
         
         shock_raw = amount_change / avg_prev if avg_prev > 0 else 0
-        
-        stake_multiplier = default_stake_multiplier
-        for range_min, range_max, range_mult in stake_ranges:
-            if range_min <= amount_change < range_max:
-                stake_multiplier = range_mult
-                break
-        
-        shock_value = shock_raw * volume_multiplier * stake_multiplier
+        shock_value = shock_raw * volume_multiplier
         
         odds_multiplier = default_odds_multiplier
         for range_min, range_max, range_mult in odds_ranges:
@@ -2426,7 +2412,6 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
                 'amount_change': amount_change,
                 'avg_prev': avg_prev,
                 'shock_raw': shock_raw,
-                'stake_multiplier': stake_multiplier,
                 'shock_value': shock_value,
                 'volume_contrib': volume_contrib,
                 'prev_odds': prev_odds,
@@ -2461,7 +2446,6 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         'avg_last_amounts': best_candidate['avg_prev'],
         'shock_raw': best_candidate['shock_raw'],
         'volume_multiplier': volume_multiplier,
-        'stake_multiplier': best_candidate['stake_multiplier'],
         'shock_value': best_candidate['shock_value'],
         'max_volume_cap': max_volume_cap,
         'volume_contrib': best_candidate['volume_contrib'],
