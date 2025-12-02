@@ -1361,7 +1361,19 @@
                 odds_range_3_mult: parseFloat(document.getElementById('odds_range_3_mult').value) || 5,
                 odds_range_4_min: parseFloat(document.getElementById('odds_range_4_min').value) || 3.50,
                 odds_range_4_max: parseFloat(document.getElementById('odds_range_4_max').value) || 10.00,
-                odds_range_4_mult: parseFloat(document.getElementById('odds_range_4_mult').value) || 3
+                odds_range_4_mult: parseFloat(document.getElementById('odds_range_4_mult').value) || 3,
+                stake_range_1_min: parseFloat(document.getElementById('stake_range_1_min').value) || 500,
+                stake_range_1_max: parseFloat(document.getElementById('stake_range_1_max').value) || 2000,
+                stake_range_1_mult: parseFloat(document.getElementById('stake_range_1_mult').value) || 1,
+                stake_range_2_min: parseFloat(document.getElementById('stake_range_2_min').value) || 2000,
+                stake_range_2_max: parseFloat(document.getElementById('stake_range_2_max').value) || 5000,
+                stake_range_2_mult: parseFloat(document.getElementById('stake_range_2_mult').value) || 1.5,
+                stake_range_3_min: parseFloat(document.getElementById('stake_range_3_min').value) || 5000,
+                stake_range_3_max: parseFloat(document.getElementById('stake_range_3_max').value) || 15000,
+                stake_range_3_mult: parseFloat(document.getElementById('stake_range_3_mult').value) || 2,
+                stake_range_4_min: parseFloat(document.getElementById('stake_range_4_min').value) || 15000,
+                stake_range_4_max: parseFloat(document.getElementById('stake_range_4_max').value) || 100000,
+                stake_range_4_mult: parseFloat(document.getElementById('stake_range_4_mult').value) || 3
             };
         }
 
@@ -1390,6 +1402,18 @@
             document.getElementById('odds_range_4_min').value = config.odds_range_4_min || 3.50;
             document.getElementById('odds_range_4_max').value = config.odds_range_4_max || 10.00;
             document.getElementById('odds_range_4_mult').value = config.odds_range_4_mult || 3;
+            document.getElementById('stake_range_1_min').value = config.stake_range_1_min || 500;
+            document.getElementById('stake_range_1_max').value = config.stake_range_1_max || 2000;
+            document.getElementById('stake_range_1_mult').value = config.stake_range_1_mult || 1;
+            document.getElementById('stake_range_2_min').value = config.stake_range_2_min || 2000;
+            document.getElementById('stake_range_2_max').value = config.stake_range_2_max || 5000;
+            document.getElementById('stake_range_2_mult').value = config.stake_range_2_mult || 1.5;
+            document.getElementById('stake_range_3_min').value = config.stake_range_3_min || 5000;
+            document.getElementById('stake_range_3_max').value = config.stake_range_3_max || 15000;
+            document.getElementById('stake_range_3_mult').value = config.stake_range_3_mult || 2;
+            document.getElementById('stake_range_4_min').value = config.stake_range_4_min || 15000;
+            document.getElementById('stake_range_4_max').value = config.stake_range_4_max || 100000;
+            document.getElementById('stake_range_4_mult').value = config.stake_range_4_mult || 3;
         }
 
         async function saveSharpConfig() {
