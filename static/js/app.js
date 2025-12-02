@@ -3497,7 +3497,7 @@ function renderAlertBand() {
         } else if (alarm._type === 'volumeshock') {
             value = `${(alarm.volume_shock_value || 0).toFixed(1)}x`;
         } else if (alarm._type === 'bigmoney') {
-            value = `£${Number(alarm.incoming_money || alarm.stake || 0).toLocaleString('en-GB')}`;
+            value = `<span class="ab-pound">£</span>${Number(alarm.incoming_money || alarm.stake || 0).toLocaleString('en-GB')}`;
         }
         
         // Maç sayfasına yönlendirme için match_key oluştur
