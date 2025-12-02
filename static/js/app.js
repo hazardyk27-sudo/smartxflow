@@ -3900,48 +3900,34 @@ function renderAlarmsList(filterType) {
         
         const fullMatchName = `${home} – ${away}`;
         
-        // Minimal satır için kısa metrik
-        let shortMetric = '';
+        // Tip'e özel metrik satırı
+        let metricLine = '';
         if (type === 'sharp') {
             const score = (alarm.sharp_score || 0).toFixed(1);
-            const pct = Math.abs(alarm.oran_dusus_pct || 0).toFixed(1);
-            shortMetric = `<span class="row-metric sharp">Sharp ${score}</span>${pct > 0 ? `<span class="row-sep">•</span><span class="row-pct">%${pct}</span>` : ''}`;
+            metricLine = `<div class="card-metric">Sharp Skoru: <strong>${score}</strong></div>`;
         } else if (type === 'insider') {
             const openOdds = (alarm.opening_odds || 0).toFixed(2);
             const lastOdds = (alarm.last_odds || 0).toFixed(2);
             const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
-            shortMetric = `<span class="row-metric insider">${openOdds} → ${lastOdds}</span><span class="row-sep">•</span><span class="row-drop">-${dropPct}%</span>`;
+            metricLine = `<div class="card-metric"><span class="odds-change">${openOdds} → ${lastOdds}</span><span class="drop-pct">▼ -${dropPct}%</span></div>`;
         } else if (type === 'volumeshock') {
             const shockVal = (alarm.volume_shock_value || 0).toFixed(1);
-            const timeBefore = alarm.time_before_kickoff || alarm.hours_to_kickoff || 0;
-            const hours = Math.floor(timeBefore);
-            const mins = Math.round((timeBefore - hours) * 60);
-            const timeStr = hours > 0 ? `${hours}s ${mins}dk önce` : `${mins}dk önce`;
-            shortMetric = `<span class="row-metric volumeshock">${shockVal}x</span><span class="row-sep">•</span><span class="row-time-before">${timeStr}</span>`;
+            metricLine = `<div class="card-metric">Hacim: <strong>${shockVal}x</strong></div>`;
         } else if (type === 'bigmoney') {
             const money = alarm.incoming_money || alarm.stake || 0;
-            const timeBefore = alarm.time_before_kickoff || alarm.hours_to_kickoff || 0;
-            const hours = Math.floor(timeBefore);
-            const mins = Math.round((timeBefore - hours) * 60);
-            const timeStr = hours > 0 ? `${hours}s ${mins}dk önce` : `${mins}dk önce`;
-            shortMetric = `<span class="row-metric bigmoney">${(money/1000).toFixed(1)}k</span><span class="row-sep">•</span><span class="row-time-before">${timeStr}</span>`;
+            metricLine = `<div class="card-metric">Gelen: <strong>£${Number(money).toLocaleString('en-GB')}</strong></div>`;
         }
         
         return `
             <div class="alarm-accordion-wrapper">
-                <div class="alarm-row ${type} ${isOpen ? 'expanded' : ''}" onclick="toggleAlarmDetail('${alarmId}')">
-                    <div class="row-stripe"></div>
-                    <div class="row-content">
-                        <div class="row-top">
-                            <span class="row-badge ${type}">${typeLabels[type]}</span>
-                            <span class="row-match" title="${fullMatchName}">${fullMatchName}</span>
-                            <span class="row-market">${marketLabel}</span>
-                        </div>
-                        <div class="row-bottom">
-                            ${shortMetric}
-                            <span class="row-ago">${timeAgo}</span>
-                        </div>
+                <div class="alarm-card ${type} ${isOpen ? 'expanded' : ''}" onclick="toggleAlarmDetail('${alarmId}')">
+                    <div class="card-head">
+                        <span class="card-badge ${type}">${typeLabels[type]}</span>
+                        <span class="card-dot ${type}"></span>
+                        <span class="card-ago">${timeAgo}</span>
                     </div>
+                    <div class="card-match">${fullMatchName} <span class="card-market">(${marketLabel})</span></div>
+                    ${metricLine}
                 </div>
                 ${inlineDetail}
             </div>

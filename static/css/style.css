@@ -5889,3 +5889,100 @@ td.volume,
     font-size: 11px;
     color: #6e7681;
 }
+
+/* ========== ALARM CARD - PREMIUM DESIGN ========== */
+
+.alarm-card {
+    background: #1a1f24;
+    border-radius: 20px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.alarm-card:hover {
+    border-color: #30363d;
+}
+
+.alarm-card.expanded {
+    border-color: #30363d;
+}
+
+.alarm-card.sharp { --accent: #4ade80; }
+.alarm-card.insider { --accent: #a78bfa; }
+.alarm-card.volumeshock { --accent: #fbbf24; }
+.alarm-card.bigmoney { --accent: #F08A24; }
+
+/* Card Head: Badge + Dot + Time */
+.card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.card-badge {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+}
+
+.card-badge.sharp { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
+.card-badge.insider { background: rgba(167, 139, 250, 0.15); color: #a78bfa; }
+.card-badge.volumeshock { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+.card-badge.bigmoney { background: rgba(240, 138, 36, 0.15); color: #F08A24; }
+
+.card-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    margin-left: auto;
+}
+
+.card-ago {
+    font-size: 12px;
+    color: #8b949e;
+}
+
+/* Match Name */
+.alarm-card .card-match {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e6edf3;
+    margin-bottom: 12px;
+}
+
+.card-market {
+    font-weight: 400;
+    color: #8b949e;
+    font-size: 13px;
+}
+
+/* Metric Line */
+.card-metric {
+    font-size: 14px;
+    color: #c9d1d9;
+}
+
+.card-metric strong {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.odds-change {
+    color: #e6edf3;
+    font-weight: 500;
+}
+
+.drop-pct {
+    color: #fb7185;
+    font-weight: 600;
+    margin-left: 12px;
+}
