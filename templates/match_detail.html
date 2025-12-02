@@ -261,8 +261,48 @@
                     responsive:true,
                     maintainAspectRatio:false,
                     animation:false,
+                    interaction:{
+                        mode:'index',
+                        intersect:false
+                    },
                     plugins:{
                         legend:{display:false},
+                        tooltip:{
+                            enabled:true,
+                            backgroundColor:'rgba(22, 27, 34, 0.95)',
+                            titleColor:'#c9d1d9',
+                            bodyColor:'#8b949e',
+                            borderColor:'rgba(48, 54, 61, 0.8)',
+                            borderWidth:1,
+                            cornerRadius:8,
+                            padding:12,
+                            titleFont:{size:12,weight:'600',family:"'Inter', sans-serif"},
+                            bodyFont:{size:13,weight:'500',family:"'JetBrains Mono', monospace"},
+                            bodySpacing:6,
+                            boxPadding:6,
+                            usePointStyle:true,
+                            callbacks:{
+                                title:function(ctx){return ctx[0].label;},
+                                label:function(ctx){
+                                    const val = ctx.parsed.y;
+                                    const label = ctx.dataset.label;
+                                    const idx = ctx.dataIndex;
+                                    const data = ctx.dataset.data;
+                                    let change = '';
+                                    if(idx > 0 && data[idx-1] !== undefined){
+                                        const prev = data[idx-1];
+                                        const diff = val - prev;
+                                        const pct = prev !== 0 ? ((diff / prev) * 100).toFixed(1) : 0;
+                                        const sign = diff >= 0 ? '+' : '';
+                                        const color = diff >= 0 ? '#22c55e' : '#ef4444';
+                                        change = '  ' + sign + pct + '%';
+                                    }
+                                    const prefix = isMoneyway && !usePct ? '£' : '';
+                                    const suffix = isMoneyway && usePct ? '%' : '';
+                                    return label + ': ' + prefix + val.toLocaleString('en-GB') + suffix + change;
+                                }
+                            }
+                        },
                         zoom:{
                             pan:{enabled:true,mode:'x',modifierKey:'shift'},
                             zoom:{
