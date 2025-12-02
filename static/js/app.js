@@ -3397,12 +3397,20 @@ async function loadAlertBand() {
         const filteredAlarms = allAlarms.filter(isMatchTodayOrFuture);
         console.log('[AlertBand] Alarms after filter (today+future):', filteredAlarms.length);
         
-        // Alarm tetiklenme zamanına göre sırala (en yeni önce)
+        // Alarm tetiklenme zamanına göre sırala (en yeni önce) - event_time ISO format kullan
         alertBandData = filteredAlarms.sort((a, b) => {
-            const timeA = parseAlarmTime(a.created_at);
-            const timeB = parseAlarmTime(b.created_at);
+            // event_time ISO format: "2025-11-30T14:03:19"
+            const timeA = new Date(a.event_time || a.created_at || 0).getTime();
+            const timeB = new Date(b.event_time || b.created_at || 0).getTime();
             return timeB - timeA; // En yeni önce
         });
+        
+        console.log('[AlertBand] Top 3 sorted:', alertBandData.slice(0, 3).map(a => ({
+            home: a.home,
+            event_time: a.event_time,
+            type: a._type
+        })));
+        
         renderAlertBand();
         updateAlertBandBadge();
     } catch (e) {
