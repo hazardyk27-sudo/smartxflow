@@ -4985,7 +4985,9 @@ td.volume,
 }
 
 .smart-money-empty {
-    padding: 25px 14px;
+    padding: 14px 14px 25px;
+    margin-top: 6px;
+    border-top: 1px solid #272D35;
     text-align: center;
     color: #8b949e;
     font-size: 13px;
