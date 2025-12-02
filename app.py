@@ -2309,104 +2309,99 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
     odds_key = odds_keys[sel_idx]
     share_key = share_keys[sel_idx]
     
-    last_10 = history[-10:] if len(history) >= 10 else history
-    
-    amounts = []
-    for snap in last_10:
-        amt = parse_volume(snap.get(amount_key, '0'))
-        if amt > 0:
-            amounts.append(amt)
-    
-    if len(amounts) < 2:
+    if len(history) < 2:
         return None
     
-    # GELEN PARA = Son snapshot - Bir önceki snapshot
-    # Örnek: amounts = [..., 414, 1629]
-    # amount_change = 1629 - 414 = 1215 (son aralıkta gelen para)
-    last_amount = amounts[-1]
-    previous_amount = amounts[-2]
-    amount_change = last_amount - previous_amount
-    
-    # Negatif değişim (para çekilmesi) alarm tetiklememeli
-    if amount_change <= 0:
-        return None
-    
-    # Gelen para minimum eşik kontrolü
     min_amount_change = config.get('min_amount_change', 500)
-    if amount_change < min_amount_change:
-        return None
-    
-    # Son 2 amount HARİÇ, önceki amount'ların ortalaması
-    # Örnek: amounts = [10, 10, 30, 30, 54, 54, 100, 150, 414, 1629]
-    # previous_amounts = [10, 10, 30, 30, 54, 54, 100, 150] (son 2 hariç: 414, 1629)
-    # avg = sum(previous_amounts) / len(previous_amounts)
-    if len(amounts) >= 3:
-        previous_amounts = amounts[:-2]  # Son 2 hariç
-        avg_last_amounts = sum(previous_amounts) / len(previous_amounts)
-    else:
-        # Sadece 2 snapshot varsa, bir öncekini ortalama olarak kullan
-        avg_last_amounts = previous_amount
-    
-    if avg_last_amounts <= 0:
-        return None
-    
-    # Gelen para / önceki ortalaması = shock
-    shock_raw = amount_change / avg_last_amounts
     volume_multiplier = config.get('volume_multiplier', 1)
-    shock_value = shock_raw * volume_multiplier
-    
-    latest = history[-1]
-    previous = history[-2] if len(history) >= 2 else history[-1]
-    
-    odds_before = parse_float(previous.get(odds_key, '0'))
-    odds_after = parse_float(latest.get(odds_key, '0'))
-    
-    if odds_before > 0 and odds_after < odds_before:
-        drop_pct = ((odds_before - odds_after) / odds_before) * 100
-    else:
-        drop_pct = 0
-    
     odds_multiplier = config.get('odds_multiplier', 1)
-    odds_value = drop_pct * odds_multiplier
-    
-    share_before = parse_float(str(previous.get(share_key, '0')).replace('%', ''))
-    share_after = parse_float(str(latest.get(share_key, '0')).replace('%', ''))
-    
-    share_diff = share_after - share_before
-    if share_diff < 0:
-        share_diff = 0
-    
-    current_share = share_after
-    
     share_multiplier = config.get('share_multiplier', 1)
-    share_value = share_diff * share_multiplier
-    
-    # CAP değerleri - her kriterin maksimum katkısını sınırlar
     max_volume_cap = config.get('max_volume_cap', 40)
     max_odds_cap = config.get('max_odds_cap', 35)
     max_share_cap = config.get('max_share_cap', 25)
-    
-    # Her kriter için puan hesapla (CAP ile sınırla)
-    volume_contrib = min(shock_value, max_volume_cap)
-    odds_contrib = min(odds_value, max_odds_cap)
-    share_contrib = min(share_value, max_share_cap)
-    
-    # SharpScore = hacim_puani + oran_puani + pay_puani
-    sharp_score = volume_contrib + odds_contrib + share_contrib
-    
     min_share_threshold = config.get('min_share', 5)
     min_sharp_score = config.get('min_sharp_score', 10)
     
-    triggered = (
-        current_share >= min_share_threshold and
-        shock_value > 0 and
-        odds_value > 0 and
-        share_value > 0 and
-        sharp_score >= min_sharp_score
-    )
+    best_candidate = None
+    best_score = 0
     
-    # Event time: hareketin tespit edildiği snapshot zamanı
-    event_time = latest.get('scrapedat', '')
+    for i in range(1, len(history)):
+        prev_snap = history[i-1]
+        curr_snap = history[i]
+        
+        prev_amt = parse_volume(prev_snap.get(amount_key, '0'))
+        curr_amt = parse_volume(curr_snap.get(amount_key, '0'))
+        amount_change = curr_amt - prev_amt
+        
+        if amount_change < min_amount_change:
+            continue
+        
+        prev_odds = parse_float(prev_snap.get(odds_key, '0'))
+        curr_odds = parse_float(curr_snap.get(odds_key, '0'))
+        
+        if prev_odds > 0 and curr_odds < prev_odds:
+            drop_pct = ((prev_odds - curr_odds) / prev_odds) * 100
+        else:
+            drop_pct = 0
+        
+        prev_share = parse_float(str(prev_snap.get(share_key, '0')).replace('%', ''))
+        curr_share = parse_float(str(curr_snap.get(share_key, '0')).replace('%', ''))
+        share_diff = curr_share - prev_share
+        if share_diff < 0:
+            share_diff = 0
+        
+        if i >= 2:
+            prev_amounts = [parse_volume(history[j].get(amount_key, '0')) for j in range(max(0, i-5), i-1)]
+            avg_prev = sum(prev_amounts) / len(prev_amounts) if prev_amounts else prev_amt
+        else:
+            avg_prev = prev_amt
+        
+        shock_raw = amount_change / avg_prev if avg_prev > 0 else 0
+        shock_value = shock_raw * volume_multiplier
+        odds_value = drop_pct * odds_multiplier
+        share_value = share_diff * share_multiplier
+        
+        volume_contrib = min(shock_value, max_volume_cap)
+        odds_contrib = min(odds_value, max_odds_cap)
+        share_contrib = min(share_value, max_share_cap)
+        sharp_score = volume_contrib + odds_contrib + share_contrib
+        
+        triggered = (
+            curr_share >= min_share_threshold and
+            shock_value > 0 and
+            odds_value > 0 and
+            share_value > 0 and
+            sharp_score >= min_sharp_score
+        )
+        
+        if triggered and sharp_score > best_score:
+            best_score = sharp_score
+            best_candidate = {
+                'snap_index': i,
+                'prev_snap': prev_snap,
+                'curr_snap': curr_snap,
+                'amount_change': amount_change,
+                'avg_prev': avg_prev,
+                'shock_raw': shock_raw,
+                'shock_value': shock_value,
+                'volume_contrib': volume_contrib,
+                'prev_odds': prev_odds,
+                'curr_odds': curr_odds,
+                'drop_pct': drop_pct,
+                'odds_value': odds_value,
+                'odds_contrib': odds_contrib,
+                'prev_share': prev_share,
+                'curr_share': curr_share,
+                'share_diff': share_diff,
+                'share_value': share_value,
+                'share_contrib': share_contrib,
+                'sharp_score': sharp_score
+            }
+    
+    if not best_candidate:
+        return None
+    
+    event_time = best_candidate['curr_snap'].get('scrapedat', '')
     
     return {
         'home': home,
@@ -2416,30 +2411,30 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         'match_date': match_date_str,
         'event_time': event_time,
         'created_at': now_turkey_formatted(),
-        'amount_change': amount_change,
-        'avg_last_amounts': avg_last_amounts,
-        'shock_raw': shock_raw,
+        'amount_change': best_candidate['amount_change'],
+        'avg_last_amounts': best_candidate['avg_prev'],
+        'shock_raw': best_candidate['shock_raw'],
         'volume_multiplier': volume_multiplier,
-        'shock_value': shock_value,
+        'shock_value': best_candidate['shock_value'],
         'max_volume_cap': max_volume_cap,
-        'volume_contrib': volume_contrib,
-        'previous_odds': odds_before,
-        'current_odds': odds_after,
-        'drop_pct': drop_pct,
+        'volume_contrib': best_candidate['volume_contrib'],
+        'previous_odds': best_candidate['prev_odds'],
+        'current_odds': best_candidate['curr_odds'],
+        'drop_pct': best_candidate['drop_pct'],
         'odds_multiplier': odds_multiplier,
-        'odds_value': odds_value,
+        'odds_value': best_candidate['odds_value'],
         'max_odds_cap': max_odds_cap,
-        'odds_contrib': odds_contrib,
-        'previous_share': share_before,
-        'current_share': share_after,
-        'share_diff': share_diff,
+        'odds_contrib': best_candidate['odds_contrib'],
+        'previous_share': best_candidate['prev_share'],
+        'current_share': best_candidate['curr_share'],
+        'share_diff': best_candidate['share_diff'],
         'share_multiplier': share_multiplier,
-        'share_value': share_value,
+        'share_value': best_candidate['share_value'],
         'max_share_cap': max_share_cap,
-        'share_contrib': share_contrib,
-        'sharp_score': sharp_score,
+        'share_contrib': best_candidate['share_contrib'],
+        'sharp_score': best_candidate['sharp_score'],
         'min_sharp_score': min_sharp_score,
-        'triggered': triggered
+        'triggered': True
     }
 
 
