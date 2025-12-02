@@ -21,6 +21,14 @@
     --line-height: 1.35;
     --line-height-tight: 1.2;
     
+    /* 8px Grid Spacing System */
+    --space-xs: 4px;
+    --space-sm: 6px;
+    --space-md: 8px;
+    --space-lg: 12px;
+    --space-xl: 16px;
+    --space-xxl: 24px;
+    
     --spacing-row: 5px;
     
     --color-bg-primary: #0d1117;
@@ -257,8 +265,8 @@ h1, h2, h3, h4, h5, h6,
 
 .market-tabs {
     display: flex;
-    gap: 2px;
-    padding: 8px 16px;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-xl);
     background: #161b22;
     border-bottom: 1px solid #30363d;
     overflow-x: auto;
@@ -267,22 +275,22 @@ h1, h2, h3, h4, h5, h6,
 .tab {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-xl);
     background: transparent;
     border: none;
     color: #8b949e;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: var(--space-sm);
     transition: all 0.2s;
     white-space: nowrap;
     font-family: 'Inter', sans-serif;
 }
 
 .tab:hover {
-    background: #21262d;
+    background: #1E2530;
     color: #c9d1d9;
 }
 
@@ -528,11 +536,12 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .matches-table td {
-    padding: 6px 10px;
+    padding: var(--space-lg);
     font-size: var(--font-base);
     border-bottom: 1px solid rgba(48, 54, 61, 0.5);
     vertical-align: middle;
     line-height: var(--line-height);
+    height: 56px;
 }
 
 .matches-table tr {
@@ -541,7 +550,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .matches-table tbody tr:hover {
-    background: #21262d;
+    background: #1A2128;
 }
 
 .matches-table tr.selected {
@@ -6375,8 +6384,8 @@ td.volume,
 .ac {
     display: flex;
     background: #161b22;
-    border-radius: 12px;
-    margin-bottom: 8px;
+    border-radius: var(--space-md);
+    margin-bottom: var(--space-md);
     overflow: hidden;
     transition: all 0.2s ease;
 }
@@ -6392,7 +6401,7 @@ td.volume,
 
 /* Left stripe */
 .ac-stripe {
-    width: 3px;
+    width: var(--space-xs);
     background: var(--accent);
     flex-shrink: 0;
 }
@@ -6401,14 +6410,14 @@ td.volume,
 .ac-body {
     flex: 1;
     cursor: pointer;
-    padding: 12px 14px;
+    padding: var(--space-xl);
 }
 
 /* Summary section */
 .ac-summary {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-sm);
 }
 
 .ac-top {
@@ -6482,27 +6491,27 @@ td.volume,
 }
 
 .ac-detail-inner {
-    padding-top: 12px;
+    padding-top: var(--space-lg);
 }
 
 .acd-divider {
     height: 1px;
     background: #30363d;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-lg);
 }
 
 .acd-header {
     font-size: 12px;
     font-weight: var(--weight-semibold);
     color: #6e7681;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-sm);
 }
 
 .detail-metric-box {
     background: #21262d;
-    border-radius: 8px;
-    padding: 10px 12px;
-    margin-bottom: 10px;
+    border-radius: var(--space-md);
+    padding: var(--space-lg) var(--space-xl);
+    margin-bottom: var(--space-md);
 }
 
 .detail-metric-box .metric-row {
@@ -6514,7 +6523,7 @@ td.volume,
 }
 
 .detail-metric-box .metric-row + .metric-row {
-    margin-top: 6px;
+    margin-top: var(--space-md);
 }
 
 .detail-metric-box .metric-val {
@@ -6536,15 +6545,16 @@ td.volume,
     font-size: 11px;
     font-weight: var(--weight-regular);
     color: #6e7681;
-    margin-bottom: 10px;
+    margin-bottom: var(--space-md);
 }
 
 .acd-btn {
     width: 100%;
     padding: 10px 0;
+    margin-top: var(--space-lg);
     background: #238636;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--space-md);
     color: #fff;
     font-size: 13px;
     font-weight: 600;
@@ -6561,8 +6571,8 @@ td.volume,
 .acd-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
 }
 
 .acd-grid.cols-3 {

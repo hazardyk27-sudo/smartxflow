@@ -16,7 +16,7 @@
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     overflow: hidden;
     padding: 0 16px;
     mask-image: linear-gradient(90deg, transparent, black 40px, black calc(100% - 40px), transparent);
@@ -26,7 +26,7 @@
 .alert-band-track-inner {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     animation: scroll-left 15s linear infinite;
     white-space: nowrap;
 }
@@ -45,11 +45,11 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 0 16px;
+    padding: 6px 10px;
     height: 32px;
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid transparent;
-    border-radius: 9999px;
+    border-radius: 8px;
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
