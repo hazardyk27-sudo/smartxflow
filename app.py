@@ -2306,6 +2306,31 @@ def calculate_sharp_scores(config):
                         if match_date < yesterday:
                             skipped_old += 1
                             continue
+                        
+                        # YENI KURAL: Maçın başlamasına 2 saatten az kaldıysa Sharp sayılmaz
+                        try:
+                            # Saat bilgisini parse et ("02.Dec 18:30:00" formatı)
+                            time_parts = match_date_str.split()
+                            if len(time_parts) >= 2:
+                                time_str = time_parts[1]  # "18:30:00"
+                                hour_min = time_str.split(':')
+                                match_hour = int(hour_min[0])
+                                match_minute = int(hour_min[1]) if len(hour_min) > 1 else 0
+                                
+                                # Maç datetime'ını oluştur (Türkiye saati)
+                                match_datetime = datetime(match_date.year, match_date.month, match_date.day, match_hour, match_minute)
+                                now = now_turkey()
+                                
+                                # Maça kalan süreyi hesapla
+                                time_to_match = match_datetime - now.replace(tzinfo=None)
+                                hours_to_match = time_to_match.total_seconds() / 3600
+                                
+                                # 2 saatten az kaldıysa Sharp sayılmaz
+                                if 0 < hours_to_match < 2:
+                                    print(f"[Sharp] Skipped {home} vs {away}: {hours_to_match:.1f} hours to kickoff (< 2h rule)")
+                                    continue
+                        except Exception as time_e:
+                            pass  # Saat parse hatası varsa devam et
                     except Exception as e:
                         print(f"[Sharp] Date parse error for {home} vs {away}: {match_date_str} - {e}")
                         # Parse hatası varsa devam et
