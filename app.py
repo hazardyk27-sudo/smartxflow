@@ -2317,12 +2317,13 @@ def calculate_sharp_scores(config):
                                 match_hour = int(hour_min[0])
                                 match_minute = int(hour_min[1]) if len(hour_min) > 1 else 0
                                 
-                                # Maç datetime'ını oluştur (Türkiye saati)
-                                match_datetime = datetime(match_date.year, match_date.month, match_date.day, match_hour, match_minute)
+                                # Maç datetime'ını oluştur (UTC) ve +3 saat ekle (Türkiye saati)
+                                match_datetime_utc = datetime(match_date.year, match_date.month, match_date.day, match_hour, match_minute)
+                                match_datetime_tr = match_datetime_utc + timedelta(hours=3)  # UTC -> Türkiye (+3)
                                 now = now_turkey()
                                 
                                 # Maça kalan süreyi hesapla
-                                time_to_match = match_datetime - now.replace(tzinfo=None)
+                                time_to_match = match_datetime_tr - now.replace(tzinfo=None)
                                 hours_to_match = time_to_match.total_seconds() / 3600
                                 
                                 # 2 saatten az kaldıysa Sharp sayılmaz
