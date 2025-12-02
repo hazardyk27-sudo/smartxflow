@@ -6250,3 +6250,95 @@ td.volume,
     font-size: 11px;
     color: #8b949e;
 }
+
+/* ========== DETAIL PANEL - MINIMAL ========== */
+
+.dp {
+    background: #161b22;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 8px;
+    border-left: 3px solid var(--accent);
+}
+
+.dp.sharp { --accent: #22c55e; }
+.dp.insider { --accent: #a78bfa; }
+.dp.volumeshock { --accent: #fbbf24; }
+.dp.bigmoney { --accent: #F08A24; }
+
+.dp-header {
+    font-size: 12px;
+    color: #6e7681;
+    margin-bottom: 6px;
+}
+
+.dp-match {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e6edf3;
+    margin-bottom: 4px;
+}
+
+.dp-market {
+    font-size: 12px;
+    color: #8b949e;
+    margin-bottom: 12px;
+}
+
+.detail-metric-box {
+    background: #21262d;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+}
+
+.detail-metric-box .metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: #c9d1d9;
+}
+
+.detail-metric-box .metric-row + .metric-row {
+    margin-top: 6px;
+}
+
+.detail-metric-box .metric-val {
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.detail-metric-box.sharp .metric-val { color: #22c55e; }
+.detail-metric-box.insider .metric-val { color: #a78bfa; }
+.detail-metric-box.volumeshock .metric-val { color: #fbbf24; }
+.detail-metric-box.bigmoney .metric-val { color: #F08A24; }
+
+.detail-metric-box .metric-drop {
+    font-weight: 700;
+    color: #fb7185;
+    margin-left: 8px;
+}
+
+.dp-history {
+    font-size: 11px;
+    color: #6e7681;
+    margin-bottom: 12px;
+}
+
+.dp-btn {
+    width: 100%;
+    padding: 10px 0;
+    background: #238636;
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.dp-btn:hover {
+    background: #2ea043;
+}

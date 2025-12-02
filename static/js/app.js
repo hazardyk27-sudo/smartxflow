@@ -3884,18 +3884,13 @@ function renderAlarmsList(filterType) {
         
         const inlineDetail = `
             <div class="alarm-inline-detail ${isOpen ? 'open' : ''}" id="detail_${alarmId}" onclick="event.stopPropagation()">
-                <div class="detail-panel ${type}">
-                    <div class="detail-stripe"></div>
-                    <div class="detail-content">
-                        <div class="detail-header">
-                            <span class="detail-datetime">${matchTimeFormatted}</span>
-                            <span class="detail-match">${home} – ${away}</span>
-                            <span class="detail-market">${marketLabel2}</span>
-                        </div>
-                        ${metricContent}
-                        <div class="detail-history">${historyLine}</div>
-                        <button class="detail-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}')">Maç Sayfasını Aç</button>
-                    </div>
+                <div class="dp ${type}">
+                    <div class="dp-header">${matchTimeFormatted}</div>
+                    <div class="dp-match">${home} – ${away}</div>
+                    <div class="dp-market">${marketLabel2}</div>
+                    ${metricContent}
+                    <div class="dp-history">${historyLine}</div>
+                    <button class="dp-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}')">Maç Sayfasını Aç</button>
                 </div>
             </div>
         `;
