@@ -2204,7 +2204,7 @@ function drawMiniChart(canvas, historyData) {
         }
     });
     ctx.strokeStyle = '#4C8BF5';
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 2;
     ctx.stroke();
 }
 

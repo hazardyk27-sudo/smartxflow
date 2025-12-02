@@ -389,7 +389,7 @@ h1, h2, h3, h4, h5, h6,
 .selection-buttons {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
 }
 
 .sel-btn {
@@ -1115,7 +1115,7 @@ h1, h2, h3, h4, h5, h6,
 
 .chart-tab.active {
     background: rgba(74, 222, 128, 0.1);
-    border-bottom-color: #4ade80;
+    border-bottom: 3px solid #4ade80;
     color: #ffffff;
 }
 
