@@ -1,36 +1,31 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
 
 /* =====================================================
-   PREMIUM DARK SCROLLBAR - Bloomberg/TradingView Style
+   GLOBAL SCROLLBAR - Dark Theme (Override All)
    ===================================================== */
 
-/* Dikey scrollbar */
-::-webkit-scrollbar {
-    width: 6px;
+*::-webkit-scrollbar {
+    width: 6px !important;
+    height: 6px !important;
 }
 
-::-webkit-scrollbar-track {
-    background: #0f1318;
+*::-webkit-scrollbar-track {
+    background: #0f1318 !important;
 }
 
-::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #2e343c, rgba(0, 180, 88, 0.2));
-    border-radius: 10px;
+*::-webkit-scrollbar-thumb {
+    background: #2a2f36 !important;
+    border-radius: 10px !important;
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #3a414c, rgba(0, 180, 88, 0.33));
-}
-
-/* Yatay scrollbar */
-::-webkit-scrollbar:horizontal {
-    height: 6px;
+*::-webkit-scrollbar-thumb:hover {
+    background: #3a3f47 !important;
 }
 
 /* Firefox scrollbar */
 * {
     scrollbar-width: thin;
-    scrollbar-color: #2e343c #0f1318;
+    scrollbar-color: #2a2f36 #0f1318;
 }
 
 :root {
@@ -112,35 +107,6 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-}
-
-/* Global Scrollbar - Dark Theme */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #0d1117;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #30363d;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #484f58;
-}
-
-::-webkit-scrollbar-corner {
-    background: #0d1117;
-}
-
-/* Firefox scrollbar */
-* {
-    scrollbar-width: thin;
-    scrollbar-color: #30363d #0d1117;
 }
 
 body {
@@ -536,25 +502,6 @@ h1, h2, h3, h4, h5, h6,
     border: 1px solid #30363d;
     flex: 1;
     min-height: 0;
-}
-
-.table-container::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-.table-container::-webkit-scrollbar-track {
-    background: #21262d;
-    border-radius: 4px;
-}
-
-.table-container::-webkit-scrollbar-thumb {
-    background: #484f58;
-    border-radius: 4px;
-}
-
-.table-container::-webkit-scrollbar-thumb:hover {
-    background: #6e7681;
 }
 
 .matches-table {
@@ -3678,23 +3625,6 @@ td.volume,
     padding-right: 4px;
 }
 
-.alarms-list::-webkit-scrollbar {
-    width: 6px;
-}
-
-.alarms-list::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.alarms-list::-webkit-scrollbar-thumb {
-    background: #30363d;
-    border-radius: 3px;
-}
-
-.alarms-list::-webkit-scrollbar-thumb:hover {
-    background: #484f58;
-}
-
 .alarms-loading {
     display: flex;
     align-items: center;
@@ -4154,19 +4084,6 @@ td.volume,
     flex: 1;
     overflow-y: auto;
     padding: 12px;
-}
-
-.alarms-sidebar-list::-webkit-scrollbar {
-    width: 6px;
-}
-
-.alarms-sidebar-list::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.alarms-sidebar-list::-webkit-scrollbar-thumb {
-    background: #30363d;
-    border-radius: 3px;
 }
 
 /* Empty State */
