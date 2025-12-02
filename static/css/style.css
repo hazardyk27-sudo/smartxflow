@@ -21,6 +21,8 @@
     --line-height: 1.35;
     --line-height-tight: 1.2;
     
+    --spacing-row: 5px;
+    
     --color-bg-primary: #0d1117;
     --color-bg-secondary: #161b22;
     --color-bg-tertiary: #21262d;
@@ -53,12 +55,22 @@
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: var(--font-base);
+    font-weight: var(--weight-medium);
     line-height: var(--line-height);
     background: var(--color-bg-primary);
     color: var(--color-text-primary);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6,
+.card-title, .section-title, .modal-title, .alarm-type {
+    font-weight: var(--weight-semibold);
+}
+
+.info-text, .hint, .form-hint, .muted, .secondary-text, .small-info {
+    font-weight: var(--weight-regular);
 }
 
 .header {
@@ -82,7 +94,7 @@ body {
 
 .brand h1 {
     font-size: var(--font-heading);
-    font-weight: var(--weight-bold);
+    font-weight: var(--weight-semibold);
     color: #fff;
     letter-spacing: -0.3px;
     line-height: var(--line-height-tight);
@@ -1391,7 +1403,7 @@ body {
 .alarm-name {
     color: var(--alarm-color, #c9d1d9);
     font-size: 12px;
-    font-weight: 700;
+    font-weight: var(--weight-semibold);
 }
 
 .alarm-count {
@@ -1431,21 +1443,23 @@ body {
 .alarm-detail {
     color: #e6edf3;
     font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 6px;
+    font-weight: var(--weight-semibold);
+    margin-bottom: 5px;
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
 .alarm-description {
     color: #8b949e;
     font-size: 11px;
+    font-weight: var(--weight-regular);
     line-height: 1.5;
 }
 
 .alarm-extra {
     color: #6e7681;
     font-size: 10px;
-    margin-top: 4px;
+    font-weight: var(--weight-regular);
+    margin-top: 5px;
     line-height: 1.4;
 }
 
@@ -1484,7 +1498,7 @@ body {
 
 .match-title {
     font-size: 28px;
-    font-weight: 700;
+    font-weight: var(--weight-semibold);
     color: #e6edf3;
     margin-bottom: 8px;
 }
@@ -6315,7 +6329,7 @@ td.volume,
 .detail-metric-box.bigmoney .metric-val { color: #F08A24; }
 
 .detail-metric-box .metric-drop {
-    font-weight: 700;
+    font-weight: var(--weight-semibold);
     color: #ff0000;
     margin-left: 8px;
 }
@@ -6430,13 +6444,14 @@ td.volume,
 
 .ac-value {
     font-size: 15px;
-    font-weight: 700;
+    font-weight: var(--weight-semibold);
     color: var(--accent);
     flex-shrink: 0;
 }
 
 .ac-bot {
     font-size: 11px;
+    font-weight: var(--weight-regular);
     color: #8b949e;
 }
 
@@ -6465,8 +6480,9 @@ td.volume,
 
 .acd-header {
     font-size: 12px;
+    font-weight: var(--weight-semibold);
     color: #6e7681;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .detail-metric-box {
@@ -6489,7 +6505,7 @@ td.volume,
 }
 
 .detail-metric-box .metric-val {
-    font-weight: 700;
+    font-weight: var(--weight-semibold);
 }
 
 .ac.sharp .metric-val { color: #22c55e; }
@@ -6498,15 +6514,16 @@ td.volume,
 .ac.bigmoney .metric-val { color: #F08A24; }
 
 .detail-metric-box .metric-drop {
-    font-weight: 700;
+    font-weight: var(--weight-semibold);
     color: #ff0000;
     margin-left: 8px;
 }
 
 .acd-history {
     font-size: 11px;
+    font-weight: var(--weight-regular);
     color: #6e7681;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 
 .acd-btn {
@@ -6556,9 +6573,9 @@ td.volume,
 
 .acd-stat-val {
     font-size: 16px;
-    font-weight: 700;
+    font-weight: var(--weight-semibold);
     color: #c9d1d9;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
 }
 
 .acd-stat-val.sharp { color: #22c55e; }
@@ -6569,6 +6586,7 @@ td.volume,
 
 .acd-stat-lbl {
     font-size: 10px;
+    font-weight: var(--weight-regular);
     color: #6e7681;
     text-transform: uppercase;
     letter-spacing: 0.3px;
