@@ -1518,7 +1518,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .chart-section {
-    background: #161b22;
+    background: #1E242D;
     border: 1px solid #30363d;
     border-radius: 12px;
     padding: 20px;
@@ -1545,7 +1545,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .selection-card {
-    background: rgba(255, 255, 255, 0.03);
+    background: #232A33;
     border: 1px solid #30363d;
     border-radius: 8px;
     padding: 16px;
@@ -1560,42 +1560,51 @@ h1, h2, h3, h4, h5, h6,
 
 .selection-card .selection-odds {
     color: #4ade80;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .selection-card .selection-pct {
     color: #c9d1d9;
     font-size: 14px;
+    margin-top: 8px;
 }
 
 .selection-amt {
     color: #f0883e;
     font-size: 12px;
-    margin-top: 4px;
+    margin-top: 6px;
 }
+
+.selection-pct.pct-low { color: #3B82F6; }
+.selection-pct.pct-mid { color: #8B949E; }
+.selection-pct.pct-high { color: #65E08C; }
+.selection-pct.pct-max { color: #22C55E; }
 
 .info-row.total-volume {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px;
-    background: #21262d;
+    padding: 16px 20px;
+    background: #232A33;
     border: 1px solid #30363d;
     border-radius: 8px;
 }
 
 .info-row.total-volume .volume-label {
     font-size: 13px;
-    font-weight: 600;
+    font-weight: var(--weight-semibold);
     color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .info-row.total-volume .volume-value {
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 20px;
+    font-weight: 700;
     color: #22c55e;
+    font-family: 'JetBrains Mono', monospace;
 }
 
 .info-row .info-label {

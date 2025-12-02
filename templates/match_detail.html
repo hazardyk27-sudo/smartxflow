@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ home }} vs {{ away }} - SmartXFlow</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=93">
+    <link rel="stylesheet" href="/static/css/style.css?v=86">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -120,6 +120,14 @@
             if (str.includes('K')) { multiplier = 1000; str = str.replace('K', ''); }
             return parseFloat(str) * multiplier || 0;
         }
+        
+        function getPctClass(pct) {
+            const val = parseFloat(pct) || 0;
+            if (val >= 80) return 'pct-max';
+            if (val >= 60) return 'pct-high';
+            if (val >= 20) return 'pct-mid';
+            return 'pct-low';
+        }
 
         function renderMatchInfoCard() {
             const card = document.getElementById('matchInfoCard');
@@ -133,9 +141,9 @@
                 totalVol = parseAmount(modalOddsData.AmtYes) + parseAmount(modalOddsData.AmtNo);
             }
             let vol = totalVol > 0 ? Math.round(totalVol).toLocaleString('en-GB') : '0';
-            let html = '<div class="info-row total-volume"><span class="info-label">TOTAL VOLUME</span><span class="info-value volume">£' + vol + '</span></div>';
+            let html = '<div class="info-row total-volume"><span class="volume-label">TOTAL VOLUME</span><span class="volume-value">£' + vol + '</span></div>';
             if (currentMarket.includes('1x2')) {
-                html += '<div class="selections-grid"><div class="selection-card"><div class="selection-label">' + matchHome + '</div><div class="selection-odds">' + (modalOddsData.Odds1||'-') + '</div><div class="selection-pct">' + (modalOddsData.Pct1||'-') + '%</div>' + (modalOddsData.Amt1?'<div class="selection-amt">£' + parseInt(modalOddsData.Amt1).toLocaleString('en-GB') + '</div>':'') + '</div><div class="selection-card"><div class="selection-label">Draw</div><div class="selection-odds">' + (modalOddsData.OddsX||'-') + '</div><div class="selection-pct">' + (modalOddsData.PctX||'-') + '%</div>' + (modalOddsData.AmtX?'<div class="selection-amt">£' + parseInt(modalOddsData.AmtX).toLocaleString('en-GB') + '</div>':'') + '</div><div class="selection-card"><div class="selection-label">' + matchAway + '</div><div class="selection-odds">' + (modalOddsData.Odds2||'-') + '</div><div class="selection-pct">' + (modalOddsData.Pct2||'-') + '%</div>' + (modalOddsData.Amt2?'<div class="selection-amt">£' + parseInt(modalOddsData.Amt2).toLocaleString('en-GB') + '</div>':'') + '</div></div>';
+                html += '<div class="selections-grid"><div class="selection-card"><div class="selection-label">' + matchHome + '</div><div class="selection-odds">' + (modalOddsData.Odds1||'-') + '</div><div class="selection-pct ' + getPctClass(modalOddsData.Pct1) + '">' + (modalOddsData.Pct1||'-') + '%</div>' + (modalOddsData.Amt1?'<div class="selection-amt">£' + parseInt(modalOddsData.Amt1).toLocaleString('en-GB') + '</div>':'') + '</div><div class="selection-card"><div class="selection-label">Draw</div><div class="selection-odds">' + (modalOddsData.OddsX||'-') + '</div><div class="selection-pct ' + getPctClass(modalOddsData.PctX) + '">' + (modalOddsData.PctX||'-') + '%</div>' + (modalOddsData.AmtX?'<div class="selection-amt">£' + parseInt(modalOddsData.AmtX).toLocaleString('en-GB') + '</div>':'') + '</div><div class="selection-card"><div class="selection-label">' + matchAway + '</div><div class="selection-odds">' + (modalOddsData.Odds2||'-') + '</div><div class="selection-pct ' + getPctClass(modalOddsData.Pct2) + '">' + (modalOddsData.Pct2||'-') + '%</div>' + (modalOddsData.Amt2?'<div class="selection-amt">£' + parseInt(modalOddsData.Amt2).toLocaleString('en-GB') + '</div>':'') + '</div></div>';
             }
             card.innerHTML = html;
         }
