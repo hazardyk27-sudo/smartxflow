@@ -23,14 +23,35 @@
     
     /* 8px Grid Spacing System */
     --space-xs: 4px;
-    --space-sm: 6px;
-    --space-md: 8px;
-    --space-lg: 12px;
-    --space-xl: 16px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 20px;
     --space-xxl: 24px;
     
     --spacing-row: 5px;
     
+    /* Premium Design Tokens */
+    --bg-main: #0D1117;
+    --bg-card: #161B22;
+    --bg-card-soft: #1A212A;
+    --bg-section: #14191F;
+    --border-subtle: #30363D;
+    
+    --text-primary: #C9D1D9;
+    --text-secondary: #8B949E;
+    --text-muted: #6E7681;
+    
+    --accent-green: #22C55E;
+    --accent-yellow: #FACC15;
+    --accent-purple: #8B5CF6;
+    --accent-red: #EF4444;
+    
+    --radius-lg: 14px;
+    --radius-md: 10px;
+    --radius-pill: 999px;
+    
+    /* Legacy color mappings */
     --color-bg-primary: #0d1117;
     --color-bg-secondary: #161b22;
     --color-bg-tertiary: #21262d;
