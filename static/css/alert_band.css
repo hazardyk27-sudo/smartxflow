@@ -145,6 +145,13 @@
     position: relative;
 }
 
+/* Tüm pill içi elemanları dikey hizala */
+.ab-pill > * {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+}
+
 /* Ultra-soft inner shine overlay */
 .ab-pill::before {
     content: '';
