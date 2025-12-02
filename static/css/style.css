@@ -6616,3 +6616,72 @@ td.volume,
     font-weight: 700;
     color: #fb7185;
 }
+
+/* Match Detail Smart Money Cards - Minimal Design */
+.smc-card {
+    display: flex;
+    background: #161b22;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #30363d;
+}
+
+.smc-stripe {
+    width: 4px;
+    flex-shrink: 0;
+}
+
+.smc-content {
+    flex: 1;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.smc-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.smc-badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.smc-count-badge {
+    font-size: 10px;
+    font-weight: 600;
+    color: #fff;
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+
+.smc-card .smc-time {
+    font-size: 11px;
+    color: #8b949e;
+    margin-left: auto;
+}
+
+.smc-body {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.smc-value {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.smc-sub {
+    font-size: 12px;
+    color: #8b949e;
+}
+
+.smc-footer {
+    font-size: 11px;
+    color: #6e7681;
+}

@@ -4313,40 +4313,42 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
         
         const lastTime = formatSmartMoneyTime(latest.event_time || latest.created_at || latest.triggered_at);
         
-        let mainText = '';
+        let mainValue = '';
+        let subInfo = '';
         if (type === 'sharp') {
-            const money = latest.volume || latest.stake || 0;
             const score = latest.sharp_score || 0;
-            const dropPct = latest.oran_dusus_pct || latest.odds_drop_pct || 0;
-            mainText = `<span class="money-value">+£${Number(money).toLocaleString('en-GB')}</span> — Score: ${score.toFixed(0)}, %${dropPct >= 0 ? '-' : '+'}${Math.abs(dropPct).toFixed(1)}`;
+            const money = latest.volume_contrib || latest.volume || latest.stake || 0;
+            mainValue = `${score.toFixed(0)}`;
+            subInfo = `£${Number(money).toLocaleString('en-GB')} hacim`;
         } else if (type === 'bigmoney') {
             const money = latest.incoming_money || latest.stake || 0;
-            mainText = `<span class="money-value">+£${Number(money).toLocaleString('en-GB')}</span> ek para girisi`;
+            mainValue = `£${Number(money).toLocaleString('en-GB')}`;
+            subInfo = 'gelen para';
         } else if (type === 'insider') {
-            const money = latest.stake || latest.volume || 0;
-            const score = latest.insider_score || 0;
-            mainText = `<span class="money-value">+£${Number(money).toLocaleString('en-GB')}</span> surekli akis (Skor: ${score.toFixed(1)})`;
+            const dropPct = Math.abs(latest.oran_dusus_pct || latest.odds_drop_pct || 0);
+            mainValue = `▼ ${dropPct.toFixed(1)}%`;
+            subInfo = `${(latest.opening_odds || 0).toFixed(2)} → ${(latest.last_odds || 0).toFixed(2)}`;
         } else if (type === 'volumeshock') {
             const shockValue = latest.volume_shock_value || 0;
-            const hoursToKickoff = latest.hours_to_kickoff || 0;
-            mainText = `<span class="money-value">${shockValue.toFixed(1)}x</span> hacim artisi — Mactan ${hoursToKickoff.toFixed(1)}s once`;
+            mainValue = `${shockValue.toFixed(1)}x`;
+            subInfo = `${(latest.hours_to_kickoff || 0).toFixed(0)}s önce`;
         }
         
         cardsHtml += `
-            <div class="smart-money-card ${type}">
-                <div class="smc-top-row">
-                    <div class="smc-left">
-                        <span class="smc-icon">${config.icon}</span>
-                        <span class="smc-title">${config.title}</span>
-                        <span class="smc-count" style="background: ${config.color};">×${count}</span>
-                    </div>
-                    <div class="smc-right">
-                        <span class="smc-market">${marketText}</span>
+            <div class="smc-card ${type}">
+                <div class="smc-stripe" style="background: ${config.color};"></div>
+                <div class="smc-content">
+                    <div class="smc-header">
+                        <span class="smc-badge" style="color: ${config.color};">${config.title.toUpperCase()}</span>
+                        <span class="smc-count-badge" style="background: ${config.color};">×${count}</span>
                         <span class="smc-time">${lastTime}</span>
                     </div>
+                    <div class="smc-body">
+                        <span class="smc-value" style="color: ${config.color};">${mainValue}</span>
+                        <span class="smc-sub">${subInfo}</span>
+                    </div>
+                    <div class="smc-footer">${marketText}</div>
                 </div>
-                <div class="smc-main-row">${mainText}</div>
-                <div class="smc-desc-row">${config.description}</div>
             </div>
         `;
     });
