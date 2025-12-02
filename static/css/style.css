@@ -1125,10 +1125,10 @@ h1, h2, h3, h4, h5, h6,
 .chart-tabs {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: var(--space-md);
     margin-bottom: 20px;
-    background: #21262d;
-    padding: 8px;
+    background: #161b22;
+    padding: var(--space-md);
     border-radius: 10px;
     border: 1px solid #30363d;
 }
