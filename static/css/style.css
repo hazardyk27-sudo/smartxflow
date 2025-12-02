@@ -3608,8 +3608,8 @@ td.volume,
 .alarm-card {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 14px;
+    padding: 14px 16px;
     background: #161b22;
     border: 1px solid #21262d;
     border-radius: 8px;
@@ -3636,7 +3636,7 @@ td.volume,
 
 .alarm-card {
     position: relative;
-    padding-left: 20px;
+    padding-left: 24px;
 }
 
 .alarm-card.sharp-alarm::before {
@@ -3661,7 +3661,7 @@ td.volume,
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 2px;
+    margin-bottom: 5px;
 }
 
 .alarm-teams {
@@ -3674,8 +3674,9 @@ td.volume,
 }
 
 .alarm-league {
-    font-size: 12px;
-    color: #6e7681;
+    font-size: 13px;
+    font-weight: var(--weight-medium);
+    color: #8B949E;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -3718,7 +3719,7 @@ td.volume,
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 2px;
+    gap: 6px;
     flex-shrink: 0;
     min-width: 100px;
 }
