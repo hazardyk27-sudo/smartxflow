@@ -3042,14 +3042,14 @@ td.volume,
 .alarms-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
+    gap: 8px;
+    padding: 8px 16px;
     background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
     border: none;
     border-radius: 6px;
     color: #fff;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: var(--weight-semibold);
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
@@ -3064,19 +3064,21 @@ td.volume,
 
 .alarms-btn svg {
     flex-shrink: 0;
+    width: 18px;
+    height: 18px;
 }
 
 .alarm-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
     background: rgba(0,0,0,0.3);
-    border-radius: 9px;
-    font-size: 11px;
-    font-weight: 700;
+    border-radius: 11px;
+    font-size: 12px;
+    font-weight: var(--weight-semibold);
 }
 
 /* Alarms Modal */
