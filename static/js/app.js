@@ -3758,7 +3758,7 @@ function renderAlarmsList(filterType) {
     const displayGroups = groups.slice(0, alarmsDisplayCount);
     const hasMore = groups.length > alarmsDisplayCount;
     const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY', volumeshock: 'HACIM SOKU' };
-    const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#fb923c', volumeshock: '#F6C343' };
+    const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#F08A24', volumeshock: '#F6C343' };
     
     let html = displayGroups.map((group, idx) => {
         const type = group.type;

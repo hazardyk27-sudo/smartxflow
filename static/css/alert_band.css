@@ -76,11 +76,11 @@
 
 /* BigMoney - Yellow-Orange */
 .alert-band-pill.bigmoney {
-    border-color: rgba(251, 146, 60, 0.6);
+    border-color: rgba(240, 138, 36, 0.6);
 }
 .alert-band-pill.bigmoney:hover {
-    background: rgba(251, 146, 60, 0.1);
-    border-color: #fb923c;
+    background: rgba(240, 138, 36, 0.1);
+    border-color: #F08A24;
 }
 
 /* HugeMoney - Red-Orange */
@@ -132,7 +132,7 @@
 
 /* BigMoney dot - Yellow-Orange */
 .alert-band-dot.orange {
-    background: #fb923c;
+    background: #F08A24;
 }
 
 /* HugeMoney dot - Red-Orange */
@@ -167,7 +167,7 @@
 }
 
 .alert-band-type.bigmoney {
-    color: #fb923c;
+    color: #F08A24;
 }
 
 .alert-band-type.hugemoney {
@@ -202,7 +202,7 @@
 }
 
 .alert-band-pill.bigmoney .alert-band-selection {
-    color: #fb923c;
+    color: #F08A24;
 }
 
 .alert-band-pill.hugemoney .alert-band-selection {

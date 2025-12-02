@@ -674,7 +674,7 @@ body {
 }
 
 .color-orange {
-    color: #fb923c;
+    color: #F08A24;
 }
 
 .color-red {
@@ -4063,7 +4063,7 @@ td.volume,
 }
 
 .sidebar-alarm-card.bigmoney {
-    border-left-color: #fb923c;
+    border-left-color: #F08A24;
 }
 
 /* Line 1: Badge + Match + Market */
@@ -4106,8 +4106,8 @@ td.volume,
 }
 
 .alarm-type-badge.bigmoney {
-    background: rgba(251, 146, 60, 0.15);
-    color: #fb923c;
+    background: rgba(240, 138, 36, 0.15);
+    color: #F08A24;
 }
 
 .alarm-type-badge.volumeshock {
@@ -4243,7 +4243,7 @@ td.volume,
     display: inline-flex;
     align-items: center;
     padding: 1px 6px;
-    background: rgba(251, 146, 60, 0.2);
+    background: rgba(240, 138, 36, 0.2);
     border-radius: 3px;
     font-size: 9px;
     font-weight: 700;
