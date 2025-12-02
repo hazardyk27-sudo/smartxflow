@@ -284,7 +284,7 @@
     100% { box-shadow: none; }
 }
 @keyframes chipGlow-insider {
-    0% { box-shadow: 0 0 12px rgba(255, 0, 0, 0.5); }
+    0% { box-shadow: 0 0 12px rgba(139, 92, 246, 0.5); }
     100% { box-shadow: none; }
 }
 @keyframes chipGlow-drop {
@@ -328,9 +328,9 @@
 .ab-pill.volumeshock.new .ab-val { animation: chipGlow-volumeshock 0.8s ease-out; }
 
 .ab-pill.insider .ab-val {
-    background: rgba(255, 0, 0, 0.18);
-    color: #FF6B6B;
-    border: 1px solid rgba(255, 0, 0, 0.45);
+    background: rgba(139, 92, 246, 0.18);
+    color: #A78BFA;
+    border: 1px solid rgba(139, 92, 246, 0.45);
 }
 .ab-pill.insider.new .ab-val { animation: chipGlow-insider 0.8s ease-out; }
 
