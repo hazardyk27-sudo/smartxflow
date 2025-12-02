@@ -3290,6 +3290,45 @@ function parseAlarmTime(timeStr) {
     }
 }
 
+// Maç saatini +3 saat ekleyerek formatla (format: "02.Dec 12:00:00" -> "02 Ara • 15:00")
+function formatMatchTime3(dateStr) {
+    if (!dateStr) return '-';
+    
+    const monthNames = ['Oca', 'Sub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Agu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
+                       'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
+    
+    // Format: "02.Dec 12:00:00"
+    const match1 = dateStr.match(/^(\d{2})\.([A-Za-z]{3})\s+(\d{2}):(\d{2}):?(\d{2})?$/);
+    if (match1) {
+        const [, day, monthStr, hour, min] = match1;
+        const monthIdx = monthMap[monthStr] ?? 0;
+        const dt = new Date(2025, monthIdx, parseInt(day), parseInt(hour), parseInt(min));
+        dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
+        const monthName = monthNames[dt.getMonth()];
+        const h = String(dt.getHours()).padStart(2, '0');
+        const m = String(dt.getMinutes()).padStart(2, '0');
+        const d = String(dt.getDate()).padStart(2, '0');
+        return `${d} ${monthName} • ${h}:${m}`;
+    }
+    
+    // Format: "DD.MM.YYYY HH:MM"
+    const match2 = dateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/);
+    if (match2) {
+        const [, day, month, year, hour, min] = match2;
+        const dt = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
+        dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
+        const monthName = monthNames[dt.getMonth()];
+        const h = String(dt.getHours()).padStart(2, '0');
+        const m = String(dt.getMinutes()).padStart(2, '0');
+        const d = String(dt.getDate()).padStart(2, '0');
+        return `${d} ${monthName} • ${h}:${m}`;
+    }
+    
+    // Fallback
+    return dateStr;
+}
+
 function isMatchTodayOrFuture(alarm) {
     const matchDateStr = alarm.match_date || alarm.fixture_date || '';
     if (!matchDateStr) return false;
@@ -3870,7 +3909,7 @@ function renderAlarmsList(filterType) {
         // Alarm detay paneli - Tip'e göre içerik
         const homeEscaped = home.replace(/'/g, "\\'");
         const awayEscaped = away.replace(/'/g, "\\'");
-        const matchTimeFormatted = group.match_date || '-';
+        const matchTimeFormatted = formatMatchTime3(group.match_date);
         const marketLabel2 = `${market} → ${selection}`;
         const triggerTime = formatTriggerTime(alarm.event_time || alarm.created_at);
         
