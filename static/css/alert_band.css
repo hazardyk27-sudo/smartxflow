@@ -95,7 +95,7 @@
     border-radius: 50%;
     display: inline-flex;
     flex-shrink: 0;
-    margin-right: 6px;
+    margin-right: 4px;
     box-shadow: 0 0 6px currentColor;
 }
 
@@ -134,9 +134,9 @@
 .ab-pill {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    padding: 5px 10px;
-    height: 30px;
+    gap: 1px;
+    padding: 4px 10px;
+    height: 28px;
     border-radius: 10px;
     cursor: pointer;
     white-space: nowrap;
@@ -166,66 +166,66 @@
 /* Sharp Move - Premium Green */
 .ab-pill.sharp {
     background: linear-gradient(90deg, rgba(22, 163, 74, 0.15), transparent);
-    border: 1px solid rgba(22, 163, 74, 0.35);
+    border: 1px solid rgba(0, 255, 135, 0.40);
 }
 .ab-pill.sharp.new { animation: fadeInHighlight-sharp 1s ease-out; }
 .ab-pill.sharp:hover {
     background: rgba(22, 163, 74, 0.2);
-    border-color: rgba(22, 163, 74, 0.6);
+    border-color: rgba(0, 255, 135, 0.65);
 }
 
 /* Hacim Şoku - Gold Yellow */
 .ab-pill.volumeshock {
     background: linear-gradient(90deg, rgba(250, 204, 21, 0.15), transparent);
-    border: 1px solid rgba(250, 204, 21, 0.35);
+    border: 1px solid rgba(250, 204, 21, 0.45);
 }
 .ab-pill.volumeshock.new { animation: fadeInHighlight-volumeshock 1s ease-out; }
 .ab-pill.volumeshock:hover {
     background: rgba(250, 204, 21, 0.2);
-    border-color: rgba(250, 204, 21, 0.6);
+    border-color: rgba(250, 204, 21, 0.7);
 }
 
 /* Insider Move - Purple */
 .ab-pill.insider {
     background: linear-gradient(90deg, rgba(139, 92, 246, 0.15), transparent);
-    border: 1px solid rgba(139, 92, 246, 0.35);
+    border: 1px solid rgba(140, 60, 255, 0.42);
 }
 .ab-pill.insider.new { animation: fadeInHighlight-insider 1s ease-out; }
 .ab-pill.insider:hover {
     background: rgba(139, 92, 246, 0.2);
-    border-color: rgba(139, 92, 246, 0.6);
+    border-color: rgba(140, 60, 255, 0.65);
 }
 
 /* Drop Alert - Risk Red */
 .ab-pill.drop {
     background: linear-gradient(90deg, rgba(220, 38, 38, 0.15), transparent);
-    border: 1px solid rgba(220, 38, 38, 0.35);
+    border: 1px solid rgba(220, 38, 38, 0.45);
 }
 .ab-pill.drop.new { animation: fadeInHighlight-drop 1s ease-out; }
 .ab-pill.drop:hover {
     background: rgba(220, 38, 38, 0.2);
-    border-color: rgba(220, 38, 38, 0.6);
+    border-color: rgba(220, 38, 38, 0.7);
 }
 
 /* BigMoney - Orange */
 .ab-pill.bigmoney {
     background: linear-gradient(90deg, rgba(240, 138, 36, 0.15), transparent);
-    border: 1px solid rgba(240, 138, 36, 0.35);
+    border: 1px solid rgba(255, 145, 33, 0.45);
 }
 .ab-pill.bigmoney.new { animation: fadeInHighlight-bigmoney 1s ease-out; }
 .ab-pill.bigmoney:hover {
     background: rgba(240, 138, 36, 0.2);
-    border-color: rgba(240, 138, 36, 0.6);
+    border-color: rgba(255, 145, 33, 0.7);
 }
 
 /* HugeMoney - Red Orange */
 .ab-pill.hugemoney {
     background: linear-gradient(90deg, rgba(249, 115, 22, 0.15), transparent);
-    border: 1px solid rgba(249, 115, 22, 0.35);
+    border: 1px solid rgba(249, 115, 22, 0.45);
 }
 .ab-pill.hugemoney:hover {
     background: rgba(249, 115, 22, 0.2);
-    border-color: rgba(249, 115, 22, 0.6);
+    border-color: rgba(249, 115, 22, 0.7);
 }
 
 /* Separator - Compact trading style */
