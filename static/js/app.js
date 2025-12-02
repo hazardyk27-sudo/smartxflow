@@ -4313,41 +4313,79 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
         
         const lastTime = formatSmartMoneyTime(latest.event_time || latest.created_at || latest.triggered_at);
         
-        let mainValue = '';
-        let subInfo = '';
+        let row2Left = '';
+        let row2Right = '';
+        let row3Left = '';
+        let row3Right = '';
+        let row4 = '';
+        
         if (type === 'sharp') {
             const score = latest.sharp_score || 0;
-            const money = latest.volume_contrib || latest.volume || latest.stake || 0;
-            mainValue = `${score.toFixed(0)}`;
-            subInfo = `£${Number(money).toLocaleString('en-GB')} hacim`;
+            const volume = latest.volume_contrib || latest.volume || 0;
+            const shockVal = latest.hacim_sok || latest.volume_shock || 0;
+            const selection = latest.selection || latest.side || '-';
+            const market = latest.market || '';
+            row2Left = `${selection} (${market})`;
+            row2Right = `Sharp Skoru: ${score.toFixed(0)}`;
+            row3Left = `£${Number(volume).toLocaleString('en-GB')} yeni hacim`;
+            row3Right = shockVal > 0 ? `Son 10 dk: ${shockVal.toFixed(1)}x` : '';
+            row4 = `Büyük keskin ${selection} tarafına aktı`;
         } else if (type === 'bigmoney') {
             const money = latest.incoming_money || latest.stake || 0;
-            mainValue = `£${Number(money).toLocaleString('en-GB')}`;
-            subInfo = 'gelen para';
+            const selection = latest.selection || latest.side || '-';
+            const market = latest.market || '';
+            const totalVol = latest.volume || latest.total_volume || 0;
+            row2Left = `${selection} (${market})`;
+            row2Right = `Toplam: £${Number(totalVol).toLocaleString('en-GB')}`;
+            row3Left = `£${Number(money).toLocaleString('en-GB')} gelen para`;
+            row3Right = '';
+            row4 = `Yüksek hacimli para girişi tespit edildi`;
         } else if (type === 'insider') {
             const dropPct = Math.abs(latest.oran_dusus_pct || latest.odds_drop_pct || 0);
-            mainValue = `▼ ${dropPct.toFixed(1)}%`;
-            subInfo = `${(latest.opening_odds || 0).toFixed(2)} → ${(latest.last_odds || 0).toFixed(2)}`;
+            const openOdds = (latest.opening_odds || 0).toFixed(2);
+            const lastOdds = (latest.last_odds || 0).toFixed(2);
+            const selection = latest.selection || latest.side || '-';
+            const market = latest.market || '';
+            const gelenPara = latest.gelen_para || 0;
+            row2Left = `${selection} (${market})`;
+            row2Right = `▼ ${dropPct.toFixed(1)}% düşüş`;
+            row3Left = `${openOdds} → ${lastOdds}`;
+            row3Right = `£${Number(gelenPara).toLocaleString('en-GB')} gelen para`;
+            row4 = `Düşük hacim, yüksek oran düşüşü`;
         } else if (type === 'volumeshock') {
             const shockValue = latest.volume_shock_value || 0;
-            mainValue = `${shockValue.toFixed(1)}x`;
-            subInfo = `${(latest.hours_to_kickoff || 0).toFixed(0)}s önce`;
+            const hoursToKickoff = latest.hours_to_kickoff || 0;
+            const incomingMoney = latest.incoming_money || 0;
+            const selection = latest.selection || latest.side || '-';
+            const market = latest.market || '';
+            row2Left = `${selection} (${market})`;
+            row2Right = `${shockValue.toFixed(1)}x hacim şoku`;
+            row3Left = `£${Number(incomingMoney).toLocaleString('en-GB')} gelen para`;
+            row3Right = `Maça ${hoursToKickoff.toFixed(0)}s kala`;
+            row4 = `Maçtan önce erken hacim artışı`;
         }
         
         cardsHtml += `
             <div class="smc-card ${type}">
                 <div class="smc-stripe" style="background: ${config.color};"></div>
                 <div class="smc-content">
-                    <div class="smc-header">
-                        <span class="smc-badge" style="color: ${config.color};">${config.title.toUpperCase()}</span>
-                        <span class="smc-count-badge" style="background: ${config.color};">×${count}</span>
+                    <div class="smc-row smc-header">
+                        <div class="smc-left">
+                            <span class="smc-dot" style="background: ${config.color};"></span>
+                            <span class="smc-badge">${config.title.toUpperCase()}</span>
+                            <span class="smc-count-badge">x${count}</span>
+                        </div>
                         <span class="smc-time">${lastTime}</span>
                     </div>
-                    <div class="smc-body">
-                        <span class="smc-value" style="color: ${config.color};">${mainValue}</span>
-                        <span class="smc-sub">${subInfo}</span>
+                    <div class="smc-row">
+                        <span class="smc-label">${row2Left}</span>
+                        <span class="smc-value" style="color: ${config.color};">${row2Right}</span>
                     </div>
-                    <div class="smc-footer">${marketText}</div>
+                    <div class="smc-row">
+                        <span class="smc-detail">${row3Left}</span>
+                        <span class="smc-detail">${row3Right}</span>
+                    </div>
+                    <div class="smc-row smc-desc">${row4}</div>
                 </div>
             </div>
         `;
