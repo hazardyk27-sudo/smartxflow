@@ -3832,141 +3832,100 @@ function renderAlarmsList(filterType) {
             mainMoney = alarm.incoming_money || 0;
         }
         
-        // Alarm tipine göre ana metrikleri oluştur
-        let mainMetricHtml = '';
+        // Alarm tipine göre orta blok (type-specific middle section)
+        let middleBlockHtml = '';
+        const alarmTypeLabel = type === 'sharp' ? 'SHARP' : type === 'insider' ? 'INSIDER' : type === 'volumeshock' ? 'HACİM ŞOKU' : type === 'bigmoney' ? (alarm.is_huge ? 'HUGE MONEY' : 'BIG MONEY') : type.toUpperCase();
+        
         if (type === 'sharp') {
             const sharpScore = (alarm.sharp_score || 0).toFixed(1);
-            mainMetricHtml = `
-                <div class="detail-main-metric sharp">
-                    <span class="metric-label">Sharp Skoru</span>
-                    <span class="metric-value">${sharpScore}</span>
+            middleBlockHtml = `
+                <div class="detail-middle-block sharp">
+                    <div class="metric-sharp-score">Sharp Skoru: ${sharpScore}</div>
                 </div>
             `;
         } else if (type === 'insider') {
             const openingOdds = (alarm.opening_odds || 0).toFixed(2);
             const lastOdds = (alarm.last_odds || 0).toFixed(2);
             const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
-            mainMetricHtml = `
-                <div class="detail-main-metric insider">
-                    <span class="metric-odds-change">
-                        <span class="odds-old">${openingOdds}</span>
-                        <span class="odds-arrow">→</span>
-                        <span class="odds-new">${lastOdds}</span>
-                        <span class="odds-pct">(-${dropPct}%)</span>
-                    </span>
+            const hoursToKickoff = alarm.hours_to_kickoff || 0;
+            const hours = Math.floor(hoursToKickoff);
+            const minutes = Math.round((hoursToKickoff - hours) * 60);
+            const timeToMatchLabel = hours > 0 ? `${hours}s ${minutes}dk` : `${minutes}dk`;
+            middleBlockHtml = `
+                <div class="detail-middle-block insider">
+                    <div class="insider-odds-row">
+                        <span class="insider-odds-change">${openingOdds} → ${lastOdds} <span class="insider-drop-pct">(-${dropPct}%)</span></span>
+                        ${hoursToKickoff > 0 ? `<span class="insider-time-pill">Maça kalan: ${timeToMatchLabel}</span>` : ''}
+                    </div>
                 </div>
             `;
         } else if (type === 'volumeshock') {
             const newMoney = alarm.incoming_money || 0;
             const shockValue = (alarm.volume_shock_value || 0).toFixed(1);
-            mainMetricHtml = `
-                <div class="detail-main-metric volumeshock">
-                    <div class="metric-row">
-                        <span class="metric-label">Yeni Para</span>
-                        <span class="metric-value money">£${Number(newMoney).toLocaleString('en-GB')}</span>
-                    </div>
-                    <div class="metric-row">
-                        <span class="metric-label">Hacim Şoku</span>
-                        <span class="metric-value shock">${shockValue}x</span>
-                    </div>
+            middleBlockHtml = `
+                <div class="detail-middle-block volumeshock">
+                    <div class="metric-new-money">Yeni Para: £${Number(newMoney).toLocaleString('en-GB')}</div>
+                    <div class="metric-shock-factor">Hacim Şoku: ${shockValue}x</div>
                 </div>
             `;
         } else if (type === 'bigmoney') {
             const money = alarm.incoming_money || alarm.stake || 0;
-            const isHuge = alarm.is_huge || alarm.alarm_type === 'HUGE MONEY';
-            mainMetricHtml = `
-                <div class="detail-main-metric bigmoney">
-                    <span class="metric-label">${isHuge ? 'Huge Money' : 'Big Money'}</span>
-                    <span class="metric-value">£${Number(money).toLocaleString('en-GB')}</span>
+            middleBlockHtml = `
+                <div class="detail-middle-block bigmoney">
+                    <div class="metric-big-money">£${Number(money).toLocaleString('en-GB')}</div>
                 </div>
             `;
         }
         
-        // Alarm tipine göre geçmiş satırı formatı
-        function formatHistoryLine(a, alarmType) {
-            const time = formatTriggerTime(a.event_time || a.created_at);
-            
-            if (alarmType === 'sharp') {
-                const score = (a.sharp_score || 0).toFixed(0);
-                return `<div class="detail-log-item">
-                    <span class="log-time">${time}</span>
-                    <span class="log-sep">–</span>
-                    <span class="log-value sharp">Sharp Skoru : ${score}</span>
-                    <span class="log-badge sharp">SHARP</span>
-                </div>`;
-            } else if (alarmType === 'insider') {
-                const openOdds = (a.opening_odds || 0).toFixed(2);
-                const lastOdds = (a.last_odds || 0).toFixed(2);
-                const dropPct = Math.abs(a.oran_dusus_pct || a.odds_drop_pct || 0).toFixed(1);
-                return `<div class="detail-log-item">
-                    <span class="log-time">${time}</span>
-                    <span class="log-sep">:</span>
-                    <span class="log-value insider">${openOdds} → ${lastOdds} (-${dropPct}%)</span>
-                    <span class="log-badge insider">INSIDER</span>
-                </div>`;
-            } else if (alarmType === 'volumeshock') {
-                const newMoney = a.incoming_money || 0;
-                const shockVal = (a.volume_shock_value || 0).toFixed(1);
-                return `<div class="detail-log-item">
-                    <span class="log-time">${time}</span>
-                    <span class="log-sep">–</span>
-                    <span class="log-value volumeshock">£${Number(newMoney).toLocaleString('en-GB')}</span>
-                    <span class="log-sep">–</span>
-                    <span class="log-value shock">${shockVal}x</span>
-                    <span class="log-badge volumeshock">HS</span>
-                </div>`;
-            } else if (alarmType === 'bigmoney') {
-                const money = a.incoming_money || a.stake || 0;
-                const badge = a.is_huge ? 'HUGE' : 'BIG';
-                return `<div class="detail-log-item">
-                    <span class="log-time">${time}</span>
-                    <span class="log-sep">–</span>
-                    <span class="log-value bigmoney">£${Number(money).toLocaleString('en-GB')}</span>
-                    <span class="log-badge bigmoney">${badge}</span>
-                </div>`;
-            }
-            return '';
-        }
-        
-        // Geçmiş oluştur (sadece birden fazla alarm varsa göster)
-        let historyHtml = '';
-        if (group.history.length > 1) {
-            const historyItems = group.history.slice(1).map(a => formatHistoryLine(a, type)).join('');
-            historyHtml = `
-                <div class="detail-section history-section">
-                    <div class="detail-label">GEÇMIŞ</div>
-                    <div class="detail-logs-container">
-                        ${historyItems}
-                    </div>
-                </div>
-            `;
+        // Timeline satırı formatı
+        const triggerTime = formatTriggerTime(alarm.event_time || alarm.created_at);
+        let timelineLabel = '';
+        if (type === 'sharp') {
+            const score = (alarm.sharp_score || 0).toFixed(0);
+            timelineLabel = `${triggerTime} – Sharp Skoru : ${score}  SHARP`;
+        } else if (type === 'insider') {
+            const openOdds = (alarm.opening_odds || 0).toFixed(2);
+            const lastOdds = (alarm.last_odds || 0).toFixed(2);
+            const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
+            timelineLabel = `${triggerTime} : ${openOdds} → ${lastOdds} (-${dropPct}%)  INSIDER`;
+        } else if (type === 'volumeshock') {
+            const newMoney = alarm.incoming_money || 0;
+            const shockVal = (alarm.volume_shock_value || 0).toFixed(1);
+            timelineLabel = `${triggerTime} – Yeni Para £${Number(newMoney).toLocaleString('en-GB')} – Hacim Şoku ${shockVal}x`;
+        } else if (type === 'bigmoney') {
+            const money = alarm.incoming_money || alarm.stake || 0;
+            const badge = alarm.is_huge ? 'HUGE' : 'BIG';
+            timelineLabel = `${triggerTime} – £${Number(money).toLocaleString('en-GB')}  ${badge}`;
         }
         
         const homeEscaped = home.replace(/'/g, "\\'");
         const awayEscaped = away.replace(/'/g, "\\'");
         
-        const leagueDate = `${group.league || '-'} • ${group.match_date || '-'}`;
+        const matchTimeFormatted = group.match_date || '-';
+        const marketLabel2 = `${market} → ${selection}`;
         
         const inlineDetail = `
             <div class="alarm-inline-detail ${isOpen ? 'open' : ''}" id="detail_${alarmId}" onclick="event.stopPropagation()">
-                <div class="detail-card-wrapper" style="border-left: 6px solid ${stripeColor};">
-                    <div class="detail-header">
-                        <span class="detail-league-date">${leagueDate}</span>
+                <div class="detail-card-new" style="--stripe-color: ${stripeColor};">
+                    <div class="detail-stripe"></div>
+                    <div class="detail-content">
+                        <div class="detail-top-row">
+                            <div class="detail-left">
+                                <div class="detail-match-time">${matchTimeFormatted}</div>
+                                <div class="detail-match-name-new">${home} – ${away}</div>
+                            </div>
+                            <div class="detail-right">
+                                <div class="detail-market-label">Market</div>
+                                <div class="detail-market-value">${marketLabel2}</div>
+                                <div class="detail-alarm-type-label">Alarm tipi: ${alarmTypeLabel}</div>
+                            </div>
+                        </div>
+                        ${middleBlockHtml}
+                        <div class="detail-bottom-row">
+                            <div class="detail-timeline">${timelineLabel}</div>
+                            <button class="detail-open-match-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}')">Maç Sayfasını Aç</button>
+                        </div>
                     </div>
-                    <div class="detail-match-name">${home} – ${away}</div>
-                    
-                    <div class="detail-section">
-                        <div class="detail-label">MARKET</div>
-                        <div class="detail-value-market">${market} → ${selection}</div>
-                    </div>
-                    
-                    ${mainMetricHtml}
-                    
-                    ${historyHtml}
-                    
-                    <button class="detail-goto-match-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}')">
-                        📈 Maç Sayfasını Aç
-                    </button>
                 </div>
             </div>
         `;

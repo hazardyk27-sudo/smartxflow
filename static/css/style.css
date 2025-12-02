@@ -5219,3 +5219,162 @@ td.volume,
     border: 1px solid #30363d;
     border-left-width: 6px;
 }
+
+/* ========== NEW ALARM DETAIL CARD DESIGN (React Reference) ========== */
+
+.detail-card-new {
+    display: flex;
+    background-color: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 16px;
+    gap: 12px;
+}
+
+.detail-stripe {
+    width: 4px;
+    border-radius: 999px;
+    background-color: var(--stripe-color, #64748b);
+    flex-shrink: 0;
+}
+
+.detail-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.detail-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.detail-left {
+    flex: 1;
+}
+
+.detail-match-time {
+    font-size: 12px;
+    color: #8b949e;
+}
+
+.detail-match-name-new {
+    font-size: 15px;
+    color: #c9d1d9;
+    font-weight: 600;
+}
+
+.detail-right {
+    text-align: right;
+}
+
+.detail-market-label {
+    font-size: 12px;
+    color: #8b949e;
+}
+
+.detail-market-value {
+    font-size: 13px;
+    color: #c9d1d9;
+}
+
+.detail-alarm-type-label {
+    margin-top: 4px;
+    font-size: 11px;
+    color: #8b949e;
+}
+
+/* Middle Block - Type Specific */
+.detail-middle-block {
+    margin-top: 4px;
+}
+
+.detail-middle-block.sharp .metric-sharp-score {
+    font-size: 16px;
+    font-weight: 600;
+    color: #22c55e;
+}
+
+.detail-middle-block.insider .insider-odds-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.detail-middle-block.insider .insider-odds-change {
+    font-size: 16px;
+    font-weight: 600;
+    color: #c9d1d9;
+}
+
+.detail-middle-block.insider .insider-drop-pct {
+    color: #f97316;
+    font-size: 14px;
+}
+
+.detail-middle-block.insider .insider-time-pill {
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid #30363d;
+    font-size: 11px;
+    color: #c9d1d9;
+    white-space: nowrap;
+}
+
+.detail-middle-block.volumeshock .metric-new-money {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fbbf24;
+}
+
+.detail-middle-block.volumeshock .metric-shock-factor {
+    font-size: 13px;
+    color: #c9d1d9;
+    margin-top: 2px;
+}
+
+.detail-middle-block.bigmoney .metric-big-money {
+    font-size: 16px;
+    font-weight: 600;
+    color: #F08A24;
+}
+
+/* Bottom Row */
+.detail-bottom-row {
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.detail-timeline {
+    font-size: 12px;
+    color: #8b949e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+}
+
+.detail-open-match-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: none;
+    background-color: #22c55e;
+    color: #0b1120;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.2s;
+}
+
+.detail-open-match-btn:hover {
+    background-color: #16a34a;
+}
