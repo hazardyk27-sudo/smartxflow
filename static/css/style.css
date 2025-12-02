@@ -6507,12 +6507,13 @@ td.volume,
 }
 
 .ac-value {
-    font-size: 15px;
+    font-size: 18px;
     font-weight: var(--weight-semibold);
     color: var(--accent);
     flex-shrink: 0;
     text-align: right;
     line-height: 1.35;
+    opacity: 0.90;
 }
 
 .ac-bot {
@@ -6595,6 +6596,10 @@ td.volume,
     margin-bottom: var(--space-md);
 }
 
+.acd-history::before {
+    content: '🕒 ';
+}
+
 .acd-btn {
     width: 100%;
     padding: 10px 0;
@@ -6618,7 +6623,7 @@ td.volume,
 .acd-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-md);
+    gap: 10px;
     margin-bottom: var(--space-lg);
 }
 
@@ -6631,7 +6636,7 @@ td.volume,
 }
 
 .acd-stat {
-    background: #21262d;
+    background: #1A212A;
     border-radius: 8px;
     padding: 10px 8px;
     text-align: center;
@@ -6671,10 +6676,11 @@ td.volume,
     padding: 8px 0;
     border-top: 1px solid #30363d;
     margin-top: 8px;
+    margin-bottom: 12px;
 }
 
 .acd-info-row span {
-    color: #c9d1d9;
+    color: #8b949e;
 }
 
 /* Single value display for Insider */
