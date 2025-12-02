@@ -779,84 +779,6 @@
                     </div>
                     <p class="form-hint" style="margin-top: 8px; color: #8b949e; font-size: 10px;">Varsayilan carpan aralik disindaki oranlar icin kullanilir.</p>
                 </div>
-                
-                <div class="info-card">
-                    <h3>💰 Stake Araligi Carpanlari</h3>
-                    <p class="form-hint" style="margin-bottom: 12px; color: #8b949e; font-size: 11px;">Her stake (gelen para) araligi icin farkli carpan. Stake bu aralikta ise o carpan kullanilir.</p>
-                    
-                    <div style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
-                        <label style="color: #22c55e; font-weight: 600; font-size: 12px;">Aralik 1 (Dusuk)</label>
-                        <div style="display: flex; gap: 8px; margin-top: 6px;">
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Min (£)</label>
-                                <input type="number" id="stake_range_1_min" value="500" step="100" class="form-input" style="font-size: 12px;">
-                            </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Max (£)</label>
-                                <input type="number" id="stake_range_1_max" value="2000" step="100" class="form-input" style="font-size: 12px;">
-                            </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
-                                <input type="number" id="stake_range_1_mult" value="1" step="0.1" class="form-input" style="font-size: 12px;">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
-                        <label style="color: #58a6ff; font-weight: 600; font-size: 12px;">Aralik 2 (Orta)</label>
-                        <div style="display: flex; gap: 8px; margin-top: 6px;">
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Min (£)</label>
-                                <input type="number" id="stake_range_2_min" value="2000" step="100" class="form-input" style="font-size: 12px;">
-                            </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Max (£)</label>
-                                <input type="number" id="stake_range_2_max" value="5000" step="100" class="form-input" style="font-size: 12px;">
-                            </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
-                                <input type="number" id="stake_range_2_mult" value="1.5" step="0.1" class="form-input" style="font-size: 12px;">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
-                        <label style="color: #a78bfa; font-weight: 600; font-size: 12px;">Aralik 3 (Yuksek)</label>
-                        <div style="display: flex; gap: 8px; margin-top: 6px;">
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Min (£)</label>
-                                <input type="number" id="stake_range_3_min" value="5000" step="100" class="form-input" style="font-size: 12px;">
-                            </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Max (£)</label>
-                                <input type="number" id="stake_range_3_max" value="15000" step="100" class="form-input" style="font-size: 12px;">
-                            </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
-                                <input type="number" id="stake_range_3_mult" value="2" step="0.1" class="form-input" style="font-size: 12px;">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div style="background: #161b22; padding: 10px; border-radius: 6px;">
-                        <label style="color: #f97316; font-weight: 600; font-size: 12px;">Aralik 4 (Cok Yuksek)</label>
-                        <div style="display: flex; gap: 8px; margin-top: 6px;">
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Min (£)</label>
-                                <input type="number" id="stake_range_4_min" value="15000" step="100" class="form-input" style="font-size: 12px;">
-                            </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Max (£)</label>
-                                <input type="number" id="stake_range_4_max" value="100000" step="100" class="form-input" style="font-size: 12px;">
-                            </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
-                                <input type="number" id="stake_range_4_mult" value="3" step="0.1" class="form-input" style="font-size: 12px;">
-                            </div>
-                        </div>
-                    </div>
-                    <p class="form-hint" style="margin-top: 8px; color: #8b949e; font-size: 10px;">Stake degeri bu araliklara gore carpanla cogaltilir. Yuksek stake = yuksek etki.</p>
-                </div>
 
                 <div class="info-card">
                     <h3>📈 Maksimum Degerler (CAP)</h3>
@@ -1361,19 +1283,7 @@
                 odds_range_3_mult: parseFloat(document.getElementById('odds_range_3_mult').value) || 5,
                 odds_range_4_min: parseFloat(document.getElementById('odds_range_4_min').value) || 3.50,
                 odds_range_4_max: parseFloat(document.getElementById('odds_range_4_max').value) || 10.00,
-                odds_range_4_mult: parseFloat(document.getElementById('odds_range_4_mult').value) || 3,
-                stake_range_1_min: parseFloat(document.getElementById('stake_range_1_min').value) || 500,
-                stake_range_1_max: parseFloat(document.getElementById('stake_range_1_max').value) || 2000,
-                stake_range_1_mult: parseFloat(document.getElementById('stake_range_1_mult').value) || 1,
-                stake_range_2_min: parseFloat(document.getElementById('stake_range_2_min').value) || 2000,
-                stake_range_2_max: parseFloat(document.getElementById('stake_range_2_max').value) || 5000,
-                stake_range_2_mult: parseFloat(document.getElementById('stake_range_2_mult').value) || 1.5,
-                stake_range_3_min: parseFloat(document.getElementById('stake_range_3_min').value) || 5000,
-                stake_range_3_max: parseFloat(document.getElementById('stake_range_3_max').value) || 15000,
-                stake_range_3_mult: parseFloat(document.getElementById('stake_range_3_mult').value) || 2,
-                stake_range_4_min: parseFloat(document.getElementById('stake_range_4_min').value) || 15000,
-                stake_range_4_max: parseFloat(document.getElementById('stake_range_4_max').value) || 100000,
-                stake_range_4_mult: parseFloat(document.getElementById('stake_range_4_mult').value) || 3
+                odds_range_4_mult: parseFloat(document.getElementById('odds_range_4_mult').value) || 3
             };
         }
 
@@ -1402,18 +1312,6 @@
             document.getElementById('odds_range_4_min').value = config.odds_range_4_min || 3.50;
             document.getElementById('odds_range_4_max').value = config.odds_range_4_max || 10.00;
             document.getElementById('odds_range_4_mult').value = config.odds_range_4_mult || 3;
-            document.getElementById('stake_range_1_min').value = config.stake_range_1_min || 500;
-            document.getElementById('stake_range_1_max').value = config.stake_range_1_max || 2000;
-            document.getElementById('stake_range_1_mult').value = config.stake_range_1_mult || 1;
-            document.getElementById('stake_range_2_min').value = config.stake_range_2_min || 2000;
-            document.getElementById('stake_range_2_max').value = config.stake_range_2_max || 5000;
-            document.getElementById('stake_range_2_mult').value = config.stake_range_2_mult || 1.5;
-            document.getElementById('stake_range_3_min').value = config.stake_range_3_min || 5000;
-            document.getElementById('stake_range_3_max').value = config.stake_range_3_max || 15000;
-            document.getElementById('stake_range_3_mult').value = config.stake_range_3_mult || 2;
-            document.getElementById('stake_range_4_min').value = config.stake_range_4_min || 15000;
-            document.getElementById('stake_range_4_max').value = config.stake_range_4_max || 100000;
-            document.getElementById('stake_range_4_mult').value = config.stake_range_4_mult || 3;
         }
 
         async function saveSharpConfig() {
