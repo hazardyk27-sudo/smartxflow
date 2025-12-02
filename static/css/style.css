@@ -670,7 +670,7 @@ body {
 }
 
 .color-yellow {
-    color: #fbbf24;
+    color: #F08A24;
 }
 
 .color-orange {
@@ -3236,7 +3236,7 @@ td.volume,
 
 .alarm-icon.bigmoney {
     background: linear-gradient(135deg, #f59e0b20, #d9770620);
-    color: #fbbf24;
+    color: #F08A24;
 }
 
 .alarm-details {
@@ -3384,8 +3384,8 @@ td.volume,
 }
 
 .alarm-type-badge.bigmoney {
-    background: rgba(251, 191, 36, 0.15);
-    color: #fbbf24;
+    background: rgba(240, 138, 36, 0.15);
+    color: #F08A24;
 }
 
 .alarm-time {
@@ -3692,8 +3692,8 @@ td.volume,
 }
 
 .alarm-type-tag.bigmoney {
-    background: rgba(251, 191, 36, 0.12);
-    color: #fbbf24;
+    background: rgba(240, 138, 36, 0.12);
+    color: #F08A24;
     border: 1px solid rgba(251, 191, 36, 0.25);
 }
 
@@ -4419,8 +4419,8 @@ td.volume,
 }
 
 .detail-type-badge.bigmoney {
-    background: rgba(251, 191, 36, 0.2);
-    color: #fbbf24;
+    background: rgba(240, 138, 36, 0.2);
+    color: #F08A24;
 }
 
 .detail-type-badge.sharp {
@@ -4477,8 +4477,8 @@ td.volume,
 }
 
 .log-badge.bigmoney {
-    background: rgba(251, 191, 36, 0.2);
-    color: #fbbf24;
+    background: rgba(240, 138, 36, 0.2);
+    color: #F08A24;
 }
 
 .log-badge.sharp {
@@ -5052,4 +5052,17 @@ td.volume,
         align-items: center;
         gap: 8px;
     }
+}
+
+.history-divider {
+    padding: 8px 0;
+    margin: 8px 0;
+    border-top: 1px solid #334155;
+    border-bottom: 1px solid #334155;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748B;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    text-align: center;
 }

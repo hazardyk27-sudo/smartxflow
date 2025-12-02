@@ -3779,7 +3779,7 @@ function renderAlarmsList(filterType) {
             const oddsSign = oddsDrop < 0 ? '\u2212' : '+';
             const volume = alarm.volume || alarm.stake || 0;
             const moneyPart = volume > 0 ? `<span class="value-money">\u00A3${Number(volume).toLocaleString('en-GB')}</span><span class="sep">\u2022</span>` : '';
-            mainValue = `${moneyPart}<span class="value-highlight">Skor ${score}</span><span class="sep">\u2022</span><span class="value-pct">%${oddsSign}${Math.abs(oddsDrop).toFixed(1)}</span>`;
+            mainValue = `${moneyPart}<span class="value-highlight">Sharp Puanı ${score}</span><span class="sep">\u2022</span><span class="value-pct">%${oddsSign}${Math.abs(oddsDrop).toFixed(1)}</span>`;
         } else if (type === 'insider') {
             const openingOdds = alarm.opening_odds || 0;
             const lastOdds = alarm.last_odds || 0;
@@ -3804,7 +3804,7 @@ function renderAlarmsList(filterType) {
         const expandIcon = isOpen ? '▼' : '▶';
         
         const stripeColors = {
-            'bigmoney': '#fbbf24',
+            'bigmoney': '#F08A24',
             'sharp': '#22c55e',
             'insider': '#a855f7',
             'dropping': '#ef4444',
@@ -3832,7 +3832,9 @@ function renderAlarmsList(filterType) {
             mainMoney = alarm.incoming_money || 0;
         }
         
-        let historyHtml = group.history.map((a, i) => {
+        // Detay seçimi: ilk item latest alarm, kalanlar history
+        const latestAlarmHtml = group.history.length > 0 ? (() => {
+            const a = group.latestAlarm;
             const time = formatTriggerTime(a.event_time || a.created_at);
             let money = 0;
             let badge = '';
@@ -3864,7 +3866,44 @@ function renderAlarmsList(filterType) {
                    <span class="log-badge ${type}">${badge}</span>`;
             
             return `<div class="detail-log-item">${logContent}</div>`;
-        }).join('');
+        })() : '';
+        
+        // Önceki alarmlar (history)
+        const olderAlarmsHtml = group.history.length > 1 ? group.history.slice(1).map((a, i) => {
+            const time = formatTriggerTime(a.event_time || a.created_at);
+            let money = 0;
+            let badge = '';
+            
+            if (type === 'sharp') {
+                money = a.volume || a.stake || 0;
+                badge = 'SHARP';
+            } else if (type === 'insider') {
+                money = a.stake || a.volume || 0;
+                badge = 'INSIDER';
+            } else if (type === 'bigmoney') {
+                money = a.incoming_money || a.stake || 0;
+                badge = a.is_huge ? 'HUGE' : 'BIG';
+            } else if (type === 'volumeshock') {
+                money = a.incoming_money || 0;
+                badge = 'HS';
+            }
+            
+            const logContent = type === 'volumeshock' 
+                ? `<span class="log-time">${time}</span>
+                   <span class="log-sep">–</span>
+                   <span class="log-money">${(a.volume_shock_value || 0).toFixed(1)}x</span>
+                   <span class="log-sep">–</span>
+                   <span class="log-badge ${type}">${badge}</span>`
+                : `<span class="log-time">${time}</span>
+                   <span class="log-sep">–</span>
+                   <span class="log-money">£${Number(money).toLocaleString('en-GB')}</span>
+                   <span class="log-sep">–</span>
+                   <span class="log-badge ${type}">${badge}</span>`;
+            
+            return `<div class="detail-log-item">${logContent}</div>`;
+        }).join('') : '';
+        
+        const historyHtml = latestAlarmHtml + (olderAlarmsHtml ? `<div class="history-divider">GEÇMIŞ</div>${olderAlarmsHtml}` : '');
         
         const homeEscaped = home.replace(/'/g, "\\'");
         const awayEscaped = away.replace(/'/g, "\\'");
