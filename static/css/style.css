@@ -6149,3 +6149,94 @@ td.volume,
     color: #fb7185;
     margin-left: 8px;
 }
+
+/* ========== MINIMAL CARD - 3 SATIR ========== */
+
+.min-card {
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: #161b22;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+    margin-bottom: 8px;
+    transition: background 0.15s ease;
+    border: 1px solid transparent;
+}
+
+.min-card:hover {
+    background: #1c2128;
+    border-color: #30363d;
+}
+
+.min-card.expanded {
+    border-color: #30363d;
+}
+
+.min-card.sharp { --accent: #22c55e; }
+.min-card.insider { --accent: #a78bfa; }
+.min-card.volumeshock { --accent: #fbbf24; }
+.min-card.bigmoney { --accent: #F08A24; }
+
+/* Row 1: Dot + Label + Time */
+.mc-top {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #8b949e;
+}
+
+.mc-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--accent);
+}
+
+.mc-label {
+    color: var(--accent);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.mc-sep {
+    color: #6e7681;
+}
+
+.mc-time {
+    color: #6e7681;
+}
+
+/* Row 2: Match + Value */
+.mc-mid {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mc-match {
+    font-size: 14px;
+    font-weight: 600;
+    color: #c9d1d9;
+}
+
+.mc-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.mc-value .pct-drop {
+    font-size: 12px;
+    color: #fb7185;
+    margin-left: 4px;
+}
+
+/* Row 3: Market */
+.mc-bot {
+    font-size: 11px;
+    color: #8b949e;
+}

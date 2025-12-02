@@ -3900,36 +3900,35 @@ function renderAlarmsList(filterType) {
         
         const fullMatchName = `${home} – ${away}`;
         
-        // Metrik label ve değer
-        let metricLabel = '';
+        // Metrik değer (sağ tarafa)
         let metricValue = '';
         if (type === 'sharp') {
-            metricLabel = 'Sharp Skoru';
             metricValue = (alarm.sharp_score || 0).toFixed(1);
         } else if (type === 'insider') {
-            metricLabel = 'Oran Değişimi';
             const openOdds = (alarm.opening_odds || 0).toFixed(2);
             const lastOdds = (alarm.last_odds || 0).toFixed(2);
             const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
-            metricValue = `${openOdds} → ${lastOdds} <span class="pct-drop">▼ -${dropPct}%</span>`;
+            metricValue = `${openOdds}→${lastOdds} <span class="pct-drop">▼${dropPct}%</span>`;
         } else if (type === 'volumeshock') {
-            metricLabel = 'Hacim';
             metricValue = `${(alarm.volume_shock_value || 0).toFixed(1)}x`;
         } else if (type === 'bigmoney') {
-            metricLabel = 'Gelen Para';
             metricValue = `£${Number(alarm.incoming_money || alarm.stake || 0).toLocaleString('en-GB')}`;
         }
         
         return `
             <div class="alarm-accordion-wrapper">
-                <div class="premium-card ${type} ${isOpen ? 'expanded' : ''}" onclick="toggleAlarmDetail('${alarmId}')">
-                    <div class="pc-header">${typeLabels[type]} · ${timeAgo}</div>
-                    <div class="pc-match">${fullMatchName}</div>
-                    <div class="pc-market">${marketLabel}</div>
-                    <div class="pc-metric">
-                        <div class="pc-metric-label">${metricLabel}</div>
-                        <div class="pc-metric-value">${metricValue}</div>
+                <div class="min-card ${type} ${isOpen ? 'expanded' : ''}" onclick="toggleAlarmDetail('${alarmId}')">
+                    <div class="mc-top">
+                        <span class="mc-dot"></span>
+                        <span class="mc-label">${typeLabels[type]}</span>
+                        <span class="mc-sep">·</span>
+                        <span class="mc-time">${timeAgo}</span>
                     </div>
+                    <div class="mc-mid">
+                        <span class="mc-match">${fullMatchName}</span>
+                        <span class="mc-value">${metricValue}</span>
+                    </div>
+                    <div class="mc-bot">${marketLabel}</div>
                 </div>
                 ${inlineDetail}
             </div>
