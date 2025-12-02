@@ -5072,3 +5072,150 @@ td.volume,
     font-weight: 600;
     color: #22C55E;
 }
+
+/* ========== ALARM DETAIL NEW DESIGN ========== */
+
+/* Main Metric Container */
+.detail-main-metric {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 14px;
+}
+
+.detail-main-metric .metric-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.detail-main-metric .metric-value {
+    display: block;
+    font-size: 28px;
+    font-weight: 700;
+}
+
+/* SHARP Metric */
+.detail-main-metric.sharp .metric-value {
+    color: #22c55e;
+}
+
+/* INSIDER Metric */
+.detail-main-metric.insider {
+    text-align: center;
+}
+
+.metric-odds-change {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.odds-old {
+    font-size: 24px;
+    font-weight: 600;
+    color: #8b949e;
+}
+
+.odds-arrow {
+    font-size: 20px;
+    color: #a855f7;
+}
+
+.odds-new {
+    font-size: 28px;
+    font-weight: 700;
+    color: #a855f7;
+}
+
+.odds-pct {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.15);
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+
+/* VOLUMESHOCK Metric */
+.detail-main-metric.volumeshock .metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.detail-main-metric.volumeshock .metric-row:first-child {
+    border-bottom: 1px solid #30363d;
+    padding-top: 0;
+}
+
+.detail-main-metric.volumeshock .metric-row:last-child {
+    padding-bottom: 0;
+}
+
+.detail-main-metric.volumeshock .metric-value.money {
+    font-size: 22px;
+    font-weight: 700;
+    color: #F6C343;
+}
+
+.detail-main-metric.volumeshock .metric-value.shock {
+    font-size: 22px;
+    font-weight: 700;
+    color: #F6C343;
+}
+
+/* BIGMONEY Metric */
+.detail-main-metric.bigmoney .metric-value {
+    color: #F08A24;
+}
+
+/* History Section */
+.history-section {
+    margin-top: 14px;
+}
+
+.history-section .detail-logs-container {
+    background: #0d1117;
+    border: 1px solid #30363d;
+}
+
+/* Log Values by Type */
+.log-value {
+    font-weight: 600;
+}
+
+.log-value.sharp {
+    color: #22c55e;
+}
+
+.log-value.insider {
+    color: #a855f7;
+}
+
+.log-value.volumeshock {
+    color: #F6C343;
+}
+
+.log-value.shock {
+    color: #F6C343;
+}
+
+.log-value.bigmoney {
+    color: #F08A24;
+}
+
+/* Update card wrapper */
+.detail-card-wrapper {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-left-width: 6px;
+}
