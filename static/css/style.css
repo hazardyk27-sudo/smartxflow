@@ -6804,3 +6804,48 @@ td.volume,
     font-style: italic;
     margin-top: 2px;
 }
+
+/* =====================================================
+   TOAST NOTIFICATION
+   ===================================================== */
+.toast-notification {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #c9d1d9;
+    background: #21262d;
+    border: 1px solid #30363d;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 99999;
+    pointer-events: none;
+}
+
+.toast-notification.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.toast-notification.toast-warning {
+    background: #3d2a1a;
+    border-color: #f0883e;
+    color: #f0883e;
+}
+
+.toast-notification.toast-error {
+    background: #3d1a1a;
+    border-color: #f85149;
+    color: #f85149;
+}
+
+.toast-notification.toast-success {
+    background: #1a3d2a;
+    border-color: #3fb950;
+    color: #3fb950;
+}

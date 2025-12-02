@@ -18,6 +18,22 @@ let matchesDisplayCount = 20;
 
 const APP_TIMEZONE = 'Europe/Istanbul';
 
+function showToast(message, type = 'info') {
+    const existing = document.querySelector('.toast-notification');
+    if (existing) existing.remove();
+    
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
 /**
  * TEK KAYNAK: Tüm timestamp dönüşümleri bu fonksiyon üzerinden yapılmalı
  * 
@@ -4228,7 +4244,7 @@ function goToMatchFromAlarm(homeTeam, awayTeam) {
         }
         
         console.log('Mac bulunamadi:', homeTeam, 'vs', awayTeam);
-        alert(`Maç bulunamadı: ${homeTeam} - ${awayTeam}\nLütfen ana listede bu maçı arayın.`);
+        showToast(`Maç listede yok: ${homeTeam} - ${awayTeam}`, 'warning');
     }
 }
 
