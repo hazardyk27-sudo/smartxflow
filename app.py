@@ -2314,7 +2314,6 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
     
     min_amount_change = config.get('min_amount_change', 500)
     volume_multiplier = config.get('volume_multiplier', 1)
-    share_multiplier = config.get('share_multiplier', 1)
     max_volume_cap = config.get('max_volume_cap', 40)
     max_odds_cap = config.get('max_odds_cap', 35)
     max_share_cap = config.get('max_share_cap', 25)
@@ -2336,6 +2335,14 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         (config.get('stake_range_4_min', 15000), config.get('stake_range_4_max', 100000), config.get('stake_range_4_mult', 3)),
     ]
     default_stake_multiplier = 1
+    
+    share_ranges = [
+        (config.get('share_range_1_min', 0), config.get('share_range_1_max', 50), config.get('share_range_1_mult', 1)),
+        (config.get('share_range_2_min', 50), config.get('share_range_2_max', 75), config.get('share_range_2_mult', 1.5)),
+        (config.get('share_range_3_min', 75), config.get('share_range_3_max', 90), config.get('share_range_3_mult', 2)),
+        (config.get('share_range_4_min', 90), config.get('share_range_4_max', 100), config.get('share_range_4_mult', 3)),
+    ]
+    default_share_multiplier = 1
     
     best_candidate = None
     best_score = 0
@@ -2388,6 +2395,13 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
                 break
         
         odds_value = drop_pct * odds_multiplier
+        
+        share_multiplier = default_share_multiplier
+        for range_min, range_max, range_mult in share_ranges:
+            if range_min <= curr_share < range_max:
+                share_multiplier = range_mult
+                break
+        
         share_value = share_diff * share_multiplier
         
         volume_contrib = min(shock_value, max_volume_cap)
@@ -2424,6 +2438,7 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
                 'prev_share': prev_share,
                 'curr_share': curr_share,
                 'share_diff': share_diff,
+                'share_multiplier': share_multiplier,
                 'share_value': share_value,
                 'share_contrib': share_contrib,
                 'sharp_score': sharp_score
@@ -2460,7 +2475,7 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         'previous_share': best_candidate['prev_share'],
         'current_share': best_candidate['curr_share'],
         'share_diff': best_candidate['share_diff'],
-        'share_multiplier': share_multiplier,
+        'share_multiplier': best_candidate['share_multiplier'],
         'share_value': best_candidate['share_value'],
         'max_share_cap': max_share_cap,
         'share_contrib': best_candidate['share_contrib'],
