@@ -3408,9 +3408,11 @@ function renderAlertBand() {
         
         return `
             <div class="ab-pill ${info.pillClass}" onclick="showAlertBandDetail(${idx})">
-                <span class="ab-dot"></span>
+                <span class="ab-dot dot-${info.pillClass}"></span>
                 <span class="ab-type">${info.label}</span>
+                <span class="ab-sep">—</span>
                 <span class="ab-match">${home} - ${away}</span>
+                <span class="ab-sep">—</span>
                 <span class="ab-sel">${selection}</span>
                 <span class="ab-val">${value}</span>
             </div>

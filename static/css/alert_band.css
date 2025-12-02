@@ -87,6 +87,47 @@
     100% { box-shadow: none; }
 }
 
+/* ========== COLORED DOT INDICATOR ========== */
+
+.ab-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+    box-shadow: 0 0 6px currentColor;
+}
+
+.dot-sharp {
+    background-color: #16A34A;
+    box-shadow: 0 0 6px rgba(22, 163, 74, 0.6);
+}
+
+.dot-volumeshock {
+    background-color: #FACC15;
+    box-shadow: 0 0 6px rgba(250, 204, 21, 0.6);
+}
+
+.dot-insider {
+    background-color: #8B5CF6;
+    box-shadow: 0 0 6px rgba(139, 92, 246, 0.6);
+}
+
+.dot-drop {
+    background-color: #DC2626;
+    box-shadow: 0 0 6px rgba(220, 38, 38, 0.6);
+}
+
+.dot-bigmoney {
+    background-color: #F08A24;
+    box-shadow: 0 0 6px rgba(240, 138, 36, 0.6);
+}
+
+.dot-hugemoney {
+    background-color: #f97316;
+    box-shadow: 0 0 6px rgba(249, 115, 22, 0.6);
+}
+
 /* ========== PREMIUM TICKER PILLS ========== */
 
 .ab-pill {
