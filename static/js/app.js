@@ -3849,26 +3849,34 @@ function renderAlarmsList(filterType) {
         if (type === 'sharp') {
             badgeLabel = 'SHARP';
             const score = (alarm.sharp_score || 0).toFixed(1);
-            const volume = alarm.volume || 0;
-            const stakeShare = alarm.stake_share || 0;
-            const oddsMove = alarm.odds_move || 0;
+            const volumeContrib = (alarm.volume_contrib || 0).toFixed(1);
+            const oddsContrib = (alarm.odds_contrib || 0).toFixed(1);
+            const shareContrib = (alarm.share_contrib || 0).toFixed(1);
+            const prevOdds = (alarm.previous_odds || 0).toFixed(2);
+            const currOdds = (alarm.current_odds || 0).toFixed(2);
+            const prevShare = (alarm.previous_share || 0).toFixed(1);
+            const currShare = (alarm.current_share || 0).toFixed(1);
             metricContent = `<div class="acd-grid">
                 <div class="acd-stat">
                     <div class="acd-stat-val sharp">${score}</div>
                     <div class="acd-stat-lbl">Sharp Skor</div>
                 </div>
                 <div class="acd-stat">
-                    <div class="acd-stat-val">£${Number(volume).toLocaleString('en-GB')}</div>
-                    <div class="acd-stat-lbl">Hacim</div>
+                    <div class="acd-stat-val">${volumeContrib}</div>
+                    <div class="acd-stat-lbl">Hacim Puan</div>
                 </div>
                 <div class="acd-stat">
-                    <div class="acd-stat-val">${stakeShare.toFixed(1)}%</div>
-                    <div class="acd-stat-lbl">Stake Pay</div>
+                    <div class="acd-stat-val">${oddsContrib}</div>
+                    <div class="acd-stat-lbl">Oran Puan</div>
                 </div>
                 <div class="acd-stat">
-                    <div class="acd-stat-val">${oddsMove > 0 ? '+' : ''}${oddsMove.toFixed(2)}</div>
-                    <div class="acd-stat-lbl">Oran Değişim</div>
+                    <div class="acd-stat-val">${shareContrib}</div>
+                    <div class="acd-stat-lbl">Pay Puan</div>
                 </div>
+            </div>
+            <div class="acd-info-row">
+                <span>Oran: ${prevOdds} → ${currOdds}</span>
+                <span>Pay: ${prevShare}% → ${currShare}%</span>
             </div>`;
             historyLine = `${triggerTime}`;
         } else if (type === 'insider') {
@@ -3876,11 +3884,11 @@ function renderAlarmsList(filterType) {
             const openOdds = (alarm.opening_odds || 0).toFixed(2);
             const lastOdds = (alarm.last_odds || 0).toFixed(2);
             const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
-            const stake = alarm.stake || 0;
+            const stake = alarm.stake || alarm.volume || 0;
             metricContent = `<div class="acd-grid cols-3">
-                <div class="acd-stat wide">
+                <div class="acd-stat">
                     <div class="acd-stat-val insider">${openOdds} → ${lastOdds}</div>
-                    <div class="acd-stat-lbl">Oran Değişimi</div>
+                    <div class="acd-stat-lbl">Oran</div>
                 </div>
                 <div class="acd-stat">
                     <div class="acd-stat-val drop">▼ ${dropPct}%</div>
@@ -3894,21 +3902,21 @@ function renderAlarmsList(filterType) {
             historyLine = `${triggerTime}`;
         } else if (type === 'volumeshock') {
             badgeLabel = 'HACİM ŞOKU';
-            const newMoney = alarm.incoming_money || 0;
+            const newMoney = alarm.incoming_money || alarm.new_volume || 0;
             const shockVal = (alarm.volume_shock_value || 0).toFixed(1);
-            const prevVolume = alarm.previous_volume || 0;
+            const prevVolume = alarm.previous_volume || alarm.old_volume || 0;
             metricContent = `<div class="acd-grid cols-3">
                 <div class="acd-stat">
                     <div class="acd-stat-val volumeshock">${shockVal}x</div>
-                    <div class="acd-stat-lbl">Hacim Şoku</div>
+                    <div class="acd-stat-lbl">Şok</div>
                 </div>
                 <div class="acd-stat">
                     <div class="acd-stat-val">£${Number(newMoney).toLocaleString('en-GB')}</div>
-                    <div class="acd-stat-lbl">Gelen Para</div>
+                    <div class="acd-stat-lbl">Yeni</div>
                 </div>
                 <div class="acd-stat">
                     <div class="acd-stat-val">£${Number(prevVolume).toLocaleString('en-GB')}</div>
-                    <div class="acd-stat-lbl">Önceki Hacim</div>
+                    <div class="acd-stat-lbl">Önceki</div>
                 </div>
             </div>`;
             historyLine = `${triggerTime}`;
@@ -3923,7 +3931,7 @@ function renderAlarmsList(filterType) {
                 </div>
                 <div class="acd-stat">
                     <div class="acd-stat-val">£${Number(totalVolume).toLocaleString('en-GB')}</div>
-                    <div class="acd-stat-lbl">Toplam Hacim</div>
+                    <div class="acd-stat-lbl">Toplam</div>
                 </div>
             </div>`;
             historyLine = `${triggerTime}`;

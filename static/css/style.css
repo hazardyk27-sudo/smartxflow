@@ -6573,3 +6573,18 @@ td.volume,
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
+
+/* Info row for Sharp */
+.acd-info-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #8b949e;
+    padding: 8px 0;
+    border-top: 1px solid #30363d;
+    margin-top: 8px;
+}
+
+.acd-info-row span {
+    color: #c9d1d9;
+}
