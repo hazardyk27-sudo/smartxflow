@@ -4001,14 +4001,14 @@ function renderAlarmsList(filterType) {
         } else if (type === 'bigmoney') {
             badgeLabel = alarm.is_huge ? 'HUGE MONEY' : 'BIG MONEY';
             const money = alarm.incoming_money || alarm.stake || 0;
-            const totalVolume = alarm.volume || alarm.total_volume || 0;
+            const selectionTotal = alarm.selection_total || alarm.volume || alarm.total_volume || 0;
             metricContent = `<div class="acd-grid cols-2">
                 <div class="acd-stat">
                     <div class="acd-stat-val bigmoney">£${Number(money).toLocaleString('en-GB')}</div>
                     <div class="acd-stat-lbl">Gelen Para</div>
                 </div>
                 <div class="acd-stat">
-                    <div class="acd-stat-val">£${Number(totalVolume).toLocaleString('en-GB')}</div>
+                    <div class="acd-stat-val">£${Number(selectionTotal).toLocaleString('en-GB')}</div>
                     <div class="acd-stat-lbl">Toplam</div>
                 </div>
             </div>`;

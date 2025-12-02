@@ -1641,6 +1641,9 @@ def calculate_big_money_scores(config):
                     max_snapshot = max(big_money_snapshots, key=lambda s: s['incoming'])
                     max_incoming = max_snapshot['incoming']
                     
+                    # O seçeneğin toplam stake'i (en son snapshot'taki değer)
+                    selection_total = parse_volume(history[-1].get(amount_key, '0'))
+                    
                     # Event time: en büyük para girişinin olduğu snapshot zamanı
                     event_time = max_snapshot.get('scrapedat', '')
                     created_at = now_turkey().strftime('%d.%m.%Y %H:%M')
@@ -1651,6 +1654,7 @@ def calculate_big_money_scores(config):
                         'market': market_names.get(market, market),
                         'selection': selection,
                         'incoming_money': max_incoming,
+                        'selection_total': selection_total,
                         'is_huge': is_huge,
                         'huge_total': huge_total if is_huge else 0,
                         'alarm_type': 'HUGE MONEY' if is_huge else 'BIG MONEY',
