@@ -1580,7 +1580,7 @@ h1, h2, h3, h4, h5, h6,
 .selections-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    gap: 16px;
     margin-top: 16px;
 }
 
