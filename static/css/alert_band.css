@@ -361,10 +361,11 @@
 .ab-pill.hugemoney .ab-dot { background: #f97316; }
 
 .ab-type {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.3px;
+    line-height: 1;
 }
 
 .ab-pill.sharp .ab-type { color: #22c55e; }
@@ -375,13 +376,15 @@
 
 .ab-match {
     font-size: 12px;
-    font-weight: 500;
-    color: #c9d1d9;
+    font-weight: 600;
+    color: #e6edf3;
+    line-height: 1;
 }
 
 .ab-sel {
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
+    line-height: 1;
 }
 
 .ab-pill.sharp .ab-sel { color: #22c55e; }
@@ -393,6 +396,7 @@
 .ab-val {
     font-size: 12px;
     font-weight: 700;
+    line-height: 1;
 }
 
 .ab-pill.sharp .ab-val { color: #22c55e; }
