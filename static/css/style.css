@@ -6221,18 +6221,28 @@ td.volume,
     font-size: 14px;
     font-weight: 600;
     color: #c9d1d9;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-right: 12px;
 }
 
 .mc-value {
     font-size: 15px;
     font-weight: 700;
     color: var(--accent);
+    flex-shrink: 0;
+    text-align: right;
+    white-space: nowrap;
 }
 
 .mc-value .pct-drop {
-    font-size: 12px;
+    font-size: 11px;
     color: #fb7185;
-    margin-left: 4px;
+    display: block;
+    margin-top: 1px;
 }
 
 /* Row 3: Market */
