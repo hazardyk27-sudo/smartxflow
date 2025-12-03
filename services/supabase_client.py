@@ -296,7 +296,9 @@ class SupabaseClient:
             return []
         
         try:
-            url = f"{self._rest_url(market)}?select=*&order=date.desc"
+            # Use id.desc for ordering - ID contains timestamp (e.g. MW1X2_Chi_Guan_Lanz_1764640800)
+            # This ensures we get recent matches first regardless of date string format
+            url = f"{self._rest_url(market)}?select=*&order=id.desc"
             print(f"[Supabase] Fetching: {url}")
             resp = httpx.get(url, headers=self._headers(), timeout=15)
             
