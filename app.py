@@ -1963,6 +1963,7 @@ def calculate_dropping_alarms_endpoint():
 def calculate_dropping_scores(config):
     """
     Calculate Dropping Alert alarms based on opening odds vs current odds drop percentage.
+    Uses get_6h_odds_history which efficiently compares first snapshot vs last snapshot.
     
     L1: min_drop_l1% - max_drop_l1% drop (e.g., 7-10%)
     L2: min_drop_l2% - max_drop_l2% drop (e.g., 10-15%)
@@ -1982,68 +1983,57 @@ def calculate_dropping_scores(config):
     min_drop_l3 = config.get('min_drop_l3', 15)
     l2_enabled = config.get('l2_enabled', True)
     l3_enabled = config.get('l3_enabled', True)
-    persistence_minutes = config.get('persistence_minutes', 30)
-    persistence_enabled = config.get('persistence_enabled', True)
     
     print(f"[Dropping] Config: L1={min_drop_l1}-{max_drop_l1}%, L2={min_drop_l2}-{max_drop_l2}%, L3={min_drop_l3}%+")
     
     markets = ['dropping_1x2', 'dropping_ou25', 'dropping_btts']
     market_names = {'dropping_1x2': '1X2', 'dropping_ou25': 'O/U 2.5', 'dropping_btts': 'BTTS'}
+    selection_map = {
+        'dropping_1x2': {'odds1': '1', 'oddsx': 'X', 'odds2': '2'},
+        'dropping_ou25': {'under': 'Under', 'over': 'Over'},
+        'dropping_btts': {'oddsyes': 'Yes', 'oddsno': 'No'}
+    }
     
-    today = now_turkey().date()
+    created_at = now_turkey().strftime('%d.%m.%Y %H:%M')
     
     for idx, market in enumerate(markets):
         try:
-            if '1x2' in market:
-                selections = ['1', 'X', '2']
-                odds_keys = ['odds1', 'oddsx', 'odds2']
-                min_volume = config.get('min_volume_1x2', 3000)
-            elif 'ou25' in market:
-                selections = ['Over', 'Under']
-                odds_keys = ['oddsover', 'oddsunder']
-                min_volume = config.get('min_volume_ou25', 1000)
-            else:
-                selections = ['Yes', 'No']
-                odds_keys = ['oddsyes', 'oddsno']
-                min_volume = config.get('min_volume_btts', 500)
-            
-            history_table = f"{market}_history"
-            matches = supabase.get_all_matches_with_latest(market)
-            if not matches:
-                continue
-            
             dropping_calc_progress = f"{market_names.get(market, market)} isleniyor... ({idx+1}/3)"
             
-            for match in matches:
-                home = match.get('home', '')
-                away = match.get('away', '')
-                match_date_str = match.get('date', '')
-                volume = parse_volume(match.get('volume', '0'))
+            trend_data = supabase.get_6h_odds_history(market)
+            if not trend_data:
+                print(f"[Dropping] No trend data for {market}")
+                continue
+            
+            print(f"[Dropping] Processing {len(trend_data)} matches for {market}")
+            sel_map = selection_map.get(market, {})
+            
+            for match_key, match_data in trend_data.items():
+                home = match_data.get('home', '')
+                away = match_data.get('away', '')
+                values = match_data.get('values', {})
                 
-                if volume < min_volume:
+                if not home or not away:
                     continue
                 
-                match_key = f"{home}_{away}"
-                history = supabase.get_match_history(history_table, home, away)
-                
-                if not history or len(history) < 2:
-                    continue
-                
-                history.sort(key=lambda x: x.get('scrapedat', ''))
-                
-                for sel_idx, selection in enumerate(selections):
-                    odds_key = odds_keys[sel_idx]
+                for odds_key, sel_data in values.items():
+                    selection = sel_map.get(odds_key, odds_key)
                     
-                    opening_odds = parse_float(history[0].get(odds_key, '0'))
-                    current_odds = parse_float(history[-1].get(odds_key, '0'))
+                    opening_odds = sel_data.get('old')
+                    current_odds = sel_data.get('new')
+                    pct_change = sel_data.get('pct_change', 0)
+                    trend = sel_data.get('trend', 'stable')
+                    
+                    if opening_odds is None or current_odds is None:
+                        continue
                     
                     if opening_odds <= 0 or current_odds <= 0:
                         continue
                     
-                    if current_odds >= opening_odds:
+                    if trend != 'down':
                         continue
                     
-                    drop_pct = ((opening_odds - current_odds) / opening_odds) * 100
+                    drop_pct = abs(pct_change)
                     
                     level = None
                     if drop_pct >= min_drop_l3 and l3_enabled:
@@ -2056,33 +2046,6 @@ def calculate_dropping_scores(config):
                     if not level:
                         continue
                     
-                    if persistence_enabled and len(history) >= 3:
-                        persistence_check_passed = True
-                        required_snapshots = max(2, persistence_minutes // 10)
-                        recent_snapshots = history[-required_snapshots:] if len(history) >= required_snapshots else history
-                        
-                        for snap in recent_snapshots:
-                            snap_odds = parse_float(snap.get(odds_key, '0'))
-                            if snap_odds <= 0:
-                                continue
-                            snap_drop = ((opening_odds - snap_odds) / opening_odds) * 100
-                            
-                            if level == 'L1' and not (min_drop_l1 <= snap_drop):
-                                persistence_check_passed = False
-                                break
-                            elif level == 'L2' and not (min_drop_l2 <= snap_drop):
-                                persistence_check_passed = False
-                                break
-                            elif level == 'L3' and not (min_drop_l3 <= snap_drop):
-                                persistence_check_passed = False
-                                break
-                        
-                        if not persistence_check_passed:
-                            continue
-                    
-                    event_time = history[-1].get('scrapedat', '')
-                    created_at = now_turkey().strftime('%d.%m.%Y %H:%M')
-                    
                     alarm = {
                         'home': home,
                         'away': away,
@@ -2092,9 +2055,9 @@ def calculate_dropping_scores(config):
                         'opening_odds': round(opening_odds, 2),
                         'current_odds': round(current_odds, 2),
                         'drop_pct': round(drop_pct, 2),
-                        'volume': volume,
-                        'match_date': match_date_str,
-                        'event_time': event_time,
+                        'volume': 0,
+                        'match_date': '',
+                        'event_time': created_at,
                         'created_at': created_at
                     }
                     alarms.append(alarm)
