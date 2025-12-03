@@ -2006,17 +2006,21 @@ def calculate_dropping_scores(config):
         try:
             dropping_calc_progress = f"{market_names.get(market, market)} isleniyor... ({idx+1}/3)"
             
-            # Get corresponding Moneyway market data to check if match exists there
+            # Get corresponding Moneyway market data to check if match exists there + get match dates
             moneyway_market = moneyway_markets.get(market)
             moneyway_matches = set()
+            moneyway_dates = {}
             if moneyway_market:
                 moneyway_data = supabase.get_all_matches_with_latest(moneyway_market)
                 if moneyway_data:
                     for m in moneyway_data:
                         home = (m.get('home') or m.get('home_team') or m.get('Home') or '').lower().strip()
                         away = (m.get('away') or m.get('away_team') or m.get('Away') or '').lower().strip()
+                        match_date_raw = m.get('date') or ''
                         if home and away:
-                            moneyway_matches.add(f"{home}|{away}")
+                            key = f"{home}|{away}"
+                            moneyway_matches.add(key)
+                            moneyway_dates[key] = match_date_raw
                     print(f"[Dropping] Loaded {len(moneyway_matches)} matches from {moneyway_market} for cross-check")
             
             trend_data = supabase.get_6h_odds_history(market)
@@ -2031,7 +2035,6 @@ def calculate_dropping_scores(config):
             for match_key, match_data in trend_data.items():
                 home = match_data.get('home', '')
                 away = match_data.get('away', '')
-                match_date = match_data.get('date', '')
                 values = match_data.get('values', {})
                 
                 # Check if match exists in corresponding Moneyway market
@@ -2039,18 +2042,26 @@ def calculate_dropping_scores(config):
                 away_lower = away.lower().strip()
                 match_check_key = f"{home_lower}|{away_lower}"
                 
+                # Get match_date from moneyway data
+                match_date = moneyway_dates.get(match_check_key, '')
+                
                 if moneyway_matches and match_check_key not in moneyway_matches:
                     # Try partial match for team name variations
                     found = False
+                    found_key = None
                     for mw_key in moneyway_matches:
                         mw_home, mw_away = mw_key.split('|')
                         if (home_lower in mw_home or mw_home in home_lower) and \
                            (away_lower in mw_away or mw_away in away_lower):
                             found = True
+                            found_key = mw_key
                             break
                     if not found:
                         skipped_count += 1
                         continue
+                    # Get date from partial match
+                    if found_key:
+                        match_date = moneyway_dates.get(found_key, '')
                 
                 if not home or not away:
                     continue
