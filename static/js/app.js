@@ -4401,6 +4401,9 @@ async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, home
     const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
     let foundIndex = -1;
     
+    const homeWords = homeLower.replace(/fc|sc|ac|afc|fk/gi, '').trim().split(/\s+/).filter(w => w.length > 2);
+    const awayWords = awayLower.replace(/fc|sc|ac|afc|fk/gi, '').trim().split(/\s+/).filter(w => w.length > 2);
+    
     for (let i = 0; i < dataSource.length; i++) {
         const m = dataSource[i];
         const mHome = (m.home_team || m.Home || '').toLowerCase().trim();
@@ -4408,6 +4411,13 @@ async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, home
         
         if ((mHome.includes(homeLower) || homeLower.includes(mHome)) &&
             (mAway.includes(awayLower) || awayLower.includes(mAway))) {
+            foundIndex = i;
+            break;
+        }
+        
+        const homeMatch = homeWords.length > 0 && homeWords.some(w => mHome.includes(w));
+        const awayMatch = awayWords.length > 0 && awayWords.some(w => mAway.includes(w));
+        if (homeMatch && awayMatch) {
             foundIndex = i;
             break;
         }
@@ -4429,15 +4439,21 @@ async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, home
                         return;
                     }
                 }
+                
+                const rowHomeMatch = homeWords.length > 0 && homeWords.some(w => text.includes(w));
+                const rowAwayMatch = awayWords.length > 0 && awayWords.some(w => text.includes(w));
+                if (rowHomeMatch && rowAwayMatch) {
+                    const onclickAttr = row.getAttribute('onclick');
+                    const indexMatch = onclickAttr?.match(/openMatchModal\((\d+)\)/);
+                    if (indexMatch) {
+                        openMatchModal(parseInt(indexMatch[1]));
+                        return;
+                    }
+                }
             }
         }
         
-        const marketLabels = {
-            'dropping_1x2': 'Drop 1X2',
-            'dropping_ou25': 'Drop 2.5',
-            'dropping_btts': 'Drop BTTS'
-        };
-        showToast(`Maç henüz veritabanında yok. Alarm detayları kartta mevcut.`, 'info');
+        showToast(`Bu maç veritabanında bulunamadı. Alarm detayları kartta mevcut.`, 'info');
     }
 }
 
