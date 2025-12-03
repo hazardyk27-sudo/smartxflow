@@ -4038,7 +4038,8 @@ td.volume,
 }
 
 .alarms-sidebar-field select {
-    width: 100%;
+    width: calc(100% + 10px);
+    min-width: 130px;
     padding: 8px 12px;
     background: #21262d;
     border: 1px solid #30363d;
@@ -4051,11 +4052,18 @@ td.volume,
     background-repeat: no-repeat;
     background-position: right 10px center;
     padding-right: 30px;
+    transition: all 0.2s ease;
+}
+
+.alarms-sidebar-field select:hover {
+    background: #30363d;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .alarms-sidebar-field select:focus {
     outline: none;
-    border-color: #f59e0b;
+    border-color: #30363d;
+    box-shadow: 0 0 0 2px rgba(248, 166, 36, 0.15);
 }
 
 .alarms-sidebar-search {
