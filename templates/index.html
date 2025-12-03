@@ -280,8 +280,12 @@
     <div class="admin-panel-overlay" id="adminPanelOverlay" onclick="closeAdminPanel()">
         <div class="admin-panel-modal" onclick="event.stopPropagation()">
             <div class="admin-panel-header">
-                <h2>🔐 Admin Panel - Insider Alarm Doğrulama</h2>
+                <h2>🔐 Admin Panel</h2>
                 <button class="admin-panel-close" onclick="closeAdminPanel()">✕</button>
+            </div>
+            <div class="admin-tabs">
+                <button class="admin-tab active" data-tab="insider" onclick="switchAdminTab('insider')">Insider Alarmlar</button>
+                <button class="admin-tab" data-tab="volumeleader" onclick="switchAdminTab('volumeleader')">Hacim Lideri</button>
             </div>
             <div class="admin-panel-body" id="adminPanelBody">
                 <!-- Content loaded dynamically -->

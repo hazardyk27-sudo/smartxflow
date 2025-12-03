@@ -4593,13 +4593,14 @@ async function loadAllAlarmsOnce() {
     if (cachedAllAlarms) return cachedAllAlarms;
     
     try {
-        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes, droppingRes, halktuzagiRes] = await Promise.all([
+        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes, droppingRes, halktuzagiRes, volumeLeaderRes] = await Promise.all([
             fetch('/api/sharp/alarms').catch(() => ({ ok: false })),
             fetch('/api/insider/alarms').catch(() => ({ ok: false })),
             fetch('/api/bigmoney/alarms').catch(() => ({ ok: false })),
             fetch('/api/volumeshock/alarms').catch(() => ({ ok: false })),
             fetch('/api/dropping/alarms').catch(() => ({ ok: false })),
-            fetch('/api/halktuzagi/alarms').catch(() => ({ ok: false }))
+            fetch('/api/halktuzagi/alarms').catch(() => ({ ok: false })),
+            fetch('/api/volumeleader/alarms').catch(() => ({ ok: false }))
         ]);
         
         let allAlarms = [];
@@ -4638,6 +4639,12 @@ async function loadAllAlarmsOnce() {
             const publictrap = await halktuzagiRes.json();
             publictrap.forEach(a => { a._type = 'publictrap'; });
             allAlarms = allAlarms.concat(publictrap);
+        }
+        
+        if (volumeLeaderRes.ok) {
+            const volumeleader = await volumeLeaderRes.json();
+            volumeleader.forEach(a => { a._type = 'volumeleader'; });
+            allAlarms = allAlarms.concat(volumeleader);
         }
         
         cachedAllAlarms = allAlarms;
@@ -5075,5 +5082,196 @@ async function loadAdminInsiderData() {
     } catch (e) {
         console.error('Admin panel veri yükleme hatası:', e);
         body.innerHTML = '<div class="admin-no-data">Veri yüklenirken hata oluştu.</div>';
+    }
+}
+
+let currentAdminTab = 'insider';
+
+function switchAdminTab(tab) {
+    currentAdminTab = tab;
+    
+    document.querySelectorAll('.admin-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === tab);
+    });
+    
+    if (tab === 'insider') {
+        loadAdminInsiderData();
+    } else if (tab === 'volumeleader') {
+        loadAdminVolumeLeaderData();
+    }
+}
+
+async function loadAdminVolumeLeaderData() {
+    const body = document.getElementById('adminPanelBody');
+    if (!body) return;
+    
+    body.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8;">Yükleniyor...</div>';
+    
+    try {
+        const [configRes, alarmsRes, statusRes] = await Promise.all([
+            fetch('/api/volumeleader/config'),
+            fetch('/api/volumeleader/alarms'),
+            fetch('/api/volumeleader/status')
+        ]);
+        
+        const config = configRes.ok ? await configRes.json() : {};
+        const alarms = alarmsRes.ok ? await alarmsRes.json() : [];
+        const status = statusRes.ok ? await statusRes.json() : {};
+        
+        let html = `
+            <div class="admin-section">
+                <h3 style="color:#06b6d4; margin-bottom:16px;">⚡ Hacim Lideri Değişti - Ayarlar</h3>
+                
+                <div class="admin-config-form">
+                    <div class="config-row">
+                        <label>Lider Eşiği (%)</label>
+                        <input type="number" id="vlLeaderThreshold" value="${config.leader_threshold || 50}" min="40" max="70" step="1">
+                        <span class="config-hint">Minimum pay oranı (varsayılan: %50)</span>
+                    </div>
+                    
+                    <div class="config-row">
+                        <label>Min. Hacim 1X2 (£)</label>
+                        <input type="number" id="vlMinVolume1x2" value="${config.min_volume_1x2 || 5000}" min="1000" step="500">
+                    </div>
+                    
+                    <div class="config-row">
+                        <label>Min. Hacim O/U (£)</label>
+                        <input type="number" id="vlMinVolumeOu25" value="${config.min_volume_ou25 || 2000}" min="500" step="250">
+                    </div>
+                    
+                    <div class="config-row">
+                        <label>Min. Hacim BTTS (£)</label>
+                        <input type="number" id="vlMinVolumeBtts" value="${config.min_volume_btts || 1000}" min="250" step="250">
+                    </div>
+                    
+                    <div class="config-actions">
+                        <button class="admin-btn primary" onclick="saveVolumeLeaderConfig()">💾 Ayarları Kaydet</button>
+                        <button class="admin-btn success" onclick="calculateVolumeLeaderAlarms()" id="vlCalcBtn">🔍 Hesapla</button>
+                        <button class="admin-btn danger" onclick="deleteVolumeLeaderAlarms()">🗑️ Alarmları Sil</button>
+                    </div>
+                    
+                    <div id="vlCalcStatus" style="display:none; margin-top:12px; padding:8px; background:#0d1117; border-radius:4px; color:#8b949e; font-size:12px;"></div>
+                </div>
+            </div>
+            
+            <div class="admin-section" style="margin-top:24px;">
+                <h3 style="color:#06b6d4; margin-bottom:16px;">📊 Alarmlar (${alarms.length})</h3>
+        `;
+        
+        if (alarms.length === 0) {
+            html += '<div class="admin-no-data">Henüz alarm yok. "Hesapla" butonuna tıklayın.</div>';
+        } else {
+            html += `
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Maç</th>
+                            <th>Market</th>
+                            <th>Eski Lider</th>
+                            <th>Yeni Lider</th>
+                            <th>Toplam Hacim</th>
+                            <th>Alarm Zamanı</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            alarms.slice(0, 50).forEach(alarm => {
+                const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
+                const market = alarm.market || '-';
+                const oldLeader = `${alarm.old_leader || '-'} (%${(alarm.old_leader_share || 0).toFixed(0)})`;
+                const newLeader = `${alarm.new_leader || '-'} (%${(alarm.new_leader_share || 0).toFixed(0)})`;
+                const totalVol = `£${Number(alarm.total_volume || 0).toLocaleString('en-GB')}`;
+                const eventTime = alarm.event_time || '-';
+                
+                html += `
+                    <tr>
+                        <td class="match-col">${matchName}</td>
+                        <td><span class="admin-badge volumeleader">${market}</span></td>
+                        <td style="color:#f87171;">${oldLeader}</td>
+                        <td style="color:#22d3ee;">${newLeader}</td>
+                        <td>${totalVol}</td>
+                        <td class="admin-value-muted">${eventTime}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+        }
+        
+        html += '</div>';
+        body.innerHTML = html;
+        
+    } catch (e) {
+        console.error('Volume Leader admin veri hatası:', e);
+        body.innerHTML = '<div class="admin-no-data">Veri yüklenirken hata oluştu.</div>';
+    }
+}
+
+async function saveVolumeLeaderConfig() {
+    const config = {
+        leader_threshold: parseInt(document.getElementById('vlLeaderThreshold').value) || 50,
+        min_volume_1x2: parseInt(document.getElementById('vlMinVolume1x2').value) || 5000,
+        min_volume_ou25: parseInt(document.getElementById('vlMinVolumeOu25').value) || 2000,
+        min_volume_btts: parseInt(document.getElementById('vlMinVolumeBtts').value) || 1000
+    };
+    
+    try {
+        const res = await fetch('/api/volumeleader/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+        
+        if (res.ok) {
+            showToast('Ayarlar kaydedildi', 'success');
+        } else {
+            showToast('Kaydetme hatası', 'error');
+        }
+    } catch (e) {
+        showToast('Bağlantı hatası', 'error');
+    }
+}
+
+async function calculateVolumeLeaderAlarms() {
+    const btn = document.getElementById('vlCalcBtn');
+    const statusDiv = document.getElementById('vlCalcStatus');
+    
+    if (btn) btn.disabled = true;
+    if (statusDiv) {
+        statusDiv.style.display = 'block';
+        statusDiv.textContent = 'Hesaplama başlatılıyor...';
+    }
+    
+    try {
+        const res = await fetch('/api/volumeleader/calculate', { method: 'POST' });
+        const data = await res.json();
+        
+        if (data.success) {
+            showToast(`${data.count} yeni alarm bulundu!`, 'success');
+            loadAdminVolumeLeaderData();
+        } else {
+            showToast(data.error || 'Hesaplama hatası', 'error');
+        }
+    } catch (e) {
+        showToast('Bağlantı hatası', 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+async function deleteVolumeLeaderAlarms() {
+    if (!confirm('Tüm Hacim Lideri alarmlarını silmek istediğinize emin misiniz?')) return;
+    
+    try {
+        const res = await fetch('/api/volumeleader/alarms', { method: 'DELETE' });
+        if (res.ok) {
+            showToast('Alarmlar silindi', 'success');
+            loadAdminVolumeLeaderData();
+        } else {
+            showToast('Silme hatası', 'error');
+        }
+    } catch (e) {
+        showToast('Bağlantı hatası', 'error');
     }
 }
