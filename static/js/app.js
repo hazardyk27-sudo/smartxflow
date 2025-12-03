@@ -5098,6 +5098,8 @@ function switchAdminTab(tab) {
         loadAdminInsiderData();
     } else if (tab === 'volumeleader') {
         loadAdminVolumeLeaderData();
+    } else if (tab === 'dropping') {
+        loadAdminDroppingData();
     }
 }
 
@@ -5268,6 +5270,215 @@ async function deleteVolumeLeaderAlarms() {
         if (res.ok) {
             showToast('Alarmlar silindi', 'success');
             loadAdminVolumeLeaderData();
+        } else {
+            showToast('Silme hatası', 'error');
+        }
+    } catch (e) {
+        showToast('Bağlantı hatası', 'error');
+    }
+}
+
+async function loadAdminDroppingData() {
+    const body = document.getElementById('adminPanelBody');
+    if (!body) return;
+    
+    body.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8;">Yükleniyor...</div>';
+    
+    try {
+        const [configRes, alarmsRes] = await Promise.all([
+            fetch('/api/dropping/config'),
+            fetch('/api/dropping/alarms')
+        ]);
+        
+        const config = configRes.ok ? await configRes.json() : {};
+        const alarms = alarmsRes.ok ? await alarmsRes.json() : [];
+        
+        let html = `
+            <div class="admin-section">
+                <h3 style="color:#f85149; margin-bottom:16px;">📉 Dropping Alarm - Max Oran Eşiği</h3>
+                <p style="color:#8b949e; font-size:12px; margin-bottom:16px;">
+                    Açılış oranı bu eşiklerin üzerindeyse dropping alarmı tetiklenmez.
+                </p>
+                
+                <div class="admin-config-form">
+                    <div class="config-row">
+                        <label>Max Oran 1X2</label>
+                        <input type="number" id="drMaxOdds1x2" value="${config.max_odds_1x2 || 5.0}" min="1.5" max="20" step="0.5">
+                        <span class="config-hint">1X2 için max açılış oranı (varsayılan: 5.0)</span>
+                    </div>
+                    
+                    <div class="config-row">
+                        <label>Max Oran O/U 2.5</label>
+                        <input type="number" id="drMaxOddsOu25" value="${config.max_odds_ou25 || 3.0}" min="1.5" max="10" step="0.25">
+                        <span class="config-hint">Alt/Üst için max açılış oranı (varsayılan: 3.0)</span>
+                    </div>
+                    
+                    <div class="config-row">
+                        <label>Max Oran BTTS</label>
+                        <input type="number" id="drMaxOddsBtts" value="${config.max_odds_btts || 3.0}" min="1.5" max="10" step="0.25">
+                        <span class="config-hint">BTTS için max açılış oranı (varsayılan: 3.0)</span>
+                    </div>
+                    
+                    <div style="border-top: 1px solid #30363d; margin-top: 16px; padding-top: 16px;">
+                        <h4 style="color:#f85149; margin-bottom:12px; font-size:13px;">📊 Düşüş Yüzde Eşikleri</h4>
+                        
+                        <div class="config-row">
+                            <label>L1 Min (%)</label>
+                            <input type="number" id="drMinDropL1" value="${config.min_drop_l1 || 10}" min="5" max="30" step="1">
+                        </div>
+                        
+                        <div class="config-row">
+                            <label>L1 Max (%)</label>
+                            <input type="number" id="drMaxDropL1" value="${config.max_drop_l1 || 17}" min="5" max="30" step="1">
+                        </div>
+                        
+                        <div class="config-row">
+                            <label>L2 Min (%)</label>
+                            <input type="number" id="drMinDropL2" value="${config.min_drop_l2 || 17}" min="10" max="40" step="1">
+                        </div>
+                        
+                        <div class="config-row">
+                            <label>L2 Max (%)</label>
+                            <input type="number" id="drMaxDropL2" value="${config.max_drop_l2 || 20}" min="10" max="40" step="1">
+                        </div>
+                        
+                        <div class="config-row">
+                            <label>L3 Min (%)</label>
+                            <input type="number" id="drMinDropL3" value="${config.min_drop_l3 || 20}" min="15" max="50" step="1">
+                            <span class="config-hint">L3 ve üzeri düşüşler</span>
+                        </div>
+                    </div>
+                    
+                    <div class="config-actions">
+                        <button class="admin-btn primary" onclick="saveDroppingConfig()">💾 Ayarları Kaydet</button>
+                        <button class="admin-btn success" onclick="calculateDroppingAlarms()" id="drCalcBtn">🔍 Hesapla</button>
+                        <button class="admin-btn danger" onclick="deleteDroppingAlarms()">🗑️ Alarmları Sil</button>
+                    </div>
+                    
+                    <div id="drCalcStatus" style="display:none; margin-top:12px; padding:8px; background:#0d1117; border-radius:4px; color:#8b949e; font-size:12px;"></div>
+                </div>
+            </div>
+            
+            <div class="admin-section" style="margin-top:24px;">
+                <h3 style="color:#f85149; margin-bottom:16px;">📊 Alarmlar (${alarms.length})</h3>
+        `;
+        
+        if (alarms.length === 0) {
+            html += '<div class="admin-no-data">Henüz alarm yok.</div>';
+        } else {
+            html += `
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Maç</th>
+                            <th>Market</th>
+                            <th>Seviye</th>
+                            <th>Açılış → Güncel</th>
+                            <th>Düşüş %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            alarms.slice(0, 30).forEach(alarm => {
+                const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
+                const market = `${alarm.market || '-'} → ${alarm.selection || '-'}`;
+                const level = alarm.level || '-';
+                const odds = `${alarm.opening_odds?.toFixed(2) || '-'} → ${alarm.current_odds?.toFixed(2) || '-'}`;
+                const dropPct = `${alarm.drop_pct?.toFixed(1) || 0}%`;
+                
+                const levelColor = level === 'L3' ? '#f85149' : level === 'L2' ? '#ffa657' : '#ffc107';
+                
+                html += `
+                    <tr>
+                        <td class="match-col">${matchName}</td>
+                        <td><span class="admin-badge dropping">${market}</span></td>
+                        <td><span style="color:${levelColor}; font-weight:600;">${level}</span></td>
+                        <td>${odds}</td>
+                        <td class="admin-value-negative">${dropPct}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            if (alarms.length > 30) {
+                html += `<div style="text-align:center; padding:12px; color:#6e7681; font-size:12px;">+${alarms.length - 30} daha fazla alarm...</div>`;
+            }
+        }
+        
+        html += '</div>';
+        body.innerHTML = html;
+        
+    } catch (e) {
+        console.error('Dropping admin veri hatası:', e);
+        body.innerHTML = '<div class="admin-no-data">Veri yüklenirken hata oluştu.</div>';
+    }
+}
+
+async function saveDroppingConfig() {
+    const config = {
+        max_odds_1x2: parseFloat(document.getElementById('drMaxOdds1x2').value) || 5.0,
+        max_odds_ou25: parseFloat(document.getElementById('drMaxOddsOu25').value) || 3.0,
+        max_odds_btts: parseFloat(document.getElementById('drMaxOddsBtts').value) || 3.0,
+        min_drop_l1: parseInt(document.getElementById('drMinDropL1').value) || 10,
+        max_drop_l1: parseInt(document.getElementById('drMaxDropL1').value) || 17,
+        min_drop_l2: parseInt(document.getElementById('drMinDropL2').value) || 17,
+        max_drop_l2: parseInt(document.getElementById('drMaxDropL2').value) || 20,
+        min_drop_l3: parseInt(document.getElementById('drMinDropL3').value) || 20
+    };
+    
+    try {
+        const res = await fetch('/api/dropping/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+        
+        if (res.ok) {
+            showToast('Dropping ayarları kaydedildi', 'success');
+        } else {
+            showToast('Kaydetme hatası', 'error');
+        }
+    } catch (e) {
+        showToast('Bağlantı hatası', 'error');
+    }
+}
+
+async function calculateDroppingAlarms() {
+    const btn = document.getElementById('drCalcBtn');
+    const statusDiv = document.getElementById('drCalcStatus');
+    
+    if (btn) btn.disabled = true;
+    if (statusDiv) {
+        statusDiv.style.display = 'block';
+        statusDiv.textContent = 'Dropping alarmları hesaplanıyor...';
+    }
+    
+    try {
+        const res = await fetch('/api/dropping/calculate', { method: 'POST' });
+        const data = await res.json();
+        
+        if (data.success) {
+            showToast(`${data.count} dropping alarm bulundu!`, 'success');
+            loadAdminDroppingData();
+        } else {
+            showToast(data.error || 'Hesaplama hatası', 'error');
+        }
+    } catch (e) {
+        showToast('Bağlantı hatası', 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+async function deleteDroppingAlarms() {
+    if (!confirm('Tüm Dropping alarmlarını silmek istediğinize emin misiniz?')) return;
+    
+    try {
+        const res = await fetch('/api/dropping/alarms', { method: 'DELETE' });
+        if (res.ok) {
+            showToast('Dropping alarmları silindi', 'success');
+            loadAdminDroppingData();
         } else {
             showToast('Silme hatası', 'error');
         }

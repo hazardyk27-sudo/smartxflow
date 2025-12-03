@@ -2001,7 +2001,17 @@ def calculate_dropping_scores(config):
     l2_enabled = config.get('l2_enabled', True)
     l3_enabled = config.get('l3_enabled', True)
     
+    max_odds_1x2 = config.get('max_odds_1x2', 5.0)
+    max_odds_ou25 = config.get('max_odds_ou25', 3.0)
+    max_odds_btts = config.get('max_odds_btts', 3.0)
+    max_odds_map = {
+        'dropping_1x2': max_odds_1x2,
+        'dropping_ou25': max_odds_ou25,
+        'dropping_btts': max_odds_btts
+    }
+    
     print(f"[Dropping] Config: L1={min_drop_l1}-{max_drop_l1}%, L2={min_drop_l2}-{max_drop_l2}%, L3={min_drop_l3}%+")
+    print(f"[Dropping] Max Odds: 1X2={max_odds_1x2}, OU={max_odds_ou25}, BTTS={max_odds_btts}")
     
     markets = ['dropping_1x2', 'dropping_ou25', 'dropping_btts']
     market_names = {'dropping_1x2': '1X2', 'dropping_ou25': 'O/U 2.5', 'dropping_btts': 'BTTS'}
@@ -2094,6 +2104,10 @@ def calculate_dropping_scores(config):
                         continue
                     
                     if trend != 'down':
+                        continue
+                    
+                    max_odds_limit = max_odds_map.get(market, 5.0)
+                    if opening_odds > max_odds_limit:
                         continue
                     
                     drop_pct = abs(pct_change)

@@ -4754,6 +4754,11 @@ td.volume,
     color: #06b6d4;
 }
 
+.admin-badge.dropping {
+    background: rgba(248, 81, 73, 0.15);
+    color: #f85149;
+}
+
 .admin-panel-header h2 {
     margin: 0;
     font-size: 18px;
