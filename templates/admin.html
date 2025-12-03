@@ -547,6 +547,10 @@
                 <span class="nav-item-icon">💰</span>
                 <span>Big Money</span>
             </div>
+            <div class="nav-item" onclick="showPage('dropping')" data-page="dropping">
+                <span class="nav-item-icon">📉</span>
+                <span>Dropping Alert</span>
+            </div>
             <div class="nav-item" onclick="showPage('volumeshock')" data-page="volumeshock">
                 <span class="nav-item-icon">⚡</span>
                 <span>Hacim Soku</span>
@@ -1335,6 +1339,142 @@
             </div>
         </div>
 
+        <!-- DROPPING ALERT PAGE -->
+        <div id="page-dropping" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title" style="color: #e74c3c;">📉 Dropping Alert</h2>
+                    <p class="page-subtitle">Acilis oranindan bu yana dusus yuzdesini takip et (L1, L2, L3)</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-danger" onclick="deleteAllDroppingAlarms()">Tum Alarmlari Sil</button>
+                </div>
+            </div>
+
+            <div class="config-grid">
+                <div class="info-card" style="border-left: 3px solid #e74c3c;">
+                    <h3>📉 L1 Dropping Alert (Dusuk Seviye)</h3>
+                    <div class="info-row">
+                        <span class="info-label">Minimum Dusus Esigi (%)</span>
+                        <input type="number" id="droppingMinL1" class="config-input" value="7" min="1" max="50" step="1" style="width: 80px;">
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Maksimum Dusus Esigi (%)</span>
+                        <input type="number" id="droppingMaxL1" class="config-input" value="10" min="1" max="50" step="1" style="width: 80px;">
+                    </div>
+                    <p style="color: #8b949e; font-size: 11px; margin-top: 8px;">Seviye 1: Bu esikten baslar</p>
+                </div>
+
+                <div class="info-card" style="border-left: 3px solid #f39c12;">
+                    <h3 style="display: flex; align-items: center; gap: 10px;">
+                        📉 L2 Dropping Alert (Orta Seviye)
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="droppingL2Enabled" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </h3>
+                    <div class="info-row">
+                        <span class="info-label">Minimum Dusus Esigi (%)</span>
+                        <input type="number" id="droppingMinL2" class="config-input" value="10" min="1" max="50" step="1" style="width: 80px;">
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Maksimum Dusus Esigi (%)</span>
+                        <input type="number" id="droppingMaxL2" class="config-input" value="15" min="1" max="50" step="1" style="width: 80px;">
+                    </div>
+                    <p style="color: #8b949e; font-size: 11px; margin-top: 8px;">Aktifse: Bu esik asildiginda Seviye 2 alarmi</p>
+                </div>
+
+                <div class="info-card" style="border-left: 3px solid #c0392b;">
+                    <h3 style="display: flex; align-items: center; gap: 10px;">
+                        📉 L3 Dropping Alert (Yuksek Seviye)
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="droppingL3Enabled" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </h3>
+                    <div class="info-row">
+                        <span class="info-label">Minimum Dusus Esigi (%)</span>
+                        <input type="number" id="droppingMinL3" class="config-input" value="15" min="1" max="50" step="1" style="width: 80px;">
+                    </div>
+                    <p style="color: #8b949e; font-size: 11px; margin-top: 8px;">Aktifse: Bu esikten fazlaysa Seviye 3 alarmi</p>
+                </div>
+
+                <div class="info-card" style="border-left: 3px solid #3498db;">
+                    <h3 style="display: flex; align-items: center; gap: 10px;">
+                        ⏱️ Kalicilik Suresi
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="droppingPersistenceEnabled" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </h3>
+                    <div class="info-row">
+                        <span class="info-label">Kalicilik Suresi (Dakika)</span>
+                        <input type="number" id="droppingPersistenceMinutes" class="config-input" value="30" min="10" max="120" step="10" style="width: 80px;">
+                    </div>
+                    <p style="color: #8b949e; font-size: 11px; margin-top: 8px;">Aktifse: Dusus bu sure boyunca devam etmeli</p>
+                </div>
+            </div>
+
+            <div class="info-card" style="margin-top: 20px;">
+                <h3>📊 Minimum Market Volume Esikleri</h3>
+                <div class="form-group">
+                    <label>1X2 Minimum Volume</label>
+                    <input type="number" id="dropping_min_volume_1x2" value="3000" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>O/U 2.5 Minimum Volume</label>
+                    <input type="number" id="dropping_min_volume_ou25" value="1000" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>BTTS Minimum Volume</label>
+                    <input type="number" id="dropping_min_volume_btts" value="500" class="form-input">
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="saveDroppingConfig()" style="background: #e74c3c;">
+                        <span class="btn-icon">💾</span> Kaydet
+                    </button>
+                    <button class="btn btn-success" onclick="calculateDropping()" style="background: #238636;">
+                        <span class="btn-icon">📉</span> Dropping Hesapla
+                    </button>
+                </div>
+            </div>
+
+            <div class="info-card" style="margin-top: 20px;">
+                <h3>📖 Nasil Calisir?</h3>
+                <div style="font-size: 12px; color: #8b949e; line-height: 1.6;">
+                    <p><strong style="color: #e74c3c;">📉 L1 DROPPING:</strong> Acilis oranindan %7-%10 arasi dusus</p>
+                    <p><strong style="color: #f39c12;">📉 L2 DROPPING:</strong> Acilis oranindan %10-%15 arasi dusus</p>
+                    <p><strong style="color: #c0392b;">📉 L3 DROPPING:</strong> Acilis oranindan %15+ dusus</p>
+                    <p style="margin-top: 10px; padding: 8px; background: #21262d; border-radius: 6px;">
+                        <strong style="color: #3498db;">Sinyal:</strong> Buyuk oran dususleri genellikle profesyonel bahiscilerin (sharps) pozisyon aldigini gosterir!
+                    </p>
+                </div>
+            </div>
+
+            <div class="info-card" style="margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0; color: #e74c3c;">📉 Dropping Alarmlar <span id="droppingAlarmCount" class="badge" style="background: #e74c3c;">0</span></h3>
+                    <div style="position: relative;">
+                        <input type="text" id="droppingSearchInput" placeholder="Takim ara..." 
+                               oninput="filterDroppingAlarms()" 
+                               style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 200px;">
+                        <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                    </div>
+                </div>
+                <div id="droppingCalcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #e74c3c;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="spinner" style="width: 20px; height: 20px; border: 3px solid #30363d; border-top-color: #e74c3c; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span id="droppingCalcProgress" style="color: #e74c3c; font-weight: 500;">Hesaplama devam ediyor...</span>
+                    </div>
+                </div>
+                <div id="droppingAlarmList" class="alarm-list">
+                    <p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz Dropping alarm yok. "📉 Dropping Hesapla" butonuna basin.</p>
+                </div>
+            </div>
+        </div>
+
         <!-- VOLUME SHOCK (HACIM SOKU) PAGE -->
         <div id="page-volumeshock" class="page-content">
             <div class="page-header">
@@ -1506,6 +1646,7 @@
             if (pageId === 'halktuzagi') loadHalkTuzagiPage();
             if (pageId === 'insider') loadInsiderPage();
             if (pageId === 'bigmoney') loadBigMoneyPage();
+            if (pageId === 'dropping') loadDroppingPage();
             if (pageId === 'volumeshock') loadVolumeShockPage();
         }
 
@@ -2453,6 +2594,11 @@
             await loadBigMoneyAlarms();
         }
 
+        async function loadDroppingPage() {
+            await loadDroppingConfig();
+            await loadDroppingAlarms();
+        }
+
         async function loadBigMoneyConfig() {
             try {
                 const response = await fetch('/api/bigmoney/config');
@@ -2909,6 +3055,217 @@
                             `Bu macta ${alarm.selection} secenegine tek snapshot'ta £${Math.round(alarm.incoming_money || 0).toLocaleString()} para girisi tespit edildi!<br><br>
                             <strong style="color: #f0b429;">Sonuc:</strong> Buyuk oyuncular (sharps) pozisyon aliyor olabilir!`
                         }
+                    </p>
+                </div>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        // ==================== DROPPING ALERT FUNCTIONS ====================
+        let allDroppingAlarms = [];
+
+        async function loadDroppingConfig() {
+            try {
+                const response = await fetch('/api/dropping/config');
+                if (response.ok) {
+                    const config = await response.json();
+                    document.getElementById('droppingMinL1').value = config.min_drop_l1 || 7;
+                    document.getElementById('droppingMaxL1').value = config.max_drop_l1 || 10;
+                    document.getElementById('droppingMinL2').value = config.min_drop_l2 || 10;
+                    document.getElementById('droppingMaxL2').value = config.max_drop_l2 || 15;
+                    document.getElementById('droppingMinL3').value = config.min_drop_l3 || 15;
+                    document.getElementById('droppingL2Enabled').checked = config.l2_enabled !== false;
+                    document.getElementById('droppingL3Enabled').checked = config.l3_enabled !== false;
+                    document.getElementById('droppingPersistenceEnabled').checked = config.persistence_enabled !== false;
+                    document.getElementById('droppingPersistenceMinutes').value = config.persistence_minutes || 30;
+                    document.getElementById('dropping_min_volume_1x2').value = config.min_volume_1x2 || 3000;
+                    document.getElementById('dropping_min_volume_ou25').value = config.min_volume_ou25 || 1000;
+                    document.getElementById('dropping_min_volume_btts').value = config.min_volume_btts || 500;
+                }
+            } catch (error) {
+                console.error('Dropping config yukleme hatasi:', error);
+            }
+        }
+
+        async function loadDroppingAlarms() {
+            try {
+                const response = await fetch('/api/dropping/alarms');
+                if (response.ok) {
+                    const alarms = await response.json();
+                    allDroppingAlarms = alarms;
+                    renderDroppingAlarms(alarms);
+                }
+            } catch (error) {
+                console.error('Dropping alarm yukleme hatasi:', error);
+            }
+        }
+
+        function renderDroppingAlarms(alarms, totalCount = null) {
+            const container = document.getElementById('droppingAlarmList');
+            const countEl = document.getElementById('droppingAlarmCount');
+            
+            if (!alarms || alarms.length === 0) {
+                const searchTerm = document.getElementById('droppingSearchInput')?.value || '';
+                if (searchTerm) {
+                    container.innerHTML = '<p style="color: #8b949e; padding: 20px 0; text-align: center;">Aramayla eslesen Dropping alarm yok.</p>';
+                    countEl.textContent = `0/${totalCount || 0}`;
+                } else {
+                    container.innerHTML = '<p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz Dropping alarm yok. "📉 Dropping Hesapla" butonuna basin.</p>';
+                    countEl.textContent = '0';
+                }
+                return;
+            }
+
+            countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
+            container.innerHTML = alarms.map((alarm, idx) => {
+                const levelColors = { 'L1': '#e74c3c', 'L2': '#f39c12', 'L3': '#c0392b' };
+                const bgColor = levelColors[alarm.level] || '#e74c3c';
+                
+                return `
+                <div class="alarm-item" onclick="showDroppingAlarmDetail(${idx})" style="border-left: 3px solid ${bgColor};">
+                    <div class="alarm-info">
+                        <div class="alarm-match">
+                            <span style="background:${bgColor};color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">📉 ${alarm.level}</span>
+                            ${alarm.home} vs ${alarm.away}
+                        </div>
+                        <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
+                        <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
+                            <span style="color: ${bgColor};" title="Dusus Yuzdesi">📉 %${(alarm.drop_pct || 0).toFixed(1)}</span>
+                            <span style="color: #58a6ff;" title="Acilis Orani">📊 ${alarm.opening_odds || 0}</span>
+                            <span style="color: #3fb950;" title="Guncel Oran">📈 ${alarm.current_odds || 0}</span>
+                        </div>
+                    </div>
+                    <div class="alarm-score" style="background: linear-gradient(135deg, ${bgColor}, ${bgColor}dd);">${alarm.level}</div>
+                </div>
+            `}).join('');
+
+            window.currentDroppingAlarms = alarms;
+        }
+
+        function filterDroppingAlarms() {
+            const searchTerm = document.getElementById('droppingSearchInput').value.toLowerCase().trim();
+            if (!searchTerm) {
+                renderDroppingAlarms(allDroppingAlarms);
+                return;
+            }
+            const filtered = allDroppingAlarms.filter(alarm => 
+                (alarm.home || '').toLowerCase().includes(searchTerm) ||
+                (alarm.away || '').toLowerCase().includes(searchTerm)
+            );
+            renderDroppingAlarms(filtered, allDroppingAlarms.length);
+        }
+
+        async function saveDroppingConfig() {
+            const config = {
+                min_drop_l1: parseFloat(document.getElementById('droppingMinL1').value) || 7,
+                max_drop_l1: parseFloat(document.getElementById('droppingMaxL1').value) || 10,
+                min_drop_l2: parseFloat(document.getElementById('droppingMinL2').value) || 10,
+                max_drop_l2: parseFloat(document.getElementById('droppingMaxL2').value) || 15,
+                min_drop_l3: parseFloat(document.getElementById('droppingMinL3').value) || 15,
+                l2_enabled: document.getElementById('droppingL2Enabled').checked,
+                l3_enabled: document.getElementById('droppingL3Enabled').checked,
+                persistence_enabled: document.getElementById('droppingPersistenceEnabled').checked,
+                persistence_minutes: parseInt(document.getElementById('droppingPersistenceMinutes').value) || 30,
+                min_volume_1x2: parseInt(document.getElementById('dropping_min_volume_1x2').value) || 3000,
+                min_volume_ou25: parseInt(document.getElementById('dropping_min_volume_ou25').value) || 1000,
+                min_volume_btts: parseInt(document.getElementById('dropping_min_volume_btts').value) || 500
+            };
+            
+            try {
+                const response = await fetch('/api/dropping/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                if (response.ok) {
+                    showToast('Dropping ayarlari kaydedildi!', 'success');
+                } else {
+                    showToast('Kayit hatasi!', 'error');
+                }
+            } catch (error) {
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+
+        async function deleteAllDroppingAlarms() {
+            if (!confirm('Tum Dropping alarmlarini silmek istediginize emin misiniz?')) return;
+            
+            try {
+                const response = await fetch('/api/dropping/delete', { method: 'POST' });
+                if (response.ok) {
+                    showToast('Tum Dropping alarmlari silindi!', 'success');
+                    loadDroppingAlarms();
+                } else {
+                    showToast('Silme hatasi!', 'error');
+                }
+            } catch (error) {
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+
+        function showDroppingCalcStatus() {
+            document.getElementById('droppingCalcStatus').style.display = 'block';
+        }
+
+        function hideDroppingCalcStatus() {
+            document.getElementById('droppingCalcStatus').style.display = 'none';
+        }
+
+        async function calculateDropping() {
+            showDroppingCalcStatus();
+            document.getElementById('droppingCalcProgress').textContent = 'Dropping hesaplaniyor...';
+            
+            try {
+                const response = await fetch('/api/dropping/calculate', { method: 'POST' });
+                const data = await response.json();
+                
+                hideDroppingCalcStatus();
+                
+                if (data.success) {
+                    showToast(`Dropping hesaplandi! ${data.count} alarm bulundu.`, 'success');
+                    loadDroppingAlarms();
+                } else {
+                    showToast('Hesaplama hatasi: ' + (data.error || 'Bilinmeyen hata'), 'error');
+                }
+            } catch (error) {
+                hideDroppingCalcStatus();
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+
+        function showDroppingAlarmDetail(idx) {
+            const alarm = window.currentDroppingAlarms[idx];
+            if (!alarm) return;
+
+            const modal = document.getElementById('alarmDetailModal');
+            const body = document.getElementById('alarmDetailBody');
+            
+            const levelColors = { 'L1': '#e74c3c', 'L2': '#f39c12', 'L3': '#c0392b' };
+            const bgColor = levelColors[alarm.level] || '#e74c3c';
+
+            body.innerHTML = `
+                <div class="detail-section">
+                    <h4 style="color: ${bgColor};">📉 ${alarm.level} Dropping Alert Detaylari</h4>
+                    <div class="detail-row"><span class="detail-label">Mac</span><span class="detail-value">${alarm.home} vs ${alarm.away}</span></div>
+                    <div class="detail-row"><span class="detail-label">Market</span><span class="detail-value">${alarm.market}</span></div>
+                    <div class="detail-row"><span class="detail-label">Secenek</span><span class="detail-value">${alarm.selection}</span></div>
+                    <div class="detail-row"><span class="detail-label">Mac Tarihi</span><span class="detail-value" style="color: #58a6ff;">${alarm.match_date || '-'}</span></div>
+                    <div class="detail-row"><span class="detail-label">Hesaplama Tarihi</span><span class="detail-value">${alarm.created_at || '-'}</span></div>
+                </div>
+                <div class="detail-section">
+                    <h4>📉 Oran Dususu Bilgileri</h4>
+                    <div class="detail-row"><span class="detail-label">Acilis Orani</span><span class="detail-value">${alarm.opening_odds || 0}</span></div>
+                    <div class="detail-row"><span class="detail-label">Guncel Oran</span><span class="detail-value">${alarm.current_odds || 0}</span></div>
+                    <div class="detail-row"><span class="detail-label">Dusus Yuzdesi</span><span class="detail-value highlight" style="color: ${bgColor};">%${(alarm.drop_pct || 0).toFixed(2)}</span></div>
+                    <div class="detail-row"><span class="detail-label">Seviye</span><span class="detail-value" style="color: ${bgColor}; font-weight: bold;">${alarm.level}</span></div>
+                    <div class="detail-row"><span class="detail-label">Market Hacmi</span><span class="detail-value">£${(alarm.volume || 0).toLocaleString()}</span></div>
+                </div>
+                <div class="detail-section">
+                    <h4 style="color: ${bgColor};">📉 ${alarm.level} Dropping Sinyali</h4>
+                    <p style="font-size: 12px; color: #8b949e; line-height: 1.6;">
+                        Bu macta ${alarm.selection} seceneginin orani acilistan bu yana <strong style="color:${bgColor};">%${(alarm.drop_pct || 0).toFixed(1)}</strong> dustu!<br><br>
+                        Acilis: <strong>${alarm.opening_odds}</strong> → Simdi: <strong>${alarm.current_odds}</strong><br><br>
+                        <strong style="color: ${bgColor};">Sonuc:</strong> ${alarm.level === 'L3' ? 'Cok buyuk oran dususu! Profesyonel bahisciler (sharps) agresif sekilde pozisyon aliyor olabilir!' : alarm.level === 'L2' ? 'Orta seviye oran dususu. Sharps aktivitesi muhtemel.' : 'Hafif oran dususu. Takip edilmeli.'}
                     </p>
                 </div>
             `;
