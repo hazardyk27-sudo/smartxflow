@@ -555,6 +555,10 @@
                 <span class="nav-item-icon">⚡</span>
                 <span>Hacim Soku</span>
             </div>
+            <div class="nav-item" onclick="showPage('volumeleader')" data-page="volumeleader">
+                <span class="nav-item-icon">👑</span>
+                <span>Hacim Lideri</span>
+            </div>
         </nav>
         <div class="sidebar-footer">
             <a href="/" class="back-home">
@@ -1594,6 +1598,92 @@
             </div>
         </div>
 
+        <!-- VOLUME LEADER (HACIM LIDERI DEGISTI) PAGE -->
+        <div id="page-volumeleader" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title" style="color: #06b6d4;">👑 Hacim Lideri Degisti</h2>
+                    <p class="page-subtitle">Para akisi liderinin degistigini tespit et (%50+ pay degisimi)</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-danger" onclick="deleteAllVolumeLeaderAlarms()">Tum Alarmlari Sil</button>
+                </div>
+            </div>
+
+            <div class="grid-two-col">
+                <div class="info-card" style="border-left: 3px solid #06b6d4;">
+                    <h3>👑 Hacim Lideri Ayarlari</h3>
+                    <p style="color: #8b949e; font-size: 12px; margin-bottom: 15px;">
+                        Bir secenek %50 veya daha fazla paya sahipse "lider"dir. Baska bir secenek %50+ paya ciktiginda alarm tetiklenir.
+                    </p>
+                    
+                    <h4 style="margin-top: 20px; margin-bottom: 10px; color: #8b949e; font-size: 13px; border-top: 1px solid #30363d; padding-top: 15px;">📊 Minimum Volume Esikleri</h4>
+                    <div class="info-row">
+                        <span class="info-label">1X2 Minimum Volume</span>
+                        <input type="number" id="vlMinVolume1x2" class="config-input" value="5000" min="0" max="50000" step="500" style="width: 100px;">
+                        <span style="color: #8b949e; font-size: 11px; margin-left: 8px;">£</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">O/U 2.5 Minimum Volume</span>
+                        <input type="number" id="vlMinVolumeOu25" class="config-input" value="2000" min="0" max="50000" step="500" style="width: 100px;">
+                        <span style="color: #8b949e; font-size: 11px; margin-left: 8px;">£</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">BTTS Minimum Volume</span>
+                        <input type="number" id="vlMinVolumeBtts" class="config-input" value="1000" min="0" max="50000" step="500" style="width: 100px;">
+                        <span style="color: #8b949e; font-size: 11px; margin-left: 8px;">£</span>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="saveVolumeLeaderConfig()" style="background: #06b6d4;">
+                            <span class="btn-icon">💾</span> Kaydet
+                        </button>
+                        <button class="btn btn-success" onclick="calculateVolumeLeader()" style="background: #238636;">
+                            <span class="btn-icon">👑</span> Hacim Lideri Hesapla
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteAllVolumeLeaderAlarms()" style="background: #da3633;">
+                            <span class="btn-icon">🗑️</span> Alarmlari Sil
+                        </button>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>📖 Nasil Calisir?</h3>
+                    <div style="font-size: 12px; color: #8b949e; line-height: 1.6;">
+                        <p><strong style="color: #06b6d4;">👑 HACIM LIDERI:</strong> Bir secenek toplam hacmin %50 veya fazlasina sahipse "lider"dir.</p>
+                        <p><strong style="color: #f0b429;">🔄 LIDER DEGISIMI:</strong> Baska bir secenek %50+ paya ulastiginda alarm tetiklenir.</p>
+                        <p>Ornek: 1X2 marketinde "1" secenegi %55 payla liderken, "X" secenegi %52'ye ciktiginda → LIDER DEGISTI alarmi</p>
+                        <p style="margin-top: 10px; padding: 8px; background: #21262d; border-radius: 6px;">
+                            <strong style="color: #06b6d4;">Sinyal:</strong> Para akisinda dramatik degisim! Buyuk oyuncular pozisyon degistiriyor olabilir.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-card" style="margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0; color: #06b6d4;">👑 Hacim Lideri Alarmlar <span id="volumeLeaderAlarmCount" class="badge" style="background: #06b6d4;">0</span></h3>
+                    <div style="position: relative;">
+                        <input type="text" id="volumeLeaderSearchInput" placeholder="Takim ara..." 
+                               oninput="filterVolumeLeaderAlarms()" 
+                               style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 200px;">
+                        <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                    </div>
+                </div>
+                <div id="volumeLeaderCalcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #06b6d4;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="spinner" style="width: 20px; height: 20px; border: 3px solid #30363d; border-top-color: #06b6d4; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span id="volumeLeaderCalcProgress" style="color: #06b6d4; font-weight: 500;">Hesaplama devam ediyor...</span>
+                    </div>
+                </div>
+                <div id="volumeLeaderAlarmList" class="alarm-list">
+                    <p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz Hacim Lideri alarm yok. "👑 Hacim Lideri Hesapla" butonuna basin.</p>
+                </div>
+            </div>
+        </div>
+
         <div id="page-system" class="page-content">
             <div class="page-header">
                 <div>
@@ -1670,6 +1760,7 @@
             if (pageId === 'bigmoney') loadBigMoneyPage();
             if (pageId === 'dropping') loadDroppingPage();
             if (pageId === 'volumeshock') loadVolumeShockPage();
+            if (pageId === 'volumeleader') loadVolumeLeaderPage();
         }
 
         function showToast(message, type = 'info') {
@@ -3004,6 +3095,224 @@
         
         // =====================================================
         // END VOLUME SHOCK FUNCTIONS
+        // =====================================================
+
+        // =====================================================
+        // VOLUME LEADER (HACIM LIDERI DEGISTI) FUNCTIONS
+        // =====================================================
+        
+        let allVolumeLeaderAlarms = [];
+        
+        async function loadVolumeLeaderPage() {
+            await loadVolumeLeaderConfig();
+            await loadVolumeLeaderAlarms();
+        }
+        
+        async function loadVolumeLeaderConfig() {
+            try {
+                const response = await fetch('/api/volumeleader/config');
+                const config = await response.json();
+                document.getElementById('vlMinVolume1x2').value = config.min_volume_1x2 || 5000;
+                document.getElementById('vlMinVolumeOu25').value = config.min_volume_ou25 || 2000;
+                document.getElementById('vlMinVolumeBtts').value = config.min_volume_btts || 1000;
+            } catch (error) {
+                console.error('Volume Leader config load error:', error);
+            }
+        }
+        
+        async function loadVolumeLeaderAlarms() {
+            try {
+                const response = await fetch('/api/volumeleader/alarms');
+                const alarms = await response.json();
+                allVolumeLeaderAlarms = alarms;
+                renderVolumeLeaderAlarms(alarms);
+            } catch (error) {
+                console.error('Volume Leader alarms load error:', error);
+            }
+        }
+        
+        function renderVolumeLeaderAlarms(alarms, totalCount = null) {
+            const container = document.getElementById('volumeLeaderAlarmList');
+            const countBadge = document.getElementById('volumeLeaderAlarmCount');
+            
+            countBadge.textContent = totalCount !== null ? `${alarms.length}/${totalCount}` : alarms.length;
+            
+            if (!alarms || alarms.length === 0) {
+                container.innerHTML = '<p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz Hacim Lideri alarm yok. "👑 Hacim Lideri Hesapla" butonuna basin.</p>';
+                return;
+            }
+            
+            container.innerHTML = alarms.map((alarm, idx) => {
+                const oldLeader = alarm.old_leader || '-';
+                const newLeader = alarm.new_leader || '-';
+                const oldShare = alarm.old_share || 0;
+                const newShare = alarm.new_share || 0;
+                const volume = alarm.volume || 0;
+                const createdAt = alarm.created_at || '-';
+                
+                return `
+                <div class="alarm-item" onclick="showVolumeLeaderAlarmDetail(${idx})" style="border-left: 3px solid #06b6d4; cursor: pointer;">
+                    <div class="alarm-info">
+                        <div class="alarm-match">
+                            <span style="background:#06b6d4;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">👑 LIDER DEGISTI</span>
+                            ${alarm.home} vs ${alarm.away}
+                        </div>
+                        <div class="alarm-meta">${alarm.market} | ${createdAt}</div>
+                        <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
+                            <span style="color: #f85149;" title="Eski Lider">🔴 ${oldLeader} (%${oldShare.toFixed(0)})</span>
+                            <span style="color: #8b949e;">→</span>
+                            <span style="color: #3fb950;" title="Yeni Lider">🟢 ${newLeader} (%${newShare.toFixed(0)})</span>
+                            <span style="color: #58a6ff;" title="Volume">💰 £${Math.round(volume).toLocaleString()}</span>
+                        </div>
+                    </div>
+                    <div class="alarm-score" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">👑</div>
+                </div>
+            `}).join('');
+            
+            window.currentVolumeLeaderAlarms = alarms;
+        }
+        
+        function filterVolumeLeaderAlarms() {
+            const searchTerm = document.getElementById('volumeLeaderSearchInput').value.toLowerCase().trim();
+            if (!searchTerm) {
+                renderVolumeLeaderAlarms(allVolumeLeaderAlarms);
+                return;
+            }
+            const filtered = allVolumeLeaderAlarms.filter(alarm => 
+                (alarm.home || '').toLowerCase().includes(searchTerm) ||
+                (alarm.away || '').toLowerCase().includes(searchTerm)
+            );
+            renderVolumeLeaderAlarms(filtered, allVolumeLeaderAlarms.length);
+        }
+        
+        async function saveVolumeLeaderConfig() {
+            const config = {
+                min_volume_1x2: parseInt(document.getElementById('vlMinVolume1x2').value) || 5000,
+                min_volume_ou25: parseInt(document.getElementById('vlMinVolumeOu25').value) || 2000,
+                min_volume_btts: parseInt(document.getElementById('vlMinVolumeBtts').value) || 1000,
+                leader_threshold: 50
+            };
+            
+            try {
+                const response = await fetch('/api/volumeleader/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                if (response.ok) {
+                    showToast('Hacim Lideri ayarlari kaydedildi!', 'success');
+                } else {
+                    showToast('Kayit hatasi!', 'error');
+                }
+            } catch (error) {
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+        
+        async function deleteAllVolumeLeaderAlarms() {
+            if (!confirm('Tum Hacim Lideri alarmlari silinecek. Emin misiniz?')) return;
+            
+            try {
+                const response = await fetch('/api/volumeleader/alarms', { method: 'DELETE' });
+                if (response.ok) {
+                    showToast('Tum Hacim Lideri alarmlar silindi!', 'success');
+                    loadVolumeLeaderAlarms();
+                } else {
+                    showToast('Silme hatasi!', 'error');
+                }
+            } catch (error) {
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+        
+        function showVolumeLeaderCalcStatus() {
+            const statusEl = document.getElementById('volumeLeaderCalcStatus');
+            if (statusEl) statusEl.style.display = 'block';
+        }
+        
+        function hideVolumeLeaderCalcStatus() {
+            const statusEl = document.getElementById('volumeLeaderCalcStatus');
+            if (statusEl) statusEl.style.display = 'none';
+        }
+        
+        async function calculateVolumeLeader() {
+            showVolumeLeaderCalcStatus();
+            document.getElementById('volumeLeaderCalcProgress').textContent = 'Hacim Lideri hesaplaniyor...';
+            
+            try {
+                const response = await fetch('/api/volumeleader/calculate', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Poll for completion
+                    let checkCount = 0;
+                    const maxChecks = 60;
+                    const checkInterval = setInterval(async () => {
+                        checkCount++;
+                        try {
+                            const statusRes = await fetch('/api/volumeleader/status');
+                            const status = await statusRes.json();
+                            
+                            document.getElementById('volumeLeaderCalcProgress').textContent = status.progress || 'Hesaplaniyor...';
+                            
+                            if (!status.calculating || checkCount >= maxChecks) {
+                                clearInterval(checkInterval);
+                                hideVolumeLeaderCalcStatus();
+                                showToast(`Hacim Lideri hesaplandi! ${data.count || 0} alarm bulundu.`, 'success');
+                                loadVolumeLeaderAlarms();
+                            }
+                        } catch (e) {
+                            clearInterval(checkInterval);
+                            hideVolumeLeaderCalcStatus();
+                        }
+                    }, 2000);
+                } else {
+                    hideVolumeLeaderCalcStatus();
+                    showToast('Hesaplama hatasi: ' + (data.error || 'Bilinmeyen hata'), 'error');
+                }
+            } catch (error) {
+                hideVolumeLeaderCalcStatus();
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+        
+        function showVolumeLeaderAlarmDetail(idx) {
+            const alarm = window.currentVolumeLeaderAlarms[idx];
+            if (!alarm) return;
+
+            const modal = document.getElementById('alarmDetailModal');
+            const body = document.getElementById('alarmDetailBody');
+
+            body.innerHTML = `
+                <div class="detail-section">
+                    <h4>👑 Hacim Lideri Degisimi Detayi</h4>
+                    <div class="detail-row"><span class="detail-label">Mac</span><span class="detail-value">${alarm.home} vs ${alarm.away}</span></div>
+                    <div class="detail-row"><span class="detail-label">Market</span><span class="detail-value">${alarm.market}</span></div>
+                    <div class="detail-row"><span class="detail-label">Lig</span><span class="detail-value">${alarm.league || '-'}</span></div>
+                    <div class="detail-row"><span class="detail-label">Hesaplama Tarihi</span><span class="detail-value">${alarm.created_at || '-'}</span></div>
+                </div>
+                <div class="detail-section">
+                    <h4 style="color: #06b6d4;">🔄 Lider Degisimi</h4>
+                    <div class="detail-row"><span class="detail-label">Eski Lider</span><span class="detail-value" style="color: #f85149;">${alarm.old_leader} (%${(alarm.old_share || 0).toFixed(1)})</span></div>
+                    <div class="detail-row"><span class="detail-label">Yeni Lider</span><span class="detail-value" style="color: #3fb950;">${alarm.new_leader} (%${(alarm.new_share || 0).toFixed(1)})</span></div>
+                    <div class="detail-row"><span class="detail-label">Toplam Volume</span><span class="detail-value" style="color: #58a6ff;">£${Math.round(alarm.volume || 0).toLocaleString()}</span></div>
+                </div>
+                <div class="detail-section">
+                    <h4 style="color: #f0883e;">📊 Analiz</h4>
+                    <p style="font-size: 12px; color: #8b949e; line-height: 1.6;">
+                        Para akisinda dramatik bir degisim tespit edildi. Daha once <strong style="color:#f85149;">${alarm.old_leader}</strong> secenegi %${(alarm.old_share || 0).toFixed(0)} payla liderken, 
+                        simdi <strong style="color:#3fb950;">${alarm.new_leader}</strong> secenegi %${(alarm.new_share || 0).toFixed(0)} payla lider konumuna gecti.
+                        <br><br>
+                        <strong style="color: #06b6d4;">Sinyal:</strong> Buyuk oyuncular pozisyon degistiriyor olabilir!
+                    </p>
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+        
+        // =====================================================
+        // END VOLUME LEADER FUNCTIONS
         // =====================================================
 
         function showBigMoneyCalcStatus() {
