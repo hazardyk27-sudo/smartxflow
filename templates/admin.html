@@ -1352,6 +1352,28 @@
             </div>
 
             <div class="config-grid">
+                <div class="info-card" style="border-left: 3px solid #9b59b6; grid-column: 1 / -1;">
+                    <h3>🎯 Maksimum Oran Esigi (Max Odds Filter)</h3>
+                    <p style="color: #8b949e; font-size: 12px; margin-bottom: 15px;">Acilis orani bu esiklerin uzerindeyse dropping alarmi tetiklenmez.</p>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                        <div class="info-row" style="flex-direction: column; align-items: flex-start;">
+                            <span class="info-label">1X2 Max Oran</span>
+                            <input type="number" id="droppingMaxOdds1x2" class="config-input" value="5.0" min="1.5" max="20" step="0.5" style="width: 100px;">
+                            <span style="color: #8b949e; font-size: 10px;">Varsayilan: 5.0</span>
+                        </div>
+                        <div class="info-row" style="flex-direction: column; align-items: flex-start;">
+                            <span class="info-label">O/U 2.5 Max Oran</span>
+                            <input type="number" id="droppingMaxOddsOu25" class="config-input" value="3.0" min="1.5" max="10" step="0.25" style="width: 100px;">
+                            <span style="color: #8b949e; font-size: 10px;">Varsayilan: 3.0</span>
+                        </div>
+                        <div class="info-row" style="flex-direction: column; align-items: flex-start;">
+                            <span class="info-label">BTTS Max Oran</span>
+                            <input type="number" id="droppingMaxOddsBtts" class="config-input" value="3.0" min="1.5" max="10" step="0.25" style="width: 100px;">
+                            <span style="color: #8b949e; font-size: 10px;">Varsayilan: 3.0</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="info-card" style="border-left: 3px solid #e74c3c;">
                     <h3>📉 L1 Dropping Alert (Dusuk Seviye)</h3>
                     <div class="info-row">
@@ -3081,6 +3103,11 @@
                     document.getElementById('dropping_min_volume_1x2').value = config.min_volume_1x2 || 3000;
                     document.getElementById('dropping_min_volume_ou25').value = config.min_volume_ou25 || 1000;
                     document.getElementById('dropping_min_volume_btts').value = config.min_volume_btts || 500;
+                    
+                    // Max Odds Filter
+                    document.getElementById('droppingMaxOdds1x2').value = config.max_odds_1x2 || 5.0;
+                    document.getElementById('droppingMaxOddsOu25').value = config.max_odds_ou25 || 3.0;
+                    document.getElementById('droppingMaxOddsBtts').value = config.max_odds_btts || 3.0;
                 }
             } catch (error) {
                 console.error('Dropping config yukleme hatasi:', error);
@@ -3168,7 +3195,12 @@
                 persistence_minutes: parseInt(document.getElementById('droppingPersistenceMinutes').value) || 30,
                 min_volume_1x2: parseInt(document.getElementById('dropping_min_volume_1x2').value) || 3000,
                 min_volume_ou25: parseInt(document.getElementById('dropping_min_volume_ou25').value) || 1000,
-                min_volume_btts: parseInt(document.getElementById('dropping_min_volume_btts').value) || 500
+                min_volume_btts: parseInt(document.getElementById('dropping_min_volume_btts').value) || 500,
+                
+                // Max Odds Filter
+                max_odds_1x2: parseFloat(document.getElementById('droppingMaxOdds1x2').value) || 5.0,
+                max_odds_ou25: parseFloat(document.getElementById('droppingMaxOddsOu25').value) || 3.0,
+                max_odds_btts: parseFloat(document.getElementById('droppingMaxOddsBtts').value) || 3.0
             };
             
             try {
