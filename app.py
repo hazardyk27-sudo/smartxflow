@@ -3382,11 +3382,11 @@ def parse_volume(val):
 
 
 def parse_float(val):
-    """Parse float from string"""
+    """Parse float from string (handles %, £, commas, etc.)"""
     if not val:
         return 0
     try:
-        cleaned = str(val).replace(',', '.').strip()
+        cleaned = str(val).replace(',', '.').replace('%', '').replace('£', '').strip()
         return float(cleaned) if cleaned else 0
     except:
         return 0
@@ -3662,6 +3662,13 @@ def calculate_volume_leader_scores(config):
                     # Check minimum volume
                     if total_volume < min_volume:
                         continue
+                    
+                    # DEBUG: Show first few matches with shares
+                    if len(alarms) == 0 and len(filtered_matches) > 0 and filtered_matches.index(match) < 3:
+                        print(f"[VolumeLeader] DEBUG: {home} vs {away} - {len(snapshots)} snapshots, vol={total_volume}")
+                        for sel, share_key in zip(selections, share_keys):
+                            share_val = parse_float(latest.get(share_key, 0))
+                            print(f"[VolumeLeader] DEBUG:   {sel}: {share_key}={share_val}%")
                     
                     # Find leader changes in history
                     for i in range(len(snapshots) - 1):
