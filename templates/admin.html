@@ -535,6 +535,10 @@
                 <span class="nav-item-icon">🎯</span>
                 <span>Sharp</span>
             </div>
+            <div class="nav-item" onclick="showPage('halktuzagi')" data-page="halktuzagi">
+                <span class="nav-item-icon">🪤</span>
+                <span>Halk Tuzağı</span>
+            </div>
             <div class="nav-item" onclick="showPage('insider')" data-page="insider">
                 <span class="nav-item-icon">🕵️</span>
                 <span>Insider Info</span>
@@ -923,6 +927,258 @@
             </div>
         </div>
 
+        <!-- HALK TUZAĞI PAGE -->
+        <div id="page-halktuzagi" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title" style="color: #dc2626;">🪤 Halk Tuzağı</h2>
+                    <p class="page-subtitle">Sharp kurallarının kopyası - Farklı parametre ayarları için</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-danger" onclick="deleteAllHalkTuzagiAlarms()">Tum Alarmlari Sil</button>
+                    <button class="btn btn-warning" onclick="recalculateHalkTuzagiAlarms()">Alarmlari Yeniden Hesapla</button>
+                    <button class="btn btn-primary" onclick="saveHalkTuzagiConfig()">Kaydet</button>
+                </div>
+            </div>
+
+            <div class="config-grid">
+                <div class="info-card" style="border-left: 3px solid #dc2626;">
+                    <h3>📊 Minimum Market Volume Esikleri</h3>
+                    <div class="form-group">
+                        <label>1X2 Minimum Volume</label>
+                        <input type="number" id="ht_min_volume_1x2" value="3000" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>O/U 2.5 Minimum Volume</label>
+                        <input type="number" id="ht_min_volume_ou25" value="1000" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>BTTS Minimum Volume</label>
+                        <input type="number" id="ht_min_volume_btts" value="500" class="form-input">
+                    </div>
+                    <div class="form-group" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #30363d;">
+                        <label>💰 Gelen Para Volume (min)</label>
+                        <input type="number" id="ht_min_amount_change" value="500" class="form-input">
+                        <p class="form-hint" style="font-size: 11px; color: #8b949e; margin-top: 4px;">Son snapshot'ta gelen para bu degerden dusukse hesaplanmaz</p>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>✖️ Carpanlar</h3>
+                    <div class="form-group">
+                        <label>Hacim Carpani (volume_multiplier)</label>
+                        <input type="number" id="ht_volume_multiplier" value="1" step="0.1" class="form-input">
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <h3>📈 Pay Araligi Carpanlari</h3>
+                    <p class="form-hint" style="margin-bottom: 12px; color: #8b949e; font-size: 11px;">Her pay (share %) araligi icin farkli carpan.</p>
+                    
+                    <div style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                        <label style="color: #22c55e; font-weight: 600; font-size: 12px;">Aralik 1 (Dusuk Pay)</label>
+                        <div style="display: flex; gap: 8px; margin-top: 6px;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Min (%)</label>
+                                <input type="number" id="ht_share_range_1_min" value="0" step="1" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Max (%)</label>
+                                <input type="number" id="ht_share_range_1_max" value="50" step="1" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
+                                <input type="number" id="ht_share_range_1_mult" value="1" step="0.1" class="form-input" style="font-size: 12px;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                        <label style="color: #58a6ff; font-weight: 600; font-size: 12px;">Aralik 2 (Orta Pay)</label>
+                        <div style="display: flex; gap: 8px; margin-top: 6px;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Min (%)</label>
+                                <input type="number" id="ht_share_range_2_min" value="50" step="1" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Max (%)</label>
+                                <input type="number" id="ht_share_range_2_max" value="75" step="1" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
+                                <input type="number" id="ht_share_range_2_mult" value="1.5" step="0.1" class="form-input" style="font-size: 12px;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                        <label style="color: #a78bfa; font-weight: 600; font-size: 12px;">Aralik 3 (Yuksek Pay)</label>
+                        <div style="display: flex; gap: 8px; margin-top: 6px;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Min (%)</label>
+                                <input type="number" id="ht_share_range_3_min" value="75" step="1" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Max (%)</label>
+                                <input type="number" id="ht_share_range_3_max" value="90" step="1" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
+                                <input type="number" id="ht_share_range_3_mult" value="2" step="0.1" class="form-input" style="font-size: 12px;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #161b22; padding: 10px; border-radius: 6px;">
+                        <label style="color: #f97316; font-weight: 600; font-size: 12px;">Aralik 4 (Cok Yuksek Pay)</label>
+                        <div style="display: flex; gap: 8px; margin-top: 6px;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Min (%)</label>
+                                <input type="number" id="ht_share_range_4_min" value="90" step="1" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Max (%)</label>
+                                <input type="number" id="ht_share_range_4_max" value="100" step="1" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
+                                <input type="number" id="ht_share_range_4_mult" value="3" step="0.1" class="form-input" style="font-size: 12px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <h3>📊 Oran Araligi Carpanlari</h3>
+                    <p class="form-hint" style="margin-bottom: 12px; color: #8b949e; font-size: 11px;">Her oran araligi icin farkli carpan.</p>
+                    
+                    <div style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                        <label style="color: #58a6ff; font-weight: 600; font-size: 12px;">Aralik 1</label>
+                        <div style="display: flex; gap: 8px; margin-top: 6px;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Min</label>
+                                <input type="number" id="ht_odds_range_1_min" value="1.01" step="0.01" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Max</label>
+                                <input type="number" id="ht_odds_range_1_max" value="1.50" step="0.01" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
+                                <input type="number" id="ht_odds_range_1_mult" value="10" step="0.1" class="form-input" style="font-size: 12px;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                        <label style="color: #a78bfa; font-weight: 600; font-size: 12px;">Aralik 2</label>
+                        <div style="display: flex; gap: 8px; margin-top: 6px;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Min</label>
+                                <input type="number" id="ht_odds_range_2_min" value="1.50" step="0.01" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Max</label>
+                                <input type="number" id="ht_odds_range_2_max" value="2.10" step="0.01" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
+                                <input type="number" id="ht_odds_range_2_mult" value="8" step="0.1" class="form-input" style="font-size: 12px;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                        <label style="color: #22c55e; font-weight: 600; font-size: 12px;">Aralik 3</label>
+                        <div style="display: flex; gap: 8px; margin-top: 6px;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Min</label>
+                                <input type="number" id="ht_odds_range_3_min" value="2.10" step="0.01" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Max</label>
+                                <input type="number" id="ht_odds_range_3_max" value="3.50" step="0.01" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
+                                <input type="number" id="ht_odds_range_3_mult" value="5" step="0.1" class="form-input" style="font-size: 12px;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #161b22; padding: 10px; border-radius: 6px;">
+                        <label style="color: #f97316; font-weight: 600; font-size: 12px;">Aralik 4</label>
+                        <div style="display: flex; gap: 8px; margin-top: 6px;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Min</label>
+                                <input type="number" id="ht_odds_range_4_min" value="3.50" step="0.01" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Max</label>
+                                <input type="number" id="ht_odds_range_4_max" value="10.00" step="0.01" class="form-input" style="font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
+                                <input type="number" id="ht_odds_range_4_mult" value="3" step="0.1" class="form-input" style="font-size: 12px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>📈 Maksimum Degerler (CAP)</h3>
+                    <div class="form-group">
+                        <label>Hacim Soku Maks (max_volume_cap)</label>
+                        <input type="number" id="ht_max_volume_cap" value="40" min="0" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Oran Degisimi Maks (max_odds_cap)</label>
+                        <input type="number" id="ht_max_odds_cap" value="35" min="0" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Pay Degisimi Maks (max_share_cap)</label>
+                        <input type="number" id="ht_max_share_cap" value="25" min="0" class="form-input">
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>🎯 Esik Degerleri</h3>
+                    <div class="form-group">
+                        <label>Minimum Pay (min_share %)</label>
+                        <input type="number" id="ht_min_share" value="5" step="0.1" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Minimum Skor (min_sharp_score)</label>
+                        <input type="number" id="ht_min_sharp_score" value="10" step="0.1" class="form-input">
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="info-card" style="margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0;">🪤 Halk Tuzağı Alarmları <span id="htAlarmCount" class="badge active">0</span></h3>
+                    <div style="position: relative;">
+                        <input type="text" id="htAlarmSearchInput" placeholder="Takim ara..." 
+                               oninput="filterHalkTuzagiAlarms()" 
+                               style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 200px;">
+                        <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                    </div>
+                </div>
+                <div id="htCalcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #dc2626;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="spinner" style="width: 20px; height: 20px; border: 3px solid #30363d; border-top-color: #dc2626; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span id="htCalcProgress" style="color: #dc2626; font-weight: 500;">Hesaplama devam ediyor...</span>
+                    </div>
+                </div>
+                <div id="htAlarmList" class="alarm-list">
+                    <p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz alarm yok. Ayarlari kaydedip "Alarmlari Yeniden Hesapla" butonuna basin.</p>
+                </div>
+            </div>
+        </div>
+
         <!-- INSIDER INFO PAGE -->
         <div id="page-insider" class="page-content">
             <div class="page-header">
@@ -1247,6 +1503,7 @@
             if (pageId === 'dashboard') loadDashboard();
             if (pageId === 'markets') loadMarkets();
             if (pageId === 'sharp') loadSharpAlarms();
+            if (pageId === 'halktuzagi') loadHalkTuzagiPage();
             if (pageId === 'insider') loadInsiderPage();
             if (pageId === 'bigmoney') loadBigMoneyPage();
             if (pageId === 'volumeshock') loadVolumeShockPage();
@@ -1647,6 +1904,230 @@
 
         function renderAlarms(alarms, totalCount = null) {
             renderSharpAlarms(alarms, totalCount);
+        }
+
+        // ==================== HALK TUZAĞI FUNCTIONS ====================
+        let allHalkTuzagiAlarms = [];
+
+        async function loadHalkTuzagiPage() {
+            await loadHalkTuzagiConfig();
+            await loadHalkTuzagiAlarms();
+        }
+
+        async function loadHalkTuzagiConfig() {
+            try {
+                const response = await fetch('/api/halktuzagi/config');
+                if (response.ok) {
+                    const config = await response.json();
+                    document.getElementById('ht_min_volume_1x2').value = config.min_volume_1x2 || 3000;
+                    document.getElementById('ht_min_volume_ou25').value = config.min_volume_ou25 || 1000;
+                    document.getElementById('ht_min_volume_btts').value = config.min_volume_btts || 500;
+                    document.getElementById('ht_volume_multiplier').value = config.volume_multiplier || 1;
+                    document.getElementById('ht_max_volume_cap').value = config.max_volume_cap || 40;
+                    document.getElementById('ht_max_odds_cap').value = config.max_odds_cap || 35;
+                    document.getElementById('ht_max_share_cap').value = config.max_share_cap || 25;
+                    document.getElementById('ht_min_share').value = config.min_share || 5;
+                    document.getElementById('ht_min_sharp_score').value = config.min_sharp_score || 10;
+                    document.getElementById('ht_min_amount_change').value = config.min_amount_change || 500;
+                    
+                    document.getElementById('ht_odds_range_1_min').value = config.odds_range_1_min || 1.01;
+                    document.getElementById('ht_odds_range_1_max').value = config.odds_range_1_max || 1.50;
+                    document.getElementById('ht_odds_range_1_mult').value = config.odds_range_1_mult || 10;
+                    document.getElementById('ht_odds_range_2_min').value = config.odds_range_2_min || 1.50;
+                    document.getElementById('ht_odds_range_2_max').value = config.odds_range_2_max || 2.10;
+                    document.getElementById('ht_odds_range_2_mult').value = config.odds_range_2_mult || 8;
+                    document.getElementById('ht_odds_range_3_min').value = config.odds_range_3_min || 2.10;
+                    document.getElementById('ht_odds_range_3_max').value = config.odds_range_3_max || 3.50;
+                    document.getElementById('ht_odds_range_3_mult').value = config.odds_range_3_mult || 5;
+                    document.getElementById('ht_odds_range_4_min').value = config.odds_range_4_min || 3.50;
+                    document.getElementById('ht_odds_range_4_max').value = config.odds_range_4_max || 10.00;
+                    document.getElementById('ht_odds_range_4_mult').value = config.odds_range_4_mult || 3;
+                    
+                    document.getElementById('ht_share_range_1_min').value = config.share_range_1_min || 0;
+                    document.getElementById('ht_share_range_1_max').value = config.share_range_1_max || 50;
+                    document.getElementById('ht_share_range_1_mult').value = config.share_range_1_mult || 1;
+                    document.getElementById('ht_share_range_2_min').value = config.share_range_2_min || 50;
+                    document.getElementById('ht_share_range_2_max').value = config.share_range_2_max || 75;
+                    document.getElementById('ht_share_range_2_mult').value = config.share_range_2_mult || 1.5;
+                    document.getElementById('ht_share_range_3_min').value = config.share_range_3_min || 75;
+                    document.getElementById('ht_share_range_3_max').value = config.share_range_3_max || 90;
+                    document.getElementById('ht_share_range_3_mult').value = config.share_range_3_mult || 2;
+                    document.getElementById('ht_share_range_4_min').value = config.share_range_4_min || 90;
+                    document.getElementById('ht_share_range_4_max').value = config.share_range_4_max || 100;
+                    document.getElementById('ht_share_range_4_mult').value = config.share_range_4_mult || 3;
+                }
+            } catch (error) {
+                console.error('HalkTuzagi config yukleme hatasi:', error);
+            }
+        }
+
+        async function loadHalkTuzagiAlarms() {
+            try {
+                const response = await fetch('/api/halktuzagi/alarms');
+                if (response.ok) {
+                    const alarms = await response.json();
+                    allHalkTuzagiAlarms = alarms;
+                    renderHalkTuzagiAlarms(alarms);
+                }
+            } catch (error) {
+                console.error('HalkTuzagi alarm yukleme hatasi:', error);
+            }
+        }
+
+        function renderHalkTuzagiAlarms(alarms, totalCount = null) {
+            const container = document.getElementById('htAlarmList');
+            const countEl = document.getElementById('htAlarmCount');
+            
+            if (!alarms || alarms.length === 0) {
+                const searchTerm = document.getElementById('htAlarmSearchInput')?.value || '';
+                if (searchTerm) {
+                    container.innerHTML = '<p style="color: #8b949e; padding: 20px 0; text-align: center;">Aramayla eslesen alarm yok.</p>';
+                    countEl.textContent = `0/${totalCount || 0}`;
+                } else {
+                    container.innerHTML = '<p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz Halk Tuzagi alarm yok.</p>';
+                    countEl.textContent = '0';
+                }
+                return;
+            }
+
+            countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
+            container.innerHTML = alarms.map((alarm, idx) => `
+                <div class="alarm-item" style="border-left: 3px solid #dc2626;">
+                    <div class="alarm-info">
+                        <div class="alarm-match">
+                            <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">🪤 HALK TUZAĞI</span>
+                            ${alarm.home} vs ${alarm.away}
+                        </div>
+                        <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.event_time || ''}</div>
+                        <div class="alarm-breakdown" style="display: flex; gap: 12px; margin-top: 6px; font-size: 11px;">
+                            <span style="color: #f0883e;" title="Hacim Soku">⚡ ${(alarm.shock_value || 0).toFixed(1)}</span>
+                            <span style="color: #58a6ff;" title="Oran Degisimi">📉 ${(alarm.odds_value || 0).toFixed(1)}</span>
+                            <span style="color: #3fb950;" title="Pay Degisimi">📊 ${(alarm.share_value || 0).toFixed(1)}</span>
+                        </div>
+                    </div>
+                    <div class="alarm-score" style="background: linear-gradient(135deg, #dc2626, #b91c1c);">${(alarm.sharp_score || 0).toFixed(1)}</div>
+                </div>
+            `).join('');
+        }
+
+        function filterHalkTuzagiAlarms() {
+            const searchTerm = document.getElementById('htAlarmSearchInput').value.toLowerCase().trim();
+            if (!searchTerm) {
+                renderHalkTuzagiAlarms(allHalkTuzagiAlarms);
+                return;
+            }
+            const filtered = allHalkTuzagiAlarms.filter(alarm => 
+                (alarm.home || '').toLowerCase().includes(searchTerm) ||
+                (alarm.away || '').toLowerCase().includes(searchTerm)
+            );
+            renderHalkTuzagiAlarms(filtered, allHalkTuzagiAlarms.length);
+        }
+
+        async function saveHalkTuzagiConfig() {
+            const config = {
+                min_volume_1x2: parseInt(document.getElementById('ht_min_volume_1x2').value) || 3000,
+                min_volume_ou25: parseInt(document.getElementById('ht_min_volume_ou25').value) || 1000,
+                min_volume_btts: parseInt(document.getElementById('ht_min_volume_btts').value) || 500,
+                volume_multiplier: parseFloat(document.getElementById('ht_volume_multiplier').value) || 1,
+                max_volume_cap: parseInt(document.getElementById('ht_max_volume_cap').value) || 40,
+                max_odds_cap: parseInt(document.getElementById('ht_max_odds_cap').value) || 35,
+                max_share_cap: parseInt(document.getElementById('ht_max_share_cap').value) || 25,
+                min_share: parseFloat(document.getElementById('ht_min_share').value) || 5,
+                min_sharp_score: parseFloat(document.getElementById('ht_min_sharp_score').value) || 10,
+                min_amount_change: parseInt(document.getElementById('ht_min_amount_change').value) || 500,
+                
+                odds_range_1_min: parseFloat(document.getElementById('ht_odds_range_1_min').value) || 1.01,
+                odds_range_1_max: parseFloat(document.getElementById('ht_odds_range_1_max').value) || 1.50,
+                odds_range_1_mult: parseFloat(document.getElementById('ht_odds_range_1_mult').value) || 10,
+                odds_range_2_min: parseFloat(document.getElementById('ht_odds_range_2_min').value) || 1.50,
+                odds_range_2_max: parseFloat(document.getElementById('ht_odds_range_2_max').value) || 2.10,
+                odds_range_2_mult: parseFloat(document.getElementById('ht_odds_range_2_mult').value) || 8,
+                odds_range_3_min: parseFloat(document.getElementById('ht_odds_range_3_min').value) || 2.10,
+                odds_range_3_max: parseFloat(document.getElementById('ht_odds_range_3_max').value) || 3.50,
+                odds_range_3_mult: parseFloat(document.getElementById('ht_odds_range_3_mult').value) || 5,
+                odds_range_4_min: parseFloat(document.getElementById('ht_odds_range_4_min').value) || 3.50,
+                odds_range_4_max: parseFloat(document.getElementById('ht_odds_range_4_max').value) || 10.00,
+                odds_range_4_mult: parseFloat(document.getElementById('ht_odds_range_4_mult').value) || 3,
+                
+                share_range_1_min: parseFloat(document.getElementById('ht_share_range_1_min').value) || 0,
+                share_range_1_max: parseFloat(document.getElementById('ht_share_range_1_max').value) || 50,
+                share_range_1_mult: parseFloat(document.getElementById('ht_share_range_1_mult').value) || 1,
+                share_range_2_min: parseFloat(document.getElementById('ht_share_range_2_min').value) || 50,
+                share_range_2_max: parseFloat(document.getElementById('ht_share_range_2_max').value) || 75,
+                share_range_2_mult: parseFloat(document.getElementById('ht_share_range_2_mult').value) || 1.5,
+                share_range_3_min: parseFloat(document.getElementById('ht_share_range_3_min').value) || 75,
+                share_range_3_max: parseFloat(document.getElementById('ht_share_range_3_max').value) || 90,
+                share_range_3_mult: parseFloat(document.getElementById('ht_share_range_3_mult').value) || 2,
+                share_range_4_min: parseFloat(document.getElementById('ht_share_range_4_min').value) || 90,
+                share_range_4_max: parseFloat(document.getElementById('ht_share_range_4_max').value) || 100,
+                share_range_4_mult: parseFloat(document.getElementById('ht_share_range_4_mult').value) || 3
+            };
+
+            try {
+                const response = await fetch('/api/halktuzagi/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                if (response.ok) {
+                    showToast('Halk Tuzagi ayarlari kaydedildi!', 'success');
+                } else {
+                    showToast('Kaydetme hatasi!', 'error');
+                }
+            } catch (error) {
+                showToast('Hata: ' + error.message, 'error');
+            }
+        }
+
+        async function recalculateHalkTuzagiAlarms() {
+            const statusEl = document.getElementById('htCalcStatus');
+            const progressEl = document.getElementById('htCalcProgress');
+            
+            statusEl.style.display = 'block';
+            progressEl.textContent = 'Hesaplama baslatiliyor...';
+
+            try {
+                const response = await fetch('/api/halktuzagi/calculate', { method: 'POST' });
+                if (response.ok) {
+                    const checkStatus = async () => {
+                        const statusRes = await fetch('/api/halktuzagi/status');
+                        if (statusRes.ok) {
+                            const status = await statusRes.json();
+                            progressEl.textContent = status.progress || 'Hesaplaniyor...';
+                            if (!status.calculating) {
+                                statusEl.style.display = 'none';
+                                showToast(`Hesaplama tamamlandi! ${status.alarm_count} alarm bulundu.`, 'success');
+                                loadHalkTuzagiAlarms();
+                                return;
+                            }
+                            setTimeout(checkStatus, 1000);
+                        }
+                    };
+                    checkStatus();
+                } else {
+                    statusEl.style.display = 'none';
+                    showToast('Hesaplama hatasi!', 'error');
+                }
+            } catch (error) {
+                statusEl.style.display = 'none';
+                showToast('Hata: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteAllHalkTuzagiAlarms() {
+            if (!confirm('Tum Halk Tuzagi alarmlarini silmek istediginize emin misiniz?')) return;
+            
+            try {
+                const response = await fetch('/api/halktuzagi/alarms', { method: 'DELETE' });
+                if (response.ok) {
+                    showToast('Tum Halk Tuzagi alarmlari silindi!', 'success');
+                    loadHalkTuzagiAlarms();
+                } else {
+                    showToast('Silme hatasi!', 'error');
+                }
+            } catch (error) {
+                showToast('Hata: ' + error.message, 'error');
+            }
         }
 
         // ==================== INSIDER INFO FUNCTIONS ====================
