@@ -3324,6 +3324,361 @@ def parse_float(val):
         return 0
 
 
+# ==================== VOLUME LEADER CHANGED ALARM SYSTEM ====================
+VOLUME_LEADER_CONFIG_FILE = 'volume_leader_config.json'
+VOLUME_LEADER_ALARMS_FILE = 'volume_leader_alarms.json'
+
+volume_leader_calculating = False
+volume_leader_calc_progress = ""
+volume_leader_alarms = []
+
+def load_volume_leader_config():
+    """Load Volume Leader config from JSON file"""
+    default_config = {
+        'min_volume_1x2': 5000,
+        'min_volume_ou25': 2000,
+        'min_volume_btts': 1000,
+        'leader_threshold': 50,  # Minimum % to be considered leader
+        'enabled': True
+    }
+    try:
+        if os.path.exists(VOLUME_LEADER_CONFIG_FILE):
+            with open(VOLUME_LEADER_CONFIG_FILE, 'r') as f:
+                saved_config = json.load(f)
+                default_config.update(saved_config)
+                print(f"[VolumeLeader] Config loaded: min_1x2={default_config.get('min_volume_1x2')}, threshold={default_config.get('leader_threshold')}%")
+    except Exception as e:
+        print(f"[VolumeLeader] Config load error: {e}")
+    return default_config
+
+def save_volume_leader_config(config):
+    """Save Volume Leader config to JSON file"""
+    try:
+        with open(VOLUME_LEADER_CONFIG_FILE, 'w') as f:
+            json.dump(config, f, indent=2)
+        print(f"[VolumeLeader] Config saved: min_1x2={config.get('min_volume_1x2')}, threshold={config.get('leader_threshold')}%")
+        return True
+    except Exception as e:
+        print(f"[VolumeLeader] Config save error: {e}")
+        return False
+
+def load_volume_leader_alarms_from_file():
+    """Load Volume Leader alarms from JSON file"""
+    try:
+        if os.path.exists(VOLUME_LEADER_ALARMS_FILE):
+            with open(VOLUME_LEADER_ALARMS_FILE, 'r') as f:
+                alarms = json.load(f)
+                print(f"[VolumeLeader] Loaded {len(alarms)} alarms from {VOLUME_LEADER_ALARMS_FILE}")
+                return alarms
+    except Exception as e:
+        print(f"[VolumeLeader] Alarms load error: {e}")
+    return []
+
+def save_volume_leader_alarms_to_file(alarms):
+    """Save Volume Leader alarms to JSON file"""
+    try:
+        with open(VOLUME_LEADER_ALARMS_FILE, 'w') as f:
+            json.dump(alarms, f, indent=2, ensure_ascii=False)
+        print(f"[VolumeLeader] Saved {len(alarms)} alarms to {VOLUME_LEADER_ALARMS_FILE}")
+        return True
+    except Exception as e:
+        print(f"[VolumeLeader] Alarms save error: {e}")
+        return False
+
+volume_leader_config = load_volume_leader_config()
+volume_leader_alarms = load_volume_leader_alarms_from_file()
+
+
+@app.route('/api/volumeleader/config', methods=['GET'])
+def get_volume_leader_config():
+    """Get Volume Leader config"""
+    return jsonify(volume_leader_config)
+
+
+@app.route('/api/volumeleader/config', methods=['POST'])
+def save_volume_leader_config_api():
+    """Save Volume Leader config"""
+    global volume_leader_config
+    try:
+        data = request.get_json()
+        if data:
+            volume_leader_config.update(data)
+            save_volume_leader_config(volume_leader_config)
+            return jsonify({'success': True, 'config': volume_leader_config})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    return jsonify({'success': False, 'error': 'No data'}), 400
+
+
+@app.route('/api/volumeleader/alarms', methods=['GET'])
+def get_volume_leader_alarms():
+    """Get Volume Leader alarms"""
+    return jsonify(volume_leader_alarms)
+
+
+@app.route('/api/volumeleader/alarms', methods=['DELETE'])
+def delete_volume_leader_alarms():
+    """Delete all Volume Leader alarms"""
+    global volume_leader_alarms
+    volume_leader_alarms = []
+    save_volume_leader_alarms_to_file(volume_leader_alarms)
+    return jsonify({'success': True})
+
+
+@app.route('/api/volumeleader/status', methods=['GET'])
+def get_volume_leader_status():
+    """Get Volume Leader calculation status"""
+    return jsonify({
+        'calculating': volume_leader_calculating,
+        'progress': volume_leader_calc_progress
+    })
+
+
+@app.route('/api/volumeleader/calculate', methods=['POST'])
+def calculate_volume_leader_alarms():
+    """Calculate Volume Leader alarms"""
+    global volume_leader_alarms, volume_leader_calculating, volume_leader_calc_progress
+    
+    if volume_leader_calculating:
+        return jsonify({'success': False, 'error': 'Hesaplama zaten devam ediyor', 'calculating': True})
+    
+    try:
+        volume_leader_calculating = True
+        volume_leader_calc_progress = "Hesaplama başlatılıyor..."
+        
+        new_alarms = calculate_volume_leader_scores(volume_leader_config)
+        
+        # Merge with existing alarms (avoid duplicates)
+        existing_keys = set()
+        for alarm in volume_leader_alarms:
+            key = f"{alarm.get('home', '')}_{alarm.get('away', '')}_{alarm.get('market', '')}_{alarm.get('old_leader', '')}_{alarm.get('new_leader', '')}_{alarm.get('event_time', '')}"
+            existing_keys.add(key)
+        
+        for alarm in new_alarms:
+            key = f"{alarm.get('home', '')}_{alarm.get('away', '')}_{alarm.get('market', '')}_{alarm.get('old_leader', '')}_{alarm.get('new_leader', '')}_{alarm.get('event_time', '')}"
+            if key not in existing_keys:
+                volume_leader_alarms.append(alarm)
+                existing_keys.add(key)
+        
+        save_volume_leader_alarms_to_file(volume_leader_alarms)
+        volume_leader_calc_progress = f"Tamamlandı! {len(new_alarms)} yeni alarm bulundu."
+        volume_leader_calculating = False
+        return jsonify({'success': True, 'count': len(new_alarms), 'total': len(volume_leader_alarms)})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        volume_leader_calculating = False
+        volume_leader_calc_progress = f"Hata: {str(e)}"
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def calculate_volume_leader_scores(config):
+    """
+    Calculate Volume Leader Changed alarms.
+    
+    ALARM CONDITIONS:
+    1. A selection had >= leader_threshold% (default 50%) share
+    2. Another selection now has >= leader_threshold% share
+    3. Total market volume meets minimum threshold
+    
+    This indicates the "volume leader" has changed - a significant shift in betting sentiment.
+    """
+    global volume_leader_calc_progress
+    alarms = []
+    supabase = get_supabase_client()
+    if not supabase or not supabase.is_available:
+        print("[VolumeLeader] Supabase not available")
+        return alarms
+    
+    leader_threshold = config.get('leader_threshold', 50)
+    print(f"[VolumeLeader] Config: threshold={leader_threshold}%")
+    
+    markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
+    market_names = {'moneyway_1x2': '1X2', 'moneyway_ou25': 'O/U 2.5', 'moneyway_btts': 'BTTS'}
+    
+    # Prematch rule: D-2+ matches excluded
+    today = now_turkey().date()
+    yesterday = today - timedelta(days=1)
+    
+    for idx, market in enumerate(markets):
+        try:
+            if '1x2' in market:
+                min_volume = config.get('min_volume_1x2', 5000)
+                selections = ['1', 'X', '2']
+                share_keys = ['share1', 'sharex', 'share2']
+                amount_keys = ['amt1', 'amtx', 'amt2']
+            elif 'ou25' in market:
+                min_volume = config.get('min_volume_ou25', 2000)
+                selections = ['Over', 'Under']
+                share_keys = ['shareover', 'shareunder']
+                amount_keys = ['amtover', 'amtunder']
+            else:
+                min_volume = config.get('min_volume_btts', 1000)
+                selections = ['Yes', 'No']
+                share_keys = ['shareyes', 'shareno']
+                amount_keys = ['amtyes', 'amtno']
+            
+            history_table = f"{market}_history"
+            matches = supabase.get_all_matches_with_latest(market)
+            if not matches:
+                continue
+            
+            volume_leader_calc_progress = f"{market_names.get(market, market)} işleniyor... ({idx+1}/3)"
+            
+            # D-2+ filter
+            filtered_matches = []
+            for match in matches:
+                match_date_str = match.get('date', '')
+                if match_date_str:
+                    try:
+                        date_part = match_date_str.split()[0]
+                        if '.' in date_part:
+                            parts = date_part.split('.')
+                            if len(parts) == 2:
+                                day = int(parts[0])
+                                month_abbr = parts[1][:3]
+                                month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+                                            'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
+                                month = month_map.get(month_abbr, today.month)
+                                match_date = datetime(today.year, month, day).date()
+                            elif len(parts) == 3:
+                                match_date = datetime.strptime(date_part, '%d.%m.%Y').date()
+                            else:
+                                match_date = today
+                        elif '-' in date_part:
+                            match_date = datetime.strptime(date_part.split('T')[0], '%Y-%m-%d').date()
+                        else:
+                            match_date = today
+                        
+                        # D-2+ filter: Only today and tomorrow
+                        if match_date >= yesterday:
+                            filtered_matches.append(match)
+                    except:
+                        filtered_matches.append(match)
+                else:
+                    filtered_matches.append(match)
+            
+            print(f"[VolumeLeader] {market}: {len(filtered_matches)} matches after D-2+ filter")
+            
+            for match in filtered_matches:
+                home = match.get('home_team', match.get('home', match.get('Home', '')))
+                away = match.get('away_team', match.get('away', match.get('Away', '')))
+                match_id = match.get('id', match.get('match_id', ''))
+                match_date_str = match.get('date', '')
+                
+                if not home or not away:
+                    continue
+                
+                # Get history for this match
+                try:
+                    history = supabase.client.table(history_table).select('*').eq('home_team', home).eq('away_team', away).order('scraped_at', desc=True).limit(50).execute()
+                    
+                    if not history.data or len(history.data) < 2:
+                        continue
+                    
+                    snapshots = history.data
+                    
+                    # Calculate total volume from latest snapshot
+                    latest = snapshots[0]
+                    total_volume = 0
+                    for amt_key in amount_keys:
+                        total_volume += parse_volume(latest.get(amt_key, 0))
+                    
+                    # Check minimum volume
+                    if total_volume < min_volume:
+                        continue
+                    
+                    # Find leader changes in history
+                    for i in range(len(snapshots) - 1):
+                        current = snapshots[i]
+                        previous = snapshots[i + 1]
+                        
+                        # Get shares for each selection
+                        current_shares = {}
+                        previous_shares = {}
+                        
+                        for sel, share_key in zip(selections, share_keys):
+                            current_shares[sel] = parse_float(current.get(share_key, 0))
+                            previous_shares[sel] = parse_float(previous.get(share_key, 0))
+                        
+                        # Find previous leader (>= threshold%)
+                        prev_leader = None
+                        prev_leader_share = 0
+                        for sel, share in previous_shares.items():
+                            if share >= leader_threshold and share > prev_leader_share:
+                                prev_leader = sel
+                                prev_leader_share = share
+                        
+                        # Find current leader (>= threshold%)
+                        curr_leader = None
+                        curr_leader_share = 0
+                        for sel, share in current_shares.items():
+                            if share >= leader_threshold and share > curr_leader_share:
+                                curr_leader = sel
+                                curr_leader_share = share
+                        
+                        # Check if leader changed
+                        if prev_leader and curr_leader and prev_leader != curr_leader:
+                            # Leader changed! Create alarm
+                            event_time = current.get('scraped_at', '')
+                            if event_time:
+                                try:
+                                    if 'T' in event_time:
+                                        event_dt = datetime.fromisoformat(event_time.replace('Z', '+00:00'))
+                                    else:
+                                        event_dt = datetime.strptime(event_time, '%Y-%m-%d %H:%M:%S')
+                                    event_time_formatted = event_dt.strftime('%H:%M')
+                                except:
+                                    event_time_formatted = event_time[:5] if len(event_time) >= 5 else event_time
+                            else:
+                                event_time_formatted = now_turkey().strftime('%H:%M')
+                            
+                            alarm = {
+                                'type': 'volumeleader',
+                                'home': home,
+                                'away': away,
+                                'match_id': match_id,
+                                'market': market_names.get(market, market),
+                                'old_leader': prev_leader,
+                                'old_leader_share': prev_leader_share,
+                                'new_leader': curr_leader,
+                                'new_leader_share': curr_leader_share,
+                                'total_volume': total_volume,
+                                'match_date': match_date_str,
+                                'event_time': event_time_formatted,
+                                'created_at': now_turkey_formatted(),
+                                'selection': curr_leader,  # For grouping compatibility
+                                'triggered': True
+                            }
+                            
+                            # Check if this exact alarm already exists
+                            alarm_key = f"{home}_{away}_{market}_{prev_leader}_{curr_leader}_{event_time_formatted}"
+                            existing = False
+                            for existing_alarm in alarms:
+                                existing_key = f"{existing_alarm.get('home', '')}_{existing_alarm.get('away', '')}_{existing_alarm.get('market', '')}_{existing_alarm.get('old_leader', '')}_{existing_alarm.get('new_leader', '')}_{existing_alarm.get('event_time', '')}"
+                                if existing_key == alarm_key:
+                                    existing = True
+                                    break
+                            
+                            if not existing:
+                                alarms.append(alarm)
+                                print(f"[VolumeLeader] ALARM: {home} vs {away} - {market_names.get(market, market)} - {prev_leader} ({prev_leader_share:.1f}%) -> {curr_leader} ({curr_leader_share:.1f}%)")
+                            
+                            # Only report first leader change per match/market
+                            break
+                
+                except Exception as e:
+                    print(f"[VolumeLeader] Error processing {home} vs {away}: {e}")
+                    continue
+        
+        except Exception as e:
+            print(f"[VolumeLeader] Error processing {market}: {e}")
+            continue
+    
+    print(f"[VolumeLeader] Found {len(alarms)} total alarms")
+    return alarms
+
+
 @app.route('/admin')
 def admin_panel():
     """Admin Panel"""
