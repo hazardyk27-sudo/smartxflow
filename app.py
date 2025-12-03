@@ -2457,8 +2457,14 @@ def calculate_halktuzagi_scores(config):
                                 time_to_match = match_datetime_tr - now.replace(tzinfo=None)
                                 hours_to_match = time_to_match.total_seconds() / 3600
                                 
-                                if 0 < hours_to_match < 2:
-                                    print(f"[HalkTuzagi] Skipped {home} vs {away}: {hours_to_match:.1f} hours to kickoff (< 2h rule)")
+                                # Halk Tuzağı kuralı: Sadece maça 2 saatten AZ kaldığında hesapla
+                                # Maça 2+ saat varsa hesaplama (Sharp'ın tersi)
+                                if hours_to_match >= 2:
+                                    print(f"[HalkTuzagi] Skipped {home} vs {away}: {hours_to_match:.1f} hours to kickoff (>= 2h, only last 2h counts)")
+                                    continue
+                                    
+                                # Maç başladıysa (negatif saat) atla
+                                if hours_to_match <= 0:
                                     continue
                         except Exception as time_e:
                             pass
