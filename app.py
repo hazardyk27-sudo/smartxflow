@@ -2586,9 +2586,11 @@ def calculate_selection_halktuzagi(home, away, market, selection, sel_idx, histo
         
         shock_value = min((amount_change / 1000) * volume_multiplier, max_volume_cap)
         
+        prev_odds = parse_float(prev_snap.get(odds_key, '0'))
+        
         odds_mult = default_odds_multiplier
         for r_min, r_max, r_mult in odds_ranges:
-            if r_min <= curr_odds < r_max:
+            if r_min <= prev_odds < r_max:
                 odds_mult = r_mult
                 break
         odds_value = min(odds_mult, max_odds_cap)
@@ -2875,7 +2877,7 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         
         odds_multiplier = default_odds_multiplier
         for range_min, range_max, range_mult in odds_ranges:
-            if range_min <= curr_odds < range_max:
+            if range_min <= prev_odds < range_max:
                 odds_multiplier = range_mult
                 break
         
