@@ -177,6 +177,18 @@ def run_alarm_calculations():
         except Exception as e:
             print(f"[Alarm Scheduler] VolumeShock error: {e}")
         
+        # Dropping alarms
+        try:
+            dropping_cfg = load_dropping_config()
+            new_dropping = calculate_dropping_scores(dropping_cfg)
+            if new_dropping:
+                global dropping_alarms
+                dropping_alarms = new_dropping
+                save_dropping_alarms_to_file(dropping_alarms)
+                print(f"[Alarm Scheduler] Dropping: {len(dropping_alarms)} alarms")
+        except Exception as e:
+            print(f"[Alarm Scheduler] Dropping error: {e}")
+        
         last_alarm_calc_time = now_turkey_iso()
         print(f"[Alarm Scheduler] Completed at {last_alarm_calc_time}")
         
@@ -2035,6 +2047,7 @@ def calculate_dropping_scores(config):
             for match_key, match_data in trend_data.items():
                 home = match_data.get('home', '')
                 away = match_data.get('away', '')
+                league = match_data.get('league', '')
                 values = match_data.get('values', {})
                 
                 # Check if match exists in corresponding Moneyway market
@@ -2096,9 +2109,18 @@ def calculate_dropping_scores(config):
                     if not level:
                         continue
                     
+                    if not match_date or match_date == '2025' or len(match_date) < 5:
+                        continue
+                    
+                    match_id = generate_match_id(home, away, league, match_date)
+                    
                     alarm = {
                         'home': home,
                         'away': away,
+                        'home_team': home,
+                        'away_team': away,
+                        'match_id': match_id,
+                        'league': league,
                         'market': market_names.get(market, market),
                         'selection': selection,
                         'level': level,
@@ -2107,11 +2129,12 @@ def calculate_dropping_scores(config):
                         'drop_pct': round(drop_pct, 2),
                         'volume': 0,
                         'match_date': match_date,
+                        'fixture_date': match_date,
                         'event_time': created_at,
                         'created_at': created_at
                     }
                     alarms.append(alarm)
-                    print(f"[Dropping] {level}: {home} vs {away} [{selection}] {opening_odds:.2f}→{current_odds:.2f} ({drop_pct:.1f}%)")
+                    print(f"[Dropping] {level}: {home} vs {away} [{selection}] {opening_odds:.2f}→{current_odds:.2f} ({drop_pct:.1f}%) date={match_date}")
             
             if skipped_count > 0:
                 print(f"[Dropping] Skipped {skipped_count} matches not found in {moneyway_market}")
