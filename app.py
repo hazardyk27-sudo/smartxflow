@@ -146,9 +146,9 @@ def run_alarm_calculations():
         except Exception as e:
             print(f"[Alarm Scheduler] Sharp error: {e}")
         
-        # Insider alarms - eski alarmlar korunur, yeniler eklenir
+        # Insider alarms - eski alarmlar korunur, yeniler eklenir (oran değişirse)
         try:
-            new_insider = calculate_insider_scores(sharp_config)
+            new_insider = calculate_insider_scores(sharp_config, insider_alarms)
             if new_insider:
                 # Mevcut alarmları koru, yenileri ekle
                 insider_alarms = merge_insider_alarms(insider_alarms, new_insider)
@@ -1200,7 +1200,7 @@ def calculate_insider_alarms_endpoint():
     """Calculate Insider Info alarms based on config"""
     global insider_alarms
     try:
-        new_alarms = calculate_insider_scores(sharp_config)
+        new_alarms = calculate_insider_scores(sharp_config, insider_alarms)
         insider_alarms = merge_insider_alarms(insider_alarms, new_alarms)
         save_insider_alarms_to_file(insider_alarms)
         return jsonify({'success': True, 'count': len(insider_alarms)})
@@ -1210,7 +1210,7 @@ def calculate_insider_alarms_endpoint():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-def calculate_insider_scores(config):
+def calculate_insider_scores(config, existing_alarms=None):
     """
     Calculate Insider Info alarms with rolling window approach.
     
@@ -1221,8 +1221,19 @@ def calculate_insider_scores(config):
     
     These conditions must persist for insider_sure_dakika minutes (default: 30)
     which equals 3 consecutive 10-minute snapshots.
+    
+    DUPLICATE PREVENTION: If alarm already exists for same match+market+selection
+    and the odds haven't changed since last alarm, don't create a new alarm.
     """
     alarms = []
+    existing_alarms = existing_alarms or []
+    
+    # Build lookup dict for existing alarms: key -> last_odds
+    existing_odds_map = {}
+    for ea in existing_alarms:
+        key = f"{ea.get('home', '')}_{ea.get('away', '')}_{ea.get('market', '')}_{ea.get('selection', '')}"
+        existing_odds_map[key] = ea.get('last_odds', 0)
+    
     supabase = get_supabase_client()
     if not supabase or not supabase.is_available:
         print("[Insider] Supabase not available")
@@ -1451,6 +1462,17 @@ def calculate_insider_scores(config):
                     best_window_drop_pct = opening_to_now_drop_pct  # Açılıştan bugüne düşüş
                     
                     if alarm_triggered and best_window:
+                        # DUPLICATE PREVENTION: Check if alarm already exists with same odds
+                        alarm_key = f"{home}_{away}_{market_names.get(market, market)}_{selection}"
+                        last_odds_val = parse_float(history[-1].get(odds_key, '0'))
+                        
+                        if alarm_key in existing_odds_map:
+                            prev_last_odds = existing_odds_map[alarm_key]
+                            # If odds haven't changed, skip creating duplicate alarm
+                            if abs(last_odds_val - prev_last_odds) < 0.01:
+                                print(f"[Insider] SKIP: {home} vs {away} [{selection}] - oran degismedi ({last_odds_val:.2f} = {prev_last_odds:.2f})")
+                                continue
+                        
                         # Use last snapshot in window for alarm details
                         last_snap = best_window[-1]
                         first_snap = best_window[0]
