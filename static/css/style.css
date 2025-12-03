@@ -4066,6 +4066,132 @@ td.volume,
     box-shadow: 0 0 0 2px rgba(248, 166, 36, 0.15);
 }
 
+/* Custom Alarm Filter Dropdown */
+.alarm-filter-dropdown {
+    position: relative;
+    width: calc(100% + 10px);
+    min-width: 140px;
+}
+
+.alarm-filter-selected {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #c9d1d9;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.alarm-filter-selected:hover {
+    background: #30363d;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.alarm-filter-dropdown.open .alarm-filter-selected {
+    border-color: #484f58;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.dropdown-chevron {
+    margin-left: auto;
+    color: #8b949e;
+    transition: transform 0.2s ease;
+}
+
+.alarm-filter-dropdown.open .dropdown-chevron {
+    transform: rotate(180deg);
+}
+
+.alarm-filter-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #21262d;
+    border: 1px solid #484f58;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    z-index: 100;
+    transition: all 0.2s ease;
+}
+
+.alarm-filter-dropdown.open .alarm-filter-options {
+    max-height: 320px;
+    opacity: 1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.alarm-filter-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    color: #c9d1d9;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.alarm-filter-option:hover {
+    background: #30363d;
+}
+
+.alarm-filter-option.selected {
+    background: #30363d;
+    color: #fff;
+}
+
+.filter-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.filter-dot-multi {
+    display: flex;
+    gap: 3px;
+}
+
+.filter-dot-multi span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.filter-dot-display {
+    display: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.filter-dot-display.show {
+    display: block;
+}
+
+.filter-dot-display.multi {
+    display: flex;
+    gap: 3px;
+    width: auto;
+}
+
+.filter-dot-display.multi span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
 .alarms-sidebar-search {
     position: relative;
 }

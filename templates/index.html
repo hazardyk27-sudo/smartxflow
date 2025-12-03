@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=102">
+    <link rel="stylesheet" href="/static/css/style.css?v=103">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
@@ -196,16 +196,51 @@
             <div class="alarms-sidebar-row">
                 <div class="alarms-sidebar-field">
                     <label>FILTRE:</label>
-                    <select id="alarmFilterSelect" onchange="filterAlarms(this.value)">
-                        <option value="all">Tumu</option>
-                        <option value="sharp">Sharp</option>
-                        <option value="insider">Iceriden Bilgi</option>
-                        <option value="bigmoney">Buyuk Para</option>
-                        <option value="volumeshock">Hacim Soku</option>
-                        <option value="dropping">Dropping</option>
-                        <option value="publictrap">Public Trap</option>
-                        <option value="volumeleader">Lider Degisti</option>
-                    </select>
+                    <div class="alarm-filter-dropdown" id="alarmFilterDropdown">
+                        <div class="alarm-filter-selected" onclick="toggleAlarmFilterDropdown()">
+                            <span class="filter-dot-display" id="filterDotDisplay"></span>
+                            <span id="filterLabelDisplay">Tumu</span>
+                            <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        </div>
+                        <div class="alarm-filter-options" id="alarmFilterOptions">
+                            <div class="alarm-filter-option" data-value="all" onclick="selectAlarmFilter('all')">
+                                <span class="filter-dot-multi">
+                                    <span style="background:#4ade80"></span>
+                                    <span style="background:#a855f7"></span>
+                                    <span style="background:#F08A24"></span>
+                                </span>
+                                <span>Tumu</span>
+                            </div>
+                            <div class="alarm-filter-option" data-value="sharp" onclick="selectAlarmFilter('sharp')">
+                                <span class="filter-dot" style="background:#4ade80"></span>
+                                <span>Sharp</span>
+                            </div>
+                            <div class="alarm-filter-option" data-value="insider" onclick="selectAlarmFilter('insider')">
+                                <span class="filter-dot" style="background:#a855f7"></span>
+                                <span>Iceriden Bilgi</span>
+                            </div>
+                            <div class="alarm-filter-option" data-value="bigmoney" onclick="selectAlarmFilter('bigmoney')">
+                                <span class="filter-dot" style="background:#F08A24"></span>
+                                <span>Buyuk Para</span>
+                            </div>
+                            <div class="alarm-filter-option" data-value="volumeshock" onclick="selectAlarmFilter('volumeshock')">
+                                <span class="filter-dot" style="background:#F6C343"></span>
+                                <span>Hacim Soku</span>
+                            </div>
+                            <div class="alarm-filter-option" data-value="dropping" onclick="selectAlarmFilter('dropping')">
+                                <span class="filter-dot" style="background:#f85149"></span>
+                                <span>Dropping</span>
+                            </div>
+                            <div class="alarm-filter-option" data-value="publictrap" onclick="selectAlarmFilter('publictrap')">
+                                <span class="filter-dot" style="background:#FFCC00"></span>
+                                <span>Public Trap</span>
+                            </div>
+                            <div class="alarm-filter-option" data-value="volumeleader" onclick="selectAlarmFilter('volumeleader')">
+                                <span class="filter-dot" style="background:#06b6d4"></span>
+                                <span>Lider Degisti</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="alarms-sidebar-field">
                     <label>SIRALA:</label>
@@ -297,6 +332,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=88"></script>
+    <script src="/static/js/app.js?v=89"></script>
 </body>
 </html>

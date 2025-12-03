@@ -3944,6 +3944,65 @@ function parseAlarmDate(dateStr) {
     return new Date(dateStr);
 }
 
+const alarmFilterColors = {
+    all: null,
+    sharp: '#4ade80',
+    insider: '#a855f7',
+    bigmoney: '#F08A24',
+    volumeshock: '#F6C343',
+    dropping: '#f85149',
+    publictrap: '#FFCC00',
+    volumeleader: '#06b6d4'
+};
+
+const alarmFilterLabels = {
+    all: 'Tumu',
+    sharp: 'Sharp',
+    insider: 'Iceriden Bilgi',
+    bigmoney: 'Buyuk Para',
+    volumeshock: 'Hacim Soku',
+    dropping: 'Dropping',
+    publictrap: 'Public Trap',
+    volumeleader: 'Lider Degisti'
+};
+
+function toggleAlarmFilterDropdown() {
+    const dropdown = document.getElementById('alarmFilterDropdown');
+    dropdown.classList.toggle('open');
+}
+
+function selectAlarmFilter(type) {
+    const dropdown = document.getElementById('alarmFilterDropdown');
+    const dotDisplay = document.getElementById('filterDotDisplay');
+    const labelDisplay = document.getElementById('filterLabelDisplay');
+    
+    dropdown.classList.remove('open');
+    
+    document.querySelectorAll('.alarm-filter-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.dataset.value === type);
+    });
+    
+    labelDisplay.textContent = alarmFilterLabels[type] || 'Tumu';
+    
+    if (type === 'all') {
+        dotDisplay.className = 'filter-dot-display multi';
+        dotDisplay.innerHTML = '<span style="background:#4ade80"></span><span style="background:#a855f7"></span><span style="background:#F08A24"></span>';
+    } else {
+        dotDisplay.className = 'filter-dot-display show';
+        dotDisplay.style.background = alarmFilterColors[type] || '#8b949e';
+        dotDisplay.innerHTML = '';
+    }
+    
+    filterAlarms(type);
+}
+
+document.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('alarmFilterDropdown');
+    if (dropdown && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('open');
+    }
+});
+
 function filterAlarms(type) {
     currentAlarmFilter = type;
     alarmsDisplayCount = 30;
