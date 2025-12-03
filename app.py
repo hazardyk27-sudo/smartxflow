@@ -1000,6 +1000,76 @@ sharp_alarms = load_sharp_alarms_from_file()
 sharp_calculating = False
 sharp_calc_progress = ""
 
+# ==================== HALK TUZAĞI ALARM SYSTEM ====================
+# (Sharp alarm'ın birebir kopyası, farklı isim)
+HALKTUZAGI_CONFIG_FILE = 'halktuzagi_config.json'
+HALKTUZAGI_ALARMS_FILE = 'halktuzagi_alarms.json'
+
+def load_halktuzagi_config_from_file():
+    """Load Halk Tuzagi config from JSON file"""
+    default_config = {
+        'min_volume_1x2': 3000,
+        'min_volume_ou25': 1000,
+        'min_volume_btts': 500,
+        'volume_multiplier': 1.0,
+        'odds_multiplier': 1.0,
+        'share_multiplier': 1.0,
+        'max_volume_cap': 40,
+        'max_odds_cap': 35,
+        'max_share_cap': 25,
+        'min_share': 5,
+        'min_sharp_score': 10
+    }
+    try:
+        if os.path.exists(HALKTUZAGI_CONFIG_FILE):
+            with open(HALKTUZAGI_CONFIG_FILE, 'r') as f:
+                saved_config = json.load(f)
+                default_config.update(saved_config)
+                print(f"[HalkTuzagi] Config loaded from {HALKTUZAGI_CONFIG_FILE}: min_sharp_score={default_config.get('min_sharp_score')}")
+    except Exception as e:
+        print(f"[HalkTuzagi] Config load error: {e}")
+    return default_config
+
+def save_halktuzagi_config_to_file(config):
+    """Save Halk Tuzagi config to JSON file"""
+    try:
+        with open(HALKTUZAGI_CONFIG_FILE, 'w') as f:
+            json.dump(config, f, indent=2)
+        print(f"[HalkTuzagi] Config saved to {HALKTUZAGI_CONFIG_FILE}")
+        return True
+    except Exception as e:
+        print(f"[HalkTuzagi] Config save error: {e}")
+        return False
+
+halktuzagi_config = load_halktuzagi_config_from_file()
+
+def load_halktuzagi_alarms_from_file():
+    """Load Halk Tuzagi alarms from JSON file"""
+    try:
+        if os.path.exists(HALKTUZAGI_ALARMS_FILE):
+            with open(HALKTUZAGI_ALARMS_FILE, 'r') as f:
+                alarms = json.load(f)
+                print(f"[HalkTuzagi] Loaded {len(alarms)} alarms from {HALKTUZAGI_ALARMS_FILE}")
+                return alarms
+    except Exception as e:
+        print(f"[HalkTuzagi] Alarms load error: {e}")
+    return []
+
+def save_halktuzagi_alarms_to_file(alarms):
+    """Save Halk Tuzagi alarms to JSON file"""
+    try:
+        with open(HALKTUZAGI_ALARMS_FILE, 'w') as f:
+            json.dump(alarms, f, indent=2, ensure_ascii=False)
+        print(f"[HalkTuzagi] Saved {len(alarms)} alarms to {HALKTUZAGI_ALARMS_FILE}")
+        return True
+    except Exception as e:
+        print(f"[HalkTuzagi] Alarms save error: {e}")
+        return False
+
+halktuzagi_alarms = load_halktuzagi_alarms_from_file()
+halktuzagi_calculating = False
+halktuzagi_calc_progress = ""
+
 # ==================== INSIDER INFO ALARM SYSTEM ====================
 INSIDER_ALARMS_FILE = 'insider_alarms.json'
 
@@ -2221,6 +2291,328 @@ def calculate_sharp_alarms():
         sharp_calculating = False
         sharp_calc_progress = f"Hata: {str(e)}"
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ==================== HALK TUZAĞI API ENDPOINTS ====================
+
+@app.route('/api/halktuzagi/status', methods=['GET'])
+def get_halktuzagi_status():
+    """Get Halk Tuzagi calculation status"""
+    return jsonify({
+        'calculating': halktuzagi_calculating,
+        'progress': halktuzagi_calc_progress,
+        'alarm_count': len(halktuzagi_alarms)
+    })
+
+
+@app.route('/api/halktuzagi/config', methods=['GET'])
+def get_halktuzagi_config():
+    """Get Halk Tuzagi config"""
+    return jsonify(halktuzagi_config)
+
+
+@app.route('/api/halktuzagi/config', methods=['POST'])
+def save_halktuzagi_config():
+    """Save Halk Tuzagi config"""
+    global halktuzagi_config
+    try:
+        data = request.get_json()
+        if data:
+            halktuzagi_config.update(data)
+            save_halktuzagi_config_to_file(halktuzagi_config)
+            print(f"[HalkTuzagi] Config updated: min_sharp_score={halktuzagi_config.get('min_sharp_score')}, volume_mult={halktuzagi_config.get('volume_multiplier')}, odds_mult={halktuzagi_config.get('odds_multiplier')}, share_mult={halktuzagi_config.get('share_multiplier')}")
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/halktuzagi/alarms', methods=['GET'])
+def get_halktuzagi_alarms():
+    """Get all Halk Tuzagi alarms"""
+    return jsonify(halktuzagi_alarms)
+
+
+@app.route('/api/halktuzagi/alarms', methods=['DELETE'])
+def delete_halktuzagi_alarms():
+    """Delete all Halk Tuzagi alarms"""
+    global halktuzagi_alarms
+    halktuzagi_alarms = []
+    save_halktuzagi_alarms_to_file(halktuzagi_alarms)
+    return jsonify({'success': True})
+
+
+@app.route('/api/halktuzagi/calculate', methods=['POST'])
+def calculate_halktuzagi_alarms():
+    """Calculate Halk Tuzagi alarms based on current config (same logic as Sharp)"""
+    global halktuzagi_alarms, halktuzagi_calculating, halktuzagi_calc_progress
+    
+    if halktuzagi_calculating:
+        return jsonify({'success': False, 'error': 'Hesaplama zaten devam ediyor', 'calculating': True})
+    
+    try:
+        halktuzagi_calculating = True
+        halktuzagi_calc_progress = "Hesaplama baslatiliyor..."
+        halktuzagi_alarms = calculate_halktuzagi_scores(halktuzagi_config)
+        save_halktuzagi_alarms_to_file(halktuzagi_alarms)
+        halktuzagi_calc_progress = f"Tamamlandi! {len(halktuzagi_alarms)} alarm bulundu."
+        halktuzagi_calculating = False
+        return jsonify({'success': True, 'count': len(halktuzagi_alarms)})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        halktuzagi_calculating = False
+        halktuzagi_calc_progress = f"Hata: {str(e)}"
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def calculate_halktuzagi_scores(config):
+    """Calculate Halk Tuzagi scores for all matches based on config (same as Sharp)"""
+    global halktuzagi_calc_progress
+    alarms = []
+    all_candidates = []
+    supabase = get_supabase_client()
+    if not supabase or not supabase.is_available:
+        print("[HalkTuzagi] Supabase not available")
+        return alarms
+    
+    markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
+    market_names = {'moneyway_1x2': '1X2', 'moneyway_ou25': 'O/U 2.5', 'moneyway_btts': 'BTTS'}
+    
+    for idx, market in enumerate(markets):
+        try:
+            if '1x2' in market:
+                min_volume = config.get('min_volume_1x2', 3000)
+                selections = ['1', 'X', '2']
+            elif 'ou25' in market:
+                min_volume = config.get('min_volume_ou25', 1000)
+                selections = ['Over', 'Under']
+            else:
+                min_volume = config.get('min_volume_btts', 500)
+                selections = ['Yes', 'No']
+            
+            history_table = f"{market}_history"
+            matches = supabase.get_all_matches_with_latest(market)
+            
+            if not matches:
+                print(f"[HalkTuzagi] No matches for {market}")
+                continue
+            
+            halktuzagi_calc_progress = f"{market_names.get(market, market)} isleniyor... ({idx+1}/3)"
+            print(f"[HalkTuzagi] Processing {len(matches)} matches for {market}, min_volume: {min_volume}")
+            processed = 0
+            skipped_old = 0
+            
+            today = now_turkey().date()
+            yesterday = today - timedelta(days=1)
+            
+            for match in matches:
+                home = match.get('home_team', match.get('home', match.get('Home', '')))
+                away = match.get('away_team', match.get('away', match.get('Away', '')))
+                
+                if not home or not away:
+                    continue
+                
+                match_date_str = match.get('date', '')
+                if match_date_str:
+                    try:
+                        date_part = match_date_str.split()[0]
+                        
+                        if '.' in date_part:
+                            parts = date_part.split('.')
+                            if len(parts) == 2:
+                                day = int(parts[0])
+                                month_abbr = parts[1][:3]
+                                month_map = {
+                                    'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+                                    'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+                                }
+                                month = month_map.get(month_abbr, today.month)
+                                year = today.year
+                                match_date = datetime(year, month, day).date()
+                            elif len(parts) == 3:
+                                match_date = datetime.strptime(date_part, '%d.%m.%Y').date()
+                            else:
+                                match_date = today
+                        elif '-' in date_part:
+                            match_date = datetime.strptime(date_part.split('T')[0], '%Y-%m-%d').date()
+                        else:
+                            match_date = today
+                        
+                        if match_date < yesterday:
+                            skipped_old += 1
+                            continue
+                        
+                        try:
+                            time_parts = match_date_str.split()
+                            if len(time_parts) >= 2:
+                                time_str = time_parts[1]
+                                hour_min = time_str.split(':')
+                                match_hour = int(hour_min[0])
+                                match_minute = int(hour_min[1]) if len(hour_min) > 1 else 0
+                                
+                                match_datetime_utc = datetime(match_date.year, match_date.month, match_date.day, match_hour, match_minute)
+                                match_datetime_tr = match_datetime_utc + timedelta(hours=3)
+                                now = now_turkey()
+                                
+                                time_to_match = match_datetime_tr - now.replace(tzinfo=None)
+                                hours_to_match = time_to_match.total_seconds() / 3600
+                                
+                                if 0 < hours_to_match < 2:
+                                    print(f"[HalkTuzagi] Skipped {home} vs {away}: {hours_to_match:.1f} hours to kickoff (< 2h rule)")
+                                    continue
+                        except Exception as time_e:
+                            pass
+                    except Exception as e:
+                        print(f"[HalkTuzagi] Date parse error for {home} vs {away}: {match_date_str} - {e}")
+                
+                latest = match.get('latest', {})
+                volume_str = latest.get('Volume', match.get('volume', match.get('Volume', '0')))
+                volume = parse_volume(volume_str)
+                
+                if volume < min_volume:
+                    continue
+                
+                history = supabase.get_match_history_for_sharp(home, away, history_table)
+                
+                if len(history) < 2:
+                    continue
+                
+                processed += 1
+                
+                for sel_idx, selection in enumerate(selections):
+                    alarm = calculate_selection_halktuzagi(
+                        home, away, market, selection, sel_idx,
+                        history, volume, config, match_date_str
+                    )
+                    if alarm:
+                        all_candidates.append(alarm)
+                        if alarm.get('triggered'):
+                            alarms.append(alarm)
+            
+            print(f"[HalkTuzagi] Processed {processed} matches with sufficient volume for {market}, skipped {skipped_old} old (D-2+) matches")
+        except Exception as e:
+            print(f"[HalkTuzagi] Error processing {market}: {e}")
+            import traceback
+            traceback.print_exc()
+            continue
+    
+    print(f"[HalkTuzagi] Total candidates: {len(all_candidates)}, Triggered alarms: {len(alarms)}")
+    
+    alarms.sort(key=lambda x: x.get('sharp_score', 0), reverse=True)
+    return alarms
+
+
+def calculate_selection_halktuzagi(home, away, market, selection, sel_idx, history, volume, config, match_date_str=''):
+    """Calculate Halk Tuzagi score for a single selection (same logic as Sharp)"""
+    if len(history) < 2:
+        return None
+    
+    if '1x2' in market:
+        amount_keys = ['amt1', 'amtx', 'amt2']
+        odds_keys = ['odds1', 'oddsx', 'odds2']
+        share_keys = ['pct1', 'pctx', 'pct2']
+    elif 'ou25' in market:
+        amount_keys = ['amtover', 'amtunder']
+        odds_keys = ['over', 'under']
+        share_keys = ['pctover', 'pctunder']
+    else:
+        amount_keys = ['amtyes', 'amtno']
+        odds_keys = ['oddsyes', 'oddsno']
+        share_keys = ['pctyes', 'pctno']
+    
+    if sel_idx >= len(amount_keys):
+        return None
+    
+    amount_key = amount_keys[sel_idx]
+    odds_key = odds_keys[sel_idx]
+    share_key = share_keys[sel_idx]
+    
+    if len(history) < 2:
+        return None
+    
+    min_amount_change = config.get('min_amount_change', 500)
+    volume_multiplier = config.get('volume_multiplier', 1)
+    max_volume_cap = config.get('max_volume_cap', 40)
+    max_odds_cap = config.get('max_odds_cap', 35)
+    max_share_cap = config.get('max_share_cap', 25)
+    min_share_threshold = config.get('min_share', 5)
+    min_sharp_score = config.get('min_sharp_score', 10)
+    
+    odds_ranges = [
+        (config.get('odds_range_1_min', 1.01), config.get('odds_range_1_max', 1.50), config.get('odds_range_1_mult', 10)),
+        (config.get('odds_range_2_min', 1.50), config.get('odds_range_2_max', 2.10), config.get('odds_range_2_mult', 8)),
+        (config.get('odds_range_3_min', 2.10), config.get('odds_range_3_max', 3.50), config.get('odds_range_3_mult', 5)),
+        (config.get('odds_range_4_min', 3.50), config.get('odds_range_4_max', 10.00), config.get('odds_range_4_mult', 3)),
+    ]
+    default_odds_multiplier = config.get('odds_multiplier', 1)
+    
+    share_ranges = [
+        (config.get('share_range_1_min', 0), config.get('share_range_1_max', 50), config.get('share_range_1_mult', 1)),
+        (config.get('share_range_2_min', 50), config.get('share_range_2_max', 75), config.get('share_range_2_mult', 1.5)),
+        (config.get('share_range_3_min', 75), config.get('share_range_3_max', 90), config.get('share_range_3_mult', 2)),
+        (config.get('share_range_4_min', 90), config.get('share_range_4_max', 100), config.get('share_range_4_mult', 3)),
+    ]
+    default_share_multiplier = 1
+    
+    best_candidate = None
+    best_score = 0
+    
+    for i in range(1, len(history)):
+        prev_snap = history[i-1]
+        curr_snap = history[i]
+        
+        prev_amount = parse_volume(prev_snap.get(amount_key, '0'))
+        curr_amount = parse_volume(curr_snap.get(amount_key, '0'))
+        amount_change = curr_amount - prev_amount
+        
+        if amount_change < min_amount_change:
+            continue
+        
+        curr_odds = parse_float(curr_snap.get(odds_key, '0'))
+        curr_share = parse_float(curr_snap.get(share_key, '0').replace('%', ''))
+        
+        if curr_share < min_share_threshold:
+            continue
+        
+        shock_value = min((amount_change / 1000) * volume_multiplier, max_volume_cap)
+        
+        odds_mult = default_odds_multiplier
+        for r_min, r_max, r_mult in odds_ranges:
+            if r_min <= curr_odds < r_max:
+                odds_mult = r_mult
+                break
+        odds_value = min(odds_mult, max_odds_cap)
+        
+        share_mult = default_share_multiplier
+        for r_min, r_max, r_mult in share_ranges:
+            if r_min <= curr_share < r_max:
+                share_mult = r_mult
+                break
+        share_value = min(curr_share * share_mult / 10, max_share_cap)
+        
+        sharp_score = shock_value + odds_value + share_value
+        
+        if sharp_score > best_score:
+            best_score = sharp_score
+            best_candidate = {
+                'home': home,
+                'away': away,
+                'market': market,
+                'selection': selection,
+                'match_date': match_date_str,
+                'sharp_score': round(sharp_score, 2),
+                'shock_value': round(shock_value, 2),
+                'odds_value': round(odds_value, 2),
+                'share_value': round(share_value, 2),
+                'amount_change': amount_change,
+                'current_odds': curr_odds,
+                'current_share': curr_share,
+                'volume': volume,
+                'triggered': sharp_score >= min_sharp_score,
+                'event_time': now_turkey_iso()
+            }
+    
+    return best_candidate
 
 
 def calculate_sharp_scores(config):
