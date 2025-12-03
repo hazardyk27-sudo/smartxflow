@@ -6527,11 +6527,12 @@ td.volume,
     max-height: 0;
     overflow: hidden;
     opacity: 0;
-    transition: max-height 0.25s ease, opacity 0.2s ease;
+    transition: max-height 0.3s ease, opacity 0.2s ease;
 }
 
 .ac.open .ac-detail {
-    max-height: 300px;
+    max-height: 800px;
+    overflow: visible;
     opacity: 1;
 }
 
