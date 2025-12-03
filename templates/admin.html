@@ -898,15 +898,20 @@
             </div>
 
             <div class="info-card" style="margin-top: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0;">🔔 Sharp Alarmlar <span id="alarmCount" class="badge active">0</span></h3>
-                    <div style="position: relative;">
-                        <input type="text" id="alarmSearchInput" placeholder="Takim ara..." 
-                               oninput="filterAlarms()" 
-                               style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 200px;">
-                        <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                        </svg>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0;">🔔 Sharp Alarmlar <span id="alarmCount" class="badge active">0</span> <span id="alarmFilteredCount" style="font-size: 12px; color: #8b949e; font-weight: normal;"></span></h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="date" id="alarmDateFilter" 
+                               onchange="filterAlarms()" 
+                               style="padding: 6px 10px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 12px;">
+                        <div style="position: relative;">
+                            <input type="text" id="alarmSearchInput" placeholder="Takim ara..." 
+                                   oninput="filterAlarms()" 
+                                   style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 160px;">
+                            <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                        </div>
                     </div>
                 </div>
                 <div id="calcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #f0883e;">
@@ -1164,15 +1169,20 @@
             </div>
 
             <div class="info-card" style="margin-top: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0;">🪤 Public Trap Alarmları <span id="htAlarmCount" class="badge active">0</span></h3>
-                    <div style="position: relative;">
-                        <input type="text" id="htAlarmSearchInput" placeholder="Takim ara..." 
-                               oninput="filterHalkTuzagiAlarms()" 
-                               style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 200px;">
-                        <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                        </svg>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0;">🪤 Public Trap Alarmları <span id="htAlarmCount" class="badge active">0</span> <span id="htAlarmFilteredCount" style="font-size: 12px; color: #8b949e; font-weight: normal;"></span></h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="date" id="htAlarmDateFilter" 
+                               onchange="filterHalkTuzagiAlarms()" 
+                               style="padding: 6px 10px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 12px;">
+                        <div style="position: relative;">
+                            <input type="text" id="htAlarmSearchInput" placeholder="Takim ara..." 
+                                   oninput="filterHalkTuzagiAlarms()" 
+                                   style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 160px;">
+                            <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                        </div>
                     </div>
                 </div>
                 <div id="htCalcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #FFD700;">
@@ -1255,15 +1265,20 @@
             </div>
 
             <div class="info-card" style="margin-top: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0; color: #a371f7;">🕵️ Insider Alarmlar <span id="insiderAlarmCount" class="badge" style="background: #a371f7;">0</span></h3>
-                    <div style="position: relative;">
-                        <input type="text" id="insiderSearchInput" placeholder="Takim ara..." 
-                               oninput="filterInsiderAlarms()" 
-                               style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 200px;">
-                        <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                        </svg>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0; color: #a371f7;">🕵️ Insider Alarmlar <span id="insiderAlarmCount" class="badge" style="background: #a371f7;">0</span> <span id="insiderAlarmFilteredCount" style="font-size: 12px; color: #8b949e; font-weight: normal;"></span></h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="date" id="insiderAlarmDateFilter" 
+                               onchange="filterInsiderAlarms()" 
+                               style="padding: 6px 10px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 12px;">
+                        <div style="position: relative;">
+                            <input type="text" id="insiderSearchInput" placeholder="Takim ara..." 
+                                   oninput="filterInsiderAlarms()" 
+                                   style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 160px;">
+                            <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                        </div>
                     </div>
                 </div>
                 <div id="insiderCalcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #a371f7;">
@@ -1320,15 +1335,20 @@
             </div>
 
             <div class="info-card" style="margin-top: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0; color: #FF4500;">💰 Big Money Alarmlar <span id="bigMoneyAlarmCount" class="badge" style="background: #FF4500;">0</span></h3>
-                    <div style="position: relative;">
-                        <input type="text" id="bigMoneySearchInput" placeholder="Takim ara..." 
-                               oninput="filterBigMoneyAlarms()" 
-                               style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 200px;">
-                        <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                        </svg>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0; color: #FF4500;">💰 Big Money Alarmlar <span id="bigMoneyAlarmCount" class="badge" style="background: #FF4500;">0</span> <span id="bigMoneyAlarmFilteredCount" style="font-size: 12px; color: #8b949e; font-weight: normal;"></span></h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="date" id="bigMoneyAlarmDateFilter" 
+                               onchange="filterBigMoneyAlarms()" 
+                               style="padding: 6px 10px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 12px;">
+                        <div style="position: relative;">
+                            <input type="text" id="bigMoneySearchInput" placeholder="Takim ara..." 
+                                   oninput="filterBigMoneyAlarms()" 
+                                   style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 160px;">
+                            <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                        </div>
                     </div>
                 </div>
                 <div id="bigMoneyCalcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #FF4500;">
@@ -1478,15 +1498,20 @@
             </div>
 
             <div class="info-card" style="margin-top: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0; color: #e74c3c;">📉 Dropping Alarmlar <span id="droppingAlarmCount" class="badge" style="background: #e74c3c;">0</span></h3>
-                    <div style="position: relative;">
-                        <input type="text" id="droppingSearchInput" placeholder="Takim ara..." 
-                               oninput="filterDroppingAlarms()" 
-                               style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 200px;">
-                        <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                        </svg>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0; color: #e74c3c;">📉 Dropping Alarmlar <span id="droppingAlarmCount" class="badge" style="background: #e74c3c;">0</span> <span id="droppingAlarmFilteredCount" style="font-size: 12px; color: #8b949e; font-weight: normal;"></span></h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="date" id="droppingAlarmDateFilter" 
+                               onchange="filterDroppingAlarms()" 
+                               style="padding: 6px 10px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 12px;">
+                        <div style="position: relative;">
+                            <input type="text" id="droppingSearchInput" placeholder="Takim ara..." 
+                                   oninput="filterDroppingAlarms()" 
+                                   style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 160px;">
+                            <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                        </div>
                     </div>
                 </div>
                 <div id="droppingCalcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #e74c3c;">
@@ -1575,15 +1600,20 @@
             </div>
 
             <div class="info-card" style="margin-top: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0; color: #ff6b6b;">⚡ Hacim Soku Alarmlar <span id="volumeShockAlarmCount" class="badge" style="background: #ff6b6b;">0</span></h3>
-                    <div style="position: relative;">
-                        <input type="text" id="volumeShockSearchInput" placeholder="Takim ara..." 
-                               oninput="filterVolumeShockAlarms()" 
-                               style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 200px;">
-                        <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                        </svg>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0; color: #ff6b6b;">⚡ Hacim Soku Alarmlar <span id="volumeShockAlarmCount" class="badge" style="background: #ff6b6b;">0</span> <span id="volumeShockAlarmFilteredCount" style="font-size: 12px; color: #8b949e; font-weight: normal;"></span></h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="date" id="volumeShockAlarmDateFilter" 
+                               onchange="filterVolumeShockAlarms()" 
+                               style="padding: 6px 10px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 12px;">
+                        <div style="position: relative;">
+                            <input type="text" id="volumeShockSearchInput" placeholder="Takim ara..." 
+                                   oninput="filterVolumeShockAlarms()" 
+                                   style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 160px;">
+                            <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                        </div>
                     </div>
                 </div>
                 <div id="volumeShockCalcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #ff6b6b;">
@@ -1661,15 +1691,20 @@
             </div>
 
             <div class="info-card" style="margin-top: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0; color: #06b6d4;">👑 Hacim Lideri Alarmlar <span id="volumeLeaderAlarmCount" class="badge" style="background: #06b6d4;">0</span></h3>
-                    <div style="position: relative;">
-                        <input type="text" id="volumeLeaderSearchInput" placeholder="Takim ara..." 
-                               oninput="filterVolumeLeaderAlarms()" 
-                               style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 200px;">
-                        <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                        </svg>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0; color: #06b6d4;">👑 Hacim Lideri Alarmlar <span id="volumeLeaderAlarmCount" class="badge" style="background: #06b6d4;">0</span> <span id="volumeLeaderAlarmFilteredCount" style="font-size: 12px; color: #8b949e; font-weight: normal;"></span></h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="date" id="volumeLeaderAlarmDateFilter" 
+                               onchange="filterVolumeLeaderAlarms()" 
+                               style="padding: 6px 10px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 12px;">
+                        <div style="position: relative;">
+                            <input type="text" id="volumeLeaderSearchInput" placeholder="Takim ara..." 
+                                   oninput="filterVolumeLeaderAlarms()" 
+                                   style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 160px;">
+                            <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                        </div>
                     </div>
                 </div>
                 <div id="volumeLeaderCalcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #06b6d4;">
@@ -1741,6 +1776,51 @@
     <div class="toast" id="toast"></div>
 
     <script>
+        function parseAlarmDate(alarm) {
+            const dateStr = alarm.match_date || alarm.event_time || alarm.created_at || '';
+            if (!dateStr) return null;
+            
+            let match = dateStr.match(/(\d{1,2})\.(\w{3})\.?(\d{4})?|(\d{2})\.(\d{2})\.(\d{4})/i);
+            if (match) {
+                if (match[4]) {
+                    return `${match[6]}-${match[5]}-${match[4]}`;
+                }
+                const months = {'jan':'01','feb':'02','mar':'03','apr':'04','may':'05','jun':'06',
+                               'jul':'07','aug':'08','sep':'09','oct':'10','nov':'11','dec':'12'};
+                const day = match[1].padStart(2, '0');
+                const mon = months[match[2].toLowerCase()] || '01';
+                const year = match[3] || new Date().getFullYear();
+                return `${year}-${mon}-${day}`;
+            }
+            
+            if (dateStr.includes('T') || dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+                return dateStr.substring(0, 10);
+            }
+            return null;
+        }
+        
+        function filterAlarmsByDate(alarms, dateInputId) {
+            const dateInput = document.getElementById(dateInputId);
+            const selectedDate = dateInput ? dateInput.value : '';
+            if (!selectedDate) return alarms;
+            
+            return alarms.filter(alarm => {
+                const alarmDate = parseAlarmDate(alarm);
+                return alarmDate === selectedDate;
+            });
+        }
+        
+        function updateFilteredCount(filteredCountId, filtered, total) {
+            const el = document.getElementById(filteredCountId);
+            if (el) {
+                if (filtered < total) {
+                    el.textContent = `(${filtered}/${total} gosteriliyor)`;
+                } else {
+                    el.textContent = '';
+                }
+            }
+        }
+
         function showPage(pageId) {
             document.querySelectorAll('.page-content').forEach(page => {
                 page.classList.remove('active');
@@ -2110,14 +2190,16 @@
 
         function filterAlarms() {
             const searchTerm = document.getElementById('alarmSearchInput').value.toLowerCase().trim();
-            if (!searchTerm) {
-                renderAlarms(allAlarms);
-                return;
+            let filtered = filterAlarmsByDate(allAlarms, 'alarmDateFilter');
+            
+            if (searchTerm) {
+                filtered = filtered.filter(alarm => 
+                    (alarm.home || '').toLowerCase().includes(searchTerm) ||
+                    (alarm.away || '').toLowerCase().includes(searchTerm)
+                );
             }
-            const filtered = allAlarms.filter(alarm => 
-                (alarm.home || '').toLowerCase().includes(searchTerm) ||
-                (alarm.away || '').toLowerCase().includes(searchTerm)
-            );
+            
+            updateFilteredCount('alarmFilteredCount', filtered.length, allAlarms.length);
             renderAlarms(filtered, allAlarms.length);
         }
 
@@ -2266,14 +2348,16 @@
 
         function filterHalkTuzagiAlarms() {
             const searchTerm = document.getElementById('htAlarmSearchInput').value.toLowerCase().trim();
-            if (!searchTerm) {
-                renderHalkTuzagiAlarms(allHalkTuzagiAlarms);
-                return;
+            let filtered = filterAlarmsByDate(allHalkTuzagiAlarms, 'htAlarmDateFilter');
+            
+            if (searchTerm) {
+                filtered = filtered.filter(alarm => 
+                    (alarm.home || '').toLowerCase().includes(searchTerm) ||
+                    (alarm.away || '').toLowerCase().includes(searchTerm)
+                );
             }
-            const filtered = allHalkTuzagiAlarms.filter(alarm => 
-                (alarm.home || '').toLowerCase().includes(searchTerm) ||
-                (alarm.away || '').toLowerCase().includes(searchTerm)
-            );
+            
+            updateFilteredCount('htAlarmFilteredCount', filtered.length, allHalkTuzagiAlarms.length);
             renderHalkTuzagiAlarms(filtered, allHalkTuzagiAlarms.length);
         }
 
@@ -2596,14 +2680,16 @@
 
         function filterInsiderAlarms() {
             const searchTerm = document.getElementById('insiderSearchInput').value.toLowerCase().trim();
-            if (!searchTerm) {
-                renderInsiderAlarms(allInsiderAlarms);
-                return;
+            let filtered = filterAlarmsByDate(allInsiderAlarms, 'insiderAlarmDateFilter');
+            
+            if (searchTerm) {
+                filtered = filtered.filter(alarm => 
+                    (alarm.home || '').toLowerCase().includes(searchTerm) ||
+                    (alarm.away || '').toLowerCase().includes(searchTerm)
+                );
             }
-            const filtered = allInsiderAlarms.filter(alarm => 
-                (alarm.home || '').toLowerCase().includes(searchTerm) ||
-                (alarm.away || '').toLowerCase().includes(searchTerm)
-            );
+            
+            updateFilteredCount('insiderAlarmFilteredCount', filtered.length, allInsiderAlarms.length);
             renderInsiderAlarms(filtered, allInsiderAlarms.length);
         }
 
@@ -2784,14 +2870,16 @@
 
         function filterBigMoneyAlarms() {
             const searchTerm = document.getElementById('bigMoneySearchInput').value.toLowerCase().trim();
-            if (!searchTerm) {
-                renderBigMoneyAlarms(allBigMoneyAlarms);
-                return;
+            let filtered = filterAlarmsByDate(allBigMoneyAlarms, 'bigMoneyAlarmDateFilter');
+            
+            if (searchTerm) {
+                filtered = filtered.filter(alarm => 
+                    (alarm.home || '').toLowerCase().includes(searchTerm) ||
+                    (alarm.away || '').toLowerCase().includes(searchTerm)
+                );
             }
-            const filtered = allBigMoneyAlarms.filter(alarm => 
-                (alarm.home || '').toLowerCase().includes(searchTerm) ||
-                (alarm.away || '').toLowerCase().includes(searchTerm)
-            );
+            
+            updateFilteredCount('bigMoneyAlarmFilteredCount', filtered.length, allBigMoneyAlarms.length);
             renderBigMoneyAlarms(filtered, allBigMoneyAlarms.length);
         }
 
@@ -2957,14 +3045,16 @@
         
         function filterVolumeShockAlarms() {
             const searchTerm = document.getElementById('volumeShockSearchInput').value.toLowerCase().trim();
-            if (!searchTerm) {
-                renderVolumeShockAlarms(allVolumeShockAlarms);
-                return;
+            let filtered = filterAlarmsByDate(allVolumeShockAlarms, 'volumeShockAlarmDateFilter');
+            
+            if (searchTerm) {
+                filtered = filtered.filter(alarm => 
+                    (alarm.home || '').toLowerCase().includes(searchTerm) ||
+                    (alarm.away || '').toLowerCase().includes(searchTerm)
+                );
             }
-            const filtered = allVolumeShockAlarms.filter(alarm => 
-                (alarm.home || '').toLowerCase().includes(searchTerm) ||
-                (alarm.away || '').toLowerCase().includes(searchTerm)
-            );
+            
+            updateFilteredCount('volumeShockAlarmFilteredCount', filtered.length, allVolumeShockAlarms.length);
             renderVolumeShockAlarms(filtered, allVolumeShockAlarms.length);
         }
         
@@ -3174,14 +3264,16 @@
         
         function filterVolumeLeaderAlarms() {
             const searchTerm = document.getElementById('volumeLeaderSearchInput').value.toLowerCase().trim();
-            if (!searchTerm) {
-                renderVolumeLeaderAlarms(allVolumeLeaderAlarms);
-                return;
+            let filtered = filterAlarmsByDate(allVolumeLeaderAlarms, 'volumeLeaderAlarmDateFilter');
+            
+            if (searchTerm) {
+                filtered = filtered.filter(alarm => 
+                    (alarm.home || '').toLowerCase().includes(searchTerm) ||
+                    (alarm.away || '').toLowerCase().includes(searchTerm)
+                );
             }
-            const filtered = allVolumeLeaderAlarms.filter(alarm => 
-                (alarm.home || '').toLowerCase().includes(searchTerm) ||
-                (alarm.away || '').toLowerCase().includes(searchTerm)
-            );
+            
+            updateFilteredCount('volumeLeaderAlarmFilteredCount', filtered.length, allVolumeLeaderAlarms.length);
             renderVolumeLeaderAlarms(filtered, allVolumeLeaderAlarms.length);
         }
         
@@ -3480,14 +3572,16 @@
 
         function filterDroppingAlarms() {
             const searchTerm = document.getElementById('droppingSearchInput').value.toLowerCase().trim();
-            if (!searchTerm) {
-                renderDroppingAlarms(allDroppingAlarms);
-                return;
+            let filtered = filterAlarmsByDate(allDroppingAlarms, 'droppingAlarmDateFilter');
+            
+            if (searchTerm) {
+                filtered = filtered.filter(alarm => 
+                    (alarm.home || '').toLowerCase().includes(searchTerm) ||
+                    (alarm.away || '').toLowerCase().includes(searchTerm)
+                );
             }
-            const filtered = allDroppingAlarms.filter(alarm => 
-                (alarm.home || '').toLowerCase().includes(searchTerm) ||
-                (alarm.away || '').toLowerCase().includes(searchTerm)
-            );
+            
+            updateFilteredCount('droppingAlarmFilteredCount', filtered.length, allDroppingAlarms.length);
             renderDroppingAlarms(filtered, allDroppingAlarms.length);
         }
 
