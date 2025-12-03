@@ -3958,7 +3958,7 @@ const alarmFilterColors = {
 const alarmFilterLabels = {
     all: 'Tumu',
     sharp: 'Sharp',
-    insider: 'Iceriden Bilgi',
+    insider: 'Insider Info',
     bigmoney: 'Buyuk Para',
     volumeshock: 'Hacim Soku',
     dropping: 'Dropping',
