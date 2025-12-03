@@ -2010,7 +2010,7 @@ def calculate_dropping_scores(config):
             moneyway_market = moneyway_markets.get(market)
             moneyway_matches = set()
             if moneyway_market:
-                moneyway_data = supabase.fetch_matches(moneyway_market)
+                moneyway_data = supabase.get_all_matches_with_latest(moneyway_market)
                 if moneyway_data:
                     for m in moneyway_data:
                         home = (m.get('home_team') or m.get('Home') or '').lower().strip()
