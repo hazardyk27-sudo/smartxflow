@@ -3345,6 +3345,32 @@ function formatMatchTime3(dateStr) {
     return dateStr;
 }
 
+// Maç tarihini kısa formatta göster (format: "02.Dec 14:00:00" -> "02 Ara 17:00")
+function formatMatchDateShort(dateStr) {
+    if (!dateStr) return '';
+    
+    const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
+                       'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
+    
+    // Format: "02.Dec 14:00:00"
+    const match1 = dateStr.match(/^(\d{2})\.([A-Za-z]{3})\s+(\d{2}):(\d{2}):?(\d{2})?$/);
+    if (match1) {
+        const [, day, monthStr, hour, min] = match1;
+        const monthIdx = monthMap[monthStr] ?? 0;
+        const dt = new Date(2025, monthIdx, parseInt(day), parseInt(hour), parseInt(min));
+        dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
+        const monthName = monthNames[dt.getMonth()];
+        const h = String(dt.getHours()).padStart(2, '0');
+        const m = String(dt.getMinutes()).padStart(2, '0');
+        const d = String(dt.getDate()).padStart(2, '0');
+        return `${d} ${monthName} ${h}:${m}`;
+    }
+    
+    // Fallback
+    return '';
+}
+
 function isMatchTodayOrFuture(alarm) {
     const matchDateStr = alarm.match_date || alarm.fixture_date || '';
     const eventTimeStr = alarm.event_time || alarm.created_at || '';
@@ -4131,6 +4157,7 @@ function renderAlarmsList(filterType) {
             const openOdds = (alarm.opening_odds || 0).toFixed(2);
             const currOdds = (alarm.current_odds || 0).toFixed(2);
             const dropPct = (alarm.drop_pct || 0).toFixed(1);
+            const matchDateFormatted = formatMatchDateShort(alarm.match_date || '');
             metricContent = `<div class="acd-grid cols-2">
                 <div class="acd-stat">
                     <div class="acd-stat-val dropping">${openOdds} → ${currOdds}</div>
@@ -4140,7 +4167,8 @@ function renderAlarmsList(filterType) {
                     <div class="acd-stat-val drop">▼ ${dropPct}%</div>
                     <div class="acd-stat-lbl">Düşüş (${level})</div>
                 </div>
-            </div>`;
+            </div>
+            ${matchDateFormatted ? `<div class="acd-info-row"><span>📅 Maç: ${matchDateFormatted}</span></div>` : ''}`;
             historyLine = `${triggerTime}`;
         } else if (type === 'publictrap') {
             badgeLabel = 'PUBLIC TRAP';
@@ -4709,10 +4737,12 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const level = latest.level || 'L1';
             const selection = latest.selection || latest.side || '-';
             const market = latest.market || '';
+            const matchDate = latest.match_date || '';
+            const matchDateFormatted = formatMatchDateShort(matchDate);
             row2Left = `${selection} (${market})`;
             row2Right = `▼ ${dropPct.toFixed(1)}% (${level})`;
             row3Left = `${openOdds} → ${currOdds}`;
-            row3Right = ``;
+            row3Right = matchDateFormatted ? `📅 ${matchDateFormatted}` : '';
             row4 = `Açılışından bu yana oran düşüşü`;
         } else if (type === 'publictrap') {
             const score = latest.trap_score || latest.sharp_score || 0;
