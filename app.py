@@ -3519,17 +3519,17 @@ def calculate_volume_leader_scores(config):
             if '1x2' in market:
                 min_volume = config.get('min_volume_1x2', 5000)
                 selections = ['1', 'X', '2']
-                share_keys = ['share1', 'sharex', 'share2']
+                share_keys = ['pct1', 'pctx', 'pct2']
                 amount_keys = ['amt1', 'amtx', 'amt2']
             elif 'ou25' in market:
                 min_volume = config.get('min_volume_ou25', 2000)
                 selections = ['Over', 'Under']
-                share_keys = ['shareover', 'shareunder']
+                share_keys = ['pctover', 'pctunder']
                 amount_keys = ['amtover', 'amtunder']
             else:
                 min_volume = config.get('min_volume_btts', 1000)
                 selections = ['Yes', 'No']
-                share_keys = ['shareyes', 'shareno']
+                share_keys = ['pctyes', 'pctno']
                 amount_keys = ['amtyes', 'amtno']
             
             history_table = f"{market}_history"
@@ -3583,14 +3583,21 @@ def calculate_volume_leader_scores(config):
                 if not home or not away:
                     continue
                 
-                # Get history for this match
+                # Get history for this match using REST API
                 try:
-                    history = supabase.client.table(history_table).select('*').eq('home_team', home).eq('away_team', away).order('scraped_at', desc=True).limit(50).execute()
+                    from urllib.parse import quote
+                    home_enc = quote(home, safe='')
+                    away_enc = quote(away, safe='')
+                    history_url = f"{supabase.url}/rest/v1/{history_table}?home=eq.{home_enc}&away=eq.{away_enc}&order=scrapedat.desc&limit=50"
+                    import httpx
+                    resp = httpx.get(history_url, headers=supabase._headers(), timeout=15)
                     
-                    if not history.data or len(history.data) < 2:
+                    if resp.status_code != 200 or not resp.json():
                         continue
                     
-                    snapshots = history.data
+                    snapshots = resp.json()
+                    if len(snapshots) < 2:
+                        continue
                     
                     # Calculate total volume from latest snapshot
                     latest = snapshots[0]
