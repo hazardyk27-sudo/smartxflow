@@ -3435,13 +3435,14 @@ function isMatchTodayOrFuture(alarm) {
 
 async function loadAlertBand() {
     try {
-        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes, droppingRes, halktuzagiRes] = await Promise.all([
+        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes, droppingRes, halktuzagiRes, volumeLeaderRes] = await Promise.all([
             fetch('/api/sharp/alarms'),
             fetch('/api/insider/alarms'),
             fetch('/api/bigmoney/alarms'),
             fetch('/api/volumeshock/alarms'),
             fetch('/api/dropping/alarms'),
-            fetch('/api/halktuzagi/alarms')
+            fetch('/api/halktuzagi/alarms'),
+            fetch('/api/volumeleader/alarms')
         ]);
         
         let allAlarms = [];
@@ -3480,6 +3481,12 @@ async function loadAlertBand() {
             const halktuzagi = await halktuzagiRes.json();
             halktuzagi.forEach(a => { a._type = 'publictrap'; a._score = a.trap_score || a.sharp_score || 0; });
             allAlarms = allAlarms.concat(halktuzagi);
+        }
+        
+        if (volumeLeaderRes.ok) {
+            const volumeleader = await volumeLeaderRes.json();
+            volumeleader.forEach(a => { a._type = 'volumeleader'; a._score = a.new_leader_share || 50; });
+            allAlarms = allAlarms.concat(volumeleader);
         }
         
         console.log('[AlertBand] Total alarms before filter:', allAlarms.length);
@@ -3765,7 +3772,8 @@ let alarmsDataByType = {
     bigmoney: [],
     volumeshock: [],
     dropping: [],
-    publictrap: []
+    publictrap: [],
+    volumeleader: []
 };
 let alarmSearchQuery = '';
 let alarmsDisplayCount = 30;
@@ -3804,13 +3812,14 @@ async function loadAllAlarms() {
     body.innerHTML = '<div class="alarms-loading">Alarmlar yukleniyor...</div>';
     
     try {
-        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes, droppingRes, halktuzagiRes] = await Promise.all([
+        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes, droppingRes, halktuzagiRes, volumeLeaderRes] = await Promise.all([
             fetch('/api/sharp/alarms').catch(() => ({ ok: false })),
             fetch('/api/insider/alarms').catch(() => ({ ok: false })),
             fetch('/api/bigmoney/alarms').catch(() => ({ ok: false })),
             fetch('/api/volumeshock/alarms').catch(() => ({ ok: false })),
             fetch('/api/dropping/alarms').catch(() => ({ ok: false })),
-            fetch('/api/halktuzagi/alarms').catch(() => ({ ok: false }))
+            fetch('/api/halktuzagi/alarms').catch(() => ({ ok: false })),
+            fetch('/api/volumeleader/alarms').catch(() => ({ ok: false }))
         ]);
         
         const rawSharp = sharpRes.ok ? await sharpRes.json() : [];
@@ -3819,6 +3828,7 @@ async function loadAllAlarms() {
         const rawVolumeshock = volumeShockRes.ok ? await volumeShockRes.json() : [];
         const rawDropping = droppingRes.ok ? await droppingRes.json() : [];
         const rawPublictrap = halktuzagiRes.ok ? await halktuzagiRes.json() : [];
+        const rawVolumeleader = volumeLeaderRes.ok ? await volumeLeaderRes.json() : [];
         
         alarmsDataByType.sharp = rawSharp.filter(isMatchTodayOrFuture);
         alarmsDataByType.insider = rawInsider.filter(isMatchTodayOrFuture);
@@ -3826,6 +3836,7 @@ async function loadAllAlarms() {
         alarmsDataByType.volumeshock = rawVolumeshock.filter(isMatchTodayOrFuture);
         alarmsDataByType.dropping = rawDropping.filter(isMatchTodayOrFuture);
         alarmsDataByType.publictrap = rawPublictrap.filter(isMatchTodayOrFuture);
+        alarmsDataByType.volumeleader = rawVolumeleader.filter(isMatchTodayOrFuture);
         
         const sharpWithType = alarmsDataByType.sharp.map(a => ({ ...a, _type: 'sharp' }));
         const insiderWithType = alarmsDataByType.insider.map(a => ({ ...a, _type: 'insider' }));
@@ -3833,8 +3844,9 @@ async function loadAllAlarms() {
         const volumeshockWithType = alarmsDataByType.volumeshock.map(a => ({ ...a, _type: 'volumeshock' }));
         const droppingWithType = alarmsDataByType.dropping.map(a => ({ ...a, _type: 'dropping' }));
         const publictrapWithType = alarmsDataByType.publictrap.map(a => ({ ...a, _type: 'publictrap' }));
+        const volumeleaderWithType = alarmsDataByType.volumeleader.map(a => ({ ...a, _type: 'volumeleader' }));
         
-        allAlarmsData = [...sharpWithType, ...insiderWithType, ...bigmoneyWithType, ...volumeshockWithType, ...droppingWithType, ...publictrapWithType];
+        allAlarmsData = [...sharpWithType, ...insiderWithType, ...bigmoneyWithType, ...volumeshockWithType, ...droppingWithType, ...publictrapWithType, ...volumeleaderWithType];
         
         allAlarmsData.sort((a, b) => {
             const dateA = parseAlarmDate(a.event_time || a.created_at);
@@ -3996,8 +4008,8 @@ function renderAlarmsList(filterType) {
     
     const displayGroups = groups.slice(0, alarmsDisplayCount);
     const hasMore = groups.length > alarmsDisplayCount;
-    const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY', volumeshock: 'HACIM SOKU', dropping: 'DROPPING', publictrap: 'PUBLIC TRAP' };
-    const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#F08A24', volumeshock: '#F6C343', dropping: '#f85149', publictrap: '#FFCC00' };
+    const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY', volumeshock: 'HACIM SOKU', dropping: 'DROPPING', publictrap: 'PUBLIC TRAP', volumeleader: 'LİDER DEĞİŞTİ' };
+    const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#F08A24', volumeshock: '#F6C343', dropping: '#f85149', publictrap: '#FFCC00', volumeleader: '#06b6d4' };
     
     let html = displayGroups.map((group, idx) => {
         const type = group.type;
@@ -4047,6 +4059,12 @@ function renderAlarmsList(filterType) {
             const volume = alarm.volume || 0;
             const moneyPart = volume > 0 ? `<span class="value-money">£${Number(volume).toLocaleString('en-GB')}</span><span class="sep">•</span>` : '';
             mainValue = `${moneyPart}<span class="value-highlight">Trap Skor ${score.toFixed(0)}</span>`;
+        } else if (type === 'volumeleader') {
+            const oldLeader = alarm.old_leader || '-';
+            const newLeader = alarm.new_leader || '-';
+            const oldShare = (alarm.old_leader_share || 0).toFixed(0);
+            const newShare = (alarm.new_leader_share || 0).toFixed(0);
+            mainValue = `<span class="value-odds">${oldLeader} %${oldShare}</span><span class="arrow">→</span><span class="value-odds-new">${newLeader} %${newShare}</span>`;
         }
         
         const timeAgo = formatTimeAgoTR(alarm.event_time || alarm.created_at);
@@ -4060,7 +4078,8 @@ function renderAlarmsList(filterType) {
             'insider': '#a855f7',
             'dropping': '#f85149',
             'volumeshock': '#F6C343',
-            'publictrap': '#FFCC00'
+            'publictrap': '#FFCC00',
+            'volumeleader': '#06b6d4'
         };
         const stripeColor = stripeColors[type] || '#64748b';
         
@@ -4070,7 +4089,8 @@ function renderAlarmsList(filterType) {
             'insider': 'INSIDER',
             'dropping': alarm.level || 'DROP',
             'volumeshock': 'HS',
-            'publictrap': 'TRAP'
+            'publictrap': 'TRAP',
+            'volumeleader': 'LİDER'
         };
         const typeBadge = typeBadges[type] || type.toUpperCase();
         
@@ -4087,6 +4107,8 @@ function renderAlarmsList(filterType) {
             mainMoney = 0;
         } else if (type === 'publictrap') {
             mainMoney = alarm.volume || 0;
+        } else if (type === 'volumeleader') {
+            mainMoney = alarm.total_volume || 0;
         }
         
         // Alarm detay paneli - Tip'e göre içerik
@@ -4223,6 +4245,27 @@ function renderAlarmsList(filterType) {
                 </div>
             </div>`;
             historyLine = `${triggerTime}`;
+        } else if (type === 'volumeleader') {
+            badgeLabel = 'LİDER DEĞİŞTİ';
+            const oldLeader = alarm.old_leader || '-';
+            const newLeader = alarm.new_leader || '-';
+            const oldShare = (alarm.old_leader_share || 0).toFixed(0);
+            const newShare = (alarm.new_leader_share || 0).toFixed(0);
+            const totalVol = alarm.total_volume || 0;
+            metricContent = `<div class="acd-grid cols-2">
+                <div class="acd-stat">
+                    <div class="acd-stat-val volumeleader">${oldLeader} %${oldShare}</div>
+                    <div class="acd-stat-lbl">Eski Lider</div>
+                </div>
+                <div class="acd-stat">
+                    <div class="acd-stat-val volumeleader-new">${newLeader} %${newShare}</div>
+                    <div class="acd-stat-lbl">Yeni Lider</div>
+                </div>
+            </div>
+            <div class="acd-info-row">
+                <span>Toplam Hacim: £${Number(totalVol).toLocaleString('en-GB')}</span>
+            </div>`;
+            historyLine = `${triggerTime}`;
         }
         
         const fullMatchName = `${home} – ${away}`;
@@ -4242,6 +4285,8 @@ function renderAlarmsList(filterType) {
             metricValue = `▼ ${(alarm.drop_pct || 0).toFixed(1)}%`;
         } else if (type === 'publictrap') {
             metricValue = (alarm.trap_score || alarm.sharp_score || 0).toFixed(0);
+        } else if (type === 'volumeleader') {
+            metricValue = `${alarm.old_leader || '-'} → ${alarm.new_leader || '-'}`;
         }
         
         const historyCount = group.history.length;
@@ -4264,6 +4309,8 @@ function renderAlarmsList(filterType) {
                     hValue = `▼ ${(h.drop_pct || 0).toFixed(1)}%`;
                 } else if (type === 'publictrap') {
                     hValue = `Trap ${(h.trap_score || h.sharp_score || 0).toFixed(0)}`;
+                } else if (type === 'volumeleader') {
+                    hValue = `${h.old_leader || '-'} → ${h.new_leader || '-'}`;
                 }
                 return `<div class="history-item"><span class="history-time">${hTime}</span><span class="history-val">${hValue}</span></div>`;
             }).join('');
