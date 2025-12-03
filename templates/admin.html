@@ -1810,7 +1810,19 @@
                                         }
                                         const amtDisplay = snapAmt !== undefined ? '£' + Math.round(snapAmt) : '';
                                         const gelenDisplay = gelenPara > 0 ? ' (+£' + Math.round(gelenPara) + ')' : '';
-                                        return '<div class="insider-detail-row"><span class="insider-detail-label" style="' + labelStyle + '">Snap ' + (i+1) + ':</span><span class="insider-detail-value"><span style="' + valueStyle + '">' + (snap.odds || 0).toFixed(2) + '</span> <span style="color:#22c55e;font-size:11px;">' + amtDisplay + gelenDisplay + '</span> <span style="color:#64748b;font-size:11px;">(' + snapTime + ')' + marker + '</span></span></div>';
+                                        // Açılış oranına göre düşüş yüzdesi hesapla
+                                        const openingOdds = alarm.opening_odds || (arr[0] && arr[0].odds) || snap.odds;
+                                        const currentOdds = snap.odds || 0;
+                                        let dropPctDisplay = '';
+                                        if (openingOdds > 0 && i > 0) {
+                                            const dropPct = ((openingOdds - currentOdds) / openingOdds) * 100;
+                                            if (dropPct > 0) {
+                                                dropPctDisplay = ' <span style="color:#ef4444;font-size:10px;font-weight:600;">(-' + dropPct.toFixed(1) + '%)</span>';
+                                            } else if (dropPct < 0) {
+                                                dropPctDisplay = ' <span style="color:#22c55e;font-size:10px;font-weight:600;">(+' + Math.abs(dropPct).toFixed(1) + '%)</span>';
+                                            }
+                                        }
+                                        return '<div class="insider-detail-row"><span class="insider-detail-label" style="' + labelStyle + '">Snap ' + (i+1) + ':</span><span class="insider-detail-value"><span style="' + valueStyle + '">' + (snap.odds || 0).toFixed(2) + '</span>' + dropPctDisplay + ' <span style="color:#22c55e;font-size:11px;">' + amtDisplay + gelenDisplay + '</span> <span style="color:#64748b;font-size:11px;">(' + snapTime + ')' + marker + '</span></span></div>';
                                     }).join('') 
                                     : '<div class="insider-detail-row"><span class="insider-detail-label">Detay:</span><span class="insider-detail-value" style="color:#64748b;">Yeniden hesaplayın</span></div>'
                                 }
