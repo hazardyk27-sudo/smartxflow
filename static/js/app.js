@@ -3486,7 +3486,10 @@ async function loadAlertBand() {
         const filteredAlarms = allAlarms.filter(isMatchTodayOrFuture);
         console.log('[AlertBand] Alarms after filter (today+future):', filteredAlarms.length);
         
-        alertBandData = filteredAlarms.sort((a, b) => {
+        const groupedForBand = groupAlarmsForBand(filteredAlarms);
+        console.log('[AlertBand] Grouped alarms (unique):', groupedForBand.length);
+        
+        alertBandData = groupedForBand.sort((a, b) => {
             const timeA = new Date(a.event_time || a.created_at || 0).getTime();
             const timeB = new Date(b.event_time || b.created_at || 0).getTime();
             return timeB - timeA;
@@ -3503,6 +3506,32 @@ async function loadAlertBand() {
     } catch (e) {
         console.error('[AlertBand] Load error:', e);
     }
+}
+
+function groupAlarmsForBand(alarms) {
+    const groups = {};
+    
+    alarms.forEach(alarm => {
+        const home = (alarm.home || alarm.home_team || '').toLowerCase().trim();
+        const away = (alarm.away || alarm.away_team || '').toLowerCase().trim();
+        const market = (alarm.market || '').toLowerCase().trim();
+        const selection = (alarm.selection || alarm.side || '').toLowerCase().trim();
+        const type = alarm._type;
+        
+        const groupKey = `${type}|${home}|${away}|${market}|${selection}`;
+        
+        if (!groups[groupKey]) {
+            groups[groupKey] = alarm;
+        } else {
+            const currentBest = parseAlarmDate(groups[groupKey].event_time || groups[groupKey].created_at);
+            const thisDate = parseAlarmDate(alarm.event_time || alarm.created_at);
+            if (thisDate > currentBest) {
+                groups[groupKey] = alarm;
+            }
+        }
+    });
+    
+    return Object.values(groups);
 }
 
 function getAlertType(alarm) {
