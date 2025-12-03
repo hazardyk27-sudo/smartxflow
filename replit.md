@@ -40,6 +40,11 @@ The system uses a hybrid architecture:
     - Moneyway Markets: 1X2, O/U 2.5, BTTS
     - Dropping Odds Markets: 1X2, O/U 2.5, BTTS
 - **Web UI:** Modern dark theme (GitHub style), Chart.js graphs, match detail modals.
+- **Alarm Grouping:** Same match + alarm type + market/selection alarms are grouped into single card:
+    - Latest alarm = current (shown in card header and alert band)
+    - Previous alarms = history (shown when card is expanded)
+    - History badge (×N) indicates total alarm count for that group
+    - Functions: `groupAlarmsByMatch()`, `groupAlarmsForBand()`
 
 **Technical Specifications:**
 - **Timezone:** Turkey (Europe/Istanbul) is consistently used across the application.
