@@ -4456,10 +4456,19 @@ function parseAlarmDateTR(dateStr) {
 
 function formatTriggerTime(dateStr) {
     if (!dateStr) return '-';
+    
+    // Eğer format DD.MM.YYYY HH:MM ise zaten Turkey saati - direkt göster
+    if (dateStr.includes('.') && dateStr.includes(' ')) {
+        const parts = dateStr.split(' ');
+        if (parts.length >= 2 && parts[1].includes(':')) {
+            return parts[1]; // Sadece saat kısmını döndür (HH:MM)
+        }
+    }
+    
+    // ISO format veya UTC timestamp için Turkey'e dönüştür
     const dt = parseAlarmDateTR(dateStr);
     if (!dt || !dt.isValid()) return '-';
-    // +3 saat Türkiye
-    return dt.add(3, 'hour').format('HH:mm');
+    return dt.format('HH:mm');
 }
 
 function goToMatchPage(matchKey) {
