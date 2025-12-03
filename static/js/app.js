@@ -4028,6 +4028,7 @@ function renderAlarmsList(filterType) {
         // Alarm detay paneli - Tip'e göre içerik
         const homeEscaped = home.replace(/'/g, "\\'");
         const awayEscaped = away.replace(/'/g, "\\'");
+        const marketEscaped = market.replace(/'/g, "\\'");
         const matchTimeFormatted = formatMatchTime3(group.match_date);
         const marketLabel2 = `${market} → ${selection}`;
         const triggerTime = formatTriggerTime(alarm.event_time || alarm.created_at);
@@ -4200,7 +4201,7 @@ function renderAlarmsList(filterType) {
                             <div class="acd-header">${matchTimeFormatted}</div>
                             ${metricContent}
                             <div class="acd-history">${historyLine}</div>
-                            <button class="acd-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}')">Maç Sayfasını Aç</button>
+                            <button class="acd-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}', '${type}', '${marketEscaped}')">Maç Sayfasını Aç</button>
                         </div>
                     </div>
                 </div>
@@ -4330,12 +4331,25 @@ function goToMatchPage(matchKey) {
     }
 }
 
-function goToMatchFromAlarm(homeTeam, awayTeam) {
+function goToMatchFromAlarm(homeTeam, awayTeam, alarmType, alarmMarket) {
     openAlarmId = null;
     closeAlarmsSidebar();
     
     const homeLower = homeTeam.toLowerCase().trim();
     const awayLower = awayTeam.toLowerCase().trim();
+    
+    if (alarmType === 'dropping') {
+        let targetMarket = 'dropping_1x2';
+        const marketLower = (alarmMarket || '').toLowerCase();
+        if (marketLower.includes('btts') || marketLower.includes('gg')) {
+            targetMarket = 'dropping_btts';
+        } else if (marketLower.includes('o/u') || marketLower.includes('over') || marketLower.includes('under') || marketLower.includes('2.5')) {
+            targetMarket = 'dropping_ou25';
+        }
+        
+        switchMarketAndFindMatch(targetMarket, homeLower, awayLower, homeTeam, awayTeam);
+        return;
+    }
     
     const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
     let foundIndex = -1;
@@ -4373,6 +4387,57 @@ function goToMatchFromAlarm(homeTeam, awayTeam) {
         
         console.log('Mac bulunamadi:', homeTeam, 'vs', awayTeam);
         showToast(`Maç listede yok: ${homeTeam} - ${awayTeam}`, 'warning');
+    }
+}
+
+async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, homeTeam, awayTeam) {
+    const marketTab = document.querySelector(`[data-market="${targetMarket}"]`);
+    if (marketTab) {
+        marketTab.click();
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
+    let foundIndex = -1;
+    
+    for (let i = 0; i < dataSource.length; i++) {
+        const m = dataSource[i];
+        const mHome = (m.home_team || m.Home || '').toLowerCase().trim();
+        const mAway = (m.away_team || m.Away || '').toLowerCase().trim();
+        
+        if ((mHome.includes(homeLower) || homeLower.includes(mHome)) &&
+            (mAway.includes(awayLower) || awayLower.includes(mAway))) {
+            foundIndex = i;
+            break;
+        }
+    }
+    
+    if (foundIndex >= 0) {
+        openMatchModal(foundIndex);
+    } else {
+        const tbody = document.getElementById('matchesTableBody');
+        if (tbody) {
+            const rows = tbody.querySelectorAll('tr[onclick*="openMatchModal"]');
+            for (let row of rows) {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(homeLower) && text.includes(awayLower)) {
+                    const onclickAttr = row.getAttribute('onclick');
+                    const indexMatch = onclickAttr?.match(/openMatchModal\((\d+)\)/);
+                    if (indexMatch) {
+                        openMatchModal(parseInt(indexMatch[1]));
+                        return;
+                    }
+                }
+            }
+        }
+        
+        const marketLabels = {
+            'dropping_1x2': 'Drop 1X2',
+            'dropping_ou25': 'Drop 2.5',
+            'dropping_btts': 'Drop BTTS'
+        };
+        showToast(`${marketLabels[targetMarket] || targetMarket} sekmesinde maç bulunamadı`, 'info');
     }
 }
 
