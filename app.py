@@ -1315,19 +1315,20 @@ def calculate_insider_scores(config):
                         continue  # Yeterli düşüş yok, sonraki selection'a geç
                     
                     # ========================================================
-                    # En büyük oran düşüşünün gerçekleştiği anı bul
+                    # En büyük YÜZDESEL oran düşüşünün gerçekleştiği anı bul
                     # ========================================================
                     max_drop_index = -1
-                    max_single_drop = 0
+                    max_single_drop_pct = 0
                     
                     for i in range(1, len(snapshot_metrics)):
                         prev_odds = snapshot_metrics[i-1]['odds']
                         curr_odds = snapshot_metrics[i]['odds']
                         
                         if prev_odds > 0 and curr_odds < prev_odds:
-                            single_drop = prev_odds - curr_odds
-                            if single_drop > max_single_drop:
-                                max_single_drop = single_drop
+                            # YÜZDESEL düşüş hesapla (mutlak değil)
+                            single_drop_pct = ((prev_odds - curr_odds) / prev_odds) * 100
+                            if single_drop_pct > max_single_drop_pct:
+                                max_single_drop_pct = single_drop_pct
                                 max_drop_index = i
                     
                     # Eğer düşüş anı bulunamadıysa, son snapshot'ı kullan
