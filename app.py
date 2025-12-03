@@ -1965,6 +1965,11 @@ def calculate_dropping_scores(config):
     Calculate Dropping Alert alarms based on opening odds vs current odds drop percentage.
     Uses get_6h_odds_history which efficiently compares first snapshot vs last snapshot.
     
+    IMPORTANT: Only creates alarms for matches that exist in BOTH Moneyway AND Dropping markets:
+    - 1X2 selections: Match must be in moneyway_1x2 AND dropping_1x2
+    - O/U 2.5 selections: Match must be in moneyway_ou25 AND dropping_ou25
+    - BTTS selections: Match must be in moneyway_btts AND dropping_btts
+    
     L1: min_drop_l1% - max_drop_l1% drop (e.g., 7-10%)
     L2: min_drop_l2% - max_drop_l2% drop (e.g., 10-15%)
     L3: min_drop_l3%+ drop (e.g., 15%+)
@@ -1988,6 +1993,7 @@ def calculate_dropping_scores(config):
     
     markets = ['dropping_1x2', 'dropping_ou25', 'dropping_btts']
     market_names = {'dropping_1x2': '1X2', 'dropping_ou25': 'O/U 2.5', 'dropping_btts': 'BTTS'}
+    moneyway_markets = {'dropping_1x2': 'moneyway_1x2', 'dropping_ou25': 'moneyway_ou25', 'dropping_btts': 'moneyway_btts'}
     selection_map = {
         'dropping_1x2': {'odds1': '1', 'oddsx': 'X', 'odds2': '2'},
         'dropping_ou25': {'under': 'Under', 'over': 'Over'},
@@ -2000,6 +2006,19 @@ def calculate_dropping_scores(config):
         try:
             dropping_calc_progress = f"{market_names.get(market, market)} isleniyor... ({idx+1}/3)"
             
+            # Get corresponding Moneyway market data to check if match exists there
+            moneyway_market = moneyway_markets.get(market)
+            moneyway_matches = set()
+            if moneyway_market:
+                moneyway_data = supabase.fetch_matches(moneyway_market)
+                if moneyway_data:
+                    for m in moneyway_data:
+                        home = (m.get('home_team') or m.get('Home') or '').lower().strip()
+                        away = (m.get('away_team') or m.get('Away') or '').lower().strip()
+                        if home and away:
+                            moneyway_matches.add(f"{home}|{away}")
+                    print(f"[Dropping] Loaded {len(moneyway_matches)} matches from {moneyway_market} for cross-check")
+            
             trend_data = supabase.get_6h_odds_history(market)
             if not trend_data:
                 print(f"[Dropping] No trend data for {market}")
@@ -2007,11 +2026,30 @@ def calculate_dropping_scores(config):
             
             print(f"[Dropping] Processing {len(trend_data)} matches for {market}")
             sel_map = selection_map.get(market, {})
+            skipped_count = 0
             
             for match_key, match_data in trend_data.items():
                 home = match_data.get('home', '')
                 away = match_data.get('away', '')
                 values = match_data.get('values', {})
+                
+                # Check if match exists in corresponding Moneyway market
+                home_lower = home.lower().strip()
+                away_lower = away.lower().strip()
+                match_check_key = f"{home_lower}|{away_lower}"
+                
+                if moneyway_matches and match_check_key not in moneyway_matches:
+                    # Try partial match for team name variations
+                    found = False
+                    for mw_key in moneyway_matches:
+                        mw_home, mw_away = mw_key.split('|')
+                        if (home_lower in mw_home or mw_home in home_lower) and \
+                           (away_lower in mw_away or mw_away in away_lower):
+                            found = True
+                            break
+                    if not found:
+                        skipped_count += 1
+                        continue
                 
                 if not home or not away:
                     continue
@@ -2062,6 +2100,9 @@ def calculate_dropping_scores(config):
                     }
                     alarms.append(alarm)
                     print(f"[Dropping] {level}: {home} vs {away} [{selection}] {opening_odds:.2f}→{current_odds:.2f} ({drop_pct:.1f}%)")
+            
+            if skipped_count > 0:
+                print(f"[Dropping] Skipped {skipped_count} matches not found in {moneyway_market}")
         
         except Exception as e:
             print(f"[Dropping] Error processing {market}: {e}")
