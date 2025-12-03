@@ -228,6 +228,59 @@
     border-color: rgba(249, 115, 22, 0.7);
 }
 
+/* Dropping Alert L1 - Light Red */
+.ab-pill.dropping-l1 {
+    background: linear-gradient(90deg, rgba(248, 81, 73, 0.12), transparent);
+    border: 1px solid rgba(248, 81, 73, 0.35);
+}
+.ab-pill.dropping-l1:hover {
+    background: rgba(248, 81, 73, 0.18);
+    border-color: rgba(248, 81, 73, 0.55);
+}
+
+/* Dropping Alert L2 - Medium Red */
+.ab-pill.dropping-l2 {
+    background: linear-gradient(90deg, rgba(248, 81, 73, 0.18), transparent);
+    border: 1px solid rgba(248, 81, 73, 0.50);
+}
+.ab-pill.dropping-l2:hover {
+    background: rgba(248, 81, 73, 0.25);
+    border-color: rgba(248, 81, 73, 0.70);
+}
+
+/* Dropping Alert L3 - Critical Red */
+.ab-pill.dropping-l3 {
+    background: linear-gradient(90deg, rgba(248, 81, 73, 0.25), transparent);
+    border: 1px solid rgba(248, 81, 73, 0.65);
+}
+.ab-pill.dropping-l3:hover {
+    background: rgba(248, 81, 73, 0.32);
+    border-color: rgba(248, 81, 73, 0.85);
+}
+
+/* Public Trap - Golden */
+.ab-pill.publictrap {
+    background: linear-gradient(90deg, rgba(255, 204, 0, 0.15), transparent);
+    border: 1px solid rgba(255, 215, 0, 0.45);
+}
+.ab-pill.publictrap:hover {
+    background: rgba(255, 204, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.7);
+}
+
+/* Dot indicators for new alarm types */
+.dot-dropping-l1,
+.dot-dropping-l2,
+.dot-dropping-l3 {
+    background-color: #f85149;
+    box-shadow: 0 0 6px rgba(248, 81, 73, 0.6);
+}
+
+.dot-publictrap {
+    background-color: #FFCC00;
+    box-shadow: 0 0 6px rgba(255, 204, 0, 0.6);
+}
+
 /* Separator - Compact trading style */
 .ab-sep {
     color: #6E7681;
@@ -253,6 +306,10 @@
 .ab-pill.drop .ab-type { color: var(--ticker-drop); }
 .ab-pill.bigmoney .ab-type { color: var(--ticker-bigmoney); }
 .ab-pill.hugemoney .ab-type { color: var(--ticker-hugemoney); }
+.ab-pill.dropping-l1 .ab-type,
+.ab-pill.dropping-l2 .ab-type,
+.ab-pill.dropping-l3 .ab-type { color: #f85149; }
+.ab-pill.publictrap .ab-type { color: #FFCC00; }
 
 /* Match Name - Truncate for long names */
 .ab-match {

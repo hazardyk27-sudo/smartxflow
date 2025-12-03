@@ -6430,6 +6430,8 @@ td.volume,
 .ac.insider { --accent: #a78bfa; }
 .ac.volumeshock { --accent: #fbbf24; }
 .ac.bigmoney { --accent: #F08A24; }
+.ac.dropping { --accent: #f85149; }
+.ac.publictrap { --accent: #FFCC00; }
 
 /* Left stripe */
 .ac-stripe {
@@ -6576,6 +6578,24 @@ td.volume,
 .ac.insider .metric-val { color: #a78bfa; }
 .ac.volumeshock .metric-val { color: #fbbf24; }
 .ac.bigmoney .metric-val { color: #F08A24; }
+.ac.dropping .metric-val { color: #f85149; }
+.ac.publictrap .metric-val { color: #FFCC00; }
+
+.acd-stat-val.dropping { color: #f85149; }
+.acd-stat-val.publictrap { color: #FFCC00; }
+.acd-stat-val.drop { color: #ef4444; }
+
+.level-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-left: 6px;
+}
+.level-badge.level-l1 { background: rgba(248, 81, 73, 0.2); color: #f85149; }
+.level-badge.level-l2 { background: rgba(248, 81, 73, 0.35); color: #f85149; }
+.level-badge.level-l3 { background: rgba(248, 81, 73, 0.5); color: #fff; }
 
 .detail-metric-box .metric-drop {
     font-weight: var(--weight-semibold);

@@ -3376,11 +3376,13 @@ function isMatchTodayOrFuture(alarm) {
 
 async function loadAlertBand() {
     try {
-        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes] = await Promise.all([
+        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes, droppingRes, halktuzagiRes] = await Promise.all([
             fetch('/api/sharp/alarms'),
             fetch('/api/insider/alarms'),
             fetch('/api/bigmoney/alarms'),
-            fetch('/api/volumeshock/alarms')
+            fetch('/api/volumeshock/alarms'),
+            fetch('/api/dropping/alarms'),
+            fetch('/api/halktuzagi/alarms')
         ]);
         
         let allAlarms = [];
@@ -3409,16 +3411,26 @@ async function loadAlertBand() {
             allAlarms = allAlarms.concat(volumeshock);
         }
         
+        if (droppingRes.ok) {
+            const dropping = await droppingRes.json();
+            dropping.forEach(a => { a._type = 'dropping'; a._score = a.drop_pct || 0; });
+            allAlarms = allAlarms.concat(dropping);
+        }
+        
+        if (halktuzagiRes.ok) {
+            const halktuzagi = await halktuzagiRes.json();
+            halktuzagi.forEach(a => { a._type = 'publictrap'; a._score = a.trap_score || a.sharp_score || 0; });
+            allAlarms = allAlarms.concat(halktuzagi);
+        }
+        
         console.log('[AlertBand] Total alarms before filter:', allAlarms.length);
         const filteredAlarms = allAlarms.filter(isMatchTodayOrFuture);
         console.log('[AlertBand] Alarms after filter (today+future):', filteredAlarms.length);
         
-        // Alarm tetiklenme zamanına göre sırala (en yeni önce) - event_time ISO format kullan
         alertBandData = filteredAlarms.sort((a, b) => {
-            // event_time ISO format: "2025-11-30T14:03:19"
             const timeA = new Date(a.event_time || a.created_at || 0).getTime();
             const timeB = new Date(b.event_time || b.created_at || 0).getTime();
-            return timeB - timeA; // En yeni önce
+            return timeB - timeA;
         });
         
         console.log('[AlertBand] Top 3 sorted:', alertBandData.slice(0, 3).map(a => ({
@@ -3446,6 +3458,13 @@ function getAlertType(alarm) {
         return { label: 'BIG MONEY', color: 'orange', pillClass: 'bigmoney' };
     }
     if (type === 'volumeshock') return { label: 'HACIM SOKU', color: 'gold', pillClass: 'volumeshock' };
+    if (type === 'dropping') {
+        const level = alarm.level || 'L1';
+        if (level === 'L3') return { label: 'DROP L3', color: 'red', pillClass: 'dropping-l3' };
+        if (level === 'L2') return { label: 'DROP L2', color: 'red', pillClass: 'dropping-l2' };
+        return { label: 'DROP L1', color: 'red', pillClass: 'dropping-l1' };
+    }
+    if (type === 'publictrap') return { label: 'PUBLIC TRAP', color: 'gold', pillClass: 'publictrap' };
     return { label: 'ALERT', color: 'green', pillClass: '' };
 }
 
@@ -3465,6 +3484,14 @@ function formatAlertValue(alarm) {
     if (type === 'volumeshock') {
         const shockValue = alarm.volume_shock_value || 0;
         return shockValue.toFixed(1) + 'x';
+    }
+    if (type === 'dropping') {
+        const dropPct = alarm.drop_pct || 0;
+        return '▼ ' + dropPct.toFixed(1) + '%';
+    }
+    if (type === 'publictrap') {
+        const score = alarm.trap_score || alarm.sharp_score || 0;
+        return score.toFixed(0);
     }
     return '';
 }
@@ -3498,6 +3525,10 @@ function renderAlertBand() {
             value = `${(alarm.volume_shock_value || 0).toFixed(1)}x`;
         } else if (alarm._type === 'bigmoney') {
             value = `£${Number(alarm.incoming_money || alarm.stake || 0).toLocaleString('en-GB')}`;
+        } else if (alarm._type === 'dropping') {
+            value = `▼ ${(alarm.drop_pct || 0).toFixed(1)}%`;
+        } else if (alarm._type === 'publictrap') {
+            value = `${(alarm.trap_score || alarm.sharp_score || 0).toFixed(0)}`;
         }
         
         // Maç sayfasına yönlendirme için match_key oluştur
@@ -3644,7 +3675,9 @@ let alarmsDataByType = {
     sharp: [],
     insider: [],
     bigmoney: [],
-    volumeshock: []
+    volumeshock: [],
+    dropping: [],
+    publictrap: []
 };
 let alarmSearchQuery = '';
 let alarmsDisplayCount = 30;
@@ -3683,29 +3716,37 @@ async function loadAllAlarms() {
     body.innerHTML = '<div class="alarms-loading">Alarmlar yukleniyor...</div>';
     
     try {
-        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes] = await Promise.all([
+        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes, droppingRes, halktuzagiRes] = await Promise.all([
             fetch('/api/sharp/alarms').catch(() => ({ ok: false })),
             fetch('/api/insider/alarms').catch(() => ({ ok: false })),
             fetch('/api/bigmoney/alarms').catch(() => ({ ok: false })),
-            fetch('/api/volumeshock/alarms').catch(() => ({ ok: false }))
+            fetch('/api/volumeshock/alarms').catch(() => ({ ok: false })),
+            fetch('/api/dropping/alarms').catch(() => ({ ok: false })),
+            fetch('/api/halktuzagi/alarms').catch(() => ({ ok: false }))
         ]);
         
         const rawSharp = sharpRes.ok ? await sharpRes.json() : [];
         const rawInsider = insiderRes.ok ? await insiderRes.json() : [];
         const rawBigmoney = bigMoneyRes.ok ? await bigMoneyRes.json() : [];
         const rawVolumeshock = volumeShockRes.ok ? await volumeShockRes.json() : [];
+        const rawDropping = droppingRes.ok ? await droppingRes.json() : [];
+        const rawPublictrap = halktuzagiRes.ok ? await halktuzagiRes.json() : [];
         
         alarmsDataByType.sharp = rawSharp.filter(isMatchTodayOrFuture);
         alarmsDataByType.insider = rawInsider.filter(isMatchTodayOrFuture);
         alarmsDataByType.bigmoney = rawBigmoney.filter(isMatchTodayOrFuture);
         alarmsDataByType.volumeshock = rawVolumeshock.filter(isMatchTodayOrFuture);
+        alarmsDataByType.dropping = rawDropping.filter(isMatchTodayOrFuture);
+        alarmsDataByType.publictrap = rawPublictrap.filter(isMatchTodayOrFuture);
         
         const sharpWithType = alarmsDataByType.sharp.map(a => ({ ...a, _type: 'sharp' }));
         const insiderWithType = alarmsDataByType.insider.map(a => ({ ...a, _type: 'insider' }));
         const bigmoneyWithType = alarmsDataByType.bigmoney.map(a => ({ ...a, _type: 'bigmoney' }));
         const volumeshockWithType = alarmsDataByType.volumeshock.map(a => ({ ...a, _type: 'volumeshock' }));
+        const droppingWithType = alarmsDataByType.dropping.map(a => ({ ...a, _type: 'dropping' }));
+        const publictrapWithType = alarmsDataByType.publictrap.map(a => ({ ...a, _type: 'publictrap' }));
         
-        allAlarmsData = [...sharpWithType, ...insiderWithType, ...bigmoneyWithType, ...volumeshockWithType];
+        allAlarmsData = [...sharpWithType, ...insiderWithType, ...bigmoneyWithType, ...volumeshockWithType, ...droppingWithType, ...publictrapWithType];
         
         allAlarmsData.sort((a, b) => {
             const dateA = parseAlarmDate(a.event_time || a.created_at);
@@ -3858,8 +3899,8 @@ function renderAlarmsList(filterType) {
     
     const displayGroups = groups.slice(0, alarmsDisplayCount);
     const hasMore = groups.length > alarmsDisplayCount;
-    const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY', volumeshock: 'HACIM SOKU' };
-    const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#F08A24', volumeshock: '#F6C343' };
+    const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY', volumeshock: 'HACIM SOKU', dropping: 'DROPPING', publictrap: 'PUBLIC TRAP' };
+    const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#F08A24', volumeshock: '#F6C343', dropping: '#f85149', publictrap: '#FFCC00' };
     
     let html = displayGroups.map((group, idx) => {
         const type = group.type;
@@ -3897,6 +3938,18 @@ function renderAlarmsList(filterType) {
             const shockValue = alarm.volume_shock_value || 0;
             const hoursToKickoff = alarm.hours_to_kickoff || 0;
             mainValue = `<span class="value-highlight">${shockValue.toFixed(1)}x</span><span class="sep">•</span><span class="value-pct">${hoursToKickoff.toFixed(1)}s önce</span>`;
+        } else if (type === 'dropping') {
+            const openingOdds = alarm.opening_odds || 0;
+            const currentOdds = alarm.current_odds || 0;
+            const dropPct = alarm.drop_pct || 0;
+            const level = alarm.level || 'L1';
+            mainValue = `<span class="value-odds">${openingOdds.toFixed(2)}</span><span class="arrow">→</span><span class="value-odds-new">${currentOdds.toFixed(2)}</span><span class="sep">•</span><span class="value-pct-drop">▼${dropPct.toFixed(1)}%</span>`;
+            centerBadge = `<span class="level-badge level-${level.toLowerCase()}">${level}</span>`;
+        } else if (type === 'publictrap') {
+            const score = alarm.trap_score || alarm.sharp_score || 0;
+            const volume = alarm.volume || 0;
+            const moneyPart = volume > 0 ? `<span class="value-money">£${Number(volume).toLocaleString('en-GB')}</span><span class="sep">•</span>` : '';
+            mainValue = `${moneyPart}<span class="value-highlight">Trap Skor ${score.toFixed(0)}</span>`;
         }
         
         const timeAgo = formatTimeAgoTR(alarm.event_time || alarm.created_at);
@@ -3908,8 +3961,9 @@ function renderAlarmsList(filterType) {
             'bigmoney': '#F08A24',
             'sharp': '#22c55e',
             'insider': '#a855f7',
-            'dropping': '#ef4444',
-            'volumeshock': '#F6C343'
+            'dropping': '#f85149',
+            'volumeshock': '#F6C343',
+            'publictrap': '#FFCC00'
         };
         const stripeColor = stripeColors[type] || '#64748b';
         
@@ -3917,8 +3971,9 @@ function renderAlarmsList(filterType) {
             'bigmoney': alarm.is_huge ? 'HUGE' : 'BIG',
             'sharp': 'SHARP',
             'insider': 'INSIDER',
-            'dropping': 'DROP',
-            'volumeshock': 'HS'
+            'dropping': alarm.level || 'DROP',
+            'volumeshock': 'HS',
+            'publictrap': 'TRAP'
         };
         const typeBadge = typeBadges[type] || type.toUpperCase();
         
@@ -3931,6 +3986,10 @@ function renderAlarmsList(filterType) {
             mainMoney = alarm.stake || alarm.volume || 0;
         } else if (type === 'volumeshock') {
             mainMoney = alarm.incoming_money || 0;
+        } else if (type === 'dropping') {
+            mainMoney = 0;
+        } else if (type === 'publictrap') {
+            mainMoney = alarm.volume || 0;
         }
         
         // Alarm detay paneli - Tip'e göre içerik
@@ -4032,6 +4091,38 @@ function renderAlarmsList(filterType) {
                 </div>
             </div>`;
             historyLine = `${triggerTime}`;
+        } else if (type === 'dropping') {
+            const level = alarm.level || 'L1';
+            badgeLabel = `DROPPING ${level}`;
+            const openOdds = (alarm.opening_odds || 0).toFixed(2);
+            const currOdds = (alarm.current_odds || 0).toFixed(2);
+            const dropPct = (alarm.drop_pct || 0).toFixed(1);
+            metricContent = `<div class="acd-grid cols-2">
+                <div class="acd-stat">
+                    <div class="acd-stat-val dropping">${openOdds} → ${currOdds}</div>
+                    <div class="acd-stat-lbl">Oran Değişimi</div>
+                </div>
+                <div class="acd-stat">
+                    <div class="acd-stat-val drop">▼ ${dropPct}%</div>
+                    <div class="acd-stat-lbl">Düşüş (${level})</div>
+                </div>
+            </div>`;
+            historyLine = `${triggerTime}`;
+        } else if (type === 'publictrap') {
+            badgeLabel = 'PUBLIC TRAP';
+            const score = (alarm.trap_score || alarm.sharp_score || 0).toFixed(0);
+            const volume = alarm.volume || 0;
+            metricContent = `<div class="acd-grid cols-2">
+                <div class="acd-stat">
+                    <div class="acd-stat-val publictrap">${score}</div>
+                    <div class="acd-stat-lbl">Trap Skor</div>
+                </div>
+                <div class="acd-stat">
+                    <div class="acd-stat-val">£${Number(volume).toLocaleString('en-GB')}</div>
+                    <div class="acd-stat-lbl">Hacim</div>
+                </div>
+            </div>`;
+            historyLine = `${triggerTime}`;
         }
         
         const fullMatchName = `${home} – ${away}`;
@@ -4047,6 +4138,10 @@ function renderAlarmsList(filterType) {
             metricValue = `${(alarm.volume_shock_value || 0).toFixed(1)}x`;
         } else if (type === 'bigmoney') {
             metricValue = `£${Number(alarm.incoming_money || alarm.stake || 0).toLocaleString('en-GB')}`;
+        } else if (type === 'dropping') {
+            metricValue = `▼ ${(alarm.drop_pct || 0).toFixed(1)}%`;
+        } else if (type === 'publictrap') {
+            metricValue = (alarm.trap_score || alarm.sharp_score || 0).toFixed(0);
         }
         
         return `
@@ -4259,11 +4354,13 @@ async function loadAllAlarmsOnce() {
     if (cachedAllAlarms) return cachedAllAlarms;
     
     try {
-        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes] = await Promise.all([
+        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes, droppingRes, halktuzagiRes] = await Promise.all([
             fetch('/api/sharp/alarms').catch(() => ({ ok: false })),
             fetch('/api/insider/alarms').catch(() => ({ ok: false })),
             fetch('/api/bigmoney/alarms').catch(() => ({ ok: false })),
-            fetch('/api/volumeshock/alarms').catch(() => ({ ok: false }))
+            fetch('/api/volumeshock/alarms').catch(() => ({ ok: false })),
+            fetch('/api/dropping/alarms').catch(() => ({ ok: false })),
+            fetch('/api/halktuzagi/alarms').catch(() => ({ ok: false }))
         ]);
         
         let allAlarms = [];
@@ -4290,6 +4387,18 @@ async function loadAllAlarmsOnce() {
             const volumeshock = await volumeShockRes.json();
             volumeshock.forEach(a => { a._type = 'volumeshock'; });
             allAlarms = allAlarms.concat(volumeshock);
+        }
+        
+        if (droppingRes.ok) {
+            const dropping = await droppingRes.json();
+            dropping.forEach(a => { a._type = 'dropping'; });
+            allAlarms = allAlarms.concat(dropping);
+        }
+        
+        if (halktuzagiRes.ok) {
+            const publictrap = await halktuzagiRes.json();
+            publictrap.forEach(a => { a._type = 'publictrap'; });
+            allAlarms = allAlarms.concat(publictrap);
         }
         
         cachedAllAlarms = allAlarms;
@@ -4374,7 +4483,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
     
     empty.style.display = 'none';
     
-    const grouped = { sharp: [], insider: [], bigmoney: [], volumeshock: [] };
+    const grouped = { sharp: [], insider: [], bigmoney: [], volumeshock: [], dropping: [], publictrap: [] };
     matchAlarms.forEach(a => {
         if (a._type && grouped[a._type]) {
             grouped[a._type].push(a);
@@ -4415,6 +4524,18 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             color: '#ff6b6b',
             icon: '⚡',
             description: 'Mactan once erken hacim artisi.'
+        },
+        dropping: {
+            title: 'Dropping',
+            color: '#f85149',
+            icon: '📉',
+            description: 'Acilisindan bu yana oran dususu.'
+        },
+        publictrap: {
+            title: 'Public Trap',
+            color: '#FFCC00',
+            icon: '🪤',
+            description: 'Halk tuzagi tespit edildi.'
         }
     };
     
@@ -4483,6 +4604,28 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             row3Left = `£${Number(incomingMoney).toLocaleString('en-GB')} gelen para`;
             row3Right = `Maça ${hoursToKickoff.toFixed(0)}s kala`;
             row4 = `Maçtan önce erken hacim artışı`;
+        } else if (type === 'dropping') {
+            const openOdds = (latest.opening_odds || 0).toFixed(2);
+            const currOdds = (latest.current_odds || 0).toFixed(2);
+            const dropPct = latest.drop_pct || 0;
+            const level = latest.level || 'L1';
+            const selection = latest.selection || latest.side || '-';
+            const market = latest.market || '';
+            row2Left = `${selection} (${market})`;
+            row2Right = `▼ ${dropPct.toFixed(1)}% (${level})`;
+            row3Left = `${openOdds} → ${currOdds}`;
+            row3Right = ``;
+            row4 = `Açılışından bu yana oran düşüşü`;
+        } else if (type === 'publictrap') {
+            const score = latest.trap_score || latest.sharp_score || 0;
+            const volume = latest.volume || 0;
+            const selection = latest.selection || latest.side || '-';
+            const market = latest.market || '';
+            row2Left = `${selection} (${market})`;
+            row2Right = `Trap Skor: ${score.toFixed(0)}`;
+            row3Left = volume > 0 ? `£${Number(volume).toLocaleString('en-GB')} hacim` : '';
+            row3Right = ``;
+            row4 = `Halk tuzağı tespit edildi`;
         }
         
         cardsHtml += `
@@ -4541,19 +4684,23 @@ function toggleSmartMoneySection() {
 // Update badge on page load
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes] = await Promise.all([
+        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes, droppingRes, halktuzagiRes] = await Promise.all([
             fetch('/api/sharp/alarms').catch(() => ({ ok: false })),
             fetch('/api/insider/alarms').catch(() => ({ ok: false })),
             fetch('/api/bigmoney/alarms').catch(() => ({ ok: false })),
-            fetch('/api/volumeshock/alarms').catch(() => ({ ok: false }))
+            fetch('/api/volumeshock/alarms').catch(() => ({ ok: false })),
+            fetch('/api/dropping/alarms').catch(() => ({ ok: false })),
+            fetch('/api/halktuzagi/alarms').catch(() => ({ ok: false }))
         ]);
         
         const sharpCount = sharpRes.ok ? (await sharpRes.json()).length : 0;
         const insiderCount = insiderRes.ok ? (await insiderRes.json()).length : 0;
         const bigMoneyCount = bigMoneyRes.ok ? (await bigMoneyRes.json()).length : 0;
         const volumeShockCount = volumeShockRes.ok ? (await volumeShockRes.json()).length : 0;
+        const droppingCount = droppingRes.ok ? (await droppingRes.json()).length : 0;
+        const publictrapCount = halktuzagiRes.ok ? (await halktuzagiRes.json()).length : 0;
         
-        const total = sharpCount + insiderCount + bigMoneyCount + volumeShockCount;
+        const total = sharpCount + insiderCount + bigMoneyCount + volumeShockCount + droppingCount + publictrapCount;
         const badge = document.getElementById('tabAlarmBadge');
         if (badge) badge.textContent = total;
     } catch (e) {
