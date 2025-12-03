@@ -189,6 +189,39 @@ def run_alarm_calculations():
         except Exception as e:
             print(f"[Alarm Scheduler] Dropping error: {e}")
         
+        # HalkTuzagi (Public Trap) alarms
+        try:
+            global halktuzagi_alarms
+            new_halktuzagi = calculate_halktuzagi_scores(halktuzagi_config)
+            if new_halktuzagi:
+                halktuzagi_alarms = new_halktuzagi
+                save_halktuzagi_alarms_to_file(halktuzagi_alarms)
+            print(f"[Alarm Scheduler] HalkTuzagi: {len(halktuzagi_alarms)} alarms")
+        except Exception as e:
+            print(f"[Alarm Scheduler] HalkTuzagi error: {e}")
+        
+        # VolumeLeader alarms
+        try:
+            global volume_leader_alarms
+            new_volumeleader = calculate_volume_leader_scores(volume_leader_config)
+            if new_volumeleader:
+                # Merge with existing alarms
+                existing_keys = set()
+                for alarm in volume_leader_alarms:
+                    key = f"{alarm.get('home', '')}_{alarm.get('away', '')}_{alarm.get('market', '')}_{alarm.get('old_leader', '')}_{alarm.get('new_leader', '')}"
+                    existing_keys.add(key)
+                
+                for alarm in new_volumeleader:
+                    key = f"{alarm.get('home', '')}_{alarm.get('away', '')}_{alarm.get('market', '')}_{alarm.get('old_leader', '')}_{alarm.get('new_leader', '')}"
+                    if key not in existing_keys:
+                        volume_leader_alarms.append(alarm)
+                        existing_keys.add(key)
+                
+                save_volume_leader_alarms_to_file(volume_leader_alarms)
+            print(f"[Alarm Scheduler] VolumeLeader: {len(volume_leader_alarms)} alarms")
+        except Exception as e:
+            print(f"[Alarm Scheduler] VolumeLeader error: {e}")
+        
         last_alarm_calc_time = now_turkey_iso()
         print(f"[Alarm Scheduler] Completed at {last_alarm_calc_time}")
         
