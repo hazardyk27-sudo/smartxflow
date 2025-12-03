@@ -394,6 +394,37 @@
             font-size: 14px;
         }
         
+        /* Date Filter Button Styles */
+        .date-filter-group {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .date-filter-btn {
+            padding: 4px 10px;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            background: #21262d;
+            color: #8b949e;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .date-filter-btn:hover {
+            background: #30363d;
+            color: #c9d1d9;
+        }
+        .date-filter-btn.active {
+            background: #238636;
+            border-color: #238636;
+            color: #fff;
+        }
+        .alarm-total-count {
+            color: #8b949e;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+
         /* Volume Shock Expandable Detail Styles */
         .vs-alarm-wrapper {
             border-bottom: 1px solid #21262d;
@@ -899,11 +930,15 @@
 
             <div class="info-card" style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                    <h3 style="margin: 0;">🔔 Sharp Alarmlar <span id="alarmCount" class="badge active">0</span> <span id="alarmFilteredCount" style="font-size: 12px; color: #8b949e; font-weight: normal;"></span></h3>
+                    <h3 style="margin: 0;">🔔 Sharp Alarmlar <span id="alarmCount" class="badge active">0</span> <span id="alarmTotalCount" class="alarm-total-count"></span></h3>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="date" id="alarmDateFilter" 
-                               onchange="filterAlarms()" 
-                               style="padding: 6px 10px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 12px;">
+                        <div class="date-filter-group">
+                            <button class="date-filter-btn" onclick="setDateFilter('sharp', 'yesterday')">Dün</button>
+                            <button class="date-filter-btn" onclick="setDateFilter('sharp', 'today')">Bugün</button>
+                            <button class="date-filter-btn" onclick="setDateFilter('sharp', 'future')">Gelecek</button>
+                            <button class="date-filter-btn active" onclick="setDateFilter('sharp', 'all')">Tümü</button>
+                        </div>
+                        <input type="hidden" id="alarmDateFilter" value="">
                         <div style="position: relative;">
                             <input type="text" id="alarmSearchInput" placeholder="Takim ara..." 
                                    oninput="filterAlarms()" 
@@ -1170,11 +1205,15 @@
 
             <div class="info-card" style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                    <h3 style="margin: 0;">🪤 Public Trap Alarmları <span id="htAlarmCount" class="badge active">0</span> <span id="htAlarmFilteredCount" style="font-size: 12px; color: #8b949e; font-weight: normal;"></span></h3>
+                    <h3 style="margin: 0;">🪤 Public Trap Alarmları <span id="htAlarmCount" class="badge active">0</span> <span id="htAlarmTotalCount" class="alarm-total-count"></span></h3>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="date" id="htAlarmDateFilter" 
-                               onchange="filterHalkTuzagiAlarms()" 
-                               style="padding: 6px 10px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 12px;">
+                        <div class="date-filter-group">
+                            <button class="date-filter-btn" onclick="setDateFilter('ht', 'yesterday')">Dün</button>
+                            <button class="date-filter-btn" onclick="setDateFilter('ht', 'today')">Bugün</button>
+                            <button class="date-filter-btn" onclick="setDateFilter('ht', 'future')">Gelecek</button>
+                            <button class="date-filter-btn active" onclick="setDateFilter('ht', 'all')">Tümü</button>
+                        </div>
+                        <input type="hidden" id="htAlarmDateFilter" value="">
                         <div style="position: relative;">
                             <input type="text" id="htAlarmSearchInput" placeholder="Takim ara..." 
                                    oninput="filterHalkTuzagiAlarms()" 
@@ -1266,11 +1305,15 @@
 
             <div class="info-card" style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                    <h3 style="margin: 0; color: #a371f7;">🕵️ Insider Alarmlar <span id="insiderAlarmCount" class="badge" style="background: #a371f7;">0</span> <span id="insiderAlarmFilteredCount" style="font-size: 12px; color: #8b949e; font-weight: normal;"></span></h3>
+                    <h3 style="margin: 0; color: #a371f7;">🕵️ Insider Alarmlar <span id="insiderAlarmCount" class="badge" style="background: #a371f7;">0</span> <span id="insiderAlarmTotalCount" class="alarm-total-count"></span></h3>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="date" id="insiderAlarmDateFilter" 
-                               onchange="filterInsiderAlarms()" 
-                               style="padding: 6px 10px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 12px;">
+                        <div class="date-filter-group">
+                            <button class="date-filter-btn" onclick="setDateFilter('insider', 'yesterday')">Dün</button>
+                            <button class="date-filter-btn" onclick="setDateFilter('insider', 'today')">Bugün</button>
+                            <button class="date-filter-btn" onclick="setDateFilter('insider', 'future')">Gelecek</button>
+                            <button class="date-filter-btn active" onclick="setDateFilter('insider', 'all')">Tümü</button>
+                        </div>
+                        <input type="hidden" id="insiderAlarmDateFilter" value="">
                         <div style="position: relative;">
                             <input type="text" id="insiderSearchInput" placeholder="Takim ara..." 
                                    oninput="filterInsiderAlarms()" 
@@ -1336,11 +1379,15 @@
 
             <div class="info-card" style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                    <h3 style="margin: 0; color: #FF4500;">💰 Big Money Alarmlar <span id="bigMoneyAlarmCount" class="badge" style="background: #FF4500;">0</span> <span id="bigMoneyAlarmFilteredCount" style="font-size: 12px; color: #8b949e; font-weight: normal;"></span></h3>
+                    <h3 style="margin: 0; color: #FF4500;">💰 Big Money Alarmlar <span id="bigMoneyAlarmCount" class="badge" style="background: #FF4500;">0</span> <span id="bigMoneyAlarmTotalCount" class="alarm-total-count"></span></h3>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="date" id="bigMoneyAlarmDateFilter" 
-                               onchange="filterBigMoneyAlarms()" 
-                               style="padding: 6px 10px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 12px;">
+                        <div class="date-filter-group">
+                            <button class="date-filter-btn" onclick="setDateFilter('bigMoney', 'yesterday')">Dün</button>
+                            <button class="date-filter-btn" onclick="setDateFilter('bigMoney', 'today')">Bugün</button>
+                            <button class="date-filter-btn" onclick="setDateFilter('bigMoney', 'future')">Gelecek</button>
+                            <button class="date-filter-btn active" onclick="setDateFilter('bigMoney', 'all')">Tümü</button>
+                        </div>
+                        <input type="hidden" id="bigMoneyAlarmDateFilter" value="">
                         <div style="position: relative;">
                             <input type="text" id="bigMoneySearchInput" placeholder="Takim ara..." 
                                    oninput="filterBigMoneyAlarms()" 
@@ -1499,11 +1546,15 @@
 
             <div class="info-card" style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                    <h3 style="margin: 0; color: #e74c3c;">📉 Dropping Alarmlar <span id="droppingAlarmCount" class="badge" style="background: #e74c3c;">0</span> <span id="droppingAlarmFilteredCount" style="font-size: 12px; color: #8b949e; font-weight: normal;"></span></h3>
+                    <h3 style="margin: 0; color: #e74c3c;">📉 Dropping Alarmlar <span id="droppingAlarmCount" class="badge" style="background: #e74c3c;">0</span> <span id="droppingAlarmTotalCount" class="alarm-total-count"></span></h3>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="date" id="droppingAlarmDateFilter" 
-                               onchange="filterDroppingAlarms()" 
-                               style="padding: 6px 10px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 12px;">
+                        <div class="date-filter-group">
+                            <button class="date-filter-btn" onclick="setDateFilter('dropping', 'yesterday')">Dün</button>
+                            <button class="date-filter-btn" onclick="setDateFilter('dropping', 'today')">Bugün</button>
+                            <button class="date-filter-btn" onclick="setDateFilter('dropping', 'future')">Gelecek</button>
+                            <button class="date-filter-btn active" onclick="setDateFilter('dropping', 'all')">Tümü</button>
+                        </div>
+                        <input type="hidden" id="droppingAlarmDateFilter" value="">
                         <div style="position: relative;">
                             <input type="text" id="droppingSearchInput" placeholder="Takim ara..." 
                                    oninput="filterDroppingAlarms()" 
@@ -1601,11 +1652,15 @@
 
             <div class="info-card" style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                    <h3 style="margin: 0; color: #ff6b6b;">⚡ Hacim Soku Alarmlar <span id="volumeShockAlarmCount" class="badge" style="background: #ff6b6b;">0</span> <span id="volumeShockAlarmFilteredCount" style="font-size: 12px; color: #8b949e; font-weight: normal;"></span></h3>
+                    <h3 style="margin: 0; color: #ff6b6b;">⚡ Hacim Soku Alarmlar <span id="volumeShockAlarmCount" class="badge" style="background: #ff6b6b;">0</span> <span id="volumeShockAlarmTotalCount" class="alarm-total-count"></span></h3>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="date" id="volumeShockAlarmDateFilter" 
-                               onchange="filterVolumeShockAlarms()" 
-                               style="padding: 6px 10px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 12px;">
+                        <div class="date-filter-group">
+                            <button class="date-filter-btn" onclick="setDateFilter('volumeShock', 'yesterday')">Dün</button>
+                            <button class="date-filter-btn" onclick="setDateFilter('volumeShock', 'today')">Bugün</button>
+                            <button class="date-filter-btn" onclick="setDateFilter('volumeShock', 'future')">Gelecek</button>
+                            <button class="date-filter-btn active" onclick="setDateFilter('volumeShock', 'all')">Tümü</button>
+                        </div>
+                        <input type="hidden" id="volumeShockAlarmDateFilter" value="">
                         <div style="position: relative;">
                             <input type="text" id="volumeShockSearchInput" placeholder="Takim ara..." 
                                    oninput="filterVolumeShockAlarms()" 
@@ -1692,11 +1747,15 @@
 
             <div class="info-card" style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                    <h3 style="margin: 0; color: #06b6d4;">👑 Hacim Lideri Alarmlar <span id="volumeLeaderAlarmCount" class="badge" style="background: #06b6d4;">0</span> <span id="volumeLeaderAlarmFilteredCount" style="font-size: 12px; color: #8b949e; font-weight: normal;"></span></h3>
+                    <h3 style="margin: 0; color: #06b6d4;">👑 Hacim Lideri Alarmlar <span id="volumeLeaderAlarmCount" class="badge" style="background: #06b6d4;">0</span> <span id="volumeLeaderAlarmTotalCount" class="alarm-total-count"></span></h3>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="date" id="volumeLeaderAlarmDateFilter" 
-                               onchange="filterVolumeLeaderAlarms()" 
-                               style="padding: 6px 10px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 12px;">
+                        <div class="date-filter-group">
+                            <button class="date-filter-btn" onclick="setDateFilter('volumeLeader', 'yesterday')">Dün</button>
+                            <button class="date-filter-btn" onclick="setDateFilter('volumeLeader', 'today')">Bugün</button>
+                            <button class="date-filter-btn" onclick="setDateFilter('volumeLeader', 'future')">Gelecek</button>
+                            <button class="date-filter-btn active" onclick="setDateFilter('volumeLeader', 'all')">Tümü</button>
+                        </div>
+                        <input type="hidden" id="volumeLeaderAlarmDateFilter" value="">
                         <div style="position: relative;">
                             <input type="text" id="volumeLeaderSearchInput" placeholder="Takim ara..." 
                                    oninput="filterVolumeLeaderAlarms()" 
@@ -1799,25 +1858,67 @@
             return null;
         }
         
-        function filterAlarmsByDate(alarms, dateInputId) {
-            const dateInput = document.getElementById(dateInputId);
-            const selectedDate = dateInput ? dateInput.value : '';
-            if (!selectedDate) return alarms;
+        function getTodayDate() {
+            const now = new Date();
+            return now.toISOString().substring(0, 10);
+        }
+        
+        function getYesterdayDate() {
+            const now = new Date();
+            now.setDate(now.getDate() - 1);
+            return now.toISOString().substring(0, 10);
+        }
+        
+        const dateFilterModes = {};
+        
+        function setDateFilter(alarmType, mode) {
+            dateFilterModes[alarmType] = mode;
+            
+            const buttonGroup = event.target.parentElement;
+            buttonGroup.querySelectorAll('.date-filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const filterFunctions = {
+                'sharp': filterAlarms,
+                'ht': filterHalkTuzagiAlarms,
+                'insider': filterInsiderAlarms,
+                'bigMoney': filterBigMoneyAlarms,
+                'dropping': filterDroppingAlarms,
+                'volumeShock': filterVolumeShockAlarms,
+                'volumeLeader': filterVolumeLeaderAlarms
+            };
+            
+            if (filterFunctions[alarmType]) {
+                filterFunctions[alarmType]();
+            }
+        }
+        
+        function filterAlarmsByDateMode(alarms, alarmType) {
+            const mode = dateFilterModes[alarmType] || 'all';
+            if (mode === 'all') return alarms;
+            
+            const today = getTodayDate();
+            const yesterday = getYesterdayDate();
             
             return alarms.filter(alarm => {
                 const alarmDate = parseAlarmDate(alarm);
-                return alarmDate === selectedDate;
+                if (!alarmDate) return mode === 'all';
+                
+                if (mode === 'today') {
+                    return alarmDate === today;
+                } else if (mode === 'yesterday') {
+                    return alarmDate === yesterday;
+                } else if (mode === 'future') {
+                    return alarmDate > today;
+                }
+                return true;
             });
         }
         
-        function updateFilteredCount(filteredCountId, filtered, total) {
-            const el = document.getElementById(filteredCountId);
+        function updateTotalCount(totalCountId, total) {
+            const el = document.getElementById(totalCountId);
             if (el) {
-                if (filtered < total) {
-                    el.textContent = `(${filtered}/${total} gosteriliyor)`;
-                } else {
-                    el.textContent = '';
-                }
+                el.textContent = `(Toplam: ${total})`;
             }
         }
 
@@ -2190,7 +2291,7 @@
 
         function filterAlarms() {
             const searchTerm = document.getElementById('alarmSearchInput').value.toLowerCase().trim();
-            let filtered = filterAlarmsByDate(allAlarms, 'alarmDateFilter');
+            let filtered = filterAlarmsByDateMode(allAlarms, 'sharp');
             
             if (searchTerm) {
                 filtered = filtered.filter(alarm => 
@@ -2199,7 +2300,7 @@
                 );
             }
             
-            updateFilteredCount('alarmFilteredCount', filtered.length, allAlarms.length);
+            updateTotalCount('alarmTotalCount', allAlarms.length);
             renderAlarms(filtered, allAlarms.length);
         }
 
@@ -2348,7 +2449,7 @@
 
         function filterHalkTuzagiAlarms() {
             const searchTerm = document.getElementById('htAlarmSearchInput').value.toLowerCase().trim();
-            let filtered = filterAlarmsByDate(allHalkTuzagiAlarms, 'htAlarmDateFilter');
+            let filtered = filterAlarmsByDateMode(allHalkTuzagiAlarms, 'ht');
             
             if (searchTerm) {
                 filtered = filtered.filter(alarm => 
@@ -2357,7 +2458,7 @@
                 );
             }
             
-            updateFilteredCount('htAlarmFilteredCount', filtered.length, allHalkTuzagiAlarms.length);
+            updateTotalCount('htAlarmTotalCount', allHalkTuzagiAlarms.length);
             renderHalkTuzagiAlarms(filtered, allHalkTuzagiAlarms.length);
         }
 
@@ -2680,7 +2781,7 @@
 
         function filterInsiderAlarms() {
             const searchTerm = document.getElementById('insiderSearchInput').value.toLowerCase().trim();
-            let filtered = filterAlarmsByDate(allInsiderAlarms, 'insiderAlarmDateFilter');
+            let filtered = filterAlarmsByDateMode(allInsiderAlarms, 'insider');
             
             if (searchTerm) {
                 filtered = filtered.filter(alarm => 
@@ -2689,7 +2790,7 @@
                 );
             }
             
-            updateFilteredCount('insiderAlarmFilteredCount', filtered.length, allInsiderAlarms.length);
+            updateTotalCount('insiderAlarmTotalCount', allInsiderAlarms.length);
             renderInsiderAlarms(filtered, allInsiderAlarms.length);
         }
 
@@ -2870,7 +2971,7 @@
 
         function filterBigMoneyAlarms() {
             const searchTerm = document.getElementById('bigMoneySearchInput').value.toLowerCase().trim();
-            let filtered = filterAlarmsByDate(allBigMoneyAlarms, 'bigMoneyAlarmDateFilter');
+            let filtered = filterAlarmsByDateMode(allBigMoneyAlarms, 'bigMoney');
             
             if (searchTerm) {
                 filtered = filtered.filter(alarm => 
@@ -2879,7 +2980,7 @@
                 );
             }
             
-            updateFilteredCount('bigMoneyAlarmFilteredCount', filtered.length, allBigMoneyAlarms.length);
+            updateTotalCount('bigMoneyAlarmTotalCount', allBigMoneyAlarms.length);
             renderBigMoneyAlarms(filtered, allBigMoneyAlarms.length);
         }
 
@@ -3045,7 +3146,7 @@
         
         function filterVolumeShockAlarms() {
             const searchTerm = document.getElementById('volumeShockSearchInput').value.toLowerCase().trim();
-            let filtered = filterAlarmsByDate(allVolumeShockAlarms, 'volumeShockAlarmDateFilter');
+            let filtered = filterAlarmsByDateMode(allVolumeShockAlarms, 'volumeShock');
             
             if (searchTerm) {
                 filtered = filtered.filter(alarm => 
@@ -3054,7 +3155,7 @@
                 );
             }
             
-            updateFilteredCount('volumeShockAlarmFilteredCount', filtered.length, allVolumeShockAlarms.length);
+            updateTotalCount('volumeShockAlarmTotalCount', allVolumeShockAlarms.length);
             renderVolumeShockAlarms(filtered, allVolumeShockAlarms.length);
         }
         
@@ -3264,7 +3365,7 @@
         
         function filterVolumeLeaderAlarms() {
             const searchTerm = document.getElementById('volumeLeaderSearchInput').value.toLowerCase().trim();
-            let filtered = filterAlarmsByDate(allVolumeLeaderAlarms, 'volumeLeaderAlarmDateFilter');
+            let filtered = filterAlarmsByDateMode(allVolumeLeaderAlarms, 'volumeLeader');
             
             if (searchTerm) {
                 filtered = filtered.filter(alarm => 
@@ -3273,7 +3374,7 @@
                 );
             }
             
-            updateFilteredCount('volumeLeaderAlarmFilteredCount', filtered.length, allVolumeLeaderAlarms.length);
+            updateTotalCount('volumeLeaderAlarmTotalCount', allVolumeLeaderAlarms.length);
             renderVolumeLeaderAlarms(filtered, allVolumeLeaderAlarms.length);
         }
         
@@ -3572,7 +3673,7 @@
 
         function filterDroppingAlarms() {
             const searchTerm = document.getElementById('droppingSearchInput').value.toLowerCase().trim();
-            let filtered = filterAlarmsByDate(allDroppingAlarms, 'droppingAlarmDateFilter');
+            let filtered = filterAlarmsByDateMode(allDroppingAlarms, 'dropping');
             
             if (searchTerm) {
                 filtered = filtered.filter(alarm => 
@@ -3581,7 +3682,7 @@
                 );
             }
             
-            updateFilteredCount('droppingAlarmFilteredCount', filtered.length, allDroppingAlarms.length);
+            updateTotalCount('droppingAlarmTotalCount', allDroppingAlarms.length);
             renderDroppingAlarms(filtered, allDroppingAlarms.length);
         }
 
