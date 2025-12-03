@@ -3347,29 +3347,62 @@ function formatMatchTime3(dateStr) {
 
 function isMatchTodayOrFuture(alarm) {
     const matchDateStr = alarm.match_date || alarm.fixture_date || '';
-    if (!matchDateStr) return false;
+    const eventTimeStr = alarm.event_time || alarm.created_at || '';
     
     const now = new Date();
-    const todayStr = String(now.getDate()).padStart(2, '0') + '.' + 
-                     ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][now.getMonth()];
-    
-    const parts = matchDateStr.split(' ')[0];
-    if (!parts || !parts.includes('.')) return false;
-    
-    const [dayStr, monthStr] = parts.split('.');
-    const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
-                      'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
-    const matchMonth = monthMap[monthStr];
-    const matchDay = parseInt(dayStr);
-    
-    if (matchMonth === undefined || isNaN(matchDay)) return false;
-    
     const currentMonth = now.getMonth();
     const currentDay = now.getDate();
+    const currentYear = now.getFullYear();
     
-    if (matchMonth > currentMonth) return true;
-    if (matchMonth === currentMonth && matchDay >= currentDay) return true;
-    if (matchMonth < currentMonth && currentMonth >= 10 && matchMonth <= 2) return true;
+    if (matchDateStr) {
+        const parts = matchDateStr.split(' ')[0];
+        if (parts && parts.includes('.')) {
+            const [dayStr, monthStr] = parts.split('.');
+            const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
+                              'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
+            const matchMonth = monthMap[monthStr];
+            const matchDay = parseInt(dayStr);
+            
+            if (matchMonth !== undefined && !isNaN(matchDay)) {
+                if (matchMonth > currentMonth) return true;
+                if (matchMonth === currentMonth && matchDay >= currentDay) return true;
+                if (matchMonth < currentMonth && currentMonth >= 10 && matchMonth <= 2) return true;
+                return false;
+            }
+        }
+    }
+    
+    if (eventTimeStr) {
+        const ddmmyyyyMatch = eventTimeStr.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+        if (ddmmyyyyMatch) {
+            const [, day, month, year] = ddmmyyyyMatch;
+            const eventDay = parseInt(day);
+            const eventMonth = parseInt(month) - 1;
+            const eventYear = parseInt(year);
+            
+            if (eventYear > currentYear) return true;
+            if (eventYear === currentYear) {
+                if (eventMonth > currentMonth) return true;
+                if (eventMonth === currentMonth && eventDay >= currentDay) return true;
+            }
+            return false;
+        }
+        
+        const isoMatch = eventTimeStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (isoMatch) {
+            const [, year, month, day] = isoMatch;
+            const eventDay = parseInt(day);
+            const eventMonth = parseInt(month) - 1;
+            const eventYear = parseInt(year);
+            
+            if (eventYear > currentYear) return true;
+            if (eventYear === currentYear) {
+                if (eventMonth > currentMonth) return true;
+                if (eventMonth === currentMonth && eventDay >= currentDay) return true;
+            }
+            return false;
+        }
+    }
     
     return false;
 }
