@@ -4215,6 +4215,32 @@ function renderAlarmsList(filterType) {
             metricValue = (alarm.trap_score || alarm.sharp_score || 0).toFixed(0);
         }
         
+        const historyCount = group.history.length;
+        const historyBadge = historyCount > 0 ? `<span class="history-badge">×${historyCount + 1}</span>` : '';
+        
+        let historySection = '';
+        if (historyCount > 0 && isOpen) {
+            const historyItems = group.history.map(h => {
+                const hTime = formatTriggerTime(h.event_time || h.created_at);
+                let hValue = '';
+                if (type === 'sharp') {
+                    hValue = `Sharp ${(h.sharp_score || 0).toFixed(1)}`;
+                } else if (type === 'insider') {
+                    hValue = `▼ ${Math.abs(h.oran_dusus_pct || h.odds_drop_pct || 0).toFixed(1)}%`;
+                } else if (type === 'volumeshock') {
+                    hValue = `${(h.volume_shock_value || 0).toFixed(1)}x`;
+                } else if (type === 'bigmoney') {
+                    hValue = `£${Number(h.incoming_money || h.stake || 0).toLocaleString('en-GB')}`;
+                } else if (type === 'dropping') {
+                    hValue = `▼ ${(h.drop_pct || 0).toFixed(1)}%`;
+                } else if (type === 'publictrap') {
+                    hValue = `Trap ${(h.trap_score || h.sharp_score || 0).toFixed(0)}`;
+                }
+                return `<div class="history-item"><span class="history-time">${hTime}</span><span class="history-val">${hValue}</span></div>`;
+            }).join('');
+            historySection = `<div class="acd-history-list"><div class="history-title">Önceki Alarmlar</div>${historyItems}</div>`;
+        }
+        
         return `
             <div class="ac ${type} ${isOpen ? 'open' : ''}" id="card_${alarmId}">
                 <div class="ac-stripe"></div>
@@ -4223,6 +4249,7 @@ function renderAlarmsList(filterType) {
                         <div class="ac-top">
                             <span class="ac-dot"></span>
                             <span class="ac-label">${typeLabels[type]}</span>
+                            ${historyBadge}
                             <span class="ac-sep">·</span>
                             <span class="ac-time">${timeAgo}</span>
                         </div>
@@ -4238,6 +4265,7 @@ function renderAlarmsList(filterType) {
                             <div class="acd-header">${matchTimeFormatted}</div>
                             ${metricContent}
                             <div class="acd-history">${historyLine}</div>
+                            ${historySection}
                             <button class="acd-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}', '${type}', '${marketEscaped}')">Maç Sayfasını Aç</button>
                         </div>
                     </div>

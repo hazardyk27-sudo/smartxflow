@@ -6619,6 +6619,63 @@ td.volume,
     margin-right: 2px;
 }
 
+/* ========== HISTORY BADGE & LIST ========== */
+.history-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(168, 85, 247, 0.35));
+    color: #c4b5fd;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 6px;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    letter-spacing: 0.3px;
+}
+
+.acd-history-list {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(139, 148, 158, 0.15);
+}
+
+.history-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #8b949e;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    background: rgba(30, 38, 48, 0.6);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    border-left: 3px solid rgba(139, 92, 246, 0.4);
+}
+
+.history-item:last-child {
+    margin-bottom: 0;
+}
+
+.history-time {
+    font-size: 11px;
+    color: #6e7681;
+}
+
+.history-val {
+    font-size: 12px;
+    font-weight: 600;
+    color: #c9d1d9;
+}
+
 .acd-btn {
     width: 100%;
     padding: 10px 0;
