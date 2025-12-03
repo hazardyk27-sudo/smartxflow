@@ -537,7 +537,7 @@
             </div>
             <div class="nav-item" onclick="showPage('halktuzagi')" data-page="halktuzagi">
                 <span class="nav-item-icon">🪤</span>
-                <span>Halk Tuzağı</span>
+                <span>Public Trap</span>
             </div>
             <div class="nav-item" onclick="showPage('insider')" data-page="insider">
                 <span class="nav-item-icon">🕵️</span>
@@ -927,12 +927,12 @@
             </div>
         </div>
 
-        <!-- HALK TUZAĞI PAGE -->
+        <!-- PUBLIC TRAP PAGE -->
         <div id="page-halktuzagi" class="page-content">
             <div class="page-header">
                 <div>
-                    <h2 class="page-title" style="color: #dc2626;">🪤 Halk Tuzağı</h2>
-                    <p class="page-subtitle">Sharp kurallarının kopyası - Farklı parametre ayarları için</p>
+                    <h2 class="page-title" style="color: #FF4500;">🪤 Public Trap</h2>
+                    <p class="page-subtitle">Sadece maca son 2 saat kala hareketleri inceler</p>
                 </div>
                 <div class="header-actions">
                     <button class="btn btn-danger" onclick="deleteAllHalkTuzagiAlarms()">Tum Alarmlari Sil</button>
@@ -942,7 +942,7 @@
             </div>
 
             <div class="config-grid">
-                <div class="info-card" style="border-left: 3px solid #dc2626;">
+                <div class="info-card" style="border-left: 3px solid #FF4500;">
                     <h3>📊 Minimum Market Volume Esikleri</h3>
                     <div class="form-group">
                         <label>1X2 Minimum Volume</label>
@@ -1157,7 +1157,7 @@
 
             <div class="info-card" style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0;">🪤 Halk Tuzağı Alarmları <span id="htAlarmCount" class="badge active">0</span></h3>
+                    <h3 style="margin: 0;">🪤 Public Trap Alarmları <span id="htAlarmCount" class="badge active">0</span></h3>
                     <div style="position: relative;">
                         <input type="text" id="htAlarmSearchInput" placeholder="Takim ara..." 
                                oninput="filterHalkTuzagiAlarms()" 
@@ -1167,10 +1167,10 @@
                         </svg>
                     </div>
                 </div>
-                <div id="htCalcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #dc2626;">
+                <div id="htCalcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #FF4500;">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <div class="spinner" style="width: 20px; height: 20px; border: 3px solid #30363d; border-top-color: #dc2626; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                        <span id="htCalcProgress" style="color: #dc2626; font-weight: 500;">Hesaplama devam ediyor...</span>
+                        <div class="spinner" style="width: 20px; height: 20px; border: 3px solid #30363d; border-top-color: #FF4500; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span id="htCalcProgress" style="color: #FF4500; font-weight: 500;">Hesaplama devam ediyor...</span>
                     </div>
                 </div>
                 <div id="htAlarmList" class="alarm-list">
@@ -1984,7 +1984,7 @@
                     container.innerHTML = '<p style="color: #8b949e; padding: 20px 0; text-align: center;">Aramayla eslesen alarm yok.</p>';
                     countEl.textContent = `0/${totalCount || 0}`;
                 } else {
-                    container.innerHTML = '<p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz Halk Tuzagi alarm yok.</p>';
+                    container.innerHTML = '<p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz Public Trap alarm yok.</p>';
                     countEl.textContent = '0';
                 }
                 return;
@@ -1992,10 +1992,10 @@
 
             countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
             container.innerHTML = alarms.map((alarm, idx) => `
-                <div class="alarm-item" style="border-left: 3px solid #dc2626;">
+                <div class="alarm-item" style="border-left: 3px solid #FF4500;">
                     <div class="alarm-info">
                         <div class="alarm-match">
-                            <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">🪤 HALK TUZAĞI</span>
+                            <span style="background:#FF4500;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">🪤 PUBLIC TRAP</span>
                             ${alarm.home} vs ${alarm.away}
                         </div>
                         <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.event_time || ''}</div>
@@ -2005,7 +2005,7 @@
                             <span style="color: #3fb950;" title="Pay Degisimi">📊 ${(alarm.share_value || 0).toFixed(1)}</span>
                         </div>
                     </div>
-                    <div class="alarm-score" style="background: linear-gradient(135deg, #dc2626, #b91c1c);">${(alarm.sharp_score || 0).toFixed(1)}</div>
+                    <div class="alarm-score" style="background: linear-gradient(135deg, #FF4500, #CC3700);">${(alarm.sharp_score || 0).toFixed(1)}</div>
                 </div>
             `).join('');
         }
@@ -2070,7 +2070,7 @@
                     body: JSON.stringify(config)
                 });
                 if (response.ok) {
-                    showToast('Halk Tuzagi ayarlari kaydedildi!', 'success');
+                    showToast('Public Trap ayarlari kaydedildi!', 'success');
                 } else {
                     showToast('Kaydetme hatasi!', 'error');
                 }
@@ -2115,12 +2115,12 @@
         }
 
         async function deleteAllHalkTuzagiAlarms() {
-            if (!confirm('Tum Halk Tuzagi alarmlarini silmek istediginize emin misiniz?')) return;
+            if (!confirm('Tum Public Trap alarmlarini silmek istediginize emin misiniz?')) return;
             
             try {
                 const response = await fetch('/api/halktuzagi/alarms', { method: 'DELETE' });
                 if (response.ok) {
-                    showToast('Tum Halk Tuzagi alarmlari silindi!', 'success');
+                    showToast('Tum Public Trap alarmlari silindi!', 'success');
                     loadHalkTuzagiAlarms();
                 } else {
                     showToast('Silme hatasi!', 'error');
