@@ -931,7 +931,7 @@
         <div id="page-halktuzagi" class="page-content">
             <div class="page-header">
                 <div>
-                    <h2 class="page-title" style="color: #FF4500;">🪤 Public Trap</h2>
+                    <h2 class="page-title" style="color: #FFD700;">🪤 Public Trap</h2>
                     <p class="page-subtitle">Sadece maca son 2 saat kala hareketleri inceler</p>
                 </div>
                 <div class="header-actions">
@@ -942,7 +942,7 @@
             </div>
 
             <div class="config-grid">
-                <div class="info-card" style="border-left: 3px solid #FF4500;">
+                <div class="info-card" style="border-left: 3px solid #FFD700;">
                     <h3>📊 Minimum Market Volume Esikleri</h3>
                     <div class="form-group">
                         <label>1X2 Minimum Volume</label>
@@ -1167,10 +1167,10 @@
                         </svg>
                     </div>
                 </div>
-                <div id="htCalcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #FF4500;">
+                <div id="htCalcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #FFD700;">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <div class="spinner" style="width: 20px; height: 20px; border: 3px solid #30363d; border-top-color: #FF4500; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                        <span id="htCalcProgress" style="color: #FF4500; font-weight: 500;">Hesaplama devam ediyor...</span>
+                        <div class="spinner" style="width: 20px; height: 20px; border: 3px solid #30363d; border-top-color: #FFD700; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span id="htCalcProgress" style="color: #FFD700; font-weight: 500;">Hesaplama devam ediyor...</span>
                     </div>
                 </div>
                 <div id="htAlarmList" class="alarm-list">
@@ -1992,20 +1992,20 @@
 
             countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
             container.innerHTML = alarms.map((alarm, idx) => `
-                <div class="alarm-item" style="border-left: 3px solid #FF4500;">
+                <div class="alarm-item" style="border-left: 3px solid #FFD700;">
                     <div class="alarm-info">
                         <div class="alarm-match">
-                            <span style="background:#FF4500;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">🪤 PUBLIC TRAP</span>
+                            <span style="background:linear-gradient(135deg, #FFCC00, #FFD700);color:#000;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;font-weight:600;">🪤 PUBLIC TRAP</span>
                             ${alarm.home} vs ${alarm.away}
                         </div>
                         <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.event_time || ''}</div>
                         <div class="alarm-breakdown" style="display: flex; gap: 12px; margin-top: 6px; font-size: 11px;">
-                            <span style="color: #f0883e;" title="Hacim Soku">⚡ ${(alarm.shock_value || 0).toFixed(1)}</span>
+                            <span style="color: #FFD700;" title="Hacim Soku">⚡ ${(alarm.shock_value || 0).toFixed(1)}</span>
                             <span style="color: #58a6ff;" title="Oran Degisimi">📉 ${(alarm.odds_value || 0).toFixed(1)}</span>
                             <span style="color: #3fb950;" title="Pay Degisimi">📊 ${(alarm.share_value || 0).toFixed(1)}</span>
                         </div>
                     </div>
-                    <div class="alarm-score" style="background: linear-gradient(135deg, #FF4500, #CC3700);">${(alarm.sharp_score || 0).toFixed(1)}</div>
+                    <div class="alarm-score" style="background: linear-gradient(135deg, #FFCC00, #FFD700); color: #000;">${(alarm.sharp_score || 0).toFixed(1)}</div>
                 </div>
             `).join('');
         }
