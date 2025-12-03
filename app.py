@@ -1820,6 +1820,299 @@ def calculate_big_money_scores(config):
 
 
 # ============================================================================
+# DROPPING ALERT ALARM SYSTEM
+# ============================================================================
+
+DROPPING_CONFIG_FILE = 'dropping_config.json'
+DROPPING_ALARMS_FILE = 'dropping_alarms.json'
+
+dropping_calculating = False
+dropping_calc_progress = ""
+
+def load_dropping_config():
+    """Load Dropping Alert config from JSON file"""
+    try:
+        if os.path.exists(DROPPING_CONFIG_FILE):
+            with open(DROPPING_CONFIG_FILE, 'r') as f:
+                config = json.load(f)
+                print(f"[Dropping] Config loaded: L1={config.get('min_drop_l1', 7)}-{config.get('max_drop_l1', 10)}%, L2={config.get('min_drop_l2', 10)}-{config.get('max_drop_l2', 15)}%, L3={config.get('min_drop_l3', 15)}%+")
+                return config
+    except Exception as e:
+        print(f"[Dropping] Config load error: {e}")
+    return {
+        'enabled': True,
+        'min_drop_l1': 7,
+        'max_drop_l1': 10,
+        'min_drop_l2': 10,
+        'max_drop_l2': 15,
+        'min_drop_l3': 15,
+        'l2_enabled': True,
+        'l3_enabled': True,
+        'persistence_minutes': 30,
+        'persistence_enabled': True,
+        'min_volume_1x2': 3000,
+        'min_volume_ou25': 1000,
+        'min_volume_btts': 500
+    }
+
+def save_dropping_config(config):
+    """Save Dropping Alert config to JSON file"""
+    try:
+        with open(DROPPING_CONFIG_FILE, 'w') as f:
+            json.dump(config, f, indent=2)
+        print(f"[Dropping] Config saved")
+        return True
+    except Exception as e:
+        print(f"[Dropping] Config save error: {e}")
+        return False
+
+def load_dropping_alarms_from_file():
+    """Load Dropping Alert alarms from JSON file"""
+    try:
+        if os.path.exists(DROPPING_ALARMS_FILE):
+            with open(DROPPING_ALARMS_FILE, 'r') as f:
+                alarms = json.load(f)
+                print(f"[Dropping] Loaded {len(alarms)} alarms from {DROPPING_ALARMS_FILE}")
+                return alarms
+    except Exception as e:
+        print(f"[Dropping] Alarms load error: {e}")
+    return []
+
+def save_dropping_alarms_to_file(alarms):
+    """Save Dropping Alert alarms to JSON file"""
+    try:
+        with open(DROPPING_ALARMS_FILE, 'w') as f:
+            json.dump(alarms, f, indent=2, ensure_ascii=False)
+        print(f"[Dropping] Saved {len(alarms)} alarms to {DROPPING_ALARMS_FILE}")
+        return True
+    except Exception as e:
+        print(f"[Dropping] Alarms save error: {e}")
+        return False
+
+dropping_config = load_dropping_config()
+dropping_alarms = load_dropping_alarms_from_file()
+
+
+@app.route('/api/dropping/config', methods=['GET'])
+def get_dropping_config():
+    """Get Dropping Alert config"""
+    return jsonify(dropping_config)
+
+
+@app.route('/api/dropping/config', methods=['POST'])
+def save_dropping_config_endpoint():
+    """Save Dropping Alert config"""
+    global dropping_config
+    try:
+        data = request.get_json()
+        if data:
+            dropping_config.update(data)
+            save_dropping_config(dropping_config)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/dropping/alarms', methods=['GET'])
+def get_dropping_alarms():
+    """Get all Dropping Alert alarms"""
+    return jsonify(dropping_alarms)
+
+
+@app.route('/api/dropping/delete', methods=['POST'])
+def delete_dropping_alarms():
+    """Delete all Dropping Alert alarms"""
+    global dropping_alarms
+    try:
+        dropping_alarms = []
+        save_dropping_alarms_to_file(dropping_alarms)
+        print("[Dropping] All alarms deleted")
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"[Dropping] Delete error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/dropping/status', methods=['GET'])
+def get_dropping_status():
+    """Get Dropping Alert calculation status"""
+    return jsonify({
+        'calculating': dropping_calculating,
+        'progress': dropping_calc_progress,
+        'alarm_count': len(dropping_alarms)
+    })
+
+
+@app.route('/api/dropping/calculate', methods=['POST'])
+def calculate_dropping_alarms_endpoint():
+    """Calculate Dropping Alert alarms based on config"""
+    global dropping_alarms, dropping_calculating
+    try:
+        dropping_calculating = True
+        dropping_alarms = calculate_dropping_scores(dropping_config)
+        save_dropping_alarms_to_file(dropping_alarms)
+        dropping_calculating = False
+        return jsonify({'success': True, 'count': len(dropping_alarms)})
+    except Exception as e:
+        dropping_calculating = False
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def calculate_dropping_scores(config):
+    """
+    Calculate Dropping Alert alarms based on opening odds vs current odds drop percentage.
+    
+    L1: min_drop_l1% - max_drop_l1% drop (e.g., 7-10%)
+    L2: min_drop_l2% - max_drop_l2% drop (e.g., 10-15%)
+    L3: min_drop_l3%+ drop (e.g., 15%+)
+    """
+    global dropping_calc_progress
+    alarms = []
+    supabase = get_supabase_client()
+    if not supabase or not supabase.is_available:
+        print("[Dropping] Supabase not available")
+        return alarms
+    
+    min_drop_l1 = config.get('min_drop_l1', 7)
+    max_drop_l1 = config.get('max_drop_l1', 10)
+    min_drop_l2 = config.get('min_drop_l2', 10)
+    max_drop_l2 = config.get('max_drop_l2', 15)
+    min_drop_l3 = config.get('min_drop_l3', 15)
+    l2_enabled = config.get('l2_enabled', True)
+    l3_enabled = config.get('l3_enabled', True)
+    persistence_minutes = config.get('persistence_minutes', 30)
+    persistence_enabled = config.get('persistence_enabled', True)
+    
+    print(f"[Dropping] Config: L1={min_drop_l1}-{max_drop_l1}%, L2={min_drop_l2}-{max_drop_l2}%, L3={min_drop_l3}%+")
+    
+    markets = ['dropping_1x2', 'dropping_ou25', 'dropping_btts']
+    market_names = {'dropping_1x2': '1X2', 'dropping_ou25': 'O/U 2.5', 'dropping_btts': 'BTTS'}
+    
+    today = now_turkey().date()
+    
+    for idx, market in enumerate(markets):
+        try:
+            if '1x2' in market:
+                selections = ['1', 'X', '2']
+                odds_keys = ['odds1', 'oddsx', 'odds2']
+                min_volume = config.get('min_volume_1x2', 3000)
+            elif 'ou25' in market:
+                selections = ['Over', 'Under']
+                odds_keys = ['oddsover', 'oddsunder']
+                min_volume = config.get('min_volume_ou25', 1000)
+            else:
+                selections = ['Yes', 'No']
+                odds_keys = ['oddsyes', 'oddsno']
+                min_volume = config.get('min_volume_btts', 500)
+            
+            history_table = f"{market}_history"
+            matches = supabase.get_all_matches_with_latest(market)
+            if not matches:
+                continue
+            
+            dropping_calc_progress = f"{market_names.get(market, market)} isleniyor... ({idx+1}/3)"
+            
+            for match in matches:
+                home = match.get('home', '')
+                away = match.get('away', '')
+                match_date_str = match.get('date', '')
+                volume = parse_volume(match.get('volume', '0'))
+                
+                if volume < min_volume:
+                    continue
+                
+                match_key = f"{home}_{away}"
+                history = supabase.get_match_history(history_table, home, away)
+                
+                if not history or len(history) < 2:
+                    continue
+                
+                history.sort(key=lambda x: x.get('scrapedat', ''))
+                
+                for sel_idx, selection in enumerate(selections):
+                    odds_key = odds_keys[sel_idx]
+                    
+                    opening_odds = parse_float(history[0].get(odds_key, '0'))
+                    current_odds = parse_float(history[-1].get(odds_key, '0'))
+                    
+                    if opening_odds <= 0 or current_odds <= 0:
+                        continue
+                    
+                    if current_odds >= opening_odds:
+                        continue
+                    
+                    drop_pct = ((opening_odds - current_odds) / opening_odds) * 100
+                    
+                    level = None
+                    if drop_pct >= min_drop_l3 and l3_enabled:
+                        level = 'L3'
+                    elif min_drop_l2 <= drop_pct < max_drop_l2 and l2_enabled:
+                        level = 'L2'
+                    elif min_drop_l1 <= drop_pct < max_drop_l1:
+                        level = 'L1'
+                    
+                    if not level:
+                        continue
+                    
+                    if persistence_enabled and len(history) >= 3:
+                        persistence_check_passed = True
+                        required_snapshots = max(2, persistence_minutes // 10)
+                        recent_snapshots = history[-required_snapshots:] if len(history) >= required_snapshots else history
+                        
+                        for snap in recent_snapshots:
+                            snap_odds = parse_float(snap.get(odds_key, '0'))
+                            if snap_odds <= 0:
+                                continue
+                            snap_drop = ((opening_odds - snap_odds) / opening_odds) * 100
+                            
+                            if level == 'L1' and not (min_drop_l1 <= snap_drop):
+                                persistence_check_passed = False
+                                break
+                            elif level == 'L2' and not (min_drop_l2 <= snap_drop):
+                                persistence_check_passed = False
+                                break
+                            elif level == 'L3' and not (min_drop_l3 <= snap_drop):
+                                persistence_check_passed = False
+                                break
+                        
+                        if not persistence_check_passed:
+                            continue
+                    
+                    event_time = history[-1].get('scrapedat', '')
+                    created_at = now_turkey().strftime('%d.%m.%Y %H:%M')
+                    
+                    alarm = {
+                        'home': home,
+                        'away': away,
+                        'market': market_names.get(market, market),
+                        'selection': selection,
+                        'level': level,
+                        'opening_odds': round(opening_odds, 2),
+                        'current_odds': round(current_odds, 2),
+                        'drop_pct': round(drop_pct, 2),
+                        'volume': volume,
+                        'match_date': match_date_str,
+                        'event_time': event_time,
+                        'created_at': created_at
+                    }
+                    alarms.append(alarm)
+                    print(f"[Dropping] {level}: {home} vs {away} [{selection}] {opening_odds:.2f}→{current_odds:.2f} ({drop_pct:.1f}%)")
+        
+        except Exception as e:
+            print(f"[Dropping] Error processing {market}: {e}")
+            import traceback
+            traceback.print_exc()
+            continue
+    
+    alarms.sort(key=lambda x: (-{'L3': 3, 'L2': 2, 'L1': 1}.get(x['level'], 0), -x['drop_pct']))
+    
+    print(f"[Dropping] Total alarms found: {len(alarms)}")
+    return alarms
+
+
+# ============================================================================
 # VOLUME SHOCK (HACİM ŞOKU) ALARM SYSTEM
 # ============================================================================
 
