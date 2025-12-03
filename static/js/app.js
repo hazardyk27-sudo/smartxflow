@@ -4391,12 +4391,23 @@ function goToMatchFromAlarm(homeTeam, awayTeam, alarmType, alarmMarket) {
 }
 
 async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, homeTeam, awayTeam) {
-    const marketTab = document.querySelector(`[data-market="${targetMarket}"]`);
+    console.log('[DropNav] Switching to market:', targetMarket, 'for', homeTeam, 'vs', awayTeam);
+    
+    // Select the main market tab (not chart-tab in modal)
+    const marketTab = document.querySelector(`.market-tabs .tab[data-market="${targetMarket}"]`);
     if (marketTab) {
+        console.log('[DropNav] Found market tab, clicking...');
         marketTab.click();
+    } else {
+        console.log('[DropNav] Market tab not found for:', targetMarket);
+        showToast(`Market sekmesi bulunamadı: ${targetMarket}`, 'warning');
+        return;
     }
     
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Wait for market data to load
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    console.log('[DropNav] After market switch - matches:', matches.length, 'filtered:', filteredMatches.length);
     
     const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
     let foundIndex = -1;
@@ -4409,22 +4420,27 @@ async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, home
         if ((mHome.includes(homeLower) || homeLower.includes(mHome)) &&
             (mAway.includes(awayLower) || awayLower.includes(mAway))) {
             foundIndex = i;
+            console.log('[DropNav] Match found at index:', foundIndex, mHome, 'vs', mAway);
             break;
         }
     }
     
     if (foundIndex >= 0) {
+        console.log('[DropNav] Opening match modal for index:', foundIndex);
         openMatchModal(foundIndex);
     } else {
+        console.log('[DropNav] Match not found in array, searching table rows...');
         const tbody = document.getElementById('matchesTableBody');
         if (tbody) {
             const rows = tbody.querySelectorAll('tr[onclick*="openMatchModal"]');
+            console.log('[DropNav] Table rows to search:', rows.length);
             for (let row of rows) {
                 const text = row.textContent.toLowerCase();
                 if (text.includes(homeLower) && text.includes(awayLower)) {
                     const onclickAttr = row.getAttribute('onclick');
                     const indexMatch = onclickAttr?.match(/openMatchModal\((\d+)\)/);
                     if (indexMatch) {
+                        console.log('[DropNav] Match found in table row, opening...');
                         openMatchModal(parseInt(indexMatch[1]));
                         return;
                     }
@@ -4432,11 +4448,7 @@ async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, home
             }
         }
         
-        const marketLabels = {
-            'dropping_1x2': 'Drop 1X2',
-            'dropping_ou25': 'Drop 2.5',
-            'dropping_btts': 'Drop BTTS'
-        };
+        console.log('[DropNav] Match not found anywhere:', homeTeam, 'vs', awayTeam);
         showToast(`Maç henüz veritabanında yok. Alarm detayları kartta mevcut.`, 'info');
     }
 }
