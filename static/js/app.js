@@ -3842,28 +3842,37 @@ function groupAlarmsByMatch(alarms) {
                 type: type,
                 home: alarm.home || alarm.home_team || '-',
                 away: alarm.away || alarm.away_team || '-',
+                home_team: alarm.home_team || alarm.home || '-',
+                away_team: alarm.away_team || alarm.away || '-',
+                match_id: alarm.match_id || '',
                 market: alarm.market || '',
                 selection: alarm.selection || alarm.side || '',
                 league: alarm.league || '',
-                match_date: alarm.match_date || '',
+                match_date: alarm.match_date || alarm.fixture_date || '',
+                fixture_date: alarm.fixture_date || alarm.match_date || '',
                 latestAlarm: alarm,
+                allAlarms: [],
                 history: [],
                 triggerCount: 0
             };
         }
         
-        groups[groupKey].history.push(alarm);
+        groups[groupKey].allAlarms.push(alarm);
         groups[groupKey].triggerCount++;
         
         const currentLatest = parseAlarmDate(groups[groupKey].latestAlarm.event_time || groups[groupKey].latestAlarm.created_at);
         const thisDate = parseAlarmDate(alarm.event_time || alarm.created_at);
         if (thisDate > currentLatest) {
             groups[groupKey].latestAlarm = alarm;
+            groups[groupKey].match_id = alarm.match_id || groups[groupKey].match_id;
+            groups[groupKey].match_date = alarm.match_date || alarm.fixture_date || groups[groupKey].match_date;
+            groups[groupKey].fixture_date = alarm.fixture_date || alarm.match_date || groups[groupKey].fixture_date;
         }
     });
     
     Object.values(groups).forEach(group => {
-        group.history.sort((a, b) => parseAlarmDate(b.event_time || b.created_at) - parseAlarmDate(a.event_time || a.created_at));
+        group.allAlarms.sort((a, b) => parseAlarmDate(b.event_time || b.created_at) - parseAlarmDate(a.event_time || a.created_at));
+        group.history = group.allAlarms.slice(1);
     });
     
     return Object.values(groups).sort((a, b) => {
