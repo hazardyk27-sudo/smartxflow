@@ -3118,7 +3118,7 @@
 
             countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
             container.innerHTML = alarms.map((alarm, idx) => {
-                const levelColors = { 'L1': '#e74c3c', 'L2': '#f39c12', 'L3': '#c0392b' };
+                const levelColors = { 'L1': '#f85149', 'L2': '#f85149', 'L3': '#f85149' };
                 const bgColor = levelColors[alarm.level] || '#e74c3c';
                 
                 return `
@@ -3240,7 +3240,7 @@
             const modal = document.getElementById('alarmDetailModal');
             const body = document.getElementById('alarmDetailBody');
             
-            const levelColors = { 'L1': '#e74c3c', 'L2': '#f39c12', 'L3': '#c0392b' };
+            const levelColors = { 'L1': '#f85149', 'L2': '#f85149', 'L3': '#f85149' };
             const bgColor = levelColors[alarm.level] || '#e74c3c';
 
             body.innerHTML = `
