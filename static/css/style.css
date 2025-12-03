@@ -3957,6 +3957,7 @@ td.volume,
     right: -360px;
     width: 360px;
     height: 100vh;
+    max-height: 100vh;
     background: #0d1117;
     border-left: 1px solid #30363d;
     z-index: 999;
@@ -3964,6 +3965,7 @@ td.volume,
     flex-direction: column;
     transition: right 0.3s ease;
     box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
+    overflow-y: auto;
 }
 
 .alarms-sidebar.open {
@@ -4082,7 +4084,6 @@ td.volume,
 /* Sidebar List */
 .alarms-sidebar-list {
     flex: 1;
-    overflow-y: auto;
     padding: 12px;
 }
 
