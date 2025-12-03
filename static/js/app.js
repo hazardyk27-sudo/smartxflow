@@ -3717,7 +3717,7 @@ function showAlertBandDetail(index) {
         `;
     }
     
-    const typeColors = { sharp: '#ef4444', insider: '#60a5fa', bigmoney: '#fbbf24' };
+    const typeColors = { sharp: '#ef4444', insider: '#60a5fa', bigmoney: '#fbbf24', volumeshock: '#F6C343', dropping: '#f85149', publictrap: '#FFCC00', volumeleader: '#06b6d4' };
     
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 480px;">
@@ -4729,7 +4729,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
     
     empty.style.display = 'none';
     
-    const grouped = { sharp: [], insider: [], bigmoney: [], volumeshock: [], dropping: [], publictrap: [] };
+    const grouped = { sharp: [], insider: [], bigmoney: [], volumeshock: [], dropping: [], publictrap: [], volumeleader: [] };
     matchAlarms.forEach(a => {
         if (a._type && grouped[a._type]) {
             grouped[a._type].push(a);
