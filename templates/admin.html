@@ -1274,7 +1274,7 @@
         <div id="page-bigmoney" class="page-content">
             <div class="page-header">
                 <div>
-                    <h2 class="page-title" style="color: #f0b429;">💰 Big Money</h2>
+                    <h2 class="page-title" style="color: #FF4500;">💰 Big Money</h2>
                     <p class="page-subtitle">Buyuk para girislerini tespit et</p>
                 </div>
             </div>
@@ -1287,7 +1287,7 @@
                         <input type="number" id="bigMoneyLimit" class="config-input" value="15000" min="1000" step="1000" style="width: 100px;">
                     </div>
                     <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
-                        <button class="btn btn-primary" onclick="saveBigMoneyConfig()" style="background: #f0b429;">
+                        <button class="btn btn-primary" onclick="saveBigMoneyConfig()" style="background: #FF4500;">
                             <span class="btn-icon">💾</span> Kaydet
                         </button>
                         <button class="btn btn-success" onclick="calculateBigMoney()" style="background: #238636;">
@@ -1302,7 +1302,7 @@
                 <div class="info-card">
                     <h3>📖 Nasil Calisir?</h3>
                     <div style="font-size: 12px; color: #8b949e; line-height: 1.6;">
-                        <p><strong style="color: #f0b429;">💰 BIG MONEY:</strong> Tek snapshot'ta bir secenege £15,000+ para girisi</p>
+                        <p><strong style="color: #FF4500;">💰 BIG MONEY:</strong> Tek snapshot'ta bir secenege £15,000+ para girisi</p>
                         <p><strong style="color: #ff7b00;">🔥 HUGE MONEY:</strong> 2 ardisik snapshot'ta £15,000+ para girisi</p>
                         <p style="margin-top: 10px; padding: 8px; background: #21262d; border-radius: 6px;">
                             <strong style="color: #f0b429;">Sinyal:</strong> Buyuk oyuncular (sharps, syndicates) pozisyon aliyor olabilir!
@@ -1313,7 +1313,7 @@
 
             <div class="info-card" style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0; color: #f0b429;">💰 Big Money Alarmlar <span id="bigMoneyAlarmCount" class="badge" style="background: #f0b429;">0</span></h3>
+                    <h3 style="margin: 0; color: #FF4500;">💰 Big Money Alarmlar <span id="bigMoneyAlarmCount" class="badge" style="background: #FF4500;">0</span></h3>
                     <div style="position: relative;">
                         <input type="text" id="bigMoneySearchInput" placeholder="Takim ara..." 
                                oninput="filterBigMoneyAlarms()" 
@@ -1323,10 +1323,10 @@
                         </svg>
                     </div>
                 </div>
-                <div id="bigMoneyCalcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #f0b429;">
+                <div id="bigMoneyCalcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #FF4500;">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <div class="spinner" style="width: 20px; height: 20px; border: 3px solid #30363d; border-top-color: #f0b429; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                        <span id="bigMoneyCalcProgress" style="color: #f0b429; font-weight: 500;">Hesaplama devam ediyor...</span>
+                        <div class="spinner" style="width: 20px; height: 20px; border: 3px solid #30363d; border-top-color: #FF4500; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span id="bigMoneyCalcProgress" style="color: #FF4500; font-weight: 500;">Hesaplama devam ediyor...</span>
                     </div>
                 </div>
                 <div id="bigMoneyAlarmList" class="alarm-list">
@@ -2497,7 +2497,7 @@
             countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
             container.innerHTML = alarms.map((alarm, idx) => {
                 const isHuge = alarm.is_huge;
-                const bgColor = isHuge ? '#ff7b00' : '#f0b429';
+                const bgColor = isHuge ? '#ff7b00' : '#FF4500';
                 const icon = isHuge ? '🔥' : '💰';
                 const label = isHuge ? 'HUGE MONEY' : 'BIG MONEY';
                 
@@ -2516,7 +2516,7 @@
                             <span style="color: #3fb950;" title="Snapshot Sayisi">📸 ${alarm.snapshot_count || 1} kez</span>
                         </div>
                     </div>
-                    <div class="alarm-score" style="background: linear-gradient(135deg, ${bgColor}, ${isHuge ? '#ff5500' : '#d4a017'});">${icon}</div>
+                    <div class="alarm-score" style="background: linear-gradient(135deg, ${bgColor}, ${isHuge ? '#ff5500' : '#CC3700'});">${icon}</div>
                 </div>
             `}).join('');
 
