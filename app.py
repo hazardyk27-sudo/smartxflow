@@ -2575,7 +2575,11 @@ def calculate_selection_halktuzagi(home, away, market, selection, sel_idx, histo
             continue
         
         curr_odds = parse_float(curr_snap.get(odds_key, '0'))
+        prev_share = parse_float(prev_snap.get(share_key, '0').replace('%', ''))
         curr_share = parse_float(curr_snap.get(share_key, '0').replace('%', ''))
+        share_diff = curr_share - prev_share
+        if share_diff < 0:
+            share_diff = 0
         
         if curr_share < min_share_threshold:
             continue
@@ -2591,10 +2595,10 @@ def calculate_selection_halktuzagi(home, away, market, selection, sel_idx, histo
         
         share_mult = default_share_multiplier
         for r_min, r_max, r_mult in share_ranges:
-            if r_min <= curr_share < r_max:
+            if r_min <= prev_share < r_max:
                 share_mult = r_mult
                 break
-        share_value = min(curr_share * share_mult / 10, max_share_cap)
+        share_value = min(share_diff * share_mult, max_share_cap)
         
         sharp_score = shock_value + odds_value + share_value
         
@@ -2879,7 +2883,7 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         
         share_multiplier = default_share_multiplier
         for range_min, range_max, range_mult in share_ranges:
-            if range_min <= curr_share < range_max:
+            if range_min <= prev_share < range_max:
                 share_multiplier = range_mult
                 break
         
