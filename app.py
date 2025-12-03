@@ -2013,8 +2013,8 @@ def calculate_dropping_scores(config):
                 moneyway_data = supabase.get_all_matches_with_latest(moneyway_market)
                 if moneyway_data:
                     for m in moneyway_data:
-                        home = (m.get('home_team') or m.get('Home') or '').lower().strip()
-                        away = (m.get('away_team') or m.get('Away') or '').lower().strip()
+                        home = (m.get('home') or m.get('home_team') or m.get('Home') or '').lower().strip()
+                        away = (m.get('away') or m.get('away_team') or m.get('Away') or '').lower().strip()
                         if home and away:
                             moneyway_matches.add(f"{home}|{away}")
                     print(f"[Dropping] Loaded {len(moneyway_matches)} matches from {moneyway_market} for cross-check")
