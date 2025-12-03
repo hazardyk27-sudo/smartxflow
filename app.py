@@ -2031,6 +2031,7 @@ def calculate_dropping_scores(config):
             for match_key, match_data in trend_data.items():
                 home = match_data.get('home', '')
                 away = match_data.get('away', '')
+                match_date = match_data.get('date', '')
                 values = match_data.get('values', {})
                 
                 # Check if match exists in corresponding Moneyway market
@@ -2094,7 +2095,7 @@ def calculate_dropping_scores(config):
                         'current_odds': round(current_odds, 2),
                         'drop_pct': round(drop_pct, 2),
                         'volume': 0,
-                        'match_date': '',
+                        'match_date': match_date,
                         'event_time': created_at,
                         'created_at': created_at
                     }
