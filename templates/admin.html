@@ -1858,6 +1858,43 @@
             return null;
         }
         
+        function formatMatchDateTR(dateStr) {
+            if (!dateStr || dateStr === '-') return '-';
+            
+            const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+            const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
+                               'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
+            
+            // Format: "02.Dec 14:00:00" veya "03.Dec 14:00:00"
+            const match1 = dateStr.match(/^(\d{1,2})\.([A-Za-z]{3})\s+(\d{2}):(\d{2}):?(\d{2})?$/);
+            if (match1) {
+                const [, day, monthStr, hour, min] = match1;
+                const monthIdx = monthMap[monthStr] ?? 0;
+                const dt = new Date(2025, monthIdx, parseInt(day), parseInt(hour), parseInt(min));
+                dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
+                const monthName = monthNames[dt.getMonth()];
+                const h = String(dt.getHours()).padStart(2, '0');
+                const m = String(dt.getMinutes()).padStart(2, '0');
+                const d = String(dt.getDate()).padStart(2, '0');
+                return `${d} ${monthName} ${h}:${m}`;
+            }
+            
+            // Format: "03.12.2025 14:00"
+            const match2 = dateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/);
+            if (match2) {
+                const [, day, month, year, hour, min] = match2;
+                const dt = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
+                dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
+                const monthName = monthNames[dt.getMonth()];
+                const h = String(dt.getHours()).padStart(2, '0');
+                const m = String(dt.getMinutes()).padStart(2, '0');
+                const d = String(dt.getDate()).padStart(2, '0');
+                return `${d} ${monthName} ${h}:${m}`;
+            }
+            
+            return dateStr;
+        }
+        
         function getTodayDate() {
             const now = new Date();
             return now.toISOString().substring(0, 10);
@@ -2702,7 +2739,7 @@
                                 </div>
                                 <div class="insider-detail-row">
                                     <span class="insider-detail-label">Maç Saati:</span>
-                                    <span class="insider-detail-value" style="color: #3fb950;">${alarm.match_date || '-'}</span>
+                                    <span class="insider-detail-value" style="color: #3fb950;">${formatMatchDateTR(alarm.match_date)}</span>
                                 </div>
                             </div>
                             <div class="insider-detail-section">
@@ -2848,7 +2885,7 @@
                     <div class="detail-row"><span class="detail-label">Mac</span><span class="detail-value">${alarm.home} vs ${alarm.away}</span></div>
                     <div class="detail-row"><span class="detail-label">Market</span><span class="detail-value">${alarm.market}</span></div>
                     <div class="detail-row"><span class="detail-label">Secenek</span><span class="detail-value">${alarm.selection}</span></div>
-                    <div class="detail-row"><span class="detail-label">Mac Tarihi</span><span class="detail-value" style="color: #58a6ff;">${alarm.match_date || '-'}</span></div>
+                    <div class="detail-row"><span class="detail-label">Mac Tarihi</span><span class="detail-value" style="color: #58a6ff;">${formatMatchDateTR(alarm.match_date)}</span></div>
                     <div class="detail-row"><span class="detail-label">Hesaplama Tarihi</span><span class="detail-value">${alarm.created_at || '-'}</span></div>
                 </div>
                 <div class="detail-section">
@@ -3265,7 +3302,7 @@
                     <div class="detail-row"><span class="detail-label">Mac</span><span class="detail-value">${alarm.home} vs ${alarm.away}</span></div>
                     <div class="detail-row"><span class="detail-label">Market</span><span class="detail-value">${alarm.market}</span></div>
                     <div class="detail-row"><span class="detail-label">Secenek</span><span class="detail-value">${alarm.selection}</span></div>
-                    <div class="detail-row"><span class="detail-label">Mac Tarihi</span><span class="detail-value" style="color: #58a6ff;">${alarm.match_date || '-'}</span></div>
+                    <div class="detail-row"><span class="detail-label">Mac Tarihi</span><span class="detail-value" style="color: #58a6ff;">${formatMatchDateTR(alarm.match_date)}</span></div>
                     <div class="detail-row"><span class="detail-label">Hesaplama Tarihi</span><span class="detail-value">${alarm.created_at || '-'}</span></div>
                 </div>
                 <div class="detail-section">
@@ -3558,7 +3595,7 @@
                     <div class="detail-row"><span class="detail-label">Mac</span><span class="detail-value">${alarm.home} vs ${alarm.away}</span></div>
                     <div class="detail-row"><span class="detail-label">Market</span><span class="detail-value">${alarm.market}</span></div>
                     <div class="detail-row"><span class="detail-label">Secenek</span><span class="detail-value">${alarm.selection}</span></div>
-                    <div class="detail-row"><span class="detail-label">Mac Tarihi</span><span class="detail-value" style="color: #58a6ff;">${alarm.match_date || '-'}</span></div>
+                    <div class="detail-row"><span class="detail-label">Mac Tarihi</span><span class="detail-value" style="color: #58a6ff;">${formatMatchDateTR(alarm.match_date)}</span></div>
                     <div class="detail-row"><span class="detail-label">Hesaplama Tarihi</span><span class="detail-value">${alarm.created_at || '-'}</span></div>
                 </div>
                 <div class="detail-section">
@@ -3785,7 +3822,7 @@
                     <div class="detail-row"><span class="detail-label">Mac</span><span class="detail-value">${alarm.home} vs ${alarm.away}</span></div>
                     <div class="detail-row"><span class="detail-label">Market</span><span class="detail-value">${alarm.market}</span></div>
                     <div class="detail-row"><span class="detail-label">Secenek</span><span class="detail-value">${alarm.selection}</span></div>
-                    <div class="detail-row"><span class="detail-label">Mac Tarihi</span><span class="detail-value" style="color: #58a6ff;">${alarm.match_date || '-'}</span></div>
+                    <div class="detail-row"><span class="detail-label">Mac Tarihi</span><span class="detail-value" style="color: #58a6ff;">${formatMatchDateTR(alarm.match_date)}</span></div>
                     <div class="detail-row"><span class="detail-label">Hesaplama Tarihi</span><span class="detail-value">${alarm.created_at || '-'}</span></div>
                 </div>
                 <div class="detail-section">
@@ -3821,7 +3858,7 @@
                     <div class="detail-row"><span class="detail-label">Mac</span><span class="detail-value">${alarm.home} vs ${alarm.away}</span></div>
                     <div class="detail-row"><span class="detail-label">Market</span><span class="detail-value">${alarm.market}</span></div>
                     <div class="detail-row"><span class="detail-label">Secenek</span><span class="detail-value">${alarm.selection}</span></div>
-                    <div class="detail-row"><span class="detail-label">Mac Tarihi</span><span class="detail-value" style="color: #58a6ff;">${alarm.match_date || '-'}</span></div>
+                    <div class="detail-row"><span class="detail-label">Mac Tarihi</span><span class="detail-value" style="color: #58a6ff;">${formatMatchDateTR(alarm.match_date)}</span></div>
                     <div class="detail-row"><span class="detail-label">Hesaplama Tarihi</span><span class="detail-value">${alarm.created_at || '-'}</span></div>
                 </div>
                 <div class="detail-section">

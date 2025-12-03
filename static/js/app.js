@@ -5092,8 +5092,8 @@ async function loadAdminInsiderData() {
             const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
             const market = `${alarm.market || '-'} → ${alarm.selection || '-'}`;
             
-            // Match time
-            const matchDate = alarm.match_date || '-';
+            // Match time (TR saati olarak formatla)
+            const matchDate = formatMatchDateShort(alarm.match_date) || '-';
             
             // Odds drop percentage
             const oddsDrop = alarm.oran_dusus_pct || alarm.odds_drop_pct || 0;
