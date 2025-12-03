@@ -4386,7 +4386,7 @@ function goToMatchFromAlarm(homeTeam, awayTeam, alarmType, alarmMarket) {
         }
         
         console.log('Mac bulunamadi:', homeTeam, 'vs', awayTeam);
-        showToast(`Maç listede yok: ${homeTeam} - ${awayTeam}`, 'warning');
+        showToast(`Maç henüz veritabanında yok. Alarm detayları kartta mevcut.`, 'info');
     }
 }
 
@@ -4437,7 +4437,7 @@ async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, home
             'dropping_ou25': 'Drop 2.5',
             'dropping_btts': 'Drop BTTS'
         };
-        showToast(`${marketLabels[targetMarket] || targetMarket} sekmesinde maç bulunamadı`, 'info');
+        showToast(`Maç henüz veritabanında yok. Alarm detayları kartta mevcut.`, 'info');
     }
 }
 
