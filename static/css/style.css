@@ -6639,6 +6639,27 @@ td.volume,
     margin-top: 14px;
     padding-top: 12px;
     border-top: 1px solid rgba(139, 148, 158, 0.15);
+    max-height: 180px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.acd-history-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.acd-history-list::-webkit-scrollbar-track {
+    background: rgba(30, 38, 48, 0.5);
+    border-radius: 2px;
+}
+
+.acd-history-list::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.4);
+    border-radius: 2px;
+}
+
+.acd-history-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 92, 246, 0.6);
 }
 
 .history-title {
