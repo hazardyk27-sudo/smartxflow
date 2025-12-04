@@ -1,6 +1,13 @@
-# SmartXFlowScraper - Standalone Veri Toplayici
+# SmartXFlowScraper - Standalone Veri Toplayici + Admin Panel
 
 PC'de calisan bagimsiz scraper. arbworld.net'ten veri cekip Supabase'e yazar.
+Alarm hesaplama ozelligi dahil.
+
+## v1.02 Yenilikler
+- **Admin Panel**: GUI ile scraper kontrolu
+- **Scrape Araligi Ayari**: 1-60 dakika arasi ayarlanabilir
+- **Konsol Penceresi**: Ayri pencerede log takibi
+- **Alarm Hesaplama**: 7 alarm tipi otomatik hesaplanir
 
 ## Kurulum
 
@@ -8,20 +15,23 @@ PC'de calisan bagimsiz scraper. arbworld.net'ten veri cekip Supabase'e yazar.
 GitHub Actions'tan `SmartXFlowScraper-Windows-EXE.zip` indir.
 
 ### Adim 2: Zip'i Ac
-Herhangi bir klasore zip'i ac. Icinde 3 dosya olacak:
-- `SmartXFlowScraper.exe` - Ana program
+Herhangi bir klasore zip'i ac. Icinde su dosyalar olacak:
+- `SmartXFlowAdmin.exe` - Admin Panel (ANA PROGRAM)
 - `config.json` - Ayarlar dosyasi
 - `README.txt` - Bu talimatlar
 
-### Adim 3: config.json Duzenle
+### Adim 3: config.json Duzenle (Opsiyonel)
 `config.json` dosyasini Notepad ile ac ve su degerleri gir:
 
 ```json
 {
     "SUPABASE_URL": "https://PROJE_ID.supabase.co",
-    "SUPABASE_ANON_KEY": "eyJ..."
+    "SUPABASE_ANON_KEY": "eyJ...",
+    "SCRAPE_INTERVAL_MINUTES": 10
 }
 ```
+
+**Not:** Bu ayarlari Admin Panel icinden de yapabilirsiniz.
 
 **Bu degerleri nereden bulurum?**
 1. supabase.com'a git
@@ -31,29 +41,38 @@ Herhangi bir klasore zip'i ac. Icinde 3 dosya olacak:
 5. anon key: Project API Keys > anon public kisminda
 
 ### Adim 4: Calistir
-`SmartXFlowScraper.exe` uzerine cift tikla.
+`SmartXFlowAdmin.exe` uzerine cift tikla.
 
-Konsol penceresi acilacak ve su mesajlari goreceksin:
-```
-==================================================
-  SmartXFlow Standalone Scraper v1.0.0
-  PC'de calisan bagimsiz veri toplayici
-==================================================
+Admin Panel acilacak:
+- Supabase ayarlarini gir
+- Scrape araligini ayarla (1-60 dakika)
+- "Baslat" butonuna tikla
+- Konsol penceresi otomatik acilir
 
-[HH:MM] Config yuklendi: config.json
-[HH:MM] Supabase baglantisi hazir
-[HH:MM] Scrape araligi: 10 dakika
---------------------------------------------------
-[HH:MM] Scrape basladi...
-[HH:MM]   moneyway-1x2 cekiliyor...
-[HH:MM]   moneyway-1x2: 45 satir yazildi
-...
-[HH:MM] Scrape tamamlandi - Toplam: 285 satir
-[HH:MM] 10 dakika bekleniyor...
-```
+## Admin Panel Ozellikleri
 
-### Adim 5: Pencereyi Kapatma!
-Program arkaplanda calismali. Pencereyi minimize edebilirsin ama KAPATMA.
+### Ana Pencere
+- **Supabase Ayarlari**: URL ve Key girisi
+- **Scrape Ayarlari**: Scrape araligi (dakika)
+- **Durum**: Scraper durumu, son scrape zamani, toplam scrape sayisi
+- **Kontroller**: Baslat, Duraklat, Durdur butonlari
+- **Manuel Alarm Hesapla**: Anlık alarm hesaplama
+
+### Konsol Penceresi
+- Tum scraper loglarini gosterir
+- Yeşil metin, karanlık tema
+- Otomatik scroll
+
+## Alarm Tipleri
+
+Scraper su alarm tiplerini otomatik hesaplar:
+1. **Sharp Move**: Akilli para hareketi
+2. **Insider Info**: Içeriden bilgi şüphesi
+3. **Big Money / Huge Money**: Büyük para girişi
+4. **Volume Shock**: Hacim şoku
+5. **Dropping Odds**: Düşen oranlar (L1/L2/L3)
+6. **Public Trap**: Halk tuzağı
+7. **Volume Leader**: Lider değişimi
 
 ## SSS (Sik Sorulan Sorular)
 
@@ -71,7 +90,7 @@ Program arkaplanda calismali. Pencereyi minimize edebilirsin ama KAPATMA.
 
 ## Teknik Bilgiler
 
-- Scrape araligi: 10 dakika (sabit)
+- Varsayilan scrape araligi: 10 dakika (ayarlanabilir)
 - Turkiye saati (Europe/Istanbul) kullanir
 - 6 market izlenir:
   - Moneyway 1X2
@@ -81,24 +100,27 @@ Program arkaplanda calismali. Pencereyi minimize edebilirsin ama KAPATMA.
   - Dropping Odds Over/Under 2.5
   - Dropping Odds BTTS
 
-## Supabase Tablo Yapisi
+## Dosya Yapisi
 
-Asagidaki tablolarin Supabase'te olusturulmasi gerekir:
+```
+SmartXFlowScraper/
+├── scraper_admin.py      # Admin Panel GUI
+├── standalone_scraper.py # Scraper motoru
+├── alarm_calculator.py   # Alarm hesaplama modulu
+├── config.json           # Ayarlar
+└── requirements.txt      # Python bagimliliklari
+```
 
-```sql
--- Ana tablolar (guncel veri)
-CREATE TABLE moneyway_1x2 (ID TEXT, League TEXT, Date TEXT, Home TEXT, Away TEXT, Odds1 TEXT, OddsX TEXT, Odds2 TEXT, Pct1 TEXT, Amt1 TEXT, PctX TEXT, AmtX TEXT, Pct2 TEXT, Amt2 TEXT, Volume TEXT);
-CREATE TABLE moneyway_ou25 (ID TEXT, League TEXT, Date TEXT, Home TEXT, Away TEXT, Under TEXT, Line TEXT, Over TEXT, PctUnder TEXT, AmtUnder TEXT, PctOver TEXT, AmtOver TEXT, Volume TEXT);
-CREATE TABLE moneyway_btts (ID TEXT, League TEXT, Date TEXT, Home TEXT, Away TEXT, Yes TEXT, No TEXT, PctYes TEXT, AmtYes TEXT, PctNo TEXT, AmtNo TEXT, Volume TEXT);
-CREATE TABLE dropping_1x2 (ID TEXT, League TEXT, Date TEXT, Home TEXT, Away TEXT, Odds1 TEXT, Odds1_prev TEXT, OddsX TEXT, OddsX_prev TEXT, Odds2 TEXT, Odds2_prev TEXT, Trend1 TEXT, TrendX TEXT, Trend2 TEXT, Volume TEXT);
-CREATE TABLE dropping_ou25 (ID TEXT, League TEXT, Date TEXT, Home TEXT, Away TEXT, Under TEXT, Under_prev TEXT, Line TEXT, Over TEXT, Over_prev TEXT, TrendUnder TEXT, TrendOver TEXT, PctUnder TEXT, AmtUnder TEXT, PctOver TEXT, AmtOver TEXT, Volume TEXT);
-CREATE TABLE dropping_btts (ID TEXT, League TEXT, Date TEXT, Home TEXT, Away TEXT, OddsYes TEXT, OddsYes_prev TEXT, OddsNo TEXT, OddsNo_prev TEXT, TrendYes TEXT, TrendNo TEXT, PctYes TEXT, AmtYes TEXT, PctNo TEXT, AmtNo TEXT, Volume TEXT);
+## Gelistirici Notlari
 
--- Gecmis tablolari (her scrape'te yeni satirlar eklenir)
-CREATE TABLE moneyway_1x2_history (LIKE moneyway_1x2 INCLUDING ALL, ScrapedAt TEXT);
-CREATE TABLE moneyway_ou25_history (LIKE moneyway_ou25 INCLUDING ALL, ScrapedAt TEXT);
-CREATE TABLE moneyway_btts_history (LIKE moneyway_btts INCLUDING ALL, ScrapedAt TEXT);
-CREATE TABLE dropping_1x2_history (LIKE dropping_1x2 INCLUDING ALL, ScrapedAt TEXT);
-CREATE TABLE dropping_ou25_history (LIKE dropping_ou25 INCLUDING ALL, ScrapedAt TEXT);
-CREATE TABLE dropping_btts_history (LIKE dropping_btts INCLUDING ALL, ScrapedAt TEXT);
+### Kaynak Koddan Calistirma
+```bash
+cd scraper_standalone
+pip install -r requirements.txt
+python scraper_admin.py
+```
+
+### EXE Olusturma
+```bash
+pyinstaller --onefile --windowed --name SmartXFlowAdmin scraper_admin.py
 ```
