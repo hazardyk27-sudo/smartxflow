@@ -644,10 +644,24 @@ def run_scrape(writer: SupabaseWriter):
     return total_rows
 
 
+def run_alarm_calculations_safe(supabase_url: str, supabase_key: str):
+    """Safely run alarm calculations - catches errors to not break main scraper"""
+    try:
+        from alarm_calculator import AlarmCalculator
+        log("Alarm hesaplamalari baslatiliyor...")
+        calculator = AlarmCalculator(supabase_url, supabase_key)
+        calculator.run_all_calculations()
+        log("Alarm hesaplamalari tamamlandi")
+    except ImportError as e:
+        log(f"Alarm modulu yuklenemedi: {e}")
+    except Exception as e:
+        log(f"Alarm hesaplama hatasi: {e}")
+
+
 def main():
     print("=" * 50)
     print(f"  SmartXFlow Standalone Scraper v{VERSION}")
-    print("  PC'de calisan bagimsiz veri toplayici")
+    print("  PC'de calisan bagimsiz veri toplayici + Alarm Hesaplama")
     print("=" * 50)
     print()
     
@@ -663,6 +677,8 @@ def main():
             run_scrape(writer)
         except Exception as e:
             log(f"HATA: {e}")
+        
+        run_alarm_calculations_safe(config['SUPABASE_URL'], config['SUPABASE_ANON_KEY'])
         
         log(f"{SCRAPE_INTERVAL_MINUTES} dakika bekleniyor...")
         log("-" * 50)
