@@ -4535,10 +4535,18 @@ function formatTriggerTime(dateStr) {
         }
     }
     
-    // ISO format (2025-12-03T16:03:07) - scrapedat'tan geliyor ve UTC
-    // +3 saat ekleyerek Turkey saatine çevir
+    // ISO format with timezone offset (2025-12-04T20:36:12.818075+03:00) - zaten Turkey saati
+    if (dateStr.includes('+03:00') || dateStr.includes('+03')) {
+        const dt = dayjs(dateStr).tz(APP_TIMEZONE);
+        if (dt && dt.isValid()) {
+            return dt.format('HH:mm');
+        }
+    }
+    
+    // ISO format offsetsiz (2025-12-03T16:03:07) - scraper'dan geliyor ve ZATEN Turkey saati
+    // UTC değil, direkt Turkey saati olarak kabul et
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateStr)) {
-        const dt = dayjs.utc(dateStr).tz(APP_TIMEZONE);
+        const dt = dayjs.tz(dateStr, APP_TIMEZONE);
         if (dt && dt.isValid()) {
             return dt.format('HH:mm');
         }
@@ -4551,8 +4559,33 @@ function formatTriggerTime(dateStr) {
 }
 
 function formatTriggerTimeShort(dateStr) {
-    const time = formatTriggerTime(dateStr);
-    return time;
+    if (!dateStr) return '-';
+    
+    let dt;
+    
+    // DD.MM.YYYY HH:MM formatı - zaten Turkey saati
+    if (dateStr.includes('.') && dateStr.includes(' ')) {
+        const [datePart, timePart] = dateStr.split(' ');
+        const [day, month, year] = datePart.split('.');
+        const isoStr = `${year}-${month}-${day}T${timePart}:00`;
+        dt = dayjs.tz(isoStr, APP_TIMEZONE);
+    }
+    // ISO with timezone offset
+    else if (dateStr.includes('+03:00') || dateStr.includes('+03')) {
+        dt = dayjs(dateStr).tz(APP_TIMEZONE);
+    }
+    // ISO offsetsiz - scraper Turkey saati kaydediyor
+    else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+        dt = dayjs.tz(dateStr, APP_TIMEZONE);
+    }
+    else {
+        dt = parseAlarmDateTR(dateStr);
+    }
+    
+    if (!dt || !dt.isValid()) return '-';
+    
+    // Gün ve saat formatı: "04.12 22:56"
+    return dt.format('DD.MM HH:mm');
 }
 
 function goToMatchPage(matchKey) {
