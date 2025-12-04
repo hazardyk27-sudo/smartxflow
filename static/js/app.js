@@ -4720,16 +4720,38 @@ function goToMatchFromAlarm(homeTeam, awayTeam, alarmType, alarmMarket) {
     
     const homeLower = homeTeam.toLowerCase().trim();
     const awayLower = awayTeam.toLowerCase().trim();
+    const marketLower = (alarmMarket || '').toLowerCase();
+    
+    let targetMarket = null;
     
     if (alarmType === 'dropping') {
-        let targetMarket = 'dropping_1x2';
-        const marketLower = (alarmMarket || '').toLowerCase();
+        targetMarket = 'dropping_1x2';
         if (marketLower.includes('btts') || marketLower.includes('gg')) {
             targetMarket = 'dropping_btts';
-        } else if (marketLower.includes('o/u') || marketLower.includes('over') || marketLower.includes('under') || marketLower.includes('2.5')) {
+        } else if (marketLower.includes('o/u') || marketLower.includes('over') || marketLower.includes('under') || marketLower.includes('ou25') || marketLower.includes('2.5')) {
             targetMarket = 'dropping_ou25';
         }
-        
+    } else if (alarmMarket) {
+        if (marketLower.includes('dropping')) {
+            if (marketLower.includes('btts') || marketLower.includes('gg')) {
+                targetMarket = 'dropping_btts';
+            } else if (marketLower.includes('ou') || marketLower.includes('2.5')) {
+                targetMarket = 'dropping_ou25';
+            } else {
+                targetMarket = 'dropping_1x2';
+            }
+        } else if (marketLower.includes('moneyway') || marketLower.includes('mw')) {
+            if (marketLower.includes('btts') || marketLower.includes('gg')) {
+                targetMarket = 'moneyway_btts';
+            } else if (marketLower.includes('ou') || marketLower.includes('2.5')) {
+                targetMarket = 'moneyway_ou25';
+            } else {
+                targetMarket = 'moneyway_1x2';
+            }
+        }
+    }
+    
+    if (targetMarket) {
         switchMarketAndFindMatch(targetMarket, homeLower, awayLower, homeTeam, awayTeam);
         return;
     }
@@ -4752,6 +4774,17 @@ function goToMatchFromAlarm(homeTeam, awayTeam, alarmType, alarmMarket) {
     if (foundIndex >= 0) {
         openMatchModal(foundIndex);
     } else {
+        if (alarmMarket) {
+            let guessMarket = 'moneyway_1x2';
+            if (marketLower.includes('btts') || marketLower.includes('gg')) {
+                guessMarket = 'moneyway_btts';
+            } else if (marketLower.includes('ou') || marketLower.includes('2.5') || marketLower.includes('over') || marketLower.includes('under')) {
+                guessMarket = 'moneyway_ou25';
+            }
+            switchMarketAndFindMatch(guessMarket, homeLower, awayLower, homeTeam, awayTeam);
+            return;
+        }
+        
         const tbody = document.getElementById('matchesTableBody');
         if (tbody) {
             const rows = tbody.querySelectorAll('tr[onclick*="openMatchModal"]');
