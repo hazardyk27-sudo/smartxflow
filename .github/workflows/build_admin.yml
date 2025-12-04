@@ -25,28 +25,7 @@ jobs:
 
       - name: Create config with secrets
         run: |
-          python -c "
-import json
-import re
-
-url = '${{ secrets.SUPABASE_URL }}'
-key = '${{ secrets.SUPABASE_ANON_KEY }}'
-
-m = re.search(r'([a-z]{20,})', url)
-correct_url = f'https://{m.group(1)}.supabase.co' if m else url
-
-config = {
-    'SUPABASE_URL': correct_url,
-    'SUPABASE_ANON_KEY': key,
-    'SCRAPE_INTERVAL_MINUTES': 10
-}
-
-with open('scraper_standalone/config.json', 'w') as f:
-    json.dump(config, f, indent=2)
-
-print(f'Config created with URL: {correct_url}')
-"
-          echo "=== config.json content ==="
+          echo '{"SUPABASE_URL": "${{ secrets.SUPABASE_URL }}", "SUPABASE_ANON_KEY": "${{ secrets.SUPABASE_ANON_KEY }}", "SCRAPE_INTERVAL_MINUTES": 10}' > scraper_standalone/config.json
           cat scraper_standalone/config.json
         shell: bash
 
