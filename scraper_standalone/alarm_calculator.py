@@ -2,12 +2,13 @@
 SmartXFlow Alarm Calculator Module
 Standalone alarm calculation for PC-based scraper
 Calculates: Sharp, Insider, BigMoney, VolumeShock, Dropping, PublicTrap, VolumeLeader
+OPTIMIZED: Batch fetch per market, in-memory calculations
 """
 
 import json
 import os
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Callable
 
 try:
     import pytz
@@ -19,6 +20,13 @@ try:
     import httpx
 except ImportError:
     import requests as httpx
+
+_logger_callback: Optional[Callable[[str], None]] = None
+
+
+def set_logger(callback: Callable[[str], None]):
+    global _logger_callback
+    _logger_callback = callback
 
 
 def now_turkey():
@@ -33,7 +41,11 @@ def now_turkey_iso():
 
 def log(msg: str):
     timestamp = now_turkey().strftime('%H:%M')
-    print(f"[{timestamp}] [AlarmCalc] {msg}")
+    full_msg = f"[{timestamp}] [AlarmCalc] {msg}"
+    if _logger_callback:
+        _logger_callback(full_msg)
+    else:
+        print(full_msg)
 
 
 def parse_float(val) -> float:
@@ -86,12 +98,16 @@ def parse_match_date(date_str: str) -> Optional[datetime]:
 
 
 class AlarmCalculator:
-    """Supabase-based alarm calculator"""
+    """Supabase-based alarm calculator - OPTIMIZED with batch fetch"""
     
-    def __init__(self, supabase_url: str, supabase_key: str):
+    def __init__(self, supabase_url: str, supabase_key: str, logger_callback: Optional[Callable[[str], None]] = None):
         self.url = supabase_url
         self.key = supabase_key
         self.configs = {}
+        self._history_cache = {}
+        self._matches_cache = {}
+        if logger_callback:
+            set_logger(logger_callback)
         self.load_configs()
     
     def _headers(self) -> Dict[str, str]:
@@ -234,20 +250,70 @@ class AlarmCalculator:
         }
     
     def get_matches_with_latest(self, market: str) -> List[Dict]:
-        """Get all matches with their latest data for a market"""
-        return self._get(market, 'select=*')
+        """Get all matches with their latest data for a market (cached)"""
+        if market in self._matches_cache:
+            return self._matches_cache[market]
+        
+        log(f"FETCH {market} (latest)...")
+        matches = self._get(market, 'select=*')
+        log(f"  -> {len(matches)} matches")
+        self._matches_cache[market] = matches
+        return matches
+    
+    def batch_fetch_history(self, market: str) -> Dict[str, List[Dict]]:
+        """Batch fetch all history for a market in one call - OPTIMIZED"""
+        history_table = f"{market}_history"
+        
+        if history_table in self._history_cache:
+            return self._history_cache[history_table]
+        
+        yesterday = (now_turkey() - timedelta(days=1)).strftime('%Y-%m-%dT00:00:00')
+        params = f"select=*&scrapedat=gte.{yesterday}&order=scrapedat.asc&limit=5000"
+        
+        log(f"FETCH {history_table} (batch)...")
+        rows = self._get(history_table, params)
+        log(f"  -> {len(rows)} history rows")
+        
+        history_map = {}
+        for row in rows:
+            home = row.get('home', '')
+            away = row.get('away', '')
+            key = f"{home}|{away}"
+            if key not in history_map:
+                history_map[key] = []
+            history_map[key].append(row)
+        
+        self._history_cache[history_table] = history_map
+        return history_map
     
     def get_match_history(self, home: str, away: str, history_table: str) -> List[Dict]:
-        """Get historical snapshots for a match"""
-        from urllib.parse import quote
-        home_enc = quote(home)
-        away_enc = quote(away)
-        params = f"home=eq.{home_enc}&away=eq.{away_enc}&order=scrapedat.asc"
-        return self._get(history_table, params)
+        """Get historical snapshots for a match from cache (no individual API calls)"""
+        if history_table not in self._history_cache:
+            market = history_table.replace('_history', '')
+            self.batch_fetch_history(market)
+        
+        history_map = self._history_cache.get(history_table, {})
+        key = f"{home}|{away}"
+        return history_map.get(key, [])
     
     def run_all_calculations(self):
-        """Run all alarm calculations"""
-        log("Starting alarm calculations...")
+        """Run all alarm calculations - OPTIMIZED with batch fetch"""
+        log("=" * 50)
+        log("Alarm hesaplamalari basliyor...")
+        log("=" * 50)
+        
+        self._history_cache = {}
+        self._matches_cache = {}
+        
+        markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
+        for market in markets:
+            try:
+                self.get_matches_with_latest(market)
+                self.batch_fetch_history(market)
+            except Exception as e:
+                log(f"Prefetch error {market}: {e}")
+        
+        log("-" * 30)
         
         try:
             sharp_count = self.calculate_sharp_alarms()
@@ -291,7 +357,9 @@ class AlarmCalculator:
         except Exception as e:
             log(f"VolumeLeader error: {e}")
         
-        log("Alarm calculations completed")
+        log("=" * 50)
+        log("Alarm hesaplamalari tamamlandi")
+        log("=" * 50)
     
     def _is_valid_match_date(self, date_str: str) -> bool:
         """Check if match is today or tomorrow (D-2+ filter)"""

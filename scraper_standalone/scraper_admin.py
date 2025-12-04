@@ -128,15 +128,14 @@ class ScraperThread(threading.Thread):
                     self.log(f"Scrape hatasi: {e}")
                 
                 self.status_callback('calculating')
-                self.log("Alarm hesaplamalari basliyor...")
                 
                 try:
                     calculator = AlarmCalculator(
                         self.config['SUPABASE_URL'],
-                        self.config['SUPABASE_ANON_KEY']
+                        self.config['SUPABASE_ANON_KEY'],
+                        logger_callback=self.log
                     )
                     calculator.run_all_calculations()
-                    self.log("Alarm hesaplamalari tamamlandi")
                 except Exception as e:
                     self.log(f"Alarm hesaplama hatasi: {e}")
                 
