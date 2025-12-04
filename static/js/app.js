@@ -4051,9 +4051,9 @@ function getFilteredAlarms() {
     
     groups.sort((a, b) => {
         if (currentAlarmSort === 'newest') {
-            return parseAlarmDate(b.latestAlarm.created_at || b.latestAlarm.event_time) - parseAlarmDate(a.latestAlarm.created_at || a.latestAlarm.event_time);
+            return parseAlarmDate(b.latestAlarm.event_time || b.latestAlarm.created_at) - parseAlarmDate(a.latestAlarm.event_time || a.latestAlarm.created_at);
         } else if (currentAlarmSort === 'oldest') {
-            return parseAlarmDate(a.latestAlarm.created_at || a.latestAlarm.event_time) - parseAlarmDate(b.latestAlarm.created_at || b.latestAlarm.event_time);
+            return parseAlarmDate(a.latestAlarm.event_time || a.latestAlarm.created_at) - parseAlarmDate(b.latestAlarm.event_time || b.latestAlarm.created_at);
         } else if (currentAlarmSort === 'score_high') {
             const scoreA = a.latestAlarm.sharp_score || a.latestAlarm.insider_score || a.latestAlarm.incoming_money || 0;
             const scoreB = b.latestAlarm.sharp_score || b.latestAlarm.insider_score || b.latestAlarm.incoming_money || 0;
@@ -4139,7 +4139,7 @@ function renderAlarmsList(filterType) {
             mainValue = `<span class="value-odds">${oldLeader} %${oldShare}</span><span class="arrow">→</span><span class="value-odds-new">${newLeader} %${newShare}</span>`;
         }
         
-        const timeAgo = formatTimeAgoTR(alarm.created_at || alarm.event_time);
+        const triggerTimeShort = formatTriggerTimeShort(alarm.event_time || alarm.created_at);
         const triggerPill = group.triggerCount > 1 ? `<span class="trigger-pill">×${group.triggerCount}</span>` : '';
         const marketLabel = formatMarketChip(market, selection);
         const expandIcon = isOpen ? '▼' : '▶';
@@ -4401,7 +4401,7 @@ function renderAlarmsList(filterType) {
                             <span class="ac-label">${typeLabels[type]}</span>
                             ${historyBadge}
                             <span class="ac-sep">·</span>
-                            <span class="ac-time">${timeAgo}</span>
+                            <span class="ac-time">${triggerTimeShort}</span>
                         </div>
                         <div class="ac-mid">
                             <span class="ac-match">${fullMatchName}</span>
@@ -4548,6 +4548,11 @@ function formatTriggerTime(dateStr) {
     const dt = parseAlarmDateTR(dateStr);
     if (!dt || !dt.isValid()) return '-';
     return dt.format('HH:mm');
+}
+
+function formatTriggerTimeShort(dateStr) {
+    const time = formatTriggerTime(dateStr);
+    return time;
 }
 
 function goToMatchPage(matchKey) {
