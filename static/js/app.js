@@ -3373,13 +3373,32 @@ function formatMatchDateShort(dateStr) {
 
 function isMatchTodayOrFuture(alarm) {
     const matchDateStr = alarm.match_date || alarm.fixture_date || '';
-    const eventTimeStr = alarm.event_time || alarm.created_at || '';
+    const createdAtStr = alarm.created_at || '';
+    const eventTimeStr = alarm.event_time || '';
     
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentDay = now.getDate();
     const currentYear = now.getFullYear();
     
+    // ÖNCE created_at kontrolü - bugün oluşturulmuş alarmları göster
+    if (createdAtStr) {
+        const ddmmyyyyMatch = createdAtStr.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+        if (ddmmyyyyMatch) {
+            const [, day, month, year] = ddmmyyyyMatch;
+            const eventDay = parseInt(day);
+            const eventMonth = parseInt(month) - 1;
+            const eventYear = parseInt(year);
+            
+            if (eventYear > currentYear) return true;
+            if (eventYear === currentYear) {
+                if (eventMonth > currentMonth) return true;
+                if (eventMonth === currentMonth && eventDay >= currentDay) return true;
+            }
+        }
+    }
+    
+    // match_date kontrolü (format: "03.Dec 17:30:00")
     if (matchDateStr) {
         const parts = matchDateStr.split(' ')[0];
         if (parts && parts.includes('.')) {
@@ -3398,22 +3417,8 @@ function isMatchTodayOrFuture(alarm) {
         }
     }
     
+    // ISO format event_time kontrolü
     if (eventTimeStr) {
-        const ddmmyyyyMatch = eventTimeStr.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
-        if (ddmmyyyyMatch) {
-            const [, day, month, year] = ddmmyyyyMatch;
-            const eventDay = parseInt(day);
-            const eventMonth = parseInt(month) - 1;
-            const eventYear = parseInt(year);
-            
-            if (eventYear > currentYear) return true;
-            if (eventYear === currentYear) {
-                if (eventMonth > currentMonth) return true;
-                if (eventMonth === currentMonth && eventDay >= currentDay) return true;
-            }
-            return false;
-        }
-        
         const isoMatch = eventTimeStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
         if (isoMatch) {
             const [, year, month, day] = isoMatch;
