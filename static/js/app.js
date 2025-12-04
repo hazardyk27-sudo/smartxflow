@@ -3647,7 +3647,7 @@ function getAlertType(alarm) {
         if (level === 'L2') return { label: 'DROP L2', color: 'red', pillClass: 'dropping-l2' };
         return { label: 'DROP L1', color: 'red', pillClass: 'dropping-l1' };
     }
-    if (type === 'publictrap') return { label: 'PUBLIC TRAP', color: 'gold', pillClass: 'publictrap' };
+    if (type === 'publictrap') return { label: 'PUBLIC MOVE', color: 'gold', pillClass: 'publictrap' };
     if (type === 'volumeleader') return { label: 'LIDER DEGISTI', color: 'cyan', pillClass: 'volumeleader' };
     return { label: 'ALERT', color: 'green', pillClass: '' };
 }
@@ -4091,7 +4091,7 @@ const alarmFilterLabels = {
     bigmoney: 'Buyuk Para',
     volumeshock: 'Hacim Soku',
     dropping: 'Dropping',
-    publictrap: 'Public Trap',
+    publictrap: 'Public Move',
     volumeleader: 'Lider Degisti'
 };
 
@@ -4196,7 +4196,7 @@ function renderAlarmsList(filterType) {
     
     const displayGroups = groups.slice(0, alarmsDisplayCount);
     const hasMore = groups.length > alarmsDisplayCount;
-    const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY', volumeshock: 'HACIM SOKU', dropping: 'DROPPING', publictrap: 'PUBLIC TRAP', volumeleader: 'LİDER DEĞİŞTİ' };
+    const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY', volumeshock: 'HACIM SOKU', dropping: 'DROPPING', publictrap: 'PUBLIC MOVE', volumeleader: 'LİDER DEĞİŞTİ' };
     const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#F08A24', volumeshock: '#F6C343', dropping: '#f85149', publictrap: '#FFCC00', volumeleader: '#06b6d4' };
     
     let html = displayGroups.map((group, idx) => {
@@ -4419,7 +4419,7 @@ function renderAlarmsList(filterType) {
             ${matchDateFormatted ? `<div class="acd-info-row"><span>📅 Maç: ${matchDateFormatted}</span></div>` : ''}`;
             historyLine = `${triggerTime}`;
         } else if (type === 'publictrap') {
-            badgeLabel = 'PUBLIC TRAP';
+            badgeLabel = 'PUBLIC MOVE';
             const score = (alarm.trap_score || alarm.sharp_score || 0).toFixed(0);
             const volume = alarm.volume || 0;
             metricContent = `<div class="acd-grid cols-2">
@@ -5020,7 +5020,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             description: 'Acilisindan bu yana oran dususu.'
         },
         publictrap: {
-            title: 'Public Trap',
+            title: 'Public Move',
             color: '#FFCC00',
             icon: '🪤',
             description: 'Halk tuzagi tespit edildi.'
