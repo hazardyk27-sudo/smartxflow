@@ -20,7 +20,7 @@ try:
 except ImportError:
     TURKEY_TZ = None
 
-VERSION = "1.02"
+VERSION = "1.03"
 CONFIG_FILE = "config.json"
 
 def get_turkey_now():
