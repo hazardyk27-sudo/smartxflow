@@ -711,6 +711,153 @@
                 </div>
             </div>
 
+            <!-- SHARP ALARM HESAPLAMA ACIKLAMASI -->
+            <div class="info-card" style="margin-bottom: 20px; border-left: 4px solid #58a6ff; background: linear-gradient(135deg, #161b22 0%, #1c2128 100%);">
+                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSharpExplanation()">
+                    <h3 style="margin: 0; color: #58a6ff;">📖 Sharp Alarm Nasil Hesaplanir?</h3>
+                    <span id="sharpExplanationToggle" style="color: #58a6ff; font-size: 20px;">▼</span>
+                </div>
+                <div id="sharpExplanationContent" style="display: none; margin-top: 15px;">
+                    
+                    <div style="background: #21262d; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <h4 style="color: #f0883e; margin: 0 0 10px 0;">🎯 Sharp Alarm Nedir?</h4>
+                        <p style="color: #e6edf3; margin: 0; line-height: 1.6;">
+                            Sharp alarm, <strong>"akilli para"</strong> hareketlerini tespit eder. Profesyonel bahisçiler (sharps) 
+                            bir seçime para yatirdiginda genellikle 3 sey ayni anda olur:
+                        </p>
+                        <ul style="color: #e6edf3; margin: 10px 0 0 0; padding-left: 20px; line-height: 1.8;">
+                            <li><strong style="color: #58a6ff;">Hacim Soku:</strong> Ani ve buyuk miktarda para girisi</li>
+                            <li><strong style="color: #22c55e;">Oran Dususu:</strong> Bahis sirketi orani dusurur (risk yonetimi)</li>
+                            <li><strong style="color: #a78bfa;">Pay Artisi:</strong> O seçimin toplam hacimdeki payi artar</li>
+                        </ul>
+                    </div>
+
+                    <div style="background: #21262d; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <h4 style="color: #22c55e; margin: 0 0 10px 0;">📊 Hesaplama Formulu</h4>
+                        <div style="background: #0d1117; padding: 12px; border-radius: 6px; font-family: monospace; color: #e6edf3;">
+                            <strong style="color: #f0883e;">SHARP SCORE = Volume_Contrib + Odds_Contrib + Share_Contrib</strong>
+                        </div>
+                        <p style="color: #8b949e; margin: 10px 0 0 0; font-size: 12px;">Maksimum skor: 40 + 35 + 25 = 100 puan</p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                        
+                        <div style="background: #21262d; padding: 15px; border-radius: 8px; border-left: 3px solid #58a6ff;">
+                            <h5 style="color: #58a6ff; margin: 0 0 10px 0;">1️⃣ Hacim Soku (Volume Shock)</h5>
+                            <div style="background: #0d1117; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 11px; color: #e6edf3; margin-bottom: 8px;">
+                                amount_change = curr_amt - prev_amt<br>
+                                shock_raw = amount_change / avg_prev_5<br>
+                                shock_value = shock_raw × volume_multiplier<br>
+                                <strong style="color: #58a6ff;">volume_contrib = min(shock_value, 40)</strong>
+                            </div>
+                            <p style="color: #8b949e; margin: 0; font-size: 11px;">
+                                <strong>Ornek:</strong> Son 5 snapshot ortalamasi £1000, bu snapshot'ta £3000 geldi<br>
+                                → shock_raw = 3000/1000 = 3.0 → volume_contrib = min(3.0, 40) = 3.0 puan
+                            </p>
+                        </div>
+
+                        <div style="background: #21262d; padding: 15px; border-radius: 8px; border-left: 3px solid #22c55e;">
+                            <h5 style="color: #22c55e; margin: 0 0 10px 0;">2️⃣ Oran Dususu (Odds Drop)</h5>
+                            <div style="background: #0d1117; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 11px; color: #e6edf3; margin-bottom: 8px;">
+                                drop_pct = ((prev_odds - curr_odds) / prev_odds) × 100<br>
+                                odds_value = drop_pct × odds_multiplier<br>
+                                <strong style="color: #22c55e;">odds_contrib = min(odds_value, 35)</strong>
+                            </div>
+                            <p style="color: #8b949e; margin: 0; font-size: 11px;">
+                                <strong>Oran Araligi Carpanlari:</strong><br>
+                                1.01-1.50: ×10 | 1.50-2.10: ×8 | 2.10-3.50: ×5 | 3.50+: ×3<br>
+                                <em>Kisa oranlar daha degerli (bookmaker'in emin oldugu oranlar)</em>
+                            </p>
+                        </div>
+
+                        <div style="background: #21262d; padding: 15px; border-radius: 8px; border-left: 3px solid #a78bfa;">
+                            <h5 style="color: #a78bfa; margin: 0 0 10px 0;">3️⃣ Pay Artisi (Share Increase)</h5>
+                            <div style="background: #0d1117; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 11px; color: #e6edf3; margin-bottom: 8px;">
+                                share_diff = curr_share - prev_share<br>
+                                share_value = share_diff × share_multiplier<br>
+                                <strong style="color: #a78bfa;">share_contrib = min(share_value, 25)</strong>
+                            </div>
+                            <p style="color: #8b949e; margin: 0; font-size: 11px;">
+                                <strong>Pay Araligi Carpanlari:</strong><br>
+                                0-50%: ×1 | 50-75%: ×1.5 | 75-90%: ×2 | 90-100%: ×3<br>
+                                <em>Yuksek pay = daha fazla etki (dominant seçim)</em>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div style="background: #21262d; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <h4 style="color: #f97316; margin: 0 0 10px 0;">⚡ Alarm Tetikleme Kosullari</h4>
+                        <p style="color: #e6edf3; margin: 0 0 10px 0;">Alarm tetiklenmesi icin <strong>TUM</strong> kosullar saglanmali:</p>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                            <div style="background: #0d1117; padding: 10px; border-radius: 6px;">
+                                <span style="color: #22c55e;">✓</span> <span style="color: #e6edf3;">curr_share >= min_share (%5)</span>
+                            </div>
+                            <div style="background: #0d1117; padding: 10px; border-radius: 6px;">
+                                <span style="color: #22c55e;">✓</span> <span style="color: #e6edf3;">shock_value > 0 (para girisi var)</span>
+                            </div>
+                            <div style="background: #0d1117; padding: 10px; border-radius: 6px;">
+                                <span style="color: #22c55e;">✓</span> <span style="color: #e6edf3;">odds_value > 0 (oran dustu)</span>
+                            </div>
+                            <div style="background: #0d1117; padding: 10px; border-radius: 6px;">
+                                <span style="color: #22c55e;">✓</span> <span style="color: #e6edf3;">share_value > 0 (pay artti)</span>
+                            </div>
+                            <div style="background: #0d1117; padding: 10px; border-radius: 6px;">
+                                <span style="color: #f0883e;">★</span> <span style="color: #e6edf3;">sharp_score >= min_sharp_score</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background: #21262d; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <h4 style="color: #58a6ff; margin: 0 0 10px 0;">🕐 Zaman Kurallari</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">
+                            <div style="background: #0d1117; padding: 10px; border-radius: 6px;">
+                                <span style="color: #f97316;">⏰</span> <span style="color: #e6edf3;"><strong>Prematch Only:</strong> D-2+ (eski) maclar hariç</span>
+                            </div>
+                            <div style="background: #0d1117; padding: 10px; border-radius: 6px;">
+                                <span style="color: #f97316;">⏰</span> <span style="color: #e6edf3;"><strong>2 Saat Kurali:</strong> Maca <2 saat kala Sharp hesaplanmaz</span>
+                            </div>
+                        </div>
+                        <p style="color: #8b949e; margin: 10px 0 0 0; font-size: 11px;">
+                            <em>Not: Maca son 2 saat kala hesaplama icin "Public Trap" (Halk Tuzagi) alarm sistemini kullanin.</em>
+                        </p>
+                    </div>
+
+                    <div style="background: linear-gradient(135deg, #1a2332 0%, #21262d 100%); padding: 15px; border-radius: 8px; border: 1px solid #30363d;">
+                        <h4 style="color: #f0883e; margin: 0 0 10px 0;">💡 Ornek Hesaplama</h4>
+                        <div style="color: #e6edf3; line-height: 1.8; font-size: 13px;">
+                            <strong>Mac:</strong> Arsenal vs Chelsea | <strong>Secim:</strong> 1 (Arsenal)<br>
+                            <strong>Onceki snapshot:</strong> Odds=1.85, Share=42%, Amount=£5000<br>
+                            <strong>Simdi:</strong> Odds=1.72, Share=48%, Amount=£8500<br><br>
+                            
+                            <div style="background: #0d1117; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px;">
+                                1. <span style="color: #58a6ff;">Hacim Soku:</span> (8500-5000)/5000 = 0.7 × 1.0 = 0.7 → <strong>min(0.7, 40) = 0.7</strong><br>
+                                2. <span style="color: #22c55e;">Oran Dususu:</span> ((1.85-1.72)/1.85)×100 = 7.03% × 8 = 56.2 → <strong>min(56.2, 35) = 35</strong><br>
+                                3. <span style="color: #a78bfa;">Pay Artisi:</span> (48-42) = 6% × 1.0 = 6 → <strong>min(6, 25) = 6</strong><br><br>
+                                <span style="color: #f0883e; font-size: 13px;"><strong>SHARP SCORE = 0.7 + 35 + 6 = 41.7 puan</strong></span>
+                            </div>
+                            <p style="color: #22c55e; margin: 10px 0 0 0;">
+                                ✓ Eger min_sharp_score=40 ise → <strong>ALARM TETIKLENIR!</strong>
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <script>
+                function toggleSharpExplanation() {
+                    const content = document.getElementById('sharpExplanationContent');
+                    const toggle = document.getElementById('sharpExplanationToggle');
+                    if (content.style.display === 'none') {
+                        content.style.display = 'block';
+                        toggle.textContent = '▲';
+                    } else {
+                        content.style.display = 'none';
+                        toggle.textContent = '▼';
+                    }
+                }
+            </script>
+            <!-- SHARP ALARM HESAPLAMA ACIKLAMASI SONU -->
+
             <div class="config-grid">
                 <div class="info-card">
                     <h3>📊 Minimum Market Volume Esikleri</h3>
