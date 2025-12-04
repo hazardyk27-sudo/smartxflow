@@ -7043,6 +7043,39 @@ td.volume,
 .acd-stat-val.volumeleader { color: #06b6d4; }
 .acd-stat-val.volumeleader-new { color: #22d3ee; }
 
+/* Volume Leader Transition - Minimal Style */
+.vl-transition {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.vl-old {
+    color: #6e7681;
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+.vl-arrow {
+    color: #06b6d4;
+    font-size: 16px;
+    font-weight: 300;
+    opacity: 0.6;
+}
+
+.vl-new {
+    color: #22d3ee;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.vl-mini {
+    color: #8b949e;
+    font-size: 12px;
+}
+
 .acd-stat-lbl {
     font-size: 10px;
     font-weight: var(--weight-regular);

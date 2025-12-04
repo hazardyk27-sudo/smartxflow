@@ -4358,7 +4358,9 @@ function renderAlarmsList(filterType) {
         } else if (type === 'publictrap') {
             metricValue = (alarm.trap_score || alarm.sharp_score || 0).toFixed(0);
         } else if (type === 'volumeleader') {
-            metricValue = `${alarm.old_leader || '-'} → ${alarm.new_leader || '-'}`;
+            const oldL = alarm.old_leader || '-';
+            const newL = alarm.new_leader || '-';
+            metricValue = `<span class="vl-transition"><span class="vl-old">${oldL}</span><span class="vl-arrow">›</span><span class="vl-new">${newL}</span></span>`;
         }
         
         const historyCount = group.history.length;
@@ -4382,7 +4384,7 @@ function renderAlarmsList(filterType) {
                 } else if (type === 'publictrap') {
                     hValue = `Trap ${(h.trap_score || h.sharp_score || 0).toFixed(0)}`;
                 } else if (type === 'volumeleader') {
-                    hValue = `${h.old_leader || '-'} → ${h.new_leader || '-'}`;
+                    hValue = `<span class="vl-mini">${h.old_leader || '-'} › ${h.new_leader || '-'}</span>`;
                 }
                 return `<div class="history-item"><span class="history-time">${hTime}</span><span class="history-val">${hValue}</span></div>`;
             }).join('');
