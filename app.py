@@ -3805,19 +3805,11 @@ def calculate_volume_leader_scores(config):
                     if len(snapshots) < 2:
                         continue
                     
-                    # Calculate total volume from latest snapshot
-                    latest = snapshots[0]
-                    total_volume = 0
-                    for amt_key in amount_keys:
-                        total_volume += parse_volume(latest.get(amt_key, 0))
-                    
-                    # Check minimum volume
-                    if total_volume < min_volume:
-                        continue
-                    
                     # DEBUG: Show first few matches with shares
                     if len(alarms) == 0 and len(filtered_matches) > 0 and filtered_matches.index(match) < 3:
-                        print(f"[VolumeLeader] DEBUG: {home} vs {away} - {len(snapshots)} snapshots, vol={total_volume}")
+                        latest = snapshots[0]
+                        debug_volume = sum(parse_volume(latest.get(k, 0)) for k in amount_keys)
+                        print(f"[VolumeLeader] DEBUG: {home} vs {away} - {len(snapshots)} snapshots, latest_vol={debug_volume}")
                         for sel, share_key in zip(selections, share_keys):
                             share_val = parse_float(latest.get(share_key, 0))
                             print(f"[VolumeLeader] DEBUG:   {sel}: {share_key}={share_val}%")
@@ -3826,6 +3818,15 @@ def calculate_volume_leader_scores(config):
                     for i in range(len(snapshots) - 1):
                         current = snapshots[i]
                         previous = snapshots[i + 1]
+                        
+                        # Calculate volume at trigger time (from current snapshot, not latest)
+                        trigger_volume = 0
+                        for amt_key in amount_keys:
+                            trigger_volume += parse_volume(current.get(amt_key, 0))
+                        
+                        # Check minimum volume at trigger time
+                        if trigger_volume < min_volume:
+                            continue
                         
                         # Get shares for each selection
                         current_shares = {}
@@ -3877,7 +3878,7 @@ def calculate_volume_leader_scores(config):
                                 'old_leader_share': prev_leader_share,
                                 'new_leader': curr_leader,
                                 'new_leader_share': curr_leader_share,
-                                'total_volume': total_volume,
+                                'total_volume': trigger_volume,
                                 'match_date': match_date_str,
                                 'event_time': event_time_formatted,
                                 'created_at': now_turkey_formatted(),
