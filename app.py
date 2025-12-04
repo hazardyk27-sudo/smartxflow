@@ -3053,12 +3053,13 @@ def calculate_selection_halktuzagi(home, away, market, selection, sel_idx, histo
     min_sharp_score = config.get('min_sharp_score', 10)
     
     odds_ranges = [
-        (config.get('odds_range_1_min', 1.01), config.get('odds_range_1_max', 1.50), config.get('odds_range_1_mult', 10)),
-        (config.get('odds_range_2_min', 1.50), config.get('odds_range_2_max', 2.10), config.get('odds_range_2_mult', 8)),
-        (config.get('odds_range_3_min', 2.10), config.get('odds_range_3_max', 3.50), config.get('odds_range_3_mult', 5)),
-        (config.get('odds_range_4_min', 3.50), config.get('odds_range_4_max', 10.00), config.get('odds_range_4_mult', 3)),
+        (config.get('odds_range_1_min', 1.01), config.get('odds_range_1_max', 1.50), config.get('odds_range_1_mult', 10), config.get('odds_range_1_min_drop', 1)),
+        (config.get('odds_range_2_min', 1.50), config.get('odds_range_2_max', 2.10), config.get('odds_range_2_mult', 8), config.get('odds_range_2_min_drop', 2)),
+        (config.get('odds_range_3_min', 2.10), config.get('odds_range_3_max', 3.50), config.get('odds_range_3_mult', 5), config.get('odds_range_3_min_drop', 3)),
+        (config.get('odds_range_4_min', 3.50), config.get('odds_range_4_max', 10.00), config.get('odds_range_4_mult', 3), config.get('odds_range_4_min_drop', 5)),
     ]
     default_odds_multiplier = config.get('odds_multiplier', 1)
+    default_min_drop = config.get('min_drop', 1)
     
     share_ranges = [
         (config.get('share_range_1_min', 0), config.get('share_range_1_max', 50), config.get('share_range_1_mult', 1)),
@@ -3082,7 +3083,15 @@ def calculate_selection_halktuzagi(home, away, market, selection, sel_idx, histo
         if amount_change < min_amount_change:
             continue
         
+        prev_odds = parse_float(prev_snap.get(odds_key, '0'))
         curr_odds = parse_float(curr_snap.get(odds_key, '0'))
+        
+        # Oran düşüşü hesapla (Sharp ile aynı mantık)
+        if prev_odds > 0 and curr_odds < prev_odds:
+            drop_pct = ((prev_odds - curr_odds) / prev_odds) * 100
+        else:
+            drop_pct = 0
+        
         prev_share = parse_float(prev_snap.get(share_key, '0').replace('%', ''))
         curr_share = parse_float(curr_snap.get(share_key, '0').replace('%', ''))
         share_diff = curr_share - prev_share
@@ -3094,13 +3103,13 @@ def calculate_selection_halktuzagi(home, away, market, selection, sel_idx, histo
         
         shock_value = min((amount_change / 1000) * volume_multiplier, max_volume_cap)
         
-        prev_odds = parse_float(prev_snap.get(odds_key, '0'))
-        
         odds_mult = None
+        min_drop_threshold = default_min_drop
         odds_in_range = False
-        for r_min, r_max, r_mult in odds_ranges:
+        for r_min, r_max, r_mult, r_min_drop in odds_ranges:
             if r_min <= prev_odds < r_max:
                 odds_mult = r_mult
+                min_drop_threshold = r_min_drop
                 odds_in_range = True
                 break
         
@@ -3108,7 +3117,12 @@ def calculate_selection_halktuzagi(home, away, market, selection, sel_idx, histo
         if not odds_in_range:
             continue
         
-        odds_value = min(odds_mult, max_odds_cap)
+        # Oran düşüşü yoksa veya minimum eşik altındaysa atla
+        if drop_pct < min_drop_threshold:
+            continue
+        
+        # odds_value = düşüş yüzdesi × çarpan (Sharp ile aynı)
+        odds_value = min(drop_pct * odds_mult, max_odds_cap)
         
         share_mult = default_share_multiplier
         for r_min, r_max, r_mult in share_ranges:
