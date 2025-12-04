@@ -4502,6 +4502,7 @@ function formatTimeAgoTR(dateStr) {
 function parseAlarmDateTR(dateStr) {
     if (!dateStr) return null;
     
+    // DD.MM.YYYY HH:MM formatı - zaten TR saati
     if (dateStr.includes('.') && dateStr.includes(' ')) {
         const [datePart, timePart] = dateStr.split(' ');
         const dateParts = datePart.split('.');
@@ -4511,6 +4512,11 @@ function parseAlarmDateTR(dateStr) {
             const isoStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour.padStart(2, '0')}:${min.padStart(2, '0')}:00`;
             return dayjs.tz(isoStr, APP_TIMEZONE);
         }
+    }
+    
+    // ISO format offset'siz (2025-12-03T16:03:07) - scrapedat'tan geliyor ve UTC
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+        return dayjs.utc(dateStr).tz(APP_TIMEZONE);
     }
     
     return toTurkeyTime(dateStr);
@@ -4527,7 +4533,16 @@ function formatTriggerTime(dateStr) {
         }
     }
     
-    // ISO format veya UTC timestamp için Turkey'e dönüştür
+    // ISO format (2025-12-03T16:03:07) - scrapedat'tan geliyor ve UTC
+    // +3 saat ekleyerek Turkey saatine çevir
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+        const dt = dayjs.utc(dateStr).tz(APP_TIMEZONE);
+        if (dt && dt.isValid()) {
+            return dt.format('HH:mm');
+        }
+    }
+    
+    // Diğer formatlar için parseAlarmDateTR kullan
     const dt = parseAlarmDateTR(dateStr);
     if (!dt || !dt.isValid()) return '-';
     return dt.format('HH:mm');
