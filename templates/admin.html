@@ -799,12 +799,19 @@
                                 <span style="color: #22c55e;">✓</span> <span style="color: #e6edf3;">odds_value > 0 (oran dustu)</span>
                             </div>
                             <div style="background: #0d1117; padding: 10px; border-radius: 6px;">
+                                <span style="color: #f97316;">✓</span> <span style="color: #e6edf3;">drop_pct >= min_drop_threshold</span>
+                            </div>
+                            <div style="background: #0d1117; padding: 10px; border-radius: 6px;">
                                 <span style="color: #22c55e;">✓</span> <span style="color: #e6edf3;">share_value > 0 (pay artti)</span>
                             </div>
                             <div style="background: #0d1117; padding: 10px; border-radius: 6px;">
                                 <span style="color: #f0883e;">★</span> <span style="color: #e6edf3;">sharp_score >= min_sharp_score</span>
                             </div>
                         </div>
+                        <p style="color: #8b949e; margin: 10px 0 0 0; font-size: 11px;">
+                            <strong style="color: #f97316;">Min Drop %:</strong> Her oran araliginda farkli minimum oran dususu esigi vardir. 
+                            Ornek: 1.01-1.50 araligi icin %1, 3.50+ icin %5 olabilir.
+                        </p>
                     </div>
 
                     <div style="background: #21262d; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
@@ -967,11 +974,11 @@
                 </div>
                 
                 <div class="info-card">
-                    <h3>📊 Oran Araligi Carpanlari</h3>
-                    <p class="form-hint" style="margin-bottom: 12px; color: #8b949e; font-size: 11px;">Her oran araligi icin farkli carpan. Oran bu aralikta ise o carpan kullanilir.</p>
+                    <h3>📊 Oran Araligi Carpanlari ve Minimum Dusus Esikleri</h3>
+                    <p class="form-hint" style="margin-bottom: 12px; color: #8b949e; font-size: 11px;">Her oran araligi icin farkli carpan ve minimum oran dususu esigi. Oran bu aralikta ise o carpan ve esik kullanilir.</p>
                     
                     <div style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
-                        <label style="color: #58a6ff; font-weight: 600; font-size: 12px;">Aralik 1</label>
+                        <label style="color: #58a6ff; font-weight: 600; font-size: 12px;">Aralik 1 (Kisa Oranlar)</label>
                         <div style="display: flex; gap: 8px; margin-top: 6px;">
                             <div style="flex: 1;">
                                 <label style="font-size: 10px; color: #8b949e;">Min</label>
@@ -985,11 +992,15 @@
                                 <label style="font-size: 10px; color: #8b949e;">Carpan</label>
                                 <input type="number" id="odds_range_1_mult" value="10" step="0.1" class="form-input" style="font-size: 12px;">
                             </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #f97316;">Min Drop %</label>
+                                <input type="number" id="odds_range_1_min_drop" value="1" step="0.1" class="form-input" style="font-size: 12px; border-color: #f97316;">
+                            </div>
                         </div>
                     </div>
                     
                     <div style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
-                        <label style="color: #a78bfa; font-weight: 600; font-size: 12px;">Aralik 2</label>
+                        <label style="color: #a78bfa; font-weight: 600; font-size: 12px;">Aralik 2 (Orta Oranlar)</label>
                         <div style="display: flex; gap: 8px; margin-top: 6px;">
                             <div style="flex: 1;">
                                 <label style="font-size: 10px; color: #8b949e;">Min</label>
@@ -1003,11 +1014,15 @@
                                 <label style="font-size: 10px; color: #8b949e;">Carpan</label>
                                 <input type="number" id="odds_range_2_mult" value="8" step="0.1" class="form-input" style="font-size: 12px;">
                             </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #f97316;">Min Drop %</label>
+                                <input type="number" id="odds_range_2_min_drop" value="2" step="0.1" class="form-input" style="font-size: 12px; border-color: #f97316;">
+                            </div>
                         </div>
                     </div>
                     
                     <div style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
-                        <label style="color: #22c55e; font-weight: 600; font-size: 12px;">Aralik 3</label>
+                        <label style="color: #22c55e; font-weight: 600; font-size: 12px;">Aralik 3 (Yuksek Oranlar)</label>
                         <div style="display: flex; gap: 8px; margin-top: 6px;">
                             <div style="flex: 1;">
                                 <label style="font-size: 10px; color: #8b949e;">Min</label>
@@ -1021,11 +1036,15 @@
                                 <label style="font-size: 10px; color: #8b949e;">Carpan</label>
                                 <input type="number" id="odds_range_3_mult" value="5" step="0.1" class="form-input" style="font-size: 12px;">
                             </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #f97316;">Min Drop %</label>
+                                <input type="number" id="odds_range_3_min_drop" value="3" step="0.1" class="form-input" style="font-size: 12px; border-color: #f97316;">
+                            </div>
                         </div>
                     </div>
                     
                     <div style="background: #161b22; padding: 10px; border-radius: 6px;">
-                        <label style="color: #f97316; font-weight: 600; font-size: 12px;">Aralik 4</label>
+                        <label style="color: #f97316; font-weight: 600; font-size: 12px;">Aralik 4 (Cok Yuksek Oranlar)</label>
                         <div style="display: flex; gap: 8px; margin-top: 6px;">
                             <div style="flex: 1;">
                                 <label style="font-size: 10px; color: #8b949e;">Min</label>
@@ -1039,9 +1058,13 @@
                                 <label style="font-size: 10px; color: #8b949e;">Carpan</label>
                                 <input type="number" id="odds_range_4_mult" value="3" step="0.1" class="form-input" style="font-size: 12px;">
                             </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: #f97316;">Min Drop %</label>
+                                <input type="number" id="odds_range_4_min_drop" value="5" step="0.1" class="form-input" style="font-size: 12px; border-color: #f97316;">
+                            </div>
                         </div>
                     </div>
-                    <p class="form-hint" style="margin-top: 8px; color: #8b949e; font-size: 10px;">Varsayilan carpan aralik disindaki oranlar icin kullanilir.</p>
+                    <p class="form-hint" style="margin-top: 8px; color: #8b949e; font-size: 10px;"><strong style="color: #f97316;">Min Drop %:</strong> Bu oran araliginda minimum oran dususu yuzdelik esigi. Drop bu degerden dusukse alarm tetiklenmez.</p>
                 </div>
 
                 <div class="info-card">
@@ -2236,15 +2259,19 @@
                 odds_range_1_min: parseFloat(document.getElementById('odds_range_1_min').value) || 1.01,
                 odds_range_1_max: parseFloat(document.getElementById('odds_range_1_max').value) || 1.50,
                 odds_range_1_mult: parseFloat(document.getElementById('odds_range_1_mult').value) || 10,
+                odds_range_1_min_drop: parseFloat(document.getElementById('odds_range_1_min_drop').value) || 1,
                 odds_range_2_min: parseFloat(document.getElementById('odds_range_2_min').value) || 1.50,
                 odds_range_2_max: parseFloat(document.getElementById('odds_range_2_max').value) || 2.10,
                 odds_range_2_mult: parseFloat(document.getElementById('odds_range_2_mult').value) || 8,
+                odds_range_2_min_drop: parseFloat(document.getElementById('odds_range_2_min_drop').value) || 2,
                 odds_range_3_min: parseFloat(document.getElementById('odds_range_3_min').value) || 2.10,
                 odds_range_3_max: parseFloat(document.getElementById('odds_range_3_max').value) || 3.50,
                 odds_range_3_mult: parseFloat(document.getElementById('odds_range_3_mult').value) || 5,
+                odds_range_3_min_drop: parseFloat(document.getElementById('odds_range_3_min_drop').value) || 3,
                 odds_range_4_min: parseFloat(document.getElementById('odds_range_4_min').value) || 3.50,
                 odds_range_4_max: parseFloat(document.getElementById('odds_range_4_max').value) || 10.00,
-                odds_range_4_mult: parseFloat(document.getElementById('odds_range_4_mult').value) || 3
+                odds_range_4_mult: parseFloat(document.getElementById('odds_range_4_mult').value) || 3,
+                odds_range_4_min_drop: parseFloat(document.getElementById('odds_range_4_min_drop').value) || 5
             };
         }
 
@@ -2275,15 +2302,19 @@
             document.getElementById('odds_range_1_min').value = config.odds_range_1_min || 1.01;
             document.getElementById('odds_range_1_max').value = config.odds_range_1_max || 1.50;
             document.getElementById('odds_range_1_mult').value = config.odds_range_1_mult || 10;
+            document.getElementById('odds_range_1_min_drop').value = config.odds_range_1_min_drop || 1;
             document.getElementById('odds_range_2_min').value = config.odds_range_2_min || 1.50;
             document.getElementById('odds_range_2_max').value = config.odds_range_2_max || 2.10;
             document.getElementById('odds_range_2_mult').value = config.odds_range_2_mult || 8;
+            document.getElementById('odds_range_2_min_drop').value = config.odds_range_2_min_drop || 2;
             document.getElementById('odds_range_3_min').value = config.odds_range_3_min || 2.10;
             document.getElementById('odds_range_3_max').value = config.odds_range_3_max || 3.50;
             document.getElementById('odds_range_3_mult').value = config.odds_range_3_mult || 5;
+            document.getElementById('odds_range_3_min_drop').value = config.odds_range_3_min_drop || 3;
             document.getElementById('odds_range_4_min').value = config.odds_range_4_min || 3.50;
             document.getElementById('odds_range_4_max').value = config.odds_range_4_max || 10.00;
             document.getElementById('odds_range_4_mult').value = config.odds_range_4_mult || 3;
+            document.getElementById('odds_range_4_min_drop').value = config.odds_range_4_min_drop || 5;
         }
 
         async function saveSharpConfig() {

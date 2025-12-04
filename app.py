@@ -3222,13 +3222,13 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
     min_sharp_score = config.get('min_sharp_score', 10)
     
     odds_ranges = [
-        (config.get('odds_range_1_min', 1.01), config.get('odds_range_1_max', 1.50), config.get('odds_range_1_mult', 10)),
-        (config.get('odds_range_2_min', 1.50), config.get('odds_range_2_max', 2.10), config.get('odds_range_2_mult', 8)),
-        (config.get('odds_range_3_min', 2.10), config.get('odds_range_3_max', 3.50), config.get('odds_range_3_mult', 5)),
-        (config.get('odds_range_4_min', 3.50), config.get('odds_range_4_max', 10.00), config.get('odds_range_4_mult', 3)),
+        (config.get('odds_range_1_min', 1.01), config.get('odds_range_1_max', 1.50), config.get('odds_range_1_mult', 10), config.get('odds_range_1_min_drop', 1)),
+        (config.get('odds_range_2_min', 1.50), config.get('odds_range_2_max', 2.10), config.get('odds_range_2_mult', 8), config.get('odds_range_2_min_drop', 2)),
+        (config.get('odds_range_3_min', 2.10), config.get('odds_range_3_max', 3.50), config.get('odds_range_3_mult', 5), config.get('odds_range_3_min_drop', 3)),
+        (config.get('odds_range_4_min', 3.50), config.get('odds_range_4_max', 10.00), config.get('odds_range_4_mult', 3), config.get('odds_range_4_min_drop', 5)),
     ]
     default_odds_multiplier = config.get('odds_multiplier', 1)
-    
+    default_min_drop = 0
     
     share_ranges = [
         (config.get('share_range_1_min', 0), config.get('share_range_1_max', 50), config.get('share_range_1_mult', 1)),
@@ -3276,9 +3276,11 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
         shock_value = shock_raw * volume_multiplier
         
         odds_multiplier = default_odds_multiplier
-        for range_min, range_max, range_mult in odds_ranges:
+        min_drop_threshold = default_min_drop
+        for range_min, range_max, range_mult, range_min_drop in odds_ranges:
             if range_min <= prev_odds < range_max:
                 odds_multiplier = range_mult
+                min_drop_threshold = range_min_drop
                 break
         
         odds_value = drop_pct * odds_multiplier
@@ -3300,6 +3302,7 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
             curr_share >= min_share_threshold and
             shock_value > 0 and
             odds_value > 0 and
+            drop_pct >= min_drop_threshold and
             share_value > 0 and
             sharp_score >= min_sharp_score
         )
@@ -3318,6 +3321,7 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
                 'prev_odds': prev_odds,
                 'curr_odds': curr_odds,
                 'drop_pct': drop_pct,
+                'min_drop_threshold': min_drop_threshold,
                 'odds_multiplier': odds_multiplier,
                 'odds_value': odds_value,
                 'odds_contrib': odds_contrib,
