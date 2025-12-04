@@ -740,6 +740,25 @@
                         <p style="color: #8b949e; margin: 10px 0 0 0; font-size: 12px;">Maksimum skor: 40 + 35 + 25 = 100 puan</p>
                     </div>
 
+                    <div style="background: #21262d; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid #f0883e;">
+                        <h4 style="color: #f0883e; margin: 0 0 10px 0;">🔄 Hesaplama Akisi (Her Snapshot Cifti Icin)</h4>
+                        <div style="background: #0d1117; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 11px; color: #e6edf3; line-height: 1.8;">
+                            <span style="color: #58a6ff;">1.</span> prev_snap → curr_snap karsilastir<br>
+                            <span style="color: #58a6ff;">2.</span> <strong style="color: #f97316;">curr_snap'taki toplam volume hesapla</strong> (amt1 + amtx + amt2)<br>
+                            <span style="color: #58a6ff;">3.</span> <strong style="color: #f97316;">volume >= min_volume mi?</strong><br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;├── <span style="color: #f87171;">HAYIR</span> → Bu snapshot atlanir, sonrakine gec<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;└── <span style="color: #22c55e;">EVET</span> → Sharp hesaplamasina devam et<br>
+                            <span style="color: #58a6ff;">4.</span> amount_change >= min_amount_change mi?<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;├── <span style="color: #f87171;">HAYIR</span> → Bu snapshot atlanir<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;└── <span style="color: #22c55e;">EVET</span> → Devam et<br>
+                            <span style="color: #58a6ff;">5.</span> Sharp Score hesapla ve tetikleme kosullarini kontrol et
+                        </div>
+                        <p style="color: #8b949e; margin: 10px 0 0 0; font-size: 11px;">
+                            <strong style="color: #f97316;">Onemli:</strong> Volume kontrolu <strong>olay anindaki</strong> (curr_snap) toplam hacme bakar, 
+                            macin son durumuna degil. Erken donemdeki dusuk hacimli hareketler gormezden gelinir.
+                        </p>
+                    </div>
+
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-bottom: 15px;">
                         
                         <div style="background: #21262d; padding: 15px; border-radius: 8px; border-left: 3px solid #58a6ff;">
