@@ -2989,11 +2989,18 @@ def calculate_selection_halktuzagi(home, away, market, selection, sel_idx, histo
         
         prev_odds = parse_float(prev_snap.get(odds_key, '0'))
         
-        odds_mult = default_odds_multiplier
+        odds_mult = None
+        odds_in_range = False
         for r_min, r_max, r_mult in odds_ranges:
             if r_min <= prev_odds < r_max:
                 odds_mult = r_mult
+                odds_in_range = True
                 break
+        
+        # Oran hiçbir aralığa girmiyorsa bu snapshot'ı atla
+        if not odds_in_range:
+            continue
+        
         odds_value = min(odds_mult, max_odds_cap)
         
         share_mult = default_share_multiplier
@@ -3273,13 +3280,19 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, m
         shock_raw = amount_change / avg_prev if avg_prev > 0 else 0
         shock_value = shock_raw * volume_multiplier
         
-        odds_multiplier = default_odds_multiplier
+        odds_multiplier = None
         min_drop_threshold = default_min_drop
+        odds_in_range = False
         for range_min, range_max, range_mult, range_min_drop in odds_ranges:
             if range_min <= prev_odds < range_max:
                 odds_multiplier = range_mult
                 min_drop_threshold = range_min_drop
+                odds_in_range = True
                 break
+        
+        # Oran hiçbir aralığa girmiyorsa bu snapshot'ı atla
+        if not odds_in_range:
+            continue
         
         odds_value = drop_pct * odds_multiplier
         
