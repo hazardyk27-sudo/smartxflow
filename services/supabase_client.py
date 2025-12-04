@@ -486,6 +486,14 @@ class SupabaseClient:
             if not match_first and not match_last:
                 return {}
             
+            # Build full history for each match to find trigger times
+            match_all_history = {}
+            for row in first_rows:
+                key = f"{row.get('home', '')}|{row.get('away', '')}"
+                if key not in match_all_history:
+                    match_all_history[key] = []
+                match_all_history[key].append(row)
+            
             result = {}
             for key in match_last.keys():
                 first_row = match_first.get(key, {})
@@ -493,7 +501,10 @@ class SupabaseClient:
                 
                 home, away = key.split('|', 1) if '|' in key else (key, '')
                 
-                match_data = {'home': home, 'away': away, 'values': {}}
+                # Get all history for this match (ordered by scrapedat asc)
+                full_history = match_all_history.get(key, [])
+                
+                match_data = {'home': home, 'away': away, 'full_history': full_history, 'values': {}}
                 for sel in sels:
                     old_val = self._parse_numeric(first_row.get(sel, ''))
                     new_val = self._parse_numeric(last_row.get(sel, ''))

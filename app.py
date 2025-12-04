@@ -2027,6 +2027,59 @@ def calculate_dropping_alarms_endpoint():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+def find_drop_trigger_time(full_history, odds_key, threshold_pct):
+    """
+    Find when the drop was first detected by scanning history snapshots.
+    Returns the scrapedat of the first snapshot where drop >= threshold.
+    
+    Args:
+        full_history: List of history rows ordered by scrapedat (ascending)
+        odds_key: The odds column name (e.g., 'odds1', 'under', 'oddsyes')
+        threshold_pct: Minimum drop percentage to consider (e.g., 7%)
+    
+    Returns:
+        scrapedat string when drop first detected, or None
+    """
+    if not full_history or len(full_history) < 2:
+        return None
+    
+    # Get opening odds from first snapshot
+    first_row = full_history[0]
+    opening_odds_str = first_row.get(odds_key, '')
+    
+    # Parse opening odds
+    try:
+        if opening_odds_str in (None, '', '-'):
+            return None
+        opening_odds = float(str(opening_odds_str).replace(',', '.').split('\n')[0])
+        if opening_odds <= 0:
+            return None
+    except:
+        return None
+    
+    # Scan through history to find first drop >= threshold
+    for row in full_history[1:]:  # Skip first row (it's the opening)
+        current_odds_str = row.get(odds_key, '')
+        
+        try:
+            if current_odds_str in (None, '', '-'):
+                continue
+            current_odds = float(str(current_odds_str).replace(',', '.').split('\n')[0])
+            if current_odds <= 0:
+                continue
+        except:
+            continue
+        
+        # Calculate drop percentage
+        if current_odds < opening_odds:
+            drop_pct = ((opening_odds - current_odds) / opening_odds) * 100
+            if drop_pct >= threshold_pct:
+                # Found the first snapshot where drop crossed threshold
+                return row.get('scrapedat', '')
+    
+    return None
+
+
 def calculate_dropping_scores(config):
     """
     Calculate Dropping Alert alarms based on opening odds vs current odds drop percentage.
@@ -2042,7 +2095,7 @@ def calculate_dropping_scores(config):
     L3: min_drop_l3%+ drop (e.g., 15%+)
     
     TIMESTAMP PRESERVATION:
-    - created_at: Set ONLY when alarm is first created, never updated afterwards
+    - created_at: Set to the time when drop was FIRST detected (from history scrapedat)
     - event_time: Updated on each recalculation to show latest refresh time
     """
     global dropping_calc_progress
@@ -2201,8 +2254,29 @@ def calculate_dropping_scores(config):
                     alarm_key = f"{match_id}|{market_name}|{selection}"
                     existing_alarm = existing_map.get(alarm_key)
                     
-                    # Use existing created_at if alarm exists, otherwise use current time
-                    alarm_created_at = existing_alarm.get('created_at', created_at) if existing_alarm else created_at
+                    # Find when the drop was first detected by scanning history
+                    full_history = match_data.get('full_history', [])
+                    trigger_scrapedat = find_drop_trigger_time(full_history, odds_key, min_drop_l1)
+                    
+                    # Convert ISO format to Turkey time format (DD.MM.YYYY HH:MM)
+                    actual_event_time = created_at  # fallback
+                    if trigger_scrapedat:
+                        try:
+                            from datetime import datetime
+                            import pytz
+                            # Parse ISO format: 2025-12-04T17:13:01
+                            if 'T' in trigger_scrapedat:
+                                dt = datetime.fromisoformat(trigger_scrapedat.replace('Z', '+00:00'))
+                                turkey_tz = pytz.timezone('Europe/Istanbul')
+                                if dt.tzinfo is None:
+                                    dt = pytz.UTC.localize(dt)
+                                dt_turkey = dt.astimezone(turkey_tz)
+                                actual_event_time = dt_turkey.strftime('%d.%m.%Y %H:%M')
+                        except Exception as e:
+                            print(f"[Dropping] Date parse error: {e}")
+                    
+                    # Use existing created_at if alarm exists, otherwise use actual event time
+                    alarm_created_at = existing_alarm.get('created_at', actual_event_time) if existing_alarm else actual_event_time
                     
                     alarm = {
                         'home': home,
