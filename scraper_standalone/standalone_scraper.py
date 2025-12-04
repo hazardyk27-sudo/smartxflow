@@ -9,9 +9,12 @@ import json
 import re
 import time
 import requests
+import certifi
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from bs4 import BeautifulSoup
+
+SSL_VERIFY = certifi.where()
 
 try:
     import pytz
@@ -157,7 +160,8 @@ class SupabaseWriter:
                 url,
                 headers=headers,
                 json=rows,
-                timeout=30
+                timeout=30,
+                verify=SSL_VERIFY
             )
             
             log(f"    Response: {resp.status_code} - {resp.text[:300] if resp.text else 'no body'}")
@@ -188,7 +192,8 @@ class SupabaseWriter:
                 url,
                 headers=headers,
                 json=rows,
-                timeout=30
+                timeout=30,
+                verify=SSL_VERIFY
             )
             
             log(f"    Response: {resp.status_code} - {resp.text[:300] if resp.text else 'no body'}")
@@ -210,7 +215,8 @@ class SupabaseWriter:
             resp = requests.delete(
                 url,
                 headers=headers,
-                timeout=30
+                timeout=30,
+                verify=SSL_VERIFY
             )
             if resp.status_code not in [200, 204]:
                 log(f"  Delete status: {resp.status_code} - {resp.text[:100]}")
@@ -255,7 +261,7 @@ def _parse_pct_amt_cell(td) -> tuple:
 
 
 def fetch_table(url: str, session: requests.Session) -> BeautifulSoup:
-    resp = session.get(url, headers=HEADERS, timeout=30)
+    resp = session.get(url, headers=HEADERS, timeout=30, verify=SSL_VERIFY)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
     table = soup.select_one("table#matches.table_matches")

@@ -37,7 +37,9 @@ jobs:
       - name: Build Scraper EXE
         run: |
           cd scraper_standalone
-          pyinstaller --onefile --console --name "SmartXFlowAlarmV1.01Scraper" --icon=NONE --add-data "config.json;." standalone_scraper.py
+          python -c "import certifi; print(certifi.where())" > certifi_path.txt
+          set /p CERTIFI_PATH=<certifi_path.txt
+          pyinstaller --onefile --console --name "SmartXFlowAlarmV1.01Scraper" --icon=NONE --add-data "config.json;." --add-data "%CERTIFI_PATH%;certifi" --collect-data certifi standalone_scraper.py
         shell: cmd
 
       - name: Prepare dist folder
