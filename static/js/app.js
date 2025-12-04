@@ -4477,18 +4477,8 @@ function formatTimeAgoTR(dateStr) {
     const alarmDT = parseAlarmDateTR(dateStr);
     if (!alarmDT || !alarmDT.isValid()) return '';
     
-    const now = nowTurkey();
-    const diffMins = now.diff(alarmDT, 'minute');
-    const diffHours = now.diff(alarmDT, 'hour');
-    const diffDays = now.diff(alarmDT, 'day');
-    
-    if (diffMins < 0) return 'Simdi';
-    if (diffMins < 1) return 'Simdi';
-    if (diffMins < 60) return `${diffMins}dk once`;
-    if (diffHours < 24) return `${diffHours}sa once`;
-    if (diffDays < 7) return `${diffDays}g once`;
-    
-    return alarmDT.format('DD.MM');
+    // Gerçek tarih ve saat göster (örn: "04.12 14:35")
+    return alarmDT.format('DD.MM HH:mm');
 }
 
 function parseAlarmDateTR(dateStr) {
