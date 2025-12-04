@@ -974,97 +974,97 @@
                 </div>
                 
                 <div class="info-card">
-                    <h3>📊 Oran Araligi Carpanlari ve Minimum Dusus Esikleri</h3>
-                    <p class="form-hint" style="margin-bottom: 12px; color: #8b949e; font-size: 11px;">Her oran araligi icin farkli carpan ve minimum oran dususu esigi. Oran bu aralikta ise o carpan ve esik kullanilir.</p>
+                    <h3>📊 Oran Araligi Carpanlari ve Min Drop Esikleri</h3>
+                    <p class="form-hint" style="margin-bottom: 12px; color: #8b949e; font-size: 11px;">Her oran araligi icin carpan ve min oran dususu esigi.</p>
                     
                     <div style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
-                        <label style="color: #58a6ff; font-weight: 600; font-size: 12px;">Aralik 1 (Kisa Oranlar)</label>
-                        <div style="display: flex; gap: 8px; margin-top: 6px;">
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Min</label>
-                                <input type="number" id="odds_range_1_min" value="1.01" step="0.01" class="form-input" style="font-size: 12px;">
+                        <label style="color: #58a6ff; font-weight: 600; font-size: 12px;">Aralik 1 (Kisa)</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; margin-top: 6px;">
+                            <div>
+                                <label style="font-size: 9px; color: #8b949e;">Min</label>
+                                <input type="number" id="odds_range_1_min" value="1.01" step="0.01" class="form-input" style="font-size: 11px; padding: 6px;">
                             </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Max</label>
-                                <input type="number" id="odds_range_1_max" value="1.50" step="0.01" class="form-input" style="font-size: 12px;">
+                            <div>
+                                <label style="font-size: 9px; color: #8b949e;">Max</label>
+                                <input type="number" id="odds_range_1_max" value="1.50" step="0.01" class="form-input" style="font-size: 11px; padding: 6px;">
                             </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
-                                <input type="number" id="odds_range_1_mult" value="10" step="0.1" class="form-input" style="font-size: 12px;">
+                            <div>
+                                <label style="font-size: 9px; color: #8b949e;">Carp</label>
+                                <input type="number" id="odds_range_1_mult" value="10" step="0.1" class="form-input" style="font-size: 11px; padding: 6px;">
                             </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #f97316;">Min Drop %</label>
-                                <input type="number" id="odds_range_1_min_drop" value="1" step="0.1" class="form-input" style="font-size: 12px; border-color: #f97316;">
+                            <div>
+                                <label style="font-size: 9px; color: #f97316;">Drop%</label>
+                                <input type="number" id="odds_range_1_min_drop" value="1" step="0.1" class="form-input" style="font-size: 11px; padding: 6px; border-color: #f97316;">
                             </div>
                         </div>
                     </div>
                     
                     <div style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
-                        <label style="color: #a78bfa; font-weight: 600; font-size: 12px;">Aralik 2 (Orta Oranlar)</label>
-                        <div style="display: flex; gap: 8px; margin-top: 6px;">
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Min</label>
-                                <input type="number" id="odds_range_2_min" value="1.50" step="0.01" class="form-input" style="font-size: 12px;">
+                        <label style="color: #a78bfa; font-weight: 600; font-size: 12px;">Aralik 2 (Orta)</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; margin-top: 6px;">
+                            <div>
+                                <label style="font-size: 9px; color: #8b949e;">Min</label>
+                                <input type="number" id="odds_range_2_min" value="1.50" step="0.01" class="form-input" style="font-size: 11px; padding: 6px;">
                             </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Max</label>
-                                <input type="number" id="odds_range_2_max" value="2.10" step="0.01" class="form-input" style="font-size: 12px;">
+                            <div>
+                                <label style="font-size: 9px; color: #8b949e;">Max</label>
+                                <input type="number" id="odds_range_2_max" value="2.10" step="0.01" class="form-input" style="font-size: 11px; padding: 6px;">
                             </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
-                                <input type="number" id="odds_range_2_mult" value="8" step="0.1" class="form-input" style="font-size: 12px;">
+                            <div>
+                                <label style="font-size: 9px; color: #8b949e;">Carp</label>
+                                <input type="number" id="odds_range_2_mult" value="8" step="0.1" class="form-input" style="font-size: 11px; padding: 6px;">
                             </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #f97316;">Min Drop %</label>
-                                <input type="number" id="odds_range_2_min_drop" value="2" step="0.1" class="form-input" style="font-size: 12px; border-color: #f97316;">
+                            <div>
+                                <label style="font-size: 9px; color: #f97316;">Drop%</label>
+                                <input type="number" id="odds_range_2_min_drop" value="2" step="0.1" class="form-input" style="font-size: 11px; padding: 6px; border-color: #f97316;">
                             </div>
                         </div>
                     </div>
                     
                     <div style="background: #161b22; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
-                        <label style="color: #22c55e; font-weight: 600; font-size: 12px;">Aralik 3 (Yuksek Oranlar)</label>
-                        <div style="display: flex; gap: 8px; margin-top: 6px;">
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Min</label>
-                                <input type="number" id="odds_range_3_min" value="2.10" step="0.01" class="form-input" style="font-size: 12px;">
+                        <label style="color: #22c55e; font-weight: 600; font-size: 12px;">Aralik 3 (Yuksek)</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; margin-top: 6px;">
+                            <div>
+                                <label style="font-size: 9px; color: #8b949e;">Min</label>
+                                <input type="number" id="odds_range_3_min" value="2.10" step="0.01" class="form-input" style="font-size: 11px; padding: 6px;">
                             </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Max</label>
-                                <input type="number" id="odds_range_3_max" value="3.50" step="0.01" class="form-input" style="font-size: 12px;">
+                            <div>
+                                <label style="font-size: 9px; color: #8b949e;">Max</label>
+                                <input type="number" id="odds_range_3_max" value="3.50" step="0.01" class="form-input" style="font-size: 11px; padding: 6px;">
                             </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
-                                <input type="number" id="odds_range_3_mult" value="5" step="0.1" class="form-input" style="font-size: 12px;">
+                            <div>
+                                <label style="font-size: 9px; color: #8b949e;">Carp</label>
+                                <input type="number" id="odds_range_3_mult" value="5" step="0.1" class="form-input" style="font-size: 11px; padding: 6px;">
                             </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #f97316;">Min Drop %</label>
-                                <input type="number" id="odds_range_3_min_drop" value="3" step="0.1" class="form-input" style="font-size: 12px; border-color: #f97316;">
+                            <div>
+                                <label style="font-size: 9px; color: #f97316;">Drop%</label>
+                                <input type="number" id="odds_range_3_min_drop" value="3" step="0.1" class="form-input" style="font-size: 11px; padding: 6px; border-color: #f97316;">
                             </div>
                         </div>
                     </div>
                     
                     <div style="background: #161b22; padding: 10px; border-radius: 6px;">
-                        <label style="color: #f97316; font-weight: 600; font-size: 12px;">Aralik 4 (Cok Yuksek Oranlar)</label>
-                        <div style="display: flex; gap: 8px; margin-top: 6px;">
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Min</label>
-                                <input type="number" id="odds_range_4_min" value="3.50" step="0.01" class="form-input" style="font-size: 12px;">
+                        <label style="color: #f97316; font-weight: 600; font-size: 12px;">Aralik 4 (Cok Yuksek)</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; margin-top: 6px;">
+                            <div>
+                                <label style="font-size: 9px; color: #8b949e;">Min</label>
+                                <input type="number" id="odds_range_4_min" value="3.50" step="0.01" class="form-input" style="font-size: 11px; padding: 6px;">
                             </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Max</label>
-                                <input type="number" id="odds_range_4_max" value="10.00" step="0.01" class="form-input" style="font-size: 12px;">
+                            <div>
+                                <label style="font-size: 9px; color: #8b949e;">Max</label>
+                                <input type="number" id="odds_range_4_max" value="10.00" step="0.01" class="form-input" style="font-size: 11px; padding: 6px;">
                             </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #8b949e;">Carpan</label>
-                                <input type="number" id="odds_range_4_mult" value="3" step="0.1" class="form-input" style="font-size: 12px;">
+                            <div>
+                                <label style="font-size: 9px; color: #8b949e;">Carp</label>
+                                <input type="number" id="odds_range_4_mult" value="3" step="0.1" class="form-input" style="font-size: 11px; padding: 6px;">
                             </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 10px; color: #f97316;">Min Drop %</label>
-                                <input type="number" id="odds_range_4_min_drop" value="5" step="0.1" class="form-input" style="font-size: 12px; border-color: #f97316;">
+                            <div>
+                                <label style="font-size: 9px; color: #f97316;">Drop%</label>
+                                <input type="number" id="odds_range_4_min_drop" value="5" step="0.1" class="form-input" style="font-size: 11px; padding: 6px; border-color: #f97316;">
                             </div>
                         </div>
                     </div>
-                    <p class="form-hint" style="margin-top: 8px; color: #8b949e; font-size: 10px;"><strong style="color: #f97316;">Min Drop %:</strong> Bu oran araliginda minimum oran dususu yuzdelik esigi. Drop bu degerden dusukse alarm tetiklenmez.</p>
+                    <p class="form-hint" style="margin-top: 8px; color: #8b949e; font-size: 10px;"><strong style="color: #f97316;">Drop%:</strong> Min oran dususu esigi. Bu degerden dusuk drop varsa alarm tetiklenmez.</p>
                 </div>
 
                 <div class="info-card">
