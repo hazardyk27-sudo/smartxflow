@@ -2703,6 +2703,54 @@
             countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
             container.innerHTML = alarms.map((alarm, idx) => {
                 const details = alarm.calc_details || {};
+                const hasDetails = Object.keys(details).length > 0;
+                
+                // Eğer calc_details yoksa, eski alarmlar için mesaj göster
+                const detailsContent = hasDetails ? `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                        <!-- Hacim Şoku -->
+                        <div style="background: #21262d; padding: 8px; border-radius: 6px;">
+                            <div style="color: #FFD700; font-weight: 600; margin-bottom: 4px;">⚡ Hacim Şoku</div>
+                            <div style="color: #c9d1d9;">Para Girişi: <span style="color: #3fb950;">£${(alarm.amount_change || 0).toLocaleString()}</span></div>
+                            <div style="color: #8b949e;">Çarpan: ×${details.volume_multiplier || 1}</div>
+                            <div style="color: #8b949e;">Max Cap: ${details.max_volume_cap || 40}</div>
+                            <div style="color: #FFD700; margin-top: 4px; font-weight: 600;">= ${(alarm.shock_value || 0).toFixed(2)}</div>
+                        </div>
+                        <!-- Oran Değişimi -->
+                        <div style="background: #21262d; padding: 8px; border-radius: 6px;">
+                            <div style="color: #58a6ff; font-weight: 600; margin-bottom: 4px;">📉 Oran Düşüşü</div>
+                            <div style="color: #c9d1d9;">Oran: <span style="color: #f85149;">${details.prev_odds}</span> → <span style="color: #3fb950;">${alarm.current_odds}</span></div>
+                            <div style="color: #c9d1d9;">Düşüş: <span style="color: #58a6ff;">%${details.drop_pct.toFixed(2)}</span></div>
+                            <div style="color: #8b949e;">Min Düşüş: %${details.min_drop_threshold}</div>
+                            <div style="color: #8b949e;">Çarpan: ×${details.odds_mult}</div>
+                            <div style="color: #58a6ff; margin-top: 4px; font-weight: 600;">= ${(alarm.odds_value || 0).toFixed(2)}</div>
+                        </div>
+                        <!-- Pay Değişimi -->
+                        <div style="background: #21262d; padding: 8px; border-radius: 6px;">
+                            <div style="color: #3fb950; font-weight: 600; margin-bottom: 4px;">📊 Pay Değişimi</div>
+                            <div style="color: #c9d1d9;">Pay: <span style="color: #8b949e;">${details.prev_share}%</span> → <span style="color: #3fb950;">${(alarm.current_share || 0).toFixed(1)}%</span></div>
+                            <div style="color: #c9d1d9;">Artış: <span style="color: #3fb950;">+${details.share_diff.toFixed(2)}%</span></div>
+                            <div style="color: #8b949e;">Çarpan: ×${details.share_mult}</div>
+                            <div style="color: #3fb950; margin-top: 4px; font-weight: 600;">= ${(alarm.share_value || 0).toFixed(2)}</div>
+                        </div>
+                    </div>
+                    <!-- Toplam Skor -->
+                    <div style="margin-top: 12px; padding: 8px; background: linear-gradient(135deg, #FFCC00, #FFD700); border-radius: 6px; text-align: center;">
+                        <span style="color: #000; font-weight: 600; font-size: 12px;">
+                            TOPLAM SKOR = ${(alarm.shock_value || 0).toFixed(1)} + ${(alarm.odds_value || 0).toFixed(1)} + ${(alarm.share_value || 0).toFixed(1)} = <span style="font-size: 14px;">${(alarm.sharp_score || 0).toFixed(1)}</span>
+                        </span>
+                    </div>
+                    <div style="margin-top: 8px; color: #8b949e; font-size: 10px; text-align: center;">
+                        Min Skor Eşiği: ${details.min_sharp_score || 10} | Hacim: £${(alarm.volume || 0).toLocaleString()}
+                    </div>
+                ` : `
+                    <div style="text-align: center; padding: 20px; color: #f0883e;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">⚠️</div>
+                        <div>Bu alarm eski formatta. Detayları görmek için:</div>
+                        <div style="margin-top: 8px;"><strong>"Alarmları Yeniden Hesapla"</strong> butonuna basın.</div>
+                    </div>
+                `;
+                
                 return `
                 <div class="alarm-item" style="border-left: 3px solid #FFD700; cursor: pointer;" onclick="toggleHtCalcDetails(${idx})">
                     <div class="alarm-info" style="flex: 1;">
@@ -2720,42 +2768,7 @@
                         <!-- Hesaplama Detayları -->
                         <div id="htCalcDetails_${idx}" style="display: none; margin-top: 12px; padding: 12px; background: #161b22; border-radius: 8px; font-size: 11px; border: 1px solid #30363d;">
                             <div style="font-weight: 600; color: #f0883e; margin-bottom: 8px; font-size: 12px;">📊 Hesaplama Detayları</div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
-                                <!-- Hacim Şoku -->
-                                <div style="background: #21262d; padding: 8px; border-radius: 6px;">
-                                    <div style="color: #FFD700; font-weight: 600; margin-bottom: 4px;">⚡ Hacim Şoku</div>
-                                    <div style="color: #c9d1d9;">Para Girişi: <span style="color: #3fb950;">£${(alarm.amount_change || 0).toLocaleString()}</span></div>
-                                    <div style="color: #8b949e;">Çarpan: ×${details.volume_multiplier || 1}</div>
-                                    <div style="color: #8b949e;">Max Cap: ${details.max_volume_cap || 40}</div>
-                                    <div style="color: #FFD700; margin-top: 4px; font-weight: 600;">= ${(alarm.shock_value || 0).toFixed(2)}</div>
-                                </div>
-                                <!-- Oran Değişimi -->
-                                <div style="background: #21262d; padding: 8px; border-radius: 6px;">
-                                    <div style="color: #58a6ff; font-weight: 600; margin-bottom: 4px;">📉 Oran Düşüşü</div>
-                                    <div style="color: #c9d1d9;">Oran: <span style="color: #f85149;">${details.prev_odds || '?'}</span> → <span style="color: #3fb950;">${alarm.current_odds || '?'}</span></div>
-                                    <div style="color: #c9d1d9;">Düşüş: <span style="color: #58a6ff;">%${(details.drop_pct || 0).toFixed(2)}</span></div>
-                                    <div style="color: #8b949e;">Min Düşüş: %${details.min_drop_threshold || 1}</div>
-                                    <div style="color: #8b949e;">Çarpan: ×${details.odds_mult || 1}</div>
-                                    <div style="color: #58a6ff; margin-top: 4px; font-weight: 600;">= ${(alarm.odds_value || 0).toFixed(2)}</div>
-                                </div>
-                                <!-- Pay Değişimi -->
-                                <div style="background: #21262d; padding: 8px; border-radius: 6px;">
-                                    <div style="color: #3fb950; font-weight: 600; margin-bottom: 4px;">📊 Pay Değişimi</div>
-                                    <div style="color: #c9d1d9;">Pay: <span style="color: #8b949e;">${details.prev_share || '?'}%</span> → <span style="color: #3fb950;">${(alarm.current_share || 0).toFixed(1)}%</span></div>
-                                    <div style="color: #c9d1d9;">Artış: <span style="color: #3fb950;">+${(details.share_diff || 0).toFixed(2)}%</span></div>
-                                    <div style="color: #8b949e;">Çarpan: ×${details.share_mult || 1}</div>
-                                    <div style="color: #3fb950; margin-top: 4px; font-weight: 600;">= ${(alarm.share_value || 0).toFixed(2)}</div>
-                                </div>
-                            </div>
-                            <!-- Toplam Skor -->
-                            <div style="margin-top: 12px; padding: 8px; background: linear-gradient(135deg, #FFCC00, #FFD700); border-radius: 6px; text-align: center;">
-                                <span style="color: #000; font-weight: 600; font-size: 12px;">
-                                    TOPLAM SKOR = ${(alarm.shock_value || 0).toFixed(1)} + ${(alarm.odds_value || 0).toFixed(1)} + ${(alarm.share_value || 0).toFixed(1)} = <span style="font-size: 14px;">${(alarm.sharp_score || 0).toFixed(1)}</span>
-                                </span>
-                            </div>
-                            <div style="margin-top: 8px; color: #8b949e; font-size: 10px; text-align: center;">
-                                Min Skor Eşiği: ${details.min_sharp_score || 10} | Hacim: £${(alarm.volume || 0).toLocaleString()}
-                            </div>
+                            ${detailsContent}
                         </div>
                     </div>
                     <div class="alarm-score" style="background: linear-gradient(135deg, #FFCC00, #FFD700); color: #000;">${(alarm.sharp_score || 0).toFixed(1)}</div>
