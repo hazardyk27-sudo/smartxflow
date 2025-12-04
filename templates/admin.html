@@ -2096,34 +2096,16 @@
         }
         
         // Dünün maçlarını filtrele - sadece bugün ve gelecek maçları göster
+        // ÖNEMLİ: match_date/fixture_date baz alınır, created_at DEĞİL!
         function isMatchTodayOrFuture(alarm) {
             const matchDateStr = alarm.match_date || alarm.fixture_date || '';
-            const createdAtStr = alarm.created_at || '';
-            const eventTimeStr = alarm.event_time || '';
             
             const now = new Date();
             const currentMonth = now.getMonth();
             const currentDay = now.getDate();
             const currentYear = now.getFullYear();
             
-            // ÖNCE created_at kontrolü - bugün oluşturulmuş alarmları göster
-            if (createdAtStr) {
-                const ddmmyyyyMatch = createdAtStr.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
-                if (ddmmyyyyMatch) {
-                    const [, day, month, year] = ddmmyyyyMatch;
-                    const eventDay = parseInt(day);
-                    const eventMonth = parseInt(month) - 1;
-                    const eventYear = parseInt(year);
-                    
-                    if (eventYear > currentYear) return true;
-                    if (eventYear === currentYear) {
-                        if (eventMonth > currentMonth) return true;
-                        if (eventMonth === currentMonth && eventDay >= currentDay) return true;
-                    }
-                }
-            }
-            
-            // match_date kontrolü (format: "03.Dec 17:30:00")
+            // SADECE match_date kontrolü (format: "03.Dec 17:30:00" veya "04.Dec 15:00:00")
             if (matchDateStr) {
                 const parts = matchDateStr.split(' ')[0];
                 if (parts && parts.includes('.')) {
@@ -2134,32 +2116,17 @@
                     const matchDay = parseInt(dayStr);
                     
                     if (matchMonth !== undefined && !isNaN(matchDay)) {
+                        // Bugün veya gelecek tarihse göster
                         if (matchMonth > currentMonth) return true;
                         if (matchMonth === currentMonth && matchDay >= currentDay) return true;
+                        // Yıl geçişi durumu (Aralık -> Ocak)
                         if (matchMonth < currentMonth && currentMonth >= 10 && matchMonth <= 2) return true;
                         return false;
                     }
                 }
             }
             
-            // ISO format event_time kontrolü
-            if (eventTimeStr) {
-                const isoMatch = eventTimeStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
-                if (isoMatch) {
-                    const [, year, month, day] = isoMatch;
-                    const eventDay = parseInt(day);
-                    const eventMonth = parseInt(month) - 1;
-                    const eventYear = parseInt(year);
-                    
-                    if (eventYear > currentYear) return true;
-                    if (eventYear === currentYear) {
-                        if (eventMonth > currentMonth) return true;
-                        if (eventMonth === currentMonth && eventDay >= currentDay) return true;
-                    }
-                    return false;
-                }
-            }
-            
+            // match_date yoksa gösterme (eski/geçersiz alarm)
             return false;
         }
         
