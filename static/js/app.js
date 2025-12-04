@@ -3724,12 +3724,15 @@ function renderAlertBand() {
         // Maç sayfasına yönlendirme için match_key oluştur
         const matchKey = `${home}_vs_${away}`.replace(/\s+/g, '_');
         
+        const alarmType = alarm._type || '';
+        const alarmMarket = (alarm.market || '').replace(/'/g, "\\'");
+        
         // Volume Leader için özel format: OLD_LEADER > NEW_LEADER
         if (alarm._type === 'volumeleader') {
             const oldLeader = alarm.old_leader || alarm.previous_leader || '?';
             const newLeader = alarm.new_leader || alarm.selection || '?';
             return `
-                <div class="ab-pill ${info.pillClass}" onclick="goToMatchPage('${matchKey}')" style="cursor: pointer;">
+                <div class="ab-pill ${info.pillClass}" onclick="goToMatchPage('${matchKey}', '${alarmType}', '${alarmMarket}')" style="cursor: pointer;">
                     <span class="ab-dot dot-${info.pillClass}"></span>
                     <span class="ab-type">${info.label}</span>
                     <span class="ab-sep">—</span>
@@ -3741,7 +3744,7 @@ function renderAlertBand() {
         }
         
         return `
-            <div class="ab-pill ${info.pillClass}" onclick="goToMatchPage('${matchKey}')" style="cursor: pointer;">
+            <div class="ab-pill ${info.pillClass}" onclick="goToMatchPage('${matchKey}', '${alarmType}', '${alarmMarket}')" style="cursor: pointer;">
                 <span class="ab-dot dot-${info.pillClass}"></span>
                 <span class="ab-type">${info.label}</span>
                 <span class="ab-sep">—</span>
@@ -4704,13 +4707,13 @@ function formatTriggerTimeShort(dateStr) {
     return dt.format('DD.MM HH:mm');
 }
 
-function goToMatchPage(matchKey) {
+function goToMatchPage(matchKey, alarmType, alarmMarket) {
     // matchKey format: "Home_vs_Away"
     const parts = matchKey.split('_vs_');
     if (parts.length === 2) {
         const home = parts[0].replace(/_/g, ' ');
         const away = parts[1].replace(/_/g, ' ');
-        goToMatchFromAlarm(home, away);
+        goToMatchFromAlarm(home, away, alarmType, alarmMarket);
     }
 }
 
@@ -4774,36 +4777,36 @@ function goToMatchFromAlarm(homeTeam, awayTeam, alarmType, alarmMarket) {
     if (foundIndex >= 0) {
         openMatchModal(foundIndex);
     } else {
-        if (alarmMarket) {
-            let guessMarket = 'moneyway_1x2';
-            if (marketLower.includes('btts') || marketLower.includes('gg')) {
-                guessMarket = 'moneyway_btts';
-            } else if (marketLower.includes('ou') || marketLower.includes('2.5') || marketLower.includes('over') || marketLower.includes('under')) {
-                guessMarket = 'moneyway_ou25';
-            }
-            switchMarketAndFindMatch(guessMarket, homeLower, awayLower, homeTeam, awayTeam);
-            return;
-        }
-        
-        const tbody = document.getElementById('matchesTableBody');
-        if (tbody) {
-            const rows = tbody.querySelectorAll('tr[onclick*="openMatchModal"]');
-            for (let row of rows) {
-                const text = row.textContent.toLowerCase();
-                if (text.includes(homeLower) && text.includes(awayLower)) {
-                    const onclickAttr = row.getAttribute('onclick');
-                    const indexMatch = onclickAttr?.match(/openMatchModal\((\d+)\)/);
-                    if (indexMatch) {
-                        openMatchModal(parseInt(indexMatch[1]));
-                        return;
-                    }
+        tryFindMatchInAllMarkets(homeLower, awayLower, homeTeam, awayTeam);
+    }
+}
+
+async function tryFindMatchInAllMarkets(homeLower, awayLower, homeTeam, awayTeam) {
+    const marketsToTry = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts', 'dropping_1x2', 'dropping_ou25', 'dropping_btts'];
+    
+    for (const market of marketsToTry) {
+        const marketTab = document.querySelector(`[data-market="${market}"]`);
+        if (marketTab) {
+            marketTab.click();
+            await new Promise(resolve => setTimeout(resolve, 1200));
+            
+            const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
+            for (let i = 0; i < dataSource.length; i++) {
+                const m = dataSource[i];
+                const mHome = (m.home_team || m.Home || '').toLowerCase().trim();
+                const mAway = (m.away_team || m.Away || '').toLowerCase().trim();
+                
+                if ((mHome.includes(homeLower) || homeLower.includes(mHome)) &&
+                    (mAway.includes(awayLower) || awayLower.includes(mAway))) {
+                    openMatchModal(i);
+                    return;
                 }
             }
         }
-        
-        console.log('Mac bulunamadi:', homeTeam, 'vs', awayTeam);
-        showToast(`Maç henüz veritabanında yok. Alarm detayları kartta mevcut.`, 'info');
     }
+    
+    console.log('Mac bulunamadi:', homeTeam, 'vs', awayTeam);
+    showToast(`Maç tüm marketlerde bulunamadı. Alarm detayları kartta mevcut.`, 'info');
 }
 
 async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, homeTeam, awayTeam) {
