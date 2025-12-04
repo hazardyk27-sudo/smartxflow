@@ -121,7 +121,13 @@ function toTurkeyTime(raw) {
             return dayjs.tz(str, APP_TIMEZONE);
         }
         
-        // 8) Fallback: direkt TR'de yorumla (bilinmeyen format)
+        // 8) HH:MM or HH:MM:SS only (no date) - bugünün tarihi ile birleştir
+        if (/^\d{2}:\d{2}(:\d{2})?$/.test(str)) {
+            const today = dayjs().tz(APP_TIMEZONE).format('YYYY-MM-DD');
+            return dayjs.tz(`${today}T${str}`, APP_TIMEZONE);
+        }
+        
+        // 9) Fallback: direkt TR'de yorumla (bilinmeyen format)
         const parsed = dayjs(str);
         if (parsed.isValid()) {
             return parsed.tz(APP_TIMEZONE);
@@ -129,7 +135,7 @@ function toTurkeyTime(raw) {
         
         return dayjs.tz(str, APP_TIMEZONE);
     } catch (e) {
-        console.warn('[toTurkeyTime] Parse error:', raw, e);
+        // Sessiz hata - gereksiz console spam önle
         return dayjs().tz(APP_TIMEZONE);
     }
 }
@@ -3280,6 +3286,22 @@ function attachTrendTooltipListeners() {
 // ============================================
 
 let alertBandData = [];
+let alertBandRenderTimeout = null;
+let lastAlertBandHash = '';
+
+function scheduleAlertBandRender() {
+    if (alertBandRenderTimeout) {
+        clearTimeout(alertBandRenderTimeout);
+    }
+    alertBandRenderTimeout = setTimeout(() => {
+        const newHash = JSON.stringify(alertBandData.slice(0, 10).map(a => a.home + a._type + (a.event_time || '')));
+        if (newHash !== lastAlertBandHash) {
+            lastAlertBandHash = newHash;
+            renderAlertBand();
+        }
+        updateAlertBandBadge();
+    }, 100);
+}
 
 // Alarm zamanını parse et (format: "DD.MM.YYYY HH:MM")
 function parseAlarmTime(timeStr) {
@@ -3480,8 +3502,7 @@ async function loadAlertBand() {
             type: a._type
         })));
         
-        renderAlertBand();
-        updateAlertBandBadge();
+        scheduleAlertBandRender();
     } catch (e) {
         console.error('[AlertBand] Load error:', e);
     }
