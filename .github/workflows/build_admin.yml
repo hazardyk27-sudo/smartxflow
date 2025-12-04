@@ -5,7 +5,13 @@ on:
     branches: [ main ]
     paths:
       - 'scraper_standalone/**'
+      - '.github/workflows/build_admin.yml'
   workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Debug mode'
+        required: false
+        default: 'false'
 
 jobs:
   build:
