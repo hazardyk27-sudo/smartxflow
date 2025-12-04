@@ -38,6 +38,16 @@ def generate_match_id(home, away, league, date=''):
     key = f"{home}|{away}|{league}|{date}" if date else f"{home}|{away}|{league}"
     return hashlib.md5(key.encode()).hexdigest()[:12]
 
+def parse_created_at_for_sort(created_at_str):
+    """Parse created_at string (DD.MM.YYYY HH:MM) to datetime for sorting.
+    Returns a very old date if parsing fails (to put invalid entries at end)."""
+    try:
+        if not created_at_str:
+            return datetime(1970, 1, 1)
+        return datetime.strptime(created_at_str, '%d.%m.%Y %H:%M')
+    except:
+        return datetime(1970, 1, 1)
+
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 app.secret_key = os.environ.get('SESSION_SECRET', 'smartxflow-secret-key')
 
@@ -1879,8 +1889,8 @@ def calculate_big_money_scores(config):
             traceback.print_exc()
             continue
     
-    # Huge Money önce, sonra Big Money (en yüksek incoming'e göre sırala)
-    alarms.sort(key=lambda x: (not x['is_huge'], -x['incoming_money']))
+    # Tetiklenme zamanına göre sırala (en yeni en üstte)
+    alarms.sort(key=lambda x: parse_created_at_for_sort(x.get('created_at', '')), reverse=True)
     
     print(f"[BigMoney] Total alarms found: {len(alarms)}")
     return alarms
@@ -2309,7 +2319,8 @@ def calculate_dropping_scores(config):
             traceback.print_exc()
             continue
     
-    alarms.sort(key=lambda x: (-{'L3': 3, 'L2': 2, 'L1': 1}.get(x['level'], 0), -x['drop_pct']))
+    # Tetiklenme zamanına göre sırala (en yeni en üstte)
+    alarms.sort(key=lambda x: parse_created_at_for_sort(x.get('created_at', '')), reverse=True)
     
     print(f"[Dropping] Total alarms found: {len(alarms)}")
     return alarms
@@ -2691,8 +2702,8 @@ def calculate_volume_shock_scores(config):
             traceback.print_exc()
             continue
     
-    # En yüksek şoka göre sırala
-    alarms.sort(key=lambda x: -x['volume_shock_value'])
+    # Tetiklenme zamanına göre sırala (en yeni en üstte)
+    alarms.sort(key=lambda x: parse_created_at_for_sort(x.get('created_at', '')), reverse=True)
     
     print(f"[VolumeShock] Total alarms found: {len(alarms)}")
     return alarms
@@ -3000,7 +3011,8 @@ def calculate_halktuzagi_scores(config):
     
     print(f"[HalkTuzagi] Total candidates: {len(all_candidates)}, Triggered alarms: {len(alarms)}")
     
-    alarms.sort(key=lambda x: x.get('sharp_score', 0), reverse=True)
+    # Tetiklenme zamanına göre sırala (en yeni en üstte)
+    alarms.sort(key=lambda x: parse_created_at_for_sort(x.get('created_at', '')), reverse=True)
     return alarms
 
 
@@ -3276,7 +3288,8 @@ def calculate_sharp_scores(config):
             print(f"  {c.get('home')} vs {c.get('away')} [{c.get('selection')}]: score={c.get('sharp_score', 0):.2f}, triggered={c.get('triggered')}")
             print(f"    shock={c.get('shock_value', 0):.2f}, odds={c.get('odds_value', 0):.2f}, share={c.get('share_value', 0):.2f}")
     
-    alarms.sort(key=lambda x: x.get('sharp_score', 0), reverse=True)
+    # Tetiklenme zamanına göre sırala (en yeni en üstte)
+    alarms.sort(key=lambda x: parse_created_at_for_sort(x.get('created_at', '')), reverse=True)
     return alarms
 
 
