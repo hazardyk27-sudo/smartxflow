@@ -2095,6 +2095,74 @@
             return now.toISOString().substring(0, 10);
         }
         
+        // Dünün maçlarını filtrele - sadece bugün ve gelecek maçları göster
+        function isMatchTodayOrFuture(alarm) {
+            const matchDateStr = alarm.match_date || alarm.fixture_date || '';
+            const createdAtStr = alarm.created_at || '';
+            const eventTimeStr = alarm.event_time || '';
+            
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentDay = now.getDate();
+            const currentYear = now.getFullYear();
+            
+            // ÖNCE created_at kontrolü - bugün oluşturulmuş alarmları göster
+            if (createdAtStr) {
+                const ddmmyyyyMatch = createdAtStr.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+                if (ddmmyyyyMatch) {
+                    const [, day, month, year] = ddmmyyyyMatch;
+                    const eventDay = parseInt(day);
+                    const eventMonth = parseInt(month) - 1;
+                    const eventYear = parseInt(year);
+                    
+                    if (eventYear > currentYear) return true;
+                    if (eventYear === currentYear) {
+                        if (eventMonth > currentMonth) return true;
+                        if (eventMonth === currentMonth && eventDay >= currentDay) return true;
+                    }
+                }
+            }
+            
+            // match_date kontrolü (format: "03.Dec 17:30:00")
+            if (matchDateStr) {
+                const parts = matchDateStr.split(' ')[0];
+                if (parts && parts.includes('.')) {
+                    const [dayStr, monthStr] = parts.split('.');
+                    const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
+                                      'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
+                    const matchMonth = monthMap[monthStr];
+                    const matchDay = parseInt(dayStr);
+                    
+                    if (matchMonth !== undefined && !isNaN(matchDay)) {
+                        if (matchMonth > currentMonth) return true;
+                        if (matchMonth === currentMonth && matchDay >= currentDay) return true;
+                        if (matchMonth < currentMonth && currentMonth >= 10 && matchMonth <= 2) return true;
+                        return false;
+                    }
+                }
+            }
+            
+            // ISO format event_time kontrolü
+            if (eventTimeStr) {
+                const isoMatch = eventTimeStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                if (isoMatch) {
+                    const [, year, month, day] = isoMatch;
+                    const eventDay = parseInt(day);
+                    const eventMonth = parseInt(month) - 1;
+                    const eventYear = parseInt(year);
+                    
+                    if (eventYear > currentYear) return true;
+                    if (eventYear === currentYear) {
+                        if (eventMonth > currentMonth) return true;
+                        if (eventMonth === currentMonth && eventDay >= currentDay) return true;
+                    }
+                    return false;
+                }
+            }
+            
+            return false;
+        }
+        
         const dateFilterModes = {};
         
         function setDateFilter(alarmType, mode) {
@@ -2511,9 +2579,10 @@
                 const response = await fetch('/api/sharp/alarms');
                 if (response.ok) {
                     const alarms = await response.json();
-                    allAlarms = alarms;
-                    updateTotalCount('alarmTotalCount', alarms.length);
-                    renderSharpAlarms(alarms);
+                    // Dünün maçlarını filtrele - sadece bugün ve gelecek
+                    allAlarms = alarms.filter(isMatchTodayOrFuture);
+                    updateTotalCount('alarmTotalCount', allAlarms.length);
+                    renderSharpAlarms(allAlarms);
                 }
             } catch (error) {
                 console.error('Sharp alarm yukleme hatasi:', error);
@@ -2638,9 +2707,10 @@
                 const response = await fetch('/api/halktuzagi/alarms');
                 if (response.ok) {
                     const alarms = await response.json();
-                    allHalkTuzagiAlarms = alarms;
-                    updateTotalCount('htAlarmTotalCount', alarms.length);
-                    renderHalkTuzagiAlarms(alarms);
+                    // Dünün maçlarını filtrele - sadece bugün ve gelecek
+                    allHalkTuzagiAlarms = alarms.filter(isMatchTodayOrFuture);
+                    updateTotalCount('htAlarmTotalCount', allHalkTuzagiAlarms.length);
+                    renderHalkTuzagiAlarms(allHalkTuzagiAlarms);
                 }
             } catch (error) {
                 console.error('HalkTuzagi alarm yukleme hatasi:', error);
@@ -2834,9 +2904,10 @@
                 const response = await fetch('/api/insider/alarms');
                 if (response.ok) {
                     const alarms = await response.json();
-                    allInsiderAlarms = alarms;
-                    updateTotalCount('insiderAlarmTotalCount', alarms.length);
-                    renderInsiderAlarms(alarms);
+                    // Dünün maçlarını filtrele - sadece bugün ve gelecek
+                    allInsiderAlarms = alarms.filter(isMatchTodayOrFuture);
+                    updateTotalCount('insiderAlarmTotalCount', allInsiderAlarms.length);
+                    renderInsiderAlarms(allInsiderAlarms);
                 }
             } catch (error) {
                 console.error('Insider alarm yukleme hatasi:', error);
@@ -3153,9 +3224,10 @@
                 const response = await fetch('/api/bigmoney/alarms');
                 if (response.ok) {
                     const alarms = await response.json();
-                    allBigMoneyAlarms = alarms;
-                    updateTotalCount('bigMoneyAlarmTotalCount', alarms.length);
-                    renderBigMoneyAlarms(alarms);
+                    // Dünün maçlarını filtrele - sadece bugün ve gelecek
+                    allBigMoneyAlarms = alarms.filter(isMatchTodayOrFuture);
+                    updateTotalCount('bigMoneyAlarmTotalCount', allBigMoneyAlarms.length);
+                    renderBigMoneyAlarms(allBigMoneyAlarms);
                 }
             } catch (error) {
                 console.error('Big Money alarm yukleme hatasi:', error);
@@ -3289,9 +3361,10 @@
             try {
                 const response = await fetch('/api/volumeshock/alarms');
                 const alarms = await response.json();
-                allVolumeShockAlarms = alarms;
-                updateTotalCount('volumeShockAlarmTotalCount', alarms.length);
-                renderVolumeShockAlarms(alarms);
+                // Dünün maçlarını filtrele - sadece bugün ve gelecek
+                allVolumeShockAlarms = alarms.filter(isMatchTodayOrFuture);
+                updateTotalCount('volumeShockAlarmTotalCount', allVolumeShockAlarms.length);
+                renderVolumeShockAlarms(allVolumeShockAlarms);
             } catch (error) {
                 console.error('Volume Shock alarms load error:', error);
             }
@@ -3554,9 +3627,10 @@
             try {
                 const response = await fetch('/api/volumeleader/alarms');
                 const alarms = await response.json();
-                allVolumeLeaderAlarms = alarms;
-                updateTotalCount('volumeLeaderAlarmTotalCount', alarms.length);
-                renderVolumeLeaderAlarms(alarms);
+                // Dünün maçlarını filtrele - sadece bugün ve gelecek
+                allVolumeLeaderAlarms = alarms.filter(isMatchTodayOrFuture);
+                updateTotalCount('volumeLeaderAlarmTotalCount', allVolumeLeaderAlarms.length);
+                renderVolumeLeaderAlarms(allVolumeLeaderAlarms);
             } catch (error) {
                 console.error('Volume Leader alarms load error:', error);
             }
@@ -3861,9 +3935,10 @@
                 const response = await fetch('/api/dropping/alarms');
                 if (response.ok) {
                     const alarms = await response.json();
-                    allDroppingAlarms = alarms;
-                    updateTotalCount('droppingAlarmTotalCount', alarms.length);
-                    renderDroppingAlarms(alarms);
+                    // Dünün maçlarını filtrele - sadece bugün ve gelecek
+                    allDroppingAlarms = alarms.filter(isMatchTodayOrFuture);
+                    updateTotalCount('droppingAlarmTotalCount', allDroppingAlarms.length);
+                    renderDroppingAlarms(allDroppingAlarms);
                 }
             } catch (error) {
                 console.error('Dropping alarm yukleme hatasi:', error);
