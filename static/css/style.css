@@ -4034,13 +4034,14 @@ td.volume,
     color: #6e7681;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
 
 .alarms-sidebar-field select {
     width: calc(100% + 10px);
     min-width: 130px;
-    padding: 8px 12px;
+    padding: 6px 12px;
+    height: 32px;
     background: #21262d;
     border: 1px solid #30363d;
     border-radius: 6px;
@@ -4048,7 +4049,7 @@ td.volume,
     font-size: 13px;
     cursor: pointer;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2' opacity='0.9'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 10px center;
     padding-right: 30px;
@@ -4077,7 +4078,8 @@ td.volume,
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
+    padding: 6px 12px;
+    height: 32px;
     background: #21262d;
     border: 1px solid #30363d;
     border-radius: 6px;
@@ -4101,6 +4103,7 @@ td.volume,
 .dropdown-chevron {
     margin-left: auto;
     color: #8b949e;
+    opacity: 0.9;
     transition: transform 0.2s ease;
 }
 
@@ -4173,16 +4176,16 @@ td.volume,
 }
 
 .filter-dot {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     flex-shrink: 0;
     opacity: 0.85;
 }
 
 .filter-dot-neutral {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     flex-shrink: 0;
     background: #6e7681;
@@ -4203,8 +4206,8 @@ td.volume,
 
 .filter-dot-display {
     display: none;
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     flex-shrink: 0;
 }
@@ -4240,7 +4243,7 @@ td.volume,
 }
 
 .alarms-sidebar-search input::placeholder {
-    color: #6e7681;
+    color: #9aa5b1;
 }
 
 .alarms-sidebar-search input:focus {
