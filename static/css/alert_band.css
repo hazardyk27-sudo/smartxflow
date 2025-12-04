@@ -281,6 +281,21 @@
     box-shadow: 0 0 6px rgba(255, 204, 0, 0.6);
 }
 
+.dot-volumeleader {
+    background-color: #06b6d4;
+    box-shadow: 0 0 6px rgba(6, 182, 212, 0.6);
+}
+
+/* Volume Leader Changed - Turkuaz/Cyan */
+.ab-pill.volumeleader {
+    background: linear-gradient(90deg, rgba(6, 182, 212, 0.15), transparent);
+    border: 1px solid rgba(6, 182, 212, 0.45);
+}
+.ab-pill.volumeleader:hover {
+    background: rgba(6, 182, 212, 0.2);
+    border-color: rgba(6, 182, 212, 0.7);
+}
+
 /* Separator - Compact trading style */
 .ab-sep {
     color: #6E7681;
@@ -310,6 +325,7 @@
 .ab-pill.dropping-l2 .ab-type,
 .ab-pill.dropping-l3 .ab-type { color: #f85149; }
 .ab-pill.publictrap .ab-type { color: #FFCC00; }
+.ab-pill.volumeleader .ab-type { color: #06b6d4; }
 
 /* Match Name - Truncate for long names */
 .ab-match {

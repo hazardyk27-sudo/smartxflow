@@ -3629,6 +3629,8 @@ function renderAlertBand() {
             value = `▼ ${(alarm.drop_pct || 0).toFixed(1)}%`;
         } else if (alarm._type === 'publictrap') {
             value = `${(alarm.trap_score || alarm.sharp_score || 0).toFixed(0)}`;
+        } else if (alarm._type === 'volumeleader') {
+            value = `%${(alarm.new_leader_share || 0).toFixed(0)}`;
         }
         
         // Maç sayfasına yönlendirme için match_key oluştur
