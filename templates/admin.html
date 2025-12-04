@@ -2547,7 +2547,7 @@
                 if (response.ok) {
                     const alarms = await response.json();
                     // Dünün maçlarını filtrele - sadece bugün ve gelecek
-                    allAlarms = alarms.filter(isMatchTodayOrFuture);
+                    allAlarms = alarms;
                     updateTotalCount('alarmTotalCount', allAlarms.length);
                     renderSharpAlarms(allAlarms);
                 }
@@ -2675,7 +2675,7 @@
                 if (response.ok) {
                     const alarms = await response.json();
                     // Dünün maçlarını filtrele - sadece bugün ve gelecek
-                    allHalkTuzagiAlarms = alarms.filter(isMatchTodayOrFuture);
+                    allHalkTuzagiAlarms = alarms;
                     updateTotalCount('htAlarmTotalCount', allHalkTuzagiAlarms.length);
                     renderHalkTuzagiAlarms(allHalkTuzagiAlarms);
                 }
@@ -2872,7 +2872,7 @@
                 if (response.ok) {
                     const alarms = await response.json();
                     // Dünün maçlarını filtrele - sadece bugün ve gelecek
-                    allInsiderAlarms = alarms.filter(isMatchTodayOrFuture);
+                    allInsiderAlarms = alarms;
                     updateTotalCount('insiderAlarmTotalCount', allInsiderAlarms.length);
                     renderInsiderAlarms(allInsiderAlarms);
                 }
@@ -3192,7 +3192,7 @@
                 if (response.ok) {
                     const alarms = await response.json();
                     // Dünün maçlarını filtrele - sadece bugün ve gelecek
-                    allBigMoneyAlarms = alarms.filter(isMatchTodayOrFuture);
+                    allBigMoneyAlarms = alarms;
                     updateTotalCount('bigMoneyAlarmTotalCount', allBigMoneyAlarms.length);
                     renderBigMoneyAlarms(allBigMoneyAlarms);
                 }
@@ -3329,7 +3329,7 @@
                 const response = await fetch('/api/volumeshock/alarms');
                 const alarms = await response.json();
                 // Dünün maçlarını filtrele - sadece bugün ve gelecek
-                allVolumeShockAlarms = alarms.filter(isMatchTodayOrFuture);
+                allVolumeShockAlarms = alarms;
                 updateTotalCount('volumeShockAlarmTotalCount', allVolumeShockAlarms.length);
                 renderVolumeShockAlarms(allVolumeShockAlarms);
             } catch (error) {
@@ -3595,7 +3595,7 @@
                 const response = await fetch('/api/volumeleader/alarms');
                 const alarms = await response.json();
                 // Dünün maçlarını filtrele - sadece bugün ve gelecek
-                allVolumeLeaderAlarms = alarms.filter(isMatchTodayOrFuture);
+                allVolumeLeaderAlarms = alarms;
                 updateTotalCount('volumeLeaderAlarmTotalCount', allVolumeLeaderAlarms.length);
                 renderVolumeLeaderAlarms(allVolumeLeaderAlarms);
             } catch (error) {
@@ -3903,7 +3903,7 @@
                 if (response.ok) {
                     const alarms = await response.json();
                     // Dünün maçlarını filtrele - sadece bugün ve gelecek
-                    allDroppingAlarms = alarms.filter(isMatchTodayOrFuture);
+                    allDroppingAlarms = alarms;
                     updateTotalCount('droppingAlarmTotalCount', allDroppingAlarms.length);
                     renderDroppingAlarms(allDroppingAlarms);
                 }
