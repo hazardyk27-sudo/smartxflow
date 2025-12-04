@@ -3150,7 +3150,21 @@ def calculate_selection_halktuzagi(home, away, market, selection, sel_idx, histo
                 'current_share': curr_share,
                 'volume': volume,
                 'triggered': sharp_score >= min_sharp_score,
-                'event_time': now_turkey_iso()
+                'event_time': now_turkey_iso(),
+                'calc_details': {
+                    'prev_odds': round(prev_odds, 2),
+                    'drop_pct': round(drop_pct, 2),
+                    'odds_mult': odds_mult,
+                    'min_drop_threshold': min_drop_threshold,
+                    'prev_share': round(prev_share, 2),
+                    'share_diff': round(share_diff, 2),
+                    'share_mult': share_mult,
+                    'volume_multiplier': volume_multiplier,
+                    'max_volume_cap': max_volume_cap,
+                    'max_odds_cap': max_odds_cap,
+                    'max_share_cap': max_share_cap,
+                    'min_sharp_score': min_sharp_score
+                }
             }
     
     return best_candidate
