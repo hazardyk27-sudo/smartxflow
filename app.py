@@ -3141,13 +3141,6 @@ def calculate_sharp_scores(config):
                         print(f"[Sharp] Date parse error for {home} vs {away}: {match_date_str} - {e}")
                         # Parse hatası varsa devam et
                 
-                latest = match.get('latest', {})
-                volume_str = latest.get('Volume', match.get('volume', match.get('Volume', '0')))
-                volume = parse_volume(volume_str)
-                
-                if volume < min_volume:
-                    continue
-                
                 history = supabase.get_match_history_for_sharp(home, away, history_table)
                 
                 if len(history) < 2:
@@ -3158,7 +3151,7 @@ def calculate_sharp_scores(config):
                 for sel_idx, selection in enumerate(selections):
                     alarm = calculate_selection_sharp(
                         home, away, market, selection, sel_idx,
-                        history, volume, config, match_date_str
+                        history, min_volume, config, match_date_str
                     )
                     if alarm:
                         all_candidates.append(alarm)
@@ -3185,7 +3178,7 @@ def calculate_sharp_scores(config):
     return alarms
 
 
-def calculate_selection_sharp(home, away, market, selection, sel_idx, history, volume, config, match_date_str=''):
+def calculate_selection_sharp(home, away, market, selection, sel_idx, history, min_volume, config, match_date_str=''):
     """Calculate Sharp score for a single selection"""
     if len(history) < 2:
         return None
@@ -3244,6 +3237,11 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
     for i in range(1, len(history)):
         prev_snap = history[i-1]
         curr_snap = history[i]
+        
+        # OLAY ANINDAKI toplam volume kontrolü (curr_snap'taki tüm seçimlerin toplamı)
+        curr_total_volume = sum(parse_volume(curr_snap.get(k, '0')) for k in amount_keys)
+        if curr_total_volume < min_volume:
+            continue  # Bu snapshot'taki volume yetersiz, atla
         
         prev_amt = parse_volume(prev_snap.get(amount_key, '0'))
         curr_amt = parse_volume(curr_snap.get(amount_key, '0'))
@@ -3313,6 +3311,7 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, v
                 'snap_index': i,
                 'prev_snap': prev_snap,
                 'curr_snap': curr_snap,
+                'event_volume': curr_total_volume,
                 'amount_change': amount_change,
                 'avg_prev': avg_prev,
                 'shock_raw': shock_raw,
