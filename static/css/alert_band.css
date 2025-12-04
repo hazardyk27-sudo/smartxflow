@@ -327,6 +327,17 @@
 .ab-pill.publictrap .ab-type { color: #FFCC00; }
 .ab-pill.volumeleader .ab-type { color: #06b6d4; }
 
+/* Volume Leader Change Arrow */
+.ab-leader-change {
+    font-size: 12px;
+    font-weight: 600;
+    color: #e6edf3;
+    margin-left: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
 /* Match Name - Truncate for long names */
 .ab-match {
     font-size: 12px;

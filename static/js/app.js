@@ -3636,6 +3636,20 @@ function renderAlertBand() {
         // Maç sayfasına yönlendirme için match_key oluştur
         const matchKey = `${home}_vs_${away}`.replace(/\s+/g, '_');
         
+        // Volume Leader için özel format: OLD_LEADER > NEW_LEADER
+        if (alarm._type === 'volumeleader') {
+            const oldLeader = alarm.old_leader || alarm.previous_leader || '?';
+            const newLeader = alarm.new_leader || alarm.selection || '?';
+            return `
+                <div class="ab-pill ${info.pillClass}" onclick="goToMatchPage('${matchKey}')" style="cursor: pointer;">
+                    <span class="ab-dot dot-${info.pillClass}"></span>
+                    <span class="ab-type">${info.label}</span>
+                    <span class="ab-match">${home} - ${away}</span>
+                    <span class="ab-leader-change">${oldLeader} <span style="color: #06b6d4;">▸</span> ${newLeader}</span>
+                </div>
+            `;
+        }
+        
         return `
             <div class="ab-pill ${info.pillClass}" onclick="goToMatchPage('${matchKey}')" style="cursor: pointer;">
                 <span class="ab-dot dot-${info.pillClass}"></span>
