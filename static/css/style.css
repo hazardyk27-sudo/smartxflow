@@ -4127,18 +4127,21 @@ td.volume,
 .alarm-filter-dropdown.open .alarm-filter-options {
     max-height: 320px;
     opacity: 1;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 
 .alarm-filter-option {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
+    gap: 8px;
+    padding: 7px 12px;
+    padding-right: 14px;
     color: #c9d1d9;
     font-size: 13px;
+    font-weight: 450;
     cursor: pointer;
     transition: background 0.15s ease;
+    min-height: 32px;
 }
 
 .alarm-filter-option:hover {
@@ -4150,11 +4153,40 @@ td.volume,
     color: #fff;
 }
 
+.alarm-filter-option .filter-label {
+    flex: 1;
+}
+
+.alarm-filter-option .filter-count {
+    font-size: 11px;
+    color: #8b949e;
+    background: #30363d;
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 20px;
+    text-align: center;
+    font-weight: 500;
+}
+
+.alarm-filter-option:hover .filter-count {
+    background: #484f58;
+}
+
 .filter-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
+    opacity: 0.85;
+}
+
+.filter-dot-neutral {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: #6e7681;
+    opacity: 0.7;
 }
 
 .filter-dot-multi {
@@ -4166,6 +4198,7 @@ td.volume,
     width: 6px;
     height: 6px;
     border-radius: 50%;
+    opacity: 0.85;
 }
 
 .filter-dot-display {

@@ -3921,6 +3921,24 @@ function groupAlarmsByMatch(alarms) {
 function updateAlarmCounts() {
     const badge = document.getElementById('alarmsBadge');
     if (badge) badge.textContent = allAlarmsData.length;
+    
+    const countAll = document.getElementById('countAll');
+    const countSharp = document.getElementById('countSharp');
+    const countInsider = document.getElementById('countInsider');
+    const countBigmoney = document.getElementById('countBigmoney');
+    const countVolumeshock = document.getElementById('countVolumeshock');
+    const countDropping = document.getElementById('countDropping');
+    const countPublictrap = document.getElementById('countPublictrap');
+    const countVolumeleader = document.getElementById('countVolumeleader');
+    
+    if (countAll) countAll.textContent = allAlarmsData.length;
+    if (countSharp) countSharp.textContent = alarmsDataByType.sharp?.length || 0;
+    if (countInsider) countInsider.textContent = alarmsDataByType.insider?.length || 0;
+    if (countBigmoney) countBigmoney.textContent = alarmsDataByType.bigmoney?.length || 0;
+    if (countVolumeshock) countVolumeshock.textContent = alarmsDataByType.volumeshock?.length || 0;
+    if (countDropping) countDropping.textContent = alarmsDataByType.dropping?.length || 0;
+    if (countPublictrap) countPublictrap.textContent = alarmsDataByType.publictrap?.length || 0;
+    if (countVolumeleader) countVolumeleader.textContent = alarmsDataByType.volumeleader?.length || 0;
 }
 
 function sortAlarms(sortType) {
