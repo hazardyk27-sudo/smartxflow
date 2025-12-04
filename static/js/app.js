@@ -4366,9 +4366,7 @@ function renderAlarmsList(filterType) {
         } else if (type === 'publictrap') {
             metricValue = (alarm.trap_score || alarm.sharp_score || 0).toFixed(0);
         } else if (type === 'volumeleader') {
-            const oldL = alarm.old_leader || '-';
-            const newL = alarm.new_leader || '-';
-            metricValue = `${oldL} <span class="leader-arrow">→</span> <span class="leader-new">${newL}</span>`;
+            metricValue = `${alarm.old_leader || '-'} → ${alarm.new_leader || '-'}`;
         }
         
         const historyCount = group.history.length;
@@ -4506,17 +4504,15 @@ function formatTimeAgoTR(dateStr) {
     if (!alarmDT || !alarmDT.isValid()) return '';
     
     const now = nowTurkey();
-    const diffSecs = now.diff(alarmDT, 'second');
     const diffMins = now.diff(alarmDT, 'minute');
     const diffHours = now.diff(alarmDT, 'hour');
     const diffDays = now.diff(alarmDT, 'day');
     
-    if (diffSecs < 0) return 'Az once';
-    if (diffSecs < 30) return 'Az once';
-    if (diffSecs < 60) return `${diffSecs} sn once`;
-    if (diffMins < 60) return `${diffMins} dk once`;
-    if (diffHours < 24) return `${diffHours} sa once`;
-    if (diffDays < 7) return `${diffDays} gun once`;
+    if (diffMins < 0) return 'Simdi';
+    if (diffMins < 1) return 'Simdi';
+    if (diffMins < 60) return `${diffMins}dk once`;
+    if (diffHours < 24) return `${diffHours}sa once`;
+    if (diffDays < 7) return `${diffDays}g once`;
     
     return alarmDT.format('DD.MM');
 }
@@ -4541,28 +4537,18 @@ function parseAlarmDateTR(dateStr) {
 function formatTriggerTime(dateStr) {
     if (!dateStr) return '-';
     
+    // Eğer format DD.MM.YYYY HH:MM ise zaten Turkey saati - direkt göster
+    if (dateStr.includes('.') && dateStr.includes(' ')) {
+        const parts = dateStr.split(' ');
+        if (parts.length >= 2 && parts[1].includes(':')) {
+            return parts[1]; // Sadece saat kısmını döndür (HH:MM)
+        }
+    }
+    
     // ISO format veya UTC timestamp için Turkey'e dönüştür
     const dt = parseAlarmDateTR(dateStr);
     if (!dt || !dt.isValid()) return '-';
     return dt.format('HH:mm');
-}
-
-function formatRelativeTime(dateStr) {
-    if (!dateStr) return 'Az önce';
-    
-    const dt = parseAlarmDateTR(dateStr);
-    if (!dt || !dt.isValid()) return 'Az önce';
-    
-    const now = dayjs().tz('Europe/Istanbul');
-    const diffSeconds = now.diff(dt, 'second');
-    const diffMinutes = now.diff(dt, 'minute');
-    const diffHours = now.diff(dt, 'hour');
-    
-    if (diffSeconds < 30) return 'Az önce';
-    if (diffSeconds < 60) return `${diffSeconds} sn önce`;
-    if (diffMinutes < 60) return `${diffMinutes} dk önce`;
-    if (diffHours < 24) return `${diffHours} sa önce`;
-    return dt.format('DD.MM HH:mm');
 }
 
 function goToMatchPage(matchKey) {
