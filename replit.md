@@ -6,6 +6,7 @@ SmartXFlow Monitor is a professional betting odds tracking tool designed to scra
 **Note:** The alarm/notification system has been removed. This is now a pure data collection and visualization tool (BANT system).
 
 ### User Preferences
+- **GITHUB KULLANICI ADI:** hazardyk27-sudo (ASLA kcanmersin kullanma!)
 - **UYGULAMA = desktop_app.py** - "uygulama" dendiğinde HER ZAMAN desktop_app.py build edilir (pywebview masaüstü)
 - **SCRAPER'A DOKUNMA** - scraper_standalone/ klasorune ve build_scraper.yml'e dokunma, zaten calisiyor
 - **SADECE "push et" DENDIGINDE** push yap, otomatik push yapma
