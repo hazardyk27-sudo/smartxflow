@@ -2040,6 +2040,10 @@ def calculate_dropping_scores(config):
     L1: min_drop_l1% - max_drop_l1% drop (e.g., 7-10%)
     L2: min_drop_l2% - max_drop_l2% drop (e.g., 10-15%)
     L3: min_drop_l3%+ drop (e.g., 15%+)
+    
+    TIMESTAMP PRESERVATION:
+    - created_at: Set ONLY when alarm is first created, never updated afterwards
+    - event_time: Updated on each recalculation to show latest refresh time
     """
     global dropping_calc_progress
     alarms = []
@@ -2047,6 +2051,15 @@ def calculate_dropping_scores(config):
     if not supabase or not supabase.is_available:
         print("[Dropping] Supabase not available")
         return alarms
+    
+    # Load existing alarms to preserve created_at timestamps
+    existing_alarms = load_dropping_alarms_from_file()
+    existing_map = {}
+    for ea in existing_alarms:
+        # Key: match_id + market + selection
+        key = f"{ea.get('match_id', '')}|{ea.get('market', '')}|{ea.get('selection', '')}"
+        existing_map[key] = ea
+    print(f"[Dropping] Loaded {len(existing_map)} existing alarms for timestamp preservation")
     
     min_drop_l1 = config.get('min_drop_l1', 7)
     max_drop_l1 = config.get('max_drop_l1', 10)
@@ -2182,6 +2195,14 @@ def calculate_dropping_scores(config):
                         continue
                     
                     match_id = generate_match_id(home, away, league, match_date)
+                    market_name = market_names.get(market, market)
+                    
+                    # Check if alarm already exists to preserve created_at
+                    alarm_key = f"{match_id}|{market_name}|{selection}"
+                    existing_alarm = existing_map.get(alarm_key)
+                    
+                    # Use existing created_at if alarm exists, otherwise use current time
+                    alarm_created_at = existing_alarm.get('created_at', created_at) if existing_alarm else created_at
                     
                     alarm = {
                         'home': home,
@@ -2190,7 +2211,7 @@ def calculate_dropping_scores(config):
                         'away_team': away,
                         'match_id': match_id,
                         'league': league,
-                        'market': market_names.get(market, market),
+                        'market': market_name,
                         'selection': selection,
                         'level': level,
                         'opening_odds': round(opening_odds, 2),
@@ -2200,7 +2221,7 @@ def calculate_dropping_scores(config):
                         'match_date': match_date,
                         'fixture_date': match_date,
                         'event_time': created_at,
-                        'created_at': created_at
+                        'created_at': alarm_created_at
                     }
                     alarms.append(alarm)
                     print(f"[Dropping] {level}: {home} vs {away} [{selection}] {opening_odds:.2f}→{current_odds:.2f} ({drop_pct:.1f}%) date={match_date}")
