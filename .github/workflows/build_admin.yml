@@ -1,0 +1,100 @@
+name: Build SmartXFlow Admin EXE
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'scraper_standalone/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scraper_standalone/requirements.txt
+          pip install pyinstaller==6.3.0
+        shell: cmd
+
+      - name: Create config with secrets
+        run: |
+          python -c "
+import json
+import re
+
+url = '${{ secrets.SUPABASE_URL }}'
+key = '${{ secrets.SUPABASE_ANON_KEY }}'
+
+m = re.search(r'([a-z]{20,})', url)
+correct_url = f'https://{m.group(1)}.supabase.co' if m else url
+
+config = {
+    'SUPABASE_URL': correct_url,
+    'SUPABASE_ANON_KEY': key,
+    'SCRAPE_INTERVAL_MINUTES': 10
+}
+
+with open('scraper_standalone/config.json', 'w') as f:
+    json.dump(config, f, indent=2)
+
+print(f'Config created with URL: {correct_url}')
+"
+          echo "=== config.json content ==="
+          cat scraper_standalone/config.json
+        shell: bash
+
+      - name: Build Admin EXE
+        run: |
+          cd scraper_standalone
+          pyinstaller admin.spec
+        shell: cmd
+
+      - name: Prepare dist folder
+        run: |
+          copy scraper_standalone\config.json scraper_standalone\dist\config.json
+          echo # SmartXFlow Admin Panel > scraper_standalone\dist\README.txt
+          echo. >> scraper_standalone\dist\README.txt
+          echo SmartXFlowAdmin.exe - Admin Panel + Scraper >> scraper_standalone\dist\README.txt
+          echo. >> scraper_standalone\dist\README.txt
+          echo Ozellikler: >> scraper_standalone\dist\README.txt
+          echo - Supabase ayarlari >> scraper_standalone\dist\README.txt
+          echo - Scrape araligi ayari (1-60 dakika) >> scraper_standalone\dist\README.txt
+          echo - Baslat/Duraklat/Durdur kontrolleri >> scraper_standalone\dist\README.txt
+          echo - Konsol penceresi (ayri pencere) >> scraper_standalone\dist\README.txt
+          echo - 7 alarm tipi otomatik hesaplama >> scraper_standalone\dist\README.txt
+        shell: cmd
+
+      - name: List output files
+        run: |
+          echo "=== dist folder contents ==="
+          dir scraper_standalone\dist
+          echo "=== Full path check ==="
+          dir /s /b scraper_standalone\dist\*.exe
+        shell: cmd
+
+      - name: Copy to artifact folder
+        run: |
+          mkdir artifact_output
+          copy scraper_standalone\dist\*.exe artifact_output\
+          copy scraper_standalone\dist\config.json artifact_output\
+          copy scraper_standalone\dist\README.txt artifact_output\
+          dir artifact_output
+        shell: cmd
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartXFlowAdmin-Windows-EXE
+          path: artifact_output
+          retention-days: 30
