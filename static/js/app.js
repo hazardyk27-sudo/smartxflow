@@ -3560,6 +3560,7 @@ function getAlertType(alarm) {
         return { label: 'DROP L1', color: 'red', pillClass: 'dropping-l1' };
     }
     if (type === 'publictrap') return { label: 'PUBLIC TRAP', color: 'gold', pillClass: 'publictrap' };
+    if (type === 'volumeleader') return { label: 'LIDER DEGISTI', color: 'cyan', pillClass: 'volumeleader' };
     return { label: 'ALERT', color: 'green', pillClass: '' };
 }
 
@@ -3587,6 +3588,10 @@ function formatAlertValue(alarm) {
     if (type === 'publictrap') {
         const score = alarm.trap_score || alarm.sharp_score || 0;
         return score.toFixed(0);
+    }
+    if (type === 'volumeleader') {
+        const share = alarm.new_leader_share || 0;
+        return '%' + share.toFixed(0);
     }
     return '';
 }
