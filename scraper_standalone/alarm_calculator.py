@@ -145,6 +145,32 @@ class AlarmCalculator:
             log(f"DELETE error {table}: {e}")
         return False
     
+    def _upsert_alarms(self, table: str, alarms: List[Dict], key_fields: List[str]) -> int:
+        """Upsert alarms - only add new ones based on key_fields"""
+        if not alarms:
+            return 0
+        
+        try:
+            existing = self._get(table, f'select={",".join(key_fields)}')
+            existing_keys = set()
+            for e in existing:
+                key = "_".join(str(e.get(f, '')) for f in key_fields)
+                existing_keys.add(key)
+            
+            new_alarms = []
+            for alarm in alarms:
+                key = "_".join(str(alarm.get(f, '')) for f in key_fields)
+                if key not in existing_keys:
+                    new_alarms.append(alarm)
+            
+            if new_alarms:
+                self._post(table, new_alarms)
+            
+            return len(new_alarms)
+        except Exception as e:
+            log(f"Upsert error {table}: {e}")
+            return 0
+    
     def load_configs(self):
         """Load all alarm configs from Supabase"""
         try:
@@ -393,8 +419,8 @@ class AlarmCalculator:
                         alarms.append(alarm)
         
         if alarms:
-            self._delete('sharp_alarms', 'id=gt.0')
-            self._post('sharp_alarms', alarms)
+            new_count = self._upsert_alarms('sharp_alarms', alarms, ['home', 'away', 'market', 'selection'])
+            log(f"Sharp: {new_count} new alarms added")
         
         return len(alarms)
     
@@ -512,8 +538,8 @@ class AlarmCalculator:
                     alarms.append(alarm)
         
         if alarms:
-            self._delete('insider_alarms', 'id=gt.0')
-            self._post('insider_alarms', alarms)
+            new_count = self._upsert_alarms('insider_alarms', alarms, ['home', 'away', 'market', 'selection'])
+            log(f"Insider: {new_count} new alarms added")
         
         return len(alarms)
     
@@ -603,8 +629,8 @@ class AlarmCalculator:
                     alarms.append(alarm)
         
         if alarms:
-            self._delete('bigmoney_alarms', 'id=gt.0')
-            self._post('bigmoney_alarms', alarms)
+            new_count = self._upsert_alarms('bigmoney_alarms', alarms, ['home', 'away', 'market', 'selection'])
+            log(f"BigMoney: {new_count} new alarms added")
         
         return len(alarms)
     
@@ -686,8 +712,8 @@ class AlarmCalculator:
                         alarms.append(alarm)
         
         if alarms:
-            self._delete('volumeshock_alarms', 'id=gt.0')
-            self._post('volumeshock_alarms', alarms)
+            new_count = self._upsert_alarms('volumeshock_alarms', alarms, ['home', 'away', 'market', 'selection'])
+            log(f"VolumeShock: {new_count} new alarms added")
         
         return len(alarms)
     
@@ -774,8 +800,8 @@ class AlarmCalculator:
                     alarms.append(alarm)
         
         if alarms:
-            self._delete('dropping_alarms', 'id=gt.0')
-            self._post('dropping_alarms', alarms)
+            new_count = self._upsert_alarms('dropping_alarms', alarms, ['home', 'away', 'market', 'selection'])
+            log(f"Dropping: {new_count} new alarms added")
         
         return len(alarms)
     
@@ -881,8 +907,8 @@ class AlarmCalculator:
                         alarms.append(alarm)
         
         if alarms:
-            self._delete('halktuzagi_alarms', 'id=gt.0')
-            self._post('halktuzagi_alarms', alarms)
+            new_count = self._upsert_alarms('halktuzagi_alarms', alarms, ['home', 'away', 'market', 'selection'])
+            log(f"PublicTrap: {new_count} new alarms added")
         
         return len(alarms)
     
