@@ -2512,6 +2512,7 @@
                 if (response.ok) {
                     const alarms = await response.json();
                     allAlarms = alarms;
+                    updateTotalCount('alarmTotalCount', alarms.length);
                     renderSharpAlarms(alarms);
                 }
             } catch (error) {
@@ -2638,6 +2639,7 @@
                 if (response.ok) {
                     const alarms = await response.json();
                     allHalkTuzagiAlarms = alarms;
+                    updateTotalCount('htAlarmTotalCount', alarms.length);
                     renderHalkTuzagiAlarms(alarms);
                 }
             } catch (error) {
@@ -2833,6 +2835,7 @@
                 if (response.ok) {
                     const alarms = await response.json();
                     allInsiderAlarms = alarms;
+                    updateTotalCount('insiderAlarmTotalCount', alarms.length);
                     renderInsiderAlarms(alarms);
                 }
             } catch (error) {
@@ -3151,6 +3154,7 @@
                 if (response.ok) {
                     const alarms = await response.json();
                     allBigMoneyAlarms = alarms;
+                    updateTotalCount('bigMoneyAlarmTotalCount', alarms.length);
                     renderBigMoneyAlarms(alarms);
                 }
             } catch (error) {
@@ -3286,6 +3290,7 @@
                 const response = await fetch('/api/volumeshock/alarms');
                 const alarms = await response.json();
                 allVolumeShockAlarms = alarms;
+                updateTotalCount('volumeShockAlarmTotalCount', alarms.length);
                 renderVolumeShockAlarms(alarms);
             } catch (error) {
                 console.error('Volume Shock alarms load error:', error);
@@ -3550,6 +3555,7 @@
                 const response = await fetch('/api/volumeleader/alarms');
                 const alarms = await response.json();
                 allVolumeLeaderAlarms = alarms;
+                updateTotalCount('volumeLeaderAlarmTotalCount', alarms.length);
                 renderVolumeLeaderAlarms(alarms);
             } catch (error) {
                 console.error('Volume Leader alarms load error:', error);
@@ -3856,6 +3862,7 @@
                 if (response.ok) {
                     const alarms = await response.json();
                     allDroppingAlarms = alarms;
+                    updateTotalCount('droppingAlarmTotalCount', alarms.length);
                     renderDroppingAlarms(alarms);
                 }
             } catch (error) {
