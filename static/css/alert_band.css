@@ -331,11 +331,15 @@
 .ab-leader-change {
     font-size: 12px;
     font-weight: 600;
-    color: #e6edf3;
-    margin-left: 6px;
+    color: #C9D1D9;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
+}
+
+.ab-arrow {
+    color: #06b6d4;
+    font-size: 14px;
 }
 
 /* Match Name - Truncate for long names */

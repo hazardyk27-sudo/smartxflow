@@ -3644,8 +3644,10 @@ function renderAlertBand() {
                 <div class="ab-pill ${info.pillClass}" onclick="goToMatchPage('${matchKey}')" style="cursor: pointer;">
                     <span class="ab-dot dot-${info.pillClass}"></span>
                     <span class="ab-type">${info.label}</span>
+                    <span class="ab-sep">—</span>
                     <span class="ab-match">${home} - ${away}</span>
-                    <span class="ab-leader-change">${oldLeader} <span style="color: #06b6d4;">▸</span> ${newLeader}</span>
+                    <span class="ab-sep">—</span>
+                    <span class="ab-leader-change">${oldLeader} <span class="ab-arrow">▸</span> ${newLeader}</span>
                 </div>
             `;
         }
