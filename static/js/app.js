@@ -3288,6 +3288,16 @@ function attachTrendTooltipListeners() {
 let alertBandData = [];
 let alertBandRenderTimeout = null;
 let lastAlertBandHash = '';
+let lastTopAlarmKey = null;
+let isHighlightingNewAlarm = false;
+
+function getAlarmKey(alarm) {
+    if (!alarm) return null;
+    const home = alarm.home || alarm.home_team || '';
+    const type = alarm._type || '';
+    const eventTime = alarm.event_time || alarm.created_at || '';
+    return `${home}|${type}|${eventTime}`;
+}
 
 function scheduleAlertBandRender() {
     if (alertBandRenderTimeout) {
@@ -3297,10 +3307,95 @@ function scheduleAlertBandRender() {
         const newHash = JSON.stringify(alertBandData.slice(0, 10).map(a => a.home + a._type + (a.event_time || '')));
         if (newHash !== lastAlertBandHash) {
             lastAlertBandHash = newHash;
-            renderAlertBand();
+            
+            // Yeni en üst alarm kontrolü
+            const currentTopKey = getAlarmKey(alertBandData[0]);
+            const isNewTopAlarm = lastTopAlarmKey !== null && currentTopKey !== lastTopAlarmKey;
+            
+            if (isNewTopAlarm && alertBandData[0] && !isHighlightingNewAlarm) {
+                // Yeni alarm geldi - highlight göster
+                highlightNewAlarm(alertBandData[0]);
+            } else {
+                renderAlertBand();
+            }
+            
+            lastTopAlarmKey = currentTopKey;
         }
         updateAlertBandBadge();
     }, 100);
+}
+
+function highlightNewAlarm(alarm) {
+    isHighlightingNewAlarm = true;
+    const band = document.getElementById('alertBandTrack');
+    if (!band) {
+        isHighlightingNewAlarm = false;
+        return;
+    }
+    
+    const info = getAlertType(alarm);
+    const home = alarm.home || alarm.home_team || '?';
+    const away = alarm.away || alarm.away_team || '?';
+    const selection = alarm.selection || alarm.side || '';
+    
+    // Value hesapla
+    let value = '';
+    if (alarm._type === 'sharp') {
+        value = (alarm.sharp_score || 0).toFixed(1);
+    } else if (alarm._type === 'insider') {
+        value = `▼ ${Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1)}%`;
+    } else if (alarm._type === 'volumeshock') {
+        value = `${(alarm.volume_shock_value || 0).toFixed(1)}x`;
+    } else if (alarm._type === 'bigmoney') {
+        value = `£${Number(alarm.incoming_money || alarm.stake || 0).toLocaleString('en-GB')}`;
+    } else if (alarm._type === 'dropping') {
+        value = `▼ ${(alarm.drop_pct || 0).toFixed(1)}%`;
+    } else if (alarm._type === 'publictrap') {
+        value = `${(alarm.trap_score || alarm.sharp_score || 0).toFixed(0)}`;
+    } else if (alarm._type === 'volumeleader') {
+        value = `%${(alarm.new_leader_share || 0).toFixed(0)}`;
+    }
+    
+    // Volume Leader için özel format
+    let contentHtml = '';
+    if (alarm._type === 'volumeleader') {
+        const oldLeader = alarm.old_leader || alarm.previous_leader || '?';
+        const newLeader = alarm.new_leader || alarm.selection || '?';
+        contentHtml = `
+            <span class="ab-dot dot-${info.pillClass}"></span>
+            <span class="ab-type">${info.label}</span>
+            <span class="ab-sep">—</span>
+            <span class="ab-match">${home} - ${away}</span>
+            <span class="ab-sep">—</span>
+            <span class="ab-leader-change">${oldLeader} <span class="ab-arrow">▸</span> ${newLeader}</span>
+        `;
+    } else {
+        contentHtml = `
+            <span class="ab-dot dot-${info.pillClass}"></span>
+            <span class="ab-type">${info.label}</span>
+            <span class="ab-sep">—</span>
+            <span class="ab-match">${home} - ${away}</span>
+            <span class="ab-sep">—</span>
+            <span class="ab-sel">${selection}</span>
+            <span class="ab-val">${value}</span>
+        `;
+    }
+    
+    // Highlight container oluştur
+    band.innerHTML = `
+        <div class="new-alarm-highlight">
+            <div class="ab-pill ${info.pillClass} highlight-pill">
+                ${contentHtml}
+            </div>
+            <div class="new-alarm-label">YENİ ALARM</div>
+        </div>
+    `;
+    
+    // 3 saniye sonra normal band'a dön
+    setTimeout(() => {
+        isHighlightingNewAlarm = false;
+        renderAlertBand();
+    }, 3000);
 }
 
 // Alarm zamanını parse et (format: "DD.MM.YYYY HH:MM")

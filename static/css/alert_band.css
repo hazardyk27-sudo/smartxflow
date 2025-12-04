@@ -658,3 +658,86 @@
     color: #6E7681;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
+
+/* ========== NEW ALARM HIGHLIGHT ========== */
+
+.new-alarm-highlight {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    animation: highlightFadeIn 0.4s ease-out;
+}
+
+@keyframes highlightFadeIn {
+    0% { opacity: 0; transform: scale(0.9); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.new-alarm-highlight .highlight-pill {
+    transform: scale(1.15);
+    animation: pulseGlow 1.5s ease-in-out infinite;
+    box-shadow: 0 0 20px rgba(22, 163, 74, 0.5);
+}
+
+.new-alarm-highlight .ab-pill.sharp.highlight-pill {
+    box-shadow: 0 0 25px rgba(22, 163, 74, 0.6), 0 0 50px rgba(22, 163, 74, 0.3);
+}
+
+.new-alarm-highlight .ab-pill.insider.highlight-pill {
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.6), 0 0 50px rgba(139, 92, 246, 0.3);
+}
+
+.new-alarm-highlight .ab-pill.bigmoney.highlight-pill {
+    box-shadow: 0 0 25px rgba(240, 138, 36, 0.6), 0 0 50px rgba(240, 138, 36, 0.3);
+}
+
+.new-alarm-highlight .ab-pill.hugemoney.highlight-pill {
+    box-shadow: 0 0 25px rgba(249, 115, 22, 0.6), 0 0 50px rgba(249, 115, 22, 0.3);
+}
+
+.new-alarm-highlight .ab-pill.volumeshock.highlight-pill {
+    box-shadow: 0 0 25px rgba(250, 204, 21, 0.6), 0 0 50px rgba(250, 204, 21, 0.3);
+}
+
+.new-alarm-highlight .ab-pill.dropping-l1.highlight-pill,
+.new-alarm-highlight .ab-pill.dropping-l2.highlight-pill,
+.new-alarm-highlight .ab-pill.dropping-l3.highlight-pill {
+    box-shadow: 0 0 25px rgba(248, 81, 73, 0.6), 0 0 50px rgba(248, 81, 73, 0.3);
+}
+
+.new-alarm-highlight .ab-pill.publictrap.highlight-pill {
+    box-shadow: 0 0 25px rgba(255, 204, 0, 0.6), 0 0 50px rgba(255, 204, 0, 0.3);
+}
+
+.new-alarm-highlight .ab-pill.volumeleader.highlight-pill {
+    box-shadow: 0 0 25px rgba(6, 182, 212, 0.6), 0 0 50px rgba(6, 182, 212, 0.3);
+}
+
+@keyframes pulseGlow {
+    0%, 100% { 
+        transform: scale(1.15); 
+        filter: brightness(1);
+    }
+    50% { 
+        transform: scale(1.2); 
+        filter: brightness(1.2);
+    }
+}
+
+.new-alarm-label {
+    margin-top: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #16A34A;
+    animation: labelPulse 1s ease-in-out infinite;
+}
+
+@keyframes labelPulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
