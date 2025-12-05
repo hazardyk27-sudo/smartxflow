@@ -19,9 +19,10 @@ VERSION = "1.06"
 CONFIG_FILE = "config.json"
 
 # Scraper Console - Global Log Buffer & State
-SCRAPER_LOG_BUFFER = deque(maxlen=500)
+SCRAPER_LOG_BUFFER = deque(maxlen=200)
 SCRAPER_LOG_LOCK = threading.Lock()
 SCRAPER_SSE_CLIENTS = []
+SCRAPER_SSE_LOCK = threading.Lock()
 SCRAPER_STATE = {
     'running': False,
     'interval_minutes': 10,
@@ -41,8 +42,10 @@ def log_scraper(message, level='INFO'):
     with SCRAPER_LOG_LOCK:
         SCRAPER_LOG_BUFFER.append(log_line)
     
-    # SSE client'lara gönder
-    for client_queue in SCRAPER_SSE_CLIENTS[:]:
+    # SSE client'lara thread-safe gönder
+    with SCRAPER_SSE_LOCK:
+        clients_copy = SCRAPER_SSE_CLIENTS[:]
+    for client_queue in clients_copy:
         try:
             client_queue.put_nowait(log_line)
         except:

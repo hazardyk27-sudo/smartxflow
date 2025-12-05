@@ -4142,19 +4142,24 @@ def scraper_console_logs():
 
 @app.route('/scraper/stream')
 def scraper_console_stream():
-    """SSE stream - canlı log akışı"""
+    """SSE stream - canlı log akışı (thread-safe)"""
     from flask import Response
     import queue
     
     def generate():
         q = queue.Queue()
         
-        # EXE modunda client listesine ekle
+        # EXE modunda client listesine thread-safe ekle
         if os.environ.get('SMARTX_DESKTOP') == '1':
             try:
                 import scraper_admin
+                lock = getattr(scraper_admin, 'SCRAPER_SSE_LOCK', None)
                 clients = getattr(scraper_admin, 'SCRAPER_SSE_CLIENTS', [])
-                clients.append(q)
+                if lock:
+                    with lock:
+                        clients.append(q)
+                else:
+                    clients.append(q)
             except:
                 pass
         
@@ -4168,12 +4173,17 @@ def scraper_console_stream():
                 except queue.Empty:
                     yield f": keepalive\n\n"
         finally:
-            # Cleanup
+            # Thread-safe cleanup
             if os.environ.get('SMARTX_DESKTOP') == '1':
                 try:
                     import scraper_admin
+                    lock = getattr(scraper_admin, 'SCRAPER_SSE_LOCK', None)
                     clients = getattr(scraper_admin, 'SCRAPER_SSE_CLIENTS', [])
-                    if q in clients:
+                    if lock:
+                        with lock:
+                            if q in clients:
+                                clients.remove(q)
+                    elif q in clients:
                         clients.remove(q)
                 except:
                     pass
