@@ -266,7 +266,7 @@ class AlarmCalculator:
                 'max_drop_l2': 15,
                 'min_drop_l3': 15
             },
-            'publictrap': {
+            'publicmove': {
                 'min_sharp_score': 20,
                 'min_volume_1x2': 5000,
                 'min_volume_ou25': 2000,
@@ -923,7 +923,7 @@ class AlarmCalculator:
     
     def calculate_publicmove_alarms(self) -> int:
         """Calculate Public Move alarms - same logic as Sharp"""
-        config = self.configs.get('publictrap', self._default_configs()['publictrap'])
+        config = self.configs.get('publicmove', self._default_configs()['publicmove'])
         min_score = config.get('min_sharp_score', 20)
         
         alarms = []
