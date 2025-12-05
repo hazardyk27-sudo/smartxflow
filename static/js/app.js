@@ -4258,7 +4258,11 @@ function renderAlarmsList(filterType) {
             mainValue = `<span class="value-odds">${oldLeader} %${oldShare}</span><span class="arrow">→</span><span class="value-odds-new">${newLeader} %${newShare}</span>`;
         }
         
-        const triggerTimeShort = formatTriggerTimeShort(alarm.trigger_at || alarm.event_time || alarm.created_at);
+        // Dropping alarmlar icin created_at (oranin dustugu an) oncelikli
+        const timeSource = type === 'dropping' 
+            ? (alarm.created_at || alarm.event_time || alarm.trigger_at)
+            : (alarm.trigger_at || alarm.event_time || alarm.created_at);
+        const triggerTimeShort = formatTriggerTimeShort(timeSource);
         const triggerPill = group.triggerCount > 1 ? `<span class="trigger-pill">×${group.triggerCount}</span>` : '';
         const marketLabel = formatMarketChip(market, selection);
         const expandIcon = isOpen ? '▼' : '▶';
@@ -4308,7 +4312,11 @@ function renderAlarmsList(filterType) {
         const marketEscaped = market.replace(/'/g, "\\'");
         const matchTimeFormatted = formatMatchTime3(group.match_date);
         const marketLabel2 = `${market} → ${selection}`;
-        const triggerTime = formatTriggerTime(alarm.trigger_at || alarm.event_time || alarm.created_at);
+        // Dropping alarmlar icin created_at (oranin dustugu an) oncelikli
+        const triggerTimeSource = type === 'dropping' 
+            ? (alarm.created_at || alarm.event_time || alarm.trigger_at)
+            : (alarm.trigger_at || alarm.event_time || alarm.created_at);
+        const triggerTime = formatTriggerTime(triggerTimeSource);
         
         // Badge ve metrik içeriği
         let badgeLabel = '';
