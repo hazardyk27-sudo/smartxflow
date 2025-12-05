@@ -30,7 +30,9 @@ SCRAPER_STATE = {
     'next_scrape': None,
     'last_rows': 0,
     'last_alarm_count': 0,
-    'status': 'Bekliyor...'
+    'status': 'Bekliyor...',
+    'stop_requested': False,
+    'scraper_thread': None
 }
 
 
@@ -322,6 +324,7 @@ def run_scraper(config):
         interval_minutes = config.get('SCRAPE_INTERVAL_MINUTES', 10)
         SCRAPER_STATE['interval_minutes'] = interval_minutes
         SCRAPER_STATE['running'] = True
+        SCRAPER_STATE['stop_requested'] = False
         
         log_scraper("=" * 50)
         log_scraper(f"SmartXFlow Scraper v{VERSION} başlatıldı")
@@ -334,7 +337,7 @@ def run_scraper(config):
         )
         log_scraper("Supabase bağlantısı hazır")
         
-        while True:
+        while not SCRAPER_STATE.get('stop_requested', False):
             try:
                 SCRAPER_STATE['status'] = 'Veri çekiliyor...'
                 log_scraper("-" * 50)
@@ -362,14 +365,28 @@ def run_scraper(config):
                 log_scraper(f"HATA: {str(e)}", level='ERROR')
                 SCRAPER_STATE['status'] = f'Hata: {str(e)[:50]}'
             
-            # Bekleme
+            # Stop kontrol
+            if SCRAPER_STATE.get('stop_requested', False):
+                break
+            
+            # Bekleme - kısa aralıklarla stop kontrol
             next_run = datetime.now().timestamp() + (interval_minutes * 60)
             SCRAPER_STATE['next_scrape'] = datetime.fromtimestamp(next_run).isoformat()
             SCRAPER_STATE['status'] = f'{interval_minutes} dakika bekleniyor...'
             log_scraper(f"{interval_minutes} dakika bekleniyor...")
             log_scraper("-" * 50)
             
-            time.sleep(interval_minutes * 60)
+            # Bekleme süresini 1 saniyelik parçalara böl (stop için)
+            for _ in range(interval_minutes * 60):
+                if SCRAPER_STATE.get('stop_requested', False):
+                    break
+                time.sleep(1)
+        
+        # Scraper durdu
+        log_scraper("Scraper durduruldu")
+        SCRAPER_STATE['running'] = False
+        SCRAPER_STATE['status'] = 'Durduruldu'
+        SCRAPER_STATE['next_scrape'] = None
             
     except ImportError as e:
         log_scraper(f"Import hatası: {e}", level='ERROR')
@@ -377,6 +394,50 @@ def run_scraper(config):
     except Exception as e:
         log_scraper(f"Başlatma hatası: {e}", level='ERROR')
         SCRAPER_STATE['running'] = False
+
+
+def start_scraper_desktop(config):
+    """Desktop modunda scraper başlat"""
+    global SCRAPER_STATE
+    
+    if SCRAPER_STATE.get('running', False):
+        log_scraper("Scraper zaten çalışıyor")
+        return False
+    
+    SCRAPER_STATE['stop_requested'] = False
+    scraper_thread = threading.Thread(target=run_scraper, args=(config,), daemon=True)
+    scraper_thread.start()
+    SCRAPER_STATE['scraper_thread'] = scraper_thread
+    return True
+
+
+def stop_scraper_desktop():
+    """Desktop modunda scraper durdur"""
+    global SCRAPER_STATE
+    
+    if not SCRAPER_STATE.get('running', False):
+        log_scraper("Scraper zaten durdurulmuş")
+        return False
+    
+    log_scraper("Scraper durduruluyor...")
+    SCRAPER_STATE['stop_requested'] = True
+    return True
+
+
+def get_scraper_config():
+    """Mevcut config'i döndür"""
+    config_path = get_config_path()
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            pass
+    return {
+        'SUPABASE_URL': EMBEDDED_SUPABASE_URL,
+        'SUPABASE_ANON_KEY': EMBEDDED_SUPABASE_KEY,
+        'SCRAPE_INTERVAL_MINUTES': 10
+    }
 
 
 def show_error_dialog(title, message):

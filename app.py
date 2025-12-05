@@ -4140,21 +4140,44 @@ def scraper_console_status():
 
 @app.route('/scraper/control', methods=['POST'])
 def scraper_control():
-    """Scraper başlat/durdur kontrolü"""
+    """Scraper başlat/durdur kontrolü - Desktop ve Server modları"""
     global scrape_status, server_scheduler_thread, server_scheduler_stop
     
     try:
         data = request.get_json() or {}
         action = data.get('action', '')
         
-        # EXE modunda devre dışı
+        # EXE (Desktop) modunda scraper_admin fonksiyonlarını kullan
         if os.environ.get('SMARTX_DESKTOP') == '1':
-            return jsonify({'status': 'error', 'message': 'Desktop modunda kontrol edilemez'})
+            try:
+                import scraper_admin
+                
+                if action == 'start':
+                    config = scraper_admin.get_scraper_config()
+                    result = scraper_admin.start_scraper_desktop(config)
+                    if result:
+                        return jsonify({'status': 'ok', 'message': 'Scraper başlatıldı', 'running': True})
+                    else:
+                        return jsonify({'status': 'ok', 'message': 'Scraper zaten çalışıyor', 'running': True})
+                
+                elif action == 'stop':
+                    result = scraper_admin.stop_scraper_desktop()
+                    if result:
+                        return jsonify({'status': 'ok', 'message': 'Scraper durduruldu', 'running': False})
+                    else:
+                        return jsonify({'status': 'ok', 'message': 'Scraper zaten durdurulmuş', 'running': False})
+                
+                else:
+                    return jsonify({'status': 'error', 'message': 'Geçersiz action'})
+                    
+            except Exception as e:
+                return jsonify({'status': 'error', 'message': f'Desktop kontrol hatası: {str(e)}'})
         
-        # Scraper devre dışıysa
+        # Scraper devre dışıysa (Standalone mode)
         if is_scraper_disabled():
             return jsonify({'status': 'error', 'message': 'Scraper devre dışı (Standalone mode)'})
         
+        # Server modunda
         if action == 'start':
             if scrape_status.get('auto_running'):
                 return jsonify({'status': 'ok', 'message': 'Zaten çalışıyor'})
@@ -4214,6 +4237,39 @@ def scraper_control():
         
         else:
             return jsonify({'status': 'error', 'message': 'Geçersiz action'})
+    
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+
+@app.route('/scraper/interval', methods=['POST'])
+def scraper_interval():
+    """Scraper interval değiştir"""
+    try:
+        data = request.get_json() or {}
+        new_interval = data.get('interval', 10)
+        
+        if not isinstance(new_interval, int) or new_interval < 1 or new_interval > 60:
+            return jsonify({'status': 'error', 'message': 'Interval 1-60 dakika arasında olmalı'})
+        
+        # EXE (Desktop) modunda config dosyasını güncelle
+        if os.environ.get('SMARTX_DESKTOP') == '1':
+            try:
+                import scraper_admin
+                config = scraper_admin.get_scraper_config()
+                config['SCRAPE_INTERVAL_MINUTES'] = new_interval
+                scraper_admin.save_config(config)
+                scraper_admin.SCRAPER_STATE['interval_minutes'] = new_interval
+                scraper_admin.log_scraper(f"Interval değiştirildi: {new_interval} dakika")
+                return jsonify({'status': 'ok', 'message': f'Interval {new_interval} dakika olarak ayarlandı', 'interval': new_interval})
+            except Exception as e:
+                return jsonify({'status': 'error', 'message': f'Config güncellenemedi: {str(e)}'})
+        
+        # Server modunda global değişkeni güncelle
+        global scrape_status
+        scrape_status['interval_minutes'] = new_interval
+        
+        return jsonify({'status': 'ok', 'message': f'Interval {new_interval} dakika olarak ayarlandı', 'interval': new_interval})
     
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})

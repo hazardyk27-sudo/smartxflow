@@ -4010,105 +4010,109 @@ td.volume,
     color: #fff;
 }
 
-/* Sidebar Controls */
+/* Sidebar Controls - Modern Design */
 .alarms-sidebar-controls {
-    padding: 16px 20px;
+    padding: 14px 16px;
     border-bottom: 1px solid #21262d;
-    background: #161b22;
+    background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
 }
 
 .alarms-sidebar-row {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
 }
 
 .alarms-sidebar-field {
-    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .alarms-sidebar-field label {
-    display: block;
-    font-size: 10px;
-    font-weight: 600;
-    color: #6e7681;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #8b949e;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
 }
 
 .alarms-sidebar-field select {
-    width: calc(100% + 10px);
-    min-width: 130px;
-    padding: 6px 12px;
-    height: 32px;
+    width: 100%;
+    padding: 8px 32px 8px 12px;
+    height: 36px;
     background: #21262d;
     border: 1px solid #30363d;
-    border-radius: 6px;
-    color: #c9d1d9;
+    border-radius: 8px;
+    color: #e6edf3;
     font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2' opacity='0.9'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 10px center;
-    padding-right: 30px;
     transition: all 0.2s ease;
 }
 
 .alarms-sidebar-field select:hover {
     background: #30363d;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border-color: #484f58;
 }
 
 .alarms-sidebar-field select:focus {
     outline: none;
-    border-color: #30363d;
-    box-shadow: 0 0 0 2px rgba(248, 166, 36, 0.15);
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
 }
 
 /* Custom Alarm Filter Dropdown */
 .alarm-filter-dropdown {
     position: relative;
-    width: calc(100% + 10px);
-    min-width: 140px;
+    width: 100%;
 }
 
 .alarm-filter-selected {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 12px;
-    height: 32px;
+    padding: 8px 12px;
+    height: 36px;
     background: #21262d;
     border: 1px solid #30363d;
-    border-radius: 6px;
-    color: #c9d1d9;
+    border-radius: 8px;
+    color: #e6edf3;
     font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .alarm-filter-selected:hover {
     background: #30363d;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border-color: #484f58;
 }
 
 .alarm-filter-dropdown.open .alarm-filter-selected {
-    border-color: #484f58;
+    border-color: #f59e0b;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
 }
 
 .dropdown-chevron {
     margin-left: auto;
     color: #8b949e;
-    opacity: 0.9;
     transition: transform 0.2s ease;
 }
 
 .alarm-filter-dropdown.open .dropdown-chevron {
     transform: rotate(180deg);
+    color: #f59e0b;
 }
 
 .alarm-filter-options {
@@ -4116,44 +4120,46 @@ td.volume,
     top: 100%;
     left: 0;
     right: 0;
-    background: #21262d;
-    border: 1px solid #484f58;
+    background: #161b22;
+    border: 1px solid #30363d;
     border-top: none;
-    border-radius: 0 0 6px 6px;
+    border-radius: 0 0 8px 8px;
     max-height: 0;
     overflow: hidden;
     opacity: 0;
     z-index: 100;
-    transition: all 0.2s ease;
+    transition: all 0.25s ease;
 }
 
 .alarm-filter-dropdown.open .alarm-filter-options {
     max-height: 320px;
     opacity: 1;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    border-color: #f59e0b;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .alarm-filter-option {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 12px;
-    padding-right: 14px;
+    gap: 10px;
+    padding: 10px 12px;
     color: #c9d1d9;
     font-size: 13px;
-    font-weight: 450;
+    font-weight: 500;
     cursor: pointer;
-    transition: background 0.15s ease;
-    min-height: 32px;
+    transition: all 0.15s ease;
+    border-left: 2px solid transparent;
 }
 
 .alarm-filter-option:hover {
-    background: #30363d;
+    background: #21262d;
+    border-left-color: #484f58;
 }
 
 .alarm-filter-option.selected {
-    background: #30363d;
+    background: #21262d;
     color: #fff;
+    border-left-color: #f59e0b;
 }
 
 .alarm-filter-option .filter-label {
@@ -4230,25 +4236,50 @@ td.volume,
 
 .alarms-sidebar-search {
     position: relative;
+    margin-top: 2px;
+}
+
+.alarms-sidebar-search::before {
+    content: '';
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236e7681' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: contain;
+    pointer-events: none;
+    z-index: 1;
 }
 
 .alarms-sidebar-search input {
     width: 100%;
-    padding: 10px 14px;
-    background: #21262d;
+    padding: 10px 14px 10px 36px;
+    background: #0d1117;
     border: 1px solid #30363d;
-    border-radius: 6px;
-    color: #c9d1d9;
+    border-radius: 8px;
+    color: #e6edf3;
     font-size: 13px;
+    transition: all 0.2s ease;
 }
 
 .alarms-sidebar-search input::placeholder {
-    color: #9aa5b1;
+    color: #6e7681;
+    font-weight: 400;
+}
+
+.alarms-sidebar-search input:hover {
+    background: #161b22;
+    border-color: #484f58;
 }
 
 .alarms-sidebar-search input:focus {
     outline: none;
+    background: #161b22;
     border-color: #f59e0b;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
 }
 
 /* Sidebar List */

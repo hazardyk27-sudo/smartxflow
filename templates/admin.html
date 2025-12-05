@@ -2052,9 +2052,13 @@
                     <div class="stats-label">Durum</div>
                     <div class="stats-value" id="scraperStatus">Bekliyor...</div>
                 </div>
-                <div class="stats-card">
-                    <div class="stats-label">Interval</div>
-                    <div class="stats-value"><span id="scraperInterval">10</span> dk</div>
+                <div class="stats-card" style="min-width: 140px;">
+                    <div class="stats-label">Interval (dk)</div>
+                    <div class="stats-value" style="display: flex; align-items: center; gap: 6px;">
+                        <input type="number" id="scraperIntervalInput" value="10" min="1" max="60" 
+                               style="width: 50px; background: #21262d; border: 1px solid #30363d; border-radius: 4px; color: #4ade80; font-size: 14px; padding: 4px 6px; text-align: center;">
+                        <button onclick="updateScraperInterval()" style="background: #238636; color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer;">Uygula</button>
+                    </div>
                 </div>
                 <div class="stats-card">
                     <div class="stats-label">Sonraki Çekim</div>
@@ -2137,6 +2141,33 @@
             output.innerHTML = '<div style="color: #484f58;">[Console temizlendi]</div>';
         }
         
+        function updateScraperInterval() {
+            const input = document.getElementById('scraperIntervalInput');
+            const newInterval = parseInt(input.value);
+            
+            if (isNaN(newInterval) || newInterval < 1 || newInterval > 60) {
+                showToast('Interval 1-60 dakika arasında olmalı', 'error');
+                return;
+            }
+            
+            fetch('/scraper/interval', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({interval: newInterval})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    showToast(`Interval ${newInterval} dakika olarak ayarlandı`, 'success');
+                } else {
+                    showToast(data.message || 'Ayarlama başarısız', 'error');
+                }
+            })
+            .catch(() => {
+                showToast('Bağlantı hatası', 'error');
+            });
+        }
+        
         function toggleScraper(action) {
             const startBtn = document.getElementById('scraperStartBtn');
             const stopBtn = document.getElementById('scraperStopBtn');
@@ -2185,7 +2216,7 @@
                         statusEl.style.color = '#f85149';
                     }
                     
-                    document.getElementById('scraperInterval').textContent = data.interval_minutes || 10;
+                    document.getElementById('scraperIntervalInput').value = data.interval_minutes || 10;
                     document.getElementById('scraperLastRows').textContent = data.last_rows ? data.last_rows + ' satır' : '-';
                     document.getElementById('scraperLastAlarms').textContent = data.last_alarm_count ? data.last_alarm_count + ' alarm' : '-';
                     
