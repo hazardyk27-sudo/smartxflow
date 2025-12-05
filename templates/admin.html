@@ -2345,6 +2345,34 @@
             initScraperConsole();
         });
         
+        // Alarm zamani parse - siralama icin (yeniden eskiye)
+        function parseAlarmTime(dateStr) {
+            if (!dateStr) return 0;
+            
+            // Format: "05.12.2025 06:56" veya "05.12.2025 06:56:30"
+            const match1 = dateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
+            if (match1) {
+                const [, day, month, year, hour, min, sec] = match1;
+                return new Date(year, month - 1, day, hour, min, sec || 0).getTime();
+            }
+            
+            // ISO format: "2025-12-05T06:56:30"
+            if (dateStr.includes('T')) {
+                return new Date(dateStr).getTime();
+            }
+            
+            return 0;
+        }
+        
+        // Alarmlari yeniden eskiye sirala
+        function sortAlarmsNewestFirst(alarms) {
+            return alarms.sort((a, b) => {
+                const timeA = parseAlarmTime(a.created_at || a.event_time || '');
+                const timeB = parseAlarmTime(b.created_at || b.event_time || '');
+                return timeB - timeA; // DESC - newest first
+            });
+        }
+        
         function parseAlarmDate(alarm) {
             const dateStr = alarm.match_date || alarm.event_time || alarm.created_at || '';
             if (!dateStr) return null;
@@ -2893,8 +2921,8 @@
                 const response = await fetch('/api/sharp/alarms');
                 if (response.ok) {
                     const alarms = await response.json();
-                    // Dünün maçlarını filtrele - sadece bugün ve gelecek
-                    allAlarms = alarms;
+                    // Yeniden eskiye sirala
+                    allAlarms = sortAlarmsNewestFirst(alarms);
                     updateTotalCount('alarmTotalCount', allAlarms.length);
                     renderSharpAlarms(allAlarms);
                 }
@@ -3021,8 +3049,8 @@
                 const response = await fetch('/api/publicmove/alarms');
                 if (response.ok) {
                     const alarms = await response.json();
-                    // Dünün maçlarını filtrele - sadece bugün ve gelecek
-                    allPublicMoveAlarms = alarms;
+                    // Yeniden eskiye sirala
+                    allPublicMoveAlarms = sortAlarmsNewestFirst(alarms);
                     updateTotalCount('htAlarmTotalCount', allPublicMoveAlarms.length);
                     renderPublicMoveAlarms(allPublicMoveAlarms);
                 }
@@ -3294,8 +3322,8 @@
                 const response = await fetch('/api/insider/alarms');
                 if (response.ok) {
                     const alarms = await response.json();
-                    // Dünün maçlarını filtrele - sadece bugün ve gelecek
-                    allInsiderAlarms = alarms;
+                    // Yeniden eskiye sirala
+                    allInsiderAlarms = sortAlarmsNewestFirst(alarms);
                     updateTotalCount('insiderAlarmTotalCount', allInsiderAlarms.length);
                     renderInsiderAlarms(allInsiderAlarms);
                 }
@@ -3614,8 +3642,8 @@
                 const response = await fetch('/api/bigmoney/alarms');
                 if (response.ok) {
                     const alarms = await response.json();
-                    // Dünün maçlarını filtrele - sadece bugün ve gelecek
-                    allBigMoneyAlarms = alarms;
+                    // Yeniden eskiye sirala
+                    allBigMoneyAlarms = sortAlarmsNewestFirst(alarms);
                     updateTotalCount('bigMoneyAlarmTotalCount', allBigMoneyAlarms.length);
                     renderBigMoneyAlarms(allBigMoneyAlarms);
                 }
@@ -3801,8 +3829,8 @@
             try {
                 const response = await fetch('/api/volumeshock/alarms');
                 const alarms = await response.json();
-                // Dünün maçlarını filtrele - sadece bugün ve gelecek
-                allVolumeShockAlarms = alarms;
+                // Yeniden eskiye sirala
+                allVolumeShockAlarms = sortAlarmsNewestFirst(alarms);
                 updateTotalCount('volumeShockAlarmTotalCount', allVolumeShockAlarms.length);
                 renderVolumeShockAlarms(allVolumeShockAlarms);
             } catch (error) {
@@ -4080,8 +4108,8 @@
             try {
                 const response = await fetch('/api/volumeleader/alarms');
                 const alarms = await response.json();
-                // Dünün maçlarını filtrele - sadece bugün ve gelecek
-                allVolumeLeaderAlarms = alarms;
+                // Yeniden eskiye sirala
+                allVolumeLeaderAlarms = sortAlarmsNewestFirst(alarms);
                 updateTotalCount('volumeLeaderAlarmTotalCount', allVolumeLeaderAlarms.length);
                 renderVolumeLeaderAlarms(allVolumeLeaderAlarms);
             } catch (error) {
@@ -4460,8 +4488,8 @@
                 const response = await fetch('/api/dropping/alarms');
                 if (response.ok) {
                     const alarms = await response.json();
-                    // Dünün maçlarını filtrele - sadece bugün ve gelecek
-                    allDroppingAlarms = alarms;
+                    // Yeniden eskiye sirala
+                    allDroppingAlarms = sortAlarmsNewestFirst(alarms);
                     updateTotalCount('droppingAlarmTotalCount', allDroppingAlarms.length);
                     renderDroppingAlarms(allDroppingAlarms);
                 }
