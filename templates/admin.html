@@ -711,6 +711,7 @@
                 <div class="header-actions">
                     <button class="btn btn-danger" onclick="deleteAllAlarms()">Tum Alarmlari Sil</button>
                     <button class="btn btn-warning" onclick="recalculateAlarms()">Alarmlari Yeniden Hesapla</button>
+                    <button class="btn" onclick="resetSharpCalculation()" style="background: #d29922; color: white;">Sifirla</button>
                     <button class="btn btn-primary" onclick="saveSharpConfig()">Kaydet</button>
                 </div>
             </div>
@@ -1178,6 +1179,7 @@
                 <div class="header-actions">
                     <button class="btn btn-danger" onclick="deleteAllPublicMoveAlarms()">Tum Alarmlari Sil</button>
                     <button class="btn btn-warning" onclick="recalculatePublicMoveAlarms()">Alarmlari Yeniden Hesapla</button>
+                    <button class="btn" onclick="resetPublicMoveCalculation()" style="background: #d29922; color: white;">Sifirla</button>
                     <button class="btn btn-primary" onclick="savePublicMoveConfig()">Kaydet</button>
                 </div>
             </div>
@@ -1439,6 +1441,7 @@
                 <div class="header-actions">
                     <button class="btn btn-danger" onclick="deleteAllInsiderAlarms()">Tum Insider Alarmlari Sil</button>
                     <button class="btn" onclick="recalculateInsiderAlarms()" style="background: linear-gradient(135deg, #a371f7, #8b5cf6); color: white;">🕵️ Insider Hesapla</button>
+                    <button class="btn" onclick="resetInsiderCalculation()" style="background: #d29922; color: white;">Sifirla</button>
                     <button class="btn btn-primary" onclick="saveInsiderConfig()">Kaydet</button>
                 </div>
             </div>
@@ -1551,6 +1554,9 @@
                         </button>
                         <button class="btn btn-success" onclick="calculateBigMoney()" style="background: #238636;">
                             <span class="btn-icon">💰</span> Big Money Hesapla
+                        </button>
+                        <button class="btn btn-warning" onclick="resetBigMoneyCalculation()" style="background: #d29922;">
+                            <span class="btn-icon">🔄</span> Sifirla
                         </button>
                         <button class="btn btn-danger" onclick="deleteBigMoneyAlarms()" style="background: #da3633;">
                             <span class="btn-icon">🗑️</span> Alarmlari Sil
@@ -1721,6 +1727,9 @@
                     </button>
                     <button class="btn btn-success" onclick="calculateDropping()" style="background: #238636;">
                         <span class="btn-icon">📉</span> Dropping Hesapla
+                    </button>
+                    <button class="btn btn-warning" onclick="resetDroppingCalculation()" style="background: #d29922;">
+                        <span class="btn-icon">🔄</span> Sifirla
                     </button>
                 </div>
             </div>
@@ -1921,6 +1930,9 @@
                         </button>
                         <button class="btn btn-success" onclick="calculateVolumeLeader()" style="background: #238636;">
                             <span class="btn-icon">👑</span> Hacim Lideri Hesapla
+                        </button>
+                        <button class="btn btn-warning" onclick="resetVolumeLeaderCalculation()" style="background: #d29922;">
+                            <span class="btn-icon">🔄</span> Sifirla
                         </button>
                         <button class="btn btn-danger" onclick="deleteAllVolumeLeaderAlarms()" style="background: #da3633;">
                             <span class="btn-icon">🗑️</span> Alarmlari Sil
@@ -2656,6 +2668,19 @@
         }
 
         let calcStatusInterval = null;
+        
+        async function resetSharpCalculation() {
+            try {
+                const response = await fetch('/api/sharp/reset', { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    hideCalcStatus();
+                    showToast('Sharp hesaplama sifirlandi!', 'success');
+                }
+            } catch (error) {
+                showToast('Sifirlama hatasi!', 'error');
+            }
+        }
 
         async function recalculateAlarms() {
             showToast('Alarmlar hesaplaniyor...', 'info');
@@ -2686,6 +2711,19 @@
             }
         }
 
+        async function resetInsiderCalculation() {
+            try {
+                const response = await fetch('/api/insider/reset', { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    hideInsiderCalcStatus();
+                    showToast('Insider hesaplama sifirlandi!', 'success');
+                }
+            } catch (error) {
+                showToast('Sifirlama hatasi!', 'error');
+            }
+        }
+        
         async function recalculateInsiderAlarms() {
             showToast('Insider alarmlar hesaplaniyor...', 'info');
             showInsiderCalcStatus(true, 'Insider alarm hesaplama baslatiliyor...');
@@ -3093,6 +3131,19 @@
             }
         }
 
+        async function resetPublicMoveCalculation() {
+            try {
+                const response = await fetch('/api/publicmove/reset', { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('htCalcStatus').style.display = 'none';
+                    showToast('Public Move hesaplama sifirlandi!', 'success');
+                }
+            } catch (error) {
+                showToast('Sifirlama hatasi!', 'error');
+            }
+        }
+        
         async function recalculatePublicMoveAlarms() {
             const statusEl = document.getElementById('htCalcStatus');
             const progressEl = document.getElementById('htCalcProgress');
@@ -4024,6 +4075,19 @@
             if (statusEl) statusEl.style.display = 'none';
         }
         
+        async function resetVolumeLeaderCalculation() {
+            try {
+                const response = await fetch('/api/volumeleader/reset', { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    hideVolumeLeaderCalcStatus();
+                    showToast('Hacim Lideri hesaplama sifirlandi!', 'success');
+                }
+            } catch (error) {
+                showToast('Sifirlama hatasi!', 'error');
+            }
+        }
+        
         async function calculateVolumeLeader() {
             showVolumeLeaderCalcStatus();
             document.getElementById('volumeLeaderCalcProgress').textContent = 'Hacim Lideri hesaplaniyor...';
@@ -4114,6 +4178,19 @@
             if (statusEl) statusEl.style.display = 'none';
         }
 
+        async function resetBigMoneyCalculation() {
+            try {
+                const response = await fetch('/api/bigmoney/reset', { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    hideBigMoneyCalcStatus();
+                    showToast('Big Money hesaplama sifirlandi!', 'success');
+                }
+            } catch (error) {
+                showToast('Sifirlama hatasi!', 'error');
+            }
+        }
+        
         async function calculateBigMoney() {
             showBigMoneyCalcStatus();
             document.getElementById('bigMoneyCalcProgress').textContent = 'Big Money hesaplaniyor...';
@@ -4345,6 +4422,19 @@
             document.getElementById('droppingCalcStatus').style.display = 'none';
         }
 
+        async function resetDroppingCalculation() {
+            try {
+                const response = await fetch('/api/dropping/reset', { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    hideDroppingCalcStatus();
+                    showToast('Dropping hesaplama sifirlandi!', 'success');
+                }
+            } catch (error) {
+                showToast('Sifirlama hatasi!', 'error');
+            }
+        }
+        
         async function calculateDropping() {
             showDroppingCalcStatus();
             document.getElementById('droppingCalcProgress').textContent = 'Dropping hesaplaniyor...';
