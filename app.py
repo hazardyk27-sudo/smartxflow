@@ -4079,6 +4079,278 @@ def get_scraper_logs():
         return jsonify({'status': 'error', 'logs': [], 'message': str(e)})
 
 
+# ============================================
+# SCRAPER CONSOLE - Live Log Streaming
+# ============================================
+
+@app.route('/scraper/status')
+def scraper_console_status():
+    """Scraper durumu - canlı konsol için"""
+    try:
+        # EXE modunda scraper_admin'den state al
+        if os.environ.get('SMARTX_DESKTOP') == '1':
+            try:
+                import scraper_admin
+                state = getattr(scraper_admin, 'SCRAPER_STATE', {})
+                return jsonify({
+                    'status': 'ok',
+                    'running': state.get('running', False),
+                    'interval_minutes': state.get('interval_minutes', 10),
+                    'last_scrape': state.get('last_scrape'),
+                    'next_scrape': state.get('next_scrape'),
+                    'last_rows': state.get('last_rows', 0),
+                    'last_alarm_count': state.get('last_alarm_count', 0),
+                    'status_text': state.get('status', 'Bekliyor...')
+                })
+            except:
+                pass
+        
+        # Server modunda scrape_status kullan
+        return jsonify({
+            'status': 'ok',
+            'running': scrape_status.get('running', False),
+            'interval_minutes': scrape_status.get('interval_minutes', 10),
+            'last_scrape': scrape_status.get('last_scrape_time'),
+            'next_scrape': scrape_status.get('next_scrape_time'),
+            'last_rows': 0,
+            'last_alarm_count': 0,
+            'status_text': 'Running' if scrape_status.get('auto_running') else 'Stopped'
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+
+@app.route('/scraper/logs')
+def scraper_console_logs():
+    """Son scraper logları"""
+    try:
+        logs = []
+        
+        # EXE modunda buffer'dan al
+        if os.environ.get('SMARTX_DESKTOP') == '1':
+            try:
+                import scraper_admin
+                buffer = getattr(scraper_admin, 'SCRAPER_LOG_BUFFER', [])
+                logs = list(buffer)
+            except:
+                pass
+        
+        return jsonify({'status': 'ok', 'logs': logs})
+    except Exception as e:
+        return jsonify({'status': 'error', 'logs': [], 'message': str(e)})
+
+
+@app.route('/scraper/stream')
+def scraper_console_stream():
+    """SSE stream - canlı log akışı"""
+    from flask import Response
+    import queue
+    
+    def generate():
+        q = queue.Queue()
+        
+        # EXE modunda client listesine ekle
+        if os.environ.get('SMARTX_DESKTOP') == '1':
+            try:
+                import scraper_admin
+                clients = getattr(scraper_admin, 'SCRAPER_SSE_CLIENTS', [])
+                clients.append(q)
+            except:
+                pass
+        
+        try:
+            yield f"data: Scraper Console bağlandı\n\n"
+            
+            while True:
+                try:
+                    msg = q.get(timeout=15)
+                    yield f"data: {msg}\n\n"
+                except queue.Empty:
+                    yield f": keepalive\n\n"
+        finally:
+            # Cleanup
+            if os.environ.get('SMARTX_DESKTOP') == '1':
+                try:
+                    import scraper_admin
+                    clients = getattr(scraper_admin, 'SCRAPER_SSE_CLIENTS', [])
+                    if q in clients:
+                        clients.remove(q)
+                except:
+                    pass
+    
+    return Response(generate(), mimetype='text/event-stream',
+                    headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+
+
+@app.route('/scraper/console')
+def scraper_console_page():
+    """Ayrı pencere için scraper konsol sayfası"""
+    html = '''<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartXFlow Scraper Console</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Consolas', 'Courier New', monospace;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 15px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: #161b22;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #30363d;
+        }
+        .header h1 {
+            font-size: 16px;
+            color: #58a6ff;
+        }
+        .status-badges {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+        }
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            background: #21262d;
+        }
+        .badge.running { background: #238636; }
+        .badge.stopped { background: #da3633; }
+        .console {
+            flex: 1;
+            background: #010409;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .log-line {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .log-line.error { color: #f85149; }
+        .log-line.success { color: #3fb950; }
+        .log-line.info { color: #58a6ff; }
+        .log-line.separator { color: #484f58; }
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        button {
+            padding: 8px 16px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        button:hover { background: #30363d; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>SmartXFlow Scraper Console</h1>
+        <div class="status-badges">
+            <span class="badge" id="statusBadge">Bağlanıyor...</span>
+            <span class="badge">Interval: <span id="intervalValue">10</span> dk</span>
+            <span class="badge">Son: <span id="lastRows">-</span> satır</span>
+        </div>
+    </div>
+    
+    <div class="console" id="console"></div>
+    
+    <div class="toolbar">
+        <button onclick="clearConsole()">Temizle</button>
+        <button onclick="location.reload()">Yenile</button>
+    </div>
+    
+    <script>
+        const consoleEl = document.getElementById('console');
+        const statusBadge = document.getElementById('statusBadge');
+        
+        function addLog(text) {
+            const line = document.createElement('div');
+            line.className = 'log-line';
+            
+            if (text.includes('HATA') || text.includes('ERROR')) {
+                line.classList.add('error');
+            } else if (text.includes('tamamlandı') || text.includes('başarılı')) {
+                line.classList.add('success');
+            } else if (text.includes('---') || text.includes('===')) {
+                line.classList.add('separator');
+            } else if (text.includes('başlıyor') || text.includes('çekiliyor')) {
+                line.classList.add('info');
+            }
+            
+            line.textContent = text;
+            consoleEl.appendChild(line);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+        
+        function clearConsole() {
+            consoleEl.innerHTML = '';
+            addLog('[Console temizlendi]');
+        }
+        
+        // Mevcut logları yükle
+        fetch('/scraper/logs')
+            .then(r => r.json())
+            .then(data => {
+                if (data.logs) {
+                    data.logs.forEach(log => addLog(log));
+                }
+            });
+        
+        // Status güncelle
+        function updateStatus() {
+            fetch('/scraper/status')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.running) {
+                        statusBadge.textContent = 'Çalışıyor';
+                        statusBadge.className = 'badge running';
+                    } else {
+                        statusBadge.textContent = 'Durduruldu';
+                        statusBadge.className = 'badge stopped';
+                    }
+                    document.getElementById('intervalValue').textContent = data.interval_minutes || 10;
+                    document.getElementById('lastRows').textContent = data.last_rows || '-';
+                });
+        }
+        updateStatus();
+        setInterval(updateStatus, 5000);
+        
+        // SSE bağlantısı
+        const evtSource = new EventSource('/scraper/stream');
+        evtSource.onmessage = (e) => {
+            addLog(e.data);
+        };
+        evtSource.onerror = () => {
+            statusBadge.textContent = 'Bağlantı kesildi';
+            statusBadge.className = 'badge stopped';
+        };
+    </script>
+</body>
+</html>'''
+    return html
+
+
 @app.route('/admin')
 def admin_panel():
     """Admin Panel"""
