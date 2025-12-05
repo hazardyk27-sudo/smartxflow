@@ -612,6 +612,8 @@ class AlarmCalculator:
                     total_incoming = 0
                     max_hacim_sok = 0
                     trigger_snap = latest
+                    trigger_snap_index = len(history) - 1
+                    all_hacim_soks = []
                     
                     for i in range(1, len(history)):
                         curr_amt = parse_volume(history[i].get(amount_key, 0))
@@ -625,10 +627,12 @@ class AlarmCalculator:
                                         for j in range(max(0, i-5), i)]
                             avg_prev = sum(prev_amts) / len(prev_amts) if prev_amts else 1
                             hacim_sok = incoming / avg_prev if avg_prev > 0 else 0
+                            all_hacim_soks.append(hacim_sok)
                             
                             if hacim_sok > max_hacim_sok:
                                 max_hacim_sok = hacim_sok
                                 trigger_snap = history[i]
+                                trigger_snap_index = i
                     
                     if total_incoming >= max_para:
                         continue
@@ -638,6 +642,21 @@ class AlarmCalculator:
                     
                     trigger_at = trigger_snap.get('scraped_at', now_turkey_iso())
                     
+                    start_idx = max(0, trigger_snap_index - 3)
+                    end_idx = min(len(history), trigger_snap_index + 4)
+                    surrounding = []
+                    for si in range(start_idx, end_idx):
+                        snap = history[si]
+                        surrounding.append({
+                            'index': si,
+                            'scraped_at': snap.get('scraped_at', ''),
+                            'odds': parse_float(snap.get(odds_key, 0)),
+                            'amount': parse_volume(snap.get(amount_key, 0)),
+                            'is_trigger': si == trigger_snap_index
+                        })
+                    
+                    avg_hacim_sok = sum(all_hacim_soks) / len(all_hacim_soks) if all_hacim_soks else 0
+                    
                     alarm = {
                         'home': home,
                         'away': away,
@@ -646,8 +665,13 @@ class AlarmCalculator:
                         'oran_dusus_pct': round(oran_dusus_pct, 2),
                         'gelen_para': total_incoming,
                         'hacim_sok': round(max_hacim_sok, 3),
+                        'avg_volume_shock': round(avg_hacim_sok, 4),
                         'opening_odds': opening_odds,
                         'current_odds': current_odds,
+                        'drop_moment_index': trigger_snap_index,
+                        'drop_moment': trigger_at,
+                        'surrounding_snapshots': surrounding,
+                        'snapshot_count': len(history),
                         'match_date': match.get('date', ''),
                         'event_time': trigger_at,
                         'trigger_at': trigger_at,
