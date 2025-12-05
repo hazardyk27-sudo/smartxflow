@@ -4103,9 +4103,9 @@
             container.innerHTML = alarms.map((alarm, idx) => {
                 const oldLeader = alarm.old_leader || '-';
                 const newLeader = alarm.new_leader || '-';
-                const oldShare = alarm.old_share || 0;
-                const newShare = alarm.new_share || 0;
-                const volume = alarm.volume || 0;
+                const oldShare = alarm.old_leader_share || 0;
+                const newShare = alarm.new_leader_share || 0;
+                const volume = alarm.total_volume || 0;
                 const createdAt = alarm.created_at || '-';
                 const zebraStyle = idx % 2 === 0 ? 'background: #161b22;' : 'background: #1c2128;';
                 
