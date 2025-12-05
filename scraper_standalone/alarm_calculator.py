@@ -136,14 +136,17 @@ class AlarmCalculator:
             log(f"GET error {table}: {e}")
         return []
     
-    def _post(self, table: str, data: List[Dict]) -> bool:
+    def _post(self, table: str, data: List[Dict], on_conflict=None) -> bool:
         try:
             headers = self._headers()
             headers["Prefer"] = "resolution=merge-duplicates"
+            url = self._rest_url(table)
+            if on_conflict:
+                url = f"{url}?on_conflict={on_conflict}"
             if hasattr(httpx, 'post'):
-                resp = httpx.post(self._rest_url(table), headers=headers, json=data, timeout=30)
+                resp = httpx.post(url, headers=headers, json=data, timeout=30)
             else:
-                resp = httpx.post(self._rest_url(table), headers=headers, json=data, timeout=30)
+                resp = httpx.post(url, headers=headers, json=data, timeout=30)
             return resp.status_code in [200, 201]
         except Exception as e:
             log(f"POST error {table}: {e}")
@@ -162,30 +165,22 @@ class AlarmCalculator:
         return False
     
     def _upsert_alarms(self, table: str, alarms: List[Dict], key_fields: List[str]) -> int:
-        """Upsert alarms - only add new ones based on key_fields"""
+        """True UPSERT - insert or update existing records based on key_fields"""
         if not alarms:
             return 0
         
         try:
-            existing = self._get(table, f'select={",".join(key_fields)}')
-            existing_keys = set()
-            for e in existing:
-                key = "_".join(str(e.get(f, '')) for f in key_fields)
-                existing_keys.add(key)
-            
-            new_alarms = []
-            for alarm in alarms:
-                key = "_".join(str(alarm.get(f, '')) for f in key_fields)
-                if key not in existing_keys:
-                    new_alarms.append(alarm)
-            
-            if new_alarms:
-                self._post(table, new_alarms)
-            
-            return len(new_alarms)
+            on_conflict = ",".join(key_fields)
+            if self._post(table, alarms, on_conflict=on_conflict):
+                log(f"[UPSERT] {table}: {len(alarms)} alarms upserted (on_conflict={on_conflict})")
+                return len(alarms)
+            else:
+                log(f"[UPSERT] {table}: POST failed, trying without on_conflict")
+                if self._post(table, alarms):
+                    return len(alarms)
         except Exception as e:
             log(f"Upsert error {table}: {e}")
-            return 0
+        return 0
     
     def load_configs(self):
         """Load all alarm configs from Supabase alarm_settings table"""
