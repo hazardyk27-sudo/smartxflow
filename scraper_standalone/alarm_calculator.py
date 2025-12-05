@@ -543,10 +543,12 @@ class AlarmCalculator:
     def calculate_insider_alarms(self) -> int:
         """Calculate Insider Info alarms"""
         config = self.configs.get('insider', self._default_configs()['insider'])
-        hacim_sok_esigi = config.get('insider_hacim_sok_esigi', 2)
-        oran_dusus_esigi = config.get('insider_oran_dusus_esigi', 3)
-        max_para = config.get('insider_max_para', 5000)
-        max_odds = config.get('insider_max_odds_esigi', 10.0)
+        # Supabase'deki Türkçe field isimlerini kullan, yoksa eski İngilizce isimlere bak
+        hacim_sok_esigi = config.get('hacim_sok_esigi', config.get('insider_hacim_sok_esigi', 2))
+        oran_dusus_esigi = config.get('oran_dusus_esigi', config.get('insider_oran_dusus_esigi', 3))
+        max_para = config.get('max_para', config.get('insider_max_para', 5000))
+        max_odds = config.get('max_odds_esigi', config.get('insider_max_odds_esigi', 10.0))
+        log(f"[Insider Config] hacim_sok: {hacim_sok_esigi}, oran_dusus: {oran_dusus_esigi}, max_para: {max_para}, max_odds: {max_odds}")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -753,8 +755,11 @@ class AlarmCalculator:
     def calculate_volumeshock_alarms(self) -> int:
         """Calculate Volume Shock alarms"""
         config = self.configs.get('volumeshock', self._default_configs()['volumeshock'])
-        shock_mult = config.get('volume_shock_multiplier', 3.0)
-        min_hours = config.get('min_hours_to_kickoff', 2)
+        # Supabase'deki Türkçe field isimlerini kullan
+        shock_mult = config.get('hacim_soku_min_esik', config.get('volume_shock_multiplier', 3.0))
+        min_hours = config.get('hacim_soku_min_saat', config.get('min_hours_to_kickoff', 2))
+        min_incoming = config.get('min_son_snapshot_para', 500)
+        log(f"[VolumeShock Config] shock_mult: {shock_mult}, min_hours: {min_hours}, min_incoming: {min_incoming}")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -795,6 +800,10 @@ class AlarmCalculator:
                     incoming = latest_amt - prev_amt
                     
                     if incoming <= 0:
+                        continue
+                    
+                    # min_son_snapshot_para filtresi
+                    if incoming < min_incoming:
                         continue
                     
                     prev_amts = [parse_volume(history[i].get(amount_key, 0)) - 
