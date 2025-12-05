@@ -1824,6 +1824,9 @@
                         <button class="btn btn-success" onclick="calculateVolumeShock()" style="background: #238636;">
                             <span class="btn-icon">⚡</span> Hacim Soku Hesapla
                         </button>
+                        <button class="btn btn-warning" onclick="resetVolumeShockCalculation()" style="background: #d29922;">
+                            <span class="btn-icon">🔄</span> Sifirla
+                        </button>
                         <button class="btn btn-danger" onclick="deleteVolumeShockAlarms()" style="background: #da3633;">
                             <span class="btn-icon">🗑️</span> Alarmlari Sil
                         </button>
@@ -3787,6 +3790,19 @@
         function hideVolumeShockCalcStatus() {
             const statusEl = document.getElementById('volumeShockCalcStatus');
             if (statusEl) statusEl.style.display = 'none';
+        }
+        
+        async function resetVolumeShockCalculation() {
+            try {
+                const response = await fetch('/api/volumeshock/reset', { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    hideVolumeShockCalcStatus();
+                    showToast('Hacim Soku hesaplama sifirlandi!', 'success');
+                }
+            } catch (error) {
+                showToast('Sifirlama hatasi!', 'error');
+            }
         }
         
         async function calculateVolumeShock() {

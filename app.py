@@ -2507,6 +2507,15 @@ def get_volume_shock_status():
         'alarm_count': len(volume_shock_alarms)
     })
 
+@app.route('/api/volumeshock/reset', methods=['POST'])
+def reset_volume_shock_calculation():
+    """Reset Volume Shock calculation flag (force unlock)"""
+    global volume_shock_calculating, volume_shock_calc_progress
+    volume_shock_calculating = False
+    volume_shock_calc_progress = "Reset by user"
+    print("[VolumeShock] Calculation flag reset by user")
+    return jsonify({'success': True, 'message': 'Calculation reset'})
+
 @app.route('/api/volumeshock/calculate', methods=['POST'])
 def calculate_volume_shock_alarms():
     """Calculate Volume Shock alarms based on current config"""
