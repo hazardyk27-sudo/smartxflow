@@ -1,6 +1,7 @@
 """
-SmartXFlow Admin Panel v1.04 - Web Admin + Scraper
+SmartXFlow Admin Panel v1.05 - Web Admin + Scraper
 Web admin paneli (pywebview) + Arka planda scraper
+İlk açılışta config yoksa setup formu açılır ve config.json oluşturulur.
 """
 import sys
 import os
@@ -11,8 +12,12 @@ import logging
 import json
 from datetime import datetime
 
-VERSION = "1.04"
+VERSION = "1.05"
 CONFIG_FILE = "config.json"
+
+# Hardcoded Supabase credentials (fallback)
+EMBEDDED_SUPABASE_URL = "https://pswdvnmqjjnjodwzkmkp.supabase.co"
+EMBEDDED_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzd2R2bm1xampuam9kd3prbWtwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3NzA0NzMsImV4cCI6MjA3ODM0NjQ3M30.Xt7kHbzOxK9-tqg4y0v5E_H5kLEcWZyLNqfQlLo3w3s"
 
 def setup_logging():
     """Log dosyası oluştur"""
@@ -41,18 +46,148 @@ def resource_path(relative_path):
 
 
 def get_config_path():
-    """Config dosyası yolu"""
+    """Config dosyası yolu - önce EXE yanı (kullanıcı kaydetmiş), sonra gömülü"""
+    if getattr(sys, 'frozen', False):
+        user_config = os.path.join(os.path.dirname(sys.executable), CONFIG_FILE)
+        if os.path.exists(user_config):
+            return user_config
+        embedded_config = os.path.join(sys._MEIPASS, CONFIG_FILE)
+        if os.path.exists(embedded_config):
+            return embedded_config
+        return user_config
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), CONFIG_FILE)
+
+
+def get_writable_config_path():
+    """Yazılabilir config dosyası yolu - her zaman EXE yanı"""
     if getattr(sys, 'frozen', False):
         return os.path.join(os.path.dirname(sys.executable), CONFIG_FILE)
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), CONFIG_FILE)
 
 
+def save_config(config):
+    """Config dosyasını EXE yanına kaydet"""
+    config_path = get_writable_config_path()
+    try:
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=4, ensure_ascii=False)
+        logging.info(f"Config saved to: {config_path}")
+        return True
+    except Exception as e:
+        logging.error(f"Config save error: {e}")
+        return False
+
+
+def show_setup_dialog():
+    """İlk kurulum dialog'u - Supabase bilgilerini al"""
+    import tkinter as tk
+    from tkinter import ttk, messagebox
+    
+    result = {'success': False, 'config': None}
+    
+    def on_save():
+        url = url_entry.get().strip()
+        key = key_entry.get().strip()
+        
+        if not url or not key:
+            messagebox.showerror("Hata", "Supabase URL ve ANON_KEY gerekli!")
+            return
+        
+        if not url.startswith('https://') or 'supabase' not in url:
+            messagebox.showerror("Hata", "Geçerli bir Supabase URL girin!\nÖrnek: https://xxxxx.supabase.co")
+            return
+        
+        if not key.startswith('eyJ'):
+            messagebox.showerror("Hata", "Geçerli bir Supabase ANON_KEY girin!\nJWT token ile başlamalı (eyJ...)")
+            return
+        
+        config = {
+            'SUPABASE_URL': url,
+            'SUPABASE_ANON_KEY': key,
+            'SCRAPE_INTERVAL_MINUTES': 10
+        }
+        
+        if save_config(config):
+            result['success'] = True
+            result['config'] = config
+            root.destroy()
+        else:
+            messagebox.showerror("Hata", "Config dosyası kaydedilemedi!")
+    
+    def on_cancel():
+        root.destroy()
+    
+    root = tk.Tk()
+    root.title("SmartXFlow Admin - İlk Kurulum")
+    root.geometry("550x320")
+    root.resizable(False, False)
+    
+    try:
+        root.iconbitmap(default='')
+    except:
+        pass
+    
+    root.configure(bg='#1a1a2e')
+    
+    style = ttk.Style()
+    style.theme_use('clam')
+    style.configure('TLabel', background='#1a1a2e', foreground='#e0e0e0', font=('Segoe UI', 10))
+    style.configure('TEntry', fieldbackground='#16213e', foreground='#e0e0e0')
+    style.configure('TButton', font=('Segoe UI', 10))
+    
+    main_frame = ttk.Frame(root, padding=20)
+    main_frame.pack(fill='both', expand=True)
+    main_frame.configure(style='TFrame')
+    style.configure('TFrame', background='#1a1a2e')
+    
+    title_label = ttk.Label(main_frame, text="SmartXFlow Admin Panel - İlk Kurulum", 
+                            font=('Segoe UI', 14, 'bold'), foreground='#4fc3f7')
+    title_label.pack(pady=(0, 20))
+    
+    info_label = ttk.Label(main_frame, text="Supabase bağlantı bilgilerinizi girin.\nBu bilgiler config.json dosyasına kaydedilecek.",
+                           font=('Segoe UI', 9), foreground='#888888')
+    info_label.pack(pady=(0, 15))
+    
+    url_frame = ttk.Frame(main_frame)
+    url_frame.pack(fill='x', pady=5)
+    ttk.Label(url_frame, text="Supabase URL:", width=15).pack(side='left')
+    url_entry = ttk.Entry(url_frame, width=50)
+    url_entry.pack(side='left', padx=5)
+    url_entry.insert(0, "https://")
+    
+    key_frame = ttk.Frame(main_frame)
+    key_frame.pack(fill='x', pady=5)
+    ttk.Label(key_frame, text="Supabase ANON_KEY:", width=15).pack(side='left')
+    key_entry = ttk.Entry(key_frame, width=50, show='*')
+    key_entry.pack(side='left', padx=5)
+    
+    show_key_var = tk.BooleanVar()
+    def toggle_key():
+        key_entry.configure(show='' if show_key_var.get() else '*')
+    show_key_cb = ttk.Checkbutton(main_frame, text="Key'i göster", variable=show_key_var, command=toggle_key)
+    show_key_cb.pack(anchor='w', pady=5)
+    
+    button_frame = ttk.Frame(main_frame)
+    button_frame.pack(pady=20)
+    
+    save_btn = ttk.Button(button_frame, text="Kaydet ve Başlat", command=on_save)
+    save_btn.pack(side='left', padx=10)
+    
+    cancel_btn = ttk.Button(button_frame, text="İptal", command=on_cancel)
+    cancel_btn.pack(side='left', padx=10)
+    
+    root.eval('tk::PlaceWindow . center')
+    root.mainloop()
+    
+    return result
+
+
 def load_config():
-    """Config dosyasını yükle"""
+    """Config dosyasını yükle - embedded fallback ile"""
     config_path = get_config_path()
     default_config = {
-        'SUPABASE_URL': '',
-        'SUPABASE_ANON_KEY': '',
+        'SUPABASE_URL': EMBEDDED_SUPABASE_URL,
+        'SUPABASE_ANON_KEY': EMBEDDED_SUPABASE_KEY,
         'SCRAPE_INTERVAL_MINUTES': 10
     }
     
@@ -63,13 +198,17 @@ def load_config():
                 if content.startswith('\ufeff'):
                     content = content[1:]
                 config = json.loads(content)
-                for key in default_config:
-                    if key not in config:
-                        config[key] = default_config[key]
+                if not config.get('SUPABASE_URL'):
+                    config['SUPABASE_URL'] = EMBEDDED_SUPABASE_URL
+                if not config.get('SUPABASE_ANON_KEY'):
+                    config['SUPABASE_ANON_KEY'] = EMBEDDED_SUPABASE_KEY
+                if 'SCRAPE_INTERVAL_MINUTES' not in config:
+                    config['SCRAPE_INTERVAL_MINUTES'] = 10
                 return config
         except Exception as e:
-            logging.error(f"Config load error: {e}")
+            logging.error(f"Config load error: {e}, using embedded credentials")
     
+    logging.info("Using embedded Supabase credentials")
     return default_config
 
 
@@ -203,16 +342,43 @@ def main():
     log_file = setup_logging()
     logging.info(f"Log file: {log_file}")
     
-    config = setup_environment()
+    config_path = get_writable_config_path()
+    logging.info(f"Config path: {config_path}")
     
-    if not config.get('SUPABASE_URL') or not config.get('SUPABASE_ANON_KEY'):
-        show_error_dialog(
-            "Supabase Ayarları Eksik",
-            "config.json dosyasında SUPABASE_URL ve SUPABASE_ANON_KEY ayarlanmalı.\n\n"
-            f"Config dosyası: {get_config_path()}"
-        )
-        logging.error("Supabase credentials missing!")
-        sys.exit(1)
+    need_setup = True
+    
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                saved_config = json.load(f)
+                url = saved_config.get('SUPABASE_URL', '')
+                key = saved_config.get('SUPABASE_ANON_KEY', '')
+                if url and key and url.startswith('https://') and key.startswith('eyJ'):
+                    need_setup = False
+                    logging.info("Valid config found!")
+        except Exception as e:
+            logging.error(f"Config read error: {e}")
+    
+    if need_setup:
+        logging.info("Config eksik veya gecersiz - Kurulum penceresi aciliyor...")
+        result = show_setup_dialog()
+        
+        if not result['success']:
+            logging.error("Kullanici kurulumu iptal etti")
+            sys.exit(0)
+        
+        config = result['config']
+    else:
+        config = saved_config
+    
+    os.environ['SUPABASE_URL'] = config['SUPABASE_URL']
+    os.environ['SUPABASE_ANON_KEY'] = config['SUPABASE_ANON_KEY']
+    os.environ['PYWEBVIEW_GUI'] = 'edgechromium'
+    os.environ['SMARTX_DESKTOP'] = '1'
+    os.environ['DISABLE_SCRAPER'] = 'false'
+    
+    logging.info(f"Supabase URL: {config.get('SUPABASE_URL', '')[:40]}...")
+    logging.info("Config loaded - starting application")
     
     port = find_free_port()
     if port is None:

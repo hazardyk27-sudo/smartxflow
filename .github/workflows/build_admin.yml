@@ -29,10 +29,29 @@ jobs:
           cat scraper_standalone/config.json
         shell: bash
 
+      - name: Create BUILD_INFO.txt
+        run: |
+          echo "SmartXFlow Admin Panel v1.04" > scraper_standalone/BUILD_INFO.txt
+          echo "Build Date: $(date)" >> scraper_standalone/BUILD_INFO.txt
+          echo "Python: 3.11" >> scraper_standalone/BUILD_INFO.txt
+          echo "Commit: ${{ github.sha }}" >> scraper_standalone/BUILD_INFO.txt
+          echo "Branch: ${{ github.ref_name }}" >> scraper_standalone/BUILD_INFO.txt
+          echo "" >> scraper_standalone/BUILD_INFO.txt
+          echo "=== Troubleshooting ===" >> scraper_standalone/BUILD_INFO.txt
+          echo "1. Check smartxflow_admin.log for errors" >> scraper_standalone/BUILD_INFO.txt
+          echo "2. Ensure WebView2 Runtime is installed" >> scraper_standalone/BUILD_INFO.txt
+          echo "3. Run as Administrator if needed" >> scraper_standalone/BUILD_INFO.txt
+        shell: bash
+
       - name: Build Admin EXE
         run: |
           cd scraper_standalone
           pyinstaller admin.spec
+        shell: cmd
+
+      - name: Copy debug files to dist
+        run: |
+          copy scraper_standalone\BUILD_INFO.txt scraper_standalone\dist\
         shell: cmd
 
       - name: List output files

@@ -3663,7 +3663,7 @@ function formatAlertValue(alarm) {
     }
     if (type === 'bigmoney') {
         const val = alarm.incoming_money || alarm.stake || alarm.volume || 0;
-        return '£' + Number(val).toLocaleString();
+        return '£' + Number(val).toLocaleString('en-GB');
     }
     if (type === 'volumeshock') {
         const shockValue = alarm.volume_shock_value || 0;
@@ -3792,7 +3792,7 @@ function showAlertBandDetail(index) {
         detailsHtml = `
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                 <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                    <div style="color: #4ade80; font-size: 20px; font-weight: 700;">${alarm.volume ? '£' + Number(alarm.volume).toLocaleString() : '-'}</div>
+                    <div style="color: #4ade80; font-size: 20px; font-weight: 700;">${alarm.volume ? '£' + Number(alarm.volume).toLocaleString('en-GB') : '-'}</div>
                     <div style="color: #8b949e; font-size: 11px;">Volume</div>
                 </div>
                 <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
@@ -3813,7 +3813,7 @@ function showAlertBandDetail(index) {
         detailsHtml = `
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                 <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                    <div style="color: #60a5fa; font-size: 20px; font-weight: 700;">${alarm.stake ? '£' + Number(alarm.stake).toLocaleString() : '-'}</div>
+                    <div style="color: #60a5fa; font-size: 20px; font-weight: 700;">${alarm.stake ? '£' + Number(alarm.stake).toLocaleString('en-GB') : '-'}</div>
                     <div style="color: #8b949e; font-size: 11px;">Stake</div>
                 </div>
                 <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
@@ -3825,7 +3825,7 @@ function showAlertBandDetail(index) {
     } else {
         detailsHtml = `
             <div style="background: #21262d; border-radius: 8px; padding: 16px; text-align: center;">
-                <div style="color: #fbbf24; font-size: 28px; font-weight: 700;">${alarm.stake ? '£' + Number(alarm.stake).toLocaleString() : (alarm.volume ? '£' + Number(alarm.volume).toLocaleString() : '-')}</div>
+                <div style="color: #fbbf24; font-size: 28px; font-weight: 700;">${alarm.stake ? '£' + Number(alarm.stake).toLocaleString('en-GB') : (alarm.volume ? '£' + Number(alarm.volume).toLocaleString('en-GB') : '-')}</div>
                 <div style="color: #8b949e; font-size: 12px; margin-top: 4px;">Stake Amount</div>
             </div>
         `;
