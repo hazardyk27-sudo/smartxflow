@@ -3887,11 +3887,18 @@
             }
             
             container.innerHTML = alarms.map((alarm, idx) => {
-                const shockValue = alarm.volume_shock_value || 0;
+                const incomingMoney = alarm.incoming_money || 0;
+                const avgPrevious = alarm.avg_previous || 0;
+                let shockValue = alarm.volume_shock_value;
+                if (!shockValue || shockValue === 0) {
+                    shockValue = avgPrevious > 0 ? (incomingMoney / avgPrevious) : null;
+                }
+                const shockDisplay = shockValue !== null ? shockValue.toFixed(1) + 'x' : 'N/A';
+                const shockDetailDisplay = shockValue !== null ? shockValue.toFixed(3) + 'x' : 'N/A';
+                
                 const matchDate = alarm.match_date || '-';
                 const calculatedHours = calculateHoursToKickoff(matchDate);
                 const hoursToKickoff = calculatedHours !== null ? calculatedHours : (alarm.hours_to_kickoff || 0);
-                const incomingMoney = alarm.incoming_money || 0;
                 const eventTime = alarm.event_time || '-';
                 const createdAt = alarm.created_at || '-';
                 const minSaat = alarm.hacim_soku_min_saat || 5;
@@ -3908,12 +3915,12 @@
                             </div>
                             <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${createdAt}</div>
                             <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
-                                <span style="color: #ff6b6b;" title="Sok Degeri">⚡ Sok: ${shockValue.toFixed(1)}x</span>
+                                <span style="color: #ff6b6b;" title="Sok Degeri">⚡ Sok: ${shockDisplay}</span>
                                 <span style="color: #58a6ff;" title="Mactan Once">⏰ Mactan ${hoursToKickoff.toFixed(1)}s once</span>
                                 <span style="color: #3fb950;" title="Gelen Para">💰 £${Math.round(incomingMoney).toLocaleString('en-GB')}</span>
                             </div>
                         </div>
-                        <div class="alarm-score" style="background: linear-gradient(135deg, #ff6b6b, #ff4757);">${shockValue.toFixed(1)}x</div>
+                        <div class="alarm-score" style="background: linear-gradient(135deg, #ff6b6b, #ff4757);">${shockDisplay}</div>
                     </div>
                     <div id="vs-detail-${idx}" class="vs-alarm-detail" style="display: none; background: #161b22; border: 1px solid #30363d; border-top: none; border-radius: 0 0 8px 8px; padding: 15px; margin-top: -5px;">
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
@@ -3926,8 +3933,9 @@
                             </div>
                             <div class="vs-detail-section">
                                 <div style="color: #ff6b6b; font-weight: 600; margin-bottom: 8px; font-size: 12px;">⚡ SOK METRIKLERI</div>
-                                <div class="vs-detail-row"><span style="color: #8b949e;">Sok Degeri:</span> <span style="color: #ff6b6b; font-weight: 700; font-size: 16px;">${shockValue.toFixed(3)}x</span></div>
+                                <div class="vs-detail-row"><span style="color: #8b949e;">Sok Degeri:</span> <span style="color: #ff6b6b; font-weight: 700; font-size: 16px;">${shockDetailDisplay}</span></div>
                                 <div class="vs-detail-row"><span style="color: #8b949e;">Gelen Para:</span> <span style="color: #3fb950; font-weight: 600;">£${Math.round(incomingMoney).toLocaleString('en-GB')}</span></div>
+                                <div class="vs-detail-row"><span style="color: #8b949e;">Ort. Onceki:</span> <span style="color: #f0f6fc;">£${Math.round(avgPrevious).toLocaleString('en-GB')}</span></div>
                             </div>
                             <div class="vs-detail-section">
                                 <div style="color: #a371f7; font-weight: 600; margin-bottom: 8px; font-size: 12px;">⚙️ KULLANILAN ESIKLER</div>
