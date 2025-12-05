@@ -340,6 +340,7 @@
         }
         .insider-accordion-wrapper .alarm-item {
             border-bottom: none;
+            padding: 10px 16px;
         }
         .insider-accordion-wrapper .alarm-item.expanded {
             background: #1c2128;
@@ -1645,7 +1646,7 @@
                 </div>
 
                 <div class="info-card" style="border-left: 3px solid #e74c3c;">
-                    <h3>📉 L1 Dropping Alert (Dusuk Seviye)</h3>
+                    <h3>📉 Dropping L1 (Dusuk)</h3>
                     <div class="info-row">
                         <span class="info-label">Minimum Dusus Esigi (%)</span>
                         <input type="number" id="droppingMinL1" class="config-input" value="7" min="1" max="50" step="1" style="width: 80px;">
@@ -1659,7 +1660,7 @@
 
                 <div class="info-card" style="border-left: 3px solid #f39c12;">
                     <h3 style="display: flex; align-items: center; gap: 10px;">
-                        📉 L2 Dropping Alert (Orta Seviye)
+                        📉 Dropping L2 (Orta)
                         <label class="toggle-switch">
                             <input type="checkbox" id="droppingL2Enabled" checked>
                             <span class="toggle-slider"></span>
@@ -1678,7 +1679,7 @@
 
                 <div class="info-card" style="border-left: 3px solid #c0392b;">
                     <h3 style="display: flex; align-items: center; gap: 10px;">
-                        📉 L3 Dropping Alert (Yuksek Seviye)
+                        📉 Dropping L3 (Yuksek)
                         <label class="toggle-switch">
                             <input type="checkbox" id="droppingL3Enabled" checked>
                             <span class="toggle-slider"></span>
@@ -3279,13 +3280,13 @@
                     <div class="alarm-item ${isExpanded ? 'expanded' : ''}" onclick="toggleInsiderAccordion('${alarmKey}', ${idx})" style="border-left: 3px solid #a371f7; cursor: pointer;">
                         <div class="alarm-info">
                             <div class="alarm-match">
-                                <span style="margin-right: 6px; color: #8b949e; font-size: 10px;">${expandIcon}</span>
+                                <span style="margin-right: 8px; color: #a371f7; font-size: 14px; font-weight: bold;">${expandIcon}</span>
                                 <span style="background:#a371f7;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">🕵️ INSIDER</span>
                                 ${alarm.home} vs ${alarm.away}
                             </div>
                             <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
-                            <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
-                                <span style="color: #a371f7;" title="Acilis→Simdi Oran Dususu">📉 Acilis→Simdi: ${(alarm.opening_odds || 0).toFixed(2)}→${(alarm.last_odds || 0).toFixed(2)} (%${(alarm.oran_dusus_pct || 0).toFixed(1)})</span>
+                            <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; font-size: 11px;">
+                                <span style="color: #a371f7;" title="Acilis→Simdi">📉 ${(alarm.opening_odds || 0).toFixed(2)}→${(alarm.last_odds || 0).toFixed(2)} (%${(alarm.oran_dusus_pct || 0).toFixed(1)})</span>
                                 <span style="color: #ef4444;" title="Dusus Ani">⚡ Dusus Ani: ${dropTimeFormatted}</span>
                                 <span style="color: #f0883e;" title="Ortalama Hacim Soku">📊 Ort.HacimSok: ${(alarm.hacim_sok || 0).toFixed(3)}x</span>
                                 <span style="color: #3fb950;" title="Kontrol Edilen Snapshot">📸 ${alarm.snapshot_count || 7} snapshot</span>
@@ -3309,9 +3310,9 @@
                                     <span class="insider-detail-label">Toplam Düşüş:</span>
                                     <span class="insider-detail-value" style="color: #ef4444; font-weight: 700; font-size: 15px;">%${(alarm.oran_dusus_pct || 0).toFixed(2)}</span>
                                 </div>
-                                <div class="insider-detail-row" style="border-top: 1px solid #30363d; margin-top: 8px; padding-top: 8px;">
-                                    <span class="insider-detail-label">Seçenek:</span>
-                                    <span class="insider-detail-value" style="color: #a371f7; font-weight: 600;">${alarm.market} → ${alarm.selection}</span>
+                                <div class="insider-detail-row" style="border-top: 1px solid #30363d; margin-top: 10px; padding-top: 10px; background: rgba(163,113,247,0.08); padding: 10px; border-radius: 6px; margin-left: -8px; margin-right: -8px;">
+                                    <span class="insider-detail-label" style="font-weight: 600;">📌 Seçenek:</span>
+                                    <span class="insider-detail-value" style="color: #a371f7; font-weight: 700; font-size: 15px;">${alarm.market} → ${alarm.selection}</span>
                                 </div>
                             </div>
                             <div class="insider-detail-section">
@@ -3987,9 +3988,10 @@
                 const newShare = alarm.new_share || 0;
                 const volume = alarm.volume || 0;
                 const createdAt = alarm.created_at || '-';
+                const zebraStyle = idx % 2 === 0 ? 'background: #161b22;' : 'background: #1c2128;';
                 
                 return `
-                <div class="alarm-item" onclick="showVolumeLeaderAlarmDetail(${idx})" style="border-left: 3px solid #06b6d4; cursor: pointer;">
+                <div class="alarm-item" onclick="showVolumeLeaderAlarmDetail(${idx})" style="border-left: 3px solid #06b6d4; cursor: pointer; ${zebraStyle}">
                     <div class="alarm-info">
                         <div class="alarm-match">
                             <span style="background:#06b6d4;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">👑 LIDER DEGISTI</span>
