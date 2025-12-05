@@ -3705,16 +3705,24 @@ function formatAlertValue(alarm) {
 }
 
 function renderAlertBand() {
+    console.log('[renderAlertBand] Called, alertBandData:', alertBandData ? alertBandData.length : 'null');
     const track = document.getElementById('alertBandTrack');
-    if (!track) return;
-    
-    if (!alertBandData || alertBandData.length === 0) {
-        track.innerHTML = '<span class="alert-band-empty">Alarm bekleniyor...</span>';
+    if (!track) {
+        console.log('[renderAlertBand] Track element not found!');
         return;
     }
     
+    if (!alertBandData || alertBandData.length === 0) {
+        console.log('[renderAlertBand] No data, showing empty message');
+        track.innerHTML = '<span class="alert-band-empty">Alarm bekleniyor...</span>';
+        return;
+    }
+    console.log('[renderAlertBand] Rendering', alertBandData.length, 'alarms');
+    console.log('[renderAlertBand] First alarm:', alertBandData[0]);
+    
     // En yeni 10 alarm (en yeniden eskiye)
     const top = alertBandData.slice(0, 10);
+    console.log('[renderAlertBand] Top 10:', top.length);
     
     const pillsHtml = top.map((alarm, idx) => {
         const info = getAlertType(alarm);
@@ -3776,12 +3784,38 @@ function renderAlertBand() {
         `;
     }).join('');
     
-    // Sonsuz döngü için alarmları duplicate et (10. sonrası 1. gelsin)
-    track.innerHTML = `
-        <div class="alert-band-track-inner">
-            ${pillsHtml}${pillsHtml}
+    console.log('[renderAlertBand] pillsHtml length:', pillsHtml.length);
+    console.log('[renderAlertBand] pillsHtml sample:', pillsHtml.substring(0, 200));
+    
+    // DEBUG: Write visible test content first
+    const alarmCount = alertBandData.length;
+    const testHtml = `
+        <div style="display: flex; align-items: center; gap: 10px; padding: 5px; background: rgba(255,0,0,0.3);">
+            <span style="color: white; font-size: 14px; font-weight: bold;">ALERT BAND IS HERE - ${alarmCount} alarms</span>
         </div>
     `;
+    
+    // Sonsuz döngü için alarmları duplicate et (10. sonrası 1. gelsin)
+    const finalHtml = `
+        <div class="alert-band-track-inner" style="animation: none !important; background: rgba(0,255,0,0.2);">
+            ${testHtml}
+            ${pillsHtml}
+        </div>
+    `;
+    console.log('[renderAlertBand] Setting innerHTML, length:', finalHtml.length);
+    track.innerHTML = finalHtml;
+    console.log('[renderAlertBand] innerHTML set, track.innerHTML length:', track.innerHTML.length);
+    
+    // Parent debug
+    const alertBand = document.getElementById('alertBand');
+    if (alertBand) {
+        console.log('[renderAlertBand] alertBand offsetHeight:', alertBand.offsetHeight);
+        console.log('[renderAlertBand] alertBand computed display:', getComputedStyle(alertBand).display);
+        console.log('[renderAlertBand] alertBand computed height:', getComputedStyle(alertBand).height);
+        console.log('[renderAlertBand] alertBand getBoundingClientRect:', JSON.stringify(alertBand.getBoundingClientRect()));
+    }
+    console.log('[renderAlertBand] track offsetHeight:', track.offsetHeight);
+    console.log('[renderAlertBand] track getBoundingClientRect:', JSON.stringify(track.getBoundingClientRect()));
 }
 
 function updateAlertBandBadge() {
