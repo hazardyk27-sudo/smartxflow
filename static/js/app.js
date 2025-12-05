@@ -3305,7 +3305,12 @@ function scheduleAlertBandRender() {
     }
     alertBandRenderTimeout = setTimeout(() => {
         const newHash = JSON.stringify(alertBandData.slice(0, 10).map(a => a.home + a._type + (a.trigger_at || a.event_time || '')));
-        if (newHash !== lastAlertBandHash) {
+        
+        // İlk yükleme veya hash değişti - MUTLAKA render et
+        const isFirstRender = lastAlertBandHash === '';
+        const hashChanged = newHash !== lastAlertBandHash;
+        
+        if (isFirstRender || hashChanged) {
             lastAlertBandHash = newHash;
             
             // Yeni en üst alarm kontrolü
@@ -3493,15 +3498,21 @@ function formatMatchDateShort(dateStr) {
 function isMatchTodayOrFuture(alarm) {
     const matchDateStr = alarm.match_date || alarm.fixture_date || '';
     
+    // Türkiye saati için bugünün tarihini al
     const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentDay = now.getDate();
+    const trTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
+    const currentMonth = trTime.getMonth();
+    const currentDay = trTime.getDate();
     
-    // SADECE match_date kontrolü (format: "03.Dec 17:30:00" veya "04.Dec 15:00:00")
+    // match_date formatları:
+    // 1. "06.Dec 15:00:00" (boşluklu)
+    // 2. "06.Dec00:00:00" (boşluksuz)
     if (matchDateStr) {
-        const parts = matchDateStr.split(' ')[0];
-        if (parts && parts.includes('.')) {
-            const [dayStr, monthStr] = parts.split('.');
+        // Regex ile DD.MMM kısmını parse et (boşluklu veya boşluksuz)
+        const match = matchDateStr.match(/^(\d{1,2})\.([A-Za-z]{3})/);
+        if (match) {
+            const dayStr = match[1];
+            const monthStr = match[2];
             const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
                               'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
             const matchMonth = monthMap[monthStr];
@@ -3597,7 +3608,16 @@ async function loadAlertBand() {
             type: a._type
         })));
         
-        scheduleAlertBandRender();
+        // İlk yüklemede doğrudan render et, sonraki güncellemelerde schedule kullan
+        if (lastAlertBandHash === '') {
+            console.log('[AlertBand] First render - direct call');
+            renderAlertBand();
+            updateAlertBandBadge();
+            lastAlertBandHash = JSON.stringify(alertBandData.slice(0, 10).map(a => a.home + a._type + (a.trigger_at || a.event_time || '')));
+            lastTopAlarmKey = getAlarmKey(alertBandData[0]);
+        } else {
+            scheduleAlertBandRender();
+        }
     } catch (e) {
         console.error('[AlertBand] Load error:', e);
     }
