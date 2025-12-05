@@ -1368,11 +1368,11 @@ insider_calc_progress = ""
 
 @app.route('/api/insider/alarms', methods=['GET'])
 def get_insider_alarms():
-    """Get all Insider alarms - reads from Supabase first, fallback to local JSON"""
+    """Get all Insider alarms - reads from Supabase first, fallback to local JSON only on error"""
     supabase_alarms = get_insider_alarms_from_supabase()
-    if supabase_alarms:
+    if supabase_alarms is not None:  # Boş liste dahil Supabase verisini kullan
         return jsonify(supabase_alarms)
-    return jsonify(insider_alarms)
+    return jsonify(insider_alarms)  # Sadece Supabase hatası durumunda JSON fallback
 
 
 @app.route('/api/insider/status', methods=['GET'])
@@ -1881,11 +1881,11 @@ def save_big_money_config_endpoint():
 
 @app.route('/api/bigmoney/alarms', methods=['GET'])
 def get_big_money_alarms():
-    """Get all Big Money alarms - reads from Supabase first, fallback to local JSON"""
+    """Get all Big Money alarms - reads from Supabase first, fallback to local JSON only on error"""
     supabase_alarms = get_bigmoney_alarms_from_supabase()
-    if supabase_alarms:
+    if supabase_alarms is not None:  # Boş liste dahil Supabase verisini kullan
         return jsonify(supabase_alarms)
-    return jsonify(big_money_alarms)
+    return jsonify(big_money_alarms)  # Sadece Supabase hatası durumunda JSON fallback
 
 
 @app.route('/api/bigmoney/delete', methods=['POST'])
@@ -2215,11 +2215,11 @@ def save_dropping_config_endpoint():
 
 @app.route('/api/dropping/alarms', methods=['GET'])
 def get_dropping_alarms():
-    """Get all Dropping Alert alarms - reads from Supabase first, fallback to local JSON"""
+    """Get all Dropping Alert alarms - reads from Supabase first, fallback to local JSON only on error"""
     supabase_alarms = get_dropping_alarms_from_supabase()
-    if supabase_alarms:
+    if supabase_alarms is not None:  # Boş liste dahil Supabase verisini kullan
         return jsonify(supabase_alarms)
-    return jsonify(dropping_alarms)
+    return jsonify(dropping_alarms)  # Sadece Supabase hatası durumunda JSON fallback
 
 
 @app.route('/api/dropping/delete', methods=['POST'])
@@ -2657,11 +2657,11 @@ def save_volume_shock_config_api():
 
 @app.route('/api/volumeshock/alarms', methods=['GET'])
 def get_volume_shock_alarms():
-    """Get all Volume Shock alarms - reads from Supabase first, fallback to local JSON"""
+    """Get all Volume Shock alarms - reads from Supabase first, fallback to local JSON only on error"""
     supabase_alarms = get_volumeshock_alarms_from_supabase()
-    if supabase_alarms:
+    if supabase_alarms is not None:  # Boş liste dahil Supabase verisini kullan
         return jsonify(supabase_alarms)
-    return jsonify(volume_shock_alarms)
+    return jsonify(volume_shock_alarms)  # Sadece Supabase hatası durumunda JSON fallback
 
 @app.route('/api/volumeshock/delete', methods=['POST'])
 def delete_volume_shock_alarms():
@@ -3015,11 +3015,11 @@ def save_sharp_config():
 
 @app.route('/api/sharp/alarms', methods=['GET'])
 def get_sharp_alarms():
-    """Get all Sharp alarms - reads from Supabase first, fallback to local JSON"""
+    """Get all Sharp alarms - reads from Supabase first, fallback to local JSON only on error"""
     supabase_alarms = get_sharp_alarms_from_supabase()
-    if supabase_alarms:
+    if supabase_alarms is not None:  # Boş liste dahil Supabase verisini kullan
         return jsonify(supabase_alarms)
-    return jsonify(sharp_alarms)
+    return jsonify(sharp_alarms)  # Sadece Supabase hatası durumunda JSON fallback
 
 
 @app.route('/api/sharp/alarms', methods=['DELETE'])
@@ -3115,11 +3115,11 @@ def save_publicmove_config():
 
 @app.route('/api/publicmove/alarms', methods=['GET'])
 def get_publicmove_alarms():
-    """Get all Public Move alarms - reads from Supabase first, fallback to local JSON"""
+    """Get all Public Move alarms - reads from Supabase first, fallback to local JSON only on error"""
     supabase_alarms = get_publicmove_alarms_from_supabase()
-    if supabase_alarms:
+    if supabase_alarms is not None:  # Boş liste dahil Supabase verisini kullan
         return jsonify(supabase_alarms)
-    return jsonify(publicmove_alarms)
+    return jsonify(publicmove_alarms)  # Sadece Supabase hatası durumunda JSON fallback
 
 
 @app.route('/api/publicmove/alarms', methods=['DELETE'])
@@ -3964,11 +3964,11 @@ def save_volume_leader_config_api():
 
 @app.route('/api/volumeleader/alarms', methods=['GET'])
 def get_volume_leader_alarms():
-    """Get Volume Leader alarms - reads from Supabase first, fallback to local JSON"""
+    """Get Volume Leader alarms - reads from Supabase first, fallback to local JSON only on error"""
     supabase_alarms = get_volumeleader_alarms_from_supabase()
-    if supabase_alarms:
+    if supabase_alarms is not None:  # Boş liste dahil Supabase verisini kullan
         return jsonify(supabase_alarms)
-    return jsonify(volume_leader_alarms)
+    return jsonify(volume_leader_alarms)  # Sadece Supabase hatası durumunda JSON fallback
 
 
 @app.route('/api/volumeleader/alarms', methods=['DELETE'])

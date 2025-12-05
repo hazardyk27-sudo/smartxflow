@@ -920,23 +920,27 @@ def get_supabase_client():
     return get_database().supabase if get_database().is_supabase_available else None
 
 
-def fetch_alarms_from_supabase(table_name: str, order_by: str = 'created_at', limit: int = 500) -> List[Dict[str, Any]]:
-    """Fetch alarms from a Supabase alarm table"""
+def fetch_alarms_from_supabase(table_name: str, order_by: str = 'created_at', limit: int = 500) -> Optional[List[Dict[str, Any]]]:
+    """Fetch alarms from a Supabase alarm table
+    Returns:
+        - List (empty or with data) on success
+        - None on error (Supabase unavailable, network error, etc.)
+    """
     client = get_supabase_client()
     if not client or not client.is_available:
-        return []
+        return None  # Supabase unavailable, fallback to JSON
     
     try:
         url = f"{client._rest_url(table_name)}?select=*&order={order_by}.desc&limit={limit}"
         resp = httpx.get(url, headers=client._headers(), timeout=15)
         if resp.status_code == 200:
-            return resp.json()
+            return resp.json()  # Success - may be empty list []
         else:
             print(f"[Supabase] Error fetching {table_name}: {resp.status_code}")
-            return []
+            return None  # Error, fallback to JSON
     except Exception as e:
         print(f"[Supabase] Error fetching {table_name}: {e}")
-        return []
+        return None  # Error, fallback to JSON
 
 
 def get_sharp_alarms_from_supabase() -> List[Dict[str, Any]]:
