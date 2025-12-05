@@ -2032,6 +2032,12 @@
                     <p class="page-subtitle">Canlı veri çekme logları ve durum bilgisi</p>
                 </div>
                 <div style="display: flex; gap: 10px;">
+                    <button class="action-btn success" id="scraperStartBtn" onclick="toggleScraper('start')" style="background: #238636;">
+                        <span>▶️</span> Başlat
+                    </button>
+                    <button class="action-btn danger" id="scraperStopBtn" onclick="toggleScraper('stop')" style="background: #da3633;">
+                        <span>⏹️</span> Durdur
+                    </button>
                     <button class="action-btn" onclick="window.open('/scraper/console', 'scraperConsole', 'width=900,height=600')">
                         <span>🪟</span> Yeni Pencerede Aç
                     </button>
@@ -2131,6 +2137,36 @@
             output.innerHTML = '<div style="color: #484f58;">[Console temizlendi]</div>';
         }
         
+        function toggleScraper(action) {
+            const startBtn = document.getElementById('scraperStartBtn');
+            const stopBtn = document.getElementById('scraperStopBtn');
+            
+            startBtn.disabled = true;
+            stopBtn.disabled = true;
+            
+            fetch('/scraper/control', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action: action})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    showToast(action === 'start' ? 'Scraper başlatıldı' : 'Scraper durduruldu', 'success');
+                    updateScraperStatus();
+                } else {
+                    showToast(data.message || 'İşlem başarısız', 'error');
+                }
+            })
+            .catch(() => {
+                showToast('Bağlantı hatası', 'error');
+            })
+            .finally(() => {
+                startBtn.disabled = false;
+                stopBtn.disabled = false;
+            });
+        }
+        
         function updateScraperStatus() {
             fetch('/scraper/status')
                 .then(r => r.json())
@@ -2162,6 +2198,24 @@
                         document.getElementById('scraperNextRun').textContent = `${mins}:${String(secs).padStart(2, '0')}`;
                     } else {
                         document.getElementById('scraperNextRun').textContent = '-';
+                    }
+                    
+                    // Buton durumlarını güncelle
+                    const startBtn = document.getElementById('scraperStartBtn');
+                    const stopBtn = document.getElementById('scraperStopBtn');
+                    if (data.is_disabled) {
+                        startBtn.style.display = 'none';
+                        stopBtn.style.display = 'none';
+                    } else if (data.running) {
+                        startBtn.style.opacity = '0.5';
+                        startBtn.style.pointerEvents = 'none';
+                        stopBtn.style.opacity = '1';
+                        stopBtn.style.pointerEvents = 'auto';
+                    } else {
+                        startBtn.style.opacity = '1';
+                        startBtn.style.pointerEvents = 'auto';
+                        stopBtn.style.opacity = '0.5';
+                        stopBtn.style.pointerEvents = 'none';
                     }
                 })
                 .catch(() => {

@@ -4138,6 +4138,87 @@ def scraper_console_status():
         return jsonify({'status': 'error', 'message': str(e), 'running': False})
 
 
+@app.route('/scraper/control', methods=['POST'])
+def scraper_control():
+    """Scraper başlat/durdur kontrolü"""
+    global scrape_status, server_scheduler_thread, server_scheduler_stop
+    
+    try:
+        data = request.get_json() or {}
+        action = data.get('action', '')
+        
+        # EXE modunda devre dışı
+        if os.environ.get('SMARTX_DESKTOP') == '1':
+            return jsonify({'status': 'error', 'message': 'Desktop modunda kontrol edilemez'})
+        
+        # Scraper devre dışıysa
+        if is_scraper_disabled():
+            return jsonify({'status': 'error', 'message': 'Scraper devre dışı (Standalone mode)'})
+        
+        if action == 'start':
+            if scrape_status.get('auto_running'):
+                return jsonify({'status': 'ok', 'message': 'Zaten çalışıyor'})
+            
+            # Server scheduler'ı başlat
+            server_scheduler_stop.clear()
+            scrape_status['auto_running'] = True
+            scrape_status['interval_minutes'] = get_scrape_interval_seconds() // 60
+            
+            def scheduler_loop():
+                global scrape_status
+                interval_seconds = get_scrape_interval_seconds()
+                print(f"[Server Scheduler] Restarted - interval: {interval_seconds // 60} minutes")
+                
+                while not server_scheduler_stop.is_set():
+                    if not scrape_status['running']:
+                        scrape_status['running'] = True
+                        try:
+                            print(f"[Server Scheduler] Running scrape at {now_turkey_iso()}")
+                            result = run_scraper()
+                            scrape_status['last_result'] = result
+                            scrape_status['last_scrape_time'] = now_turkey_iso()
+                            scrape_status['last_supabase_sync'] = now_turkey_iso()
+                            print(f"[Server Scheduler] Scrape completed")
+                        except Exception as e:
+                            print(f"[Server Scheduler] Error: {e}")
+                            scrape_status['last_result'] = {'status': 'error', 'error': str(e)}
+                        finally:
+                            scrape_status['running'] = False
+                    
+                    next_time = now_turkey() + timedelta(seconds=interval_seconds)
+                    scrape_status['next_scrape_time'] = next_time.isoformat()
+                    
+                    for _ in range(interval_seconds):
+                        if server_scheduler_stop.is_set():
+                            break
+                        time.sleep(1)
+                
+                scrape_status['auto_running'] = False
+                scrape_status['next_scrape_time'] = None
+                print("[Server Scheduler] Stopped")
+            
+            server_scheduler_thread = threading.Thread(target=scheduler_loop, daemon=True)
+            server_scheduler_thread.start()
+            
+            return jsonify({'status': 'ok', 'message': 'Scraper başlatıldı', 'running': True})
+        
+        elif action == 'stop':
+            if not scrape_status.get('auto_running'):
+                return jsonify({'status': 'ok', 'message': 'Zaten durdurulmuş'})
+            
+            server_scheduler_stop.set()
+            scrape_status['auto_running'] = False
+            scrape_status['next_scrape_time'] = None
+            
+            return jsonify({'status': 'ok', 'message': 'Scraper durduruldu', 'running': False})
+        
+        else:
+            return jsonify({'status': 'error', 'message': 'Geçersiz action'})
+    
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+
 @app.route('/scraper/logs')
 def scraper_console_logs():
     """Son scraper logları"""
