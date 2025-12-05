@@ -259,11 +259,11 @@
 }
 
 /* Public Move - Golden */
-.ab-pill.publictrap {
+.ab-pill.publicmove {
     background: linear-gradient(90deg, rgba(255, 204, 0, 0.15), transparent);
     border: 1px solid rgba(255, 215, 0, 0.45);
 }
-.ab-pill.publictrap:hover {
+.ab-pill.publicmove:hover {
     background: rgba(255, 204, 0, 0.2);
     border-color: rgba(255, 215, 0, 0.7);
 }
@@ -276,7 +276,7 @@
     box-shadow: 0 0 6px rgba(248, 81, 73, 0.6);
 }
 
-.dot-publictrap {
+.dot-publicmove {
     background-color: #FFCC00;
     box-shadow: 0 0 6px rgba(255, 204, 0, 0.6);
 }
@@ -324,7 +324,7 @@
 .ab-pill.dropping-l1 .ab-type,
 .ab-pill.dropping-l2 .ab-type,
 .ab-pill.dropping-l3 .ab-type { color: #f85149; }
-.ab-pill.publictrap .ab-type { color: #FFCC00; }
+.ab-pill.publicmove .ab-type { color: #FFCC00; }
 .ab-pill.volumeleader .ab-type { color: #06b6d4; }
 
 /* Volume Leader Change Arrow */
@@ -708,7 +708,7 @@
     box-shadow: 0 0 25px rgba(248, 81, 73, 0.6), 0 0 50px rgba(248, 81, 73, 0.3);
 }
 
-.new-alarm-highlight .ab-pill.publictrap.highlight-pill {
+.new-alarm-highlight .ab-pill.publicmove.highlight-pill {
     box-shadow: 0 0 25px rgba(255, 204, 0, 0.6), 0 0 50px rgba(255, 204, 0, 0.3);
 }
 
