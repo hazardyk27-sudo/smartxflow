@@ -1671,7 +1671,7 @@ def calculate_insider_scores(config, existing_alarms=None):
                         }
                         alarms.append(alarm)
                         drop_snap_time = drop_time[:16] if drop_time else ''
-                        print(f"[Insider] ALARM: {home} vs {away} [{selection}] Acilis→Simdi: {opening_odds:.2f}→{current_odds:.2f} ({opening_to_now_drop_pct:.1f}%), DususAni: {drop_snap_time}, Window: {len(best_window)} snap")
+                        print(f"[Insider] ALARM: {home} vs {away} [{selection}] Acilis->Simdi: {opening_odds:.2f}->{current_odds:.2f} ({opening_to_now_drop_pct:.1f}%), DususAni: {drop_snap_time}, Window: {len(best_window)} snap")
         
         except Exception as e:
             print(f"[Insider] Error processing {market}: {e}")
@@ -2388,7 +2388,7 @@ def calculate_dropping_scores(config):
                         'created_at': alarm_created_at
                     }
                     alarms.append(alarm)
-                    print(f"[Dropping] {level}: {home} vs {away} [{selection}] {opening_odds:.2f}→{current_odds:.2f} ({drop_pct:.1f}%) date={match_date}")
+                    print(f"[Dropping] {level}: {home} vs {away} [{selection}] {opening_odds:.2f}->{current_odds:.2f} ({drop_pct:.1f}%) date={match_date}")
             
             if skipped_count > 0:
                 print(f"[Dropping] Skipped {skipped_count} matches not found in {moneyway_market}")
