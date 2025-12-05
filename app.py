@@ -147,7 +147,7 @@ def start_cleanup_scheduler():
 
 def run_alarm_calculations():
     """Run all alarm calculations"""
-    global sharp_alarms, insider_alarms, big_money_alarms, volume_shock_alarms, last_alarm_calc_time
+    global sharp_alarms, insider_alarms, big_money_alarms, volume_shock_alarms, last_alarm_calc_time, insider_config
     
     try:
         print(f"[Alarm Scheduler] Starting alarm calculations at {now_turkey_iso()}")
@@ -167,7 +167,7 @@ def run_alarm_calculations():
         
         # Insider alarms - eski alarmlar korunur, yeniler eklenir (oran değişirse)
         try:
-            new_insider = calculate_insider_scores(sharp_config, insider_alarms)
+            new_insider = calculate_insider_scores(insider_config, insider_alarms)
             if new_insider:
                 # Mevcut alarmları koru, yenileri ekle
                 insider_alarms = merge_insider_alarms(insider_alarms, new_insider)
@@ -999,7 +999,7 @@ def get_match_details():
 
 def refresh_configs_from_supabase():
     """Refresh all alarm configs from Supabase alarm_settings table - LIVE RELOAD"""
-    global sharp_config, publicmove_config, big_money_config, volume_shock_config, volume_leader_config, dropping_config
+    global sharp_config, publicmove_config, big_money_config, volume_shock_config, volume_leader_config, dropping_config, insider_config
     
     supabase = get_supabase_client()
     if not supabase or not supabase.is_available:
@@ -1060,6 +1060,13 @@ def refresh_configs_from_supabase():
                 dropping_config['enabled'] = enabled
                 if old != dropping_config:
                     changes.append('dropping')
+                    
+            elif alarm_type == 'insider' and config:
+                old = insider_config.copy()
+                insider_config.update(config)
+                insider_config['enabled'] = enabled
+                if old != insider_config:
+                    changes.append('insider')
         
         if changes:
             print(f"[Config Refresh] Updated configs from Supabase: {', '.join(changes)}")
@@ -1125,6 +1132,31 @@ def save_sharp_config_to_file(config):
     return success
 
 sharp_config = load_sharp_config_from_file()
+
+# Insider Config - dedicated config for Insider alarm calculations
+INSIDER_CONFIG_FILE = 'insider_config.json'
+
+def load_insider_config_from_file():
+    """Load Insider config from JSON file"""
+    default_config = {
+        'hacim_sok_esigi': 0.2,
+        'oran_dusus_esigi': 7,
+        'sure_dakika': 70,
+        'max_para': 100,
+        'max_odds_esigi': 1.9,
+        'enabled': True
+    }
+    try:
+        if os.path.exists(INSIDER_CONFIG_FILE):
+            with open(INSIDER_CONFIG_FILE, 'r') as f:
+                saved_config = json.load(f)
+                default_config.update(saved_config)
+                print(f"[Insider] Config loaded from {INSIDER_CONFIG_FILE}: oran_dusus_esigi={default_config.get('oran_dusus_esigi')}")
+    except Exception as e:
+        print(f"[Insider] Config load error: {e}")
+    return default_config
+
+insider_config = load_insider_config_from_file()
 
 SHARP_ALARMS_FILE = 'sharp_alarms.json'
 
@@ -1431,12 +1463,12 @@ def calculate_insider_scores(config, existing_alarms=None):
         print("[Insider] Supabase not available")
         return alarms
     
-    # Get config parameters with Turkish names
-    hacim_sok_esigi = config.get('insider_hacim_sok_esigi', 2)
-    oran_dusus_esigi = config.get('insider_oran_dusus_esigi', 3)
-    sure_dakika = config.get('insider_sure_dakika', 30)
-    max_para = config.get('insider_max_para', 5000)
-    max_odds_esigi = config.get('insider_max_odds_esigi', 10.0)  # Max odds threshold - filter out high odds
+    # Get config parameters - önce yeni Insider tablosundaki adları dene, yoksa eski Sharp tablosundaki adlara bak
+    hacim_sok_esigi = config.get('hacim_sok_esigi', config.get('insider_hacim_sok_esigi', 2))
+    oran_dusus_esigi = config.get('oran_dusus_esigi', config.get('insider_oran_dusus_esigi', 3))
+    sure_dakika = config.get('sure_dakika', config.get('insider_sure_dakika', 30))
+    max_para = config.get('max_para', config.get('insider_max_para', 5000))
+    max_odds_esigi = config.get('max_odds_esigi', config.get('insider_max_odds_esigi', 10.0))
     
     # Calculate required consecutive snapshots (10 min per snapshot)
     snapshot_interval = 10  # minutes
