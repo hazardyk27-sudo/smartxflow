@@ -2659,8 +2659,9 @@ def calculate_volume_shock_scores(config):
     """Calculate Volume Shock alarms - only for movements well before match"""
     global volume_shock_calc_progress
     
-    min_saat = config.get('hacim_soku_min_saat', 5)
-    min_esik = config.get('hacim_soku_min_esik', 4)
+    min_saat = config.get('hacim_soku_min_saat', config.get('min_hours_to_kickoff', 5))
+    # EXE uyumluluğu: hem hacim_soku_min_esik hem volume_shock_multiplier desteklenir
+    min_esik = config.get('hacim_soku_min_esik', config.get('volume_shock_multiplier', 5))
     enabled = config.get('enabled', True)
     
     # Minimum volume eşikleri
