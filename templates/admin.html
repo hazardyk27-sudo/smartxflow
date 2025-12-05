@@ -560,6 +560,10 @@
                 <span class="nav-item-icon">⚙️</span>
                 <span>Sistem Bilgisi</span>
             </div>
+            <div class="nav-item" onclick="showPage('scraper')" data-page="scraper">
+                <span class="nav-item-icon">🔄</span>
+                <span>Scraper Konsol</span>
+            </div>
             
             <div class="nav-category">Alarmlar</div>
             <div class="nav-item" onclick="showPage('sharp')" data-page="sharp">
@@ -2019,11 +2023,134 @@
                 </div>
             </div>
         </div>
+
+        <!-- Scraper Console Page -->
+        <div id="page-scraper" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title">Scraper Konsol</h2>
+                    <p class="page-subtitle">Canlı veri çekme logları ve durum bilgisi</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="action-btn" onclick="window.open('/scraper/console', 'scraperConsole', 'width=900,height=600')">
+                        <span>🪟</span> Yeni Pencerede Aç
+                    </button>
+                    <button class="action-btn" onclick="clearScraperConsole()">
+                        <span>🗑️</span> Temizle
+                    </button>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
+                <div class="stats-card">
+                    <div class="stats-label">Durum</div>
+                    <div class="stats-value" id="scraperStatus">Bekliyor...</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-label">Interval</div>
+                    <div class="stats-value"><span id="scraperInterval">10</span> dk</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-label">Son Çekim</div>
+                    <div class="stats-value" id="scraperLastRows">-</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-label">Son Alarm</div>
+                    <div class="stats-value" id="scraperLastAlarms">-</div>
+                </div>
+            </div>
+
+            <div class="info-card" style="padding: 0; overflow: hidden;">
+                <div style="background: #010409; padding: 15px; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.6; height: 500px; overflow-y: auto;" id="scraperConsoleOutput">
+                    <div style="color: #484f58;">[Scraper Console bağlanıyor...]</div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <div class="toast" id="toast"></div>
 
     <script>
+        // Scraper Console variables
+        let scraperSSE = null;
+        
+        function initScraperConsole() {
+            // Load existing logs
+            fetch('/scraper/logs')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.logs && data.logs.length > 0) {
+                        const output = document.getElementById('scraperConsoleOutput');
+                        output.innerHTML = '';
+                        data.logs.forEach(log => addScraperLog(log));
+                    }
+                });
+            
+            // Start SSE connection
+            if (!scraperSSE) {
+                scraperSSE = new EventSource('/scraper/stream');
+                scraperSSE.onmessage = (e) => addScraperLog(e.data);
+                scraperSSE.onerror = () => {
+                    document.getElementById('scraperStatus').textContent = 'Bağlantı kesildi';
+                    document.getElementById('scraperStatus').style.color = '#f85149';
+                };
+            }
+            
+            // Update status
+            updateScraperStatus();
+            setInterval(updateScraperStatus, 5000);
+        }
+        
+        function addScraperLog(text) {
+            const output = document.getElementById('scraperConsoleOutput');
+            const line = document.createElement('div');
+            
+            if (text.includes('HATA') || text.includes('ERROR')) {
+                line.style.color = '#f85149';
+            } else if (text.includes('tamamlandı') || text.includes('başarılı')) {
+                line.style.color = '#3fb950';
+            } else if (text.includes('---') || text.includes('===')) {
+                line.style.color = '#484f58';
+            } else if (text.includes('başlıyor') || text.includes('çekiliyor')) {
+                line.style.color = '#58a6ff';
+            } else {
+                line.style.color = '#c9d1d9';
+            }
+            
+            line.textContent = text;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function clearScraperConsole() {
+            const output = document.getElementById('scraperConsoleOutput');
+            output.innerHTML = '<div style="color: #484f58;">[Console temizlendi]</div>';
+        }
+        
+        function updateScraperStatus() {
+            fetch('/scraper/status')
+                .then(r => r.json())
+                .then(data => {
+                    const statusEl = document.getElementById('scraperStatus');
+                    if (data.running) {
+                        statusEl.textContent = 'Çalışıyor';
+                        statusEl.style.color = '#3fb950';
+                    } else {
+                        statusEl.textContent = 'Durduruldu';
+                        statusEl.style.color = '#f85149';
+                    }
+                    document.getElementById('scraperInterval').textContent = data.interval_minutes || 10;
+                    document.getElementById('scraperLastRows').textContent = data.last_rows ? data.last_rows + ' satır' : '-';
+                    document.getElementById('scraperLastAlarms').textContent = data.last_alarm_count ? data.last_alarm_count + ' alarm' : '-';
+                })
+                .catch(() => {});
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initScraperConsole();
+        });
+        
         function parseAlarmDate(alarm) {
             const dateStr = alarm.match_date || alarm.event_time || alarm.created_at || '';
             if (!dateStr) return null;

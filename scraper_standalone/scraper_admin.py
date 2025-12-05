@@ -1,7 +1,8 @@
 """
-SmartXFlow Admin Panel v1.05 - Web Admin + Scraper
-Web admin paneli (pywebview) + Arka planda scraper
+SmartXFlow Admin Panel v1.06 - Web Admin + Scraper + Console
+Web admin paneli (pywebview) + Arka planda scraper + Canlı konsol
 İlk açılışta config yoksa setup formu açılır ve config.json oluşturulur.
+Scraper Konsol: Canlı log görüntüleme, SSE stream, ayrı pencere desteği.
 """
 import sys
 import os

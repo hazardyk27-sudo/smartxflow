@@ -31,7 +31,7 @@ jobs:
 
       - name: Create BUILD_INFO.txt
         run: |
-          echo "SmartXFlow Admin Panel v1.04" > scraper_standalone/BUILD_INFO.txt
+          echo "SmartXFlow Admin Panel v1.06" > scraper_standalone/BUILD_INFO.txt
           echo "Build Date: $(date)" >> scraper_standalone/BUILD_INFO.txt
           echo "Python: 3.11" >> scraper_standalone/BUILD_INFO.txt
           echo "Commit: ${{ github.sha }}" >> scraper_standalone/BUILD_INFO.txt
