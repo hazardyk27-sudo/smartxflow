@@ -3034,8 +3034,8 @@ def calculate_halktuzagi_scores(config):
                                 match_hour = int(hour_min[0])
                                 match_minute = int(hour_min[1]) if len(hour_min) > 1 else 0
                                 
-                                # Arbworld'den gelen saat zaten Türkiye saati - +3 ekleme!
-                                match_datetime_tr = datetime(match_date.year, match_date.month, match_date.day, match_hour, match_minute)
+                                match_datetime_utc = datetime(match_date.year, match_date.month, match_date.day, match_hour, match_minute)
+                                match_datetime_tr = match_datetime_utc + timedelta(hours=3)
                                 now = now_turkey()
                                 
                                 time_to_match = match_datetime_tr - now.replace(tzinfo=None)
