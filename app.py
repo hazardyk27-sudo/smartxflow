@@ -1296,12 +1296,33 @@ def merge_insider_alarms(existing_alarms, new_alarms):
 
 
 insider_alarms = load_insider_alarms_from_file()
+insider_calculating = False
+insider_calc_progress = ""
 
 
 @app.route('/api/insider/alarms', methods=['GET'])
 def get_insider_alarms():
     """Get all Insider alarms"""
     return jsonify(insider_alarms)
+
+
+@app.route('/api/insider/status', methods=['GET'])
+def get_insider_status():
+    """Get Insider calculation status"""
+    return jsonify({
+        'calculating': insider_calculating,
+        'progress': insider_calc_progress,
+        'alarm_count': len(insider_alarms)
+    })
+
+@app.route('/api/insider/reset', methods=['POST'])
+def reset_insider_calculation():
+    """Reset Insider calculation flag (force unlock)"""
+    global insider_calculating, insider_calc_progress
+    insider_calculating = False
+    insider_calc_progress = "Kullanici tarafindan sifirlandi"
+    print("[Insider] Calculation flag reset by user")
+    return jsonify({'success': True, 'message': 'Calculation reset'})
 
 
 @app.route('/api/insider/delete', methods=['POST'])
@@ -1321,13 +1342,23 @@ def delete_insider_alarms():
 @app.route('/api/insider/calculate', methods=['POST'])
 def calculate_insider_alarms_endpoint():
     """Calculate Insider Info alarms based on config"""
-    global insider_alarms
+    global insider_alarms, insider_calculating, insider_calc_progress
+    
+    if insider_calculating:
+        return jsonify({'success': False, 'error': 'Hesaplama zaten devam ediyor', 'calculating': True})
+    
     try:
+        insider_calculating = True
+        insider_calc_progress = "Hesaplama baslatiliyor..."
         new_alarms = calculate_insider_scores(sharp_config, insider_alarms)
         insider_alarms = merge_insider_alarms(insider_alarms, new_alarms)
         save_insider_alarms_to_file(insider_alarms)
+        insider_calc_progress = f"Tamamlandi! {len(insider_alarms)} alarm bulundu."
+        insider_calculating = False
         return jsonify({'success': True, 'count': len(insider_alarms)})
     except Exception as e:
+        insider_calculating = False
+        insider_calc_progress = f"Hata: {str(e)}"
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -1792,6 +1823,15 @@ def get_big_money_status():
         'alarm_count': len(big_money_alarms)
     })
 
+@app.route('/api/bigmoney/reset', methods=['POST'])
+def reset_big_money_calculation():
+    """Reset Big Money calculation flag (force unlock)"""
+    global big_money_calculating, big_money_calc_progress
+    big_money_calculating = False
+    big_money_calc_progress = "Kullanici tarafindan sifirlandi"
+    print("[BigMoney] Calculation flag reset by user")
+    return jsonify({'success': True, 'message': 'Calculation reset'})
+
 
 @app.route('/api/bigmoney/calculate', methods=['POST'])
 def calculate_big_money_alarms_endpoint():
@@ -2098,6 +2138,15 @@ def get_dropping_status():
         'progress': dropping_calc_progress,
         'alarm_count': len(dropping_alarms)
     })
+
+@app.route('/api/dropping/reset', methods=['POST'])
+def reset_dropping_calculation():
+    """Reset Dropping calculation flag (force unlock)"""
+    global dropping_calculating, dropping_calc_progress
+    dropping_calculating = False
+    dropping_calc_progress = "Kullanici tarafindan sifirlandi"
+    print("[Dropping] Calculation flag reset by user")
+    return jsonify({'success': True, 'message': 'Calculation reset'})
 
 
 @app.route('/api/dropping/calculate', methods=['POST'])
@@ -2807,6 +2856,15 @@ def get_sharp_status():
         'alarm_count': len(sharp_alarms)
     })
 
+@app.route('/api/sharp/reset', methods=['POST'])
+def reset_sharp_calculation():
+    """Reset Sharp calculation flag (force unlock)"""
+    global sharp_calculating, sharp_calc_progress
+    sharp_calculating = False
+    sharp_calc_progress = "Kullanici tarafindan sifirlandi"
+    print("[Sharp] Calculation flag reset by user")
+    return jsonify({'success': True, 'message': 'Calculation reset'})
+
 
 @app.route('/api/sharp/config', methods=['GET'])
 def get_sharp_config():
@@ -2899,6 +2957,15 @@ def get_publicmove_status():
         'progress': publicmove_calc_progress,
         'alarm_count': len(publicmove_alarms)
     })
+
+@app.route('/api/publicmove/reset', methods=['POST'])
+def reset_publicmove_calculation():
+    """Reset Public Move calculation flag (force unlock)"""
+    global publicmove_calculating, publicmove_calc_progress
+    publicmove_calculating = False
+    publicmove_calc_progress = "Kullanici tarafindan sifirlandi"
+    print("[PublicMove] Calculation flag reset by user")
+    return jsonify({'success': True, 'message': 'Calculation reset'})
 
 
 @app.route('/api/publicmove/config', methods=['GET'])
@@ -3772,6 +3839,15 @@ def get_volume_leader_status():
         'calculating': volume_leader_calculating,
         'progress': volume_leader_calc_progress
     })
+
+@app.route('/api/volumeleader/reset', methods=['POST'])
+def reset_volume_leader_calculation():
+    """Reset Volume Leader calculation flag (force unlock)"""
+    global volume_leader_calculating, volume_leader_calc_progress
+    volume_leader_calculating = False
+    volume_leader_calc_progress = "Kullanici tarafindan sifirlandi"
+    print("[VolumeLeader] Calculation flag reset by user")
+    return jsonify({'success': True, 'message': 'Calculation reset'})
 
 
 @app.route('/api/volumeleader/calculate', methods=['POST'])
