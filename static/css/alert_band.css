@@ -30,15 +30,26 @@
     gap: 8px;
     overflow: hidden;
     padding: 0 14px;
-    /* Mask temporarily disabled for debugging */
+    mask-image: linear-gradient(to right,
+        transparent,
+        black 15%,
+        black 85%,
+        transparent
+    );
+    -webkit-mask-image: linear-gradient(to right,
+        transparent,
+        black 15%,
+        black 85%,
+        transparent
+    );
 }
 
 .alert-band-track-inner {
     display: flex;
     align-items: center;
     gap: 8px;
+    animation: scroll-left 20s linear infinite;
     white-space: nowrap;
-    animation: scroll-left 30s linear infinite;
 }
 
 .alert-band-track-inner:hover {
@@ -219,13 +230,12 @@
 
 /* Dropping Alert L1 - Light Red */
 .ab-pill.dropping-l1 {
-    background: rgba(248, 81, 73, 0.25) !important;
-    border: 2px solid rgba(248, 81, 73, 0.8) !important;
-    color: #fff !important;
+    background: linear-gradient(90deg, rgba(248, 81, 73, 0.12), transparent);
+    border: 1px solid rgba(248, 81, 73, 0.35);
 }
 .ab-pill.dropping-l1:hover {
-    background: rgba(248, 81, 73, 0.35);
-    border-color: rgba(248, 81, 73, 0.95);
+    background: rgba(248, 81, 73, 0.18);
+    border-color: rgba(248, 81, 73, 0.55);
 }
 
 /* Dropping Alert L2 - Medium Red */

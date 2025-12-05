@@ -3705,24 +3705,16 @@ function formatAlertValue(alarm) {
 }
 
 function renderAlertBand() {
-    console.log('[renderAlertBand] Called, alertBandData:', alertBandData ? alertBandData.length : 'null');
     const track = document.getElementById('alertBandTrack');
-    if (!track) {
-        console.log('[renderAlertBand] Track element not found!');
-        return;
-    }
+    if (!track) return;
     
     if (!alertBandData || alertBandData.length === 0) {
-        console.log('[renderAlertBand] No data, showing empty message');
         track.innerHTML = '<span class="alert-band-empty">Alarm bekleniyor...</span>';
         return;
     }
-    console.log('[renderAlertBand] Rendering', alertBandData.length, 'alarms');
-    console.log('[renderAlertBand] First alarm:', alertBandData[0]);
     
     // En yeni 10 alarm (en yeniden eskiye)
     const top = alertBandData.slice(0, 10);
-    console.log('[renderAlertBand] Top 10:', top.length);
     
     const pillsHtml = top.map((alarm, idx) => {
         const info = getAlertType(alarm);
@@ -3784,13 +3776,12 @@ function renderAlertBand() {
         `;
     }).join('');
     
-    // Sonsuz döngü için alarmları duplicate et
-    const finalHtml = `
+    // Sonsuz döngü için alarmları duplicate et (10. sonrası 1. gelsin)
+    track.innerHTML = `
         <div class="alert-band-track-inner">
             ${pillsHtml}${pillsHtml}
         </div>
     `;
-    track.innerHTML = finalHtml;
 }
 
 function updateAlertBandBadge() {
