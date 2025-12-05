@@ -3784,38 +3784,13 @@ function renderAlertBand() {
         `;
     }).join('');
     
-    console.log('[renderAlertBand] pillsHtml length:', pillsHtml.length);
-    console.log('[renderAlertBand] pillsHtml sample:', pillsHtml.substring(0, 200));
-    
-    // DEBUG: Write visible test content first
-    const alarmCount = alertBandData.length;
-    const testHtml = `
-        <div style="display: flex; align-items: center; gap: 10px; padding: 5px; background: rgba(255,0,0,0.3);">
-            <span style="color: white; font-size: 14px; font-weight: bold;">ALERT BAND IS HERE - ${alarmCount} alarms</span>
-        </div>
-    `;
-    
-    // Sonsuz döngü için alarmları duplicate et (10. sonrası 1. gelsin)
+    // Sonsuz döngü için alarmları duplicate et
     const finalHtml = `
-        <div class="alert-band-track-inner" style="animation: none !important; background: rgba(0,255,0,0.2);">
-            ${testHtml}
-            ${pillsHtml}
+        <div class="alert-band-track-inner">
+            ${pillsHtml}${pillsHtml}
         </div>
     `;
-    console.log('[renderAlertBand] Setting innerHTML, length:', finalHtml.length);
     track.innerHTML = finalHtml;
-    console.log('[renderAlertBand] innerHTML set, track.innerHTML length:', track.innerHTML.length);
-    
-    // Parent debug
-    const alertBand = document.getElementById('alertBand');
-    if (alertBand) {
-        console.log('[renderAlertBand] alertBand offsetHeight:', alertBand.offsetHeight);
-        console.log('[renderAlertBand] alertBand computed display:', getComputedStyle(alertBand).display);
-        console.log('[renderAlertBand] alertBand computed height:', getComputedStyle(alertBand).height);
-        console.log('[renderAlertBand] alertBand getBoundingClientRect:', JSON.stringify(alertBand.getBoundingClientRect()));
-    }
-    console.log('[renderAlertBand] track offsetHeight:', track.offsetHeight);
-    console.log('[renderAlertBand] track getBoundingClientRect:', JSON.stringify(track.getBoundingClientRect()));
 }
 
 function updateAlertBandBadge() {
