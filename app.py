@@ -1026,12 +1026,12 @@ def refresh_configs_from_supabase():
                 if old != sharp_config:
                     changes.append('sharp')
                     
-            elif alarm_type == 'publictrap' and config:
+            elif alarm_type == 'publicmove' and config:
                 old = publicmove_config.copy()
                 publicmove_config.update(config)
                 publicmove_config['enabled'] = enabled
                 if old != publicmove_config:
-                    changes.append('publictrap')
+                    changes.append('publicmove')
                     
             elif alarm_type == 'bigmoney' and config:
                 old = big_money_config.copy()
@@ -1100,15 +1100,29 @@ def load_sharp_config_from_file():
     return default_config
 
 def save_sharp_config_to_file(config):
-    """Save Sharp config to JSON file"""
+    """Save Sharp config to both Supabase and JSON file"""
+    success = False
+    
+    # 1. Supabase'e yaz (primary)
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            if supabase.update_alarm_setting('sharp', config.get('enabled', True), config):
+                print(f"[Sharp] Config saved to Supabase")
+                success = True
+    except Exception as e:
+        print(f"[Sharp] Supabase save error: {e}")
+    
+    # 2. JSON'a yaz (fallback)
     try:
         with open(SHARP_CONFIG_FILE, 'w') as f:
             json.dump(config, f, indent=2)
-        print(f"[Sharp] Config saved to {SHARP_CONFIG_FILE}")
-        return True
+        print(f"[Sharp] Config saved to JSON")
+        success = True
     except Exception as e:
-        print(f"[Sharp] Config save error: {e}")
-        return False
+        print(f"[Sharp] JSON save error: {e}")
+    
+    return success
 
 sharp_config = load_sharp_config_from_file()
 
@@ -1172,15 +1186,29 @@ def load_publicmove_config_from_file():
     return default_config
 
 def save_publicmove_config_to_file(config):
-    """Save Public Move config to JSON file"""
+    """Save Public Move config to both Supabase and JSON file"""
+    success = False
+    
+    # 1. Supabase'e yaz (primary)
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            if supabase.update_alarm_setting('publicmove', config.get('enabled', True), config):
+                print(f"[PublicMove] Config saved to Supabase")
+                success = True
+    except Exception as e:
+        print(f"[PublicMove] Supabase save error: {e}")
+    
+    # 2. JSON'a yaz (fallback)
     try:
         with open(PUBLICMOVE_CONFIG_FILE, 'w') as f:
             json.dump(config, f, indent=2)
-        print(f"[PublicMove] Config saved to {PUBLICMOVE_CONFIG_FILE}")
-        return True
+        print(f"[PublicMove] Config saved to JSON")
+        success = True
     except Exception as e:
-        print(f"[PublicMove] Config save error: {e}")
-        return False
+        print(f"[PublicMove] JSON save error: {e}")
+    
+    return success
 
 publicmove_config = load_publicmove_config_from_file()
 
@@ -1652,7 +1680,7 @@ def calculate_insider_scores(config, existing_alarms=None):
                         # Event time: hareketin tespit edildiği snapshot zamanı
                         last_snap_idx = last_snap['index']
                         first_snap_idx = first_snap['index']
-                        event_time = history[last_snap_idx].get('scrapedat', '') if last_snap_idx < len(history) else ''
+                        event_time = history[last_snap_idx].get('scraped_at', '') if last_snap_idx < len(history) else ''
                         
                         # Açılıştan bugüne oran bilgileri (YENİ)
                         window_start_odds = opening_odds  # Açılış oranı
@@ -1667,7 +1695,7 @@ def calculate_insider_scores(config, existing_alarms=None):
                             snap_idx = snap['index']
                             snap_odds = snap['odds']
                             snap_amount = snap.get('amount', 0)
-                            snap_time = history[snap_idx].get('scrapedat', '') if snap_idx < len(history) else ''
+                            snap_time = history[snap_idx].get('scraped_at', '') if snap_idx < len(history) else ''
                             snapshot_details.append({
                                 'odds': snap_odds,
                                 'amount': snap_amount,
@@ -1678,7 +1706,7 @@ def calculate_insider_scores(config, existing_alarms=None):
                         last_odds = parse_float(history[-1].get(odds_key, '0'))
                         
                         # Düşüş anı zamanı (drop_time)
-                        drop_time = history[max_drop_index].get('scrapedat', '') if max_drop_index < len(history) else ''
+                        drop_time = history[max_drop_index].get('scraped_at', '') if max_drop_index < len(history) else ''
                         
                         alarm = {
                             'home': home,
@@ -1748,15 +1776,29 @@ def load_big_money_config():
     return {'big_money_limit': 15000}
 
 def save_big_money_config(config):
-    """Save Big Money config to JSON file"""
+    """Save Big Money config to both Supabase and JSON file"""
+    success = False
+    
+    # 1. Supabase'e yaz (primary)
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            if supabase.update_alarm_setting('bigmoney', config.get('enabled', True), config):
+                print(f"[BigMoney] Config saved to Supabase")
+                success = True
+    except Exception as e:
+        print(f"[BigMoney] Supabase save error: {e}")
+    
+    # 2. JSON'a yaz (fallback)
     try:
         with open(BIG_MONEY_CONFIG_FILE, 'w') as f:
             json.dump(config, f, indent=2)
-        print(f"[BigMoney] Config saved: limit={config.get('big_money_limit')}")
-        return True
+        print(f"[BigMoney] Config saved to JSON: limit={config.get('big_money_limit')}")
+        success = True
     except Exception as e:
-        print(f"[BigMoney] Config save error: {e}")
-        return False
+        print(f"[BigMoney] JSON save error: {e}")
+    
+    return success
 
 def load_big_money_alarms_from_file():
     """Load Big Money alarms from JSON file"""
@@ -1971,7 +2013,7 @@ def calculate_big_money_scores(config):
                             big_money_snapshots.append({
                                 'index': i,
                                 'incoming': incoming_money,
-                                'scrapedat': history[i].get('scrapedat', '')
+                                'scraped_at': history[i].get('scraped_at', '')
                             })
                     
                     if not big_money_snapshots:
@@ -1994,7 +2036,7 @@ def calculate_big_money_scores(config):
                     selection_total = parse_volume(history[-1].get(amount_key, '0'))
                     
                     # Event time: en büyük para girişinin olduğu snapshot zamanı
-                    event_time = max_snapshot.get('scrapedat', '')
+                    event_time = max_snapshot.get('scraped_at', '')
                     created_at = now_turkey().strftime('%d.%m.%Y %H:%M')
                     
                     alarm = {
@@ -2068,15 +2110,29 @@ def load_dropping_config():
     }
 
 def save_dropping_config(config):
-    """Save Dropping Alert config to JSON file"""
+    """Save Dropping Alert config to both Supabase and JSON file"""
+    success = False
+    
+    # 1. Supabase'e yaz (primary)
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            if supabase.update_alarm_setting('dropping', config.get('enabled', True), config):
+                print(f"[Dropping] Config saved to Supabase")
+                success = True
+    except Exception as e:
+        print(f"[Dropping] Supabase save error: {e}")
+    
+    # 2. JSON'a yaz (fallback)
     try:
         with open(DROPPING_CONFIG_FILE, 'w') as f:
             json.dump(config, f, indent=2)
-        print(f"[Dropping] Config saved")
-        return True
+        print(f"[Dropping] Config saved to JSON")
+        success = True
     except Exception as e:
-        print(f"[Dropping] Config save error: {e}")
-        return False
+        print(f"[Dropping] JSON save error: {e}")
+    
+    return success
 
 def load_dropping_alarms_from_file():
     """Load Dropping Alert alarms from JSON file"""
@@ -2188,15 +2244,15 @@ def calculate_dropping_alarms_endpoint():
 def find_drop_trigger_time(full_history, odds_key, threshold_pct):
     """
     Find when the drop was first detected by scanning history snapshots.
-    Returns the scrapedat of the first snapshot where drop >= threshold.
+    Returns the scraped_at of the first snapshot where drop >= threshold.
     
     Args:
-        full_history: List of history rows ordered by scrapedat (ascending)
+        full_history: List of history rows ordered by scraped_at (ascending)
         odds_key: The odds column name (e.g., 'odds1', 'under', 'oddsyes')
         threshold_pct: Minimum drop percentage to consider (e.g., 7%)
     
     Returns:
-        scrapedat string when drop first detected, or None
+        scraped_at string when drop first detected, or None
     """
     if not full_history or len(full_history) < 2:
         return None
@@ -2233,7 +2289,7 @@ def find_drop_trigger_time(full_history, odds_key, threshold_pct):
             drop_pct = ((opening_odds - current_odds) / opening_odds) * 100
             if drop_pct >= threshold_pct:
                 # Found the first snapshot where drop crossed threshold
-                return row.get('scrapedat', '')
+                return row.get('scraped_at', '')
     
     return None
 
@@ -2253,7 +2309,7 @@ def calculate_dropping_scores(config):
     L3: min_drop_l3%+ drop (e.g., 15%+)
     
     TIMESTAMP PRESERVATION:
-    - created_at: Set to the time when drop was FIRST detected (from history scrapedat)
+    - created_at: Set to the time when drop was FIRST detected (from history scraped_at)
     - event_time: Updated on each recalculation to show latest refresh time
     """
     global dropping_calc_progress
@@ -2414,17 +2470,17 @@ def calculate_dropping_scores(config):
                     
                     # Find when the drop was first detected by scanning history
                     full_history = match_data.get('full_history', [])
-                    trigger_scrapedat = find_drop_trigger_time(full_history, odds_key, min_drop_l1)
+                    trigger_scraped_at = find_drop_trigger_time(full_history, odds_key, min_drop_l1)
                     
                     # Convert ISO format to Turkey time format (DD.MM.YYYY HH:MM)
                     actual_event_time = created_at  # fallback
-                    if trigger_scrapedat:
+                    if trigger_scraped_at:
                         try:
                             from datetime import datetime
                             import pytz
                             # Parse ISO format: 2025-12-04T17:13:01
-                            if 'T' in trigger_scrapedat:
-                                dt = datetime.fromisoformat(trigger_scrapedat.replace('Z', '+00:00'))
+                            if 'T' in trigger_scraped_at:
+                                dt = datetime.fromisoformat(trigger_scraped_at.replace('Z', '+00:00'))
                                 turkey_tz = pytz.timezone('Europe/Istanbul')
                                 if dt.tzinfo is None:
                                     dt = pytz.UTC.localize(dt)
@@ -2498,15 +2554,29 @@ def load_volume_shock_config():
     return {'hacim_soku_min_saat': 5, 'hacim_soku_min_esik': 4, 'enabled': True}
 
 def save_volume_shock_config(config):
-    """Save Volume Shock config to JSON file"""
+    """Save Volume Shock config to both Supabase and JSON file"""
+    success = False
+    
+    # 1. Supabase'e yaz (primary)
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            if supabase.update_alarm_setting('volumeshock', config.get('enabled', True), config):
+                print(f"[VolumeShock] Config saved to Supabase")
+                success = True
+    except Exception as e:
+        print(f"[VolumeShock] Supabase save error: {e}")
+    
+    # 2. JSON'a yaz (fallback)
     try:
         with open(VOLUME_SHOCK_CONFIG_FILE, 'w') as f:
             json.dump(config, f, indent=2)
-        print(f"[VolumeShock] Config saved: min_saat={config.get('hacim_soku_min_saat')}, min_esik={config.get('hacim_soku_min_esik')}")
-        return True
+        print(f"[VolumeShock] Config saved to JSON: min_saat={config.get('hacim_soku_min_saat')}, min_esik={config.get('hacim_soku_min_esik')}")
+        success = True
     except Exception as e:
-        print(f"[VolumeShock] Config save error: {e}")
-        return False
+        print(f"[VolumeShock] JSON save error: {e}")
+    
+    return success
 
 def load_volume_shock_alarms_from_file():
     """Load Volume Shock alarms from JSON file"""
@@ -2786,7 +2856,7 @@ def calculate_volume_shock_scores(config):
                         prev_amount = parse_volume(history[i-1].get(amount_key, '0'))
                         
                         # Snapshot zamanı
-                        snapshot_time_str = history[i].get('scrapedat', '')
+                        snapshot_time_str = history[i].get('scraped_at', '')
                         if not snapshot_time_str:
                             continue
                         
@@ -3701,7 +3771,7 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, m
     if not best_candidate:
         return None
     
-    event_time = best_candidate['curr_snap'].get('scrapedat', '')
+    event_time = best_candidate['curr_snap'].get('scraped_at', '')
     
     return {
         'home': home,
@@ -3788,15 +3858,29 @@ def load_volume_leader_config():
     return default_config
 
 def save_volume_leader_config(config):
-    """Save Volume Leader config to JSON file"""
+    """Save Volume Leader config to both Supabase and JSON file"""
+    success = False
+    
+    # 1. Supabase'e yaz (primary)
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            if supabase.update_alarm_setting('volumeleader', config.get('enabled', True), config):
+                print(f"[VolumeLeader] Config saved to Supabase")
+                success = True
+    except Exception as e:
+        print(f"[VolumeLeader] Supabase save error: {e}")
+    
+    # 2. JSON'a yaz (fallback)
     try:
         with open(VOLUME_LEADER_CONFIG_FILE, 'w') as f:
             json.dump(config, f, indent=2)
-        print(f"[VolumeLeader] Config saved: min_1x2={config.get('min_volume_1x2')}, threshold={config.get('leader_threshold')}%")
-        return True
+        print(f"[VolumeLeader] Config saved to JSON: min_1x2={config.get('min_volume_1x2')}, threshold={config.get('leader_threshold')}%")
+        success = True
     except Exception as e:
-        print(f"[VolumeLeader] Config save error: {e}")
-        return False
+        print(f"[VolumeLeader] JSON save error: {e}")
+    
+    return success
 
 def load_volume_leader_alarms_from_file():
     """Load Volume Leader alarms from JSON file"""
@@ -4023,7 +4107,7 @@ def calculate_volume_leader_scores(config):
                     from urllib.parse import quote
                     home_enc = quote(home, safe='')
                     away_enc = quote(away, safe='')
-                    history_url = f"{supabase.url}/rest/v1/{history_table}?home=eq.{home_enc}&away=eq.{away_enc}&order=scrapedat.desc&limit=50"
+                    history_url = f"{supabase.url}/rest/v1/{history_table}?home=eq.{home_enc}&away=eq.{away_enc}&order=scraped_at.desc&limit=50"
                     import httpx
                     resp = httpx.get(history_url, headers=supabase._headers(), timeout=15)
                     

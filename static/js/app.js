@@ -4359,7 +4359,7 @@ function renderAlarmsList(filterType) {
         } else if (type === 'insider') {
             badgeLabel = 'INSIDER';
             const openOdds = (alarm.opening_odds || 0).toFixed(2);
-            const lastOdds = (alarm.last_odds || 0).toFixed(2);
+            const lastOdds = (alarm.current_odds || alarm.last_odds || 0).toFixed(2);
             const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
             const gelenPara = alarm.gelen_para || 0;
             metricContent = `<div class="acd-grid cols-2">

@@ -308,7 +308,7 @@ class AlarmCalculator:
         max_pages = 10
         
         for page in range(max_pages):
-            params = f"select=*&scrapedat=gte.{yesterday}&order=scrapedat.asc&limit={page_size}&offset={offset}"
+            params = f"select=*&scraped_at=gte.{yesterday}&order=scraped_at.asc&limit={page_size}&offset={offset}"
             batch = self._get(history_table, params)
             if not batch:
                 break
@@ -510,7 +510,7 @@ class AlarmCalculator:
                     sharp_score = volume_contrib + odds_contrib + share_contrib
                     
                     if sharp_score >= min_score:
-                        trigger_at = latest.get('scrapedat', now_turkey_iso())
+                        trigger_at = latest.get('scraped_at', now_turkey_iso())
                         
                         alarm = {
                             'home': home,
@@ -633,7 +633,7 @@ class AlarmCalculator:
                     if max_hacim_sok >= hacim_sok_esigi:
                         continue
                     
-                    trigger_at = trigger_snap.get('scrapedat', now_turkey_iso())
+                    trigger_at = trigger_snap.get('scraped_at', now_turkey_iso())
                     
                     alarm = {
                         'home': home,
@@ -709,7 +709,7 @@ class AlarmCalculator:
                             big_snapshots.append({
                                 'index': i,
                                 'incoming': incoming,
-                                'scrapedat': history[i].get('scrapedat', '')
+                                'scraped_at': history[i].get('scraped_at', '')
                             })
                     
                     if not big_snapshots:
@@ -725,7 +725,7 @@ class AlarmCalculator:
                     
                     max_snap = max(big_snapshots, key=lambda s: s['incoming'])
                     selection_total = parse_volume(history[-1].get(amount_key, 0))
-                    trigger_at = max_snap.get('scrapedat', now_turkey_iso())
+                    trigger_at = max_snap.get('scraped_at', now_turkey_iso())
                     
                     alarm = {
                         'home': home,
@@ -809,7 +809,7 @@ class AlarmCalculator:
                     shock_value = incoming / avg_prev if avg_prev > 0 else 0
                     
                     if shock_value >= shock_mult:
-                        trigger_at = history[-1].get('scrapedat', now_turkey_iso())
+                        trigger_at = history[-1].get('scraped_at', now_turkey_iso())
                         
                         alarm = {
                             'home': home,
@@ -1029,7 +1029,7 @@ class AlarmCalculator:
                     trap_score = (volume_change / 500) + (odds_drop / 0.05) * 3 + share_change
                     
                     if trap_score >= min_score:
-                        trigger_at = latest.get('scrapedat', now_turkey_iso())
+                        trigger_at = latest.get('scraped_at', now_turkey_iso())
                         
                         alarm = {
                             'home': home,
@@ -1119,7 +1119,7 @@ class AlarmCalculator:
                     curr_leader = max(curr_shares, key=lambda x: x[1])
                     
                     if prev_leader[0] != curr_leader[0] and curr_leader[1] >= threshold:
-                        trigger_at = curr_snap.get('scrapedat', now_turkey_iso())
+                        trigger_at = curr_snap.get('scraped_at', now_turkey_iso())
                         trigger_volume = curr_total
                         
                         alarm = {

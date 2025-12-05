@@ -230,11 +230,13 @@ class SupabaseWriter:
         return self.upsert_rows(table, rows)
     
     def append_history(self, table: str, rows: List[Dict[str, Any]], scraped_at: str) -> bool:
-        """History tablosuna yeni kayit ekle"""
+        """History tablosuna yeni kayit ekle - id kolonu kaldirilir (auto-increment kullanilir)"""
         history_rows = []
         for row in rows:
             new_row = row.copy()
-            new_row['scrapedat'] = scraped_at
+            if 'id' in new_row:
+                del new_row['id']
+            new_row['scraped_at'] = scraped_at
             history_rows.append(new_row)
         return self.insert_rows(table, history_rows)
 

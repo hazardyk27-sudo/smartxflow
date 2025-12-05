@@ -207,7 +207,7 @@ class SupabaseClient:
             max_pages = 10
             
             for page in range(max_pages):
-                url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}&order=scrapedat.asc&limit={page_size}&offset={offset}"
+                url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}&order=scraped_at.asc&limit={page_size}&offset={offset}"
                 resp = httpx.get(url, headers=self._headers(), timeout=15)
                 
                 if resp.status_code != 200:
@@ -231,7 +231,7 @@ class SupabaseClient:
     
     def _history_row_to_legacy(self, row: Dict, market: str) -> Dict[str, Any]:
         result = {
-            'ScrapedAt': row.get('scrapedat', ''),
+            'ScrapedAt': row.get('scraped_at', ''),
             'Volume': row.get('volume', ''),
             'Home': row.get('home', ''),
             'Away': row.get('away', ''),
@@ -404,12 +404,12 @@ class SupabaseClient:
         
         for table in history_tables:
             try:
-                url = f"{self._rest_url(table)}?select=scrapedat&order=scrapedat.desc&limit=1"
+                url = f"{self._rest_url(table)}?select=scraped_at&order=scraped_at.desc&limit=1"
                 resp = httpx.get(url, headers=self._headers(), timeout=5)
                 if resp.status_code == 200:
                     rows = resp.json()
-                    if rows and rows[0].get('scrapedat'):
-                        ts = rows[0]['scrapedat']
+                    if rows and rows[0].get('scraped_at'):
+                        ts = rows[0]['scraped_at']
                         if latest_time is None or ts > latest_time:
                             latest_time = ts
             except Exception as e:
@@ -483,13 +483,13 @@ class SupabaseClient:
             
             if market == 'dropping_1x2':
                 sels = ['odds1', 'oddsx', 'odds2']
-                select_cols = 'home,away,odds1,oddsx,odds2,scrapedat'
+                select_cols = 'home,away,odds1,oddsx,odds2,scraped_at'
             elif market == 'dropping_ou25':
                 sels = ['under', 'over']
-                select_cols = 'home,away,under,over,scrapedat'
+                select_cols = 'home,away,under,over,scraped_at'
             elif market == 'dropping_btts':
                 sels = ['oddsyes', 'oddsno']
-                select_cols = 'home,away,oddsyes,oddsno,scrapedat'
+                select_cols = 'home,away,oddsyes,oddsno,scraped_at'
             else:
                 return {}
             
@@ -498,7 +498,7 @@ class SupabaseClient:
                 rows = []
                 offset = 0
                 while True:
-                    url = f"{self._rest_url(history_table)}?select={select_cols}&order=scrapedat.{order_dir}&offset={offset}&limit=1000"
+                    url = f"{self._rest_url(history_table)}?select={select_cols}&order=scraped_at.{order_dir}&offset={offset}&limit=1000"
                     resp = httpx.get(url, headers=self._headers(), timeout=30)
                     if resp.status_code != 200:
                         break
@@ -549,7 +549,7 @@ class SupabaseClient:
                 
                 home, away = key.split('|', 1) if '|' in key else (key, '')
                 
-                # Get all history for this match (ordered by scrapedat asc)
+                # Get all history for this match (ordered by scraped_at asc)
                 full_history = match_all_history.get(key, [])
                 
                 match_data = {'home': home, 'away': away, 'full_history': full_history, 'values': {}}
@@ -591,7 +591,7 @@ class SupabaseClient:
             from urllib.parse import quote
             home_enc = quote(home, safe='')
             away_enc = quote(away, safe='')
-            url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}&order=scrapedat.asc&limit=500"
+            url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}&order=scraped_at.asc&limit=500"
             resp = httpx.get(url, headers=self._headers(), timeout=15)
             if resp.status_code == 200:
                 return resp.json()
@@ -625,15 +625,15 @@ class SupabaseClient:
         history_tables = ['moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history', 
                           'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history']
         
-        # History tablolarını sil (scrapedat < cutoff_date)
+        # History tablolarını sil (scraped_at < cutoff_date)
         for table in history_tables:
             try:
                 # Prefer header ile silinen kayıtları döndür
                 headers = self._headers()
                 headers['Prefer'] = 'return=representation'
                 
-                # scrapedat sütunu ile filtrele
-                url = f"{self._rest_url(table)}?scrapedat=lt.{cutoff_date}T00:00:00"
+                # scraped_at sütunu ile filtrele
+                url = f"{self._rest_url(table)}?scraped_at=lt.{cutoff_date}T00:00:00"
                 resp = httpx.delete(url, headers=headers, timeout=60)
                 
                 if resp.status_code == 200:
