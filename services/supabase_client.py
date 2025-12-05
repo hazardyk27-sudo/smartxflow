@@ -1159,3 +1159,70 @@ def write_volumeleader_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
         }
         mapped_alarms.append(mapped)
     return write_alarms_to_supabase('volume_leader_alarms', mapped_alarms, on_conflict='home,away,market,old_leader,new_leader')
+
+
+def write_bigmoney_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
+    """Write BigMoney alarms to Supabase with field mapping"""
+    mapped_alarms = []
+    for alarm in alarms:
+        mapped = {
+            'home': alarm.get('home', ''),
+            'away': alarm.get('away', ''),
+            'market': alarm.get('market', ''),
+            'selection': alarm.get('selection', ''),
+            'incoming_money': alarm.get('volume') or alarm.get('incoming_money') or alarm.get('stake'),
+            'selection_total': alarm.get('selection_total'),
+            'is_huge': alarm.get('is_huge', False),
+            'huge_total': alarm.get('huge_total'),
+            'match_date': alarm.get('match_date', ''),
+            'event_time': alarm.get('event_time', ''),
+            'trigger_at': alarm.get('created_at', ''),
+            'created_at': alarm.get('created_at', ''),
+            'alarm_type': 'bigmoney'
+        }
+        mapped_alarms.append(mapped)
+    return write_alarms_to_supabase('bigmoney_alarms', mapped_alarms, on_conflict='home,away,market,selection')
+
+
+def write_dropping_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
+    """Write Dropping alarms to Supabase with field mapping"""
+    mapped_alarms = []
+    for alarm in alarms:
+        mapped = {
+            'home': alarm.get('home', ''),
+            'away': alarm.get('away', ''),
+            'market': alarm.get('market', ''),
+            'selection': alarm.get('selection', ''),
+            'drop_pct': alarm.get('drop_pct') or alarm.get('oran_dusus_pct'),
+            'opening_odds': alarm.get('opening_odds'),
+            'current_odds': alarm.get('current_odds') or alarm.get('last_odds'),
+            'match_date': alarm.get('match_date', ''),
+            'event_time': alarm.get('event_time', ''),
+            'trigger_at': alarm.get('created_at', ''),
+            'created_at': alarm.get('created_at', ''),
+            'alarm_type': 'dropping'
+        }
+        mapped_alarms.append(mapped)
+    return write_alarms_to_supabase('dropping_alarms', mapped_alarms, on_conflict='home,away,market,selection')
+
+
+def write_volumeshock_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
+    """Write VolumeShock alarms to Supabase with field mapping"""
+    mapped_alarms = []
+    for alarm in alarms:
+        mapped = {
+            'home': alarm.get('home', ''),
+            'away': alarm.get('away', ''),
+            'market': alarm.get('market', ''),
+            'selection': alarm.get('selection', ''),
+            'volume_shock_value': alarm.get('shock_value') or alarm.get('hacim_sok'),
+            'incoming_money': alarm.get('volume') or alarm.get('incoming_money') or alarm.get('stake'),
+            'avg_previous': alarm.get('avg_previous'),
+            'match_date': alarm.get('match_date', ''),
+            'event_time': alarm.get('event_time', ''),
+            'trigger_at': alarm.get('created_at', ''),
+            'created_at': alarm.get('created_at', ''),
+            'alarm_type': 'volumeshock'
+        }
+        mapped_alarms.append(mapped)
+    return write_alarms_to_supabase('volumeshock_alarms', mapped_alarms, on_conflict='home,away,market,selection')

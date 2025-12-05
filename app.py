@@ -36,7 +36,9 @@ from services.supabase_client import (
     get_dropping_alarms_from_supabase, get_publicmove_alarms_from_supabase,
     get_volumeleader_alarms_from_supabase, delete_alarms_from_supabase,
     write_insider_alarms_to_supabase, write_sharp_alarms_to_supabase,
-    write_publicmove_alarms_to_supabase, write_volumeleader_alarms_to_supabase
+    write_publicmove_alarms_to_supabase, write_volumeleader_alarms_to_supabase,
+    write_bigmoney_alarms_to_supabase, write_dropping_alarms_to_supabase,
+    write_volumeshock_alarms_to_supabase
 )
 import hashlib
 
@@ -1880,7 +1882,12 @@ def load_big_money_alarms_from_file():
     return []
 
 def save_big_money_alarms_to_file(alarms):
-    """Save Big Money alarms to JSON file"""
+    """Save Big Money alarms to both Supabase and JSON file"""
+    # 1. Supabase'e yaz (primary)
+    if write_bigmoney_alarms_to_supabase(alarms):
+        print(f"[BigMoney] Alarms written to Supabase")
+    
+    # 2. JSON'a yaz (fallback)
     try:
         with open(BIG_MONEY_ALARMS_FILE, 'w') as f:
             json.dump(alarms, f, indent=2, ensure_ascii=False)
@@ -2214,7 +2221,12 @@ def load_dropping_alarms_from_file():
     return []
 
 def save_dropping_alarms_to_file(alarms):
-    """Save Dropping Alert alarms to JSON file"""
+    """Save Dropping Alert alarms to both Supabase and JSON file"""
+    # 1. Supabase'e yaz (primary)
+    if write_dropping_alarms_to_supabase(alarms):
+        print(f"[Dropping] Alarms written to Supabase")
+    
+    # 2. JSON'a yaz (fallback)
     try:
         with open(DROPPING_ALARMS_FILE, 'w') as f:
             json.dump(alarms, f, indent=2, ensure_ascii=False)
@@ -2658,7 +2670,12 @@ def load_volume_shock_alarms_from_file():
     return []
 
 def save_volume_shock_alarms_to_file(alarms):
-    """Save Volume Shock alarms to JSON file"""
+    """Save Volume Shock alarms to both Supabase and JSON file"""
+    # 1. Supabase'e yaz (primary)
+    if write_volumeshock_alarms_to_supabase(alarms):
+        print(f"[VolumeShock] Alarms written to Supabase")
+    
+    # 2. JSON'a yaz (fallback)
     try:
         with open(VOLUME_SHOCK_ALARMS_FILE, 'w') as f:
             json.dump(alarms, f, indent=2, ensure_ascii=False)
