@@ -2041,7 +2041,7 @@
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 20px;">
                 <div class="stats-card">
                     <div class="stats-label">Durum</div>
                     <div class="stats-value" id="scraperStatus">Bekliyor...</div>
@@ -2049,6 +2049,10 @@
                 <div class="stats-card">
                     <div class="stats-label">Interval</div>
                     <div class="stats-value"><span id="scraperInterval">10</span> dk</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-label">Sonraki Çekim</div>
+                    <div class="stats-value" id="scraperNextRun">-</div>
                 </div>
                 <div class="stats-card">
                     <div class="stats-label">Son Çekim</div>
@@ -2132,18 +2136,38 @@
                 .then(r => r.json())
                 .then(data => {
                     const statusEl = document.getElementById('scraperStatus');
-                    if (data.running) {
-                        statusEl.textContent = 'Çalışıyor';
+                    const statusText = data.status_text || (data.running ? 'Çalışıyor' : 'Durduruldu');
+                    statusEl.textContent = statusText;
+                    
+                    if (data.is_disabled) {
+                        statusEl.style.color = '#f0883e';
+                    } else if (data.is_scraping) {
+                        statusEl.style.color = '#58a6ff';
+                    } else if (data.running) {
                         statusEl.style.color = '#3fb950';
                     } else {
-                        statusEl.textContent = 'Durduruldu';
                         statusEl.style.color = '#f85149';
                     }
+                    
                     document.getElementById('scraperInterval').textContent = data.interval_minutes || 10;
                     document.getElementById('scraperLastRows').textContent = data.last_rows ? data.last_rows + ' satır' : '-';
                     document.getElementById('scraperLastAlarms').textContent = data.last_alarm_count ? data.last_alarm_count + ' alarm' : '-';
+                    
+                    if (data.next_scrape) {
+                        const next = new Date(data.next_scrape);
+                        const now = new Date();
+                        const diff = Math.max(0, Math.floor((next - now) / 1000));
+                        const mins = Math.floor(diff / 60);
+                        const secs = diff % 60;
+                        document.getElementById('scraperNextRun').textContent = `${mins}:${String(secs).padStart(2, '0')}`;
+                    } else {
+                        document.getElementById('scraperNextRun').textContent = '-';
+                    }
                 })
-                .catch(() => {});
+                .catch(() => {
+                    document.getElementById('scraperStatus').textContent = 'Bağlantı hatası';
+                    document.getElementById('scraperStatus').style.color = '#f85149';
+                });
         }
         
         // Initialize on page load

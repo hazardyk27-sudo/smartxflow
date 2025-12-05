@@ -262,7 +262,7 @@ def start_alarm_scheduler():
 
 def start_server_scheduler():
     """Start background scheduler for server mode - runs scraper periodically"""
-    global server_scheduler_thread, server_scheduler_stop
+    global server_scheduler_thread, server_scheduler_stop, scrape_status
     
     if not is_server_mode():
         return
@@ -270,10 +270,13 @@ def start_server_scheduler():
     if is_scraper_disabled():
         print("[Server Mode] Scraper disabled via DISABLE_SCRAPER env variable")
         print("[Server Mode] Running as UI-only, data comes from Supabase (standalone scraper)")
+        scrape_status['auto_running'] = False
         return
     
     server_scheduler_stop.clear()
     interval_seconds = get_scrape_interval_seconds()
+    scrape_status['auto_running'] = True
+    scrape_status['interval_minutes'] = interval_seconds // 60
     
     def scheduler_loop():
         global scrape_status
@@ -4106,18 +4109,33 @@ def scraper_console_status():
                 pass
         
         # Server modunda scrape_status kullan
+        is_running = scrape_status.get('running', False)
+        is_auto = scrape_status.get('auto_running', False)
+        is_disabled = is_scraper_disabled()
+        
+        if is_disabled:
+            status_text = 'Devre Dışı (Standalone)'
+        elif is_running:
+            status_text = 'Veri çekiliyor...'
+        elif is_auto:
+            status_text = 'Çalışıyor'
+        else:
+            status_text = 'Durduruldu'
+        
         return jsonify({
             'status': 'ok',
-            'running': scrape_status.get('running', False),
+            'running': is_auto or is_running,
+            'is_scraping': is_running,
+            'is_disabled': is_disabled,
             'interval_minutes': scrape_status.get('interval_minutes', 10),
             'last_scrape': scrape_status.get('last_scrape_time'),
             'next_scrape': scrape_status.get('next_scrape_time'),
             'last_rows': 0,
             'last_alarm_count': 0,
-            'status_text': 'Running' if scrape_status.get('auto_running') else 'Stopped'
+            'status_text': status_text
         })
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)})
+        return jsonify({'status': 'error', 'message': str(e), 'running': False})
 
 
 @app.route('/scraper/logs')
