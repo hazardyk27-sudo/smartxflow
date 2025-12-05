@@ -1,7 +1,7 @@
 """
 SmartXFlow Alarm Calculator Module
 Standalone alarm calculation for PC-based scraper
-Calculates: Sharp, Insider, BigMoney, VolumeShock, Dropping, PublicTrap, VolumeLeader
+Calculates: Sharp, Insider, BigMoney, VolumeShock, Dropping, PublicMove, VolumeLeader
 OPTIMIZED: Batch fetch per market, in-memory calculations
 """
 
@@ -394,10 +394,10 @@ class AlarmCalculator:
             log(f"Dropping error: {e}")
         
         try:
-            publictrap_count = self.calculate_publictrap_alarms()
-            log(f"PublicTrap: {publictrap_count} alarms")
+            publictrap_count = self.calculate_publicmove_alarms()
+            log(f"PublicMove: {publictrap_count} alarms")
         except Exception as e:
-            log(f"PublicTrap error: {e}")
+            log(f"PublicMove error: {e}")
         
         try:
             volumeleader_count = self.calculate_volumeleader_alarms()
@@ -921,8 +921,8 @@ class AlarmCalculator:
         
         return len(alarms)
     
-    def calculate_publictrap_alarms(self) -> int:
-        """Calculate Public Trap (Halk Tuzagi) alarms - same logic as Sharp"""
+    def calculate_publicmove_alarms(self) -> int:
+        """Calculate Public Move alarms - same logic as Sharp"""
         config = self.configs.get('publictrap', self._default_configs()['publictrap'])
         min_score = config.get('min_sharp_score', 20)
         
@@ -1044,13 +1044,13 @@ class AlarmCalculator:
                             'event_time': trigger_at,
                             'trigger_at': trigger_at,
                             'created_at': now_turkey_iso(),
-                            'alarm_type': 'publictrap'
+                            'alarm_type': 'publicmove'
                         }
                         alarms.append(alarm)
         
         if alarms:
-            new_count = self._upsert_alarms('halktuzagi_alarms', alarms, ['home', 'away', 'market', 'selection'])
-            log(f"PublicTrap: {new_count} new alarms added")
+            new_count = self._upsert_alarms('publicmove_alarms', alarms, ['home', 'away', 'market', 'selection'])
+            log(f"PublicMove: {new_count} new alarms added")
         
         return len(alarms)
     

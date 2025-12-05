@@ -566,9 +566,9 @@
                 <span class="nav-item-icon">🎯</span>
                 <span>Sharp</span>
             </div>
-            <div class="nav-item" onclick="showPage('halktuzagi')" data-page="halktuzagi">
+            <div class="nav-item" onclick="showPage('publicmove')" data-page="publicmove">
                 <span class="nav-item-icon">🪤</span>
-                <span>Public Trap</span>
+                <span>Public Move</span>
             </div>
             <div class="nav-item" onclick="showPage('insider')" data-page="insider">
                 <span class="nav-item-icon">🕵️</span>
@@ -844,7 +844,7 @@
                             </div>
                         </div>
                         <p style="color: #8b949e; margin: 10px 0 0 0; font-size: 11px;">
-                            <em>Not: Maca son 2 saat kala hesaplama icin "Public Trap" (Halk Tuzagi) alarm sistemini kullanin.</em>
+                            <em>Not: Maca son 2 saat kala hesaplama icin "Public Move" (Halk Tuzagi) alarm sistemini kullanin.</em>
                         </p>
                     </div>
 
@@ -1164,17 +1164,17 @@
             </div>
         </div>
 
-        <!-- PUBLIC TRAP PAGE -->
-        <div id="page-halktuzagi" class="page-content">
+        <!-- PUBLIC MOVE PAGE -->
+        <div id="page-publicmove" class="page-content">
             <div class="page-header">
                 <div>
-                    <h2 class="page-title" style="color: #FFD700;">🪤 Public Trap</h2>
+                    <h2 class="page-title" style="color: #FFD700;">🪤 Public Move</h2>
                     <p class="page-subtitle">Sadece maca son 2 saat kala hareketleri inceler</p>
                 </div>
                 <div class="header-actions">
-                    <button class="btn btn-danger" onclick="deleteAllHalkTuzagiAlarms()">Tum Alarmlari Sil</button>
-                    <button class="btn btn-warning" onclick="recalculateHalkTuzagiAlarms()">Alarmlari Yeniden Hesapla</button>
-                    <button class="btn btn-primary" onclick="saveHalkTuzagiConfig()">Kaydet</button>
+                    <button class="btn btn-danger" onclick="deleteAllPublicMoveAlarms()">Tum Alarmlari Sil</button>
+                    <button class="btn btn-warning" onclick="recalculatePublicMoveAlarms()">Alarmlari Yeniden Hesapla</button>
+                    <button class="btn btn-primary" onclick="savePublicMoveConfig()">Kaydet</button>
                 </div>
             </div>
 
@@ -1394,7 +1394,7 @@
 
             <div class="info-card" style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                    <h3 style="margin: 0;">🪤 Public Trap Alarmları <span id="htAlarmCount" class="badge active">0</span> <span id="htAlarmTotalCount" class="alarm-total-count"></span></h3>
+                    <h3 style="margin: 0;">🪤 Public Move Alarmları <span id="htAlarmCount" class="badge active">0</span> <span id="htAlarmTotalCount" class="alarm-total-count"></span></h3>
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <div class="date-filter-group">
                             <button class="date-filter-btn" onclick="setDateFilter('ht', 'yesterday')">Dün</button>
@@ -1405,7 +1405,7 @@
                         <input type="hidden" id="htAlarmDateFilter" value="">
                         <div style="position: relative;">
                             <input type="text" id="htAlarmSearchInput" placeholder="Takim ara..." 
-                                   oninput="filterHalkTuzagiAlarms()" 
+                                   oninput="filterPublicMoveAlarms()" 
                                    style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 160px;">
                             <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
@@ -2141,7 +2141,7 @@
             
             const filterFunctions = {
                 'sharp': filterAlarms,
-                'ht': filterHalkTuzagiAlarms,
+                'ht': filterPublicMoveAlarms,
                 'insider': filterInsiderAlarms,
                 'bigMoney': filterBigMoneyAlarms,
                 'dropping': filterDroppingAlarms,
@@ -2197,7 +2197,7 @@
             if (pageId === 'dashboard') loadDashboard();
             if (pageId === 'markets') loadMarkets();
             if (pageId === 'sharp') loadSharpAlarms();
-            if (pageId === 'halktuzagi') loadHalkTuzagiPage();
+            if (pageId === 'publicmove') loadPublicMovePage();
             if (pageId === 'insider') loadInsiderPage();
             if (pageId === 'bigmoney') loadBigMoneyPage();
             if (pageId === 'dropping') loadDroppingPage();
@@ -2614,17 +2614,17 @@
             renderSharpAlarms(alarms, totalCount);
         }
 
-        // ==================== HALK TUZAĞI FUNCTIONS ====================
-        let allHalkTuzagiAlarms = [];
+        // ==================== PUBLIC MOVE FUNCTIONS ====================
+        let allPublicMoveAlarms = [];
 
-        async function loadHalkTuzagiPage() {
-            await loadHalkTuzagiConfig();
-            await loadHalkTuzagiAlarms();
+        async function loadPublicMovePage() {
+            await loadPublicMoveConfig();
+            await loadPublicMoveAlarms();
         }
 
-        async function loadHalkTuzagiConfig() {
+        async function loadPublicMoveConfig() {
             try {
-                const response = await fetch('/api/halktuzagi/config');
+                const response = await fetch('/api/publicmove/config');
                 if (response.ok) {
                     const config = await response.json();
                     document.getElementById('ht_min_volume_1x2').value = config.min_volume_1x2 || 3000;
@@ -2665,26 +2665,26 @@
                     document.getElementById('ht_share_range_4_mult').value = config.share_range_4_mult || 3;
                 }
             } catch (error) {
-                console.error('HalkTuzagi config yukleme hatasi:', error);
+                console.error('PublicMove config yukleme hatasi:', error);
             }
         }
 
-        async function loadHalkTuzagiAlarms() {
+        async function loadPublicMoveAlarms() {
             try {
-                const response = await fetch('/api/halktuzagi/alarms');
+                const response = await fetch('/api/publicmove/alarms');
                 if (response.ok) {
                     const alarms = await response.json();
                     // Dünün maçlarını filtrele - sadece bugün ve gelecek
-                    allHalkTuzagiAlarms = alarms;
-                    updateTotalCount('htAlarmTotalCount', allHalkTuzagiAlarms.length);
-                    renderHalkTuzagiAlarms(allHalkTuzagiAlarms);
+                    allPublicMoveAlarms = alarms;
+                    updateTotalCount('htAlarmTotalCount', allPublicMoveAlarms.length);
+                    renderPublicMoveAlarms(allPublicMoveAlarms);
                 }
             } catch (error) {
-                console.error('HalkTuzagi alarm yukleme hatasi:', error);
+                console.error('PublicMove alarm yukleme hatasi:', error);
             }
         }
 
-        function renderHalkTuzagiAlarms(alarms, totalCount = null) {
+        function renderPublicMoveAlarms(alarms, totalCount = null) {
             const container = document.getElementById('htAlarmList');
             const countEl = document.getElementById('htAlarmCount');
             
@@ -2694,7 +2694,7 @@
                     container.innerHTML = '<p style="color: #8b949e; padding: 20px 0; text-align: center;">Aramayla eslesen alarm yok.</p>';
                     countEl.textContent = `0/${totalCount || 0}`;
                 } else {
-                    container.innerHTML = '<p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz Public Trap alarm yok.</p>';
+                    container.innerHTML = '<p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz Public Move alarm yok.</p>';
                     countEl.textContent = '0';
                 }
                 return;
@@ -2755,7 +2755,7 @@
                 <div class="alarm-item" style="border-left: 3px solid #FFD700; cursor: pointer;" onclick="toggleHtCalcDetails(${idx})">
                     <div class="alarm-info" style="flex: 1;">
                         <div class="alarm-match">
-                            <span style="background:linear-gradient(135deg, #FFCC00, #FFD700);color:#000;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;font-weight:600;">🪤 PUBLIC TRAP</span>
+                            <span style="background:linear-gradient(135deg, #FFCC00, #FFD700);color:#000;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;font-weight:600;">🪤 PUBLIC MOVE</span>
                             ${alarm.home} vs ${alarm.away}
                             <span style="color: #8b949e; font-size: 10px; margin-left: 8px;">▼ detay</span>
                         </div>
@@ -2783,9 +2783,9 @@
             }
         }
 
-        function filterHalkTuzagiAlarms() {
+        function filterPublicMoveAlarms() {
             const searchTerm = document.getElementById('htAlarmSearchInput').value.toLowerCase().trim();
-            let filtered = filterAlarmsByDateMode(allHalkTuzagiAlarms, 'ht');
+            let filtered = filterAlarmsByDateMode(allPublicMoveAlarms, 'ht');
             
             if (searchTerm) {
                 filtered = filtered.filter(alarm => 
@@ -2794,11 +2794,11 @@
                 );
             }
             
-            updateTotalCount('htAlarmTotalCount', allHalkTuzagiAlarms.length);
-            renderHalkTuzagiAlarms(filtered, allHalkTuzagiAlarms.length);
+            updateTotalCount('htAlarmTotalCount', allPublicMoveAlarms.length);
+            renderPublicMoveAlarms(filtered, allPublicMoveAlarms.length);
         }
 
-        async function saveHalkTuzagiConfig() {
+        async function savePublicMoveConfig() {
             const config = {
                 min_volume_1x2: parseInt(document.getElementById('ht_min_volume_1x2').value) || 3000,
                 min_volume_ou25: parseInt(document.getElementById('ht_min_volume_ou25').value) || 1000,
@@ -2839,13 +2839,13 @@
             };
 
             try {
-                const response = await fetch('/api/halktuzagi/config', {
+                const response = await fetch('/api/publicmove/config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(config)
                 });
                 if (response.ok) {
-                    showToast('Public Trap ayarlari kaydedildi!', 'success');
+                    showToast('Public Move ayarlari kaydedildi!', 'success');
                 } else {
                     showToast('Kaydetme hatasi!', 'error');
                 }
@@ -2854,7 +2854,7 @@
             }
         }
 
-        async function recalculateHalkTuzagiAlarms() {
+        async function recalculatePublicMoveAlarms() {
             const statusEl = document.getElementById('htCalcStatus');
             const progressEl = document.getElementById('htCalcProgress');
             
@@ -2862,17 +2862,17 @@
             progressEl.textContent = 'Hesaplama baslatiliyor...';
 
             try {
-                const response = await fetch('/api/halktuzagi/calculate', { method: 'POST' });
+                const response = await fetch('/api/publicmove/calculate', { method: 'POST' });
                 if (response.ok) {
                     const checkStatus = async () => {
-                        const statusRes = await fetch('/api/halktuzagi/status');
+                        const statusRes = await fetch('/api/publicmove/status');
                         if (statusRes.ok) {
                             const status = await statusRes.json();
                             progressEl.textContent = status.progress || 'Hesaplaniyor...';
                             if (!status.calculating) {
                                 statusEl.style.display = 'none';
                                 showToast(`Hesaplama tamamlandi! ${status.alarm_count} alarm bulundu.`, 'success');
-                                loadHalkTuzagiAlarms();
+                                loadPublicMoveAlarms();
                                 return;
                             }
                             setTimeout(checkStatus, 1000);
@@ -2889,14 +2889,14 @@
             }
         }
 
-        async function deleteAllHalkTuzagiAlarms() {
-            if (!confirm('Tum Public Trap alarmlarini silmek istediginize emin misiniz?')) return;
+        async function deleteAllPublicMoveAlarms() {
+            if (!confirm('Tum Public Move alarmlarini silmek istediginize emin misiniz?')) return;
             
             try {
-                const response = await fetch('/api/halktuzagi/alarms', { method: 'DELETE' });
+                const response = await fetch('/api/publicmove/alarms', { method: 'DELETE' });
                 if (response.ok) {
-                    showToast('Tum Public Trap alarmlari silindi!', 'success');
-                    loadHalkTuzagiAlarms();
+                    showToast('Tum Public Move alarmlari silindi!', 'success');
+                    loadPublicMoveAlarms();
                 } else {
                     showToast('Silme hatasi!', 'error');
                 }

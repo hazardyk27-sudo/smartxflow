@@ -201,16 +201,16 @@ def run_alarm_calculations():
         except Exception as e:
             print(f"[Alarm Scheduler] Dropping error: {e}")
         
-        # HalkTuzagi (Public Trap) alarms
+        # PublicMove (Public Move) alarms
         try:
-            global halktuzagi_alarms
-            new_halktuzagi = calculate_halktuzagi_scores(halktuzagi_config)
-            if new_halktuzagi:
-                halktuzagi_alarms = new_halktuzagi
-                save_halktuzagi_alarms_to_file(halktuzagi_alarms)
-            print(f"[Alarm Scheduler] HalkTuzagi: {len(halktuzagi_alarms)} alarms")
+            global publicmove_alarms
+            new_publicmove = calculate_publicmove_scores(publicmove_config)
+            if new_publicmove:
+                publicmove_alarms = new_publicmove
+                save_publicmove_alarms_to_file(publicmove_alarms)
+            print(f"[Alarm Scheduler] PublicMove: {len(publicmove_alarms)} alarms")
         except Exception as e:
-            print(f"[Alarm Scheduler] HalkTuzagi error: {e}")
+            print(f"[Alarm Scheduler] PublicMove error: {e}")
         
         # VolumeLeader alarms
         try:
@@ -990,7 +990,7 @@ def get_match_details():
 
 def refresh_configs_from_supabase():
     """Refresh all alarm configs from Supabase alarm_settings table - LIVE RELOAD"""
-    global sharp_config, halktuzagi_config, big_money_config, volume_shock_config, volume_leader_config, dropping_config
+    global sharp_config, publicmove_config, big_money_config, volume_shock_config, volume_leader_config, dropping_config
     
     supabase = get_supabase_client()
     if not supabase or not supabase.is_available:
@@ -1018,10 +1018,10 @@ def refresh_configs_from_supabase():
                     changes.append('sharp')
                     
             elif alarm_type == 'publictrap' and config:
-                old = halktuzagi_config.copy()
-                halktuzagi_config.update(config)
-                halktuzagi_config['enabled'] = enabled
-                if old != halktuzagi_config:
+                old = publicmove_config.copy()
+                publicmove_config.update(config)
+                publicmove_config['enabled'] = enabled
+                if old != publicmove_config:
                     changes.append('publictrap')
                     
             elif alarm_type == 'bigmoney' and config:
@@ -1134,11 +1134,11 @@ sharp_calc_progress = ""
 
 # ==================== HALK TUZAĞI ALARM SYSTEM ====================
 # (Sharp alarm'ın birebir kopyası, farklı isim)
-HALKTUZAGI_CONFIG_FILE = 'halktuzagi_config.json'
-HALKTUZAGI_ALARMS_FILE = 'halktuzagi_alarms.json'
+PUBLICMOVE_CONFIG_FILE = 'publicmove_config.json'
+PUBLICMOVE_ALARMS_FILE = 'publicmove_alarms.json'
 
-def load_halktuzagi_config_from_file():
-    """Load Halk Tuzagi config from JSON file"""
+def load_publicmove_config_from_file():
+    """Load Public Move config from JSON file"""
     default_config = {
         'min_volume_1x2': 3000,
         'min_volume_ou25': 1000,
@@ -1153,54 +1153,54 @@ def load_halktuzagi_config_from_file():
         'min_sharp_score': 10
     }
     try:
-        if os.path.exists(HALKTUZAGI_CONFIG_FILE):
-            with open(HALKTUZAGI_CONFIG_FILE, 'r') as f:
+        if os.path.exists(PUBLICMOVE_CONFIG_FILE):
+            with open(PUBLICMOVE_CONFIG_FILE, 'r') as f:
                 saved_config = json.load(f)
                 default_config.update(saved_config)
-                print(f"[HalkTuzagi] Config loaded from {HALKTUZAGI_CONFIG_FILE}: min_sharp_score={default_config.get('min_sharp_score')}")
+                print(f"[PublicMove] Config loaded from {PUBLICMOVE_CONFIG_FILE}: min_sharp_score={default_config.get('min_sharp_score')}")
     except Exception as e:
-        print(f"[HalkTuzagi] Config load error: {e}")
+        print(f"[PublicMove] Config load error: {e}")
     return default_config
 
-def save_halktuzagi_config_to_file(config):
-    """Save Halk Tuzagi config to JSON file"""
+def save_publicmove_config_to_file(config):
+    """Save Public Move config to JSON file"""
     try:
-        with open(HALKTUZAGI_CONFIG_FILE, 'w') as f:
+        with open(PUBLICMOVE_CONFIG_FILE, 'w') as f:
             json.dump(config, f, indent=2)
-        print(f"[HalkTuzagi] Config saved to {HALKTUZAGI_CONFIG_FILE}")
+        print(f"[PublicMove] Config saved to {PUBLICMOVE_CONFIG_FILE}")
         return True
     except Exception as e:
-        print(f"[HalkTuzagi] Config save error: {e}")
+        print(f"[PublicMove] Config save error: {e}")
         return False
 
-halktuzagi_config = load_halktuzagi_config_from_file()
+publicmove_config = load_publicmove_config_from_file()
 
-def load_halktuzagi_alarms_from_file():
-    """Load Halk Tuzagi alarms from JSON file"""
+def load_publicmove_alarms_from_file():
+    """Load Public Move alarms from JSON file"""
     try:
-        if os.path.exists(HALKTUZAGI_ALARMS_FILE):
-            with open(HALKTUZAGI_ALARMS_FILE, 'r') as f:
+        if os.path.exists(PUBLICMOVE_ALARMS_FILE):
+            with open(PUBLICMOVE_ALARMS_FILE, 'r') as f:
                 alarms = json.load(f)
-                print(f"[HalkTuzagi] Loaded {len(alarms)} alarms from {HALKTUZAGI_ALARMS_FILE}")
+                print(f"[PublicMove] Loaded {len(alarms)} alarms from {PUBLICMOVE_ALARMS_FILE}")
                 return alarms
     except Exception as e:
-        print(f"[HalkTuzagi] Alarms load error: {e}")
+        print(f"[PublicMove] Alarms load error: {e}")
     return []
 
-def save_halktuzagi_alarms_to_file(alarms):
-    """Save Halk Tuzagi alarms to JSON file"""
+def save_publicmove_alarms_to_file(alarms):
+    """Save Public Move alarms to JSON file"""
     try:
-        with open(HALKTUZAGI_ALARMS_FILE, 'w') as f:
+        with open(PUBLICMOVE_ALARMS_FILE, 'w') as f:
             json.dump(alarms, f, indent=2, ensure_ascii=False)
-        print(f"[HalkTuzagi] Saved {len(alarms)} alarms to {HALKTUZAGI_ALARMS_FILE}")
+        print(f"[PublicMove] Saved {len(alarms)} alarms to {PUBLICMOVE_ALARMS_FILE}")
         return True
     except Exception as e:
-        print(f"[HalkTuzagi] Alarms save error: {e}")
+        print(f"[PublicMove] Alarms save error: {e}")
         return False
 
-halktuzagi_alarms = load_halktuzagi_alarms_from_file()
-halktuzagi_calculating = False
-halktuzagi_calc_progress = ""
+publicmove_alarms = load_publicmove_alarms_from_file()
+publicmove_calculating = False
+publicmove_calc_progress = ""
 
 # ==================== INSIDER INFO ALARM SYSTEM ====================
 INSIDER_ALARMS_FILE = 'insider_alarms.json'
@@ -2879,84 +2879,84 @@ def calculate_sharp_alarms():
 
 # ==================== HALK TUZAĞI API ENDPOINTS ====================
 
-@app.route('/api/halktuzagi/status', methods=['GET'])
-def get_halktuzagi_status():
-    """Get Halk Tuzagi calculation status"""
+@app.route('/api/publicmove/status', methods=['GET'])
+def get_publicmove_status():
+    """Get Public Move calculation status"""
     return jsonify({
-        'calculating': halktuzagi_calculating,
-        'progress': halktuzagi_calc_progress,
-        'alarm_count': len(halktuzagi_alarms)
+        'calculating': publicmove_calculating,
+        'progress': publicmove_calc_progress,
+        'alarm_count': len(publicmove_alarms)
     })
 
 
-@app.route('/api/halktuzagi/config', methods=['GET'])
-def get_halktuzagi_config():
-    """Get Halk Tuzagi config"""
-    return jsonify(halktuzagi_config)
+@app.route('/api/publicmove/config', methods=['GET'])
+def get_publicmove_config():
+    """Get Public Move config"""
+    return jsonify(publicmove_config)
 
 
-@app.route('/api/halktuzagi/config', methods=['POST'])
-def save_halktuzagi_config():
-    """Save Halk Tuzagi config"""
-    global halktuzagi_config
+@app.route('/api/publicmove/config', methods=['POST'])
+def save_publicmove_config():
+    """Save Public Move config"""
+    global publicmove_config
     try:
         data = request.get_json()
         if data:
-            halktuzagi_config.update(data)
-            save_halktuzagi_config_to_file(halktuzagi_config)
-            print(f"[HalkTuzagi] Config updated: min_sharp_score={halktuzagi_config.get('min_sharp_score')}, volume_mult={halktuzagi_config.get('volume_multiplier')}, odds_mult={halktuzagi_config.get('odds_multiplier')}, share_mult={halktuzagi_config.get('share_multiplier')}")
+            publicmove_config.update(data)
+            save_publicmove_config_to_file(publicmove_config)
+            print(f"[PublicMove] Config updated: min_sharp_score={publicmove_config.get('min_sharp_score')}, volume_mult={publicmove_config.get('volume_multiplier')}, odds_mult={publicmove_config.get('odds_multiplier')}, share_mult={publicmove_config.get('share_multiplier')}")
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@app.route('/api/halktuzagi/alarms', methods=['GET'])
-def get_halktuzagi_alarms():
-    """Get all Halk Tuzagi alarms"""
-    return jsonify(halktuzagi_alarms)
+@app.route('/api/publicmove/alarms', methods=['GET'])
+def get_publicmove_alarms():
+    """Get all Public Move alarms"""
+    return jsonify(publicmove_alarms)
 
 
-@app.route('/api/halktuzagi/alarms', methods=['DELETE'])
-def delete_halktuzagi_alarms():
-    """Delete all Halk Tuzagi alarms"""
-    global halktuzagi_alarms
-    halktuzagi_alarms = []
-    save_halktuzagi_alarms_to_file(halktuzagi_alarms)
+@app.route('/api/publicmove/alarms', methods=['DELETE'])
+def delete_publicmove_alarms():
+    """Delete all Public Move alarms"""
+    global publicmove_alarms
+    publicmove_alarms = []
+    save_publicmove_alarms_to_file(publicmove_alarms)
     return jsonify({'success': True})
 
 
-@app.route('/api/halktuzagi/calculate', methods=['POST'])
-def calculate_halktuzagi_alarms():
-    """Calculate Halk Tuzagi alarms based on current config (same logic as Sharp)"""
-    global halktuzagi_alarms, halktuzagi_calculating, halktuzagi_calc_progress
+@app.route('/api/publicmove/calculate', methods=['POST'])
+def calculate_publicmove_alarms():
+    """Calculate Public Move alarms based on current config (same logic as Sharp)"""
+    global publicmove_alarms, publicmove_calculating, publicmove_calc_progress
     
-    if halktuzagi_calculating:
+    if publicmove_calculating:
         return jsonify({'success': False, 'error': 'Hesaplama zaten devam ediyor', 'calculating': True})
     
     try:
-        halktuzagi_calculating = True
-        halktuzagi_calc_progress = "Hesaplama baslatiliyor..."
-        halktuzagi_alarms = calculate_halktuzagi_scores(halktuzagi_config)
-        save_halktuzagi_alarms_to_file(halktuzagi_alarms)
-        halktuzagi_calc_progress = f"Tamamlandi! {len(halktuzagi_alarms)} alarm bulundu."
-        halktuzagi_calculating = False
-        return jsonify({'success': True, 'count': len(halktuzagi_alarms)})
+        publicmove_calculating = True
+        publicmove_calc_progress = "Hesaplama baslatiliyor..."
+        publicmove_alarms = calculate_publicmove_scores(publicmove_config)
+        save_publicmove_alarms_to_file(publicmove_alarms)
+        publicmove_calc_progress = f"Tamamlandi! {len(publicmove_alarms)} alarm bulundu."
+        publicmove_calculating = False
+        return jsonify({'success': True, 'count': len(publicmove_alarms)})
     except Exception as e:
         import traceback
         traceback.print_exc()
-        halktuzagi_calculating = False
-        halktuzagi_calc_progress = f"Hata: {str(e)}"
+        publicmove_calculating = False
+        publicmove_calc_progress = f"Hata: {str(e)}"
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-def calculate_halktuzagi_scores(config):
-    """Calculate Halk Tuzagi scores for all matches based on config (same as Sharp)"""
-    global halktuzagi_calc_progress
+def calculate_publicmove_scores(config):
+    """Calculate Public Move scores for all matches based on config (same as Sharp)"""
+    global publicmove_calc_progress
     alarms = []
     all_candidates = []
     supabase = get_supabase_client()
     if not supabase or not supabase.is_available:
-        print("[HalkTuzagi] Supabase not available")
+        print("[PublicMove] Supabase not available")
         return alarms
     
     markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -2978,11 +2978,11 @@ def calculate_halktuzagi_scores(config):
             matches = supabase.get_all_matches_with_latest(market)
             
             if not matches:
-                print(f"[HalkTuzagi] No matches for {market}")
+                print(f"[PublicMove] No matches for {market}")
                 continue
             
-            halktuzagi_calc_progress = f"{market_names.get(market, market)} isleniyor... ({idx+1}/3)"
-            print(f"[HalkTuzagi] Processing {len(matches)} matches for {market}, min_volume: {min_volume}")
+            publicmove_calc_progress = f"{market_names.get(market, market)} isleniyor... ({idx+1}/3)"
+            print(f"[PublicMove] Processing {len(matches)} matches for {market}, min_volume: {min_volume}")
             processed = 0
             skipped_old = 0
             
@@ -3041,10 +3041,10 @@ def calculate_halktuzagi_scores(config):
                                 time_to_match = match_datetime_tr - now.replace(tzinfo=None)
                                 hours_to_match = time_to_match.total_seconds() / 3600
                                 
-                                # Halk Tuzağı kuralı: Sadece maça 2 saatten AZ kaldığında hesapla
+                                # Public Move kuralı: Sadece maça 2 saatten AZ kaldığında hesapla
                                 # Maça 2+ saat varsa hesaplama (Sharp'ın tersi)
                                 if hours_to_match >= 2:
-                                    print(f"[HalkTuzagi] Skipped {home} vs {away}: {hours_to_match:.1f} hours to kickoff (>= 2h, only last 2h counts)")
+                                    print(f"[PublicMove] Skipped {home} vs {away}: {hours_to_match:.1f} hours to kickoff (>= 2h, only last 2h counts)")
                                     continue
                                     
                                 # Maç başladıysa (negatif saat) atla
@@ -3053,7 +3053,7 @@ def calculate_halktuzagi_scores(config):
                         except Exception as time_e:
                             pass
                     except Exception as e:
-                        print(f"[HalkTuzagi] Date parse error for {home} vs {away}: {match_date_str} - {e}")
+                        print(f"[PublicMove] Date parse error for {home} vs {away}: {match_date_str} - {e}")
                 
                 latest = match.get('latest', {})
                 volume_str = latest.get('Volume', match.get('volume', match.get('Volume', '0')))
@@ -3070,7 +3070,7 @@ def calculate_halktuzagi_scores(config):
                 processed += 1
                 
                 for sel_idx, selection in enumerate(selections):
-                    alarm = calculate_selection_halktuzagi(
+                    alarm = calculate_selection_publicmove(
                         home, away, market, selection, sel_idx,
                         history, volume, config, match_date_str
                     )
@@ -3079,22 +3079,22 @@ def calculate_halktuzagi_scores(config):
                         if alarm.get('triggered'):
                             alarms.append(alarm)
             
-            print(f"[HalkTuzagi] Processed {processed} matches with sufficient volume for {market}, skipped {skipped_old} old (D-2+) matches")
+            print(f"[PublicMove] Processed {processed} matches with sufficient volume for {market}, skipped {skipped_old} old (D-2+) matches")
         except Exception as e:
-            print(f"[HalkTuzagi] Error processing {market}: {e}")
+            print(f"[PublicMove] Error processing {market}: {e}")
             import traceback
             traceback.print_exc()
             continue
     
-    print(f"[HalkTuzagi] Total candidates: {len(all_candidates)}, Triggered alarms: {len(alarms)}")
+    print(f"[PublicMove] Total candidates: {len(all_candidates)}, Triggered alarms: {len(alarms)}")
     
     # Tetiklenme zamanına göre sırala (en yeni en üstte)
     alarms.sort(key=lambda x: parse_created_at_for_sort(x.get('created_at', '')), reverse=True)
     return alarms
 
 
-def calculate_selection_halktuzagi(home, away, market, selection, sel_idx, history, volume, config, match_date_str=''):
-    """Calculate Halk Tuzagi score for a single selection - only last 2 hours of history"""
+def calculate_selection_publicmove(home, away, market, selection, sel_idx, history, volume, config, match_date_str=''):
+    """Calculate Public Move score for a single selection - only last 2 hours of history"""
     if len(history) < 2:
         return None
     
