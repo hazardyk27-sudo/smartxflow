@@ -2990,6 +2990,7 @@ def calculate_volume_shock_scores(config):
                                             'volume_shock_value': round(volume_shock, 2),
                                             'hours_to_kickoff': round(hours_to_kickoff, 1),
                                             'incoming_money': amount_change,
+                                            'avg_previous': round(avg_prev, 2),
                                             'hacim_soku_min_saat': min_saat,
                                             'hacim_soku_min_esik': min_esik,
                                             'match_date': match_date_str,

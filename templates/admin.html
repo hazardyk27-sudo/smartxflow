@@ -2396,6 +2396,39 @@
             return null;
         }
         
+        function calculateHoursToKickoff(matchDateStr) {
+            if (!matchDateStr || matchDateStr === '-') return null;
+            
+            const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
+                               'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
+            
+            let matchTime = null;
+            
+            const match1 = matchDateStr.match(/^(\d{1,2})\.([A-Za-z]{3})\s+(\d{2}):(\d{2}):?(\d{2})?$/);
+            if (match1) {
+                const [, day, monthStr, hour, min] = match1;
+                const monthIdx = monthMap[monthStr] ?? 0;
+                matchTime = new Date(2025, monthIdx, parseInt(day), parseInt(hour), parseInt(min));
+                matchTime.setHours(matchTime.getHours() + 3);
+            }
+            
+            const match2 = matchDateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/);
+            if (match2) {
+                const [, day, month, year, hour, min] = match2;
+                matchTime = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
+                matchTime.setHours(matchTime.getHours() + 3);
+            }
+            
+            if (matchTime) {
+                const now = new Date();
+                const diffMs = matchTime - now;
+                const diffHours = diffMs / (1000 * 60 * 60);
+                return diffHours > 0 ? diffHours : 0;
+            }
+            
+            return null;
+        }
+        
         function formatMatchDateTR(dateStr) {
             if (!dateStr || dateStr === '-') return '-';
             
@@ -3855,9 +3888,10 @@
             
             container.innerHTML = alarms.map((alarm, idx) => {
                 const shockValue = alarm.volume_shock_value || 0;
-                const hoursToKickoff = alarm.hours_to_kickoff || 0;
-                const incomingMoney = alarm.incoming_money || 0;
                 const matchDate = alarm.match_date || '-';
+                const calculatedHours = calculateHoursToKickoff(matchDate);
+                const hoursToKickoff = calculatedHours !== null ? calculatedHours : (alarm.hours_to_kickoff || 0);
+                const incomingMoney = alarm.incoming_money || 0;
                 const eventTime = alarm.event_time || '-';
                 const createdAt = alarm.created_at || '-';
                 const minSaat = alarm.hacim_soku_min_saat || 5;
@@ -3885,7 +3919,7 @@
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                             <div class="vs-detail-section">
                                 <div style="color: #58a6ff; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📅 ZAMAN BILGILERI</div>
-                                <div class="vs-detail-row"><span style="color: #8b949e;">Mac Saati:</span> <span style="color: #f0f6fc;">${matchDate}</span></div>
+                                <div class="vs-detail-row"><span style="color: #8b949e;">Mac Saati:</span> <span style="color: #3fb950;">${formatMatchDateTR(matchDate)}</span></div>
                                 <div class="vs-detail-row"><span style="color: #8b949e;">Olay Zamani:</span> <span style="color: #f0f6fc;">${eventTime}</span></div>
                                 <div class="vs-detail-row"><span style="color: #8b949e;">Hesaplama:</span> <span style="color: #f0f6fc;">${createdAt}</span></div>
                                 <div class="vs-detail-row"><span style="color: #8b949e;">Mactan Once:</span> <span style="color: #58a6ff; font-weight: 600;">${hoursToKickoff.toFixed(2)} saat</span></div>
