@@ -426,6 +426,8 @@ class AlarmCalculator:
         vol_mult = config.get('volume_multiplier', 1.0)
         odds_mult = config.get('odds_multiplier', 1.0)
         share_mult = config.get('share_multiplier', 1.0)
+        min_amount_change = config.get('min_amount_change', 0)
+        log(f"[Sharp Config] min_score: {min_score}, vol_mult: {vol_mult}, min_amount_change: {min_amount_change}")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -495,6 +497,10 @@ class AlarmCalculator:
                     
                     volume_change = current_amount - prev_amount
                     if volume_change <= 0:
+                        continue
+                    
+                    # min_amount_change filtresi
+                    if volume_change < min_amount_change:
                         continue
                     
                     odds_drop = prev_odds - current_odds
@@ -665,6 +671,7 @@ class AlarmCalculator:
         """Calculate Big Money / Huge Money alarms"""
         config = self.configs.get('bigmoney', self._default_configs()['bigmoney'])
         limit = config.get('big_money_limit', 15000)
+        log(f"[BigMoney Config] limit: {limit}")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -850,6 +857,7 @@ class AlarmCalculator:
         l2_min = config.get('min_drop_l2', 10)
         l2_max = config.get('max_drop_l2', 15)
         l3_min = config.get('min_drop_l3', 15)
+        log(f"[Dropping Config] L1: {l1_min}-{l1_max}%, L2: {l2_min}-{l2_max}%, L3: {l3_min}%+")
         
         alarms = []
         markets = ['dropping_1x2', 'dropping_ou25', 'dropping_btts']
@@ -934,6 +942,8 @@ class AlarmCalculator:
         """Calculate Public Move alarms - same logic as Sharp"""
         config = self.configs.get('publicmove', self._default_configs()['publicmove'])
         min_score = config.get('min_sharp_score', 20)
+        min_amount_change = config.get('min_amount_change', 0)
+        log(f"[PublicMove Config] min_score: {min_score}, min_amount_change: {min_amount_change}")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -1029,6 +1039,10 @@ class AlarmCalculator:
                     if volume_change <= 0:
                         continue
                     
+                    # min_amount_change filtresi
+                    if volume_change < min_amount_change:
+                        continue
+                    
                     odds_drop = prev_odds - current_odds
                     if odds_drop <= 0:
                         continue
@@ -1067,6 +1081,7 @@ class AlarmCalculator:
         """Calculate Volume Leader Changed alarms"""
         config = self.configs.get('volumeleader', self._default_configs()['volumeleader'])
         threshold = config.get('leader_threshold', 50)
+        log(f"[VolumeLeader Config] threshold: {threshold}%")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
