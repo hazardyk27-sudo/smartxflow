@@ -3914,6 +3914,63 @@ def calculate_volume_leader_scores(config):
     return alarms
 
 
+@app.route('/api/alarm-settings')
+def get_alarm_settings():
+    """Get all alarm settings from database"""
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            settings = supabase.get_alarm_settings()
+            return jsonify({'status': 'ok', 'settings': settings})
+        return jsonify({'status': 'error', 'message': 'Supabase not available'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+
+@app.route('/api/alarm-settings/<alarm_type>', methods=['GET', 'PUT'])
+def manage_alarm_setting(alarm_type):
+    """Get or update a specific alarm setting"""
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return jsonify({'status': 'error', 'message': 'Supabase not available'})
+        
+        if request.method == 'GET':
+            setting = supabase.get_alarm_setting(alarm_type)
+            if setting:
+                return jsonify({'status': 'ok', 'setting': setting})
+            return jsonify({'status': 'error', 'message': 'Setting not found'})
+        
+        elif request.method == 'PUT':
+            data = request.get_json() or {}
+            enabled = data.get('enabled', True)
+            config = data.get('config', {})
+            
+            result = supabase.update_alarm_setting(alarm_type, enabled, config)
+            if result:
+                print(f"[Admin] Updated alarm setting: {alarm_type} -> enabled={enabled}, config={config}")
+                return jsonify({'status': 'ok', 'message': f'{alarm_type} ayarları güncellendi'})
+            return jsonify({'status': 'error', 'message': 'Update failed'})
+    
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+
+@app.route('/api/scraper/logs')
+def get_scraper_logs():
+    """Get recent scraper logs for admin panel"""
+    try:
+        logs = []
+        log_file = 'scraper_log.txt'
+        if os.path.exists(log_file):
+            with open(log_file, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                logs = lines[-100:]  # Last 100 lines
+        return jsonify({'status': 'ok', 'logs': logs})
+    except Exception as e:
+        return jsonify({'status': 'error', 'logs': [], 'message': str(e)})
+
+
 @app.route('/admin')
 def admin_panel():
     """Admin Panel"""

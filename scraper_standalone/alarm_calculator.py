@@ -188,14 +188,22 @@ class AlarmCalculator:
             return 0
     
     def load_configs(self):
-        """Load all alarm configs from Supabase"""
+        """Load all alarm configs from Supabase alarm_settings table"""
         try:
-            configs = self._get('alarm_configs', 'select=*')
-            for cfg in configs:
-                cfg_type = cfg.get('config_type', '')
-                if cfg_type:
-                    self.configs[cfg_type] = cfg.get('config_data', {})
-            log(f"Loaded {len(self.configs)} configs from Supabase")
+            settings = self._get('alarm_settings', 'select=*')
+            for setting in settings:
+                alarm_type = setting.get('alarm_type', '')
+                enabled = setting.get('enabled', True)
+                config = setting.get('config', {})
+                if alarm_type:
+                    self.configs[alarm_type] = {
+                        'enabled': enabled,
+                        **config
+                    }
+            if self.configs:
+                log(f"Loaded {len(self.configs)} alarm settings from DB")
+                for k, v in self.configs.items():
+                    log(f"  - {k}: enabled={v.get('enabled', True)}")
         except Exception as e:
             log(f"Config load error: {e}")
         
@@ -261,17 +269,31 @@ class AlarmCalculator:
         return matches
     
     def batch_fetch_history(self, market: str) -> Dict[str, List[Dict]]:
-        """Batch fetch all history for a market in one call - OPTIMIZED"""
+        """Batch fetch all history for a market with pagination - OPTIMIZED"""
         history_table = f"{market}_history"
         
         if history_table in self._history_cache:
             return self._history_cache[history_table]
         
         yesterday = (now_turkey() - timedelta(days=1)).strftime('%Y-%m-%dT00:00:00')
-        params = f"select=*&scrapedat=gte.{yesterday}&order=scrapedat.asc&limit=5000"
         
-        log(f"FETCH {history_table} (batch)...")
-        rows = self._get(history_table, params)
+        log(f"FETCH {history_table} (batch with pagination)...")
+        
+        rows = []
+        offset = 0
+        page_size = 1000
+        max_pages = 10
+        
+        for page in range(max_pages):
+            params = f"select=*&scrapedat=gte.{yesterday}&order=scrapedat.asc&limit={page_size}&offset={offset}"
+            batch = self._get(history_table, params)
+            if not batch:
+                break
+            rows.extend(batch)
+            if len(batch) < page_size:
+                break
+            offset += page_size
+        
         log(f"  -> {len(rows)} history rows")
         
         history_map = {}

@@ -420,6 +420,54 @@ class SupabaseClient:
         
         return latest_time
     
+    def get_alarm_settings(self) -> List[Dict]:
+        """Get all alarm settings from database"""
+        if not self.is_available:
+            return []
+        try:
+            url = f"{self._rest_url('alarm_settings')}?select=*"
+            resp = httpx.get(url, headers=self._headers(), timeout=10)
+            if resp.status_code == 200:
+                return resp.json()
+            return []
+        except Exception as e:
+            print(f"Error get_alarm_settings: {e}")
+            return []
+    
+    def get_alarm_setting(self, alarm_type: str) -> Optional[Dict]:
+        """Get specific alarm setting"""
+        if not self.is_available:
+            return None
+        try:
+            url = f"{self._rest_url('alarm_settings')}?alarm_type=eq.{alarm_type}&select=*"
+            resp = httpx.get(url, headers=self._headers(), timeout=10)
+            if resp.status_code == 200:
+                rows = resp.json()
+                return rows[0] if rows else None
+            return None
+        except Exception as e:
+            print(f"Error get_alarm_setting: {e}")
+            return None
+    
+    def update_alarm_setting(self, alarm_type: str, enabled: bool, config: Dict) -> bool:
+        """Update or create an alarm setting (upsert)"""
+        if not self.is_available:
+            return False
+        try:
+            data = {
+                'alarm_type': alarm_type,
+                'enabled': enabled,
+                'config': config,
+                'updated_at': datetime.now().isoformat()
+            }
+            headers = self._headers()
+            headers['Prefer'] = 'resolution=merge-duplicates,return=representation'
+            resp = httpx.post(self._rest_url('alarm_settings'), headers=headers, json=data, timeout=10)
+            return resp.status_code in [200, 201]
+        except Exception as e:
+            print(f"Error update_alarm_setting: {e}")
+            return False
+    
     def get_6h_odds_history(self, market: str) -> Dict[str, Dict[str, Any]]:
         """Drop markets: İlk snapshot vs Son snapshot = Açılıştan bu yana değişim.
         Optimized: 2 bulk queries (first + last) per market."""
