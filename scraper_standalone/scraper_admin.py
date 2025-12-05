@@ -11,9 +11,47 @@ import socket
 import logging
 import json
 from datetime import datetime
+from collections import deque
+import queue
 
-VERSION = "1.05"
+VERSION = "1.06"
 CONFIG_FILE = "config.json"
+
+# Scraper Console - Global Log Buffer & State
+SCRAPER_LOG_BUFFER = deque(maxlen=500)
+SCRAPER_LOG_LOCK = threading.Lock()
+SCRAPER_SSE_CLIENTS = []
+SCRAPER_STATE = {
+    'running': False,
+    'interval_minutes': 10,
+    'last_scrape': None,
+    'next_scrape': None,
+    'last_rows': 0,
+    'last_alarm_count': 0,
+    'status': 'Bekliyor...'
+}
+
+
+def log_scraper(message, level='INFO'):
+    """Scraper logunu buffer'a ve SSE client'lara gönder"""
+    timestamp = datetime.now().strftime('%H:%M:%S')
+    log_line = f"[{timestamp}] {message}"
+    
+    with SCRAPER_LOG_LOCK:
+        SCRAPER_LOG_BUFFER.append(log_line)
+    
+    # SSE client'lara gönder
+    for client_queue in SCRAPER_SSE_CLIENTS[:]:
+        try:
+            client_queue.put_nowait(log_line)
+        except:
+            pass
+    
+    # Normal logging'e de yaz
+    if level == 'ERROR':
+        logging.error(f"Scraper: {message}")
+    else:
+        logging.info(f"Scraper: {message}")
 
 # Hardcoded Supabase credentials (fallback)
 EMBEDDED_SUPABASE_URL = "https://pswdvnmqjjnjodwzkmkp.supabase.co"
@@ -270,43 +308,71 @@ def run_flask(port):
 
 
 def run_scraper(config):
-    """Arka planda scraper çalıştır"""
+    """Arka planda scraper çalıştır - canlı log ile"""
+    global SCRAPER_STATE
+    
     try:
         from standalone_scraper import SupabaseWriter, run_scrape
         from alarm_calculator import AlarmCalculator
+        
+        interval_minutes = config.get('SCRAPE_INTERVAL_MINUTES', 10)
+        SCRAPER_STATE['interval_minutes'] = interval_minutes
+        SCRAPER_STATE['running'] = True
+        
+        log_scraper("=" * 50)
+        log_scraper(f"SmartXFlow Scraper v{VERSION} başlatıldı")
+        log_scraper(f"Veri çekme aralığı: {interval_minutes} dakika")
+        log_scraper("=" * 50)
         
         writer = SupabaseWriter(
             config['SUPABASE_URL'],
             config['SUPABASE_ANON_KEY']
         )
-        logging.info("Scraper: Supabase bağlantısı hazır")
-        
-        interval_minutes = config.get('SCRAPE_INTERVAL_MINUTES', 10)
+        log_scraper("Supabase bağlantısı hazır")
         
         while True:
             try:
-                logging.info("Scraper: Scrape başlıyor...")
-                rows = run_scrape(writer)
-                logging.info(f"Scraper: {rows} satır yazıldı")
+                SCRAPER_STATE['status'] = 'Veri çekiliyor...'
+                log_scraper("-" * 50)
+                log_scraper("SCRAPE BAŞLIYOR...")
                 
-                logging.info("Scraper: Alarm hesaplama başlıyor...")
+                # Moneyway verileri
+                log_scraper("Moneyway verileri çekiliyor...")
+                rows = run_scrape(writer)
+                SCRAPER_STATE['last_rows'] = rows
+                SCRAPER_STATE['last_scrape'] = datetime.now().isoformat()
+                log_scraper(f"Scrape tamamlandı - Toplam: {rows} satır")
+                
+                # Alarm hesaplama
+                SCRAPER_STATE['status'] = 'Alarmlar hesaplanıyor...'
+                log_scraper("Alarm hesaplama başlıyor...")
                 calculator = AlarmCalculator(
                     config['SUPABASE_URL'],
                     config['SUPABASE_ANON_KEY']
                 )
-                calculator.run_all_calculations()
-                logging.info("Scraper: Alarm hesaplama tamamlandı")
+                alarm_count = calculator.run_all_calculations()
+                SCRAPER_STATE['last_alarm_count'] = alarm_count if alarm_count else 0
+                log_scraper(f"Alarm hesaplama tamamlandı - {SCRAPER_STATE['last_alarm_count']} alarm")
                 
             except Exception as e:
-                logging.error(f"Scraper hata: {e}")
+                log_scraper(f"HATA: {str(e)}", level='ERROR')
+                SCRAPER_STATE['status'] = f'Hata: {str(e)[:50]}'
             
-            logging.info(f"Scraper: {interval_minutes} dakika bekleniyor...")
+            # Bekleme
+            next_run = datetime.now().timestamp() + (interval_minutes * 60)
+            SCRAPER_STATE['next_scrape'] = datetime.fromtimestamp(next_run).isoformat()
+            SCRAPER_STATE['status'] = f'{interval_minutes} dakika bekleniyor...'
+            log_scraper(f"{interval_minutes} dakika bekleniyor...")
+            log_scraper("-" * 50)
+            
             time.sleep(interval_minutes * 60)
             
     except ImportError as e:
-        logging.error(f"Scraper import hatası: {e}")
+        log_scraper(f"Import hatası: {e}", level='ERROR')
+        SCRAPER_STATE['running'] = False
     except Exception as e:
-        logging.error(f"Scraper başlatma hatası: {e}")
+        log_scraper(f"Başlatma hatası: {e}", level='ERROR')
+        SCRAPER_STATE['running'] = False
 
 
 def show_error_dialog(title, message):
