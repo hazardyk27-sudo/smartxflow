@@ -23,10 +23,23 @@ SmartXFlow Monitor is a professional betting odds tracking tool designed to scra
 ### System Architecture
 
 **Core Architecture:**
-The system uses a hybrid architecture:
-- **Standalone Scraper (PC-based):** A Python application (`SmartXFlow Admin Panel v1.04`) runs on a Windows PC, scraping data from arbworld.net every 10 minutes and directly writing it to Supabase. The admin panel includes full alarm settings configuration with 7 alarm type tabs (Sharp, Public Move, Insider, Big Money, Dropping, Hacim Şoku, Hacim Lideri), allowing users to view/edit thresholds, multipliers, and alarm lists directly from the EXE.
-- **Web UI (Replit-based):** A Flask web application hosted on Replit acts as a read-only interface. It fetches data from Supabase and displays it graphically. The scraper functionality is explicitly disabled in the Replit environment (`DISABLE_SCRAPER=true`).
+The system uses a hybrid architecture with Supabase as the single source of truth for alarms:
+- **Standalone Scraper (PC-based):** A Python application (`SmartXFlow Admin Panel v1.04`) runs on a Windows PC, scraping data from arbworld.net every 10 minutes and directly writing it to Supabase. The admin panel includes full alarm settings configuration with 7 alarm type tabs (Sharp, Public Move, Insider, Big Money, Dropping, Hacim Şoku, Hacim Lideri), allowing users to view/edit thresholds, multipliers, and alarm lists directly from the EXE. **Alarms are calculated by the EXE and written to Supabase alarm tables.**
+- **Web UI (Replit-based):** A Flask web application hosted on Replit reads alarms from Supabase and displays them graphically. If Supabase alarm tables don't exist or are empty, falls back to local JSON files. The scraper functionality is explicitly disabled in the Replit environment (`DISABLE_SCRAPER=true`).
 - **Desktop Application:** A PyInstaller-built desktop application (`SmartXFlowDesktop.exe`) provides a native user experience. It embeds a Flask backend running locally (127.0.0.1:5000) within a pywebview (Edge WebView2) window, eliminating the need for external browser tabs or console windows.
+
+**Alarm Tables in Supabase:**
+| Table Name | Alarm Type |
+|------------|------------|
+| sharp_alarms | Sharp Money |
+| insider_alarms | Insider Info |
+| bigmoney_alarms | Big Money |
+| volumeshock_alarms | Hacim Şoku (Volume Shock) |
+| dropping_alarms | Dropping Odds |
+| publicmove_alarms | Public Move |
+| volume_leader_alarms | Hacim Lideri (Volume Leader) |
+
+**Important:** User must run `create_alarm_tables.sql` in Supabase Dashboard (SQL Editor) to create these tables before the EXE can write alarms. Until then, the system uses local JSON fallback.
 
 **Technology Stack:**
 - **Language:** Python 3.11

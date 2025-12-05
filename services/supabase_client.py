@@ -918,3 +918,72 @@ def get_database() -> HybridDatabase:
 
 def get_supabase_client():
     return get_database().supabase if get_database().is_supabase_available else None
+
+
+def fetch_alarms_from_supabase(table_name: str, order_by: str = 'created_at', limit: int = 500) -> List[Dict[str, Any]]:
+    """Fetch alarms from a Supabase alarm table"""
+    client = get_supabase_client()
+    if not client or not client.is_available:
+        return []
+    
+    try:
+        url = f"{client._rest_url(table_name)}?select=*&order={order_by}.desc&limit={limit}"
+        resp = httpx.get(url, headers=client._headers(), timeout=15)
+        if resp.status_code == 200:
+            return resp.json()
+        else:
+            print(f"[Supabase] Error fetching {table_name}: {resp.status_code}")
+            return []
+    except Exception as e:
+        print(f"[Supabase] Error fetching {table_name}: {e}")
+        return []
+
+
+def get_sharp_alarms_from_supabase() -> List[Dict[str, Any]]:
+    """Get Sharp alarms from Supabase"""
+    return fetch_alarms_from_supabase('sharp_alarms')
+
+
+def get_insider_alarms_from_supabase() -> List[Dict[str, Any]]:
+    """Get Insider alarms from Supabase"""
+    return fetch_alarms_from_supabase('insider_alarms')
+
+
+def get_bigmoney_alarms_from_supabase() -> List[Dict[str, Any]]:
+    """Get BigMoney alarms from Supabase"""
+    return fetch_alarms_from_supabase('bigmoney_alarms')
+
+
+def get_volumeshock_alarms_from_supabase() -> List[Dict[str, Any]]:
+    """Get VolumeShock alarms from Supabase"""
+    return fetch_alarms_from_supabase('volumeshock_alarms')
+
+
+def get_dropping_alarms_from_supabase() -> List[Dict[str, Any]]:
+    """Get Dropping alarms from Supabase"""
+    return fetch_alarms_from_supabase('dropping_alarms')
+
+
+def get_publicmove_alarms_from_supabase() -> List[Dict[str, Any]]:
+    """Get PublicMove alarms from Supabase"""
+    return fetch_alarms_from_supabase('publicmove_alarms')
+
+
+def get_volumeleader_alarms_from_supabase() -> List[Dict[str, Any]]:
+    """Get VolumeLeader alarms from Supabase"""
+    return fetch_alarms_from_supabase('volume_leader_alarms')
+
+
+def delete_alarms_from_supabase(table_name: str) -> bool:
+    """Delete all alarms from a Supabase alarm table"""
+    client = get_supabase_client()
+    if not client or not client.is_available:
+        return False
+    
+    try:
+        url = f"{client._rest_url(table_name)}?id=gt.0"
+        resp = httpx.delete(url, headers=client._headers(), timeout=15)
+        return resp.status_code in [200, 204]
+    except Exception as e:
+        print(f"[Supabase] Error deleting from {table_name}: {e}")
+        return False

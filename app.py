@@ -29,7 +29,13 @@ static_dir = resource_path("static")
 
 from core.settings import init_mode, is_server_mode, is_client_mode, get_scrape_interval_seconds, is_scraper_disabled
 from core.timezone import now_turkey, now_turkey_iso, now_turkey_formatted, format_turkey_time, format_time_only, TURKEY_TZ
-from services.supabase_client import get_database, get_supabase_client
+from services.supabase_client import (
+    get_database, get_supabase_client,
+    get_sharp_alarms_from_supabase, get_insider_alarms_from_supabase,
+    get_bigmoney_alarms_from_supabase, get_volumeshock_alarms_from_supabase,
+    get_dropping_alarms_from_supabase, get_publicmove_alarms_from_supabase,
+    get_volumeleader_alarms_from_supabase, delete_alarms_from_supabase
+)
 import hashlib
 
 def generate_match_id(home, away, league, date=''):
@@ -1302,7 +1308,10 @@ insider_calc_progress = ""
 
 @app.route('/api/insider/alarms', methods=['GET'])
 def get_insider_alarms():
-    """Get all Insider alarms"""
+    """Get all Insider alarms - reads from Supabase first, fallback to local JSON"""
+    supabase_alarms = get_insider_alarms_from_supabase()
+    if supabase_alarms:
+        return jsonify(supabase_alarms)
     return jsonify(insider_alarms)
 
 
@@ -1327,11 +1336,12 @@ def reset_insider_calculation():
 
 @app.route('/api/insider/delete', methods=['POST'])
 def delete_insider_alarms():
-    """Delete all Insider alarms"""
+    """Delete all Insider alarms from both Supabase and local JSON"""
     global insider_alarms
     try:
         insider_alarms = []
         save_insider_alarms_to_file(insider_alarms)
+        delete_alarms_from_supabase('insider_alarms')
         print("[Insider] All alarms deleted")
         return jsonify({'success': True})
     except Exception as e:
@@ -1796,17 +1806,21 @@ def save_big_money_config_endpoint():
 
 @app.route('/api/bigmoney/alarms', methods=['GET'])
 def get_big_money_alarms():
-    """Get all Big Money alarms"""
+    """Get all Big Money alarms - reads from Supabase first, fallback to local JSON"""
+    supabase_alarms = get_bigmoney_alarms_from_supabase()
+    if supabase_alarms:
+        return jsonify(supabase_alarms)
     return jsonify(big_money_alarms)
 
 
 @app.route('/api/bigmoney/delete', methods=['POST'])
 def delete_big_money_alarms():
-    """Delete all Big Money alarms"""
+    """Delete all Big Money alarms from both Supabase and local JSON"""
     global big_money_alarms
     try:
         big_money_alarms = []
         save_big_money_alarms_to_file(big_money_alarms)
+        delete_alarms_from_supabase('bigmoney_alarms')
         print("[BigMoney] All alarms deleted")
         return jsonify({'success': True})
     except Exception as e:
@@ -2112,17 +2126,21 @@ def save_dropping_config_endpoint():
 
 @app.route('/api/dropping/alarms', methods=['GET'])
 def get_dropping_alarms():
-    """Get all Dropping Alert alarms"""
+    """Get all Dropping Alert alarms - reads from Supabase first, fallback to local JSON"""
+    supabase_alarms = get_dropping_alarms_from_supabase()
+    if supabase_alarms:
+        return jsonify(supabase_alarms)
     return jsonify(dropping_alarms)
 
 
 @app.route('/api/dropping/delete', methods=['POST'])
 def delete_dropping_alarms():
-    """Delete all Dropping Alert alarms"""
+    """Delete all Dropping Alert alarms from both Supabase and local JSON"""
     global dropping_alarms
     try:
         dropping_alarms = []
         save_dropping_alarms_to_file(dropping_alarms)
+        delete_alarms_from_supabase('dropping_alarms')
         print("[Dropping] All alarms deleted")
         return jsonify({'success': True})
     except Exception as e:
@@ -2536,15 +2554,19 @@ def save_volume_shock_config_api():
 
 @app.route('/api/volumeshock/alarms', methods=['GET'])
 def get_volume_shock_alarms():
-    """Get all Volume Shock alarms"""
+    """Get all Volume Shock alarms - reads from Supabase first, fallback to local JSON"""
+    supabase_alarms = get_volumeshock_alarms_from_supabase()
+    if supabase_alarms:
+        return jsonify(supabase_alarms)
     return jsonify(volume_shock_alarms)
 
 @app.route('/api/volumeshock/delete', methods=['POST'])
 def delete_volume_shock_alarms():
-    """Delete all Volume Shock alarms"""
+    """Delete all Volume Shock alarms from both Supabase and local JSON"""
     global volume_shock_alarms
     volume_shock_alarms = []
     save_volume_shock_alarms_to_file(volume_shock_alarms)
+    delete_alarms_from_supabase('volumeshock_alarms')
     return jsonify({'success': True})
 
 @app.route('/api/volumeshock/status', methods=['GET'])
@@ -2889,22 +2911,20 @@ def save_sharp_config():
 
 @app.route('/api/sharp/alarms', methods=['GET'])
 def get_sharp_alarms():
-    """Get all Sharp alarms"""
+    """Get all Sharp alarms - reads from Supabase first, fallback to local JSON"""
+    supabase_alarms = get_sharp_alarms_from_supabase()
+    if supabase_alarms:
+        return jsonify(supabase_alarms)
     return jsonify(sharp_alarms)
 
 
 @app.route('/api/sharp/alarms', methods=['DELETE'])
 def delete_sharp_alarms():
-    """Delete all Sharp alarms"""
+    """Delete all Sharp alarms from both Supabase and local JSON"""
     global sharp_alarms
     sharp_alarms = []
     save_sharp_alarms_to_file(sharp_alarms)
-    supabase = get_supabase_client()
-    if supabase and supabase.is_available:
-        try:
-            supabase.delete_all_sharp_alarms()
-        except:
-            pass
+    delete_alarms_from_supabase('sharp_alarms')
     return jsonify({'success': True})
 
 
@@ -2991,16 +3011,20 @@ def save_publicmove_config():
 
 @app.route('/api/publicmove/alarms', methods=['GET'])
 def get_publicmove_alarms():
-    """Get all Public Move alarms"""
+    """Get all Public Move alarms - reads from Supabase first, fallback to local JSON"""
+    supabase_alarms = get_publicmove_alarms_from_supabase()
+    if supabase_alarms:
+        return jsonify(supabase_alarms)
     return jsonify(publicmove_alarms)
 
 
 @app.route('/api/publicmove/alarms', methods=['DELETE'])
 def delete_publicmove_alarms():
-    """Delete all Public Move alarms"""
+    """Delete all Public Move alarms from both Supabase and local JSON"""
     global publicmove_alarms
     publicmove_alarms = []
     save_publicmove_alarms_to_file(publicmove_alarms)
+    delete_alarms_from_supabase('publicmove_alarms')
     return jsonify({'success': True})
 
 
@@ -3819,16 +3843,20 @@ def save_volume_leader_config_api():
 
 @app.route('/api/volumeleader/alarms', methods=['GET'])
 def get_volume_leader_alarms():
-    """Get Volume Leader alarms"""
+    """Get Volume Leader alarms - reads from Supabase first, fallback to local JSON"""
+    supabase_alarms = get_volumeleader_alarms_from_supabase()
+    if supabase_alarms:
+        return jsonify(supabase_alarms)
     return jsonify(volume_leader_alarms)
 
 
 @app.route('/api/volumeleader/alarms', methods=['DELETE'])
 def delete_volume_leader_alarms():
-    """Delete all Volume Leader alarms"""
+    """Delete all Volume Leader alarms from both Supabase and local JSON"""
     global volume_leader_alarms
     volume_leader_alarms = []
     save_volume_leader_alarms_to_file(volume_leader_alarms)
+    delete_alarms_from_supabase('volume_leader_alarms')
     return jsonify({'success': True})
 
 
