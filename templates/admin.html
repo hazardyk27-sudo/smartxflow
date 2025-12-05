@@ -465,6 +465,75 @@
             border-bottom: 1px solid #21262d;
         }
         
+        /* Common inline detail styles for all alarm types */
+        .detail-row-inline {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            font-size: 12px;
+        }
+        .detail-row-inline:not(:last-child) {
+            border-bottom: 1px solid #21262d;
+        }
+        
+        /* Dropping alarm inline detail wrapper */
+        .dropping-alarm-wrapper {
+            border-bottom: 1px solid #21262d;
+        }
+        .dropping-alarm-wrapper:last-child {
+            border-bottom: none;
+        }
+        .dropping-alarm-wrapper .alarm-item {
+            border-bottom: none;
+        }
+        .dropping-alarm-detail {
+            animation: slideDown 0.2s ease-out;
+        }
+        .dropping-detail-section {
+            background: #0d1117;
+            border-radius: 6px;
+            padding: 10px;
+        }
+        
+        /* Volume Leader alarm inline detail wrapper */
+        .vl-alarm-wrapper {
+            border-bottom: 1px solid #21262d;
+        }
+        .vl-alarm-wrapper:last-child {
+            border-bottom: none;
+        }
+        .vl-alarm-wrapper .alarm-item {
+            border-bottom: none;
+        }
+        .vl-alarm-detail {
+            animation: slideDown 0.2s ease-out;
+        }
+        .vl-detail-section {
+            background: #0d1117;
+            border-radius: 6px;
+            padding: 10px;
+        }
+        
+        /* Big Money alarm inline detail wrapper */
+        .bigmoney-alarm-wrapper {
+            border-bottom: 1px solid #21262d;
+        }
+        .bigmoney-alarm-wrapper:last-child {
+            border-bottom: none;
+        }
+        .bigmoney-alarm-wrapper .alarm-item {
+            border-bottom: none;
+        }
+        .bigmoney-alarm-detail {
+            animation: slideDown 0.2s ease-out;
+        }
+        .bigmoney-detail-section {
+            background: #0d1117;
+            border-radius: 6px;
+            padding: 10px;
+        }
+        
         .modal {
             position: fixed;
             top: 0;
@@ -3577,27 +3646,77 @@
                 const bgColor = isHuge ? '#ff7b00' : '#FF4500';
                 const icon = isHuge ? '🔥' : '💰';
                 const label = isHuge ? 'HUGE MONEY' : 'BIG MONEY';
+                const zebraStyle = idx % 2 === 0 ? 'background: #161b22;' : 'background: #1c2128;';
                 
                 return `
-                <div class="alarm-item" onclick="showBigMoneyAlarmDetail(${idx})" style="border-left: 3px solid ${bgColor};">
-                    <div class="alarm-info">
-                        <div class="alarm-match">
-                            <span style="background:${bgColor};color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">${icon} ${label}</span>
-                            ${alarm.home} vs ${alarm.away}
+                <div class="bigmoney-alarm-wrapper" id="bigmoney-alarm-${idx}">
+                    <div class="alarm-item" onclick="toggleBigMoneyDetail(${idx})" style="border-left: 3px solid ${bgColor}; cursor: pointer; ${zebraStyle}">
+                        <div class="alarm-info">
+                            <div class="alarm-match">
+                                <span style="margin-right: 8px; color: ${bgColor}; font-size: 14px; font-weight: bold;" id="bigmoney-toggle-icon-${idx}">▶</span>
+                                <span style="background:${bgColor};color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">${icon} ${label}</span>
+                                ${alarm.home} vs ${alarm.away}
+                            </div>
+                            <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
+                            <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
+                                <span style="color: ${bgColor};" title="Gelen Para">💰 Gelen: £${Math.round(alarm.incoming_money || 0).toLocaleString('en-GB')}</span>
+                                ${isHuge ? `<span style="color: #ff7b00;" title="Toplam">🔥 Toplam: £${Math.round(alarm.huge_total || 0).toLocaleString('en-GB')}</span>` : ''}
+                                <span style="color: #58a6ff;" title="Limit">📊 Limit: £${Math.round(alarm.big_money_limit || 15000).toLocaleString('en-GB')}</span>
+                                <span style="color: #3fb950;" title="Snapshot Sayisi">📸 ${alarm.snapshot_count || 1} kez</span>
+                            </div>
                         </div>
-                        <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
-                        <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
-                            <span style="color: ${bgColor};" title="Gelen Para">💰 Gelen: £${Math.round(alarm.incoming_money || 0).toLocaleString('en-GB')}</span>
-                            ${isHuge ? `<span style="color: #ff7b00;" title="Toplam">🔥 Toplam: £${Math.round(alarm.huge_total || 0).toLocaleString('en-GB')}</span>` : ''}
-                            <span style="color: #58a6ff;" title="Limit">📊 Limit: £${Math.round(alarm.big_money_limit || 15000).toLocaleString('en-GB')}</span>
-                            <span style="color: #3fb950;" title="Snapshot Sayisi">📸 ${alarm.snapshot_count || 1} kez</span>
+                        <div class="alarm-score" style="background: linear-gradient(135deg, ${bgColor}, ${isHuge ? '#ff5500' : '#CC3700'});">${icon}</div>
+                    </div>
+                    <div id="bigmoney-detail-${idx}" class="bigmoney-alarm-detail" style="display: none; background: #0d1117; border: 1px solid #30363d; border-top: none; border-left: 3px solid ${bgColor}; border-radius: 0 0 8px 8px; padding: 15px; margin-top: -5px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div class="bigmoney-detail-section">
+                                <div style="color: ${bgColor}; font-weight: 600; margin-bottom: 8px; font-size: 12px;">${icon} ${label} DETAYI</div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Gelen Para:</span> <span style="color: ${bgColor}; font-weight: 700; font-size: 16px;">£${Math.round(alarm.incoming_money || 0).toLocaleString('en-GB')}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Alarm Limiti:</span> <span style="color: #f0f6fc;">£${Math.round(alarm.big_money_limit || 15000).toLocaleString('en-GB')}</span></div>
+                                ${isHuge ? `<div class="detail-row-inline"><span style="color: #8b949e;">2 Snapshot Toplami:</span> <span style="color: #ff7b00; font-weight: 700;">£${Math.round(alarm.huge_total || 0).toLocaleString('en-GB')}</span></div>` : ''}
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Limit Asan Snapshot:</span> <span style="color: #3fb950;">${alarm.snapshot_count || 1} kez</span></div>
+                            </div>
+                            <div class="bigmoney-detail-section">
+                                <div style="color: #58a6ff; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📊 MAC BILGILERI</div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Ev Sahibi:</span> <span style="color: #f0f6fc;">${alarm.home}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Deplasman:</span> <span style="color: #f0f6fc;">${alarm.away}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Market:</span> <span style="color: #f0f6fc;">${alarm.market}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Secenek:</span> <span style="color: #a371f7; font-weight: 600;">${alarm.selection}</span></div>
+                            </div>
+                            <div class="bigmoney-detail-section">
+                                <div style="color: #f0883e; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📅 ZAMAN BILGILERI</div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Mac Tarihi:</span> <span style="color: #58a6ff;">${formatMatchDateTR(alarm.match_date)}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Hesaplama:</span> <span style="color: #f0f6fc;">${alarm.created_at || '-'}</span></div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 12px; padding: 10px; background: rgba(${isHuge ? '255,123,0' : '255,69,0'}, 0.15); border-radius: 6px; border-left: 3px solid ${bgColor};">
+                            <span style="color: ${bgColor}; font-weight: 600;">${icon} ${label} Sinyali:</span>
+                            <span style="color: #c9d1d9; font-size: 12px; margin-left: 8px;">
+                                ${isHuge ? 
+                                    `2 ardisik snapshot'ta ${alarm.selection} secenegine £${(alarm.big_money_limit || 15000).toLocaleString('en-GB')}+ para girisi! Syndicates veya profesyonel bahisciler seri sekilde pozisyon aliyor olabilir!` 
+                                    : 
+                                    `Tek snapshot'ta ${alarm.selection} secenegine £${Math.round(alarm.incoming_money || 0).toLocaleString('en-GB')} para girisi! Buyuk oyuncular pozisyon aliyor olabilir!`
+                                }
+                            </span>
                         </div>
                     </div>
-                    <div class="alarm-score" style="background: linear-gradient(135deg, ${bgColor}, ${isHuge ? '#ff5500' : '#CC3700'});">${icon}</div>
                 </div>
             `}).join('');
 
             window.currentBigMoneyAlarms = alarms;
+        }
+        
+        function toggleBigMoneyDetail(idx) {
+            const detailEl = document.getElementById(`bigmoney-detail-${idx}`);
+            const toggleIcon = document.getElementById(`bigmoney-toggle-icon-${idx}`);
+            
+            if (detailEl.style.display === 'none') {
+                detailEl.style.display = 'block';
+                if (toggleIcon) toggleIcon.textContent = '▼';
+            } else {
+                detailEl.style.display = 'none';
+                if (toggleIcon) toggleIcon.textContent = '▶';
+            }
         }
 
         function filterBigMoneyAlarms() {
@@ -3991,25 +4110,70 @@
                 const zebraStyle = idx % 2 === 0 ? 'background: #161b22;' : 'background: #1c2128;';
                 
                 return `
-                <div class="alarm-item" onclick="showVolumeLeaderAlarmDetail(${idx})" style="border-left: 3px solid #06b6d4; cursor: pointer; ${zebraStyle}">
-                    <div class="alarm-info">
-                        <div class="alarm-match">
-                            <span style="background:#06b6d4;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">👑 LIDER DEGISTI</span>
-                            ${alarm.home} vs ${alarm.away}
+                <div class="vl-alarm-wrapper" id="vl-alarm-${idx}">
+                    <div class="alarm-item" onclick="toggleVolumeLeaderDetail(${idx})" style="border-left: 3px solid #06b6d4; cursor: pointer; ${zebraStyle}">
+                        <div class="alarm-info">
+                            <div class="alarm-match">
+                                <span style="margin-right: 8px; color: #06b6d4; font-size: 14px; font-weight: bold;" id="vl-toggle-icon-${idx}">▶</span>
+                                <span style="background:#06b6d4;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">👑 LIDER DEGISTI</span>
+                                ${alarm.home} vs ${alarm.away}
+                            </div>
+                            <div class="alarm-meta">${alarm.market} | ${createdAt}</div>
+                            <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
+                                <span style="color: #f85149;" title="Eski Lider">🔴 ${oldLeader} (%${oldShare.toFixed(0)})</span>
+                                <span style="color: #8b949e;">→</span>
+                                <span style="color: #3fb950;" title="Yeni Lider">🟢 ${newLeader} (%${newShare.toFixed(0)})</span>
+                                <span style="color: #58a6ff;" title="Volume">💰 £${Math.round(volume).toLocaleString('en-GB')}</span>
+                            </div>
                         </div>
-                        <div class="alarm-meta">${alarm.market} | ${createdAt}</div>
-                        <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
-                            <span style="color: #f85149;" title="Eski Lider">🔴 ${oldLeader} (%${oldShare.toFixed(0)})</span>
-                            <span style="color: #8b949e;">→</span>
-                            <span style="color: #3fb950;" title="Yeni Lider">🟢 ${newLeader} (%${newShare.toFixed(0)})</span>
-                            <span style="color: #58a6ff;" title="Volume">💰 £${Math.round(volume).toLocaleString('en-GB')}</span>
+                        <div class="alarm-score" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">👑</div>
+                    </div>
+                    <div id="vl-detail-${idx}" class="vl-alarm-detail" style="display: none; background: #0d1117; border: 1px solid #30363d; border-top: none; border-left: 3px solid #06b6d4; border-radius: 0 0 8px 8px; padding: 15px; margin-top: -5px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div class="vl-detail-section">
+                                <div style="color: #06b6d4; font-weight: 600; margin-bottom: 8px; font-size: 12px;">👑 LIDER DEGISIMI DETAYI</div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Eski Lider:</span> <span style="color: #f85149; font-weight: 700; font-size: 15px;">${oldLeader}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Eski Pay:</span> <span style="color: #f85149; font-weight: 600;">%${oldShare.toFixed(1)}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Yeni Lider:</span> <span style="color: #3fb950; font-weight: 700; font-size: 15px;">${newLeader}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Yeni Pay:</span> <span style="color: #3fb950; font-weight: 600;">%${newShare.toFixed(1)}</span></div>
+                            </div>
+                            <div class="vl-detail-section">
+                                <div style="color: #58a6ff; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📊 MAC BILGILERI</div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Ev Sahibi:</span> <span style="color: #f0f6fc;">${alarm.home}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Deplasman:</span> <span style="color: #f0f6fc;">${alarm.away}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Market:</span> <span style="color: #f0f6fc;">${alarm.market}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Toplam Hacim:</span> <span style="color: #3fb950; font-weight: 600;">£${Math.round(volume).toLocaleString('en-GB')}</span></div>
+                            </div>
+                            <div class="vl-detail-section">
+                                <div style="color: #f0883e; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📅 ZAMAN BILGILERI</div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Mac Tarihi:</span> <span style="color: #58a6ff;">${formatMatchDateTR(alarm.match_date)}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Hesaplama:</span> <span style="color: #f0f6fc;">${createdAt}</span></div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 12px; padding: 10px; background: rgba(6, 182, 212, 0.15); border-radius: 6px; border-left: 3px solid #06b6d4;">
+                            <span style="color: #06b6d4; font-weight: 600;">👑 Lider Degisimi Sinyali:</span>
+                            <span style="color: #c9d1d9; font-size: 12px; margin-left: 8px;">
+                                ${oldLeader} secenegi %${oldShare.toFixed(0)} payla liderken, ${newLeader} secenegi %${newShare.toFixed(0)} paya ulasarak yeni lider oldu. Buyuk oyuncular pozisyon degistiriyor olabilir!
+                            </span>
                         </div>
                     </div>
-                    <div class="alarm-score" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">👑</div>
                 </div>
             `}).join('');
             
             window.currentVolumeLeaderAlarms = alarms;
+        }
+        
+        function toggleVolumeLeaderDetail(idx) {
+            const detailEl = document.getElementById(`vl-detail-${idx}`);
+            const toggleIcon = document.getElementById(`vl-toggle-icon-${idx}`);
+            
+            if (detailEl.style.display === 'none') {
+                detailEl.style.display = 'block';
+                if (toggleIcon) toggleIcon.textContent = '▼';
+            } else {
+                detailEl.style.display = 'none';
+                if (toggleIcon) toggleIcon.textContent = '▶';
+            }
         }
         
         function filterVolumeLeaderAlarms() {
@@ -4324,28 +4488,77 @@
 
             countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
             container.innerHTML = alarms.map((alarm, idx) => {
-                const levelColors = { 'L1': '#f85149', 'L2': '#f85149', 'L3': '#f85149' };
+                const levelColors = { 'L1': '#e74c3c', 'L2': '#f39c12', 'L3': '#c0392b' };
                 const bgColor = levelColors[alarm.level] || '#e74c3c';
+                const levelText = alarm.level === 'L1' ? 'Dusuk' : alarm.level === 'L2' ? 'Orta' : 'Yuksek';
+                const zebraStyle = idx % 2 === 0 ? 'background: #161b22;' : 'background: #1c2128;';
                 
                 return `
-                <div class="alarm-item" onclick="showDroppingAlarmDetail(${idx})" style="border-left: 3px solid ${bgColor};">
-                    <div class="alarm-info">
-                        <div class="alarm-match">
-                            <span style="background:${bgColor};color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">📉 ${alarm.level}</span>
-                            ${alarm.home} vs ${alarm.away}
+                <div class="dropping-alarm-wrapper" id="dropping-alarm-${idx}">
+                    <div class="alarm-item" onclick="toggleDroppingDetail(${idx})" style="border-left: 3px solid ${bgColor}; cursor: pointer; ${zebraStyle}">
+                        <div class="alarm-info">
+                            <div class="alarm-match">
+                                <span style="margin-right: 8px; color: ${bgColor}; font-size: 14px; font-weight: bold;" id="dropping-toggle-icon-${idx}">▶</span>
+                                <span style="background:${bgColor};color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">📉 ${alarm.level}</span>
+                                ${alarm.home} vs ${alarm.away}
+                            </div>
+                            <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
+                            <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
+                                <span style="color: ${bgColor};" title="Dusus Yuzdesi">📉 %${(alarm.drop_pct || 0).toFixed(1)}</span>
+                                <span style="color: #58a6ff;" title="Acilis Orani">📊 Acilis: ${alarm.opening_odds || 0}</span>
+                                <span style="color: #3fb950;" title="Guncel Oran">📈 Simdi: ${alarm.current_odds || 0}</span>
+                                <span style="color: #f0883e;" title="Hacim">💰 £${(alarm.volume || 0).toLocaleString('en-GB')}</span>
+                            </div>
                         </div>
-                        <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
-                        <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
-                            <span style="color: ${bgColor};" title="Dusus Yuzdesi">📉 %${(alarm.drop_pct || 0).toFixed(1)}</span>
-                            <span style="color: #58a6ff;" title="Acilis Orani">📊 ${alarm.opening_odds || 0}</span>
-                            <span style="color: #3fb950;" title="Guncel Oran">📈 ${alarm.current_odds || 0}</span>
+                        <div class="alarm-score" style="background: linear-gradient(135deg, ${bgColor}, ${bgColor}dd);">${alarm.level}</div>
+                    </div>
+                    <div id="dropping-detail-${idx}" class="dropping-alarm-detail" style="display: none; background: #0d1117; border: 1px solid #30363d; border-top: none; border-left: 3px solid ${bgColor}; border-radius: 0 0 8px 8px; padding: 15px; margin-top: -5px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div class="dropping-detail-section">
+                                <div style="color: ${bgColor}; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📉 ORAN DUSUSU DETAYI</div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Acilis Orani:</span> <span style="color: #94a3b8; font-size: 15px; font-weight: 600;">${alarm.opening_odds || 0}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Guncel Oran:</span> <span style="color: #22c55e; font-weight: 700; font-size: 15px;">${alarm.current_odds || 0}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Dusus Yuzdesi:</span> <span style="color: ${bgColor}; font-weight: 700; font-size: 16px;">%${(alarm.drop_pct || 0).toFixed(2)}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Seviye:</span> <span style="color: ${bgColor}; font-weight: 700;">${alarm.level} (${levelText})</span></div>
+                            </div>
+                            <div class="dropping-detail-section">
+                                <div style="color: #58a6ff; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📊 MARKET BILGILERI</div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Ev Sahibi:</span> <span style="color: #f0f6fc;">${alarm.home}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Deplasman:</span> <span style="color: #f0f6fc;">${alarm.away}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Market:</span> <span style="color: #f0f6fc;">${alarm.market}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Secenek:</span> <span style="color: #a371f7; font-weight: 600;">${alarm.selection}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Hacim:</span> <span style="color: #3fb950; font-weight: 600;">£${(alarm.volume || 0).toLocaleString('en-GB')}</span></div>
+                            </div>
+                            <div class="dropping-detail-section">
+                                <div style="color: #f0883e; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📅 ZAMAN BILGILERI</div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Mac Tarihi:</span> <span style="color: #58a6ff;">${formatMatchDateTR(alarm.match_date)}</span></div>
+                                <div class="detail-row-inline"><span style="color: #8b949e;">Hesaplama:</span> <span style="color: #f0f6fc;">${alarm.created_at || '-'}</span></div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 12px; padding: 10px; background: rgba(${alarm.level === 'L1' ? '231,76,60' : alarm.level === 'L2' ? '243,156,18' : '192,57,43'}, 0.15); border-radius: 6px; border-left: 3px solid ${bgColor};">
+                            <span style="color: ${bgColor}; font-weight: 600;">📉 ${alarm.level} Sinyal:</span>
+                            <span style="color: #c9d1d9; font-size: 12px; margin-left: 8px;">
+                                ${alarm.level === 'L3' ? 'Cok buyuk oran dususu! Sharps agresif pozisyon aliyor olabilir!' : alarm.level === 'L2' ? 'Orta seviye oran dususu. Sharps aktivitesi muhtemel.' : 'Hafif oran dususu. Takip edilmeli.'}
+                            </span>
                         </div>
                     </div>
-                    <div class="alarm-score" style="background: linear-gradient(135deg, ${bgColor}, ${bgColor}dd);">${alarm.level}</div>
                 </div>
             `}).join('');
 
             window.currentDroppingAlarms = alarms;
+        }
+        
+        function toggleDroppingDetail(idx) {
+            const detailEl = document.getElementById(`dropping-detail-${idx}`);
+            const toggleIcon = document.getElementById(`dropping-toggle-icon-${idx}`);
+            
+            if (detailEl.style.display === 'none') {
+                detailEl.style.display = 'block';
+                if (toggleIcon) toggleIcon.textContent = '▼';
+            } else {
+                detailEl.style.display = 'none';
+                if (toggleIcon) toggleIcon.textContent = '▶';
+            }
         }
 
         function filterDroppingAlarms() {
