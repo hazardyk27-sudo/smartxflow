@@ -34,7 +34,9 @@ from services.supabase_client import (
     get_sharp_alarms_from_supabase, get_insider_alarms_from_supabase,
     get_bigmoney_alarms_from_supabase, get_volumeshock_alarms_from_supabase,
     get_dropping_alarms_from_supabase, get_publicmove_alarms_from_supabase,
-    get_volumeleader_alarms_from_supabase, delete_alarms_from_supabase
+    get_volumeleader_alarms_from_supabase, delete_alarms_from_supabase,
+    write_insider_alarms_to_supabase, write_sharp_alarms_to_supabase,
+    write_publicmove_alarms_to_supabase, write_volumeleader_alarms_to_supabase
 )
 import hashlib
 
@@ -1173,15 +1175,26 @@ def load_sharp_alarms_from_file():
     return []
 
 def save_sharp_alarms_to_file(alarms):
-    """Save Sharp alarms to JSON file"""
+    """Save Sharp alarms to both JSON file and Supabase"""
+    success = False
+    
+    # 1. Supabase'e yaz (primary)
+    try:
+        if write_sharp_alarms_to_supabase(alarms):
+            success = True
+    except Exception as e:
+        print(f"[Sharp] Supabase write error: {e}")
+    
+    # 2. JSON'a yaz (fallback)
     try:
         with open(SHARP_ALARMS_FILE, 'w') as f:
             json.dump(alarms, f, indent=2, ensure_ascii=False)
         print(f"[Sharp] Saved {len(alarms)} alarms to {SHARP_ALARMS_FILE}")
-        return True
+        success = True
     except Exception as e:
-        print(f"[Sharp] Alarms save error: {e}")
-        return False
+        print(f"[Sharp] JSON save error: {e}")
+    
+    return success
 
 sharp_alarms = load_sharp_alarms_from_file()
 sharp_calculating = False
@@ -1257,15 +1270,26 @@ def load_publicmove_alarms_from_file():
     return []
 
 def save_publicmove_alarms_to_file(alarms):
-    """Save Public Move alarms to JSON file"""
+    """Save PublicMove alarms to both JSON file and Supabase"""
+    success = False
+    
+    # 1. Supabase'e yaz (primary)
+    try:
+        if write_publicmove_alarms_to_supabase(alarms):
+            success = True
+    except Exception as e:
+        print(f"[PublicMove] Supabase write error: {e}")
+    
+    # 2. JSON'a yaz (fallback)
     try:
         with open(PUBLICMOVE_ALARMS_FILE, 'w') as f:
             json.dump(alarms, f, indent=2, ensure_ascii=False)
         print(f"[PublicMove] Saved {len(alarms)} alarms to {PUBLICMOVE_ALARMS_FILE}")
-        return True
+        success = True
     except Exception as e:
-        print(f"[PublicMove] Alarms save error: {e}")
-        return False
+        print(f"[PublicMove] JSON save error: {e}")
+    
+    return success
 
 publicmove_alarms = load_publicmove_alarms_from_file()
 publicmove_calculating = False
@@ -1287,15 +1311,26 @@ def load_insider_alarms_from_file():
     return []
 
 def save_insider_alarms_to_file(alarms):
-    """Save Insider alarms to JSON file"""
+    """Save Insider alarms to both JSON file and Supabase"""
+    success = False
+    
+    # 1. Supabase'e yaz (primary)
+    try:
+        if write_insider_alarms_to_supabase(alarms):
+            success = True
+    except Exception as e:
+        print(f"[Insider] Supabase write error: {e}")
+    
+    # 2. JSON'a yaz (fallback)
     try:
         with open(INSIDER_ALARMS_FILE, 'w') as f:
             json.dump(alarms, f, indent=2, ensure_ascii=False)
         print(f"[Insider] Saved {len(alarms)} alarms to {INSIDER_ALARMS_FILE}")
-        return True
+        success = True
     except Exception as e:
-        print(f"[Insider] Alarms save error: {e}")
-        return False
+        print(f"[Insider] JSON save error: {e}")
+    
+    return success
 
 
 def merge_insider_alarms(existing_alarms, new_alarms):
@@ -3927,15 +3962,26 @@ def load_volume_leader_alarms_from_file():
     return []
 
 def save_volume_leader_alarms_to_file(alarms):
-    """Save Volume Leader alarms to JSON file"""
+    """Save Volume Leader alarms to both JSON file and Supabase"""
+    success = False
+    
+    # 1. Supabase'e yaz (primary)
+    try:
+        if write_volumeleader_alarms_to_supabase(alarms):
+            success = True
+    except Exception as e:
+        print(f"[VolumeLeader] Supabase write error: {e}")
+    
+    # 2. JSON'a yaz (fallback)
     try:
         with open(VOLUME_LEADER_ALARMS_FILE, 'w') as f:
             json.dump(alarms, f, indent=2, ensure_ascii=False)
         print(f"[VolumeLeader] Saved {len(alarms)} alarms to {VOLUME_LEADER_ALARMS_FILE}")
-        return True
+        success = True
     except Exception as e:
-        print(f"[VolumeLeader] Alarms save error: {e}")
-        return False
+        print(f"[VolumeLeader] JSON save error: {e}")
+    
+    return success
 
 volume_leader_config = load_volume_leader_config()
 volume_leader_alarms = load_volume_leader_alarms_from_file()

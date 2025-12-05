@@ -991,3 +991,171 @@ def delete_alarms_from_supabase(table_name: str) -> bool:
     except Exception as e:
         print(f"[Supabase] Error deleting from {table_name}: {e}")
         return False
+
+
+def write_alarms_to_supabase(table_name: str, alarms: List[Dict[str, Any]], clear_first: bool = False, on_conflict: str = None) -> bool:
+    """Write alarms to a Supabase alarm table using UPSERT
+    
+    Args:
+        table_name: Name of the alarm table (e.g., 'insider_alarms')
+        alarms: List of alarm dictionaries to write
+        clear_first: If True, delete existing alarms before inserting new ones
+        on_conflict: Comma-separated column names for upsert (e.g., 'home,away,market,selection')
+    
+    Returns:
+        True if successful, False otherwise
+    """
+    client = get_supabase_client()
+    if not client or not client.is_available:
+        print(f"[Supabase] Cannot write to {table_name}: client not available")
+        return False
+    
+    try:
+        # Try to clear existing alarms if requested (ignore errors due to RLS)
+        if clear_first:
+            delete_alarms_from_supabase(table_name)
+        
+        if not alarms:
+            print(f"[Supabase] No alarms to write to {table_name}")
+            return True
+        
+        # Prepare alarms for insert (remove 'id' field if exists, Supabase auto-generates)
+        clean_alarms = []
+        for alarm in alarms:
+            clean_alarm = {k: v for k, v in alarm.items() if k != 'id'}
+            clean_alarms.append(clean_alarm)
+        
+        # Deduplicate alarms by on_conflict keys (keep last occurrence)
+        if on_conflict:
+            conflict_keys = [k.strip() for k in on_conflict.split(',')]
+            seen = {}
+            for alarm in clean_alarms:
+                key = tuple(alarm.get(k, '') for k in conflict_keys)
+                seen[key] = alarm  # Last one wins
+            clean_alarms = list(seen.values())
+            print(f"[Supabase] Deduplicated to {len(clean_alarms)} unique alarms for {table_name}")
+        
+        # UPSERT in batches of 100 (on conflict = update)
+        batch_size = 100
+        for i in range(0, len(clean_alarms), batch_size):
+            batch = clean_alarms[i:i + batch_size]
+            
+            # Build URL with on_conflict parameter for upsert
+            base_url = client._rest_url(table_name)
+            if on_conflict:
+                url = f"{base_url}?on_conflict={on_conflict}"
+            else:
+                url = base_url
+            
+            headers = client._headers()
+            headers['Prefer'] = 'resolution=merge-duplicates,return=minimal'
+            
+            resp = httpx.post(url, headers=headers, json=batch, timeout=30)
+            if resp.status_code not in [200, 201]:
+                print(f"[Supabase] Error writing batch to {table_name}: {resp.status_code} - {resp.text[:200]}")
+                return False
+        
+        print(f"[Supabase] Wrote {len(clean_alarms)} alarms to {table_name}")
+        return True
+        
+    except Exception as e:
+        print(f"[Supabase] Error writing to {table_name}: {e}")
+        return False
+
+
+def write_insider_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
+    """Write Insider alarms to Supabase with field mapping"""
+    mapped_alarms = []
+    for alarm in alarms:
+        mapped = {
+            'home': alarm.get('home', ''),
+            'away': alarm.get('away', ''),
+            'market': alarm.get('market', ''),
+            'selection': alarm.get('selection', ''),
+            'oran_dusus_pct': alarm.get('oran_dusus_pct'),
+            'gelen_para': alarm.get('gelen_para'),
+            'hacim_sok': alarm.get('hacim_sok'),
+            'opening_odds': alarm.get('opening_odds'),
+            'current_odds': alarm.get('last_odds') or alarm.get('current_odds'),
+            'match_date': alarm.get('match_date', ''),
+            'event_time': alarm.get('event_time', ''),
+            'trigger_at': alarm.get('drop_time', ''),
+            'created_at': alarm.get('created_at', ''),
+            'alarm_type': 'insider'
+        }
+        mapped_alarms.append(mapped)
+    return write_alarms_to_supabase('insider_alarms', mapped_alarms, on_conflict='home,away,market,selection')
+
+
+def write_sharp_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
+    """Write Sharp alarms to Supabase with field mapping"""
+    mapped_alarms = []
+    for alarm in alarms:
+        mapped = {
+            'home': alarm.get('home', ''),
+            'away': alarm.get('away', ''),
+            'market': alarm.get('market', ''),
+            'selection': alarm.get('selection', ''),
+            'sharp_score': alarm.get('sharp_score'),
+            'volume_contrib': alarm.get('volume_contrib'),
+            'odds_contrib': alarm.get('odds_contrib'),
+            'share_contrib': alarm.get('share_contrib'),
+            'volume': alarm.get('shock_value') or alarm.get('volume'),
+            'previous_odds': alarm.get('previous_odds'),
+            'current_odds': alarm.get('current_odds'),
+            'previous_share': alarm.get('previous_share'),
+            'current_share': alarm.get('current_share'),
+            'match_date': alarm.get('match_date', ''),
+            'event_time': alarm.get('event_time', ''),
+            'trigger_at': alarm.get('created_at', ''),
+            'created_at': alarm.get('created_at', ''),
+            'alarm_type': 'sharp'
+        }
+        mapped_alarms.append(mapped)
+    return write_alarms_to_supabase('sharp_alarms', mapped_alarms, on_conflict='home,away,market,selection')
+
+
+def write_publicmove_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
+    """Write PublicMove alarms to Supabase with field mapping"""
+    mapped_alarms = []
+    for alarm in alarms:
+        mapped = {
+            'home': alarm.get('home', ''),
+            'away': alarm.get('away', ''),
+            'market': alarm.get('market', ''),
+            'selection': alarm.get('selection', ''),
+            'trap_score': alarm.get('sharp_score') or alarm.get('trap_score'),
+            'volume': alarm.get('volume') or alarm.get('shock_value'),
+            'odds_drop': alarm.get('odds_value'),
+            'share_change': alarm.get('share_value') or alarm.get('current_share'),
+            'match_date': alarm.get('match_date', ''),
+            'event_time': alarm.get('event_time', ''),
+            'trigger_at': alarm.get('created_at', ''),
+            'created_at': alarm.get('created_at', ''),
+            'alarm_type': 'publicmove'
+        }
+        mapped_alarms.append(mapped)
+    return write_alarms_to_supabase('publicmove_alarms', mapped_alarms, on_conflict='home,away,market,selection')
+
+
+def write_volumeleader_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
+    """Write VolumeLeader alarms to Supabase with field mapping"""
+    mapped_alarms = []
+    for alarm in alarms:
+        mapped = {
+            'home': alarm.get('home', ''),
+            'away': alarm.get('away', ''),
+            'market': alarm.get('market', ''),
+            'old_leader': alarm.get('old_leader', ''),
+            'old_leader_share': alarm.get('old_leader_share'),
+            'new_leader': alarm.get('new_leader', ''),
+            'new_leader_share': alarm.get('new_leader_share'),
+            'total_volume': alarm.get('total_volume'),
+            'match_date': alarm.get('match_date', ''),
+            'event_time': alarm.get('event_time', ''),
+            'trigger_at': alarm.get('created_at', ''),
+            'created_at': alarm.get('created_at', ''),
+            'alarm_type': 'volumeleader'
+        }
+        mapped_alarms.append(mapped)
+    return write_alarms_to_supabase('volume_leader_alarms', mapped_alarms, on_conflict='home,away,market,old_leader,new_leader')
