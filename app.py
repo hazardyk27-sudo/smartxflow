@@ -3094,7 +3094,38 @@ def calculate_halktuzagi_scores(config):
 
 
 def calculate_selection_halktuzagi(home, away, market, selection, sel_idx, history, volume, config, match_date_str=''):
-    """Calculate Halk Tuzagi score for a single selection (same logic as Sharp)"""
+    """Calculate Halk Tuzagi score for a single selection - only last 2 hours of history"""
+    if len(history) < 2:
+        return None
+    
+    # PUBLIC MOVE: Sadece son 2 saatteki hareketlere bak
+    now = now_turkey()
+    two_hours_ago = now - timedelta(hours=2)
+    
+    filtered_history = []
+    for snap in history:
+        scraped_at = snap.get('scraped_at', '')
+        if scraped_at:
+            try:
+                # Parse scraped_at timestamp
+                if 'T' in scraped_at:
+                    snap_time_str = scraped_at.split('+')[0].split('.')[0]
+                    snap_time = datetime.strptime(snap_time_str, '%Y-%m-%dT%H:%M:%S')
+                else:
+                    snap_time = datetime.strptime(scraped_at[:19], '%Y-%m-%d %H:%M:%S')
+                
+                # Sadece son 2 saatteki snapshot'ları al
+                if snap_time >= two_hours_ago.replace(tzinfo=None):
+                    filtered_history.append(snap)
+            except:
+                # Parse hatası olursa dahil et
+                filtered_history.append(snap)
+        else:
+            filtered_history.append(snap)
+    
+    # Filtrelenmiş history ile devam et
+    history = filtered_history
+    
     if len(history) < 2:
         return None
     

@@ -970,6 +970,32 @@ class AlarmCalculator:
                 if len(history) < 2:
                     continue
                 
+                # PUBLIC TRAP: Sadece son 2 saatteki hareketlere bak
+                now = datetime.now()
+                two_hours_ago = now - timedelta(hours=2)
+                
+                filtered_history = []
+                for snap in history:
+                    scraped_at = snap.get('scraped_at', snap.get('scrapedat', ''))
+                    if scraped_at:
+                        try:
+                            if 'T' in str(scraped_at):
+                                snap_time_str = str(scraped_at).split('+')[0].split('.')[0]
+                                snap_time = datetime.strptime(snap_time_str, '%Y-%m-%dT%H:%M:%S')
+                            else:
+                                snap_time = datetime.strptime(str(scraped_at)[:19], '%Y-%m-%d %H:%M:%S')
+                            
+                            if snap_time >= two_hours_ago:
+                                filtered_history.append(snap)
+                        except:
+                            filtered_history.append(snap)
+                    else:
+                        filtered_history.append(snap)
+                
+                history = filtered_history
+                if len(history) < 2:
+                    continue
+                
                 latest = history[-1]
                 prev = history[-2]
                 
