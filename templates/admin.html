@@ -3303,14 +3303,15 @@
 
         async function loadInsiderConfig() {
             try {
-                const response = await fetch('/api/sharp/config');
+                const response = await fetch('/api/alarm-settings/insider');
                 if (response.ok) {
-                    const config = await response.json();
-                    document.getElementById('insider_hacim_sok_esigi').value = config.insider_hacim_sok_esigi || 2;
-                    document.getElementById('insider_oran_dusus_esigi').value = config.insider_oran_dusus_esigi || 3;
-                    document.getElementById('insider_sure_dakika').value = config.insider_sure_dakika || 30;
-                    document.getElementById('insider_max_para').value = config.insider_max_para || 5000;
-                    document.getElementById('insider_max_odds_esigi').value = config.insider_max_odds_esigi || 10.0;
+                    const data = await response.json();
+                    const config = data.setting?.config || {};
+                    document.getElementById('insider_hacim_sok_esigi').value = config.hacim_sok_esigi || 2;
+                    document.getElementById('insider_oran_dusus_esigi').value = config.oran_dusus_esigi || 3;
+                    document.getElementById('insider_sure_dakika').value = config.sure_dakika || 30;
+                    document.getElementById('insider_max_para').value = config.max_para || 5000;
+                    document.getElementById('insider_max_odds_esigi').value = config.max_odds_esigi || 10.0;
                 }
             } catch (error) {
                 console.error('Insider config yukleme hatasi:', error);
@@ -3522,18 +3523,21 @@
 
         async function saveInsiderConfig() {
             const config = {
-                insider_hacim_sok_esigi: parseFloat(document.getElementById('insider_hacim_sok_esigi').value) || 2,
-                insider_oran_dusus_esigi: parseFloat(document.getElementById('insider_oran_dusus_esigi').value) || 3,
-                insider_sure_dakika: parseInt(document.getElementById('insider_sure_dakika').value) || 30,
-                insider_max_para: parseFloat(document.getElementById('insider_max_para').value) || 5000,
-                insider_max_odds_esigi: parseFloat(document.getElementById('insider_max_odds_esigi').value) || 10.0
+                hacim_sok_esigi: parseFloat(document.getElementById('insider_hacim_sok_esigi').value) || 2,
+                oran_dusus_esigi: parseFloat(document.getElementById('insider_oran_dusus_esigi').value) || 3,
+                sure_dakika: parseInt(document.getElementById('insider_sure_dakika').value) || 30,
+                max_para: parseFloat(document.getElementById('insider_max_para').value) || 5000,
+                max_odds_esigi: parseFloat(document.getElementById('insider_max_odds_esigi').value) || 10.0,
+                min_volume_1x2: 3000,
+                min_volume_ou25: 1000,
+                min_volume_btts: 1000
             };
             
             try {
-                const response = await fetch('/api/sharp/config', {
-                    method: 'POST',
+                const response = await fetch('/api/alarm-settings/insider', {
+                    method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(config)
+                    body: JSON.stringify({ enabled: true, config: config })
                 });
                 if (response.ok) {
                     showToast('Insider ayarlari kaydedildi!', 'success');
