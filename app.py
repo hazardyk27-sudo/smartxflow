@@ -146,6 +146,9 @@ def run_alarm_calculations():
     try:
         print(f"[Alarm Scheduler] Starting alarm calculations at {now_turkey_iso()}")
         
+        # LIVE RELOAD: Refresh configs from Supabase before calculations
+        refresh_configs_from_supabase()
+        
         # Sharp alarms
         try:
             new_sharp = calculate_sharp_scores(sharp_config)
@@ -187,10 +190,9 @@ def run_alarm_calculations():
         except Exception as e:
             print(f"[Alarm Scheduler] VolumeShock error: {e}")
         
-        # Dropping alarms
+        # Dropping alarms - uses global dropping_config (refreshed from Supabase)
         try:
-            dropping_cfg = load_dropping_config()
-            new_dropping = calculate_dropping_scores(dropping_cfg)
+            new_dropping = calculate_dropping_scores(dropping_config)
             if new_dropping:
                 global dropping_alarms
                 dropping_alarms = new_dropping
@@ -984,6 +986,81 @@ def get_match_details():
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)})
+
+
+def refresh_configs_from_supabase():
+    """Refresh all alarm configs from Supabase alarm_settings table - LIVE RELOAD"""
+    global sharp_config, halktuzagi_config, big_money_config, volume_shock_config, volume_leader_config, dropping_config
+    
+    supabase = get_supabase_client()
+    if not supabase or not supabase.is_available:
+        print("[Config Refresh] Supabase not available, using JSON fallback")
+        return False
+    
+    try:
+        settings = supabase.get_alarm_settings()
+        if not settings:
+            print("[Config Refresh] No settings from DB, using JSON fallback")
+            return False
+        
+        changes = []
+        
+        for setting in settings:
+            alarm_type = setting.get('alarm_type', '')
+            enabled = setting.get('enabled', True)
+            config = setting.get('config', {})
+            
+            if alarm_type == 'sharp' and config:
+                old = sharp_config.copy()
+                sharp_config.update(config)
+                sharp_config['enabled'] = enabled
+                if old != sharp_config:
+                    changes.append('sharp')
+                    
+            elif alarm_type == 'publictrap' and config:
+                old = halktuzagi_config.copy()
+                halktuzagi_config.update(config)
+                halktuzagi_config['enabled'] = enabled
+                if old != halktuzagi_config:
+                    changes.append('publictrap')
+                    
+            elif alarm_type == 'bigmoney' and config:
+                old = big_money_config.copy()
+                big_money_config.update(config)
+                big_money_config['enabled'] = enabled
+                if old != big_money_config:
+                    changes.append('bigmoney')
+                    
+            elif alarm_type == 'volumeshock' and config:
+                old = volume_shock_config.copy()
+                volume_shock_config.update(config)
+                volume_shock_config['enabled'] = enabled
+                if old != volume_shock_config:
+                    changes.append('volumeshock')
+                    
+            elif alarm_type == 'volumeleader' and config:
+                old = volume_leader_config.copy()
+                volume_leader_config.update(config)
+                volume_leader_config['enabled'] = enabled
+                if old != volume_leader_config:
+                    changes.append('volumeleader')
+                    
+            elif alarm_type == 'dropping' and config:
+                old = dropping_config.copy()
+                dropping_config.update(config)
+                dropping_config['enabled'] = enabled
+                if old != dropping_config:
+                    changes.append('dropping')
+        
+        if changes:
+            print(f"[Config Refresh] Updated configs from Supabase: {', '.join(changes)}")
+        else:
+            print(f"[Config Refresh] Configs loaded from Supabase (no changes)")
+        return True
+        
+    except Exception as e:
+        print(f"[Config Refresh] Error: {e}")
+        return False
 
 
 SHARP_CONFIG_FILE = 'sharp_config.json'

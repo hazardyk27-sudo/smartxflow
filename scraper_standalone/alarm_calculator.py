@@ -189,27 +189,50 @@ class AlarmCalculator:
     
     def load_configs(self):
         """Load all alarm configs from Supabase alarm_settings table"""
+        self._load_configs_from_db()
+    
+    def refresh_configs(self):
+        """Refresh configs from DB before each calculation cycle - LIVE RELOAD"""
+        log("Refreshing alarm configs from Supabase...")
+        old_configs = self.configs.copy()
+        self._load_configs_from_db()
+        
+        changes = []
+        for key in set(list(old_configs.keys()) + list(self.configs.keys())):
+            old_val = old_configs.get(key, {})
+            new_val = self.configs.get(key, {})
+            if old_val != new_val:
+                changes.append(key)
+        
+        if changes:
+            log(f"Config changes detected: {', '.join(changes)}")
+        return len(changes) > 0
+    
+    def _load_configs_from_db(self):
+        """Internal: Load configs from alarm_settings table"""
         try:
             settings = self._get('alarm_settings', 'select=*')
-            for setting in settings:
-                alarm_type = setting.get('alarm_type', '')
-                enabled = setting.get('enabled', True)
-                config = setting.get('config', {})
-                if alarm_type:
-                    self.configs[alarm_type] = {
-                        'enabled': enabled,
-                        **config
-                    }
-            if self.configs:
-                log(f"Loaded {len(self.configs)} alarm settings from DB")
-                for k, v in self.configs.items():
-                    log(f"  - {k}: enabled={v.get('enabled', True)}")
+            if settings:
+                new_configs = {}
+                for setting in settings:
+                    alarm_type = setting.get('alarm_type', '')
+                    enabled = setting.get('enabled', True)
+                    config = setting.get('config', {})
+                    if alarm_type:
+                        new_configs[alarm_type] = {
+                            'enabled': enabled,
+                            **config
+                        }
+                if new_configs:
+                    self.configs = new_configs
+                    log(f"Loaded {len(self.configs)} alarm settings from DB")
+                    return
         except Exception as e:
             log(f"Config load error: {e}")
         
         if not self.configs:
             self.configs = self._default_configs()
-            log("Using default configs")
+            log("Using default configs (fallback)")
     
     def _default_configs(self) -> Dict:
         return {
@@ -323,6 +346,9 @@ class AlarmCalculator:
         log("=" * 50)
         log("Alarm hesaplamalari basliyor...")
         log("=" * 50)
+        
+        # LIVE RELOAD: Refresh configs from Supabase before calculations
+        self.refresh_configs()
         
         self._history_cache = {}
         self._matches_cache = {}
