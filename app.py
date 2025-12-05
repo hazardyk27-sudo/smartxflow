@@ -2774,7 +2774,7 @@ def calculate_volume_shock_scores(config):
                                         else:
                                             alarms.append(alarm)
                                         
-                                        print(f"[VolumeShock] ALARM: {home} vs {away} [{selection}] Şok: {volume_shock:.1f}x, Maçtan {hours_to_kickoff:.1f}s önce")
+                                        print(f"[VolumeShock] ALARM: {home} vs {away} [{selection}] Shock: {volume_shock:.1f}x, {hours_to_kickoff:.1f}h before match")
         
         except Exception as e:
             print(f"[VolumeShock] Error processing {market}: {e}")
