@@ -1689,6 +1689,7 @@ def calculate_insider_scores(config, existing_alarms=None):
                             'oran_dusus_pct': window_odds_drop_pct,  # Açılıştan bugüne düşüş
                             'gelen_para': window_gelen_para,  # Window boyunca toplam gelen para (son - ilk)
                             'opening_odds': opening_odds,
+                            'current_odds': last_odds,  # Template için - son oran değeri
                             'last_odds': last_odds,
                             # Düşüş anı bilgisi (YENİ)
                             'drop_time': drop_time,
@@ -3484,9 +3485,12 @@ def calculate_sharp_scores(config):
                                 time_to_match = match_datetime_tr - now.replace(tzinfo=None)
                                 hours_to_match = time_to_match.total_seconds() / 3600
                                 
-                                # 2 saatten az kaldıysa Sharp sayılmaz
-                                if 0 < hours_to_match < 2:
-                                    print(f"[Sharp] Skipped {home} vs {away}: {hours_to_match:.1f} hours to kickoff (< 2h rule)")
+                                # Maç geçmişte veya 2 saatten az kaldıysa Sharp sayılmaz
+                                if hours_to_match < 2:
+                                    if hours_to_match <= 0:
+                                        print(f"[Sharp] Skipped {home} vs {away}: match already started ({hours_to_match:.1f}h ago)")
+                                    else:
+                                        print(f"[Sharp] Skipped {home} vs {away}: {hours_to_match:.1f} hours to kickoff (< 2h rule)")
                                     continue
                         except Exception as time_e:
                             pass  # Saat parse hatası varsa devam et
