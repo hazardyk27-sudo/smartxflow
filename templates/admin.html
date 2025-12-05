@@ -3383,7 +3383,7 @@
                             </div>
                             <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
                             <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; font-size: 11px;">
-                                <span style="color: #a371f7;" title="Acilis→Simdi">📉 ${(alarm.opening_odds || 0).toFixed(2)}→${(alarm.last_odds || 0).toFixed(2)} (%${(alarm.oran_dusus_pct || 0).toFixed(1)})</span>
+                                <span style="color: #a371f7;" title="Acilis→Simdi">📉 ${(alarm.opening_odds || 0).toFixed(2)}→${(alarm.current_odds || alarm.last_odds || 0).toFixed(2)} (%${(alarm.oran_dusus_pct || 0).toFixed(1)})</span>
                                 <span style="color: #ef4444;" title="Dusus Ani">⚡ Dusus Ani: ${dropTimeFormatted}</span>
                                 <span style="color: #f0883e;" title="Ortalama Hacim Soku">📊 Ort.HacimSok: ${(alarm.hacim_sok || 0).toFixed(3)}x</span>
                                 <span style="color: #3fb950;" title="Kontrol Edilen Snapshot">📸 ${alarm.snapshot_count || 7} snapshot</span>
@@ -3401,7 +3401,7 @@
                                 </div>
                                 <div class="insider-detail-row">
                                     <span class="insider-detail-label">Son Oran:</span>
-                                    <span class="insider-detail-value" style="color: #22c55e; font-weight: 700; font-size: 15px;">${(alarm.last_odds || 0).toFixed(2)}</span>
+                                    <span class="insider-detail-value" style="color: #22c55e; font-weight: 700; font-size: 15px;">${(alarm.current_odds || alarm.last_odds || 0).toFixed(2)}</span>
                                 </div>
                                 <div class="insider-detail-row">
                                     <span class="insider-detail-label">Toplam Düşüş:</span>
@@ -3580,7 +3580,7 @@
                 <div class="detail-section">
                     <h4>📊 Oran Bilgileri</h4>
                     <div class="detail-row"><span class="detail-label">Opening Odds (Acilis)</span><span class="detail-value">${alarm.opening_odds || '-'}</span></div>
-                    <div class="detail-row"><span class="detail-label">Last Odds (Son)</span><span class="detail-value">${alarm.last_odds || '-'}</span></div>
+                    <div class="detail-row"><span class="detail-label">Last Odds (Son)</span><span class="detail-value">${alarm.current_odds || alarm.last_odds || '-'}</span></div>
                     <div class="detail-row"><span class="detail-label">Oran Dususu (maks)</span><span class="detail-value highlight" style="color: #a371f7;">${(alarm.oran_dusus_pct || 0).toFixed(2)}%</span></div>
                 </div>
                 <div class="detail-section">
@@ -3589,7 +3589,7 @@
                     <div class="detail-row"><span class="detail-label">Hacim Sok Esigi</span><span class="detail-value">&lt; ${alarm.insider_hacim_sok_esigi || 2}x</span></div>
                     <div class="detail-row"><span class="detail-label">Ortalama Gelen Para</span><span class="detail-value">£${Math.round(alarm.gelen_para || 0).toLocaleString('en-GB')}</span></div>
                     <div class="detail-row"><span class="detail-label">Max Para Esigi</span><span class="detail-value">&lt; £${alarm.insider_max_para || 5000}</span></div>
-                    <div class="detail-row"><span class="detail-label">Son Oran</span><span class="detail-value" style="color: #f0b429;">${(alarm.last_odds || 0).toFixed(2)}</span></div>
+                    <div class="detail-row"><span class="detail-label">Son Oran</span><span class="detail-value" style="color: #f0b429;">${(alarm.current_odds || alarm.last_odds || 0).toFixed(2)}</span></div>
                     <div class="detail-row"><span class="detail-label">Max Oran Esigi</span><span class="detail-value">≤ ${alarm.insider_max_odds_esigi || 10}</span></div>
                 </div>
                 <div class="detail-section">
