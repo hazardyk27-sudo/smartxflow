@@ -1021,31 +1021,32 @@ def get_supabase_client():
     return get_database().supabase if get_database().is_supabase_available else None
 
 
-def fetch_alarms_from_supabase(table_name: str, order_by: str = 'created_at', limit: int = 500, filter_today: bool = True) -> Optional[List[Dict[str, Any]]]:
+def fetch_alarms_from_supabase(table_name: str, order_by: str = 'created_at', limit: int = 500, filter_recent: bool = True) -> Optional[List[Dict[str, Any]]]:
     """Fetch alarms from a Supabase alarm table
     Returns:
         - List (empty or with data) on success
         - None on error (Supabase unavailable, network error, etc.)
     
     Args:
-        filter_today: If True, only return alarms from today (Turkey timezone)
+        filter_recent: If True, only return alarms triggered in last 12 hours
     """
     client = get_supabase_client()
     if not client or not client.is_available:
         return None  # Supabase unavailable, fallback to JSON
     
     try:
-        # Build URL with optional today filter
+        # Build URL with optional recent filter
         url = f"{client._rest_url(table_name)}?select=*&order={order_by}.desc&limit={limit}"
         
-        # Filter to only show today's alarms (prevents old finished matches like Auckland)
-        if filter_today:
-            from datetime import datetime
+        # Filter to only show recent alarms (last 12 hours) - prevents finished matches like Auckland
+        if filter_recent:
+            from datetime import datetime, timedelta
             import pytz
             turkey_tz = pytz.timezone('Europe/Istanbul')
-            today = datetime.now(turkey_tz).strftime('%d.%m.%Y')
-            # match_date format is "DD.MM.YYYY" - filter with like
-            url += f"&match_date=like.*{today}*"
+            cutoff = datetime.now(turkey_tz) - timedelta(hours=12)
+            cutoff_iso = cutoff.strftime('%Y-%m-%dT%H:%M:%S')
+            # trigger_at format is ISO - filter with gte
+            url += f"&trigger_at=gte.{cutoff_iso}"
         
         resp = httpx.get(url, headers=client._headers(), timeout=15)
         if resp.status_code == 200:
