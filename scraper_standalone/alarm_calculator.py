@@ -36,7 +36,10 @@ def now_turkey():
 
 
 def now_turkey_iso():
-    return now_turkey().strftime('%Y-%m-%dT%H:%M:%S')
+    """Return ISO timestamp WITH timezone offset (+03:00) to prevent double-conversion"""
+    dt = now_turkey()
+    # Include timezone offset in ISO string
+    return dt.strftime('%Y-%m-%dT%H:%M:%S+03:00')
 
 
 def log(msg: str):
@@ -1223,7 +1226,7 @@ class AlarmCalculator:
                     continue
                 
                 # PUBLIC TRAP: Sadece son 2 saatteki hareketlere bak
-                now = datetime.now()
+                now = now_turkey()
                 two_hours_ago = now - timedelta(hours=2)
                 
                 filtered_history = []
