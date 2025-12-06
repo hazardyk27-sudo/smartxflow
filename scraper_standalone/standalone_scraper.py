@@ -10,7 +10,7 @@ import re
 import time
 import requests
 import certifi
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from bs4 import BeautifulSoup
 
@@ -22,7 +22,7 @@ try:
 except ImportError:
     TURKEY_TZ = None
 
-VERSION = "1.09"
+VERSION = "1.10"
 SCRAPE_INTERVAL_MINUTES = 10
 
 DATASETS = {
@@ -621,6 +621,60 @@ EXTRACTORS = {
 }
 
 
+def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
+    """
+    D-2+ maçlarını sil (bugün ve dün hariç tüm eski maçlar)
+    - D (bugün): Korunur
+    - D-1 (dün): Korunur
+    - D-2+ (öncesi): Silinir
+    """
+    _log = logger_callback if logger_callback else log
+    
+    if TURKEY_TZ:
+        now = datetime.now(TURKEY_TZ)
+    else:
+        now = datetime.now()
+    
+    today = now.date()
+    yesterday = today - timedelta(days=1)
+    d_minus_2 = today - timedelta(days=2)
+    
+    _log(f"[Cleanup] D-2+ silme: {d_minus_2} ve oncesi silinecek (bugun={today}, dun={yesterday})")
+    
+    history_tables = [
+        "moneyway_1x2_history",
+        "moneyway_ou25_history",
+        "moneyway_btts_history",
+        "dropping_1x2_history",
+        "dropping_ou25_history",
+        "dropping_btts_history",
+    ]
+    
+    total_deleted = 0
+    
+    for table in history_tables:
+        try:
+            cutoff_iso = d_minus_2.strftime('%Y-%m-%dT23:59:59')
+            url = f"{writer._rest_url(table)}?scraped_at=lt.{cutoff_iso}"
+            
+            resp = requests.delete(url, headers=writer._headers(), timeout=30)
+            
+            if resp.status_code in [200, 204]:
+                _log(f"  [Cleanup] {table}: D-2+ kayitlar silindi")
+                total_deleted += 1
+            elif resp.status_code == 404:
+                pass
+            else:
+                _log(f"  [Cleanup] {table}: Silme hatasi {resp.status_code}")
+        except Exception as e:
+            _log(f"  [Cleanup] {table}: Hata - {e}")
+    
+    if total_deleted > 0:
+        _log(f"[Cleanup] Tamamlandi - {total_deleted} tablo temizlendi")
+    
+    return total_deleted
+
+
 def run_scrape(writer: SupabaseWriter, logger_callback=None):
     _log = logger_callback if logger_callback else log
     _log("SCRAPE BASLIYOR...")
@@ -695,6 +749,8 @@ def main():
     log(f"Scrape araligi: {SCRAPE_INTERVAL_MINUTES} dakika")
     log("-" * 50)
     
+    last_cleanup_date = None
+    
     while True:
         try:
             run_scrape(writer)
@@ -702,6 +758,18 @@ def main():
             log(f"HATA: {e}")
         
         run_alarm_calculations_safe(config['SUPABASE_URL'], config['SUPABASE_ANON_KEY'])
+        
+        if TURKEY_TZ:
+            current_date = datetime.now(TURKEY_TZ).date()
+        else:
+            current_date = datetime.now().date()
+        
+        if last_cleanup_date != current_date:
+            try:
+                cleanup_old_matches(writer)
+                last_cleanup_date = current_date
+            except Exception as e:
+                log(f"[Cleanup] Hata: {e}")
         
         log(f"{SCRAPE_INTERVAL_MINUTES} dakika bekleniyor...")
         log("-" * 50)
