@@ -581,7 +581,8 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .matches-table tbody tr:hover {
-    background: #1A2128;
+    background: rgba(255, 255, 255, 0.04);
+    transition: background 0.15s ease;
 }
 
 .matches-table tr.selected {
@@ -2629,11 +2630,13 @@ td.volume,
 }
 
 .odds-trend-cell.odds-trend-no-data {
-    opacity: 0.8;
+    opacity: 0.25;
 }
 
 .odds-trend-cell.odds-trend-no-data .odds-value-trend {
     color: #8b949e;
+    font-weight: 400;
+    letter-spacing: 2px;
 }
 
 /* Trend Sort Buttons */
@@ -2701,16 +2704,19 @@ td.volume,
 
 .odds-value-trend {
     font-weight: 700;
-    color: #ffffff;
+    color: #e6edf3;
     font-size: 15px;
     font-family: 'Inter', sans-serif;
     letter-spacing: -0.3px;
+    line-height: 1.2;
 }
 
 .pct-change {
-    font-size: 11px;
-    font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 400;
+    font-family: 'Inter', sans-serif;
+    color: #99a3ad;
+    margin-top: 2px;
 }
 
 .pct-change.pct-down {
