@@ -3467,25 +3467,25 @@
                             </div>
                             <div class="insider-detail-section">
                                 <div class="insider-detail-title">📸 DÜŞÜŞ ANI ETRAFINDAKİ SNAPSHOTLAR</div>
-                                ${(alarm.snapshot_details && alarm.snapshot_details.length > 0) ? 
-                                    alarm.snapshot_details.map((snap, i, arr) => {
+                                ${((alarm.surrounding_snapshots || alarm.snapshot_details) && (alarm.surrounding_snapshots || alarm.snapshot_details).length > 0) ? 
+                                    (alarm.surrounding_snapshots || alarm.snapshot_details).map((snap, i, arr) => {
                                         let snapTime = '-';
-                                        if (snap.time) {
+                                        const timeField = snap.time || snap.scraped_at;
+                                        if (timeField) {
                                             try {
-                                                const dt = new Date(snap.time);
+                                                const dt = new Date(timeField);
                                                 snapTime = dt.toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
-                                            } catch(e) { snapTime = snap.time; }
+                                            } catch(e) { snapTime = timeField; }
                                         }
-                                        const halfIdx = Math.floor(arr.length / 2);
-                                        const isDropMoment = (i === halfIdx);
+                                        const isDropMoment = snap.is_trigger === true || (i === Math.floor(arr.length / 2));
                                         const labelStyle = isDropMoment ? 'color:#ef4444;font-weight:700;' : '';
                                         const valueStyle = isDropMoment ? 'color:#ef4444;font-weight:700;' : 'color:#a371f7;font-weight:600;';
                                         const marker = isDropMoment ? ' ← DÜŞÜŞ' : '';
-                                        // Gelen para hesapla (backend 'amount' kullanıyor)
-                                        let gelenPara = 0;
+                                        // Gelen para hesapla (backend 'amount' veya 'incoming' kullanıyor)
+                                        let gelenPara = snap.incoming || 0;
                                         const snapAmt = snap.amount !== undefined ? snap.amount : snap.amt;
                                         const prevAmt = i > 0 ? (arr[i-1].amount !== undefined ? arr[i-1].amount : arr[i-1].amt) : undefined;
-                                        if (i > 0 && snapAmt !== undefined && prevAmt !== undefined) {
+                                        if (!gelenPara && i > 0 && snapAmt !== undefined && prevAmt !== undefined) {
                                             gelenPara = (snapAmt || 0) - (prevAmt || 0);
                                         }
                                         const amtDisplay = snapAmt !== undefined ? '£' + Math.round(snapAmt) : '';
