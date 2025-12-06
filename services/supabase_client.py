@@ -290,16 +290,59 @@ class SupabaseClient:
         return result
     
     def get_all_matches_with_latest(self, market: str) -> List[Dict[str, Any]]:
-        """Get all matches from market table (moneyway_1x2, dropping_ou25, etc.)"""
+        """Get all matches with LATEST data from history table (not stale base table)"""
         if not self.is_available:
             print(f"[Supabase] ERROR: Not available - URL or KEY missing")
             return []
         
         try:
-            # Use id.desc for ordering - ID contains timestamp (e.g. MW1X2_Chi_Guan_Lanz_1764640800)
-            # This ensures we get recent matches first regardless of date string format
+            # Use history table for fresh data (EXE writes here, not to base table)
+            history_table = f"{market}_history"
+            
+            # Get latest snapshot per match using scraped_at desc and limit
+            url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit=2000"
+            print(f"[Supabase] Fetching latest from: {url}")
+            resp = httpx.get(url, headers=self._headers(), timeout=20)
+            
+            if resp.status_code == 200:
+                rows = resp.json()
+                # Deduplicate: keep only latest per home+away pair
+                seen = {}
+                for row in rows:
+                    home = row.get('home', '')
+                    away = row.get('away', '')
+                    key = f"{home}|{away}"
+                    if key not in seen:
+                        seen[key] = row
+                
+                matches = []
+                for key, row in seen.items():
+                    latest = self._normalize_history_row(row, market)
+                    matches.append({
+                        'home_team': row.get('home', ''),
+                        'away_team': row.get('away', ''),
+                        'league': row.get('league', ''),
+                        'date': row.get('date', ''),
+                        'latest': latest
+                    })
+                print(f"[Supabase] Got {len(matches)} unique matches from {history_table}")
+                return matches
+            elif resp.status_code == 404:
+                # Fallback to base table if history doesn't exist
+                print(f"[Supabase] History table not found, falling back to base table")
+                return self._get_matches_from_base_table(market)
+            else:
+                print(f"[Supabase] ERROR {resp.status_code} fetching {history_table}")
+                return self._get_matches_from_base_table(market)
+        except Exception as e:
+            print(f"[Supabase] EXCEPTION in get_all_matches_with_latest: {e}")
+            return []
+    
+    def _get_matches_from_base_table(self, market: str) -> List[Dict[str, Any]]:
+        """Fallback: Get matches from base table (may be stale)"""
+        try:
             url = f"{self._rest_url(market)}?select=*&order=id.desc"
-            print(f"[Supabase] Fetching: {url}")
+            print(f"[Supabase] Fetching from base: {url}")
             resp = httpx.get(url, headers=self._headers(), timeout=15)
             
             if resp.status_code == 200:
@@ -314,20 +357,63 @@ class SupabaseClient:
                         'date': row.get('date', ''),
                         'latest': latest
                     })
-                print(f"[Supabase] Got {len(matches)} matches from {market}")
+                print(f"[Supabase] Got {len(matches)} matches from {market} (base)")
                 return matches
-            elif resp.status_code == 404:
-                print(f"[Supabase] ERROR 404: Table '{market}' not found!")
-                print(f"[Supabase] Check if URL is correct API endpoint (not dashboard link)")
-                print(f"[Supabase] Current URL base: {self.url}")
-                return []
-            else:
-                print(f"[Supabase] ERROR {resp.status_code} fetching {market}")
-                print(f"[Supabase] Response: {resp.text[:200]}")
-                return []
         except Exception as e:
-            print(f"[Supabase] EXCEPTION in get_all_matches_with_latest: {e}")
-            return []
+            print(f"[Supabase] Base table fallback error: {e}")
+        return []
+    
+    def _normalize_history_row(self, row: Dict, market: str) -> Dict[str, Any]:
+        """Normalize history table row to expected format"""
+        result = {
+            'ScrapedAt': row.get('scraped_at', ''),
+            'Volume': row.get('volume', '')
+        }
+        
+        if '1x2' in market:
+            result.update({
+                'Odds1': row.get('odds1', '-'),
+                'OddsX': row.get('oddsx', '-'),
+                'Odds2': row.get('odds2', '-'),
+                'Pct1': row.get('pct1', ''),
+                'Amt1': row.get('amt1', ''),
+                'PctX': row.get('pctx', ''),
+                'AmtX': row.get('amtx', ''),
+                'Pct2': row.get('pct2', ''),
+                'Amt2': row.get('amt2', ''),
+                'Trend1': row.get('trend1', ''),
+                'TrendX': row.get('trendx', ''),
+                'Trend2': row.get('trend2', '')
+            })
+        elif 'ou25' in market:
+            result.update({
+                'Under': row.get('under', '-'),
+                'Over': row.get('over', '-'),
+                'Line': row.get('line', '2.5'),
+                'PctUnder': row.get('pctunder', ''),
+                'AmtUnder': row.get('amtunder', ''),
+                'PctOver': row.get('pctover', ''),
+                'AmtOver': row.get('amtover', ''),
+                'TrendUnder': row.get('trendunder', ''),
+                'TrendOver': row.get('trendover', '')
+            })
+        elif 'btts' in market:
+            yes_val = row.get('oddsyes', row.get('yes', '-'))
+            no_val = row.get('oddsno', row.get('no', '-'))
+            result.update({
+                'Yes': yes_val,
+                'No': no_val,
+                'OddsYes': yes_val,
+                'OddsNo': no_val,
+                'PctYes': row.get('pctyes', ''),
+                'AmtYes': row.get('amtyes', ''),
+                'PctNo': row.get('pctno', ''),
+                'AmtNo': row.get('amtno', ''),
+                'TrendYes': row.get('trendyes', ''),
+                'TrendNo': row.get('trendno', '')
+            })
+        
+        return result
     
     def _normalize_row(self, row: Dict, market: str) -> Dict[str, Any]:
         """Convert lowercase Supabase columns to expected format"""
