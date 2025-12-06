@@ -4369,7 +4369,7 @@ td.volume,
 .alarms-sidebar-search::before {
     content: '';
     position: absolute;
-    left: 12px;
+    left: 10px;
     top: 50%;
     transform: translateY(-50%);
     width: 14px;
@@ -4383,17 +4383,18 @@ td.volume,
 
 .alarms-sidebar-search input {
     width: 100%;
-    padding: 10px 14px 10px 36px;
+    padding: 10px 14px 10px 32px;
     background: #0d1117;
     border: 1px solid #30363d;
     border-radius: 8px;
     color: #e6edf3;
     font-size: 13px;
     transition: all 0.2s ease;
+    box-shadow: inset 0 0 4px rgba(255,255,255,0.03);
 }
 
 .alarms-sidebar-search input::placeholder {
-    color: #6e7681;
+    color: rgba(200,210,220,0.45);
     font-weight: 400;
 }
 
