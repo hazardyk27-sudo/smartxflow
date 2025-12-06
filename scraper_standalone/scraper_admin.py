@@ -318,8 +318,11 @@ def run_scraper(config):
     global SCRAPER_STATE
     
     try:
+        log_scraper("Modüller yükleniyor...")
         from standalone_scraper import SupabaseWriter, run_scrape
+        log_scraper("✓ standalone_scraper yüklendi")
         from alarm_calculator import AlarmCalculator
+        log_scraper("✓ alarm_calculator yüklendi")
         
         interval_minutes = config.get('SCRAPE_INTERVAL_MINUTES', 10)
         SCRAPER_STATE['interval_minutes'] = interval_minutes
@@ -329,6 +332,7 @@ def run_scraper(config):
         log_scraper("=" * 50)
         log_scraper(f"SmartXFlow Scraper v{VERSION} başlatıldı")
         log_scraper(f"Veri çekme aralığı: {interval_minutes} dakika")
+        log_scraper(f"Supabase URL: {config.get('SUPABASE_URL', '')[:40]}...")
         log_scraper("=" * 50)
         
         writer = SupabaseWriter(
@@ -337,11 +341,13 @@ def run_scraper(config):
         )
         log_scraper("Supabase bağlantısı hazır")
         
+        cycle_count = 0
         while not SCRAPER_STATE.get('stop_requested', False):
+            cycle_count += 1
             try:
                 SCRAPER_STATE['status'] = 'Veri çekiliyor...'
                 log_scraper("-" * 50)
-                log_scraper("SCRAPE BAŞLIYOR...")
+                log_scraper(f"DÖNGÜ #{cycle_count} BAŞLIYOR...")
                 
                 # Moneyway verileri
                 log_scraper("Moneyway verileri çekiliyor...")
@@ -350,31 +356,48 @@ def run_scraper(config):
                 SCRAPER_STATE['last_scrape'] = datetime.now().isoformat()
                 log_scraper(f"Scrape tamamlandı - Toplam: {rows} satır")
                 
-                # Alarm hesaplama
+                # Alarm hesaplama - DETAYLI LOGLAMA
+                log_scraper("=" * 30)
+                log_scraper("ALARM HESAPLAMA BAŞLIYOR...")
                 SCRAPER_STATE['status'] = 'Alarmlar hesaplanıyor...'
-                log_scraper("Alarm hesaplama başlıyor...")
-                calculator = AlarmCalculator(
-                    config['SUPABASE_URL'],
-                    config['SUPABASE_ANON_KEY'],
-                    logger_callback=log_scraper
-                )
-                alarm_count = calculator.run_all_calculations()
-                SCRAPER_STATE['last_alarm_count'] = alarm_count if alarm_count else 0
                 
-                if alarm_count and alarm_count > 0:
-                    summary = calculator.alarm_summary if hasattr(calculator, 'alarm_summary') else {}
-                    active_alarms = [f"{k[0]}:{v}" for k, v in summary.items() if v > 0]
-                    if active_alarms:
-                        SCRAPER_STATE['last_alarm'] = f"{alarm_count} ({', '.join(active_alarms)})"
+                try:
+                    calculator = AlarmCalculator(
+                        config['SUPABASE_URL'],
+                        config['SUPABASE_ANON_KEY'],
+                        logger_callback=log_scraper
+                    )
+                    log_scraper("✓ AlarmCalculator oluşturuldu")
+                    
+                    alarm_count = calculator.run_all_calculations()
+                    log_scraper(f"✓ run_all_calculations tamamlandı: {alarm_count}")
+                    
+                    SCRAPER_STATE['last_alarm_count'] = alarm_count if alarm_count else 0
+                    
+                    if alarm_count and alarm_count > 0:
+                        summary = calculator.alarm_summary if hasattr(calculator, 'alarm_summary') else {}
+                        active_alarms = [f"{k[0]}:{v}" for k, v in summary.items() if v > 0]
+                        if active_alarms:
+                            SCRAPER_STATE['last_alarm'] = f"{alarm_count} ({', '.join(active_alarms)})"
+                        else:
+                            SCRAPER_STATE['last_alarm'] = f"{alarm_count} alarm"
                     else:
-                        SCRAPER_STATE['last_alarm'] = f"{alarm_count} alarm"
-                else:
-                    SCRAPER_STATE['last_alarm'] = "0 alarm"
+                        SCRAPER_STATE['last_alarm'] = "0 alarm"
+                    
+                    log_scraper(f"ALARM HESAPLAMA TAMAMLANDI - {SCRAPER_STATE['last_alarm']}")
+                    
+                except Exception as alarm_error:
+                    import traceback
+                    log_scraper(f"!!! ALARM HESAPLAMA HATASI: {str(alarm_error)}", level='ERROR')
+                    log_scraper(f"Traceback: {traceback.format_exc()}", level='ERROR')
+                    SCRAPER_STATE['last_alarm'] = f"HATA: {str(alarm_error)[:30]}"
                 
-                log_scraper(f"Alarm hesaplama tamamlandı - {SCRAPER_STATE['last_alarm']}")
+                log_scraper("=" * 30)
                 
             except Exception as e:
-                log_scraper(f"HATA: {str(e)}", level='ERROR')
+                import traceback
+                log_scraper(f"DÖNGÜ HATASI: {str(e)}", level='ERROR')
+                log_scraper(f"Traceback: {traceback.format_exc()}", level='ERROR')
                 SCRAPER_STATE['status'] = f'Hata: {str(e)[:50]}'
             
             # Stop kontrol
