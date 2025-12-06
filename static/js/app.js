@@ -4333,10 +4333,9 @@ function renderAlarmsList(filterType) {
             mainValue = `<span class="value-odds">${oldLeader} %${oldShare}</span><span class="arrow">→</span><span class="value-odds-new">${newLeader} %${newShare}</span>`;
         }
         
-        // Dropping alarmlar icin created_at (oranin dustugu an) oncelikli
-        const timeSource = type === 'dropping' 
-            ? (alarm.created_at || alarm.event_time || alarm.trigger_at)
-            : (alarm.trigger_at || alarm.event_time || alarm.created_at);
+        // Tum alarmlar icin trigger_at oncelikli (alarmın tetiklendigi an)
+        const timeSource = alarm.trigger_at || alarm.event_time || alarm.created_at;
+        console.log(`[AlarmCard] ${type} ${home}: trigger_at=${alarm.trigger_at}, event_time=${alarm.event_time}, created_at=${alarm.created_at}, timeSource=${timeSource}`);
         const triggerTimeShort = formatTriggerTimeShort(timeSource);
         const triggerPill = group.triggerCount > 1 ? `<span class="trigger-pill">×${group.triggerCount}</span>` : '';
         const marketLabel = formatMarketChip(market, selection);
