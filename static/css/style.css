@@ -386,6 +386,19 @@ h1, h2, h3, h4, h5, h6,
     border-radius: 8px;
     border: 1px solid #30363d;
     width: 300px;
+    box-shadow: inset 0 0 4px rgba(255,255,255,0.03);
+    transition: all 0.2s ease;
+}
+
+.search-box:hover {
+    background: #161b22;
+    border-color: #484f58;
+}
+
+.search-box:focus-within {
+    background: #161b22;
+    border-color: #3fb68b;
+    box-shadow: 0 0 0 2px rgba(63,182,139,0.15);
 }
 
 .search-box svg {
@@ -404,7 +417,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .search-box input::placeholder {
-    color: #8b949e;
+    color: rgba(200,210,220,0.45);
 }
 
 .sort-controls {
