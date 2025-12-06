@@ -4166,8 +4166,9 @@ function selectAlarmFilter(type) {
     labelDisplay.textContent = alarmFilterLabels[type] || 'Tumu';
     
     if (type === 'all') {
-        dotDisplay.className = 'filter-dot-display multi';
-        dotDisplay.innerHTML = '<span style="background:#4ade80"></span><span style="background:#a855f7"></span><span style="background:#F08A24"></span>';
+        dotDisplay.className = 'filter-dot-display show';
+        dotDisplay.style.background = '#6b7280';
+        dotDisplay.innerHTML = '';
     } else {
         dotDisplay.className = 'filter-dot-display show';
         dotDisplay.style.background = alarmFilterColors[type] || '#8b949e';
