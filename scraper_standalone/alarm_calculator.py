@@ -1230,7 +1230,7 @@ class AlarmCalculator:
                     new_alarms.append(alarm)
             
             if new_alarms:
-                self._post('volume_leader_alarms', new_alarms)
+                self._post('volume_leader_alarms', new_alarms, on_conflict='home,away,market,old_leader,new_leader')
         
         return len(alarms)
 
