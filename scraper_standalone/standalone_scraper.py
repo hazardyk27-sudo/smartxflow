@@ -168,18 +168,13 @@ class SupabaseWriter:
             return False
     
     def insert_rows(self, table: str, rows: List[Dict[str, Any]]) -> bool:
-        """Insert rows without upsert - for history tables"""
+        """Insert rows without upsert"""
         if not rows:
             return True
         
         try:
             headers = self._headers()
             url = self._rest_url(table)
-            
-            log(f"  [DEBUG] INSERT Request:")
-            log(f"    Method: POST")
-            log(f"    URL: {url}")
-            log(f"    Body sample: {json.dumps(rows[0]) if rows else 'empty'}")
             
             resp = requests.post(
                 url,
@@ -189,11 +184,12 @@ class SupabaseWriter:
                 verify=SSL_VERIFY
             )
             
-            log(f"    Response: {resp.status_code} - {resp.text[:300] if resp.text else 'no body'}")
-            
             if resp.status_code in [200, 201, 204]:
                 return True
             else:
+                log(f"  [INSERT ERR] {table}: {resp.status_code}")
+                log(f"  [INSERT ERR] Response: {resp.text}")
+                log(f"  [INSERT ERR] Sample row: {json.dumps(rows[0], default=str)}")
                 return False
         except Exception as e:
             log(f"  Supabase baglanti hatasi: {e}")
