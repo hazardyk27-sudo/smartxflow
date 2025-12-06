@@ -1156,6 +1156,39 @@ def load_insider_config_from_file():
 
 insider_config = load_insider_config_from_file()
 
+def save_insider_config(config):
+    """Save Insider config to both Supabase and JSON file"""
+    success = False
+    
+    # 1. Supabase'e yaz (primary)
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            # Supabase'deki field isimleri insider_ prefix'li
+            supabase_config = {
+                'insider_hacim_sok_esigi': config.get('hacim_sok_esigi', 2),
+                'insider_oran_dusus_esigi': config.get('oran_dusus_esigi', 3),
+                'insider_sure_dakika': config.get('sure_dakika', 30),
+                'insider_max_para': config.get('max_para', 5000),
+                'insider_max_odds_esigi': config.get('max_odds_esigi', 10.0)
+            }
+            if supabase.update_alarm_setting('insider', config.get('enabled', True), supabase_config):
+                print(f"[Insider] Config saved to Supabase: oran_dusus_esigi={config.get('oran_dusus_esigi')}")
+                success = True
+    except Exception as e:
+        print(f"[Insider] Supabase save error: {e}")
+    
+    # 2. JSON'a yaz (fallback)
+    try:
+        with open(INSIDER_CONFIG_FILE, 'w') as f:
+            json.dump(config, f, indent=2)
+        print(f"[Insider] Config saved to JSON: oran_dusus_esigi={config.get('oran_dusus_esigi')}")
+        success = True
+    except Exception as e:
+        print(f"[Insider] JSON save error: {e}")
+    
+    return success
+
 SHARP_ALARMS_FILE = 'sharp_alarms.json'
 
 def load_sharp_alarms_from_file():
@@ -1395,6 +1428,27 @@ def merge_insider_alarms(existing_alarms, new_alarms):
 insider_alarms = load_insider_alarms_from_file()
 insider_calculating = False
 insider_calc_progress = ""
+
+
+@app.route('/api/insider/config', methods=['GET'])
+def get_insider_config():
+    """Get Insider config"""
+    return jsonify(insider_config)
+
+
+@app.route('/api/insider/config', methods=['POST'])
+def save_insider_config_endpoint():
+    """Save Insider config"""
+    global insider_config
+    try:
+        data = request.get_json()
+        if data:
+            insider_config.update(data)
+            save_insider_config(insider_config)
+            print(f"[Insider] Config updated: oran_dusus_esigi={insider_config.get('oran_dusus_esigi')}, hacim_sok_esigi={insider_config.get('hacim_sok_esigi')}, max_para={insider_config.get('max_para')}")
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/api/insider/alarms', methods=['GET'])
