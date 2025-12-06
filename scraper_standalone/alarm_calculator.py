@@ -72,6 +72,22 @@ def parse_volume(val) -> float:
         return 0.0
 
 
+def normalize_team_name(name: str) -> str:
+    """Normalize team name for consistent cache key matching.
+    Removes common suffixes like FC, SC, etc. and normalizes whitespace.
+    Examples: 'Aston Villa FC' -> 'aston villa', 'Man City' -> 'man city'
+    """
+    if not name:
+        return ""
+    n = name.lower().strip()
+    suffixes = [' fc', ' sc', ' cf', ' afc', ' bc', ' fk', ' sk', ' as', ' ac', ' us', ' ss']
+    for suffix in suffixes:
+        if n.endswith(suffix):
+            n = n[:-len(suffix)].strip()
+    n = ' '.join(n.split())
+    return n
+
+
 def parse_match_date(date_str: str) -> Optional[datetime]:
     if not date_str:
         return None
@@ -340,7 +356,7 @@ class AlarmCalculator:
         for row in rows:
             home = row.get('home', '')
             away = row.get('away', '')
-            key = f"{home}|{away}"
+            key = f"{normalize_team_name(home)}|{normalize_team_name(away)}"
             if key not in history_map:
                 history_map[key] = []
             history_map[key].append(row)
@@ -355,7 +371,7 @@ class AlarmCalculator:
             self.batch_fetch_history(market)
         
         history_map = self._history_cache.get(history_table, {})
-        key = f"{home}|{away}"
+        key = f"{normalize_team_name(home)}|{normalize_team_name(away)}"
         return history_map.get(key, [])
     
     def run_all_calculations(self) -> int:
