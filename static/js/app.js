@@ -119,30 +119,39 @@ function toTurkeyTime(raw) {
             return best;
         }
         
-        // 6) ISO format without offset: "2025-11-28T22:48:21" → already TR time
-        //    Backend sends TR-local timestamps without offset
+        // 6) DD.MM.YYYY HH:MM format - ZATEN TR saatinde, dönüşüm yapma
+        const ddmmMatch = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s*(\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (ddmmMatch) {
+            const [, day, month, year, hour, min, sec] = ddmmMatch;
+            const isoStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour}:${min}:${sec || '00'}`;
+            // Parse as local time, then mark as Istanbul WITHOUT conversion
+            return dayjs(isoStr).tz(APP_TIMEZONE, true);
+        }
+        
+        // 7) ISO format without offset: "2025-11-28T22:48:21" → already TR time
+        //    Backend sends TR-local timestamps without offset - keepLocalTime=true
         if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(str)) {
-            return dayjs.tz(str, APP_TIMEZONE);
+            return dayjs(str).tz(APP_TIMEZONE, true);
         }
         
-        // 7) ISO date only: "2025-11-28" → TR timezone'da yorumla
+        // 8) ISO date only: "2025-11-28" → TR timezone'da yorumla
         if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-            return dayjs.tz(str, APP_TIMEZONE);
+            return dayjs(str).tz(APP_TIMEZONE, true);
         }
         
-        // 8) HH:MM or HH:MM:SS only (no date) - bugünün tarihi ile birleştir
+        // 9) HH:MM or HH:MM:SS only (no date) - bugünün tarihi ile birleştir
         if (/^\d{2}:\d{2}(:\d{2})?$/.test(str)) {
             const today = dayjs().tz(APP_TIMEZONE).format('YYYY-MM-DD');
-            return dayjs.tz(`${today}T${str}`, APP_TIMEZONE);
+            return dayjs(`${today}T${str}`).tz(APP_TIMEZONE, true);
         }
         
-        // 9) Fallback: direkt TR'de yorumla (bilinmeyen format)
+        // 10) Fallback: direkt TR'de yorumla (bilinmeyen format)
         const parsed = dayjs(str);
         if (parsed.isValid()) {
-            return parsed.tz(APP_TIMEZONE);
+            return parsed.tz(APP_TIMEZONE, true);
         }
         
-        return dayjs.tz(str, APP_TIMEZONE);
+        return dayjs(str).tz(APP_TIMEZONE, true);
     } catch (e) {
         // Sessiz hata - gereksiz console spam önle
         return dayjs().tz(APP_TIMEZONE);
