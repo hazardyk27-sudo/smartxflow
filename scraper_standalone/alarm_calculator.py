@@ -336,8 +336,10 @@ class AlarmCalculator:
         key = f"{home}|{away}"
         return history_map.get(key, [])
     
-    def run_all_calculations(self):
-        """Run all alarm calculations - OPTIMIZED with batch fetch"""
+    def run_all_calculations(self) -> int:
+        """Run all alarm calculations - OPTIMIZED with batch fetch
+        Returns: Total number of alarms calculated
+        """
         log("=" * 50)
         log("Alarm hesaplamalari basliyor...")
         log("=" * 50)
@@ -358,51 +360,62 @@ class AlarmCalculator:
         
         log("-" * 30)
         
+        total_alarms = 0
+        
         try:
-            sharp_count = self.calculate_sharp_alarms()
+            sharp_count = self.calculate_sharp_alarms() or 0
             log(f"Sharp: {sharp_count} alarms")
+            total_alarms += sharp_count
         except Exception as e:
             log(f"Sharp error: {e}")
         
         try:
-            insider_count = self.calculate_insider_alarms()
+            insider_count = self.calculate_insider_alarms() or 0
             log(f"Insider: {insider_count} alarms")
+            total_alarms += insider_count
         except Exception as e:
             log(f"Insider error: {e}")
         
         try:
-            bigmoney_count = self.calculate_bigmoney_alarms()
+            bigmoney_count = self.calculate_bigmoney_alarms() or 0
             log(f"BigMoney: {bigmoney_count} alarms")
+            total_alarms += bigmoney_count
         except Exception as e:
             log(f"BigMoney error: {e}")
         
         try:
-            volumeshock_count = self.calculate_volumeshock_alarms()
+            volumeshock_count = self.calculate_volumeshock_alarms() or 0
             log(f"VolumeShock: {volumeshock_count} alarms")
+            total_alarms += volumeshock_count
         except Exception as e:
             log(f"VolumeShock error: {e}")
         
         try:
-            dropping_count = self.calculate_dropping_alarms()
+            dropping_count = self.calculate_dropping_alarms() or 0
             log(f"Dropping: {dropping_count} alarms")
+            total_alarms += dropping_count
         except Exception as e:
             log(f"Dropping error: {e}")
         
         try:
-            publictrap_count = self.calculate_publicmove_alarms()
+            publictrap_count = self.calculate_publicmove_alarms() or 0
             log(f"PublicMove: {publictrap_count} alarms")
+            total_alarms += publictrap_count
         except Exception as e:
             log(f"PublicMove error: {e}")
         
         try:
-            volumeleader_count = self.calculate_volumeleader_alarms()
+            volumeleader_count = self.calculate_volumeleader_alarms() or 0
             log(f"VolumeLeader: {volumeleader_count} alarms")
+            total_alarms += volumeleader_count
         except Exception as e:
             log(f"VolumeLeader error: {e}")
         
         log("=" * 50)
-        log("Alarm hesaplamalari tamamlandi")
+        log(f"Alarm hesaplamalari tamamlandi - Toplam: {total_alarms}")
         log("=" * 50)
+        
+        return total_alarms
     
     def _is_valid_match_date(self, date_str: str) -> bool:
         """Check if match is today or tomorrow (D-2+ filter)"""

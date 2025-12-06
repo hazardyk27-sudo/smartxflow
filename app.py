@@ -252,22 +252,14 @@ def run_alarm_calculations():
 
 
 def start_alarm_scheduler():
-    """Start periodic alarm calculation scheduler"""
-    global alarm_scheduler_thread
+    """Start periodic alarm calculation scheduler
     
-    interval_seconds = 600  # 10 minutes
-    
-    def alarm_loop():
-        print(f"[Alarm Scheduler] Started - interval: {interval_seconds // 60} minutes")
-        # Wait 60 seconds before first calculation (let server fully start)
-        time.sleep(60)
-        
-        while True:
-            run_alarm_calculations()
-            time.sleep(interval_seconds)
-    
-    alarm_scheduler_thread = threading.Thread(target=alarm_loop, daemon=True)
-    alarm_scheduler_thread.start()
+    DISABLED: Alarm calculation is now handled by the standalone EXE.
+    Web App only reads alarms from Supabase (single source of truth).
+    """
+    print("[Alarm Scheduler] DISABLED - Alarms are calculated by standalone EXE")
+    print("[Alarm Scheduler] Web App reads alarms from Supabase (read-only mode)")
+    return
 
 
 def start_server_scheduler():

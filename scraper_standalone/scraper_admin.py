@@ -355,7 +355,8 @@ def run_scraper(config):
                 log_scraper("Alarm hesaplama başlıyor...")
                 calculator = AlarmCalculator(
                     config['SUPABASE_URL'],
-                    config['SUPABASE_ANON_KEY']
+                    config['SUPABASE_ANON_KEY'],
+                    logger_callback=log_scraper
                 )
                 alarm_count = calculator.run_all_calculations()
                 SCRAPER_STATE['last_alarm_count'] = alarm_count if alarm_count else 0
