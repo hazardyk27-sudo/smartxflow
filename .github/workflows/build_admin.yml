@@ -34,7 +34,7 @@ jobs:
 
       - name: Create BUILD_INFO.txt
         run: |
-          echo "SmartXFlow Admin Panel v1.08" > scraper_standalone/BUILD_INFO.txt
+          echo "SmartXFlow Admin Panel v1.09" > scraper_standalone/BUILD_INFO.txt
           echo "Build Date: $(date)" >> scraper_standalone/BUILD_INFO.txt
           echo "Python: 3.11" >> scraper_standalone/BUILD_INFO.txt
           echo "Commit: ${{ github.sha }}" >> scraper_standalone/BUILD_INFO.txt
@@ -66,6 +66,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SmartXFlowAdmin-Windows-EXE
+          name: SmartXFlowAdmin-v1.09
           path: scraper_standalone/dist/
           retention-days: 30
