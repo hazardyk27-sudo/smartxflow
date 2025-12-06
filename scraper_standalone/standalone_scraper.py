@@ -618,7 +618,7 @@ EXTRACTORS = {
 
 def run_scrape(writer: SupabaseWriter, logger_callback=None):
     _log = logger_callback if logger_callback else log
-    _log("SCRAPE BAŞLIYOR...")
+    _log("SCRAPE BASLIYOR...")
     session = requests.Session()
     scraped_at = get_turkey_now()
     total_rows = 0
@@ -631,7 +631,7 @@ def run_scrape(writer: SupabaseWriter, logger_callback=None):
         extractor = EXTRACTORS[dataset_key]
         
         try:
-            _log(f"  {dataset_key} çekiliyor...")
+            _log(f"  {dataset_key} cekiliyor...")
             table = fetch_table(url, session)
             rows = extractor(table)
             
@@ -642,23 +642,23 @@ def run_scrape(writer: SupabaseWriter, logger_callback=None):
                 if main_ok and history_ok:
                     total_rows += len(rows)
                     market_stats.append(f"{dataset_key}: {len(rows)}")
-                    _log(f"  ✓ {dataset_key}: {len(rows)} satır")
+                    _log(f"  [OK] {dataset_key}: {len(rows)} satir")
                 else:
                     write_errors += 1
                     if not main_ok:
-                        _log(f"  ✗ {dataset_key}: Ana tablo yazma başarısız!")
+                        _log(f"  [HATA] {dataset_key}: Ana tablo yazma basarisiz!")
                     if not history_ok:
-                        _log(f"  ✗ {dataset_key}: History tablo yazma başarısız!")
+                        _log(f"  [HATA] {dataset_key}: History tablo yazma basarisiz!")
             else:
-                _log(f"  ⚠ {dataset_key}: Veri bulunamadı")
+                _log(f"  [!] {dataset_key}: Veri bulunamadi")
         except Exception as e:
-            _log(f"  ✗ {dataset_key} HATA: {e}")
+            _log(f"  [HATA] {dataset_key}: {e}")
             write_errors += 1
     
     if write_errors > 0:
-        _log(f"UYARI: {write_errors} tabloda yazma hatası oluştu!")
+        _log(f"UYARI: {write_errors} tabloda yazma hatasi olustu!")
     
-    _log(f"Scrape tamamlandı - Toplam: {total_rows} satır")
+    _log(f"Scrape tamamlandi - Toplam: {total_rows} satir")
     return total_rows
 
 
