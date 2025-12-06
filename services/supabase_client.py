@@ -310,13 +310,9 @@ class SupabaseClient:
                 tr_tz = pytz.timezone('Europe/Istanbul')
                 now_tr = datetime.now(tr_tz)
                 yesterday = now_tr - timedelta(days=1)
-                yesterday_patterns = [
-                    yesterday.strftime('%d.%b'),
-                    f"{yesterday.day:02d}.{yesterday.strftime('%b')}",
-                    f"{yesterday.day}.{yesterday.strftime('%b')}"
-                ]
-                url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit=5000"
-                print(f"[Supabase] Fetching yesterday's matches from: {history_table}")
+                yesterday_pattern = yesterday.strftime('%d.%b')
+                url = f"{self._rest_url(history_table)}?select=*&date=like.*{yesterday_pattern}*&order=scraped_at.desc&limit=5000"
+                print(f"[Supabase] Fetching yesterday's matches ({yesterday_pattern}) from: {history_table}")
             else:
                 url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit=2000"
                 print(f"[Supabase] Fetching latest from: {url}")
@@ -325,18 +321,7 @@ class SupabaseClient:
             
             if resp.status_code == 200:
                 rows = resp.json()
-                
-                if date_filter == 'yesterday':
-                    filtered_rows = []
-                    for row in rows:
-                        date_str = row.get('date', '')
-                        if date_str:
-                            for pattern in yesterday_patterns:
-                                if pattern in date_str:
-                                    filtered_rows.append(row)
-                                    break
-                    rows = filtered_rows
-                    print(f"[Supabase] Found {len(rows)} rows for yesterday")
+                print(f"[Supabase] Retrieved {len(rows)} rows")
                 
                 seen = {}
                 for row in rows:
