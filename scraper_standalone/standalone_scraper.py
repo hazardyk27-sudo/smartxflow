@@ -53,9 +53,10 @@ HEADERS = {
 
 
 def get_turkey_now() -> str:
+    """Return ISO timestamp WITH +03:00 offset for Europe/Istanbul"""
     if TURKEY_TZ:
-        return datetime.now(TURKEY_TZ).strftime('%Y-%m-%dT%H:%M:%S')
-    return datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+        return datetime.now(TURKEY_TZ).strftime('%Y-%m-%dT%H:%M:%S+03:00')
+    return datetime.now().strftime('%Y-%m-%dT%H:%M:%S+03:00')
 
 
 def get_turkey_time_display() -> str:
