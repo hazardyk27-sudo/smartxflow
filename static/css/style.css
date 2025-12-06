@@ -1163,7 +1163,7 @@ h1, h2, h3, h4, h5, h6,
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     margin-top: var(--space-lg);
     margin-bottom: var(--space-lg);
     flex-wrap: wrap;
@@ -1171,53 +1171,63 @@ h1, h2, h3, h4, h5, h6,
 
 .chart-filter-group {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     align-items: center;
 }
 
+/* Futuristic Divider - Apple/TradingView style */
 .chart-filter-divider {
     width: 1px;
     height: 24px;
-    background: rgba(255, 255, 255, 0.12);
-    margin: 0 12px;
+    background: linear-gradient(to bottom,
+        rgba(255,255,255,0) 0%,
+        rgba(255,255,255,0.12) 50%,
+        rgba(255,255,255,0) 100%
+    );
+    margin: 0 14px;
 }
 
-/* Premium Legend Chips - 36px height for Spotify/Binance feel */
+/* Premium Legend Chips - Binance/TradingView style */
 .chart-legend-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    height: 36px;
-    padding: 0 14px;
-    background: #111827;
-    border: 1px solid #20252E;
-    border-radius: var(--radius-pill);
+    gap: 7px;
+    height: 34px;
+    padding: 6px 14px;
+    background: linear-gradient(180deg, #11141a, #0c0f13);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    box-shadow: inset 0px 1px 2px rgba(255,255,255,0.06),
+                0px 2px 6px rgba(0,0,0,0.25);
     color: var(--text-secondary);
     font-size: 13px;
     font-weight: 500;
     font-family: 'Inter', sans-serif;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
     white-space: nowrap;
 }
 
 .chart-legend-btn:hover {
-    background: var(--bg-card-soft);
+    border-color: rgba(255,255,255,0.18);
     color: var(--text-primary);
-    border-color: var(--border-subtle);
+    transform: translateY(-1px);
 }
 
 .chart-legend-btn.active {
-    border-color: var(--legend-color, #16A34A);
-    background: rgba(22, 163, 74, 0.13);
+    background: linear-gradient(180deg, #0e2f19, #0b2915);
+    border-color: rgba(34,255,150,0.45);
+    box-shadow: 0 0 0 1px rgba(34,255,150,0.3),
+                0 0 12px rgba(34,255,150,0.2),
+                inset 0 0 6px rgba(34,255,150,0.1);
     color: #E5FBEA;
 }
 
 .chart-legend-btn.inactive {
     opacity: 0.4;
-    border-color: #20252E;
-    background: #111827;
+    border-color: rgba(255,255,255,0.05);
+    background: linear-gradient(180deg, #11141a, #0c0f13);
 }
 
 .legend-color-dot {
@@ -1228,37 +1238,41 @@ h1, h2, h3, h4, h5, h6,
     margin-top: -1px;
 }
 
-/* Premium Time Range Chips - Pill style like Sofascore */
+/* Premium Time Range Chips - Binance/TradingView style */
 .chart-time-btn {
     display: flex;
     align-items: center;
     justify-content: center;
     height: 34px;
     min-width: 52px;
-    padding: 0 14px;
-    background: #111827;
-    border: 1px solid #20252E;
-    border-radius: var(--radius-pill);
+    padding: 6px 14px;
+    background: linear-gradient(180deg, #11141a, #0c0f13);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    box-shadow: inset 0px 1px 2px rgba(255,255,255,0.06),
+                0px 2px 6px rgba(0,0,0,0.25);
     color: var(--text-secondary);
     font-size: 13px;
     font-weight: 500;
     font-family: 'Inter', sans-serif;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
     white-space: nowrap;
 }
 
 .chart-time-btn:hover {
-    background: var(--bg-card-soft);
+    border-color: rgba(255,255,255,0.18);
     color: var(--text-primary);
-    border-color: var(--border-subtle);
+    transform: translateY(-1px);
 }
 
 .chart-time-btn.active {
-    background: rgba(22, 163, 74, 0.13);
-    border: 1px solid #16A34A;
+    background: linear-gradient(180deg, #0e2f19, #0b2915);
+    border-color: rgba(34,255,150,0.45);
+    box-shadow: 0 0 0 1px rgba(34,255,150,0.6),
+                0 0 14px rgba(34,255,150,0.20),
+                inset 0 0 8px rgba(34,255,150,0.12);
     color: #E5FBEA;
-    box-shadow: 0 0 6px rgba(22, 163, 74, 0.4);
 }
 
 /* Premium View Mode Toggle */
