@@ -161,7 +161,15 @@ class SupabaseWriter:
             if resp.status_code in [200, 201, 204]:
                 return True
             else:
-                log(f"  [UPSERT ERR] {table}: {resp.status_code} - {resp.text[:200] if resp.text else ''}")
+                # DETAYLI HATA LOGLAMA
+                log(f"  [UPSERT ERR] {table}: HTTP {resp.status_code}")
+                log(f"  [UPSERT ERR] URL: {url}")
+                try:
+                    error_body = resp.text if resp.text else "empty"
+                    log(f"  [UPSERT ERR] Response: {error_body[:500]}")
+                except:
+                    log(f"  [UPSERT ERR] Response read failed")
+                log(f"  [UPSERT ERR] Sample keys: {list(rows[0].keys()) if rows else 'no rows'}")
                 return False
         except Exception as e:
             log(f"  Supabase baglanti hatasi: {e}")
