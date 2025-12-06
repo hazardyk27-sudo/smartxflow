@@ -621,6 +621,7 @@ def run_scrape(writer: SupabaseWriter):
     session = requests.Session()
     scraped_at = get_turkey_now()
     total_rows = 0
+    write_errors = 0
     
     for dataset_key, url in DATASETS.items():
         table_name = MARKET_TABLE_MAP[dataset_key]
@@ -633,16 +634,29 @@ def run_scrape(writer: SupabaseWriter):
             rows = extractor(table)
             
             if rows:
-                writer.replace_table(table_name, rows)
-                writer.append_history(history_table, rows, scraped_at)
-                total_rows += len(rows)
-                log(f"  {dataset_key}: {len(rows)} satir yazildi")
+                # Yazma sonuçlarını kontrol et
+                main_ok = writer.replace_table(table_name, rows)
+                history_ok = writer.append_history(history_table, rows, scraped_at)
+                
+                if main_ok and history_ok:
+                    total_rows += len(rows)
+                    log(f"  {dataset_key}: {len(rows)} satir BASARIYLA yazildi")
+                else:
+                    write_errors += 1
+                    if not main_ok:
+                        log(f"  {dataset_key}: HATA - Ana tablo yazma basarisiz!")
+                    if not history_ok:
+                        log(f"  {dataset_key}: HATA - History tablo yazma basarisiz!")
             else:
                 log(f"  {dataset_key}: Veri bulunamadi")
         except Exception as e:
             log(f"  {dataset_key} HATA: {e}")
+            write_errors += 1
     
-    log(f"Scrape tamamlandi - Toplam: {total_rows} satir")
+    if write_errors > 0:
+        log(f"UYARI: {write_errors} tabloda yazma hatasi olustu!")
+    
+    log(f"Scrape tamamlandi - Toplam: {total_rows} satir (Hata: {write_errors})")
     return total_rows
 
 
