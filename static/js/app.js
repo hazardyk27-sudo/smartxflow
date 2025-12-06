@@ -73,14 +73,15 @@ function toTurkeyTime(raw) {
         // 4) Timezone offset handling
         const offsetMatch = str.match(/([+-])(\d{2}):(\d{2})$/);
         if (offsetMatch) {
+            // +03:00 zaten Turkey saati - offset'i kaldır ve TR olarak işaretle
+            if (offsetMatch[1] === '+' && offsetMatch[2] === '03' && offsetMatch[3] === '00') {
+                // Remove offset, keep the time as-is, mark as Istanbul
+                const withoutOffset = str.replace(/\+03:00$/, '').replace(/\.\d+$/, '');
+                return dayjs(withoutOffset).tz(APP_TIMEZONE, true);
+            }
+            // Diger offset'ler icin parseZone ile parse et ve Turkey'e cevir
             const parsed = dayjs.parseZone(str);
             if (!parsed.isValid()) return null;
-            
-            // +03:00 zaten Turkey saati - cift donusum yapma
-            if (offsetMatch[1] === '+' && offsetMatch[2] === '03' && offsetMatch[3] === '00') {
-                return parsed;
-            }
-            // Diger offset'ler icin Turkey'e cevir
             return parsed.tz(APP_TIMEZONE);
         }
         
