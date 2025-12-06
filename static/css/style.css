@@ -1152,18 +1152,16 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .chart-tab:hover {
-    border-color: rgba(120, 220, 180, 0.35);
+    border-color: rgba(63, 182, 139, 0.4);
     color: var(--text-primary);
     transform: translateY(-1px);
 }
 
 .chart-tab.active {
-    background: radial-gradient(circle at top,
-                rgba(46, 160, 67, 0.18),
-                #0d1117 55%);
-    border-color: rgba(46, 160, 67, 0.7);
-    box-shadow: 0 0 0 1px rgba(46, 160, 67, 0.25);
-    color: #c0f5d0;
+    background: #0d1117;
+    border-color: rgba(63, 182, 139, 0.65);
+    box-shadow: 0 0 6px rgba(63, 182, 139, 0.25);
+    color: #d8ffee;
 }
 
 /* Premium Chart Legend Filters */
@@ -1218,18 +1216,16 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .chart-legend-btn:hover {
-    border-color: rgba(120, 220, 180, 0.35);
+    border-color: rgba(63, 182, 139, 0.4);
     color: var(--text-primary);
     transform: translateY(-1px);
 }
 
 .chart-legend-btn.active {
-    background: radial-gradient(circle at top,
-                rgba(46, 160, 67, 0.18),
-                #0d1117 55%);
-    border-color: rgba(46, 160, 67, 0.7);
-    box-shadow: 0 0 0 1px rgba(46, 160, 67, 0.25);
-    color: #c0f5d0;
+    background: #0d1117;
+    border-color: rgba(63, 182, 139, 0.65);
+    box-shadow: 0 0 6px rgba(63, 182, 139, 0.25);
+    color: #d8ffee;
 }
 
 .chart-legend-btn.inactive {
@@ -1269,16 +1265,16 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .chart-time-btn:hover {
-    border-color: rgba(120, 220, 180, 0.35);
+    border-color: rgba(63, 182, 139, 0.4);
     color: var(--text-primary);
     transform: translateY(-1px);
 }
 
 .chart-time-btn.active {
     background: #0d1117;
-    border-color: rgba(46, 160, 67, 0.7);
-    box-shadow: 0 0 0 1px rgba(46, 160, 67, 0.25);
-    color: #c0f5d0;
+    border-color: rgba(63, 182, 139, 0.65);
+    box-shadow: 0 0 6px rgba(63, 182, 139, 0.25);
+    color: #d8ffee;
 }
 
 /* Premium View Mode Toggle */
@@ -1308,18 +1304,16 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .chart-view-btn:hover {
-    border-color: rgba(120, 220, 180, 0.35);
+    border-color: rgba(63, 182, 139, 0.4);
     color: var(--text-primary);
     transform: translateY(-1px);
 }
 
 .chart-view-btn.active {
-    background: radial-gradient(circle at top,
-                rgba(46, 160, 67, 0.18),
-                #0d1117 55%);
-    border-color: rgba(46, 160, 67, 0.7);
-    box-shadow: 0 0 0 1px rgba(46, 160, 67, 0.25);
-    color: #c0f5d0;
+    background: #0d1117;
+    border-color: rgba(63, 182, 139, 0.65);
+    box-shadow: 0 0 6px rgba(63, 182, 139, 0.25);
+    color: #d8ffee;
 }
 
 .chart-export-btns {
