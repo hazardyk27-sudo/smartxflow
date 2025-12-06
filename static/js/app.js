@@ -3049,7 +3049,7 @@ function generateTrendIconSVG(trend, pctChange) {
     const absPct = Math.abs(pctChange || 0);
     
     if (trend === 'down') {
-        color = '#ef4444';
+        color = '#ff0000';
         if (absPct >= 20) {
             path = 'M2 1 L6 1 L6 4 L10 4 L10 7 L14 7 L14 10 L18 10 L18 11 L26 11';
         } else if (absPct >= 10) {
