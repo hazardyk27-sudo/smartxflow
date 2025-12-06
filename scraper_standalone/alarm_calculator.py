@@ -638,17 +638,28 @@ class AlarmCalculator:
                     
                     if sharp_score >= min_score:
                         trigger_at = latest.get('scraped_at', now_turkey_iso())
+                        match_id = f"{home}|{away}|{match.get('date', '')}"
+                        
+                        drop_percentage = ((opening_odds - current_odds) / opening_odds * 100) if opening_odds > 0 else 0
+                        share_change_pct = current_pct - prev_pct
                         
                         alarm = {
+                            'match_id': match_id,
                             'home': home,
                             'away': away,
                             'market': market_names.get(market, market),
                             'selection': selection,
                             'sharp_score': round(sharp_score, 2),
+                            'smart_score': round(sharp_score, 2),
+                            'drop_percentage': round(drop_percentage, 2),
+                            'volume_shock_multiplier': round(volume_contrib, 2),
+                            'share_change_percent': round(share_change_pct, 2),
+                            'weights': json.dumps({'volume': vol_mult, 'odds': odds_mult, 'share': share_mult}),
                             'volume_contrib': round(volume_contrib, 2),
                             'odds_contrib': round(odds_contrib, 2),
                             'share_contrib': round(share_contrib, 2),
                             'volume': volume_change,
+                            'opening_odds': opening_odds,
                             'previous_odds': prev_odds,
                             'current_odds': current_odds,
                             'previous_share': prev_pct,
@@ -803,18 +814,22 @@ class AlarmCalculator:
                     avg_hacim_sok = sum(surrounding_hacim_soks) / len(surrounding_hacim_soks) if surrounding_hacim_soks else 0
                     max_surrounding_hacim_sok = max(surrounding_hacim_soks) if surrounding_hacim_soks else 0
                     max_surrounding_incoming = max(surrounding_incomings) if surrounding_incomings else 0
+                    match_id = f"{home}|{away}|{match.get('date', '')}"
                     
                     alarm = {
+                        'match_id': match_id,
                         'home': home,
                         'away': away,
                         'market': market_names.get(market, market),
                         'selection': selection,
+                        'odds_change_percent': round(oran_dusus_pct, 2),
                         'oran_dusus_pct': round(oran_dusus_pct, 2),
                         'gelen_para': total_incoming,
                         'hacim_sok': round(max_hacim_sok, 3),
                         'avg_volume_shock': round(avg_hacim_sok, 4),
                         'max_surrounding_hacim_sok': round(max_surrounding_hacim_sok, 4),
                         'max_surrounding_incoming': round(max_surrounding_incoming, 0),
+                        'open_odds': opening_odds,
                         'opening_odds': opening_odds,
                         'current_odds': current_odds,
                         'drop_moment_index': trigger_snap_index,
@@ -907,8 +922,10 @@ class AlarmCalculator:
                     max_snap = max(big_snapshots, key=lambda s: s['incoming'])
                     selection_total = parse_volume(history[-1].get(amount_key, 0))
                     trigger_at = max_snap.get('scraped_at', now_turkey_iso())
+                    match_id = f"{home}|{away}|{match.get('date', '')}"
                     
                     alarm = {
+                        'match_id': match_id,
                         'home': home,
                         'away': away,
                         'market': market_names.get(market, market),
@@ -1002,14 +1019,19 @@ class AlarmCalculator:
                     
                     if shock_value >= shock_mult:
                         trigger_at = history[-1].get('scraped_at', now_turkey_iso())
+                        match_id = f"{home}|{away}|{match.get('date', '')}"
                         
                         alarm = {
+                            'match_id': match_id,
                             'home': home,
                             'away': away,
                             'market': market_names.get(market, market),
                             'selection': selection,
                             'volume_shock_value': round(shock_value, 2),
+                            'multiplier': round(shock_value, 2),
+                            'new_money': incoming,
                             'incoming_money': incoming,
+                            'avg_last_10': round(avg_prev, 0),
                             'avg_previous': round(avg_prev, 0),
                             'match_date': match.get('date', ''),
                             'event_time': trigger_at,
@@ -1093,14 +1115,18 @@ class AlarmCalculator:
                         level = 'L1'
                     
                     trigger_at = now_turkey_iso()
+                    match_id = f"{home}|{away}|{match.get('date', '')}"
                     
                     alarm = {
+                        'match_id': match_id,
                         'home': home,
                         'away': away,
                         'market': market_names.get(market, market),
                         'selection': selection,
+                        'open_odds': opening_odds,
                         'opening_odds': opening_odds,
                         'current_odds': current_odds,
+                        'drop_percentage': round(drop_pct, 2),
                         'drop_pct': round(drop_pct, 2),
                         'level': level,
                         'match_date': match.get('date', ''),
@@ -1235,8 +1261,10 @@ class AlarmCalculator:
                     
                     if trap_score >= min_score:
                         trigger_at = latest.get('scraped_at', now_turkey_iso())
+                        match_id = f"{home}|{away}|{match.get('date', '')}"
                         
                         alarm = {
+                            'match_id': match_id,
                             'home': home,
                             'away': away,
                             'market': market_names.get(market, market),
@@ -1244,6 +1272,9 @@ class AlarmCalculator:
                             'trap_score': round(trap_score, 2),
                             'volume': volume_change,
                             'odds_drop': odds_drop,
+                            'share_before': round(prev_pct, 2),
+                            'share_after': round(current_pct, 2),
+                            'delta': round(share_change, 2),
                             'share_change': share_change,
                             'match_date': match.get('date', ''),
                             'event_time': trigger_at,
@@ -1330,8 +1361,10 @@ class AlarmCalculator:
                     if prev_leader[0] != curr_leader[0] and curr_leader[1] >= threshold:
                         trigger_at = curr_snap.get('scraped_at', now_turkey_iso())
                         trigger_volume = curr_total
+                        match_id = f"{home}|{away}|{match.get('date', '')}"
                         
                         alarm = {
+                            'match_id': match_id,
                             'home': home,
                             'away': away,
                             'market': market_names.get(market, market),

@@ -35,6 +35,21 @@ SCRAPER_STATE = {
     'scraper_thread': None
 }
 
+# Alarm Engine - Global Log Buffer & State
+ALARM_ENGINE_LOG_BUFFER = deque(maxlen=300)
+ALARM_ENGINE_LOG_LOCK = threading.Lock()
+ALARM_ENGINE_SSE_CLIENTS = []
+ALARM_ENGINE_SSE_LOCK = threading.Lock()
+ALARM_ENGINE_STATE = {
+    'running': False,
+    'last_calculation': None,
+    'last_duration_seconds': 0,
+    'last_alarm_count': 0,
+    'alarm_summary': {},
+    'status': 'Bekliyor...',
+    'configs_loaded': False
+}
+
 
 def log_scraper(message, level='INFO'):
     """Scraper logunu buffer'a ve SSE client'lara gönder"""
@@ -58,6 +73,30 @@ def log_scraper(message, level='INFO'):
         logging.error(f"Scraper: {message}")
     else:
         logging.info(f"Scraper: {message}")
+
+
+def log_alarm_engine(message, level='INFO'):
+    """Alarm Engine logunu buffer'a ve SSE client'lara gönder"""
+    timestamp = datetime.now().strftime('%H:%M:%S')
+    log_line = f"[{timestamp}] {message}"
+    
+    with ALARM_ENGINE_LOG_LOCK:
+        ALARM_ENGINE_LOG_BUFFER.append(log_line)
+    
+    # SSE client'lara thread-safe gönder
+    with ALARM_ENGINE_SSE_LOCK:
+        clients_copy = ALARM_ENGINE_SSE_CLIENTS[:]
+    for client_queue in clients_copy:
+        try:
+            client_queue.put_nowait(log_line)
+        except:
+            pass
+    
+    # Normal logging'e de yaz - AlarmEngine prefix
+    if level == 'ERROR':
+        logging.error(f"AlarmEngine: {message}")
+    else:
+        logging.info(f"AlarmEngine: {message}")
 
 # Hardcoded Supabase credentials (fallback)
 EMBEDDED_SUPABASE_URL = "https://pswdvnmqjjnjodwzkmkp.supabase.co"
@@ -356,20 +395,46 @@ def run_scraper(config):
                 SCRAPER_STATE['last_scrape'] = datetime.now().isoformat()
                 log_scraper(f"Scrape tamamlandı - Toplam: {rows} satır")
                 
-                # Alarm hesaplama - DETAYLI LOGLAMA
+                # Alarm hesaplama - DETAYLI LOGLAMA (Hem Scraper hem Alarm Engine paneline)
                 log_scraper("=" * 30)
                 log_scraper("ALARM HESAPLAMA BAŞLIYOR...")
+                log_alarm_engine("=" * 50)
+                log_alarm_engine("YENİ SNAPSHOT ALINDI - ALARM HESAPLAMA BAŞLIYOR...")
+                log_alarm_engine(f"Snapshot: {rows} satır veri")
+                log_alarm_engine("=" * 50)
+                
                 SCRAPER_STATE['status'] = 'Alarmlar hesaplanıyor...'
+                ALARM_ENGINE_STATE['running'] = True
+                ALARM_ENGINE_STATE['status'] = 'Hesaplanıyor...'
+                
+                calc_start = time.time()
                 
                 try:
+                    # AlarmCalculator'a Alarm Engine logger'ı geç
                     calculator = AlarmCalculator(
                         config['SUPABASE_URL'],
                         config['SUPABASE_ANON_KEY'],
-                        logger_callback=log_scraper
+                        logger_callback=log_alarm_engine
                     )
+                    log_alarm_engine("✓ AlarmCalculator oluşturuldu")
                     log_scraper("✓ AlarmCalculator oluşturuldu")
                     
+                    # Configs check
+                    ALARM_ENGINE_STATE['configs_loaded'] = len(calculator.configs) > 0
+                    log_alarm_engine(f"Config'ler yüklendi: {list(calculator.configs.keys())}")
+                    
                     alarm_count = calculator.run_all_calculations()
+                    
+                    calc_duration = time.time() - calc_start
+                    
+                    # State güncelle
+                    ALARM_ENGINE_STATE['last_calculation'] = datetime.now().isoformat()
+                    ALARM_ENGINE_STATE['last_duration_seconds'] = round(calc_duration, 2)
+                    ALARM_ENGINE_STATE['last_alarm_count'] = alarm_count if alarm_count else 0
+                    ALARM_ENGINE_STATE['alarm_summary'] = calculator.alarm_summary if hasattr(calculator, 'alarm_summary') else {}
+                    ALARM_ENGINE_STATE['running'] = False
+                    ALARM_ENGINE_STATE['status'] = 'Hazır'
+                    
                     log_scraper(f"✓ run_all_calculations tamamlandı: {alarm_count}")
                     
                     SCRAPER_STATE['last_alarm_count'] = alarm_count if alarm_count else 0
@@ -385,14 +450,20 @@ def run_scraper(config):
                         SCRAPER_STATE['last_alarm'] = "0 alarm"
                     
                     log_scraper(f"ALARM HESAPLAMA TAMAMLANDI - {SCRAPER_STATE['last_alarm']}")
+                    log_alarm_engine(f"HESAPLAMA TAMAMLANDI - {SCRAPER_STATE['last_alarm']} ({calc_duration:.1f}s)")
                     
                 except Exception as alarm_error:
                     import traceback
                     log_scraper(f"!!! ALARM HESAPLAMA HATASI: {str(alarm_error)}", level='ERROR')
                     log_scraper(f"Traceback: {traceback.format_exc()}", level='ERROR')
+                    log_alarm_engine(f"!!! HATA: {str(alarm_error)}", level='ERROR')
+                    log_alarm_engine(f"Traceback: {traceback.format_exc()}", level='ERROR')
                     SCRAPER_STATE['last_alarm'] = f"HATA: {str(alarm_error)[:30]}"
+                    ALARM_ENGINE_STATE['running'] = False
+                    ALARM_ENGINE_STATE['status'] = f'Hata: {str(alarm_error)[:30]}'
                 
                 log_scraper("=" * 30)
+                log_alarm_engine("-" * 50)
                 
             except Exception as e:
                 import traceback

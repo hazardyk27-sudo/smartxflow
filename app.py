@@ -13,6 +13,7 @@ import sys
 import json
 import threading
 import time
+import queue
 from datetime import datetime, timedelta
 from flask import Flask, render_template, jsonify, request
 
@@ -4811,6 +4812,337 @@ def scraper_console_page():
 def admin_panel():
     """Admin Panel"""
     return render_template('admin.html')
+
+
+# ============================================
+# ALARM ENGINE CONSOLE - Live Log Streaming
+# ============================================
+
+@app.route('/alarm-engine/status')
+def alarm_engine_status():
+    """Alarm Engine durumu - canlı konsol için"""
+    try:
+        if os.environ.get('SMARTX_DESKTOP') == '1':
+            try:
+                import scraper_admin
+                state = getattr(scraper_admin, 'ALARM_ENGINE_STATE', {})
+                return jsonify({
+                    'status': 'ok',
+                    'running': state.get('running', False),
+                    'last_calculation': state.get('last_calculation'),
+                    'last_duration_seconds': state.get('last_duration_seconds', 0),
+                    'last_alarm_count': state.get('last_alarm_count', 0),
+                    'alarm_summary': state.get('alarm_summary', {}),
+                    'configs_loaded': state.get('configs_loaded', False),
+                    'status_text': state.get('status', 'Bekliyor...')
+                })
+            except:
+                pass
+        
+        return jsonify({
+            'status': 'ok',
+            'running': False,
+            'last_calculation': None,
+            'last_duration_seconds': 0,
+            'last_alarm_count': 0,
+            'alarm_summary': {},
+            'configs_loaded': False,
+            'status_text': 'Server Modu - EXE Gerekli'
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e), 'running': False})
+
+
+@app.route('/alarm-engine/logs')
+def alarm_engine_logs():
+    """Alarm Engine log geçmişi"""
+    try:
+        if os.environ.get('SMARTX_DESKTOP') == '1':
+            try:
+                import scraper_admin
+                buffer = getattr(scraper_admin, 'ALARM_ENGINE_LOG_BUFFER', [])
+                lock = getattr(scraper_admin, 'ALARM_ENGINE_LOG_LOCK', None)
+                if lock:
+                    with lock:
+                        logs = list(buffer)
+                else:
+                    logs = list(buffer)
+                return jsonify({'status': 'ok', 'logs': logs})
+            except:
+                pass
+        return jsonify({'status': 'ok', 'logs': []})
+    except Exception as e:
+        return jsonify({'status': 'error', 'logs': [], 'message': str(e)})
+
+
+@app.route('/alarm-engine/stream')
+def alarm_engine_stream():
+    """Alarm Engine SSE stream - canlı log"""
+    def generate():
+        q = queue.Queue()
+        
+        if os.environ.get('SMARTX_DESKTOP') == '1':
+            try:
+                import scraper_admin
+                lock = getattr(scraper_admin, 'ALARM_ENGINE_SSE_LOCK', None)
+                clients = getattr(scraper_admin, 'ALARM_ENGINE_SSE_CLIENTS', [])
+                if lock:
+                    with lock:
+                        clients.append(q)
+                else:
+                    clients.append(q)
+            except:
+                pass
+        
+        try:
+            while True:
+                try:
+                    msg = q.get(timeout=15)
+                    yield f"data: {msg}\n\n"
+                except queue.Empty:
+                    yield f": keepalive\n\n"
+        finally:
+            if os.environ.get('SMARTX_DESKTOP') == '1':
+                try:
+                    import scraper_admin
+                    lock = getattr(scraper_admin, 'ALARM_ENGINE_SSE_LOCK', None)
+                    clients = getattr(scraper_admin, 'ALARM_ENGINE_SSE_CLIENTS', [])
+                    if lock:
+                        with lock:
+                            if q in clients:
+                                clients.remove(q)
+                    elif q in clients:
+                        clients.remove(q)
+                except:
+                    pass
+    
+    return Response(generate(), mimetype='text/event-stream',
+                    headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+
+
+@app.route('/alarm-engine/console')
+def alarm_engine_console_page():
+    """Ayrı pencere için Alarm Engine konsol sayfası"""
+    html = '''<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartXFlow Alarm Engine Console</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Consolas', 'Courier New', monospace;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 15px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: #161b22;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #30363d;
+        }
+        .header h1 {
+            font-size: 16px;
+            color: #f0883e;
+        }
+        .status-badges {
+            display: flex;
+            gap: 10px;
+            font-size: 12px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            background: #21262d;
+        }
+        .badge.running { background: #238636; }
+        .badge.stopped { background: #da3633; }
+        .badge.calculating { background: #f0883e; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .stats-row {
+            display: flex;
+            gap: 15px;
+            padding: 10px 15px;
+            background: #161b22;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #30363d;
+            flex-wrap: wrap;
+        }
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .stat-label { font-size: 10px; color: #8b949e; }
+        .stat-value { font-size: 14px; font-weight: bold; }
+        .stat-value.alarm { color: #f0883e; }
+        .console {
+            flex: 1;
+            background: #010409;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .log-line {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .log-line.error { color: #f85149; }
+        .log-line.success { color: #3fb950; }
+        .log-line.info { color: #58a6ff; }
+        .log-line.separator { color: #484f58; }
+        .log-line.alarm { color: #f0883e; font-weight: bold; }
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        button {
+            padding: 8px 16px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        button:hover { background: #30363d; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>SmartXFlow Alarm Engine Console</h1>
+        <div class="status-badges">
+            <span class="badge" id="statusBadge">Bağlanıyor...</span>
+            <span class="badge">Config: <span id="configStatus">-</span></span>
+        </div>
+    </div>
+    
+    <div class="stats-row">
+        <div class="stat-item">
+            <span class="stat-label">Son Hesaplama</span>
+            <span class="stat-value" id="lastCalc">-</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Süre</span>
+            <span class="stat-value" id="duration">-</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Toplam Alarm</span>
+            <span class="stat-value alarm" id="alarmCount">-</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Özet</span>
+            <span class="stat-value" id="summary">-</span>
+        </div>
+    </div>
+    
+    <div class="console" id="console"></div>
+    
+    <div class="toolbar">
+        <button onclick="clearConsole()">Temizle</button>
+        <button onclick="location.reload()">Yenile</button>
+    </div>
+    
+    <script>
+        const consoleEl = document.getElementById('console');
+        const statusBadge = document.getElementById('statusBadge');
+        
+        function addLog(text) {
+            const line = document.createElement('div');
+            line.className = 'log-line';
+            
+            if (text.includes('HATA') || text.includes('ERROR') || text.includes('!!!')) {
+                line.classList.add('error');
+            } else if (text.includes('TAMAMLANDI') || text.includes('tamamlandı')) {
+                line.classList.add('success');
+            } else if (text.includes('---') || text.includes('===')) {
+                line.classList.add('separator');
+            } else if (text.includes('alarm') && text.match(/\\d+/)) {
+                line.classList.add('alarm');
+            } else if (text.includes('hesaplanıyor') || text.includes('başlıyor')) {
+                line.classList.add('info');
+            }
+            
+            line.textContent = text;
+            consoleEl.appendChild(line);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+        
+        function clearConsole() {
+            consoleEl.innerHTML = '';
+            addLog('[Console temizlendi]');
+        }
+        
+        // Mevcut logları yükle
+        fetch('/alarm-engine/logs')
+            .then(r => r.json())
+            .then(data => {
+                if (data.logs) {
+                    data.logs.forEach(log => addLog(log));
+                }
+            });
+        
+        // Status güncelle
+        function updateStatus() {
+            fetch('/alarm-engine/status')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.running) {
+                        statusBadge.textContent = 'Hesaplanıyor...';
+                        statusBadge.className = 'badge calculating';
+                    } else {
+                        statusBadge.textContent = 'Hazır';
+                        statusBadge.className = 'badge running';
+                    }
+                    
+                    document.getElementById('configStatus').textContent = data.configs_loaded ? 'Yüklendi' : 'Yüklenmedi';
+                    document.getElementById('alarmCount').textContent = data.last_alarm_count || 0;
+                    document.getElementById('duration').textContent = data.last_duration_seconds ? data.last_duration_seconds + 's' : '-';
+                    
+                    if (data.last_calculation) {
+                        const d = new Date(data.last_calculation);
+                        document.getElementById('lastCalc').textContent = d.toLocaleTimeString('tr-TR');
+                    }
+                    
+                    if (data.alarm_summary && Object.keys(data.alarm_summary).length > 0) {
+                        const parts = Object.entries(data.alarm_summary)
+                            .filter(([k,v]) => v > 0)
+                            .map(([k,v]) => k[0] + ':' + v);
+                        document.getElementById('summary').textContent = parts.join(' ') || '-';
+                    }
+                });
+        }
+        updateStatus();
+        setInterval(updateStatus, 3000);
+        
+        // SSE bağlantısı
+        const evtSource = new EventSource('/alarm-engine/stream');
+        evtSource.onmessage = (e) => {
+            addLog(e.data);
+        };
+        evtSource.onerror = () => {
+            statusBadge.textContent = 'Bağlantı kesildi';
+            statusBadge.className = 'badge stopped';
+        };
+    </script>
+</body>
+</html>'''
+    return html
 
 
 def main():

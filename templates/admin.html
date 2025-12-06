@@ -634,6 +634,10 @@
                 <span class="nav-item-icon">🔄</span>
                 <span>Scraper Konsol</span>
             </div>
+            <div class="nav-item" onclick="showPage('alarmengine')" data-page="alarmengine">
+                <span class="nav-item-icon">🔔</span>
+                <span>Alarm Engine</span>
+            </div>
             
             <div class="nav-category">Alarmlar</div>
             <div class="nav-item" onclick="showPage('sharp')" data-page="sharp">
@@ -2165,6 +2169,53 @@
                 </div>
             </div>
         </div>
+
+        <!-- Alarm Engine Console Page -->
+        <div id="page-alarmengine" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title">Alarm Engine Konsol</h2>
+                    <p class="page-subtitle">Alarm hesaplama logları ve durum bilgisi</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="action-btn" onclick="window.open('/alarm-engine/console', 'alarmEngineConsole', 'width=900,height=600')">
+                        <span>🪟</span> Yeni Pencerede Aç
+                    </button>
+                    <button class="action-btn" onclick="clearAlarmEngineConsole()">
+                        <span>🗑️</span> Temizle
+                    </button>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 20px;">
+                <div class="stats-card">
+                    <div class="stats-label">Durum</div>
+                    <div class="stats-value" id="alarmEngineStatus">Bekliyor...</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-label">Son Hesaplama</div>
+                    <div class="stats-value" id="alarmEngineLastCalc">-</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-label">Süre</div>
+                    <div class="stats-value" id="alarmEngineDuration">-</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-label">Toplam Alarm</div>
+                    <div class="stats-value" id="alarmEngineCount" style="color: #f0883e;">-</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-label">Config</div>
+                    <div class="stats-value" id="alarmEngineConfig">-</div>
+                </div>
+            </div>
+
+            <div class="info-card" style="padding: 0; overflow: hidden;">
+                <div style="background: #010409; padding: 15px; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.6; height: 500px; overflow-y: auto;" id="alarmEngineConsoleOutput">
+                    <div style="color: #484f58;">[Alarm Engine Console bağlanıyor...]</div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <div class="toast" id="toast"></div>
@@ -2340,9 +2391,94 @@
                 });
         }
         
+        // Alarm Engine Console variables
+        let alarmEngineSSE = null;
+        
+        function initAlarmEngineConsole() {
+            fetch('/alarm-engine/logs')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.logs && data.logs.length > 0) {
+                        const output = document.getElementById('alarmEngineConsoleOutput');
+                        output.innerHTML = '';
+                        data.logs.forEach(log => addAlarmEngineLog(log));
+                    }
+                });
+            
+            if (!alarmEngineSSE) {
+                alarmEngineSSE = new EventSource('/alarm-engine/stream');
+                alarmEngineSSE.onmessage = (e) => addAlarmEngineLog(e.data);
+                alarmEngineSSE.onerror = () => {
+                    document.getElementById('alarmEngineStatus').textContent = 'Bağlantı kesildi';
+                    document.getElementById('alarmEngineStatus').style.color = '#f85149';
+                };
+            }
+            
+            updateAlarmEngineStatus();
+            setInterval(updateAlarmEngineStatus, 3000);
+        }
+        
+        function addAlarmEngineLog(text) {
+            const output = document.getElementById('alarmEngineConsoleOutput');
+            const line = document.createElement('div');
+            
+            if (text.includes('HATA') || text.includes('ERROR') || text.includes('!!!')) {
+                line.style.color = '#f85149';
+            } else if (text.includes('TAMAMLANDI') || text.includes('tamamlandı')) {
+                line.style.color = '#3fb950';
+            } else if (text.includes('---') || text.includes('===')) {
+                line.style.color = '#484f58';
+            } else if (text.includes('alarm') && text.match(/\d+/)) {
+                line.style.color = '#f0883e';
+                line.style.fontWeight = 'bold';
+            } else if (text.includes('hesaplanıyor') || text.includes('başlıyor')) {
+                line.style.color = '#58a6ff';
+            } else {
+                line.style.color = '#c9d1d9';
+            }
+            
+            line.textContent = text;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function clearAlarmEngineConsole() {
+            const output = document.getElementById('alarmEngineConsoleOutput');
+            output.innerHTML = '<div style="color: #484f58;">[Console temizlendi]</div>';
+        }
+        
+        function updateAlarmEngineStatus() {
+            fetch('/alarm-engine/status')
+                .then(r => r.json())
+                .then(data => {
+                    const statusEl = document.getElementById('alarmEngineStatus');
+                    if (data.running) {
+                        statusEl.textContent = 'Hesaplanıyor...';
+                        statusEl.style.color = '#f0883e';
+                    } else {
+                        statusEl.textContent = 'Hazır';
+                        statusEl.style.color = '#3fb950';
+                    }
+                    
+                    document.getElementById('alarmEngineConfig').textContent = data.configs_loaded ? 'Yüklendi' : 'Yüklenmedi';
+                    document.getElementById('alarmEngineCount').textContent = data.last_alarm_count || 0;
+                    document.getElementById('alarmEngineDuration').textContent = data.last_duration_seconds ? data.last_duration_seconds + 's' : '-';
+                    
+                    if (data.last_calculation) {
+                        const d = new Date(data.last_calculation);
+                        document.getElementById('alarmEngineLastCalc').textContent = d.toLocaleTimeString('tr-TR');
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('alarmEngineStatus').textContent = 'Bağlantı hatası';
+                    document.getElementById('alarmEngineStatus').style.color = '#f85149';
+                });
+        }
+        
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             initScraperConsole();
+            initAlarmEngineConsole();
         });
         
         // Alarm zamani parse - siralama icin (yeniden eskiye)
