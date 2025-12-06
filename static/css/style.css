@@ -4159,7 +4159,7 @@ td.volume,
 
 .alarms-sidebar-field select {
     width: 100%;
-    padding: 6px 28px 6px 10px;
+    padding: 6px 28px 6px 12px;
     height: 32px;
     background: #161b22;
     border: 1px solid rgba(255,255,255,0.08);
@@ -4168,8 +4168,8 @@ td.volume,
     font-size: 13px;
     font-weight: 500;
     font-family: 'Inter', sans-serif;
-    text-align: center;
-    text-align-last: center;
+    text-align: left;
+    text-align-last: left;
     cursor: pointer;
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
@@ -4198,9 +4198,9 @@ td.volume,
 .alarm-filter-selected {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 6px;
-    padding: 6px 10px;
+    padding: 6px 10px 6px 12px;
     height: 32px;
     background: #161b22;
     border: 1px solid rgba(255,255,255,0.08);
