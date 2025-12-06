@@ -165,11 +165,33 @@ class AlarmCalculator:
         return False
     
     def _upsert_alarms(self, table: str, alarms: List[Dict], key_fields: List[str]) -> int:
-        """True UPSERT - insert or update existing records based on key_fields"""
+        """True UPSERT - insert or update existing records based on key_fields
+        IMPORTANT: Preserves original trigger_at for existing alarms (prevents false 'new' alerts)
+        """
         if not alarms:
             return 0
         
         try:
+            # Get existing alarms to preserve their trigger_at
+            existing_triggers = {}
+            try:
+                existing = self._get(table, 'select=home,away,market,selection,trigger_at')
+                if existing:
+                    for e in existing:
+                        key = f"{e.get('home')}|{e.get('away')}|{e.get('market')}|{e.get('selection')}"
+                        if e.get('trigger_at'):
+                            existing_triggers[key] = e['trigger_at']
+            except Exception as ex:
+                log(f"[UPSERT] Could not fetch existing triggers: {ex}")
+            
+            # Preserve original trigger_at for existing alarms
+            if existing_triggers:
+                for alarm in alarms:
+                    key = f"{alarm.get('home')}|{alarm.get('away')}|{alarm.get('market')}|{alarm.get('selection')}"
+                    if key in existing_triggers:
+                        alarm['trigger_at'] = existing_triggers[key]
+                        alarm['event_time'] = existing_triggers[key]
+            
             on_conflict = ",".join(key_fields)
             if self._post(table, alarms, on_conflict=on_conflict):
                 log(f"[UPSERT] {table}: {len(alarms)} alarms upserted (on_conflict={on_conflict})")
