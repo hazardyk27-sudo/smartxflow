@@ -1225,6 +1225,7 @@ h1, h2, h3, h4, h5, h6,
     height: 10px;
     border-radius: 50%;
     background: var(--legend-color, #58a6ff);
+    margin-top: -1px;
 }
 
 /* Premium Time Range Chips - Pill style like Sofascore */
@@ -1257,6 +1258,7 @@ h1, h2, h3, h4, h5, h6,
     background: rgba(22, 163, 74, 0.13);
     border: 1px solid #16A34A;
     color: #E5FBEA;
+    box-shadow: 0 0 6px rgba(22, 163, 74, 0.4);
 }
 
 /* Premium View Mode Toggle */
