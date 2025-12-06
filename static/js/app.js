@@ -4709,7 +4709,7 @@ function formatTimeAgoTR(dateStr) {
 function parseAlarmDateTR(dateStr) {
     if (!dateStr) return null;
     
-    // DD.MM.YYYY HH:MM formatı - zaten TR saati
+    // DD.MM.YYYY HH:MM formatı - zaten TR saati, keepLocalTime kullan
     if (dateStr.includes('.') && dateStr.includes(' ')) {
         const [datePart, timePart] = dateStr.split(' ');
         const dateParts = datePart.split('.');
@@ -4717,13 +4717,13 @@ function parseAlarmDateTR(dateStr) {
             const [day, month, year] = dateParts;
             const [hour, min] = (timePart || '00:00').split(':');
             const isoStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour.padStart(2, '0')}:${min.padStart(2, '0')}:00`;
-            return dayjs.tz(isoStr, APP_TIMEZONE);
+            return dayjs(isoStr).tz(APP_TIMEZONE, true);
         }
     }
     
-    // ISO format offset'siz (2025-12-03T16:03:07) - scrapedat'tan geliyor ve UTC
+    // ISO format offset'siz (2025-12-03T16:03:07) - scraper'dan geliyor ve ZATEN Turkey saati
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateStr)) {
-        return dayjs.utc(dateStr).tz(APP_TIMEZONE);
+        return dayjs(dateStr).tz(APP_TIMEZONE, true);
     }
     
     return toTurkeyTime(dateStr);
@@ -4749,9 +4749,9 @@ function formatTriggerTime(dateStr) {
     }
     
     // ISO format offsetsiz (2025-12-03T16:03:07) - scraper'dan geliyor ve ZATEN Turkey saati
-    // UTC değil, direkt Turkey saati olarak kabul et
+    // keepLocalTime=true ile UTC dönüşümü yapma
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateStr)) {
-        const dt = dayjs.tz(dateStr, APP_TIMEZONE);
+        const dt = dayjs(dateStr).tz(APP_TIMEZONE, true);
         if (dt && dt.isValid()) {
             return dt.format('HH:mm');
         }
@@ -4768,12 +4768,12 @@ function formatTriggerTimeShort(dateStr) {
     
     const str = String(dateStr).trim();
     
-    // DD.MM.YYYY HH:MM formatı - zaten Turkey saati, direkt parse et
+    // DD.MM.YYYY HH:MM formatı - zaten Turkey saati, keepLocalTime kullan
     const ddmmMatch = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s*(\d{2}:\d{2})?$/);
     if (ddmmMatch) {
         const [, day, month, year, time] = ddmmMatch;
         const isoStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${time || '00:00'}:00`;
-        const dt = dayjs.tz(isoStr, APP_TIMEZONE);
+        const dt = dayjs(isoStr).tz(APP_TIMEZONE, true);
         if (dt && dt.isValid()) {
             return dt.format('DD.MM HH:mm');
         }
