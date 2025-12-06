@@ -337,17 +337,19 @@ def get_matches():
     """Get all matches from database - optimized with cache"""
     import time
     market = request.args.get('market', 'moneyway_1x2')
+    date_filter = request.args.get('date_filter', None)
     is_dropping = market.startswith('dropping')
     
     now = time.time()
     
-    # Cache kontrolü
-    if market in matches_cache['data']:
-        last_time = matches_cache['timestamp'].get(market, 0)
-        if (now - last_time) < matches_cache['ttl']:
-            return jsonify(matches_cache['data'][market])
+    cache_key = f"{market}_{date_filter}" if date_filter else market
     
-    matches_with_latest = db.get_all_matches_with_latest(market)
+    if cache_key in matches_cache['data']:
+        last_time = matches_cache['timestamp'].get(cache_key, 0)
+        if (now - last_time) < matches_cache['ttl']:
+            return jsonify(matches_cache['data'][cache_key])
+    
+    matches_with_latest = db.get_all_matches_with_latest(market, date_filter=date_filter)
     
     enriched = []
     for m in matches_with_latest:
@@ -428,9 +430,8 @@ def get_matches():
             'history_count': 1
         })
     
-    # Cache'e kaydet
-    matches_cache['data'][market] = enriched
-    matches_cache['timestamp'][market] = now
+    matches_cache['data'][cache_key] = enriched
+    matches_cache['timestamp'][cache_key] = now
     
     return jsonify(enriched)
 

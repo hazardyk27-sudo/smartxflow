@@ -289,24 +289,55 @@ class SupabaseClient:
         
         return result
     
-    def get_all_matches_with_latest(self, market: str) -> List[Dict[str, Any]]:
-        """Get all matches with LATEST data from history table (not stale base table)"""
+    def get_all_matches_with_latest(self, market: str, date_filter: str = None) -> List[Dict[str, Any]]:
+        """Get all matches with LATEST data from history table (not stale base table)
+        
+        Args:
+            market: Market name (e.g., 'moneyway_1x2')
+            date_filter: Optional date filter - 'yesterday' to get yesterday's matches
+        """
         if not self.is_available:
             print(f"[Supabase] ERROR: Not available - URL or KEY missing")
             return []
         
         try:
-            # Use history table for fresh data (EXE writes here, not to base table)
+            from datetime import datetime, timedelta
+            import pytz
+            
             history_table = f"{market}_history"
             
-            # Get latest snapshot per match using scraped_at desc and limit
-            url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit=2000"
-            print(f"[Supabase] Fetching latest from: {url}")
-            resp = httpx.get(url, headers=self._headers(), timeout=20)
+            if date_filter == 'yesterday':
+                tr_tz = pytz.timezone('Europe/Istanbul')
+                now_tr = datetime.now(tr_tz)
+                yesterday = now_tr - timedelta(days=1)
+                yesterday_patterns = [
+                    yesterday.strftime('%d.%b'),
+                    f"{yesterday.day:02d}.{yesterday.strftime('%b')}",
+                    f"{yesterday.day}.{yesterday.strftime('%b')}"
+                ]
+                url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit=5000"
+                print(f"[Supabase] Fetching yesterday's matches from: {history_table}")
+            else:
+                url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit=2000"
+                print(f"[Supabase] Fetching latest from: {url}")
+            
+            resp = httpx.get(url, headers=self._headers(), timeout=30)
             
             if resp.status_code == 200:
                 rows = resp.json()
-                # Deduplicate: keep only latest per home+away pair
+                
+                if date_filter == 'yesterday':
+                    filtered_rows = []
+                    for row in rows:
+                        date_str = row.get('date', '')
+                        if date_str:
+                            for pattern in yesterday_patterns:
+                                if pattern in date_str:
+                                    filtered_rows.append(row)
+                                    break
+                    rows = filtered_rows
+                    print(f"[Supabase] Found {len(rows)} rows for yesterday")
+                
                 seen = {}
                 for row in rows:
                     home = row.get('home', '')
@@ -328,7 +359,6 @@ class SupabaseClient:
                 print(f"[Supabase] Got {len(matches)} unique matches from {history_table}")
                 return matches
             elif resp.status_code == 404:
-                # Fallback to base table if history doesn't exist
                 print(f"[Supabase] History table not found, falling back to base table")
                 return self._get_matches_from_base_table(market)
             else:
@@ -956,10 +986,10 @@ class HybridDatabase:
                 return history
         return self.local.get_match_history(home, away, market)
     
-    def get_all_matches_with_latest(self, market: str) -> List[Dict[str, Any]]:
+    def get_all_matches_with_latest(self, market: str, date_filter: str = None) -> List[Dict[str, Any]]:
         """Get all matches with latest snapshot from Supabase or local"""
         if self.supabase.is_available:
-            matches = self.supabase.get_all_matches_with_latest(market)
+            matches = self.supabase.get_all_matches_with_latest(market, date_filter=date_filter)
             if matches:
                 return matches
         return self.local.get_all_matches_with_latest(market)

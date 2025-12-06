@@ -259,7 +259,12 @@ async function loadMatches() {
             oddsTrendCache = {};
         }
         
-        const response = await fetch(`/api/matches?market=${currentMarket}`);
+        let apiUrl = `/api/matches?market=${currentMarket}`;
+        if (dateFilterMode === 'YESTERDAY') {
+            apiUrl += '&date_filter=yesterday';
+        }
+        
+        const response = await fetch(apiUrl);
         const apiMatches = await response.json();
         matches = apiMatches || [];
         filteredMatches = applySorting(matches);
@@ -1057,6 +1062,7 @@ function showTrendSortButtons(show) {
 function toggleTodayFilter() {
     const todayBtn = document.getElementById('todayBtn');
     const yesterdayBtn = document.getElementById('yesterdayBtn');
+    const wasYesterday = dateFilterMode === 'YESTERDAY';
     
     if (dateFilterMode === 'TODAY') {
         dateFilterMode = 'ALL';
@@ -1068,9 +1074,14 @@ function toggleTodayFilter() {
     }
     
     console.log('[Filter] Mode changed to:', dateFilterMode);
-    const searchInput = document.getElementById('searchInput');
-    const query = searchInput?.value?.toLowerCase() || '';
-    filterMatches(query);
+    
+    if (wasYesterday) {
+        loadMatches();
+    } else {
+        const searchInput = document.getElementById('searchInput');
+        const query = searchInput?.value?.toLowerCase() || '';
+        filterMatches(query);
+    }
 }
 
 function toggleYesterdayFilter() {
@@ -1087,9 +1098,7 @@ function toggleYesterdayFilter() {
     }
     
     console.log('[Filter] Mode changed to:', dateFilterMode);
-    const searchInput = document.getElementById('searchInput');
-    const query = searchInput?.value?.toLowerCase() || '';
-    filterMatches(query);
+    loadMatches();
 }
 
 function parseDate(dateStr) {
