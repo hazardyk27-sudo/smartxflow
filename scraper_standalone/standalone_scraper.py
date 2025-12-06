@@ -219,14 +219,20 @@ class SupabaseWriter:
             return False
     
     def replace_table(self, table: str, rows: List[Dict[str, Any]]) -> bool:
-        """Replace table: sadece UPSERT kullan (id kolonu kaldirilir)"""
+        """Replace table: DELETE + INSERT (id kolonu kaldirilir)"""
         clean_rows = []
         for row in rows:
             new_row = row.copy()
             if 'id' in new_row:
                 del new_row['id']
             clean_rows.append(new_row)
-        return self.upsert_rows(table, clean_rows)
+        
+        # Önce tabloyu temizle
+        if not self.delete_all_rows(table):
+            return False
+        
+        # Sonra yeni verileri ekle
+        return self.insert_rows(table, clean_rows)
     
     def append_history(self, table: str, rows: List[Dict[str, Any]], scraped_at: str) -> bool:
         """History tablosuna yeni kayit ekle - id kolonu kaldirilir (auto-increment kullanilir)"""
