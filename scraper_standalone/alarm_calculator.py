@@ -182,15 +182,15 @@ class AlarmCalculator:
     
     def _upsert_alarms(self, table: str, alarms: List[Dict], key_fields: List[str]) -> int:
         """True UPSERT - insert or update existing records based on key_fields
-        IMPORTANT: Preserves original trigger_at for existing alarms (prevents false 'new' alerts)
+        IMPORTANT: Preserves original trigger_at AND created_at for existing alarms
         """
         if not alarms:
             return 0
         
         try:
-            # Build select fields dynamically from key_fields + trigger_at
-            select_fields = ','.join(key_fields + ['trigger_at'])
-            existing_triggers = {}
+            # Build select fields dynamically from key_fields + timestamp fields
+            select_fields = ','.join(key_fields + ['trigger_at', 'created_at'])
+            existing_data = {}
             try:
                 existing = self._get(table, f'select={select_fields}')
                 if existing:
@@ -198,25 +198,33 @@ class AlarmCalculator:
                         # Build key from all key_fields dynamically
                         key_parts = [str(e.get(f, '')) for f in key_fields]
                         key = '|'.join(key_parts)
-                        if e.get('trigger_at'):
-                            existing_triggers[key] = e['trigger_at']
-                    log(f"[UPSERT] Found {len(existing_triggers)} existing {table} with trigger_at")
+                        # Store both trigger_at and created_at
+                        existing_data[key] = {
+                            'trigger_at': e.get('trigger_at'),
+                            'created_at': e.get('created_at')
+                        }
+                    log(f"[UPSERT] Found {len(existing_data)} existing {table} records")
             except Exception as ex:
-                log(f"[UPSERT] Could not fetch existing triggers: {ex}")
+                log(f"[UPSERT] Could not fetch existing records: {ex}")
             
-            # Preserve original trigger_at for existing alarms
+            # Preserve original timestamps for existing alarms
             preserved_count = 0
             for alarm in alarms:
                 # Build key from all key_fields dynamically
                 key_parts = [str(alarm.get(f, '')) for f in key_fields]
                 key = '|'.join(key_parts)
-                if key in existing_triggers:
-                    alarm['trigger_at'] = existing_triggers[key]
-                    alarm['event_time'] = existing_triggers[key]
+                if key in existing_data:
+                    orig = existing_data[key]
+                    # Preserve ALL timestamp fields from first detection
+                    if orig.get('trigger_at'):
+                        alarm['trigger_at'] = orig['trigger_at']
+                        alarm['event_time'] = orig['trigger_at']
+                    if orig.get('created_at'):
+                        alarm['created_at'] = orig['created_at']
                     preserved_count += 1
             
             if preserved_count > 0:
-                log(f"[UPSERT] Preserved trigger_at for {preserved_count} existing alarms")
+                log(f"[UPSERT] Preserved timestamps for {preserved_count} existing alarms")
             
             on_conflict = ",".join(key_fields)
             if self._post(table, alarms, on_conflict=on_conflict):
