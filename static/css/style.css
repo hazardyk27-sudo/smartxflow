@@ -2846,19 +2846,18 @@ td.volume,
 .chart-tooltip-body {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 }
 
 .chart-tooltip-row {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 6px 8px;
+    align-items: center;
 }
 
 .chart-tooltip-main {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: contents;
 }
 
 .chart-tooltip-option {
@@ -2882,16 +2881,19 @@ td.volume,
     font-size: 13px;
     font-weight: 500;
     color: #fff;
+    text-align: right;
+    grid-column: 3;
 }
 
 .chart-tooltip-sub {
+    grid-column: 1 / -1;
     display: flex;
     align-items: center;
     gap: 8px;
     font-size: 11px;
     color: rgba(255, 255, 255, 0.45);
-    margin-top: 2px;
     padding-left: 14px;
+    margin-top: -4px;
 }
 
 .chart-tooltip-sub .separator {
