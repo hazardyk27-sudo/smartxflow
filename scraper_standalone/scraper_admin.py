@@ -360,7 +360,18 @@ def run_scraper(config):
                 )
                 alarm_count = calculator.run_all_calculations()
                 SCRAPER_STATE['last_alarm_count'] = alarm_count if alarm_count else 0
-                log_scraper(f"Alarm hesaplama tamamlandı - {SCRAPER_STATE['last_alarm_count']} alarm")
+                
+                if alarm_count and alarm_count > 0:
+                    summary = calculator.alarm_summary if hasattr(calculator, 'alarm_summary') else {}
+                    active_alarms = [f"{k[0]}:{v}" for k, v in summary.items() if v > 0]
+                    if active_alarms:
+                        SCRAPER_STATE['last_alarm'] = f"{alarm_count} ({', '.join(active_alarms)})"
+                    else:
+                        SCRAPER_STATE['last_alarm'] = f"{alarm_count} alarm"
+                else:
+                    SCRAPER_STATE['last_alarm'] = "0 alarm"
+                
+                log_scraper(f"Alarm hesaplama tamamlandı - {SCRAPER_STATE['last_alarm']}")
                 
             except Exception as e:
                 log_scraper(f"HATA: {str(e)}", level='ERROR')

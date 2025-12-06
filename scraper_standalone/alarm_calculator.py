@@ -399,59 +399,72 @@ class AlarmCalculator:
         log("-" * 30)
         
         total_alarms = 0
+        alarm_counts = {}
         
         try:
             sharp_count = self.calculate_sharp_alarms() or 0
-            log(f"Sharp: {sharp_count} alarms")
+            alarm_counts['Sharp'] = sharp_count
             total_alarms += sharp_count
         except Exception as e:
             log(f"Sharp error: {e}")
+            alarm_counts['Sharp'] = 0
         
         try:
             insider_count = self.calculate_insider_alarms() or 0
-            log(f"Insider: {insider_count} alarms")
+            alarm_counts['Insider'] = insider_count
             total_alarms += insider_count
         except Exception as e:
             log(f"Insider error: {e}")
+            alarm_counts['Insider'] = 0
         
         try:
             bigmoney_count = self.calculate_bigmoney_alarms() or 0
-            log(f"BigMoney: {bigmoney_count} alarms")
+            alarm_counts['BigMoney'] = bigmoney_count
             total_alarms += bigmoney_count
         except Exception as e:
             log(f"BigMoney error: {e}")
+            alarm_counts['BigMoney'] = 0
         
         try:
             volumeshock_count = self.calculate_volumeshock_alarms() or 0
-            log(f"VolumeShock: {volumeshock_count} alarms")
+            alarm_counts['VolumeShock'] = volumeshock_count
             total_alarms += volumeshock_count
         except Exception as e:
             log(f"VolumeShock error: {e}")
+            alarm_counts['VolumeShock'] = 0
         
         try:
             dropping_count = self.calculate_dropping_alarms() or 0
-            log(f"Dropping: {dropping_count} alarms")
+            alarm_counts['Dropping'] = dropping_count
             total_alarms += dropping_count
         except Exception as e:
             log(f"Dropping error: {e}")
+            alarm_counts['Dropping'] = 0
         
         try:
             publictrap_count = self.calculate_publicmove_alarms() or 0
-            log(f"PublicMove: {publictrap_count} alarms")
+            alarm_counts['PublicMove'] = publictrap_count
             total_alarms += publictrap_count
         except Exception as e:
             log(f"PublicMove error: {e}")
+            alarm_counts['PublicMove'] = 0
         
         try:
             volumeleader_count = self.calculate_volumeleader_alarms() or 0
-            log(f"VolumeLeader: {volumeleader_count} alarms")
+            alarm_counts['VolumeLeader'] = volumeleader_count
             total_alarms += volumeleader_count
         except Exception as e:
             log(f"VolumeLeader error: {e}")
+            alarm_counts['VolumeLeader'] = 0
         
         log("=" * 50)
-        log(f"Alarm hesaplamalari tamamlandi - Toplam: {total_alarms}")
+        log(f"HESAPLAMA TAMAMLANDI - TOPLAM: {total_alarms} alarm")
+        summary = " | ".join([f"{k}:{v}" for k, v in alarm_counts.items()])
+        log(f"  {summary}")
         log("=" * 50)
+        
+        self.last_alarm_count = total_alarms
+        self.alarm_summary = alarm_counts
         
         return total_alarms
     
@@ -585,10 +598,13 @@ class AlarmCalculator:
                             'alarm_type': 'sharp'
                         }
                         alarms.append(alarm)
+                        log(f"  [SHARP] {home} vs {away} | {market_names.get(market, market)}-{selection} | Score: {sharp_score:.1f} | Vol: £{volume_change:,.0f}")
         
         if alarms:
             new_count = self._upsert_alarms('sharp_alarms', alarms, ['home', 'away', 'market', 'selection'])
-            log(f"Sharp: {new_count} new alarms added")
+            log(f"Sharp: {new_count} alarms upserted")
+        else:
+            log("Sharp: 0 alarm")
         
         return len(alarms)
     
@@ -751,10 +767,13 @@ class AlarmCalculator:
                         'alarm_type': 'insider'
                     }
                     alarms.append(alarm)
+                    log(f"  [INSIDER] {home} vs {away} | {market_names.get(market, market)}-{selection} | Oran: {opening_odds:.2f}→{current_odds:.2f} (-%{oran_dusus_pct:.1f}) | Para: £{total_incoming:,.0f}")
         
         if alarms:
             new_count = self._upsert_alarms('insider_alarms', alarms, ['home', 'away', 'market', 'selection'])
-            log(f"Insider: {new_count} new alarms added")
+            log(f"Insider: {new_count} alarms upserted")
+        else:
+            log("Insider: 0 alarm")
         
         return len(alarms)
     
@@ -843,10 +862,14 @@ class AlarmCalculator:
                         'created_at': now_turkey_iso()
                     }
                     alarms.append(alarm)
+                    alarm_label = 'HUGE' if is_huge else 'BIG'
+                    log(f"  [{alarm_label} MONEY] {home} vs {away} | {market_names.get(market, market)}-{selection} | £{max_snap['incoming']:,.0f} gelen (Toplam: £{selection_total:,.0f})")
         
         if alarms:
             new_count = self._upsert_alarms('bigmoney_alarms', alarms, ['home', 'away', 'market', 'selection'])
-            log(f"BigMoney: {new_count} new alarms added")
+            log(f"BigMoney: {new_count} alarms upserted")
+        else:
+            log("BigMoney: 0 alarm")
         
         return len(alarms)
     
@@ -933,10 +956,13 @@ class AlarmCalculator:
                             'alarm_type': 'volumeshock'
                         }
                         alarms.append(alarm)
+                        log(f"  [VOLUMESHOCK] {home} vs {away} | {market_names.get(market, market)}-{selection} | Shock: {shock_value:.1f}x | £{incoming:,.0f} gelen")
         
         if alarms:
             new_count = self._upsert_alarms('volumeshock_alarms', alarms, ['home', 'away', 'market', 'selection'])
-            log(f"VolumeShock: {new_count} new alarms added")
+            log(f"VolumeShock: {new_count} alarms upserted")
+        else:
+            log("VolumeShock: 0 alarm")
         
         return len(alarms)
     
@@ -1022,10 +1048,13 @@ class AlarmCalculator:
                         'alarm_type': 'dropping'
                     }
                     alarms.append(alarm)
+                    log(f"  [DROPPING-{level}] {home} vs {away} | {market_names.get(market, market)}-{selection} | {opening_odds:.2f}→{current_odds:.2f} (-%{drop_pct:.1f})")
         
         if alarms:
             new_count = self._upsert_alarms('dropping_alarms', alarms, ['home', 'away', 'market', 'selection'])
-            log(f"Dropping: {new_count} new alarms added")
+            log(f"Dropping: {new_count} alarms upserted")
+        else:
+            log("Dropping: 0 alarm")
         
         return len(alarms)
     
@@ -1161,10 +1190,13 @@ class AlarmCalculator:
                             'alarm_type': 'publicmove'
                         }
                         alarms.append(alarm)
+                        log(f"  [PUBLICMOVE] {home} vs {away} | {market_names.get(market, market)}-{selection} | Score: {trap_score:.1f} | Vol: £{volume_change:,.0f}")
         
         if alarms:
             new_count = self._upsert_alarms('publicmove_alarms', alarms, ['home', 'away', 'market', 'selection'])
-            log(f"PublicMove: {new_count} new alarms added")
+            log(f"PublicMove: {new_count} alarms upserted")
+        else:
+            log("PublicMove: 0 alarm")
         
         return len(alarms)
     
@@ -1253,6 +1285,7 @@ class AlarmCalculator:
                             'alarm_type': 'volumeleader'
                         }
                         alarms.append(alarm)
+                        log(f"  [VOLUMELEADER] {home} vs {away} | {market_names.get(market, market)} | {prev_leader[0]}(%{prev_leader[1]:.0f})→{curr_leader[0]}(%{curr_leader[1]:.0f})")
         
         if alarms:
             existing = self._get('volume_leader_alarms', 'select=home,away,market,old_leader,new_leader')
@@ -1269,6 +1302,11 @@ class AlarmCalculator:
             
             if new_alarms:
                 self._post('volume_leader_alarms', new_alarms, on_conflict='home,away,market,old_leader,new_leader')
+                log(f"VolumeLeader: {len(new_alarms)} new alarms added")
+            else:
+                log("VolumeLeader: 0 yeni alarm (mevcut alarmlar)")
+        else:
+            log("VolumeLeader: 0 alarm")
         
         return len(alarms)
 
