@@ -2846,18 +2846,21 @@ td.volume,
 .chart-tooltip-body {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
 }
 
 .chart-tooltip-row {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 6px 8px;
-    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .chart-tooltip-main {
-    display: contents;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    height: 22px;
 }
 
 .chart-tooltip-option {
@@ -2874,26 +2877,25 @@ td.volume,
     height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
-    opacity: 0.8;
+    margin-top: 1px;
 }
 
 .chart-tooltip-odds {
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     color: #fff;
-    text-align: right;
-    grid-column: 3;
+    display: flex;
+    align-items: center;
 }
 
 .chart-tooltip-sub {
-    grid-column: 1 / -1;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     font-size: 11px;
     color: rgba(255, 255, 255, 0.45);
     padding-left: 14px;
-    margin-top: -4px;
+    height: 18px;
 }
 
 .chart-tooltip-sub .separator {
