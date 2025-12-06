@@ -270,7 +270,7 @@ class AlarmCalculator:
         """Internal: Load configs from alarm_settings table"""
         try:
             settings = self._get('alarm_settings', 'select=*')
-            if settings:
+            if settings and len(settings) > 0:
                 new_configs = {}
                 for setting in settings:
                     alarm_type = setting.get('alarm_type', '')
@@ -284,10 +284,23 @@ class AlarmCalculator:
                 if new_configs:
                     self.configs = new_configs
                     log(f"Loaded {len(self.configs)} alarm settings from DB")
+                    # Log each alarm type's key config values
+                    for atype, cfg in self.configs.items():
+                        if atype == 'insider':
+                            log(f"  [DB] insider: oran_dusus={cfg.get('oran_dusus_esigi')}, hacim_sok={cfg.get('hacim_sok_esigi')}, max_para={cfg.get('max_para')}, max_odds={cfg.get('max_odds_esigi')}")
+                        elif atype == 'sharp':
+                            log(f"  [DB] sharp: min_score={cfg.get('min_sharp_score')}, vol_mult={cfg.get('volume_multiplier')}")
+                        elif atype == 'bigmoney':
+                            log(f"  [DB] bigmoney: limit={cfg.get('big_money_limit')}")
+                        elif atype == 'volumeshock':
+                            log(f"  [DB] volumeshock: shock_mult={cfg.get('hacim_soku_min_esik', cfg.get('volume_shock_multiplier'))}")
                     return
+            else:
+                log("WARNING: alarm_settings returned empty - using defaults!")
         except Exception as e:
             log(f"Config load error: {e}")
         
+        # Fallback to defaults ONLY if configs is empty
         if not self.configs:
             self.configs = self._default_configs()
             log("Using default configs (fallback)")
