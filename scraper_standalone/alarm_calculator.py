@@ -188,25 +188,35 @@ class AlarmCalculator:
             return 0
         
         try:
-            # Get existing alarms to preserve their trigger_at
+            # Build select fields dynamically from key_fields + trigger_at
+            select_fields = ','.join(key_fields + ['trigger_at'])
             existing_triggers = {}
             try:
-                existing = self._get(table, 'select=home,away,market,selection,trigger_at')
+                existing = self._get(table, f'select={select_fields}')
                 if existing:
                     for e in existing:
-                        key = f"{e.get('home')}|{e.get('away')}|{e.get('market')}|{e.get('selection')}"
+                        # Build key from all key_fields dynamically
+                        key_parts = [str(e.get(f, '')) for f in key_fields]
+                        key = '|'.join(key_parts)
                         if e.get('trigger_at'):
                             existing_triggers[key] = e['trigger_at']
+                    log(f"[UPSERT] Found {len(existing_triggers)} existing {table} with trigger_at")
             except Exception as ex:
                 log(f"[UPSERT] Could not fetch existing triggers: {ex}")
             
             # Preserve original trigger_at for existing alarms
-            if existing_triggers:
-                for alarm in alarms:
-                    key = f"{alarm.get('home')}|{alarm.get('away')}|{alarm.get('market')}|{alarm.get('selection')}"
-                    if key in existing_triggers:
-                        alarm['trigger_at'] = existing_triggers[key]
-                        alarm['event_time'] = existing_triggers[key]
+            preserved_count = 0
+            for alarm in alarms:
+                # Build key from all key_fields dynamically
+                key_parts = [str(alarm.get(f, '')) for f in key_fields]
+                key = '|'.join(key_parts)
+                if key in existing_triggers:
+                    alarm['trigger_at'] = existing_triggers[key]
+                    alarm['event_time'] = existing_triggers[key]
+                    preserved_count += 1
+            
+            if preserved_count > 0:
+                log(f"[UPSERT] Preserved trigger_at for {preserved_count} existing alarms")
             
             on_conflict = ",".join(key_fields)
             if self._post(table, alarms, on_conflict=on_conflict):
