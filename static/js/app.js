@@ -4108,13 +4108,26 @@ function sortAlarms(sortType) {
 
 function parseAlarmDate(dateStr) {
     if (!dateStr) return new Date(0);
-    if (dateStr.includes('.')) {
-        const [datePart, timePart] = dateStr.split(' ');
-        const [day, month, year] = datePart.split('.');
-        const [hour, min] = (timePart || '00:00').split(':');
-        return new Date(year, month - 1, day, hour, min);
+    
+    const str = String(dateStr).trim();
+    
+    // DD.MM.YYYY HH:MM format (legacy format)
+    const ddmmMatch = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s*(\d{2}:\d{2})?$/);
+    if (ddmmMatch) {
+        const [, day, month, year, time] = ddmmMatch;
+        const [hour, min] = (time || '00:00').split(':');
+        // Bu format zaten TR saatinde, Date objesi oluştur
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
     }
-    return new Date(dateStr);
+    
+    // toTurkeyTime ile parse et (ISO formatları, UTC, timezone offset'li vs.)
+    const turkeyTime = toTurkeyTime(str);
+    if (turkeyTime && turkeyTime.isValid()) {
+        return turkeyTime.toDate();
+    }
+    
+    // Fallback
+    return new Date(str) || new Date(0);
 }
 
 const alarmFilterColors = {
@@ -4741,27 +4754,21 @@ function formatTriggerTime(dateStr) {
 function formatTriggerTimeShort(dateStr) {
     if (!dateStr) return '-';
     
-    let dt;
+    const str = String(dateStr).trim();
     
-    // DD.MM.YYYY HH:MM formatı - zaten Turkey saati
-    if (dateStr.includes('.') && dateStr.includes(' ')) {
-        const [datePart, timePart] = dateStr.split(' ');
-        const [day, month, year] = datePart.split('.');
-        const isoStr = `${year}-${month}-${day}T${timePart}:00`;
-        dt = dayjs.tz(isoStr, APP_TIMEZONE);
-    }
-    // ISO with timezone offset
-    else if (dateStr.includes('+03:00') || dateStr.includes('+03')) {
-        dt = dayjs(dateStr).tz(APP_TIMEZONE);
-    }
-    // ISO offsetsiz - scraper Turkey saati kaydediyor
-    else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateStr)) {
-        dt = dayjs.tz(dateStr, APP_TIMEZONE);
-    }
-    else {
-        dt = parseAlarmDateTR(dateStr);
+    // DD.MM.YYYY HH:MM formatı - zaten Turkey saati, direkt parse et
+    const ddmmMatch = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s*(\d{2}:\d{2})?$/);
+    if (ddmmMatch) {
+        const [, day, month, year, time] = ddmmMatch;
+        const isoStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${time || '00:00'}:00`;
+        const dt = dayjs.tz(isoStr, APP_TIMEZONE);
+        if (dt && dt.isValid()) {
+            return dt.format('DD.MM HH:mm');
+        }
     }
     
+    // toTurkeyTime kullanarak tüm diğer formatları parse et
+    const dt = toTurkeyTime(str);
     if (!dt || !dt.isValid()) return '-';
     
     // Gün ve saat formatı: "04.12 22:56"
