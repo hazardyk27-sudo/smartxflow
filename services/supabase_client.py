@@ -314,6 +314,10 @@ class SupabaseClient:
                 yesterday_pattern = yesterday.strftime('%d.%b')
                 url = f"{self._rest_url(history_table)}?select=*&date=like.*{yesterday_pattern}*&order=scraped_at.desc&limit=5000"
                 print(f"[Supabase] Fetching yesterday's matches ({yesterday_pattern}) from: {history_table}")
+            elif date_filter == 'today':
+                today_pattern = now_tr.strftime('%d.%b')
+                url = f"{self._rest_url(history_table)}?select=*&date=like.*{today_pattern}*&order=scraped_at.desc&limit=5000"
+                print(f"[Supabase] Fetching today's matches ({today_pattern}) from: {history_table}")
             else:
                 today_pattern = now_tr.strftime('%d.%b')
                 tomorrow = now_tr + timedelta(days=1)
