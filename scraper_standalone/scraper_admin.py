@@ -15,7 +15,7 @@ from datetime import datetime
 from collections import deque
 import queue
 
-VERSION = "1.08"
+VERSION = "1.09"
 CONFIG_FILE = "config.json"
 
 # Scraper Console - Global Log Buffer & State

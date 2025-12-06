@@ -22,7 +22,7 @@ try:
 except ImportError:
     TURKEY_TZ = None
 
-VERSION = "1.08"
+VERSION = "1.09"
 SCRAPE_INTERVAL_MINUTES = 10
 
 DATASETS = {
