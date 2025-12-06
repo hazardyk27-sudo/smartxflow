@@ -616,12 +616,14 @@ EXTRACTORS = {
 }
 
 
-def run_scrape(writer: SupabaseWriter):
-    log("Scrape basladi...")
+def run_scrape(writer: SupabaseWriter, logger_callback=None):
+    _log = logger_callback if logger_callback else log
+    _log("SCRAPE BAŞLIYOR...")
     session = requests.Session()
     scraped_at = get_turkey_now()
     total_rows = 0
     write_errors = 0
+    market_stats = []
     
     for dataset_key, url in DATASETS.items():
         table_name = MARKET_TABLE_MAP[dataset_key]
@@ -629,34 +631,34 @@ def run_scrape(writer: SupabaseWriter):
         extractor = EXTRACTORS[dataset_key]
         
         try:
-            log(f"  {dataset_key} cekiliyor...")
+            _log(f"  {dataset_key} çekiliyor...")
             table = fetch_table(url, session)
             rows = extractor(table)
             
             if rows:
-                # Yazma sonuçlarını kontrol et
                 main_ok = writer.replace_table(table_name, rows)
                 history_ok = writer.append_history(history_table, rows, scraped_at)
                 
                 if main_ok and history_ok:
                     total_rows += len(rows)
-                    log(f"  {dataset_key}: {len(rows)} satir BASARIYLA yazildi")
+                    market_stats.append(f"{dataset_key}: {len(rows)}")
+                    _log(f"  ✓ {dataset_key}: {len(rows)} satır")
                 else:
                     write_errors += 1
                     if not main_ok:
-                        log(f"  {dataset_key}: HATA - Ana tablo yazma basarisiz!")
+                        _log(f"  ✗ {dataset_key}: Ana tablo yazma başarısız!")
                     if not history_ok:
-                        log(f"  {dataset_key}: HATA - History tablo yazma basarisiz!")
+                        _log(f"  ✗ {dataset_key}: History tablo yazma başarısız!")
             else:
-                log(f"  {dataset_key}: Veri bulunamadi")
+                _log(f"  ⚠ {dataset_key}: Veri bulunamadı")
         except Exception as e:
-            log(f"  {dataset_key} HATA: {e}")
+            _log(f"  ✗ {dataset_key} HATA: {e}")
             write_errors += 1
     
     if write_errors > 0:
-        log(f"UYARI: {write_errors} tabloda yazma hatasi olustu!")
+        _log(f"UYARI: {write_errors} tabloda yazma hatası oluştu!")
     
-    log(f"Scrape tamamlandi - Toplam: {total_rows} satir (Hata: {write_errors})")
+    _log(f"Scrape tamamlandı - Toplam: {total_rows} satır")
     return total_rows
 
 

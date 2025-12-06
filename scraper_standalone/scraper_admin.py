@@ -388,12 +388,10 @@ def run_scraper(config):
                 log_scraper("-" * 50)
                 log_scraper(f"DÖNGÜ #{cycle_count} BAŞLIYOR...")
                 
-                # Moneyway verileri
-                log_scraper("Moneyway verileri çekiliyor...")
-                rows = run_scrape(writer)
+                # Tüm marketleri çek (logger callback ile)
+                rows = run_scrape(writer, logger_callback=log_scraper)
                 SCRAPER_STATE['last_rows'] = rows
                 SCRAPER_STATE['last_scrape'] = datetime.now().isoformat()
-                log_scraper(f"Scrape tamamlandı - Toplam: {rows} satır")
                 
                 # Alarm hesaplama - DETAYLI LOGLAMA (Hem Scraper hem Alarm Engine paneline)
                 log_scraper("=" * 30)
