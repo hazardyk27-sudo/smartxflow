@@ -70,9 +70,18 @@ function toTurkeyTime(raw) {
             return dayjs.utc(str.replace('+00:00', 'Z')).tz(APP_TIMEZONE);
         }
         
-        // 4) Other timezone offset (e.g., +01:00, +02:00, +03:00, -05:00)
-        if (/[+-]\d{2}:\d{2}$/.test(str)) {
-            return dayjs.parseZone(str).tz(APP_TIMEZONE);
+        // 4) Timezone offset handling
+        const offsetMatch = str.match(/([+-])(\d{2}):(\d{2})$/);
+        if (offsetMatch) {
+            const parsed = dayjs.parseZone(str);
+            if (!parsed.isValid()) return null;
+            
+            // +03:00 zaten Turkey saati - cift donusum yapma
+            if (offsetMatch[1] === '+' && offsetMatch[2] === '03' && offsetMatch[3] === '00') {
+                return parsed;
+            }
+            // Diger offset'ler icin Turkey'e cevir
+            return parsed.tz(APP_TIMEZONE);
         }
         
         // 5) Arbworld format: "30.Nov 23:55:00" - ZATEN TR saatinde!
