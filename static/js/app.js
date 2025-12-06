@@ -3999,6 +3999,12 @@ async function loadAllAlarms() {
         
         updateAlarmCounts();
         alarmsDisplayCount = 30;
+        
+        const selectEl = document.getElementById('alarmSortSelect');
+        if (selectEl) {
+            selectEl.value = currentAlarmSort;
+        }
+        
         renderAlarmsList(currentAlarmFilter);
     } catch (error) {
         console.error('Alarm yukleme hatasi:', error);
@@ -4088,7 +4094,15 @@ function updateAlarmCounts() {
 }
 
 function sortAlarms(sortType) {
+    console.log('[sortAlarms] Sort type changed to:', sortType);
     currentAlarmSort = sortType;
+    
+    const selectEl = document.getElementById('alarmSortSelect');
+    if (selectEl && selectEl.value !== sortType) {
+        selectEl.value = sortType;
+    }
+    
+    alarmsDisplayCount = 30;
     renderAlarmsList(currentAlarmFilter);
 }
 
@@ -4195,11 +4209,16 @@ function getFilteredAlarms() {
         });
     }
     
+    console.log('[getFilteredAlarms] Sorting by:', currentAlarmSort, 'Groups count:', groups.length);
+    
     groups.sort((a, b) => {
+        const dateA = parseAlarmDate(a.latestAlarm.trigger_at || a.latestAlarm.event_time || a.latestAlarm.created_at);
+        const dateB = parseAlarmDate(b.latestAlarm.trigger_at || b.latestAlarm.event_time || b.latestAlarm.created_at);
+        
         if (currentAlarmSort === 'newest') {
-            return parseAlarmDate(b.latestAlarm.trigger_at || b.latestAlarm.event_time || b.latestAlarm.created_at) - parseAlarmDate(a.latestAlarm.trigger_at || a.latestAlarm.event_time || a.latestAlarm.created_at);
+            return dateB - dateA;
         } else if (currentAlarmSort === 'oldest') {
-            return parseAlarmDate(a.latestAlarm.trigger_at || a.latestAlarm.event_time || a.latestAlarm.created_at) - parseAlarmDate(b.latestAlarm.trigger_at || b.latestAlarm.event_time || b.latestAlarm.created_at);
+            return dateA - dateB;
         } else if (currentAlarmSort === 'score_high') {
             const scoreA = a.latestAlarm.sharp_score || a.latestAlarm.insider_score || a.latestAlarm.incoming_money || 0;
             const scoreB = b.latestAlarm.sharp_score || b.latestAlarm.insider_score || b.latestAlarm.incoming_money || 0;
@@ -4209,8 +4228,15 @@ function getFilteredAlarms() {
             const scoreB = b.latestAlarm.sharp_score || b.latestAlarm.insider_score || b.latestAlarm.incoming_money || 0;
             return scoreA - scoreB;
         }
-        return 0;
+        return dateB - dateA;
     });
+    
+    if (groups.length > 0) {
+        console.log('[getFilteredAlarms] First 3 after sort:', groups.slice(0, 3).map(g => ({
+            home: g.home,
+            time: g.latestAlarm.trigger_at || g.latestAlarm.event_time
+        })));
+    }
     
     return groups;
 }
