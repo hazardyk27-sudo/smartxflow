@@ -1284,39 +1284,42 @@ h1, h2, h3, h4, h5, h6,
 /* Premium View Mode Toggle */
 .view-mode-filters {
     display: flex;
-    gap: 4px;
-    background: #111827;
-    padding: 4px;
-    border-radius: var(--radius-pill);
-    border: 1px solid #20252E;
+    gap: 8px;
+    align-items: center;
 }
 
 .chart-view-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 32px;
-    padding: 0 16px;
-    background: transparent;
-    border: none;
-    border-radius: var(--radius-pill);
+    height: 34px;
+    padding: 6px 14px;
+    background: linear-gradient(180deg, #11141a, #0c0f13);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    box-shadow: inset 0px 1px 2px rgba(255,255,255,0.06),
+                0px 2px 6px rgba(0,0,0,0.25);
     color: var(--text-secondary);
     font-size: 13px;
     font-weight: 500;
     font-family: 'Inter', sans-serif;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
 }
 
 .chart-view-btn:hover {
+    border-color: rgba(120, 220, 180, 0.35);
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-1px);
 }
 
 .chart-view-btn.active {
-    background: rgba(22, 163, 74, 0.13);
-    border: 1px solid #16A34A;
-    color: #E5FBEA;
+    background: radial-gradient(circle at top,
+                rgba(46, 160, 67, 0.18),
+                #0d1117 55%);
+    border-color: rgba(46, 160, 67, 0.7);
+    box-shadow: 0 0 0 1px rgba(46, 160, 67, 0.25);
+    color: #c0f5d0;
 }
 
 .chart-export-btns {
