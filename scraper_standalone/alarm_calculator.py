@@ -40,12 +40,19 @@ def now_turkey_iso():
 
 
 def log(msg: str):
+    """Log message using callback or print - ALWAYS outputs something"""
     timestamp = now_turkey().strftime('%H:%M')
-    full_msg = f"[{timestamp}] [AlarmCalc] {msg}"
+    full_msg = f"[{timestamp}] {msg}"
+    
+    # Always try callback first
     if _logger_callback:
-        _logger_callback(full_msg)
+        try:
+            _logger_callback(full_msg)
+        except Exception as e:
+            print(f"[AlarmCalc] Logger callback error: {e}")
+            print(full_msg)
     else:
-        print(full_msg)
+        print(f"[AlarmCalc-NoCallback] {full_msg}")
 
 
 def parse_float(val) -> float:
@@ -397,82 +404,119 @@ class AlarmCalculator:
         Returns: Total number of alarms calculated
         """
         log("=" * 50)
-        log("Alarm hesaplamalari basliyor...")
+        log("ALARM HESAPLAMA BASLADI")
+        log(f"Supabase URL: {self.url[:40]}...")
         log("=" * 50)
         
         # LIVE RELOAD: Refresh configs from Supabase before calculations
+        log("Config yenileniyor...")
         self.refresh_configs()
+        log(f"Loaded configs: {list(self.configs.keys())}")
         
         self._history_cache = {}
         self._matches_cache = {}
         
+        # Prefetch all data
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
         for market in markets:
             try:
-                self.get_matches_with_latest(market)
-                self.batch_fetch_history(market)
+                matches = self.get_matches_with_latest(market)
+                log(f"  {market}: {len(matches) if matches else 0} matches")
+                history = self.batch_fetch_history(market)
+                log(f"  {market}_history: {len(history) if history else 0} unique matches")
             except Exception as e:
-                log(f"Prefetch error {market}: {e}")
+                import traceback
+                log(f"!!! Prefetch error {market}: {e}")
+                log(f"Traceback: {traceback.format_exc()}")
         
         log("-" * 30)
+        log(f"Cache stats: matches={len(self._matches_cache)}, history={len(self._history_cache)}")
         
         total_alarms = 0
         alarm_counts = {}
         
+        log("1/7 Sharp hesaplaniyor...")
         try:
             sharp_count = self.calculate_sharp_alarms() or 0
             alarm_counts['Sharp'] = sharp_count
             total_alarms += sharp_count
+            log(f"  -> Sharp: {sharp_count} alarm")
         except Exception as e:
-            log(f"Sharp error: {e}")
+            import traceback
+            log(f"!!! Sharp error: {e}")
+            log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['Sharp'] = 0
         
+        log("2/7 Insider hesaplaniyor...")
         try:
             insider_count = self.calculate_insider_alarms() or 0
             alarm_counts['Insider'] = insider_count
             total_alarms += insider_count
+            log(f"  -> Insider: {insider_count} alarm")
         except Exception as e:
-            log(f"Insider error: {e}")
+            import traceback
+            log(f"!!! Insider error: {e}")
+            log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['Insider'] = 0
         
+        log("3/7 BigMoney hesaplaniyor...")
         try:
             bigmoney_count = self.calculate_bigmoney_alarms() or 0
             alarm_counts['BigMoney'] = bigmoney_count
             total_alarms += bigmoney_count
+            log(f"  -> BigMoney: {bigmoney_count} alarm")
         except Exception as e:
-            log(f"BigMoney error: {e}")
+            import traceback
+            log(f"!!! BigMoney error: {e}")
+            log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['BigMoney'] = 0
         
+        log("4/7 VolumeShock hesaplaniyor...")
         try:
             volumeshock_count = self.calculate_volumeshock_alarms() or 0
             alarm_counts['VolumeShock'] = volumeshock_count
             total_alarms += volumeshock_count
+            log(f"  -> VolumeShock: {volumeshock_count} alarm")
         except Exception as e:
-            log(f"VolumeShock error: {e}")
+            import traceback
+            log(f"!!! VolumeShock error: {e}")
+            log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['VolumeShock'] = 0
         
+        log("5/7 Dropping hesaplaniyor...")
         try:
             dropping_count = self.calculate_dropping_alarms() or 0
             alarm_counts['Dropping'] = dropping_count
             total_alarms += dropping_count
+            log(f"  -> Dropping: {dropping_count} alarm")
         except Exception as e:
-            log(f"Dropping error: {e}")
+            import traceback
+            log(f"!!! Dropping error: {e}")
+            log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['Dropping'] = 0
         
+        log("6/7 PublicMove hesaplaniyor...")
         try:
             publictrap_count = self.calculate_publicmove_alarms() or 0
             alarm_counts['PublicMove'] = publictrap_count
             total_alarms += publictrap_count
+            log(f"  -> PublicMove: {publictrap_count} alarm")
         except Exception as e:
-            log(f"PublicMove error: {e}")
+            import traceback
+            log(f"!!! PublicMove error: {e}")
+            log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['PublicMove'] = 0
         
+        log("7/7 VolumeLeader hesaplaniyor...")
         try:
             volumeleader_count = self.calculate_volumeleader_alarms() or 0
             alarm_counts['VolumeLeader'] = volumeleader_count
             total_alarms += volumeleader_count
+            log(f"  -> VolumeLeader: {volumeleader_count} alarm")
         except Exception as e:
-            log(f"VolumeLeader error: {e}")
+            import traceback
+            log(f"!!! VolumeLeader error: {e}")
+            log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['VolumeLeader'] = 0
         
         log("=" * 50)
