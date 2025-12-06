@@ -2253,86 +2253,13 @@ def save_dropping_config_endpoint():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-def filter_recent_alarms(alarms, hours=12):
-    """Filter alarms to only show those for upcoming matches (kickoff not passed)
-    Also filters alarms triggered in last N hours as backup
-    """
-    from datetime import datetime, timedelta
-    import pytz
-    import re
-    
-    if not alarms:
-        return alarms
-    
-    turkey_tz = pytz.timezone('Europe/Istanbul')
-    now = datetime.now(turkey_tz)
-    cutoff = now - timedelta(hours=hours)
-    
-    def parse_kickoff(match_date):
-        """Parse match_date like '06.Dec 09:30:00' or '06.12.2025 09:30' to datetime"""
-        if not match_date:
-            return None
-        try:
-            match_date = str(match_date)
-            # Format: "06.Dec 09:30:00"
-            if '.Dec' in match_date or '.Jan' in match_date or '.Feb' in match_date:
-                month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
-                             'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
-                parts = match_date.replace('.', ' ').split()
-                if len(parts) >= 3:
-                    day = int(parts[0])
-                    month = month_map.get(parts[1], 12)
-                    time_parts = parts[2].split(':')
-                    hour = int(time_parts[0])
-                    minute = int(time_parts[1]) if len(time_parts) > 1 else 0
-                    dt = datetime(now.year, month, day, hour, minute)
-                    return turkey_tz.localize(dt)
-            # Format: "06.12.2025 09:30"
-            match = re.match(r'(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})', match_date)
-            if match:
-                day, month, year, hour, minute = map(int, match.groups())
-                dt = datetime(year, month, day, hour, minute)
-                return turkey_tz.localize(dt)
-        except:
-            pass
-        return None
-    
-    recent = []
-    for alarm in alarms:
-        # Check if match kickoff has passed
-        match_date = alarm.get('match_date', '')
-        kickoff = parse_kickoff(match_date)
-        if kickoff and kickoff < now:
-            continue  # Skip - match already started/finished
-        
-        # Backup: check trigger_at is recent
-        trigger_at = alarm.get('trigger_at') or alarm.get('event_time', '')
-        if trigger_at:
-            try:
-                if 'T' in str(trigger_at):
-                    ts_str = str(trigger_at).replace('Z', '').split('+')[0]
-                    ts = datetime.fromisoformat(ts_str)
-                    ts = turkey_tz.localize(ts) if ts.tzinfo is None else ts
-                    if ts >= cutoff:
-                        recent.append(alarm)
-                else:
-                    recent.append(alarm)
-            except:
-                recent.append(alarm)
-        else:
-            recent.append(alarm)
-    return recent
-
-
 @app.route('/api/dropping/alarms', methods=['GET'])
 def get_dropping_alarms():
-    """Get all Dropping Alert alarms - reads from Supabase first, fallback to local JSON only on error
-    Filters to only show alarms triggered in last 12 hours (prevents finished matches like Auckland)
-    """
+    """Get all Dropping Alert alarms - reads from Supabase first, fallback to local JSON only on error"""
     supabase_alarms = get_dropping_alarms_from_supabase()
-    if supabase_alarms is not None:
-        return jsonify(filter_recent_alarms(supabase_alarms))
-    return jsonify(filter_recent_alarms(dropping_alarms))
+    if supabase_alarms is not None:  # Boş liste dahil Supabase verisini kullan
+        return jsonify(supabase_alarms)
+    return jsonify(dropping_alarms)  # Sadece Supabase hatası durumunda JSON fallback
 
 
 @app.route('/api/dropping/delete', methods=['POST'])
