@@ -2887,11 +2887,11 @@ td.volume,
 .chart-tooltip-sub {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
     gap: 8px;
     font-size: 11px;
     color: rgba(255, 255, 255, 0.45);
     margin-top: 2px;
+    padding-left: 14px;
 }
 
 .chart-tooltip-sub .separator {
