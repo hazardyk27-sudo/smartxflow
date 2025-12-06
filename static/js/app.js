@@ -793,8 +793,6 @@ function getMaxTrendPct(match) {
 function applySorting(data) {
     let sortedData = [...data];
     
-    sortedData = sortedData.filter(m => hasValidMarketData(m, currentMarket));
-    
     const nowTR = nowTurkey();
     const todayStr = nowTR.format('YYYY-MM-DD');
     const yesterdayStr = nowTR.subtract(1, 'day').format('YYYY-MM-DD');

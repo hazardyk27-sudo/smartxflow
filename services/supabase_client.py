@@ -306,16 +306,69 @@ class SupabaseClient:
             
             history_table = f"{market}_history"
             
+            tr_tz = pytz.timezone('Europe/Istanbul')
+            now_tr = datetime.now(tr_tz)
+            
             if date_filter == 'yesterday':
-                tr_tz = pytz.timezone('Europe/Istanbul')
-                now_tr = datetime.now(tr_tz)
                 yesterday = now_tr - timedelta(days=1)
                 yesterday_pattern = yesterday.strftime('%d.%b')
                 url = f"{self._rest_url(history_table)}?select=*&date=like.*{yesterday_pattern}*&order=scraped_at.desc&limit=5000"
                 print(f"[Supabase] Fetching yesterday's matches ({yesterday_pattern}) from: {history_table}")
             else:
-                url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit=2000"
-                print(f"[Supabase] Fetching latest from: {url}")
+                today_pattern = now_tr.strftime('%d.%b')
+                tomorrow = now_tr + timedelta(days=1)
+                tomorrow_pattern = tomorrow.strftime('%d.%b')
+                
+                all_rows = []
+                
+                url_today = f"{self._rest_url(history_table)}?select=*&date=like.*{today_pattern}*&order=scraped_at.desc&limit=2000"
+                print(f"[Supabase] Fetching TODAY's matches ({today_pattern})...")
+                resp_today = httpx.get(url_today, headers=self._headers(), timeout=30)
+                if resp_today.status_code == 200:
+                    today_rows = resp_today.json()
+                    all_rows.extend(today_rows)
+                    print(f"[Supabase] Got {len(today_rows)} today rows")
+                
+                url_tomorrow = f"{self._rest_url(history_table)}?select=*&date=like.*{tomorrow_pattern}*&order=scraped_at.desc&limit=2000"
+                print(f"[Supabase] Fetching TOMORROW's matches ({tomorrow_pattern})...")
+                resp_tomorrow = httpx.get(url_tomorrow, headers=self._headers(), timeout=30)
+                if resp_tomorrow.status_code == 200:
+                    tomorrow_rows = resp_tomorrow.json()
+                    all_rows.extend(tomorrow_rows)
+                    print(f"[Supabase] Got {len(tomorrow_rows)} tomorrow rows")
+                
+                url_future = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit=1000"
+                resp_future = httpx.get(url_future, headers=self._headers(), timeout=30)
+                if resp_future.status_code == 200:
+                    future_rows = resp_future.json()
+                    all_rows.extend(future_rows)
+                    print(f"[Supabase] Got {len(future_rows)} future rows")
+                
+                seen = {}
+                for row in all_rows:
+                    home = row.get('home', '')
+                    away = row.get('away', '')
+                    key = f"{home}|{away}"
+                    if key not in seen:
+                        seen[key] = row
+                    else:
+                        existing_time = seen[key].get('scraped_at', '')
+                        new_time = row.get('scraped_at', '')
+                        if new_time > existing_time:
+                            seen[key] = row
+                
+                matches = []
+                for key, row in seen.items():
+                    latest = self._normalize_history_row(row, market)
+                    matches.append({
+                        'home_team': row.get('home', ''),
+                        'away_team': row.get('away', ''),
+                        'league': row.get('league', ''),
+                        'date': row.get('date', ''),
+                        'latest': latest
+                    })
+                print(f"[Supabase] Got {len(matches)} unique matches (today+tomorrow+future)")
+                return matches
             
             resp = httpx.get(url, headers=self._headers(), timeout=30)
             
