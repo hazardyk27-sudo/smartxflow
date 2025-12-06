@@ -556,11 +556,12 @@ class AlarmCalculator:
     def calculate_sharp_alarms(self) -> int:
         """Calculate Sharp Move alarms"""
         config = self.configs.get('sharp', self._default_configs()['sharp'])
-        min_score = config.get('min_sharp_score', 15)
-        vol_mult = config.get('volume_multiplier', 1.0)
-        odds_mult = config.get('odds_multiplier', 1.0)
-        share_mult = config.get('share_multiplier', 1.0)
-        min_amount_change = config.get('min_amount_change', 0)
+        # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
+        min_score = parse_float(config.get('min_sharp_score', 15))
+        vol_mult = parse_float(config.get('volume_multiplier', 1.0))
+        odds_mult = parse_float(config.get('odds_multiplier', 1.0))
+        share_mult = parse_float(config.get('share_multiplier', 1.0))
+        min_amount_change = parse_float(config.get('min_amount_change', 0))
         log(f"[Sharp Config] min_score: {min_score}, vol_mult: {vol_mult}, min_amount_change: {min_amount_change}")
         
         alarms = []
@@ -569,19 +570,19 @@ class AlarmCalculator:
         
         for market in markets:
             if '1x2' in market:
-                min_volume = config.get('min_volume_1x2', 3000)
+                min_volume = parse_float(config.get('min_volume_1x2', 3000))
                 selections = ['1', 'X', '2']
                 odds_keys = ['odds1', 'oddsx', 'odds2']
                 amount_keys = ['amt1', 'amtx', 'amt2']
                 pct_keys = ['pct1', 'pctx', 'pct2']
             elif 'ou25' in market:
-                min_volume = config.get('min_volume_ou25', 1000)
+                min_volume = parse_float(config.get('min_volume_ou25', 1000))
                 selections = ['Over', 'Under']
                 odds_keys = ['over', 'under']
                 amount_keys = ['amtover', 'amtunder']
                 pct_keys = ['pctover', 'pctunder']
             else:
-                min_volume = config.get('min_volume_btts', 500)
+                min_volume = parse_float(config.get('min_volume_btts', 500))
                 selections = ['Yes', 'No']
                 odds_keys = ['oddsyes', 'oddsno']
                 amount_keys = ['amtyes', 'amtno']
@@ -698,10 +699,11 @@ class AlarmCalculator:
         """Calculate Insider Info alarms"""
         config = self.configs.get('insider', self._default_configs()['insider'])
         # Supabase'deki Türkçe field isimlerini kullan, yoksa eski İngilizce isimlere bak
-        hacim_sok_esigi = config.get('hacim_sok_esigi', config.get('insider_hacim_sok_esigi', 2))
-        oran_dusus_esigi = config.get('oran_dusus_esigi', config.get('insider_oran_dusus_esigi', 3))
-        max_para = config.get('max_para', config.get('insider_max_para', 5000))
-        max_odds = config.get('max_odds_esigi', config.get('insider_max_odds_esigi', 10.0))
+        # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
+        hacim_sok_esigi = parse_float(config.get('hacim_sok_esigi', config.get('insider_hacim_sok_esigi', 2)))
+        oran_dusus_esigi = parse_float(config.get('oran_dusus_esigi', config.get('insider_oran_dusus_esigi', 3)))
+        max_para = parse_float(config.get('max_para', config.get('insider_max_para', 5000)))
+        max_odds = parse_float(config.get('max_odds_esigi', config.get('insider_max_odds_esigi', 10.0)))
         log(f"[Insider Config] hacim_sok: {hacim_sok_esigi}, oran_dusus: {oran_dusus_esigi}, max_para: {max_para}, max_odds: {max_odds}")
         
         alarms = []
@@ -870,7 +872,8 @@ class AlarmCalculator:
     def calculate_bigmoney_alarms(self) -> int:
         """Calculate Big Money / Huge Money alarms"""
         config = self.configs.get('bigmoney', self._default_configs()['bigmoney'])
-        limit = config.get('big_money_limit', 15000)
+        # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
+        limit = parse_float(config.get('big_money_limit', 15000))
         log(f"[BigMoney Config] limit: {limit}")
         
         alarms = []
@@ -968,10 +971,10 @@ class AlarmCalculator:
     def calculate_volumeshock_alarms(self) -> int:
         """Calculate Volume Shock alarms"""
         config = self.configs.get('volumeshock', self._default_configs()['volumeshock'])
-        # Supabase'deki Türkçe field isimlerini kullan
-        shock_mult = config.get('hacim_soku_min_esik', config.get('volume_shock_multiplier', 3.0))
-        min_hours = config.get('hacim_soku_min_saat', config.get('min_hours_to_kickoff', 2))
-        min_incoming = config.get('min_son_snapshot_para', 500)
+        # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
+        shock_mult = parse_float(config.get('hacim_soku_min_esik', config.get('volume_shock_multiplier', 3.0)))
+        min_hours = parse_float(config.get('hacim_soku_min_saat', config.get('min_hours_to_kickoff', 2)))
+        min_incoming = parse_float(config.get('min_son_snapshot_para', 500))
         log(f"[VolumeShock Config] shock_mult: {shock_mult}, min_hours: {min_hours}, min_incoming: {min_incoming}")
         
         alarms = []
@@ -1066,11 +1069,12 @@ class AlarmCalculator:
     def calculate_dropping_alarms(self) -> int:
         """Calculate Dropping Odds alarms"""
         config = self.configs.get('dropping', self._default_configs()['dropping'])
-        l1_min = config.get('min_drop_l1', 7)
-        l1_max = config.get('max_drop_l1', 10)
-        l2_min = config.get('min_drop_l2', 10)
-        l2_max = config.get('max_drop_l2', 15)
-        l3_min = config.get('min_drop_l3', 15)
+        # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
+        l1_min = parse_float(config.get('min_drop_l1', 7))
+        l1_max = parse_float(config.get('max_drop_l1', 10))
+        l2_min = parse_float(config.get('min_drop_l2', 10))
+        l2_max = parse_float(config.get('max_drop_l2', 15))
+        l3_min = parse_float(config.get('min_drop_l3', 15))
         log(f"[Dropping Config] L1: {l1_min}-{l1_max}%, L2: {l2_min}-{l2_max}%, L3: {l3_min}%+")
         
         alarms = []
@@ -1162,8 +1166,9 @@ class AlarmCalculator:
     def calculate_publicmove_alarms(self) -> int:
         """Calculate Public Move alarms - same logic as Sharp"""
         config = self.configs.get('publicmove', self._default_configs()['publicmove'])
-        min_score = config.get('min_sharp_score', 20)
-        min_amount_change = config.get('min_amount_change', 0)
+        # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
+        min_score = parse_float(config.get('min_sharp_score', 20))
+        min_amount_change = parse_float(config.get('min_amount_change', 0))
         log(f"[PublicMove Config] min_score: {min_score}, min_amount_change: {min_amount_change}")
         
         alarms = []
@@ -1172,19 +1177,19 @@ class AlarmCalculator:
         
         for market in markets:
             if '1x2' in market:
-                min_volume = config.get('min_volume_1x2', 5000)
+                min_volume = parse_float(config.get('min_volume_1x2', 5000))
                 selections = ['1', 'X', '2']
                 odds_keys = ['odds1', 'oddsx', 'odds2']
                 amount_keys = ['amt1', 'amtx', 'amt2']
                 pct_keys = ['pct1', 'pctx', 'pct2']
             elif 'ou25' in market:
-                min_volume = config.get('min_volume_ou25', 2000)
+                min_volume = parse_float(config.get('min_volume_ou25', 2000))
                 selections = ['Over', 'Under']
                 odds_keys = ['over', 'under']
                 amount_keys = ['amtover', 'amtunder']
                 pct_keys = ['pctover', 'pctunder']
             else:
-                min_volume = config.get('min_volume_btts', 1000)
+                min_volume = parse_float(config.get('min_volume_btts', 1000))
                 selections = ['Yes', 'No']
                 odds_keys = ['oddsyes', 'oddsno']
                 amount_keys = ['amtyes', 'amtno']
@@ -1309,7 +1314,8 @@ class AlarmCalculator:
     def calculate_volumeleader_alarms(self) -> int:
         """Calculate Volume Leader Changed alarms"""
         config = self.configs.get('volumeleader', self._default_configs()['volumeleader'])
-        threshold = config.get('leader_threshold', 50)
+        # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
+        threshold = parse_float(config.get('leader_threshold', 50))
         log(f"[VolumeLeader Config] threshold: {threshold}%")
         
         alarms = []
@@ -1318,15 +1324,15 @@ class AlarmCalculator:
         
         for market in markets:
             if '1x2' in market:
-                min_volume = config.get('min_volume_1x2', 5000)
+                min_volume = parse_float(config.get('min_volume_1x2', 5000))
                 selections = ['1', 'X', '2']
                 amount_keys = ['amt1', 'amtx', 'amt2']
             elif 'ou25' in market:
-                min_volume = config.get('min_volume_ou25', 2000)
+                min_volume = parse_float(config.get('min_volume_ou25', 2000))
                 selections = ['Over', 'Under']
                 amount_keys = ['amtover', 'amtunder']
             else:
-                min_volume = config.get('min_volume_btts', 1000)
+                min_volume = parse_float(config.get('min_volume_btts', 1000))
                 selections = ['Yes', 'No']
                 amount_keys = ['amtyes', 'amtno']
             
