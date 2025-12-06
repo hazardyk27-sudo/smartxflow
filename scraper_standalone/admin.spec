@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-# SmartXFlow Admin Panel v1.06 - PyInstaller Spec
+# SmartXFlow Admin Panel v1.08 - PyInstaller Spec
 # Web Admin (pywebview + Flask) + Background Scraper
 
 import os
@@ -84,7 +84,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='SmartXFlowAdminV1.06',
+    name='SmartXFlowAdminV1.08',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
