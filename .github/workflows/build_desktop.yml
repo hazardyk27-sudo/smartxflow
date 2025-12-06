@@ -35,7 +35,7 @@ jobs:
       - name: Build Desktop App EXE
         run: |
           cd desktop_app
-          pyinstaller --onefile --windowed --name "SmartXFlow" --icon "app_icon.ico" --add-data "config.json;." smartxflow_app.py
+          pyinstaller --onefile --windowed --name SmartXFlow --icon app_icon.ico --add-data "config.json;." smartxflow_app.py
         shell: cmd
 
       - name: Copy config to dist
