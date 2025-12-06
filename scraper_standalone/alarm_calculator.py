@@ -844,7 +844,7 @@ class AlarmCalculator:
                         'alarm_type': 'insider'
                     }
                     alarms.append(alarm)
-                    log(f"  [INSIDER] {home} vs {away} | {market_names.get(market, market)}-{selection} | Oran: {opening_odds:.2f}→{current_odds:.2f} (-%{oran_dusus_pct:.1f}) | Para: £{total_incoming:,.0f}")
+                    log(f"  [INSIDER] {home} vs {away} | {market_names.get(market, market)}-{selection} | Oran: {opening_odds:.2f}->{current_odds:.2f} (-%{oran_dusus_pct:.1f}) | Para: {total_incoming:,.0f} GBP")
         
         if alarms:
             new_count = self._upsert_alarms('insider_alarms', alarms, ['home', 'away', 'market', 'selection'])
@@ -1136,7 +1136,7 @@ class AlarmCalculator:
                         'alarm_type': 'dropping'
                     }
                     alarms.append(alarm)
-                    log(f"  [DROPPING-{level}] {home} vs {away} | {market_names.get(market, market)}-{selection} | {opening_odds:.2f}→{current_odds:.2f} (-%{drop_pct:.1f})")
+                    log(f"  [DROPPING-{level}] {home} vs {away} | {market_names.get(market, market)}-{selection} | {opening_odds:.2f}->{current_odds:.2f} (-%{drop_pct:.1f})")
         
         if alarms:
             new_count = self._upsert_alarms('dropping_alarms', alarms, ['home', 'away', 'market', 'selection'])
@@ -1380,7 +1380,7 @@ class AlarmCalculator:
                             'alarm_type': 'volumeleader'
                         }
                         alarms.append(alarm)
-                        log(f"  [VOLUMELEADER] {home} vs {away} | {market_names.get(market, market)} | {prev_leader[0]}(%{prev_leader[1]:.0f})→{curr_leader[0]}(%{curr_leader[1]:.0f})")
+                        log(f"  [VOLUMELEADER] {home} vs {away} | {market_names.get(market, market)} | {prev_leader[0]}(%{prev_leader[1]:.0f})->{curr_leader[0]}(%{curr_leader[1]:.0f})")
         
         if alarms:
             existing = self._get('volume_leader_alarms', 'select=home,away,market,old_leader,new_leader')
