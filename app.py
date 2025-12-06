@@ -15,7 +15,7 @@ import threading
 import time
 import queue
 from datetime import datetime, timedelta
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, Response
 
 def resource_path(relative_path):
     """Get absolute path to resource - works for dev and PyInstaller EXE"""
@@ -4590,7 +4590,6 @@ def scraper_console_logs():
 @app.route('/scraper/stream')
 def scraper_console_stream():
     """SSE stream - canlı log akışı (thread-safe)"""
-    from flask import Response
     import queue
     
     def generate():

@@ -140,21 +140,15 @@ class SupabaseWriter:
     def _rest_url(self, table: str) -> str:
         return f"{self.url}/rest/v1/{table}"
     
-    def upsert_rows(self, table: str, rows: List[Dict[str, Any]]) -> bool:
-        """UPSERT rows using Supabase REST API with proper headers"""
+    def upsert_rows(self, table: str, rows: List[Dict[str, Any]], on_conflict: str = "home,away,date") -> bool:
+        """UPSERT rows using Supabase REST API with proper on_conflict"""
         if not rows:
             return True
         
         try:
             headers = self._headers()
             headers["Prefer"] = "resolution=merge-duplicates"
-            url = self._rest_url(table)
-            
-            log(f"  [DEBUG] UPSERT Request:")
-            log(f"    Method: POST")
-            log(f"    URL: {url}")
-            log(f"    Headers: apikey={self.key[:20]}..., Prefer={headers.get('Prefer')}")
-            log(f"    Body sample: {json.dumps(rows[0]) if rows else 'empty'}")
+            url = f"{self._rest_url(table)}?on_conflict={on_conflict}"
             
             resp = requests.post(
                 url,
@@ -164,11 +158,10 @@ class SupabaseWriter:
                 verify=SSL_VERIFY
             )
             
-            log(f"    Response: {resp.status_code} - {resp.text[:300] if resp.text else 'no body'}")
-            
             if resp.status_code in [200, 201, 204]:
                 return True
             else:
+                log(f"  [UPSERT ERR] {table}: {resp.status_code} - {resp.text[:200] if resp.text else ''}")
                 return False
         except Exception as e:
             log(f"  Supabase baglanti hatasi: {e}")
