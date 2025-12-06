@@ -1210,18 +1210,18 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .chart-legend-btn:hover {
-    border-color: rgba(255,255,255,0.18);
+    border-color: rgba(120, 220, 180, 0.35);
     color: var(--text-primary);
     transform: translateY(-1px);
 }
 
 .chart-legend-btn.active {
-    background: linear-gradient(180deg, #0e2f19, #0b2915);
-    border-color: rgba(34,255,150,0.45);
-    box-shadow: 0 0 0 1px rgba(34,255,150,0.3),
-                0 0 12px rgba(34,255,150,0.2),
-                inset 0 0 6px rgba(34,255,150,0.1);
-    color: #E5FBEA;
+    background: radial-gradient(circle at top,
+                rgba(46, 160, 67, 0.18),
+                #0d1117 55%);
+    border-color: rgba(46, 160, 67, 0.7);
+    box-shadow: 0 0 0 1px rgba(46, 160, 67, 0.25);
+    color: #c0f5d0;
 }
 
 .chart-legend-btn.inactive {
@@ -1261,18 +1261,16 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .chart-time-btn:hover {
-    border-color: rgba(255,255,255,0.18);
+    border-color: rgba(120, 220, 180, 0.35);
     color: var(--text-primary);
     transform: translateY(-1px);
 }
 
 .chart-time-btn.active {
-    background: linear-gradient(180deg, #0e2f19, #0b2915);
-    border-color: rgba(34,255,150,0.45);
-    box-shadow: 0 0 0 1px rgba(34,255,150,0.6),
-                0 0 14px rgba(34,255,150,0.20),
-                inset 0 0 8px rgba(34,255,150,0.12);
-    color: #E5FBEA;
+    background: #0d1117;
+    border-color: rgba(46, 160, 67, 0.7);
+    box-shadow: 0 0 0 1px rgba(46, 160, 67, 0.25);
+    color: #c0f5d0;
 }
 
 /* Premium View Mode Toggle */
