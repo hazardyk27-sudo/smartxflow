@@ -698,13 +698,17 @@ class AlarmCalculator:
     def calculate_insider_alarms(self) -> int:
         """Calculate Insider Info alarms"""
         config = self.configs.get('insider', self._default_configs()['insider'])
+        # DEBUG: Raw config from Supabase
+        log(f"[INSIDER RAW CONFIG] {config}")
+        log(f"[INSIDER RAW] oran_dusus_esigi raw value = '{config.get('oran_dusus_esigi')}' (type={type(config.get('oran_dusus_esigi')).__name__})")
+        
         # Supabase'deki Türkçe field isimlerini kullan, yoksa eski İngilizce isimlere bak
         # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
         hacim_sok_esigi = parse_float(config.get('hacim_sok_esigi', config.get('insider_hacim_sok_esigi', 2)))
         oran_dusus_esigi = parse_float(config.get('oran_dusus_esigi', config.get('insider_oran_dusus_esigi', 3)))
         max_para = parse_float(config.get('max_para', config.get('insider_max_para', 5000)))
         max_odds = parse_float(config.get('max_odds_esigi', config.get('insider_max_odds_esigi', 10.0)))
-        log(f"[Insider Config] hacim_sok: {hacim_sok_esigi}, oran_dusus: {oran_dusus_esigi}, max_para: {max_para}, max_odds: {max_odds}")
+        log(f"[Insider Config PARSED] hacim_sok: {hacim_sok_esigi}, oran_dusus: {oran_dusus_esigi}, max_para: {max_para}, max_odds: {max_odds}")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -760,6 +764,9 @@ class AlarmCalculator:
                         continue
                     
                     oran_dusus_pct = ((opening_odds - current_odds) / opening_odds) * 100
+                    
+                    # DEBUG: Log threshold comparison
+                    log(f"  [INSIDER DEBUG] {home} vs {away} | {selection} | drop={oran_dusus_pct:.2f}% | threshold={oran_dusus_esigi} (type={type(oran_dusus_esigi).__name__}) | pass={oran_dusus_pct >= oran_dusus_esigi}")
                     
                     if oran_dusus_pct < oran_dusus_esigi:
                         continue
