@@ -215,7 +215,7 @@ class SupabaseWriter:
             return False
     
     def replace_table(self, table: str, rows: List[Dict[str, Any]]) -> bool:
-        """Replace table: Truncate + Insert (id kolonu kaldirilir)"""
+        """Replace table: UPSERT kullan (v1.08 gibi)"""
         clean_rows = []
         for row in rows:
             new_row = row.copy()
@@ -223,9 +223,8 @@ class SupabaseWriter:
                 del new_row['id']
             clean_rows.append(new_row)
         
-        # Truncate via RPC or just insert (PostgREST doesn't support TRUNCATE directly)
-        # Use simple insert - table will grow but that's OK for now
-        return self.insert_rows(table, clean_rows)
+        # UPSERT - UNIQUE(home, away, date) constraint'i kullan
+        return self.upsert_rows(table, clean_rows, on_conflict="home,away,date")
     
     def append_history(self, table: str, rows: List[Dict[str, Any]], scraped_at: str) -> bool:
         """History tablosuna yeni kayit ekle - id kolonu kaldirilir (auto-increment kullanilir)"""
