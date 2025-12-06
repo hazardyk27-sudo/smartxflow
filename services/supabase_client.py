@@ -628,7 +628,7 @@ class SupabaseClient:
     
     def get_6h_odds_history(self, market: str) -> Dict[str, Dict[str, Any]]:
         """Drop markets: İlk snapshot vs Son snapshot = Açılıştan bu yana değişim.
-        Optimized: 2 bulk queries (first + last) per market."""
+        OPTIMIZED: Sadece unique maçları çek, her maç için 1 first + 1 last."""
         if not self.is_available or not market.startswith('dropping'):
             return {}
         
@@ -636,7 +636,7 @@ class SupabaseClient:
         
         try:
             import time
-            from concurrent.futures import ThreadPoolExecutor, as_completed
+            from concurrent.futures import ThreadPoolExecutor
             start_time = time.time()
             
             if market == 'dropping_1x2':
@@ -651,54 +651,49 @@ class SupabaseClient:
             else:
                 return {}
             
-            def fetch_all_rows(order_dir):
-                """Fetch all rows with given order direction using pagination"""
+            def fetch_unique_matches(order_dir):
+                """Fetch unique matches with first/last record only"""
+                seen = set()
                 rows = []
                 offset = 0
-                while True:
+                max_unique = 600
+                
+                while len(rows) < max_unique:
                     url = f"{self._rest_url(history_table)}?select={select_cols}&order=scraped_at.{order_dir}&offset={offset}&limit=1000"
-                    resp = httpx.get(url, headers=self._headers(), timeout=30)
+                    resp = httpx.get(url, headers=self._headers(), timeout=15)
                     if resp.status_code != 200:
                         break
                     batch = resp.json()
                     if not batch:
                         break
-                    rows.extend(batch)
-                    if len(batch) < 1000:
+                    
+                    for row in batch:
+                        key = f"{row.get('home', '')}|{row.get('away', '')}"
+                        if key not in seen:
+                            seen.add(key)
+                            rows.append(row)
+                            if len(rows) >= max_unique:
+                                break
+                    
+                    if len(batch) < 1000 or len(rows) >= max_unique:
                         break
                     offset += 1000
-                    if offset > 50000:
+                    if offset > 10000:
                         break
+                
                 return rows
             
             with ThreadPoolExecutor(max_workers=2) as executor:
-                future_first = executor.submit(fetch_all_rows, 'asc')
-                future_last = executor.submit(fetch_all_rows, 'desc')
+                future_first = executor.submit(fetch_unique_matches, 'asc')
+                future_last = executor.submit(fetch_unique_matches, 'desc')
                 first_rows = future_first.result()
                 last_rows = future_last.result()
             
-            match_first = {}
-            for row in first_rows:
-                key = f"{row.get('home', '')}|{row.get('away', '')}"
-                if key not in match_first:
-                    match_first[key] = row
-            
-            match_last = {}
-            for row in last_rows:
-                key = f"{row.get('home', '')}|{row.get('away', '')}"
-                if key not in match_last:
-                    match_last[key] = row
+            match_first = {f"{r.get('home', '')}|{r.get('away', '')}": r for r in first_rows}
+            match_last = {f"{r.get('home', '')}|{r.get('away', '')}": r for r in last_rows}
             
             if not match_first and not match_last:
                 return {}
-            
-            # Build full history for each match to find trigger times
-            match_all_history = {}
-            for row in first_rows:
-                key = f"{row.get('home', '')}|{row.get('away', '')}"
-                if key not in match_all_history:
-                    match_all_history[key] = []
-                match_all_history[key].append(row)
             
             result = {}
             for key in match_last.keys():
@@ -707,10 +702,7 @@ class SupabaseClient:
                 
                 home, away = key.split('|', 1) if '|' in key else (key, '')
                 
-                # Get all history for this match (ordered by scraped_at asc)
-                full_history = match_all_history.get(key, [])
-                
-                match_data = {'home': home, 'away': away, 'full_history': full_history, 'values': {}}
+                match_data = {'home': home, 'away': away, 'values': {}}
                 for sel in sels:
                     old_val = self._parse_numeric(first_row.get(sel, ''))
                     new_val = self._parse_numeric(last_row.get(sel, ''))
@@ -725,7 +717,7 @@ class SupabaseClient:
                 result[key] = match_data
             
             elapsed = time.time() - start_time
-            print(f"[Drop] Got {len(result)} matches for {market} in {elapsed:.1f}s (bulk query)")
+            print(f"[Drop] Got {len(result)} matches for {market} in {elapsed:.1f}s (optimized)")
             return result
             
         except Exception as e:

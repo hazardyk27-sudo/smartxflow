@@ -893,7 +893,7 @@ def export_png():
 odds_trend_cache = {
     'data': {},  # market -> data
     'timestamp': {},  # market -> timestamp
-    'ttl': 300  # 5 dakika cache
+    'ttl': 600  # 10 dakika cache (optimized)
 }
 
 @app.route('/api/odds-trend/<market>')
