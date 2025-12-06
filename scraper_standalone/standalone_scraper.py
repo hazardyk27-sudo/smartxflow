@@ -196,10 +196,10 @@ class SupabaseWriter:
             return False
     
     def delete_all_rows(self, table: str) -> bool:
-        """DELETE all rows using proper filter syntax"""
+        """DELETE all rows - id > 0 filtresi ile"""
         try:
             headers = self._headers()
-            url = f"{self._rest_url(table)}?id=neq."
+            url = f"{self._rest_url(table)}?id=gt.0"
             
             resp = requests.delete(
                 url,
@@ -208,7 +208,7 @@ class SupabaseWriter:
                 verify=SSL_VERIFY
             )
             if resp.status_code not in [200, 204]:
-                log(f"  Delete status: {resp.status_code} - {resp.text[:100]}")
+                log(f"  [DELETE ERR] {table}: {resp.status_code} - {resp.text}")
             return resp.status_code in [200, 204]
         except Exception as e:
             log(f"  Tablo temizleme hatasi: {e}")
