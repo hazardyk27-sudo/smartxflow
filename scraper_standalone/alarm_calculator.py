@@ -264,6 +264,75 @@ class AlarmCalculator:
         """Load all alarm configs from Supabase alarm_settings table"""
         self._load_configs_from_db()
     
+    def save_config_to_db(self, alarm_type: str, config: Dict, enabled: bool = True) -> bool:
+        """Save alarm config to Supabase alarm_settings table
+        Admin Panel → Supabase yazma fonksiyonu
+        
+        Args:
+            alarm_type: Alarm türü (sharp, insider, bigmoney, volumeshock, dropping, publicmove, volumeleader)
+            config: Config dict (tüm ayarlar)
+            enabled: Alarm aktif mi
+        
+        Returns:
+            True if successful
+        """
+        try:
+            payload = {
+                'alarm_type': alarm_type,
+                'enabled': enabled,
+                'config': config,
+                'updated_at': now_turkey_iso()
+            }
+            
+            # UPSERT with on_conflict
+            url = f"{self._rest_url('alarm_settings')}?on_conflict=alarm_type"
+            headers = self._headers()
+            headers['Prefer'] = 'resolution=merge-duplicates'
+            
+            if hasattr(httpx, 'post'):
+                resp = httpx.post(url, headers=headers, json=[payload], timeout=30)
+            else:
+                import requests as req
+                resp = req.post(url, headers=headers, json=[payload], timeout=30)
+            
+            if resp.status_code in [200, 201]:
+                log(f"[CONFIG SAVE] {alarm_type}: Supabase'e kaydedildi")
+                # Update local cache
+                self.configs[alarm_type] = {'enabled': enabled, **config}
+                return True
+            else:
+                log(f"[CONFIG SAVE ERROR] {alarm_type}: HTTP {resp.status_code}")
+                log(f"[CONFIG SAVE ERROR] Response: {resp.text[:500]}")
+                return False
+        except Exception as e:
+            log(f"[CONFIG SAVE ERROR] {alarm_type}: {e}")
+            return False
+    
+    def save_all_configs_to_db(self, configs: Dict) -> int:
+        """Save all alarm configs to Supabase
+        
+        Args:
+            configs: Dict of {alarm_type: {config...}}
+        
+        Returns:
+            Number of successfully saved configs
+        """
+        success_count = 0
+        for alarm_type, config_data in configs.items():
+            if isinstance(config_data, dict):
+                # enabled'ı al ama orijinal dict'i değiştirme
+                enabled = config_data.get('enabled', True)
+                # enabled hariç diğer key'leri config olarak gönder
+                config_without_enabled = {k: v for k, v in config_data.items() if k != 'enabled'}
+            else:
+                enabled = True
+                config_without_enabled = {}
+            
+            if self.save_config_to_db(alarm_type, config_without_enabled, enabled):
+                success_count += 1
+        log(f"[CONFIG SAVE] {success_count}/{len(configs)} config kaydedildi")
+        return success_count
+    
     def refresh_configs(self):
         """Refresh configs from DB before each calculation cycle - LIVE RELOAD"""
         log("Refreshing alarm configs from Supabase...")
@@ -550,11 +619,33 @@ class AlarmCalculator:
             log(f"[Sharp] CONFIG EKSIK KEY'LER: {missing_keys} - Supabase'de tamamlayın!")
             return 0
         
-        # CRITICAL: parse_float ile float'a çevir - FALLBACK OLMADAN
+        # CRITICAL: parse_float ile float'a çevir - key varlığı kontrol + fallback + uyarı log
         min_score = parse_float(config.get('min_sharp_score'))
-        vol_mult = parse_float(config.get('volume_multiplier')) or 1.0
-        odds_mult_default = parse_float(config.get('odds_multiplier')) or 1.0
-        share_mult = parse_float(config.get('share_multiplier')) or 1.0
+        
+        if 'volume_multiplier' not in config:
+            log(f"[Sharp] UYARI: volume_multiplier config'de yok! Default 1.0 kullanılıyor.")
+            vol_mult = 1.0
+        else:
+            vol_mult = parse_float(config.get('volume_multiplier'))
+            if vol_mult == 0:
+                vol_mult = 1.0  # 0 çarpan mantıksız, 1.0 kullan
+        
+        if 'odds_multiplier' not in config:
+            log(f"[Sharp] UYARI: odds_multiplier config'de yok! Default 1.0 kullanılıyor.")
+            odds_mult_default = 1.0
+        else:
+            odds_mult_default = parse_float(config.get('odds_multiplier'))
+            if odds_mult_default == 0:
+                odds_mult_default = 1.0
+        
+        if 'share_multiplier' not in config:
+            log(f"[Sharp] UYARI: share_multiplier config'de yok! Default 1.0 kullanılıyor.")
+            share_mult = 1.0
+        else:
+            share_mult = parse_float(config.get('share_multiplier'))
+            if share_mult == 0:
+                share_mult = 1.0
+        
         min_amount_change = parse_float(config.get('min_amount_change')) or 0
         
         # Odds Range Multipliers - oran aralığına göre farklı çarpanlar
@@ -566,9 +657,14 @@ class AlarmCalculator:
             if range_min > 0 or range_max < 99:
                 odds_ranges.append({'min': range_min, 'max': range_max, 'mult': range_mult})
         
-        log(f"[Sharp Config] min_score: {min_score}, vol_mult: {vol_mult}, min_amount_change: {min_amount_change}")
+        log(f"[Sharp Config] HESAPLAMAYLA KULLANILAN DEĞERLER:")
+        log(f"  - min_sharp_score: {min_score}")
+        log(f"  - volume_multiplier: {vol_mult}")
+        log(f"  - odds_multiplier: {odds_mult_default}")
+        log(f"  - share_multiplier: {share_mult}")
+        log(f"  - min_amount_change: {min_amount_change}")
         if odds_ranges:
-            log(f"[Sharp Config] Odds ranges: {len(odds_ranges)} defined")
+            log(f"  - Odds ranges: {len(odds_ranges)} defined")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -736,8 +832,19 @@ class AlarmCalculator:
         oran_dusus_esigi = parse_float(config.get('oran_dusus_esigi'))
         max_para = parse_float(config.get('max_para'))
         max_odds = parse_float(config.get('max_odds_esigi'))
-        n_snapshots = int(parse_float(config.get('sure_dakika')) or 7)  # Etraf snapshot SAYISI (zaman değil!)
-        log(f"[Insider Config] hacim_sok_esigi: {hacim_sok_esigi}, oran_dusus: {oran_dusus_esigi}%, max_para: {max_para}, max_odds: {max_odds}, N_snapshots: {n_snapshots}")
+        if 'sure_dakika' not in config:
+            log(f"[Insider] UYARI: sure_dakika config'de yok! Default 7 kullanılıyor.")
+            n_snapshots = 7
+        else:
+            n_snapshots_raw = parse_float(config.get('sure_dakika'))
+            n_snapshots = int(n_snapshots_raw) if n_snapshots_raw > 0 else 7
+        
+        log(f"[Insider Config] HESAPLAMAYLA KULLANILAN DEĞERLER:")
+        log(f"  - hacim_sok_esigi: {hacim_sok_esigi}")
+        log(f"  - oran_dusus_esigi: {oran_dusus_esigi}%")
+        log(f"  - max_para: {max_para}")
+        log(f"  - max_odds_esigi: {max_odds}")
+        log(f"  - sure_dakika (N_snapshots): {n_snapshots}")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']

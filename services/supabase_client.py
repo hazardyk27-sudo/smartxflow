@@ -680,22 +680,35 @@ class SupabaseClient:
             return None
     
     def update_alarm_setting(self, alarm_type: str, enabled: bool, config: Dict) -> bool:
-        """Update or create an alarm setting (upsert)"""
+        """Update or create an alarm setting (upsert) - Admin Panel → Supabase yazma
+        
+        Bu fonksiyon Admin panelden değiştirilen ayarları Supabase'e yazar.
+        AlarmCalculator sonraki hesaplamada bu ayarları okur.
+        """
         if not self.is_available:
+            print(f"[CONFIG SAVE] Supabase not available!")
             return False
         try:
-            data = {
+            data = [{
                 'alarm_type': alarm_type,
                 'enabled': enabled,
                 'config': config,
                 'updated_at': datetime.now().isoformat()
-            }
+            }]
             headers = self._headers()
             headers['Prefer'] = 'resolution=merge-duplicates,return=representation'
-            resp = httpx.post(self._rest_url('alarm_settings'), headers=headers, json=data, timeout=10)
-            return resp.status_code in [200, 201]
+            
+            url = f"{self._rest_url('alarm_settings')}?on_conflict=alarm_type"
+            resp = httpx.post(url, headers=headers, json=data, timeout=10)
+            
+            if resp.status_code in [200, 201]:
+                print(f"[CONFIG SAVE] {alarm_type}: Supabase'e kaydedildi (enabled={enabled})")
+                return True
+            else:
+                print(f"[CONFIG SAVE ERROR] {alarm_type}: HTTP {resp.status_code} - {resp.text[:200]}")
+                return False
         except Exception as e:
-            print(f"Error update_alarm_setting: {e}")
+            print(f"[CONFIG SAVE ERROR] {alarm_type}: {e}")
             return False
     
     def delete_alarm_setting(self, alarm_type: str) -> bool:
