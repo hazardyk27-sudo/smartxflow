@@ -567,6 +567,13 @@ class AlarmCalculator:
         min_amount_change = parse_float(config.get('min_amount_change', 0))
         log(f"[Sharp Config] min_score: {min_score}, vol_mult: {vol_mult}, min_amount_change: {min_amount_change}")
         
+        # Her hesaplamada önce tabloyu temizle
+        try:
+            self._delete('sharp_alarms', '')
+            log("[Sharp] Table cleared before recalculation")
+        except Exception as e:
+            log(f"[Sharp] Table clear failed: {e}")
+        
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
         market_names = {'moneyway_1x2': '1X2', 'moneyway_ou25': 'O/U 2.5', 'moneyway_btts': 'BTTS'}
@@ -893,6 +900,13 @@ class AlarmCalculator:
         limit = parse_float(config.get('big_money_limit', 15000))
         log(f"[BigMoney Config] limit: {limit}")
         
+        # Her hesaplamada önce tabloyu temizle
+        try:
+            self._delete('bigmoney_alarms', '')
+            log("[BigMoney] Table cleared before recalculation")
+        except Exception as e:
+            log(f"[BigMoney] Table clear failed: {e}")
+        
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
         market_names = {'moneyway_1x2': '1X2', 'moneyway_ou25': 'O/U 2.5', 'moneyway_btts': 'BTTS'}
@@ -994,6 +1008,13 @@ class AlarmCalculator:
         min_incoming = parse_float(config.get('min_son_snapshot_para', 500))
         log(f"[VolumeShock Config] shock_mult: {shock_mult}, min_hours: {min_hours}, min_incoming: {min_incoming}")
         
+        # Her hesaplamada önce tabloyu temizle
+        try:
+            self._delete('volumeshock_alarms', '')
+            log("[VolumeShock] Table cleared before recalculation")
+        except Exception as e:
+            log(f"[VolumeShock] Table clear failed: {e}")
+        
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
         market_names = {'moneyway_1x2': '1X2', 'moneyway_ou25': 'O/U 2.5', 'moneyway_btts': 'BTTS'}
@@ -1094,6 +1115,13 @@ class AlarmCalculator:
         l3_min = parse_float(config.get('min_drop_l3', 15))
         log(f"[Dropping Config] L1: {l1_min}-{l1_max}%, L2: {l2_min}-{l2_max}%, L3: {l3_min}%+")
         
+        # Her hesaplamada önce tabloyu temizle
+        try:
+            self._delete('dropping_alarms', '')
+            log("[Dropping] Table cleared before recalculation")
+        except Exception as e:
+            log(f"[Dropping] Table clear failed: {e}")
+        
         alarms = []
         markets = ['dropping_1x2', 'dropping_ou25', 'dropping_btts']
         market_names = {'dropping_1x2': '1X2', 'dropping_ou25': 'O/U 2.5', 'dropping_btts': 'BTTS'}
@@ -1187,6 +1215,13 @@ class AlarmCalculator:
         min_score = parse_float(config.get('min_sharp_score', 20))
         min_amount_change = parse_float(config.get('min_amount_change', 0))
         log(f"[PublicMove Config] min_score: {min_score}, min_amount_change: {min_amount_change}")
+        
+        # Her hesaplamada önce tabloyu temizle
+        try:
+            self._delete('publicmove_alarms', '')
+            log("[PublicMove] Table cleared before recalculation")
+        except Exception as e:
+            log(f"[PublicMove] Table clear failed: {e}")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -1334,6 +1369,13 @@ class AlarmCalculator:
         # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
         threshold = parse_float(config.get('leader_threshold', 50))
         log(f"[VolumeLeader Config] threshold: {threshold}%")
+        
+        # Her hesaplamada önce tabloyu temizle
+        try:
+            self._delete('volume_leader_alarms', '')
+            log("[VolumeLeader] Table cleared before recalculation")
+        except Exception as e:
+            log(f"[VolumeLeader] Table clear failed: {e}")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
