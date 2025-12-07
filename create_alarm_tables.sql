@@ -1,6 +1,6 @@
 -- SmartXFlow Alarm Tabloları V3.0 - TEMİZ BAŞLANGIÇ
 -- Supabase Dashboard > SQL Editor'da çalıştırın
--- TÜM ALAN ADLARI FIELD_NAMING_STANDARD.md'YE GÖRE
+-- TÜM ALAN ADLARI alarm_calculator.py İLE UYUMLU
 
 -- =====================================================
 -- ADIM 1: ESKİ TABLOLARI SİL (TEMİZ BAŞLANGIÇ)
@@ -14,7 +14,7 @@ DROP TABLE IF EXISTS publicmove_alarms CASCADE;
 DROP TABLE IF EXISTS volume_leader_alarms CASCADE;
 
 -- =====================================================
--- ADIM 2: YENİ TABLOLAR (CANONICAL İSİMLER)
+-- ADIM 2: YENİ TABLOLAR (alarm_calculator.py İLE BİREBİR AYNI)
 -- =====================================================
 
 -- 1. SHARP ALARMS
@@ -30,8 +30,6 @@ CREATE TABLE sharp_alarms (
     odds_contrib NUMERIC,
     share_contrib NUMERIC,
     incoming_money NUMERIC,
-    previous_amount NUMERIC,
-    current_amount NUMERIC,
     opening_odds NUMERIC,
     previous_odds NUMERIC,
     current_odds NUMERIC,
@@ -39,14 +37,13 @@ CREATE TABLE sharp_alarms (
     previous_share NUMERIC,
     current_share NUMERIC,
     share_change NUMERIC,
-    volume_shock NUMERIC,
     volume_shock_multiplier NUMERIC,
-    avg_previous NUMERIC,
+    weights JSONB,
     match_date TEXT,
     trigger_at TEXT,
     created_at TEXT DEFAULT NOW()::TEXT,
     alarm_type TEXT DEFAULT 'sharp',
-    UNIQUE(home, away, market, selection, trigger_at)
+    UNIQUE(home, away, market, selection)
 );
 
 -- 2. INSIDER ALARMS
@@ -58,19 +55,20 @@ CREATE TABLE insider_alarms (
     market TEXT NOT NULL,
     selection TEXT NOT NULL,
     odds_drop_pct NUMERIC,
+    max_odds_drop NUMERIC,
     incoming_money NUMERIC,
     volume_shock NUMERIC,
-    avg_volume_shock NUMERIC,
     opening_odds NUMERIC,
     current_odds NUMERIC,
+    drop_moment_index INTEGER,
+    drop_moment TEXT,
     surrounding_snapshots JSONB,
     snapshot_count INTEGER,
-    drop_moment TEXT,
     match_date TEXT,
     trigger_at TEXT,
     created_at TEXT DEFAULT NOW()::TEXT,
     alarm_type TEXT DEFAULT 'insider',
-    UNIQUE(home, away, market, selection, trigger_at)
+    UNIQUE(home, away, market, selection)
 );
 
 -- 3. BIGMONEY ALARMS
@@ -104,12 +102,11 @@ CREATE TABLE volumeshock_alarms (
     volume_shock_multiplier NUMERIC,
     incoming_money NUMERIC,
     avg_previous NUMERIC,
-    hours_to_kickoff NUMERIC,
     match_date TEXT,
     trigger_at TEXT,
     created_at TEXT DEFAULT NOW()::TEXT,
     alarm_type TEXT DEFAULT 'volumeshock',
-    UNIQUE(home, away, market, selection, trigger_at)
+    UNIQUE(home, away, market, selection)
 );
 
 -- 5. DROPPING ALARMS
@@ -128,7 +125,7 @@ CREATE TABLE dropping_alarms (
     trigger_at TEXT,
     created_at TEXT DEFAULT NOW()::TEXT,
     alarm_type TEXT DEFAULT 'dropping',
-    UNIQUE(home, away, market, selection, trigger_at)
+    UNIQUE(home, away, market, selection)
 );
 
 -- 6. PUBLICMOVE ALARMS
@@ -149,7 +146,7 @@ CREATE TABLE publicmove_alarms (
     trigger_at TEXT,
     created_at TEXT DEFAULT NOW()::TEXT,
     alarm_type TEXT DEFAULT 'publicmove',
-    UNIQUE(home, away, market, selection, trigger_at)
+    UNIQUE(home, away, market, selection)
 );
 
 -- 7. VOLUME LEADER ALARMS
@@ -168,7 +165,7 @@ CREATE TABLE volume_leader_alarms (
     trigger_at TEXT,
     created_at TEXT DEFAULT NOW()::TEXT,
     alarm_type TEXT DEFAULT 'volumeleader',
-    UNIQUE(home, away, market, old_leader, new_leader, trigger_at)
+    UNIQUE(home, away, market, old_leader, new_leader)
 );
 
 -- =====================================================
@@ -198,33 +195,26 @@ CREATE POLICY "Allow all for volume_leader_alarms" ON volume_leader_alarms FOR A
 -- =====================================================
 CREATE INDEX idx_sharp_match ON sharp_alarms(home, away);
 CREATE INDEX idx_sharp_created ON sharp_alarms(created_at);
-CREATE INDEX idx_sharp_trigger ON sharp_alarms(trigger_at);
 
 CREATE INDEX idx_insider_match ON insider_alarms(home, away);
 CREATE INDEX idx_insider_created ON insider_alarms(created_at);
-CREATE INDEX idx_insider_trigger ON insider_alarms(trigger_at);
 
 CREATE INDEX idx_bigmoney_match ON bigmoney_alarms(home, away);
 CREATE INDEX idx_bigmoney_created ON bigmoney_alarms(created_at);
-CREATE INDEX idx_bigmoney_trigger ON bigmoney_alarms(trigger_at);
 
 CREATE INDEX idx_volumeshock_match ON volumeshock_alarms(home, away);
 CREATE INDEX idx_volumeshock_created ON volumeshock_alarms(created_at);
-CREATE INDEX idx_volumeshock_trigger ON volumeshock_alarms(trigger_at);
 
 CREATE INDEX idx_dropping_match ON dropping_alarms(home, away);
 CREATE INDEX idx_dropping_created ON dropping_alarms(created_at);
-CREATE INDEX idx_dropping_trigger ON dropping_alarms(trigger_at);
 
 CREATE INDEX idx_publicmove_match ON publicmove_alarms(home, away);
 CREATE INDEX idx_publicmove_created ON publicmove_alarms(created_at);
-CREATE INDEX idx_publicmove_trigger ON publicmove_alarms(trigger_at);
 
 CREATE INDEX idx_volumeleader_match ON volume_leader_alarms(home, away);
 CREATE INDEX idx_volumeleader_created ON volume_leader_alarms(created_at);
-CREATE INDEX idx_volumeleader_trigger ON volume_leader_alarms(trigger_at);
 
 -- =====================================================
 -- TAMAMLANDI
 -- =====================================================
-SELECT 'Tüm alarm tabloları başarıyla oluşturuldu! (V3.0 - Canonical İsimler)' as result;
+SELECT 'Tüm alarm tabloları başarıyla oluşturuldu! (V3.0 - alarm_calculator.py ile uyumlu)' as result;
