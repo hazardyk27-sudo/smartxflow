@@ -1625,15 +1625,19 @@ class AlarmCalculator:
                 key = f"{e.get('home')}_{e.get('away')}_{e.get('market')}_{e.get('old_leader')}_{e.get('new_leader')}"
                 existing_keys.add(key)
             
-            new_alarms = []
+            # BATCH İÇİ TEKİLLEŞTİRME - Aynı key'e sahip alarm varsa son olanı tut
+            unique_alarms = {}
             for alarm in alarms:
                 key = f"{alarm['home']}_{alarm['away']}_{alarm['market']}_{alarm['old_leader']}_{alarm['new_leader']}"
                 if key not in existing_keys:
-                    new_alarms.append(alarm)
+                    # Aynı key varsa üzerine yaz (son/en güncel olanı tutar)
+                    unique_alarms[key] = alarm
+            
+            new_alarms = list(unique_alarms.values())
             
             if new_alarms:
                 self._post('volume_leader_alarms', new_alarms, on_conflict='home,away,market,old_leader,new_leader')
-                log(f"VolumeLeader: {len(new_alarms)} new alarms added")
+                log(f"VolumeLeader: {len(new_alarms)} new alarms added (tekilleştirildi)")
             else:
                 log("VolumeLeader: 0 yeni alarm (mevcut alarmlar)")
         else:
