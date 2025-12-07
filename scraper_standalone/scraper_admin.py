@@ -3,7 +3,7 @@ SmartXFlow Admin Panel v1.14 - Web Admin + Scraper + Console
 Web admin paneli (pywebview) + Arka planda scraper + Canlı konsol
 İlk açılışta config yoksa setup formu açılır ve config.json oluşturulur.
 Scraper Konsol: Canlı log görüntüleme, SSE stream, ayrı pencere desteği.
-FIX: History fetch son 6 saat (limit asimi sorunu cozuldu - BigMoney alarmlari artik dogru calisiyor)
+FIX: History fetch TUM verileri aliyor (zaman siniri YOK) - D ve D-1 maclarinin tam history'si
 """
 import sys
 import os
