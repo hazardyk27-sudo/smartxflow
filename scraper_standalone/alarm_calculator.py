@@ -518,24 +518,32 @@ class AlarmCalculator:
     
     def calculate_sharp_alarms(self) -> int:
         """Calculate Sharp Move alarms"""
-        config = self.configs.get('sharp')
-        if not config:
-            log("[Sharp] CONFIG YOK - Supabase'de sharp ayarlarını kaydedin!")
-            return 0
-        # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
-        min_score = parse_float(config.get('min_sharp_score', 0))
-        vol_mult = parse_float(config.get('volume_multiplier', 1.0))
-        odds_mult = parse_float(config.get('odds_multiplier', 1.0))
-        share_mult = parse_float(config.get('share_multiplier', 1.0))
-        min_amount_change = parse_float(config.get('min_amount_change', 0))
-        log(f"[Sharp Config] min_score: {min_score}, vol_mult: {vol_mult}, min_amount_change: {min_amount_change}")
-        
-        # Her hesaplamada önce tabloyu temizle
+        # Her hesaplamada ÖNCE tabloyu temizle - config kontrolünden ÖNCE
         try:
             self._delete('sharp_alarms', '')
             log("[Sharp] Table cleared before recalculation")
         except Exception as e:
             log(f"[Sharp] Table clear failed: {e}")
+        
+        config = self.configs.get('sharp')
+        if not config:
+            log("[Sharp] CONFIG YOK - Supabase'de sharp ayarlarını kaydedin!")
+            return 0
+        
+        # Config validation - kritik key'ler mevcut olmalı
+        required_keys = ['min_sharp_score', 'min_volume_1x2', 'min_volume_ou25', 'min_volume_btts']
+        missing_keys = [k for k in required_keys if config.get(k) is None]
+        if missing_keys:
+            log(f"[Sharp] CONFIG EKSIK KEY'LER: {missing_keys} - Supabase'de tamamlayın!")
+            return 0
+        
+        # CRITICAL: parse_float ile float'a çevir - FALLBACK OLMADAN
+        min_score = parse_float(config.get('min_sharp_score'))
+        vol_mult = parse_float(config.get('volume_multiplier')) or 1.0
+        odds_mult = parse_float(config.get('odds_multiplier')) or 1.0
+        share_mult = parse_float(config.get('share_multiplier')) or 1.0
+        min_amount_change = parse_float(config.get('min_amount_change')) or 0
+        log(f"[Sharp Config] min_score: {min_score}, vol_mult: {vol_mult}, min_amount_change: {min_amount_change}")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -543,19 +551,19 @@ class AlarmCalculator:
         
         for market in markets:
             if '1x2' in market:
-                min_volume = parse_float(config.get('min_volume_1x2', 3000))
+                min_volume = parse_float(config.get('min_volume_1x2'))
                 selections = ['1', 'X', '2']
                 odds_keys = ['odds1', 'oddsx', 'odds2']
                 amount_keys = ['amt1', 'amtx', 'amt2']
                 pct_keys = ['pct1', 'pctx', 'pct2']
             elif 'ou25' in market:
-                min_volume = parse_float(config.get('min_volume_ou25', 1000))
+                min_volume = parse_float(config.get('min_volume_ou25'))
                 selections = ['Over', 'Under']
                 odds_keys = ['over', 'under']
                 amount_keys = ['amtover', 'amtunder']
                 pct_keys = ['pctover', 'pctunder']
             else:
-                min_volume = parse_float(config.get('min_volume_btts', 500))
+                min_volume = parse_float(config.get('min_volume_btts'))
                 selections = ['Yes', 'No']
                 odds_keys = ['oddsyes', 'oddsno']
                 amount_keys = ['amtyes', 'amtno']
@@ -670,28 +678,32 @@ class AlarmCalculator:
     
     def calculate_insider_alarms(self) -> int:
         """Calculate Insider Info alarms"""
+        # Her hesaplamada ÖNCE tabloyu temizle - config kontrolünden ÖNCE
+        try:
+            self._delete('insider_alarms', '')
+            log("[Insider] Table cleared before recalculation")
+        except Exception as e:
+            log(f"[Insider] Table clear failed: {e}")
+        
         config = self.configs.get('insider')
         if not config:
             log("[Insider] CONFIG YOK - Supabase'de insider ayarlarını kaydedin!")
             return 0
-        # DEBUG: Raw config from Supabase
-        log(f"[INSIDER RAW CONFIG] {config}")
-        log(f"[INSIDER RAW] oran_dusus_esigi raw value = '{config.get('oran_dusus_esigi')}' (type={type(config.get('oran_dusus_esigi')).__name__})")
         
-        # Supabase'deki Türkçe field isimlerini kullan, yoksa eski İngilizce isimlere bak
-        # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
-        hacim_sok_esigi = parse_float(config.get('hacim_sok_esigi', config.get('insider_hacim_sok_esigi', 2)))
-        oran_dusus_esigi = parse_float(config.get('oran_dusus_esigi', config.get('insider_oran_dusus_esigi', 3)))
-        max_para = parse_float(config.get('max_para', config.get('insider_max_para', 5000)))
-        max_odds = parse_float(config.get('max_odds_esigi', config.get('insider_max_odds_esigi', 10.0)))
-        log(f"[Insider Config PARSED] hacim_sok: {hacim_sok_esigi}, oran_dusus: {oran_dusus_esigi}, max_para: {max_para}, max_odds: {max_odds}")
+        # Config validation - TÜM gerekli key'ler mevcut olmalı
+        required_keys = ['hacim_sok_esigi', 'oran_dusus_esigi', 'max_para', 'max_odds_esigi', 'sure_dakika']
+        missing_keys = [k for k in required_keys if config.get(k) is None]
+        if missing_keys:
+            log(f"[Insider] CONFIG EKSIK KEY'LER: {missing_keys} - Supabase'de tamamlayın!")
+            return 0
         
-        # Her hesaplamada önce tabloyu temizle - eski/geçersiz alarmları kaldır
-        try:
-            self._delete('insider_alarms', '')  # Tüm insider alarmları sil
-            log("[Insider] Table cleared before recalculation")
-        except Exception as e:
-            log(f"[Insider] Table clear failed: {e}")
+        # CRITICAL: parse_float ile float'a çevir - FALLBACK OLMADAN
+        hacim_sok_esigi = parse_float(config.get('hacim_sok_esigi'))
+        oran_dusus_esigi = parse_float(config.get('oran_dusus_esigi'))
+        max_para = parse_float(config.get('max_para'))
+        max_odds = parse_float(config.get('max_odds_esigi'))
+        sure_dakika = parse_float(config.get('sure_dakika')) or 30  # Time window için minimum 30
+        log(f"[Insider Config] hacim_sok: {hacim_sok_esigi}, oran_dusus: {oran_dusus_esigi}, max_para: {max_para}, max_odds: {max_odds}, sure: {sure_dakika}dk")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -748,27 +760,58 @@ class AlarmCalculator:
                     
                     oran_dusus_pct = ((opening_odds - current_odds) / opening_odds) * 100
                     
-                    # DEBUG: Log threshold comparison
-                    log(f"  [INSIDER DEBUG] {home} vs {away} | {selection} | drop={oran_dusus_pct:.2f}% | threshold={oran_dusus_esigi} (type={type(oran_dusus_esigi).__name__}) | pass={oran_dusus_pct >= oran_dusus_esigi}")
-                    
                     if oran_dusus_pct < oran_dusus_esigi:
+                        continue
+                    
+                    # SADECE son sure_dakika içindeki snapshot'ları kullan - ESKİ VERİLERİ ATLA
+                    now = now_turkey()
+                    cutoff_time = now - timedelta(minutes=sure_dakika)
+                    
+                    # History'yi filtrele - sadece cutoff_time'dan sonraki snapshot'lar
+                    recent_history = []
+                    for snap in history:
+                        scraped_at = snap.get('scraped_at', '')
+                        if scraped_at:
+                            try:
+                                # ISO format parse et
+                                if '+' in scraped_at:
+                                    snap_time = datetime.fromisoformat(scraped_at.replace('Z', '+00:00'))
+                                else:
+                                    snap_time = datetime.fromisoformat(scraped_at)
+                                    if TURKEY_TZ:
+                                        snap_time = TURKEY_TZ.localize(snap_time)
+                                
+                                # Timezone-aware karşılaştırma
+                                if snap_time.tzinfo:
+                                    if cutoff_time.tzinfo is None and TURKEY_TZ:
+                                        cutoff_time = TURKEY_TZ.localize(cutoff_time)
+                                
+                                if snap_time >= cutoff_time:
+                                    recent_history.append(snap)
+                            except:
+                                recent_history.append(snap)  # Parse edilemezse dahil et
+                        else:
+                            recent_history.append(snap)
+                    
+                    # Yeterli recent snapshot yoksa atla
+                    if len(recent_history) < 2:
                         continue
                     
                     total_incoming = 0
                     max_hacim_sok = 0
-                    trigger_snap = latest
-                    trigger_snap_index = len(history) - 1
+                    trigger_snap = recent_history[-1]
+                    trigger_snap_index = len(recent_history) - 1
                     all_hacim_soks = []
                     
-                    for i in range(1, len(history)):
-                        curr_amt = parse_volume(history[i].get(amount_key, 0))
-                        prev_amt = parse_volume(history[i-1].get(amount_key, 0))
+                    for i in range(1, len(recent_history)):
+                        curr_amt = parse_volume(recent_history[i].get(amount_key, 0))
+                        prev_amt = parse_volume(recent_history[i-1].get(amount_key, 0))
                         incoming = curr_amt - prev_amt
                         
                         if incoming > 0:
                             total_incoming += incoming
                             
-                            prev_amts = [parse_volume(history[j].get(amount_key, 0)) 
+                            prev_amts = [parse_volume(recent_history[j].get(amount_key, 0)) 
                                         for j in range(max(0, i-5), i)]
                             avg_prev = sum(prev_amts) / len(prev_amts) if prev_amts else 1
                             hacim_sok = incoming / avg_prev if avg_prev > 0 else 0
@@ -776,8 +819,13 @@ class AlarmCalculator:
                             
                             if hacim_sok > max_hacim_sok:
                                 max_hacim_sok = hacim_sok
-                                trigger_snap = history[i]
+                                trigger_snap = recent_history[i]
                                 trigger_snap_index = i
+                    
+                    # KRITIK: gelen_para = 0 ise alarm tetikleme!
+                    # Insider = "para girmeden oran düşüşü" ama en az BİRAZ para hareketi olmalı
+                    if total_incoming <= 0:
+                        continue
                     
                     if total_incoming >= max_para:
                         continue
@@ -788,18 +836,18 @@ class AlarmCalculator:
                     trigger_at = trigger_snap.get('scraped_at', now_turkey_iso())
                     
                     start_idx = max(0, trigger_snap_index - 3)
-                    end_idx = min(len(history), trigger_snap_index + 4)
+                    end_idx = min(len(recent_history), trigger_snap_index + 4)
                     surrounding = []
                     surrounding_hacim_soks = []
                     surrounding_incomings = []
                     
                     for si in range(start_idx, end_idx):
-                        snap = history[si]
+                        snap = recent_history[si]
                         snap_amt = parse_volume(snap.get(amount_key, 0))
-                        prev_snap_amt = parse_volume(history[si-1].get(amount_key, 0)) if si > 0 else 0
+                        prev_snap_amt = parse_volume(recent_history[si-1].get(amount_key, 0)) if si > 0 else 0
                         snap_incoming = max(0, snap_amt - prev_snap_amt)
                         
-                        prev_window = [parse_volume(history[j].get(amount_key, 0)) for j in range(max(0, si-5), si)]
+                        prev_window = [parse_volume(recent_history[j].get(amount_key, 0)) for j in range(max(0, si-5), si)]
                         avg_prev_window = sum(prev_window) / len(prev_window) if prev_window else 1
                         snap_hacim_sok = snap_incoming / avg_prev_window if avg_prev_window > 0 and snap_incoming > 0 else 0
                         
@@ -841,7 +889,7 @@ class AlarmCalculator:
                         'drop_moment': trigger_at,
                         'surrounding_snapshots': surrounding,
                         'surrounding_count': len(surrounding),
-                        'snapshot_count': len(history),
+                        'snapshot_count': len(recent_history),
                         'match_date': match.get('date', ''),
                         'event_time': trigger_at,
                         'trigger_at': trigger_at,
@@ -861,20 +909,29 @@ class AlarmCalculator:
     
     def calculate_bigmoney_alarms(self) -> int:
         """Calculate Big Money / Huge Money alarms"""
-        config = self.configs.get('bigmoney')
-        if not config:
-            log("[BigMoney] CONFIG YOK - Supabase'de bigmoney ayarlarını kaydedin!")
-            return 0
-        # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
-        limit = parse_float(config.get('big_money_limit', 15000))
-        log(f"[BigMoney Config] limit: {limit}")
-        
-        # Her hesaplamada önce tabloyu temizle
+        # Her hesaplamada ÖNCE tabloyu temizle - config kontrolünden ÖNCE
         try:
             self._delete('bigmoney_alarms', '')
             log("[BigMoney] Table cleared before recalculation")
         except Exception as e:
             log(f"[BigMoney] Table clear failed: {e}")
+        
+        config = self.configs.get('bigmoney')
+        if not config:
+            log("[BigMoney] CONFIG YOK - Supabase'de bigmoney ayarlarını kaydedin!")
+            return 0
+        
+        # Config validation - big_money_limit zorunlu
+        if config.get('big_money_limit') is None:
+            log("[BigMoney] CONFIG EKSIK: big_money_limit key'i yok!")
+            return 0
+        
+        # CRITICAL: parse_float ile float'a çevir - FALLBACK OLMADAN
+        limit = parse_float(config.get('big_money_limit'))
+        if limit <= 0:
+            log("[BigMoney] CONFIG HATALI: big_money_limit 0 veya negatif!")
+            return 0
+        log(f"[BigMoney Config] limit: {limit}")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -970,22 +1027,30 @@ class AlarmCalculator:
     
     def calculate_volumeshock_alarms(self) -> int:
         """Calculate Volume Shock alarms"""
-        config = self.configs.get('volumeshock')
-        if not config:
-            log("[VolumeShock] CONFIG YOK - Supabase'de volumeshock ayarlarını kaydedin!")
-            return 0
-        # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
-        shock_mult = parse_float(config.get('hacim_soku_min_esik', config.get('volume_shock_multiplier', 3.0)))
-        min_hours = parse_float(config.get('hacim_soku_min_saat', config.get('min_hours_to_kickoff', 2)))
-        min_incoming = parse_float(config.get('min_son_snapshot_para', 500))
-        log(f"[VolumeShock Config] shock_mult: {shock_mult}, min_hours: {min_hours}, min_incoming: {min_incoming}")
-        
-        # Her hesaplamada önce tabloyu temizle
+        # Her hesaplamada ÖNCE tabloyu temizle - config kontrolünden ÖNCE
         try:
             self._delete('volumeshock_alarms', '')
             log("[VolumeShock] Table cleared before recalculation")
         except Exception as e:
             log(f"[VolumeShock] Table clear failed: {e}")
+        
+        config = self.configs.get('volumeshock')
+        if not config:
+            log("[VolumeShock] CONFIG YOK - Supabase'de volumeshock ayarlarını kaydedin!")
+            return 0
+        
+        # Config validation
+        required_keys = ['hacim_soku_min_esik', 'hacim_soku_min_saat', 'min_son_snapshot_para']
+        missing_keys = [k for k in required_keys if config.get(k) is None]
+        if missing_keys:
+            log(f"[VolumeShock] CONFIG EKSIK KEY'LER: {missing_keys} - Supabase'de tamamlayın!")
+            return 0
+        
+        # CRITICAL: parse_float - FALLBACK OLMADAN
+        shock_mult = parse_float(config.get('hacim_soku_min_esik'))
+        min_hours = parse_float(config.get('hacim_soku_min_saat'))
+        min_incoming = parse_float(config.get('min_son_snapshot_para'))
+        log(f"[VolumeShock Config] shock_mult: {shock_mult}, min_hours: {min_hours}, min_incoming: {min_incoming}")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -1078,24 +1143,32 @@ class AlarmCalculator:
     
     def calculate_dropping_alarms(self) -> int:
         """Calculate Dropping Odds alarms"""
-        config = self.configs.get('dropping')
-        if not config:
-            log("[Dropping] CONFIG YOK - Supabase'de dropping ayarlarını kaydedin!")
-            return 0
-        # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
-        l1_min = parse_float(config.get('min_drop_l1', 7))
-        l1_max = parse_float(config.get('max_drop_l1', 10))
-        l2_min = parse_float(config.get('min_drop_l2', 10))
-        l2_max = parse_float(config.get('max_drop_l2', 15))
-        l3_min = parse_float(config.get('min_drop_l3', 15))
-        log(f"[Dropping Config] L1: {l1_min}-{l1_max}%, L2: {l2_min}-{l2_max}%, L3: {l3_min}%+")
-        
-        # Her hesaplamada önce tabloyu temizle
+        # Her hesaplamada ÖNCE tabloyu temizle - config kontrolünden ÖNCE
         try:
             self._delete('dropping_alarms', '')
             log("[Dropping] Table cleared before recalculation")
         except Exception as e:
             log(f"[Dropping] Table clear failed: {e}")
+        
+        config = self.configs.get('dropping')
+        if not config:
+            log("[Dropping] CONFIG YOK - Supabase'de dropping ayarlarını kaydedin!")
+            return 0
+        
+        # Config validation
+        required_keys = ['min_drop_l1', 'max_drop_l1', 'min_drop_l2', 'max_drop_l2', 'min_drop_l3']
+        missing_keys = [k for k in required_keys if config.get(k) is None]
+        if missing_keys:
+            log(f"[Dropping] CONFIG EKSIK KEY'LER: {missing_keys} - Supabase'de tamamlayın!")
+            return 0
+        
+        # CRITICAL: parse_float - FALLBACK OLMADAN
+        l1_min = parse_float(config.get('min_drop_l1'))
+        l1_max = parse_float(config.get('max_drop_l1'))
+        l2_min = parse_float(config.get('min_drop_l2'))
+        l2_max = parse_float(config.get('max_drop_l2'))
+        l3_min = parse_float(config.get('min_drop_l3'))
+        log(f"[Dropping Config] L1: {l1_min}-{l1_max}%, L2: {l2_min}-{l2_max}%, L3: {l3_min}%+")
         
         alarms = []
         markets = ['dropping_1x2', 'dropping_ou25', 'dropping_btts']
@@ -1185,21 +1258,29 @@ class AlarmCalculator:
     
     def calculate_publicmove_alarms(self) -> int:
         """Calculate Public Move alarms - same logic as Sharp"""
-        config = self.configs.get('publicmove')
-        if not config:
-            log("[PublicMove] CONFIG YOK - Supabase'de publicmove ayarlarını kaydedin!")
-            return 0
-        # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
-        min_score = parse_float(config.get('min_sharp_score', 20))
-        min_amount_change = parse_float(config.get('min_amount_change', 0))
-        log(f"[PublicMove Config] min_score: {min_score}, min_amount_change: {min_amount_change}")
-        
-        # Her hesaplamada önce tabloyu temizle
+        # Her hesaplamada ÖNCE tabloyu temizle - config kontrolünden ÖNCE
         try:
             self._delete('publicmove_alarms', '')
             log("[PublicMove] Table cleared before recalculation")
         except Exception as e:
             log(f"[PublicMove] Table clear failed: {e}")
+        
+        config = self.configs.get('publicmove')
+        if not config:
+            log("[PublicMove] CONFIG YOK - Supabase'de publicmove ayarlarını kaydedin!")
+            return 0
+        
+        # Config validation
+        required_keys = ['min_sharp_score', 'min_volume_1x2', 'min_volume_ou25', 'min_volume_btts']
+        missing_keys = [k for k in required_keys if config.get(k) is None]
+        if missing_keys:
+            log(f"[PublicMove] CONFIG EKSIK KEY'LER: {missing_keys} - Supabase'de tamamlayın!")
+            return 0
+        
+        # CRITICAL: parse_float - FALLBACK OLMADAN
+        min_score = parse_float(config.get('min_sharp_score'))
+        min_amount_change = parse_float(config.get('min_amount_change')) or 0
+        log(f"[PublicMove Config] min_score: {min_score}, min_amount_change: {min_amount_change}")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -1207,19 +1288,19 @@ class AlarmCalculator:
         
         for market in markets:
             if '1x2' in market:
-                min_volume = parse_float(config.get('min_volume_1x2', 5000))
+                min_volume = parse_float(config.get('min_volume_1x2'))
                 selections = ['1', 'X', '2']
                 odds_keys = ['odds1', 'oddsx', 'odds2']
                 amount_keys = ['amt1', 'amtx', 'amt2']
                 pct_keys = ['pct1', 'pctx', 'pct2']
             elif 'ou25' in market:
-                min_volume = parse_float(config.get('min_volume_ou25', 2000))
+                min_volume = parse_float(config.get('min_volume_ou25'))
                 selections = ['Over', 'Under']
                 odds_keys = ['over', 'under']
                 amount_keys = ['amtover', 'amtunder']
                 pct_keys = ['pctover', 'pctunder']
             else:
-                min_volume = parse_float(config.get('min_volume_btts', 1000))
+                min_volume = parse_float(config.get('min_volume_btts'))
                 selections = ['Yes', 'No']
                 odds_keys = ['oddsyes', 'oddsno']
                 amount_keys = ['amtyes', 'amtno']
@@ -1343,20 +1424,28 @@ class AlarmCalculator:
     
     def calculate_volumeleader_alarms(self) -> int:
         """Calculate Volume Leader Changed alarms"""
-        config = self.configs.get('volumeleader')
-        if not config:
-            log("[VolumeLeader] CONFIG YOK - Supabase'de volumeleader ayarlarını kaydedin!")
-            return 0
-        # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
-        threshold = parse_float(config.get('leader_threshold', 50))
-        log(f"[VolumeLeader Config] threshold: {threshold}%")
-        
-        # Her hesaplamada önce tabloyu temizle
+        # Her hesaplamada ÖNCE tabloyu temizle - config kontrolünden ÖNCE
         try:
             self._delete('volume_leader_alarms', '')
             log("[VolumeLeader] Table cleared before recalculation")
         except Exception as e:
             log(f"[VolumeLeader] Table clear failed: {e}")
+        
+        config = self.configs.get('volumeleader')
+        if not config:
+            log("[VolumeLeader] CONFIG YOK - Supabase'de volumeleader ayarlarını kaydedin!")
+            return 0
+        
+        # Config validation
+        required_keys = ['min_volume_1x2', 'min_volume_ou25', 'min_volume_btts']
+        missing_keys = [k for k in required_keys if config.get(k) is None]
+        if missing_keys:
+            log(f"[VolumeLeader] CONFIG EKSIK KEY'LER: {missing_keys} - Supabase'de tamamlayın!")
+            return 0
+        
+        # threshold opsiyonel, yoksa 50 kullan
+        threshold = parse_float(config.get('leader_threshold')) or 50
+        log(f"[VolumeLeader Config] threshold: {threshold}%")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -1364,15 +1453,15 @@ class AlarmCalculator:
         
         for market in markets:
             if '1x2' in market:
-                min_volume = parse_float(config.get('min_volume_1x2', 5000))
+                min_volume = parse_float(config.get('min_volume_1x2'))
                 selections = ['1', 'X', '2']
                 amount_keys = ['amt1', 'amtx', 'amt2']
             elif 'ou25' in market:
-                min_volume = parse_float(config.get('min_volume_ou25', 2000))
+                min_volume = parse_float(config.get('min_volume_ou25'))
                 selections = ['Over', 'Under']
                 amount_keys = ['amtover', 'amtunder']
             else:
-                min_volume = parse_float(config.get('min_volume_btts', 1000))
+                min_volume = parse_float(config.get('min_volume_btts'))
                 selections = ['Yes', 'No']
                 amount_keys = ['amtyes', 'amtno']
             
