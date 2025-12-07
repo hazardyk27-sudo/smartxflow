@@ -93,10 +93,16 @@ ORDER BY table_name, policy_name;
 -- ==============================================================================
 -- 7. ESKİ / KULLANILMAYAN TABLOLARI SİL (DİKKATLİ OLUN!)
 -- ==============================================================================
--- Önce yukarıdaki sorguları çalıştırın ve "UNUSED - CAN DELETE" olanları görün
--- Sonra aşağıdaki satırları uncomment edip çalıştırın
+-- ⚠️ UYARI: Bu bölüm SADECE RAPORLAMA amaçlıdır!
+-- ⚠️ Silme işlemi yapmadan önce her tabloyu MANUEL olarak kontrol edin!
+-- ⚠️ Bazı tablolar cache, audit log veya yedek olabilir - emin olmadan SİLMEYİN!
 
--- Olası eski tablolar (varsa silin):
+-- Önce yukarıdaki sorguları çalıştırın ve "UNUSED - CAN DELETE" olanları görün
+-- Sonra HER TABLO için veri olup olmadığını kontrol edin:
+-- SELECT COUNT(*) FROM tablo_adi;
+-- Eğer veri varsa ve ne işe yaradığını bilmiyorsanız SİLMEYİN!
+
+-- Olası eski tablolar (SADECE boş ve gereksiz olduğundan EMİNSENİZ silin):
 -- DROP TABLE IF EXISTS alarms CASCADE;
 -- DROP TABLE IF EXISTS alarm_logs CASCADE;
 -- DROP TABLE IF EXISTS sharp_alarms_old CASCADE;

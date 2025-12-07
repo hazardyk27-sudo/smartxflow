@@ -97,6 +97,7 @@ CREATE TABLE IF NOT EXISTS volumeshock_alarms (
     market TEXT NOT NULL,
     selection TEXT NOT NULL,
     volume_shock_value NUMERIC,
+    volume_shock_multiplier NUMERIC,
     multiplier NUMERIC,
     incoming_money NUMERIC,
     new_money NUMERIC,
