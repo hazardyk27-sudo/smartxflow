@@ -1226,25 +1226,35 @@ def write_alarms_to_supabase(table_name: str, alarms: List[Dict[str, Any]], clea
 
 
 def write_insider_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
-    """Write Insider alarms to Supabase with field mapping - TÜM FIELD'LAR"""
+    """Write Insider alarms to Supabase with field mapping - CANONICAL ISIMLER"""
     import json as json_module
     mapped_alarms = []
     for alarm in alarms:
         snapshot_data = alarm.get('snapshot_details') or alarm.get('surrounding_snapshots') or []
         snapshot_count = alarm.get('snapshot_count') or len(snapshot_data)
         
+        odds_drop = alarm.get('oran_dusus_pct') or alarm.get('odds_change_percent') or alarm.get('odds_drop_pct') or 0
+        incoming = alarm.get('gelen_para') or alarm.get('incoming_money') or 0
+        vol_shock = alarm.get('hacim_sok') or alarm.get('volume_shock') or 0
+        avg_shock = alarm.get('avg_volume_shock') or alarm.get('avg_hacim_sok') or 0
+        max_shock = alarm.get('max_surrounding_hacim_sok') or alarm.get('max_volume_shock') or 0
+        max_incoming = alarm.get('max_surrounding_incoming') or 0
+        
         mapped = {
             'home': alarm.get('home', ''),
             'away': alarm.get('away', ''),
             'market': alarm.get('market', ''),
             'selection': alarm.get('selection', ''),
-            'oran_dusus_pct': alarm.get('oran_dusus_pct'),
-            'odds_change_percent': alarm.get('odds_change_percent') or alarm.get('oran_dusus_pct'),
-            'gelen_para': alarm.get('gelen_para'),
-            'hacim_sok': alarm.get('hacim_sok'),
-            'avg_volume_shock': alarm.get('avg_volume_shock'),
-            'max_surrounding_hacim_sok': alarm.get('max_surrounding_hacim_sok'),
-            'max_surrounding_incoming': alarm.get('max_surrounding_incoming'),
+            'oran_dusus_pct': odds_drop,
+            'odds_change_percent': odds_drop,
+            'odds_drop_pct': odds_drop,
+            'gelen_para': incoming,
+            'incoming_money': incoming,
+            'hacim_sok': vol_shock,
+            'volume_shock': vol_shock,
+            'avg_volume_shock': avg_shock,
+            'max_surrounding_hacim_sok': max_shock,
+            'max_surrounding_incoming': max_incoming,
             'opening_odds': alarm.get('opening_odds'),
             'open_odds': alarm.get('open_odds') or alarm.get('opening_odds'),
             'current_odds': alarm.get('current_odds') or alarm.get('last_odds'),
@@ -1275,6 +1285,10 @@ def write_sharp_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
             except:
                 weights_data = None
         
+        incoming = alarm.get('amount_change') or alarm.get('incoming_money') or 0
+        odds_drop = alarm.get('drop_pct') or alarm.get('drop_percentage') or alarm.get('odds_drop_pct') or 0
+        share_diff = alarm.get('share_diff') or alarm.get('share_change') or alarm.get('share_change_percent') or 0
+        
         mapped = {
             'home': alarm.get('home', ''),
             'away': alarm.get('away', ''),
@@ -1285,16 +1299,20 @@ def write_sharp_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
             'volume_contrib': alarm.get('volume_contrib'),
             'odds_contrib': alarm.get('odds_contrib'),
             'share_contrib': alarm.get('share_contrib'),
-            'volume': alarm.get('volume') or alarm.get('shock_value'),
-            'volume_shock_multiplier': alarm.get('volume_shock_multiplier'),
-            'amount_change': alarm.get('amount_change'),
+            'volume': alarm.get('volume') or alarm.get('shock_value') or alarm.get('volume_shock'),
+            'volume_shock_multiplier': alarm.get('volume_shock_multiplier') or alarm.get('volume_multiplier'),
+            'incoming_money': incoming,
+            'amount_change': incoming,
+            'avg_previous': alarm.get('avg_last_amounts') or alarm.get('avg_prev') or alarm.get('avg_previous'),
             'opening_odds': alarm.get('opening_odds'),
-            'previous_odds': alarm.get('previous_odds'),
+            'previous_odds': alarm.get('previous_odds') or alarm.get('prev_odds'),
             'current_odds': alarm.get('current_odds'),
-            'drop_percentage': alarm.get('drop_percentage'),
-            'previous_share': alarm.get('previous_share'),
+            'odds_drop_pct': odds_drop,
+            'drop_percentage': odds_drop,
+            'previous_share': alarm.get('previous_share') or alarm.get('prev_share'),
             'current_share': alarm.get('current_share'),
-            'share_change_percent': alarm.get('share_change_percent'),
+            'share_change': share_diff,
+            'share_change_percent': share_diff,
             'weights': weights_data,
             'match_date': alarm.get('match_date', ''),
             'event_time': alarm.get('event_time', ''),

@@ -452,10 +452,15 @@ CREATE INDEX IF NOT EXISTS idx_dropping_ou25_teams ON dropping_ou25_history(home
 CREATE INDEX IF NOT EXISTS idx_dropping_btts_teams ON dropping_btts_history(home, away);
 
 -- ==============================================================================
--- BÖLÜM 8: EKSİK KOLONLARI EKLE (mevcut tablolara)
+-- BÖLÜM 8: EKSİK KOLONLARI EKLE (mevcut tablolara) + CANONICAL ISIMLER
 -- ==============================================================================
 
+-- Sharp alarms - canonical + eski isimler (backward compatibility)
+ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS incoming_money NUMERIC;
 ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS amount_change NUMERIC;
+ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS avg_previous NUMERIC;
+ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS odds_drop_pct NUMERIC;
+ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS share_change NUMERIC;
 ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS smart_score NUMERIC;
 ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS volume_shock_multiplier NUMERIC;
 ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS opening_odds NUMERIC;
@@ -463,7 +468,11 @@ ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS drop_percentage NUMERIC;
 ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS share_change_percent NUMERIC;
 ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS weights JSONB;
 
+-- Insider alarms - canonical + eski isimler
+ALTER TABLE insider_alarms ADD COLUMN IF NOT EXISTS odds_drop_pct NUMERIC;
 ALTER TABLE insider_alarms ADD COLUMN IF NOT EXISTS odds_change_percent NUMERIC;
+ALTER TABLE insider_alarms ADD COLUMN IF NOT EXISTS incoming_money NUMERIC;
+ALTER TABLE insider_alarms ADD COLUMN IF NOT EXISTS volume_shock NUMERIC;
 ALTER TABLE insider_alarms ADD COLUMN IF NOT EXISTS avg_volume_shock NUMERIC;
 ALTER TABLE insider_alarms ADD COLUMN IF NOT EXISTS max_surrounding_hacim_sok NUMERIC;
 ALTER TABLE insider_alarms ADD COLUMN IF NOT EXISTS max_surrounding_incoming NUMERIC;
