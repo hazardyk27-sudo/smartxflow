@@ -2864,44 +2864,44 @@
 
         function setSharpConfig(config) {
             if (!config) return;
-            document.getElementById('min_volume_1x2').value = config.min_volume_1x2 || 3000;
-            document.getElementById('min_volume_ou25').value = config.min_volume_ou25 || 1000;
-            document.getElementById('min_volume_btts').value = config.min_volume_btts || 500;
-            document.getElementById('min_amount_change').value = config.min_amount_change || 500;
-            document.getElementById('volume_multiplier').value = config.volume_multiplier || 1;
-            document.getElementById('share_range_1_min').value = config.share_range_1_min || 0;
-            document.getElementById('share_range_1_max').value = config.share_range_1_max || 50;
-            document.getElementById('share_range_1_mult').value = config.share_range_1_mult || 1;
-            document.getElementById('share_range_2_min').value = config.share_range_2_min || 50;
-            document.getElementById('share_range_2_max').value = config.share_range_2_max || 75;
-            document.getElementById('share_range_2_mult').value = config.share_range_2_mult || 1.5;
-            document.getElementById('share_range_3_min').value = config.share_range_3_min || 75;
-            document.getElementById('share_range_3_max').value = config.share_range_3_max || 90;
-            document.getElementById('share_range_3_mult').value = config.share_range_3_mult || 2;
-            document.getElementById('share_range_4_min').value = config.share_range_4_min || 90;
-            document.getElementById('share_range_4_max').value = config.share_range_4_max || 100;
-            document.getElementById('share_range_4_mult').value = config.share_range_4_mult || 3;
-            document.getElementById('max_volume_cap').value = config.max_volume_cap || 40;
-            document.getElementById('max_odds_cap').value = config.max_odds_cap || 35;
-            document.getElementById('max_share_cap').value = config.max_share_cap || 25;
-            document.getElementById('min_share').value = config.min_share || 5;
-            document.getElementById('min_sharp_score').value = config.min_sharp_score || 10;
-            document.getElementById('odds_range_1_min').value = config.odds_range_1_min || 1.01;
-            document.getElementById('odds_range_1_max').value = config.odds_range_1_max || 1.50;
-            document.getElementById('odds_range_1_mult').value = config.odds_range_1_mult || 10;
-            document.getElementById('odds_range_1_min_drop').value = config.odds_range_1_min_drop || 1;
-            document.getElementById('odds_range_2_min').value = config.odds_range_2_min || 1.50;
-            document.getElementById('odds_range_2_max').value = config.odds_range_2_max || 2.10;
-            document.getElementById('odds_range_2_mult').value = config.odds_range_2_mult || 8;
-            document.getElementById('odds_range_2_min_drop').value = config.odds_range_2_min_drop || 2;
-            document.getElementById('odds_range_3_min').value = config.odds_range_3_min || 2.10;
-            document.getElementById('odds_range_3_max').value = config.odds_range_3_max || 3.50;
-            document.getElementById('odds_range_3_mult').value = config.odds_range_3_mult || 5;
-            document.getElementById('odds_range_3_min_drop').value = config.odds_range_3_min_drop || 3;
-            document.getElementById('odds_range_4_min').value = config.odds_range_4_min || 3.50;
-            document.getElementById('odds_range_4_max').value = config.odds_range_4_max || 10.00;
-            document.getElementById('odds_range_4_mult').value = config.odds_range_4_mult || 3;
-            document.getElementById('odds_range_4_min_drop').value = config.odds_range_4_min_drop || 5;
+            document.getElementById('min_volume_1x2').value = config.min_volume_1x2 ?? '';
+            document.getElementById('min_volume_ou25').value = config.min_volume_ou25 ?? '';
+            document.getElementById('min_volume_btts').value = config.min_volume_btts ?? '';
+            document.getElementById('min_amount_change').value = config.min_amount_change ?? '';
+            document.getElementById('volume_multiplier').value = config.volume_multiplier ?? '';
+            document.getElementById('share_range_1_min').value = config.share_range_1_min ?? '';
+            document.getElementById('share_range_1_max').value = config.share_range_1_max ?? '';
+            document.getElementById('share_range_1_mult').value = config.share_range_1_mult ?? '';
+            document.getElementById('share_range_2_min').value = config.share_range_2_min ?? '';
+            document.getElementById('share_range_2_max').value = config.share_range_2_max ?? '';
+            document.getElementById('share_range_2_mult').value = config.share_range_2_mult ?? '';
+            document.getElementById('share_range_3_min').value = config.share_range_3_min ?? '';
+            document.getElementById('share_range_3_max').value = config.share_range_3_max ?? '';
+            document.getElementById('share_range_3_mult').value = config.share_range_3_mult ?? '';
+            document.getElementById('share_range_4_min').value = config.share_range_4_min ?? '';
+            document.getElementById('share_range_4_max').value = config.share_range_4_max ?? '';
+            document.getElementById('share_range_4_mult').value = config.share_range_4_mult ?? '';
+            document.getElementById('max_volume_cap').value = config.max_volume_cap ?? '';
+            document.getElementById('max_odds_cap').value = config.max_odds_cap ?? '';
+            document.getElementById('max_share_cap').value = config.max_share_cap ?? '';
+            document.getElementById('min_share').value = config.min_share ?? '';
+            document.getElementById('min_sharp_score').value = config.min_sharp_score ?? '';
+            document.getElementById('odds_range_1_min').value = config.odds_range_1_min ?? '';
+            document.getElementById('odds_range_1_max').value = config.odds_range_1_max ?? '';
+            document.getElementById('odds_range_1_mult').value = config.odds_range_1_mult ?? '';
+            document.getElementById('odds_range_1_min_drop').value = config.odds_range_1_min_drop ?? '';
+            document.getElementById('odds_range_2_min').value = config.odds_range_2_min ?? '';
+            document.getElementById('odds_range_2_max').value = config.odds_range_2_max ?? '';
+            document.getElementById('odds_range_2_mult').value = config.odds_range_2_mult ?? '';
+            document.getElementById('odds_range_2_min_drop').value = config.odds_range_2_min_drop ?? '';
+            document.getElementById('odds_range_3_min').value = config.odds_range_3_min ?? '';
+            document.getElementById('odds_range_3_max').value = config.odds_range_3_max ?? '';
+            document.getElementById('odds_range_3_mult').value = config.odds_range_3_mult ?? '';
+            document.getElementById('odds_range_3_min_drop').value = config.odds_range_3_min_drop ?? '';
+            document.getElementById('odds_range_4_min').value = config.odds_range_4_min ?? '';
+            document.getElementById('odds_range_4_max').value = config.odds_range_4_max ?? '';
+            document.getElementById('odds_range_4_mult').value = config.odds_range_4_mult ?? '';
+            document.getElementById('odds_range_4_min_drop').value = config.odds_range_4_min_drop ?? '';
         }
 
         async function deleteAlarmConfig(alarmType) {
@@ -3216,42 +3216,42 @@
                 const response = await fetch('/api/publicmove/config');
                 if (response.ok) {
                     const config = await response.json();
-                    document.getElementById('ht_min_volume_1x2').value = config.min_volume_1x2 || 3000;
-                    document.getElementById('ht_min_volume_ou25').value = config.min_volume_ou25 || 1000;
-                    document.getElementById('ht_min_volume_btts').value = config.min_volume_btts || 500;
-                    document.getElementById('ht_volume_multiplier').value = config.volume_multiplier || 1;
-                    document.getElementById('ht_max_volume_cap').value = config.max_volume_cap || 40;
-                    document.getElementById('ht_max_odds_cap').value = config.max_odds_cap || 35;
-                    document.getElementById('ht_max_share_cap').value = config.max_share_cap || 25;
-                    document.getElementById('ht_min_share').value = config.min_share || 5;
-                    document.getElementById('ht_min_sharp_score').value = config.min_sharp_score || 10;
-                    document.getElementById('ht_min_amount_change').value = config.min_amount_change || 500;
+                    document.getElementById('ht_min_volume_1x2').value = config.min_volume_1x2 ?? '';
+                    document.getElementById('ht_min_volume_ou25').value = config.min_volume_ou25 ?? '';
+                    document.getElementById('ht_min_volume_btts').value = config.min_volume_btts ?? '';
+                    document.getElementById('ht_volume_multiplier').value = config.volume_multiplier ?? '';
+                    document.getElementById('ht_max_volume_cap').value = config.max_volume_cap ?? '';
+                    document.getElementById('ht_max_odds_cap').value = config.max_odds_cap ?? '';
+                    document.getElementById('ht_max_share_cap').value = config.max_share_cap ?? '';
+                    document.getElementById('ht_min_share').value = config.min_share ?? '';
+                    document.getElementById('ht_min_sharp_score').value = config.min_sharp_score ?? '';
+                    document.getElementById('ht_min_amount_change').value = config.min_amount_change ?? '';
                     
-                    document.getElementById('ht_odds_range_1_min').value = config.odds_range_1_min || 1.01;
-                    document.getElementById('ht_odds_range_1_max').value = config.odds_range_1_max || 1.50;
-                    document.getElementById('ht_odds_range_1_mult').value = config.odds_range_1_mult || 10;
-                    document.getElementById('ht_odds_range_2_min').value = config.odds_range_2_min || 1.50;
-                    document.getElementById('ht_odds_range_2_max').value = config.odds_range_2_max || 2.10;
-                    document.getElementById('ht_odds_range_2_mult').value = config.odds_range_2_mult || 8;
-                    document.getElementById('ht_odds_range_3_min').value = config.odds_range_3_min || 2.10;
-                    document.getElementById('ht_odds_range_3_max').value = config.odds_range_3_max || 3.50;
-                    document.getElementById('ht_odds_range_3_mult').value = config.odds_range_3_mult || 5;
-                    document.getElementById('ht_odds_range_4_min').value = config.odds_range_4_min || 3.50;
-                    document.getElementById('ht_odds_range_4_max').value = config.odds_range_4_max || 10.00;
-                    document.getElementById('ht_odds_range_4_mult').value = config.odds_range_4_mult || 3;
+                    document.getElementById('ht_odds_range_1_min').value = config.odds_range_1_min ?? '';
+                    document.getElementById('ht_odds_range_1_max').value = config.odds_range_1_max ?? '';
+                    document.getElementById('ht_odds_range_1_mult').value = config.odds_range_1_mult ?? '';
+                    document.getElementById('ht_odds_range_2_min').value = config.odds_range_2_min ?? '';
+                    document.getElementById('ht_odds_range_2_max').value = config.odds_range_2_max ?? '';
+                    document.getElementById('ht_odds_range_2_mult').value = config.odds_range_2_mult ?? '';
+                    document.getElementById('ht_odds_range_3_min').value = config.odds_range_3_min ?? '';
+                    document.getElementById('ht_odds_range_3_max').value = config.odds_range_3_max ?? '';
+                    document.getElementById('ht_odds_range_3_mult').value = config.odds_range_3_mult ?? '';
+                    document.getElementById('ht_odds_range_4_min').value = config.odds_range_4_min ?? '';
+                    document.getElementById('ht_odds_range_4_max').value = config.odds_range_4_max ?? '';
+                    document.getElementById('ht_odds_range_4_mult').value = config.odds_range_4_mult ?? '';
                     
-                    document.getElementById('ht_share_range_1_min').value = config.share_range_1_min || 0;
-                    document.getElementById('ht_share_range_1_max').value = config.share_range_1_max || 50;
-                    document.getElementById('ht_share_range_1_mult').value = config.share_range_1_mult || 1;
-                    document.getElementById('ht_share_range_2_min').value = config.share_range_2_min || 50;
-                    document.getElementById('ht_share_range_2_max').value = config.share_range_2_max || 75;
-                    document.getElementById('ht_share_range_2_mult').value = config.share_range_2_mult || 1.5;
-                    document.getElementById('ht_share_range_3_min').value = config.share_range_3_min || 75;
-                    document.getElementById('ht_share_range_3_max').value = config.share_range_3_max || 90;
-                    document.getElementById('ht_share_range_3_mult').value = config.share_range_3_mult || 2;
-                    document.getElementById('ht_share_range_4_min').value = config.share_range_4_min || 90;
-                    document.getElementById('ht_share_range_4_max').value = config.share_range_4_max || 100;
-                    document.getElementById('ht_share_range_4_mult').value = config.share_range_4_mult || 3;
+                    document.getElementById('ht_share_range_1_min').value = config.share_range_1_min ?? '';
+                    document.getElementById('ht_share_range_1_max').value = config.share_range_1_max ?? '';
+                    document.getElementById('ht_share_range_1_mult').value = config.share_range_1_mult ?? '';
+                    document.getElementById('ht_share_range_2_min').value = config.share_range_2_min ?? '';
+                    document.getElementById('ht_share_range_2_max').value = config.share_range_2_max ?? '';
+                    document.getElementById('ht_share_range_2_mult').value = config.share_range_2_mult ?? '';
+                    document.getElementById('ht_share_range_3_min').value = config.share_range_3_min ?? '';
+                    document.getElementById('ht_share_range_3_max').value = config.share_range_3_max ?? '';
+                    document.getElementById('ht_share_range_3_mult').value = config.share_range_3_mult ?? '';
+                    document.getElementById('ht_share_range_4_min').value = config.share_range_4_min ?? '';
+                    document.getElementById('ht_share_range_4_max').value = config.share_range_4_max ?? '';
+                    document.getElementById('ht_share_range_4_mult').value = config.share_range_4_mult ?? '';
                 }
             } catch (error) {
                 console.error('PublicMove config yukleme hatasi:', error);
@@ -3521,11 +3521,11 @@
                 if (response.ok) {
                     const data = await response.json();
                     const config = data.setting?.config || {};
-                    document.getElementById('insider_hacim_sok_esigi').value = config.hacim_sok_esigi || 2;
-                    document.getElementById('insider_oran_dusus_esigi').value = config.oran_dusus_esigi || 3;
-                    document.getElementById('insider_sure_dakika').value = config.sure_dakika || 30;
-                    document.getElementById('insider_max_para').value = config.max_para || 5000;
-                    document.getElementById('insider_max_odds_esigi').value = config.max_odds_esigi || 10.0;
+                    document.getElementById('insider_hacim_sok_esigi').value = config.hacim_sok_esigi ?? '';
+                    document.getElementById('insider_oran_dusus_esigi').value = config.oran_dusus_esigi ?? '';
+                    document.getElementById('insider_sure_dakika').value = config.sure_dakika ?? '';
+                    document.getElementById('insider_max_para').value = config.max_para ?? '';
+                    document.getElementById('insider_max_odds_esigi').value = config.max_odds_esigi ?? '';
                 }
             } catch (error) {
                 console.error('Insider config yukleme hatasi:', error);
@@ -3848,7 +3848,7 @@
                 const response = await fetch('/api/bigmoney/config');
                 if (response.ok) {
                     const config = await response.json();
-                    document.getElementById('bigMoneyLimit').value = config.big_money_limit || 15000;
+                    document.getElementById('bigMoneyLimit').value = config.big_money_limit ?? '';
                 }
             } catch (error) {
                 console.error('Big Money config yukleme hatasi:', error);
@@ -4032,12 +4032,12 @@
             try {
                 const response = await fetch('/api/volumeshock/config');
                 const config = await response.json();
-                document.getElementById('volumeShockMinSaat').value = config.hacim_soku_min_saat || 5;
-                document.getElementById('volumeShockMinEsik').value = config.hacim_soku_min_esik || 4;
-                document.getElementById('vsMinVolume1x2').value = config.min_volume_1x2 || 1000;
-                document.getElementById('vsMinVolumeOu25').value = config.min_volume_ou25 || 500;
-                document.getElementById('vsMinVolumeBtts').value = config.min_volume_btts || 300;
-                document.getElementById('vsMinSnapshotPara').value = config.min_son_snapshot_para || 300;
+                document.getElementById('volumeShockMinSaat').value = config.hacim_soku_min_saat ?? '';
+                document.getElementById('volumeShockMinEsik').value = config.hacim_soku_min_esik ?? '';
+                document.getElementById('vsMinVolume1x2').value = config.min_volume_1x2 ?? '';
+                document.getElementById('vsMinVolumeOu25').value = config.min_volume_ou25 ?? '';
+                document.getElementById('vsMinVolumeBtts').value = config.min_volume_btts ?? '';
+                document.getElementById('vsMinSnapshotPara').value = config.min_son_snapshot_para ?? '';
             } catch (error) {
                 console.error('Volume Shock config load error:', error);
             }
@@ -4323,9 +4323,9 @@
             try {
                 const response = await fetch('/api/volumeleader/config');
                 const config = await response.json();
-                document.getElementById('vlMinVolume1x2').value = config.min_volume_1x2 || 5000;
-                document.getElementById('vlMinVolumeOu25').value = config.min_volume_ou25 || 2000;
-                document.getElementById('vlMinVolumeBtts').value = config.min_volume_btts || 1000;
+                document.getElementById('vlMinVolume1x2').value = config.min_volume_1x2 ?? '';
+                document.getElementById('vlMinVolumeOu25').value = config.min_volume_ou25 ?? '';
+                document.getElementById('vlMinVolumeBtts').value = config.min_volume_btts ?? '';
             } catch (error) {
                 console.error('Volume Leader config load error:', error);
             }
@@ -4687,23 +4687,23 @@
                 const response = await fetch('/api/dropping/config');
                 if (response.ok) {
                     const config = await response.json();
-                    document.getElementById('droppingMinL1').value = config.min_drop_l1 || 7;
-                    document.getElementById('droppingMaxL1').value = config.max_drop_l1 || 10;
-                    document.getElementById('droppingMinL2').value = config.min_drop_l2 || 10;
-                    document.getElementById('droppingMaxL2').value = config.max_drop_l2 || 15;
-                    document.getElementById('droppingMinL3').value = config.min_drop_l3 || 15;
+                    document.getElementById('droppingMinL1').value = config.min_drop_l1 ?? '';
+                    document.getElementById('droppingMaxL1').value = config.max_drop_l1 ?? '';
+                    document.getElementById('droppingMinL2').value = config.min_drop_l2 ?? '';
+                    document.getElementById('droppingMaxL2').value = config.max_drop_l2 ?? '';
+                    document.getElementById('droppingMinL3').value = config.min_drop_l3 ?? '';
                     document.getElementById('droppingL2Enabled').checked = config.l2_enabled !== false;
                     document.getElementById('droppingL3Enabled').checked = config.l3_enabled !== false;
                     document.getElementById('droppingPersistenceEnabled').checked = config.persistence_enabled !== false;
-                    document.getElementById('droppingPersistenceMinutes').value = config.persistence_minutes || 30;
-                    document.getElementById('dropping_min_volume_1x2').value = config.min_volume_1x2 || 3000;
-                    document.getElementById('dropping_min_volume_ou25').value = config.min_volume_ou25 || 1000;
-                    document.getElementById('dropping_min_volume_btts').value = config.min_volume_btts || 500;
+                    document.getElementById('droppingPersistenceMinutes').value = config.persistence_minutes ?? '';
+                    document.getElementById('dropping_min_volume_1x2').value = config.min_volume_1x2 ?? '';
+                    document.getElementById('dropping_min_volume_ou25').value = config.min_volume_ou25 ?? '';
+                    document.getElementById('dropping_min_volume_btts').value = config.min_volume_btts ?? '';
                     
                     // Max Odds Filter
-                    document.getElementById('droppingMaxOdds1x2').value = config.max_odds_1x2 || 5.0;
-                    document.getElementById('droppingMaxOddsOu25').value = config.max_odds_ou25 || 3.0;
-                    document.getElementById('droppingMaxOddsBtts').value = config.max_odds_btts || 3.0;
+                    document.getElementById('droppingMaxOdds1x2').value = config.max_odds_1x2 ?? '';
+                    document.getElementById('droppingMaxOddsOu25').value = config.max_odds_ou25 ?? '';
+                    document.getElementById('droppingMaxOddsBtts').value = config.max_odds_btts ?? '';
                 }
             } catch (error) {
                 console.error('Dropping config yukleme hatasi:', error);
