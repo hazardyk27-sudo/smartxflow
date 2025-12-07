@@ -1,5 +1,5 @@
 """
-SmartXFlow Monitor V1.08 - Standalone Scraper
+SmartXFlow Monitor V1.12 - Standalone Scraper
 PC'de çalışan bağımsız scraper - Supabase'e direkt yazar
 """
 
@@ -22,7 +22,7 @@ try:
 except ImportError:
     TURKEY_TZ = None
 
-VERSION = "1.10"
+VERSION = "1.12"
 SCRAPE_INTERVAL_MINUTES = 10
 
 DATASETS = {
