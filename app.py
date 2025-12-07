@@ -3904,6 +3904,11 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, m
     if not best_candidate:
         return None
     
+    # KRITIK: Final kontrol - gelen para limiti
+    if best_candidate['amount_change'] < min_amount_change:
+        print(f"[Sharp] REJECTED {home} vs {away} [{selection}]: amount_change={best_candidate['amount_change']:.0f} < min={min_amount_change}")
+        return None
+    
     event_time = best_candidate['curr_snap'].get('scraped_at', '')
     
     return {
