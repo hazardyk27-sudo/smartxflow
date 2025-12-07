@@ -326,33 +326,31 @@ class AlarmCalculator:
         return matches
     
     def batch_fetch_history(self, market: str) -> Dict[str, List[Dict]]:
-        """Batch fetch all history for a market with pagination - OPTIMIZED"""
+        """Batch fetch ALL history for a market - NO time filter, full pagination"""
         history_table = f"{market}_history"
         
         if history_table in self._history_cache:
             return self._history_cache[history_table]
         
-        # Son 12 saat - yeterli veri, makul hız
-        cutoff = (now_turkey() - timedelta(hours=12)).strftime('%Y-%m-%dT%H:%M:%S')
-        
-        log(f"FETCH {history_table} (last 12 hours)...")
+        log(f"FETCH {history_table} (ALL data - no time limit)...")
         
         rows = []
         offset = 0
         page_size = 1000
-        max_pages = 100  # 100,000 satıra kadar
+        max_pages = 500  # 500,000 satıra kadar - tüm veriyi al
         
         for page in range(max_pages):
-            params = f"select=*&scraped_at=gte.{cutoff}&order=scraped_at.asc&limit={page_size}&offset={offset}"
+            params = f"select=*&order=scraped_at.asc&limit={page_size}&offset={offset}"
             batch = self._get(history_table, params)
             if not batch:
                 break
             rows.extend(batch)
+            log(f"  -> Page {page+1}: {len(rows)} rows total")
             if len(batch) < page_size:
                 break
             offset += page_size
         
-        log(f"  -> {len(rows)} history rows (cutoff: {cutoff})")
+        log(f"  -> {len(rows)} history rows (ALL)")
         
         history_map = {}
         for row in rows:
