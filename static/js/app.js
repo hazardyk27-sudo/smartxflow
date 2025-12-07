@@ -85,7 +85,7 @@ function toTurkeyTime(raw) {
             return parsed.tz(APP_TIMEZONE);
         }
         
-        // 5) Arbworld format: "30.Nov 23:55:00" - ZATEN TR saatinde!
+        // 5) Arbworld format: "30.Nov 23:55:00" - UTC olarak gelir, TR'ye çevir (+3 saat)
         const arbworldMatch = str.match(/^(\d{1,2})\.(\w{3})\s*(\d{2}:\d{2}(?::\d{2})?)$/i);
         if (arbworldMatch) {
             const monthMap = {
@@ -94,22 +94,25 @@ function toTurkeyTime(raw) {
             };
             const day = parseInt(arbworldMatch[1]);
             const month = monthMap[arbworldMatch[2]];
-            if (month === undefined) return dayjs.tz(str, APP_TIMEZONE);
+            if (month === undefined) return dayjs(str).tz(APP_TIMEZONE, true);
             
             const timeParts = arbworldMatch[3].split(':').map(Number);
             const now = dayjs().tz(APP_TIMEZONE);
             const currentYear = now.year();
             
             // Year rollover logic: en yakın tarihi seç
-            const candidates = [currentYear - 1, currentYear, currentYear + 1].map(year => 
-                dayjs.tz(`${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')} ${arbworldMatch[3]}`, APP_TIMEZONE)
-            );
+            // ISO format ile UTC olarak parse et, sonra TR'ye çevir (+3 saat eklenir)
+            const candidates = [currentYear - 1, currentYear, currentYear + 1].map(year => {
+                const isoStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T${arbworldMatch[3]}`;
+                return dayjs.utc(isoStr).tz(APP_TIMEZONE);
+            });
             
             const nowTR = dayjs().tz(APP_TIMEZONE);
             let best = candidates[1]; // default: current year
             let minDiff = Math.abs(candidates[1].diff(nowTR, 'day'));
             
             candidates.forEach(c => {
+                if (!c.isValid()) return;
                 const diff = Math.abs(c.diff(nowTR, 'day'));
                 if (diff < minDiff) {
                     minDiff = diff;
@@ -117,7 +120,7 @@ function toTurkeyTime(raw) {
                 }
             });
             
-            return best;
+            return best.isValid() ? best : dayjs().tz(APP_TIMEZONE);
         }
         
         // 6) DD.MM.YYYY HH:MM format - ZATEN TR saatinde, dönüşüm yapma
