@@ -3340,32 +3340,36 @@ function highlightNewAlarm(alarm) {
         return;
     }
     
+    // Band'ı highlight moduna al - scroll durur, ortala
+    band.classList.add('highlight-mode');
+    
     const info = getAlertType(alarm);
     const home = alarm.home || alarm.home_team || '?';
     const away = alarm.away || alarm.away_team || '?';
     const selection = alarm.selection || alarm.side || '';
+    const alarmType = alarm._type || 'sharp';
     
     // Value hesapla
     let value = '';
-    if (alarm._type === 'sharp') {
+    if (alarmType === 'sharp') {
         value = (alarm.sharp_score || 0).toFixed(1);
-    } else if (alarm._type === 'insider') {
+    } else if (alarmType === 'insider') {
         value = `▼ ${Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1)}%`;
-    } else if (alarm._type === 'volumeshock') {
+    } else if (alarmType === 'volumeshock') {
         value = `${(alarm.volume_shock_value || 0).toFixed(1)}x`;
-    } else if (alarm._type === 'bigmoney') {
+    } else if (alarmType === 'bigmoney') {
         value = `£${Number(alarm.incoming_money || alarm.stake || 0).toLocaleString('en-GB')}`;
-    } else if (alarm._type === 'dropping') {
+    } else if (alarmType === 'dropping') {
         value = `▼ ${(alarm.drop_pct || 0).toFixed(1)}%`;
-    } else if (alarm._type === 'publicmove') {
+    } else if (alarmType === 'publicmove') {
         value = `${(alarm.trap_score || alarm.sharp_score || 0).toFixed(0)}`;
-    } else if (alarm._type === 'volumeleader') {
+    } else if (alarmType === 'volumeleader') {
         value = `%${(alarm.new_leader_share || 0).toFixed(0)}`;
     }
     
     // Volume Leader için özel format
     let contentHtml = '';
-    if (alarm._type === 'volumeleader') {
+    if (alarmType === 'volumeleader') {
         const oldLeader = alarm.old_leader || alarm.previous_leader || '?';
         const newLeader = alarm.new_leader || alarm.selection || '?';
         contentHtml = `
@@ -3388,21 +3392,25 @@ function highlightNewAlarm(alarm) {
         `;
     }
     
-    // Highlight container oluştur
+    // Highlight container oluştur - tek alarm ortada, parıldayan label
     band.innerHTML = `
         <div class="new-alarm-highlight">
             <div class="ab-pill ${info.pillClass} highlight-pill">
                 ${contentHtml}
             </div>
-            <div class="new-alarm-label">YENİ ALARM</div>
+            <div class="new-alarm-label ${info.pillClass}">YENİ ALARM</div>
         </div>
     `;
     
-    // 3 saniye sonra normal band'a dön
+    console.log('[AlertBand] New alarm highlight:', home, 'vs', away, '- showing for 5 seconds');
+    
+    // 5 saniye sonra normal band'a dön
     setTimeout(() => {
         isHighlightingNewAlarm = false;
+        band.classList.remove('highlight-mode');
         renderAlertBand();
-    }, 3000);
+        console.log('[AlertBand] Highlight ended, returning to normal scroll');
+    }, 5000);
 }
 
 // Alarm zamanını parse et (format: "DD.MM.YYYY HH:MM")
