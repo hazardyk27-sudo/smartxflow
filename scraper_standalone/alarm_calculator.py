@@ -332,18 +332,18 @@ class AlarmCalculator:
         if history_table in self._history_cache:
             return self._history_cache[history_table]
         
-        # Dünden itibaren TÜM veriler - limit yok
-        yesterday = (now_turkey() - timedelta(days=1)).strftime('%Y-%m-%dT00:00:00')
+        # Son 12 saat - yeterli veri, makul hız
+        cutoff = (now_turkey() - timedelta(hours=12)).strftime('%Y-%m-%dT%H:%M:%S')
         
-        log(f"FETCH {history_table} (since yesterday - ALL data)...")
+        log(f"FETCH {history_table} (last 12 hours)...")
         
         rows = []
         offset = 0
         page_size = 1000
-        max_pages = 200  # 200,000 satıra kadar - tum verileri al
+        max_pages = 100  # 100,000 satıra kadar
         
         for page in range(max_pages):
-            params = f"select=*&scraped_at=gte.{yesterday}&order=scraped_at.asc&limit={page_size}&offset={offset}"
+            params = f"select=*&scraped_at=gte.{cutoff}&order=scraped_at.asc&limit={page_size}&offset={offset}"
             batch = self._get(history_table, params)
             if not batch:
                 break
@@ -352,7 +352,7 @@ class AlarmCalculator:
                 break
             offset += page_size
         
-        log(f"  -> {len(rows)} history rows (since: {yesterday})")
+        log(f"  -> {len(rows)} history rows (cutoff: {cutoff})")
         
         history_map = {}
         for row in rows:
