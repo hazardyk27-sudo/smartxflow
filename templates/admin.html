@@ -3187,12 +3187,12 @@
                         <div class="alarm-match">${alarm.home} vs ${alarm.away}</div>
                         <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
                         <div class="alarm-breakdown" style="display: flex; gap: 12px; margin-top: 6px; font-size: 11px;">
-                            <span style="color: #f0883e;" title="Hacim Soku">⚡ ${(alarm.shock_value || 0).toFixed(1)}</span>
-                            <span style="color: #58a6ff;" title="Oran Degisimi">📉 ${(alarm.odds_value || 0).toFixed(1)}</span>
-                            <span style="color: #3fb950;" title="Pay Degisimi">📊 ${(alarm.share_value || 0).toFixed(1)}</span>
+                            <span style="color: #f0883e;" title="Hacim Katkisi">⚡ ${(alarm.volume_contrib || alarm.shock_value || 0).toFixed(1)}</span>
+                            <span style="color: #58a6ff;" title="Oran Katkisi">📉 ${(alarm.odds_contrib || alarm.odds_value || 0).toFixed(1)}</span>
+                            <span style="color: #3fb950;" title="Pay Katkisi">📊 ${(alarm.share_contrib || alarm.share_value || 0).toFixed(1)}</span>
                         </div>
                     </div>
-                    <div class="alarm-score">${(alarm.sharp_score || 0).toFixed(1)}</div>
+                    <div class="alarm-score">${(alarm.sharp_score || alarm.smart_score || 0).toFixed(1)}</div>
                 </div>
             `).join('');
 
@@ -3350,9 +3350,9 @@
                         </div>
                         <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.event_time || ''}</div>
                         <div class="alarm-breakdown" style="display: flex; gap: 12px; margin-top: 6px; font-size: 11px;">
-                            <span style="color: #FFD700;" title="Hacim Soku">⚡ ${(alarm.shock_value || 0).toFixed(1)}</span>
-                            <span style="color: #58a6ff;" title="Oran Degisimi">📉 ${(alarm.odds_value || 0).toFixed(1)}</span>
-                            <span style="color: #3fb950;" title="Pay Degisimi">📊 ${(alarm.share_value || 0).toFixed(1)}</span>
+                            <span style="color: #FFD700;" title="Hacim">💰 £${Math.round(alarm.volume || 0).toLocaleString('en-GB')}</span>
+                            <span style="color: #58a6ff;" title="Oran Dususu">📉 ${(alarm.odds_drop || 0).toFixed(2)}</span>
+                            <span style="color: #3fb950;" title="Pay Degisimi">📊 ${(alarm.delta || alarm.share_change || 0).toFixed(1)}%</span>
                         </div>
                         <!-- Hesaplama Detayları -->
                         <div id="htCalcDetails_${idx}" style="display: none; margin-top: 12px; padding: 12px; background: #161b22; border-radius: 8px; font-size: 11px; border: 1px solid #30363d;">
@@ -3360,7 +3360,7 @@
                             ${detailsContent}
                         </div>
                     </div>
-                    <div class="alarm-score" style="background: linear-gradient(135deg, #FFCC00, #FFD700); color: #000;">${(alarm.sharp_score || 0).toFixed(1)}</div>
+                    <div class="alarm-score" style="background: linear-gradient(135deg, #FFCC00, #FFD700); color: #000;">${(alarm.trap_score || alarm.sharp_score || 0).toFixed(1)}</div>
                 </div>
             `}).join('');
         }
@@ -3580,11 +3580,12 @@
                     } catch(e) { formattedEventTime = eventTime; }
                 }
                 
-                const dropTimeFormatted = alarm.drop_time ? (() => {
+                const dropTimeRaw = alarm.trigger_at || alarm.drop_moment || alarm.drop_time || '';
+                const dropTimeFormatted = dropTimeRaw ? (() => {
                     try {
-                        const dt = new Date(alarm.drop_time);
+                        const dt = new Date(dropTimeRaw);
                         return dt.toLocaleString('tr-TR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
-                    } catch(e) { return alarm.drop_time; }
+                    } catch(e) { return dropTimeRaw; }
                 })() : '-';
                 
                 return `
@@ -3598,10 +3599,10 @@
                             </div>
                             <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
                             <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; font-size: 11px;">
-                                <span style="color: #a371f7;" title="Acilis→Simdi">📉 ${(alarm.opening_odds || 0).toFixed(2)}→${(alarm.current_odds || alarm.last_odds || 0).toFixed(2)} (%${(alarm.oran_dusus_pct || 0).toFixed(1)})</span>
+                                <span style="color: #a371f7;" title="Acilis→Simdi">📉 ${(alarm.opening_odds || alarm.open_odds || 0).toFixed(2)}→${(alarm.current_odds || 0).toFixed(2)} (%${(alarm.oran_dusus_pct || alarm.odds_change_percent || 0).toFixed(1)})</span>
                                 <span style="color: #ef4444;" title="Dusus Ani">⚡ Dusus Ani: ${dropTimeFormatted}</span>
-                                <span style="color: #f0883e;" title="Ortalama Hacim Soku">📊 Ort.HacimSok: ${(alarm.hacim_sok || 0).toFixed(3)}x</span>
-                                <span style="color: #3fb950;" title="Kontrol Edilen Snapshot">📸 ${alarm.snapshot_count || 7} snapshot</span>
+                                <span style="color: #f0883e;" title="Ortalama Hacim Soku">📊 Ort.HacimSok: ${(alarm.hacim_sok || alarm.avg_volume_shock || 0).toFixed(3)}x</span>
+                                <span style="color: #3fb950;" title="Kontrol Edilen Snapshot">📸 ${alarm.snapshot_count || alarm.surrounding_count || 7} snapshot</span>
                             </div>
                         </div>
                         <div class="alarm-score" style="background: linear-gradient(135deg, #a371f7, #8b5cf6);">🕵️</div>
@@ -3616,7 +3617,7 @@
                                 </div>
                                 <div class="insider-detail-row">
                                     <span class="insider-detail-label">Son Oran:</span>
-                                    <span class="insider-detail-value" style="color: #22c55e; font-weight: 700; font-size: 15px;">${(alarm.current_odds || alarm.last_odds || 0).toFixed(2)}</span>
+                                    <span class="insider-detail-value" style="color: #22c55e; font-weight: 700; font-size: 15px;">${(alarm.current_odds || 0).toFixed(2)}</span>
                                 </div>
                                 <div class="insider-detail-row">
                                     <span class="insider-detail-label">Toplam Düşüş:</span>
@@ -3798,7 +3799,7 @@
                 <div class="detail-section">
                     <h4>📊 Oran Bilgileri</h4>
                     <div class="detail-row"><span class="detail-label">Opening Odds (Acilis)</span><span class="detail-value">${alarm.opening_odds || '-'}</span></div>
-                    <div class="detail-row"><span class="detail-label">Last Odds (Son)</span><span class="detail-value">${alarm.current_odds || alarm.last_odds || '-'}</span></div>
+                    <div class="detail-row"><span class="detail-label">Son Oran</span><span class="detail-value">${alarm.current_odds || '-'}</span></div>
                     <div class="detail-row"><span class="detail-label">Oran Dususu (maks)</span><span class="detail-value highlight" style="color: #a371f7;">${(alarm.oran_dusus_pct || 0).toFixed(2)}%</span></div>
                 </div>
                 <div class="detail-section">
@@ -3807,7 +3808,7 @@
                     <div class="detail-row"><span class="detail-label">Hacim Sok Esigi</span><span class="detail-value">&lt; ${alarm.insider_hacim_sok_esigi || 2}x</span></div>
                     <div class="detail-row"><span class="detail-label">Ortalama Gelen Para</span><span class="detail-value">£${Math.round(alarm.gelen_para || 0).toLocaleString('en-GB')}</span></div>
                     <div class="detail-row"><span class="detail-label">Max Para Esigi</span><span class="detail-value">&lt; £${alarm.insider_max_para || 5000}</span></div>
-                    <div class="detail-row"><span class="detail-label">Son Oran</span><span class="detail-value" style="color: #f0b429;">${(alarm.current_odds || alarm.last_odds || 0).toFixed(2)}</span></div>
+                    <div class="detail-row"><span class="detail-label">Son Oran</span><span class="detail-value" style="color: #f0b429;">${(alarm.current_odds || 0).toFixed(2)}</span></div>
                     <div class="detail-row"><span class="detail-label">Max Oran Esigi</span><span class="detail-value">≤ ${alarm.insider_max_odds_esigi || 10}</span></div>
                 </div>
                 <div class="detail-section">
