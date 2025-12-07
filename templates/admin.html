@@ -787,6 +787,7 @@
                     <button class="btn btn-warning" onclick="recalculateAlarms()">Alarmlari Yeniden Hesapla</button>
                     <button class="btn" onclick="resetSharpCalculation()" style="background: #f0b429; color: white;">Sifirla</button>
                     <button class="btn btn-primary" onclick="saveSharpConfig()">Kaydet</button>
+                    <button class="btn" onclick="deleteAlarmConfig('sharp')" style="background: #6e4000; color: white;">Ayarlari Sil</button>
                 </div>
             </div>
 
@@ -1255,6 +1256,7 @@
                     <button class="btn btn-warning" onclick="recalculatePublicMoveAlarms()">Alarmlari Yeniden Hesapla</button>
                     <button class="btn" onclick="resetPublicMoveCalculation()" style="background: #f0b429; color: white;">Sifirla</button>
                     <button class="btn btn-primary" onclick="savePublicMoveConfig()">Kaydet</button>
+                    <button class="btn" onclick="deleteAlarmConfig('publicmove')" style="background: #6e4000; color: white;">Ayarlari Sil</button>
                 </div>
             </div>
 
@@ -1517,6 +1519,7 @@
                     <button class="btn" onclick="recalculateInsiderAlarms()" style="background: linear-gradient(135deg, #a371f7, #8b5cf6); color: white;">🕵️ Insider Hesapla</button>
                     <button class="btn" onclick="resetInsiderCalculation()" style="background: #f0b429; color: white;">Sifirla</button>
                     <button class="btn btn-primary" onclick="saveInsiderConfig()">Kaydet</button>
+                    <button class="btn" onclick="deleteAlarmConfig('insider')" style="background: #6e4000; color: white;">Ayarlari Sil</button>
                 </div>
             </div>
 
@@ -1634,6 +1637,9 @@
                         </button>
                         <button class="btn btn-danger" onclick="deleteBigMoneyAlarms()" style="background: #da3633;">
                             <span class="btn-icon">🗑️</span> Alarmlari Sil
+                        </button>
+                        <button class="btn" onclick="deleteAlarmConfig('bigmoney')" style="background: #6e4000; color: white;">
+                            <span class="btn-icon">⚙️</span> Ayarlari Sil
                         </button>
                     </div>
                 </div>
@@ -1805,6 +1811,9 @@
                     <button class="btn btn-warning" onclick="resetDroppingCalculation()" style="background: #f0b429;">
                         <span class="btn-icon">🔄</span> Sifirla
                     </button>
+                    <button class="btn" onclick="deleteAlarmConfig('dropping')" style="background: #6e4000; color: white;">
+                        <span class="btn-icon">⚙️</span> Ayarlari Sil
+                    </button>
                 </div>
             </div>
 
@@ -1913,6 +1922,9 @@
                         <button class="btn btn-danger" onclick="deleteVolumeShockAlarms()" style="background: #da3633;">
                             <span class="btn-icon">🗑️</span> Alarmlari Sil
                         </button>
+                        <button class="btn" onclick="deleteAlarmConfig('volumeshock')" style="background: #6e4000; color: white;">
+                            <span class="btn-icon">⚙️</span> Ayarlari Sil
+                        </button>
                     </div>
                 </div>
 
@@ -2010,6 +2022,9 @@
                         </button>
                         <button class="btn btn-danger" onclick="deleteAllVolumeLeaderAlarms()" style="background: #da3633;">
                             <span class="btn-icon">🗑️</span> Alarmlari Sil
+                        </button>
+                        <button class="btn" onclick="deleteAlarmConfig('volumeleader')" style="background: #6e4000; color: white;">
+                            <span class="btn-icon">⚙️</span> Ayarlari Sil
                         </button>
                     </div>
                 </div>
@@ -2887,6 +2902,36 @@
             document.getElementById('odds_range_4_max').value = config.odds_range_4_max || 10.00;
             document.getElementById('odds_range_4_mult').value = config.odds_range_4_mult || 3;
             document.getElementById('odds_range_4_min_drop').value = config.odds_range_4_min_drop || 5;
+        }
+
+        async function deleteAlarmConfig(alarmType) {
+            const alarmNames = {
+                'sharp': 'Sharp',
+                'insider': 'Insider',
+                'bigmoney': 'Big Money',
+                'volumeshock': 'Hacim Soku',
+                'dropping': 'Dropping',
+                'publicmove': 'Public Move',
+                'volumeleader': 'Hacim Lideri'
+            };
+            const displayName = alarmNames[alarmType] || alarmType;
+            
+            if (!confirm(`${displayName} alarm AYARLARINI silmek istediginizden emin misiniz?\n\nBu islem alarm kosullarini sifirlar. Yeni config kaydetmeniz gerekecek.`)) return;
+            
+            try {
+                const response = await fetch(`/api/alarm-settings/${alarmType}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    showToast(`${displayName} ayarlari silindi!`, 'success');
+                } else {
+                    showToast(`Silme hatasi: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showToast('Baglanti hatasi!', 'error');
+                console.error('Delete config error:', error);
+            }
         }
 
         async function saveSharpConfig() {

@@ -626,6 +626,18 @@ class SupabaseClient:
             print(f"Error update_alarm_setting: {e}")
             return False
     
+    def delete_alarm_setting(self, alarm_type: str) -> bool:
+        """Delete an alarm setting from database"""
+        if not self.is_available:
+            return False
+        try:
+            url = f"{self._rest_url('alarm_settings')}?alarm_type=eq.{alarm_type}"
+            resp = httpx.delete(url, headers=self._headers(), timeout=10)
+            return resp.status_code in [200, 204]
+        except Exception as e:
+            print(f"Error delete_alarm_setting: {e}")
+            return False
+    
     def get_6h_odds_history(self, market: str) -> Dict[str, Dict[str, Any]]:
         """Drop markets: İlk snapshot vs Son snapshot = Açılıştan bu yana değişim.
         OPTIMIZED: Sadece unique maçları çek, her maç için 1 first + 1 last."""

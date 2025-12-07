@@ -4384,9 +4384,9 @@ def get_alarm_settings():
         return jsonify({'status': 'error', 'message': str(e)})
 
 
-@app.route('/api/alarm-settings/<alarm_type>', methods=['GET', 'PUT'])
+@app.route('/api/alarm-settings/<alarm_type>', methods=['GET', 'PUT', 'DELETE'])
 def manage_alarm_setting(alarm_type):
-    """Get or update a specific alarm setting"""
+    """Get, update or delete a specific alarm setting"""
     try:
         supabase = get_supabase_client()
         if not supabase or not supabase.is_available:
@@ -4408,6 +4408,13 @@ def manage_alarm_setting(alarm_type):
                 print(f"[Admin] Updated alarm setting: {alarm_type} -> enabled={enabled}, config={config}")
                 return jsonify({'status': 'ok', 'message': f'{alarm_type} ayarları güncellendi'})
             return jsonify({'status': 'error', 'message': 'Update failed'})
+        
+        elif request.method == 'DELETE':
+            result = supabase.delete_alarm_setting(alarm_type)
+            if result:
+                print(f"[Admin] Deleted alarm setting: {alarm_type}")
+                return jsonify({'status': 'ok', 'message': f'{alarm_type} ayarları silindi'})
+            return jsonify({'status': 'error', 'message': 'Delete failed'})
     
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
