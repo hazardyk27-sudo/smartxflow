@@ -1,6 +1,6 @@
--- SmartXFlow Alarm Tabloları V3.0 - TEMİZ BAŞLANGIÇ
+-- SmartXFlow Alarm Tabloları V4.0 - ADMIN.EXE UYUMLU
 -- Supabase Dashboard > SQL Editor'da çalıştırın
--- TÜM ALAN ADLARI alarm_calculator.py İLE UYUMLU
+-- TÜM ALAN ADLARI ADMIN.EXE JSON ÇIKTILARIYLA BİREBİR AYNI
 
 -- =====================================================
 -- ADIM 1: ESKİ TABLOLARI SİL (TEMİZ BAŞLANGIÇ)
@@ -14,157 +14,174 @@ DROP TABLE IF EXISTS publicmove_alarms CASCADE;
 DROP TABLE IF EXISTS volume_leader_alarms CASCADE;
 
 -- =====================================================
--- ADIM 2: YENİ TABLOLAR (alarm_calculator.py İLE BİREBİR AYNI)
+-- ADIM 2: YENİ TABLOLAR (ADMIN.EXE İLE BİREBİR AYNI)
 -- =====================================================
 
 -- 1. SHARP ALARMS
 CREATE TABLE sharp_alarms (
     id SERIAL PRIMARY KEY,
-    match_id TEXT,
     home TEXT NOT NULL,
     away TEXT NOT NULL,
     market TEXT NOT NULL,
     selection TEXT NOT NULL,
-    sharp_score NUMERIC,
+    match_date TEXT,
+    event_time TEXT,
+    created_at TEXT,
+    amount_change NUMERIC,
+    avg_last_amounts NUMERIC,
+    shock_raw NUMERIC,
+    shock_value NUMERIC,
+    volume_multiplier NUMERIC,
+    max_volume_cap NUMERIC,
     volume_contrib NUMERIC,
-    odds_contrib NUMERIC,
-    share_contrib NUMERIC,
-    incoming_money NUMERIC,
-    opening_odds NUMERIC,
     previous_odds NUMERIC,
     current_odds NUMERIC,
-    odds_drop_pct NUMERIC,
+    drop_pct NUMERIC,
+    odds_multiplier NUMERIC,
+    odds_value NUMERIC,
+    max_odds_cap NUMERIC,
+    odds_contrib NUMERIC,
     previous_share NUMERIC,
     current_share NUMERIC,
-    share_change NUMERIC,
-    volume_shock_multiplier NUMERIC,
-    weights JSONB,
-    match_date TEXT,
-    trigger_at TEXT,
-    created_at TEXT DEFAULT NOW()::TEXT,
-    alarm_type TEXT DEFAULT 'sharp',
+    share_diff NUMERIC,
+    share_multiplier NUMERIC,
+    share_value NUMERIC,
+    max_share_cap NUMERIC,
+    share_contrib NUMERIC,
+    sharp_score NUMERIC,
+    min_sharp_score NUMERIC,
+    triggered BOOLEAN DEFAULT TRUE,
     UNIQUE(home, away, market, selection)
 );
 
 -- 2. INSIDER ALARMS
 CREATE TABLE insider_alarms (
     id SERIAL PRIMARY KEY,
-    match_id TEXT,
     home TEXT NOT NULL,
     away TEXT NOT NULL,
     market TEXT NOT NULL,
     selection TEXT NOT NULL,
-    odds_drop_pct NUMERIC,
-    max_odds_drop NUMERIC,
-    incoming_money NUMERIC,
-    volume_shock NUMERIC,
+    match_date TEXT,
+    event_time TEXT,
+    created_at TEXT,
+    hacim_sok NUMERIC,
+    oran_dusus_pct NUMERIC,
+    gelen_para NUMERIC,
     opening_odds NUMERIC,
     current_odds NUMERIC,
-    drop_moment_index INTEGER,
-    drop_moment TEXT,
-    surrounding_snapshots JSONB,
+    last_odds NUMERIC,
+    drop_time TEXT,
+    drop_index INTEGER,
+    window_start_odds NUMERIC,
+    window_end_odds NUMERIC,
+    window_odds_drop_pct NUMERIC,
+    snapshot_details JSONB,
+    insider_hacim_sok_esigi NUMERIC,
+    insider_oran_dusus_esigi NUMERIC,
+    insider_sure_dakika NUMERIC,
+    insider_max_para NUMERIC,
+    insider_max_odds_esigi NUMERIC,
     snapshot_count INTEGER,
-    match_date TEXT,
-    trigger_at TEXT,
-    created_at TEXT DEFAULT NOW()::TEXT,
-    alarm_type TEXT DEFAULT 'insider',
+    triggered BOOLEAN DEFAULT TRUE,
     UNIQUE(home, away, market, selection)
 );
 
 -- 3. BIGMONEY ALARMS
 CREATE TABLE bigmoney_alarms (
     id SERIAL PRIMARY KEY,
-    match_id TEXT,
     home TEXT NOT NULL,
     away TEXT NOT NULL,
     market TEXT NOT NULL,
     selection TEXT NOT NULL,
+    match_date TEXT,
+    event_time TEXT,
+    created_at TEXT,
     incoming_money NUMERIC,
     selection_total NUMERIC,
     is_huge BOOLEAN DEFAULT FALSE,
     huge_total NUMERIC,
-    match_date TEXT,
-    trigger_at TEXT,
-    created_at TEXT DEFAULT NOW()::TEXT,
-    alarm_type TEXT DEFAULT 'bigmoney',
-    UNIQUE(home, away, market, selection, trigger_at)
+    alarm_type TEXT,
+    big_money_limit NUMERIC,
+    snapshot_count INTEGER,
+    UNIQUE(home, away, market, selection, event_time)
 );
 
 -- 4. VOLUMESHOCK ALARMS
 CREATE TABLE volumeshock_alarms (
     id SERIAL PRIMARY KEY,
-    match_id TEXT,
+    type TEXT DEFAULT 'volume_shock',
     home TEXT NOT NULL,
     away TEXT NOT NULL,
     market TEXT NOT NULL,
     selection TEXT NOT NULL,
-    volume_shock NUMERIC,
-    volume_shock_multiplier NUMERIC,
+    match_date TEXT,
+    event_time TEXT,
+    created_at TEXT,
+    volume_shock_value NUMERIC,
+    hours_to_kickoff NUMERIC,
     incoming_money NUMERIC,
     avg_previous NUMERIC,
-    match_date TEXT,
-    trigger_at TEXT,
-    created_at TEXT DEFAULT NOW()::TEXT,
-    alarm_type TEXT DEFAULT 'volumeshock',
+    hacim_soku_min_saat NUMERIC,
+    hacim_soku_min_esik NUMERIC,
     UNIQUE(home, away, market, selection)
 );
 
 -- 5. DROPPING ALARMS
 CREATE TABLE dropping_alarms (
     id SERIAL PRIMARY KEY,
-    match_id TEXT,
     home TEXT NOT NULL,
     away TEXT NOT NULL,
+    home_team TEXT,
+    away_team TEXT,
+    match_id TEXT,
+    league TEXT,
     market TEXT NOT NULL,
     selection TEXT NOT NULL,
+    match_date TEXT,
+    fixture_date TEXT,
+    event_time TEXT,
+    created_at TEXT,
+    level TEXT,
     opening_odds NUMERIC,
     current_odds NUMERIC,
-    odds_drop_pct NUMERIC,
-    level TEXT,
-    match_date TEXT,
-    trigger_at TEXT,
-    created_at TEXT DEFAULT NOW()::TEXT,
-    alarm_type TEXT DEFAULT 'dropping',
+    drop_pct NUMERIC,
+    volume NUMERIC,
     UNIQUE(home, away, market, selection)
 );
 
 -- 6. PUBLICMOVE ALARMS
 CREATE TABLE publicmove_alarms (
     id SERIAL PRIMARY KEY,
-    match_id TEXT,
     home TEXT NOT NULL,
     away TEXT NOT NULL,
     market TEXT NOT NULL,
     selection TEXT NOT NULL,
+    match_date TEXT,
+    event_time TEXT,
+    created_at TEXT,
     trap_score NUMERIC,
     incoming_money NUMERIC,
     odds_drop_pct NUMERIC,
     previous_share NUMERIC,
     current_share NUMERIC,
     share_change NUMERIC,
-    match_date TEXT,
-    trigger_at TEXT,
-    created_at TEXT DEFAULT NOW()::TEXT,
-    alarm_type TEXT DEFAULT 'publicmove',
     UNIQUE(home, away, market, selection)
 );
 
 -- 7. VOLUME LEADER ALARMS
 CREATE TABLE volume_leader_alarms (
     id SERIAL PRIMARY KEY,
-    match_id TEXT,
     home TEXT NOT NULL,
     away TEXT NOT NULL,
     market TEXT NOT NULL,
+    match_date TEXT,
+    event_time TEXT,
+    created_at TEXT,
     old_leader TEXT,
     old_leader_share NUMERIC,
     new_leader TEXT,
     new_leader_share NUMERIC,
     total_volume NUMERIC,
-    match_date TEXT,
-    trigger_at TEXT,
-    created_at TEXT DEFAULT NOW()::TEXT,
-    alarm_type TEXT DEFAULT 'volumeleader',
     UNIQUE(home, away, market, old_leader, new_leader)
 );
 
@@ -217,4 +234,4 @@ CREATE INDEX idx_volumeleader_created ON volume_leader_alarms(created_at);
 -- =====================================================
 -- TAMAMLANDI
 -- =====================================================
-SELECT 'Tüm alarm tabloları başarıyla oluşturuldu! (V3.0 - alarm_calculator.py ile uyumlu)' as result;
+SELECT 'Tüm alarm tabloları başarıyla oluşturuldu! (V4.0 - Admin.exe uyumlu)' as result;

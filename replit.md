@@ -47,7 +47,14 @@ The system uses a hybrid architecture with Supabase as the single source of trut
 | publicmove_alarms | Public Move |
 | volume_leader_alarms | Hacim Lideri (Volume Leader) |
 
-**Important:** User must run `create_alarm_tables.sql` in Supabase Dashboard (SQL Editor) to create these tables before the EXE can write alarms. Until then, the system uses local JSON fallback.
+**Important:** User must run `create_alarm_tables.sql` (V4.0) in Supabase Dashboard (SQL Editor) to create these tables before the EXE can write alarms. Until then, the system uses local JSON fallback.
+
+**ALAN ADI UYUMU (V4.0 - 2025-12-07):**
+Tüm alan adları admin.exe'nin JSON çıktısıyla birebir aynı. Supabase tabloları ve Replit kodu uyumlu:
+- Sharp: `amount_change`, `drop_pct`, `share_diff`, `sharp_score`, `shock_raw`, `shock_value` vb.
+- Insider: `hacim_sok`, `oran_dusus_pct`, `gelen_para`, `snapshot_details` vb.
+- VolumeShock: `volume_shock_value`, `hours_to_kickoff`, `hacim_soku_min_saat`, `hacim_soku_min_esik` vb.
+- Dropping: `level`, `drop_pct`, `home_team`, `away_team`, `fixture_date` vb.
 
 **Technology Stack:**
 - **Language:** Python 3.11
