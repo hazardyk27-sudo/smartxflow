@@ -8,7 +8,7 @@ let autoScrapeRunning = false;
 let currentSortColumn = 'date';
 let currentSortDirection = 'desc';
 let chartVisibleSeries = {};
-let dateFilterMode = 'ALL';
+let dateFilterMode = 'TODAY';
 let chartTimeRange = '10min';
 let currentChartHistoryData = [];
 let chartViewMode = 'percent';
@@ -196,6 +196,10 @@ function escapeHtml(str) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Günün Maçları butonunu aktif yap (dateFilterMode = 'TODAY' default)
+    const todayBtn = document.getElementById('todayBtn');
+    if (todayBtn) todayBtn.classList.add('active');
+    
     loadMatches();
     setupTabs();
     setupSearch();
