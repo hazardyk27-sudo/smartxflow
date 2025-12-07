@@ -830,7 +830,10 @@ class AlarmCalculator:
                     if total_incoming >= max_para:
                         continue
                     
-                    if max_hacim_sok >= hacim_sok_esigi:
+                    # INSIDER MANTIK: Hacim şoku DÜŞÜK olmalı (para girmeden oran düşüşü)
+                    # hacim_sok_esigi = maksimum kabul edilebilir hacim şoku
+                    # Eğer hacim şoku bu eşikten BÜYÜKSE, bu insider değil normal hareket
+                    if max_hacim_sok > hacim_sok_esigi:
                         continue
                     
                     trigger_at = trigger_snap.get('scraped_at', now_turkey_iso())
