@@ -1007,41 +1007,45 @@ class AlarmCalculator:
                     if not big_snapshots:
                         continue
                     
-                    is_huge = False
-                    huge_total = 0
-                    for j in range(len(big_snapshots) - 1):
-                        if big_snapshots[j+1]['index'] - big_snapshots[j]['index'] == 1:
-                            is_huge = True
-                            huge_total = big_snapshots[j]['incoming'] + big_snapshots[j+1]['incoming']
-                            break
-                    
-                    max_snap = max(big_snapshots, key=lambda s: s['incoming'])
                     selection_total = parse_volume(history[-1].get(amount_key, 0))
-                    trigger_at = max_snap.get('scraped_at', now_turkey_iso())
                     match_id = f"{home}|{away}|{match.get('date', '')}"
                     
-                    alarm = {
-                        'match_id': match_id,
-                        'home': home,
-                        'away': away,
-                        'market': market_names.get(market, market),
-                        'selection': selection,
-                        'incoming_money': max_snap['incoming'],
-                        'selection_total': selection_total,
-                        'is_huge': is_huge,
-                        'huge_total': huge_total,
-                        'alarm_type': 'HUGE MONEY' if is_huge else 'BIG MONEY',
-                        'match_date': match.get('date', ''),
-                        'event_time': trigger_at,
-                        'trigger_at': trigger_at,
-                        'created_at': now_turkey_iso()
-                    }
-                    alarms.append(alarm)
-                    alarm_label = 'HUGE' if is_huge else 'BIG'
-                    log(f"  [{alarm_label} MONEY] {home} vs {away} | {market_names.get(market, market)}-{selection} | £{max_snap['incoming']:,.0f} gelen (Toplam: £{selection_total:,.0f})")
+                    # Her büyük para hareketini AYRI alarm olarak kaydet
+                    for snap_idx, snap in enumerate(big_snapshots):
+                        # Ardışık snapshot'lar HUGE MONEY
+                        is_huge = False
+                        huge_total = 0
+                        if snap_idx < len(big_snapshots) - 1:
+                            next_snap = big_snapshots[snap_idx + 1]
+                            if next_snap['index'] - snap['index'] == 1:
+                                is_huge = True
+                                huge_total = snap['incoming'] + next_snap['incoming']
+                        
+                        trigger_at = snap.get('scraped_at', now_turkey_iso())
+                        
+                        alarm = {
+                            'match_id': match_id,
+                            'home': home,
+                            'away': away,
+                            'market': market_names.get(market, market),
+                            'selection': selection,
+                            'incoming_money': snap['incoming'],
+                            'selection_total': selection_total,
+                            'is_huge': is_huge,
+                            'huge_total': huge_total,
+                            'alarm_type': 'HUGE MONEY' if is_huge else 'BIG MONEY',
+                            'match_date': match.get('date', ''),
+                            'event_time': trigger_at,
+                            'trigger_at': trigger_at,
+                            'created_at': now_turkey_iso()
+                        }
+                        alarms.append(alarm)
+                        alarm_label = 'HUGE' if is_huge else 'BIG'
+                        log(f"  [{alarm_label} MONEY] {home} vs {away} | {market_names.get(market, market)}-{selection} | £{snap['incoming']:,.0f} gelen")
         
         if alarms:
-            new_count = self._upsert_alarms('bigmoney_alarms', alarms, ['home', 'away', 'market', 'selection'])
+            # trigger_at dahil - her hareket ayrı kayıt olsun
+            new_count = self._upsert_alarms('bigmoney_alarms', alarms, ['home', 'away', 'market', 'selection', 'trigger_at'])
             log(f"BigMoney: {new_count} alarms upserted")
         else:
             log("BigMoney: 0 alarm")
