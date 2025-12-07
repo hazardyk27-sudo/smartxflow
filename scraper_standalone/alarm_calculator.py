@@ -713,6 +713,13 @@ class AlarmCalculator:
         max_odds = parse_float(config.get('max_odds_esigi', config.get('insider_max_odds_esigi', 10.0)))
         log(f"[Insider Config PARSED] hacim_sok: {hacim_sok_esigi}, oran_dusus: {oran_dusus_esigi}, max_para: {max_para}, max_odds: {max_odds}")
         
+        # Her hesaplamada önce tabloyu temizle - eski/geçersiz alarmları kaldır
+        try:
+            self._delete('insider_alarms', '')  # Tüm insider alarmları sil
+            log("[Insider] Table cleared before recalculation")
+        except Exception as e:
+            log(f"[Insider] Table clear failed: {e}")
+        
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
         market_names = {'moneyway_1x2': '1X2', 'moneyway_ou25': 'O/U 2.5', 'moneyway_btts': 'BTTS'}
