@@ -1288,6 +1288,9 @@ def write_sharp_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
         incoming = alarm.get('amount_change') or alarm.get('incoming_money') or 0
         odds_drop = alarm.get('drop_pct') or alarm.get('drop_percentage') or alarm.get('odds_drop_pct') or 0
         share_diff = alarm.get('share_diff') or alarm.get('share_change') or alarm.get('share_change_percent') or 0
+        shock_raw = alarm.get('shock_raw') or alarm.get('volume_shock') or alarm.get('hacim_sok') or 0
+        shock_val = alarm.get('shock_value') or alarm.get('volume') or shock_raw or 0
+        avg_prev = alarm.get('avg_last_amounts') or alarm.get('avg_prev') or alarm.get('avg_previous') or 0
         
         mapped = {
             'home': alarm.get('home', ''),
@@ -1299,11 +1302,14 @@ def write_sharp_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
             'volume_contrib': alarm.get('volume_contrib'),
             'odds_contrib': alarm.get('odds_contrib'),
             'share_contrib': alarm.get('share_contrib'),
-            'volume': alarm.get('volume') or alarm.get('shock_value') or alarm.get('volume_shock'),
+            'volume': shock_val,
+            'volume_shock': shock_raw,
+            'shock_raw': shock_raw,
+            'shock_value': shock_val,
             'volume_shock_multiplier': alarm.get('volume_shock_multiplier') or alarm.get('volume_multiplier'),
             'incoming_money': incoming,
             'amount_change': incoming,
-            'avg_previous': alarm.get('avg_last_amounts') or alarm.get('avg_prev') or alarm.get('avg_previous'),
+            'avg_previous': avg_prev,
             'opening_odds': alarm.get('opening_odds'),
             'previous_odds': alarm.get('previous_odds') or alarm.get('prev_odds'),
             'current_odds': alarm.get('current_odds'),

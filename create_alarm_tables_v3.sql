@@ -459,6 +459,9 @@ CREATE INDEX IF NOT EXISTS idx_dropping_btts_teams ON dropping_btts_history(home
 ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS incoming_money NUMERIC;
 ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS amount_change NUMERIC;
 ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS avg_previous NUMERIC;
+ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS volume_shock NUMERIC;
+ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS shock_raw NUMERIC;
+ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS shock_value NUMERIC;
 ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS odds_drop_pct NUMERIC;
 ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS share_change NUMERIC;
 ALTER TABLE sharp_alarms ADD COLUMN IF NOT EXISTS smart_score NUMERIC;
