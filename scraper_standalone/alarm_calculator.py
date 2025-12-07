@@ -338,31 +338,31 @@ class AlarmCalculator:
         return matches
     
     def batch_fetch_history(self, market: str) -> Dict[str, List[Dict]]:
-        """Batch fetch ALL history for a market - NO time filter, full pagination"""
+        """Batch fetch ALL history for a market - NO LIMIT, tüm snapshot'lar okunur
+        History zaten dünden önce temizlendiği için boyut küçük kalır.
+        """
         history_table = f"{market}_history"
         
         if history_table in self._history_cache:
             return self._history_cache[history_table]
         
-        log(f"FETCH {history_table} (ALL data - no time limit)...")
+        log(f"[HISTORY] Fetching {history_table} (NO LIMIT - tüm snapshot'lar)...")
         
         rows = []
         offset = 0
         page_size = 1000
-        max_pages = 500  # 500,000 satıra kadar - tüm veriyi al
         
-        for page in range(max_pages):
+        while True:
             params = f"select=*&order=scraped_at.asc&limit={page_size}&offset={offset}"
             batch = self._get(history_table, params)
             if not batch:
                 break
             rows.extend(batch)
-            log(f"  -> Page {page+1}: {len(rows)} rows total")
             if len(batch) < page_size:
                 break
             offset += page_size
         
-        log(f"  -> {len(rows)} history rows (ALL)")
+        log(f"[HISTORY] {history_table}: {len(rows)} total snapshots loaded")
         
         history_map = {}
         for row in rows:
@@ -391,8 +391,8 @@ class AlarmCalculator:
         Returns: Total number of alarms calculated
         """
         log("=" * 50)
-        log("ALARM HESAPLAMA BASLADI")
-        log(f"Supabase URL: {self.url[:40]}...")
+        log("[ALARM SYNC] ALARM HESAPLAMA BASLADI")
+        log(f"[ALARM SYNC] Supabase URL: {self.url[:40]}...")
         log("=" * 50)
         
         # LIVE RELOAD: Refresh configs from Supabase before calculations
@@ -507,9 +507,9 @@ class AlarmCalculator:
             alarm_counts['VolumeLeader'] = 0
         
         log("=" * 50)
-        log(f"HESAPLAMA TAMAMLANDI - TOPLAM: {total_alarms} alarm")
-        summary = " | ".join([f"{k}:{v}" for k, v in alarm_counts.items()])
-        log(f"  {summary}")
+        log(f"[ALARM SYNC] HESAPLAMA TAMAMLANDI - TOPLAM: {total_alarms} alarm")
+        summary = ", ".join([f"{k}={v}" for k, v in alarm_counts.items()])
+        log(f"[ALARM SYNC] Upserted alarm records: {summary}")
         log("=" * 50)
         
         self.last_alarm_count = total_alarms

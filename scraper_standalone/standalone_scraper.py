@@ -722,18 +722,21 @@ def run_scrape(writer: SupabaseWriter, logger_callback=None):
     return total_rows
 
 
-def run_alarm_calculations_safe(supabase_url: str, supabase_key: str):
-    """Safely run alarm calculations - catches errors to not break main scraper"""
+def run_alarm_calculations_safe(supabase_url: str, supabase_key: str, logger_callback=None):
+    """Safely run alarm calculations after each scrape - catches errors to not break main scraper"""
+    _log = logger_callback if logger_callback else log
     try:
         from alarm_calculator import AlarmCalculator
-        log("Alarm hesaplamalari baslatiliyor...")
-        calculator = AlarmCalculator(supabase_url, supabase_key)
-        calculator.run_all_calculations()
-        log("Alarm hesaplamalari tamamlandi")
+        _log("[ALARM SYNC] Scrape tamamlandi - Alarm hesaplamasi baslatiliyor...")
+        calculator = AlarmCalculator(supabase_url, supabase_key, logger_callback=_log)
+        total = calculator.run_all_calculations()
+        _log(f"[ALARM SYNC] Tamamlandi - Toplam {total} alarm hesaplandi")
     except ImportError as e:
-        log(f"Alarm modulu yuklenemedi: {e}")
+        _log(f"[ALARM SYNC] HATA - Alarm modulu yuklenemedi: {e}")
     except Exception as e:
-        log(f"Alarm hesaplama hatasi: {e}")
+        import traceback
+        _log(f"[ALARM SYNC] HATA - {e}")
+        _log(f"[ALARM SYNC] Traceback: {traceback.format_exc()}")
 
 
 def main():
