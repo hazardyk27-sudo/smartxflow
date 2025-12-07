@@ -173,7 +173,20 @@ class AlarmCalculator:
                 resp = httpx.post(url, headers=headers, json=data, timeout=30)
             else:
                 resp = httpx.post(url, headers=headers, json=data, timeout=30)
-            return resp.status_code in [200, 201]
+            
+            if resp.status_code in [200, 201]:
+                return True
+            else:
+                # HTTP ERROR LOGLAMA - Sessiz hataları önle
+                log(f"[POST ERROR] {table}: HTTP {resp.status_code}")
+                try:
+                    error_body = resp.text[:500] if hasattr(resp, 'text') else str(resp.content[:500])
+                    log(f"[POST ERROR] Response: {error_body}")
+                except:
+                    pass
+                if data and len(data) > 0:
+                    log(f"[POST ERROR] First record keys: {list(data[0].keys())}")
+                return False
         except Exception as e:
             log(f"POST error {table}: {e}")
         return False
@@ -225,10 +238,9 @@ class AlarmCalculator:
                 key = '|'.join(key_parts)
                 if key in existing_data:
                     orig = existing_data[key]
-                    # Preserve ALL timestamp fields from first detection
+                    # Preserve timestamp fields from first detection
                     if orig.get('trigger_at'):
                         alarm['trigger_at'] = orig['trigger_at']
-                        alarm['event_time'] = orig['trigger_at']
                     if orig.get('created_at'):
                         alarm['created_at'] = orig['created_at']
                     preserved_count += 1
@@ -666,22 +678,20 @@ class AlarmCalculator:
                             'market': market_names.get(market, market),
                             'selection': selection,
                             'sharp_score': round(sharp_score, 2),
-                            'smart_score': round(sharp_score, 2),
-                            'drop_percentage': round(drop_percentage, 2),
+                            'odds_drop_pct': round(drop_percentage, 2),
                             'volume_shock_multiplier': round(volume_contrib, 2),
-                            'share_change_percent': round(share_change_pct, 2),
+                            'share_change': round(share_change_pct, 2),
                             'weights': json.dumps({'volume': vol_mult, 'odds': odds_mult, 'share': share_mult}),
                             'volume_contrib': round(volume_contrib, 2),
                             'odds_contrib': round(odds_contrib, 2),
                             'share_contrib': round(share_contrib, 2),
-                            'volume': volume_change,
+                            'incoming_money': volume_change,
                             'opening_odds': opening_odds,
                             'previous_odds': prev_odds,
                             'current_odds': current_odds,
                             'previous_share': prev_pct,
                             'current_share': current_pct,
                             'match_date': match.get('date', ''),
-                            'event_time': trigger_at,
                             'trigger_at': trigger_at,
                             'created_at': now_turkey_iso(),
                             'alarm_type': 'sharp'
@@ -840,7 +850,7 @@ class AlarmCalculator:
                             'odds': parse_float(surrounding_snapshots[i].get(odds_key, 0)),
                             'amount': curr_amt,
                             'incoming': round(incoming, 0),
-                            'hacim_sok': round(hacim_sok, 4),
+                            'volume_shock': round(hacim_sok, 4),
                             'is_drop_moment': (start_idx + i) == drop_moment_index
                         })
                     
@@ -858,21 +868,17 @@ class AlarmCalculator:
                         'away': away,
                         'market': market_names.get(market, market),
                         'selection': selection,
-                        'odds_change_percent': round(oran_dusus_pct, 2),
-                        'oran_dusus_pct': round(oran_dusus_pct, 2),
+                        'odds_drop_pct': round(oran_dusus_pct, 2),
                         'max_odds_drop': round(max_odds_drop, 3),
-                        'gelen_para': total_incoming,
-                        'hacim_sok': round(max_hacim_sok, 4),
-                        'open_odds': opening_odds,
+                        'incoming_money': total_incoming,
+                        'volume_shock': round(max_hacim_sok, 4),
                         'opening_odds': opening_odds,
                         'current_odds': current_odds,
                         'drop_moment_index': drop_moment_index,
                         'drop_moment': trigger_at,
                         'surrounding_snapshots': surrounding_details,
-                        'surrounding_count': len(surrounding_snapshots),
-                        'n_snapshots_config': n_snapshots,
+                        'snapshot_count': len(surrounding_snapshots),
                         'match_date': match.get('date', ''),
-                        'event_time': trigger_at,
                         'trigger_at': trigger_at,
                         'created_at': now_turkey_iso(),
                         'alarm_type': 'insider'
@@ -993,7 +999,6 @@ class AlarmCalculator:
                             'huge_total': huge_total,
                             'alarm_type': 'HUGE MONEY' if is_huge else 'BIG MONEY',
                             'match_date': match.get('date', ''),
-                            'event_time': trigger_at,
                             'trigger_at': trigger_at,
                             'created_at': now_turkey_iso()
                         }
@@ -1103,14 +1108,11 @@ class AlarmCalculator:
                             'away': away,
                             'market': market_names.get(market, market),
                             'selection': selection,
-                            'volume_shock_value': round(shock_value, 2),
-                            'multiplier': round(shock_value, 2),
-                            'new_money': incoming,
+                            'volume_shock': round(shock_value, 2),
+                            'volume_shock_multiplier': round(shock_value, 2),
                             'incoming_money': incoming,
-                            'avg_last_10': round(avg_prev, 0),
                             'avg_previous': round(avg_prev, 0),
                             'match_date': match.get('date', ''),
-                            'event_time': trigger_at,
                             'trigger_at': trigger_at,
                             'created_at': now_turkey_iso(),
                             'alarm_type': 'volumeshock'
@@ -1218,14 +1220,11 @@ class AlarmCalculator:
                         'away': away,
                         'market': market_names.get(market, market),
                         'selection': selection,
-                        'open_odds': opening_odds,
                         'opening_odds': opening_odds,
                         'current_odds': current_odds,
-                        'drop_percentage': round(drop_pct, 2),
-                        'drop_pct': round(drop_pct, 2),
+                        'odds_drop_pct': round(drop_pct, 2),
                         'level': level,
                         'match_date': match.get('date', ''),
-                        'event_time': trigger_at,
                         'trigger_at': trigger_at,
                         'created_at': now_turkey_iso(),
                         'alarm_type': 'dropping'
@@ -1383,15 +1382,13 @@ class AlarmCalculator:
                             'away': away,
                             'market': market_names.get(market, market),
                             'selection': selection,
-                            'move_score': round(move_score, 2),
-                            'volume': volume_change,
-                            'odds_drop': odds_drop,
-                            'share_before': round(prev_pct, 2),
-                            'share_after': round(current_pct, 2),
-                            'delta': round(share_change, 2),
-                            'share_change': share_change,
+                            'trap_score': round(move_score, 2),
+                            'incoming_money': volume_change,
+                            'odds_drop_pct': round((odds_drop / prev_odds * 100) if prev_odds > 0 else 0, 2),
+                            'previous_share': round(prev_pct, 2),
+                            'current_share': round(current_pct, 2),
+                            'share_change': round(share_change, 2),
                             'match_date': match.get('date', ''),
-                            'event_time': trigger_at,
                             'trigger_at': trigger_at,
                             'created_at': now_turkey_iso(),
                             'alarm_type': 'publicmove'
@@ -1507,7 +1504,6 @@ class AlarmCalculator:
                             'new_leader_share': round(curr_leader[1], 1),
                             'total_volume': trigger_volume,
                             'match_date': match.get('date', ''),
-                            'event_time': trigger_at,
                             'trigger_at': trigger_at,
                             'created_at': now_turkey_iso(),
                             'alarm_type': 'volumeleader'
