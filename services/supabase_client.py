@@ -1226,11 +1226,12 @@ def write_alarms_to_supabase(table_name: str, alarms: List[Dict[str, Any]], clea
 
 
 def write_insider_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
-    """Write Insider alarms to Supabase with field mapping"""
+    """Write Insider alarms to Supabase with field mapping - TÜM FIELD'LAR"""
+    import json as json_module
     mapped_alarms = []
     for alarm in alarms:
-        # snapshot_details veya surrounding_snapshots - JSON olarak
         snapshot_data = alarm.get('snapshot_details') or alarm.get('surrounding_snapshots') or []
+        snapshot_count = alarm.get('snapshot_count') or len(snapshot_data)
         
         mapped = {
             'home': alarm.get('home', ''),
@@ -1238,43 +1239,65 @@ def write_insider_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
             'market': alarm.get('market', ''),
             'selection': alarm.get('selection', ''),
             'oran_dusus_pct': alarm.get('oran_dusus_pct'),
+            'odds_change_percent': alarm.get('odds_change_percent') or alarm.get('oran_dusus_pct'),
             'gelen_para': alarm.get('gelen_para'),
             'hacim_sok': alarm.get('hacim_sok'),
+            'avg_volume_shock': alarm.get('avg_volume_shock'),
+            'max_surrounding_hacim_sok': alarm.get('max_surrounding_hacim_sok'),
+            'max_surrounding_incoming': alarm.get('max_surrounding_incoming'),
             'opening_odds': alarm.get('opening_odds'),
-            'current_odds': alarm.get('last_odds') or alarm.get('current_odds'),
+            'open_odds': alarm.get('open_odds') or alarm.get('opening_odds'),
+            'current_odds': alarm.get('current_odds') or alarm.get('last_odds'),
+            'surrounding_snapshots': snapshot_data if isinstance(snapshot_data, list) else json_module.loads(snapshot_data) if snapshot_data else [],
+            'surrounding_count': alarm.get('surrounding_count') or len(snapshot_data) if snapshot_data else 0,
+            'snapshot_count': snapshot_count,
+            'drop_moment_index': alarm.get('drop_moment_index'),
+            'drop_moment': alarm.get('drop_moment'),
             'match_date': alarm.get('match_date', ''),
             'event_time': alarm.get('event_time', ''),
-            'trigger_at': alarm.get('drop_time', ''),
+            'trigger_at': alarm.get('trigger_at') or alarm.get('drop_time', ''),
             'created_at': alarm.get('created_at', ''),
-            'alarm_type': 'insider',
-            'surrounding_snapshots': snapshot_data,
-            'snapshot_count': alarm.get('snapshot_count', len(snapshot_data))
+            'alarm_type': 'insider'
         }
         mapped_alarms.append(mapped)
     return write_alarms_to_supabase('insider_alarms', mapped_alarms, on_conflict='home,away,market,selection')
 
 
 def write_sharp_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
-    """Write Sharp alarms to Supabase with field mapping"""
+    """Write Sharp alarms to Supabase with field mapping - TÜM FIELD'LAR"""
+    import json as json_module
     mapped_alarms = []
     for alarm in alarms:
+        weights_data = alarm.get('weights')
+        if isinstance(weights_data, str):
+            try:
+                weights_data = json_module.loads(weights_data)
+            except:
+                weights_data = None
+        
         mapped = {
             'home': alarm.get('home', ''),
             'away': alarm.get('away', ''),
             'market': alarm.get('market', ''),
             'selection': alarm.get('selection', ''),
             'sharp_score': alarm.get('sharp_score'),
+            'smart_score': alarm.get('smart_score') or alarm.get('sharp_score'),
             'volume_contrib': alarm.get('volume_contrib'),
             'odds_contrib': alarm.get('odds_contrib'),
             'share_contrib': alarm.get('share_contrib'),
-            'volume': alarm.get('shock_value') or alarm.get('volume'),
+            'volume': alarm.get('volume') or alarm.get('shock_value'),
+            'volume_shock_multiplier': alarm.get('volume_shock_multiplier'),
+            'opening_odds': alarm.get('opening_odds'),
             'previous_odds': alarm.get('previous_odds'),
             'current_odds': alarm.get('current_odds'),
+            'drop_percentage': alarm.get('drop_percentage'),
             'previous_share': alarm.get('previous_share'),
             'current_share': alarm.get('current_share'),
+            'share_change_percent': alarm.get('share_change_percent'),
+            'weights': weights_data,
             'match_date': alarm.get('match_date', ''),
             'event_time': alarm.get('event_time', ''),
-            'trigger_at': alarm.get('created_at', ''),
+            'trigger_at': alarm.get('trigger_at') or alarm.get('created_at', ''),
             'created_at': alarm.get('created_at', ''),
             'alarm_type': 'sharp'
         }
@@ -1283,7 +1306,7 @@ def write_sharp_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
 
 
 def write_publicmove_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
-    """Write PublicMove alarms to Supabase with field mapping"""
+    """Write PublicMove alarms to Supabase with field mapping - TÜM FIELD'LAR"""
     mapped_alarms = []
     for alarm in alarms:
         mapped = {
@@ -1291,13 +1314,16 @@ def write_publicmove_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
             'away': alarm.get('away', ''),
             'market': alarm.get('market', ''),
             'selection': alarm.get('selection', ''),
-            'trap_score': alarm.get('sharp_score') or alarm.get('trap_score'),
-            'volume': alarm.get('volume') or alarm.get('shock_value'),
-            'odds_drop': alarm.get('odds_value'),
-            'share_change': alarm.get('share_value') or alarm.get('current_share'),
+            'trap_score': alarm.get('trap_score') or alarm.get('sharp_score'),
+            'volume': alarm.get('volume'),
+            'odds_drop': alarm.get('odds_drop'),
+            'share_before': alarm.get('share_before'),
+            'share_after': alarm.get('share_after'),
+            'share_change': alarm.get('share_change'),
+            'delta': alarm.get('delta'),
             'match_date': alarm.get('match_date', ''),
             'event_time': alarm.get('event_time', ''),
-            'trigger_at': alarm.get('created_at', ''),
+            'trigger_at': alarm.get('trigger_at') or alarm.get('created_at', ''),
             'created_at': alarm.get('created_at', ''),
             'alarm_type': 'publicmove'
         }
@@ -1352,7 +1378,7 @@ def write_bigmoney_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
 
 
 def write_dropping_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
-    """Write Dropping alarms to Supabase with field mapping"""
+    """Write Dropping alarms to Supabase with field mapping - TÜM FIELD'LAR"""
     mapped_alarms = []
     for alarm in alarms:
         mapped = {
@@ -1360,12 +1386,15 @@ def write_dropping_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
             'away': alarm.get('away', ''),
             'market': alarm.get('market', ''),
             'selection': alarm.get('selection', ''),
-            'drop_pct': alarm.get('drop_pct') or alarm.get('oran_dusus_pct'),
             'opening_odds': alarm.get('opening_odds'),
+            'open_odds': alarm.get('open_odds') or alarm.get('opening_odds'),
             'current_odds': alarm.get('current_odds') or alarm.get('last_odds'),
+            'drop_pct': alarm.get('drop_pct') or alarm.get('oran_dusus_pct'),
+            'drop_percentage': alarm.get('drop_percentage') or alarm.get('drop_pct'),
+            'level': alarm.get('level'),
             'match_date': alarm.get('match_date', ''),
             'event_time': alarm.get('event_time', ''),
-            'trigger_at': alarm.get('created_at', ''),
+            'trigger_at': alarm.get('trigger_at') or alarm.get('created_at', ''),
             'created_at': alarm.get('created_at', ''),
             'alarm_type': 'dropping'
         }
@@ -1374,7 +1403,7 @@ def write_dropping_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
 
 
 def write_volumeshock_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
-    """Write VolumeShock alarms to Supabase with field mapping"""
+    """Write VolumeShock alarms to Supabase with field mapping - TÜM FIELD'LAR"""
     mapped_alarms = []
     for alarm in alarms:
         mapped = {
@@ -1383,12 +1412,15 @@ def write_volumeshock_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
             'market': alarm.get('market', ''),
             'selection': alarm.get('selection', ''),
             'volume_shock_value': alarm.get('volume_shock_value') or alarm.get('shock_value') or alarm.get('hacim_sok'),
-            'incoming_money': alarm.get('incoming_money') or alarm.get('volume') or alarm.get('stake'),
-            'avg_previous': alarm.get('avg_previous'),
+            'multiplier': alarm.get('multiplier') or alarm.get('volume_shock_value'),
+            'incoming_money': alarm.get('incoming_money') or alarm.get('new_money'),
+            'new_money': alarm.get('new_money') or alarm.get('incoming_money'),
+            'avg_previous': alarm.get('avg_previous') or alarm.get('avg_last_10'),
+            'avg_last_10': alarm.get('avg_last_10') or alarm.get('avg_previous'),
             'hours_to_kickoff': alarm.get('hours_to_kickoff'),
             'match_date': alarm.get('match_date', ''),
             'event_time': alarm.get('event_time', ''),
-            'trigger_at': alarm.get('created_at', ''),
+            'trigger_at': alarm.get('trigger_at') or alarm.get('created_at', ''),
             'created_at': alarm.get('created_at', ''),
             'alarm_type': 'volumeshock'
         }
