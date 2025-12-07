@@ -506,14 +506,16 @@ class AlarmCalculator:
         return total_alarms
     
     def _is_valid_match_date(self, date_str: str) -> bool:
-        """Check if match is today or tomorrow (D-2+ filter)"""
+        """Check if match is within valid date range (past 7 days to future 7 days)"""
         match_date = parse_match_date(date_str)
         if not match_date:
             return True
         
         today = now_turkey().date()
-        yesterday = today - timedelta(days=1)
-        return match_date.date() >= yesterday
+        past_limit = today - timedelta(days=7)
+        future_limit = today + timedelta(days=7)
+        match_dt = match_date.date()
+        return past_limit <= match_dt <= future_limit
     
     def calculate_sharp_alarms(self) -> int:
         """Calculate Sharp Move alarms"""
