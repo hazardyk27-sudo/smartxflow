@@ -303,56 +303,16 @@ class AlarmCalculator:
         except Exception as e:
             log(f"Config load error: {e}")
         
-        # Fallback to defaults ONLY if configs is empty
+        # VARSAYILAN DEĞER YOK - Sadece Supabase'den okunan config kullanılır
         if not self.configs:
-            self.configs = self._default_configs()
-            log("Using default configs (fallback)")
+            log("ERROR: alarm_settings tablosu boş! Supabase'de config ayarlayın.")
+            log("Alarm hesaplaması YAPILMAYACAK - önce config'leri kaydedin.")
     
     def _default_configs(self) -> Dict:
-        return {
-            'sharp': {
-                'min_sharp_score': 15,
-                'min_volume_1x2': 3000,
-                'min_volume_ou25': 1000,
-                'min_volume_btts': 500,
-                'volume_multiplier': 1.0,
-                'odds_multiplier': 1.0,
-                'share_multiplier': 1.0
-            },
-            'insider': {
-                'insider_hacim_sok_esigi': 2,
-                'insider_oran_dusus_esigi': 3,
-                'insider_sure_dakika': 30,
-                'insider_max_para': 5000,
-                'insider_max_odds_esigi': 10.0
-            },
-            'bigmoney': {
-                'big_money_limit': 15000
-            },
-            'volumeshock': {
-                'volume_shock_multiplier': 3.0,
-                'min_hours_to_kickoff': 2
-            },
-            'dropping': {
-                'min_drop_l1': 7,
-                'max_drop_l1': 10,
-                'min_drop_l2': 10,
-                'max_drop_l2': 15,
-                'min_drop_l3': 15
-            },
-            'publicmove': {
-                'min_sharp_score': 20,
-                'min_volume_1x2': 5000,
-                'min_volume_ou25': 2000,
-                'min_volume_btts': 1000
-            },
-            'volumeleader': {
-                'leader_threshold': 50,
-                'min_volume_1x2': 5000,
-                'min_volume_ou25': 2000,
-                'min_volume_btts': 1000
-            }
-        }
+        """VARSAYILAN DEĞER YOK - Boş dict döndür
+        Tüm config değerleri Supabase alarm_settings tablosundan okunmalı.
+        Eğer config yoksa alarm hesaplanmaz."""
+        return {}
     
     def get_matches_with_latest(self, market: str) -> List[Dict]:
         """Get all matches with their latest data for a market (cached)"""
@@ -558,9 +518,12 @@ class AlarmCalculator:
     
     def calculate_sharp_alarms(self) -> int:
         """Calculate Sharp Move alarms"""
-        config = self.configs.get('sharp', self._default_configs()['sharp'])
+        config = self.configs.get('sharp')
+        if not config:
+            log("[Sharp] CONFIG YOK - Supabase'de sharp ayarlarını kaydedin!")
+            return 0
         # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
-        min_score = parse_float(config.get('min_sharp_score', 15))
+        min_score = parse_float(config.get('min_sharp_score', 0))
         vol_mult = parse_float(config.get('volume_multiplier', 1.0))
         odds_mult = parse_float(config.get('odds_multiplier', 1.0))
         share_mult = parse_float(config.get('share_multiplier', 1.0))
@@ -707,7 +670,10 @@ class AlarmCalculator:
     
     def calculate_insider_alarms(self) -> int:
         """Calculate Insider Info alarms"""
-        config = self.configs.get('insider', self._default_configs()['insider'])
+        config = self.configs.get('insider')
+        if not config:
+            log("[Insider] CONFIG YOK - Supabase'de insider ayarlarını kaydedin!")
+            return 0
         # DEBUG: Raw config from Supabase
         log(f"[INSIDER RAW CONFIG] {config}")
         log(f"[INSIDER RAW] oran_dusus_esigi raw value = '{config.get('oran_dusus_esigi')}' (type={type(config.get('oran_dusus_esigi')).__name__})")
@@ -895,7 +861,10 @@ class AlarmCalculator:
     
     def calculate_bigmoney_alarms(self) -> int:
         """Calculate Big Money / Huge Money alarms"""
-        config = self.configs.get('bigmoney', self._default_configs()['bigmoney'])
+        config = self.configs.get('bigmoney')
+        if not config:
+            log("[BigMoney] CONFIG YOK - Supabase'de bigmoney ayarlarını kaydedin!")
+            return 0
         # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
         limit = parse_float(config.get('big_money_limit', 15000))
         log(f"[BigMoney Config] limit: {limit}")
@@ -1001,7 +970,10 @@ class AlarmCalculator:
     
     def calculate_volumeshock_alarms(self) -> int:
         """Calculate Volume Shock alarms"""
-        config = self.configs.get('volumeshock', self._default_configs()['volumeshock'])
+        config = self.configs.get('volumeshock')
+        if not config:
+            log("[VolumeShock] CONFIG YOK - Supabase'de volumeshock ayarlarını kaydedin!")
+            return 0
         # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
         shock_mult = parse_float(config.get('hacim_soku_min_esik', config.get('volume_shock_multiplier', 3.0)))
         min_hours = parse_float(config.get('hacim_soku_min_saat', config.get('min_hours_to_kickoff', 2)))
@@ -1106,7 +1078,10 @@ class AlarmCalculator:
     
     def calculate_dropping_alarms(self) -> int:
         """Calculate Dropping Odds alarms"""
-        config = self.configs.get('dropping', self._default_configs()['dropping'])
+        config = self.configs.get('dropping')
+        if not config:
+            log("[Dropping] CONFIG YOK - Supabase'de dropping ayarlarını kaydedin!")
+            return 0
         # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
         l1_min = parse_float(config.get('min_drop_l1', 7))
         l1_max = parse_float(config.get('max_drop_l1', 10))
@@ -1210,7 +1185,10 @@ class AlarmCalculator:
     
     def calculate_publicmove_alarms(self) -> int:
         """Calculate Public Move alarms - same logic as Sharp"""
-        config = self.configs.get('publicmove', self._default_configs()['publicmove'])
+        config = self.configs.get('publicmove')
+        if not config:
+            log("[PublicMove] CONFIG YOK - Supabase'de publicmove ayarlarını kaydedin!")
+            return 0
         # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
         min_score = parse_float(config.get('min_sharp_score', 20))
         min_amount_change = parse_float(config.get('min_amount_change', 0))
@@ -1365,7 +1343,10 @@ class AlarmCalculator:
     
     def calculate_volumeleader_alarms(self) -> int:
         """Calculate Volume Leader Changed alarms"""
-        config = self.configs.get('volumeleader', self._default_configs()['volumeleader'])
+        config = self.configs.get('volumeleader')
+        if not config:
+            log("[VolumeLeader] CONFIG YOK - Supabase'de volumeleader ayarlarını kaydedin!")
+            return 0
         # CRITICAL: parse_float ile float'a çevir - Supabase string olarak gönderebilir
         threshold = parse_float(config.get('leader_threshold', 50))
         log(f"[VolumeLeader Config] threshold: {threshold}%")
