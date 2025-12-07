@@ -29,7 +29,7 @@ CREATE POLICY "Allow anon delete on alarm_settings" ON alarm_settings
 -- 4. Başlangıç verileri (opsiyonel)
 INSERT INTO alarm_settings (alarm_type, enabled, config) VALUES
 ('sharp', true, '{"min_volume_1x2": 3000, "min_volume_ou25": 1000, "min_volume_btts": 1000, "volume_multiplier": 5, "odds_multiplier": 8, "share_multiplier": 2, "min_sharp_score": 100, "min_amount_change": 1999}'),
-('insider', true, '{"min_volume_1x2": 3000, "min_volume_ou25": 1000, "min_volume_btts": 1000}'),
+('insider', true, '{"hacim_sok_esigi": 0.1, "oran_dusus_esigi": 5, "max_para": 100, "max_odds_esigi": 1.9, "sure_dakika": 7}'),
 ('bigmoney', true, '{"big_money_limit": 15000}'),
 ('volumeshock', true, '{"hacim_soku_min_saat": 3, "hacim_soku_min_esik": 5, "volume_shock_multiplier": 5.0, "min_volume_1x2": 1000, "min_volume_ou25": 500, "min_volume_btts": 300}'),
 ('dropping', true, '{"min_drop_l1": 10, "max_drop_l1": 17, "min_drop_l2": 17, "max_drop_l2": 20, "min_drop_l3": 20, "persistence_minutes": 120}'),
