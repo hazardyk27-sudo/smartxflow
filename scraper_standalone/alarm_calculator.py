@@ -473,10 +473,10 @@ class AlarmCalculator:
         
         log("6/7 PublicMove hesaplaniyor...")
         try:
-            publictrap_count = self.calculate_publicmove_alarms() or 0
-            alarm_counts['PublicMove'] = publictrap_count
-            total_alarms += publictrap_count
-            log(f"  -> PublicMove: {publictrap_count} alarm")
+            publicmove_count = self.calculate_publicmove_alarms() or 0
+            alarm_counts['PublicMove'] = publicmove_count
+            total_alarms += publicmove_count
+            log(f"  -> PublicMove: {publicmove_count} alarm")
         except Exception as e:
             import traceback
             log(f"!!! PublicMove error: {e}")
@@ -1349,7 +1349,7 @@ class AlarmCalculator:
                 if len(history) < 2:
                     continue
                 
-                # PUBLIC TRAP: Sadece son 2 saatteki hareketlere bak
+                # PUBLIC MOVE: Sadece son 2 saatteki hareketlere bak
                 now = now_turkey()
                 two_hours_ago = now - timedelta(hours=2)
                 
@@ -1409,9 +1409,9 @@ class AlarmCalculator:
                     
                     share_change = current_pct - prev_pct
                     
-                    trap_score = (volume_change / 500) + (odds_drop / 0.05) * 3 + share_change
+                    move_score = (volume_change / 500) + (odds_drop / 0.05) * 3 + share_change
                     
-                    if trap_score >= min_score:
+                    if move_score >= min_score:
                         trigger_at = latest.get('scraped_at', now_turkey_iso())
                         match_id = f"{home}|{away}|{match.get('date', '')}"
                         
@@ -1421,7 +1421,7 @@ class AlarmCalculator:
                             'away': away,
                             'market': market_names.get(market, market),
                             'selection': selection,
-                            'trap_score': round(trap_score, 2),
+                            'move_score': round(move_score, 2),
                             'volume': volume_change,
                             'odds_drop': odds_drop,
                             'share_before': round(prev_pct, 2),
@@ -1435,7 +1435,7 @@ class AlarmCalculator:
                             'alarm_type': 'publicmove'
                         }
                         alarms.append(alarm)
-                        log(f"  [PUBLICMOVE] {home} vs {away} | {market_names.get(market, market)}-{selection} | Score: {trap_score:.1f} | Vol: £{volume_change:,.0f}")
+                        log(f"  [PUBLICMOVE] {home} vs {away} | {market_names.get(market, market)}-{selection} | Score: {move_score:.1f} | Vol: £{volume_change:,.0f}")
         
         if alarms:
             new_count = self._upsert_alarms('publicmove_alarms', alarms, ['home', 'away', 'market', 'selection'])

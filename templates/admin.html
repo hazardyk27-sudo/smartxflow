@@ -3360,7 +3360,7 @@
                             ${detailsContent}
                         </div>
                     </div>
-                    <div class="alarm-score" style="background: linear-gradient(135deg, #FFCC00, #FFD700); color: #000;">${(alarm.trap_score || alarm.sharp_score || 0).toFixed(1)}</div>
+                    <div class="alarm-score" style="background: linear-gradient(135deg, #FFCC00, #FFD700); color: #000;">${(alarm.move_score || alarm.trap_score || alarm.sharp_score || 0).toFixed(1)}</div>
                 </div>
             `}).join('');
         }

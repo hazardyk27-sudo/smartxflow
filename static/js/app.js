@@ -3362,7 +3362,7 @@ function highlightNewAlarm(alarm) {
     } else if (alarmType === 'dropping') {
         value = `▼ ${(alarm.drop_pct || 0).toFixed(1)}%`;
     } else if (alarmType === 'publicmove') {
-        value = `${(alarm.trap_score || alarm.sharp_score || 0).toFixed(0)}`;
+        value = `${(alarm.move_score || alarm.trap_score || alarm.sharp_score || 0).toFixed(0)}`;
     } else if (alarmType === 'volumeleader') {
         value = `%${(alarm.new_leader_share || 0).toFixed(0)}`;
     }
@@ -3704,7 +3704,7 @@ function formatAlertValue(alarm) {
         return '▼ ' + dropPct.toFixed(1) + '%';
     }
     if (type === 'publicmove') {
-        const score = alarm.trap_score || alarm.sharp_score || 0;
+        const score = alarm.move_score || alarm.trap_score || alarm.sharp_score || 0;
         return score.toFixed(0);
     }
     if (type === 'volumeleader') {
@@ -3746,7 +3746,7 @@ function renderAlertBand() {
         } else if (alarm._type === 'dropping') {
             value = `▼ ${(alarm.drop_pct || 0).toFixed(1)}%`;
         } else if (alarm._type === 'publicmove') {
-            value = `${(alarm.trap_score || alarm.sharp_score || 0).toFixed(0)}`;
+            value = `${(alarm.move_score || alarm.trap_score || alarm.sharp_score || 0).toFixed(0)}`;
         } else if (alarm._type === 'volumeleader') {
             value = `%${(alarm.new_leader_share || 0).toFixed(0)}`;
         }
@@ -4083,7 +4083,7 @@ function updateAlarmCounts() {
     const countBigmoney = document.getElementById('countBigmoney');
     const countVolumeshock = document.getElementById('countVolumeshock');
     const countDropping = document.getElementById('countDropping');
-    const countPublictrap = document.getElementById('countPublictrap');
+    const countPublicmove = document.getElementById('countPublicmove');
     const countVolumeleader = document.getElementById('countVolumeleader');
     
     if (countAll) countAll.textContent = allAlarmsData.length;
@@ -4092,7 +4092,7 @@ function updateAlarmCounts() {
     if (countBigmoney) countBigmoney.textContent = alarmsDataByType.bigmoney?.length || 0;
     if (countVolumeshock) countVolumeshock.textContent = alarmsDataByType.volumeshock?.length || 0;
     if (countDropping) countDropping.textContent = alarmsDataByType.dropping?.length || 0;
-    if (countPublictrap) countPublictrap.textContent = alarmsDataByType.publicmove?.length || 0;
+    if (countPublicmove) countPublicmove.textContent = alarmsDataByType.publicmove?.length || 0;
     if (countVolumeleader) countVolumeleader.textContent = alarmsDataByType.volumeleader?.length || 0;
 }
 
@@ -4316,10 +4316,10 @@ function renderAlarmsList(filterType) {
             mainValue = `<span class="value-odds">${openingOdds.toFixed(2)}</span><span class="arrow">→</span><span class="value-odds-new">${currentOdds.toFixed(2)}</span><span class="sep">•</span><span class="value-pct-drop">▼${dropPct.toFixed(1)}%</span>`;
             centerBadge = `<span class="level-badge level-${level.toLowerCase()}">${level}</span>`;
         } else if (type === 'publicmove') {
-            const score = alarm.trap_score || alarm.sharp_score || 0;
+            const score = alarm.move_score || alarm.trap_score || alarm.sharp_score || 0;
             const volume = alarm.volume || 0;
             const moneyPart = volume > 0 ? `<span class="value-money">£${Number(volume).toLocaleString('en-GB')}</span><span class="sep">•</span>` : '';
-            mainValue = `${moneyPart}<span class="value-highlight">Trap Skor ${score.toFixed(0)}</span>`;
+            mainValue = `${moneyPart}<span class="value-highlight">Move Skor ${score.toFixed(0)}</span>`;
         } else if (type === 'volumeleader') {
             const oldLeader = alarm.old_leader || '-';
             const newLeader = alarm.new_leader || '-';
@@ -4500,12 +4500,12 @@ function renderAlarmsList(filterType) {
             historyLine = `${triggerTime}`;
         } else if (type === 'publicmove') {
             badgeLabel = 'PUBLIC MOVE';
-            const score = (alarm.trap_score || alarm.sharp_score || 0).toFixed(0);
+            const score = (alarm.move_score || alarm.trap_score || alarm.sharp_score || 0).toFixed(0);
             const volume = alarm.volume || 0;
             metricContent = `<div class="acd-grid cols-2">
                 <div class="acd-stat">
                     <div class="acd-stat-val publicmove">${score}</div>
-                    <div class="acd-stat-lbl">Trap Skor</div>
+                    <div class="acd-stat-lbl">Move Skor</div>
                 </div>
                 <div class="acd-stat">
                     <div class="acd-stat-val">£${Number(volume).toLocaleString('en-GB')}</div>
@@ -4552,7 +4552,7 @@ function renderAlarmsList(filterType) {
         } else if (type === 'dropping') {
             metricValue = `▼ ${(alarm.drop_pct || 0).toFixed(1)}%`;
         } else if (type === 'publicmove') {
-            metricValue = (alarm.trap_score || alarm.sharp_score || 0).toFixed(0);
+            metricValue = (alarm.move_score || alarm.trap_score || alarm.sharp_score || 0).toFixed(0);
         } else if (type === 'volumeleader') {
             const oldL = alarm.old_leader || '-';
             const newL = alarm.new_leader || '-';
@@ -5219,7 +5219,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const selection = latest.selection || latest.side || '-';
             const market = latest.market || '';
             row2Left = `${selection} (${market})`;
-            row2Right = `Trap Skor: ${score.toFixed(0)}`;
+            row2Right = `Move Skor: ${score.toFixed(0)}`;
             row3Left = volume > 0 ? `£${Number(volume).toLocaleString('en-GB')} hacim` : '';
             row3Right = ``;
             row4 = `Halk tuzağı tespit edildi`;

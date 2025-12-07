@@ -71,7 +71,7 @@ Scraper su alarm tiplerini otomatik hesaplar:
 3. **Big Money / Huge Money**: Büyük para girişi
 4. **Volume Shock**: Hacim şoku
 5. **Dropping Odds**: Düşen oranlar (L1/L2/L3)
-6. **Public Trap**: Halk tuzağı
+6. **Public Move**: Halk hareketi
 7. **Volume Leader**: Lider değişimi
 
 ## SSS (Sik Sorulan Sorular)

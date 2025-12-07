@@ -1339,7 +1339,7 @@ def write_publicmove_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
             'away': alarm.get('away', ''),
             'market': alarm.get('market', ''),
             'selection': alarm.get('selection', ''),
-            'trap_score': alarm.get('trap_score') or alarm.get('sharp_score'),
+            'move_score': alarm.get('move_score') or alarm.get('trap_score') or alarm.get('sharp_score'),
             'volume': alarm.get('volume'),
             'odds_drop': alarm.get('odds_drop'),
             'share_before': alarm.get('share_before'),
