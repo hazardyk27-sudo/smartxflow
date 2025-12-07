@@ -696,8 +696,13 @@ class AlarmCalculator:
         return len(alarms)
     
     def calculate_insider_alarms(self) -> int:
-        """Calculate Insider Info alarms"""
-        # Her hesaplamada ÖNCE tabloyu temizle - config kontrolünden ÖNCE
+        """Calculate Insider Info alarms - GÖRSEL KURALLARINA GÖRE
+        
+        1. Açılış→Şimdi Düşüş: Oranlar açılıştan >= %X düştü mü?
+        2. Düşüş Anını Bul: En büyük tek seferlik ORAN düşüşünün olduğu snapshot
+        3. Etraf Snapshotları: Düşüş anının etrafındaki N snapshot'a bak (N = sure_dakika)
+        4. Sessiz Hareket: Tüm N snapshot'ta HacimSok < Esik VE GelenPara < MaxPara
+        """
         try:
             self._delete('insider_alarms', '')
             log("[Insider] Table cleared before recalculation")
@@ -709,20 +714,18 @@ class AlarmCalculator:
             log("[Insider] CONFIG YOK - Supabase'de insider ayarlarını kaydedin!")
             return 0
         
-        # Config validation - TÜM gerekli key'ler mevcut olmalı
         required_keys = ['hacim_sok_esigi', 'oran_dusus_esigi', 'max_para', 'max_odds_esigi', 'sure_dakika']
         missing_keys = [k for k in required_keys if config.get(k) is None]
         if missing_keys:
             log(f"[Insider] CONFIG EKSIK KEY'LER: {missing_keys} - Supabase'de tamamlayın!")
             return 0
         
-        # CRITICAL: parse_float ile float'a çevir - FALLBACK OLMADAN
         hacim_sok_esigi = parse_float(config.get('hacim_sok_esigi'))
         oran_dusus_esigi = parse_float(config.get('oran_dusus_esigi'))
         max_para = parse_float(config.get('max_para'))
         max_odds = parse_float(config.get('max_odds_esigi'))
-        sure_dakika = parse_float(config.get('sure_dakika')) or 30  # Time window için minimum 30
-        log(f"[Insider Config] hacim_sok: {hacim_sok_esigi}, oran_dusus: {oran_dusus_esigi}, max_para: {max_para}, max_odds: {max_odds}, sure: {sure_dakika}dk")
+        n_snapshots = int(parse_float(config.get('sure_dakika')) or 7)  # Etraf snapshot SAYISI (zaman değil!)
+        log(f"[Insider Config] hacim_sok_esigi: {hacim_sok_esigi}, oran_dusus: {oran_dusus_esigi}%, max_para: {max_para}, max_odds: {max_odds}, N_snapshots: {n_snapshots}")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -777,118 +780,74 @@ class AlarmCalculator:
                     if current_odds >= opening_odds:
                         continue
                     
+                    # KURAL 1: Açılış→Şimdi Düşüş >= %X
                     oran_dusus_pct = ((opening_odds - current_odds) / opening_odds) * 100
-                    
                     if oran_dusus_pct < oran_dusus_esigi:
                         continue
                     
-                    # SADECE son sure_dakika içindeki snapshot'ları kullan - ESKİ VERİLERİ ATLA
-                    now = now_turkey()
-                    cutoff_time = now - timedelta(minutes=sure_dakika)
+                    # KURAL 2: En büyük tek seferlik ORAN düşüşünün olduğu snapshot'ı bul
+                    max_odds_drop = 0
+                    drop_moment_index = -1
                     
-                    # History'yi filtrele - sadece cutoff_time'dan sonraki snapshot'lar
-                    recent_history = []
-                    for snap in history:
-                        scraped_at = snap.get('scraped_at', '')
-                        if scraped_at:
-                            try:
-                                # ISO format parse et
-                                if '+' in scraped_at:
-                                    snap_time = datetime.fromisoformat(scraped_at.replace('Z', '+00:00'))
-                                else:
-                                    snap_time = datetime.fromisoformat(scraped_at)
-                                    if TURKEY_TZ:
-                                        snap_time = TURKEY_TZ.localize(snap_time)
-                                
-                                # Timezone-aware karşılaştırma
-                                if snap_time.tzinfo:
-                                    if cutoff_time.tzinfo is None and TURKEY_TZ:
-                                        cutoff_time = TURKEY_TZ.localize(cutoff_time)
-                                
-                                if snap_time >= cutoff_time:
-                                    recent_history.append(snap)
-                            except:
-                                recent_history.append(snap)  # Parse edilemezse dahil et
-                        else:
-                            recent_history.append(snap)
+                    for i in range(1, len(history)):
+                        curr_odds = parse_float(history[i].get(odds_key, 0))
+                        prev_odds = parse_float(history[i-1].get(odds_key, 0))
+                        
+                        if prev_odds > 0 and curr_odds > 0 and curr_odds < prev_odds:
+                            odds_drop = prev_odds - curr_odds
+                            if odds_drop > max_odds_drop:
+                                max_odds_drop = odds_drop
+                                drop_moment_index = i
                     
-                    # Yeterli recent snapshot yoksa atla
-                    if len(recent_history) < 2:
+                    if drop_moment_index < 0:
                         continue
                     
+                    # KURAL 3: Düşüş anının etrafındaki N snapshot'a bak
+                    half_n = n_snapshots // 2
+                    start_idx = max(0, drop_moment_index - half_n)
+                    end_idx = min(len(history), drop_moment_index + half_n + 1)
+                    
+                    surrounding_snapshots = history[start_idx:end_idx]
+                    if len(surrounding_snapshots) < 2:
+                        continue
+                    
+                    # KURAL 4: Tüm N snapshot'ta HacimSok < Esik VE GelenPara < MaxPara
+                    all_quiet = True
                     total_incoming = 0
                     max_hacim_sok = 0
-                    trigger_snap = recent_history[-1]
-                    trigger_snap_index = len(recent_history) - 1
-                    all_hacim_soks = []
+                    surrounding_details = []
                     
-                    for i in range(1, len(recent_history)):
-                        curr_amt = parse_volume(recent_history[i].get(amount_key, 0))
-                        prev_amt = parse_volume(recent_history[i-1].get(amount_key, 0))
-                        incoming = curr_amt - prev_amt
+                    for i in range(1, len(surrounding_snapshots)):
+                        curr_amt = parse_volume(surrounding_snapshots[i].get(amount_key, 0))
+                        prev_amt = parse_volume(surrounding_snapshots[i-1].get(amount_key, 0))
+                        incoming = max(0, curr_amt - prev_amt)
+                        total_incoming += incoming
                         
-                        if incoming > 0:
-                            total_incoming += incoming
-                            
-                            prev_amts = [parse_volume(recent_history[j].get(amount_key, 0)) 
-                                        for j in range(max(0, i-5), i)]
-                            avg_prev = sum(prev_amts) / len(prev_amts) if prev_amts else 1
-                            hacim_sok = incoming / avg_prev if avg_prev > 0 else 0
-                            all_hacim_soks.append(hacim_sok)
-                            
-                            if hacim_sok > max_hacim_sok:
-                                max_hacim_sok = hacim_sok
-                                trigger_snap = recent_history[i]
-                                trigger_snap_index = i
-                    
-                    # KRITIK: gelen_para = 0 ise alarm tetikleme!
-                    # Insider = "para girmeden oran düşüşü" ama en az BİRAZ para hareketi olmalı
-                    if total_incoming <= 0:
-                        continue
-                    
-                    if total_incoming >= max_para:
-                        continue
-                    
-                    # INSIDER MANTIK: Hacim şoku DÜŞÜK olmalı (para girmeden oran düşüşü)
-                    # hacim_sok_esigi = maksimum kabul edilebilir hacim şoku
-                    # Eğer hacim şoku bu eşikten BÜYÜKSE, bu insider değil normal hareket
-                    if max_hacim_sok > hacim_sok_esigi:
-                        continue
-                    
-                    trigger_at = trigger_snap.get('scraped_at', now_turkey_iso())
-                    
-                    start_idx = max(0, trigger_snap_index - 3)
-                    end_idx = min(len(recent_history), trigger_snap_index + 4)
-                    surrounding = []
-                    surrounding_hacim_soks = []
-                    surrounding_incomings = []
-                    
-                    for si in range(start_idx, end_idx):
-                        snap = recent_history[si]
-                        snap_amt = parse_volume(snap.get(amount_key, 0))
-                        prev_snap_amt = parse_volume(recent_history[si-1].get(amount_key, 0)) if si > 0 else 0
-                        snap_incoming = max(0, snap_amt - prev_snap_amt)
+                        # Hacim şoku hesapla: incoming / prev_amt
+                        hacim_sok = incoming / prev_amt if prev_amt > 0 else 0
+                        if hacim_sok > max_hacim_sok:
+                            max_hacim_sok = hacim_sok
                         
-                        prev_window = [parse_volume(recent_history[j].get(amount_key, 0)) for j in range(max(0, si-5), si)]
-                        avg_prev_window = sum(prev_window) / len(prev_window) if prev_window else 1
-                        snap_hacim_sok = snap_incoming / avg_prev_window if avg_prev_window > 0 and snap_incoming > 0 else 0
+                        # HER snapshot'ta: HacimSok < Esik VE GelenPara < MaxPara olmalı
+                        if hacim_sok >= hacim_sok_esigi or incoming >= max_para:
+                            all_quiet = False
                         
-                        surrounding_hacim_soks.append(snap_hacim_sok)
-                        surrounding_incomings.append(snap_incoming)
-                        
-                        surrounding.append({
-                            'index': si,
-                            'scraped_at': snap.get('scraped_at', ''),
-                            'odds': parse_float(snap.get(odds_key, 0)),
-                            'amount': snap_amt,
-                            'incoming': round(snap_incoming, 0),
-                            'hacim_sok': round(snap_hacim_sok, 4),
-                            'is_trigger': si == trigger_snap_index
+                        surrounding_details.append({
+                            'index': start_idx + i,
+                            'scraped_at': surrounding_snapshots[i].get('scraped_at', ''),
+                            'odds': parse_float(surrounding_snapshots[i].get(odds_key, 0)),
+                            'amount': curr_amt,
+                            'incoming': round(incoming, 0),
+                            'hacim_sok': round(hacim_sok, 4),
+                            'is_drop_moment': (start_idx + i) == drop_moment_index
                         })
                     
-                    avg_hacim_sok = sum(surrounding_hacim_soks) / len(surrounding_hacim_soks) if surrounding_hacim_soks else 0
-                    max_surrounding_hacim_sok = max(surrounding_hacim_soks) if surrounding_hacim_soks else 0
-                    max_surrounding_incoming = max(surrounding_incomings) if surrounding_incomings else 0
+                    # Sessiz hareket değilse alarm yok
+                    if not all_quiet:
+                        continue
+                    
+                    trigger_snap = history[drop_moment_index]
+                    trigger_at = trigger_snap.get('scraped_at', now_turkey_iso())
                     match_id = f"{home}|{away}|{match.get('date', '')}"
                     
                     alarm = {
@@ -899,19 +858,17 @@ class AlarmCalculator:
                         'selection': selection,
                         'odds_change_percent': round(oran_dusus_pct, 2),
                         'oran_dusus_pct': round(oran_dusus_pct, 2),
+                        'max_odds_drop': round(max_odds_drop, 3),
                         'gelen_para': total_incoming,
-                        'hacim_sok': round(max_hacim_sok, 3),
-                        'avg_volume_shock': round(avg_hacim_sok, 4),
-                        'max_surrounding_hacim_sok': round(max_surrounding_hacim_sok, 4),
-                        'max_surrounding_incoming': round(max_surrounding_incoming, 0),
+                        'hacim_sok': round(max_hacim_sok, 4),
                         'open_odds': opening_odds,
                         'opening_odds': opening_odds,
                         'current_odds': current_odds,
-                        'drop_moment_index': trigger_snap_index,
+                        'drop_moment_index': drop_moment_index,
                         'drop_moment': trigger_at,
-                        'surrounding_snapshots': surrounding,
-                        'surrounding_count': len(surrounding),
-                        'snapshot_count': len(recent_history),
+                        'surrounding_snapshots': surrounding_details,
+                        'surrounding_count': len(surrounding_snapshots),
+                        'n_snapshots_config': n_snapshots,
                         'match_date': match.get('date', ''),
                         'event_time': trigger_at,
                         'trigger_at': trigger_at,
@@ -919,7 +876,7 @@ class AlarmCalculator:
                         'alarm_type': 'insider'
                     }
                     alarms.append(alarm)
-                    log(f"  [INSIDER] {home} vs {away} | {market_names.get(market, market)}-{selection} | Oran: {opening_odds:.2f}->{current_odds:.2f} (-%{oran_dusus_pct:.1f}) | Para: {total_incoming:,.0f} GBP")
+                    log(f"  [INSIDER] {home} vs {away} | {market_names.get(market, market)}-{selection} | Oran: {opening_odds:.2f}->{current_odds:.2f} (-%{oran_dusus_pct:.1f}) | DüsusAnı: S{drop_moment_index} | Para: {total_incoming:,.0f}")
         
         if alarms:
             new_count = self._upsert_alarms('insider_alarms', alarms, ['home', 'away', 'market', 'selection'])
