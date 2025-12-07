@@ -1229,6 +1229,9 @@ def write_insider_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
     """Write Insider alarms to Supabase with field mapping"""
     mapped_alarms = []
     for alarm in alarms:
+        # snapshot_details veya surrounding_snapshots - JSON olarak
+        snapshot_data = alarm.get('snapshot_details') or alarm.get('surrounding_snapshots') or []
+        
         mapped = {
             'home': alarm.get('home', ''),
             'away': alarm.get('away', ''),
@@ -1243,7 +1246,9 @@ def write_insider_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
             'event_time': alarm.get('event_time', ''),
             'trigger_at': alarm.get('drop_time', ''),
             'created_at': alarm.get('created_at', ''),
-            'alarm_type': 'insider'
+            'alarm_type': 'insider',
+            'surrounding_snapshots': snapshot_data,
+            'snapshot_count': alarm.get('snapshot_count', len(snapshot_data))
         }
         mapped_alarms.append(mapped)
     return write_alarms_to_supabase('insider_alarms', mapped_alarms, on_conflict='home,away,market,selection')
