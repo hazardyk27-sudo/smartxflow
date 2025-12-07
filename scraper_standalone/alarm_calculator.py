@@ -540,10 +540,22 @@ class AlarmCalculator:
         # CRITICAL: parse_float ile float'a çevir - FALLBACK OLMADAN
         min_score = parse_float(config.get('min_sharp_score'))
         vol_mult = parse_float(config.get('volume_multiplier')) or 1.0
-        odds_mult = parse_float(config.get('odds_multiplier')) or 1.0
+        odds_mult_default = parse_float(config.get('odds_multiplier')) or 1.0
         share_mult = parse_float(config.get('share_multiplier')) or 1.0
         min_amount_change = parse_float(config.get('min_amount_change')) or 0
+        
+        # Odds Range Multipliers - oran aralığına göre farklı çarpanlar
+        odds_ranges = []
+        for i in range(1, 5):
+            range_min = parse_float(config.get(f'odds_range_{i}_min')) or 0
+            range_max = parse_float(config.get(f'odds_range_{i}_max')) or 99
+            range_mult = parse_float(config.get(f'odds_range_{i}_mult')) or odds_mult_default
+            if range_min > 0 or range_max < 99:
+                odds_ranges.append({'min': range_min, 'max': range_max, 'mult': range_mult})
+        
         log(f"[Sharp Config] min_score: {min_score}, vol_mult: {vol_mult}, min_amount_change: {min_amount_change}")
+        if odds_ranges:
+            log(f"[Sharp Config] Odds ranges: {len(odds_ranges)} defined")
         
         alarms = []
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -626,6 +638,14 @@ class AlarmCalculator:
                     share_change = current_pct - prev_pct
                     
                     volume_contrib = min(10, (volume_change / 1000) * vol_mult)
+                    
+                    # Odds range'e göre multiplier seç
+                    odds_mult = odds_mult_default
+                    for odr in odds_ranges:
+                        if odr['min'] <= current_odds <= odr['max']:
+                            odds_mult = odr['mult']
+                            break
+                    
                     odds_contrib = min(10, (odds_drop / 0.05) * 2 * odds_mult)
                     share_contrib = min(10, share_change * share_mult) if share_change > 0 else 0
                     
