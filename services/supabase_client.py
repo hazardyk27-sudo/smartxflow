@@ -1287,6 +1287,7 @@ def write_sharp_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
             'share_contrib': alarm.get('share_contrib'),
             'volume': alarm.get('volume') or alarm.get('shock_value'),
             'volume_shock_multiplier': alarm.get('volume_shock_multiplier'),
+            'amount_change': alarm.get('amount_change'),
             'opening_odds': alarm.get('opening_odds'),
             'previous_odds': alarm.get('previous_odds'),
             'current_odds': alarm.get('current_odds'),
