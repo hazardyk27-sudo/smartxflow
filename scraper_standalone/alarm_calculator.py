@@ -1391,6 +1391,9 @@ class AlarmCalculator:
                     trigger_at = now_turkey_iso()
                     match_id = f"{home}|{away}|{match.get('date', '')}"
                     
+                    # Volume bilgisi (varsa)
+                    volume = parse_float(match.get('volume', 0))
+                    
                     alarm = {
                         'match_id': match_id,
                         'home': home,
@@ -1401,6 +1404,7 @@ class AlarmCalculator:
                         'current_odds': current_odds,
                         'drop_pct': round(drop_pct, 2),
                         'level': level,
+                        'volume': volume,
                         'match_date': match.get('date', ''),
                         'trigger_at': trigger_at,
                         'created_at': now_turkey_iso(),
