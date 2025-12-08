@@ -4209,14 +4209,14 @@ td.volume,
 }
 
 .alarms-sidebar-field select option {
-    background: #161b22;
+    background: #0d1117;
     color: #e6edf3;
     padding: 8px 12px;
 }
 
 .alarms-sidebar-field select option:hover,
 .alarms-sidebar-field select option:checked {
-    background: #21262d;
+    background: #1c2128;
     color: #58a6ff;
 }
 
