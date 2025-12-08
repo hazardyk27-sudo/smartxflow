@@ -188,6 +188,39 @@ function isYesterdayTurkey(value) {
     return dt.format('YYYY-MM-DD') === nowTurkey().subtract(1, 'day').format('YYYY-MM-DD');
 }
 
+/**
+ * VolumeShock için maça kaç saat kala hesaplama
+ * @param {Object} alarm - Alarm objesi (match_date, trigger_at, hours_to_kickoff içerebilir)
+ * @returns {number} Maça kalan saat (0 veya pozitif değer)
+ */
+function calculateHoursToKickoff(alarm) {
+    // Önce mevcut değeri kontrol et
+    if (alarm.hours_to_kickoff && alarm.hours_to_kickoff > 0) {
+        return alarm.hours_to_kickoff;
+    }
+    
+    // match_date ve trigger_at'tan hesapla
+    const matchDateRaw = alarm.match_date || alarm.kickoff || alarm.fixture_date;
+    const triggerAtRaw = alarm.trigger_at || alarm.event_time || alarm.created_at;
+    
+    if (!matchDateRaw || !triggerAtRaw) {
+        return 0;
+    }
+    
+    const matchTime = toTurkeyTime(matchDateRaw);
+    const triggerTime = toTurkeyTime(triggerAtRaw);
+    
+    if (!matchTime || !triggerTime || !matchTime.isValid() || !triggerTime.isValid()) {
+        return 0;
+    }
+    
+    // Saat farkı hesapla (maç zamanı - alarm zamanı)
+    const diffHours = matchTime.diff(triggerTime, 'hour', true);
+    
+    // Negatif değilse (maç henüz başlamamışsa) döndür
+    return diffHours > 0 ? diffHours : 0;
+}
+
 function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/[&<>"']/g, c => ({
@@ -4313,8 +4346,8 @@ function renderAlarmsList(filterType) {
             }
         } else if (type === 'volumeshock') {
             const shockValue = alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0;
-            const hoursToKickoff = alarm.hours_to_kickoff || 0;
-            mainValue = `<span class="value-highlight">${shockValue.toFixed(1)}x</span><span class="sep">•</span><span class="value-pct">${hoursToKickoff.toFixed(1)}s önce</span>`;
+            const hoursToKickoff = calculateHoursToKickoff(alarm);
+            mainValue = `<span class="value-highlight">${shockValue.toFixed(1)}x</span><span class="sep">•</span><span class="value-pct">${hoursToKickoff.toFixed(1)} saat kala</span>`;
         } else if (type === 'dropping') {
             const openingOdds = alarm.opening_odds || 0;
             const currentOdds = alarm.current_odds || 0;
@@ -4456,7 +4489,7 @@ function renderAlarmsList(filterType) {
             badgeLabel = 'HACİM ŞOKU';
             const newMoney = alarm.incoming_money || 0;
             const shockVal = (alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0).toFixed(1);
-            const hoursToKickoff = alarm.hours_to_kickoff || 0;
+            const hoursToKickoff = calculateHoursToKickoff(alarm);
             metricContent = `<div class="acd-grid cols-2">
                 <div class="acd-stat">
                     <div class="acd-stat-val volumeshock">${shockVal}x</div>
@@ -5197,14 +5230,14 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             row4 = `Düşük hacim, yüksek oran düşüşü`;
         } else if (type === 'volumeshock') {
             const shockValue = latest.volume_shock_value || latest.volume_shock || latest.volume_shock_multiplier || 0;
-            const hoursToKickoff = latest.hours_to_kickoff || 0;
+            const hoursToKickoff = calculateHoursToKickoff(latest);
             const incomingMoney = latest.incoming_money || 0;
             const selection = latest.selection || latest.side || '-';
             const market = latest.market || '';
             row2Left = `${selection} (${market})`;
             row2Right = `${shockValue.toFixed(1)}x hacim şoku`;
             row3Left = `£${Number(incomingMoney).toLocaleString('en-GB')} gelen para`;
-            row3Right = `Maça ${hoursToKickoff.toFixed(0)}s kala`;
+            row3Right = `Maça ${hoursToKickoff.toFixed(0)} saat kala`;
             row4 = `Maçtan önce erken hacim artışı`;
         } else if (type === 'dropping') {
             const openOdds = (latest.opening_odds || 0).toFixed(2);

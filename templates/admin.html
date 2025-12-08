@@ -2608,28 +2608,43 @@
             return null;
         }
         
-        function calculateHoursToKickoff(matchDateStr) {
+        function calculateHoursToKickoff(alarmOrDateStr) {
+            // Eğer alarm objesi verilmişse, match_date ve trigger_at'tan hesapla
+            if (typeof alarmOrDateStr === 'object' && alarmOrDateStr !== null) {
+                const alarm = alarmOrDateStr;
+                // Önce mevcut değeri kontrol et
+                if (alarm.hours_to_kickoff && alarm.hours_to_kickoff > 0) {
+                    return alarm.hours_to_kickoff;
+                }
+                
+                const matchDateStr = alarm.match_date || alarm.kickoff || alarm.fixture_date;
+                const triggerAtStr = alarm.trigger_at || alarm.event_time || alarm.created_at;
+                
+                if (!matchDateStr || !triggerAtStr) {
+                    // Fallback: sadece match_date ile hesapla
+                    return calculateHoursToKickoffFromString(matchDateStr);
+                }
+                
+                const matchTime = parseMatchDate(matchDateStr);
+                const triggerTime = parseTriggerAt(triggerAtStr);
+                
+                if (matchTime && triggerTime) {
+                    const diffMs = matchTime - triggerTime;
+                    const diffHours = diffMs / (1000 * 60 * 60);
+                    return diffHours > 0 ? diffHours : 0;
+                }
+                
+                return 0;
+            }
+            
+            // String parametre için eski davranış
+            return calculateHoursToKickoffFromString(alarmOrDateStr);
+        }
+        
+        function calculateHoursToKickoffFromString(matchDateStr) {
             if (!matchDateStr || matchDateStr === '-') return null;
             
-            const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
-                               'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
-            
-            let matchTime = null;
-            
-            const match1 = matchDateStr.match(/^(\d{1,2})\.([A-Za-z]{3})\s+(\d{2}):(\d{2}):?(\d{2})?$/);
-            if (match1) {
-                const [, day, monthStr, hour, min] = match1;
-                const monthIdx = monthMap[monthStr] ?? 0;
-                matchTime = new Date(2025, monthIdx, parseInt(day), parseInt(hour), parseInt(min));
-                matchTime.setHours(matchTime.getHours() + 3);
-            }
-            
-            const match2 = matchDateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/);
-            if (match2) {
-                const [, day, month, year, hour, min] = match2;
-                matchTime = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
-                matchTime.setHours(matchTime.getHours() + 3);
-            }
+            const matchTime = parseMatchDate(matchDateStr);
             
             if (matchTime) {
                 const now = new Date();
@@ -2639,6 +2654,47 @@
             }
             
             return null;
+        }
+        
+        function parseMatchDate(matchDateStr) {
+            if (!matchDateStr || matchDateStr === '-') return null;
+            
+            const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
+                               'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
+            
+            // Format: "02.Dec 14:00:00"
+            const match1 = matchDateStr.match(/^(\d{1,2})\.([A-Za-z]{3})\s+(\d{2}):(\d{2}):?(\d{2})?$/);
+            if (match1) {
+                const [, day, monthStr, hour, min] = match1;
+                const monthIdx = monthMap[monthStr] ?? 0;
+                const matchTime = new Date(2025, monthIdx, parseInt(day), parseInt(hour), parseInt(min));
+                matchTime.setHours(matchTime.getHours() + 3);
+                return matchTime;
+            }
+            
+            // Format: "03.12.2025 14:00"
+            const match2 = matchDateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/);
+            if (match2) {
+                const [, day, month, year, hour, min] = match2;
+                const matchTime = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
+                matchTime.setHours(matchTime.getHours() + 3);
+                return matchTime;
+            }
+            
+            return null;
+        }
+        
+        function parseTriggerAt(triggerAtStr) {
+            if (!triggerAtStr || triggerAtStr === '-') return null;
+            
+            // ISO format: "2025-12-08T18:22:19+03:00"
+            const isoMatch = triggerAtStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+            if (isoMatch) {
+                const [, year, month, day, hour, min, sec] = isoMatch;
+                return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min), parseInt(sec));
+            }
+            
+            return new Date(triggerAtStr);
         }
         
         function formatMatchDateTR(dateStr) {
@@ -4353,7 +4409,7 @@
                 <div class="detail-section">
                     <h4 style="color: #ff6b6b;">⚡ Hacim Soku Metrikleri</h4>
                     <div class="detail-row"><span class="detail-label">Sok Degeri</span><span class="detail-value highlight" style="color: #ff6b6b;">${(alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0).toFixed(2)}x</span></div>
-                    <div class="detail-row"><span class="detail-label">Mactan Once</span><span class="detail-value" style="color: #58a6ff;">${(alarm.hours_to_kickoff || 0).toFixed(1)} saat</span></div>
+                    <div class="detail-row"><span class="detail-label">Mactan Once</span><span class="detail-value" style="color: #58a6ff;">${(calculateHoursToKickoff(alarm) || 0).toFixed(1)} saat</span></div>
                     <div class="detail-row"><span class="detail-label">Gelen Para</span><span class="detail-value" style="color: #3fb950;">£${Math.round(alarm.incoming_money || 0).toLocaleString('en-GB')}</span></div>
                 </div>
                 <div class="detail-section">
