@@ -7140,6 +7140,19 @@ td.volume,
     margin-top: 8px;
 }
 
+/* Smart Money Events - BigMoney Hero Style */
+.sm-money-hero {
+    font-size: 18px;
+    font-weight: 700;
+    color: #F08A24;
+    text-shadow: 0 0 10px rgba(240, 138, 36, 0.3);
+}
+
+.sm-total-muted {
+    color: #6e7681 !important;
+    font-weight: 500;
+}
+
 .level-badge {
     display: inline-block;
     padding: 2px 6px;

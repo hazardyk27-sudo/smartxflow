@@ -5260,10 +5260,10 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const market = latest.market || '';
             const totalVol = latest.volume || latest.total_volume || 0;
             row2Left = `${selection} (${market})`;
-            row2Right = `Toplam: £${Number(totalVol).toLocaleString('en-GB')}`;
-            row3Left = `£${Number(money).toLocaleString('en-GB')} gelen para`;
+            row2Right = totalVol > 0 ? `<span class="sm-total-muted">Toplam: £${Number(totalVol).toLocaleString('en-GB')}</span>` : '';
+            row3Left = `<span class="sm-money-hero">£${Number(money).toLocaleString('en-GB')}</span>`;
             row3Right = '';
-            row4 = `Yüksek hacimli para girişi tespit edildi`;
+            row4 = `Büyük Para Girişi`;
         } else if (type === 'insider') {
             const dropPct = Math.abs(latest.oran_dusus_pct || latest.odds_drop_pct || 0);
             const openOdds = (latest.opening_odds || 0).toFixed(2);
