@@ -7207,8 +7207,9 @@ td.volume,
     color: #c9d1d9;
     padding: 5px 0;
     line-height: 1.35;
-    white-space: normal;
-    word-wrap: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .smc-tooltip-item:not(:last-child) {
