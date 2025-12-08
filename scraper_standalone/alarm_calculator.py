@@ -320,11 +320,15 @@ class AlarmCalculator:
         success_count = 0
         for alarm_type, config_data in configs.items():
             if isinstance(config_data, dict):
-                # enabled'ı al ama orijinal dict'i değiştirme
-                enabled = config_data.get('enabled', True)
+                # enabled'ı al - default yok, açıkça belirtilmeli
+                enabled = config_data.get('enabled')
+                if enabled is None:
+                    log(f"[CONFIG SAVE] UYARI: {alarm_type} için enabled değeri yok!")
+                    enabled = True  # Sadece None ise varsayılan
                 # enabled hariç diğer key'leri config olarak gönder
                 config_without_enabled = {k: v for k, v in config_data.items() if k != 'enabled'}
             else:
+                log(f"[CONFIG SAVE] UYARI: {alarm_type} için geçersiz config tipi!")
                 enabled = True
                 config_without_enabled = {}
             
@@ -358,7 +362,7 @@ class AlarmCalculator:
                 new_configs = {}
                 for setting in settings:
                     alarm_type = setting.get('alarm_type', '')
-                    enabled = setting.get('enabled', True)
+                    enabled = setting.get('enabled')  # Default yok - Supabase'den gelen değer kullanılır
                     config = setting.get('config', {})
                     if alarm_type:
                         new_configs[alarm_type] = {
