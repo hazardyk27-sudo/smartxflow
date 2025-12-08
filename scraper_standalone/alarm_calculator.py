@@ -1313,7 +1313,13 @@ class AlarmCalculator:
         return len(alarms)
     
     def calculate_dropping_alarms(self) -> int:
-        """Calculate Dropping Odds alarms"""
+        """Calculate Dropping Odds alarms
+        
+        KURALLAR:
+        1. Opening odds = History'deki ilk snapshot'ın oranı
+        2. Current odds = History'deki son snapshot'ın oranı
+        3. 120 dakika kalıcılık = Son 120 dakikadaki TÜM snapshot'larda drop devam etmeli
+        """
         # Her hesaplamada ÖNCE tabloyu temizle - config kontrolünden ÖNCE
         try:
             self._delete('dropping_alarms', '')
@@ -1339,7 +1345,11 @@ class AlarmCalculator:
         l2_min = parse_float(config.get('min_drop_l2'))
         l2_max = parse_float(config.get('max_drop_l2'))
         l3_min = parse_float(config.get('min_drop_l3'))
-        log(f"[Dropping Config] L1: {l1_min}-{l1_max}%, L2: {l2_min}-{l2_max}%, L3: {l3_min}%+")
+        
+        # Kalıcılık süresi (dakika) - varsayılan 120 dk
+        persistence_minutes = parse_float(config.get('persistence_minutes')) or 120
+        
+        log(f"[Dropping Config] L1: {l1_min}-{l1_max}%, L2: {l2_min}-{l2_max}%, L3: {l3_min}%+, Kalıcılık: {persistence_minutes} dk")
         
         alarms = []
         markets = ['dropping_1x2', 'dropping_ou25', 'dropping_btts']
@@ -1349,15 +1359,17 @@ class AlarmCalculator:
             if '1x2' in market:
                 selections = ['1', 'X', '2']
                 odds_keys = ['odds1', 'oddsx', 'odds2']
-                odds_prev_keys = ['odds1_prev', 'oddsx_prev', 'odds2_prev']
             elif 'ou25' in market:
                 selections = ['Over', 'Under']
                 odds_keys = ['over', 'under']
-                odds_prev_keys = ['over_prev', 'under_prev']
             else:
                 selections = ['Yes', 'No']
                 odds_keys = ['oddsyes', 'oddsno']
-                odds_prev_keys = ['oddsyes_prev', 'oddsno_prev']
+            
+            # History verilerini al
+            history_table = f"{market}_history"
+            self.batch_fetch_history(market)
+            history_map = self._history_cache.get(history_table, {})
             
             matches = self.get_matches_with_latest(market)
             
@@ -1370,12 +1382,33 @@ class AlarmCalculator:
                 if not home or not away:
                     continue
                 
+                # History'den maç verilerini al
+                key = f"{normalize_team_name(home)}|{normalize_team_name(away)}"
+                history_raw = history_map.get(key, [])
+                
+                if len(history_raw) < 2:
+                    continue
+                
+                # History'i scraped_at'e göre sırala (kronolojik doğruluk için)
+                def parse_timestamp(s):
+                    try:
+                        # Tüm timestamp'leri naive'e çevir (karşılaştırma için)
+                        dt = datetime.fromisoformat(s.replace('Z', '+00:00'))
+                        if dt.tzinfo:
+                            dt = dt.replace(tzinfo=None)
+                        return dt
+                    except:
+                        return datetime.min
+                
+                history = sorted(history_raw, key=lambda x: parse_timestamp(x.get('scraped_at', '')))
+                
                 for sel_idx, selection in enumerate(selections):
                     odds_key = odds_keys[sel_idx]
-                    odds_prev_key = odds_prev_keys[sel_idx]
                     
-                    current_odds = parse_float(match.get(odds_key, 0))
-                    opening_odds = parse_float(match.get(odds_prev_key, 0))
+                    # İlk snapshot = Opening odds
+                    opening_odds = parse_float(history[0].get(odds_key, 0))
+                    # Son snapshot = Current odds
+                    current_odds = parse_float(history[-1].get(odds_key, 0))
                     
                     if current_odds <= 0 or opening_odds <= 0:
                         continue
@@ -1388,6 +1421,50 @@ class AlarmCalculator:
                     if drop_pct < l1_min:
                         continue
                     
+                    # === 120 DAKİKA KALICILIK KONTROLÜ ===
+                    # Son snapshot'ın zamanından geriye 120 dakika içindeki TÜM snapshot'larda drop devam etmeli
+                    
+                    # Son snapshot'ın zamanını al (referans nokta) - naive datetime kullan
+                    latest_scraped_at = parse_timestamp(history[-1].get('scraped_at', ''))
+                    if latest_scraped_at == datetime.min:
+                        latest_scraped_at = datetime.now()
+                    
+                    persistence_threshold = latest_scraped_at - timedelta(minutes=persistence_minutes)
+                    
+                    # Son 120 dakikadaki snapshot'ları filtrele (naive datetime karşılaştırması)
+                    recent_snapshots = []
+                    for snap in history:
+                        snap_time = parse_timestamp(snap.get('scraped_at', ''))
+                        if snap_time != datetime.min and snap_time >= persistence_threshold:
+                            recent_snapshots.append(snap)
+                    
+                    # En az 2 snapshot olmalı kalıcılık kontrolü için (yaklaşık 20 dk = 2 snapshot)
+                    if len(recent_snapshots) < 2:
+                        # Yeterli snapshot yok, alarm tetiklenmez
+                        continue
+                    
+                    # Son 120 dakikadaki TÜM snapshot'larda:
+                    # 1. Oran opening_odds'un altında kalmalı (geri dönüş yok)
+                    # 2. Her snapshot'ta minimum L1 drop_pct eşiği karşılanmalı
+                    drop_persistent = True
+                    for snap in recent_snapshots:
+                        snap_odds = parse_float(snap.get(odds_key, 0))
+                        if snap_odds <= 0:
+                            continue
+                        # Oran opening'e geri dönmüşse veya üstüne çıktıysa, kalıcı drop değil
+                        if snap_odds >= opening_odds:
+                            drop_persistent = False
+                            break
+                        # Her snapshot'ta minimum drop_pct (L1) karşılanmalı
+                        snap_drop_pct = ((opening_odds - snap_odds) / opening_odds) * 100
+                        if snap_drop_pct < l1_min:
+                            drop_persistent = False
+                            break
+                    
+                    if not drop_persistent:
+                        continue
+                    
+                    # Level belirleme
                     if drop_pct >= l3_min:
                         level = 'L3'
                     elif drop_pct >= l2_min:
@@ -1395,7 +1472,7 @@ class AlarmCalculator:
                     else:
                         level = 'L1'
                     
-                    trigger_at = now_turkey_iso()
+                    trigger_at = history[-1].get('scraped_at', now_turkey_iso())
                     match_id = f"{home}|{away}|{match.get('date', '')}"
                     
                     # Volume bilgisi (varsa)
@@ -1407,18 +1484,20 @@ class AlarmCalculator:
                         'away': away,
                         'market': market_names.get(market, market),
                         'selection': selection,
-                        'opening_odds': opening_odds,
-                        'current_odds': current_odds,
+                        'opening_odds': round(opening_odds, 2),
+                        'current_odds': round(current_odds, 2),
                         'drop_pct': round(drop_pct, 2),
                         'level': level,
                         'volume': volume,
                         'match_date': match.get('date', ''),
                         'trigger_at': trigger_at,
                         'created_at': now_turkey_iso(),
-                        'alarm_type': 'dropping'
+                        'alarm_type': 'dropping',
+                        'persistence_minutes': persistence_minutes,
+                        'snapshots_checked': len(recent_snapshots) if 'recent_snapshots' in dir() else 0
                     }
                     alarms.append(alarm)
-                    log(f"  [DROPPING-{level}] {home} vs {away} | {market_names.get(market, market)}-{selection} | {opening_odds:.2f}->{current_odds:.2f} (-%{drop_pct:.1f})")
+                    log(f"  [DROPPING-{level}] {home} vs {away} | {market_names.get(market, market)}-{selection} | {opening_odds:.2f}->{current_odds:.2f} (-%{drop_pct:.1f}) | Kalıcı: {len(recent_snapshots) if 'recent_snapshots' in dir() else 0} snap")
         
         if alarms:
             new_count = self._upsert_alarms('dropping_alarms', alarms, ['home', 'away', 'market', 'selection'])
