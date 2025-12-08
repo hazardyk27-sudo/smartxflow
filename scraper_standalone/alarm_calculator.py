@@ -1222,27 +1222,26 @@ class AlarmCalculator:
                     if not all_quiet:
                         continue
                     
-                    # KURAL 5 (Recovery kontrolü): Window'un son snapshot'ında açılışa göre drop hala >= eşik mi?
-                    if len(surrounding_details) < 2:
+                    # KURAL 5 (Recovery kontrolü): GERÇEK SON SNAPSHOT'ta açılışa göre drop hala >= eşik mi?
+                    # NOT: surrounding_details değil, history[-1] kullan - çünkü yeni snapshot'lar window dışında kalabilir
+                    true_latest = history[-1]
+                    true_latest_odds = parse_float(true_latest.get(odds_key, 0))
+                    
+                    if true_latest_odds <= 0:
                         continue
                     
-                    last_snap = surrounding_details[-1]
-                    window_last_odds = last_snap.get('odds', 0)
-                    
-                    if window_last_odds <= 0:
-                        continue
-                    
-                    # Açılışa göre window sonundaki drop
-                    window_last_drop_pct = ((opening_odds - window_last_odds) / opening_odds) * 100
+                    # Açılışa göre GERÇEK son snapshot'taki drop
+                    true_latest_drop_pct = ((opening_odds - true_latest_odds) / opening_odds) * 100
                     
                     # Oran düzeldiyse (drop < eşik) alarm iptal
-                    if window_last_drop_pct < oran_dusus_esigi:
-                        # Window sonunda oran düzelmiş, alarm tetiklenmez
+                    if true_latest_drop_pct < oran_dusus_esigi:
+                        # Oran düzelmiş, alarm tetiklenmez - stale cleanup silecek
+                        log(f"  [INSIDER RECOVERY] {home} vs {away} | {selection} | Oran düzeldi: {true_latest_odds:.2f} (drop %{true_latest_drop_pct:.1f} < eşik %{oran_dusus_esigi})")
                         continue
                     
-                    # Güncel değerler
-                    actual_current_odds = window_last_odds
-                    actual_drop_pct = window_last_drop_pct
+                    # Güncel değerler - gerçek son snapshot'tan
+                    actual_current_odds = true_latest_odds
+                    actual_drop_pct = true_latest_drop_pct
                     
                     trigger_snap = history[drop_moment_index]
                     trigger_at = trigger_snap.get('scraped_at', now_turkey_iso())
