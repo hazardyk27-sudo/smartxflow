@@ -958,30 +958,17 @@ class AlarmCalculator:
                     continue
                 
                 first = history[0]
-                latest = history[-1]
                 
                 for sel_idx, selection in enumerate(selections):
                     odds_key = odds_keys[sel_idx]
                     amount_key = amount_keys[sel_idx]
                     
                     opening_odds = parse_float(first.get(odds_key, 0))
-                    current_odds = parse_float(latest.get(odds_key, 0))
                     
-                    if opening_odds <= 0 or current_odds <= 0:
+                    if opening_odds <= 0:
                         continue
                     
-                    if current_odds > max_odds:
-                        continue
-                    
-                    if current_odds >= opening_odds:
-                        continue
-                    
-                    # KURAL 1: Açılış→Şimdi Düşüş >= %X
-                    oran_dusus_pct = ((opening_odds - current_odds) / opening_odds) * 100
-                    if oran_dusus_pct < oran_dusus_esigi:
-                        continue
-                    
-                    # KURAL 2: En büyük tek seferlik ORAN düşüşünün olduğu snapshot'ı bul
+                    # KURAL 1: En büyük tek seferlik ORAN düşüşünün olduğu snapshot'ı bul
                     max_odds_drop = 0
                     drop_moment_index = -1
                     
@@ -998,10 +985,27 @@ class AlarmCalculator:
                     if drop_moment_index < 0:
                         continue
                     
-                    # KURAL 3: Düşüş anının etrafındaki N snapshot'a bak
-                    half_n = n_snapshots // 2
-                    start_idx = max(0, drop_moment_index - half_n)
-                    end_idx = min(len(history), drop_moment_index + half_n + 1)
+                    # KURAL 2: Düşüş anının etrafındaki N snapshot'a bak
+                    # Tam olarak n_snapshots kadar (history izin veriyorsa)
+                    history_len = len(history)
+                    
+                    # Merkez olarak drop_moment_index kullan
+                    half_before = n_snapshots // 2
+                    half_after = n_snapshots - half_before - 1
+                    
+                    start_idx = drop_moment_index - half_before
+                    end_idx = drop_moment_index + half_after + 1
+                    
+                    # Sınırları düzelt - eksik tarafı diğer taraftan telafi et
+                    if start_idx < 0:
+                        # Baştan taştı, sonu genişlet
+                        end_idx = min(history_len, end_idx + (-start_idx))
+                        start_idx = 0
+                    
+                    if end_idx > history_len:
+                        # Sondan taştı, başı geri al
+                        start_idx = max(0, start_idx - (end_idx - history_len))
+                        end_idx = history_len
                     
                     surrounding_snapshots = history[start_idx:end_idx]
                     if len(surrounding_snapshots) < 2:
@@ -1013,25 +1017,38 @@ class AlarmCalculator:
                     max_hacim_sok = 0
                     surrounding_details = []
                     
-                    for i in range(1, len(surrounding_snapshots)):
-                        curr_amt = parse_volume(surrounding_snapshots[i].get(amount_key, 0))
-                        prev_amt = parse_volume(surrounding_snapshots[i-1].get(amount_key, 0))
-                        incoming = max(0, curr_amt - prev_amt)
-                        total_incoming += incoming
+                    # Tüm snapshot'ları kaydet (N adet)
+                    for i, snap in enumerate(surrounding_snapshots):
+                        curr_amt = parse_volume(snap.get(amount_key, 0))
+                        curr_odds = parse_float(snap.get(odds_key, 0))
+                        scraped_at = snap.get('scraped_at', '')
                         
-                        # Hacim şoku hesapla: incoming / prev_amt
-                        hacim_sok = incoming / prev_amt if prev_amt > 0 else 0
-                        if hacim_sok > max_hacim_sok:
-                            max_hacim_sok = hacim_sok
+                        # Önceki snapshot varsa incoming hesapla
+                        if i > 0:
+                            prev_amt = parse_volume(surrounding_snapshots[i-1].get(amount_key, 0))
+                            incoming = max(0, curr_amt - prev_amt)
+                            total_incoming += incoming
+                            
+                            # Hacim şoku hesapla: incoming / prev_amt
+                            hacim_sok = incoming / prev_amt if prev_amt > 0 else 0
+                            if hacim_sok > max_hacim_sok:
+                                max_hacim_sok = hacim_sok
+                            
+                            # HER snapshot'ta: HacimSok < Esik VE GelenPara < MaxPara olmalı
+                            if hacim_sok >= hacim_sok_esigi or incoming >= max_para:
+                                all_quiet = False
+                        else:
+                            incoming = 0
+                            hacim_sok = 0
                         
-                        # HER snapshot'ta: HacimSok < Esik VE GelenPara < MaxPara olmalı
-                        if hacim_sok >= hacim_sok_esigi or incoming >= max_para:
-                            all_quiet = False
+                        # Açılışa göre drop hesapla (her snapshot için)
+                        snap_drop_pct = ((opening_odds - curr_odds) / opening_odds * 100) if opening_odds > 0 and curr_odds > 0 else 0
                         
                         surrounding_details.append({
                             'index': start_idx + i,
-                            'scraped_at': surrounding_snapshots[i].get('scraped_at', ''),
-                            'odds': parse_float(surrounding_snapshots[i].get(odds_key, 0)),
+                            'scraped_at': scraped_at,
+                            'odds': curr_odds,
+                            'drop_pct': round(snap_drop_pct, 2),
                             'amount': curr_amt,
                             'incoming': round(incoming, 0),
                             'volume_shock': round(hacim_sok, 4),
@@ -1041,6 +1058,27 @@ class AlarmCalculator:
                     # Sessiz hareket değilse alarm yok
                     if not all_quiet:
                         continue
+                    
+                    # KURAL 5: Window'daki son snapshot'ta kontroller
+                    if not surrounding_details:
+                        continue
+                    
+                    last_snap = surrounding_details[-1]
+                    last_snap_drop = last_snap.get('drop_pct', 0)
+                    last_snap_odds = last_snap.get('odds', 0)
+                    
+                    # Son snapshot'ta max_odds kontrolü
+                    if last_snap_odds <= 0 or last_snap_odds > max_odds:
+                        continue
+                    
+                    # Son snapshot'ta drop eşiği karşılanmalı
+                    if last_snap_drop < oran_dusus_esigi:
+                        # Oran düzelmiş, alarm tetiklenmez
+                        continue
+                    
+                    # Güncel değerler window'un son snapshot'ından alınır
+                    actual_current_odds = last_snap_odds
+                    actual_drop_pct = last_snap_drop
                     
                     trigger_snap = history[drop_moment_index]
                     trigger_at = trigger_snap.get('scraped_at', now_turkey_iso())
@@ -1052,12 +1090,12 @@ class AlarmCalculator:
                         'away': away,
                         'market': market_names.get(market, market),
                         'selection': selection,
-                        'odds_drop_pct': round(oran_dusus_pct, 2),
+                        'odds_drop_pct': round(actual_drop_pct, 2),
                         'max_odds_drop': round(max_odds_drop, 3),
                         'incoming_money': total_incoming,
                         'volume_shock': round(max_hacim_sok, 4),
                         'opening_odds': opening_odds,
-                        'current_odds': current_odds,
+                        'current_odds': actual_current_odds,
                         'drop_moment_index': drop_moment_index,
                         'drop_moment': trigger_at,
                         'surrounding_snapshots': surrounding_details,
@@ -1068,7 +1106,7 @@ class AlarmCalculator:
                         'alarm_type': 'insider'
                     }
                     alarms.append(alarm)
-                    log(f"  [INSIDER] {home} vs {away} | {market_names.get(market, market)}-{selection} | Oran: {opening_odds:.2f}->{current_odds:.2f} (-%{oran_dusus_pct:.1f}) | DüsusAnı: S{drop_moment_index} | Para: {total_incoming:,.0f}")
+                    log(f"  [INSIDER] {home} vs {away} | {market_names.get(market, market)}-{selection} | Oran: {opening_odds:.2f}->{actual_current_odds:.2f} (-%{actual_drop_pct:.1f}) | DüsusAnı: S{drop_moment_index} | Para: {total_incoming:,.0f}")
         
         if alarms:
             new_count = self._upsert_alarms('insider_alarms', alarms, ['home', 'away', 'market', 'selection'])
