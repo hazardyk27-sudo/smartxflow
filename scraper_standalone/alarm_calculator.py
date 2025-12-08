@@ -1535,13 +1535,9 @@ class AlarmCalculator:
         1. Opening odds = History'deki ilk snapshot'ın oranı
         2. Current odds = History'deki son snapshot'ın oranı
         3. 120 dakika kalıcılık = Son 120 dakikadaki TÜM snapshot'larda drop devam etmeli
+        
+        RACE CONDITION FIX: Önce upsert, sonra eski alarmları temizle
         """
-        # Her hesaplamada ÖNCE tabloyu temizle - config kontrolünden ÖNCE
-        try:
-            self._delete('dropping_alarms', '')
-            log("[Dropping] Table cleared before recalculation")
-        except Exception as e:
-            log(f"[Dropping] Table clear failed: {e}")
         
         config = self.configs.get('dropping')
         if not config:
@@ -1720,8 +1716,36 @@ class AlarmCalculator:
         if alarms:
             new_count = self._upsert_alarms('dropping_alarms', alarms, ['home', 'away', 'market', 'selection'])
             log(f"Dropping: {new_count} alarms upserted")
+            
+            # RACE CONDITION FIX: Upsert'ten SONRA geçersiz alarmları temizle
+            # Hesaplanan alarm key'lerini topla
+            valid_keys = set()
+            for a in alarms:
+                key = f"{a['home']}|{a['away']}|{a['market']}|{a['selection']}"
+                valid_keys.add(key)
+            
+            # Mevcut alarmları çek ve geçersiz olanları sil
+            try:
+                existing = self._get('dropping_alarms', 'select=id,home,away,market,selection') or []
+                stale_ids = []
+                for row in existing:
+                    key = f"{row.get('home', '')}|{row.get('away', '')}|{row.get('market', '')}|{row.get('selection', '')}"
+                    if key not in valid_keys:
+                        stale_ids.append(row.get('id'))
+                
+                if stale_ids:
+                    for stale_id in stale_ids:
+                        self._delete('dropping_alarms', f'id=eq.{stale_id}')
+                    log(f"[Dropping] Removed {len(stale_ids)} stale alarms")
+            except Exception as e:
+                log(f"[Dropping] Stale alarm cleanup failed: {e}")
         else:
-            log("Dropping: 0 alarm")
+            # Hiç alarm yoksa tabloyu temizle (tüm koşullar artık geçersiz)
+            try:
+                self._delete('dropping_alarms', 'id=gte.1')
+                log("Dropping: 0 alarm - table cleared")
+            except Exception as e:
+                log(f"[Dropping] Table clear failed: {e}")
         
         return len(alarms)
     
