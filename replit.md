@@ -47,11 +47,43 @@ The system uses a hybrid architecture with Supabase as the single source of trut
 | publicmove_alarms | Public Move |
 | volume_leader_alarms | Hacim Lideri (Volume Leader) |
 
-**Important:** User must run `create_alarm_tables.sql` (V4.0) in Supabase Dashboard (SQL Editor) to create these tables before the EXE can write alarms. Until then, the system uses local JSON fallback.
+**Important:** 
+- İlk kurulum için: `create_alarm_tables_INITIAL_SETUP.sql` (V5.0) kullanın - TÜM TABLOLARI SİLİP YENİDEN OLUŞTURUR!
+- Mevcut verileri koruyarak güncelleme için: `migrate_sharp_alarms_v5.sql` kullanın - SADECE YENİ ALANLAR EKLER
 
-**ALAN ADI UYUMU (V4.0 - 2025-12-07):**
-Tüm alan adları admin.exe'nin JSON çıktısıyla birebir aynı. Supabase tabloları ve Replit kodu uyumlu:
-- Sharp: `amount_change`, `drop_pct`, `share_diff`, `sharp_score`, `shock_raw`, `shock_value` vb.
+**ALAN ADI UYUMU (V5.0 - 2025-12-08):**
+UI alan adları = tek kaynak (authoritative reference). Admin.exe ve Supabase bu alan adlarını kullanır:
+
+**Sharp Alarm Formülleri:**
+```
+1. Hacim Şoku:
+   - amount_change = curr_amt - prev_amt
+   - avg_last_amounts = son 5 snapshot ortalaması (non-zero)
+   - shock_raw = amount_change / avg_last_amounts
+   - shock_value = shock_raw × volume_multiplier
+   - volume_contrib = min(shock_value, max_volume_cap)
+
+2. Oran Düşüşü:
+   - drop_pct = ((prev_odds - curr_odds) / prev_odds) × 100
+   - odds_value = drop_pct × odds_multiplier_bucket
+   - odds_contrib = min(odds_value, max_odds_cap)
+
+3. Pay Değişimi:
+   - share_diff = curr_share - prev_share
+   - share_value = share_diff × share_multiplier (negatif olabilir)
+   - share_contrib = min(max(0, share_value), max_share_cap)
+
+4. Final Skor:
+   - sharp_score = volume_contrib + odds_contrib + share_contrib
+```
+
+**Sharp Alarm Alanları:**
+- Hacim: `amount_change`, `avg_last_amounts`, `shock_raw`, `shock_value`, `volume_multiplier`, `max_volume_cap`, `volume_contrib`
+- Oran: `previous_odds`, `current_odds`, `drop_pct`, `odds_multiplier_base`, `odds_multiplier_bucket`, `odds_multiplier`, `odds_value`, `max_odds_cap`, `odds_contrib`
+- Pay: `previous_share`, `current_share`, `share_diff`, `share_multiplier`, `share_value`, `max_share_cap`, `share_contrib`
+- Skor: `sharp_score`
+
+**Diğer Alarm Alanları:**
 - Insider: `hacim_sok`, `oran_dusus_pct`, `gelen_para`, `snapshot_details` vb.
 - VolumeShock: `volume_shock_value`, `hours_to_kickoff`, `hacim_soku_min_saat`, `hacim_soku_min_esik` vb.
 - Dropping: `level`, `drop_pct`, `home_team`, `away_team`, `fixture_date` vb.
