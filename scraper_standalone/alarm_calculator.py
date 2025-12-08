@@ -1695,8 +1695,8 @@ class AlarmCalculator:
                         'trigger_at': trigger_at,
                         'created_at': now_turkey_iso(),
                         'alarm_type': 'dropping',
-                        'persistence_minutes': persistence_minutes,
-                        'snapshots_checked': len(recent_snapshots)
+                        'persistence_minutes': int(persistence_minutes),
+                        'snapshots_checked': int(len(recent_snapshots))
                     }
                     alarms.append(alarm)
                     log(f"  [DROPPING-{level}] {home} vs {away} | {market_names.get(market, market)}-{selection} | {opening_odds:.2f}->{current_odds:.2f} (-%{drop_pct:.1f}) | Kalıcı: {len(recent_snapshots)} snap")
