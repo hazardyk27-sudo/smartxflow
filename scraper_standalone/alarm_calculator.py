@@ -1422,50 +1422,75 @@ class AlarmCalculator:
                         log(f"  [{alarm_label} MONEY] {home} vs {away} | {market_names.get(market, market)}-{selection} | £{snap['incoming']:,.0f} gelen")
         
         if alarms:
-            # Duplicate'leri filtrele - aynı key için sadece en büyük incoming olanı tut
-            unique_alarms = {}
+            import json
+            
+            # Aynı key için tüm alarmları grupla - EN SON olanı ana, diğerleri history
+            grouped_alarms = {}
             for alarm in alarms:
                 key = (alarm['match_id'], alarm['market'], alarm['selection'])
-                if key not in unique_alarms or alarm['incoming_money'] > unique_alarms[key]['incoming_money']:
-                    unique_alarms[key] = alarm
+                if key not in grouped_alarms:
+                    grouped_alarms[key] = []
+                grouped_alarms[key].append(alarm)
             
-            filtered_alarms = list(unique_alarms.values())
-            log(f"BigMoney: {len(alarms)} -> {len(filtered_alarms)} (duplicates filtered)")
-            
-            # HISTORY TRACKING: Mevcut alarmın verisini geçmişe ekle
-            import json
-            for alarm in filtered_alarms:
-                key = f"{alarm['home']}|{alarm['away']}|{alarm['market']}|{alarm['selection']}"
-                if key in existing_alarms:
-                    old_alarm = existing_alarms[key]
-                    # Mevcut geçmişi al veya boş liste
-                    old_history = old_alarm.get('alarm_history') or []
-                    if isinstance(old_history, str):
+            filtered_alarms = []
+            for key, alarm_list in grouped_alarms.items():
+                # Zamana göre sırala (en son = ana alarm)
+                alarm_list.sort(key=lambda x: x.get('trigger_at', ''), reverse=True)
+                
+                main_alarm = alarm_list[0]  # En son olan
+                
+                # Diğerleri history olarak ekle
+                current_history = []
+                for old in alarm_list[1:]:
+                    current_history.append({
+                        'incoming_money': old.get('incoming_money', 0),
+                        'trigger_at': old.get('trigger_at', ''),
+                        'selection_total': old.get('selection_total', 0),
+                        'is_huge': old.get('is_huge', False)
+                    })
+                
+                # Mevcut DB'deki history'yi de ekle
+                str_key = f"{main_alarm['home']}|{main_alarm['away']}|{main_alarm['market']}|{main_alarm['selection']}"
+                if str_key in existing_alarms:
+                    old_alarm = existing_alarms[str_key]
+                    db_history = old_alarm.get('alarm_history') or []
+                    if isinstance(db_history, str):
                         try:
-                            old_history = json.loads(old_history)
+                            db_history = json.loads(db_history)
                         except:
-                            old_history = []
+                            db_history = []
                     
-                    # Eski alarm verisi farklıysa geçmişe ekle
-                    old_incoming = old_alarm.get('incoming_money', 0)
+                    # DB'deki mevcut ana alarmı da history'ye ekle (eğer farklıysa)
                     old_trigger = old_alarm.get('trigger_at', '')
-                    new_incoming = alarm.get('incoming_money', 0)
-                    new_trigger = alarm.get('trigger_at', '')
+                    old_incoming = old_alarm.get('incoming_money', 0)
+                    main_trigger = main_alarm.get('trigger_at', '')
                     
-                    if old_trigger != new_trigger and old_incoming > 0:
-                        history_entry = {
+                    if old_trigger and old_trigger != main_trigger and old_incoming > 0:
+                        db_history.append({
                             'incoming_money': old_incoming,
                             'trigger_at': old_trigger,
                             'selection_total': old_alarm.get('selection_total', 0),
                             'is_huge': old_alarm.get('is_huge', False)
-                        }
-                        old_history.append(history_entry)
-                        # Son 10 geçmiş kaydı tut
-                        old_history = old_history[-10:]
+                        })
                     
-                    alarm['alarm_history'] = json.dumps(old_history)
-                else:
-                    alarm['alarm_history'] = '[]'
+                    current_history.extend(db_history)
+                
+                # Tekrarları kaldır ve sırala (eski -> yeni)
+                seen_triggers = set()
+                unique_history = []
+                for h in current_history:
+                    t = h.get('trigger_at', '')
+                    if t and t not in seen_triggers:
+                        seen_triggers.add(t)
+                        unique_history.append(h)
+                
+                unique_history.sort(key=lambda x: x.get('trigger_at', ''))
+                unique_history = unique_history[-10:]  # Son 10 kayıt
+                
+                main_alarm['alarm_history'] = json.dumps(unique_history)
+                filtered_alarms.append(main_alarm)
+            
+            log(f"BigMoney: {len(alarms)} -> {len(filtered_alarms)} (grouped with history)")
             
             # Constraint: match_id, market, selection
             new_count = self._upsert_alarms('bigmoney_alarms', filtered_alarms, ['match_id', 'market', 'selection'])
