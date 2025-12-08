@@ -73,12 +73,14 @@ CREATE TABLE sharp_alarms (
 -- 2. INSIDER ALARMS
 CREATE TABLE insider_alarms (
     id SERIAL PRIMARY KEY,
+    match_id TEXT,
     home TEXT NOT NULL,
     away TEXT NOT NULL,
     market TEXT NOT NULL,
     selection TEXT NOT NULL,
     match_date TEXT,
     event_time TEXT,
+    trigger_at TEXT,
     created_at TEXT,
     hacim_sok NUMERIC,
     oran_dusus_pct NUMERIC,
@@ -105,12 +107,14 @@ CREATE TABLE insider_alarms (
 -- 3. BIGMONEY ALARMS
 CREATE TABLE bigmoney_alarms (
     id SERIAL PRIMARY KEY,
+    match_id TEXT,
     home TEXT NOT NULL,
     away TEXT NOT NULL,
     market TEXT NOT NULL,
     selection TEXT NOT NULL,
     match_date TEXT,
     event_time TEXT,
+    trigger_at TEXT,
     created_at TEXT,
     incoming_money NUMERIC,
     selection_total NUMERIC,
@@ -125,6 +129,7 @@ CREATE TABLE bigmoney_alarms (
 -- 4. VOLUMESHOCK ALARMS
 CREATE TABLE volumeshock_alarms (
     id SERIAL PRIMARY KEY,
+    match_id TEXT,
     type TEXT DEFAULT 'volume_shock',
     home TEXT NOT NULL,
     away TEXT NOT NULL,
@@ -132,6 +137,7 @@ CREATE TABLE volumeshock_alarms (
     selection TEXT NOT NULL,
     match_date TEXT,
     event_time TEXT,
+    trigger_at TEXT,
     created_at TEXT,
     volume_shock_value NUMERIC,
     hours_to_kickoff NUMERIC,
@@ -145,17 +151,18 @@ CREATE TABLE volumeshock_alarms (
 -- 5. DROPPING ALARMS
 CREATE TABLE dropping_alarms (
     id SERIAL PRIMARY KEY,
+    match_id TEXT,
     home TEXT NOT NULL,
     away TEXT NOT NULL,
     home_team TEXT,
     away_team TEXT,
-    match_id TEXT,
     league TEXT,
     market TEXT NOT NULL,
     selection TEXT NOT NULL,
     match_date TEXT,
     fixture_date TEXT,
     event_time TEXT,
+    trigger_at TEXT,
     created_at TEXT,
     level TEXT,
     opening_odds NUMERIC,
@@ -168,12 +175,14 @@ CREATE TABLE dropping_alarms (
 -- 6. PUBLICMOVE ALARMS
 CREATE TABLE publicmove_alarms (
     id SERIAL PRIMARY KEY,
+    match_id TEXT,
     home TEXT NOT NULL,
     away TEXT NOT NULL,
     market TEXT NOT NULL,
     selection TEXT NOT NULL,
     match_date TEXT,
     event_time TEXT,
+    trigger_at TEXT,
     created_at TEXT,
     trap_score NUMERIC,
     incoming_money NUMERIC,
@@ -187,11 +196,14 @@ CREATE TABLE publicmove_alarms (
 -- 7. VOLUME LEADER ALARMS
 CREATE TABLE volume_leader_alarms (
     id SERIAL PRIMARY KEY,
+    match_id TEXT,
     home TEXT NOT NULL,
     away TEXT NOT NULL,
     market TEXT NOT NULL,
+    selection TEXT,
     match_date TEXT,
     event_time TEXT,
+    trigger_at TEXT,
     created_at TEXT,
     old_leader TEXT,
     old_leader_share NUMERIC,
