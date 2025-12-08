@@ -5309,12 +5309,11 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const level = latest.level || 'L1';
             const selection = latest.selection || latest.side || '-';
             const market = latest.market || '';
-            const volume = latest.volume || latest.selection_total || 0;
             const levelTooltip = level === 'L1' ? 'Orta seviye düşüş (8-13%)' : (level === 'L2' ? 'Güçlü düşüş (13-20%)' : 'Çok güçlü düşüş (20%+)');
             row2Left = `${selection} (${market})`;
-            row2Right = `<span class="sm-dropping-main">${openOdds} → ${currOdds}</span> <span class="sm-drop-pct-hero">▼${dropPct.toFixed(1)}%</span> <span class="sm-level-badge ${level.toLowerCase()}" title="${levelTooltip}">${level}</span>`;
-            row3Left = volume > 0 ? `<span class="sm-volume-highlight">Volume: £${Number(volume).toLocaleString('en-GB')}</span>` : '';
-            row3Right = `<span class="sm-drop-support">10 dk içi hacim ile doğrulandı</span>`;
+            row2Right = `<span class="sm-level-badge ${level.toLowerCase()}" title="${levelTooltip}">${level}</span>`;
+            row3Left = `<span class="sm-dropping-main">${openOdds} → ${currOdds}</span>`;
+            row3Right = `<span class="sm-drop-pct-hero">▼${dropPct.toFixed(1)}%</span>`;
             row4 = `Seçenek oranında kısa sürede güçlü bir düşüş tespit edildi.`;
         } else if (type === 'publicmove') {
             const prevShare = latest.previous_share || latest.old_share || 0;
