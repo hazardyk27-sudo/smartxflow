@@ -7093,6 +7093,52 @@ td.volume,
 .acd-stat-val.dropping { color: #f85149; }
 .acd-stat-val.publicmove { color: #FFCC00; }
 .acd-stat-val.drop { color: #ef4444; }
+.acd-stat-val.muted { color: #8b949e; font-weight: 500; }
+
+/* BigMoney Hero Style - Premium Design */
+.acd-bigmoney-hero {
+    text-align: center;
+    padding: 16px 12px;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, rgba(240, 138, 36, 0.12), rgba(240, 138, 36, 0.06));
+    border-radius: 8px;
+    border: 1px solid rgba(240, 138, 36, 0.2);
+}
+
+.acd-hero-amount {
+    font-size: 28px;
+    font-weight: 800;
+    color: #F08A24;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+    text-shadow: 0 0 20px rgba(240, 138, 36, 0.3);
+}
+
+.acd-hero-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(240, 138, 36, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 6px;
+}
+
+/* BigMoney bright stripe */
+.ac.bigmoney .ac-stripe {
+    background: linear-gradient(180deg, #FF9F33, #F08A24);
+    box-shadow: 0 0 8px rgba(240, 138, 36, 0.4);
+}
+
+/* Secondary stat for totals */
+.acd-stat-secondary {
+    opacity: 0.7;
+}
+
+.acd-grid.cols-1 {
+    display: flex;
+    justify-content: center;
+    margin-top: 8px;
+}
 
 .level-badge {
     display: inline-block;
