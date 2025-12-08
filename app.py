@@ -4419,17 +4419,178 @@ def calculate_volume_leader_scores(config):
     return alarms
 
 
+DEFAULT_ALARM_SETTINGS = {
+    'sharp': {
+        'enabled': True,
+        'config': {
+            'min_share': 1,
+            'max_odds_cap': 125,
+            'max_share_cap': 1,
+            'max_volume_cap': 124,
+            'min_volume_1x2': 2999,
+            'min_sharp_score': 100,
+            'min_volume_btts': 999,
+            'min_volume_ou25': 1499,
+            'odds_range_1_max': 1.6,
+            'odds_range_1_min': 1.01,
+            'odds_range_2_max': 2.1,
+            'odds_range_2_min': 1.59,
+            'odds_range_3_max': 3.5,
+            'odds_range_3_min': 2.09,
+            'odds_range_4_max': 7,
+            'odds_range_4_min': 3.49,
+            'min_amount_change': 1999,
+            'odds_range_1_mult': 20,
+            'odds_range_2_mult': 12,
+            'odds_range_3_mult': 8,
+            'odds_range_4_mult': 3,
+            'share_range_1_max': 30,
+            'share_range_1_min': 1,
+            'share_range_2_max': 60,
+            'share_range_2_min': 30,
+            'share_range_3_max': 80,
+            'share_range_3_min': 60,
+            'share_range_4_max': 100,
+            'share_range_4_min': 80,
+            'volume_multiplier': 15,
+            'share_range_1_mult': 1,
+            'share_range_2_mult': 1,
+            'share_range_3_mult': 1,
+            'share_range_4_mult': 1,
+            'odds_range_1_min_drop': 1.5,
+            'odds_range_2_min_drop': 3,
+            'odds_range_3_min_drop': 7,
+            'odds_range_4_min_drop': 15
+        }
+    },
+    'insider': {
+        'enabled': True,
+        'config': {
+            'max_para': 100,
+            'sure_dakika': 7,
+            'max_odds_esigi': 1.85,
+            'min_volume_1x2': 3000,
+            'hacim_sok_esigi': 0.1,
+            'min_volume_btts': 1000,
+            'min_volume_ou25': 1000,
+            'oran_dusus_esigi': 6
+        }
+    },
+    'bigmoney': {
+        'enabled': True,
+        'config': {
+            'big_money_limit': 1499
+        }
+    },
+    'volumeshock': {
+        'enabled': True,
+        'config': {
+            'min_volume_1x2': 1999,
+            'min_volume_btts': 599,
+            'min_volume_ou25': 999,
+            'hacim_soku_min_esik': 7,
+            'hacim_soku_min_saat': 2,
+            'min_son_snapshot_para': 499
+        }
+    },
+    'dropping': {
+        'enabled': True,
+        'config': {
+            'l2_enabled': True,
+            'l3_enabled': True,
+            'max_drop_l1': 13,
+            'max_drop_l2': 20,
+            'min_drop_l1': 8,
+            'min_drop_l2': 13,
+            'min_drop_l3': 20,
+            'max_odds_1x2': 3.5,
+            'max_odds_btts': 2.35,
+            'max_odds_ou25': 2.35,
+            'min_volume_1x2': 1,
+            'min_volume_btts': 1,
+            'min_volume_ou25': 1,
+            'persistence_enabled': True,
+            'persistence_minutes': 30
+        }
+    },
+    'publicmove': {
+        'enabled': True,
+        'config': {
+            'min_share': 1,
+            'max_odds_cap': 80,
+            'max_share_cap': 50,
+            'max_volume_cap': 70,
+            'min_volume_1x2': 2999,
+            'min_sharp_score': 60,
+            'min_volume_btts': 999,
+            'min_volume_ou25': 1499,
+            'odds_range_1_max': 1.6,
+            'odds_range_1_min': 1.01,
+            'odds_range_2_max': 2.1,
+            'odds_range_2_min': 1.59,
+            'odds_range_3_max': 3.5,
+            'odds_range_3_min': 2.09,
+            'odds_range_4_max': 7,
+            'odds_range_4_min': 3.49,
+            'min_amount_change': 1999,
+            'odds_range_1_mult': 10,
+            'odds_range_2_mult': 6,
+            'odds_range_3_mult': 3,
+            'odds_range_4_mult': 1.5,
+            'share_range_1_max': 30,
+            'share_range_1_min': 1,
+            'share_range_2_max': 60,
+            'share_range_2_min': 30,
+            'share_range_3_max': 80,
+            'share_range_3_min': 60,
+            'share_range_4_max': 100,
+            'share_range_4_min': 80,
+            'volume_multiplier': 10,
+            'share_range_1_mult': 1,
+            'share_range_2_mult': 3,
+            'share_range_3_mult': 6,
+            'share_range_4_mult': 10
+        }
+    },
+    'volumeleader': {
+        'enabled': True,
+        'config': {
+            'min_volume_1x2': 2999,
+            'min_volume_btts': 999,
+            'min_volume_ou25': 1499,
+            'leader_threshold': 50
+        }
+    }
+}
+
 @app.route('/api/alarm-settings')
 def get_alarm_settings():
-    """Get all alarm settings from database"""
+    """Get all alarm settings from database with default fallback"""
     try:
         supabase = get_supabase_client()
+        settings = {}
+        
         if supabase and supabase.is_available:
-            settings = supabase.get_alarm_settings()
-            return jsonify({'status': 'ok', 'settings': settings})
-        return jsonify({'status': 'error', 'message': 'Supabase not available'})
+            db_settings = supabase.get_alarm_settings()
+            if db_settings:
+                settings = db_settings
+        
+        merged_settings = {}
+        for alarm_type, default_setting in DEFAULT_ALARM_SETTINGS.items():
+            if alarm_type in settings:
+                merged_config = default_setting['config'].copy()
+                if 'config' in settings[alarm_type] and settings[alarm_type]['config']:
+                    merged_config.update(settings[alarm_type]['config'])
+                merged_settings[alarm_type] = {
+                    'enabled': settings[alarm_type].get('enabled', default_setting['enabled']),
+                    'config': merged_config
+                }
+            else:
+                merged_settings[alarm_type] = default_setting.copy()
+        
+        return jsonify({'status': 'ok', 'settings': merged_settings})
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)})
+        return jsonify({'status': 'error', 'message': str(e), 'settings': DEFAULT_ALARM_SETTINGS})
 
 
 @app.route('/api/alarm-settings/<alarm_type>', methods=['GET', 'PUT', 'DELETE'])
