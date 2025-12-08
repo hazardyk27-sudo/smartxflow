@@ -3432,13 +3432,12 @@ function highlightNewAlarm(alarm) {
         `;
     }
     
-    // Highlight container oluştur - tek alarm ortada, parıldayan label
+    // Highlight container oluştur - tek alarm ortada (label kaldırıldı)
     band.innerHTML = `
         <div class="new-alarm-highlight">
             <div class="ab-pill ${info.pillClass} highlight-pill">
                 ${contentHtml}
             </div>
-            <div class="new-alarm-label ${info.pillClass}">YENİ ALARM</div>
         </div>
     `;
     
