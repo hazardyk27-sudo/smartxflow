@@ -1041,12 +1041,9 @@ class AlarmCalculator:
         2. Düşüş Anını Bul: En büyük tek seferlik ORAN düşüşünün olduğu snapshot
         3. Etraf Snapshotları: Düşüş anının etrafındaki N snapshot'a bak (N = sure_dakika)
         4. Sessiz Hareket: Tüm N snapshot'ta HacimSok < Esik VE GelenPara < MaxPara
+        
+        RACE CONDITION FIX: Önce upsert, sonra eski alarmları temizle
         """
-        try:
-            self._delete('insider_alarms', '')
-            log("[Insider] Table cleared before recalculation")
-        except Exception as e:
-            log(f"[Insider] Table clear failed: {e}")
         
         config = self.configs.get('insider')
         if not config:
@@ -1278,8 +1275,34 @@ class AlarmCalculator:
         if alarms:
             new_count = self._upsert_alarms('insider_alarms', alarms, ['home', 'away', 'market', 'selection'])
             log(f"Insider: {new_count} alarms upserted")
+            
+            # RACE CONDITION FIX: Upsert'ten SONRA geçersiz alarmları temizle
+            valid_keys = set()
+            for a in alarms:
+                key = f"{a['home']}|{a['away']}|{a['market']}|{a['selection']}"
+                valid_keys.add(key)
+            
+            try:
+                existing = self._get('insider_alarms', 'select=id,home,away,market,selection') or []
+                stale_ids = []
+                for row in existing:
+                    key = f"{row.get('home', '')}|{row.get('away', '')}|{row.get('market', '')}|{row.get('selection', '')}"
+                    if key not in valid_keys:
+                        stale_ids.append(row.get('id'))
+                
+                if stale_ids:
+                    for stale_id in stale_ids:
+                        self._delete('insider_alarms', f'id=eq.{stale_id}')
+                    log(f"[Insider] Removed {len(stale_ids)} stale alarms")
+            except Exception as e:
+                log(f"[Insider] Stale alarm cleanup failed: {e}")
         else:
-            log("Insider: 0 alarm")
+            # Hiç alarm yoksa tabloyu temizle
+            try:
+                self._delete('insider_alarms', 'id=gte.1')
+                log("Insider: 0 alarm - table cleared")
+            except Exception as e:
+                log(f"[Insider] Table clear failed: {e}")
         
         return len(alarms)
     
