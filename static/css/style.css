@@ -7178,22 +7178,24 @@ td.volume,
     background: rgba(240, 138, 36, 0.25) !important;
 }
 
-/* BigMoney Tooltip - Premium Style */
+/* BigMoney Tooltip - Compact Premium Style */
 .smc-tooltip {
     display: none;
     position: absolute;
     top: 100%;
     left: 0;
-    transform: none;
-    margin-top: 10px;
+    margin-top: 8px;
     background: #0d1117;
     border: 1px solid rgba(240, 138, 36, 0.35);
-    border-radius: 8px;
-    padding: 14px 18px;
-    min-width: 520px;
-    max-width: 600px;
+    border-radius: 6px;
+    padding: 10px 12px;
+    min-width: 280px;
+    max-width: 340px;
     z-index: 1000;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+    white-space: normal;
+    word-wrap: break-word;
+    overflow: hidden;
 }
 
 .smc-count-bigmoney:hover .smc-tooltip {
@@ -7201,12 +7203,13 @@ td.volume,
 }
 
 .smc-tooltip-item {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     color: #c9d1d9;
-    padding: 6px 0;
-    line-height: 1.4;
-    white-space: nowrap;
+    padding: 5px 0;
+    line-height: 1.35;
+    white-space: normal;
+    word-wrap: break-word;
 }
 
 .smc-tooltip-item:not(:last-child) {
@@ -7221,16 +7224,17 @@ td.volume,
 
 .smc-tooltip-item .tt-total {
     color: #8b949e;
+    font-size: 11px;
 }
 
 .smc-tooltip-header {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: #F08A24;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 10px;
-    padding-bottom: 8px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
     border-bottom: 1px solid rgba(240, 138, 36, 0.25);
 }
 
