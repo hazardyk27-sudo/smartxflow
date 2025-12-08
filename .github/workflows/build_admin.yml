@@ -2,6 +2,7 @@ name: Build SmartXFlow Admin EXE
 
 on:
   push:
+    branches: [ main ]
     paths:
       - 'scraper_standalone/**'
   workflow_dispatch:
