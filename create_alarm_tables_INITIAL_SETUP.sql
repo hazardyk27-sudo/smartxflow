@@ -250,4 +250,4 @@ CREATE INDEX idx_volumeleader_created ON volume_leader_alarms(created_at);
 -- =====================================================
 -- TAMAMLANDI
 -- =====================================================
-SELECT 'Tüm alarm tabloları başarıyla oluşturuldu! (V4.0 - Admin.exe uyumlu)' as result;
+SELECT 'Tüm alarm tabloları başarıyla oluşturuldu! (V5.0 - UI Alan Adlarıyla Uyumlu)' as result;
