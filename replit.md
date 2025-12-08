@@ -50,6 +50,7 @@ The system uses a hybrid architecture with Supabase as the single source of trut
 **Important:** 
 - İlk kurulum için: `create_alarm_tables_INITIAL_SETUP.sql` (V5.0) kullanın - TÜM TABLOLARI SİLİP YENİDEN OLUŞTURUR!
 - Mevcut verileri koruyarak güncelleme için: `migrate_sharp_alarms_v5.sql` kullanın - SADECE YENİ ALANLAR EKLER
+- Performans için: `add_performance_indexes.sql` çalıştırın - Sorgu hızını %70+ artırır, mevcut veriyi değiştirmez
 
 **ALAN ADI UYUMU (V5.0 - 2025-12-08):**
 UI alan adları = tek kaynak (authoritative reference). Admin.exe ve Supabase bu alan adlarını kullanır:
