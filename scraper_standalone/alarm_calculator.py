@@ -1670,8 +1670,12 @@ class AlarmCalculator:
                     curr_leader = max(curr_shares, key=lambda x: x[1])
                     
                     if prev_leader[0] != curr_leader[0] and curr_leader[1] >= threshold:
-                        trigger_at = curr_snap.get('scraped_at', now_turkey_iso())
                         trigger_volume = curr_total
+                        # Trigger anındaki volume da min_volume eşiğini geçmeli!
+                        if trigger_volume < min_volume:
+                            continue
+                        
+                        trigger_at = curr_snap.get('scraped_at', now_turkey_iso())
                         match_id = f"{home}|{away}|{match.get('date', '')}"
                         
                         alarm = {
