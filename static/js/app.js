@@ -5219,6 +5219,12 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             color: '#FFCC00',
             icon: '🪤',
             description: 'Halk tuzagi tespit edildi.'
+        },
+        volumeleader: {
+            title: 'Lider Degisti',
+            color: '#06b6d4',
+            icon: '👑',
+            description: 'Hacim lideri degisti.'
         }
     };
     
@@ -5314,6 +5320,18 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             row3Left = volume > 0 ? `£${Number(volume).toLocaleString('en-GB')} hacim` : '';
             row3Right = ``;
             row4 = `Halk tuzağı tespit edildi`;
+        } else if (type === 'volumeleader') {
+            const oldLeader = latest.old_leader || latest.previous_leader || '-';
+            const newLeader = latest.new_leader || latest.selection || '-';
+            const oldShare = (latest.old_leader_share || 0).toFixed(0);
+            const newShare = (latest.new_leader_share || 0).toFixed(0);
+            const market = latest.market || '';
+            const totalVol = latest.total_volume || 0;
+            row2Left = `${market}`;
+            row2Right = `${oldLeader} %${oldShare} → ${newLeader} %${newShare}`;
+            row3Left = totalVol > 0 ? `Toplam: £${Number(totalVol).toLocaleString('en-GB')}` : '';
+            row3Right = ``;
+            row4 = `Hacim lideri değişti`;
         }
         
         // BigMoney için özel tooltip oluştur (body'ye portal olarak)
