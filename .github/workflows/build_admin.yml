@@ -5,6 +5,11 @@ on:
     branches: [ main ]
     paths:
       - 'scraper_standalone/**'
+      - 'app.py'
+      - 'templates/**'
+      - 'static/**'
+      - 'services/**'
+      - 'core/**'
   workflow_dispatch:
 
 jobs:
@@ -35,7 +40,7 @@ jobs:
 
       - name: Create BUILD_INFO.txt
         run: |
-          echo "SmartXFlow Admin Panel v1.22" > scraper_standalone/BUILD_INFO.txt
+          echo "SmartXFlow Admin Panel v1.23" > scraper_standalone/BUILD_INFO.txt
           echo "Build Date: $(date)" >> scraper_standalone/BUILD_INFO.txt
           echo "Python: 3.11" >> scraper_standalone/BUILD_INFO.txt
           echo "Commit: ${{ github.sha }}" >> scraper_standalone/BUILD_INFO.txt
@@ -67,6 +72,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SmartXFlowAdmin-v1.22
+          name: SmartXFlowAdmin-v1.23
           path: scraper_standalone/dist/
           retention-days: 30
