@@ -314,40 +314,41 @@ class SupabaseClient:
                 yesterday_pattern = yesterday.strftime('%d.%b')
                 print(f"[Supabase] Fetching yesterday's matches ({yesterday_pattern}) from: {history_table}")
                 
-                all_rows = []
+                seen = {}
                 page = 0
-                page_size = 1000
-                max_pages = 10
+                page_size = 500
+                max_unique_matches = 150
+                max_pages = 6
                 
-                while page < max_pages:
+                while page < max_pages and len(seen) < max_unique_matches:
                     offset = page * page_size
                     url = f"{self._rest_url(history_table)}?select=*&date=like.*{yesterday_pattern}*&order=scraped_at.desc&limit={page_size}&offset={offset}"
-                    resp = httpx.get(url, headers=self._headers(), timeout=30)
+                    resp = httpx.get(url, headers=self._headers(), timeout=15)
                     if resp.status_code == 200:
                         rows = resp.json()
                         if not rows:
                             break
-                        all_rows.extend(rows)
-                        print(f"[Supabase] Page {page+1}: {len(rows)} rows (total: {len(all_rows)})")
-                        if len(rows) < page_size:
+                        
+                        for row in rows:
+                            home = row.get('home', '')
+                            away = row.get('away', '')
+                            key = f"{home}|{away}"
+                            if key not in seen:
+                                seen[key] = row
+                            else:
+                                existing_time = seen[key].get('scraped_at', '')
+                                new_time = row.get('scraped_at', '')
+                                if new_time > existing_time:
+                                    seen[key] = row
+                        
+                        print(f"[Supabase] Page {page+1}: {len(rows)} rows, {len(seen)} unique matches")
+                        
+                        if len(rows) < page_size or len(seen) >= max_unique_matches:
                             break
                         page += 1
                     else:
                         print(f"[Supabase] ERROR {resp.status_code} on page {page+1}")
                         break
-                
-                seen = {}
-                for row in all_rows:
-                    home = row.get('home', '')
-                    away = row.get('away', '')
-                    key = f"{home}|{away}"
-                    if key not in seen:
-                        seen[key] = row
-                    else:
-                        existing_time = seen[key].get('scraped_at', '')
-                        new_time = row.get('scraped_at', '')
-                        if new_time > existing_time:
-                            seen[key] = row
                 
                 matches = []
                 for key, row in seen.items():
@@ -359,47 +360,48 @@ class SupabaseClient:
                         'date': row.get('date', ''),
                         'latest': latest
                     })
-                print(f"[Supabase] Got {len(matches)} unique YESTERDAY matches from {history_table}")
+                print(f"[Supabase] Got {len(matches)} unique YESTERDAY matches from {history_table} (optimized)")
                 return matches
             elif date_filter == 'today':
                 today_pattern = now_tr.strftime('%d.%b')
                 print(f"[Supabase] Fetching today's matches ({today_pattern}) from: {history_table}")
                 
-                all_rows = []
+                seen = {}
                 page = 0
-                page_size = 1000
-                max_pages = 10
+                page_size = 500
+                max_unique_matches = 150
+                max_pages = 6
                 
-                while page < max_pages:
+                while page < max_pages and len(seen) < max_unique_matches:
                     offset = page * page_size
                     url = f"{self._rest_url(history_table)}?select=*&date=like.*{today_pattern}*&order=scraped_at.desc&limit={page_size}&offset={offset}"
-                    resp = httpx.get(url, headers=self._headers(), timeout=30)
+                    resp = httpx.get(url, headers=self._headers(), timeout=15)
                     if resp.status_code == 200:
                         rows = resp.json()
                         if not rows:
                             break
-                        all_rows.extend(rows)
-                        print(f"[Supabase] Page {page+1}: {len(rows)} rows (total: {len(all_rows)})")
-                        if len(rows) < page_size:
+                        
+                        for row in rows:
+                            home = row.get('home', '')
+                            away = row.get('away', '')
+                            key = f"{home}|{away}"
+                            if key not in seen:
+                                seen[key] = row
+                            else:
+                                existing_time = seen[key].get('scraped_at', '')
+                                new_time = row.get('scraped_at', '')
+                                if new_time > existing_time:
+                                    seen[key] = row
+                        
+                        print(f"[Supabase] Page {page+1}: {len(rows)} rows, {len(seen)} unique matches")
+                        
+                        if len(rows) < page_size or len(seen) >= max_unique_matches:
                             break
                         page += 1
                     else:
                         print(f"[Supabase] ERROR {resp.status_code} on page {page+1}")
                         break
                 
-                seen = {}
-                for row in all_rows:
-                    home = row.get('home', '')
-                    away = row.get('away', '')
-                    key = f"{home}|{away}"
-                    if key not in seen:
-                        seen[key] = row
-                    else:
-                        existing_time = seen[key].get('scraped_at', '')
-                        new_time = row.get('scraped_at', '')
-                        if new_time > existing_time:
-                            seen[key] = row
-                
                 matches = []
                 for key, row in seen.items():
                     latest = self._normalize_history_row(row, market)
@@ -410,77 +412,70 @@ class SupabaseClient:
                         'date': row.get('date', ''),
                         'latest': latest
                     })
-                print(f"[Supabase] Got {len(matches)} unique TODAY matches from {history_table}")
+                print(f"[Supabase] Got {len(matches)} unique TODAY matches from {history_table} (optimized)")
                 return matches
             else:
-                # ALL mode: Fetch all data, filter in Python (D-2+ rule: no past, all future)
+                # ALL mode: Optimized - early exit when enough unique matches found
                 today_date = now_tr.date()
                 yesterday_date = today_date - timedelta(days=1)
                 
-                all_rows = []
-                page_size = 1000
-                max_pages = 20  # Increased for more data
+                month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+                            'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
                 
-                print(f"[Supabase] Fetching ALL matches with pagination (will filter D-2+ in Python)...")
-                for page in range(max_pages):
+                seen = {}
+                page = 0
+                page_size = 500
+                max_unique_matches = 200
+                max_pages = 8
+                
+                print(f"[Supabase] Fetching ALL matches (optimized, max {max_unique_matches} unique)...")
+                
+                while page < max_pages and len(seen) < max_unique_matches:
                     offset = page * page_size
                     url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit={page_size}&offset={offset}"
-                    resp = httpx.get(url, headers=self._headers(), timeout=30)
+                    resp = httpx.get(url, headers=self._headers(), timeout=15)
                     if resp.status_code == 200:
                         rows = resp.json()
                         if not rows:
                             break
-                        all_rows.extend(rows)
-                        print(f"[Supabase] Page {page+1}: {len(rows)} rows (total: {len(all_rows)})")
-                        if len(rows) < page_size:
+                        
+                        for row in rows:
+                            date_str = row.get('date', '')
+                            if not date_str:
+                                continue
+                            try:
+                                date_part = date_str.split()[0]
+                                if '.' in date_part:
+                                    parts = date_part.split('.')
+                                    if len(parts) >= 2:
+                                        day = int(parts[0])
+                                        month_abbr = parts[1][:3]
+                                        month = month_map.get(month_abbr, today_date.month)
+                                        year = today_date.year
+                                        if month < today_date.month and today_date.month >= 11 and month <= 2:
+                                            year += 1
+                                        match_date = datetime(year, month, day).date()
+                                        if match_date >= yesterday_date:
+                                            home = row.get('home', '')
+                                            away = row.get('away', '')
+                                            key = f"{home}|{away}"
+                                            if key not in seen:
+                                                seen[key] = row
+                                            else:
+                                                existing_time = seen[key].get('scraped_at', '')
+                                                new_time = row.get('scraped_at', '')
+                                                if new_time > existing_time:
+                                                    seen[key] = row
+                            except:
+                                pass
+                        
+                        print(f"[Supabase] Page {page+1}: {len(rows)} rows, {len(seen)} unique matches")
+                        
+                        if len(rows) < page_size or len(seen) >= max_unique_matches:
                             break
+                        page += 1
                     else:
                         break
-                
-                # Filter D-2+ in Python: yesterday and future only (no D-2 or older)
-                month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
-                            'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
-                
-                filtered_rows = []
-                for row in all_rows:
-                    date_str = row.get('date', '')
-                    if not date_str:
-                        continue
-                    try:
-                        # Parse "13.Dec 15:00:00" format
-                        date_part = date_str.split()[0]
-                        if '.' in date_part:
-                            parts = date_part.split('.')
-                            if len(parts) >= 2:
-                                day = int(parts[0])
-                                month_abbr = parts[1][:3]
-                                month = month_map.get(month_abbr, today_date.month)
-                                # Handle year wrap (Dec -> Jan)
-                                year = today_date.year
-                                if month < today_date.month and today_date.month >= 11 and month <= 2:
-                                    year += 1
-                                match_date = datetime(year, month, day).date()
-                                # D-2+ filter: yesterday or future (not D-2 or older)
-                                if match_date >= yesterday_date:
-                                    filtered_rows.append(row)
-                    except:
-                        # If parsing fails, include the row
-                        filtered_rows.append(row)
-                
-                print(f"[Supabase] Got {len(all_rows)} total rows, {len(filtered_rows)} after D-2+ filter (yesterday+future)")
-                
-                seen = {}
-                for row in filtered_rows:
-                    home = row.get('home', '')
-                    away = row.get('away', '')
-                    key = f"{home}|{away}"
-                    if key not in seen:
-                        seen[key] = row
-                    else:
-                        existing_time = seen[key].get('scraped_at', '')
-                        new_time = row.get('scraped_at', '')
-                        if new_time > existing_time:
-                            seen[key] = row
                 
                 matches = []
                 for key, row in seen.items():
@@ -492,7 +487,7 @@ class SupabaseClient:
                         'date': row.get('date', ''),
                         'latest': latest
                     })
-                print(f"[Supabase] Got {len(matches)} unique matches (yesterday+future, D-2+ filtered)")
+                print(f"[Supabase] Got {len(matches)} unique matches (optimized)")
                 return matches
         except Exception as e:
             print(f"[Supabase] EXCEPTION in get_all_matches_with_latest: {e}")

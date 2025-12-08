@@ -107,7 +107,7 @@ CREATE INDEX IF NOT EXISTS idx_dropping_alarms_created_at
 ON dropping_alarms(created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_dropping_alarms_match 
-ON dropping_alarms(home_team, away_team);
+ON dropping_alarms(home, away);
 
 -- publicmove_alarms
 CREATE INDEX IF NOT EXISTS idx_publicmove_alarms_created_at 
