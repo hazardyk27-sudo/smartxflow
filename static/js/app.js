@@ -1982,7 +1982,7 @@ async function loadChart(home, away, market) {
                                         innerHtml += '<span class="chart-tooltip-option"><span class="color-dot" style="background:' + boxColor + '"></span>' + label + '</span>';
                                         innerHtml += '<span class="chart-tooltip-odds">' + formatOdds(odds) + '</span>';
                                         if (amt) {
-                                            innerHtml += '<span class="chart-tooltip-volume">' + formatVolumeCompact(amt) + '</span>';
+                                            innerHtml += '<span class="chart-tooltip-volume" style="color:' + boxColor + '">' + formatVolumeCompact(amt) + '</span>';
                                         }
                                         innerHtml += '</div>';
                                         if (pct) {
