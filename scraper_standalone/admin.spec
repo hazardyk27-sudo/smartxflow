@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-# SmartXFlow Admin Panel v1.12 - PyInstaller Spec
+# SmartXFlow Admin Panel v1.20 - PyInstaller Spec
 # Web Admin (pywebview + Flask) + Background Scraper
 
 import os
