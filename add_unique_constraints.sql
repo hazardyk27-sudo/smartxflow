@@ -133,6 +133,12 @@ ALTER TABLE insider_alarms ADD COLUMN IF NOT EXISTS snapshot_count INTEGER;
 
 ALTER TABLE volumeshock_alarms ADD COLUMN IF NOT EXISTS volume_shock NUMERIC;
 ALTER TABLE volumeshock_alarms ADD COLUMN IF NOT EXISTS volume_shock_multiplier NUMERIC;
+ALTER TABLE volumeshock_alarms ADD COLUMN IF NOT EXISTS volume_shock_value NUMERIC;
+
+-- Backfill: Eski column'lardan yeni column'a veri taşı
+UPDATE volumeshock_alarms 
+SET volume_shock_value = COALESCE(volume_shock, volume_shock_multiplier) 
+WHERE volume_shock_value IS NULL AND (volume_shock IS NOT NULL OR volume_shock_multiplier IS NOT NULL);
 
 ALTER TABLE dropping_alarms ADD COLUMN IF NOT EXISTS odds_drop_pct NUMERIC;
 

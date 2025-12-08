@@ -118,7 +118,7 @@ CREATE TABLE bigmoney_alarms (
     UNIQUE(home, away, market, selection, event_time)
 );
 
--- 4. VOLUMESHOCK ALARMS (Calculator alan adlarıyla uyumlu)
+-- 4. VOLUMESHOCK ALARMS (UI + Legacy uyumlu - tüm key'ler)
 CREATE TABLE volumeshock_alarms (
     id SERIAL PRIMARY KEY,
     match_id TEXT,
@@ -130,6 +130,7 @@ CREATE TABLE volumeshock_alarms (
     trigger_at TEXT,
     created_at TEXT,
     alarm_type TEXT,
+    volume_shock_value NUMERIC,
     volume_shock NUMERIC,
     volume_shock_multiplier NUMERIC,
     incoming_money NUMERIC,
