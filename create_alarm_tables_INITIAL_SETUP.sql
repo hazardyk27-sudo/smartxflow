@@ -1,9 +1,11 @@
--- SmartXFlow Alarm Tabloları V4.0 - ADMIN.EXE UYUMLU
+-- SmartXFlow Alarm Tabloları V5.0 - UI ALAN ADLARIYLA UYUMLU
 -- Supabase Dashboard > SQL Editor'da çalıştırın
--- TÜM ALAN ADLARI ADMIN.EXE JSON ÇIKTILARIYLA BİREBİR AYNI
+-- TÜM ALAN ADLARI UI İLE BİREBİR AYNI (Admin.exe bu alan adlarını kullanır)
+-- NOT: Bu script tabloları DROP eder. Mevcut veriyi korumak için ADD COLUMN migration kullanın.
 
 -- =====================================================
 -- ADIM 1: ESKİ TABLOLARI SİL (TEMİZ BAŞLANGIÇ)
+-- DİKKAT: Mevcut veri silinir! Sadece ilk kurulumda kullanın.
 -- =====================================================
 DROP TABLE IF EXISTS sharp_alarms CASCADE;
 DROP TABLE IF EXISTS insider_alarms CASCADE;
@@ -17,30 +19,41 @@ DROP TABLE IF EXISTS volume_leader_alarms CASCADE;
 -- ADIM 2: YENİ TABLOLAR (ADMIN.EXE İLE BİREBİR AYNI)
 -- =====================================================
 
--- 1. SHARP ALARMS
+-- 1. SHARP ALARMS - UI ALAN ADLARIYLA UYUMLU
 CREATE TABLE sharp_alarms (
     id SERIAL PRIMARY KEY,
+    match_id TEXT,
     home TEXT NOT NULL,
     away TEXT NOT NULL,
     market TEXT NOT NULL,
     selection TEXT NOT NULL,
     match_date TEXT,
     event_time TEXT,
+    trigger_at TEXT,
     created_at TEXT,
+    alarm_type TEXT DEFAULT 'sharp',
+    
+    -- Hacim Şoku (Volume Shock) - UI alan adları
     amount_change NUMERIC,
     avg_last_amounts NUMERIC,
     shock_raw NUMERIC,
-    shock_value NUMERIC,
     volume_multiplier NUMERIC,
+    shock_value NUMERIC,
     max_volume_cap NUMERIC,
     volume_contrib NUMERIC,
+    
+    -- Oran Düşüşü (Odds Drop) - UI alan adları
     previous_odds NUMERIC,
     current_odds NUMERIC,
     drop_pct NUMERIC,
+    odds_multiplier_base NUMERIC,
+    odds_multiplier_bucket NUMERIC,
     odds_multiplier NUMERIC,
     odds_value NUMERIC,
     max_odds_cap NUMERIC,
     odds_contrib NUMERIC,
+    
+    -- Pay Değişimi (Share Change) - UI alan adları
     previous_share NUMERIC,
     current_share NUMERIC,
     share_diff NUMERIC,
@@ -48,9 +61,12 @@ CREATE TABLE sharp_alarms (
     share_value NUMERIC,
     max_share_cap NUMERIC,
     share_contrib NUMERIC,
+    
+    -- Final Skor
     sharp_score NUMERIC,
     min_sharp_score NUMERIC,
     triggered BOOLEAN DEFAULT TRUE,
+    
     UNIQUE(home, away, market, selection)
 );
 

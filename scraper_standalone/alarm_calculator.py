@@ -603,8 +603,29 @@ class AlarmCalculator:
         return past_limit <= match_dt <= future_limit
     
     def calculate_sharp_alarms(self) -> int:
-        """Calculate Sharp Move alarms"""
-        # Her hesaplamada ÖNCE tabloyu temizle - config kontrolünden ÖNCE
+        """Calculate Sharp Move alarms - UI ALAN ADLARIYLA UYUMLU
+        
+        UI Formülleri:
+        1. Hacim Şoku:
+           - amount_change = curr_amt - prev_amt
+           - avg_last_amounts = son 5 snapshot'ın ortalaması
+           - shock_raw = amount_change / avg_last_amounts
+           - shock_value = shock_raw × volume_multiplier
+           - volume_contrib = min(shock_value, max_volume_cap)
+        
+        2. Oran Düşüşü:
+           - drop_pct = ((prev_odds - curr_odds) / prev_odds) × 100
+           - odds_value = drop_pct × odds_multiplier
+           - odds_contrib = min(odds_value, max_odds_cap)
+        
+        3. Pay Değişimi:
+           - share_diff = curr_share - prev_share
+           - share_value = share_diff × share_multiplier
+           - share_contrib = min(share_value, max_share_cap)
+        
+        4. Final Skor:
+           - sharp_score = volume_contrib + odds_contrib + share_contrib
+        """
         try:
             self._delete('sharp_alarms', '')
             log("[Sharp] Table cleared before recalculation")
@@ -616,57 +637,40 @@ class AlarmCalculator:
             log("[Sharp] CONFIG YOK - Supabase'de sharp ayarlarını kaydedin!")
             return 0
         
-        # Config validation - kritik key'ler mevcut olmalı
         required_keys = ['min_sharp_score', 'min_volume_1x2', 'min_volume_ou25', 'min_volume_btts']
         missing_keys = [k for k in required_keys if config.get(k) is None]
         if missing_keys:
             log(f"[Sharp] CONFIG EKSIK KEY'LER: {missing_keys} - Supabase'de tamamlayın!")
             return 0
         
-        # CRITICAL: parse_float ile float'a çevir - key varlığı kontrol + fallback + uyarı log
         min_score = parse_float(config.get('min_sharp_score'))
-        
-        if 'volume_multiplier' not in config:
-            log(f"[Sharp] UYARI: volume_multiplier config'de yok! Default 1.0 kullanılıyor.")
-            vol_mult = 1.0
-        else:
-            vol_mult = parse_float(config.get('volume_multiplier'))
-            if vol_mult == 0:
-                vol_mult = 1.0  # 0 çarpan mantıksız, 1.0 kullan
-        
-        if 'odds_multiplier' not in config:
-            log(f"[Sharp] UYARI: odds_multiplier config'de yok! Default 1.0 kullanılıyor.")
-            odds_mult_default = 1.0
-        else:
-            odds_mult_default = parse_float(config.get('odds_multiplier'))
-            if odds_mult_default == 0:
-                odds_mult_default = 1.0
-        
-        if 'share_multiplier' not in config:
-            log(f"[Sharp] UYARI: share_multiplier config'de yok! Default 1.0 kullanılıyor.")
-            share_mult = 1.0
-        else:
-            share_mult = parse_float(config.get('share_multiplier'))
-            if share_mult == 0:
-                share_mult = 1.0
-        
         min_amount_change = parse_float(config.get('min_amount_change')) or 0
         
-        # Odds Range Multipliers - oran aralığına göre farklı çarpanlar
+        # Multipliers
+        volume_multiplier = parse_float(config.get('volume_multiplier')) or 1.0
+        odds_multiplier_default = parse_float(config.get('odds_multiplier')) or 1.0
+        share_multiplier = parse_float(config.get('share_multiplier')) or 1.0
+        
+        # Cap değerleri - UI'dan gelen
+        max_volume_cap = parse_float(config.get('max_volume_cap')) or 40.0
+        max_odds_cap = parse_float(config.get('max_odds_cap')) or 10.0
+        max_share_cap = parse_float(config.get('max_share_cap')) or 10.0
+        
+        # Odds Range Multipliers - oran aralığına göre farklı çarpanlar (ESKİ DAVRANIŞI KORU)
         odds_ranges = []
         for i in range(1, 5):
             range_min = parse_float(config.get(f'odds_range_{i}_min')) or 0
             range_max = parse_float(config.get(f'odds_range_{i}_max')) or 99
-            range_mult = parse_float(config.get(f'odds_range_{i}_mult')) or odds_mult_default
+            range_mult = parse_float(config.get(f'odds_range_{i}_mult')) or odds_multiplier_default
             if range_min > 0 or range_max < 99:
                 odds_ranges.append({'min': range_min, 'max': range_max, 'mult': range_mult})
         
-        log(f"[Sharp Config] HESAPLAMAYLA KULLANILAN DEĞERLER:")
+        log(f"[Sharp Config] UI ALAN ADLARIYLA HESAPLAMA:")
         log(f"  - min_sharp_score: {min_score}")
-        log(f"  - volume_multiplier: {vol_mult}")
-        log(f"  - odds_multiplier: {odds_mult_default}")
-        log(f"  - share_multiplier: {share_mult}")
         log(f"  - min_amount_change: {min_amount_change}")
+        log(f"  - volume_multiplier: {volume_multiplier}, max_volume_cap: {max_volume_cap}")
+        log(f"  - odds_multiplier: {odds_multiplier_default}, max_odds_cap: {max_odds_cap}")
+        log(f"  - share_multiplier: {share_multiplier}, max_share_cap: {max_share_cap}")
         if odds_ranges:
             log(f"  - Odds ranges: {len(odds_ranges)} defined")
         
@@ -716,7 +720,6 @@ class AlarmCalculator:
                 
                 latest = history[-1]
                 prev = history[-2]
-                first = history[0]
                 
                 for sel_idx, selection in enumerate(selections):
                     odds_key = odds_keys[sel_idx]
@@ -725,79 +728,142 @@ class AlarmCalculator:
                     
                     current_odds = parse_float(latest.get(odds_key, 0))
                     prev_odds = parse_float(prev.get(odds_key, 0))
-                    opening_odds = parse_float(first.get(odds_key, 0))
                     
                     current_amount = parse_volume(latest.get(amount_key, 0))
                     prev_amount = parse_volume(prev.get(amount_key, 0))
                     
-                    current_pct = parse_float(latest.get(pct_key, 0))
-                    prev_pct = parse_float(prev.get(pct_key, 0))
+                    current_share = parse_float(latest.get(pct_key, 0))
+                    previous_share = parse_float(prev.get(pct_key, 0))
                     
                     if current_odds <= 0 or prev_odds <= 0:
                         continue
                     
-                    volume_change = current_amount - prev_amount
-                    if volume_change <= 0:
+                    # === UI FORMÜLÜ: amount_change ===
+                    amount_change = current_amount - prev_amount
+                    if amount_change <= 0:
                         continue
                     
-                    # min_amount_change filtresi
-                    if volume_change < min_amount_change:
+                    if amount_change < min_amount_change:
                         continue
                     
-                    odds_drop = prev_odds - current_odds
-                    if odds_drop <= 0:
+                    # === UI FORMÜLÜ: avg_last_amounts (son 5 snapshot ortalaması) ===
+                    # PRIOR LOGIC: Deterministik fallback ile gerçek volume change korunur
+                    last_5_amounts = []
+                    for i in range(max(0, len(history) - 6), len(history) - 1):
+                        amt = parse_volume(history[i].get(amount_key, 0))
+                        last_5_amounts.append(amt)
+                    
+                    # UI Mantığı: Non-zero ortalaması, yoksa prev_amount, yoksa 1000 fallback
+                    non_zero_amounts = [a for a in last_5_amounts if a > 0]
+                    if len(non_zero_amounts) > 0:
+                        avg_last_amounts = sum(non_zero_amounts) / len(non_zero_amounts)
+                    elif prev_amount > 0:
+                        avg_last_amounts = prev_amount
+                    else:
+                        # Deterministik fallback: 1000 (eski davranış korunur, shock_raw anlamlı kalır)
+                        avg_last_amounts = 1000.0
+                    
+                    # === UI FORMÜLÜ: shock_raw = amount_change / avg_last_amounts ===
+                    # Gerçek volume change korunur, sıfıra bölme koruması var
+                    shock_raw = amount_change / avg_last_amounts
+                    
+                    # === UI FORMÜLÜ: shock_value = shock_raw × volume_multiplier ===
+                    shock_value = shock_raw * volume_multiplier
+                    
+                    # === UI FORMÜLÜ: volume_contrib = min(shock_value, max_volume_cap) ===
+                    volume_contrib = min(shock_value, max_volume_cap)
+                    
+                    # === UI FORMÜLÜ: drop_pct = ((prev_odds - curr_odds) / prev_odds) × 100 ===
+                    if prev_odds > 0:
+                        drop_pct = ((prev_odds - current_odds) / prev_odds) * 100
+                    else:
+                        drop_pct = 0
+                    
+                    if drop_pct <= 0:
                         continue
                     
-                    share_change = current_pct - prev_pct
-                    
-                    volume_contrib = min(10, (volume_change / 1000) * vol_mult)
-                    
-                    # Odds range'e göre multiplier seç
-                    odds_mult = odds_mult_default
+                    # Odds range'e göre bucket multiplier seç (ESKİ DAVRANIŞI KORU)
+                    odds_bucket_multiplier = odds_multiplier_default
                     for odr in odds_ranges:
                         if odr['min'] <= current_odds <= odr['max']:
-                            odds_mult = odr['mult']
+                            odds_bucket_multiplier = odr['mult']
                             break
                     
-                    odds_contrib = min(10, (odds_drop / 0.05) * 2 * odds_mult)
-                    share_contrib = min(10, share_change * share_mult) if share_change > 0 else 0
+                    # === UI FORMÜLÜ: odds_value = drop_pct × odds_multiplier ===
+                    # Bucket multiplier aktif ise onu kullan, değilse base multiplier
+                    odds_multiplier_used = odds_bucket_multiplier
+                    odds_value = drop_pct * odds_multiplier_used
                     
+                    # === UI FORMÜLÜ: odds_contrib = min(odds_value, max_odds_cap) ===
+                    odds_contrib = min(odds_value, max_odds_cap)
+                    
+                    # === UI FORMÜLÜ: share_diff = curr_share - prev_share ===
+                    # UI negatif share_diff'e izin verir ama contrib 0 olur
+                    share_diff = current_share - previous_share
+                    
+                    # === UI FORMÜLÜ: share_value = share_diff × share_multiplier ===
+                    # Negatif share_diff için share_value de negatif olabilir (UI gösterim için)
+                    share_value = share_diff * share_multiplier
+                    
+                    # === UI FORMÜLÜ: share_contrib = min(share_value, max_share_cap) ===
+                    # Negatif veya sıfır share_value için contrib 0
+                    share_contrib = min(max(0, share_value), max_share_cap)
+                    
+                    # === UI FORMÜLÜ: sharp_score = volume_contrib + odds_contrib + share_contrib ===
                     sharp_score = volume_contrib + odds_contrib + share_contrib
                     
                     if sharp_score >= min_score:
                         trigger_at = latest.get('scraped_at', now_turkey_iso())
                         match_id = f"{home}|{away}|{match.get('date', '')}"
                         
-                        drop_percentage = ((opening_odds - current_odds) / opening_odds * 100) if opening_odds > 0 else 0
-                        share_change_pct = current_pct - prev_pct
-                        
+                        # UI ALAN ADLARIYLA ALARM KAYDI
                         alarm = {
                             'match_id': match_id,
                             'home': home,
                             'away': away,
                             'market': market_names.get(market, market),
                             'selection': selection,
-                            'sharp_score': round(sharp_score, 2),
-                            'odds_drop_pct': round(drop_percentage, 2),
-                            'volume_shock_multiplier': round(volume_contrib, 2),
-                            'share_change': round(share_change_pct, 2),
-                            'weights': json.dumps({'volume': vol_mult, 'odds': odds_mult, 'share': share_mult}),
-                            'volume_contrib': round(volume_contrib, 2),
-                            'odds_contrib': round(odds_contrib, 2),
-                            'share_contrib': round(share_contrib, 2),
-                            'incoming_money': volume_change,
-                            'opening_odds': opening_odds,
-                            'previous_odds': prev_odds,
-                            'current_odds': current_odds,
-                            'previous_share': prev_pct,
-                            'current_share': current_pct,
                             'match_date': match.get('date', ''),
                             'trigger_at': trigger_at,
                             'created_at': now_turkey_iso(),
-                            'alarm_type': 'sharp'
+                            'alarm_type': 'sharp',
+                            
+                            # Hacim Şoku - UI alan adları
+                            'amount_change': round(amount_change, 2),
+                            'avg_last_amounts': round(avg_last_amounts, 2),
+                            'shock_raw': round(shock_raw, 4),
+                            'volume_multiplier': volume_multiplier,
+                            'shock_value': round(shock_value, 2),
+                            'max_volume_cap': max_volume_cap,
+                            'volume_contrib': round(volume_contrib, 2),
+                            
+                            # Oran Düşüşü - UI alan adları
+                            # odds_multiplier_base = config'den gelen base, odds_multiplier_bucket = range'e göre uygulanan
+                            'previous_odds': round(prev_odds, 2),
+                            'current_odds': round(current_odds, 2),
+                            'drop_pct': round(drop_pct, 2),
+                            'odds_multiplier_base': odds_multiplier_default,
+                            'odds_multiplier_bucket': odds_multiplier_used,
+                            'odds_multiplier': odds_multiplier_used,  # UI backwards compat
+                            'odds_value': round(odds_value, 2),
+                            'max_odds_cap': max_odds_cap,
+                            'odds_contrib': round(odds_contrib, 2),
+                            
+                            # Pay Değişimi - UI alan adları
+                            # share_value negatif olabilir (UI gösterim için), share_contrib ise 0'dan küçük olamaz
+                            'previous_share': round(previous_share, 2),
+                            'current_share': round(current_share, 2),
+                            'share_diff': round(share_diff, 2),
+                            'share_multiplier': share_multiplier,
+                            'share_value': round(share_value, 2),  # İşaretli değer saklanır
+                            'max_share_cap': max_share_cap,
+                            'share_contrib': round(share_contrib, 2),  # Negatifse 0
+                            
+                            # Final Skor
+                            'sharp_score': round(sharp_score, 2)
                         }
                         alarms.append(alarm)
-                        log(f"  [SHARP] {home} vs {away} | {market_names.get(market, market)}-{selection} | Score: {sharp_score:.1f} | Vol: £{volume_change:,.0f}")
+                        log(f"  [SHARP] {home} vs {away} | {market_names.get(market, market)}-{selection} | Score: {sharp_score:.1f} | Vol: £{amount_change:,.0f} | Drop: {drop_pct:.1f}%")
         
         if alarms:
             new_count = self._upsert_alarms('sharp_alarms', alarms, ['home', 'away', 'market', 'selection'])
