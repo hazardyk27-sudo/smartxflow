@@ -2193,6 +2193,12 @@
                     <p class="page-subtitle">Alarm hesaplama logları ve durum bilgisi</p>
                 </div>
                 <div style="display: flex; gap: 10px;">
+                    <button class="action-btn primary" id="alarmEngineStartBtn" onclick="controlAlarmEngine('start')" style="background: #238636; border-color: #238636;">
+                        <span>▶</span> Başlat
+                    </button>
+                    <button class="action-btn" id="alarmEngineStopBtn" onclick="controlAlarmEngine('stop')" style="background: #da3633; border-color: #da3633;">
+                        <span>⏹</span> Durdur
+                    </button>
                     <button class="action-btn" onclick="window.open('/alarm-engine/console', 'alarmEngineConsole', 'width=900,height=600')">
                         <span>🪟</span> Yeni Pencerede Aç
                     </button>
@@ -2202,14 +2208,18 @@
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 15px; margin-bottom: 20px;">
                 <div class="stats-card">
                     <div class="stats-label">Durum</div>
-                    <div class="stats-value" id="alarmEngineStatus">Bekliyor...</div>
+                    <div class="stats-value" id="alarmEngineStatus">Durduruldu</div>
                 </div>
                 <div class="stats-card">
                     <div class="stats-label">Son Hesaplama</div>
                     <div class="stats-value" id="alarmEngineLastCalc">-</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-label">Sonraki Hesaplama</div>
+                    <div class="stats-value" id="alarmEngineNextCalc">-</div>
                 </div>
                 <div class="stats-card">
                     <div class="stats-label">Süre</div>
@@ -2462,17 +2472,61 @@
             output.innerHTML = '<div style="color: #484f58;">[Console temizlendi]</div>';
         }
         
+        function controlAlarmEngine(action) {
+            const startBtn = document.getElementById('alarmEngineStartBtn');
+            const stopBtn = document.getElementById('alarmEngineStopBtn');
+            
+            if (action === 'start') {
+                startBtn.disabled = true;
+                startBtn.textContent = 'Başlatılıyor...';
+            } else {
+                stopBtn.disabled = true;
+                stopBtn.textContent = 'Durduruluyor...';
+            }
+            
+            fetch('/alarm-engine/control', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: action })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    showToast(data.message, 'success');
+                } else {
+                    showToast(data.message || 'Hata oluştu', 'error');
+                }
+                updateAlarmEngineStatus();
+            })
+            .catch(err => {
+                showToast('Bağlantı hatası: ' + err.message, 'error');
+            })
+            .finally(() => {
+                startBtn.disabled = false;
+                startBtn.innerHTML = '<span>▶</span> Başlat';
+                stopBtn.disabled = false;
+                stopBtn.innerHTML = '<span>⏹</span> Durdur';
+            });
+        }
+        
         function updateAlarmEngineStatus() {
             fetch('/alarm-engine/status')
                 .then(r => r.json())
                 .then(data => {
                     const statusEl = document.getElementById('alarmEngineStatus');
+                    const startBtn = document.getElementById('alarmEngineStartBtn');
+                    const stopBtn = document.getElementById('alarmEngineStopBtn');
+                    
+                    statusEl.textContent = data.status_text || 'Bilinmiyor';
+                    
                     if (data.running) {
-                        statusEl.textContent = 'Hesaplanıyor...';
                         statusEl.style.color = '#f0883e';
+                        startBtn.style.opacity = '0.5';
+                        stopBtn.style.opacity = '1';
                     } else {
-                        statusEl.textContent = 'Hazır';
-                        statusEl.style.color = '#3fb950';
+                        statusEl.style.color = '#8b949e';
+                        startBtn.style.opacity = '1';
+                        stopBtn.style.opacity = '0.5';
                     }
                     
                     document.getElementById('alarmEngineConfig').textContent = data.configs_loaded ? 'Yüklendi' : 'Yüklenmedi';
@@ -2482,6 +2536,13 @@
                     if (data.last_calculation) {
                         const d = new Date(data.last_calculation);
                         document.getElementById('alarmEngineLastCalc').textContent = d.toLocaleTimeString('tr-TR');
+                    }
+                    
+                    if (data.next_calculation) {
+                        const d = new Date(data.next_calculation);
+                        document.getElementById('alarmEngineNextCalc').textContent = d.toLocaleTimeString('tr-TR');
+                    } else {
+                        document.getElementById('alarmEngineNextCalc').textContent = '-';
                     }
                 })
                 .catch(() => {
