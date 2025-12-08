@@ -194,12 +194,27 @@ class AlarmCalculator:
     
     def _delete(self, table: str, params: str) -> bool:
         try:
+            if not params or params.strip() == '':
+                params = 'id=gte.1'
             url = f"{self._rest_url(table)}?{params}"
-            if hasattr(httpx, 'delete'):
-                resp = httpx.delete(url, headers=self._headers(), timeout=30)
+            headers = self._headers()
+            headers['Prefer'] = 'return=representation,count=exact'
+            resp = httpx.delete(url, headers=headers, timeout=30)
+            content_range = resp.headers.get('Content-Range', '')
+            if resp.status_code in [200, 204]:
+                deleted_count = 0
+                if content_range:
+                    try:
+                        parts = content_range.split('/')
+                        if len(parts) > 1 and parts[1] != '*':
+                            deleted_count = int(parts[1])
+                    except:
+                        pass
+                log(f"[DELETE] {table}: Deleted {deleted_count} rows (HTTP {resp.status_code})")
+                return True
             else:
-                resp = httpx.delete(url, headers=self._headers(), timeout=30)
-            return resp.status_code in [200, 204]
+                log(f"[DELETE] {table}: Failed HTTP {resp.status_code} - {resp.text[:200]}")
+                return False
         except Exception as e:
             log(f"DELETE error {table}: {e}")
         return False
