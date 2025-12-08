@@ -4132,7 +4132,7 @@
             container.innerHTML = alarms.map((alarm, idx) => {
                 const incomingMoney = alarm.incoming_money || 0;
                 const avgPrevious = alarm.avg_previous || 0;
-                let shockValue = alarm.volume_shock_value;
+                let shockValue = alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier;
                 if (!shockValue || shockValue === 0) {
                     shockValue = avgPrevious > 0 ? (incomingMoney / avgPrevious) : null;
                 }
@@ -4352,7 +4352,7 @@
                 </div>
                 <div class="detail-section">
                     <h4 style="color: #ff6b6b;">⚡ Hacim Soku Metrikleri</h4>
-                    <div class="detail-row"><span class="detail-label">Sok Degeri</span><span class="detail-value highlight" style="color: #ff6b6b;">${(alarm.volume_shock_value || 0).toFixed(2)}x</span></div>
+                    <div class="detail-row"><span class="detail-label">Sok Degeri</span><span class="detail-value highlight" style="color: #ff6b6b;">${(alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0).toFixed(2)}x</span></div>
                     <div class="detail-row"><span class="detail-label">Mactan Once</span><span class="detail-value" style="color: #58a6ff;">${(alarm.hours_to_kickoff || 0).toFixed(1)} saat</span></div>
                     <div class="detail-row"><span class="detail-label">Gelen Para</span><span class="detail-value" style="color: #3fb950;">£${Math.round(alarm.incoming_money || 0).toLocaleString('en-GB')}</span></div>
                 </div>
