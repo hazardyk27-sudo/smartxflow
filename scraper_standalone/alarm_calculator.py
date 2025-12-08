@@ -388,16 +388,154 @@ class AlarmCalculator:
         except Exception as e:
             log(f"Config load error: {e}")
         
-        # VARSAYILAN DEĞER YOK - Sadece Supabase'den okunan config kullanılır
+        # Supabase'de eksik config varsa default değerlerden tamamla
+        defaults = self._default_configs()
+        for alarm_type, default_config in defaults.items():
+            if alarm_type not in self.configs:
+                log(f"  [DEFAULT] {alarm_type}: Supabase'de yok, default kullanılıyor")
+                self.configs[alarm_type] = default_config
+            else:
+                # Merge: Supabase'de olmayan alanları default'tan al
+                for key, value in default_config.items():
+                    if key not in self.configs[alarm_type]:
+                        self.configs[alarm_type][key] = value
+        
         if not self.configs:
-            log("ERROR: alarm_settings tablosu boş! Supabase'de config ayarlayın.")
-            log("Alarm hesaplaması YAPILMAYACAK - önce config'leri kaydedin.")
+            log("ERROR: alarm_settings tablosu boş! Default değerler kullanılıyor.")
+            self.configs = defaults
     
     def _default_configs(self) -> Dict:
-        """VARSAYILAN DEĞER YOK - Boş dict döndür
-        Tüm config değerleri Supabase alarm_settings tablosundan okunmalı.
-        Eğer config yoksa alarm hesaplanmaz."""
-        return {}
+        """Default alarm configs - replit.md'deki değerler
+        Supabase'de config yoksa bu değerler kullanılır (fallback)"""
+        return {
+            'sharp': {
+                'enabled': True,
+                'min_share': 1,
+                'max_odds_cap': 125,
+                'max_share_cap': 1,
+                'max_volume_cap': 124,
+                'min_volume_1x2': 2999,
+                'min_sharp_score': 100,
+                'min_volume_btts': 999,
+                'min_volume_ou25': 1499,
+                'odds_range_1_max': 1.6,
+                'odds_range_1_min': 1.01,
+                'odds_range_2_max': 2.1,
+                'odds_range_2_min': 1.59,
+                'odds_range_3_max': 3.5,
+                'odds_range_3_min': 2.09,
+                'odds_range_4_max': 7,
+                'odds_range_4_min': 3.49,
+                'min_amount_change': 1999,
+                'odds_range_1_mult': 20,
+                'odds_range_2_mult': 12,
+                'odds_range_3_mult': 8,
+                'odds_range_4_mult': 3,
+                'share_range_1_max': 30,
+                'share_range_1_min': 1,
+                'share_range_2_max': 60,
+                'share_range_2_min': 30,
+                'share_range_3_max': 80,
+                'share_range_3_min': 60,
+                'share_range_4_max': 100,
+                'share_range_4_min': 80,
+                'volume_multiplier': 15,
+                'share_range_1_mult': 1,
+                'share_range_2_mult': 1,
+                'share_range_3_mult': 1,
+                'share_range_4_mult': 1,
+                'odds_range_1_min_drop': 1.5,
+                'odds_range_2_min_drop': 3,
+                'odds_range_3_min_drop': 7,
+                'odds_range_4_min_drop': 15
+            },
+            'insider': {
+                'enabled': True,
+                'max_para': 100,
+                'sure_dakika': 7,
+                'max_odds_esigi': 1.85,
+                'min_volume_1x2': 3000,
+                'hacim_sok_esigi': 0.1,
+                'min_volume_btts': 1000,
+                'min_volume_ou25': 1000,
+                'oran_dusus_esigi': 6
+            },
+            'bigmoney': {
+                'enabled': True,
+                'big_money_limit': 1499
+            },
+            'volumeshock': {
+                'enabled': True,
+                'min_volume_1x2': 1999,
+                'min_volume_btts': 599,
+                'min_volume_ou25': 999,
+                'hacim_soku_min_esik': 7,
+                'hacim_soku_min_saat': 2,
+                'min_son_snapshot_para': 499
+            },
+            'dropping': {
+                'enabled': True,
+                'l2_enabled': True,
+                'l3_enabled': True,
+                'max_drop_l1': 13,
+                'max_drop_l2': 20,
+                'min_drop_l1': 8,
+                'min_drop_l2': 13,
+                'min_drop_l3': 20,
+                'max_odds_1x2': 3.5,
+                'max_odds_btts': 2.35,
+                'max_odds_ou25': 2.35,
+                'min_volume_1x2': 1,
+                'min_volume_btts': 1,
+                'min_volume_ou25': 1,
+                'persistence_enabled': True,
+                'persistence_minutes': 30
+            },
+            'publicmove': {
+                'enabled': True,
+                'min_share': 1,
+                'max_odds_cap': 80,
+                'max_share_cap': 50,
+                'max_volume_cap': 70,
+                'min_volume_1x2': 2999,
+                'min_sharp_score': 60,
+                'min_volume_btts': 999,
+                'min_volume_ou25': 1499,
+                'odds_range_1_max': 1.6,
+                'odds_range_1_min': 1.01,
+                'odds_range_2_max': 2.1,
+                'odds_range_2_min': 1.59,
+                'odds_range_3_max': 3.5,
+                'odds_range_3_min': 2.09,
+                'odds_range_4_max': 7,
+                'odds_range_4_min': 3.49,
+                'min_amount_change': 1999,
+                'odds_range_1_mult': 10,
+                'odds_range_2_mult': 6,
+                'odds_range_3_mult': 3,
+                'odds_range_4_mult': 1.5,
+                'share_range_1_max': 30,
+                'share_range_1_min': 1,
+                'share_range_2_max': 60,
+                'share_range_2_min': 30,
+                'share_range_3_max': 80,
+                'share_range_3_min': 60,
+                'share_range_4_max': 100,
+                'share_range_4_min': 80,
+                'volume_multiplier': 10,
+                'share_range_1_mult': 1,
+                'share_range_2_mult': 3,
+                'share_range_3_mult': 6,
+                'share_range_4_mult': 10
+            },
+            'volumeleader': {
+                'enabled': True,
+                'min_volume_1x2': 2999,
+                'min_volume_btts': 999,
+                'min_volume_ou25': 1499,
+                'leader_threshold': 50
+            }
+        }
     
     def get_matches_with_latest(self, market: str) -> List[Dict]:
         """Get all matches with their latest data for a market (cached)"""
@@ -1557,10 +1695,10 @@ class AlarmCalculator:
                         'created_at': now_turkey_iso(),
                         'alarm_type': 'dropping',
                         'persistence_minutes': persistence_minutes,
-                        'snapshots_checked': len(recent_snapshots) if 'recent_snapshots' in dir() else 0
+                        'snapshots_checked': len(recent_snapshots)
                     }
                     alarms.append(alarm)
-                    log(f"  [DROPPING-{level}] {home} vs {away} | {market_names.get(market, market)}-{selection} | {opening_odds:.2f}->{current_odds:.2f} (-%{drop_pct:.1f}) | Kalıcı: {len(recent_snapshots) if 'recent_snapshots' in dir() else 0} snap")
+                    log(f"  [DROPPING-{level}] {home} vs {away} | {market_names.get(market, market)}-{selection} | {opening_odds:.2f}->{current_odds:.2f} (-%{drop_pct:.1f}) | Kalıcı: {len(recent_snapshots)} snap")
         
         if alarms:
             new_count = self._upsert_alarms('dropping_alarms', alarms, ['home', 'away', 'market', 'selection'])
