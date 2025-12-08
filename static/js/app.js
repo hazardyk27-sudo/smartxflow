@@ -5427,9 +5427,9 @@ async function loadAdminInsiderData() {
             </table>
             <div style="margin-top:16px; padding:12px; background:#161b22; border-radius:8px; font-size:12px; color:#64748b;">
                 <strong style="color:#a855f7;">📊 Özet:</strong> Toplam ${alarms.length} Insider alarm | 
-                Eşik: Hacim Şok &lt; ${alarms[0]?.insider_hacim_sok_esigi || 0.2}x, 
-                Oran Düşüş &gt; ${alarms[0]?.insider_oran_dusus_esigi || 8}%, 
-                Max Para &lt; £${alarms[0]?.insider_max_para || 300}
+                Eşik: Hacim Şok &lt; ${alarms[0]?.insider_hacim_sok_esigi ?? 'N/A'}x, 
+                Oran Düşüş &gt; ${alarms[0]?.insider_oran_dusus_esigi ?? 'N/A'}%, 
+                Max Para &lt; £${alarms[0]?.insider_max_para ?? 'N/A'}
             </div>
         `;
         

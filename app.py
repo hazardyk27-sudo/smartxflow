@@ -1135,24 +1135,16 @@ sharp_config = load_sharp_config_from_file()
 INSIDER_CONFIG_FILE = 'insider_config.json'
 
 def load_insider_config_from_file():
-    """Load Insider config from JSON file"""
-    default_config = {
-        'hacim_sok_esigi': 0.2,
-        'oran_dusus_esigi': 7,
-        'sure_dakika': 70,
-        'max_para': 100,
-        'max_odds_esigi': 1.9,
-        'enabled': True
-    }
+    """Load Insider config from JSON file - NO DEFAULTS (tüm değerler Supabase'den gelmeli)"""
+    config = {}
     try:
         if os.path.exists(INSIDER_CONFIG_FILE):
             with open(INSIDER_CONFIG_FILE, 'r') as f:
-                saved_config = json.load(f)
-                default_config.update(saved_config)
-                print(f"[Insider] Config loaded from {INSIDER_CONFIG_FILE}: oran_dusus_esigi={default_config.get('oran_dusus_esigi')}")
+                config = json.load(f)
+                print(f"[Insider] Config loaded from {INSIDER_CONFIG_FILE}: oran_dusus_esigi={config.get('oran_dusus_esigi')}")
     except Exception as e:
         print(f"[Insider] Config load error: {e}")
-    return default_config
+    return config
 
 insider_config = load_insider_config_from_file()
 
@@ -1164,15 +1156,20 @@ def save_insider_config(config):
     try:
         supabase = get_supabase_client()
         if supabase and supabase.is_available:
-            # Supabase'deki field isimleri insider_ prefix'li
+            # Supabase'deki field isimleri - NO DEFAULTS (Replit değer göndermemeli)
             supabase_config = {
-                'insider_hacim_sok_esigi': config.get('hacim_sok_esigi', 2),
-                'insider_oran_dusus_esigi': config.get('oran_dusus_esigi', 3),
-                'insider_sure_dakika': config.get('sure_dakika', 30),
-                'insider_max_para': config.get('max_para', 5000),
-                'insider_max_odds_esigi': config.get('max_odds_esigi', 10.0)
+                'hacim_sok_esigi': config.get('hacim_sok_esigi'),
+                'oran_dusus_esigi': config.get('oran_dusus_esigi'),
+                'sure_dakika': config.get('sure_dakika'),
+                'max_para': config.get('max_para'),
+                'max_odds_esigi': config.get('max_odds_esigi')
             }
-            if supabase.update_alarm_setting('insider', config.get('enabled', True), supabase_config):
+            # None değerleri temizle
+            supabase_config = {k: v for k, v in supabase_config.items() if v is not None}
+            # Eğer config boşsa Supabase'e yazma
+            if not supabase_config:
+                print("[Insider] Config boş - Supabase'e yazılmadı")
+            elif supabase.update_alarm_setting('insider', config.get('enabled') if 'enabled' in config else None, supabase_config):
                 print(f"[Insider] Config saved to Supabase: oran_dusus_esigi={config.get('oran_dusus_esigi')}")
                 success = True
     except Exception as e:
@@ -1548,12 +1545,25 @@ def calculate_insider_scores(config, existing_alarms=None):
         print("[Insider] Supabase not available")
         return alarms
     
-    # Get config parameters - önce yeni Insider tablosundaki adları dene, yoksa eski Sharp tablosundaki adlara bak
-    hacim_sok_esigi = config.get('hacim_sok_esigi', config.get('insider_hacim_sok_esigi', 2))
-    oran_dusus_esigi = config.get('oran_dusus_esigi', config.get('insider_oran_dusus_esigi', 3))
-    sure_dakika = config.get('sure_dakika', config.get('insider_sure_dakika', 30))
-    max_para = config.get('max_para', config.get('insider_max_para', 5000))
-    max_odds_esigi = config.get('max_odds_esigi', config.get('insider_max_odds_esigi', 10.0))
+    # Get config parameters - NO DEFAULTS (tüm değerler Supabase'den gelmeli)
+    # None kontrolü yapılmalı (0 değeri geçerli olabilir)
+    hacim_sok_esigi = config.get('hacim_sok_esigi') if config.get('hacim_sok_esigi') is not None else config.get('insider_hacim_sok_esigi')
+    oran_dusus_esigi = config.get('oran_dusus_esigi') if config.get('oran_dusus_esigi') is not None else config.get('insider_oran_dusus_esigi')
+    sure_dakika = config.get('sure_dakika') if config.get('sure_dakika') is not None else config.get('insider_sure_dakika')
+    max_para = config.get('max_para') if config.get('max_para') is not None else config.get('insider_max_para')
+    max_odds_esigi = config.get('max_odds_esigi') if config.get('max_odds_esigi') is not None else config.get('insider_max_odds_esigi')
+    
+    # Config eksikse hesaplama yapma (None kontrolü - 0 geçerli değer)
+    missing = []
+    if hacim_sok_esigi is None: missing.append('hacim_sok_esigi')
+    if oran_dusus_esigi is None: missing.append('oran_dusus_esigi')
+    if sure_dakika is None: missing.append('sure_dakika')
+    if max_para is None: missing.append('max_para')
+    if max_odds_esigi is None: missing.append('max_odds_esigi')
+    
+    if missing:
+        print(f"[Insider] CONFIG EKSIK - Supabase'den config yüklenemedi! Eksik: {missing}")
+        return alarms
     
     # Calculate required consecutive snapshots (10 min per snapshot)
     snapshot_interval = 10  # minutes
