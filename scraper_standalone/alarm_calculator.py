@@ -1508,8 +1508,6 @@ class AlarmCalculator:
                             'market': market_names.get(market, market),
                             'selection': selection,
                             'volume_shock_value': round(shock_value, 2),
-                            'volume_shock': round(shock_value, 2),
-                            'volume_shock_multiplier': round(shock_value, 2),
                             'incoming_money': incoming,
                             'avg_previous': round(avg_prev, 0),
                             'match_date': match.get('date', ''),
