@@ -5316,6 +5316,21 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             row4 = `Halk tuzağı tespit edildi`;
         }
         
+        // BigMoney için özel tooltip oluştur
+        let countBadgeHtml = '';
+        if (type === 'bigmoney' && count > 1) {
+            const tooltipItems = alarms.slice(0, 10).map(a => {
+                const t = formatSmartMoneyTime(a.trigger_at || a.event_time || a.created_at);
+                const timeOnly = t.includes('•') ? t.split('•')[1].trim() : t;
+                const m = Number(a.incoming_money || a.stake || 0).toLocaleString('en-GB');
+                const s = a.selection || a.side || '-';
+                return `<div class="smc-tooltip-item">• ${timeOnly} — £${m} — ${s}</div>`;
+            }).join('');
+            countBadgeHtml = `<span class="smc-count-badge smc-count-bigmoney" onclick="event.stopPropagation();">x${count}<div class="smc-tooltip">${tooltipItems}</div></span>`;
+        } else if (count > 1) {
+            countBadgeHtml = `<span class="smc-count-badge">x${count}</span>`;
+        }
+        
         cardsHtml += `
             <div class="smc-card ${type}">
                 <div class="smc-stripe" style="background: ${config.color};"></div>
@@ -5324,7 +5339,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                         <div class="smc-left">
                             <span class="smc-dot" style="background: ${config.color};"></span>
                             <span class="smc-badge">${config.title.toUpperCase()}</span>
-                            <span class="smc-count-badge">x${count}</span>
+                            ${countBadgeHtml}
                         </div>
                         <span class="smc-time">${lastTime}</span>
                     </div>

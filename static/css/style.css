@@ -7161,6 +7161,56 @@ td.volume,
     font-size: 12px;
 }
 
+/* BigMoney Count Badge - Premium Style */
+.smc-count-bigmoney {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #F08A24 !important;
+    background: rgba(240, 138, 36, 0.15) !important;
+    border: 1px solid rgba(240, 138, 36, 0.3) !important;
+    padding: 2px 8px !important;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+}
+
+.smc-count-bigmoney:hover {
+    background: rgba(240, 138, 36, 0.25) !important;
+}
+
+/* BigMoney Tooltip */
+.smc-tooltip {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 8px;
+    background: #161b22;
+    border: 1px solid rgba(240, 138, 36, 0.3);
+    border-radius: 6px;
+    padding: 10px 12px;
+    min-width: 200px;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.smc-count-bigmoney:hover .smc-tooltip {
+    display: block;
+}
+
+.smc-tooltip-item {
+    font-size: 12px;
+    font-weight: 400;
+    color: #c9d1d9;
+    padding: 4px 0;
+    white-space: nowrap;
+}
+
+.smc-tooltip-item:not(:last-child) {
+    border-bottom: 1px solid rgba(139, 148, 158, 0.1);
+}
+
 .level-badge {
     display: inline-block;
     padding: 2px 6px;
