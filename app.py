@@ -4568,29 +4568,43 @@ def get_alarm_settings():
     """Get all alarm settings from database with default fallback"""
     try:
         supabase = get_supabase_client()
-        settings = {}
+        db_settings_dict = {}
         
         if supabase and supabase.is_available:
-            db_settings = supabase.get_alarm_settings()
-            if db_settings:
-                settings = db_settings
+            db_settings_list = supabase.get_alarm_settings()
+            if db_settings_list:
+                for row in db_settings_list:
+                    alarm_type = row.get('alarm_type', '')
+                    if alarm_type:
+                        db_settings_dict[alarm_type] = {
+                            'enabled': row.get('enabled', True),
+                            'config': row.get('config', {})
+                        }
         
         merged_settings = {}
         for alarm_type, default_setting in DEFAULT_ALARM_SETTINGS.items():
-            if alarm_type in settings:
+            if alarm_type in db_settings_dict:
                 merged_config = default_setting['config'].copy()
-                if 'config' in settings[alarm_type] and settings[alarm_type]['config']:
-                    merged_config.update(settings[alarm_type]['config'])
+                db_config = db_settings_dict[alarm_type].get('config')
+                if db_config and isinstance(db_config, dict):
+                    for key, value in db_config.items():
+                        if value is not None:
+                            merged_config[key] = value
+                db_enabled = db_settings_dict[alarm_type].get('enabled')
                 merged_settings[alarm_type] = {
-                    'enabled': settings[alarm_type].get('enabled', default_setting['enabled']),
+                    'enabled': db_enabled if db_enabled is not None else default_setting['enabled'],
                     'config': merged_config
                 }
             else:
-                merged_settings[alarm_type] = default_setting.copy()
+                merged_settings[alarm_type] = {
+                    'enabled': default_setting['enabled'],
+                    'config': default_setting['config'].copy()
+                }
         
         return jsonify({'status': 'ok', 'settings': merged_settings})
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e), 'settings': DEFAULT_ALARM_SETTINGS})
+        print(f"[Alarm Settings] Error loading settings, using defaults: {e}")
+        return jsonify({'status': 'ok', 'settings': DEFAULT_ALARM_SETTINGS})
 
 
 @app.route('/api/alarm-settings/<alarm_type>', methods=['GET', 'PUT', 'DELETE'])
