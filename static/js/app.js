@@ -737,6 +737,27 @@ function formatVolume(value) {
     return '£' + Math.round(num).toLocaleString('en-GB');
 }
 
+function formatVolumeCompact(value) {
+    if (!value || value === '-') return '-';
+    let str = String(value).replace(/[£€$,\s]/g, '');
+    let multiplier = 1;
+    if (str.toUpperCase().includes('M')) { 
+        multiplier = 1000000; 
+        str = str.replace(/M/gi, ''); 
+    } else if (str.toUpperCase().includes('K')) { 
+        multiplier = 1000; 
+        str = str.replace(/K/gi, ''); 
+    }
+    const num = parseFloat(str) * multiplier;
+    if (isNaN(num)) return '-';
+    if (num >= 1000000) {
+        return '£' + (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+        return '£' + (num / 1000).toFixed(1) + 'k';
+    }
+    return '£' + Math.round(num).toLocaleString('en-GB');
+}
+
 function formatDateTwoLine(dateStr) {
     if (!dateStr || dateStr === '-') return '<div class="date-line">-</div>';
     
@@ -1960,13 +1981,12 @@ async function loadChart(home, away, market) {
                                         innerHtml += '<div class="chart-tooltip-main">';
                                         innerHtml += '<span class="chart-tooltip-option"><span class="color-dot" style="background:' + boxColor + '"></span>' + label + '</span>';
                                         innerHtml += '<span class="chart-tooltip-odds">' + formatOdds(odds) + '</span>';
-                                        innerHtml += '</div>';
                                         if (amt) {
-                                            innerHtml += '<div class="chart-tooltip-sub">';
-                                            innerHtml += '<span>' + amt + '</span>';
-                                            innerHtml += '<span class="separator">•</span>';
-                                            innerHtml += '<span>' + cleanPct(pct) + '%</span>';
-                                            innerHtml += '</div>';
+                                            innerHtml += '<span class="chart-tooltip-volume">' + formatVolumeCompact(amt) + '</span>';
+                                        }
+                                        innerHtml += '</div>';
+                                        if (pct) {
+                                            innerHtml += '<div class="chart-tooltip-pct">' + cleanPct(pct) + '%</div>';
                                         }
                                         innerHtml += '</div>';
                                     } else {
