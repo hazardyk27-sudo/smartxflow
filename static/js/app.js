@@ -5288,11 +5288,11 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const hoursToKickoff = calculateHoursToKickoff(latest);
             const hoursDisplay = hoursToKickoff > 0 ? `${hoursToKickoff.toFixed(0)} saat` : '—';
             row2Left = `${selection} (${market})`;
-            row2Right = (rawOpenOdds > 0 && rawLastOdds > 0) ? 
-                `<span class="sm-insider-odds">${openOdds} → ${lastOdds}</span> <span class="sm-drop-pct-hero">▼${dropPct.toFixed(1)}%</span>` : 
+            row2Right = `<span class="sm-kickoff-info">Maça kalan: ${hoursDisplay}</span>`;
+            row3Left = (rawOpenOdds > 0 && rawLastOdds > 0) ? 
+                `<span class="sm-insider-odds-hero">${openOdds} → ${lastOdds}</span> <span class="sm-drop-pct-hero">▼${dropPct.toFixed(1)}%</span>` : 
                 `<span class="sm-drop-pct-hero">▼${dropPct.toFixed(1)}%</span>`;
-            row3Left = `<span class="sm-money-hero">£${Number(gelenPara).toLocaleString('en-GB')}</span> <span class="sm-money-label">gelen para</span>`;
-            row3Right = `<span class="sm-kickoff-info">Maça kalan: ${hoursDisplay}</span>`;
+            row3Right = `<span class="sm-money-muted">£${Number(gelenPara).toLocaleString('en-GB')} gelen para</span>`;
             row4 = `Maç öncesi favoriye güçlü para + oran düşüşü tespit edildi.`;
         } else if (type === 'volumeshock') {
             const shockValue = latest.volume_shock_value || latest.volume_shock || latest.volume_shock_multiplier || 0;
