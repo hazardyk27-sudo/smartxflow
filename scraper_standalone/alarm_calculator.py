@@ -1184,8 +1184,8 @@ class AlarmCalculator:
                         log(f"  [{alarm_label} MONEY] {home} vs {away} | {market_names.get(market, market)}-{selection} | £{snap['incoming']:,.0f} gelen")
         
         if alarms:
-            # trigger_at dahil - her hareket ayrı kayıt olsun
-            new_count = self._upsert_alarms('bigmoney_alarms', alarms, ['home', 'away', 'market', 'selection', 'trigger_at'])
+            # Constraint: match_id, market, selection
+            new_count = self._upsert_alarms('bigmoney_alarms', alarms, ['match_id', 'market', 'selection'])
             log(f"BigMoney: {new_count} alarms upserted")
         else:
             log("BigMoney: 0 alarm")
