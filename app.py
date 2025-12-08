@@ -4938,11 +4938,12 @@ def alarm_engine_status():
                     'status': 'ok',
                     'running': state.get('running', False),
                     'last_calculation': state.get('last_calculation'),
+                    'next_calculation': state.get('next_calculation'),
                     'last_duration_seconds': state.get('last_duration_seconds', 0),
                     'last_alarm_count': state.get('last_alarm_count', 0),
                     'alarm_summary': state.get('alarm_summary', {}),
                     'configs_loaded': state.get('configs_loaded', False),
-                    'status_text': state.get('status', 'Bekliyor...')
+                    'status_text': state.get('status', 'Durduruldu')
                 })
             except:
                 pass
@@ -4951,6 +4952,7 @@ def alarm_engine_status():
             'status': 'ok',
             'running': False,
             'last_calculation': None,
+            'next_calculation': None,
             'last_duration_seconds': 0,
             'last_alarm_count': 0,
             'alarm_summary': {},
@@ -4959,6 +4961,44 @@ def alarm_engine_status():
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e), 'running': False})
+
+
+@app.route('/alarm-engine/control', methods=['POST'])
+def alarm_engine_control():
+    """Alarm Engine başlat/durdur kontrolü - Desktop modu"""
+    try:
+        data = request.get_json() or {}
+        action = data.get('action', '')
+        
+        if os.environ.get('SMARTX_DESKTOP') == '1':
+            try:
+                import scraper_admin
+                
+                if action == 'start':
+                    config = scraper_admin.get_scraper_config()
+                    result = scraper_admin.start_alarm_engine_desktop(config)
+                    if result:
+                        return jsonify({'status': 'ok', 'message': 'Alarm Engine başlatıldı', 'running': True})
+                    else:
+                        return jsonify({'status': 'ok', 'message': 'Alarm Engine zaten çalışıyor', 'running': True})
+                
+                elif action == 'stop':
+                    result = scraper_admin.stop_alarm_engine_desktop()
+                    if result:
+                        return jsonify({'status': 'ok', 'message': 'Alarm Engine durduruldu', 'running': False})
+                    else:
+                        return jsonify({'status': 'ok', 'message': 'Alarm Engine zaten durdurulmuş', 'running': False})
+                
+                else:
+                    return jsonify({'status': 'error', 'message': 'Geçersiz action'})
+                    
+            except Exception as e:
+                return jsonify({'status': 'error', 'message': f'Desktop kontrol hatası: {str(e)}'})
+        
+        return jsonify({'status': 'error', 'message': 'Alarm Engine sadece Desktop modunda çalışır (EXE)'})
+    
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
 
 
 @app.route('/alarm-engine/logs')
