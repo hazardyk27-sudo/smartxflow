@@ -1411,8 +1411,28 @@ insider_calc_progress = ""
 
 @app.route('/api/insider/config', methods=['GET'])
 def get_insider_config():
-    """Get Insider config"""
-    return jsonify(insider_config)
+    """Get Insider config with default fallback"""
+    merged_config = DEFAULT_ALARM_SETTINGS.get('insider', {}).get('config', {}).copy()
+    
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            db_setting = supabase.get_alarm_setting('insider')
+            if db_setting:
+                db_config = db_setting.get('config')
+                if db_config and isinstance(db_config, dict):
+                    for key, value in db_config.items():
+                        if value is not None:
+                            merged_config[key] = value
+    except Exception as e:
+        print(f"[Insider Config] Supabase error: {e}")
+    
+    if isinstance(insider_config, dict):
+        for key, value in insider_config.items():
+            if value is not None:
+                merged_config[key] = value
+    
+    return jsonify(merged_config)
 
 
 @app.route('/api/insider/config', methods=['POST'])
@@ -1947,8 +1967,28 @@ big_money_alarms = load_big_money_alarms_from_file()
 
 @app.route('/api/bigmoney/config', methods=['GET'])
 def get_big_money_config():
-    """Get Big Money config"""
-    return jsonify(big_money_config)
+    """Get Big Money config with default fallback"""
+    merged_config = DEFAULT_ALARM_SETTINGS.get('bigmoney', {}).get('config', {}).copy()
+    
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            db_setting = supabase.get_alarm_setting('bigmoney')
+            if db_setting:
+                db_config = db_setting.get('config')
+                if db_config and isinstance(db_config, dict):
+                    for key, value in db_config.items():
+                        if value is not None:
+                            merged_config[key] = value
+    except Exception as e:
+        print(f"[BigMoney Config] Supabase error: {e}")
+    
+    if isinstance(big_money_config, dict):
+        for key, value in big_money_config.items():
+            if value is not None:
+                merged_config[key] = value
+    
+    return jsonify(merged_config)
 
 
 @app.route('/api/bigmoney/config', methods=['POST'])
@@ -2280,8 +2320,28 @@ dropping_alarms = load_dropping_alarms_from_file()
 
 @app.route('/api/dropping/config', methods=['GET'])
 def get_dropping_config():
-    """Get Dropping Alert config"""
-    return jsonify(dropping_config)
+    """Get Dropping Alert config with default fallback"""
+    merged_config = DEFAULT_ALARM_SETTINGS.get('dropping', {}).get('config', {}).copy()
+    
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            db_setting = supabase.get_alarm_setting('dropping')
+            if db_setting:
+                db_config = db_setting.get('config')
+                if db_config and isinstance(db_config, dict):
+                    for key, value in db_config.items():
+                        if value is not None:
+                            merged_config[key] = value
+    except Exception as e:
+        print(f"[Dropping Config] Supabase error: {e}")
+    
+    if isinstance(dropping_config, dict):
+        for key, value in dropping_config.items():
+            if value is not None:
+                merged_config[key] = value
+    
+    return jsonify(merged_config)
 
 
 @app.route('/api/dropping/config', methods=['POST'])
@@ -2740,8 +2800,28 @@ volume_shock_alarms = load_volume_shock_alarms_from_file()
 
 @app.route('/api/volumeshock/config', methods=['GET'])
 def get_volume_shock_config():
-    """Get Volume Shock config"""
-    return jsonify(volume_shock_config)
+    """Get Volume Shock config with default fallback"""
+    merged_config = DEFAULT_ALARM_SETTINGS.get('volumeshock', {}).get('config', {}).copy()
+    
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            db_setting = supabase.get_alarm_setting('volumeshock')
+            if db_setting:
+                db_config = db_setting.get('config')
+                if db_config and isinstance(db_config, dict):
+                    for key, value in db_config.items():
+                        if value is not None:
+                            merged_config[key] = value
+    except Exception as e:
+        print(f"[VolumeShock Config] Supabase error: {e}")
+    
+    if isinstance(volume_shock_config, dict):
+        for key, value in volume_shock_config.items():
+            if value is not None:
+                merged_config[key] = value
+    
+    return jsonify(merged_config)
 
 @app.route('/api/volumeshock/config', methods=['POST'])
 def save_volume_shock_config_api():
@@ -3106,8 +3186,28 @@ def reset_sharp_calculation():
 
 @app.route('/api/sharp/config', methods=['GET'])
 def get_sharp_config():
-    """Get Sharp config"""
-    return jsonify(sharp_config)
+    """Get Sharp config with default fallback"""
+    merged_config = DEFAULT_ALARM_SETTINGS.get('sharp', {}).get('config', {}).copy()
+    
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            db_setting = supabase.get_alarm_setting('sharp')
+            if db_setting:
+                db_config = db_setting.get('config')
+                if db_config and isinstance(db_config, dict):
+                    for key, value in db_config.items():
+                        if value is not None:
+                            merged_config[key] = value
+    except Exception as e:
+        print(f"[Sharp Config] Supabase error: {e}")
+    
+    if isinstance(sharp_config, dict):
+        for key, value in sharp_config.items():
+            if value is not None:
+                merged_config[key] = value
+    
+    return jsonify(merged_config)
 
 
 @app.route('/api/sharp/config', methods=['POST'])
@@ -3206,8 +3306,28 @@ def reset_publicmove_calculation():
 
 @app.route('/api/publicmove/config', methods=['GET'])
 def get_publicmove_config():
-    """Get Public Move config"""
-    return jsonify(publicmove_config)
+    """Get Public Move config with default fallback"""
+    merged_config = DEFAULT_ALARM_SETTINGS.get('publicmove', {}).get('config', {}).copy()
+    
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            db_setting = supabase.get_alarm_setting('publicmove')
+            if db_setting:
+                db_config = db_setting.get('config')
+                if db_config and isinstance(db_config, dict):
+                    for key, value in db_config.items():
+                        if value is not None:
+                            merged_config[key] = value
+    except Exception as e:
+        print(f"[PublicMove Config] Supabase error: {e}")
+    
+    if isinstance(publicmove_config, dict):
+        for key, value in publicmove_config.items():
+            if value is not None:
+                merged_config[key] = value
+    
+    return jsonify(merged_config)
 
 
 @app.route('/api/publicmove/config', methods=['POST'])
@@ -4098,8 +4218,28 @@ volume_leader_alarms = load_volume_leader_alarms_from_file()
 
 @app.route('/api/volumeleader/config', methods=['GET'])
 def get_volume_leader_config():
-    """Get Volume Leader config"""
-    return jsonify(volume_leader_config)
+    """Get Volume Leader config with default fallback"""
+    merged_config = DEFAULT_ALARM_SETTINGS.get('volumeleader', {}).get('config', {}).copy()
+    
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            db_setting = supabase.get_alarm_setting('volumeleader')
+            if db_setting:
+                db_config = db_setting.get('config')
+                if db_config and isinstance(db_config, dict):
+                    for key, value in db_config.items():
+                        if value is not None:
+                            merged_config[key] = value
+    except Exception as e:
+        print(f"[VolumeLeader Config] Supabase error: {e}")
+    
+    if isinstance(volume_leader_config, dict):
+        for key, value in volume_leader_config.items():
+            if value is not None:
+                merged_config[key] = value
+    
+    return jsonify(merged_config)
 
 
 @app.route('/api/volumeleader/config', methods=['POST'])
