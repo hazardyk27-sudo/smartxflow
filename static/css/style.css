@@ -4208,6 +4208,18 @@ td.volume,
     box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
 }
 
+.alarms-sidebar-field select option {
+    background: #161b22;
+    color: #e6edf3;
+    padding: 8px 12px;
+}
+
+.alarms-sidebar-field select option:hover,
+.alarms-sidebar-field select option:checked {
+    background: #21262d;
+    color: #58a6ff;
+}
+
 /* Custom Alarm Filter Dropdown */
 .alarm-filter-dropdown {
     position: relative;
