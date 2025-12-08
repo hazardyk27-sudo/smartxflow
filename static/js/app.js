@@ -5278,18 +5278,22 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             row4 = `Seçeneğe 10 dakika içinde büyük para girişi tespit edildi.`;
         } else if (type === 'insider') {
             const dropPct = Math.abs(latest.oran_dusus_pct || latest.odds_drop_pct || 0);
-            const openOdds = (latest.opening_odds || 0).toFixed(2);
-            const lastOdds = (latest.last_odds || 0).toFixed(2);
+            const rawOpenOdds = latest.opening_odds || 0;
+            const rawLastOdds = latest.last_odds || latest.current_odds || 0;
+            const openOdds = rawOpenOdds > 0 ? rawOpenOdds.toFixed(2) : '—';
+            const lastOdds = rawLastOdds > 0 ? rawLastOdds.toFixed(2) : '—';
             const selection = latest.selection || latest.side || '-';
             const market = latest.market || '';
             const gelenPara = latest.gelen_para || latest.incoming_money || 0;
             const hoursToKickoff = calculateHoursToKickoff(latest);
-            const selTotal = latest.selection_total || latest.volume || 0;
+            const hoursDisplay = hoursToKickoff > 0 ? `${hoursToKickoff.toFixed(0)} saat` : '—';
             row2Left = `${selection} (${market})`;
-            row2Right = `${openOdds} → ${lastOdds} <span class="sm-drop-badge">▼${dropPct.toFixed(1)}%</span>`;
+            row2Right = (rawOpenOdds > 0 && rawLastOdds > 0) ? 
+                `<span class="sm-insider-odds">${openOdds} → ${lastOdds}</span> <span class="sm-drop-pct-hero">▼${dropPct.toFixed(1)}%</span>` : 
+                `<span class="sm-drop-pct-hero">▼${dropPct.toFixed(1)}%</span>`;
             row3Left = `<span class="sm-money-hero">£${Number(gelenPara).toLocaleString('en-GB')}</span> <span class="sm-money-label">gelen para</span>`;
-            row3Right = selTotal > 0 ? `<span class="sm-total-muted">Sonrası: £${Number(selTotal).toLocaleString('en-GB')}</span>` : '';
-            row4 = `Favori seçenek için maç öncesi senkron para + oran düşüşü tespit edildi.`;
+            row3Right = `<span class="sm-kickoff-info">Maça kalan: ${hoursDisplay}</span>`;
+            row4 = `Maç öncesi favoriye güçlü para + oran düşüşü tespit edildi.`;
         } else if (type === 'volumeshock') {
             const shockValue = latest.volume_shock_value || latest.volume_shock || latest.volume_shock_multiplier || 0;
             const incomingMoney = latest.incoming_money || 0;
