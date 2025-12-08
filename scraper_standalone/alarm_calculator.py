@@ -780,11 +780,8 @@ class AlarmCalculator:
         4. Final Skor:
            - sharp_score = volume_contrib + odds_contrib + share_contrib
         """
-        try:
-            self._delete('sharp_alarms', '')
-            log("[Sharp] Table cleared before recalculation")
-        except Exception as e:
-            log(f"[Sharp] Table clear failed: {e}")
+        # NOT: Sharp alarmları silinmez - sadece upsert yapılır
+        # Tablo temizleme KALDIRILDI - alarmlar kalıcı olmalı
         
         config = self.configs.get('sharp')
         if not config:
@@ -1499,39 +1496,15 @@ class AlarmCalculator:
             new_count = self._upsert_alarms('bigmoney_alarms', filtered_alarms, ['match_id', 'market', 'selection'])
             log(f"BigMoney: {new_count} alarms upserted (with history)")
             
-            # Stale alarm cleanup
-            valid_keys = set()
-            for a in filtered_alarms:
-                key = f"{a['home']}|{a['away']}|{a['market']}|{a['selection']}"
-                valid_keys.add(key)
-            
-            stale_ids = []
-            for key, row in existing_alarms.items():
-                if key not in valid_keys:
-                    stale_ids.append(row.get('id'))
-            
-            if stale_ids:
-                for stale_id in stale_ids:
-                    self._delete('bigmoney_alarms', f'id=eq.{stale_id}')
-                log(f"[BigMoney] Removed {len(stale_ids)} stale alarms")
-        else:
-            # Hiç alarm yoksa tabloyu temizle
-            try:
-                self._delete('bigmoney_alarms', 'id=gte.1')
-                log("BigMoney: 0 alarm - table cleared")
-            except Exception as e:
-                log(f"[BigMoney] Table clear failed: {e}")
+            # NOT: BigMoney alarmları silinmez - sadece upsert yapılır
+            # Stale cleanup KALDIRILDI - alarmlar kalıcı olmalı
         
         return len(alarms)
     
     def calculate_volumeshock_alarms(self) -> int:
         """Calculate Volume Shock alarms"""
-        # Her hesaplamada ÖNCE tabloyu temizle - config kontrolünden ÖNCE
-        try:
-            self._delete('volumeshock_alarms', '')
-            log("[VolumeShock] Table cleared before recalculation")
-        except Exception as e:
-            log(f"[VolumeShock] Table clear failed: {e}")
+        # NOT: VolumeShock alarmları silinmez - sadece upsert yapılır
+        # Tablo temizleme KALDIRILDI - alarmlar kalıcı olmalı
         
         config = self.configs.get('volumeshock')
         if not config:
@@ -1872,12 +1845,8 @@ class AlarmCalculator:
     
     def calculate_publicmove_alarms(self) -> int:
         """Calculate Public Move alarms - same logic as Sharp"""
-        # Her hesaplamada ÖNCE tabloyu temizle - config kontrolünden ÖNCE
-        try:
-            self._delete('publicmove_alarms', '')
-            log("[PublicMove] Table cleared before recalculation")
-        except Exception as e:
-            log(f"[PublicMove] Table clear failed: {e}")
+        # NOT: PublicMove alarmları silinmez - sadece upsert yapılır
+        # Tablo temizleme KALDIRILDI - alarmlar kalıcı olmalı
         
         config = self.configs.get('publicmove')
         if not config:
@@ -2036,12 +2005,8 @@ class AlarmCalculator:
     
     def calculate_volumeleader_alarms(self) -> int:
         """Calculate Volume Leader Changed alarms"""
-        # Her hesaplamada ÖNCE tabloyu temizle - config kontrolünden ÖNCE
-        try:
-            self._delete('volume_leader_alarms', '')
-            log("[VolumeLeader] Table cleared before recalculation")
-        except Exception as e:
-            log(f"[VolumeLeader] Table clear failed: {e}")
+        # NOT: VolumeLeader alarmları silinmez - sadece upsert yapılır
+        # Tablo temizleme KALDIRILDI - alarmlar kalıcı olmalı
         
         config = self.configs.get('volumeleader')
         if not config:
