@@ -5316,9 +5316,10 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             row4 = `Halk tuzağı tespit edildi`;
         }
         
-        // BigMoney için özel tooltip oluştur
+        // BigMoney için özel tooltip oluştur (body'ye portal olarak)
         let countBadgeHtml = '';
         if (type === 'bigmoney' && count > 1) {
+            const tooltipId = `bigmoney-tooltip-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
             const tooltipItems = alarms.slice(0, 10).map(a => {
                 const t = formatSmartMoneyTime(a.trigger_at || a.event_time || a.created_at);
                 const timeOnly = t.includes('•') ? t.split('•')[1].trim() : t;
@@ -5327,7 +5328,32 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                 const total = Number(a.selection_total || a.volume || a.total_volume || 0).toLocaleString('en-GB');
                 return `<div class="smc-tooltip-item">• ${timeOnly} — <span class="tt-money">£${money}</span> gelen para — ${sel} — <span class="tt-total">Olay sonrası: £${total}</span></div>`;
             }).join('');
-            countBadgeHtml = `<span class="smc-count-badge smc-count-bigmoney" onclick="event.stopPropagation();">x${count}<div class="smc-tooltip"><div class="smc-tooltip-header">Geçmiş Alarmlar</div>${tooltipItems}</div></span>`;
+            countBadgeHtml = `<span class="smc-count-badge smc-count-bigmoney" data-tooltip-id="${tooltipId}" onclick="event.stopPropagation();">x${count}</span>`;
+            
+            // Tooltip'i body'ye ekle (portal)
+            setTimeout(() => {
+                let tooltipEl = document.getElementById(tooltipId);
+                if (!tooltipEl) {
+                    tooltipEl = document.createElement('div');
+                    tooltipEl.id = tooltipId;
+                    tooltipEl.className = 'smc-tooltip-portal';
+                    tooltipEl.innerHTML = `<div class="smc-tooltip-header">Geçmiş Alarmlar</div>${tooltipItems}`;
+                    document.body.appendChild(tooltipEl);
+                }
+                
+                const badge = document.querySelector(`[data-tooltip-id="${tooltipId}"]`);
+                if (badge) {
+                    badge.addEventListener('mouseenter', () => {
+                        const rect = badge.getBoundingClientRect();
+                        tooltipEl.style.display = 'block';
+                        tooltipEl.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+                        tooltipEl.style.left = Math.max(10, rect.left + window.scrollX) + 'px';
+                    });
+                    badge.addEventListener('mouseleave', () => {
+                        tooltipEl.style.display = 'none';
+                    });
+                }
+            }, 100);
         } else if (count > 1) {
             countBadgeHtml = `<span class="smc-count-badge">x${count}</span>`;
         }
