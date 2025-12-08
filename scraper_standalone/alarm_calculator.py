@@ -1059,26 +1059,34 @@ class AlarmCalculator:
                     if not all_quiet:
                         continue
                     
-                    # KURAL 5: Window'daki son snapshot'ta kontroller
-                    if not surrounding_details:
+                    # KURAL 5: Window'un İLK ve SON snapshot'ı arasındaki farka bak
+                    if len(surrounding_details) < 2:
                         continue
                     
+                    first_snap = surrounding_details[0]
                     last_snap = surrounding_details[-1]
-                    last_snap_drop = last_snap.get('drop_pct', 0)
-                    last_snap_odds = last_snap.get('odds', 0)
+                    
+                    window_first_odds = first_snap.get('odds', 0)
+                    window_last_odds = last_snap.get('odds', 0)
                     
                     # Son snapshot'ta max_odds kontrolü
-                    if last_snap_odds <= 0 or last_snap_odds > max_odds:
+                    if window_last_odds <= 0 or window_last_odds > max_odds:
                         continue
                     
-                    # Son snapshot'ta drop eşiği karşılanmalı
-                    if last_snap_drop < oran_dusus_esigi:
-                        # Oran düzelmiş, alarm tetiklenmez
+                    # Window içindeki drop: ilk vs son
+                    if window_first_odds <= 0:
                         continue
                     
-                    # Güncel değerler window'un son snapshot'ından alınır
-                    actual_current_odds = last_snap_odds
-                    actual_drop_pct = last_snap_drop
+                    window_drop_pct = ((window_first_odds - window_last_odds) / window_first_odds) * 100
+                    
+                    # Oran düzeldiyse (window başı <= window sonu) veya drop eşik altındaysa alarm iptal
+                    if window_drop_pct < oran_dusus_esigi:
+                        # Window içinde yeterli düşüş yok veya oran düzelmiş
+                        continue
+                    
+                    # Güncel değerler window'dan alınır
+                    actual_current_odds = window_last_odds
+                    actual_drop_pct = window_drop_pct
                     
                     trigger_snap = history[drop_moment_index]
                     trigger_at = trigger_snap.get('scraped_at', now_turkey_iso())
@@ -1094,7 +1102,7 @@ class AlarmCalculator:
                         'max_odds_drop': round(max_odds_drop, 3),
                         'incoming_money': total_incoming,
                         'volume_shock': round(max_hacim_sok, 4),
-                        'opening_odds': opening_odds,
+                        'opening_odds': window_first_odds,
                         'current_odds': actual_current_odds,
                         'drop_moment_index': drop_moment_index,
                         'drop_moment': trigger_at,
@@ -1106,7 +1114,7 @@ class AlarmCalculator:
                         'alarm_type': 'insider'
                     }
                     alarms.append(alarm)
-                    log(f"  [INSIDER] {home} vs {away} | {market_names.get(market, market)}-{selection} | Oran: {opening_odds:.2f}->{actual_current_odds:.2f} (-%{actual_drop_pct:.1f}) | DüsusAnı: S{drop_moment_index} | Para: {total_incoming:,.0f}")
+                    log(f"  [INSIDER] {home} vs {away} | {market_names.get(market, market)}-{selection} | Window: {window_first_odds:.2f}->{actual_current_odds:.2f} (-%{actual_drop_pct:.1f}) | DüsusAnı: S{drop_moment_index} | Para: {total_incoming:,.0f}")
         
         if alarms:
             new_count = self._upsert_alarms('insider_alarms', alarms, ['home', 'away', 'market', 'selection'])
