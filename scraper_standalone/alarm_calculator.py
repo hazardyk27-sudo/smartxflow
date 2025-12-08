@@ -1227,6 +1227,9 @@ class AlarmCalculator:
                     true_latest = history[-1]
                     true_latest_odds = parse_float(true_latest.get(odds_key, 0))
                     
+                    # DEBUG: history durumunu logla
+                    log(f"  [DEBUG INSIDER] {home} vs {away} | {selection} | history_len={len(history)} | drop_idx={drop_moment_index} | window=[{start_idx}:{end_idx}] | history[-1]_odds={true_latest_odds:.2f} | scraped_at={true_latest.get('scraped_at', 'N/A')[:19]}")
+                    
                     if true_latest_odds <= 0:
                         continue
                     
