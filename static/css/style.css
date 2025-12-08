@@ -7161,6 +7161,58 @@ td.volume,
     font-size: 12px;
 }
 
+.sm-drop-badge {
+    color: #f85149;
+    font-weight: 600;
+}
+
+.sm-shock-badge {
+    display: inline-block;
+    background: rgba(246, 195, 67, 0.2);
+    color: #F6C343;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.sm-leader-new {
+    color: #06b6d4;
+    font-weight: 700;
+}
+
+/* Count Badge - Alarm Type Colors */
+.smc-count-sharp {
+    color: #22C55E !important;
+    background: rgba(34, 197, 94, 0.15) !important;
+    border: 1px solid rgba(34, 197, 94, 0.3) !important;
+}
+.smc-count-insider {
+    color: #A855F7 !important;
+    background: rgba(168, 85, 247, 0.15) !important;
+    border: 1px solid rgba(168, 85, 247, 0.3) !important;
+}
+.smc-count-volumeshock {
+    color: #F6C343 !important;
+    background: rgba(246, 195, 67, 0.15) !important;
+    border: 1px solid rgba(246, 195, 67, 0.3) !important;
+}
+.smc-count-dropping {
+    color: #f85149 !important;
+    background: rgba(248, 81, 73, 0.15) !important;
+    border: 1px solid rgba(248, 81, 73, 0.3) !important;
+}
+.smc-count-publicmove {
+    color: #FFCC00 !important;
+    background: rgba(255, 204, 0, 0.15) !important;
+    border: 1px solid rgba(255, 204, 0, 0.3) !important;
+}
+.smc-count-volumeleader {
+    color: #06b6d4 !important;
+    background: rgba(6, 182, 212, 0.15) !important;
+    border: 1px solid rgba(6, 182, 212, 0.3) !important;
+}
+
 /* BigMoney Count Badge - Premium Style */
 .smc-count-bigmoney {
     font-size: 14px !important;
@@ -7223,6 +7275,26 @@ td.volume,
 .smc-tooltip-item .tt-total {
     color: #8b949e;
     font-size: 11px;
+}
+
+.smc-tooltip-item .tt-shock {
+    color: #F6C343;
+    font-weight: 700;
+}
+
+.smc-tooltip-item .tt-drop {
+    color: #f85149;
+    font-weight: 600;
+}
+
+.smc-tooltip-item .tt-share {
+    color: #FFCC00;
+    font-weight: 600;
+}
+
+.smc-tooltip-item .tt-leader {
+    color: #06b6d4;
+    font-weight: 700;
 }
 
 .smc-tooltip-header {
