@@ -1399,7 +1399,7 @@ class AlarmCalculator:
                         'selection': selection,
                         'opening_odds': opening_odds,
                         'current_odds': current_odds,
-                        'odds_drop_pct': round(drop_pct, 2),
+                        'drop_pct': round(drop_pct, 2),
                         'level': level,
                         'match_date': match.get('date', ''),
                         'trigger_at': trigger_at,
