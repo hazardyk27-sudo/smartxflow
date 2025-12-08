@@ -1670,7 +1670,13 @@ class AlarmCalculator:
         persistence_enabled = config.get('persistence_enabled', True)
         persistence_minutes = parse_float(config.get('persistence_minutes')) or 120
         
+        # Max odds eşikleri - açılış oranı bu değerin üzerindeyse alarm tetiklenmez
+        max_odds_1x2 = parse_float(config.get('max_odds_1x2')) or 999
+        max_odds_ou25 = parse_float(config.get('max_odds_ou25')) or 999
+        max_odds_btts = parse_float(config.get('max_odds_btts')) or 999
+        
         log(f"[Dropping Config] L1: {l1_min}-{l1_max}%, L2: {l2_min}-{l2_max}%, L3: {l3_min}%+, Kalıcılık: {'AÇIK' if persistence_enabled else 'KAPALI'} ({persistence_minutes} dk)")
+        log(f"[Dropping Config] Max Odds: 1X2={max_odds_1x2}, O/U2.5={max_odds_ou25}, BTTS={max_odds_btts}")
         
         alarms = []
         markets = ['dropping_1x2', 'dropping_ou25', 'dropping_btts']
@@ -1680,12 +1686,15 @@ class AlarmCalculator:
             if '1x2' in market:
                 selections = ['1', 'X', '2']
                 odds_keys = ['odds1', 'oddsx', 'odds2']
+                market_max_odds = max_odds_1x2
             elif 'ou25' in market:
                 selections = ['Over', 'Under']
                 odds_keys = ['over', 'under']
+                market_max_odds = max_odds_ou25
             else:
                 selections = ['Yes', 'No']
                 odds_keys = ['oddsyes', 'oddsno']
+                market_max_odds = max_odds_btts
             
             # History verilerini al
             history_table = f"{market}_history"
@@ -1732,6 +1741,10 @@ class AlarmCalculator:
                     current_odds = parse_float(history[-1].get(odds_key, 0))
                     
                     if current_odds <= 0 or opening_odds <= 0:
+                        continue
+                    
+                    # Max odds filtresi - açılış oranı eşiğin üzerindeyse alarm tetiklenmez
+                    if opening_odds > market_max_odds:
                         continue
                     
                     if current_odds >= opening_odds:
