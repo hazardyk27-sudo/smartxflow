@@ -1,9 +1,9 @@
 """
-SmartXFlow Admin Panel v1.20 - Web Admin + Scraper + Console
+SmartXFlow Admin Panel v1.22 - Web Admin + Scraper + Console
 Web admin paneli (pywebview) + Arka planda scraper + Canlı konsol
 İlk açılışta config yoksa setup formu açılır ve config.json oluşturulur.
 Scraper Konsol: Canlı log görüntüleme, SSE stream, ayrı pencere desteği.
-V1.20: UI alan adları ile tam uyum (amount_change, drop_pct, share_diff vb.)
+V1.22: Insider fix (recovery check), BigMoney duplicate filter, Dropping persistence
 """
 import sys
 import os
@@ -16,7 +16,7 @@ from datetime import datetime
 from collections import deque
 import queue
 
-VERSION = "1.20"
+VERSION = "1.22"
 CONFIG_FILE = "config.json"
 
 # Scraper Console - Global Log Buffer & State
