@@ -7186,13 +7186,12 @@ td.volume,
     border: 1px solid rgba(240, 138, 36, 0.35);
     border-radius: 6px;
     padding: 10px 12px;
-    min-width: 280px;
-    max-width: 340px;
+    width: auto;
+    max-width: none;
     z-index: 10000;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
-    white-space: normal;
-    word-wrap: break-word;
-    overflow: hidden;
+    white-space: nowrap;
+    overflow: visible;
     pointer-events: none;
 }
 
@@ -7208,8 +7207,7 @@ td.volume,
     padding: 5px 0;
     line-height: 1.35;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: visible;
 }
 
 .smc-tooltip-item:not(:last-child) {

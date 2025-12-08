@@ -5347,7 +5347,22 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                         const rect = badge.getBoundingClientRect();
                         tooltipEl.style.display = 'block';
                         tooltipEl.style.top = (rect.bottom + window.scrollY + 8) + 'px';
-                        tooltipEl.style.left = Math.max(10, rect.left + window.scrollX) + 'px';
+                        
+                        // Tooltip genişliğini ölç
+                        const tooltipWidth = tooltipEl.offsetWidth;
+                        const viewportWidth = window.innerWidth;
+                        let leftPos = rect.left + window.scrollX;
+                        
+                        // Sağ taraftan taşıyorsa sola kaydır
+                        if (leftPos + tooltipWidth > viewportWidth - 10) {
+                            leftPos = viewportWidth - tooltipWidth - 10;
+                        }
+                        // Sol taraftan taşıyorsa sağa kaydır
+                        if (leftPos < 10) {
+                            leftPos = 10;
+                        }
+                        
+                        tooltipEl.style.left = leftPos + 'px';
                     });
                     badge.addEventListener('mouseleave', () => {
                         tooltipEl.style.display = 'none';
