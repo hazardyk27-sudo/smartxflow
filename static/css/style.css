@@ -7198,29 +7198,41 @@ td.volume,
 }
 
 .sm-level-badge {
-    display: inline-block;
-    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
     font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin-left: 6px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-left: 8px;
     cursor: help;
+    letter-spacing: 0.5px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+}
+.sm-level-badge:hover {
+    transform: scale(1.05);
 }
 .sm-level-badge.l1 {
-    background: rgba(248, 81, 73, 0.2);
-    color: #f85149;
-    border: 1px solid rgba(248, 81, 73, 0.3);
+    background: rgba(248, 81, 73, 0.25);
+    color: #ff7b72;
+    border: 1.5px solid rgba(248, 81, 73, 0.45);
+    box-shadow: 0 0 8px rgba(248, 81, 73, 0.15);
 }
 .sm-level-badge.l2 {
-    background: rgba(248, 81, 73, 0.35);
-    color: #ff6b6b;
-    border: 1px solid rgba(248, 81, 73, 0.5);
+    background: rgba(248, 81, 73, 0.4);
+    color: #ff9590;
+    border: 1.5px solid rgba(248, 81, 73, 0.6);
+    box-shadow: 0 0 10px rgba(248, 81, 73, 0.25);
 }
 .sm-level-badge.l3 {
-    background: rgba(248, 81, 73, 0.5);
+    background: rgba(248, 81, 73, 0.55);
     color: #fff;
-    border: 1px solid rgba(248, 81, 73, 0.7);
-    text-shadow: 0 0 4px rgba(248, 81, 73, 0.6);
+    border: 1.5px solid rgba(248, 81, 73, 0.8);
+    box-shadow: 0 0 12px rgba(248, 81, 73, 0.35);
+    text-shadow: 0 0 6px rgba(248, 81, 73, 0.5);
 }
 
 .sm-volume-highlight {
