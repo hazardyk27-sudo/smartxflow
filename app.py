@@ -1080,29 +1080,16 @@ def refresh_configs_from_supabase():
 SHARP_CONFIG_FILE = 'sharp_config.json'
 
 def load_sharp_config_from_file():
-    """Load Sharp config from JSON file"""
-    default_config = {
-        'min_volume_1x2': 3000,
-        'min_volume_ou25': 1000,
-        'min_volume_btts': 500,
-        'volume_multiplier': 1.0,
-        'odds_multiplier': 1.0,
-        'share_multiplier': 1.0,
-        'max_volume_cap': 40,
-        'max_odds_cap': 35,
-        'max_share_cap': 25,
-        'min_share': 5,
-        'min_sharp_score': 10
-    }
+    """Load Sharp config from JSON file - NO DEFAULTS (tüm değerler Supabase'den gelmeli)"""
+    config = {}
     try:
         if os.path.exists(SHARP_CONFIG_FILE):
             with open(SHARP_CONFIG_FILE, 'r') as f:
-                saved_config = json.load(f)
-                default_config.update(saved_config)
-                print(f"[Sharp] Config loaded from {SHARP_CONFIG_FILE}: min_sharp_score={default_config.get('min_sharp_score')}")
+                config = json.load(f)
+                print(f"[Sharp] Config loaded from {SHARP_CONFIG_FILE}: min_sharp_score={config.get('min_sharp_score')}")
     except Exception as e:
         print(f"[Sharp] Config load error: {e}")
-    return default_config
+    return config
 
 def save_sharp_config_to_file(config):
     """Save Sharp config to both Supabase and JSON file"""
@@ -1112,7 +1099,11 @@ def save_sharp_config_to_file(config):
     try:
         supabase = get_supabase_client()
         if supabase and supabase.is_available:
-            if supabase.update_alarm_setting('sharp', config.get('enabled', True), config):
+            # Eğer config boşsa Supabase'e yazma - filtered_config kullan
+            filtered_config = {k: v for k, v in config.items() if v is not None and k != 'enabled'}
+            if not filtered_config:
+                print("[Sharp] Config boş - Supabase'e yazılmadı")
+            elif supabase.update_alarm_setting('sharp', config.get('enabled') if 'enabled' in config else None, filtered_config):
                 print(f"[Sharp] Config saved to Supabase")
                 success = True
     except Exception as e:
@@ -1232,29 +1223,16 @@ PUBLICMOVE_CONFIG_FILE = 'publicmove_config.json'
 PUBLICMOVE_ALARMS_FILE = 'publicmove_alarms.json'
 
 def load_publicmove_config_from_file():
-    """Load Public Move config from JSON file"""
-    default_config = {
-        'min_volume_1x2': 3000,
-        'min_volume_ou25': 1000,
-        'min_volume_btts': 500,
-        'volume_multiplier': 1.0,
-        'odds_multiplier': 1.0,
-        'share_multiplier': 1.0,
-        'max_volume_cap': 40,
-        'max_odds_cap': 35,
-        'max_share_cap': 25,
-        'min_share': 5,
-        'min_sharp_score': 10
-    }
+    """Load Public Move config from JSON file - NO DEFAULTS (tüm değerler Supabase'den gelmeli)"""
+    config = {}
     try:
         if os.path.exists(PUBLICMOVE_CONFIG_FILE):
             with open(PUBLICMOVE_CONFIG_FILE, 'r') as f:
-                saved_config = json.load(f)
-                default_config.update(saved_config)
-                print(f"[PublicMove] Config loaded from {PUBLICMOVE_CONFIG_FILE}: min_sharp_score={default_config.get('min_sharp_score')}")
+                config = json.load(f)
+                print(f"[PublicMove] Config loaded from {PUBLICMOVE_CONFIG_FILE}: min_sharp_score={config.get('min_sharp_score')}")
     except Exception as e:
         print(f"[PublicMove] Config load error: {e}")
-    return default_config
+    return config
 
 def save_publicmove_config_to_file(config):
     """Save Public Move config to both Supabase and JSON file"""
@@ -1264,7 +1242,11 @@ def save_publicmove_config_to_file(config):
     try:
         supabase = get_supabase_client()
         if supabase and supabase.is_available:
-            if supabase.update_alarm_setting('publicmove', config.get('enabled', True), config):
+            # Eğer config boşsa Supabase'e yazma - filtered_config kullan
+            filtered_config = {k: v for k, v in config.items() if v is not None and k != 'enabled'}
+            if not filtered_config:
+                print("[PublicMove] Config boş - Supabase'e yazılmadı")
+            elif supabase.update_alarm_setting('publicmove', config.get('enabled') if 'enabled' in config else None, filtered_config):
                 print(f"[PublicMove] Config saved to Supabase")
                 success = True
     except Exception as e:
@@ -1891,16 +1873,16 @@ big_money_calculating = False
 big_money_calc_progress = ""
 
 def load_big_money_config():
-    """Load Big Money config from JSON file"""
+    """Load Big Money config from JSON file - NO DEFAULTS (tüm değerler Supabase'den gelmeli)"""
+    config = {}
     try:
         if os.path.exists(BIG_MONEY_CONFIG_FILE):
             with open(BIG_MONEY_CONFIG_FILE, 'r') as f:
                 config = json.load(f)
-                print(f"[BigMoney] Config loaded: limit={config.get('big_money_limit', 15000)}")
-                return config
+                print(f"[BigMoney] Config loaded: limit={config.get('big_money_limit')}")
     except Exception as e:
         print(f"[BigMoney] Config load error: {e}")
-    return {'big_money_limit': 15000}
+    return config
 
 def save_big_money_config(config):
     """Save Big Money config to both Supabase and JSON file"""
@@ -1910,7 +1892,11 @@ def save_big_money_config(config):
     try:
         supabase = get_supabase_client()
         if supabase and supabase.is_available:
-            if supabase.update_alarm_setting('bigmoney', config.get('enabled', True), config):
+            # Eğer config boşsa Supabase'e yazma - filtered_config kullan
+            filtered_config = {k: v for k, v in config.items() if v is not None and k != 'enabled'}
+            if not filtered_config:
+                print("[BigMoney] Config boş - Supabase'e yazılmadı")
+            elif supabase.update_alarm_setting('bigmoney', config.get('enabled') if 'enabled' in config else None, filtered_config):
                 print(f"[BigMoney] Config saved to Supabase")
                 success = True
     except Exception as e:
@@ -2053,7 +2039,11 @@ def calculate_big_money_scores(config):
         print("[BigMoney] Supabase not available")
         return alarms
     
-    limit = config.get('big_money_limit', 15000)
+    # NO DEFAULTS - tüm değerler Supabase'den gelmeli
+    limit = config.get('big_money_limit')
+    if limit is None:
+        print("[BigMoney] CONFIG EKSIK - Supabase'den config yüklenemedi! Eksik: big_money_limit")
+        return alarms
     print(f"[BigMoney] Config: limit={limit}")
     
     markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -2216,30 +2206,16 @@ dropping_calculating = False
 dropping_calc_progress = ""
 
 def load_dropping_config():
-    """Load Dropping Alert config from JSON file"""
+    """Load Dropping Alert config from JSON file - NO DEFAULTS (tüm değerler Supabase'den gelmeli)"""
+    config = {}
     try:
         if os.path.exists(DROPPING_CONFIG_FILE):
             with open(DROPPING_CONFIG_FILE, 'r') as f:
                 config = json.load(f)
-                print(f"[Dropping] Config loaded: L1={config.get('min_drop_l1', 7)}-{config.get('max_drop_l1', 10)}%, L2={config.get('min_drop_l2', 10)}-{config.get('max_drop_l2', 15)}%, L3={config.get('min_drop_l3', 15)}%+")
-                return config
+                print(f"[Dropping] Config loaded: L1={config.get('min_drop_l1')}-{config.get('max_drop_l1')}%, L2={config.get('min_drop_l2')}-{config.get('max_drop_l2')}%, L3={config.get('min_drop_l3')}%+")
     except Exception as e:
         print(f"[Dropping] Config load error: {e}")
-    return {
-        'enabled': True,
-        'min_drop_l1': 7,
-        'max_drop_l1': 10,
-        'min_drop_l2': 10,
-        'max_drop_l2': 15,
-        'min_drop_l3': 15,
-        'l2_enabled': True,
-        'l3_enabled': True,
-        'persistence_minutes': 30,
-        'persistence_enabled': True,
-        'min_volume_1x2': 3000,
-        'min_volume_ou25': 1000,
-        'min_volume_btts': 500
-    }
+    return config
 
 def save_dropping_config(config):
     """Save Dropping Alert config to both Supabase and JSON file"""
@@ -2249,7 +2225,11 @@ def save_dropping_config(config):
     try:
         supabase = get_supabase_client()
         if supabase and supabase.is_available:
-            if supabase.update_alarm_setting('dropping', config.get('enabled', True), config):
+            # Eğer config boşsa Supabase'e yazma - filtered_config kullan
+            filtered_config = {k: v for k, v in config.items() if v is not None and k != 'enabled'}
+            if not filtered_config:
+                print("[Dropping] Config boş - Supabase'e yazılmadı")
+            elif supabase.update_alarm_setting('dropping', config.get('enabled') if 'enabled' in config else None, filtered_config):
                 print(f"[Dropping] Config saved to Supabase")
                 success = True
     except Exception as e:
@@ -2465,17 +2445,25 @@ def calculate_dropping_scores(config):
         existing_map[key] = ea
     print(f"[Dropping] Loaded {len(existing_map)} existing alarms for timestamp preservation")
     
-    min_drop_l1 = config.get('min_drop_l1', 7)
-    max_drop_l1 = config.get('max_drop_l1', 10)
-    min_drop_l2 = config.get('min_drop_l2', 10)
-    max_drop_l2 = config.get('max_drop_l2', 15)
-    min_drop_l3 = config.get('min_drop_l3', 15)
-    l2_enabled = config.get('l2_enabled', True)
-    l3_enabled = config.get('l3_enabled', True)
+    # NO DEFAULTS - tüm değerler Supabase'den gelmeli (None kontrolü)
+    min_drop_l1 = config.get('min_drop_l1')
+    max_drop_l1 = config.get('max_drop_l1')
+    min_drop_l2 = config.get('min_drop_l2')
+    max_drop_l2 = config.get('max_drop_l2')
+    min_drop_l3 = config.get('min_drop_l3')
+    l2_enabled = config.get('l2_enabled')
+    l3_enabled = config.get('l3_enabled')
     
-    max_odds_1x2 = config.get('max_odds_1x2', 5.0)
-    max_odds_ou25 = config.get('max_odds_ou25', 3.0)
-    max_odds_btts = config.get('max_odds_btts', 3.0)
+    # Config eksikse hesaplama yapma
+    missing = []
+    if min_drop_l1 is None: missing.append('min_drop_l1')
+    if missing:
+        print(f"[Dropping] CONFIG EKSIK - Supabase'den config yüklenemedi! Eksik: {missing}")
+        return alarms
+    
+    max_odds_1x2 = config.get('max_odds_1x2')
+    max_odds_ou25 = config.get('max_odds_ou25')
+    max_odds_btts = config.get('max_odds_btts')
     max_odds_map = {
         'dropping_1x2': max_odds_1x2,
         'dropping_ou25': max_odds_ou25,
@@ -2679,16 +2667,16 @@ volume_shock_calc_progress = ""
 volume_shock_alarms = []
 
 def load_volume_shock_config():
-    """Load Volume Shock config from JSON file"""
+    """Load Volume Shock config from JSON file - NO DEFAULTS (tüm değerler Supabase'den gelmeli)"""
+    config = {}
     try:
         if os.path.exists(VOLUME_SHOCK_CONFIG_FILE):
             with open(VOLUME_SHOCK_CONFIG_FILE, 'r') as f:
                 config = json.load(f)
-                print(f"[VolumeShock] Config loaded: min_saat={config.get('hacim_soku_min_saat', 5)}, min_esik={config.get('hacim_soku_min_esik', 4)}")
-                return config
+                print(f"[VolumeShock] Config loaded: min_saat={config.get('hacim_soku_min_saat')}, min_esik={config.get('hacim_soku_min_esik')}")
     except Exception as e:
         print(f"[VolumeShock] Config load error: {e}")
-    return {'hacim_soku_min_saat': 5, 'hacim_soku_min_esik': 4, 'enabled': True}
+    return config
 
 def save_volume_shock_config(config):
     """Save Volume Shock config to both Supabase and JSON file"""
@@ -2698,7 +2686,11 @@ def save_volume_shock_config(config):
     try:
         supabase = get_supabase_client()
         if supabase and supabase.is_available:
-            if supabase.update_alarm_setting('volumeshock', config.get('enabled', True), config):
+            # Eğer config boşsa Supabase'e yazma - filtered_config kullan
+            filtered_config = {k: v for k, v in config.items() if v is not None and k != 'enabled'}
+            if not filtered_config:
+                print("[VolumeShock] Config boş - Supabase'e yazılmadı")
+            elif supabase.update_alarm_setting('volumeshock', config.get('enabled') if 'enabled' in config else None, filtered_config):
                 print(f"[VolumeShock] Config saved to Supabase")
                 success = True
     except Exception as e:
@@ -2871,18 +2863,27 @@ def calculate_volume_shock_scores(config):
     """Calculate Volume Shock alarms - only for movements well before match"""
     global volume_shock_calc_progress
     
-    min_saat = config.get('hacim_soku_min_saat', config.get('min_hours_to_kickoff', 5))
-    # EXE uyumluluğu: hem hacim_soku_min_esik hem volume_shock_multiplier desteklenir
-    min_esik = config.get('hacim_soku_min_esik', config.get('volume_shock_multiplier', 5))
-    enabled = config.get('enabled', True)
+    # NO DEFAULTS - tüm değerler Supabase'den gelmeli (None kontrolü)
+    min_saat = config.get('hacim_soku_min_saat') if config.get('hacim_soku_min_saat') is not None else config.get('min_hours_to_kickoff')
+    min_esik = config.get('hacim_soku_min_esik') if config.get('hacim_soku_min_esik') is not None else config.get('volume_shock_multiplier')
+    enabled = config.get('enabled')
     
-    # Minimum volume eşikleri
-    min_volume_1x2 = config.get('min_volume_1x2', 1000)
-    min_volume_ou25 = config.get('min_volume_ou25', 500)
-    min_volume_btts = config.get('min_volume_btts', 300)
-    min_son_snapshot_para = config.get('min_son_snapshot_para', 300)
+    # Minimum volume eşikleri - None kontrolü
+    min_volume_1x2 = config.get('min_volume_1x2')
+    min_volume_ou25 = config.get('min_volume_ou25')
+    min_volume_btts = config.get('min_volume_btts')
+    min_son_snapshot_para = config.get('min_son_snapshot_para')
     
-    if not enabled:
+    # Config eksikse hesaplama yapma
+    missing = []
+    if min_saat is None: missing.append('hacim_soku_min_saat')
+    if min_esik is None: missing.append('hacim_soku_min_esik')
+    
+    if missing:
+        print(f"[VolumeShock] CONFIG EKSIK - Supabase'den config yüklenemedi! Eksik: {missing}")
+        return []
+    
+    if enabled is False:
         print("[VolumeShock] Disabled, skipping calculation")
         return []
     
@@ -2913,15 +2914,15 @@ def calculate_volume_shock_scores(config):
             if '1x2' in market:
                 selections = ['1', 'X', '2']
                 amount_keys = ['amt1', 'amtx', 'amt2']
-                min_volume = min_volume_1x2
+                min_volume = min_volume_1x2 if min_volume_1x2 is not None else 0
             elif 'ou25' in market:
                 selections = ['Over', 'Under']
                 amount_keys = ['amtover', 'amtunder']
-                min_volume = min_volume_ou25
+                min_volume = min_volume_ou25 if min_volume_ou25 is not None else 0
             else:
                 selections = ['Yes', 'No']
                 amount_keys = ['amtyes', 'amtno']
-                min_volume = min_volume_btts
+                min_volume = min_volume_btts if min_volume_btts is not None else 0
             
             history_table = f"{market}_history"
             matches = supabase.get_all_matches_with_latest(market)
@@ -3272,6 +3273,13 @@ def calculate_publicmove_scores(config):
     global publicmove_calc_progress
     alarms = []
     all_candidates = []
+    
+    # Kritik config kontrolü - min_sharp_score yoksa hesaplama yapma
+    min_sharp_score = config.get('min_sharp_score')
+    if min_sharp_score is None:
+        print("[PublicMove] CONFIG EKSIK - Supabase'den config yüklenemedi! Eksik: min_sharp_score")
+        return alarms
+    
     supabase = get_supabase_client()
     if not supabase or not supabase.is_available:
         print("[PublicMove] Supabase not available")
@@ -3282,14 +3290,15 @@ def calculate_publicmove_scores(config):
     
     for idx, market in enumerate(markets):
         try:
+            # NO DEFAULTS - tüm değerler Supabase'den gelmeli
             if '1x2' in market:
-                min_volume = config.get('min_volume_1x2', 3000)
+                min_volume = config.get('min_volume_1x2') if config.get('min_volume_1x2') is not None else 0
                 selections = ['1', 'X', '2']
             elif 'ou25' in market:
-                min_volume = config.get('min_volume_ou25', 1000)
+                min_volume = config.get('min_volume_ou25') if config.get('min_volume_ou25') is not None else 0
                 selections = ['Over', 'Under']
             else:
-                min_volume = config.get('min_volume_btts', 500)
+                min_volume = config.get('min_volume_btts') if config.get('min_volume_btts') is not None else 0
                 selections = ['Yes', 'No']
             
             history_table = f"{market}_history"
@@ -3470,28 +3479,35 @@ def calculate_selection_publicmove(home, away, market, selection, sel_idx, histo
     if len(history) < 2:
         return None
     
-    min_amount_change = config.get('min_amount_change', 500)
-    volume_multiplier = config.get('volume_multiplier', 1)
-    max_volume_cap = config.get('max_volume_cap', 40)
-    max_odds_cap = config.get('max_odds_cap', 35)
-    max_share_cap = config.get('max_share_cap', 25)
-    min_share_threshold = config.get('min_share', 5)
-    min_sharp_score = config.get('min_sharp_score', 10)
+    # Kritik config değerlerini al - eksikse None döner ve return None ile çık
+    min_sharp_score = config.get('min_sharp_score')
+    if min_sharp_score is None:
+        return None
     
+    # İkincil değerler - None ise güvenli varsayılan kullan (aritmetik hata önleme)
+    min_amount_change = config.get('min_amount_change') if config.get('min_amount_change') is not None else 0
+    volume_multiplier = config.get('volume_multiplier') if config.get('volume_multiplier') is not None else 1
+    max_volume_cap = config.get('max_volume_cap') if config.get('max_volume_cap') is not None else 100
+    max_odds_cap = config.get('max_odds_cap') if config.get('max_odds_cap') is not None else 100
+    max_share_cap = config.get('max_share_cap') if config.get('max_share_cap') is not None else 100
+    min_share_threshold = config.get('min_share') if config.get('min_share') is not None else 0
+    
+    # Odds ranges - varsayılan aralıklar (Supabase'de yoksa)
     odds_ranges = [
-        (config.get('odds_range_1_min', 1.01), config.get('odds_range_1_max', 1.50), config.get('odds_range_1_mult', 10), config.get('odds_range_1_min_drop', 1)),
-        (config.get('odds_range_2_min', 1.50), config.get('odds_range_2_max', 2.10), config.get('odds_range_2_mult', 8), config.get('odds_range_2_min_drop', 2)),
-        (config.get('odds_range_3_min', 2.10), config.get('odds_range_3_max', 3.50), config.get('odds_range_3_mult', 5), config.get('odds_range_3_min_drop', 3)),
-        (config.get('odds_range_4_min', 3.50), config.get('odds_range_4_max', 10.00), config.get('odds_range_4_mult', 3), config.get('odds_range_4_min_drop', 5)),
+        (config.get('odds_range_1_min') or 1.01, config.get('odds_range_1_max') or 1.50, config.get('odds_range_1_mult') or 1, config.get('odds_range_1_min_drop') or 0),
+        (config.get('odds_range_2_min') or 1.50, config.get('odds_range_2_max') or 2.10, config.get('odds_range_2_mult') or 1, config.get('odds_range_2_min_drop') or 0),
+        (config.get('odds_range_3_min') or 2.10, config.get('odds_range_3_max') or 3.50, config.get('odds_range_3_mult') or 1, config.get('odds_range_3_min_drop') or 0),
+        (config.get('odds_range_4_min') or 3.50, config.get('odds_range_4_max') or 10.00, config.get('odds_range_4_mult') or 1, config.get('odds_range_4_min_drop') or 0),
     ]
-    default_odds_multiplier = config.get('odds_multiplier', 1)
-    default_min_drop = config.get('min_drop', 1)
+    default_odds_multiplier = config.get('odds_multiplier') if config.get('odds_multiplier') is not None else 1
+    default_min_drop = config.get('min_drop') if config.get('min_drop') is not None else 0
     
+    # Share ranges - varsayılan aralıklar (Supabase'de yoksa)
     share_ranges = [
-        (config.get('share_range_1_min', 0), config.get('share_range_1_max', 50), config.get('share_range_1_mult', 1)),
-        (config.get('share_range_2_min', 50), config.get('share_range_2_max', 75), config.get('share_range_2_mult', 1.5)),
-        (config.get('share_range_3_min', 75), config.get('share_range_3_max', 90), config.get('share_range_3_mult', 2)),
-        (config.get('share_range_4_min', 90), config.get('share_range_4_max', 100), config.get('share_range_4_mult', 3)),
+        (config.get('share_range_1_min') or 0, config.get('share_range_1_max') or 50, config.get('share_range_1_mult') or 1),
+        (config.get('share_range_2_min') or 50, config.get('share_range_2_max') or 75, config.get('share_range_2_mult') or 1),
+        (config.get('share_range_3_min') or 75, config.get('share_range_3_max') or 90, config.get('share_range_3_mult') or 1),
+        (config.get('share_range_4_min') or 90, config.get('share_range_4_max') or 100, config.get('share_range_4_mult') or 1),
     ]
     default_share_multiplier = 1
     
@@ -3575,7 +3591,7 @@ def calculate_selection_publicmove(home, away, market, selection, sel_idx, histo
                 'current_odds': curr_odds,
                 'current_share': curr_share,
                 'volume': volume,
-                'triggered': sharp_score >= min_sharp_score,
+                'triggered': min_sharp_score is not None and sharp_score >= min_sharp_score,
                 'event_time': now_turkey_iso(),
                 'calc_details': {
                     'prev_odds': round(prev_odds, 2),
@@ -3601,6 +3617,13 @@ def calculate_sharp_scores(config):
     global sharp_calc_progress
     alarms = []
     all_candidates = []
+    
+    # Kritik config kontrolü - min_sharp_score yoksa hesaplama yapma
+    min_sharp_score = config.get('min_sharp_score')
+    if min_sharp_score is None:
+        print("[Sharp] CONFIG EKSIK - Supabase'den config yüklenemedi! Eksik: min_sharp_score")
+        return alarms
+    
     supabase = get_supabase_client()
     if not supabase or not supabase.is_available:
         print("[Sharp] Supabase not available")
@@ -3611,14 +3634,15 @@ def calculate_sharp_scores(config):
     
     for idx, market in enumerate(markets):
         try:
+            # NO DEFAULTS - tüm değerler Supabase'den gelmeli
             if '1x2' in market:
-                min_volume = config.get('min_volume_1x2', 3000)
+                min_volume = config.get('min_volume_1x2') if config.get('min_volume_1x2') is not None else 0
                 selections = ['1', 'X', '2']
             elif 'ou25' in market:
-                min_volume = config.get('min_volume_ou25', 1000)
+                min_volume = config.get('min_volume_ou25') if config.get('min_volume_ou25') is not None else 0
                 selections = ['Over', 'Under']
             else:
-                min_volume = config.get('min_volume_btts', 500)
+                min_volume = config.get('min_volume_btts') if config.get('min_volume_btts') is not None else 0
                 selections = ['Yes', 'No']
             
             history_table = f"{market}_history"
@@ -3778,28 +3802,35 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, m
     if len(history) < 2:
         return None
     
-    min_amount_change = config.get('min_amount_change', 500)
-    volume_multiplier = config.get('volume_multiplier', 1)
-    max_volume_cap = config.get('max_volume_cap', 40)
-    max_odds_cap = config.get('max_odds_cap', 35)
-    max_share_cap = config.get('max_share_cap', 25)
-    min_share_threshold = config.get('min_share', 5)
-    min_sharp_score = config.get('min_sharp_score', 10)
+    # Kritik config değerlerini al - eksikse None döner ve return None ile çık
+    min_sharp_score = config.get('min_sharp_score')
+    if min_sharp_score is None:
+        return None
     
+    # İkincil değerler - None ise güvenli varsayılan kullan (aritmetik hata önleme)
+    min_amount_change = config.get('min_amount_change') if config.get('min_amount_change') is not None else 0
+    volume_multiplier = config.get('volume_multiplier') if config.get('volume_multiplier') is not None else 1
+    max_volume_cap = config.get('max_volume_cap') if config.get('max_volume_cap') is not None else 100
+    max_odds_cap = config.get('max_odds_cap') if config.get('max_odds_cap') is not None else 100
+    max_share_cap = config.get('max_share_cap') if config.get('max_share_cap') is not None else 100
+    min_share_threshold = config.get('min_share') if config.get('min_share') is not None else 0
+    
+    # Odds ranges - varsayılan aralıklar (Supabase'de yoksa)
     odds_ranges = [
-        (config.get('odds_range_1_min', 1.01), config.get('odds_range_1_max', 1.50), config.get('odds_range_1_mult', 10), config.get('odds_range_1_min_drop', 1)),
-        (config.get('odds_range_2_min', 1.50), config.get('odds_range_2_max', 2.10), config.get('odds_range_2_mult', 8), config.get('odds_range_2_min_drop', 2)),
-        (config.get('odds_range_3_min', 2.10), config.get('odds_range_3_max', 3.50), config.get('odds_range_3_mult', 5), config.get('odds_range_3_min_drop', 3)),
-        (config.get('odds_range_4_min', 3.50), config.get('odds_range_4_max', 10.00), config.get('odds_range_4_mult', 3), config.get('odds_range_4_min_drop', 5)),
+        (config.get('odds_range_1_min') or 1.01, config.get('odds_range_1_max') or 1.50, config.get('odds_range_1_mult') or 1, config.get('odds_range_1_min_drop') or 0),
+        (config.get('odds_range_2_min') or 1.50, config.get('odds_range_2_max') or 2.10, config.get('odds_range_2_mult') or 1, config.get('odds_range_2_min_drop') or 0),
+        (config.get('odds_range_3_min') or 2.10, config.get('odds_range_3_max') or 3.50, config.get('odds_range_3_mult') or 1, config.get('odds_range_3_min_drop') or 0),
+        (config.get('odds_range_4_min') or 3.50, config.get('odds_range_4_max') or 10.00, config.get('odds_range_4_mult') or 1, config.get('odds_range_4_min_drop') or 0),
     ]
-    default_odds_multiplier = config.get('odds_multiplier', 1)
+    default_odds_multiplier = config.get('odds_multiplier') if config.get('odds_multiplier') is not None else 1
     default_min_drop = 0
     
+    # Share ranges - varsayılan aralıklar (Supabase'de yoksa)
     share_ranges = [
-        (config.get('share_range_1_min', 0), config.get('share_range_1_max', 50), config.get('share_range_1_mult', 1)),
-        (config.get('share_range_2_min', 50), config.get('share_range_2_max', 75), config.get('share_range_2_mult', 1.5)),
-        (config.get('share_range_3_min', 75), config.get('share_range_3_max', 90), config.get('share_range_3_mult', 2)),
-        (config.get('share_range_4_min', 90), config.get('share_range_4_max', 100), config.get('share_range_4_mult', 3)),
+        (config.get('share_range_1_min') or 0, config.get('share_range_1_max') or 50, config.get('share_range_1_mult') or 1),
+        (config.get('share_range_2_min') or 50, config.get('share_range_2_max') or 75, config.get('share_range_2_mult') or 1),
+        (config.get('share_range_3_min') or 75, config.get('share_range_3_max') or 90, config.get('share_range_3_mult') or 1),
+        (config.get('share_range_4_min') or 90, config.get('share_range_4_max') or 100, config.get('share_range_4_mult') or 1),
     ]
     default_share_multiplier = 1
     
@@ -3880,7 +3911,7 @@ def calculate_selection_sharp(home, away, market, selection, sel_idx, history, m
             odds_value > 0 and
             drop_pct >= min_drop_threshold and
             share_value > 0 and
-            sharp_score >= min_sharp_score
+            min_sharp_score is not None and sharp_score >= min_sharp_score
         )
         
         if triggered and sharp_score > best_score:
@@ -3987,23 +4018,16 @@ volume_leader_calc_progress = ""
 volume_leader_alarms = []
 
 def load_volume_leader_config():
-    """Load Volume Leader config from JSON file"""
-    default_config = {
-        'min_volume_1x2': 5000,
-        'min_volume_ou25': 2000,
-        'min_volume_btts': 1000,
-        'leader_threshold': 50,  # Minimum % to be considered leader
-        'enabled': True
-    }
+    """Load Volume Leader config from JSON file - NO DEFAULTS (tüm değerler Supabase'den gelmeli)"""
+    config = {}
     try:
         if os.path.exists(VOLUME_LEADER_CONFIG_FILE):
             with open(VOLUME_LEADER_CONFIG_FILE, 'r') as f:
-                saved_config = json.load(f)
-                default_config.update(saved_config)
-                print(f"[VolumeLeader] Config loaded: min_1x2={default_config.get('min_volume_1x2')}, threshold={default_config.get('leader_threshold')}%")
+                config = json.load(f)
+                print(f"[VolumeLeader] Config loaded: min_1x2={config.get('min_volume_1x2')}, threshold={config.get('leader_threshold')}%")
     except Exception as e:
         print(f"[VolumeLeader] Config load error: {e}")
-    return default_config
+    return config
 
 def save_volume_leader_config(config):
     """Save Volume Leader config to both Supabase and JSON file"""
@@ -4013,7 +4037,11 @@ def save_volume_leader_config(config):
     try:
         supabase = get_supabase_client()
         if supabase and supabase.is_available:
-            if supabase.update_alarm_setting('volumeleader', config.get('enabled', True), config):
+            # Eğer config boşsa Supabase'e yazma - filtered_config kullan
+            filtered_config = {k: v for k, v in config.items() if v is not None and k != 'enabled'}
+            if not filtered_config:
+                print("[VolumeLeader] Config boş - Supabase'e yazılmadı")
+            elif supabase.update_alarm_setting('volumeleader', config.get('enabled') if 'enabled' in config else None, filtered_config):
                 print(f"[VolumeLeader] Config saved to Supabase")
                 success = True
     except Exception as e:
@@ -4182,7 +4210,11 @@ def calculate_volume_leader_scores(config):
         print("[VolumeLeader] Supabase not available")
         return alarms
     
-    leader_threshold = config.get('leader_threshold', 50)
+    # NO DEFAULTS - tüm değerler Supabase'den gelmeli
+    leader_threshold = config.get('leader_threshold')
+    if leader_threshold is None:
+        print("[VolumeLeader] CONFIG EKSIK - Supabase'den config yüklenemedi! Eksik: leader_threshold")
+        return alarms
     print(f"[VolumeLeader] Config: threshold={leader_threshold}%")
     
     markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -4194,18 +4226,19 @@ def calculate_volume_leader_scores(config):
     
     for idx, market in enumerate(markets):
         try:
+            # NO DEFAULTS - tüm değerler Supabase'den gelmeli
             if '1x2' in market:
-                min_volume = config.get('min_volume_1x2', 5000)
+                min_volume = config.get('min_volume_1x2') if config.get('min_volume_1x2') is not None else 0
                 selections = ['1', 'X', '2']
                 share_keys = ['pct1', 'pctx', 'pct2']
                 amount_keys = ['amt1', 'amtx', 'amt2']
             elif 'ou25' in market:
-                min_volume = config.get('min_volume_ou25', 2000)
+                min_volume = config.get('min_volume_ou25') if config.get('min_volume_ou25') is not None else 0
                 selections = ['Over', 'Under']
                 share_keys = ['pctover', 'pctunder']
                 amount_keys = ['amtover', 'amtunder']
             else:
-                min_volume = config.get('min_volume_btts', 1000)
+                min_volume = config.get('min_volume_btts') if config.get('min_volume_btts') is not None else 0
                 selections = ['Yes', 'No']
                 share_keys = ['pctyes', 'pctno']
                 amount_keys = ['amtyes', 'amtno']
