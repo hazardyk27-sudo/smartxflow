@@ -5290,10 +5290,10 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             row2Left = `${selection} (${market})`;
             row2Right = `<span class="sm-kickoff-info">Maça kalan: ${hoursDisplay}</span>`;
             row3Left = (rawOpenOdds > 0 && rawLastOdds > 0) ? 
-                `<span class="sm-insider-odds-hero">${openOdds} → ${lastOdds}</span> <span class="sm-drop-pct-hero">▼${dropPct.toFixed(1)}%</span>` : 
-                `<span class="sm-drop-pct-hero">▼${dropPct.toFixed(1)}%</span>`;
+                `<span class="sm-insider-odds-hero">${openOdds} → ${lastOdds}</span> <span class="sm-insider-drop">▼${dropPct.toFixed(1)}%</span>` : 
+                `<span class="sm-insider-drop">▼${dropPct.toFixed(1)}%</span>`;
             row3Right = `<span class="sm-money-muted">£${Number(gelenPara).toLocaleString('en-GB')} gelen para</span>`;
-            row4 = `Maç öncesi favoriye güçlü para + oran düşüşü tespit edildi.`;
+            row4 = `Güçlü para girişi olmamasına rağmen oran düşüşü gerçekleşti.`;
         } else if (type === 'volumeshock') {
             const shockValue = latest.volume_shock_value || latest.volume_shock || latest.volume_shock_multiplier || 0;
             const incomingMoney = latest.incoming_money || 0;
