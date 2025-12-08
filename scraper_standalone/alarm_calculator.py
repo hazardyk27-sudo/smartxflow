@@ -656,14 +656,15 @@ class AlarmCalculator:
         max_odds_cap = parse_float(config.get('max_odds_cap')) or 10.0
         max_share_cap = parse_float(config.get('max_share_cap')) or 10.0
         
-        # Odds Range Multipliers - oran aralığına göre farklı çarpanlar (ESKİ DAVRANIŞI KORU)
+        # Odds Range Multipliers + Min Drop Eşikleri - oran aralığına göre farklı çarpanlar ve eşikler
         odds_ranges = []
         for i in range(1, 5):
             range_min = parse_float(config.get(f'odds_range_{i}_min')) or 0
             range_max = parse_float(config.get(f'odds_range_{i}_max')) or 99
             range_mult = parse_float(config.get(f'odds_range_{i}_mult')) or odds_multiplier_default
+            range_drop = parse_float(config.get(f'odds_range_{i}_drop')) or 0  # Min drop eşiği
             if range_min > 0 or range_max < 99:
-                odds_ranges.append({'min': range_min, 'max': range_max, 'mult': range_mult})
+                odds_ranges.append({'min': range_min, 'max': range_max, 'mult': range_mult, 'drop': range_drop})
         
         log(f"[Sharp Config] UI ALAN ADLARIYLA HESAPLAMA:")
         log(f"  - min_sharp_score: {min_score}")
@@ -782,12 +783,18 @@ class AlarmCalculator:
                     if drop_pct <= 0:
                         continue
                     
-                    # Odds range'e göre bucket multiplier seç (ESKİ DAVRANIŞI KORU)
+                    # Odds range'e göre bucket multiplier ve min drop eşiği seç
                     odds_bucket_multiplier = odds_multiplier_default
+                    min_drop_threshold = 0  # Varsayılan: eşik yok
                     for odr in odds_ranges:
                         if odr['min'] <= current_odds <= odr['max']:
                             odds_bucket_multiplier = odr['mult']
+                            min_drop_threshold = odr.get('drop', 0)
                             break
+                    
+                    # Min drop eşiği kontrolü - drop_pct bu eşiğin altındaysa alarm tetiklenmez
+                    if min_drop_threshold > 0 and drop_pct < min_drop_threshold:
+                        continue
                     
                     # === UI FORMÜLÜ: odds_value = drop_pct × odds_multiplier ===
                     # Bucket multiplier aktif ise onu kullan, değilse base multiplier
