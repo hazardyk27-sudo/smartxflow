@@ -5258,12 +5258,15 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const money = latest.incoming_money || latest.stake || 0;
             const selection = latest.selection || latest.side || '-';
             const market = latest.market || '';
-            const totalVol = latest.volume || latest.total_volume || 0;
-            row2Left = `${selection} (${market})`;
-            row2Right = totalVol > 0 ? `<span class="sm-total-muted">Toplam: £${Number(totalVol).toLocaleString('en-GB')}</span>` : '';
-            row3Left = `<span class="sm-money-hero">£${Number(money).toLocaleString('en-GB')}</span>`;
-            row3Right = '';
-            row4 = `Büyük Para Girişi`;
+            const selectionTotal = latest.selection_total || latest.volume || latest.total_volume || 0;
+            
+            // BigMoney için özel kart yapısı
+            const marketFormatted = market === '1X2' ? '1-X-2' : (market === 'OU25' ? 'O/U 2.5' : market);
+            row2Left = `${selection} (${marketFormatted})`;
+            row2Right = '';
+            row3Left = `<span class="sm-money-hero">£${Number(money).toLocaleString('en-GB')}</span> <span class="sm-money-label">gelen para</span>`;
+            row3Right = selectionTotal > 0 ? `<span class="sm-total-muted">Olay sonrası: £${Number(selectionTotal).toLocaleString('en-GB')}</span>` : '';
+            row4 = `Seçeneğe 10 dakika içinde büyük para girişi tespit edildi.`;
         } else if (type === 'insider') {
             const dropPct = Math.abs(latest.oran_dusus_pct || latest.odds_drop_pct || 0);
             const openOdds = (latest.opening_odds || 0).toFixed(2);
