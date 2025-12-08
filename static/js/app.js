@@ -5314,7 +5314,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             row2Right = `<span class="sm-level-badge ${level.toLowerCase()}" title="${levelTooltip}">${level}</span>`;
             row3Left = `<span class="sm-dropping-main">${openOdds} → ${currOdds}</span>`;
             row3Right = `<span class="sm-drop-pct-hero">▼${dropPct.toFixed(1)}%</span>`;
-            row4 = `Seçenek oranında kısa sürede güçlü bir düşüş tespit edildi.`;
+            row4 = `Oran açılıştan itibaren ciddi şekilde düştü.`;
         } else if (type === 'publicmove') {
             const prevShare = latest.previous_share || latest.old_share || 0;
             const currShare = latest.current_share || latest.new_share || 0;
