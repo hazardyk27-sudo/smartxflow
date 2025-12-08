@@ -7181,6 +7181,61 @@ td.volume,
     font-weight: 700;
 }
 
+/* Dropping Premium Styles */
+.sm-dropping-main {
+    font-size: 15px;
+    font-weight: 600;
+    color: #c9d1d9;
+}
+
+.sm-drop-pct-hero {
+    display: inline-block;
+    font-size: 16px;
+    font-weight: 700;
+    color: #f85149;
+    text-shadow: 0 0 8px rgba(248, 81, 73, 0.4);
+    margin-left: 6px;
+}
+
+.sm-level-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    cursor: help;
+}
+.sm-level-badge.l1 {
+    background: rgba(248, 81, 73, 0.2);
+    color: #f85149;
+    border: 1px solid rgba(248, 81, 73, 0.3);
+}
+.sm-level-badge.l2 {
+    background: rgba(248, 81, 73, 0.35);
+    color: #ff6b6b;
+    border: 1px solid rgba(248, 81, 73, 0.5);
+}
+.sm-level-badge.l3 {
+    background: rgba(248, 81, 73, 0.5);
+    color: #fff;
+    border: 1px solid rgba(248, 81, 73, 0.7);
+    text-shadow: 0 0 4px rgba(248, 81, 73, 0.6);
+}
+
+.sm-volume-highlight {
+    font-size: 13px;
+    font-weight: 600;
+    color: #58a6ff;
+}
+
+.sm-drop-support {
+    font-size: 11px;
+    font-weight: 500;
+    color: #8b949e;
+    font-style: italic;
+}
+
 /* Count Badge - Alarm Type Colors */
 .smc-count-sharp {
     color: #22C55E !important;
