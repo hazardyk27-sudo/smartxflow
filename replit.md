@@ -77,13 +77,13 @@ UI alan adları = tek kaynak (authoritative reference). Admin.exe ve Supabase bu
    - sharp_score = volume_contrib + odds_contrib + share_contrib
 ```
 
-**Sharp Alarm Alanları:**
+**UI Alan Adları (Sharp Alarm):**
 - Hacim: `amount_change`, `avg_last_amounts`, `shock_raw`, `shock_value`, `volume_multiplier`, `max_volume_cap`, `volume_contrib`
 - Oran: `previous_odds`, `current_odds`, `drop_pct`, `odds_multiplier_base`, `odds_multiplier_bucket`, `odds_multiplier`, `odds_value`, `max_odds_cap`, `odds_contrib`
 - Pay: `previous_share`, `current_share`, `share_diff`, `share_multiplier`, `share_value`, `max_share_cap`, `share_contrib`
 - Skor: `sharp_score`
 
-**Diğer Alarm Alanları:**
+**UI Alan Adları (Diğer Alarmlar):**
 - Insider: `hacim_sok`, `oran_dusus_pct`, `gelen_para`, `snapshot_details` vb.
 - VolumeShock: `volume_shock_value`, `hours_to_kickoff`, `hacim_soku_min_saat`, `hacim_soku_min_esik` vb.
 - Dropping: `level`, `drop_pct`, `home_team`, `away_team`, `fixture_date` vb.
