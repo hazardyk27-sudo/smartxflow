@@ -5327,7 +5327,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                 const total = Number(a.selection_total || a.volume || a.total_volume || 0).toLocaleString('en-GB');
                 return `<div class="smc-tooltip-item">• ${timeOnly} — <span class="tt-money">£${money}</span> gelen para — ${sel} — <span class="tt-total">Olay sonrası: £${total}</span></div>`;
             }).join('');
-            countBadgeHtml = `<span class="smc-count-badge smc-count-bigmoney" onclick="event.stopPropagation();">x${count}<div class="smc-tooltip">${tooltipItems}</div></span>`;
+            countBadgeHtml = `<span class="smc-count-badge smc-count-bigmoney" onclick="event.stopPropagation();">x${count}<div class="smc-tooltip"><div class="smc-tooltip-header">Geçmiş Alarmlar</div>${tooltipItems}</div></span>`;
         } else if (count > 1) {
             countBadgeHtml = `<span class="smc-count-badge">x${count}</span>`;
         }
