@@ -1229,8 +1229,18 @@ class AlarmCalculator:
                         log(f"  [{alarm_label} MONEY] {home} vs {away} | {market_names.get(market, market)}-{selection} | £{snap['incoming']:,.0f} gelen")
         
         if alarms:
+            # Duplicate'leri filtrele - aynı key için sadece en büyük incoming olanı tut
+            unique_alarms = {}
+            for alarm in alarms:
+                key = (alarm['match_id'], alarm['market'], alarm['selection'])
+                if key not in unique_alarms or alarm['incoming_money'] > unique_alarms[key]['incoming_money']:
+                    unique_alarms[key] = alarm
+            
+            filtered_alarms = list(unique_alarms.values())
+            log(f"BigMoney: {len(alarms)} -> {len(filtered_alarms)} (duplicates filtered)")
+            
             # Constraint: match_id, market, selection
-            new_count = self._upsert_alarms('bigmoney_alarms', alarms, ['match_id', 'market', 'selection'])
+            new_count = self._upsert_alarms('bigmoney_alarms', filtered_alarms, ['match_id', 'market', 'selection'])
             log(f"BigMoney: {new_count} alarms upserted")
         else:
             log("BigMoney: 0 alarm")
