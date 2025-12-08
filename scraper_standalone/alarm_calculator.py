@@ -1,8 +1,9 @@
 """
-SmartXFlow Alarm Calculator Module
+SmartXFlow Alarm Calculator Module v1.22
 Standalone alarm calculation for PC-based scraper
 Calculates: Sharp, Insider, BigMoney, VolumeShock, Dropping, PublicMove, VolumeLeader
 OPTIMIZED: Batch fetch per market, in-memory calculations
+DEFAULT_SETTINGS: Fallback values for all alarm types when Supabase config missing
 """
 
 import json
