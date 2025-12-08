@@ -7132,6 +7132,47 @@ td.volume,
     border-top: 1px solid rgba(139, 148, 158, 0.15);
 }
 
+.acd-history-section {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(139, 148, 158, 0.15);
+}
+
+.acd-history-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #8b949e;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.acd-history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    background: rgba(30, 38, 48, 0.6);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    border-left: 3px solid rgba(240, 138, 36, 0.5);
+}
+
+.acd-history-item:last-child {
+    margin-bottom: 0;
+}
+
+.acd-history-time {
+    font-size: 11px;
+    color: #6e7681;
+}
+
+.acd-history-val {
+    font-size: 12px;
+    font-weight: 600;
+    color: #F08A24;
+}
+
 .history-title {
     font-size: 11px;
     font-weight: 600;

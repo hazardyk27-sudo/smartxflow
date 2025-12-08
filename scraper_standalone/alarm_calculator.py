@@ -1308,12 +1308,16 @@ class AlarmCalculator:
     
     def calculate_bigmoney_alarms(self) -> int:
         """Calculate Big Money / Huge Money alarms"""
-        # Her hesaplamada ÖNCE tabloyu temizle - config kontrolünden ÖNCE
+        # RACE CONDITION FIX: Silme YOK - önce mevcut alarmları oku, sonra geçmişe ekle
+        existing_alarms = {}
         try:
-            self._delete('bigmoney_alarms', '')
-            log("[BigMoney] Table cleared before recalculation")
+            existing = self._get('bigmoney_alarms', 'select=*') or []
+            for row in existing:
+                key = f"{row.get('home', '')}|{row.get('away', '')}|{row.get('market', '')}|{row.get('selection', '')}"
+                existing_alarms[key] = row
+            log(f"[BigMoney] {len(existing_alarms)} existing alarms loaded for history tracking")
         except Exception as e:
-            log(f"[BigMoney] Table clear failed: {e}")
+            log(f"[BigMoney] Existing alarms load failed: {e}")
         
         config = self.configs.get('bigmoney')
         if not config:
@@ -1429,11 +1433,67 @@ class AlarmCalculator:
             filtered_alarms = list(unique_alarms.values())
             log(f"BigMoney: {len(alarms)} -> {len(filtered_alarms)} (duplicates filtered)")
             
+            # HISTORY TRACKING: Mevcut alarmın verisini geçmişe ekle
+            import json
+            for alarm in filtered_alarms:
+                key = f"{alarm['home']}|{alarm['away']}|{alarm['market']}|{alarm['selection']}"
+                if key in existing_alarms:
+                    old_alarm = existing_alarms[key]
+                    # Mevcut geçmişi al veya boş liste
+                    old_history = old_alarm.get('alarm_history') or []
+                    if isinstance(old_history, str):
+                        try:
+                            old_history = json.loads(old_history)
+                        except:
+                            old_history = []
+                    
+                    # Eski alarm verisi farklıysa geçmişe ekle
+                    old_incoming = old_alarm.get('incoming_money', 0)
+                    old_trigger = old_alarm.get('trigger_at', '')
+                    new_incoming = alarm.get('incoming_money', 0)
+                    new_trigger = alarm.get('trigger_at', '')
+                    
+                    if old_trigger != new_trigger and old_incoming > 0:
+                        history_entry = {
+                            'incoming_money': old_incoming,
+                            'trigger_at': old_trigger,
+                            'selection_total': old_alarm.get('selection_total', 0),
+                            'is_huge': old_alarm.get('is_huge', False)
+                        }
+                        old_history.append(history_entry)
+                        # Son 10 geçmiş kaydı tut
+                        old_history = old_history[-10:]
+                    
+                    alarm['alarm_history'] = json.dumps(old_history)
+                else:
+                    alarm['alarm_history'] = '[]'
+            
             # Constraint: match_id, market, selection
             new_count = self._upsert_alarms('bigmoney_alarms', filtered_alarms, ['match_id', 'market', 'selection'])
-            log(f"BigMoney: {new_count} alarms upserted")
+            log(f"BigMoney: {new_count} alarms upserted (with history)")
+            
+            # Stale alarm cleanup
+            valid_keys = set()
+            for a in filtered_alarms:
+                key = f"{a['home']}|{a['away']}|{a['market']}|{a['selection']}"
+                valid_keys.add(key)
+            
+            stale_ids = []
+            for key, row in existing_alarms.items():
+                if key not in valid_keys:
+                    stale_ids.append(row.get('id'))
+            
+            if stale_ids:
+                for stale_id in stale_ids:
+                    self._delete('bigmoney_alarms', f'id=eq.{stale_id}')
+                log(f"[BigMoney] Removed {len(stale_ids)} stale alarms")
         else:
-            log("BigMoney: 0 alarm")
+            # Hiç alarm yoksa tabloyu temizle
+            try:
+                self._delete('bigmoney_alarms', 'id=gte.1')
+                log("BigMoney: 0 alarm - table cleared")
+            except Exception as e:
+                log(f"[BigMoney] Table clear failed: {e}")
         
         return len(alarms)
     

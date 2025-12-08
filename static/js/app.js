@@ -4507,6 +4507,25 @@ function renderAlarmsList(filterType) {
             badgeLabel = alarm.is_huge ? 'HUGE MONEY' : 'BIG MONEY';
             const money = alarm.incoming_money || alarm.stake || 0;
             const selectionTotal = alarm.selection_total || alarm.volume || alarm.total_volume || 0;
+            
+            // Önceki alarmlar - alarm_history'den al
+            let historyHtml = '';
+            let alarmHistory = alarm.alarm_history || [];
+            if (typeof alarmHistory === 'string') {
+                try { alarmHistory = JSON.parse(alarmHistory); } catch(e) { alarmHistory = []; }
+            }
+            if (alarmHistory && alarmHistory.length > 0) {
+                const historyItems = alarmHistory.slice().reverse().map(h => {
+                    const hTime = formatTriggerTime(h.trigger_at);
+                    const hMoney = Number(h.incoming_money || 0).toLocaleString('en-GB');
+                    return `<div class="acd-history-item"><span class="acd-history-time">${hTime}</span><span class="acd-history-val">£${hMoney}</span></div>`;
+                }).join('');
+                historyHtml = `<div class="acd-history-section">
+                    <div class="acd-history-title">ÖNCEKİ ALARMLAR</div>
+                    ${historyItems}
+                </div>`;
+            }
+            
             metricContent = `<div class="acd-grid cols-2">
                 <div class="acd-stat">
                     <div class="acd-stat-val bigmoney">£${Number(money).toLocaleString('en-GB')}</div>
@@ -4516,8 +4535,8 @@ function renderAlarmsList(filterType) {
                     <div class="acd-stat-val">£${Number(selectionTotal).toLocaleString('en-GB')}</div>
                     <div class="acd-stat-lbl">Toplam</div>
                 </div>
-            </div>`;
-            historyLine = `${triggerTime}`;
+            </div>${historyHtml}`;
+            historyLine = alarmHistory.length > 0 ? `×${alarmHistory.length + 1}` : `${triggerTime}`;
         } else if (type === 'dropping') {
             const level = alarm.level || 'L1';
             badgeLabel = `DROPPING ${level}`;
