@@ -1022,25 +1022,23 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .row-value.odds {
-    color: #c9d1d9;
-    font-size: 14px;
-    font-weight: 500;
+    color: #dbeafe;
+    font-size: 15px;
+    font-weight: 600;
     font-style: normal;
 }
 
 .row-value.money {
-    font-size: 15px;
-    color: #f0f6fc;
+    font-size: 13px;
+    color: #22c55e;
     font-style: normal;
-    font-weight: 700;
-    letter-spacing: 0.02em;
+    font-weight: 500;
 }
 
 .row-value.pct {
-    font-size: 11px;
-    font-weight: 400;
-    color: #8b949e;
-    opacity: 0.85;
+    font-size: 13px;
+    font-weight: 500;
+    color: #4ade80;
 }
 
 .volume-bar {
@@ -3842,8 +3840,7 @@ td.volume,
 }
 
 .alarm-card.bigmoney-alarm::before {
-    background: #FF9D2A;
-    box-shadow: 0 0 8px rgba(255, 157, 42, 0.5);
+    background: #fbbf24;
 }
 
 /* Alarm Card Left: Match Info */
@@ -7273,45 +7270,6 @@ td.volume,
 .acd-stat-val.drop { color: #ff0000; }
 .acd-stat-val.volumeleader { color: #06b6d4; }
 .acd-stat-val.volumeleader-new { color: #22d3ee; }
-.acd-stat-val.muted { color: #6e7681; font-size: 14px; }
-
-/* BigMoney Premium Hero */
-.acd-bigmoney-hero {
-    text-align: center;
-    padding: 16px 12px;
-    background: linear-gradient(135deg, rgba(240, 138, 36, 0.12) 0%, rgba(240, 138, 36, 0.04) 100%);
-    border-radius: 14px;
-    margin-bottom: 10px;
-    border: 1px solid rgba(240, 138, 36, 0.2);
-}
-
-.acd-money-amount {
-    font-size: 28px;
-    font-weight: 700;
-    color: #fff;
-    text-shadow: 0 0 20px rgba(240, 138, 36, 0.4);
-    margin-bottom: 4px;
-    letter-spacing: -0.5px;
-    font-family: 'Inter', sans-serif;
-}
-
-.acd-money-label {
-    font-size: 11px;
-    font-weight: 500;
-    color: #F08A24;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* Secondary stat for BigMoney */
-.acd-stat.secondary {
-    background: transparent;
-    padding: 6px 0;
-}
-
-.acd-stat.secondary .acd-stat-lbl {
-    color: #484f58;
-}
 
 /* Volume Leader Transition - Minimal Style */
 .vl-transition {

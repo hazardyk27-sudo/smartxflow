@@ -4522,32 +4522,29 @@ function renderAlarmsList(filterType) {
             if (typeof alarmHistory === 'string') {
                 try { alarmHistory = JSON.parse(alarmHistory); } catch(e) { alarmHistory = []; }
             }
-            const historyCount = alarmHistory.length;
-            if (historyCount > 0) {
+            if (alarmHistory && alarmHistory.length > 0) {
                 const historyItems = alarmHistory.slice().reverse().map(h => {
                     const hTime = formatTriggerTime(h.trigger_at);
                     const hMoney = Number(h.incoming_money || 0).toLocaleString('en-GB');
                     return `<div class="acd-history-item"><span class="acd-history-time">${hTime}</span><span class="acd-history-val">£${hMoney}</span></div>`;
                 }).join('');
                 historyHtml = `<div class="acd-history-section">
-                    <div class="acd-history-title">ÖNCEKİ HAREKETLER</div>
+                    <div class="acd-history-title">ÖNCEKİ ALARMLAR</div>
                     ${historyItems}
                 </div>`;
             }
             
-            // Toplam £0 ise gösterme, değilse küçük ve gri göster
-            const totalHtml = selectionTotal > 0 
-                ? `<div class="acd-stat secondary">
-                    <div class="acd-stat-val muted">£${Number(selectionTotal).toLocaleString('en-GB')}</div>
-                    <div class="acd-stat-lbl">Seçenek Toplam</div>
-                </div>` 
-                : '';
-            
-            metricContent = `<div class="acd-bigmoney-hero">
-                <div class="acd-money-amount">£${Number(money).toLocaleString('en-GB')}</div>
-                <div class="acd-money-label">Büyük Para Girişi</div>
-            </div>${totalHtml ? `<div class="acd-grid cols-1">${totalHtml}</div>` : ''}${historyHtml}`;
-            historyLine = historyCount > 0 ? `×${historyCount + 1}` : `${triggerTime}`;
+            metricContent = `<div class="acd-grid cols-2">
+                <div class="acd-stat">
+                    <div class="acd-stat-val bigmoney">£${Number(money).toLocaleString('en-GB')}</div>
+                    <div class="acd-stat-lbl">Gelen Para</div>
+                </div>
+                <div class="acd-stat">
+                    <div class="acd-stat-val">£${Number(selectionTotal).toLocaleString('en-GB')}</div>
+                    <div class="acd-stat-lbl">Toplam</div>
+                </div>
+            </div>${historyHtml}`;
+            historyLine = alarmHistory.length > 0 ? `×${alarmHistory.length + 1}` : `${triggerTime}`;
         } else if (type === 'dropping') {
             const level = alarm.level || 'L1';
             badgeLabel = `DROPPING ${level}`;
