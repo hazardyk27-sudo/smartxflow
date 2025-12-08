@@ -4612,14 +4612,35 @@ def manage_alarm_setting(alarm_type):
     """Get, update or delete a specific alarm setting"""
     try:
         supabase = get_supabase_client()
-        if not supabase or not supabase.is_available:
-            return jsonify({'status': 'error', 'message': 'Supabase not available'})
         
         if request.method == 'GET':
-            setting = supabase.get_alarm_setting(alarm_type)
-            if setting:
-                return jsonify({'status': 'ok', 'setting': setting})
-            return jsonify({'status': 'error', 'message': 'Setting not found'})
+            default_setting = DEFAULT_ALARM_SETTINGS.get(alarm_type)
+            merged_config = default_setting['config'].copy() if default_setting else {}
+            merged_enabled = default_setting['enabled'] if default_setting else True
+            
+            if supabase and supabase.is_available:
+                db_setting = supabase.get_alarm_setting(alarm_type)
+                if db_setting:
+                    db_config = db_setting.get('config')
+                    if db_config and isinstance(db_config, dict):
+                        for key, value in db_config.items():
+                            if value is not None:
+                                merged_config[key] = value
+                    db_enabled = db_setting.get('enabled')
+                    if db_enabled is not None:
+                        merged_enabled = db_enabled
+            
+            return jsonify({
+                'status': 'ok', 
+                'setting': {
+                    'alarm_type': alarm_type,
+                    'enabled': merged_enabled,
+                    'config': merged_config
+                }
+            })
+        
+        if not supabase or not supabase.is_available:
+            return jsonify({'status': 'error', 'message': 'Supabase not available'})
         
         elif request.method == 'PUT':
             data = request.get_json() or {}
