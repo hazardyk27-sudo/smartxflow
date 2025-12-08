@@ -1347,9 +1347,10 @@ class AlarmCalculator:
         l3_min = parse_float(config.get('min_drop_l3'))
         
         # Kalıcılık süresi (dakika) - varsayılan 120 dk
+        persistence_enabled = config.get('persistence_enabled', True)
         persistence_minutes = parse_float(config.get('persistence_minutes')) or 120
         
-        log(f"[Dropping Config] L1: {l1_min}-{l1_max}%, L2: {l2_min}-{l2_max}%, L3: {l3_min}%+, Kalıcılık: {persistence_minutes} dk")
+        log(f"[Dropping Config] L1: {l1_min}-{l1_max}%, L2: {l2_min}-{l2_max}%, L3: {l3_min}%+, Kalıcılık: {'AÇIK' if persistence_enabled else 'KAPALI'} ({persistence_minutes} dk)")
         
         alarms = []
         markets = ['dropping_1x2', 'dropping_ou25', 'dropping_btts']
@@ -1421,48 +1422,49 @@ class AlarmCalculator:
                     if drop_pct < l1_min:
                         continue
                     
-                    # === 120 DAKİKA KALICILIK KONTROLÜ ===
-                    # Son snapshot'ın zamanından geriye 120 dakika içindeki TÜM snapshot'larda drop devam etmeli
-                    
-                    # Son snapshot'ın zamanını al (referans nokta) - naive datetime kullan
-                    latest_scraped_at = parse_timestamp(history[-1].get('scraped_at', ''))
-                    if latest_scraped_at == datetime.min:
-                        latest_scraped_at = datetime.now()
-                    
-                    persistence_threshold = latest_scraped_at - timedelta(minutes=persistence_minutes)
-                    
-                    # Son 120 dakikadaki snapshot'ları filtrele (naive datetime karşılaştırması)
+                    # === KALICILIK KONTROLÜ (persistence_enabled ise) ===
                     recent_snapshots = []
-                    for snap in history:
-                        snap_time = parse_timestamp(snap.get('scraped_at', ''))
-                        if snap_time != datetime.min and snap_time >= persistence_threshold:
-                            recent_snapshots.append(snap)
-                    
-                    # En az 2 snapshot olmalı kalıcılık kontrolü için (yaklaşık 20 dk = 2 snapshot)
-                    if len(recent_snapshots) < 2:
-                        # Yeterli snapshot yok, alarm tetiklenmez
-                        continue
-                    
-                    # Son 120 dakikadaki TÜM snapshot'larda:
-                    # 1. Oran opening_odds'un altında kalmalı (geri dönüş yok)
-                    # 2. Her snapshot'ta minimum L1 drop_pct eşiği karşılanmalı
-                    drop_persistent = True
-                    for snap in recent_snapshots:
-                        snap_odds = parse_float(snap.get(odds_key, 0))
-                        if snap_odds <= 0:
+                    if persistence_enabled:
+                        # Son snapshot'ın zamanından geriye X dakika içindeki TÜM snapshot'larda drop devam etmeli
+                        
+                        # Son snapshot'ın zamanını al (referans nokta) - naive datetime kullan
+                        latest_scraped_at = parse_timestamp(history[-1].get('scraped_at', ''))
+                        if latest_scraped_at == datetime.min:
+                            latest_scraped_at = datetime.now()
+                        
+                        persistence_threshold = latest_scraped_at - timedelta(minutes=persistence_minutes)
+                        
+                        # Kalıcılık penceresi içindeki snapshot'ları filtrele
+                        for snap in history:
+                            snap_time = parse_timestamp(snap.get('scraped_at', ''))
+                            if snap_time != datetime.min and snap_time >= persistence_threshold:
+                                recent_snapshots.append(snap)
+                        
+                        # En az 2 snapshot olmalı kalıcılık kontrolü için
+                        if len(recent_snapshots) < 2:
+                            # Yeterli snapshot yok, alarm tetiklenmez
                             continue
-                        # Oran opening'e geri dönmüşse veya üstüne çıktıysa, kalıcı drop değil
-                        if snap_odds >= opening_odds:
-                            drop_persistent = False
-                            break
-                        # Her snapshot'ta minimum drop_pct (L1) karşılanmalı
-                        snap_drop_pct = ((opening_odds - snap_odds) / opening_odds) * 100
-                        if snap_drop_pct < l1_min:
-                            drop_persistent = False
-                            break
-                    
-                    if not drop_persistent:
-                        continue
+                        
+                        # Pencere içindeki TÜM snapshot'larda:
+                        # 1. Oran opening_odds'un altında kalmalı (geri dönüş yok)
+                        # 2. Her snapshot'ta minimum L1 drop_pct eşiği karşılanmalı
+                        drop_persistent = True
+                        for snap in recent_snapshots:
+                            snap_odds = parse_float(snap.get(odds_key, 0))
+                            if snap_odds <= 0:
+                                continue
+                            # Oran opening'e geri dönmüşse veya üstüne çıktıysa, kalıcı drop değil
+                            if snap_odds >= opening_odds:
+                                drop_persistent = False
+                                break
+                            # Her snapshot'ta minimum drop_pct (L1) karşılanmalı
+                            snap_drop_pct = ((opening_odds - snap_odds) / opening_odds) * 100
+                            if snap_drop_pct < l1_min:
+                                drop_persistent = False
+                                break
+                        
+                        if not drop_persistent:
+                            continue
                     
                     # Level belirleme
                     if drop_pct >= l3_min:
