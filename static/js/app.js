@@ -3363,7 +3363,7 @@ function highlightNewAlarm(alarm) {
     } else if (alarmType === 'insider') {
         value = `▼ ${Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1)}%`;
     } else if (alarmType === 'volumeshock') {
-        value = `${(alarm.volume_shock_value || 0).toFixed(1)}x`;
+        value = `${(alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0).toFixed(1)}x`;
     } else if (alarmType === 'bigmoney') {
         value = `£${Number(alarm.incoming_money || alarm.stake || 0).toLocaleString('en-GB')}`;
     } else if (alarmType === 'dropping') {
@@ -3584,7 +3584,7 @@ async function loadAlertBand() {
         
         if (volumeShockRes.ok) {
             const volumeshock = await volumeShockRes.json();
-            volumeshock.forEach(a => { a._type = 'volumeshock'; a._score = (a.volume_shock_value || 0) * 100; });
+            volumeshock.forEach(a => { a._type = 'volumeshock'; a._score = (a.volume_shock_value || a.volume_shock || a.volume_shock_multiplier || 0) * 100; });
             allAlarms = allAlarms.concat(volumeshock);
         }
         
@@ -3703,7 +3703,7 @@ function formatAlertValue(alarm) {
         return '£' + Number(val).toLocaleString('en-GB');
     }
     if (type === 'volumeshock') {
-        const shockValue = alarm.volume_shock_value || 0;
+        const shockValue = alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0;
         return shockValue.toFixed(1) + 'x';
     }
     if (type === 'dropping') {
@@ -3747,7 +3747,7 @@ function renderAlertBand() {
             const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
             value = `▼ ${dropPct}%`;
         } else if (alarm._type === 'volumeshock') {
-            value = `${(alarm.volume_shock_value || 0).toFixed(1)}x`;
+            value = `${(alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0).toFixed(1)}x`;
         } else if (alarm._type === 'bigmoney') {
             value = `£${Number(alarm.incoming_money || alarm.stake || 0).toLocaleString('en-GB')}`;
         } else if (alarm._type === 'dropping') {
@@ -4312,7 +4312,7 @@ function renderAlarmsList(filterType) {
                 centerBadge = '<span class="huge-badge">HUGE</span>';
             }
         } else if (type === 'volumeshock') {
-            const shockValue = alarm.volume_shock_value || 0;
+            const shockValue = alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0;
             const hoursToKickoff = alarm.hours_to_kickoff || 0;
             mainValue = `<span class="value-highlight">${shockValue.toFixed(1)}x</span><span class="sep">•</span><span class="value-pct">${hoursToKickoff.toFixed(1)}s önce</span>`;
         } else if (type === 'dropping') {
@@ -4455,7 +4455,7 @@ function renderAlarmsList(filterType) {
         } else if (type === 'volumeshock') {
             badgeLabel = 'HACİM ŞOKU';
             const newMoney = alarm.incoming_money || 0;
-            const shockVal = (alarm.volume_shock_value || 0).toFixed(1);
+            const shockVal = (alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0).toFixed(1);
             const hoursToKickoff = alarm.hours_to_kickoff || 0;
             metricContent = `<div class="acd-grid cols-2">
                 <div class="acd-stat">
@@ -4553,7 +4553,7 @@ function renderAlarmsList(filterType) {
             const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
             metricValue = `▼ ${dropPct}%`;
         } else if (type === 'volumeshock') {
-            metricValue = `${(alarm.volume_shock_value || 0).toFixed(1)}x`;
+            metricValue = `${(alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0).toFixed(1)}x`;
         } else if (type === 'bigmoney') {
             metricValue = `£${Number(alarm.incoming_money || alarm.stake || 0).toLocaleString('en-GB')}`;
         } else if (type === 'dropping') {
@@ -4579,7 +4579,7 @@ function renderAlarmsList(filterType) {
                 } else if (type === 'insider') {
                     hValue = `▼ ${Math.abs(h.oran_dusus_pct || h.odds_drop_pct || 0).toFixed(1)}%`;
                 } else if (type === 'volumeshock') {
-                    hValue = `${(h.volume_shock_value || 0).toFixed(1)}x`;
+                    hValue = `${(h.volume_shock_value || h.volume_shock || h.volume_shock_multiplier || 0).toFixed(1)}x`;
                 } else if (type === 'bigmoney') {
                     hValue = `£${Number(h.incoming_money || h.stake || 0).toLocaleString('en-GB')}`;
                 } else if (type === 'dropping') {
@@ -5196,7 +5196,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             row3Right = `£${Number(gelenPara).toLocaleString('en-GB')} gelen para`;
             row4 = `Düşük hacim, yüksek oran düşüşü`;
         } else if (type === 'volumeshock') {
-            const shockValue = latest.volume_shock_value || 0;
+            const shockValue = latest.volume_shock_value || latest.volume_shock || latest.volume_shock_multiplier || 0;
             const hoursToKickoff = latest.hours_to_kickoff || 0;
             const incomingMoney = latest.incoming_money || 0;
             const selection = latest.selection || latest.side || '-';
