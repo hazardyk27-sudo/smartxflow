@@ -4544,7 +4544,7 @@ function renderAlarmsList(filterType) {
             }
             if (alarmHistory && alarmHistory.length > 0) {
                 const historyItems = alarmHistory.slice().reverse().map(h => {
-                    const hTime = formatTriggerTime(h.trigger_at);
+                    const hTime = formatTriggerTimeFull(h.trigger_at);
                     const hMoney = Number(h.incoming_money || 0).toLocaleString('en-GB');
                     return `<div class="acd-history-item"><span class="acd-history-time">${hTime}</span><span class="acd-history-val">£${hMoney}</span></div>`;
                 }).join('');
@@ -4806,6 +4806,40 @@ function parseAlarmDateTR(dateStr) {
     }
     
     return toTurkeyTime(dateStr);
+}
+
+function formatTriggerTimeFull(dateStr) {
+    if (!dateStr) return '-';
+    
+    const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    
+    // ISO format with timezone offset
+    if (dateStr.includes('T') && (dateStr.includes('+') || dateStr.includes('Z'))) {
+        const dt = dayjs(dateStr).tz(APP_TIMEZONE);
+        if (dt && dt.isValid()) {
+            const day = dt.format('DD');
+            const month = monthNames[dt.month()];
+            const time = dt.format('HH:mm');
+            return `${day} ${month} • ${time}`;
+        }
+    }
+    
+    // DD.MM.YYYY HH:MM formatı
+    if (dateStr.includes('.') && dateStr.includes(' ')) {
+        const parts = dateStr.split(' ');
+        if (parts.length >= 2) {
+            const datePart = parts[0].split('.');
+            if (datePart.length >= 2) {
+                const day = datePart[0].padStart(2, '0');
+                const monthIdx = parseInt(datePart[1]) - 1;
+                const month = monthNames[monthIdx] || datePart[1];
+                const time = parts[1];
+                return `${day} ${month} • ${time}`;
+            }
+        }
+    }
+    
+    return dateStr;
 }
 
 function formatTriggerTime(dateStr) {
