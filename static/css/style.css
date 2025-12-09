@@ -7129,6 +7129,17 @@ td.volume,
     box-shadow: 0 0 8px rgba(240, 138, 36, 0.4);
 }
 
+/* VolumeShock yellow/gold stripe and dot */
+.ac.volumeshock .ac-stripe {
+    background: linear-gradient(180deg, #fbbf24, #f59e0b);
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+}
+
+.ac.volumeshock .ac-dot {
+    background: #fbbf24;
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.6);
+}
+
 /* Secondary stat for totals */
 .acd-stat-secondary {
     opacity: 0.7;
