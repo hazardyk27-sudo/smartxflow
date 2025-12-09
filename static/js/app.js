@@ -5337,8 +5337,8 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const selTotal = latest.selection_total || latest.volume || 0;
             row2Left = `${selection} (${market})`;
             row2Right = `<span class="sm-shock-badge">X${shockValue.toFixed(0)}</span> hacim şoku`;
-            row3Left = `<span class="sm-money-hero">£${Number(incomingMoney).toLocaleString('en-GB')}</span> <span class="sm-money-label">yeni para</span>`;
-            row3Right = selTotal > 0 ? `<span class="sm-total-muted">Sonrası: £${Number(selTotal).toLocaleString('en-GB')}</span>` : '';
+            row3Left = `<span class="sm-shock-money">£${Number(incomingMoney).toLocaleString('en-GB')}</span> <span class="sm-shock-money-label">yeni para</span>`;
+            row3Right = '';
             row4 = `Son 10 giriş ortalamasına göre X${shockValue.toFixed(0)} kat yüksek para akışı tespit edildi.`;
         } else if (type === 'dropping') {
             const openOdds = (latest.opening_odds || 0).toFixed(2);

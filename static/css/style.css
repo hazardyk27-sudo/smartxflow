@@ -7176,6 +7176,18 @@ td.volume,
     font-size: 13px;
 }
 
+.sm-shock-money {
+    font-size: 14px;
+    color: #6e7681;
+    font-weight: 500;
+}
+
+.sm-shock-money-label {
+    font-size: 11px;
+    color: #6e7681;
+    margin-left: 4px;
+}
+
 .sm-leader-new {
     color: #06b6d4;
     font-weight: 700;
