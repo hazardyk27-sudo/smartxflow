@@ -7619,7 +7619,7 @@ td.volume,
     font-size: 13px;
     opacity: 0.8;
     display: inline-block;
-    min-width: 14px;
+    width: 45px;
     text-align: right;
 }
 
@@ -7628,6 +7628,7 @@ td.volume,
     font-size: 16px;
     font-weight: 300;
     opacity: 0.6;
+    flex-shrink: 0;
 }
 
 .vl-new {
@@ -7635,7 +7636,7 @@ td.volume,
     font-weight: 600;
     font-size: 15px;
     display: inline-block;
-    min-width: 14px;
+    width: 25px;
     text-align: left;
 }
 
