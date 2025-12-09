@@ -7125,8 +7125,8 @@ td.volume,
 
 /* BigMoney bright stripe */
 .ac.bigmoney .ac-stripe {
-    background: linear-gradient(180deg, #FF9F33, #F08A24);
-    box-shadow: 0 0 8px rgba(240, 138, 36, 0.4);
+    background: linear-gradient(180deg, #4ade80, #22c55e);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
 }
 
 /* VolumeShock yellow/gold stripe and dot */
