@@ -88,7 +88,7 @@ class SupabaseClient:
             return None
         
         try:
-            url = f"{self._rest_url('matches')}?home_team=eq.{home_team}&away_team=eq.{away_team}&match_date=eq.{match_date}&select=id"
+            url = f"{self._rest_url('matches')}?home_team=eq.{home_team}&away_team=eq.{away_team}&league=eq.{league}&match_date=eq.{match_date}&select=id"
             resp = httpx.get(url, headers=self._headers(), timeout=10)
             
             if resp.status_code == 200 and resp.json():
@@ -332,7 +332,8 @@ class SupabaseClient:
                         for row in rows:
                             home = row.get('home', '')
                             away = row.get('away', '')
-                            key = f"{home}|{away}"
+                            league = row.get('league', '')
+                            key = f"{home}|{away}|{league}"
                             if key not in seen:
                                 seen[key] = row
                             else:
@@ -384,7 +385,8 @@ class SupabaseClient:
                         for row in rows:
                             home = row.get('home', '')
                             away = row.get('away', '')
-                            key = f"{home}|{away}"
+                            league = row.get('league', '')
+                            key = f"{home}|{away}|{league}"
                             if key not in seen:
                                 seen[key] = row
                             else:
@@ -458,7 +460,8 @@ class SupabaseClient:
                                         if match_date >= yesterday_date:
                                             home = row.get('home', '')
                                             away = row.get('away', '')
-                                            key = f"{home}|{away}"
+                                            league = row.get('league', '')
+                                            key = f"{home}|{away}|{league}"
                                             if key not in seen:
                                                 seen[key] = row
                                             else:

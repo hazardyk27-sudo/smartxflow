@@ -2558,9 +2558,10 @@ def calculate_dropping_scores(config):
                     for m in moneyway_data:
                         home = (m.get('home') or m.get('home_team') or m.get('Home') or '').lower().strip()
                         away = (m.get('away') or m.get('away_team') or m.get('Away') or '').lower().strip()
+                        league = (m.get('league') or '').lower().strip()
                         match_date_raw = m.get('date') or ''
                         if home and away:
-                            key = f"{home}|{away}"
+                            key = f"{home}|{away}|{league}"
                             moneyway_matches.add(key)
                             moneyway_dates[key] = match_date_raw
                     print(f"[Dropping] Loaded {len(moneyway_matches)} matches from {moneyway_market} for cross-check")
@@ -2575,15 +2576,16 @@ def calculate_dropping_scores(config):
             skipped_count = 0
             
             for match_key, match_data in trend_data.items():
-                home = match_data.get('home', '')
-                away = match_data.get('away', '')
-                league = match_data.get('league', '')
+                home = match_data.get('home') or ''
+                away = match_data.get('away') or ''
+                league = match_data.get('league') or ''
                 values = match_data.get('values', {})
                 
                 # Check if match exists in corresponding Moneyway market
-                home_lower = home.lower().strip()
-                away_lower = away.lower().strip()
-                match_check_key = f"{home_lower}|{away_lower}"
+                home_lower = home.lower().strip() if home else ''
+                away_lower = away.lower().strip() if away else ''
+                league_lower = league.lower().strip() if league else ''
+                match_check_key = f"{home_lower}|{away_lower}|{league_lower}"
                 
                 # Get match_date from moneyway data
                 match_date = moneyway_dates.get(match_check_key, '')
@@ -2593,9 +2595,13 @@ def calculate_dropping_scores(config):
                     found = False
                     found_key = None
                     for mw_key in moneyway_matches:
-                        mw_home, mw_away = mw_key.split('|')
+                        parts = mw_key.split('|')
+                        mw_home = parts[0] if len(parts) > 0 else ''
+                        mw_away = parts[1] if len(parts) > 1 else ''
+                        mw_league = parts[2] if len(parts) > 2 else ''
                         if (home_lower in mw_home or mw_home in home_lower) and \
-                           (away_lower in mw_away or mw_away in away_lower):
+                           (away_lower in mw_away or mw_away in away_lower) and \
+                           (league_lower in mw_league or mw_league in league_lower or not league_lower or not mw_league):
                             found = True
                             found_key = mw_key
                             break
