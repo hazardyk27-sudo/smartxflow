@@ -7217,11 +7217,17 @@ td.volume,
     color: #c9d1d9;
 }
 
-.sm-leader-share {
+.sm-leader-share-old {
+    font-size: 13px;
+    font-weight: 600;
+    color: #c9d1d9;
+    margin-left: 8px;
+}
+
+.sm-leader-share-new {
     font-size: 13px;
     font-weight: 600;
     color: #06b6d4;
-    margin-left: 8px;
 }
 
 .sm-volume-muted {

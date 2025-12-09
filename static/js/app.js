@@ -5373,7 +5373,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const market = latest.market || '';
             row2Left = `${market}`;
             row2Right = '';
-            const shareText = (oldShare > 0 || newShare > 0) ? ` <span class="sm-leader-share">%${oldShare.toFixed(0)} → %${newShare.toFixed(0)}</span>` : '';
+            const shareText = (oldShare > 0 || newShare > 0) ? ` <span class="sm-leader-share-old">%${oldShare.toFixed(0)}</span> → <span class="sm-leader-share-new">%${newShare.toFixed(0)}</span>` : '';
             row3Left = `<span class="sm-leader-hero">${oldLeader} → <span class="sm-leader-new">${newLeader}</span></span>${shareText}`;
             row3Right = totalVol > 0 ? `<span class="sm-volume-muted">Volume: £${Number(totalVol).toLocaleString('en-GB')}</span>` : '';
             row4 = `Market lideri değişti. Bu seçenekte hacim üstünlüğü ele geçirildi.`;
