@@ -232,8 +232,8 @@ class SupabaseWriter:
                 del new_row['id']
             clean_rows.append(new_row)
         
-        # UPSERT - UNIQUE(home, away, date) constraint'i kullan
-        return self.upsert_rows(table, clean_rows, on_conflict="home,away,date")
+        # UPSERT - UNIQUE(league, home, away, date) constraint'i kullan
+        return self.upsert_rows(table, clean_rows, on_conflict="league,home,away,date")
     
     def append_history(self, table: str, rows: List[Dict[str, Any]], scraped_at: str) -> bool:
         """History tablosuna yeni kayit ekle - id kolonu kaldirilir (auto-increment kullanilir)"""
