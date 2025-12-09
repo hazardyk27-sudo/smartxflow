@@ -5336,9 +5336,9 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const market = latest.market || '';
             const selTotal = latest.selection_total || latest.volume || 0;
             row2Left = `${selection} (${market})`;
-            row2Right = `<span class="sm-shock-badge">X${shockValue.toFixed(0)}</span> hacim şoku`;
-            row3Left = `<span class="sm-shock-money">£${Number(incomingMoney).toLocaleString('en-GB')}</span> <span class="sm-shock-money-label">yeni para</span>`;
-            row3Right = '';
+            row2Right = '';
+            row3Left = `<span class="sm-shock-badge">X${shockValue.toFixed(0)}</span> <span class="sm-shock-label">hacim şoku</span>`;
+            row3Right = `<span class="sm-shock-money">£${Number(incomingMoney).toLocaleString('en-GB')}</span> <span class="sm-shock-money-label">yeni para</span>`;
             row4 = `Son 10 giriş ortalamasına göre X${shockValue.toFixed(0)} kat yüksek para akışı tespit edildi.`;
         } else if (type === 'dropping') {
             const openOdds = (latest.opening_odds || 0).toFixed(2);
