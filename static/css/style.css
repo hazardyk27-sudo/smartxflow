@@ -7619,7 +7619,7 @@ td.volume,
     font-size: 13px;
     opacity: 0.8;
     display: inline-block;
-    width: 45px;
+    width: 40px;
     text-align: right;
 }
 
@@ -7636,7 +7636,7 @@ td.volume,
     font-weight: 600;
     font-size: 15px;
     display: inline-block;
-    width: 25px;
+    width: 40px;
     text-align: left;
 }
 
