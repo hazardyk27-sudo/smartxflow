@@ -4,7 +4,12 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'desktop_app/**'
+      - 'desktop_app.py'
+      - 'app.py'
+      - 'static/**'
+      - 'templates/**'
+      - 'core/**'
+      - 'services/**'
   workflow_dispatch:
 
 jobs:
@@ -23,35 +28,59 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r desktop_app/requirements.txt
+          pip install flask==3.0.0 httpx supabase==2.3.4 requests==2.31.0 beautifulsoup4==4.12.3 lxml==5.1.0 pytz pywebview==5.0.5
           pip install pyinstaller==6.3.0
         shell: cmd
 
-      - name: Create config with secrets
+      - name: Create config.json with secrets
         run: |
-          python -c "import json,re; url='${{ secrets.SUPABASE_URL }}'; key='${{ secrets.SUPABASE_KEY }}'; m=re.search(r'([a-z]{20,})',url); correct_url=f'https://{m.group(1)}.supabase.co' if m else url; print(f'URL: {correct_url}'); json.dump({'SUPABASE_URL':correct_url,'SUPABASE_ANON_KEY':key},open('desktop_app/config.json','w'),indent=2)"
+          echo {"SUPABASE_URL":"${{ secrets.SUPABASE_URL }}","SUPABASE_ANON_KEY":"${{ secrets.SUPABASE_ANON_KEY }}"} > config.json
         shell: bash
+
+      - name: Create BUILD_INFO.txt
+        run: |
+          echo SmartXFlow Desktop V1.01 > BUILD_INFO.txt
+          echo Build Date: %date% %time% >> BUILD_INFO.txt
+          echo Commit: ${{ github.sha }} >> BUILD_INFO.txt
+          echo Branch: ${{ github.ref_name }} >> BUILD_INFO.txt
+        shell: cmd
 
       - name: Build Desktop App EXE
         run: |
-          cd desktop_app
-          pyinstaller --onefile --windowed --name SmartXFlow --icon app_icon.ico --add-data "config.json;." smartxflow_app.py
+          pyinstaller --onefile --windowed --name SmartXFlowDesktop ^
+            --add-data "app.py;." ^
+            --add-data "config.json;." ^
+            --add-data "BUILD_INFO.txt;." ^
+            --add-data "templates;templates" ^
+            --add-data "static;static" ^
+            --add-data "core;core" ^
+            --add-data "services;services" ^
+            --hidden-import flask ^
+            --hidden-import jinja2 ^
+            --hidden-import supabase ^
+            --hidden-import httpx ^
+            --hidden-import pywebview ^
+            --hidden-import webview ^
+            --hidden-import clr ^
+            desktop_app.py
         shell: cmd
 
-      - name: Copy config to dist
+      - name: Copy files to dist
         run: |
-          copy desktop_app\config.json desktop_app\dist\config.json
+          copy config.json dist\config.json
+          copy BUILD_INFO.txt dist\BUILD_INFO.txt
         shell: cmd
 
       - name: List output
-        run: dir desktop_app\dist
+        run: dir dist
         shell: cmd
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SmartXFlow-Desktop-Windows
+          name: SmartXFlowDesktop-Windows
           path: |
-            desktop_app/dist/SmartXFlow.exe
-            desktop_app/dist/config.json
+            dist/SmartXFlowDesktop.exe
+            dist/config.json
+            dist/BUILD_INFO.txt
           retention-days: 30
