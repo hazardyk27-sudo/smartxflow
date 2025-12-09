@@ -1567,30 +1567,46 @@ class AlarmCalculator:
                 for sel_idx, selection in enumerate(selections):
                     amount_key = amount_keys[sel_idx]
                     
-                    latest_amt = parse_volume(history[-1].get(amount_key, 0))
-                    prev_amt = parse_volume(history[-2].get(amount_key, 0))
-                    incoming = latest_amt - prev_amt
+                    # Tüm history'yi tara - en yüksek şoku bul
+                    best_shock = None
+                    best_shock_value = 0
                     
-                    if incoming <= 0:
-                        continue
+                    for i in range(5, len(history)):
+                        curr_amt = parse_volume(history[i].get(amount_key, 0))
+                        prev_amt = parse_volume(history[i-1].get(amount_key, 0))
+                        incoming = curr_amt - prev_amt
+                        
+                        if incoming <= 0:
+                            continue
+                        
+                        # min_son_snapshot_para filtresi
+                        if incoming < min_incoming:
+                            continue
+                        
+                        # Önceki 4 snapshot'ın ortalaması
+                        prev_amts = []
+                        for j in range(max(1, i-4), i):
+                            diff = parse_volume(history[j].get(amount_key, 0)) - parse_volume(history[j-1].get(amount_key, 0))
+                            if diff > 0:
+                                prev_amts.append(diff)
+                        
+                        if not prev_amts:
+                            continue
+                        
+                        avg_prev = sum(prev_amts) / len(prev_amts)
+                        shock_value = incoming / avg_prev if avg_prev > 0 else 0
+                        
+                        if shock_value >= shock_mult and shock_value > best_shock_value:
+                            best_shock_value = shock_value
+                            best_shock = {
+                                'shock_value': shock_value,
+                                'incoming': incoming,
+                                'avg_prev': avg_prev,
+                                'trigger_at': history[i].get('scraped_at', now_turkey_iso()),
+                                'snapshot_idx': i
+                            }
                     
-                    # min_son_snapshot_para filtresi
-                    if incoming < min_incoming:
-                        continue
-                    
-                    prev_amts = [parse_volume(history[i].get(amount_key, 0)) - 
-                                parse_volume(history[i-1].get(amount_key, 0))
-                                for i in range(-5, -1)]
-                    prev_amts = [a for a in prev_amts if a > 0]
-                    
-                    if not prev_amts:
-                        continue
-                    
-                    avg_prev = sum(prev_amts) / len(prev_amts)
-                    shock_value = incoming / avg_prev if avg_prev > 0 else 0
-                    
-                    if shock_value >= shock_mult:
-                        trigger_at = history[-1].get('scraped_at', now_turkey_iso())
+                    if best_shock:
                         match_id = f"{home}|{away}|{match.get('date', '')}"
                         
                         alarm = {
@@ -1599,16 +1615,16 @@ class AlarmCalculator:
                             'away': away,
                             'market': market_names.get(market, market),
                             'selection': selection,
-                            'volume_shock_value': round(shock_value, 2),
-                            'incoming_money': incoming,
-                            'avg_previous': round(avg_prev, 0),
+                            'volume_shock_value': round(best_shock['shock_value'], 2),
+                            'incoming_money': best_shock['incoming'],
+                            'avg_previous': round(best_shock['avg_prev'], 0),
                             'match_date': match.get('date', ''),
-                            'trigger_at': trigger_at,
+                            'trigger_at': best_shock['trigger_at'],
                             'created_at': now_turkey_iso(),
                             'alarm_type': 'volumeshock'
                         }
                         alarms.append(alarm)
-                        log(f"  [VOLUMESHOCK] {home} vs {away} | {market_names.get(market, market)}-{selection} | Shock: {shock_value:.1f}x | £{incoming:,.0f} gelen")
+                        log(f"  [VOLUMESHOCK] {home} vs {away} | {market_names.get(market, market)}-{selection} | Shock: {best_shock['shock_value']:.1f}x | £{best_shock['incoming']:,.0f} gelen (snap #{best_shock['snapshot_idx']})")
         
         if alarms:
             new_count = self._upsert_alarms('volumeshock_alarms', alarms, ['home', 'away', 'market', 'selection'])
