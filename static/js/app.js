@@ -5367,8 +5367,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
         } else if (type === 'volumeleader') {
             const oldLeader = latest.old_leader || latest.previous_leader || '-';
             const newLeader = latest.new_leader || latest.selection || '-';
-            const oldVol = latest.old_leader_volume || 0;
-            const newVol = latest.new_leader_volume || latest.selection_total || 0;
+            const totalVol = latest.total_volume || latest.volume || latest.selection_total || 0;
             const oldShare = latest.old_leader_share || 0;
             const newShare = latest.new_leader_share || 0;
             const market = latest.market || '';
@@ -5376,7 +5375,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             row2Right = '';
             const shareText = (oldShare > 0 || newShare > 0) ? ` <span class="sm-leader-share">%${oldShare.toFixed(0)} → %${newShare.toFixed(0)}</span>` : '';
             row3Left = `<span class="sm-leader-hero">${oldLeader} → <span class="sm-leader-new">${newLeader}</span></span>${shareText}`;
-            row3Right = `<span class="sm-volume-muted">Volume: £${Number(oldVol).toLocaleString('en-GB')} → £${Number(newVol).toLocaleString('en-GB')}</span>`;
+            row3Right = totalVol > 0 ? `<span class="sm-volume-muted">Volume: £${Number(totalVol).toLocaleString('en-GB')}</span>` : '';
             row4 = `Market lideri değişti. Bu seçenekte hacim üstünlüğü ele geçirildi.`;
         }
         
@@ -5423,9 +5422,10 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                 } else if (type === 'volumeleader') {
                     const oldL = a.old_leader || a.previous_leader || '-';
                     const newL = a.new_leader || a.selection || '-';
-                    const oldVol = Number(a.old_leader_volume || 0).toLocaleString('en-GB');
-                    const newVol = Number(a.new_leader_volume || a.selection_total || 0).toLocaleString('en-GB');
-                    return `<div class="smc-tooltip-item">• ${timeOnly} — Lider değişimi: ${oldL} → <span class="tt-leader">${newL}</span> — Fark: £${oldVol} → £${newVol}</div>`;
+                    const oldShare = (a.old_leader_share || 0).toFixed(0);
+                    const newShare = (a.new_leader_share || 0).toFixed(0);
+                    const totalVol = Number(a.total_volume || a.volume || 0).toLocaleString('en-GB');
+                    return `<div class="smc-tooltip-item">• ${timeOnly} — ${oldL} → <span class="tt-leader">${newL}</span> — %${oldShare} → %${newShare} — Volume: £${totalVol}</div>`;
                 } else if (type === 'insider') {
                     const money = Number(a.gelen_para || a.incoming_money || 0).toLocaleString('en-GB');
                     const openOdds = (a.opening_odds || 0).toFixed(2);
