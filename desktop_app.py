@@ -4,6 +4,11 @@ Masaüstü uygulaması: Flask backend + pywebview penceresi
 """
 import sys
 import os
+
+if hasattr(sys, '_MEIPASS'):
+    sys.path.insert(0, sys._MEIPASS)
+    os.chdir(sys._MEIPASS)
+
 import threading
 import time
 import socket

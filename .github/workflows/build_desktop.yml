@@ -34,13 +34,21 @@ jobs:
 
       - name: Create embedded_credentials.py with secrets
         run: |
-          echo SUPABASE_URL = "${{ secrets.SUPABASE_URL }}" > services/embedded_credentials.py
-          echo SUPABASE_KEY = "${{ secrets.SUPABASE_ANON_KEY }}" >> services/embedded_credentials.py
+          python -c "
+          with open('services/embedded_credentials.py', 'w') as f:
+              f.write('SUPABASE_URL = \"${{ secrets.SUPABASE_URL }}\"\\n')
+              f.write('SUPABASE_KEY = \"${{ secrets.SUPABASE_ANON_KEY }}\"\\n')
+          "
         shell: bash
 
       - name: Create config.json with secrets
         run: |
-          echo {"SUPABASE_URL":"${{ secrets.SUPABASE_URL }}","SUPABASE_ANON_KEY":"${{ secrets.SUPABASE_ANON_KEY }}"} > config.json
+          python -c "
+          import json
+          data = {'SUPABASE_URL': '${{ secrets.SUPABASE_URL }}', 'SUPABASE_ANON_KEY': '${{ secrets.SUPABASE_ANON_KEY }}'}
+          with open('config.json', 'w') as f:
+              json.dump(data, f, indent=2)
+          "
         shell: bash
 
       - name: Create BUILD_INFO.txt
