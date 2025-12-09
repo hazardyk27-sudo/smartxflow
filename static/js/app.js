@@ -5238,7 +5238,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
         },
         volumeshock: {
             title: 'Hacim Soku',
-            color: '#ff6b6b',
+            color: '#F6C343',
             icon: '⚡',
             description: 'Mactan once erken hacim artisi.'
         },
