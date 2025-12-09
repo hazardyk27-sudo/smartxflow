@@ -7615,6 +7615,8 @@ td.volume,
     color: #6e7681;
     font-size: 13px;
     opacity: 0.8;
+    min-width: 18px;
+    text-align: right;
 }
 
 .vl-arrow {
@@ -7628,6 +7630,8 @@ td.volume,
     color: #22d3ee;
     font-weight: 600;
     font-size: 15px;
+    min-width: 18px;
+    text-align: left;
 }
 
 .vl-mini {
