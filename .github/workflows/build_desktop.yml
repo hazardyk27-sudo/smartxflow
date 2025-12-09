@@ -32,6 +32,12 @@ jobs:
           pip install pyinstaller==6.3.0
         shell: cmd
 
+      - name: Create embedded_credentials.py with secrets
+        run: |
+          echo SUPABASE_URL = "${{ secrets.SUPABASE_URL }}" > services/embedded_credentials.py
+          echo SUPABASE_KEY = "${{ secrets.SUPABASE_ANON_KEY }}" >> services/embedded_credentials.py
+        shell: bash
+
       - name: Create config.json with secrets
         run: |
           echo {"SUPABASE_URL":"${{ secrets.SUPABASE_URL }}","SUPABASE_ANON_KEY":"${{ secrets.SUPABASE_ANON_KEY }}"} > config.json
