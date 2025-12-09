@@ -5369,11 +5369,14 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const newLeader = latest.new_leader || latest.selection || '-';
             const oldVol = latest.old_leader_volume || 0;
             const newVol = latest.new_leader_volume || latest.selection_total || 0;
+            const oldShare = latest.old_leader_share || 0;
+            const newShare = latest.new_leader_share || 0;
             const market = latest.market || '';
             row2Left = `${market}`;
-            row2Right = `${oldLeader} → <span class="sm-leader-new">${newLeader}</span>`;
-            row3Left = `<span class="sm-total-muted">£${Number(oldVol).toLocaleString('en-GB')} → £${Number(newVol).toLocaleString('en-GB')}</span>`;
-            row3Right = '';
+            row2Right = '';
+            const shareText = (oldShare > 0 || newShare > 0) ? ` <span class="sm-leader-share">%${oldShare.toFixed(0)} → %${newShare.toFixed(0)}</span>` : '';
+            row3Left = `<span class="sm-leader-hero">${oldLeader} → <span class="sm-leader-new">${newLeader}</span></span>${shareText}`;
+            row3Right = `<span class="sm-volume-muted">Volume: £${Number(oldVol).toLocaleString('en-GB')} → £${Number(newVol).toLocaleString('en-GB')}</span>`;
             row4 = `Market lideri değişti. Bu seçenekte hacim üstünlüğü ele geçirildi.`;
         }
         
