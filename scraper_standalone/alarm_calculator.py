@@ -227,6 +227,15 @@ class AlarmCalculator:
             return 0
         
         try:
+            # Remove duplicates from batch (keep last occurrence)
+            seen = {}
+            for alarm in alarms:
+                key_parts = [str(alarm.get(f, '')) for f in key_fields]
+                key = '|'.join(key_parts)
+                seen[key] = alarm
+            alarms = list(seen.values())
+            log(f"[UPSERT] {table}: {len(alarms)} unique alarms after dedup")
+            
             # Build select fields dynamically from key_fields + timestamp fields
             select_fields = ','.join(key_fields + ['trigger_at', 'created_at'])
             existing_data = {}
