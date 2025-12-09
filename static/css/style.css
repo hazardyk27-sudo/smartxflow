@@ -4708,6 +4708,20 @@ td.volume,
     color: #9ca3af;
 }
 
+/* Big Money kartlarında trigger pill turuncu */
+.sidebar-alarm-card.bigmoney .trigger-pill,
+.ac.bigmoney .trigger-pill {
+    background: rgba(240, 138, 36, 0.2);
+    color: #F08A24;
+}
+
+/* Sharp kartlarında trigger pill yeşil */
+.sidebar-alarm-card.sharp .trigger-pill,
+.ac.sharp .trigger-pill {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
 /* HUGE badge for bigmoney */
 .huge-badge {
     display: inline-flex;
