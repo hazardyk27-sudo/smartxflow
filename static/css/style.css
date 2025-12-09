@@ -7606,9 +7606,12 @@ td.volume,
 .vl-transition {
     display: inline-flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 6px;
     font-size: 15px;
     font-weight: 500;
+    min-width: 100px;
+    text-align: right;
 }
 
 .vl-old {
