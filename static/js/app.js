@@ -4650,7 +4650,7 @@ function renderAlarmsList(filterType) {
         }
         
         const historyCount = group.history.length;
-        const historyBadge = historyCount > 0 ? `<span class="history-badge">×${historyCount + 1}</span>` : '';
+        const historyBadge = historyCount > 0 ? `<span class="history-badge history-badge-${type}">×${historyCount + 1}</span>` : '';
         
         let historySection = '';
         if (historyCount > 0 && isOpen) {
