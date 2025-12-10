@@ -1299,10 +1299,10 @@ async function loadChartWithTrends(home, away, market, league = '') {
         
         updateMatchInfoCard();
         
-        loadChart(home, away, market);
+        loadChart(home, away, market, league);
     } catch (e) {
         console.error('Error loading chart with trends:', e);
-        loadChart(home, away, market);
+        loadChart(home, away, market, league);
     }
 }
 
@@ -1622,13 +1622,13 @@ function formatTimeLabel(date) {
     return dt.format('DD.MM • HH:mm');
 }
 
-async function loadChart(home, away, market) {
+async function loadChart(home, away, market, league = '') {
     try {
         let data = { history: [] };
         
         try {
             const response = await fetch(
-                `/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}`
+                `/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}&league=${encodeURIComponent(league || '')}`
             );
             data = await response.json();
         } catch (e) {
@@ -2429,7 +2429,7 @@ function setChartTimeRange(range) {
     });
     
     if (selectedMatch) {
-        loadChart(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
+        loadChart(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league || '');
     }
 }
 
@@ -2444,7 +2444,7 @@ function setChartViewMode(mode) {
     });
     
     if (selectedMatch) {
-        loadChart(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
+        loadChart(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league || '');
     }
 }
 
