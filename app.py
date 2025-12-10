@@ -444,6 +444,7 @@ def get_match_history_bulk():
     """
     home = request.args.get('home', '')
     away = request.args.get('away', '')
+    league = request.args.get('league', '')
     
     if not home or not away:
         return jsonify({'error': 'Missing home or away parameter', 'markets': {}})
@@ -453,7 +454,7 @@ def get_match_history_bulk():
     
     result = {}
     for market in all_markets:
-        history = db.get_match_history(home, away, market)
+        history = db.get_match_history(home, away, market, league)
         
         chart_data = {'labels': [], 'datasets': []}
         
@@ -533,8 +534,9 @@ def get_match_history():
     home = request.args.get('home', '')
     away = request.args.get('away', '')
     market = request.args.get('market', 'moneyway_1x2')
+    league = request.args.get('league', '')
     
-    history = db.get_match_history(home, away, market)
+    history = db.get_match_history(home, away, market, league)
     
     chart_data = {
         'labels': [],

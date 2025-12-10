@@ -281,7 +281,7 @@ function setupModalChartTabs() {
             tab.classList.add('active');
             selectedChartMarket = tab.dataset.market;
             if (selectedMatch) {
-                loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
+                loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league || '');
             }
         });
     });
@@ -1227,7 +1227,7 @@ function openMatchModal(index) {
         });
         
         document.getElementById('modalOverlay').classList.add('active');
-        loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket);
+        loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league || '');
         
         renderMatchAlarmsSection(selectedMatch.home_team, selectedMatch.away_team);
     }
@@ -1236,18 +1236,18 @@ function openMatchModal(index) {
 let bulkHistoryCache = {};
 let bulkHistoryCacheKey = '';
 
-async function loadAllMarketsAtOnce(home, away) {
-    const cacheKey = `${home}|${away}`;
+async function loadAllMarketsAtOnce(home, away, league = '') {
+    const cacheKey = `${home}|${away}|${league}`;
     if (bulkHistoryCacheKey === cacheKey && Object.keys(bulkHistoryCache).length > 0) {
         console.log('[Bulk] Using cached data for', cacheKey);
         return bulkHistoryCache;
     }
     
     try {
-        console.log('[Bulk] Fetching all markets for', home, 'vs', away);
+        console.log('[Bulk] Fetching all markets for', home, 'vs', away, 'league:', league);
         const startTime = performance.now();
         const response = await fetch(
-            `/api/match/history/bulk?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}`
+            `/api/match/history/bulk?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&league=${encodeURIComponent(league || '')}`
         );
         const data = await response.json();
         const elapsed = performance.now() - startTime;
@@ -1264,21 +1264,21 @@ async function loadAllMarketsAtOnce(home, away) {
     }
 }
 
-async function loadChartWithTrends(home, away, market) {
+async function loadChartWithTrends(home, away, market, league = '') {
     try {
         let data = { history: [] };
         
-        const cacheKey = `${home}|${away}`;
+        const cacheKey = `${home}|${away}|${league}`;
         if (bulkHistoryCacheKey === cacheKey && bulkHistoryCache[market]) {
             data = bulkHistoryCache[market];
             console.log('[Modal] Using bulk cache for', market, 'count:', data.history?.length);
         } else {
             try {
                 const response = await fetch(
-                    `/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}`
+                    `/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}&league=${encodeURIComponent(league || '')}`
                 );
                 data = await response.json();
-                console.log('[Modal] Loaded history for', home, 'vs', away, 'market:', market, 'count:', data.history?.length);
+                console.log('[Modal] Loaded history for', home, 'vs', away, 'league:', league, 'market:', market, 'count:', data.history?.length);
             } catch (e) {
                 console.log('Using demo history data');
             }

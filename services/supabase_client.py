@@ -190,7 +190,7 @@ class SupabaseClient:
             'display': f"{row.get('home_team', '')} vs {row.get('away_team', '')}"
         }
     
-    def get_match_history(self, home_team: str, away_team: str, market: str) -> List[Dict[str, Any]]:
+    def get_match_history(self, home_team: str, away_team: str, market: str, league: str = '') -> List[Dict[str, Any]]:
         """Get history for a specific match with pagination to handle 1000 row limit."""
         if not self.is_available:
             return []
@@ -207,7 +207,11 @@ class SupabaseClient:
             max_pages = 10
             
             for page in range(max_pages):
-                url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}&order=scraped_at.asc&limit={page_size}&offset={offset}"
+                base_url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}"
+                if league:
+                    league_enc = urllib.parse.quote(league, safe='')
+                    base_url += f"&league=eq.{league_enc}"
+                url = f"{base_url}&order=scraped_at.asc&limit={page_size}&offset={offset}"
                 resp = httpx.get(url, headers=self._headers(), timeout=15)
                 
                 if resp.status_code != 200:
@@ -1124,9 +1128,9 @@ class HybridDatabase:
                 return matches
         return self.local.get_all_matches()
     
-    def get_match_history(self, home: str, away: str, market: str) -> List[Dict[str, Any]]:
+    def get_match_history(self, home: str, away: str, market: str, league: str = '') -> List[Dict[str, Any]]:
         if self.supabase.is_available:
-            history = self.supabase.get_match_history(home, away, market)
+            history = self.supabase.get_match_history(home, away, market, league)
             if history:
                 return history
         return self.local.get_match_history(home, away, market)
