@@ -3706,11 +3706,12 @@ function groupAlarmsForBand(alarms) {
     alarms.forEach(alarm => {
         const home = (alarm.home || alarm.home_team || '').toLowerCase().trim();
         const away = (alarm.away || alarm.away_team || '').toLowerCase().trim();
+        const league = (alarm.league || '').toLowerCase().trim();
         const market = (alarm.market || '').toLowerCase().trim();
         const selection = (alarm.selection || alarm.side || '').toLowerCase().trim();
         const type = alarm._type;
         
-        const groupKey = `${type}|${home}|${away}|${market}|${selection}`;
+        const groupKey = `${type}|${home}|${away}|${league}|${market}|${selection}`;
         
         if (!groups[groupKey]) {
             groups[groupKey] = alarm;
@@ -4088,11 +4089,12 @@ function groupAlarmsByMatch(alarms) {
     alarms.forEach(alarm => {
         const home = (alarm.home || alarm.home_team || '').toLowerCase().trim();
         const away = (alarm.away || alarm.away_team || '').toLowerCase().trim();
+        const league = (alarm.league || '').toLowerCase().trim();
         const market = (alarm.market || '').toLowerCase().trim();
         const selection = (alarm.selection || alarm.side || '').toLowerCase().trim();
         const type = alarm._type;
         
-        const groupKey = `${type}|${home}|${away}|${market}|${selection}`;
+        const groupKey = `${type}|${home}|${away}|${league}|${market}|${selection}`;
         
         if (!groups[groupKey]) {
             groups[groupKey] = {
