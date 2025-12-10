@@ -446,6 +446,8 @@ def get_match_history_bulk():
     away = request.args.get('away', '')
     league = request.args.get('league', '')
     
+    print(f"[DEBUG] /api/match/history/bulk called: home={home}, away={away}, league='{league}'")
+    
     if not home or not away:
         return jsonify({'error': 'Missing home or away parameter', 'markets': {}})
     
