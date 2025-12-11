@@ -14,7 +14,36 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from bs4 import BeautifulSoup
 
-SSL_VERIFY = certifi.where()
+def get_ssl_cert_path():
+    """Get SSL certificate path with fallback for PyInstaller temp folder issues"""
+    # Try certifi first
+    try:
+        cert_path = certifi.where()
+        if os.path.exists(cert_path):
+            return cert_path
+    except Exception:
+        pass
+    
+    # Fallback: Check bundled certifi in PyInstaller temp
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+        bundled_cert = os.path.join(base_path, 'certifi', 'cacert.pem')
+        if os.path.exists(bundled_cert):
+            return bundled_cert
+    
+    # Fallback: Use requests bundled certs
+    try:
+        import requests.certs
+        req_cert = requests.certs.where()
+        if os.path.exists(req_cert):
+            return req_cert
+    except Exception:
+        pass
+    
+    # Last resort: Disable SSL verification (not recommended but keeps scraper running)
+    return False
+
+SSL_VERIFY = get_ssl_cert_path()
 
 try:
     import pytz
