@@ -4404,11 +4404,13 @@ def get_match_snapshot(match_id):
     """
     Full Match Snapshot endpoint - Returns all data for a specific match.
     
+    PHASE 2: Uses Supabase RPC get_full_match_snapshot for efficient data retrieval.
+    
     IMMUTABLE RESPONSE CONTRACT (per replit.md):
     - metadata: match identification info (match_id, internal_id, home, away, league, kickoff_utc, fixture_date, source)
     - alarms: All 7 alarm types filtered for this match
-    - moneyway: Moneyway snapshot data (Phase 2 - currently null)
-    - dropping_odds: Dropping odds snapshot data (Phase 2 - currently null)
+    - moneyway: Moneyway snapshot data from Phase 2 tables
+    - dropping_odds: Dropping odds snapshot data from Phase 2 tables
     - updated_at_utc: ISO 8601 timestamp
     
     URL: /api/match/<match_id_hash>/snapshot
@@ -4429,11 +4431,34 @@ def get_match_snapshot(match_id):
         sections_to_include = [s.strip() for s in include_sections.split(',')]
     
     result = {}
+    rpc_data = None
+    
+    try:
+        supabase = get_supabase_client()
+        if supabase:
+            rpc_response = supabase.rpc('get_full_match_snapshot', {'p_match_id_hash': match_id}).execute()
+            if rpc_response.data:
+                raw_data = rpc_response.data
+                if isinstance(raw_data, list) and len(raw_data) > 0:
+                    rpc_data = raw_data[0] if isinstance(raw_data[0], dict) else raw_data
+                elif isinstance(raw_data, dict):
+                    rpc_data = raw_data
+                else:
+                    rpc_data = raw_data
+                print(f"[MatchSnapshot] RPC returned data for {match_id}")
+    except Exception as e:
+        print(f"[MatchSnapshot] RPC error for {match_id}: {e}")
+    
     match_found = False
     match_metadata = None
     
-    # Try to find match metadata from cached matches
-    if 'metadata' in sections_to_include or 'alarms' in sections_to_include:
+    if rpc_data and isinstance(rpc_data, dict):
+        rpc_metadata = rpc_data.get('metadata', {})
+        if rpc_metadata and isinstance(rpc_metadata, dict) and rpc_metadata.get('source') != 'not_found':
+            match_found = True
+            match_metadata = rpc_metadata
+    
+    if not match_found and ('metadata' in sections_to_include or 'alarms' in sections_to_include):
         for market_key in ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts', 
                           'dropping_1x2', 'dropping_ou25', 'dropping_btts']:
             if market_key in matches_cache.get('data', {}):
@@ -4460,7 +4485,6 @@ def get_match_snapshot(match_id):
                 if match_found:
                     break
     
-    # Build alarms section first (so we can use alarm data for metadata fallback)
     alarms_result = {}
     first_alarm_metadata = None
     
@@ -4483,26 +4507,43 @@ def get_match_snapshot(match_id):
                 
                 filtered = []
                 for alarm in all_alarms:
-                    alarm_home = alarm.get('home', alarm.get('home_team', ''))
-                    alarm_away = alarm.get('away', alarm.get('away_team', ''))
-                    alarm_league = alarm.get('league', '')
-                    alarm_kickoff = alarm.get('kickoff', alarm.get('kickoff_utc', ''))
+                    alarm_match_id = alarm.get('match_id', '')
                     
-                    computed_alarm_id = generate_match_id(alarm_home, alarm_away, alarm_league, alarm_kickoff)
-                    
-                    if computed_alarm_id == match_id:
-                        filtered.append(alarm)
-                        if not first_alarm_metadata:
-                            first_alarm_metadata = {
-                                'match_id': match_id,
-                                'internal_id': None,
-                                'home': alarm_home,
-                                'away': alarm_away,
-                                'league': alarm_league,
-                                'kickoff_utc': alarm_kickoff,
-                                'fixture_date': alarm.get('fixture_date', alarm.get('match_date', alarm.get('date', ''))),
-                                'source': 'alarm_data'
-                            }
+                    if alarm_match_id and len(alarm_match_id) == 12:
+                        if alarm_match_id == match_id:
+                            filtered.append(alarm)
+                            if not first_alarm_metadata:
+                                first_alarm_metadata = {
+                                    'match_id': match_id,
+                                    'internal_id': None,
+                                    'home': alarm.get('home', alarm.get('home_team', '')),
+                                    'away': alarm.get('away', alarm.get('away_team', '')),
+                                    'league': alarm.get('league', ''),
+                                    'kickoff_utc': alarm.get('kickoff', alarm.get('kickoff_utc', '')),
+                                    'fixture_date': alarm.get('fixture_date', alarm.get('match_date', alarm.get('date', ''))),
+                                    'source': 'alarm_data'
+                                }
+                    else:
+                        alarm_home = alarm.get('home', alarm.get('home_team', ''))
+                        alarm_away = alarm.get('away', alarm.get('away_team', ''))
+                        alarm_league = alarm.get('league', '')
+                        alarm_kickoff = alarm.get('kickoff', alarm.get('kickoff_utc', ''))
+                        
+                        computed_alarm_id = generate_match_id(alarm_home, alarm_away, alarm_league, alarm_kickoff)
+                        
+                        if computed_alarm_id == match_id:
+                            filtered.append(alarm)
+                            if not first_alarm_metadata:
+                                first_alarm_metadata = {
+                                    'match_id': match_id,
+                                    'internal_id': None,
+                                    'home': alarm_home,
+                                    'away': alarm_away,
+                                    'league': alarm_league,
+                                    'kickoff_utc': alarm_kickoff,
+                                    'fixture_date': alarm.get('fixture_date', alarm.get('match_date', alarm.get('date', ''))),
+                                    'source': 'alarm_data'
+                                }
                 
                 alarms_result[alarm_type] = filtered
             except Exception as e:
@@ -4511,7 +4552,6 @@ def get_match_snapshot(match_id):
         
         result['alarms'] = alarms_result
     
-    # Build metadata section (use cache, then alarm fallback)
     if 'metadata' in sections_to_include:
         if match_metadata:
             result['metadata'] = match_metadata
@@ -4529,15 +4569,18 @@ def get_match_snapshot(match_id):
                 'source': 'not_found'
             }
     
-    # Placeholder for future moneyway data (Phase 2)
     if 'moneyway' in sections_to_include:
-        result['moneyway'] = None
+        if rpc_data and isinstance(rpc_data, dict):
+            result['moneyway'] = rpc_data.get('moneyway', [])
+        else:
+            result['moneyway'] = []
     
-    # Placeholder for future dropping_odds data (Phase 2)
     if 'dropping_odds' in sections_to_include:
-        result['dropping_odds'] = None
+        if rpc_data and isinstance(rpc_data, dict):
+            result['dropping_odds'] = rpc_data.get('dropping_odds', [])
+        else:
+            result['dropping_odds'] = []
     
-    # Add response timestamp per contract
     result['updated_at_utc'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
     
     return jsonify(result)

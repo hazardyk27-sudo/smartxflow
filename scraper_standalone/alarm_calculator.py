@@ -427,6 +427,239 @@ class AlarmCalculator:
         log(f"[CONFIG SAVE] {success_count}/{len(configs)} config kaydedildi")
         return success_count
     
+    def upsert_fixture(self, match: Dict) -> Optional[int]:
+        """
+        PHASE 2: Upsert fixture to fixtures table.
+        Creates or updates match record and returns internal_id.
+        
+        Args:
+            match: Dict with home, away, league, kickoff_utc
+        
+        Returns:
+            internal_id if successful, None otherwise
+        """
+        try:
+            home = match.get('home', '')
+            away = match.get('away', '')
+            league = match.get('league', '')
+            kickoff = match.get('kickoff', match.get('kickoff_utc', ''))
+            
+            if not all([home, away, league, kickoff]):
+                return None
+            
+            match_id_hash = generate_match_id_hash(home, away, league, kickoff)
+            
+            kickoff_utc = normalize_kickoff(kickoff)
+            if len(kickoff_utc) == 16:
+                kickoff_utc += ':00'
+            
+            fixture_date = kickoff_utc[:10] if len(kickoff_utc) >= 10 else ''
+            
+            payload = {
+                'match_id_hash': match_id_hash,
+                'home_team': home,
+                'away_team': away,
+                'league': league,
+                'kickoff_utc': kickoff_utc,
+                'fixture_date': fixture_date
+            }
+            
+            url = f"{self._rest_url('fixtures')}?on_conflict=match_id_hash"
+            headers = self._headers()
+            headers['Prefer'] = 'resolution=merge-duplicates,return=representation'
+            
+            if hasattr(httpx, 'post'):
+                resp = httpx.post(url, headers=headers, json=[payload], timeout=30)
+            else:
+                resp = httpx.post(url, headers=headers, json=[payload], timeout=30)
+            
+            if resp.status_code in [200, 201]:
+                result = resp.json()
+                if result and len(result) > 0:
+                    return result[0].get('internal_id')
+            else:
+                log(f"[FIXTURE UPSERT ERROR] HTTP {resp.status_code}: {resp.text[:200]}")
+        except Exception as e:
+            log(f"[FIXTURE UPSERT ERROR] {e}")
+        return None
+    
+    def upsert_fixtures_batch(self, matches: List[Dict]) -> int:
+        """
+        PHASE 2: Batch upsert fixtures to fixtures table.
+        
+        Args:
+            matches: List of match dicts with home, away, league, kickoff_utc
+        
+        Returns:
+            Number of successfully upserted fixtures
+        """
+        if not matches:
+            return 0
+        
+        try:
+            payloads = []
+            for match in matches:
+                home = match.get('home', '')
+                away = match.get('away', '')
+                league = match.get('league', '')
+                kickoff = match.get('kickoff', match.get('kickoff_utc', ''))
+                
+                if not all([home, away, league, kickoff]):
+                    continue
+                
+                match_id_hash = generate_match_id_hash(home, away, league, kickoff)
+                
+                kickoff_utc = normalize_kickoff(kickoff)
+                if len(kickoff_utc) == 16:
+                    kickoff_utc += ':00'
+                
+                fixture_date = kickoff_utc[:10] if len(kickoff_utc) >= 10 else ''
+                
+                payloads.append({
+                    'match_id_hash': match_id_hash,
+                    'home_team': home,
+                    'away_team': away,
+                    'league': league,
+                    'kickoff_utc': kickoff_utc,
+                    'fixture_date': fixture_date
+                })
+            
+            if not payloads:
+                return 0
+            
+            seen = {}
+            for p in payloads:
+                seen[p['match_id_hash']] = p
+            payloads = list(seen.values())
+            
+            url = f"{self._rest_url('fixtures')}?on_conflict=match_id_hash"
+            headers = self._headers()
+            headers['Prefer'] = 'resolution=merge-duplicates'
+            
+            if hasattr(httpx, 'post'):
+                resp = httpx.post(url, headers=headers, json=payloads, timeout=60)
+            else:
+                resp = httpx.post(url, headers=headers, json=payloads, timeout=60)
+            
+            if resp.status_code in [200, 201]:
+                log(f"[FIXTURES] Batch upsert: {len(payloads)} fixtures")
+                return len(payloads)
+            else:
+                log(f"[FIXTURES BATCH ERROR] HTTP {resp.status_code}: {resp.text[:300]}")
+        except Exception as e:
+            log(f"[FIXTURES BATCH ERROR] {e}")
+        return 0
+    
+    def write_moneyway_snapshot(self, match_id_hash: str, market: str, selection: str,
+                                 odds: float, volume: float, share: float) -> bool:
+        """
+        PHASE 2: Write moneyway snapshot to moneyway_snapshots table.
+        """
+        try:
+            payload = {
+                'match_id_hash': match_id_hash,
+                'market': market,
+                'selection': selection,
+                'odds': round(odds, 2) if odds else None,
+                'volume': round(volume, 2) if volume else None,
+                'share': round(share, 2) if share else None
+            }
+            
+            if self._post('moneyway_snapshots', [payload]):
+                return True
+        except Exception as e:
+            log(f"[MONEYWAY SNAPSHOT ERROR] {e}")
+        return False
+    
+    def write_moneyway_snapshots_batch(self, snapshots: List[Dict]) -> int:
+        """
+        PHASE 2: Batch write moneyway snapshots.
+        
+        Args:
+            snapshots: List of dicts with match_id_hash, market, selection, odds, volume, share
+        
+        Returns:
+            Number of successfully written snapshots
+        """
+        if not snapshots:
+            return 0
+        
+        try:
+            payloads = []
+            for snap in snapshots:
+                payloads.append({
+                    'match_id_hash': snap.get('match_id_hash'),
+                    'market': snap.get('market'),
+                    'selection': snap.get('selection'),
+                    'odds': round(snap.get('odds', 0), 2) if snap.get('odds') else None,
+                    'volume': round(snap.get('volume', 0), 2) if snap.get('volume') else None,
+                    'share': round(snap.get('share', 0), 2) if snap.get('share') else None
+                })
+            
+            if self._post('moneyway_snapshots', payloads):
+                log(f"[MONEYWAY] Batch write: {len(payloads)} snapshots")
+                return len(payloads)
+        except Exception as e:
+            log(f"[MONEYWAY BATCH ERROR] {e}")
+        return 0
+    
+    def write_dropping_snapshot(self, match_id_hash: str, market: str, selection: str,
+                                 opening_odds: float, current_odds: float, 
+                                 drop_pct: float, volume: float) -> bool:
+        """
+        PHASE 2: Write dropping odds snapshot to dropping_odds_snapshots table.
+        """
+        try:
+            payload = {
+                'match_id_hash': match_id_hash,
+                'market': market,
+                'selection': selection,
+                'opening_odds': round(opening_odds, 2) if opening_odds else None,
+                'current_odds': round(current_odds, 2) if current_odds else None,
+                'drop_pct': round(drop_pct, 2) if drop_pct else None,
+                'volume': round(volume, 2) if volume else None
+            }
+            
+            if self._post('dropping_odds_snapshots', [payload]):
+                return True
+        except Exception as e:
+            log(f"[DROPPING SNAPSHOT ERROR] {e}")
+        return False
+    
+    def write_dropping_snapshots_batch(self, snapshots: List[Dict]) -> int:
+        """
+        PHASE 2: Batch write dropping odds snapshots.
+        
+        Args:
+            snapshots: List of dicts with match_id_hash, market, selection, 
+                       opening_odds, current_odds, drop_pct, volume
+        
+        Returns:
+            Number of successfully written snapshots
+        """
+        if not snapshots:
+            return 0
+        
+        try:
+            payloads = []
+            for snap in snapshots:
+                payloads.append({
+                    'match_id_hash': snap.get('match_id_hash'),
+                    'market': snap.get('market'),
+                    'selection': snap.get('selection'),
+                    'opening_odds': round(snap.get('opening_odds', 0), 2) if snap.get('opening_odds') else None,
+                    'current_odds': round(snap.get('current_odds', 0), 2) if snap.get('current_odds') else None,
+                    'drop_pct': round(snap.get('drop_pct', 0), 2) if snap.get('drop_pct') else None,
+                    'volume': round(snap.get('volume', 0), 2) if snap.get('volume') else None
+                })
+            
+            if self._post('dropping_odds_snapshots', payloads):
+                log(f"[DROPPING] Batch write: {len(payloads)} snapshots")
+                return len(payloads)
+        except Exception as e:
+            log(f"[DROPPING BATCH ERROR] {e}")
+        return 0
+
     def refresh_configs(self):
         """Refresh configs from DB before each calculation cycle - LIVE RELOAD"""
         log("Refreshing alarm configs from Supabase...")

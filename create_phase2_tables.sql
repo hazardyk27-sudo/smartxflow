@@ -22,31 +22,27 @@ CREATE INDEX IF NOT EXISTS idx_fixtures_date ON fixtures(fixture_date);
 CREATE INDEX IF NOT EXISTS idx_fixtures_kickoff ON fixtures(kickoff_utc);
 
 -- 2. MONEYWAY_SNAPSHOTS TABLE
--- Time-series moneyway data linked to fixtures
+-- Time-series moneyway data linked via match_id_hash
 CREATE TABLE IF NOT EXISTS moneyway_snapshots (
     id SERIAL PRIMARY KEY,
-    fixture_id INTEGER NOT NULL REFERENCES fixtures(internal_id) ON DELETE CASCADE,
     match_id_hash VARCHAR(12) NOT NULL,
     market VARCHAR(10) NOT NULL,
     selection VARCHAR(10) NOT NULL,
     odds DECIMAL(6,2),
     volume DECIMAL(12,2),
     share DECIMAL(5,2),
-    scraped_at_utc TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    CONSTRAINT fk_moneyway_fixture FOREIGN KEY (fixture_id) REFERENCES fixtures(internal_id)
+    scraped_at_utc TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Indexes for moneyway_snapshots
-CREATE INDEX IF NOT EXISTS idx_mw_fixture_id ON moneyway_snapshots(fixture_id);
 CREATE INDEX IF NOT EXISTS idx_mw_hash ON moneyway_snapshots(match_id_hash);
 CREATE INDEX IF NOT EXISTS idx_mw_scraped ON moneyway_snapshots(scraped_at_utc);
 CREATE INDEX IF NOT EXISTS idx_mw_market ON moneyway_snapshots(market, selection);
 
 -- 3. DROPPING_ODDS_SNAPSHOTS TABLE
--- Time-series dropping odds data linked to fixtures
+-- Time-series dropping odds data linked via match_id_hash
 CREATE TABLE IF NOT EXISTS dropping_odds_snapshots (
     id SERIAL PRIMARY KEY,
-    fixture_id INTEGER NOT NULL REFERENCES fixtures(internal_id) ON DELETE CASCADE,
     match_id_hash VARCHAR(12) NOT NULL,
     market VARCHAR(10) NOT NULL,
     selection VARCHAR(10) NOT NULL,
@@ -54,12 +50,10 @@ CREATE TABLE IF NOT EXISTS dropping_odds_snapshots (
     current_odds DECIMAL(6,2),
     drop_pct DECIMAL(5,2),
     volume DECIMAL(12,2),
-    scraped_at_utc TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    CONSTRAINT fk_dropping_fixture FOREIGN KEY (fixture_id) REFERENCES fixtures(internal_id)
+    scraped_at_utc TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Indexes for dropping_odds_snapshots
-CREATE INDEX IF NOT EXISTS idx_do_fixture_id ON dropping_odds_snapshots(fixture_id);
 CREATE INDEX IF NOT EXISTS idx_do_hash ON dropping_odds_snapshots(match_id_hash);
 CREATE INDEX IF NOT EXISTS idx_do_scraped ON dropping_odds_snapshots(scraped_at_utc);
 CREATE INDEX IF NOT EXISTS idx_do_market ON dropping_odds_snapshots(market, selection);
