@@ -113,6 +113,12 @@ UI alan adları = tek kaynak (authoritative reference). Admin.exe ve Supabase bu
 - **Scrape Interval:** Fixed at 10 minutes.
 - **Data Formats:** Trend as "up"/"down", volume with "£" and thousands separator, date/time as DD.MM.YYYY HH:MM (Turkey time).
 
+**API Optimizasyonu (2025-12-12):**
+- **Batch Endpoint:** `/api/alarms/all` - 7 alarm tipini tek istekte döndürür (sharp, insider, bigmoney, volumeshock, dropping, publicmove, volumeleader)
+- **Client-side Cache:** 45 saniye TTL, `fetchAlarmsBatch()` + `getCachedAlarmsByType()` helper fonksiyonları
+- **Request Reduction:** 21+ ayrı istek → 1-2 batch istek (polling döngüsü başına)
+- **Cache Functions:** `static/js/app.js` satır 13-88 (fetchAlarmsBatch, getCachedAlarmsByType, getCachedAlarmsWithType, getCachedAlarmCounts, invalidateAlarmCache)
+
 ---
 
 ## REFERANS DOKÜMANI - PREMATCH SİSTEMİ KURALLARI
