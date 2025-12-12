@@ -4294,6 +4294,57 @@ def get_volume_leader_status():
         'progress': volume_leader_calc_progress
     })
 
+
+@app.route('/api/alarms/all', methods=['GET'])
+def get_all_alarms_batch():
+    """
+    Batch endpoint - Returns all 7 alarm types in a single request.
+    This reduces 7 separate API calls to 1, significantly reducing Supabase requests.
+    
+    Query params:
+    - types: comma-separated list of alarm types to include (default: all)
+      Example: ?types=sharp,insider,bigmoney
+    
+    Future: This endpoint can be extended to include moneyway and dropping data
+    for match detail modal (single RPC for all match data).
+    """
+    requested_types = request.args.get('types', 'all')
+    
+    result = {}
+    
+    # Define all alarm types and their fetch functions
+    alarm_fetchers = {
+        'sharp': (get_sharp_alarms_from_supabase, sharp_alarms if 'sharp_alarms' in dir() else []),
+        'insider': (get_insider_alarms_from_supabase, insider_alarms if 'insider_alarms' in dir() else []),
+        'bigmoney': (get_bigmoney_alarms_from_supabase, big_money_alarms if 'big_money_alarms' in dir() else []),
+        'volumeshock': (get_volumeshock_alarms_from_supabase, volume_shock_alarms if 'volume_shock_alarms' in dir() else []),
+        'dropping': (get_dropping_alarms_from_supabase, dropping_alarms if 'dropping_alarms' in dir() else []),
+        'publicmove': (get_publicmove_alarms_from_supabase, publicmove_alarms if 'publicmove_alarms' in dir() else []),
+        'volumeleader': (get_volumeleader_alarms_from_supabase, volume_leader_alarms if 'volume_leader_alarms' in dir() else [])
+    }
+    
+    # Determine which types to fetch
+    if requested_types == 'all':
+        types_to_fetch = list(alarm_fetchers.keys())
+    else:
+        types_to_fetch = [t.strip() for t in requested_types.split(',') if t.strip() in alarm_fetchers]
+    
+    # Fetch each alarm type
+    for alarm_type in types_to_fetch:
+        fetch_func, fallback = alarm_fetchers[alarm_type]
+        try:
+            supabase_data = fetch_func()
+            if supabase_data is not None:
+                result[alarm_type] = supabase_data
+            else:
+                result[alarm_type] = fallback
+        except Exception as e:
+            print(f"[Alarms/All] Error fetching {alarm_type}: {e}")
+            result[alarm_type] = fallback
+    
+    return jsonify(result)
+
+
 @app.route('/api/volumeleader/reset', methods=['POST'])
 def reset_volume_leader_calculation():
     """Reset Volume Leader calculation flag (force unlock)"""

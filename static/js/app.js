@@ -3612,59 +3612,53 @@ function isMatchTodayOrFuture(alarm) {
 
 async function loadAlertBand() {
     try {
-        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes, droppingRes, publicmoveRes, volumeLeaderRes] = await Promise.all([
-            fetch('/api/sharp/alarms'),
-            fetch('/api/insider/alarms'),
-            fetch('/api/bigmoney/alarms'),
-            fetch('/api/volumeshock/alarms'),
-            fetch('/api/dropping/alarms'),
-            fetch('/api/publicmove/alarms'),
-            fetch('/api/volumeleader/alarms')
-        ]);
+        // Use batch endpoint (1 request instead of 7) with shared cache
+        const now = Date.now();
+        let data;
+        
+        if (alarmsBatchCache && (now - alarmsBatchCacheTime) < ALARMS_CACHE_TTL) {
+            data = alarmsBatchCache;
+            console.log('[AlertBand] Using shared cache');
+        } else {
+            const response = await fetch('/api/alarms/all');
+            if (!response.ok) throw new Error('Batch alarm fetch failed');
+            data = await response.json();
+            alarmsBatchCache = data;
+            alarmsBatchCacheTime = now;
+            cachedAllAlarms = null; // Reset modal cache to force rebuild
+            console.log('[AlertBand] Fetched fresh data from batch endpoint');
+        }
         
         let allAlarms = [];
         
-        if (sharpRes.ok) {
-            const sharp = await sharpRes.json();
-            sharp.forEach(a => { a._type = 'sharp'; a._score = a.sharp_score || 0; });
-            allAlarms = allAlarms.concat(sharp);
-        }
+        // Process batch response with score calculations
+        const sharp = data.sharp || [];
+        sharp.forEach(a => { a._type = 'sharp'; a._score = a.sharp_score || 0; });
+        allAlarms = allAlarms.concat(sharp);
         
-        if (insiderRes.ok) {
-            const insider = await insiderRes.json();
-            insider.forEach(a => { a._type = 'insider'; a._score = a.insider_score || 0; });
-            allAlarms = allAlarms.concat(insider);
-        }
+        const insider = data.insider || [];
+        insider.forEach(a => { a._type = 'insider'; a._score = a.insider_score || 0; });
+        allAlarms = allAlarms.concat(insider);
         
-        if (bigMoneyRes.ok) {
-            const bigmoney = await bigMoneyRes.json();
-            bigmoney.forEach(a => { a._type = 'bigmoney'; a._score = a.incoming_money || a.stake || a.volume || 0; });
-            allAlarms = allAlarms.concat(bigmoney);
-        }
+        const bigmoney = data.bigmoney || [];
+        bigmoney.forEach(a => { a._type = 'bigmoney'; a._score = a.incoming_money || a.stake || a.volume || 0; });
+        allAlarms = allAlarms.concat(bigmoney);
         
-        if (volumeShockRes.ok) {
-            const volumeshock = await volumeShockRes.json();
-            volumeshock.forEach(a => { a._type = 'volumeshock'; a._score = (a.volume_shock_value || a.volume_shock || a.volume_shock_multiplier || 0) * 100; });
-            allAlarms = allAlarms.concat(volumeshock);
-        }
+        const volumeshock = data.volumeshock || [];
+        volumeshock.forEach(a => { a._type = 'volumeshock'; a._score = (a.volume_shock_value || a.volume_shock || a.volume_shock_multiplier || 0) * 100; });
+        allAlarms = allAlarms.concat(volumeshock);
         
-        if (droppingRes.ok) {
-            const dropping = await droppingRes.json();
-            dropping.forEach(a => { a._type = 'dropping'; a._score = a.drop_pct || 0; });
-            allAlarms = allAlarms.concat(dropping);
-        }
+        const dropping = data.dropping || [];
+        dropping.forEach(a => { a._type = 'dropping'; a._score = a.drop_pct || 0; });
+        allAlarms = allAlarms.concat(dropping);
         
-        if (publicmoveRes.ok) {
-            const publicmove = await publicmoveRes.json();
-            publicmove.forEach(a => { a._type = 'publicmove'; a._score = a.trap_score || a.sharp_score || 0; });
-            allAlarms = allAlarms.concat(publicmove);
-        }
+        const publicmove = data.publicmove || [];
+        publicmove.forEach(a => { a._type = 'publicmove'; a._score = a.trap_score || a.sharp_score || 0; });
+        allAlarms = allAlarms.concat(publicmove);
         
-        if (volumeLeaderRes.ok) {
-            const volumeleader = await volumeLeaderRes.json();
-            volumeleader.forEach(a => { a._type = 'volumeleader'; a._score = a.new_leader_share || 50; });
-            allAlarms = allAlarms.concat(volumeleader);
-        }
+        const volumeleader = data.volumeleader || [];
+        volumeleader.forEach(a => { a._type = 'volumeleader'; a._score = a.new_leader_share || 50; });
+        allAlarms = allAlarms.concat(volumeleader);
         
         console.log('[AlertBand] Total alarms before filter:', allAlarms.length);
         const filteredAlarms = allAlarms.filter(isMatchTodayOrFuture);
@@ -4019,28 +4013,42 @@ function closeAlarmsSidebar() {
     if (btn) btn.classList.remove('active');
 }
 
-async function loadAllAlarms() {
+// Cache for batch alarm data
+let alarmsBatchCache = null;
+let alarmsBatchCacheTime = 0;
+const ALARMS_CACHE_TTL = 45000; // 45 seconds
+
+async function loadAllAlarms(forceRefresh = false) {
     const body = document.getElementById('alarmsList');
     body.innerHTML = '<div class="alarms-loading">Alarmlar yukleniyor...</div>';
     
     try {
-        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes, droppingRes, publicmoveRes, volumeLeaderRes] = await Promise.all([
-            fetch('/api/sharp/alarms').catch(() => ({ ok: false })),
-            fetch('/api/insider/alarms').catch(() => ({ ok: false })),
-            fetch('/api/bigmoney/alarms').catch(() => ({ ok: false })),
-            fetch('/api/volumeshock/alarms').catch(() => ({ ok: false })),
-            fetch('/api/dropping/alarms').catch(() => ({ ok: false })),
-            fetch('/api/publicmove/alarms').catch(() => ({ ok: false })),
-            fetch('/api/volumeleader/alarms').catch(() => ({ ok: false }))
-        ]);
+        // Use batch endpoint instead of 7 separate requests
+        const now = Date.now();
+        let data;
         
-        const rawSharp = sharpRes.ok ? await sharpRes.json() : [];
-        const rawInsider = insiderRes.ok ? await insiderRes.json() : [];
-        const rawBigmoney = bigMoneyRes.ok ? await bigMoneyRes.json() : [];
-        const rawVolumeshock = volumeShockRes.ok ? await volumeShockRes.json() : [];
-        const rawDropping = droppingRes.ok ? await droppingRes.json() : [];
-        const rawPublicmove = publicmoveRes.ok ? await publicmoveRes.json() : [];
-        const rawVolumeleader = volumeLeaderRes.ok ? await volumeLeaderRes.json() : [];
+        if (!forceRefresh && alarmsBatchCache && (now - alarmsBatchCacheTime) < ALARMS_CACHE_TTL) {
+            // Use cached data
+            data = alarmsBatchCache;
+            console.log('[Alarms] Using cached data, age:', Math.round((now - alarmsBatchCacheTime) / 1000), 'sec');
+        } else {
+            // Fetch from batch endpoint (1 request instead of 7)
+            const response = await fetch('/api/alarms/all');
+            if (!response.ok) throw new Error('Batch alarm fetch failed');
+            data = await response.json();
+            alarmsBatchCache = data;
+            alarmsBatchCacheTime = now;
+            console.log('[Alarms] Fetched fresh data from batch endpoint');
+        }
+        
+        // Process batch response
+        const rawSharp = data.sharp || [];
+        const rawInsider = data.insider || [];
+        const rawBigmoney = data.bigmoney || [];
+        const rawVolumeshock = data.volumeshock || [];
+        const rawDropping = data.dropping || [];
+        const rawPublicmove = data.publicmove || [];
+        const rawVolumeleader = data.volumeleader || [];
         
         alarmsDataByType.sharp = rawSharp.filter(isMatchTodayOrFuture);
         alarmsDataByType.insider = rawInsider.filter(isMatchTodayOrFuture);
@@ -5069,69 +5077,47 @@ let cachedAllAlarms = null;
 let smartMoneySectionOpen = true;
 
 async function loadAllAlarmsOnce(forceRefresh = false) {
-    if (cachedAllAlarms && !forceRefresh) return cachedAllAlarms;
+    // Use shared cache from loadAllAlarms if available and fresh
+    const now = Date.now();
+    if (!forceRefresh && alarmsBatchCache && (now - alarmsBatchCacheTime) < ALARMS_CACHE_TTL) {
+        // Build cachedAllAlarms from shared batch cache
+        if (!cachedAllAlarms) {
+            cachedAllAlarms = buildAlarmsArrayFromBatch(alarmsBatchCache);
+        }
+        console.log('[SmartMoney] Using shared cache');
+        return cachedAllAlarms;
+    }
     
     try {
-        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes, droppingRes, publicmoveRes, volumeLeaderRes] = await Promise.all([
-            fetch('/api/sharp/alarms').catch(() => ({ ok: false })),
-            fetch('/api/insider/alarms').catch(() => ({ ok: false })),
-            fetch('/api/bigmoney/alarms').catch(() => ({ ok: false })),
-            fetch('/api/volumeshock/alarms').catch(() => ({ ok: false })),
-            fetch('/api/dropping/alarms').catch(() => ({ ok: false })),
-            fetch('/api/publicmove/alarms').catch(() => ({ ok: false })),
-            fetch('/api/volumeleader/alarms').catch(() => ({ ok: false }))
-        ]);
+        // Use batch endpoint (1 request instead of 7)
+        const response = await fetch('/api/alarms/all');
+        if (!response.ok) throw new Error('Batch alarm fetch failed');
+        const data = await response.json();
         
-        let allAlarms = [];
+        // Update shared cache
+        alarmsBatchCache = data;
+        alarmsBatchCacheTime = now;
         
-        if (sharpRes.ok) {
-            const sharp = await sharpRes.json();
-            sharp.forEach(a => { a._type = 'sharp'; });
-            allAlarms = allAlarms.concat(sharp);
-        }
-        
-        if (insiderRes.ok) {
-            const insider = await insiderRes.json();
-            insider.forEach(a => { a._type = 'insider'; });
-            allAlarms = allAlarms.concat(insider);
-        }
-        
-        if (bigMoneyRes.ok) {
-            const bigmoney = await bigMoneyRes.json();
-            bigmoney.forEach(a => { a._type = 'bigmoney'; });
-            allAlarms = allAlarms.concat(bigmoney);
-        }
-        
-        if (volumeShockRes.ok) {
-            const volumeshock = await volumeShockRes.json();
-            volumeshock.forEach(a => { a._type = 'volumeshock'; });
-            allAlarms = allAlarms.concat(volumeshock);
-        }
-        
-        if (droppingRes.ok) {
-            const dropping = await droppingRes.json();
-            dropping.forEach(a => { a._type = 'dropping'; });
-            allAlarms = allAlarms.concat(dropping);
-        }
-        
-        if (publicmoveRes.ok) {
-            const publicmove = await publicmoveRes.json();
-            publicmove.forEach(a => { a._type = 'publicmove'; });
-            allAlarms = allAlarms.concat(publicmove);
-        }
-        
-        if (volumeLeaderRes.ok) {
-            const volumeleader = await volumeLeaderRes.json();
-            volumeleader.forEach(a => { a._type = 'volumeleader'; });
-            allAlarms = allAlarms.concat(volumeleader);
-        }
-        
-        cachedAllAlarms = allAlarms;
-        return allAlarms;
+        cachedAllAlarms = buildAlarmsArrayFromBatch(data);
+        console.log('[SmartMoney] Fetched fresh data from batch endpoint');
+        return cachedAllAlarms;
     } catch (e) {
         console.error('[SmartMoney] Load error:', e);
         return [];
     }
+}
+
+function buildAlarmsArrayFromBatch(data) {
+    let allAlarms = [];
+    
+    const types = ['sharp', 'insider', 'bigmoney', 'volumeshock', 'dropping', 'publicmove', 'volumeleader'];
+    types.forEach(type => {
+        const items = data[type] || [];
+        items.forEach(a => { a._type = type; });
+        allAlarms = allAlarms.concat(items);
+    });
+    
+    return allAlarms;
 }
 
 function getMatchAlarms(homeTeam, awayTeam) {
