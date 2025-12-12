@@ -5414,74 +5414,87 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             row4 = `Market lideri değişti. Bu seçenekte hacim üstünlüğü ele geçirildi.`;
         }
         
-        // Tüm alarm tipleri için portal tooltip oluştur
+        // Tüm alarm tipleri için portal tooltip oluştur (TEMALI)
         let countBadgeHtml = '';
         if (count > 1) {
             const tooltipId = `${type}-tooltip-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
             
-            // Alarm tipine göre tooltip item formatı
+            // Alarm tipine göre temalı başlık ve pill formatı
+            const tooltipTheme = {
+                bigmoney: { title: 'Geçmiş Big Money Girişleri', pillLabel: (a) => `£${Number(a.incoming_money || a.stake || 0).toLocaleString('en-GB')}` },
+                volumeshock: { title: 'Geçmiş Hacim Şokları', pillLabel: (a) => `X${(a.volume_shock_value || a.volume_shock || 0).toFixed(1)}` },
+                sharp: { title: 'Geçmiş Sharp Alarmları', pillLabel: (a) => `Sharp ${(a.sharp_score || 0).toFixed(0)}` },
+                insider: { title: 'Geçmiş Insider Alarmları', pillLabel: (a) => `▼${Math.abs(a.oran_dusus_pct || a.odds_drop_pct || 0).toFixed(1)}%` },
+                dropping: { title: 'Geçmiş Oran Düşüşleri', pillLabel: (a) => `▼${(a.drop_pct || 0).toFixed(1)}%` },
+                publicmove: { title: 'Geçmiş Public Move', pillLabel: (a) => `%${(a.current_share || a.new_share || 0).toFixed(0)}` },
+                volumeleader: { title: 'Geçmiş Lider Değişimleri', pillLabel: (a) => a.new_leader || '-' }
+            };
+            
+            const theme = tooltipTheme[type] || { title: 'Geçmiş Alarmlar', pillLabel: () => '' };
+            
+            // Alarm tipine göre temalı tooltip item formatı
             const tooltipItems = alarms.slice(0, 10).map(a => {
                 const t = formatSmartMoneyTime(a.trigger_at || a.event_time || a.created_at);
                 const timeOnly = t.includes('•') ? t.split('•')[1].trim() : t;
+                const pillValue = theme.pillLabel(a);
                 
                 if (type === 'bigmoney') {
                     const money = Number(a.incoming_money || a.stake || 0).toLocaleString('en-GB');
                     const sel = a.selection || a.side || '-';
                     const total = Number(a.selection_total || a.volume || a.total_volume || 0).toLocaleString('en-GB');
-                    return `<div class="smc-tooltip-item">• ${timeOnly} — <span class="tt-money">£${money}</span> gelen para — ${sel} — <span class="tt-total">Olay sonrası: £${total}</span></div>`;
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-bigmoney">${sel}</span><span class="tt-total">Sonrası: £${total}</span></div>`;
                 } else if (type === 'sharp') {
                     const money = Number(a.incoming_money || a.amount_change || a.volume || 0).toLocaleString('en-GB');
+                    const score = (a.sharp_score || 0).toFixed(0);
                     const prevOdds = (a.previous_odds || 0).toFixed(2);
                     const currOdds = (a.current_odds || 0).toFixed(2);
-                    const prevShare = (a.previous_share || 0).toFixed(0);
-                    const currShare = (a.current_share || 0).toFixed(0);
                     const total = Number(a.selection_total || a.volume || 0).toLocaleString('en-GB');
-                    return `<div class="smc-tooltip-item">• ${timeOnly} — <span class="tt-money">£${money}</span> para — Oran: ${prevOdds} → ${currOdds} — Pay: %${prevShare} → %${currShare} — <span class="tt-total">Sonrası: £${total}</span></div>`;
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-sharp">Sharp ${score}</span><span class="tt-total">${prevOdds}→${currOdds} · £${total}</span></div>`;
                 } else if (type === 'volumeshock') {
                     const money = Number(a.incoming_money || 0).toLocaleString('en-GB');
                     const shock = (a.volume_shock_value || a.volume_shock || 0).toFixed(1);
                     const avg = Number(a.avg_last_amounts || a.average_amount || 0).toLocaleString('en-GB');
                     const total = Number(a.selection_total || a.volume || 0).toLocaleString('en-GB');
-                    return `<div class="smc-tooltip-item">• ${timeOnly} — <span class="tt-money">£${money}</span> → şok <span class="tt-shock">X${shock}</span> — Son 10 ort: £${avg} — <span class="tt-total">Sonrası: £${total}</span></div>`;
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-volumeshock">X${shock}</span><span class="tt-total">Son 10 ort: £${avg} — Sonrası: £${total}</span></div>`;
                 } else if (type === 'dropping') {
                     const openOdds = (a.opening_odds || 0).toFixed(2);
                     const currOdds = (a.current_odds || 0).toFixed(2);
                     const dropPct = (a.drop_pct || 0).toFixed(1);
                     const vol = Number(a.volume || a.selection_total || 0).toLocaleString('en-GB');
-                    return `<div class="smc-tooltip-item">• ${timeOnly} — Oran: ${openOdds} → ${currOdds} (<span class="tt-drop">%${dropPct}</span>) — <span class="tt-total">Volume: £${vol}</span></div>`;
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">${openOdds}→${currOdds}</span><span class="tt-pill pill-dropping">▼${dropPct}%</span><span class="tt-total">Volume: £${vol}</span></div>`;
                 } else if (type === 'publicmove') {
                     const prevShare = (a.previous_share || a.old_share || 0).toFixed(0);
                     const currShare = (a.current_share || a.new_share || 0).toFixed(0);
                     const publicPara = Number(a.incoming_money || a.public_money || a.volume || 0).toLocaleString('en-GB');
-                    return `<div class="smc-tooltip-item">• ${timeOnly} — Public: <span class="tt-share">%${prevShare} → %${currShare}</span> — Yeni public para: <span class="tt-money">£${publicPara}</span></div>`;
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${publicPara}</span><span class="tt-pill pill-publicmove">%${prevShare}→%${currShare}</span><span class="tt-total">Public yükseldi</span></div>`;
                 } else if (type === 'volumeleader') {
                     const oldL = a.old_leader || a.previous_leader || '-';
                     const newL = a.new_leader || a.selection || '-';
                     const oldShare = (a.old_leader_share || 0).toFixed(0);
                     const newShare = (a.new_leader_share || 0).toFixed(0);
                     const totalVol = Number(a.total_volume || a.volume || 0).toLocaleString('en-GB');
-                    return `<div class="smc-tooltip-item">• ${timeOnly} — ${oldL} → <span class="tt-leader">${newL}</span> — %${oldShare} → %${newShare} — Volume: £${totalVol}</div>`;
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">${oldL}→${newL}</span><span class="tt-pill pill-volumeleader">%${oldShare}→%${newShare}</span><span class="tt-total">£${totalVol}</span></div>`;
                 } else if (type === 'insider') {
                     const money = Number(a.gelen_para || a.incoming_money || 0).toLocaleString('en-GB');
                     const openOdds = (a.opening_odds || 0).toFixed(2);
                     const lastOdds = (a.last_odds || 0).toFixed(2);
+                    const dropPct = Math.abs(a.oran_dusus_pct || a.odds_drop_pct || 0).toFixed(1);
                     const hours = calculateHoursToKickoff(a).toFixed(0);
-                    const total = Number(a.selection_total || a.volume || 0).toLocaleString('en-GB');
-                    return `<div class="smc-tooltip-item">• ${timeOnly} — <span class="tt-money">£${money}</span> — Oran: ${openOdds} → ${lastOdds} — Maça kalan: ${hours} saat — <span class="tt-total">Sonrası: £${total}</span></div>`;
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-insider">▼${dropPct}%</span><span class="tt-total">${openOdds}→${lastOdds} · ${hours}s kala</span></div>`;
                 }
-                return `<div class="smc-tooltip-item">• ${timeOnly}</div>`;
+                return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span></div>`;
             }).join('');
             
             countBadgeHtml = `<span class="smc-count-badge smc-count-${type}" data-tooltip-id="${tooltipId}" onclick="event.stopPropagation();">x${count}</span>`;
             
-            // Tooltip'i body'ye ekle (portal)
+            // Tooltip'i body'ye ekle (portal) - TEMALI
             setTimeout(() => {
                 let tooltipEl = document.getElementById(tooltipId);
                 if (!tooltipEl) {
                     tooltipEl = document.createElement('div');
                     tooltipEl.id = tooltipId;
-                    tooltipEl.className = 'smc-tooltip-portal';
-                    tooltipEl.innerHTML = `<div class="smc-tooltip-header">Geçmiş Alarmlar</div>${tooltipItems}`;
+                    tooltipEl.className = `smc-tooltip-portal tooltip-${type}`;
+                    tooltipEl.innerHTML = `<div class="smc-tooltip-header header-${type}"><span class="tt-dot"></span>${theme.title}</div>${tooltipItems}`;
                     document.body.appendChild(tooltipEl);
                 }
                 
