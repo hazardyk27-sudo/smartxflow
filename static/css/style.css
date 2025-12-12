@@ -8060,3 +8060,70 @@ td.volume,
     border-color: #3fb950;
     color: #3fb950;
 }
+
+/* ========== SMC HISTORY SECTION ========== */
+.smc-history-section {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(139, 148, 158, 0.15);
+}
+
+.smc-history-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: #6e7681;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.smc-history-title .smc-more {
+    font-weight: 400;
+    color: #484f56;
+    font-size: 9px;
+}
+
+.smc-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 8px;
+    margin-bottom: 3px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.02);
+    border-left: 2px solid rgba(139, 148, 158, 0.2);
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.smc-history-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Alarm tipine göre history item border renkleri */
+.smc-card.bigmoney .smc-history-item { border-left-color: rgba(240, 138, 36, 0.4); }
+.smc-card.bigmoney .smc-history-item:hover { border-left-color: #F08A24; background: rgba(240, 138, 36, 0.08); }
+.smc-card.volumeshock .smc-history-item { border-left-color: rgba(246, 195, 67, 0.4); }
+.smc-card.volumeshock .smc-history-item:hover { border-left-color: #F6C343; background: rgba(246, 195, 67, 0.08); }
+.smc-card.sharp .smc-history-item { border-left-color: rgba(34, 197, 94, 0.4); }
+.smc-card.sharp .smc-history-item:hover { border-left-color: #22c55e; background: rgba(34, 197, 94, 0.08); }
+.smc-card.insider .smc-history-item { border-left-color: rgba(168, 85, 247, 0.4); }
+.smc-card.insider .smc-history-item:hover { border-left-color: #a855f7; background: rgba(168, 85, 247, 0.08); }
+.smc-card.dropping .smc-history-item { border-left-color: rgba(248, 81, 73, 0.4); }
+.smc-card.dropping .smc-history-item:hover { border-left-color: #f85149; background: rgba(248, 81, 73, 0.08); }
+.smc-card.publicmove .smc-history-item { border-left-color: rgba(255, 204, 0, 0.4); }
+.smc-card.publicmove .smc-history-item:hover { border-left-color: #FFCC00; background: rgba(255, 204, 0, 0.08); }
+.smc-card.volumeleader .smc-history-item { border-left-color: rgba(6, 182, 212, 0.4); }
+.smc-card.volumeleader .smc-history-item:hover { border-left-color: #06b6d4; background: rgba(6, 182, 212, 0.08); }
+
+.smc-h-time {
+    font-size: 11px;
+    color: #6e7681;
+}
+
+.smc-h-val {
+    font-size: 12px;
+    font-weight: 600;
+}

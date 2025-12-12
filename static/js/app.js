@@ -5525,6 +5525,34 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             }, 100);
         }
         
+        // History section - önceki alarmları göster (count > 1 ise)
+        let historyHtml = '';
+        if (count > 1) {
+            const historyItems = alarms.slice(1, 6).map(a => {
+                const hTime = formatSmartMoneyTime(a.trigger_at || a.event_time || a.created_at);
+                let hValue = '';
+                if (type === 'bigmoney') {
+                    hValue = `£${Number(a.incoming_money || a.stake || 0).toLocaleString('en-GB')}`;
+                } else if (type === 'sharp') {
+                    hValue = `Sharp ${(a.sharp_score || 0).toFixed(0)}`;
+                } else if (type === 'volumeshock') {
+                    hValue = `X${(a.volume_shock_value || a.volume_shock || 0).toFixed(1)}`;
+                } else if (type === 'insider') {
+                    hValue = `▼${Math.abs(a.oran_dusus_pct || a.odds_drop_pct || 0).toFixed(1)}%`;
+                } else if (type === 'dropping') {
+                    hValue = `▼${(a.drop_pct || 0).toFixed(1)}%`;
+                } else if (type === 'publicmove') {
+                    hValue = `%${(a.previous_share || 0).toFixed(0)}→%${(a.current_share || 0).toFixed(0)}`;
+                } else if (type === 'volumeleader') {
+                    hValue = `${a.old_leader || '-'}→${a.new_leader || '-'}`;
+                }
+                return `<div class="smc-history-item"><span class="smc-h-time">${hTime}</span><span class="smc-h-val" style="color: ${config.color};">${hValue}</span></div>`;
+            }).join('');
+            
+            const moreCount = count > 6 ? ` <span class="smc-more">+${count - 6} daha</span>` : '';
+            historyHtml = `<div class="smc-history-section"><div class="smc-history-title">ÖNCEKİ${moreCount}</div>${historyItems}</div>`;
+        }
+        
         return `
             <div class="smc-card ${type}">
                 <div class="smc-stripe" style="background: ${config.color};"></div>
@@ -5546,6 +5574,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                         <span class="smc-detail">${row3Right}</span>
                     </div>
                     <div class="smc-row smc-desc">${row4}</div>
+                    ${historyHtml}
                 </div>
             </div>
         `;
