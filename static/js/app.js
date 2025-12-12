@@ -5212,14 +5212,14 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             if (!groups[key]) groups[key] = [];
             groups[key].push(a);
         });
-        // Her grubu zamana göre sırala
+        // Her grubu zamana göre sırala (YENİDEN ESKİYE - DESC)
         Object.keys(groups).forEach(k => {
             groups[k].sort((a, b) => {
-                const getTime = (alarm) => {
-                    const dt = parseAlarmDateTR(alarm.created_at || alarm.triggered_at || alarm.trigger_at);
-                    return dt && dt.isValid() ? dt.valueOf() : 0;
-                };
-                return getTime(b) - getTime(a);
+                // ISO string karşılaştırması (en güvenilir)
+                const aTime = a.trigger_at || a.created_at || a.triggered_at || '';
+                const bTime = b.trigger_at || b.created_at || b.triggered_at || '';
+                // DESC: b - a (yeni önce)
+                return bTime.localeCompare(aTime);
             });
         });
         return Object.values(groups);
@@ -5234,11 +5234,10 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
     
     Object.keys(grouped).forEach(type => {
         grouped[type].sort((a, b) => {
-            const getTime = (alarm) => {
-                const dt = parseAlarmDateTR(alarm.created_at || alarm.triggered_at);
-                return dt && dt.isValid() ? dt.valueOf() : 0;
-            };
-            return getTime(b) - getTime(a);
+            // ISO string karşılaştırması (YENİDEN ESKİYE - DESC)
+            const aTime = a.trigger_at || a.created_at || a.triggered_at || '';
+            const bTime = b.trigger_at || b.created_at || b.triggered_at || '';
+            return bTime.localeCompare(aTime);
         });
     });
     
