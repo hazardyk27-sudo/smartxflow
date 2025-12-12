@@ -1,13 +1,15 @@
 """
-SmartXFlow Alarm Calculator Module v1.22
+SmartXFlow Alarm Calculator Module v1.23
 Standalone alarm calculation for PC-based scraper
 Calculates: Sharp, Insider, BigMoney, VolumeShock, Dropping, PublicMove, VolumeLeader
 OPTIMIZED: Batch fetch per market, in-memory calculations
 DEFAULT_SETTINGS: Fallback values for all alarm types when Supabase config missing
+PHASE 2: match_id_hash contract compliant (league|kickoff|home|away)
 """
 
 import json
 import os
+import hashlib
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Callable
 
@@ -97,6 +99,64 @@ def normalize_team_name(name: str) -> str:
             n = n[:-len(suffix)].strip()
     n = ' '.join(n.split())
     return n
+
+
+def normalize_field(value: str) -> str:
+    """
+    IMMUTABLE CONTRACT: Normalize field for match_id_hash generation.
+    Rules (per replit.md):
+    - trim (strip leading/trailing whitespace)
+    - lowercase
+    - collapse multiple spaces to single space
+    - Turkish dotted/dotless I normalization: ı → i, İ → i
+    """
+    if not value:
+        return ""
+    value = str(value).strip()
+    value = value.lower()
+    value = ' '.join(value.split())
+    value = value.replace('ı', 'i').replace('İ', 'i')
+    return value
+
+
+def normalize_kickoff(kickoff: str) -> str:
+    """
+    IMMUTABLE CONTRACT: Normalize kickoff for match_id_hash generation.
+    Rules (per replit.md):
+    - Must be UTC timezone
+    - Output format: YYYY-MM-DDTHH:MM (minute precision, no seconds)
+    - Strips timezone suffixes (Z, +00:00)
+    """
+    if not kickoff:
+        return ""
+    kickoff = str(kickoff).strip()
+    kickoff = kickoff.replace('Z', '').replace('+00:00', '')
+    
+    if 'T' in kickoff and len(kickoff) >= 16:
+        return kickoff[:16]
+    
+    if len(kickoff) >= 10 and kickoff[4] == '-':
+        return kickoff[:16] if len(kickoff) >= 16 else kickoff[:10] + "T00:00"
+    
+    return kickoff
+
+
+def generate_match_id_hash(home: str, away: str, league: str, kickoff: str) -> str:
+    """
+    IMMUTABLE CONTRACT: Generate unique 12-character match ID hash.
+    Format: league|kickoff|home|away (all normalized)
+    Hash: MD5, first 12 hex characters
+    
+    This MUST match app.py generate_match_id() exactly.
+    """
+    home_norm = normalize_field(home)
+    away_norm = normalize_field(away)
+    league_norm = normalize_field(league)
+    kickoff_norm = normalize_kickoff(kickoff)
+    
+    canonical = f"{league_norm}|{kickoff_norm}|{home_norm}|{away_norm}"
+    
+    return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
 
 
 def parse_match_date(date_str: str) -> Optional[datetime]:
@@ -981,7 +1041,7 @@ class AlarmCalculator:
                     
                     if sharp_score >= min_score:
                         trigger_at = latest.get('scraped_at', now_turkey_iso())
-                        match_id = f"{home}|{away}|{match.get('date', '')}"
+                        match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
                         
                         # UI ALAN ADLARIYLA ALARM KAYDI
                         alarm = {
@@ -1254,7 +1314,7 @@ class AlarmCalculator:
                     
                     trigger_snap = history[drop_moment_index]
                     trigger_at = trigger_snap.get('scraped_at', now_turkey_iso())
-                    match_id = f"{home}|{away}|{match.get('date', '')}"
+                    match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
                     
                     alarm = {
                         'match_id': match_id,
@@ -1396,7 +1456,7 @@ class AlarmCalculator:
                         continue
                     
                     selection_total = parse_volume(history[-1].get(amount_key, 0))
-                    match_id = f"{home}|{away}|{match.get('date', '')}"
+                    match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
                     
                     # Her büyük para hareketini AYRI alarm olarak kaydet
                     for snap_idx, snap in enumerate(big_snapshots):
@@ -1607,7 +1667,7 @@ class AlarmCalculator:
                             }
                     
                     if best_shock:
-                        match_id = f"{home}|{away}|{match.get('date', '')}"
+                        match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
                         
                         alarm = {
                             'match_id': match_id,
@@ -1806,7 +1866,7 @@ class AlarmCalculator:
                         level = 'L1'
                     
                     trigger_at = history[-1].get('scraped_at', now_turkey_iso())
-                    match_id = f"{home}|{away}|{match.get('date', '')}"
+                    match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
                     
                     # Volume bilgisi (varsa)
                     volume = parse_float(match.get('volume', 0))
@@ -1998,7 +2058,7 @@ class AlarmCalculator:
                     
                     if move_score >= min_score:
                         trigger_at = latest.get('scraped_at', now_turkey_iso())
-                        match_id = f"{home}|{away}|{match.get('date', '')}"
+                        match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
                         
                         alarm = {
                             'match_id': match_id,
@@ -2115,7 +2175,7 @@ class AlarmCalculator:
                             continue
                         
                         trigger_at = curr_snap.get('scraped_at', now_turkey_iso())
-                        match_id = f"{home}|{away}|{match.get('date', '')}"
+                        match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
                         
                         alarm = {
                             'match_id': match_id,
