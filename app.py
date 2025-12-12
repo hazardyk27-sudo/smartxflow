@@ -4345,6 +4345,145 @@ def get_all_alarms_batch():
     return jsonify(result)
 
 
+@app.route('/api/match/<match_id>/snapshot', methods=['GET'])
+def get_match_snapshot(match_id):
+    """
+    Full Match Snapshot endpoint - Returns all data for a specific match.
+    
+    This is designed for future expansion to include:
+    - alarms: All 7 alarm types filtered for this match
+    - moneyway: All moneyway market data (1x2, ou25, btts) - Phase 2
+    - dropping_odds: All dropping odds data - Phase 2
+    - metadata: Match identification info
+    
+    URL: /api/match/<match_id>/snapshot
+    
+    The match_id is a 12-character MD5 hash generated from home|away|league|date.
+    Use generate_match_id(home, away, league, date) to create it.
+    
+    Query params:
+    - include: comma-separated list of sections to include (default: all)
+      Example: ?include=alarms,metadata
+    """
+    include_sections = request.args.get('include', 'all')
+    
+    if include_sections == 'all':
+        sections_to_include = ['metadata', 'alarms', 'moneyway', 'dropping_odds']
+    else:
+        sections_to_include = [s.strip() for s in include_sections.split(',')]
+    
+    result = {}
+    match_found = False
+    match_metadata = None
+    
+    # Try to find match metadata from cached matches
+    if 'metadata' in sections_to_include or 'alarms' in sections_to_include:
+        # Search in all market caches (using matches_cache global)
+        for market_key in ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts', 
+                          'dropping_1x2', 'dropping_ou25', 'dropping_btts']:
+            if market_key in matches_cache.get('data', {}):
+                for match in matches_cache['data'][market_key]:
+                    home = match.get('home_team', match.get('home', ''))
+                    away = match.get('away_team', match.get('away', ''))
+                    league = match.get('league', '')
+                    date = match.get('date', match.get('fixture_date', match.get('match_date', '')))
+                    
+                    computed_id = generate_match_id(home, away, league, date)
+                    if computed_id == match_id:
+                        match_found = True
+                        match_metadata = {
+                            'match_id': match_id,
+                            'home': home,
+                            'away': away,
+                            'league': league,
+                            'fixture_date': date,
+                            'kickoff': match.get('kickoff', match.get('kickoff_utc', ''))
+                        }
+                        break
+                if match_found:
+                    break
+    
+    # Build alarms section first (so we can use alarm data for metadata fallback)
+    alarms_result = {}
+    first_alarm_metadata = None
+    
+    if 'alarms' in sections_to_include:
+        alarm_fetchers = {
+            'sharp': (get_sharp_alarms_from_supabase, sharp_alarms),
+            'insider': (get_insider_alarms_from_supabase, insider_alarms),
+            'bigmoney': (get_bigmoney_alarms_from_supabase, big_money_alarms),
+            'volumeshock': (get_volumeshock_alarms_from_supabase, volume_shock_alarms),
+            'dropping': (get_dropping_alarms_from_supabase, dropping_alarms),
+            'publicmove': (get_publicmove_alarms_from_supabase, publicmove_alarms),
+            'volumeleader': (get_volumeleader_alarms_from_supabase, volume_leader_alarms)
+        }
+        
+        for alarm_type, (fetch_func, fallback) in alarm_fetchers.items():
+            try:
+                all_alarms = fetch_func()
+                if all_alarms is None:
+                    all_alarms = fallback
+                
+                # Filter alarms for this specific match
+                filtered = []
+                for alarm in all_alarms:
+                    alarm_home = alarm.get('home', alarm.get('home_team', ''))
+                    alarm_away = alarm.get('away', alarm.get('away_team', ''))
+                    alarm_league = alarm.get('league', '')
+                    alarm_date = alarm.get('fixture_date', alarm.get('match_date', alarm.get('date', '')))
+                    
+                    # Always generate hash from alarm data for consistent comparison
+                    computed_alarm_id = generate_match_id(alarm_home, alarm_away, alarm_league, alarm_date)
+                    
+                    if computed_alarm_id == match_id:
+                        filtered.append(alarm)
+                        # Capture first matching alarm for metadata fallback
+                        if not first_alarm_metadata:
+                            first_alarm_metadata = {
+                                'match_id': match_id,
+                                'home': alarm_home,
+                                'away': alarm_away,
+                                'league': alarm_league,
+                                'fixture_date': alarm_date,
+                                'kickoff': alarm.get('kickoff', alarm.get('kickoff_utc', ''))
+                            }
+                
+                alarms_result[alarm_type] = filtered
+            except Exception as e:
+                print(f"[MatchSnapshot] Error fetching {alarm_type}: {e}")
+                alarms_result[alarm_type] = []
+        
+        result['alarms'] = alarms_result
+    
+    # Build metadata section (use cache, then alarm fallback)
+    if 'metadata' in sections_to_include:
+        if match_metadata:
+            result['metadata'] = match_metadata
+        elif first_alarm_metadata:
+            result['metadata'] = first_alarm_metadata
+            result['metadata']['source'] = 'alarm_data'
+        else:
+            result['metadata'] = {
+                'match_id': match_id,
+                'home': None,
+                'away': None,
+                'league': None,
+                'fixture_date': None,
+                'kickoff': None,
+                'error': 'Match not found'
+            }
+    
+    # Placeholder for future moneyway data (Phase 2)
+    if 'moneyway' in sections_to_include:
+        result['moneyway'] = None  # TODO: Add moneyway snapshot data
+    
+    # Placeholder for future dropping_odds data (Phase 2)
+    if 'dropping_odds' in sections_to_include:
+        result['dropping_odds'] = None  # TODO: Add dropping odds snapshot data
+    
+    return jsonify(result)
+
+
 @app.route('/api/volumeleader/reset', methods=['POST'])
 def reset_volume_leader_calculation():
     """Reset Volume Leader calculation flag (force unlock)"""

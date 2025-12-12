@@ -119,6 +119,21 @@ UI alan adları = tek kaynak (authoritative reference). Admin.exe ve Supabase bu
 - **Request Reduction:** 21+ ayrı istek → 1-2 batch istek (polling döngüsü başına)
 - **Cache Functions:** `static/js/app.js` satır 13-88 (fetchAlarmsBatch, getCachedAlarmsByType, getCachedAlarmsWithType, getCachedAlarmCounts, invalidateAlarmCache)
 
+**Match Snapshot Endpoint (2025-12-12):**
+- **Endpoint:** `/api/match/<match_id>/snapshot` - Tek maç için tüm verileri döndürür
+- **match_id:** 12 karakterlik MD5 hash (`generate_match_id(home, away, league, date)` ile üretilir)
+- **Query Params:** `?include=alarms,metadata` ile sadece belirli bölümler alınabilir
+- **Response Yapısı:**
+  ```json
+  {
+    "metadata": { "match_id", "home", "away", "league", "fixture_date", "kickoff" },
+    "alarms": { "sharp": [], "insider": [], "bigmoney": [], "volumeshock": [], "dropping": [], "publicmove": [], "volumeleader": [] },
+    "moneyway": null,      // Phase 2'de dolacak
+    "dropping_odds": null  // Phase 2'de dolacak
+  }
+  ```
+- **Gelecek Planı:** Phase 2'de `moneyway` ve `dropping_odds` bölümleri eklenecek, tek RPC ile maç detay sayfası için tüm veriler çekilecek
+
 ---
 
 ## REFERANS DOKÜMANI - PREMATCH SİSTEMİ KURALLARI
