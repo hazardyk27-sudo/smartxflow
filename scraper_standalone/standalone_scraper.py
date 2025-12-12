@@ -702,6 +702,18 @@ def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
     if total_deleted > 0:
         _log(f"[Cleanup] Tamamlandi - {total_deleted} tablo temizlendi")
     
+    # Alarm tablolarını da temizle
+    try:
+        from alarm_calculator import AlarmCalculator
+        alarm_calc = AlarmCalculator(
+            supabase_url=writer.supabase_url,
+            supabase_key=writer.supabase_key
+        )
+        alarm_deleted = alarm_calc.cleanup_old_alarms(days_to_keep=2)
+        total_deleted += alarm_deleted
+    except Exception as e:
+        _log(f"[Cleanup] Alarm cleanup hatası: {e}")
+    
     return total_deleted
 
 
