@@ -5202,6 +5202,29 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
     
     empty.style.display = 'none';
     
+    // Selection+market bazlı gruplandırma için yardımcı fonksiyon
+    function groupBySelection(alarms) {
+        const groups = {};
+        alarms.forEach(a => {
+            const sel = (a.selection || a.side || '-').toLowerCase().trim();
+            const mkt = (a.market || '').toLowerCase().trim();
+            const key = `${sel}|${mkt}`;
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(a);
+        });
+        // Her grubu zamana göre sırala
+        Object.keys(groups).forEach(k => {
+            groups[k].sort((a, b) => {
+                const getTime = (alarm) => {
+                    const dt = parseAlarmDateTR(alarm.created_at || alarm.triggered_at || alarm.trigger_at);
+                    return dt && dt.isValid() ? dt.valueOf() : 0;
+                };
+                return getTime(b) - getTime(a);
+            });
+        });
+        return Object.values(groups);
+    }
+    
     const grouped = { sharp: [], insider: [], bigmoney: [], volumeshock: [], dropping: [], publicmove: [], volumeleader: [] };
     matchAlarms.forEach(a => {
         if (a._type && grouped[a._type]) {
@@ -5217,6 +5240,15 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             };
             return getTime(b) - getTime(a);
         });
+    });
+    
+    // Selection bazlı alt gruplar oluştur (volumeshock, bigmoney, sharp için)
+    const selectionGroupedTypes = ['volumeshock', 'bigmoney', 'sharp', 'insider', 'dropping', 'publicmove'];
+    const selectionGroups = {};
+    selectionGroupedTypes.forEach(type => {
+        if (grouped[type].length > 0) {
+            selectionGroups[type] = groupBySelection(grouped[type]);
+        }
     });
     
     const cardConfigs = {
@@ -5266,16 +5298,12 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
     
     let cardsHtml = '';
     
-    Object.keys(cardConfigs).forEach(type => {
-        const alarms = grouped[type];
-        if (alarms.length === 0) return;
+    // Kart oluşturma fonksiyonu (selection grubu bazlı)
+    function renderCardForGroup(type, alarms, config) {
+        if (alarms.length === 0) return '';
         
-        const config = cardConfigs[type];
         const latest = alarms[0];
         const count = alarms.length;
-        
-        const markets = [...new Set(alarms.map(a => a.selection || a.side || a.market || '-'))];
-        const marketText = markets.slice(0, 3).join(', ');
         
         const lastTime = formatSmartMoneyTime(latest.trigger_at || latest.event_time || latest.created_at || latest.triggered_at);
         
@@ -5479,7 +5507,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             }, 100);
         }
         
-        cardsHtml += `
+        return `
             <div class="smc-card ${type}">
                 <div class="smc-stripe" style="background: ${config.color};"></div>
                 <div class="smc-content">
@@ -5503,7 +5531,22 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                 </div>
             </div>
         `;
+    }
+    
+    // Selection bazlı gruplama kullanan tipler için render
+    selectionGroupedTypes.forEach(type => {
+        const groups = selectionGroups[type];
+        if (!groups || groups.length === 0) return;
+        const config = cardConfigs[type];
+        groups.forEach(alarmGroup => {
+            cardsHtml += renderCardForGroup(type, alarmGroup, config);
+        });
     });
+    
+    // VolumeLeader için eski sistem (selection bazlı gruplama yok)
+    if (grouped.volumeleader.length > 0) {
+        cardsHtml += renderCardForGroup('volumeleader', grouped.volumeleader, cardConfigs.volumeleader);
+    }
     
     grid.innerHTML = cardsHtml;
 }
