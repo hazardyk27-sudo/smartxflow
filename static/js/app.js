@@ -18,6 +18,77 @@ let matchesDisplayCount = 20;
 
 const APP_TIMEZONE = 'Europe/Istanbul';
 
+// ============================================
+// CENTRALIZED ALARM CACHE SYSTEM
+// Single source of truth for all alarm data
+// ============================================
+let _alarmBatchCache = null;
+let _alarmCacheTime = 0;
+const ALARM_CACHE_TTL = 45000; // 45 seconds
+
+async function fetchAlarmsBatch(forceRefresh = false) {
+    const now = Date.now();
+    
+    if (!forceRefresh && _alarmBatchCache && (now - _alarmCacheTime) < ALARM_CACHE_TTL) {
+        console.log('[AlarmCache] Using cached data, age:', Math.round((now - _alarmCacheTime) / 1000), 'sec');
+        return _alarmBatchCache;
+    }
+    
+    try {
+        const response = await fetch('/api/alarms/all');
+        if (!response.ok) throw new Error('Batch alarm fetch failed');
+        const data = await response.json();
+        
+        _alarmBatchCache = data;
+        _alarmCacheTime = now;
+        console.log('[AlarmCache] Fetched fresh data from batch endpoint');
+        return data;
+    } catch (e) {
+        console.error('[AlarmCache] Fetch error:', e);
+        return _alarmBatchCache || {};
+    }
+}
+
+function getCachedAlarmsByType(type) {
+    if (!_alarmBatchCache) return [];
+    return _alarmBatchCache[type] || [];
+}
+
+function getCachedAlarmsWithType() {
+    if (!_alarmBatchCache) return [];
+    
+    let all = [];
+    const types = ['sharp', 'insider', 'bigmoney', 'volumeshock', 'dropping', 'publicmove', 'volumeleader'];
+    types.forEach(type => {
+        const items = _alarmBatchCache[type] || [];
+        items.forEach(a => { a._type = type; });
+        all = all.concat(items);
+    });
+    return all;
+}
+
+function getCachedAlarmCounts() {
+    if (!_alarmBatchCache) return { sharp: 0, insider: 0, bigmoney: 0, volumeshock: 0, dropping: 0, publicmove: 0, volumeleader: 0, total: 0 };
+    
+    const counts = {
+        sharp: (_alarmBatchCache.sharp || []).length,
+        insider: (_alarmBatchCache.insider || []).length,
+        bigmoney: (_alarmBatchCache.bigmoney || []).length,
+        volumeshock: (_alarmBatchCache.volumeshock || []).length,
+        dropping: (_alarmBatchCache.dropping || []).length,
+        publicmove: (_alarmBatchCache.publicmove || []).length,
+        volumeleader: (_alarmBatchCache.volumeleader || []).length
+    };
+    counts.total = counts.sharp + counts.insider + counts.bigmoney + counts.volumeshock + counts.dropping + counts.publicmove + counts.volumeleader;
+    return counts;
+}
+
+function invalidateAlarmCache() {
+    _alarmCacheTime = 0;
+    console.log('[AlarmCache] Cache invalidated');
+}
+// ============================================
+
 function showToast(message, type = 'info') {
     const existing = document.querySelector('.toast-notification');
     if (existing) existing.remove();
@@ -3612,51 +3683,37 @@ function isMatchTodayOrFuture(alarm) {
 
 async function loadAlertBand() {
     try {
-        // Use batch endpoint (1 request instead of 7) with shared cache
-        const now = Date.now();
-        let data;
-        
-        if (alarmsBatchCache && (now - alarmsBatchCacheTime) < ALARMS_CACHE_TTL) {
-            data = alarmsBatchCache;
-            console.log('[AlertBand] Using shared cache');
-        } else {
-            const response = await fetch('/api/alarms/all');
-            if (!response.ok) throw new Error('Batch alarm fetch failed');
-            data = await response.json();
-            alarmsBatchCache = data;
-            alarmsBatchCacheTime = now;
-            cachedAllAlarms = null; // Reset modal cache to force rebuild
-            console.log('[AlertBand] Fetched fresh data from batch endpoint');
-        }
+        // Use centralized cache system
+        const data = await fetchAlarmsBatch();
         
         let allAlarms = [];
         
         // Process batch response with score calculations
-        const sharp = data.sharp || [];
+        const sharp = (data.sharp || []).slice();
         sharp.forEach(a => { a._type = 'sharp'; a._score = a.sharp_score || 0; });
         allAlarms = allAlarms.concat(sharp);
         
-        const insider = data.insider || [];
+        const insider = (data.insider || []).slice();
         insider.forEach(a => { a._type = 'insider'; a._score = a.insider_score || 0; });
         allAlarms = allAlarms.concat(insider);
         
-        const bigmoney = data.bigmoney || [];
+        const bigmoney = (data.bigmoney || []).slice();
         bigmoney.forEach(a => { a._type = 'bigmoney'; a._score = a.incoming_money || a.stake || a.volume || 0; });
         allAlarms = allAlarms.concat(bigmoney);
         
-        const volumeshock = data.volumeshock || [];
+        const volumeshock = (data.volumeshock || []).slice();
         volumeshock.forEach(a => { a._type = 'volumeshock'; a._score = (a.volume_shock_value || a.volume_shock || a.volume_shock_multiplier || 0) * 100; });
         allAlarms = allAlarms.concat(volumeshock);
         
-        const dropping = data.dropping || [];
+        const dropping = (data.dropping || []).slice();
         dropping.forEach(a => { a._type = 'dropping'; a._score = a.drop_pct || 0; });
         allAlarms = allAlarms.concat(dropping);
         
-        const publicmove = data.publicmove || [];
+        const publicmove = (data.publicmove || []).slice();
         publicmove.forEach(a => { a._type = 'publicmove'; a._score = a.trap_score || a.sharp_score || 0; });
         allAlarms = allAlarms.concat(publicmove);
         
-        const volumeleader = data.volumeleader || [];
+        const volumeleader = (data.volumeleader || []).slice();
         volumeleader.forEach(a => { a._type = 'volumeleader'; a._score = a.new_leader_share || 50; });
         allAlarms = allAlarms.concat(volumeleader);
         
@@ -4013,33 +4070,13 @@ function closeAlarmsSidebar() {
     if (btn) btn.classList.remove('active');
 }
 
-// Cache for batch alarm data
-let alarmsBatchCache = null;
-let alarmsBatchCacheTime = 0;
-const ALARMS_CACHE_TTL = 45000; // 45 seconds
-
 async function loadAllAlarms(forceRefresh = false) {
     const body = document.getElementById('alarmsList');
     body.innerHTML = '<div class="alarms-loading">Alarmlar yukleniyor...</div>';
     
     try {
-        // Use batch endpoint instead of 7 separate requests
-        const now = Date.now();
-        let data;
-        
-        if (!forceRefresh && alarmsBatchCache && (now - alarmsBatchCacheTime) < ALARMS_CACHE_TTL) {
-            // Use cached data
-            data = alarmsBatchCache;
-            console.log('[Alarms] Using cached data, age:', Math.round((now - alarmsBatchCacheTime) / 1000), 'sec');
-        } else {
-            // Fetch from batch endpoint (1 request instead of 7)
-            const response = await fetch('/api/alarms/all');
-            if (!response.ok) throw new Error('Batch alarm fetch failed');
-            data = await response.json();
-            alarmsBatchCache = data;
-            alarmsBatchCacheTime = now;
-            console.log('[Alarms] Fetched fresh data from batch endpoint');
-        }
+        // Use centralized cache system
+        const data = await fetchAlarmsBatch(forceRefresh);
         
         // Process batch response
         const rawSharp = data.sharp || [];
@@ -5077,47 +5114,10 @@ let cachedAllAlarms = null;
 let smartMoneySectionOpen = true;
 
 async function loadAllAlarmsOnce(forceRefresh = false) {
-    // Use shared cache from loadAllAlarms if available and fresh
-    const now = Date.now();
-    if (!forceRefresh && alarmsBatchCache && (now - alarmsBatchCacheTime) < ALARMS_CACHE_TTL) {
-        // Build cachedAllAlarms from shared batch cache
-        if (!cachedAllAlarms) {
-            cachedAllAlarms = buildAlarmsArrayFromBatch(alarmsBatchCache);
-        }
-        console.log('[SmartMoney] Using shared cache');
-        return cachedAllAlarms;
-    }
-    
-    try {
-        // Use batch endpoint (1 request instead of 7)
-        const response = await fetch('/api/alarms/all');
-        if (!response.ok) throw new Error('Batch alarm fetch failed');
-        const data = await response.json();
-        
-        // Update shared cache
-        alarmsBatchCache = data;
-        alarmsBatchCacheTime = now;
-        
-        cachedAllAlarms = buildAlarmsArrayFromBatch(data);
-        console.log('[SmartMoney] Fetched fresh data from batch endpoint');
-        return cachedAllAlarms;
-    } catch (e) {
-        console.error('[SmartMoney] Load error:', e);
-        return [];
-    }
-}
-
-function buildAlarmsArrayFromBatch(data) {
-    let allAlarms = [];
-    
-    const types = ['sharp', 'insider', 'bigmoney', 'volumeshock', 'dropping', 'publicmove', 'volumeleader'];
-    types.forEach(type => {
-        const items = data[type] || [];
-        items.forEach(a => { a._type = type; });
-        allAlarms = allAlarms.concat(items);
-    });
-    
-    return allAlarms;
+    // Use centralized cache system
+    const data = await fetchAlarmsBatch(forceRefresh);
+    cachedAllAlarms = getCachedAlarmsWithType();
+    return cachedAllAlarms;
 }
 
 function getMatchAlarms(homeTeam, awayTeam) {
@@ -5615,25 +5615,11 @@ function toggleSmartMoneySection() {
 // Update badge on page load
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes, droppingRes, publicmoveRes] = await Promise.all([
-            fetch('/api/sharp/alarms').catch(() => ({ ok: false })),
-            fetch('/api/insider/alarms').catch(() => ({ ok: false })),
-            fetch('/api/bigmoney/alarms').catch(() => ({ ok: false })),
-            fetch('/api/volumeshock/alarms').catch(() => ({ ok: false })),
-            fetch('/api/dropping/alarms').catch(() => ({ ok: false })),
-            fetch('/api/publicmove/alarms').catch(() => ({ ok: false }))
-        ]);
-        
-        const sharpCount = sharpRes.ok ? (await sharpRes.json()).length : 0;
-        const insiderCount = insiderRes.ok ? (await insiderRes.json()).length : 0;
-        const bigMoneyCount = bigMoneyRes.ok ? (await bigMoneyRes.json()).length : 0;
-        const volumeShockCount = volumeShockRes.ok ? (await volumeShockRes.json()).length : 0;
-        const droppingCount = droppingRes.ok ? (await droppingRes.json()).length : 0;
-        const publicmoveCount = publicmoveRes.ok ? (await publicmoveRes.json()).length : 0;
-        
-        const total = sharpCount + insiderCount + bigMoneyCount + volumeShockCount + droppingCount + publicmoveCount;
+        // Use centralized cache system - single batch request
+        await fetchAlarmsBatch();
+        const counts = getCachedAlarmCounts();
         const badge = document.getElementById('tabAlarmBadge');
-        if (badge) badge.textContent = total;
+        if (badge) badge.textContent = counts.total;
     } catch (e) {
         console.log('Badge guncelleme hatasi:', e);
     }
@@ -5669,10 +5655,9 @@ async function loadAdminInsiderData() {
     body.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8;">Yükleniyor...</div>';
     
     try {
-        const res = await fetch('/api/insider/alarms');
-        if (!res.ok) throw new Error('API error');
-        
-        const alarms = await res.json();
+        // Use centralized cache system
+        await fetchAlarmsBatch();
+        const alarms = getCachedAlarmsByType('insider');
         
         if (!alarms || alarms.length === 0) {
             body.innerHTML = '<div class="admin-no-data">Insider alarm bulunamadı.</div>';
@@ -5793,14 +5778,15 @@ async function loadAdminVolumeLeaderData() {
     body.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8;">Yükleniyor...</div>';
     
     try {
-        const [configRes, alarmsRes, statusRes] = await Promise.all([
+        // Config and status need individual endpoints, alarms from cache
+        const [configRes, statusRes] = await Promise.all([
             fetch('/api/volumeleader/config'),
-            fetch('/api/volumeleader/alarms'),
             fetch('/api/volumeleader/status')
         ]);
         
         const config = configRes.ok ? await configRes.json() : {};
-        const alarms = alarmsRes.ok ? await alarmsRes.json() : [];
+        await fetchAlarmsBatch();
+        const alarms = getCachedAlarmsByType('volumeleader');
         const status = statusRes.ok ? await statusRes.json() : {};
         
         let html = `
@@ -5968,13 +5954,12 @@ async function loadAdminDroppingData() {
     body.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8;">Yükleniyor...</div>';
     
     try {
-        const [configRes, alarmsRes] = await Promise.all([
-            fetch('/api/dropping/config'),
-            fetch('/api/dropping/alarms')
-        ]);
-        
+        // Config needs individual endpoint, alarms from cache
+        const configRes = await fetch('/api/dropping/config');
         const config = configRes.ok ? await configRes.json() : {};
-        const alarms = alarmsRes.ok ? await alarmsRes.json() : [];
+        
+        await fetchAlarmsBatch();
+        const alarms = getCachedAlarmsByType('dropping');
         
         let html = `
             <div class="admin-section">
