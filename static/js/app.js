@@ -4120,9 +4120,10 @@ function groupAlarmsByMatch(alarms) {
         groups[groupKey].allAlarms.push(alarm);
         groups[groupKey].triggerCount++;
         
-        const currentLatest = parseAlarmDate(groups[groupKey].latestAlarm.trigger_at || groups[groupKey].latestAlarm.event_time || groups[groupKey].latestAlarm.created_at);
-        const thisDate = parseAlarmDate(alarm.trigger_at || alarm.event_time || alarm.created_at);
-        if (thisDate > currentLatest) {
+        // ISO string karşılaştırması (daha güvenilir)
+        const currentLatestTime = groups[groupKey].latestAlarm.trigger_at || groups[groupKey].latestAlarm.created_at || groups[groupKey].latestAlarm.triggered_at || '';
+        const thisTime = alarm.trigger_at || alarm.created_at || alarm.triggered_at || '';
+        if (thisTime.localeCompare(currentLatestTime) > 0) {
             groups[groupKey].latestAlarm = alarm;
             groups[groupKey].match_id = alarm.match_id || groups[groupKey].match_id;
             groups[groupKey].match_date = alarm.match_date || alarm.fixture_date || groups[groupKey].match_date;
@@ -4131,14 +4132,19 @@ function groupAlarmsByMatch(alarms) {
     });
     
     Object.values(groups).forEach(group => {
-        group.allAlarms.sort((a, b) => parseAlarmDate(b.trigger_at || b.event_time || b.created_at) - parseAlarmDate(a.trigger_at || a.event_time || a.created_at));
+        // Yeniden eskiye sırala (DESC) - ISO string karşılaştırması
+        group.allAlarms.sort((a, b) => {
+            const aTime = a.trigger_at || a.created_at || a.triggered_at || '';
+            const bTime = b.trigger_at || b.created_at || b.triggered_at || '';
+            return bTime.localeCompare(aTime);
+        });
         group.history = group.allAlarms.slice(1);
     });
     
     return Object.values(groups).sort((a, b) => {
-        const dateA = parseAlarmDate(a.latestAlarm.trigger_at || a.latestAlarm.event_time || a.latestAlarm.created_at);
-        const dateB = parseAlarmDate(b.latestAlarm.trigger_at || b.latestAlarm.event_time || b.latestAlarm.created_at);
-        return dateB - dateA;
+        const aTime = a.latestAlarm.trigger_at || a.latestAlarm.created_at || a.latestAlarm.triggered_at || '';
+        const bTime = b.latestAlarm.trigger_at || b.latestAlarm.created_at || b.latestAlarm.triggered_at || '';
+        return bTime.localeCompare(aTime);
     });
 }
 
