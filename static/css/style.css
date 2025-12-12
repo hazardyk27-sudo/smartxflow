@@ -202,12 +202,12 @@ h1, h2, h3, h4, h5, h6,
 .refresh-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     padding: 6px 12px;
-    background: #0a0f1a;
-    border: 1px solid #334155;
+    background: #21262d;
+    border: none;
     border-radius: 16px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
     color: #e2e8f0;
     cursor: pointer;
@@ -215,18 +215,15 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .refresh-btn:hover {
-    background: #1e293b;
-    border-color: #22c55e;
-    box-shadow: 0 0 8px rgba(34, 197, 94, 0.2);
+    background: #30363d;
 }
 
 .refresh-btn svg {
-    color: #94a3b8;
-    transition: color 0.15s ease;
+    color: #e2e8f0;
 }
 
 .refresh-btn:hover svg {
-    color: #22c55e;
+    color: #e2e8f0;
 }
 
 .last-update-info {
