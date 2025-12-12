@@ -106,16 +106,15 @@ def normalize_field(value: str) -> str:
     IMMUTABLE CONTRACT: Normalize field for match_id_hash generation.
     Rules (per replit.md):
     - trim (strip leading/trailing whitespace)
-    - lowercase
+    - Turkish dotted/dotless I normalization BEFORE lowercase: ı → i, İ → I, then lowercase
     - collapse multiple spaces to single space
-    - Turkish dotted/dotless I normalization: ı → i, İ → i
     """
     if not value:
         return ""
     value = str(value).strip()
+    value = value.replace('ı', 'i').replace('İ', 'I')
     value = value.lower()
     value = ' '.join(value.split())
-    value = value.replace('ı', 'i').replace('İ', 'i')
     return value
 
 
@@ -123,14 +122,20 @@ def normalize_kickoff(kickoff: str) -> str:
     """
     IMMUTABLE CONTRACT: Normalize kickoff for match_id_hash generation.
     Rules (per replit.md):
-    - Must be UTC timezone
+    - Must be UTC timezone  
     - Output format: YYYY-MM-DDTHH:MM (minute precision, no seconds)
-    - Strips timezone suffixes (Z, +00:00)
+    - Strips ALL timezone suffixes (Z, +00:00, +03:00, etc.)
+    
+    WARNING: Admin.exe must provide UTC kickoff times. Turkey timezone (+03:00) 
+    must be converted to UTC before calling this function.
     """
     if not kickoff:
         return ""
     kickoff = str(kickoff).strip()
-    kickoff = kickoff.replace('Z', '').replace('+00:00', '')
+    
+    import re
+    kickoff = re.sub(r'[+-]\d{2}:\d{2}$', '', kickoff)
+    kickoff = kickoff.replace('Z', '')
     
     if 'T' in kickoff and len(kickoff) >= 16:
         return kickoff[:16]

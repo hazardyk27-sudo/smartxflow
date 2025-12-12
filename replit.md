@@ -88,30 +88,39 @@ def normalize_field(value: str) -> str:
     """
     Adım 1: String normalizasyonu
     Tüm sistemlerde (Scraper, Admin.exe, Backend) aynı mantık uygulanır.
+    ÖNEMLİ: Türkçe karakter normalizasyonu LOWERCASE'DEN ÖNCE yapılmalı!
     """
     if not value:
         return ""
     # 1. Trim - baştaki/sondaki boşlukları sil
     value = value.strip()
-    # 2. Lowercase - küçük harfe çevir
+    # 2. Türkçe karakter normalizasyonu (LOWERCASE'DEN ÖNCE!)
+    # İ → I, ı → i (büyük harf İ lowercase önce I olmalı)
+    value = value.replace('ı', 'i').replace('İ', 'I')
+    # 3. Lowercase - küçük harfe çevir
     value = value.lower()
-    # 3. Çoklu boşlukları tek boşluğa indir
+    # 4. Çoklu boşlukları tek boşluğa indir
     value = ' '.join(value.split())
-    # 4. Türkçe karakter normalizasyonu (dotted/dotless I)
-    value = value.replace('ı', 'i').replace('İ', 'i')
     return value
 
 def normalize_kickoff(kickoff: str) -> str:
     """
     Adım 2: Kickoff normalizasyonu
     Hedef: YYYY-MM-DDTHH:MM (UTC, saniye yok)
+    TÜM timezone offset'leri kaldırılır (+00:00, +03:00, Z, vb.)
     """
     if not kickoff:
         return ""
-    # ISO 8601 formatı: ilk 16 karakteri al (saniye/timezone at)
+    kickoff = str(kickoff).strip()
+    # Tüm timezone offset'leri kaldır (+HH:MM formatı)
+    kickoff = re.sub(r'[+-]\d{2}:\d{2}$', '', kickoff)
+    kickoff = kickoff.replace('Z', '')
+    # ISO 8601 formatı: ilk 16 karakteri al (YYYY-MM-DDTHH:MM)
     if 'T' in kickoff and len(kickoff) >= 16:
         return kickoff[:16]
-    # DD.MonHH:MM:SS formatı: olduğu gibi döndür (Admin.exe düzeltecek)
+    # Fallback: sadece tarih varsa T00:00 ekle
+    if len(kickoff) >= 10 and kickoff[4] == '-':
+        return kickoff[:16] if len(kickoff) >= 16 else kickoff[:10] + "T00:00"
     return kickoff
 
 def generate_match_id(home: str, away: str, league: str, kickoff: str) -> str:
