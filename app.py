@@ -42,12 +42,66 @@ from services.supabase_client import (
     write_volumeshock_alarms_to_supabase
 )
 import hashlib
+import re
 
-def generate_match_id(home, away, league, date=''):
-    """Generate unique match ID from home, away, league and date.
-    This ensures unique identification even for teams playing multiple times in the same league."""
-    key = f"{home}|{away}|{league}|{date}" if date else f"{home}|{away}|{league}"
-    return hashlib.md5(key.encode()).hexdigest()[:12]
+def normalize_field(value):
+    """
+    Normalize a field value for match_id_hash generation.
+    Rules (per replit.md contract):
+    - trim (strip leading/trailing whitespace)
+    - lowercase
+    - collapse multiple spaces to single space
+    - Turkish dotted/dotless I normalization: ı → i, İ → i
+    """
+    if not value:
+        return ""
+    value = str(value).strip()
+    value = value.lower()
+    value = ' '.join(value.split())
+    value = value.replace('ı', 'i').replace('İ', 'i')
+    return value
+
+def normalize_kickoff(kickoff):
+    """
+    Normalize kickoff time for match_id_hash generation.
+    Rules (per replit.md contract):
+    - Must be UTC timezone
+    - Output format: YYYY-MM-DDTHH:MM (minute precision, no seconds)
+    - Strips timezone suffixes (Z, +00:00) to ensure consistent format
+    """
+    if not kickoff:
+        return ""
+    kickoff = str(kickoff).strip()
+    
+    kickoff = kickoff.replace('Z', '').replace('+00:00', '')
+    
+    if 'T' in kickoff and len(kickoff) >= 16:
+        return kickoff[:16]
+    
+    if len(kickoff) >= 10 and kickoff[4] == '-':
+        return kickoff[:16] if len(kickoff) >= 16 else kickoff[:10] + "T00:00"
+    
+    return kickoff
+
+def generate_match_id(home, away, league, kickoff=''):
+    """
+    Generate unique 12-character match ID hash.
+    
+    IMMUTABLE CONTRACT (per replit.md):
+    - Format: league|kickoff|home|away
+    - Hash: MD5, first 12 hex characters
+    - All fields normalized via normalize_field() and normalize_kickoff()
+    
+    This ensures: Scraper, Admin.exe, Backend all generate same hash for same match.
+    """
+    home_norm = normalize_field(home)
+    away_norm = normalize_field(away)
+    league_norm = normalize_field(league)
+    kickoff_norm = normalize_kickoff(kickoff)
+    
+    canonical = f"{league_norm}|{kickoff_norm}|{home_norm}|{away_norm}"
+    
+    return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
 
 def parse_created_at_for_sort(created_at_str):
     """Parse created_at string (DD.MM.YYYY HH:MM) to datetime for sorting.
@@ -4350,16 +4404,18 @@ def get_match_snapshot(match_id):
     """
     Full Match Snapshot endpoint - Returns all data for a specific match.
     
-    This is designed for future expansion to include:
+    IMMUTABLE RESPONSE CONTRACT (per replit.md):
+    - metadata: match identification info (match_id, internal_id, home, away, league, kickoff_utc, fixture_date, source)
     - alarms: All 7 alarm types filtered for this match
-    - moneyway: All moneyway market data (1x2, ou25, btts) - Phase 2
-    - dropping_odds: All dropping odds data - Phase 2
-    - metadata: Match identification info
+    - moneyway: Moneyway snapshot data (Phase 2 - currently null)
+    - dropping_odds: Dropping odds snapshot data (Phase 2 - currently null)
+    - updated_at_utc: ISO 8601 timestamp
     
-    URL: /api/match/<match_id>/snapshot
+    URL: /api/match/<match_id_hash>/snapshot
     
-    The match_id is a 12-character MD5 hash generated from home|away|league|date.
-    Use generate_match_id(home, away, league, date) to create it.
+    The match_id is a 12-character MD5 hash generated from:
+    Format: league|kickoff|home|away (all normalized)
+    Use generate_match_id(home, away, league, kickoff) to create it.
     
     Query params:
     - include: comma-separated list of sections to include (default: all)
@@ -4378,7 +4434,6 @@ def get_match_snapshot(match_id):
     
     # Try to find match metadata from cached matches
     if 'metadata' in sections_to_include or 'alarms' in sections_to_include:
-        # Search in all market caches (using matches_cache global)
         for market_key in ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts', 
                           'dropping_1x2', 'dropping_ou25', 'dropping_btts']:
             if market_key in matches_cache.get('data', {}):
@@ -4386,18 +4441,20 @@ def get_match_snapshot(match_id):
                     home = match.get('home_team', match.get('home', ''))
                     away = match.get('away_team', match.get('away', ''))
                     league = match.get('league', '')
-                    date = match.get('date', match.get('fixture_date', match.get('match_date', '')))
+                    kickoff = match.get('kickoff', match.get('kickoff_utc', ''))
                     
-                    computed_id = generate_match_id(home, away, league, date)
+                    computed_id = generate_match_id(home, away, league, kickoff)
                     if computed_id == match_id:
                         match_found = True
                         match_metadata = {
                             'match_id': match_id,
+                            'internal_id': None,
                             'home': home,
                             'away': away,
                             'league': league,
-                            'fixture_date': date,
-                            'kickoff': match.get('kickoff', match.get('kickoff_utc', ''))
+                            'kickoff_utc': kickoff,
+                            'fixture_date': match.get('date', match.get('fixture_date', match.get('match_date', ''))),
+                            'source': 'cache'
                         }
                         break
                 if match_found:
@@ -4424,28 +4481,27 @@ def get_match_snapshot(match_id):
                 if all_alarms is None:
                     all_alarms = fallback
                 
-                # Filter alarms for this specific match
                 filtered = []
                 for alarm in all_alarms:
                     alarm_home = alarm.get('home', alarm.get('home_team', ''))
                     alarm_away = alarm.get('away', alarm.get('away_team', ''))
                     alarm_league = alarm.get('league', '')
-                    alarm_date = alarm.get('fixture_date', alarm.get('match_date', alarm.get('date', '')))
+                    alarm_kickoff = alarm.get('kickoff', alarm.get('kickoff_utc', ''))
                     
-                    # Always generate hash from alarm data for consistent comparison
-                    computed_alarm_id = generate_match_id(alarm_home, alarm_away, alarm_league, alarm_date)
+                    computed_alarm_id = generate_match_id(alarm_home, alarm_away, alarm_league, alarm_kickoff)
                     
                     if computed_alarm_id == match_id:
                         filtered.append(alarm)
-                        # Capture first matching alarm for metadata fallback
                         if not first_alarm_metadata:
                             first_alarm_metadata = {
                                 'match_id': match_id,
+                                'internal_id': None,
                                 'home': alarm_home,
                                 'away': alarm_away,
                                 'league': alarm_league,
-                                'fixture_date': alarm_date,
-                                'kickoff': alarm.get('kickoff', alarm.get('kickoff_utc', ''))
+                                'kickoff_utc': alarm_kickoff,
+                                'fixture_date': alarm.get('fixture_date', alarm.get('match_date', alarm.get('date', ''))),
+                                'source': 'alarm_data'
                             }
                 
                 alarms_result[alarm_type] = filtered
@@ -4461,25 +4517,28 @@ def get_match_snapshot(match_id):
             result['metadata'] = match_metadata
         elif first_alarm_metadata:
             result['metadata'] = first_alarm_metadata
-            result['metadata']['source'] = 'alarm_data'
         else:
             result['metadata'] = {
                 'match_id': match_id,
+                'internal_id': None,
                 'home': None,
                 'away': None,
                 'league': None,
+                'kickoff_utc': None,
                 'fixture_date': None,
-                'kickoff': None,
-                'error': 'Match not found'
+                'source': 'not_found'
             }
     
     # Placeholder for future moneyway data (Phase 2)
     if 'moneyway' in sections_to_include:
-        result['moneyway'] = None  # TODO: Add moneyway snapshot data
+        result['moneyway'] = None
     
     # Placeholder for future dropping_odds data (Phase 2)
     if 'dropping_odds' in sections_to_include:
-        result['dropping_odds'] = None  # TODO: Add dropping odds snapshot data
+        result['dropping_odds'] = None
+    
+    # Add response timestamp per contract
+    result['updated_at_utc'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
     
     return jsonify(result)
 
