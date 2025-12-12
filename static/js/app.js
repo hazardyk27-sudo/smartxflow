@@ -5068,8 +5068,8 @@ async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, home
 let cachedAllAlarms = null;
 let smartMoneySectionOpen = true;
 
-async function loadAllAlarmsOnce() {
-    if (cachedAllAlarms) return cachedAllAlarms;
+async function loadAllAlarmsOnce(forceRefresh = false) {
+    if (cachedAllAlarms && !forceRefresh) return cachedAllAlarms;
     
     try {
         const [sharpRes, insiderRes, bigMoneyRes, volumeShockRes, droppingRes, publicmoveRes, volumeLeaderRes] = await Promise.all([
@@ -5140,13 +5140,16 @@ function getMatchAlarms(homeTeam, awayTeam) {
     const homeLower = homeTeam.toLowerCase().trim();
     const awayLower = awayTeam.toLowerCase().trim();
     
-    return cachedAllAlarms.filter(a => {
+    const result = cachedAllAlarms.filter(a => {
         const aHome = (a.home || a.home_team || '').toLowerCase().trim();
         const aAway = (a.away || a.away_team || '').toLowerCase().trim();
         
         return (aHome.includes(homeLower) || homeLower.includes(aHome)) &&
                (aAway.includes(awayLower) || awayLower.includes(aAway));
     });
+    
+    console.log(`[getMatchAlarms] ${homeTeam} vs ${awayTeam}: Found ${result.length} alarms, types:`, result.map(a => a._type));
+    return result;
 }
 
 function formatSmartMoneyTime(dateStr) {
@@ -5193,7 +5196,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
     
     if (!section) return;
     
-    await loadAllAlarmsOnce();
+    await loadAllAlarmsOnce(true);
     const matchAlarms = getMatchAlarms(homeTeam, awayTeam);
     
     smartMoneySectionOpen = true;
@@ -5309,6 +5312,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
         
         const latest = alarms[0];
         const count = alarms.length;
+        console.log(`[SMC Card] Type: ${type}, Selection: ${latest.selection || latest.side}, Count: ${count}, Home: ${latest.home || latest.home_team}`);
         
         const lastTime = formatSmartMoneyTime(latest.trigger_at || latest.event_time || latest.created_at || latest.triggered_at);
         
