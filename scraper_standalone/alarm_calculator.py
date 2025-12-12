@@ -695,6 +695,9 @@ class AlarmCalculator:
         
         log(f"[Cleanup] Alarm D-2+ silme: {cutoff_date} öncesi silinecek (bugün={today})")
         
+        from urllib.parse import quote
+        cutoff_encoded = quote(cutoff_iso, safe='')
+        
         alarm_tables = [
             'sharp_alarms',
             'insider_alarms',
@@ -709,14 +712,36 @@ class AlarmCalculator:
         
         for table in alarm_tables:
             try:
-                url = f"{self._rest_url(table)}?created_at=lt.{cutoff_iso}"
+                url = f"{self._rest_url(table)}?created_at=lt.{cutoff_encoded}"
                 headers = self._headers()
+                headers['Prefer'] = 'return=representation,count=exact'
                 
                 resp = httpx.delete(url, headers=headers, timeout=30)
                 
                 if resp.status_code in [200, 204]:
-                    log(f"  [Cleanup] {table}: D-2+ kayıtlar silindi")
-                    total_deleted += 1
+                    deleted_count = 0
+                    # Try Content-Range header first: "*/123" means 123 total affected
+                    content_range = resp.headers.get('Content-Range', '')
+                    if content_range and '/' in content_range:
+                        try:
+                            count_part = content_range.split('/')[-1]
+                            if count_part and count_part != '*':
+                                deleted_count = int(count_part)
+                        except:
+                            pass
+                    # Fallback: try JSON body
+                    if deleted_count == 0 and resp.content:
+                        try:
+                            deleted_data = resp.json()
+                            if isinstance(deleted_data, list):
+                                deleted_count = len(deleted_data)
+                        except:
+                            pass
+                    if deleted_count > 0:
+                        log(f"  [Cleanup] {table}: {deleted_count} D-2+ kayıt silindi")
+                        total_deleted += deleted_count
+                    else:
+                        log(f"  [Cleanup] {table}: D-2+ kayıt yok veya zaten temiz")
                 elif resp.status_code == 404:
                     pass
                 else:
