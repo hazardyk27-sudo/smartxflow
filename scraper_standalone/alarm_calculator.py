@@ -660,6 +660,75 @@ class AlarmCalculator:
             log(f"[DROPPING BATCH ERROR] {e}")
         return 0
 
+    def cleanup_old_alarms(self, days_to_keep: int = 2) -> int:
+        """
+        D-2+ alarmları sil (bugün ve dün hariç tüm eski alarmlar)
+        - D (bugün): Korunur
+        - D-1 (dün): Korunur  
+        - D-2+ (öncesi): Silinir
+        
+        Args:
+            days_to_keep: Kaç gün tutulacak (default: 2 = bugün + dün)
+        
+        Returns:
+            Silinen tablo sayısı
+        """
+        try:
+            from datetime import datetime, timedelta
+            import pytz
+        except ImportError:
+            from datetime import datetime, timedelta
+            pytz = None
+        
+        if pytz:
+            try:
+                tz = pytz.timezone('Europe/Istanbul')
+                now = datetime.now(tz)
+            except:
+                now = datetime.utcnow()
+        else:
+            now = datetime.utcnow()
+        
+        today = now.date()
+        cutoff_date = today - timedelta(days=days_to_keep)
+        cutoff_iso = cutoff_date.strftime('%Y-%m-%dT00:00:00')
+        
+        log(f"[Cleanup] Alarm D-2+ silme: {cutoff_date} öncesi silinecek (bugün={today})")
+        
+        alarm_tables = [
+            'sharp_alarms',
+            'insider_alarms',
+            'bigmoney_alarms',
+            'volumeshock_alarms',
+            'dropping_alarms',
+            'publicmove_alarms',
+            'volume_leader_alarms'
+        ]
+        
+        total_deleted = 0
+        
+        for table in alarm_tables:
+            try:
+                url = f"{self._rest_url(table)}?created_at=lt.{cutoff_iso}"
+                headers = self._headers()
+                
+                resp = httpx.delete(url, headers=headers, timeout=30)
+                
+                if resp.status_code in [200, 204]:
+                    log(f"  [Cleanup] {table}: D-2+ kayıtlar silindi")
+                    total_deleted += 1
+                elif resp.status_code == 404:
+                    pass
+                else:
+                    log(f"  [Cleanup] {table}: Silme hatası {resp.status_code}")
+            except Exception as e:
+                log(f"  [Cleanup] {table}: Hata - {e}")
+        
+        if total_deleted > 0:
+            log(f"[Cleanup] Alarm temizleme tamamlandı - {total_deleted} tablo temizlendi")
+        
+        return total_deleted
+
     def refresh_configs(self):
         """Refresh configs from DB before each calculation cycle - LIVE RELOAD"""
         log("Refreshing alarm configs from Supabase...")
