@@ -1243,6 +1243,11 @@ def get_volumeleader_alarms_from_supabase() -> List[Dict[str, Any]]:
     return fetch_alarms_from_supabase('volume_leader_alarms')
 
 
+def get_mim_alarms_from_supabase() -> List[Dict[str, Any]]:
+    """Get MIM (Market Impact Money) alarms from Supabase"""
+    return fetch_alarms_from_supabase('mim_alarms')
+
+
 def delete_alarms_from_supabase(table_name: str) -> bool:
     """Delete all alarms from a Supabase alarm table"""
     client = get_supabase_client()

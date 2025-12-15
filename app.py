@@ -35,7 +35,8 @@ from services.supabase_client import (
     get_sharp_alarms_from_supabase, get_insider_alarms_from_supabase,
     get_bigmoney_alarms_from_supabase, get_volumeshock_alarms_from_supabase,
     get_dropping_alarms_from_supabase, get_publicmove_alarms_from_supabase,
-    get_volumeleader_alarms_from_supabase, delete_alarms_from_supabase,
+    get_volumeleader_alarms_from_supabase, get_mim_alarms_from_supabase,
+    delete_alarms_from_supabase,
     write_insider_alarms_to_supabase, write_sharp_alarms_to_supabase,
     write_publicmove_alarms_to_supabase, write_volumeleader_alarms_to_supabase,
     write_bigmoney_alarms_to_supabase, write_dropping_alarms_to_supabase,
@@ -4349,15 +4350,24 @@ def get_volume_leader_status():
     })
 
 
+@app.route('/api/alarms/mim', methods=['GET'])
+def get_mim_alarms():
+    """Get MIM (Market Impact Money) alarms - reads from Supabase"""
+    supabase_alarms = get_mim_alarms_from_supabase()
+    if supabase_alarms is not None:
+        return jsonify(supabase_alarms)
+    return jsonify([])
+
+
 @app.route('/api/alarms/all', methods=['GET'])
 def get_all_alarms_batch():
     """
-    Batch endpoint - Returns all 7 alarm types in a single request.
-    This reduces 7 separate API calls to 1, significantly reducing Supabase requests.
+    Batch endpoint - Returns all 8 alarm types in a single request.
+    This reduces 8 separate API calls to 1, significantly reducing Supabase requests.
     
     Query params:
     - types: comma-separated list of alarm types to include (default: all)
-      Example: ?types=sharp,insider,bigmoney
+      Example: ?types=sharp,insider,bigmoney,mim
     
     Future: This endpoint can be extended to include moneyway and dropping data
     for match detail modal (single RPC for all match data).
@@ -4374,7 +4384,8 @@ def get_all_alarms_batch():
         'volumeshock': (get_volumeshock_alarms_from_supabase, volume_shock_alarms if 'volume_shock_alarms' in dir() else []),
         'dropping': (get_dropping_alarms_from_supabase, dropping_alarms if 'dropping_alarms' in dir() else []),
         'publicmove': (get_publicmove_alarms_from_supabase, publicmove_alarms if 'publicmove_alarms' in dir() else []),
-        'volumeleader': (get_volumeleader_alarms_from_supabase, volume_leader_alarms if 'volume_leader_alarms' in dir() else [])
+        'volumeleader': (get_volumeleader_alarms_from_supabase, volume_leader_alarms if 'volume_leader_alarms' in dir() else []),
+        'mim': (get_mim_alarms_from_supabase, [])
     }
     
     # Determine which types to fetch
@@ -4496,7 +4507,8 @@ def get_match_snapshot(match_id):
             'volumeshock': (get_volumeshock_alarms_from_supabase, volume_shock_alarms),
             'dropping': (get_dropping_alarms_from_supabase, dropping_alarms),
             'publicmove': (get_publicmove_alarms_from_supabase, publicmove_alarms),
-            'volumeleader': (get_volumeleader_alarms_from_supabase, volume_leader_alarms)
+            'volumeleader': (get_volumeleader_alarms_from_supabase, volume_leader_alarms),
+            'mim': (get_mim_alarms_from_supabase, [])
         }
         
         for alarm_type, (fetch_func, fallback) in alarm_fetchers.items():

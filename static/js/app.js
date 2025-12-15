@@ -58,7 +58,7 @@ function getCachedAlarmsWithType() {
     if (!_alarmBatchCache) return [];
     
     let all = [];
-    const types = ['sharp', 'insider', 'bigmoney', 'volumeshock', 'dropping', 'publicmove', 'volumeleader'];
+    const types = ['sharp', 'insider', 'bigmoney', 'volumeshock', 'dropping', 'publicmove', 'volumeleader', 'mim'];
     types.forEach(type => {
         const items = _alarmBatchCache[type] || [];
         items.forEach(a => { a._type = type; });
@@ -68,7 +68,7 @@ function getCachedAlarmsWithType() {
 }
 
 function getCachedAlarmCounts() {
-    if (!_alarmBatchCache) return { sharp: 0, insider: 0, bigmoney: 0, volumeshock: 0, dropping: 0, publicmove: 0, volumeleader: 0, total: 0 };
+    if (!_alarmBatchCache) return { sharp: 0, insider: 0, bigmoney: 0, volumeshock: 0, dropping: 0, publicmove: 0, volumeleader: 0, mim: 0, total: 0 };
     
     const counts = {
         sharp: (_alarmBatchCache.sharp || []).length,
@@ -77,9 +77,10 @@ function getCachedAlarmCounts() {
         volumeshock: (_alarmBatchCache.volumeshock || []).length,
         dropping: (_alarmBatchCache.dropping || []).length,
         publicmove: (_alarmBatchCache.publicmove || []).length,
-        volumeleader: (_alarmBatchCache.volumeleader || []).length
+        volumeleader: (_alarmBatchCache.volumeleader || []).length,
+        mim: (_alarmBatchCache.mim || []).length
     };
-    counts.total = counts.sharp + counts.insider + counts.bigmoney + counts.volumeshock + counts.dropping + counts.publicmove + counts.volumeleader;
+    counts.total = counts.sharp + counts.insider + counts.bigmoney + counts.volumeshock + counts.dropping + counts.publicmove + counts.volumeleader + counts.mim;
     return counts;
 }
 
@@ -3798,6 +3799,10 @@ function getAlertType(alarm) {
     }
     if (type === 'publicmove') return { label: 'PUBLIC MOVE', color: 'gold', pillClass: 'publicmove' };
     if (type === 'volumeleader') return { label: 'LIDER DEGISTI', color: 'cyan', pillClass: 'volumeleader' };
+    if (type === 'mim') {
+        const level = alarm.mim_level || 1;
+        return { label: `MIM L${level}`, color: 'navy', pillClass: 'mim' };
+    }
     return { label: 'ALERT', color: 'green', pillClass: '' };
 }
 
@@ -3829,6 +3834,11 @@ function formatAlertValue(alarm) {
     if (type === 'volumeleader') {
         const share = alarm.new_leader_share || 0;
         return '%' + share.toFixed(0);
+    }
+    if (type === 'mim') {
+        const impact = alarm.impact || 0;
+        const level = alarm.mim_level || 1;
+        return `L${level} ${impact.toFixed(2)}`;
     }
     return '';
 }
@@ -3980,7 +3990,7 @@ function showAlertBandDetail(index) {
         `;
     }
     
-    const typeColors = { sharp: '#ef4444', insider: '#60a5fa', bigmoney: '#fbbf24', volumeshock: '#F6C343', dropping: '#f85149', publicmove: '#FFCC00', volumeleader: '#06b6d4' };
+    const typeColors = { sharp: '#ef4444', insider: '#60a5fa', bigmoney: '#fbbf24', volumeshock: '#F6C343', dropping: '#f85149', publicmove: '#FFCC00', volumeleader: '#06b6d4', mim: '#0A3D91' };
     
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 480px;">
@@ -4036,7 +4046,8 @@ let alarmsDataByType = {
     volumeshock: [],
     dropping: [],
     publicmove: [],
-    volumeleader: []
+    volumeleader: [],
+    mim: []
 };
 let alarmSearchQuery = '';
 let alarmsDisplayCount = 30;
@@ -4086,6 +4097,7 @@ async function loadAllAlarms(forceRefresh = false) {
         const rawDropping = data.dropping || [];
         const rawPublicmove = data.publicmove || [];
         const rawVolumeleader = data.volumeleader || [];
+        const rawMim = data.mim || [];
         
         alarmsDataByType.sharp = rawSharp.filter(isMatchTodayOrFuture);
         alarmsDataByType.insider = rawInsider.filter(isMatchTodayOrFuture);
@@ -4094,6 +4106,7 @@ async function loadAllAlarms(forceRefresh = false) {
         alarmsDataByType.dropping = rawDropping.filter(isMatchTodayOrFuture);
         alarmsDataByType.publicmove = rawPublicmove.filter(isMatchTodayOrFuture);
         alarmsDataByType.volumeleader = rawVolumeleader.filter(isMatchTodayOrFuture);
+        alarmsDataByType.mim = rawMim.filter(isMatchTodayOrFuture);
         
         const sharpWithType = alarmsDataByType.sharp.map(a => ({ ...a, _type: 'sharp' }));
         const insiderWithType = alarmsDataByType.insider.map(a => ({ ...a, _type: 'insider' }));
@@ -4102,8 +4115,9 @@ async function loadAllAlarms(forceRefresh = false) {
         const droppingWithType = alarmsDataByType.dropping.map(a => ({ ...a, _type: 'dropping' }));
         const publicmoveWithType = alarmsDataByType.publicmove.map(a => ({ ...a, _type: 'publicmove' }));
         const volumeleaderWithType = alarmsDataByType.volumeleader.map(a => ({ ...a, _type: 'volumeleader' }));
+        const mimWithType = alarmsDataByType.mim.map(a => ({ ...a, _type: 'mim' }));
         
-        allAlarmsData = [...sharpWithType, ...insiderWithType, ...bigmoneyWithType, ...volumeshockWithType, ...droppingWithType, ...publicmoveWithType, ...volumeleaderWithType];
+        allAlarmsData = [...sharpWithType, ...insiderWithType, ...bigmoneyWithType, ...volumeshockWithType, ...droppingWithType, ...publicmoveWithType, ...volumeleaderWithType, ...mimWithType];
         
         allAlarmsData.sort((a, b) => {
             const dateA = parseAlarmDate(a.trigger_at || a.event_time || a.created_at);
@@ -4205,6 +4219,7 @@ function updateAlarmCounts() {
     const countDropping = document.getElementById('countDropping');
     const countPublicmove = document.getElementById('countPublicmove');
     const countVolumeleader = document.getElementById('countVolumeleader');
+    const countMim = document.getElementById('countMim');
     
     if (countAll) countAll.textContent = allAlarmsData.length;
     if (countSharp) countSharp.textContent = alarmsDataByType.sharp?.length || 0;
@@ -4214,6 +4229,7 @@ function updateAlarmCounts() {
     if (countDropping) countDropping.textContent = alarmsDataByType.dropping?.length || 0;
     if (countPublicmove) countPublicmove.textContent = alarmsDataByType.publicmove?.length || 0;
     if (countVolumeleader) countVolumeleader.textContent = alarmsDataByType.volumeleader?.length || 0;
+    if (countMim) countMim.textContent = alarmsDataByType.mim?.length || 0;
 }
 
 function sortAlarms(sortType) {
@@ -4261,7 +4277,8 @@ const alarmFilterColors = {
     volumeshock: '#F6C343',
     dropping: '#f85149',
     publicmove: '#FFCC00',
-    volumeleader: '#06b6d4'
+    volumeleader: '#06b6d4',
+    mim: '#0A3D91'
 };
 
 const alarmFilterLabels = {
@@ -4272,7 +4289,8 @@ const alarmFilterLabels = {
     volumeshock: 'Hacim Soku',
     dropping: 'Dropping',
     publicmove: 'Public Move',
-    volumeleader: 'Lider Degisti'
+    volumeleader: 'Lider Degisti',
+    mim: 'MIM'
 };
 
 function toggleAlarmFilterDropdown() {
@@ -4389,8 +4407,8 @@ function renderAlarmsList(filterType) {
     
     const displayGroups = groups.slice(0, alarmsDisplayCount);
     const hasMore = groups.length > alarmsDisplayCount;
-    const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY', volumeshock: 'HACIM SOKU', dropping: 'DROPPING', publicmove: 'PUBLIC MOVE', volumeleader: 'LİDER DEĞİŞTİ' };
-    const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#F08A24', volumeshock: '#F6C343', dropping: '#f85149', publicmove: '#FFCC00', volumeleader: '#06b6d4' };
+    const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY', volumeshock: 'HACIM SOKU', dropping: 'DROPPING', publicmove: 'PUBLIC MOVE', volumeleader: 'LİDER DEĞİŞTİ', mim: 'MIM' };
+    const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#F08A24', volumeshock: '#F6C343', dropping: '#f85149', publicmove: '#FFCC00', volumeleader: '#06b6d4', mim: '#0A3D91' };
     
     let html = displayGroups.map((group, idx) => {
         const type = group.type;
@@ -4446,6 +4464,10 @@ function renderAlarmsList(filterType) {
             const oldShare = (alarm.old_leader_share || 0).toFixed(0);
             const newShare = (alarm.new_leader_share || 0).toFixed(0);
             mainValue = `<span class="value-odds">${oldLeader} %${oldShare}</span><span class="arrow">→</span><span class="value-odds-new">${newLeader} %${newShare}</span>`;
+        } else if (type === 'mim') {
+            const level = alarm.level || 1;
+            const impact = (alarm.impact || 0).toFixed(2);
+            mainValue = `<span class="value-highlight">L${level}</span><span class="sep">•</span><span class="value-pct">${impact}</span>`;
         }
         
         // Tum alarmlar icin trigger_at oncelikli (alarmın tetiklendigi an)
@@ -4463,7 +4485,8 @@ function renderAlarmsList(filterType) {
             'dropping': '#f85149',
             'volumeshock': '#F6C343',
             'publicmove': '#FFCC00',
-            'volumeleader': '#06b6d4'
+            'volumeleader': '#06b6d4',
+            'mim': '#0A3D91'
         };
         const stripeColor = stripeColors[type] || '#64748b';
         
@@ -4474,7 +4497,8 @@ function renderAlarmsList(filterType) {
             'dropping': alarm.level || 'DROP',
             'volumeshock': 'HS',
             'publicmove': 'TRAP',
-            'volumeleader': 'LİDER'
+            'volumeleader': 'LİDER',
+            'mim': 'MIM'
         };
         const typeBadge = typeBadges[type] || type.toUpperCase();
         
@@ -4493,6 +4517,8 @@ function renderAlarmsList(filterType) {
             mainMoney = alarm.volume || 0;
         } else if (type === 'volumeleader') {
             mainMoney = alarm.total_volume || 0;
+        } else if (type === 'mim') {
+            mainMoney = 0;
         }
         
         // Alarm detay paneli - Tip'e göre içerik
@@ -4675,6 +4701,21 @@ function renderAlarmsList(filterType) {
                 <span>Toplam Hacim: £${Number(totalVol).toLocaleString('en-GB')}</span>
             </div>`;
             historyLine = `${triggerTime}`;
+        } else if (type === 'mim') {
+            badgeLabel = 'MIM';
+            const level = alarm.level || 1;
+            const impact = (alarm.impact || 0).toFixed(2);
+            metricContent = `<div class="acd-grid cols-2">
+                <div class="acd-stat">
+                    <div class="acd-stat-val mim">Level ${level}</div>
+                    <div class="acd-stat-lbl">Seviye</div>
+                </div>
+                <div class="acd-stat">
+                    <div class="acd-stat-val">${impact}</div>
+                    <div class="acd-stat-lbl">Impact</div>
+                </div>
+            </div>`;
+            historyLine = `${triggerTime}`;
         }
         
         const fullMatchName = `${home} – ${away}`;
@@ -4698,6 +4739,10 @@ function renderAlarmsList(filterType) {
             const oldL = alarm.old_leader || '-';
             const newL = alarm.new_leader || '-';
             metricValue = `<span class="vl-transition"><span class="vl-old">${oldL}</span><span class="vl-arrow">›</span><span class="vl-new">${newL}</span></span>`;
+        } else if (type === 'mim') {
+            const level = alarm.level || 1;
+            const impact = (alarm.impact || 0).toFixed(2);
+            metricValue = `L${level} ${impact}`;
         }
         
         const historyCount = group.history.length;
@@ -4722,6 +4767,8 @@ function renderAlarmsList(filterType) {
                     hValue = `Trap ${(h.trap_score || h.sharp_score || 0).toFixed(0)}`;
                 } else if (type === 'volumeleader') {
                     hValue = `<span class="vl-mini">${h.old_leader || '-'} › ${h.new_leader || '-'}</span>`;
+                } else if (type === 'mim') {
+                    hValue = `L${h.level || 1} ${(h.impact || 0).toFixed(2)}`;
                 }
                 return `<div class="history-item"><span class="history-time">${hTime}</span><span class="history-val">${hValue}</span></div>`;
             }).join('');
@@ -5220,7 +5267,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
         return Object.values(groups);
     }
     
-    const grouped = { sharp: [], insider: [], bigmoney: [], volumeshock: [], dropping: [], publicmove: [], volumeleader: [] };
+    const grouped = { sharp: [], insider: [], bigmoney: [], volumeshock: [], dropping: [], publicmove: [], volumeleader: [], mim: [] };
     matchAlarms.forEach(a => {
         if (a._type && grouped[a._type]) {
             grouped[a._type].push(a);
@@ -5237,7 +5284,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
     });
     
     // Selection bazlı alt gruplar oluştur (volumeshock, bigmoney, sharp için)
-    const selectionGroupedTypes = ['volumeshock', 'bigmoney', 'sharp', 'insider', 'dropping', 'publicmove'];
+    const selectionGroupedTypes = ['volumeshock', 'bigmoney', 'sharp', 'insider', 'dropping', 'publicmove', 'mim'];
     const selectionGroups = {};
     selectionGroupedTypes.forEach(type => {
         if (grouped[type].length > 0) {
@@ -5287,6 +5334,12 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             color: '#06b6d4',
             icon: '👑',
             description: 'Hacim lideri degisti.'
+        },
+        mim: {
+            title: 'MIM',
+            color: '#0A3D91',
+            icon: '🎯',
+            description: 'Market Inefficiency Monitor.'
         }
     };
     
@@ -5402,6 +5455,16 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             row3Left = `<span class="sm-leader-hero">${oldLeader} → <span class="sm-leader-new">${newLeader}</span></span>${shareText}`;
             row3Right = totalVol > 0 ? `<span class="sm-volume-muted">Volume: £${Number(totalVol).toLocaleString('en-GB')}</span>` : '';
             row4 = `Market lideri değişti. Bu seçenekte hacim üstünlüğü ele geçirildi.`;
+        } else if (type === 'mim') {
+            const level = latest.level || 1;
+            const impact = (latest.impact || 0).toFixed(2);
+            const selection = latest.selection || latest.side || '-';
+            const market = latest.market || '';
+            row2Left = `${selection} (${market})`;
+            row2Right = `<span class="sm-mim-level">Level ${level}</span>`;
+            row3Left = `<span class="sm-mim-impact">${impact}</span> <span class="sm-mim-label">impact</span>`;
+            row3Right = '';
+            row4 = `Market Inefficiency Monitor - Piyasa verimsizliği tespit edildi.`;
         }
         
         // Tüm alarm tipleri için portal tooltip oluştur (TEMALI)
@@ -5417,7 +5480,8 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                 insider: { title: 'Geçmiş Insider Alarmları', pillLabel: (a) => `▼${Math.abs(a.oran_dusus_pct || a.odds_drop_pct || 0).toFixed(1)}%` },
                 dropping: { title: 'Geçmiş Oran Düşüşleri', pillLabel: (a) => `▼${(a.drop_pct || 0).toFixed(1)}%` },
                 publicmove: { title: 'Geçmiş Public Move', pillLabel: (a) => `%${(a.current_share || a.new_share || 0).toFixed(0)}` },
-                volumeleader: { title: 'Geçmiş Lider Değişimleri', pillLabel: (a) => a.new_leader || '-' }
+                volumeleader: { title: 'Geçmiş Lider Değişimleri', pillLabel: (a) => a.new_leader || '-' },
+                mim: { title: 'Geçmiş MIM Alarmları', pillLabel: (a) => `L${a.level || 1} ${(a.impact || 0).toFixed(2)}` }
             };
             
             const theme = tooltipTheme[type] || { title: 'Geçmiş Alarmlar', pillLabel: () => '' };
@@ -5471,6 +5535,10 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                     const dropPct = Math.abs(a.oran_dusus_pct || a.odds_drop_pct || 0).toFixed(1);
                     const hours = calculateHoursToKickoff(a).toFixed(0);
                     return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-insider">▼${dropPct}%</span><span class="tt-total">${openOdds}→${lastOdds} · ${hours}s kala</span></div>`;
+                } else if (type === 'mim') {
+                    const level = a.level || 1;
+                    const impact = (a.impact || 0).toFixed(2);
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-pill pill-mim">L${level}</span><span class="tt-total">${impact} impact</span></div>`;
                 }
                 return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span></div>`;
             }).join('');
@@ -5535,6 +5603,8 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                     hValue = `%${(a.previous_share || 0).toFixed(0)}→%${(a.current_share || 0).toFixed(0)}`;
                 } else if (type === 'volumeleader') {
                     hValue = `${a.old_leader || '-'}→${a.new_leader || '-'}`;
+                } else if (type === 'mim') {
+                    hValue = `L${a.level || 1} ${(a.impact || 0).toFixed(2)}`;
                 }
                 return `<div class="smc-history-item"><span class="smc-h-time">${hTime}</span><span class="smc-h-val" style="color: ${config.color};">${hValue}</span></div>`;
             }).join('');
