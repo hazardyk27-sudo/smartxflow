@@ -74,4 +74,4 @@ jobs:
         with:
           name: SmartXFlowAdmin-v1.23
           path: scraper_standalone/dist/
-          retention-days: 30
+          retention-days: 1
