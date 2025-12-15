@@ -5172,6 +5172,11 @@ td.volume,
     color: #f85149;
 }
 
+.admin-badge.mim {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3B82F6;
+}
+
 .admin-panel-header h2 {
     margin: 0;
     font-size: 18px;

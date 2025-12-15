@@ -5838,6 +5838,8 @@ function switchAdminTab(tab) {
         loadAdminVolumeLeaderData();
     } else if (tab === 'dropping') {
         loadAdminDroppingData();
+    } else if (tab === 'mim') {
+        loadAdminMimData();
     }
 }
 
@@ -6217,6 +6219,148 @@ async function deleteDroppingAlarms() {
         if (res.ok) {
             showToast('Dropping alarmları silindi', 'success');
             loadAdminDroppingData();
+        } else {
+            showToast('Silme hatası', 'error');
+        }
+    } catch (e) {
+        showToast('Bağlantı hatası', 'error');
+    }
+}
+
+async function loadAdminMimData() {
+    const body = document.getElementById('adminPanelBody');
+    if (!body) return;
+    
+    body.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8;">Yükleniyor...</div>';
+    
+    try {
+        const configRes = await fetch('/api/mim/config');
+        const config = configRes.ok ? await configRes.json() : {};
+        
+        await fetchAlarmsBatch();
+        const alarms = getCachedAlarmsByType('mim');
+        
+        let html = `
+            <div class="admin-section">
+                <h3 style="color:#3B82F6; margin-bottom:16px;">💰 MIM (Market Impact Money) - Ayarlar</h3>
+                <p style="color:#8b949e; font-size:12px; margin-bottom:16px;">
+                    MIM alarmı, piyasa etkisini ölçer. Impact değeri ne kadar yüksekse, o seçim için para akışı o kadar güçlüdür.
+                </p>
+                
+                <div class="admin-config-form">
+                    <div class="config-row">
+                        <label>Min. Impact Eşiği</label>
+                        <input type="number" id="mimMinImpact" value="${config.min_impact_threshold || 0.10}" min="0.01" max="1.0" step="0.01">
+                        <span class="config-hint">Minimum impact değeri (varsayılan: 0.10)</span>
+                    </div>
+                    
+                    <div class="config-row">
+                        <label>Min. Hacim (£)</label>
+                        <input type="number" id="mimMinVolume" value="${config.min_volume || 1000}" min="100" step="100">
+                        <span class="config-hint">Minimum toplam hacim</span>
+                    </div>
+                    
+                    <div class="config-actions">
+                        <button class="admin-btn primary" onclick="saveMimConfig()">💾 Ayarları Kaydet</button>
+                        <button class="admin-btn danger" onclick="deleteMimAlarms()">🗑️ Alarmları Sil</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="admin-section" style="margin-top:24px;">
+                <h3 style="color:#3B82F6; margin-bottom:16px;">📊 Alarmlar (${alarms.length})</h3>
+        `;
+        
+        if (alarms.length === 0) {
+            html += '<div class="admin-no-data">Henüz MIM alarmı yok.</div>';
+        } else {
+            html += `
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Maç</th>
+                            <th>Market</th>
+                            <th>Seçim</th>
+                            <th>Seviye</th>
+                            <th>Impact</th>
+                            <th>Hacim</th>
+                            <th>Alarm Zamanı</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            alarms.slice(0, 50).forEach(alarm => {
+                const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
+                const market = alarm.market || '-';
+                const selection = alarm.selection || '-';
+                const level = alarm.level || '-';
+                const impact = (alarm.impact || 0).toFixed(2);
+                const volume = `£${Number(alarm.total_volume || alarm.volume || 0).toLocaleString('en-GB')}`;
+                const eventTime = alarm.trigger_at || alarm.event_time || '-';
+                
+                const levelColor = level >= 3 ? '#3B82F6' : level >= 2 ? '#60a5fa' : '#93c5fd';
+                
+                html += `
+                    <tr>
+                        <td class="match-col">${matchName}</td>
+                        <td><span class="admin-badge mim">${market}</span></td>
+                        <td>${selection}</td>
+                        <td><span style="color:${levelColor}; font-weight:600;">L${level}</span></td>
+                        <td style="color:#3B82F6; font-weight:600;">${impact}</td>
+                        <td>${volume}</td>
+                        <td class="admin-value-muted">${eventTime}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            if (alarms.length > 50) {
+                html += `<div style="text-align:center; padding:12px; color:#6e7681; font-size:12px;">+${alarms.length - 50} daha fazla alarm...</div>`;
+            }
+        }
+        
+        html += '</div>';
+        body.innerHTML = html;
+        
+    } catch (e) {
+        console.error('MIM admin veri hatası:', e);
+        body.innerHTML = '<div class="admin-no-data">Veri yüklenirken hata oluştu.</div>';
+    }
+}
+
+async function saveMimConfig() {
+    const config = {
+        min_impact_threshold: parseFloat(document.getElementById('mimMinImpact').value) || 0.10,
+        min_volume: parseInt(document.getElementById('mimMinVolume').value) || 1000
+    };
+    
+    try {
+        const res = await fetch('/api/mim/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+        
+        if (res.ok) {
+            showToast('MIM ayarları kaydedildi', 'success');
+        } else {
+            showToast('Kaydetme hatası', 'error');
+        }
+    } catch (e) {
+        showToast('Bağlantı hatası', 'error');
+    }
+}
+
+async function deleteMimAlarms() {
+    if (!confirm('Tüm MIM alarmlarını silmek istediğinize emin misiniz?')) return;
+    
+    try {
+        const res = await fetch('/api/mim/alarms', { method: 'DELETE' });
+        if (res.ok) {
+            showToast('MIM alarmları silindi', 'success');
+            invalidateAlarmCache();
+            loadAdminMimData();
         } else {
             showToast('Silme hatası', 'error');
         }

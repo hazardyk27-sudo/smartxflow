@@ -4359,6 +4359,56 @@ def get_mim_alarms():
     return jsonify([])
 
 
+@app.route('/api/mim/config', methods=['GET'])
+def get_mim_config():
+    """Get MIM config with default fallback"""
+    default_config = {
+        'min_impact_threshold': 0.10,
+        'min_volume': 1000,
+        'enabled': True
+    }
+    
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            db_setting = supabase.get_alarm_setting('mim')
+            if db_setting:
+                db_config = db_setting.get('config')
+                if db_config and isinstance(db_config, dict):
+                    for key, value in db_config.items():
+                        if value is not None:
+                            default_config[key] = value
+    except Exception as e:
+        print(f"[MIM] Config fetch error: {e}")
+    
+    return jsonify(default_config)
+
+
+@app.route('/api/mim/config', methods=['POST'])
+def save_mim_config():
+    """Save MIM config to Supabase"""
+    try:
+        data = request.get_json()
+        if data:
+            supabase = get_supabase_client()
+            if supabase and supabase.is_available:
+                supabase.save_alarm_setting('mim', data)
+            return jsonify({'success': True, 'config': data})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    return jsonify({'success': False, 'error': 'No data'}), 400
+
+
+@app.route('/api/mim/alarms', methods=['DELETE'])
+def delete_mim_alarms():
+    """Delete all MIM alarms from Supabase"""
+    try:
+        delete_alarms_from_supabase('mim_alarms')
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/alarms/all', methods=['GET'])
 def get_all_alarms_batch():
     """
