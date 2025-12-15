@@ -1050,7 +1050,19 @@ class AlarmCalculator:
         total_alarms = 0
         alarm_counts = {}
         
-        log("1/7 Sharp hesaplaniyor...")
+        log("1/7 BigMoney hesaplaniyor...")
+        try:
+            bigmoney_count = self.calculate_bigmoney_alarms() or 0
+            alarm_counts['BigMoney'] = bigmoney_count
+            total_alarms += bigmoney_count
+            log(f"  -> BigMoney: {bigmoney_count} alarm")
+        except Exception as e:
+            import traceback
+            log(f"!!! BigMoney error: {e}")
+            log(f"Traceback: {traceback.format_exc()}")
+            alarm_counts['BigMoney'] = 0
+        
+        log("2/7 Sharp hesaplaniyor...")
         try:
             sharp_count = self.calculate_sharp_alarms() or 0
             alarm_counts['Sharp'] = sharp_count
@@ -1062,7 +1074,7 @@ class AlarmCalculator:
             log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['Sharp'] = 0
         
-        log("2/7 Insider hesaplaniyor...")
+        log("3/7 Insider hesaplaniyor...")
         try:
             insider_count = self.calculate_insider_alarms() or 0
             alarm_counts['Insider'] = insider_count
@@ -1073,18 +1085,6 @@ class AlarmCalculator:
             log(f"!!! Insider error: {e}")
             log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['Insider'] = 0
-        
-        log("3/7 BigMoney hesaplaniyor...")
-        try:
-            bigmoney_count = self.calculate_bigmoney_alarms() or 0
-            alarm_counts['BigMoney'] = bigmoney_count
-            total_alarms += bigmoney_count
-            log(f"  -> BigMoney: {bigmoney_count} alarm")
-        except Exception as e:
-            import traceback
-            log(f"!!! BigMoney error: {e}")
-            log(f"Traceback: {traceback.format_exc()}")
-            alarm_counts['BigMoney'] = 0
         
         log("4/7 VolumeShock hesaplaniyor...")
         try:
@@ -1146,13 +1146,15 @@ class AlarmCalculator:
         return total_alarms
     
     def _is_valid_match_date(self, date_str: str) -> bool:
-        """Check if match is within valid date range (past 7 days to future 7 days)"""
+        """Check if match is within valid date range (D-1 to D+7)
+        D-2 and older matches are excluded from alarm calculations.
+        """
         match_date = parse_match_date(date_str)
         if not match_date:
             return True
         
         today = now_turkey().date()
-        past_limit = today - timedelta(days=7)
+        past_limit = today - timedelta(days=1)  # D-1 dahil, D-2+ hariç
         future_limit = today + timedelta(days=7)
         match_dt = match_date.date()
         return past_limit <= match_dt <= future_limit
