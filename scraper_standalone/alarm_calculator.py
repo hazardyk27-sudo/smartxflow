@@ -705,7 +705,8 @@ class AlarmCalculator:
             'volumeshock_alarms',
             'dropping_alarms',
             'publicmove_alarms',
-            'volume_leader_alarms'
+            'volume_leader_alarms',
+            'mim_alarms'
         ]
         
         total_deleted = 0
@@ -951,6 +952,14 @@ class AlarmCalculator:
                 'min_volume_btts': 999,
                 'min_volume_ou25': 1499,
                 'leader_threshold': 50
+            },
+            'mim': {
+                'enabled': True,
+                'min_impact_for_alarm': 0.20,
+                'level2_threshold': 0.40,
+                'level3_threshold': 0.70,
+                'min_market_volume': 1000,
+                'min_new_money': 300
             }
         }
     
@@ -1098,7 +1107,7 @@ class AlarmCalculator:
             log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['VolumeShock'] = 0
         
-        log("5/7 Dropping hesaplaniyor...")
+        log("5/8 Dropping hesaplaniyor...")
         try:
             dropping_count = self.calculate_dropping_alarms() or 0
             alarm_counts['Dropping'] = dropping_count
@@ -1110,7 +1119,7 @@ class AlarmCalculator:
             log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['Dropping'] = 0
         
-        log("6/7 PublicMove hesaplaniyor...")
+        log("6/8 PublicMove hesaplaniyor...")
         try:
             publicmove_count = self.calculate_publicmove_alarms() or 0
             alarm_counts['PublicMove'] = publicmove_count
@@ -1122,7 +1131,7 @@ class AlarmCalculator:
             log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['PublicMove'] = 0
         
-        log("7/7 VolumeLeader hesaplaniyor...")
+        log("7/8 VolumeLeader hesaplaniyor...")
         try:
             volumeleader_count = self.calculate_volumeleader_alarms() or 0
             alarm_counts['VolumeLeader'] = volumeleader_count
@@ -1133,6 +1142,18 @@ class AlarmCalculator:
             log(f"!!! VolumeLeader error: {e}")
             log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['VolumeLeader'] = 0
+        
+        log("8/8 MIM (Market Impact) hesaplaniyor...")
+        try:
+            mim_count = self.calculate_mim_alarms() or 0
+            alarm_counts['MIM'] = mim_count
+            total_alarms += mim_count
+            log(f"  -> MIM: {mim_count} alarm")
+        except Exception as e:
+            import traceback
+            log(f"!!! MIM error: {e}")
+            log(f"Traceback: {traceback.format_exc()}")
+            alarm_counts['MIM'] = 0
         
         log("=" * 50)
         log(f"[ALARM SYNC] HESAPLAMA TAMAMLANDI - TOPLAM: {total_alarms} alarm")
@@ -2555,6 +2576,129 @@ class AlarmCalculator:
             log("VolumeLeader: 0 alarm")
         
         return len(alarms)
+
+
+    def calculate_mim_alarms(self) -> int:
+        """Calculate MIM (Market Impact) alarms
+        
+        MIM Formülü:
+        - NewMoney = curr_amount - prev_amount (seçilen market/option için)
+        - MarketVolume = amount_1 + amount_X + amount_2 (1X2 toplam hacim)
+        - Impact = NewMoney / max(MarketVolume_before, 1)
+        
+        Level belirleme:
+        - Level 1: impact >= min_impact_for_alarm (default 0.20)
+        - Level 2: impact >= level2_threshold (default 0.40)
+        - Level 3: impact >= level3_threshold (default 0.70)
+        """
+        config = self.configs.get('mim')
+        if not config:
+            log("[MIM] CONFIG YOK - Supabase'de mim ayarlarını kaydedin!")
+            return 0
+        
+        if not config.get('enabled', True):
+            log("[MIM] Alarm devre dışı")
+            return 0
+        
+        min_impact = parse_float(config.get('min_impact_for_alarm')) or 0.20
+        level2_threshold = parse_float(config.get('level2_threshold')) or 0.40
+        level3_threshold = parse_float(config.get('level3_threshold')) or 0.70
+        min_market_volume = parse_float(config.get('min_market_volume')) or 1000
+        min_new_money = parse_float(config.get('min_new_money')) or 300
+        
+        log(f"[MIM] Config: min_impact={min_impact}, L2={level2_threshold}, L3={level3_threshold}, min_vol={min_market_volume}, min_new={min_new_money}")
+        
+        alarms = []
+        market = 'moneyway_1x2'
+        market_name = '1X2'
+        
+        matches = self.get_matches_with_latest(market)
+        if not matches:
+            log("[MIM] moneyway_1x2'de maç yok")
+            return 0
+        
+        for match in matches:
+            home = match.get('home', '')
+            away = match.get('away', '')
+            
+            if not self._is_valid_match_date(match.get('date', '')):
+                continue
+            
+            history = self.get_match_history(home, away, f"{market}_history")
+            if len(history) < 2:
+                continue
+            
+            sorted_history = sorted(history, key=lambda x: x.get('scraped_at', ''))
+            
+            for i in range(1, len(sorted_history)):
+                prev_snap = sorted_history[i - 1]
+                curr_snap = sorted_history[i]
+                
+                prev_amt_1 = parse_volume(prev_snap.get('total_amount_1', 0))
+                prev_amt_x = parse_volume(prev_snap.get('total_amount_x', 0))
+                prev_amt_2 = parse_volume(prev_snap.get('total_amount_2', 0))
+                prev_market_volume = prev_amt_1 + prev_amt_x + prev_amt_2
+                
+                curr_amt_1 = parse_volume(curr_snap.get('total_amount_1', 0))
+                curr_amt_x = parse_volume(curr_snap.get('total_amount_x', 0))
+                curr_amt_2 = parse_volume(curr_snap.get('total_amount_2', 0))
+                
+                if prev_market_volume < min_market_volume:
+                    continue
+                
+                selections = [
+                    ('1', prev_amt_1, curr_amt_1),
+                    ('X', prev_amt_x, curr_amt_x),
+                    ('2', prev_amt_2, curr_amt_2)
+                ]
+                
+                for selection, prev_amt, curr_amt in selections:
+                    new_money = curr_amt - prev_amt
+                    
+                    if new_money < min_new_money:
+                        continue
+                    
+                    impact = new_money / max(prev_market_volume, 1)
+                    
+                    if impact < min_impact:
+                        continue
+                    
+                    if impact >= level3_threshold:
+                        mim_level = 3
+                    elif impact >= level2_threshold:
+                        mim_level = 2
+                    else:
+                        mim_level = 1
+                    
+                    trigger_at = curr_snap.get('scraped_at', now_turkey_iso())
+                    match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
+                    
+                    alarm = {
+                        'match_id': match_id,
+                        'home': home,
+                        'away': away,
+                        'market': market_name,
+                        'selection': selection,
+                        'new_money': round(new_money, 2),
+                        'market_volume': round(prev_market_volume, 2),
+                        'impact': round(impact, 4),
+                        'mim_level': mim_level,
+                        'match_date': match.get('date', ''),
+                        'trigger_at': trigger_at,
+                        'created_at': now_turkey_iso(),
+                        'alarm_type': 'mim'
+                    }
+                    alarms.append(alarm)
+                    log(f"  [MIM] {home} vs {away} | {selection} | Impact: {impact:.2f} (Level {mim_level}) | £{new_money:,.0f} yeni para")
+        
+        if alarms:
+            new_count = self._upsert_alarms('mim_alarms', alarms, ['match_id', 'market', 'selection', 'trigger_at'])
+            log(f"MIM: {new_count} alarms upserted")
+            return new_count
+        else:
+            log("MIM: 0 alarm")
+        
+        return 0
 
 
 def run_alarm_calculations(supabase_url: str, supabase_key: str):
