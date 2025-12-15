@@ -4329,7 +4329,7 @@ td.volume,
 }
 
 .alarm-filter-dropdown.open .alarm-filter-options {
-    max-height: 320px;
+    max-height: 450px;
     opacity: 1;
     border-color: #f59e0b;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);

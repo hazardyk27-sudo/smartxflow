@@ -3990,7 +3990,7 @@ function showAlertBandDetail(index) {
         `;
     }
     
-    const typeColors = { sharp: '#ef4444', insider: '#60a5fa', bigmoney: '#fbbf24', volumeshock: '#F6C343', dropping: '#f85149', publicmove: '#FFCC00', volumeleader: '#06b6d4', mim: '#0A3D91' };
+    const typeColors = { sharp: '#ef4444', insider: '#60a5fa', bigmoney: '#fbbf24', volumeshock: '#F6C343', dropping: '#f85149', publicmove: '#FFCC00', volumeleader: '#06b6d4', mim: '#3B82F6' };
     
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 480px;">
@@ -4278,7 +4278,7 @@ const alarmFilterColors = {
     dropping: '#f85149',
     publicmove: '#FFCC00',
     volumeleader: '#06b6d4',
-    mim: '#0A3D91'
+    mim: '#3B82F6'
 };
 
 const alarmFilterLabels = {
@@ -4408,7 +4408,7 @@ function renderAlarmsList(filterType) {
     const displayGroups = groups.slice(0, alarmsDisplayCount);
     const hasMore = groups.length > alarmsDisplayCount;
     const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY', volumeshock: 'HACIM SOKU', dropping: 'DROPPING', publicmove: 'PUBLIC MOVE', volumeleader: 'LİDER DEĞİŞTİ', mim: 'MIM' };
-    const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#F08A24', volumeshock: '#F6C343', dropping: '#f85149', publicmove: '#FFCC00', volumeleader: '#06b6d4', mim: '#0A3D91' };
+    const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#F08A24', volumeshock: '#F6C343', dropping: '#f85149', publicmove: '#FFCC00', volumeleader: '#06b6d4', mim: '#3B82F6' };
     
     let html = displayGroups.map((group, idx) => {
         const type = group.type;
@@ -4486,7 +4486,7 @@ function renderAlarmsList(filterType) {
             'volumeshock': '#F6C343',
             'publicmove': '#FFCC00',
             'volumeleader': '#06b6d4',
-            'mim': '#0A3D91'
+            'mim': '#3B82F6'
         };
         const stripeColor = stripeColors[type] || '#64748b';
         
@@ -5337,7 +5337,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
         },
         mim: {
             title: 'MIM',
-            color: '#0A3D91',
+            color: '#3B82F6',
             icon: '🎯',
             description: 'Market Inefficiency Monitor.'
         }
