@@ -35,7 +35,6 @@ jobs:
       - name: Create config with secrets
         run: |
           echo '{"SUPABASE_URL": "${{ secrets.SUPABASE_URL }}", "SUPABASE_ANON_KEY": "${{ secrets.SUPABASE_ANON_KEY }}", "SCRAPE_INTERVAL_MINUTES": 10}' > scraper_standalone/config.json
-          cat scraper_standalone/config.json
         shell: bash
 
       - name: Create BUILD_INFO.txt
@@ -45,11 +44,6 @@ jobs:
           echo "Python: 3.11" >> scraper_standalone/BUILD_INFO.txt
           echo "Commit: ${{ github.sha }}" >> scraper_standalone/BUILD_INFO.txt
           echo "Branch: ${{ github.ref_name }}" >> scraper_standalone/BUILD_INFO.txt
-          echo "" >> scraper_standalone/BUILD_INFO.txt
-          echo "=== Troubleshooting ===" >> scraper_standalone/BUILD_INFO.txt
-          echo "1. Check smartxflow_admin.log for errors" >> scraper_standalone/BUILD_INFO.txt
-          echo "2. Ensure WebView2 Runtime is installed" >> scraper_standalone/BUILD_INFO.txt
-          echo "3. Run as Administrator if needed" >> scraper_standalone/BUILD_INFO.txt
         shell: bash
 
       - name: Build Admin EXE
