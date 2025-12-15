@@ -32,7 +32,7 @@ jobs:
           pip install pyinstaller==6.3.0
         shell: cmd
 
-      - name: Create embedded_credentials.py with secrets
+      - name: Create embedded_credentials.py
         run: |
           python -c "
           with open('services/embedded_credentials.py', 'w') as f:
@@ -41,7 +41,7 @@ jobs:
           "
         shell: bash
 
-      - name: Create config.json with secrets
+      - name: Create config.json
         run: |
           python -c "
           import json
@@ -51,20 +51,11 @@ jobs:
           "
         shell: bash
 
-      - name: Create BUILD_INFO.txt
-        run: |
-          echo SmartXFlow Desktop V1.01 > BUILD_INFO.txt
-          echo Build Date: %date% %time% >> BUILD_INFO.txt
-          echo Commit: ${{ github.sha }} >> BUILD_INFO.txt
-          echo Branch: ${{ github.ref_name }} >> BUILD_INFO.txt
-        shell: cmd
-
-      - name: Build Desktop App EXE
+      - name: Build Desktop EXE
         run: |
           pyinstaller --onefile --windowed --name SmartXFlowDesktop ^
             --add-data "app.py;." ^
             --add-data "config.json;." ^
-            --add-data "BUILD_INFO.txt;." ^
             --add-data "templates;templates" ^
             --add-data "static;static" ^
             --add-data "core;core" ^
@@ -79,22 +70,17 @@ jobs:
             desktop_app.py
         shell: cmd
 
-      - name: Copy files to dist
-        run: |
-          copy config.json dist\config.json
-          copy BUILD_INFO.txt dist\BUILD_INFO.txt
+      - name: Copy config to dist
+        run: copy config.json dist\config.json
         shell: cmd
 
-      - name: List output
-        run: dir dist
-        shell: cmd
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: SmartXFlowDesktop-Windows
-          path: |
+          tag_name: desktop-v1.01-${{ github.run_number }}
+          name: Desktop App v1.01 Build ${{ github.run_number }}
+          files: |
             dist/SmartXFlowDesktop.exe
             dist/config.json
-            dist/BUILD_INFO.txt
-          retention-days: 1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
