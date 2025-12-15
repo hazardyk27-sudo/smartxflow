@@ -1331,15 +1331,15 @@ class AlarmCalculator:
                     if amount_change < min_amount_change:
                         continue
                     
-                    # === UI FORMÜLÜ: avg_last_amounts (son 5 snapshot ortalaması) ===
+                    # === UI FORMÜLÜ: avg_last_amounts (son 20 snapshot ortalaması) ===
                     # PRIOR LOGIC: Deterministik fallback ile gerçek volume change korunur
-                    last_5_amounts = []
-                    for i in range(max(0, len(history) - 6), len(history) - 1):
+                    last_20_amounts = []
+                    for i in range(max(0, len(history) - 21), len(history) - 1):
                         amt = parse_volume(history[i].get(amount_key, 0))
-                        last_5_amounts.append(amt)
+                        last_20_amounts.append(amt)
                     
                     # UI Mantığı: Non-zero ortalaması, yoksa prev_amount, yoksa 1000 fallback
-                    non_zero_amounts = [a for a in last_5_amounts if a > 0]
+                    non_zero_amounts = [a for a in last_20_amounts if a > 0]
                     if len(non_zero_amounts) > 0:
                         avg_last_amounts = sum(non_zero_amounts) / len(non_zero_amounts)
                     elif prev_amount > 0:
