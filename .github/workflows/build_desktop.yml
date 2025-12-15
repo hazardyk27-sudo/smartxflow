@@ -97,4 +97,4 @@ jobs:
             dist/SmartXFlowDesktop.exe
             dist/config.json
             dist/BUILD_INFO.txt
-          retention-days: 30
+          retention-days: 1
