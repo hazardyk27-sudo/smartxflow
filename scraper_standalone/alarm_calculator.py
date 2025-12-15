@@ -2582,14 +2582,8 @@ class AlarmCalculator:
         """Calculate MIM (Market Impact) alarms
         
         MIM Formülü:
-        - NewMoney = curr_amount - prev_amount (seçilen market/option için)
-        - MarketVolume = amount_1 + amount_X + amount_2 (1X2 toplam hacim)
-        - Impact = NewMoney / max(MarketVolume_before, 1)
-        
-        Level belirleme:
-        - Level 1: impact >= min_impact_for_alarm (default 0.20)
-        - Level 2: impact >= level2_threshold (default 0.40)
-        - Level 3: impact >= level3_threshold (default 0.70)
+        - Impact = (current_volume - prev_volume) / current_volume
+        - Alarm üretilir: impact >= min_impact_threshold AND prev_volume >= min_prev_volume
         """
         config = self.configs.get('mim')
         if not config:
@@ -2600,13 +2594,10 @@ class AlarmCalculator:
             log("[MIM] Alarm devre dışı")
             return 0
         
-        min_impact = parse_float(config.get('min_impact_for_alarm')) or 0.20
-        level2_threshold = parse_float(config.get('level2_threshold')) or 0.40
-        level3_threshold = parse_float(config.get('level3_threshold')) or 0.70
-        min_market_volume = parse_float(config.get('min_market_volume')) or 1000
-        min_new_money = parse_float(config.get('min_new_money')) or 300
+        min_impact_threshold = parse_float(config.get('min_impact_threshold')) or 0.10
+        min_prev_volume = parse_float(config.get('min_prev_volume')) or 1000
         
-        log(f"[MIM] Config: min_impact={min_impact}, L2={level2_threshold}, L3={level3_threshold}, min_vol={min_market_volume}, min_new={min_new_money}")
+        log(f"[MIM] Config: min_impact_threshold={min_impact_threshold}, min_prev_volume={min_prev_volume}")
         
         alarms = []
         market = 'moneyway_1x2'
@@ -2637,62 +2628,46 @@ class AlarmCalculator:
                 prev_amt_1 = parse_volume(prev_snap.get('total_amount_1', 0))
                 prev_amt_x = parse_volume(prev_snap.get('total_amount_x', 0))
                 prev_amt_2 = parse_volume(prev_snap.get('total_amount_2', 0))
-                prev_market_volume = prev_amt_1 + prev_amt_x + prev_amt_2
+                prev_volume = prev_amt_1 + prev_amt_x + prev_amt_2
                 
                 curr_amt_1 = parse_volume(curr_snap.get('total_amount_1', 0))
                 curr_amt_x = parse_volume(curr_snap.get('total_amount_x', 0))
                 curr_amt_2 = parse_volume(curr_snap.get('total_amount_2', 0))
+                curr_volume = curr_amt_1 + curr_amt_x + curr_amt_2
                 
-                if prev_market_volume < min_market_volume:
+                if prev_volume < min_prev_volume:
                     continue
                 
-                selections = [
-                    ('1', prev_amt_1, curr_amt_1),
-                    ('X', prev_amt_x, curr_amt_x),
-                    ('2', prev_amt_2, curr_amt_2)
-                ]
+                if curr_volume <= 0:
+                    continue
                 
-                for selection, prev_amt, curr_amt in selections:
-                    new_money = curr_amt - prev_amt
-                    
-                    if new_money < min_new_money:
-                        continue
-                    
-                    impact = new_money / max(prev_market_volume, 1)
-                    
-                    if impact < min_impact:
-                        continue
-                    
-                    if impact >= level3_threshold:
-                        mim_level = 3
-                    elif impact >= level2_threshold:
-                        mim_level = 2
-                    else:
-                        mim_level = 1
-                    
-                    trigger_at = curr_snap.get('scraped_at', now_turkey_iso())
-                    match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                    
-                    alarm = {
-                        'match_id': match_id,
-                        'home': home,
-                        'away': away,
-                        'market': market_name,
-                        'selection': selection,
-                        'new_money': round(new_money, 2),
-                        'market_volume': round(prev_market_volume, 2),
-                        'impact': round(impact, 4),
-                        'mim_level': mim_level,
-                        'match_date': match.get('date', ''),
-                        'trigger_at': trigger_at,
-                        'created_at': now_turkey_iso(),
-                        'alarm_type': 'mim'
-                    }
-                    alarms.append(alarm)
-                    log(f"  [MIM] {home} vs {away} | {selection} | Impact: {impact:.2f} (Level {mim_level}) | £{new_money:,.0f} yeni para")
+                impact = (curr_volume - prev_volume) / curr_volume
+                
+                if impact < min_impact_threshold:
+                    continue
+                
+                trigger_at = curr_snap.get('scraped_at', now_turkey_iso())
+                match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
+                
+                alarm = {
+                    'match_id': match_id,
+                    'home': home,
+                    'away': away,
+                    'league': match.get('league', ''),
+                    'market': market_name,
+                    'impact': round(impact, 4),
+                    'prev_volume': round(prev_volume, 2),
+                    'current_volume': round(curr_volume, 2),
+                    'match_date': match.get('date', ''),
+                    'trigger_at': trigger_at,
+                    'created_at': now_turkey_iso(),
+                    'alarm_type': 'mim'
+                }
+                alarms.append(alarm)
+                log(f"  [MIM] {home} vs {away} | Impact: {impact:.2%} | £{prev_volume:,.0f} -> £{curr_volume:,.0f}")
         
         if alarms:
-            new_count = self._upsert_alarms('mim_alarms', alarms, ['match_id', 'market', 'selection', 'trigger_at'])
+            new_count = self._upsert_alarms('mim_alarms', alarms, ['match_id', 'market', 'trigger_at'])
             log(f"MIM: {new_count} alarms upserted")
             return new_count
         else:
