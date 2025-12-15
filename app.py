@@ -3169,7 +3169,7 @@ def calculate_volume_shock_scores(config):
                             if amount_change < min_son_snapshot_para:
                                 continue
                             
-                            # Son 5 snapshot'ın ortalamasını al
+                            # Son 20 snapshot'ın ortalamasını al
                             prev_amounts = []
                             for j in range(max(0, i-5), i):
                                 amt = parse_volume(history[j].get(amount_key, '0'))

@@ -1195,7 +1195,7 @@ class AlarmCalculator:
         UI Formülleri:
         1. Hacim Şoku:
            - amount_change = curr_amt - prev_amt
-           - avg_last_amounts = son 5 snapshot'ın ortalaması
+           - avg_last_amounts = son 20 snapshot'ın ortalaması
            - shock_raw = amount_change / avg_last_amounts
            - shock_value = shock_raw × volume_multiplier
            - volume_contrib = min(shock_value, max_volume_cap)
