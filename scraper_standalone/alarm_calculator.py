@@ -2667,7 +2667,8 @@ class AlarmCalculator:
                 log(f"  [MIM] {home} vs {away} | Impact: {impact:.2%} | £{prev_volume:,.0f} -> £{curr_volume:,.0f}")
         
         if alarms:
-            new_count = self._upsert_alarms('mim_alarms', alarms, ['match_id', 'market', 'trigger_at'])
+            # Constraint: match_id, market - Supabase unique constraint ile uyumlu
+            new_count = self._upsert_alarms('mim_alarms', alarms, ['match_id', 'market'])
             log(f"MIM: {new_count} alarms upserted")
             return new_count
         else:
