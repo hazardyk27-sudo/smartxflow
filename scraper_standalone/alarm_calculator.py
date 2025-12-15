@@ -285,8 +285,8 @@ class AlarmCalculator:
         return False
     
     def _upsert_alarms(self, table: str, alarms: List[Dict], key_fields: List[str]) -> int:
-        """True UPSERT - insert or update existing records based on key_fields
-        IMPORTANT: Preserves original trigger_at AND created_at for existing alarms
+        """OPTIMIZED UPSERT - insert or update existing records based on key_fields
+        Uses batch filtering instead of full-table read for better performance
         """
         if not alarms:
             return 0
@@ -301,34 +301,43 @@ class AlarmCalculator:
             alarms = list(seen.values())
             log(f"[UPSERT] {table}: {len(alarms)} unique alarms after dedup")
             
-            # Build select fields dynamically from key_fields + timestamp fields
+            # OPTIMIZED: Only fetch existing records for current batch using first key field filter
             select_fields = ','.join(key_fields + ['trigger_at', 'created_at'])
             existing_data = {}
+            
+            # Get unique values for the first key field (usually match_id or home)
+            first_key = key_fields[0]
+            unique_keys = list(set(str(a.get(first_key, '')) for a in alarms if a.get(first_key)))
+            
             try:
-                existing = self._get(table, f'select={select_fields}')
+                if unique_keys and len(unique_keys) <= 100:
+                    # Batch query: only fetch records matching current batch keys
+                    keys_param = ','.join(unique_keys)
+                    existing = self._get(table, f'select={select_fields}&{first_key}=in.({keys_param})')
+                else:
+                    # Fallback: full table read for large batches (preserves correctness)
+                    existing = self._get(table, f'select={select_fields}')
+                
                 if existing:
                     for e in existing:
-                        # Build key from all key_fields dynamically
                         key_parts = [str(e.get(f, '')) for f in key_fields]
                         key = '|'.join(key_parts)
-                        # Store both trigger_at and created_at
                         existing_data[key] = {
                             'trigger_at': e.get('trigger_at'),
                             'created_at': e.get('created_at')
                         }
-                    log(f"[UPSERT] Found {len(existing_data)} existing {table} records")
+                    query_type = "batch" if len(unique_keys) <= 100 else "full"
+                    log(f"[UPSERT] Found {len(existing_data)} existing records ({query_type} query)")
             except Exception as ex:
-                log(f"[UPSERT] Could not fetch existing records: {ex}")
+                log(f"[UPSERT] Query failed, skipping timestamp preservation: {ex}")
             
             # Preserve original timestamps for existing alarms
             preserved_count = 0
             for alarm in alarms:
-                # Build key from all key_fields dynamically
                 key_parts = [str(alarm.get(f, '')) for f in key_fields]
                 key = '|'.join(key_parts)
                 if key in existing_data:
                     orig = existing_data[key]
-                    # Preserve timestamp fields from first detection
                     if orig.get('trigger_at'):
                         alarm['trigger_at'] = orig['trigger_at']
                     if orig.get('created_at'):
