@@ -314,7 +314,7 @@
                     },
                     scales:{
                         x:{grid:{color:'rgba(148, 163, 184, 0.13)'},border:{display:false},ticks:{color:'#8B949E',font:{size:11,family:"'Inter', sans-serif"},maxRotation:45,maxTicksLimit:12}},
-                        y:{grid:{color:'rgba(148, 163, 184, 0.13)'},border:{display:false},ticks:{color:'#8B949E',font:{size:11,family:"'Inter', sans-serif"}}}
+                        y:{grid:{color:'rgba(148, 163, 184, 0.13)'},border:{display:false},ticks:{color:'#8B949E',font:{size:11,family:"'Inter', sans-serif"},callback:function(value){if(isMoneyway && !usePct){return '£'+value.toLocaleString('en-GB');}else if(isMoneyway && usePct){return value+'%';}return value;}}}
                     },
                     elements:{point:{radius:0,hoverRadius:5,borderWidth:2},line:{borderWidth:2}}
                 }
