@@ -89,12 +89,16 @@ jobs:
         run: dir dist
         shell: cmd
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: SmartXFlowDesktop-v1.01-${{ github.run_number }}
-          path: |
+          tag_name: desktop-v1.01-${{ github.run_number }}
+          name: SmartXFlow Desktop v1.01 Build ${{ github.run_number }}
+          files: |
             dist/SmartXFlowDesktop.exe
             dist/config.json
             dist/BUILD_INFO.txt
-          retention-days: 7
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

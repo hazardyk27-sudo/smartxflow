@@ -58,9 +58,13 @@ jobs:
           dir scraper_standalone\dist
         shell: cmd
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: SmartXFlowAdmin-v1.23-${{ github.run_number }}
-          path: scraper_standalone/dist/
-          retention-days: 7
+          tag_name: admin-v1.23-${{ github.run_number }}
+          name: SmartXFlow Admin v1.23 Build ${{ github.run_number }}
+          files: scraper_standalone/dist/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
