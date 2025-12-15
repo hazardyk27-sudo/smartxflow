@@ -668,6 +668,10 @@
                 <span class="nav-item-icon">👑</span>
                 <span>Hacim Lideri</span>
             </div>
+            <div class="nav-item" onclick="showPage('mim')" data-page="mim">
+                <span class="nav-item-icon">💎</span>
+                <span>MIM</span>
+            </div>
         </nav>
         <div class="sidebar-footer">
             <a href="/" class="back-home">
@@ -2075,6 +2079,94 @@
             </div>
         </div>
 
+        <!-- MIM (Market Impact Money) PAGE -->
+        <div id="page-mim" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title" style="color: #3B82F6;">💎 MIM (Market Impact Money)</h2>
+                    <p class="page-subtitle">Piyasa etkisi alarmlarini yonet - buyuk para hareketlerini tespit et</p>
+                </div>
+            </div>
+
+            <div class="grid-two-col">
+                <div class="info-card" style="border-left: 3px solid #3B82F6;">
+                    <h3>💎 MIM Ayarlari</h3>
+                    <p style="color: #8b949e; font-size: 12px; margin-bottom: 15px;">
+                        MIM, piyasa etkisini olcer. Impact degeri ne kadar yuksekse, o secim icin para akisi o kadar gucludur.
+                    </p>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Min. Impact Esigi</label>
+                            <input type="number" id="mimMinImpact" value="0.10" min="0.01" max="1.0" step="0.01">
+                            <span class="form-hint">Minimum impact degeri (varsayilan: 0.10)</span>
+                        </div>
+                        <div class="form-group">
+                            <label>Min. Onceki Volume (£)</label>
+                            <input type="number" id="mimMinPrevVolume" value="1000" min="0" step="100">
+                            <span class="form-hint">Para gelmeden onceki min. hacim</span>
+                        </div>
+                    </div>
+                    
+                    <div class="btn-group" style="margin-top: 20px;">
+                        <button class="btn btn-primary" onclick="saveMimConfig()" style="background: #238636;">
+                            <span class="btn-icon">💾</span> Ayarlari Kaydet
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteAllMimAlarms()" style="background: #da3633;">
+                            <span class="btn-icon">🗑️</span> Alarmlari Sil
+                        </button>
+                        <button class="btn" onclick="deleteAlarmConfig('mim')" style="background: #6e4000; color: white;">
+                            <span class="btn-icon">⚙️</span> Ayarlari Sil
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="info-card" style="border-left: 3px solid #3B82F6;">
+                    <h3>📊 MIM Istatistikleri</h3>
+                    <div class="stats-mini">
+                        <div class="stat-mini-item">
+                            <span class="stat-mini-value" id="mimTotalAlarms">0</span>
+                            <span class="stat-mini-label">Toplam Alarm</span>
+                        </div>
+                        <div class="stat-mini-item">
+                            <span class="stat-mini-value" id="mimTodayAlarms">0</span>
+                            <span class="stat-mini-label">Bugun</span>
+                        </div>
+                        <div class="stat-mini-item">
+                            <span class="stat-mini-value" id="mimAvgImpact">-</span>
+                            <span class="stat-mini-label">Ort. Impact</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-card" style="margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0; color: #3B82F6;">💎 MIM Alarmlar <span id="mimAlarmCount" class="badge" style="background: #3B82F6;">0</span> <span id="mimAlarmTotalCount" class="alarm-total-count"></span></h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div class="date-filter-group">
+                            <button class="date-filter-btn" onclick="setDateFilter('mim', 'yesterday')">Dun</button>
+                            <button class="date-filter-btn" onclick="setDateFilter('mim', 'today')">Bugun</button>
+                            <button class="date-filter-btn" onclick="setDateFilter('mim', 'future')">Gelecek</button>
+                            <button class="date-filter-btn active" onclick="setDateFilter('mim', 'all')">Tumu</button>
+                        </div>
+                        <input type="hidden" id="mimAlarmDateFilter" value="">
+                        <div style="position: relative;">
+                            <input type="text" id="mimSearchInput" placeholder="Takim ara..." 
+                                   oninput="filterMimAlarms()" 
+                                   style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 160px;">
+                            <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div id="mimAlarmList" class="alarm-list">
+                    <p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz MIM alarm yok.</p>
+                </div>
+            </div>
+        </div>
+
         <div id="page-system" class="page-content">
             <div class="page-header">
                 <div>
@@ -2796,7 +2888,8 @@
                 'bigMoney': filterBigMoneyAlarms,
                 'dropping': filterDroppingAlarms,
                 'volumeShock': filterVolumeShockAlarms,
-                'volumeLeader': filterVolumeLeaderAlarms
+                'volumeLeader': filterVolumeLeaderAlarms,
+                'mim': filterMimAlarms
             };
             
             if (filterFunctions[alarmType]) {
@@ -2853,6 +2946,7 @@
             if (pageId === 'dropping') loadDroppingPage();
             if (pageId === 'volumeshock') loadVolumeShockPage();
             if (pageId === 'volumeleader') loadVolumeLeaderPage();
+            if (pageId === 'mim') loadMimPage();
         }
 
         function showToast(message, type = 'info') {
@@ -4603,6 +4697,240 @@
                 showToast('Baglanti hatasi!', 'error');
             }
         }
+        
+        // ============================================
+        // MIM (Market Impact Money) FUNCTIONS
+        // ============================================
+        let mimAlarms = [];
+        let mimFilteredAlarms = [];
+        
+        async function loadMimPage() {
+            await Promise.all([loadMimConfig(), loadMimAlarms()]);
+        }
+        
+        async function loadMimConfig() {
+            try {
+                const response = await fetch('/api/mim/config');
+                const config = await response.json();
+                document.getElementById('mimMinImpact').value = config.min_impact_threshold ?? 0.10;
+                document.getElementById('mimMinPrevVolume').value = config.min_prev_volume ?? 1000;
+            } catch (error) {
+                console.error('MIM config yuklenemedi:', error);
+            }
+        }
+        
+        async function loadMimAlarms() {
+            try {
+                const response = await fetch('/api/alarms/mim');
+                mimAlarms = await response.json();
+                mimAlarms.sort((a, b) => new Date(b.trigger_at || b.created_at) - new Date(a.trigger_at || a.created_at));
+                mimFilteredAlarms = [...mimAlarms];
+                
+                updateMimStats();
+                renderMimAlarms();
+            } catch (error) {
+                console.error('MIM alarmlar yuklenemedi:', error);
+            }
+        }
+        
+        function updateMimStats() {
+            document.getElementById('mimTotalAlarms').textContent = mimAlarms.length;
+            
+            const today = new Date().toISOString().split('T')[0];
+            const todayAlarms = mimAlarms.filter(a => {
+                const alarmDate = (a.trigger_at || a.created_at || '').split('T')[0];
+                return alarmDate === today;
+            });
+            document.getElementById('mimTodayAlarms').textContent = todayAlarms.length;
+            
+            if (mimAlarms.length > 0) {
+                const avgImpact = mimAlarms.reduce((sum, a) => sum + (a.impact || 0), 0) / mimAlarms.length;
+                document.getElementById('mimAvgImpact').textContent = avgImpact.toFixed(2);
+            } else {
+                document.getElementById('mimAvgImpact').textContent = '-';
+            }
+            
+            document.getElementById('mimAlarmCount').textContent = mimFilteredAlarms.length;
+        }
+        
+        function renderMimAlarms() {
+            const container = document.getElementById('mimAlarmList');
+            const countEl = document.getElementById('mimAlarmCount');
+            const totalCountEl = document.getElementById('mimAlarmTotalCount');
+            
+            if (countEl) countEl.textContent = mimFilteredAlarms.length;
+            if (totalCountEl && mimAlarms.length !== mimFilteredAlarms.length) {
+                totalCountEl.textContent = `/ ${mimAlarms.length} toplam`;
+            } else if (totalCountEl) {
+                totalCountEl.textContent = '';
+            }
+            
+            if (!mimFilteredAlarms || mimFilteredAlarms.length === 0) {
+                container.innerHTML = '<p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz MIM alarm yok.</p>';
+                return;
+            }
+            
+            let html = `
+                <div class="alarm-table-wrapper" style="overflow-x: auto;">
+                    <table class="alarm-table" style="width: 100%; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #161b22; color: #8b949e;">
+                                <th style="padding: 10px; text-align: left;">Mac</th>
+                                <th style="padding: 10px; text-align: center;">Market</th>
+                                <th style="padding: 10px; text-align: center;">Secim</th>
+                                <th style="padding: 10px; text-align: center;">Level</th>
+                                <th style="padding: 10px; text-align: center;">Impact</th>
+                                <th style="padding: 10px; text-align: right;">Onceki Vol.</th>
+                                <th style="padding: 10px; text-align: right;">Guncel Vol.</th>
+                                <th style="padding: 10px; text-align: right;">Para Farki</th>
+                                <th style="padding: 10px; text-align: center;">Zaman</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            mimFilteredAlarms.slice(0, 100).forEach(alarm => {
+                const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
+                const market = alarm.market || '-';
+                const selection = alarm.selection || '-';
+                const level = alarm.level || 1;
+                const impact = (alarm.impact || 0).toFixed(2);
+                const prevVol = alarm.prev_volume || alarm.previous_volume || 0;
+                const currVol = alarm.current_volume || alarm.total_volume || alarm.volume || 0;
+                const moneyDiff = currVol - prevVol;
+                
+                const eventTime = alarm.trigger_at || alarm.event_time || alarm.created_at || '-';
+                const formattedTime = eventTime !== '-' ? formatDateTime(eventTime) : '-';
+                
+                const levelColor = level >= 3 ? '#3B82F6' : level >= 2 ? '#60a5fa' : '#93c5fd';
+                const impactColor = parseFloat(impact) >= 0.20 ? '#22c55e' : parseFloat(impact) >= 0.10 ? '#3B82F6' : '#8b949e';
+                
+                html += `
+                    <tr style="border-bottom: 1px solid #21262d;" onclick="showMimAlarmDetail(${JSON.stringify(alarm).replace(/"/g, '&quot;')})">
+                        <td style="padding: 10px; color: #e6edf3;">${matchName}</td>
+                        <td style="padding: 10px; text-align: center;"><span style="background: rgba(59,130,246,0.2); color: #3B82F6; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${market}</span></td>
+                        <td style="padding: 10px; text-align: center; color: #e6edf3; font-weight: 600;">${selection}</td>
+                        <td style="padding: 10px; text-align: center;"><span style="color: ${levelColor}; font-weight: 700;">L${level}</span></td>
+                        <td style="padding: 10px; text-align: center; color: ${impactColor}; font-weight: 600;">${impact}</td>
+                        <td style="padding: 10px; text-align: right; color: #8b949e;">£${Number(prevVol).toLocaleString('en-GB')}</td>
+                        <td style="padding: 10px; text-align: right; color: #22c55e;">£${Number(currVol).toLocaleString('en-GB')}</td>
+                        <td style="padding: 10px; text-align: right; color: #f59e0b; font-weight: 600;">+£${Number(moneyDiff).toLocaleString('en-GB')}</td>
+                        <td style="padding: 10px; text-align: center; color: #8b949e; font-size: 11px;">${formattedTime}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table></div>';
+            
+            if (mimFilteredAlarms.length > 100) {
+                html += `<p style="text-align: center; color: #6e7681; padding: 10px; font-size: 12px;">+${mimFilteredAlarms.length - 100} daha fazla alarm...</p>`;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        function showMimAlarmDetail(alarm) {
+            const body = document.querySelector('.modal-body') || document.createElement('div');
+            body.innerHTML = `
+                <div style="padding: 20px; background: #0d1117; border-radius: 8px;">
+                    <h3 style="color: #3B82F6; margin-bottom: 15px;">💎 MIM Alarm Detayi</h3>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                        <div><strong style="color: #8b949e;">Mac:</strong> <span style="color: #e6edf3;">${alarm.home} vs ${alarm.away}</span></div>
+                        <div><strong style="color: #8b949e;">Market:</strong> <span style="color: #e6edf3;">${alarm.market}</span></div>
+                        <div><strong style="color: #8b949e;">Secim:</strong> <span style="color: #e6edf3;">${alarm.selection}</span></div>
+                        <div><strong style="color: #8b949e;">Level:</strong> <span style="color: #3B82F6; font-weight: 700;">L${alarm.level}</span></div>
+                        <div><strong style="color: #8b949e;">Impact:</strong> <span style="color: #22c55e; font-weight: 600;">${(alarm.impact || 0).toFixed(4)}</span></div>
+                        <div><strong style="color: #8b949e;">Onceki Volume:</strong> <span style="color: #e6edf3;">£${Number(alarm.prev_volume || alarm.previous_volume || 0).toLocaleString('en-GB')}</span></div>
+                        <div><strong style="color: #8b949e;">Guncel Volume:</strong> <span style="color: #22c55e;">£${Number(alarm.current_volume || alarm.total_volume || 0).toLocaleString('en-GB')}</span></div>
+                        <div><strong style="color: #8b949e;">Para Farki:</strong> <span style="color: #f59e0b; font-weight: 600;">+£${Number((alarm.current_volume || alarm.total_volume || 0) - (alarm.prev_volume || alarm.previous_volume || 0)).toLocaleString('en-GB')}</span></div>
+                    </div>
+                </div>
+            `;
+            console.log('MIM Alarm Detail:', alarm);
+        }
+        
+        function filterMimAlarms() {
+            const searchInput = document.getElementById('mimSearchInput');
+            const dateFilter = document.getElementById('mimAlarmDateFilter')?.value || '';
+            const searchTerm = (searchInput?.value || '').toLowerCase();
+            
+            mimFilteredAlarms = mimAlarms.filter(alarm => {
+                const matchName = `${alarm.home || ''} ${alarm.away || ''}`.toLowerCase();
+                const matchesSearch = !searchTerm || matchName.includes(searchTerm);
+                
+                let matchesDate = true;
+                if (dateFilter) {
+                    const matchDate = alarm.match_date || alarm.kickoff || '';
+                    const today = new Date().toISOString().split('T')[0];
+                    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+                    
+                    if (dateFilter === 'today') {
+                        matchesDate = matchDate.startsWith(today);
+                    } else if (dateFilter === 'yesterday') {
+                        matchesDate = matchDate.startsWith(yesterday);
+                    } else if (dateFilter === 'future') {
+                        matchesDate = matchDate > today;
+                    }
+                }
+                
+                return matchesSearch && matchesDate;
+            });
+            
+            renderMimAlarms();
+        }
+        
+        async function saveMimConfig() {
+            const config = {
+                min_impact_threshold: parseFloat(document.getElementById('mimMinImpact').value) || 0.10,
+                min_prev_volume: parseInt(document.getElementById('mimMinPrevVolume').value) || 1000
+            };
+            
+            try {
+                const response = await fetch('/api/mim/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                if (response.ok) {
+                    showToast('MIM ayarlari kaydedildi!', 'success');
+                } else {
+                    showToast('Kayit hatasi!', 'error');
+                }
+            } catch (error) {
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+        
+        async function deleteAllMimAlarms() {
+            if (!confirm('Tum MIM alarmlari silinecek. Emin misiniz?')) return;
+            
+            try {
+                const response = await fetch('/api/mim/alarms', { method: 'DELETE' });
+                if (response.ok) {
+                    showToast('Tum MIM alarmlar silindi!', 'success');
+                    loadMimAlarms();
+                } else {
+                    showToast('Silme hatasi!', 'error');
+                }
+            } catch (error) {
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+        
+        // MIM date filter handler
+        function setupMimDateFilter() {
+            const btns = document.querySelectorAll('#page-mim .date-filter-btn');
+            btns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    btns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        }
+        
+        // ============================================
+        // END MIM FUNCTIONS
+        // ============================================
         
         function showVolumeLeaderCalcStatus() {
             const statusEl = document.getElementById('volumeLeaderCalcStatus');
