@@ -60,18 +60,16 @@ jobs:
           dir /s /b scraper_standalone\dist\*.exe
         shell: cmd
 
-      - name: Copy to artifact folder
-        run: |
-          mkdir artifact_output
-          copy scraper_standalone\dist\*.exe artifact_output\
-          copy scraper_standalone\dist\config.json artifact_output\
-          copy scraper_standalone\dist\README.txt artifact_output\
-          dir artifact_output
-        shell: cmd
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: SmartXFlowAlarmV1.01-Scraper-Windows-EXE
-          path: artifact_output
-          retention-days: 30
+          tag_name: scraper-v1.01-${{ github.run_number }}
+          name: SmartXFlow Scraper v1.01 Build ${{ github.run_number }}
+          files: |
+            scraper_standalone/dist/*.exe
+            scraper_standalone/dist/config.json
+            scraper_standalone/dist/README.txt
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
