@@ -1,15 +1,17 @@
 """
-SmartXFlow Alarm Calculator Module v1.23
+SmartXFlow Alarm Calculator Module v1.24
 Standalone alarm calculation for PC-based scraper
 Calculates: Sharp, Insider, BigMoney, VolumeShock, Dropping, PublicMove, VolumeLeader
 OPTIMIZED: Batch fetch per market, in-memory calculations
 DEFAULT_SETTINGS: Fallback values for all alarm types when Supabase config missing
 PHASE 2: match_id_hash contract compliant (league|kickoff|home|away)
+TELEGRAM: Integrated notification system for new alarms
 """
 
 import json
 import os
 import hashlib
+import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Callable
 
@@ -198,9 +200,222 @@ class AlarmCalculator:
         self.configs = {}
         self._history_cache = {}
         self._matches_cache = {}
+        self._telegram_settings = None
+        self._telegram_sent_cache = {}
         if logger_callback:
             set_logger(logger_callback)
         self.load_configs()
+        self._load_telegram_settings()
+    
+    def _load_telegram_settings(self):
+        """Load Telegram settings from Supabase"""
+        try:
+            settings = self._get('telegram_settings', 'select=*')
+            if settings:
+                self._telegram_settings = {row['setting_key']: row['setting_value'] for row in settings}
+                log(f"[Telegram] Settings loaded: enabled={self._telegram_settings.get('telegram_enabled', 'false')}")
+            else:
+                self._telegram_settings = {'telegram_enabled': 'false'}
+        except Exception as e:
+            log(f"[Telegram] Settings load error: {e}")
+            self._telegram_settings = {'telegram_enabled': 'false'}
+    
+    def _is_telegram_enabled(self, alarm_type: str) -> bool:
+        """Check if Telegram is enabled for this alarm type"""
+        if not self._telegram_settings:
+            return False
+        if self._telegram_settings.get('telegram_enabled') != 'true':
+            return False
+        try:
+            enabled_types = json.loads(self._telegram_settings.get('telegram_alarm_types', '[]'))
+            return alarm_type.upper() in [t.upper() for t in enabled_types]
+        except:
+            return False
+    
+    def _check_dedupe(self, alarm: Dict, alarm_type: str) -> tuple:
+        """Check if alarm was already sent, returns (should_send, is_retrigger, delta)"""
+        match_id = alarm.get('match_id') or alarm.get('match_id_hash', '')
+        market = alarm.get('market', '')
+        selection = alarm.get('selection', '')
+        dedupe_key = f"{match_id}|{alarm_type}|{market}|{selection}"
+        
+        try:
+            existing = self._get('telegram_sent_log', f'dedupe_key=eq.{dedupe_key}&select=*')
+            if not existing or len(existing) == 0:
+                return True, False, 0
+            
+            last_record = existing[0]
+            last_delta = float(last_record.get('last_delta', 0))
+            last_sent = last_record.get('last_sent_at', '')
+            
+            if alarm_type.upper() in ['BIGMONEY', 'BIG_MONEY']:
+                retrigger_enabled = self._telegram_settings.get('big_money_retrigger_enabled', 'true') == 'true'
+                if not retrigger_enabled:
+                    return False, False, 0
+                
+                min_delta = float(self._telegram_settings.get('big_money_retrigger_min_delta', 500))
+                cooldown_min = int(self._telegram_settings.get('big_money_retrigger_cooldown_min', 10))
+                
+                current_delta = float(alarm.get('delta', 0) or alarm.get('money_in', 0) or 0)
+                new_delta = current_delta - last_delta
+                
+                if new_delta >= min_delta:
+                    try:
+                        from datetime import datetime, timezone
+                        if last_sent:
+                            last_time = datetime.fromisoformat(last_sent.replace('Z', '+00:00'))
+                            now = datetime.now(timezone.utc)
+                            elapsed_min = (now - last_time).total_seconds() / 60
+                            if elapsed_min >= cooldown_min:
+                                return True, True, new_delta
+                    except:
+                        return True, True, new_delta
+                return False, False, 0
+            
+            return False, False, 0
+        except Exception as e:
+            log(f"[Telegram] Dedupe check error: {e}")
+            return True, False, 0
+    
+    def _log_telegram_sent(self, alarm: Dict, alarm_type: str, delta: float = 0):
+        """Log sent notification to Supabase for deduplication"""
+        try:
+            match_id = alarm.get('match_id') or alarm.get('match_id_hash', '')
+            market = alarm.get('market', '')
+            selection = alarm.get('selection', '')
+            dedupe_key = f"{match_id}|{alarm_type}|{market}|{selection}"
+            
+            payload = [{
+                'dedupe_key': dedupe_key,
+                'match_id_hash': match_id[:12] if match_id else '',
+                'alarm_type': alarm_type.upper(),
+                'market': market,
+                'selection': selection,
+                'last_sent_at': now_turkey_iso(),
+                'last_delta': delta,
+                'send_count': 1
+            }]
+            
+            self._post('telegram_sent_log', payload, on_conflict='dedupe_key')
+        except Exception as e:
+            log(f"[Telegram] Log sent error: {e}")
+    
+    def _send_telegram_notification(self, alarm: Dict, alarm_type: str, is_retrigger: bool = False, delta: float = 0):
+        """Send Telegram notification for an alarm"""
+        try:
+            token = os.environ.get('TELEGRAM_BOT_TOKEN') or os.environ.get('TELEGRAM_TOKEN')
+            chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+            
+            if not token or not chat_id:
+                return False
+            
+            emoji_map = {
+                'SHARP': '🎯', 'INSIDER': '🕵️', 'BIGMONEY': '💰', 'BIG_MONEY': '💰',
+                'VOLUMESHOCK': '⚡', 'VOLUME_SHOCK': '⚡', 'DROPPING': '📉',
+                'PUBLICMOVE': '👥', 'PUBLIC_MOVE': '👥', 'VOLUMELEADER': '🏆',
+                'VOLUME_LEADER': '🏆', 'MIM': '🔄'
+            }
+            emoji = emoji_map.get(alarm_type.upper(), '🚨')
+            
+            home = alarm.get('home', alarm.get('home_team', ''))
+            away = alarm.get('away', alarm.get('away_team', ''))
+            market = alarm.get('market', '')
+            selection = alarm.get('selection', '')
+            level = alarm.get('level', '')
+            
+            retrigger_text = " (RETRIGGER)" if is_retrigger else ""
+            level_text = f" ({level})" if level else ""
+            
+            lines = [
+                f"{emoji} <b>{alarm_type.upper()}</b>{level_text}{retrigger_text}",
+                f"<b>{home}</b> vs <b>{away}</b>",
+                f"Market: {market} / {selection}"
+            ]
+            
+            if alarm.get('delta'):
+                lines.append(f"Money: +£{float(alarm['delta']):,.0f}")
+            elif alarm.get('money_in'):
+                lines.append(f"Money: +£{float(alarm['money_in']):,.0f}")
+            
+            if alarm.get('drop_pct'):
+                old_odds = alarm.get('opening_odds', alarm.get('old_odds', 0))
+                new_odds = alarm.get('current_odds', alarm.get('new_odds', 0))
+                if old_odds and new_odds:
+                    lines.append(f"Odds: {float(old_odds):.2f} → {float(new_odds):.2f} ({float(alarm['drop_pct']):.1f}%)")
+            
+            timestamp = now_turkey().strftime('%H:%M')
+            lines.append(f"TR: {timestamp}")
+            
+            text = "\n".join(lines)
+            
+            url = f"https://api.telegram.org/bot{token}/sendMessage"
+            payload = {
+                "chat_id": chat_id,
+                "text": text,
+                "disable_web_page_preview": True,
+                "parse_mode": "HTML"
+            }
+            
+            for attempt in range(3):
+                try:
+                    if hasattr(httpx, 'post'):
+                        resp = httpx.post(url, json=payload, timeout=30)
+                    else:
+                        import requests as req
+                        resp = req.post(url, json=payload, timeout=30)
+                    
+                    if resp.status_code == 200:
+                        log(f"[Telegram] Sent: {alarm_type} - {home} vs {away}")
+                        return True
+                    elif resp.status_code == 429:
+                        retry_after = 5
+                        try:
+                            retry_after = resp.json().get('parameters', {}).get('retry_after', 5)
+                        except:
+                            pass
+                        log(f"[Telegram] Rate limited, waiting {retry_after}s...")
+                        time.sleep(retry_after)
+                    else:
+                        log(f"[Telegram] Send failed: HTTP {resp.status_code}")
+                        return False
+                except Exception as e:
+                    log(f"[Telegram] Send error attempt {attempt+1}: {e}")
+                    time.sleep(2)
+            
+            return False
+        except Exception as e:
+            log(f"[Telegram] Notification error: {e}")
+            return False
+    
+    def _notify_new_alarms(self, alarms: List[Dict], alarm_type: str, existing_keys: set):
+        """Send Telegram notifications for new alarms"""
+        if not self._is_telegram_enabled(alarm_type):
+            return
+        
+        alarm_type_clean = alarm_type.replace('_alarms', '').upper()
+        sent_count = 0
+        
+        for alarm in alarms:
+            key_parts = [
+                str(alarm.get('match_id') or alarm.get('match_id_hash', '')),
+                str(alarm.get('market', '')),
+                str(alarm.get('selection', ''))
+            ]
+            key = '|'.join(key_parts)
+            
+            is_new = key not in existing_keys
+            
+            should_send, is_retrigger, delta = self._check_dedupe(alarm, alarm_type_clean)
+            
+            if is_new and should_send:
+                if self._send_telegram_notification(alarm, alarm_type_clean, is_retrigger, delta):
+                    current_delta = float(alarm.get('delta', 0) or alarm.get('money_in', 0) or 0)
+                    self._log_telegram_sent(alarm, alarm_type_clean, current_delta)
+                    sent_count += 1
+                    time.sleep(0.5)
+        
+        if sent_count > 0:
+            log(f"[Telegram] Sent {sent_count} notifications for {alarm_type_clean}")
     
     def _headers(self) -> Dict[str, str]:
         return {
@@ -350,10 +565,18 @@ class AlarmCalculator:
             on_conflict = ",".join(key_fields)
             if self._post(table, alarms, on_conflict=on_conflict):
                 log(f"[UPSERT] {table}: {len(alarms)} alarms upserted (on_conflict={on_conflict})")
+                
+                # Send Telegram notifications for NEW alarms only
+                existing_keys = set(existing_data.keys())
+                self._notify_new_alarms(alarms, table, existing_keys)
+                
                 return len(alarms)
             else:
                 log(f"[UPSERT] {table}: POST failed, trying without on_conflict")
                 if self._post(table, alarms):
+                    # Send Telegram notifications for NEW alarms only
+                    existing_keys = set(existing_data.keys())
+                    self._notify_new_alarms(alarms, table, existing_keys)
                     return len(alarms)
         except Exception as e:
             log(f"Upsert error {table}: {e}")
