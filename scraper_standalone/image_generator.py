@@ -13,21 +13,23 @@ import os
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 FONTS_DIR = os.path.join(SCRIPT_DIR, 'fonts')
 
-CARD_WIDTH = 380
-CARD_PADDING = 20
+CARD_WIDTH = 360
+CARD_PADDING = 18
+LEFT_BORDER_WIDTH = 4
 
 BG_COLOR = (13, 17, 23)
-CARD_BG = (22, 27, 34)
-DIVIDER_COLOR = (48, 54, 61)
-TEXT_WHITE = (255, 255, 255)
+CARD_BG = (38, 44, 52)
+BORDER_COLOR = (48, 54, 61)
+TEXT_WHITE = (230, 237, 243)
 TEXT_SECONDARY = (139, 148, 158)
 TEXT_MUTED = (110, 118, 129)
-ORANGE = (249, 115, 22)
-GREEN = (34, 197, 94)
-GREEN_BOX_TOP = (15, 35, 24)
-GREEN_BOX_BOTTOM = (10, 26, 18)
-GREEN_BORDER = (30, 74, 42)
-BUTTON_GREEN = (34, 163, 74)
+ORANGE = (240, 138, 36)
+ORANGE_LIGHT = (249, 115, 22)
+GREEN = (74, 222, 128)
+
+HERO_BG_START = (38, 26, 18)
+HERO_BG_END = (30, 22, 15)
+HERO_BORDER = (60, 45, 30)
 
 MONTHS_TR = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara']
 
@@ -38,6 +40,7 @@ def get_font(size, weight='regular'):
         'medium': 'Inter-Medium.ttf',
         'semibold': 'Inter-SemiBold.ttf',
         'bold': 'Inter-Bold.ttf',
+        'extrabold': 'Inter-ExtraBold.ttf',
     }
     
     font_file = weight_map.get(weight, 'Inter-Regular.ttf')
@@ -59,7 +62,7 @@ def get_font(size, weight='regular'):
     return ImageFont.load_default()
 
 
-def format_money(amount):
+def format_money_uk(amount):
     if amount is None:
         return "£0"
     formatted = f"{int(amount):,}".replace(",", ".")
@@ -77,7 +80,7 @@ def format_tr_datetime(utc_time_str):
             dt = utc_time_str
         tr_tz = pytz.timezone('Europe/Istanbul')
         tr_time = dt.astimezone(tr_tz)
-        return tr_time.strftime("%d.%m %H:%M")
+        return tr_time.strftime("%d.%m • %H:%M")
     except:
         return ""
 
@@ -117,14 +120,12 @@ def format_kickoff(kickoff_utc):
         return ""
 
 
-def draw_rounded_rect(draw, xy, radius, fill):
+def draw_rounded_rect(draw, xy, radius, fill, outline=None, width=1):
     x1, y1, x2, y2 = xy
-    draw.rectangle([x1 + radius, y1, x2 - radius, y2], fill=fill)
-    draw.rectangle([x1, y1 + radius, x2, y2 - radius], fill=fill)
-    draw.ellipse([x1, y1, x1 + radius * 2, y1 + radius * 2], fill=fill)
-    draw.ellipse([x2 - radius * 2, y1, x2, y1 + radius * 2], fill=fill)
-    draw.ellipse([x1, y2 - radius * 2, x1 + radius * 2, y2], fill=fill)
-    draw.ellipse([x2 - radius * 2, y2 - radius * 2, x2, y2], fill=fill)
+    if fill:
+        draw.rounded_rectangle([x1, y1, x2, y2], radius=radius, fill=fill)
+    if outline:
+        draw.rounded_rectangle([x1, y1, x2, y2], radius=radius, outline=outline, width=width)
 
 
 def generate_bigmoney_card(
@@ -139,178 +140,176 @@ def generate_bigmoney_card(
     previous_alarms: list = None,
     multiplier: int = None
 ) -> BytesIO:
-    prev_count = len(previous_alarms) if previous_alarms else 0
-    prev_section_height = (prev_count * 30) + 35 if prev_count > 0 else 0
+    prev_count = min(len(previous_alarms) if previous_alarms else 0, 4)
     
-    card_height = (
-        16 +
-        35 +
-        35 +
-        20 +
-        1 +
-        30 +
-        90 +
-        (35 if total_money else 0) +
-        prev_section_height +
-        (25 if multiplier else 0) +
-        50 +
-        16
-    )
+    base_height = 14 + 30 + 12 + 22 + 8 + 20 + 12 + 80 + 12
+    kickoff_section = 24 if kickoff_utc else 0
+    total_section = 30 if total_money and total_money != current_money else 0
+    prev_section = (prev_count * 26 + 24) if prev_count > 0 else 0
+    multiplier_section = 24 if multiplier and multiplier > 1 else 0
+    cta_section = 48
+    
+    card_height = base_height + kickoff_section + total_section + prev_section + multiplier_section + cta_section + 10
     
     img = Image.new('RGB', (CARD_WIDTH, card_height), BG_COLOR)
     draw = ImageDraw.Draw(img)
     
-    draw_rounded_rect(draw, (0, 0, CARD_WIDTH, card_height), 12, CARD_BG)
+    draw_rounded_rect(draw, (0, 0, CARD_WIDTH, card_height), 16, CARD_BG)
     
-    font_tiny = get_font(11, 'regular')
-    font_small = get_font(12, 'regular')
-    font_normal = get_font(13, 'regular')
-    font_medium = get_font(14, 'medium')
-    font_semibold = get_font(16, 'semibold')
-    font_large = get_font(22, 'bold')
-    font_xlarge = get_font(36, 'bold')
+    draw.rectangle([0, 8, LEFT_BORDER_WIDTH, card_height - 8], fill=ORANGE)
     
-    y = 16
+    font_badge = get_font(10, 'bold')
+    font_time = get_font(12, 'regular')
+    font_match = get_font(16, 'semibold')
+    font_market = get_font(12, 'regular')
+    font_hero = get_font(28, 'extrabold')
+    font_hero_label = get_font(11, 'medium')
+    font_total_val = get_font(14, 'semibold')
+    font_total_lbl = get_font(11, 'medium')
+    font_prev_title = get_font(10, 'medium')
+    font_prev = get_font(12, 'regular')
+    font_mult = get_font(11, 'bold')
     
-    dot_x = CARD_PADDING
-    draw.ellipse([dot_x, y + 4, dot_x + 8, y + 12], fill=ORANGE)
+    y = 14
     
-    label_x = dot_x + 14
-    draw.text((label_x, y), "BIG MONEY", fill=ORANGE, font=font_semibold)
+    badge_text = "BIG MONEY"
+    badge_width = draw.textlength(badge_text, font=font_badge) + 16
+    badge_height = 20
+    badge_x = CARD_PADDING + LEFT_BORDER_WIDTH
+    
+    badge_bg = (48, 35, 22)
+    draw_rounded_rect(draw, (badge_x, y, badge_x + badge_width, y + badge_height), 6, badge_bg)
+    draw.text((badge_x + 8, y + 4), badge_text, fill=ORANGE, font=font_badge)
     
     if alarm_time:
         time_str = format_tr_datetime(alarm_time)
-        time_width = draw.textlength(time_str, font=font_small)
-        draw.text((CARD_WIDTH - CARD_PADDING - time_width, y + 2), time_str, fill=TEXT_SECONDARY, font=font_small)
+        time_width = draw.textlength(time_str, font=font_time)
+        draw.text((CARD_WIDTH - CARD_PADDING - time_width, y + 4), time_str, fill=TEXT_SECONDARY, font=font_time)
     
-    y += 32
+    dot_x = CARD_WIDTH - CARD_PADDING - 40
+    draw.ellipse([dot_x, y + 6, dot_x + 8, y + 14], fill=ORANGE)
     
+    y += 30
+    
+    y += 12
     match_text = f"{home_team} – {away_team}"
-    draw.text((CARD_PADDING, y), match_text, fill=TEXT_WHITE, font=font_semibold)
+    draw.text((CARD_PADDING + LEFT_BORDER_WIDTH, y), match_text, fill=TEXT_WHITE, font=font_match)
     
-    money_text = format_money(current_money)
-    money_width = draw.textlength(money_text, font=font_large)
-    draw.text((CARD_WIDTH - CARD_PADDING - money_width, y - 2), money_text, fill=ORANGE, font=font_large)
+    y += 22
     
-    y += 28
     market_text = f"{market} · {selection}"
-    draw.text((CARD_PADDING, y), market_text, fill=TEXT_SECONDARY, font=font_normal)
+    draw.text((CARD_PADDING + LEFT_BORDER_WIDTH, y), market_text, fill=TEXT_SECONDARY, font=font_market)
     
-    y += 25
-    draw.line([(CARD_PADDING, y), (CARD_WIDTH - CARD_PADDING, y)], fill=DIVIDER_COLOR, width=1)
+    y += 16
+    y += 8
     
-    y += 15
-    if kickoff_utc:
-        kickoff_str = format_kickoff(kickoff_utc)
-        draw.text((CARD_PADDING, y), kickoff_str, fill=TEXT_SECONDARY, font=font_normal)
+    hero_margin = CARD_PADDING + LEFT_BORDER_WIDTH
+    hero_width = CARD_WIDTH - hero_margin - CARD_PADDING
+    hero_height = 70
+    hero_top = y
+    hero_bottom = y + hero_height
+    hero_radius = 8
     
-    y += 25
+    hero_img = Image.new('RGBA', (hero_width, hero_height), (0, 0, 0, 0))
+    hero_draw = ImageDraw.Draw(hero_img)
     
-    box_margin = 15
-    box_height = 75
-    box_left = box_margin
-    box_right = CARD_WIDTH - box_margin
-    box_top = y
-    box_bottom = y + box_height
+    for i in range(hero_height):
+        ratio = i / hero_height
+        r = int(HERO_BG_START[0] * (1 - ratio) + HERO_BG_END[0] * ratio)
+        g = int(HERO_BG_START[1] * (1 - ratio) + HERO_BG_END[1] * ratio)
+        b = int(HERO_BG_START[2] * (1 - ratio) + HERO_BG_END[2] * ratio)
+        hero_draw.line([(0, i), (hero_width, i)], fill=(r, g, b, 255))
     
-    for i in range(box_height):
-        ratio = i / box_height
-        r = int(GREEN_BOX_TOP[0] * (1 - ratio) + GREEN_BOX_BOTTOM[0] * ratio)
-        g = int(GREEN_BOX_TOP[1] * (1 - ratio) + GREEN_BOX_BOTTOM[1] * ratio)
-        b = int(GREEN_BOX_TOP[2] * (1 - ratio) + GREEN_BOX_BOTTOM[2] * ratio)
-        draw.line([(box_left + 10, box_top + i), (box_right - 10, box_top + i)], fill=(r, g, b))
+    mask = Image.new('L', (hero_width, hero_height), 0)
+    mask_draw = ImageDraw.Draw(mask)
+    mask_draw.rounded_rectangle([0, 0, hero_width, hero_height], radius=hero_radius, fill=255)
     
-    draw_rounded_rect(draw, (box_left, box_top, box_right, box_bottom), 10, None)
+    hero_img.putalpha(mask)
+    img.paste(hero_img, (hero_margin, hero_top), hero_img)
     
-    for i in range(box_height):
-        ratio = i / box_height
-        r = int(GREEN_BOX_TOP[0] * (1 - ratio) + GREEN_BOX_BOTTOM[0] * ratio)
-        g = int(GREEN_BOX_TOP[1] * (1 - ratio) + GREEN_BOX_BOTTOM[1] * ratio)
-        b = int(GREEN_BOX_TOP[2] * (1 - ratio) + GREEN_BOX_BOTTOM[2] * ratio)
-        
-        for j in range(10):
-            left_x = box_left + j
-            right_x = box_right - 10 + j
-            if box_top + i >= box_top and box_top + i <= box_bottom:
-                draw.point((left_x, box_top + i), fill=(r, g, b))
-                draw.point((right_x, box_top + i), fill=(r, g, b))
-    
-    draw_rounded_rect(draw, (box_left, box_top, box_right, box_bottom), 10, None)
-    
-    for i in range(box_height):
-        ratio = i / box_height
-        r = int(GREEN_BOX_TOP[0] * (1 - ratio) + GREEN_BOX_BOTTOM[0] * ratio)
-        g = int(GREEN_BOX_TOP[1] * (1 - ratio) + GREEN_BOX_BOTTOM[1] * ratio)
-        b = int(GREEN_BOX_TOP[2] * (1 - ratio) + GREEN_BOX_BOTTOM[2] * ratio)
-        draw.line([(box_left, box_top + i), (box_right, box_top + i)], fill=(r, g, b))
-    
-    draw.rounded_rectangle([box_left, box_top, box_right, box_bottom], radius=10, outline=GREEN_BORDER, width=1)
+    draw.rounded_rectangle([hero_margin, hero_top, hero_margin + hero_width, hero_bottom], radius=hero_radius, outline=HERO_BORDER, width=1)
     
     display_money = total_money if total_money else current_money
-    money_big = format_money(display_money)
-    money_big_width = draw.textlength(money_big, font=font_xlarge)
-    money_big_x = (CARD_WIDTH - money_big_width) / 2
-    draw.text((money_big_x, box_top + 12), money_big, fill=ORANGE, font=font_xlarge)
+    money_text = format_money_uk(display_money)
+    money_width = draw.textlength(money_text, font=font_hero)
+    money_x = hero_margin + (hero_width - money_width) / 2
+    draw.text((money_x, hero_top + 14), money_text, fill=ORANGE, font=font_hero)
     
-    label_text = "BÜYÜK PARA GİRİŞİ"
-    label_width = draw.textlength(label_text, font=font_tiny)
-    label_x = (CARD_WIDTH - label_width) / 2
-    draw.text((label_x, box_top + 52), label_text, fill=ORANGE, font=font_tiny)
+    label_text = "Büyük Para Girişi"
+    label_width = draw.textlength(label_text, font=font_hero_label)
+    label_x = hero_margin + (hero_width - label_width) / 2
+    draw.text((label_x, hero_top + 48), label_text, fill=ORANGE, font=font_hero_label)
     
-    y = box_bottom + 15
+    y = hero_bottom + 12
     
     if total_money and total_money != current_money:
-        total_str = format_money(total_money)
-        total_width = draw.textlength(total_str, font=font_medium)
-        toplam_text = "TOPLAM"
-        toplam_width = draw.textlength(toplam_text, font=font_small)
-        combined_width = total_width + 8 + toplam_width
+        total_str = format_money_uk(total_money)
+        toplam_text = "Toplam"
+        
+        total_val_width = draw.textlength(total_str, font=font_total_val)
+        toplam_width = draw.textlength(toplam_text, font=font_total_lbl)
+        combined_width = total_val_width + 8 + toplam_width
         start_x = (CARD_WIDTH - combined_width) / 2
         
-        draw.text((start_x, y), total_str, fill=TEXT_SECONDARY, font=font_medium)
-        draw.text((start_x + total_width + 8, y + 1), toplam_text, fill=GREEN, font=font_small)
+        draw.text((start_x, y), total_str, fill=TEXT_SECONDARY, font=font_total_val)
+        draw.text((start_x + total_val_width + 8, y + 2), toplam_text, fill=GREEN, font=font_total_lbl)
         
-        y += 30
+        y += 28
     
     if previous_alarms and len(previous_alarms) > 0:
-        y += 5
-        draw.text((CARD_PADDING, y), "ÖNCEKİ", fill=TEXT_MUTED, font=font_tiny)
-        y += 20
+        y += 4
+        draw.text((CARD_PADDING + LEFT_BORDER_WIDTH, y), "ÖNCEKİ", fill=TEXT_MUTED, font=font_prev_title)
+        y += 18
         
-        for prev in previous_alarms[:5]:
+        for prev in previous_alarms[:4]:
             prev_time = format_prev_datetime(prev.get('time', ''))
-            prev_money = format_money(prev.get('money', 0))
+            prev_money = format_money_uk(prev.get('money', 0))
             
-            draw.ellipse([CARD_PADDING, y + 5, CARD_PADDING + 6, y + 11], fill=ORANGE)
+            draw.ellipse([CARD_PADDING + LEFT_BORDER_WIDTH, y + 4, CARD_PADDING + LEFT_BORDER_WIDTH + 6, y + 10], fill=ORANGE)
             
-            draw.text((CARD_PADDING + 14, y), prev_time, fill=TEXT_SECONDARY, font=font_normal)
+            draw.text((CARD_PADDING + LEFT_BORDER_WIDTH + 12, y), prev_time, fill=TEXT_SECONDARY, font=font_prev)
             
-            money_w = draw.textlength(prev_money, font=font_normal)
-            draw.text((CARD_WIDTH - CARD_PADDING - money_w, y), prev_money, fill=ORANGE, font=font_normal)
+            money_w = draw.textlength(prev_money, font=font_prev)
+            draw.text((CARD_WIDTH - CARD_PADDING - money_w, y), prev_money, fill=ORANGE, font=font_prev)
             
-            y += 30
+            y += 26
     
     if multiplier and multiplier > 1:
-        y += 5
-        mult_text = f"×{multiplier}"
-        draw.text((CARD_PADDING, y), mult_text, fill=TEXT_MUTED, font=font_small)
-        y += 20
+        mult_text = f"x{multiplier}"
+        mult_width = draw.textlength(mult_text, font=font_mult) + 12
+        mult_height = 20
+        mult_x = CARD_WIDTH - CARD_PADDING - mult_width
+        mult_y = 14
+        
+        mult_bg = (48, 35, 22)
+        draw_rounded_rect(draw, (mult_x, mult_y, mult_x + mult_width, mult_y + mult_height), 10, mult_bg)
+        draw.text((mult_x + 6, mult_y + 3), mult_text, fill=ORANGE, font=font_mult)
     
-    y += 5
-    btn_height = 38
-    btn_margin = 15
+    if kickoff_utc:
+        font_kickoff = get_font(12, 'regular')
+        kickoff_str = format_kickoff(kickoff_utc)
+        draw.text((CARD_PADDING + LEFT_BORDER_WIDTH, y), kickoff_str, fill=TEXT_SECONDARY, font=font_kickoff)
+        y += 24
+    
+    y += 8
+    btn_height = 36
+    btn_margin = CARD_PADDING + LEFT_BORDER_WIDTH
     btn_left = btn_margin
-    btn_right = CARD_WIDTH - btn_margin
+    btn_right = CARD_WIDTH - CARD_PADDING
     btn_top = y
     btn_bottom = y + btn_height
     
-    draw.rounded_rectangle([btn_left, btn_top, btn_right, btn_bottom], radius=19, fill=BUTTON_GREEN)
+    btn_bg = (30, 30, 32)
+    draw_rounded_rect(draw, (btn_left, btn_top, btn_right, btn_bottom), 8, btn_bg, (48, 54, 61), 1)
     
-    btn_text = "Maç Sayfasını Aç"
-    btn_font = get_font(13, 'semibold')
-    btn_text_width = draw.textlength(btn_text, font=btn_font)
-    btn_text_x = (CARD_WIDTH - btn_text_width) / 2
-    draw.text((btn_text_x, btn_top + 10), btn_text, fill=TEXT_WHITE, font=btn_font)
+    btn_text = "Maç Detayı"
+    font_btn = get_font(12, 'semibold')
+    btn_text_width = draw.textlength(btn_text, font=font_btn)
+    btn_text_x = btn_left + (btn_right - btn_left - btn_text_width) / 2
+    draw.text((btn_text_x, btn_top + 10), btn_text, fill=ORANGE, font=font_btn)
+    
+    arrow_x = btn_text_x + btn_text_width + 6
+    draw.text((arrow_x, btn_top + 10), "→", fill=ORANGE, font=font_btn)
     
     buffer = BytesIO()
     img.save(buffer, format='PNG', quality=95)
