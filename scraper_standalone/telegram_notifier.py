@@ -347,6 +347,124 @@ def format_bigmoney_text(
     return "\n".join(lines)
 
 
+def format_volumeshock_text(
+    home: str,
+    away: str,
+    market: str,
+    selection: str,
+    old_volume: float,
+    new_volume: float,
+    multiplier_x: float,
+    alarm_time: str = None,
+    kickoff_utc: str = None,
+    volumes: dict = None
+) -> str:
+    """
+    Format VolumeShock alarm as rich text message.
+    
+    Args:
+        home: Home team name
+        away: Away team name
+        market: Market type (1X2, OU25, BTTS)
+        selection: Selection (1, X, 2, O, U, Y, N)
+        old_volume: Previous volume
+        new_volume: Current volume
+        multiplier_x: Volume increase multiplier (e.g., 2.0x)
+        alarm_time: Alarm time in ISO format
+        kickoff_utc: Match kickoff time
+        volumes: Dict with selection volumes
+    """
+    lines = []
+    
+    lines.append(f"⚡ <b>VOLUME SHOCK</b> — {market}-{selection}'de ani hacim artışı tespit edildi")
+    
+    if alarm_time:
+        time_str = format_datetime_tr(alarm_time)
+        lines.append(f"🕐 {time_str}")
+    
+    lines.append("")
+    lines.append(f"⚽ <b>{home} – {away}</b>")
+    lines.append("")
+    
+    lines.append(f"📊 {selection}: {format_money(old_volume)} → {format_money(new_volume)}")
+    lines.append(f"🔥 {multiplier_x:.1f}x artış (10 dk içinde)")
+    lines.append("")
+    
+    if kickoff_utc:
+        kickoff_str = format_kickoff_tr(kickoff_utc)
+        lines.append(f"📅 Maç: {kickoff_str}")
+        lines.append("")
+    
+    if volumes:
+        lines.append("━━━━━━━━━━━━━━━━")
+        lines.append("📊 Mevcut Hacimler:")
+        
+        selections_order = ['1', 'X', '2', 'O', 'U', 'Y', 'N']
+        for sel in selections_order:
+            if sel in volumes and sel != 'total':
+                vol_data = volumes[sel]
+                if isinstance(vol_data, dict):
+                    vol = vol_data.get('volume', 0)
+                    share = vol_data.get('share', 0)
+                    lines.append(f"  {sel}: {format_money(vol)} ({share:.0f}%)")
+                else:
+                    lines.append(f"  {sel}: {format_money(vol_data)}")
+        
+        if 'total' in volumes:
+            lines.append(f"  Total: {format_money(volumes['total'])}")
+    
+    return "\n".join(lines)
+
+
+def send_volumeshock_text(
+    home: str,
+    away: str,
+    market: str,
+    selection: str,
+    old_volume: float,
+    new_volume: float,
+    multiplier_x: float,
+    alarm_time: str = None,
+    kickoff_utc: str = None,
+    volumes: dict = None
+) -> bool:
+    """Send VolumeShock alarm as formatted text message."""
+    msg = format_volumeshock_text(
+        home=home,
+        away=away,
+        market=market,
+        selection=selection,
+        old_volume=old_volume,
+        new_volume=new_volume,
+        multiplier_x=multiplier_x,
+        alarm_time=alarm_time,
+        kickoff_utc=kickoff_utc,
+        volumes=volumes
+    )
+    return send_telegram_message(msg)
+
+
+def send_test_volumeshock_text() -> bool:
+    """Send a test VolumeShock text message with sample data."""
+    return send_volumeshock_text(
+        home="Manchester City",
+        away="Liverpool",
+        market="1X2",
+        selection="X",
+        old_volume=45820,
+        new_volume=89340,
+        multiplier_x=2.0,
+        alarm_time=datetime.utcnow().isoformat() + "Z",
+        kickoff_utc="2025-12-17T21:00:00Z",
+        volumes={
+            '1': {'volume': 120450, 'share': 42},
+            'X': {'volume': 89340, 'share': 31},
+            '2': {'volume': 78210, 'share': 27},
+            'total': 288000
+        }
+    )
+
+
 def format_alarm_message(
     alarm_type: str,
     home: str,
