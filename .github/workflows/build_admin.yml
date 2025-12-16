@@ -58,6 +58,13 @@ jobs:
           dir scraper_standalone\dist
         shell: cmd
 
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartXFlow-Admin-EXE
+          path: scraper_standalone/dist/*
+          retention-days: 30
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
