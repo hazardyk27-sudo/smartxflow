@@ -465,6 +465,131 @@ def send_test_volumeshock_text() -> bool:
     )
 
 
+def format_mim_text(
+    home: str,
+    away: str,
+    market: str,
+    selection: str,
+    selection_delta: float,
+    prev_volume: float,
+    current_volume: float,
+    impact: float,
+    alarm_time: str = None,
+    kickoff_utc: str = None,
+    volumes: dict = None
+) -> str:
+    """
+    Format MIM (Market Impact) alarm as rich text message.
+    
+    Args:
+        home: Home team name
+        away: Away team name
+        market: Market type (1X2, OU25, BTTS)
+        selection: Selection with highest money inflow (1, X, 2, O, U, Y, N)
+        selection_delta: Money inflow to the selection
+        prev_volume: Previous total market volume
+        current_volume: Current total market volume
+        impact: Impact ratio (delta / current_volume)
+        alarm_time: Alarm time in ISO format
+        kickoff_utc: Match kickoff time
+        volumes: Dict with selection volumes
+    """
+    lines = []
+    
+    lines.append(f"🔄 <b>MIM</b> — {market} marketinde yüksek impact")
+    
+    if alarm_time:
+        time_str = format_datetime_tr(alarm_time)
+        lines.append(f"🕐 {time_str}")
+    
+    lines.append("")
+    lines.append(f"⚽ <b>{home} – {away}</b>")
+    lines.append(f"💰 {selection} seçeneğine +{format_money(selection_delta)} giriş")
+    lines.append("")
+    
+    lines.append(f"📊 Önceki: {format_money(prev_volume)}")
+    lines.append(f"📈 Mevcut: {format_money(current_volume)}")
+    lines.append(f"🎯 Impact: {impact:.2f}")
+    lines.append("")
+    
+    if kickoff_utc:
+        kickoff_str = format_kickoff_tr(kickoff_utc)
+        lines.append(f"📅 Maç: {kickoff_str}")
+        lines.append("")
+    
+    if volumes:
+        lines.append("━━━━━━━━━━━━━━━━")
+        lines.append("📊 Mevcut Dağılım:")
+        
+        selections_order = ['1', 'X', '2', 'O', 'U', 'Y', 'N']
+        for sel in selections_order:
+            if sel in volumes and sel != 'total':
+                vol_data = volumes[sel]
+                if isinstance(vol_data, dict):
+                    vol = vol_data.get('volume', 0)
+                    share = vol_data.get('share', 0)
+                    lines.append(f"  {sel}: {format_money(vol)} ({share:.0f}%)")
+                else:
+                    lines.append(f"  {sel}: {format_money(vol_data)}")
+        
+        if 'total' in volumes:
+            lines.append(f"  Total: {format_money(volumes['total'])}")
+    
+    return "\n".join(lines)
+
+
+def send_mim_text(
+    home: str,
+    away: str,
+    market: str,
+    selection: str,
+    selection_delta: float,
+    prev_volume: float,
+    current_volume: float,
+    impact: float,
+    alarm_time: str = None,
+    kickoff_utc: str = None,
+    volumes: dict = None
+) -> bool:
+    """Send MIM alarm as formatted text message."""
+    msg = format_mim_text(
+        home=home,
+        away=away,
+        market=market,
+        selection=selection,
+        selection_delta=selection_delta,
+        prev_volume=prev_volume,
+        current_volume=current_volume,
+        impact=impact,
+        alarm_time=alarm_time,
+        kickoff_utc=kickoff_utc,
+        volumes=volumes
+    )
+    return send_telegram_message(msg)
+
+
+def send_test_mim_text() -> bool:
+    """Send a test MIM text message with sample data."""
+    return send_mim_text(
+        home="Real Madrid",
+        away="Barcelona",
+        market="1X2",
+        selection="1",
+        selection_delta=18500,
+        prev_volume=100000,
+        current_volume=125000,
+        impact=0.20,
+        alarm_time=datetime.utcnow().isoformat() + "Z",
+        kickoff_utc="2025-12-18T22:00:00Z",
+        volumes={
+            '1': {'volume': 65000, 'share': 52},
+            'X': {'volume': 30000, 'share': 24},
+            '2': {'volume': 30000, 'share': 24},
+            'total': 125000
+        }
+    )
+
+
 def format_alarm_message(
     alarm_type: str,
     home: str,
