@@ -4770,7 +4770,7 @@ function renderAlarmsList(filterType) {
                 } else if (type === 'mim') {
                     hValue = `L${h.level || 1} ${(h.impact || 0).toFixed(2)}`;
                 }
-                return `<div class="history-item"><span class="history-time">${hTime}</span><span class="history-val">${hValue}</span></div>`;
+                return `<div class="history-item history-item-${type}"><span class="history-time">${hTime}</span><span class="history-val">${hValue}</span></div>`;
             }).join('');
             historySection = `<div class="acd-history-list"><div class="history-title">Önceki Alarmlar</div>${historyItems}</div>`;
         }

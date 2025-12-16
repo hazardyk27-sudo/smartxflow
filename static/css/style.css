@@ -7753,12 +7753,22 @@ td.volume,
     background: rgba(30, 38, 48, 0.6);
     border-radius: 8px;
     margin-bottom: 6px;
-    border-left: 3px solid rgba(139, 92, 246, 0.4);
+    border-left: 3px solid rgba(139, 148, 158, 0.3);
 }
 
 .history-item:last-child {
     margin-bottom: 0;
 }
+
+/* History item alarm tipine göre kenar renkleri */
+.history-item-sharp { border-left-color: rgba(34, 197, 94, 0.5); }
+.history-item-insider { border-left-color: rgba(168, 85, 247, 0.5); }
+.history-item-bigmoney { border-left-color: rgba(240, 138, 36, 0.5); }
+.history-item-volumeshock { border-left-color: rgba(246, 195, 67, 0.5); }
+.history-item-dropping { border-left-color: rgba(248, 81, 73, 0.5); }
+.history-item-publicmove { border-left-color: rgba(255, 204, 0, 0.5); }
+.history-item-volumeleader { border-left-color: rgba(6, 182, 212, 0.5); }
+.history-item-mim { border-left-color: rgba(59, 130, 246, 0.5); }
 
 .history-time {
     font-size: 11px;
