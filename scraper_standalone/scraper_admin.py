@@ -693,7 +693,7 @@ def main():
         
         config = result['config']
     else:
-        config = saved_config
+        config = load_config()
     
     os.environ['SUPABASE_URL'] = config['SUPABASE_URL']
     os.environ['SUPABASE_ANON_KEY'] = config['SUPABASE_ANON_KEY']
