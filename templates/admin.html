@@ -672,6 +672,10 @@
                 <span class="nav-item-icon">💎</span>
                 <span>MIM</span>
             </div>
+            <div class="nav-item" onclick="showPage('telegram')" data-page="telegram">
+                <span class="nav-item-icon">📲</span>
+                <span>Telegram</span>
+            </div>
         </nav>
         <div class="sidebar-footer">
             <a href="/" class="back-home">
@@ -2167,6 +2171,125 @@
             </div>
         </div>
 
+        <!-- TELEGRAM PAGE -->
+        <div id="page-telegram" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title" style="color: #0088cc;">📲 Telegram Bildirimleri</h2>
+                    <p class="page-subtitle">Alarm bildirimlerini Telegram'a gonder</p>
+                </div>
+            </div>
+
+            <div class="grid-two-col">
+                <div class="info-card" style="border-left: 3px solid #0088cc;">
+                    <h3>📲 Telegram Ayarlari</h3>
+                    <p style="color: #8b949e; font-size: 12px; margin-bottom: 15px;">
+                        Alarmlar tetiklendiginde Telegram'a bildirim gondermek icin ayarlari yapin.
+                    </p>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" id="telegramEnabled" style="width: 18px; height: 18px;">
+                                <span>Telegram Bildirimlerini Etkinlestir</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 15px;">
+                        <label style="display: block; margin-bottom: 8px; color: #8b949e;">Bildirim Gonderilecek Alarm Turleri:</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                            <label style="display: flex; align-items: center; gap: 5px; background: #21262d; padding: 6px 10px; border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" class="telegram-alarm-type" value="SHARP" checked> 🎯 Sharp
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; background: #21262d; padding: 6px 10px; border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" class="telegram-alarm-type" value="INSIDER" checked> 🕵️ Insider
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; background: #21262d; padding: 6px 10px; border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" class="telegram-alarm-type" value="BIGMONEY" checked> 💰 BigMoney
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; background: #21262d; padding: 6px 10px; border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" class="telegram-alarm-type" value="VOLUMESHOCK" checked> ⚡ VolumeShock
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; background: #21262d; padding: 6px 10px; border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" class="telegram-alarm-type" value="DROPPING" checked> 📉 Dropping
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; background: #21262d; padding: 6px 10px; border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" class="telegram-alarm-type" value="PUBLICMOVE" checked> 👥 PublicMove
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; background: #21262d; padding: 6px 10px; border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" class="telegram-alarm-type" value="VOLUMELEADER" checked> 🏆 VolumeLeader
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; background: #21262d; padding: 6px 10px; border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" class="telegram-alarm-type" value="MIM" checked> 💎 MIM
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="btn-group" style="margin-top: 20px;">
+                        <button class="btn btn-primary" onclick="saveTelegramSettings()" style="background: #238636;">
+                            <span class="btn-icon">💾</span> Ayarlari Kaydet
+                        </button>
+                        <button class="btn" onclick="testTelegramMessage()" style="background: #0088cc; color: white;">
+                            <span class="btn-icon">📤</span> Test Mesaji Gonder
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="info-card" style="border-left: 3px solid #0088cc;">
+                    <h3>💰 Big Money Retrigger Ayarlari</h3>
+                    <p style="color: #8b949e; font-size: 12px; margin-bottom: 15px;">
+                        Big Money alarmlarinin tekrar tetiklenmesi icin ozel kurallar.
+                    </p>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" id="bigMoneyRetriggerEnabled" checked style="width: 18px; height: 18px;">
+                                <span>Retrigger Etkinlestir</span>
+                            </label>
+                            <span class="form-hint">Ayni mac icin yeni para geldiginde tekrar bildirim gonder</span>
+                        </div>
+                        <div class="form-group">
+                            <label>Min. Delta (GBP)</label>
+                            <input type="number" id="bigMoneyRetriggerDelta" value="500" min="100" step="100" style="width: 100px;">
+                            <span class="form-hint">Retrigger icin gereken min. yeni para</span>
+                        </div>
+                        <div class="form-group">
+                            <label>Cooldown (dakika)</label>
+                            <input type="number" id="bigMoneyRetriggerCooldown" value="10" min="1" max="60" step="1" style="width: 80px;">
+                            <span class="form-hint">Ayni alarm icin min. bekleme suresi</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-card" style="margin-top: 20px;">
+                <h3>📊 Telegram Istatistikleri</h3>
+                <div class="stats-mini">
+                    <div class="stat-mini-item">
+                        <span class="stat-mini-value" id="telegramTotalSent">0</span>
+                        <span class="stat-mini-label">Toplam Gonderilen</span>
+                    </div>
+                    <div class="stat-mini-item">
+                        <span class="stat-mini-value" id="telegramTodaySent">0</span>
+                        <span class="stat-mini-label">Bugun</span>
+                    </div>
+                    <div class="stat-mini-item">
+                        <span class="stat-mini-value" id="telegramStatus">-</span>
+                        <span class="stat-mini-label">Durum</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-card" style="margin-top: 20px;">
+                <h3>📋 Son Gonderilen Bildirimler</h3>
+                <div id="telegramLogList" style="max-height: 400px; overflow-y: auto;">
+                    <p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz bildirim gonderilmedi.</p>
+                </div>
+            </div>
+        </div>
+
         <div id="page-system" class="page-content">
             <div class="page-header">
                 <div>
@@ -2947,6 +3070,11 @@
             if (pageId === 'volumeshock') loadVolumeShockPage();
             if (pageId === 'volumeleader') loadVolumeLeaderPage();
             if (pageId === 'mim') loadMimPage();
+            if (pageId === 'telegram') loadTelegramPage();
+        }
+        
+        async function loadTelegramPage() {
+            await Promise.all([loadTelegramSettings(), loadTelegramStats()]);
         }
 
         function showToast(message, type = 'info') {
@@ -4930,6 +5058,111 @@
         
         // ============================================
         // END MIM FUNCTIONS
+        // ============================================
+        
+        // ============================================
+        // TELEGRAM FUNCTIONS
+        // ============================================
+        
+        async function loadTelegramSettings() {
+            try {
+                const response = await fetch('/api/telegram/settings');
+                const data = await response.json();
+                
+                if (data.success && data.settings) {
+                    document.getElementById('telegramEnabled').checked = data.settings.telegram_enabled === 'true';
+                    
+                    const alarmTypes = JSON.parse(data.settings.telegram_alarm_types || '[]');
+                    document.querySelectorAll('.telegram-alarm-type').forEach(checkbox => {
+                        checkbox.checked = alarmTypes.includes(checkbox.value);
+                    });
+                    
+                    document.getElementById('bigMoneyRetriggerEnabled').checked = data.settings.big_money_retrigger_enabled === 'true';
+                    document.getElementById('bigMoneyRetriggerDelta').value = data.settings.big_money_retrigger_min_delta || 500;
+                    document.getElementById('bigMoneyRetriggerCooldown').value = data.settings.big_money_retrigger_cooldown_min || 10;
+                }
+            } catch (error) {
+                console.error('Telegram ayarlari yuklenemedi:', error);
+            }
+        }
+        
+        async function saveTelegramSettings() {
+            const alarmTypes = [];
+            document.querySelectorAll('.telegram-alarm-type:checked').forEach(checkbox => {
+                alarmTypes.push(checkbox.value);
+            });
+            
+            const settings = {
+                telegram_enabled: document.getElementById('telegramEnabled').checked ? 'true' : 'false',
+                telegram_alarm_types: JSON.stringify(alarmTypes),
+                big_money_retrigger_enabled: document.getElementById('bigMoneyRetriggerEnabled').checked ? 'true' : 'false',
+                big_money_retrigger_min_delta: document.getElementById('bigMoneyRetriggerDelta').value,
+                big_money_retrigger_cooldown_min: document.getElementById('bigMoneyRetriggerCooldown').value
+            };
+            
+            try {
+                const response = await fetch('/api/telegram/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+                
+                if (response.ok) {
+                    showToast('Telegram ayarlari kaydedildi!', 'success');
+                } else {
+                    showToast('Kayit hatasi!', 'error');
+                }
+            } catch (error) {
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+        
+        async function testTelegramMessage() {
+            try {
+                const response = await fetch('/api/telegram/test', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Test mesaji gonderildi!', 'success');
+                } else {
+                    showToast('Gonderim hatasi: ' + (data.error || 'Bilinmeyen hata'), 'error');
+                }
+            } catch (error) {
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+        
+        async function loadTelegramStats() {
+            try {
+                const response = await fetch('/api/telegram/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('telegramTotalSent').textContent = data.total || 0;
+                    document.getElementById('telegramTodaySent').textContent = data.today || 0;
+                    document.getElementById('telegramStatus').textContent = data.enabled ? 'Aktif' : 'Pasif';
+                    document.getElementById('telegramStatus').style.color = data.enabled ? '#3fb950' : '#f85149';
+                    
+                    if (data.recent_logs && data.recent_logs.length > 0) {
+                        const logList = document.getElementById('telegramLogList');
+                        logList.innerHTML = data.recent_logs.map(log => `
+                            <div style="padding: 10px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <span style="color: #58a6ff;">${log.alarm_type}</span> - 
+                                    <span>${log.match_id_hash}</span>
+                                </div>
+                                <div style="color: #8b949e; font-size: 12px;">${log.last_sent_at}</div>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Telegram stats yuklenemedi:', error);
+            }
+        }
+        
+        // ============================================
+        // END TELEGRAM FUNCTIONS
         // ============================================
         
         function showVolumeLeaderCalcStatus() {

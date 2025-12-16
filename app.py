@@ -4409,6 +4409,110 @@ def delete_mim_alarms():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# ============================================
+# TELEGRAM API ENDPOINTS
+# ============================================
+
+@app.route('/api/telegram/settings', methods=['GET'])
+def get_telegram_settings():
+    """Get Telegram settings from Supabase"""
+    try:
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            response = supabase.client.table('telegram_settings').select('*').execute()
+            if response.data:
+                settings = {row['setting_key']: row['setting_value'] for row in response.data}
+                return jsonify({'success': True, 'settings': settings})
+        return jsonify({'success': True, 'settings': {}})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/telegram/settings', methods=['POST'])
+def save_telegram_settings():
+    """Save Telegram settings to Supabase"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data'}), 400
+        
+        supabase = get_supabase_client()
+        if supabase and supabase.is_available:
+            for key, value in data.items():
+                supabase.client.table('telegram_settings').upsert({
+                    'setting_key': key,
+                    'setting_value': str(value)
+                }, on_conflict='setting_key').execute()
+            return jsonify({'success': True})
+        return jsonify({'success': False, 'error': 'Supabase not available'}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/telegram/test', methods=['POST'])
+def test_telegram():
+    """Send a test message to Telegram"""
+    try:
+        import os
+        import requests as req
+        
+        token = os.environ.get('TELEGRAM_BOT_TOKEN') or os.environ.get('TELEGRAM_TOKEN')
+        chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+        
+        if not token or not chat_id:
+            return jsonify({'success': False, 'error': 'TELEGRAM_BOT_TOKEN veya TELEGRAM_CHAT_ID ayarlanmamis'})
+        
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        payload = {
+            "chat_id": chat_id,
+            "text": "SmartXFlow Telegram test mesaji basarili!",
+            "disable_web_page_preview": True
+        }
+        
+        response = req.post(url, json=payload, timeout=30)
+        if response.status_code == 200:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': f'Telegram API hatasi: {response.status_code}'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/telegram/stats', methods=['GET'])
+def get_telegram_stats():
+    """Get Telegram statistics"""
+    try:
+        supabase = get_supabase_client()
+        result = {
+            'success': True,
+            'total': 0,
+            'today': 0,
+            'enabled': False,
+            'recent_logs': []
+        }
+        
+        if supabase and supabase.is_available:
+            settings_resp = supabase.client.table('telegram_settings').select('*').eq('setting_key', 'telegram_enabled').execute()
+            if settings_resp.data and len(settings_resp.data) > 0:
+                result['enabled'] = settings_resp.data[0]['setting_value'] == 'true'
+            
+            total_resp = supabase.client.table('telegram_sent_log').select('id', count='exact').execute()
+            result['total'] = total_resp.count if hasattr(total_resp, 'count') else 0
+            
+            from datetime import datetime, timezone
+            today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+            today_resp = supabase.client.table('telegram_sent_log').select('id', count='exact').gte('last_sent_at', today_start).execute()
+            result['today'] = today_resp.count if hasattr(today_resp, 'count') else 0
+            
+            recent_resp = supabase.client.table('telegram_sent_log').select('*').order('last_sent_at', desc=True).limit(20).execute()
+            if recent_resp.data:
+                result['recent_logs'] = recent_resp.data
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/alarms/all', methods=['GET'])
 def get_all_alarms_batch():
     """

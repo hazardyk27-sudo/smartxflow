@@ -42,6 +42,11 @@ The system uses a hybrid architecture with Supabase as the single source of trut
 - **Timezone:** All backend/DB timestamps are UTC; frontend displays in `Europe/Istanbul`.
 - **Scrape Interval:** Fixed at 10 minutes.
 - **Prematch System:** Only prematch data is tracked; no data for in-play or past matches (older than D-1).
+- **Telegram Notifications:** Real-time alarm notifications via Telegram bot with:
+    - Per-alarm-type enable/disable
+    - BigMoney retrigger support (min delta + cooldown)
+    - Deduplication via `telegram_sent_log` table
+    - Rate limiting and retry handling
 - **API Optimization:**
     - `/api/alarms/all`: Batch endpoint for 7 alarm types, with client-side caching (45s TTL).
     - `/api/match/<match_id>/snapshot`: Endpoint for all match-related data (alarms, metadata, moneyway, dropping_odds). Uses a 12-character MD5 `match_id`.
