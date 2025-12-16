@@ -220,6 +220,17 @@ class AlarmCalculator:
             log(f"[Telegram] Settings load error: {e}")
             self._telegram_settings = {'telegram_enabled': 'false'}
     
+    def _normalize_alarm_type(self, alarm_type: str) -> str:
+        """Normalize alarm type for consistent comparison
+        Converts: volume_shock_alarms -> VOLUMESHOCK
+                  big_money_alarms -> BIGMONEY
+                  insider_alarms -> INSIDER
+        """
+        normalized = alarm_type.upper()
+        normalized = normalized.replace('_ALARMS', '')
+        normalized = normalized.replace('_', '')
+        return normalized
+    
     def _is_telegram_enabled(self, alarm_type: str) -> bool:
         """Check if Telegram is enabled for this alarm type"""
         if not self._telegram_settings:
@@ -228,7 +239,9 @@ class AlarmCalculator:
             return False
         try:
             enabled_types = json.loads(self._telegram_settings.get('telegram_alarm_types', '[]'))
-            return alarm_type.upper() in [t.upper() for t in enabled_types]
+            normalized_alarm = self._normalize_alarm_type(alarm_type)
+            normalized_enabled = [self._normalize_alarm_type(t) for t in enabled_types]
+            return normalized_alarm in normalized_enabled
         except:
             return False
     
@@ -237,7 +250,8 @@ class AlarmCalculator:
         match_id = alarm.get('match_id') or alarm.get('match_id_hash', '')
         market = alarm.get('market', '')
         selection = alarm.get('selection', '')
-        dedupe_key = f"{match_id}|{alarm_type}|{market}|{selection}"
+        normalized_type = self._normalize_alarm_type(alarm_type)
+        dedupe_key = f"{match_id}|{normalized_type}|{market}|{selection}"
         
         try:
             existing = self._get('telegram_sent_log', f'dedupe_key=eq.{dedupe_key}&select=*')
@@ -248,7 +262,7 @@ class AlarmCalculator:
             last_delta = float(last_record.get('last_delta', 0))
             last_sent = last_record.get('last_sent_at', '')
             
-            if alarm_type.upper() in ['BIGMONEY', 'BIG_MONEY']:
+            if normalized_type == 'BIGMONEY':
                 retrigger_enabled = self._telegram_settings.get('big_money_retrigger_enabled', 'true') == 'true'
                 if not retrigger_enabled:
                     return False, False, 0
@@ -283,12 +297,13 @@ class AlarmCalculator:
             match_id = alarm.get('match_id') or alarm.get('match_id_hash', '')
             market = alarm.get('market', '')
             selection = alarm.get('selection', '')
-            dedupe_key = f"{match_id}|{alarm_type}|{market}|{selection}"
+            normalized_type = self._normalize_alarm_type(alarm_type)
+            dedupe_key = f"{match_id}|{normalized_type}|{market}|{selection}"
             
             payload = [{
                 'dedupe_key': dedupe_key,
                 'match_id_hash': match_id[:12] if match_id else '',
-                'alarm_type': alarm_type.upper(),
+                'alarm_type': normalized_type,
                 'market': market,
                 'selection': selection,
                 'last_sent_at': now_turkey_iso(),
