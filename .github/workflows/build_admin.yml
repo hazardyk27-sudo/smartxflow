@@ -34,7 +34,7 @@ jobs:
 
       - name: Create config with secrets
         run: |
-          echo '{"SUPABASE_URL": "${{ secrets.SUPABASE_URL }}", "SUPABASE_ANON_KEY": "${{ secrets.SUPABASE_ANON_KEY }}", "SCRAPE_INTERVAL_MINUTES": 10}' > scraper_standalone/config.json
+          echo '{"SUPABASE_URL": "${{ secrets.SUPABASE_URL }}", "SUPABASE_ANON_KEY": "${{ secrets.SUPABASE_ANON_KEY }}", "TELEGRAM_BOT_TOKEN": "${{ secrets.TELEGRAM_BOT_TOKEN }}", "TELEGRAM_CHAT_ID": "${{ secrets.TELEGRAM_CHAT_ID }}", "SCRAPE_INTERVAL_MINUTES": 10}' > scraper_standalone/config.json
         shell: bash
 
       - name: Create BUILD_INFO.txt
