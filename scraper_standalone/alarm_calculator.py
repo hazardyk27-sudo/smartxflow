@@ -213,9 +213,13 @@ class AlarmCalculator:
             settings = self._get('telegram_settings', 'select=*')
             if settings:
                 self._telegram_settings = {row['setting_key']: row['setting_value'] for row in settings}
+                env_token = os.environ.get('TELEGRAM_BOT_TOKEN') or os.environ.get('TELEGRAM_TOKEN')
+                env_chat_id = os.environ.get('TELEGRAM_CHAT_ID')
                 log(f"[Telegram] Settings loaded: enabled={self._telegram_settings.get('telegram_enabled', 'false')}")
+                log(f"[Telegram] Env credentials: Token={'SET' if env_token else 'NOT SET'}, ChatID={'SET' if env_chat_id else 'NOT SET'}")
             else:
                 self._telegram_settings = {'telegram_enabled': 'false'}
+                log("[Telegram] No settings found in Supabase")
         except Exception as e:
             log(f"[Telegram] Settings load error: {e}")
             self._telegram_settings = {'telegram_enabled': 'false'}
@@ -574,6 +578,7 @@ class AlarmCalculator:
             chat_id = os.environ.get('TELEGRAM_CHAT_ID')
             
             if not token or not chat_id:
+                log(f"[Telegram] CREDENTIALS MISSING - Token: {'SET' if token else 'NOT SET'}, ChatID: {'SET' if chat_id else 'NOT SET'}")
                 return False
             
             home = alarm.get('home', alarm.get('home_team', ''))
