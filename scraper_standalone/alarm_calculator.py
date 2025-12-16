@@ -1224,7 +1224,6 @@ class AlarmCalculator:
     def batch_fetch_history(self, market: str) -> Dict[str, List[Dict]]:
         """Batch fetch ALL history for a market - NO LIMIT, tüm snapshot'lar okunur
         History zaten dünden önce temizlendiği için boyut küçük kalır.
-        DUAL KEY: Hem match_id_hash hem de normalize_team_name ile key'lenir
         """
         history_table = f"{market}_history"
         
@@ -1253,40 +1252,23 @@ class AlarmCalculator:
         for row in rows:
             home = row.get('home', '')
             away = row.get('away', '')
-            
-            # PRIMARY KEY: match_id_hash (varsa)
-            match_id_hash = row.get('match_id_hash', '')
-            if match_id_hash:
-                if match_id_hash not in history_map:
-                    history_map[match_id_hash] = []
-                history_map[match_id_hash].append(row)
-            
-            # SECONDARY KEY: normalize_team_name (fallback için)
-            name_key = f"{normalize_team_name(home)}|{normalize_team_name(away)}"
-            if name_key not in history_map:
-                history_map[name_key] = []
-            history_map[name_key].append(row)
+            key = f"{normalize_team_name(home)}|{normalize_team_name(away)}"
+            if key not in history_map:
+                history_map[key] = []
+            history_map[key].append(row)
         
         self._history_cache[history_table] = history_map
         return history_map
     
-    def get_match_history(self, home: str, away: str, history_table: str, match_id_hash: str = None) -> List[Dict]:
-        """Get historical snapshots for a match from cache (no individual API calls)
-        DUAL LOOKUP: Önce match_id_hash ile, yoksa normalize_team_name ile arar
-        """
+    def get_match_history(self, home: str, away: str, history_table: str) -> List[Dict]:
+        """Get historical snapshots for a match from cache (no individual API calls)"""
         if history_table not in self._history_cache:
             market = history_table.replace('_history', '')
             self.batch_fetch_history(market)
         
         history_map = self._history_cache.get(history_table, {})
-        
-        # PRIMARY: match_id_hash ile ara (varsa)
-        if match_id_hash and match_id_hash in history_map:
-            return history_map.get(match_id_hash, [])
-        
-        # SECONDARY: normalize_team_name ile ara (fallback)
-        name_key = f"{normalize_team_name(home)}|{normalize_team_name(away)}"
-        return history_map.get(name_key, [])
+        key = f"{normalize_team_name(home)}|{normalize_team_name(away)}"
+        return history_map.get(key, [])
     
     def run_all_calculations(self) -> int:
         """Run all alarm calculations - OPTIMIZED with batch fetch
