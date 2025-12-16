@@ -15,3 +15,4 @@ matplotlib
 pandas
 pytz
 Pillow
+playwright
