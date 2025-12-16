@@ -212,7 +212,15 @@ class AlarmCalculator:
         try:
             settings = self._get('telegram_settings', 'select=*')
             if settings:
-                self._telegram_settings = {row['setting_key']: row['setting_value'] for row in settings}
+                self._telegram_settings = {}
+                for row in settings:
+                    key = row['setting_key']
+                    value = row['setting_value']
+                    if isinstance(value, bool):
+                        value = 'true' if value else 'false'
+                    elif str(value).lower() in ('true', 'false'):
+                        value = str(value).lower()
+                    self._telegram_settings[key] = value
                 env_token = os.environ.get('TELEGRAM_BOT_TOKEN') or os.environ.get('TELEGRAM_TOKEN')
                 env_chat_id = os.environ.get('TELEGRAM_CHAT_ID')
                 log(f"[Telegram] Settings loaded: enabled={self._telegram_settings.get('telegram_enabled', 'false')}")
@@ -242,7 +250,10 @@ class AlarmCalculator:
         """Check if Telegram is enabled for this alarm type"""
         if not self._telegram_settings:
             return False
-        if self._telegram_settings.get('telegram_enabled') != 'true':
+        enabled_val = self._telegram_settings.get('telegram_enabled', 'false')
+        if isinstance(enabled_val, bool):
+            enabled_val = 'true' if enabled_val else 'false'
+        if str(enabled_val).lower() != 'true':
             return False
         try:
             enabled_types = json.loads(self._telegram_settings.get('telegram_alarm_types', '[]'))
