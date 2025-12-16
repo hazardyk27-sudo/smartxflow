@@ -16,7 +16,7 @@ from datetime import datetime
 from collections import deque
 import queue
 
-VERSION = "1.24"
+VERSION = "1.25"
 CONFIG_FILE = "config.json"
 
 # Scraper Console - Global Log Buffer & State
@@ -270,7 +270,7 @@ def show_setup_dialog():
 
 
 def load_config():
-    """Config dosyasını yükle - embedded fallback ile"""
+    """Config dosyasını yükle - bundled config'den eksik key'leri merge et"""
     config_path = get_config_path()
     default_config = {
         'SUPABASE_URL': EMBEDDED_SUPABASE_URL,
@@ -278,25 +278,56 @@ def load_config():
         'SCRAPE_INTERVAL_MINUTES': 10
     }
     
+    bundled_config = {}
+    try:
+        if getattr(sys, 'frozen', False):
+            bundled_path = os.path.join(sys._MEIPASS, 'config.json')
+            if os.path.exists(bundled_path):
+                with open(bundled_path, 'r', encoding='utf-8') as f:
+                    bundled_config = json.load(f)
+                logging.info(f"Bundled config loaded: TELEGRAM_BOT_TOKEN={'SET' if bundled_config.get('TELEGRAM_BOT_TOKEN') else 'NOT SET'}")
+    except Exception as e:
+        logging.warning(f"Bundled config load error: {e}")
+    
+    user_config = {}
+    config_updated = False
+    
     if os.path.exists(config_path):
         try:
             with open(config_path, 'r', encoding='utf-8-sig') as f:
                 content = f.read().strip()
                 if content.startswith('\ufeff'):
                     content = content[1:]
-                config = json.loads(content)
-                if not config.get('SUPABASE_URL'):
-                    config['SUPABASE_URL'] = EMBEDDED_SUPABASE_URL
-                if not config.get('SUPABASE_ANON_KEY'):
-                    config['SUPABASE_ANON_KEY'] = EMBEDDED_SUPABASE_KEY
-                if 'SCRAPE_INTERVAL_MINUTES' not in config:
-                    config['SCRAPE_INTERVAL_MINUTES'] = 10
-                return config
+                user_config = json.loads(content)
         except Exception as e:
-            logging.error(f"Config load error: {e}, using embedded credentials")
+            logging.error(f"User config load error: {e}")
     
-    logging.info("Using embedded Supabase credentials")
-    return default_config
+    config = {**default_config, **user_config}
+    
+    if not config.get('SUPABASE_URL'):
+        config['SUPABASE_URL'] = EMBEDDED_SUPABASE_URL
+    if not config.get('SUPABASE_ANON_KEY'):
+        config['SUPABASE_ANON_KEY'] = EMBEDDED_SUPABASE_KEY
+    if 'SCRAPE_INTERVAL_MINUTES' not in config:
+        config['SCRAPE_INTERVAL_MINUTES'] = 10
+    
+    telegram_keys = ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID']
+    for key in telegram_keys:
+        if not config.get(key) and bundled_config.get(key):
+            config[key] = bundled_config[key]
+            config_updated = True
+            logging.info(f"Merged {key} from bundled config")
+    
+    if config_updated:
+        try:
+            os.makedirs(os.path.dirname(config_path), exist_ok=True)
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=2, ensure_ascii=False)
+            logging.info(f"Updated user config saved to {config_path}")
+        except Exception as e:
+            logging.error(f"Failed to save updated config: {e}")
+    
+    return config
 
 
 def setup_environment():
