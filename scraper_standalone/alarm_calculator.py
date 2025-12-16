@@ -292,6 +292,254 @@ class AlarmCalculator:
             log(f"[Telegram] Dedupe check error: {e}")
             return True, False, 0
     
+    def _format_bigmoney_telegram(self, alarm: Dict, home: str, away: str, market: str, selection: str, timestamp: str, is_retrigger: bool = False) -> str:
+        """Format BigMoney alarm for Telegram"""
+        retrigger_text = " (RETRIGGER)" if is_retrigger else ""
+        incoming = float(alarm.get('incoming_money', 0) or alarm.get('delta', 0) or alarm.get('money_in', 0) or 0)
+        total = float(alarm.get('selection_total', 0) or alarm.get('total_volume', 0) or 0)
+        
+        match_date = alarm.get('match_date', '')
+        kickoff = alarm.get('kickoff', alarm.get('kickoff_utc', ''))
+        if kickoff:
+            try:
+                from datetime import datetime
+                if 'T' in str(kickoff):
+                    dt = datetime.fromisoformat(str(kickoff).replace('Z', '+00:00'))
+                    match_date_str = dt.strftime('%d %b • %H:%M')
+                else:
+                    match_date_str = str(kickoff)[:16]
+            except:
+                match_date_str = str(match_date) if match_date else ''
+        else:
+            match_date_str = str(match_date) if match_date else ''
+        
+        history = alarm.get('alarm_history', [])
+        if isinstance(history, str):
+            try:
+                history = json.loads(history)
+            except:
+                history = []
+        
+        trigger_count = len(history) + 1
+        
+        lines = [
+            f"🟠 <b>BIG MONEY</b>{retrigger_text} — {market}-{selection} secenegine yuksek para girisi oldu",
+            f"🕐 {timestamp}",
+            "",
+            f"⚽ <b>{home}</b> – <b>{away}</b>",
+            "",
+            f"💰 {selection} £{incoming:,.0f}",
+            f"📈 Toplam: £{total:,.0f}",
+        ]
+        
+        if match_date_str:
+            lines.append("")
+            lines.append(f"📅 Mac: {match_date_str}")
+        
+        if history and len(history) > 0:
+            lines.append("")
+            lines.append("⏱️ Onceki:")
+            for h in history[:3]:
+                h_time = h.get('trigger_at', '')[:16].replace('T', ' • ').replace('-', '.') if h.get('trigger_at') else ''
+                h_money = float(h.get('incoming_money', 0) or 0)
+                if h_time and h_money > 0:
+                    lines.append(f"  • {h_time} → £{h_money:,.0f}")
+        
+        if trigger_count > 1:
+            lines.append("")
+            lines.append(f"×{trigger_count} tetikleme")
+        
+        vol1 = float(alarm.get('vol_1', 0) or 0)
+        volx = float(alarm.get('vol_x', 0) or 0)
+        vol2 = float(alarm.get('vol_2', 0) or 0)
+        total_vol = vol1 + volx + vol2
+        
+        if total_vol > 0:
+            pct1 = (vol1 / total_vol * 100) if total_vol > 0 else 0
+            pctx = (volx / total_vol * 100) if total_vol > 0 else 0
+            pct2 = (vol2 / total_vol * 100) if total_vol > 0 else 0
+            lines.append("")
+            lines.append("━━━━━━━━━━━━━━━━")
+            lines.append("📊 Hacimler:")
+            lines.append(f"  1: £{vol1:,.0f} ({pct1:.0f}%)")
+            lines.append(f"  X: £{volx:,.0f} ({pctx:.0f}%)")
+            lines.append(f"  2: £{vol2:,.0f} ({pct2:.0f}%)")
+            lines.append(f"  Total: £{total_vol:,.0f}")
+        
+        return "\n".join(lines)
+    
+    def _format_volumeshock_telegram(self, alarm: Dict, home: str, away: str, market: str, selection: str, timestamp: str) -> str:
+        """Format VolumeShock alarm for Telegram"""
+        prev_vol = float(alarm.get('prev_volume', 0) or alarm.get('previous_volume', 0) or 0)
+        curr_vol = float(alarm.get('current_volume', 0) or alarm.get('volume', 0) or 0)
+        multiplier = float(alarm.get('multiplier', 0) or alarm.get('shock_multiplier', 0) or 0)
+        
+        if multiplier == 0 and prev_vol > 0:
+            multiplier = curr_vol / prev_vol
+        
+        match_date = alarm.get('match_date', '')
+        kickoff = alarm.get('kickoff', alarm.get('kickoff_utc', ''))
+        if kickoff:
+            try:
+                from datetime import datetime
+                if 'T' in str(kickoff):
+                    dt = datetime.fromisoformat(str(kickoff).replace('Z', '+00:00'))
+                    match_date_str = dt.strftime('%d %b • %H:%M')
+                else:
+                    match_date_str = str(kickoff)[:16]
+            except:
+                match_date_str = str(match_date) if match_date else ''
+        else:
+            match_date_str = str(match_date) if match_date else ''
+        
+        lines = [
+            f"⚡ <b>VOLUME SHOCK</b> — {market}-{selection}'de ani hacim artisi tespit edildi",
+            f"🕐 {timestamp}",
+            "",
+            f"⚽ <b>{home}</b> – <b>{away}</b>",
+            "",
+            f"📊 {selection}: £{prev_vol:,.0f} → £{curr_vol:,.0f}",
+            f"🔥 {multiplier:.1f}x artis (10 dk icinde)",
+        ]
+        
+        if match_date_str:
+            lines.append("")
+            lines.append(f"📅 Mac: {match_date_str}")
+        
+        vol1 = float(alarm.get('vol_1', 0) or 0)
+        volx = float(alarm.get('vol_x', 0) or 0)
+        vol2 = float(alarm.get('vol_2', 0) or 0)
+        total_vol = vol1 + volx + vol2
+        
+        if total_vol > 0:
+            pct1 = (vol1 / total_vol * 100) if total_vol > 0 else 0
+            pctx = (volx / total_vol * 100) if total_vol > 0 else 0
+            pct2 = (vol2 / total_vol * 100) if total_vol > 0 else 0
+            lines.append("")
+            lines.append("━━━━━━━━━━━━━━━━")
+            lines.append("📊 Mevcut Hacimler:")
+            lines.append(f"  1: £{vol1:,.0f} ({pct1:.0f}%)")
+            lines.append(f"  X: £{volx:,.0f} ({pctx:.0f}%)")
+            lines.append(f"  2: £{vol2:,.0f} ({pct2:.0f}%)")
+            lines.append(f"  Total: £{total_vol:,.0f}")
+        
+        return "\n".join(lines)
+    
+    def _format_dropping_telegram(self, alarm: Dict, home: str, away: str, market: str, selection: str, timestamp: str) -> str:
+        """Format Dropping alarm for Telegram"""
+        old_odds = float(alarm.get('opening_odds', 0) or alarm.get('old_odds', 0) or 0)
+        new_odds = float(alarm.get('current_odds', 0) or alarm.get('new_odds', 0) or 0)
+        drop_pct = float(alarm.get('drop_pct', 0) or 0)
+        
+        lines = [
+            f"📉 <b>DROPPING ODDS</b> — {market}-{selection}'de oran dususu",
+            f"🕐 {timestamp}",
+            "",
+            f"⚽ <b>{home}</b> – <b>{away}</b>",
+            "",
+            f"📊 Oran: {old_odds:.2f} → {new_odds:.2f} ({drop_pct:.1f}% dusus)",
+        ]
+        
+        return "\n".join(lines)
+    
+    def _format_sharp_telegram(self, alarm: Dict, home: str, away: str, market: str, selection: str, timestamp: str) -> str:
+        """Format Sharp alarm for Telegram"""
+        level = alarm.get('level', '')
+        delta = float(alarm.get('delta', 0) or alarm.get('money_in', 0) or 0)
+        
+        lines = [
+            f"🎯 <b>SHARP</b> ({level}) — {market}-{selection}'de keskin hareket",
+            f"🕐 {timestamp}",
+            "",
+            f"⚽ <b>{home}</b> – <b>{away}</b>",
+            "",
+            f"💰 Para Girisi: £{delta:,.0f}",
+        ]
+        
+        return "\n".join(lines)
+    
+    def _format_insider_telegram(self, alarm: Dict, home: str, away: str, market: str, selection: str, timestamp: str) -> str:
+        """Format Insider alarm for Telegram"""
+        level = alarm.get('level', '')
+        delta = float(alarm.get('delta', 0) or alarm.get('money_in', 0) or 0)
+        
+        lines = [
+            f"🕵️ <b>INSIDER</b> ({level}) — {market}-{selection}'de supeli hareket",
+            f"🕐 {timestamp}",
+            "",
+            f"⚽ <b>{home}</b> – <b>{away}</b>",
+            "",
+            f"💰 Para Girisi: £{delta:,.0f}",
+        ]
+        
+        return "\n".join(lines)
+    
+    def _format_publicmove_telegram(self, alarm: Dict, home: str, away: str, market: str, selection: str, timestamp: str) -> str:
+        """Format PublicMove alarm for Telegram"""
+        share_change = float(alarm.get('share_change', 0) or 0)
+        
+        lines = [
+            f"👥 <b>PUBLIC MOVE</b> — {market}-{selection}'de halk hareketi",
+            f"🕐 {timestamp}",
+            "",
+            f"⚽ <b>{home}</b> – <b>{away}</b>",
+            "",
+            f"📊 Pay Degisimi: {share_change:+.1f}%",
+        ]
+        
+        return "\n".join(lines)
+    
+    def _format_volumeleader_telegram(self, alarm: Dict, home: str, away: str, market: str, selection: str, timestamp: str) -> str:
+        """Format VolumeLeader alarm for Telegram"""
+        share = float(alarm.get('share', 0) or alarm.get('current_share', 0) or 0)
+        volume = float(alarm.get('volume', 0) or alarm.get('current_volume', 0) or 0)
+        
+        lines = [
+            f"🏆 <b>VOLUME LEADER</b> — {market}-{selection} hacim lideri",
+            f"🕐 {timestamp}",
+            "",
+            f"⚽ <b>{home}</b> – <b>{away}</b>",
+            "",
+            f"📊 Pay: {share:.1f}%",
+            f"💰 Hacim: £{volume:,.0f}",
+        ]
+        
+        return "\n".join(lines)
+    
+    def _format_mim_telegram(self, alarm: Dict, home: str, away: str, market: str, selection: str, timestamp: str) -> str:
+        """Format MIM alarm for Telegram"""
+        impact = float(alarm.get('impact', 0) or alarm.get('market_impact', 0) or 0)
+        
+        lines = [
+            f"🔄 <b>MIM</b> — {market}-{selection}'de piyasa etkisi",
+            f"🕐 {timestamp}",
+            "",
+            f"⚽ <b>{home}</b> – <b>{away}</b>",
+            "",
+            f"📊 Etki: {impact:.2f}",
+        ]
+        
+        return "\n".join(lines)
+    
+    def _format_default_telegram(self, alarm: Dict, alarm_type: str, home: str, away: str, market: str, selection: str, timestamp: str) -> str:
+        """Format default alarm for Telegram"""
+        emoji_map = {
+            'SHARP': '🎯', 'INSIDER': '🕵️', 'BIGMONEY': '💰',
+            'VOLUMESHOCK': '⚡', 'DROPPING': '📉',
+            'PUBLICMOVE': '👥', 'VOLUMELEADER': '🏆', 'MIM': '🔄'
+        }
+        emoji = emoji_map.get(alarm_type.upper(), '🚨')
+        
+        lines = [
+            f"{emoji} <b>{alarm_type.upper()}</b>",
+            f"🕐 {timestamp}",
+            "",
+            f"⚽ <b>{home}</b> – <b>{away}</b>",
+            f"📊 Market: {market} / {selection}",
+        ]
+        
+        return "\n".join(lines)
+    
     def _log_telegram_sent(self, alarm: Dict, alarm_type: str, delta: float = 0):
         """Log sent notification to Supabase for deduplication"""
         try:
@@ -325,44 +573,34 @@ class AlarmCalculator:
             if not token or not chat_id:
                 return False
             
-            emoji_map = {
-                'SHARP': '🎯', 'INSIDER': '🕵️', 'BIGMONEY': '💰', 'BIG_MONEY': '💰',
-                'VOLUMESHOCK': '⚡', 'VOLUME_SHOCK': '⚡', 'DROPPING': '📉',
-                'PUBLICMOVE': '👥', 'PUBLIC_MOVE': '👥', 'VOLUMELEADER': '🏆',
-                'VOLUME_LEADER': '🏆', 'MIM': '🔄'
-            }
-            emoji = emoji_map.get(alarm_type.upper(), '🚨')
-            
             home = alarm.get('home', alarm.get('home_team', ''))
             away = alarm.get('away', alarm.get('away_team', ''))
             market = alarm.get('market', '')
             selection = alarm.get('selection', '')
-            level = alarm.get('level', '')
             
-            retrigger_text = " (RETRIGGER)" if is_retrigger else ""
-            level_text = f" ({level})" if level else ""
+            now = now_turkey()
+            timestamp = now.strftime('%d.%m • %H:%M')
             
-            lines = [
-                f"{emoji} <b>{alarm_type.upper()}</b>{level_text}{retrigger_text}",
-                f"<b>{home}</b> vs <b>{away}</b>",
-                f"Market: {market} / {selection}"
-            ]
+            normalized_type = self._normalize_alarm_type(alarm_type)
             
-            if alarm.get('delta'):
-                lines.append(f"Money: +£{float(alarm['delta']):,.0f}")
-            elif alarm.get('money_in'):
-                lines.append(f"Money: +£{float(alarm['money_in']):,.0f}")
-            
-            if alarm.get('drop_pct'):
-                old_odds = alarm.get('opening_odds', alarm.get('old_odds', 0))
-                new_odds = alarm.get('current_odds', alarm.get('new_odds', 0))
-                if old_odds and new_odds:
-                    lines.append(f"Odds: {float(old_odds):.2f} → {float(new_odds):.2f} ({float(alarm['drop_pct']):.1f}%)")
-            
-            timestamp = now_turkey().strftime('%H:%M')
-            lines.append(f"TR: {timestamp}")
-            
-            text = "\n".join(lines)
+            if normalized_type == 'BIGMONEY':
+                text = self._format_bigmoney_telegram(alarm, home, away, market, selection, timestamp, is_retrigger)
+            elif normalized_type == 'VOLUMESHOCK':
+                text = self._format_volumeshock_telegram(alarm, home, away, market, selection, timestamp)
+            elif normalized_type == 'DROPPING':
+                text = self._format_dropping_telegram(alarm, home, away, market, selection, timestamp)
+            elif normalized_type == 'SHARP':
+                text = self._format_sharp_telegram(alarm, home, away, market, selection, timestamp)
+            elif normalized_type == 'INSIDER':
+                text = self._format_insider_telegram(alarm, home, away, market, selection, timestamp)
+            elif normalized_type == 'PUBLICMOVE':
+                text = self._format_publicmove_telegram(alarm, home, away, market, selection, timestamp)
+            elif normalized_type == 'VOLUMELEADER':
+                text = self._format_volumeleader_telegram(alarm, home, away, market, selection, timestamp)
+            elif normalized_type == 'MIM':
+                text = self._format_mim_telegram(alarm, home, away, market, selection, timestamp)
+            else:
+                text = self._format_default_telegram(alarm, alarm_type, home, away, market, selection, timestamp)
             
             url = f"https://api.telegram.org/bot{token}/sendMessage"
             payload = {
