@@ -224,11 +224,14 @@ class AlarmCalculator:
         """Normalize alarm type for consistent comparison
         Converts: volume_shock_alarms -> VOLUMESHOCK
                   big_money_alarms -> BIGMONEY
-                  insider_alarms -> INSIDER
+                  Big Money -> BIGMONEY
+                  Volume Shock -> VOLUMESHOCK
         """
         normalized = alarm_type.upper()
         normalized = normalized.replace('_ALARMS', '')
         normalized = normalized.replace('_', '')
+        normalized = normalized.replace(' ', '')
+        normalized = normalized.replace('-', '')
         return normalized
     
     def _is_telegram_enabled(self, alarm_type: str) -> bool:
