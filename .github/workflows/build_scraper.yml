@@ -5,6 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'scraper_standalone/**'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 jobs:

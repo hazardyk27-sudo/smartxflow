@@ -10,6 +10,7 @@ on:
       - 'static/**'
       - 'services/**'
       - 'core/**'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 jobs:
