@@ -4392,7 +4392,8 @@ def save_mim_config():
         if data:
             supabase = get_supabase_client()
             if supabase and supabase.is_available:
-                supabase.save_alarm_setting('mim', data)
+                enabled = data.get('enabled', True)
+                supabase.update_alarm_setting('mim', enabled, data)
             return jsonify({'success': True, 'config': data})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
