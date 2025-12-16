@@ -16,7 +16,7 @@ from datetime import datetime
 from collections import deque
 import queue
 
-VERSION = "1.25"
+VERSION = "1.26"
 CONFIG_FILE = "config.json"
 
 # Scraper Console - Global Log Buffer & State
@@ -691,7 +691,9 @@ def main():
             logging.error("Kullanici kurulumu iptal etti")
             sys.exit(0)
         
-        config = result['config']
+        # Setup dialog sonrası load_config() çağır - bundled TELEGRAM_* credentials merge edilsin
+        config = load_config()
+        logging.info("Setup sonrası load_config() ile bundled credentials merge edildi")
     else:
         config = load_config()
     
