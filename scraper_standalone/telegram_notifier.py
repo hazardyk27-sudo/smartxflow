@@ -33,7 +33,25 @@ except ImportError:
     except ImportError:
         IMAGE_GENERATOR_AVAILABLE = False
 
+try:
+    from scraper_standalone.telegram_card_renderer import render_alarm_card_png, PLAYWRIGHT_AVAILABLE, check_chromium_available, mark_chromium_unavailable
+    CARD_RENDERER_AVAILABLE = PLAYWRIGHT_AVAILABLE
+except ImportError:
+    try:
+        from telegram_card_renderer import render_alarm_card_png, PLAYWRIGHT_AVAILABLE, check_chromium_available, mark_chromium_unavailable
+        CARD_RENDERER_AVAILABLE = PLAYWRIGHT_AVAILABLE
+    except ImportError:
+        CARD_RENDERER_AVAILABLE = False
+        def render_alarm_card_png(*args, **kwargs):
+            raise RuntimeError("Card renderer not available")
+        def check_chromium_available():
+            return False
+        def mark_chromium_unavailable():
+            pass
+
 logger = logging.getLogger(__name__)
+
+TELEGRAM_MESSAGE_MODE = os.environ.get('TELEGRAM_MESSAGE_MODE', 'image')
 
 TELEGRAM_API_URL = "https://api.telegram.org/bot{token}/sendMessage"
 TELEGRAM_PHOTO_URL = "https://api.telegram.org/bot{token}/sendPhoto"
@@ -263,14 +281,18 @@ def send_alarm_with_image(
     money: float = 0,
     total_money: float = None,
     previous_alarms: list = None,
+    kickoff_utc: str = None,
+    match_url: str = None,
+    multiplier: int = None,
     old_odds: float = 0,
     new_odds: float = 0,
     drop_pct: float = 0,
-    extra_info: str = ""
+    extra_info: str = "",
+    message_mode: str = None
 ) -> bool:
     """
-    Send alarm notification with visual card image.
-    Falls back to text message if image generation fails.
+    Send alarm notification with visual card image using Playwright HTML screenshot.
+    Falls back to Pillow image, then to text message if all fail.
     
     Args:
         alarm_type: Type of alarm (bigmoney, sharp, insider, etc.)
@@ -279,19 +301,24 @@ def send_alarm_with_image(
         market: Market type (1X2, OU25, BTTS)
         selection: Selection (1, X, 2, O, U, Y, N)
         alarm_time: Alarm time in ISO format
-        money: Money amount for BigMoney alarms
+        money: Money amount for BigMoney alarms (delta)
         total_money: Total accumulated money
         previous_alarms: List of previous alarms for history
+        kickoff_utc: Match kickoff time in UTC
+        match_url: URL to match page
+        multiplier: Alarm count multiplier
         old_odds: Opening odds (for dropping alarms)
         new_odds: Current odds (for dropping alarms)
         drop_pct: Drop percentage
         extra_info: Additional info to display
+        message_mode: 'image' or 'text' (overrides env setting)
     
     Returns:
         True if notification sent successfully
     """
-    if not IMAGE_GENERATOR_AVAILABLE:
-        logger.warning("[Telegram] Image generator not available, falling back to text")
+    mode = message_mode or TELEGRAM_MESSAGE_MODE
+    
+    if mode == 'text':
         msg = format_alarm_message(
             alarm_type=alarm_type,
             home=home,
@@ -306,19 +333,44 @@ def send_alarm_with_image(
         )
         return send_telegram_message(msg)
     
-    try:
-        if alarm_type.lower() == 'dropping':
-            odds_info = f"{old_odds:.2f} → {new_odds:.2f} ({drop_pct:.1f}%)" if old_odds > 0 else ""
-            image_buffer = generate_alarm_card(
+    caption = f"<b>🟠 {alarm_type.upper()}</b> — <i>{home} – {away}</i>"
+    if match_url:
+        caption += f'\n<a href="{match_url}">Maç linki</a>'
+    
+    if CARD_RENDERER_AVAILABLE and check_chromium_available():
+        try:
+            logger.info("[Telegram] Using Playwright card renderer...")
+            png_bytes = render_alarm_card_png(
                 alarm_type=alarm_type,
                 home_team=home,
                 away_team=away,
                 market=market,
                 selection=selection,
                 alarm_time=alarm_time,
-                odds_info=odds_info
+                kickoff_utc=kickoff_utc,
+                delta_money=money,
+                total_money=total_money,
+                previous_entries=previous_alarms,
+                match_url=match_url,
+                multiplier=multiplier
             )
-        elif alarm_type.lower() == 'bigmoney':
+            
+            image_buffer = BytesIO(png_bytes)
+            result = send_telegram_photo(image_buffer, caption)
+            
+            if result:
+                logger.info("[Telegram] Playwright card sent successfully")
+                return True
+            else:
+                logger.warning("[Telegram] Playwright photo send failed, trying fallback...")
+                
+        except Exception as e:
+            logger.warning(f"[Telegram] Playwright render failed: {e}, trying Pillow fallback...")
+            mark_chromium_unavailable()
+    
+    if IMAGE_GENERATOR_AVAILABLE:
+        try:
+            logger.info("[Telegram] Using Pillow image generator...")
             image_buffer = generate_alarm_card(
                 alarm_type=alarm_type,
                 home_team=home,
@@ -326,63 +378,38 @@ def send_alarm_with_image(
                 market=market,
                 selection=selection,
                 alarm_time=alarm_time,
+                kickoff_utc=kickoff_utc,
                 money=money,
                 total_money=total_money,
-                previous_alarms=previous_alarms
+                previous_alarms=previous_alarms,
+                multiplier=multiplier
             )
-        else:
-            image_buffer = generate_alarm_card(
-                alarm_type=alarm_type,
-                home_team=home,
-                away_team=away,
-                market=market,
-                selection=selection,
-                alarm_time=alarm_time,
-                extra_info=extra_info
-            )
-        
-        if TURKEY_TZ:
-            now = datetime.now(TURKEY_TZ)
-        else:
-            now = datetime.utcnow()
-        
-        caption = f"⚽ {home} vs {away}\n🕐 {now.strftime('%d.%m %H:%M')} TR"
-        
-        result = send_telegram_photo(image_buffer, caption)
-        
-        if not result:
-            logger.warning("[Telegram] Photo send failed, falling back to text")
-            msg = format_alarm_message(
-                alarm_type=alarm_type,
-                home=home,
-                away=away,
-                market=market,
-                selection=selection,
-                delta=money,
-                old_odds=old_odds,
-                new_odds=new_odds,
-                drop_pct=drop_pct,
-                extra_info=extra_info
-            )
-            return send_telegram_message(msg)
-        
-        return result
-        
-    except Exception as e:
-        logger.error(f"[Telegram] Image generation failed: {e}, falling back to text")
-        msg = format_alarm_message(
-            alarm_type=alarm_type,
-            home=home,
-            away=away,
-            market=market,
-            selection=selection,
-            delta=money,
-            old_odds=old_odds,
-            new_odds=new_odds,
-            drop_pct=drop_pct,
-            extra_info=extra_info
-        )
-        return send_telegram_message(msg)
+            
+            result = send_telegram_photo(image_buffer, caption)
+            
+            if result:
+                logger.info("[Telegram] Pillow image sent successfully")
+                return True
+            else:
+                logger.warning("[Telegram] Pillow photo send failed, falling back to text...")
+                
+        except Exception as e:
+            logger.warning(f"[Telegram] Pillow image failed: {e}, falling back to text...")
+    
+    logger.info("[Telegram] Sending text message as final fallback")
+    msg = format_alarm_message(
+        alarm_type=alarm_type,
+        home=home,
+        away=away,
+        market=market,
+        selection=selection,
+        delta=money,
+        old_odds=old_odds,
+        new_odds=new_odds,
+        drop_pct=drop_pct,
+        extra_info=extra_info
+    )
+    return send_telegram_message(msg)
 
 
 def send_test_message() -> bool:
@@ -390,19 +417,27 @@ def send_test_message() -> bool:
     return send_telegram_message("✅ SmartXFlow Telegram test başarılı!")
 
 
-def send_test_image() -> bool:
-    """Send a test BigMoney image to verify image notification."""
+def send_test_image(message_mode: str = None) -> bool:
+    """
+    Send a test BigMoney image to verify image notification.
+    
+    Args:
+        message_mode: 'image' or 'text' (overrides env setting)
+    """
     return send_alarm_with_image(
         alarm_type="bigmoney",
         home="Arsenal",
-        away="Chelsea",
+        away="Wolves",
         market="1X2",
-        selection="2",
+        selection="1",
         alarm_time=datetime.utcnow().isoformat() + "Z",
-        money=50000,
-        total_money=485780,
+        money=21462,
+        total_money=302078,
+        kickoff_utc="2025-12-13T20:00:00Z",
+        multiplier=5,
+        message_mode=message_mode,
         previous_alarms=[
-            {"time": "2025-12-14T21:59:00Z", "money": 37170},
+            {"time": "2025-12-11T19:29:00Z", "money": 25025},
             {"time": "2025-12-14T21:49:00Z", "money": 106308},
             {"time": "2025-12-14T21:40:00Z", "money": 20612},
         ]

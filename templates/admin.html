@@ -2196,6 +2196,19 @@
                         </div>
                     </div>
                     
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label style="display: block; margin-bottom: 8px; color: #8b949e;">Mesaj Formati:</label>
+                        <div style="display: flex; gap: 20px;">
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="radio" name="messageMode" id="messageModeImage" value="image" checked> 📷 Gorsel Kart
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="radio" name="messageMode" id="messageModeText" value="text"> 📝 Metin
+                            </label>
+                        </div>
+                        <span class="form-hint">Gorsel kart web UI'daki tasarimi kullanir (Playwright gerekli)</span>
+                    </div>
+                    
                     <div style="margin-top: 15px;">
                         <label style="display: block; margin-bottom: 8px; color: #8b949e;">Bildirim Gonderilecek Alarm Turleri:</label>
                         <div style="display: flex; flex-wrap: wrap; gap: 10px;">
@@ -5072,6 +5085,10 @@
                 if (data.success && data.settings) {
                     document.getElementById('telegramEnabled').checked = data.settings.telegram_enabled === 'true';
                     
+                    const messageMode = data.settings.telegram_message_mode || 'image';
+                    document.getElementById('messageModeImage').checked = messageMode === 'image';
+                    document.getElementById('messageModeText').checked = messageMode === 'text';
+                    
                     const alarmTypes = JSON.parse(data.settings.telegram_alarm_types || '[]');
                     document.querySelectorAll('.telegram-alarm-type').forEach(checkbox => {
                         checkbox.checked = alarmTypes.includes(checkbox.value);
@@ -5092,8 +5109,11 @@
                 alarmTypes.push(checkbox.value);
             });
             
+            const messageMode = document.getElementById('messageModeImage').checked ? 'image' : 'text';
+            
             const settings = {
                 telegram_enabled: document.getElementById('telegramEnabled').checked ? 'true' : 'false',
+                telegram_message_mode: messageMode,
                 telegram_alarm_types: JSON.stringify(alarmTypes),
                 big_money_retrigger_enabled: document.getElementById('bigMoneyRetriggerEnabled').checked ? 'true' : 'false',
                 big_money_retrigger_min_delta: document.getElementById('bigMoneyRetriggerDelta').value,
