@@ -47,6 +47,9 @@ The system uses a hybrid architecture with Supabase as the single source of trut
     - BigMoney retrigger support (min delta + cooldown)
     - Deduplication via `telegram_sent_log` table
     - Rate limiting and retry handling
+    - Visual card notifications (Playwright HTML-to-PNG) matching web UI design
+    - Three-tier fallback: Playwright → Pillow → Text
+    - Message mode setting in Admin Panel (image/text)
 - **API Optimization:**
     - `/api/alarms/all`: Batch endpoint for 7 alarm types, with client-side caching (45s TTL).
     - `/api/match/<match_id>/snapshot`: Endpoint for all match-related data (alarms, metadata, moneyway, dropping_odds). Uses a 12-character MD5 `match_id`.
