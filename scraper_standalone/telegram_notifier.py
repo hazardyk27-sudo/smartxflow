@@ -209,6 +209,144 @@ def send_telegram_photo(
     return False
 
 
+MONTHS_TR = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara']
+
+
+def format_money(amount):
+    """Format money with dots as thousand separators (£21.462)"""
+    if amount is None:
+        return "£0"
+    formatted = f"{int(amount):,}".replace(",", ".")
+    return f"£{formatted}"
+
+
+def format_datetime_tr(utc_time_str):
+    """Format UTC datetime to Turkish format (11.12 • 22:29)"""
+    try:
+        if isinstance(utc_time_str, str):
+            utc_time_str = utc_time_str.replace('Z', '+00:00')
+            if '+' not in utc_time_str and '-' not in utc_time_str[10:]:
+                utc_time_str = utc_time_str + '+00:00'
+            dt = datetime.fromisoformat(utc_time_str)
+        else:
+            dt = utc_time_str
+        if TURKEY_TZ:
+            tr_time = dt.astimezone(TURKEY_TZ)
+        else:
+            tr_time = dt
+        return tr_time.strftime("%d.%m • %H:%M")
+    except:
+        return ""
+
+
+def format_kickoff_tr(kickoff_utc):
+    """Format kickoff to Turkish format (13 Ara • 20:00)"""
+    try:
+        if isinstance(kickoff_utc, str):
+            kickoff_utc = kickoff_utc.replace('Z', '+00:00')
+            if '+' not in kickoff_utc and '-' not in kickoff_utc[10:]:
+                kickoff_utc = kickoff_utc + '+00:00'
+            dt = datetime.fromisoformat(kickoff_utc)
+        else:
+            dt = kickoff_utc
+        if TURKEY_TZ:
+            tr_time = dt.astimezone(TURKEY_TZ)
+        else:
+            tr_time = dt
+        day = tr_time.day
+        month = MONTHS_TR[tr_time.month - 1]
+        time_str = tr_time.strftime("%H:%M")
+        return f"{day} {month} • {time_str}"
+    except:
+        return ""
+
+
+def format_bigmoney_text(
+    home: str,
+    away: str,
+    market: str,
+    selection: str,
+    money: float,
+    alarm_time: str = None,
+    total_money: float = None,
+    kickoff_utc: str = None,
+    previous_alarms: list = None,
+    multiplier: int = None,
+    volumes: dict = None
+) -> str:
+    """
+    Format BigMoney alarm as rich text message matching card design.
+    
+    Args:
+        home: Home team name
+        away: Away team name
+        market: Market type (1X2, OU25, BTTS)
+        selection: Selection (1, X, 2, O, U, Y, N)
+        money: Money amount (delta)
+        alarm_time: Alarm time in ISO format
+        total_money: Total accumulated money
+        kickoff_utc: Match kickoff time
+        previous_alarms: List of previous alarms
+        multiplier: Alarm count
+        volumes: Dict with selection volumes {selection: {volume, share}, total: X}
+    """
+    lines = []
+    
+    lines.append(f"🟠 <b>BIG MONEY</b> — {market}-{selection} seçeneğine yüksek para girişi oldu")
+    
+    if alarm_time:
+        time_str = format_datetime_tr(alarm_time)
+        lines.append(f"🕐 {time_str}")
+    
+    lines.append("")
+    lines.append(f"⚽ <b>{home} – {away}</b>")
+    lines.append("")
+    
+    lines.append(f"💰 {selection} {format_money(money)}")
+    
+    if total_money and total_money > money:
+        lines.append(f"📈 Toplam: {format_money(total_money)}")
+    
+    lines.append("")
+    
+    if kickoff_utc:
+        kickoff_str = format_kickoff_tr(kickoff_utc)
+        lines.append(f"📅 Maç: {kickoff_str}")
+        lines.append("")
+    
+    if previous_alarms and len(previous_alarms) > 0:
+        lines.append("⏱️ Önceki:")
+        for prev in previous_alarms[:4]:
+            prev_time = format_datetime_tr(prev.get('time', ''))
+            prev_money = format_money(prev.get('money', 0))
+            lines.append(f"  • {prev_time} → {prev_money}")
+        lines.append("")
+    
+    if multiplier and multiplier > 1:
+        lines.append(f"×{multiplier} tetikleme")
+        lines.append("")
+    
+    if volumes:
+        lines.append("━━━━━━━━━━━━━━━━")
+        lines.append("📊 Hacimler:")
+        
+        selections_order = ['1', 'X', '2', 'O', 'U', 'Y', 'N']
+        for sel in selections_order:
+            if sel in volumes and sel != 'total':
+                vol_data = volumes[sel]
+                if isinstance(vol_data, dict):
+                    vol = vol_data.get('volume', 0)
+                    share = vol_data.get('share', 0)
+                    lines.append(f"  {sel}: {format_money(vol)} ({share:.0f}%)")
+                else:
+                    lines.append(f"  {sel}: {format_money(vol_data)}")
+        
+        if 'total' in volumes:
+            lines.append(f"  Total: {format_money(volumes['total'])}")
+    
+    return "\n".join(lines)
+
+
 def format_alarm_message(
     alarm_type: str,
     home: str,
@@ -415,6 +553,80 @@ def send_alarm_with_image(
 def send_test_message() -> bool:
     """Send a test message to verify Telegram configuration."""
     return send_telegram_message("✅ SmartXFlow Telegram test başarılı!")
+
+
+def send_bigmoney_text(
+    home: str,
+    away: str,
+    market: str,
+    selection: str,
+    money: float,
+    alarm_time: str = None,
+    total_money: float = None,
+    kickoff_utc: str = None,
+    previous_alarms: list = None,
+    multiplier: int = None,
+    volumes: dict = None
+) -> bool:
+    """
+    Send BigMoney alarm as formatted text message.
+    
+    Args:
+        home: Home team name
+        away: Away team name
+        market: Market type (1X2, OU25, BTTS)
+        selection: Selection (1, X, 2, O, U, Y, N)
+        money: Money amount (delta)
+        alarm_time: Alarm time in ISO format
+        total_money: Total accumulated money
+        kickoff_utc: Match kickoff time
+        previous_alarms: List of previous alarms
+        multiplier: Alarm count
+        volumes: Dict with selection volumes
+    
+    Returns:
+        True if sent successfully
+    """
+    msg = format_bigmoney_text(
+        home=home,
+        away=away,
+        market=market,
+        selection=selection,
+        money=money,
+        alarm_time=alarm_time,
+        total_money=total_money,
+        kickoff_utc=kickoff_utc,
+        previous_alarms=previous_alarms,
+        multiplier=multiplier,
+        volumes=volumes
+    )
+    return send_telegram_message(msg)
+
+
+def send_test_bigmoney_text() -> bool:
+    """Send a test BigMoney text message with sample data."""
+    return send_bigmoney_text(
+        home="Arsenal",
+        away="Wolves",
+        market="1X2",
+        selection="1",
+        money=21462,
+        alarm_time=datetime.utcnow().isoformat() + "Z",
+        total_money=302078,
+        kickoff_utc="2025-12-13T20:00:00Z",
+        previous_alarms=[
+            {"time": "2025-12-11T19:29:00Z", "money": 25025},
+            {"time": "2025-12-11T11:37:00Z", "money": 25569},
+            {"time": "2025-12-09T01:06:00Z", "money": 27176},
+        ],
+        multiplier=5,
+        volumes={
+            '1': {'volume': 150234, 'share': 48},
+            'X': {'volume': 85120, 'share': 27},
+            '2': {'volume': 78450, 'share': 25},
+            'total': 313804
+        }
+    )
 
 
 def send_test_image(message_mode: str = None) -> bool:
