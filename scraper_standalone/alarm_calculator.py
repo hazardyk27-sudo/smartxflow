@@ -263,12 +263,13 @@ class AlarmCalculator:
             last_sent = last_record.get('last_sent_at', '')
             
             if normalized_type == 'BIGMONEY':
-                retrigger_enabled = self._telegram_settings.get('big_money_retrigger_enabled', 'true') == 'true'
+                settings = self._telegram_settings or {}
+                retrigger_enabled = settings.get('big_money_retrigger_enabled', 'true') == 'true'
                 if not retrigger_enabled:
                     return False, False, 0
                 
-                min_delta = float(self._telegram_settings.get('big_money_retrigger_min_delta', 500))
-                cooldown_min = int(self._telegram_settings.get('big_money_retrigger_cooldown_min', 10))
+                min_delta = float(settings.get('big_money_retrigger_min_delta', 500))
+                cooldown_min = int(settings.get('big_money_retrigger_cooldown_min', 10))
                 
                 current_delta = float(alarm.get('delta', 0) or alarm.get('money_in', 0) or 0)
                 new_delta = current_delta - last_delta
