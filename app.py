@@ -4420,9 +4420,12 @@ def get_telegram_settings():
     try:
         supabase = get_supabase_client()
         if supabase and supabase.is_available:
-            response = supabase.client.table('telegram_settings').select('*').execute()
-            if response.data:
-                settings = {row['setting_key']: row['setting_value'] for row in response.data}
+            import httpx
+            url = f"{supabase._rest_url('telegram_settings')}?select=*"
+            resp = httpx.get(url, headers=supabase._headers(), timeout=10)
+            if resp.status_code == 200:
+                rows = resp.json()
+                settings = {row['setting_key']: row['setting_value'] for row in rows}
                 return jsonify({'success': True, 'settings': settings})
         return jsonify({'success': True, 'settings': {}})
     except Exception as e:
@@ -4439,11 +4442,21 @@ def save_telegram_settings():
         
         supabase = get_supabase_client()
         if supabase and supabase.is_available:
+            import httpx
+            from datetime import datetime
+            headers = supabase._headers()
+            headers['Prefer'] = 'resolution=merge-duplicates,return=representation'
+            
             for key, value in data.items():
-                supabase.client.table('telegram_settings').upsert({
+                row_data = [{
                     'setting_key': key,
-                    'setting_value': str(value)
-                }, on_conflict='setting_key').execute()
+                    'setting_value': str(value),
+                    'updated_at': datetime.now().isoformat()
+                }]
+                url = f"{supabase._rest_url('telegram_settings')}?on_conflict=setting_key"
+                resp = httpx.post(url, headers=headers, json=row_data, timeout=10)
+                if resp.status_code not in [200, 201]:
+                    return jsonify({'success': False, 'error': f'HTTP {resp.status_code}: {resp.text[:100]}'}), 500
             return jsonify({'success': True})
         return jsonify({'success': False, 'error': 'Supabase not available'}), 500
     except Exception as e:
