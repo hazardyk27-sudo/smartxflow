@@ -2051,10 +2051,7 @@ class AlarmCalculator:
                 if not home or not away:
                     continue
                 
-                # match_id_hash'i al veya hesapla
-                match_id = match.get('match_id_hash') or generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                
-                history = self.get_match_history(home, away, history_table, match_id_hash=match_id)
+                history = self.get_match_history(home, away, history_table)
                 if len(history) < 2:
                     continue
                 
@@ -2079,6 +2076,7 @@ class AlarmCalculator:
                         continue
                     
                     selection_total = parse_volume(history[-1].get(amount_key, 0))
+                    match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
                     
                     # Her büyük para hareketini AYRI alarm olarak kaydet
                     for snap_idx, snap in enumerate(big_snapshots):
@@ -2242,10 +2240,7 @@ class AlarmCalculator:
                 if not home or not away:
                     continue
                 
-                # match_id_hash'i al veya hesapla
-                match_id = match.get('match_id_hash') or generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                
-                history = self.get_match_history(home, away, history_table, match_id_hash=match_id)
+                history = self.get_match_history(home, away, history_table)
                 if len(history) < 5:
                     continue
                 
@@ -2292,6 +2287,7 @@ class AlarmCalculator:
                             }
                     
                     if best_shock:
+                        match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
                         
                         alarm = {
                             'match_id': match_id,
