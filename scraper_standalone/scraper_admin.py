@@ -354,13 +354,15 @@ def run_flask(port):
 
 
 def run_scraper(config):
-    """Arka planda scraper çalıştır - SADECE VERİ ÇEK, alarm hesaplama YOK"""
-    global SCRAPER_STATE
+    """Arka planda scraper çalıştır - Veri çektikten HEMEN SONRA alarm hesapla"""
+    global SCRAPER_STATE, ALARM_ENGINE_STATE
     
     try:
         log_scraper("Modüller yükleniyor...")
         from standalone_scraper import SupabaseWriter, run_scrape
+        from alarm_calculator import AlarmCalculator
         log_scraper("✓ standalone_scraper yüklendi")
+        log_scraper("✓ alarm_calculator yüklendi")
         
         interval_minutes = config.get('SCRAPE_INTERVAL_MINUTES', 10)
         SCRAPER_STATE['interval_minutes'] = interval_minutes
@@ -371,7 +373,7 @@ def run_scraper(config):
         log_scraper(f"SmartXFlow Scraper v{VERSION} başlatıldı")
         log_scraper(f"Veri çekme aralığı: {interval_minutes} dakika")
         log_scraper(f"Supabase URL: {config.get('SUPABASE_URL', '')[:40]}...")
-        log_scraper("NOT: Alarm hesaplama AYRI - Alarm Engine'i manuel başlatın")
+        log_scraper("MODE: Scrape → Alarm (entegre)")
         log_scraper("=" * 50)
         
         writer = SupabaseWriter(
@@ -393,7 +395,41 @@ def run_scraper(config):
                 SCRAPER_STATE['last_scrape'] = datetime.now().isoformat()
                 
                 log_scraper(f"Veri çekme tamamlandı: {rows} satır")
-                log_scraper("(Alarm hesaplama için Alarm Engine'i başlatın)")
+                
+                log_scraper(">>> ALARM HESAPLAMA BAŞLIYOR (hemen)...")
+                SCRAPER_STATE['status'] = 'Alarm hesaplanıyor...'
+                ALARM_ENGINE_STATE['status'] = 'Hesaplanıyor...'
+                
+                try:
+                    calc_start = time.time()
+                    calculator = AlarmCalculator(
+                        config['SUPABASE_URL'],
+                        config['SUPABASE_ANON_KEY'],
+                        logger_callback=log_scraper
+                    )
+                    alarm_count = calculator.run_all_calculations()
+                    calc_duration = time.time() - calc_start
+                    
+                    ALARM_ENGINE_STATE['last_calculation'] = datetime.now().isoformat()
+                    ALARM_ENGINE_STATE['last_duration_seconds'] = round(calc_duration, 2)
+                    ALARM_ENGINE_STATE['last_alarm_count'] = alarm_count if alarm_count else 0
+                    ALARM_ENGINE_STATE['alarm_summary'] = calculator.alarm_summary if hasattr(calculator, 'alarm_summary') else {}
+                    
+                    summary_parts = []
+                    if hasattr(calculator, 'alarm_summary') and calculator.alarm_summary:
+                        for atype, count in calculator.alarm_summary.items():
+                            if count > 0:
+                                summary_parts.append(f"{atype}:{count}")
+                    summary_str = ", ".join(summary_parts) if summary_parts else "0 alarm"
+                    
+                    log_scraper(f"<<< ALARM HESAPLAMA TAMAMLANDI - {summary_str} ({calc_duration:.1f}s)")
+                    ALARM_ENGINE_STATE['status'] = 'Bekleniyor...'
+                    
+                except Exception as ae:
+                    import traceback
+                    log_scraper(f"!!! ALARM HESAPLAMA HATASI: {str(ae)}", level='ERROR')
+                    log_scraper(f"Traceback: {traceback.format_exc()}", level='ERROR')
+                    ALARM_ENGINE_STATE['status'] = f'Hata: {str(ae)[:30]}'
                 
             except Exception as e:
                 import traceback
