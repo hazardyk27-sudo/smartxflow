@@ -62,7 +62,7 @@ def get_font(size, weight='regular'):
 def format_money(amount):
     if amount is None:
         return "£0"
-    formatted = f"{amount:,.0f}".replace(",", ".")
+    formatted = f"{int(amount):,}".replace(",", ".")
     return f"£{formatted}"
 
 
@@ -78,6 +78,22 @@ def format_tr_datetime(utc_time_str):
         tr_tz = pytz.timezone('Europe/Istanbul')
         tr_time = dt.astimezone(tr_tz)
         return tr_time.strftime("%d.%m %H:%M")
+    except:
+        return ""
+
+
+def format_prev_datetime(utc_time_str):
+    try:
+        if isinstance(utc_time_str, str):
+            utc_time_str = utc_time_str.replace('Z', '+00:00')
+            if '+' not in utc_time_str and '-' not in utc_time_str[10:]:
+                utc_time_str = utc_time_str + '+00:00'
+            dt = datetime.fromisoformat(utc_time_str)
+        else:
+            dt = utc_time_str
+        tr_tz = pytz.timezone('Europe/Istanbul')
+        tr_time = dt.astimezone(tr_tz)
+        return tr_time.strftime("%d.%m • %H:%M")
     except:
         return ""
 
@@ -262,7 +278,7 @@ def generate_bigmoney_card(
         y += 20
         
         for prev in previous_alarms[:5]:
-            prev_time = format_tr_datetime(prev.get('time', ''))
+            prev_time = format_prev_datetime(prev.get('time', ''))
             prev_money = format_money(prev.get('money', 0))
             
             draw.ellipse([CARD_PADDING, y + 5, CARD_PADDING + 6, y + 11], fill=ORANGE)
