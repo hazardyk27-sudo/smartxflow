@@ -39,7 +39,7 @@ jobs:
 
       - name: Create BUILD_INFO.txt
         run: |
-          echo "SmartXFlow Admin Panel v1.23" > scraper_standalone/BUILD_INFO.txt
+          echo "SmartXFlow Admin Panel v1.24" > scraper_standalone/BUILD_INFO.txt
           echo "Build Date: $(date)" >> scraper_standalone/BUILD_INFO.txt
           echo "Python: 3.11" >> scraper_standalone/BUILD_INFO.txt
           echo "Commit: ${{ github.sha }}" >> scraper_standalone/BUILD_INFO.txt
@@ -61,8 +61,8 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: admin-v1.23-${{ github.run_number }}
-          name: SmartXFlow Admin v1.23 Build ${{ github.run_number }}
+          tag_name: admin-v1.24-${{ github.run_number }}
+          name: SmartXFlow Admin v1.24 Build ${{ github.run_number }}
           files: scraper_standalone/dist/*
           draft: false
           prerelease: false

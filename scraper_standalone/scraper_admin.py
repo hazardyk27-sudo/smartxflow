@@ -16,7 +16,7 @@ from datetime import datetime
 from collections import deque
 import queue
 
-VERSION = "1.23"
+VERSION = "1.24"
 CONFIG_FILE = "config.json"
 
 # Scraper Console - Global Log Buffer & State
@@ -307,6 +307,10 @@ def setup_environment():
         os.environ['SUPABASE_URL'] = config['SUPABASE_URL']
     if config.get('SUPABASE_ANON_KEY'):
         os.environ['SUPABASE_ANON_KEY'] = config['SUPABASE_ANON_KEY']
+    if config.get('TELEGRAM_BOT_TOKEN'):
+        os.environ['TELEGRAM_BOT_TOKEN'] = config['TELEGRAM_BOT_TOKEN']
+    if config.get('TELEGRAM_CHAT_ID'):
+        os.environ['TELEGRAM_CHAT_ID'] = str(config['TELEGRAM_CHAT_ID'])
     
     os.environ['PYWEBVIEW_GUI'] = 'edgechromium'
     os.environ['SMARTX_DESKTOP'] = '1'
@@ -314,6 +318,8 @@ def setup_environment():
     
     logging.info(f"Supabase URL: {config.get('SUPABASE_URL', '')[:40]}...")
     logging.info(f"Scrape Interval: {config.get('SCRAPE_INTERVAL_MINUTES', 10)} min")
+    logging.info(f"Telegram Token: {'SET' if config.get('TELEGRAM_BOT_TOKEN') else 'NOT SET'}")
+    logging.info(f"Telegram Chat ID: {'SET' if config.get('TELEGRAM_CHAT_ID') else 'NOT SET'}")
     
     return config
 
@@ -660,11 +666,17 @@ def main():
     
     os.environ['SUPABASE_URL'] = config['SUPABASE_URL']
     os.environ['SUPABASE_ANON_KEY'] = config['SUPABASE_ANON_KEY']
+    if config.get('TELEGRAM_BOT_TOKEN'):
+        os.environ['TELEGRAM_BOT_TOKEN'] = config['TELEGRAM_BOT_TOKEN']
+    if config.get('TELEGRAM_CHAT_ID'):
+        os.environ['TELEGRAM_CHAT_ID'] = str(config['TELEGRAM_CHAT_ID'])
     os.environ['PYWEBVIEW_GUI'] = 'edgechromium'
     os.environ['SMARTX_DESKTOP'] = '1'
     os.environ['DISABLE_SCRAPER'] = 'false'
     
     logging.info(f"Supabase URL: {config.get('SUPABASE_URL', '')[:40]}...")
+    logging.info(f"Telegram Token: {'SET' if config.get('TELEGRAM_BOT_TOKEN') else 'NOT SET'}")
+    logging.info(f"Telegram Chat ID: {'SET' if config.get('TELEGRAM_CHAT_ID') else 'NOT SET'}")
     logging.info("Config loaded - starting application")
     
     port = find_free_port()
