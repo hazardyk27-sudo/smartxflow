@@ -225,9 +225,7 @@ def calculate_bigmoney_alarms() -> list:
                         'league': row.get('league', '')[:150],
                         'market': market,
                         'selection': sel,
-                        'prev_volume': total_volume,      # Toplam hacim
-                        'curr_volume': amt,               # Selection hacmi
-                        'impact_value': round(amt / total_volume * 100, 2) if total_volume > 0 else 0,  # Yüzde
+                        'incoming_money': amt,            # DB kolon adı
                         'trigger_at': datetime.utcnow().isoformat()
                     }
                     alarms.append(alarm)
@@ -374,9 +372,9 @@ def calculate_volumeshock_alarms() -> list:
                     'league': row.get('league', '')[:150],
                     'market': market,
                     'selection': 'ALL',
-                    'prev_volume': round(avg_volume, 2),    # Ortalama hacim
-                    'curr_volume': total_volume,            # Mevcut hacim
-                    'impact_value': round(shock_value, 2),  # Şok değeri (%)
+                    'incoming_money': total_volume,              # DB kolon adı
+                    'avg_previous': round(avg_volume, 2),        # DB kolon adı
+                    'volume_shock_value': round(shock_value, 2), # DB kolon adı
                     'trigger_at': datetime.utcnow().isoformat()
                 }
                 alarms.append(alarm)
