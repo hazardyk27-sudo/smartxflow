@@ -323,7 +323,7 @@ class AlarmCalculator:
                 from datetime import datetime
                 if 'T' in str(kickoff):
                     dt = datetime.fromisoformat(str(kickoff).replace('Z', '+00:00'))
-                    match_date_str = dt.strftime('%d %b • %H:%M')
+                    match_date_str = dt.strftime('%d %b - %H:%M')
                 else:
                     match_date_str = str(kickoff)[:16]
             except:
@@ -341,31 +341,31 @@ class AlarmCalculator:
         trigger_count = len(history) + 1
         
         lines = [
-            f"🟠 <b>BIG MONEY</b>{retrigger_text} — {market}-{selection} secenegine yuksek para girisi oldu",
-            f"🕐 {timestamp}",
+            f"[BIG MONEY]{retrigger_text} - {market}-{selection} secenegine yuksek para girisi oldu",
+            f"Zaman: {timestamp}",
             "",
-            f"⚽ <b>{home}</b> – <b>{away}</b>",
+            f"<b>{home}</b> vs <b>{away}</b>",
             "",
-            f"💰 {selection} £{incoming:,.0f}",
-            f"📈 Toplam: £{total:,.0f}",
+            f"> {selection}: GBP {incoming:,.0f}",
+            f"> Toplam: GBP {total:,.0f}",
         ]
         
         if match_date_str:
             lines.append("")
-            lines.append(f"📅 Mac: {match_date_str}")
+            lines.append(f"Mac: {match_date_str}")
         
         if history and len(history) > 0:
             lines.append("")
-            lines.append("⏱️ Onceki:")
+            lines.append("Onceki:")
             for h in history[:3]:
-                h_time = h.get('trigger_at', '')[:16].replace('T', ' • ').replace('-', '.') if h.get('trigger_at') else ''
+                h_time = h.get('trigger_at', '')[:16].replace('T', ' ').replace('-', '.') if h.get('trigger_at') else ''
                 h_money = float(h.get('incoming_money', 0) or 0)
                 if h_time and h_money > 0:
-                    lines.append(f"  • {h_time} → £{h_money:,.0f}")
+                    lines.append(f"  - {h_time} = GBP {h_money:,.0f}")
         
         if trigger_count > 1:
             lines.append("")
-            lines.append(f"×{trigger_count} tetikleme")
+            lines.append(f"x{trigger_count} tetikleme")
         
         vol1 = float(alarm.get('vol_1', 0) or 0)
         volx = float(alarm.get('vol_x', 0) or 0)
@@ -377,12 +377,12 @@ class AlarmCalculator:
             pctx = (volx / total_vol * 100) if total_vol > 0 else 0
             pct2 = (vol2 / total_vol * 100) if total_vol > 0 else 0
             lines.append("")
-            lines.append("━━━━━━━━━━━━━━━━")
-            lines.append("📊 Hacimler:")
-            lines.append(f"  1: £{vol1:,.0f} ({pct1:.0f}%)")
-            lines.append(f"  X: £{volx:,.0f} ({pctx:.0f}%)")
-            lines.append(f"  2: £{vol2:,.0f} ({pct2:.0f}%)")
-            lines.append(f"  Total: £{total_vol:,.0f}")
+            lines.append("----------------")
+            lines.append("Hacimler:")
+            lines.append(f"  1: GBP {vol1:,.0f} ({pct1:.0f}%)")
+            lines.append(f"  X: GBP {volx:,.0f} ({pctx:.0f}%)")
+            lines.append(f"  2: GBP {vol2:,.0f} ({pct2:.0f}%)")
+            lines.append(f"  Total: GBP {total_vol:,.0f}")
         
         return "\n".join(lines)
     
@@ -402,7 +402,7 @@ class AlarmCalculator:
                 from datetime import datetime
                 if 'T' in str(kickoff):
                     dt = datetime.fromisoformat(str(kickoff).replace('Z', '+00:00'))
-                    match_date_str = dt.strftime('%d %b • %H:%M')
+                    match_date_str = dt.strftime('%d %b - %H:%M')
                 else:
                     match_date_str = str(kickoff)[:16]
             except:
@@ -411,18 +411,18 @@ class AlarmCalculator:
             match_date_str = str(match_date) if match_date else ''
         
         lines = [
-            f"⚡ <b>VOLUME SHOCK</b> — {market}-{selection}'de ani hacim artisi tespit edildi",
-            f"🕐 {timestamp}",
+            f"[VOLUME SHOCK] - {market}-{selection}'de ani hacim artisi tespit edildi",
+            f"Zaman: {timestamp}",
             "",
-            f"⚽ <b>{home}</b> – <b>{away}</b>",
+            f"<b>{home}</b> vs <b>{away}</b>",
             "",
-            f"📊 {selection}: £{prev_vol:,.0f} → £{curr_vol:,.0f}",
-            f"🔥 {multiplier:.1f}x artis (10 dk icinde)",
+            f"> {selection}: GBP {prev_vol:,.0f} -> GBP {curr_vol:,.0f}",
+            f"> {multiplier:.1f}x artis (10 dk icinde)",
         ]
         
         if match_date_str:
             lines.append("")
-            lines.append(f"📅 Mac: {match_date_str}")
+            lines.append(f"Mac: {match_date_str}")
         
         vol1 = float(alarm.get('vol_1', 0) or 0)
         volx = float(alarm.get('vol_x', 0) or 0)
@@ -434,12 +434,12 @@ class AlarmCalculator:
             pctx = (volx / total_vol * 100) if total_vol > 0 else 0
             pct2 = (vol2 / total_vol * 100) if total_vol > 0 else 0
             lines.append("")
-            lines.append("━━━━━━━━━━━━━━━━")
-            lines.append("📊 Mevcut Hacimler:")
-            lines.append(f"  1: £{vol1:,.0f} ({pct1:.0f}%)")
-            lines.append(f"  X: £{volx:,.0f} ({pctx:.0f}%)")
-            lines.append(f"  2: £{vol2:,.0f} ({pct2:.0f}%)")
-            lines.append(f"  Total: £{total_vol:,.0f}")
+            lines.append("----------------")
+            lines.append("Mevcut Hacimler:")
+            lines.append(f"  1: GBP {vol1:,.0f} ({pct1:.0f}%)")
+            lines.append(f"  X: GBP {volx:,.0f} ({pctx:.0f}%)")
+            lines.append(f"  2: GBP {vol2:,.0f} ({pct2:.0f}%)")
+            lines.append(f"  Total: GBP {total_vol:,.0f}")
         
         return "\n".join(lines)
     
@@ -450,12 +450,12 @@ class AlarmCalculator:
         drop_pct = float(alarm.get('drop_pct', 0) or 0)
         
         lines = [
-            f"📉 <b>DROPPING ODDS</b> — {market}-{selection}'de oran dususu",
-            f"🕐 {timestamp}",
+            f"[DROPPING ODDS] - {market}-{selection}'de oran dususu",
+            f"Zaman: {timestamp}",
             "",
-            f"⚽ <b>{home}</b> – <b>{away}</b>",
+            f"<b>{home}</b> vs <b>{away}</b>",
             "",
-            f"📊 Oran: {old_odds:.2f} → {new_odds:.2f} ({drop_pct:.1f}% dusus)",
+            f"> Oran: {old_odds:.2f} -> {new_odds:.2f} ({drop_pct:.1f}% dusus)",
         ]
         
         return "\n".join(lines)
@@ -466,12 +466,12 @@ class AlarmCalculator:
         delta = float(alarm.get('delta', 0) or alarm.get('money_in', 0) or 0)
         
         lines = [
-            f"🎯 <b>SHARP</b> ({level}) — {market}-{selection}'de keskin hareket",
-            f"🕐 {timestamp}",
+            f"[SHARP] ({level}) - {market}-{selection}'de keskin hareket",
+            f"Zaman: {timestamp}",
             "",
-            f"⚽ <b>{home}</b> – <b>{away}</b>",
+            f"<b>{home}</b> vs <b>{away}</b>",
             "",
-            f"💰 Para Girisi: £{delta:,.0f}",
+            f"> Para Girisi: GBP {delta:,.0f}",
         ]
         
         return "\n".join(lines)
@@ -482,12 +482,12 @@ class AlarmCalculator:
         delta = float(alarm.get('delta', 0) or alarm.get('money_in', 0) or 0)
         
         lines = [
-            f"🕵️ <b>INSIDER</b> ({level}) — {market}-{selection}'de supeli hareket",
-            f"🕐 {timestamp}",
+            f"[INSIDER] ({level}) - {market}-{selection}'de supeli hareket",
+            f"Zaman: {timestamp}",
             "",
-            f"⚽ <b>{home}</b> – <b>{away}</b>",
+            f"<b>{home}</b> vs <b>{away}</b>",
             "",
-            f"💰 Para Girisi: £{delta:,.0f}",
+            f"> Para Girisi: GBP {delta:,.0f}",
         ]
         
         return "\n".join(lines)
@@ -497,12 +497,12 @@ class AlarmCalculator:
         share_change = float(alarm.get('share_change', 0) or 0)
         
         lines = [
-            f"👥 <b>PUBLIC MOVE</b> — {market}-{selection}'de halk hareketi",
-            f"🕐 {timestamp}",
+            f"[PUBLIC MOVE] - {market}-{selection}'de halk hareketi",
+            f"Zaman: {timestamp}",
             "",
-            f"⚽ <b>{home}</b> – <b>{away}</b>",
+            f"<b>{home}</b> vs <b>{away}</b>",
             "",
-            f"📊 Pay Degisimi: {share_change:+.1f}%",
+            f"> Pay Degisimi: {share_change:+.1f}%",
         ]
         
         return "\n".join(lines)
@@ -513,13 +513,13 @@ class AlarmCalculator:
         volume = float(alarm.get('volume', 0) or alarm.get('current_volume', 0) or 0)
         
         lines = [
-            f"🏆 <b>VOLUME LEADER</b> — {market}-{selection} hacim lideri",
-            f"🕐 {timestamp}",
+            f"[VOLUME LEADER] - {market}-{selection} hacim lideri",
+            f"Zaman: {timestamp}",
             "",
-            f"⚽ <b>{home}</b> – <b>{away}</b>",
+            f"<b>{home}</b> vs <b>{away}</b>",
             "",
-            f"📊 Pay: {share:.1f}%",
-            f"💰 Hacim: £{volume:,.0f}",
+            f"> Pay: {share:.1f}%",
+            f"> Hacim: GBP {volume:,.0f}",
         ]
         
         return "\n".join(lines)
@@ -529,31 +529,24 @@ class AlarmCalculator:
         impact = float(alarm.get('impact', 0) or alarm.get('market_impact', 0) or 0)
         
         lines = [
-            f"🔄 <b>MIM</b> — {market}-{selection}'de piyasa etkisi",
-            f"🕐 {timestamp}",
+            f"[MIM] - {market}-{selection}'de piyasa etkisi",
+            f"Zaman: {timestamp}",
             "",
-            f"⚽ <b>{home}</b> – <b>{away}</b>",
+            f"<b>{home}</b> vs <b>{away}</b>",
             "",
-            f"📊 Etki: {impact:.2f}",
+            f"> Etki: {impact:.2f}",
         ]
         
         return "\n".join(lines)
     
     def _format_default_telegram(self, alarm: Dict, alarm_type: str, home: str, away: str, market: str, selection: str, timestamp: str) -> str:
         """Format default alarm for Telegram"""
-        emoji_map = {
-            'SHARP': '🎯', 'INSIDER': '🕵️', 'BIGMONEY': '💰',
-            'VOLUMESHOCK': '⚡', 'DROPPING': '📉',
-            'PUBLICMOVE': '👥', 'VOLUMELEADER': '🏆', 'MIM': '🔄'
-        }
-        emoji = emoji_map.get(alarm_type.upper(), '🚨')
-        
         lines = [
-            f"{emoji} <b>{alarm_type.upper()}</b>",
-            f"🕐 {timestamp}",
+            f"[{alarm_type.upper()}]",
+            f"Zaman: {timestamp}",
             "",
-            f"⚽ <b>{home}</b> – <b>{away}</b>",
-            f"📊 Market: {market} / {selection}",
+            f"<b>{home}</b> vs <b>{away}</b>",
+            f"> Market: {market} / {selection}",
         ]
         
         return "\n".join(lines)
@@ -598,7 +591,7 @@ class AlarmCalculator:
             selection = alarm.get('selection', '')
             
             now = now_turkey()
-            timestamp = now.strftime('%d.%m • %H:%M')
+            timestamp = now.strftime('%d.%m - %H:%M')
             
             normalized_type = self._normalize_alarm_type(alarm_type)
             
