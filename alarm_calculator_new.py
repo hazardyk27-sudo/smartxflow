@@ -218,7 +218,6 @@ def calculate_bigmoney_alarms() -> list:
             
             for sel, amt, odds in selections:
                 if amt >= threshold:
-                    is_huge = amt >= threshold * 2
                     alarm = {
                         'match_id_hash': match_id_hash,
                         'home': row.get('home', '')[:100],
@@ -226,9 +225,10 @@ def calculate_bigmoney_alarms() -> list:
                         'league': row.get('league', '')[:150],
                         'market': market,
                         'selection': sel,
-                        'incoming_money': amt,
-                        'total_selection': total_volume,
-                        'is_huge': is_huge
+                        'prev_volume': total_volume,      # Toplam hacim
+                        'curr_volume': amt,               # Selection hacmi
+                        'impact_value': round(amt / total_volume * 100, 2) if total_volume > 0 else 0,  # Yüzde
+                        'trigger_at': datetime.utcnow().isoformat()
                     }
                     alarms.append(alarm)
     
@@ -310,10 +310,10 @@ def calculate_dropping_alarms() -> list:
                         'league': row.get('league', '')[:150],
                         'market': market,
                         'selection': sel,
-                        'opening_odds': opening,
-                        'current_odds': current,
-                        'drop_pct': round(drop_pct, 2),
-                        'level': level
+                        'prev_volume': opening,           # Opening odds
+                        'curr_volume': current,           # Current odds
+                        'impact_value': round(drop_pct, 2),  # Düşüş yüzdesi
+                        'trigger_at': datetime.utcnow().isoformat()
                     }
                     alarms.append(alarm)
     
@@ -374,9 +374,10 @@ def calculate_volumeshock_alarms() -> list:
                     'league': row.get('league', '')[:150],
                     'market': market,
                     'selection': 'ALL',
-                    'incoming_money': total_volume,
-                    'avg_previous': round(avg_volume, 2),
-                    'volume_shock_value': round(shock_value, 2)
+                    'prev_volume': round(avg_volume, 2),    # Ortalama hacim
+                    'curr_volume': total_volume,            # Mevcut hacim
+                    'impact_value': round(shock_value, 2),  # Şok değeri (%)
+                    'trigger_at': datetime.utcnow().isoformat()
                 }
                 alarms.append(alarm)
     
@@ -448,8 +449,10 @@ def calculate_publicmove_alarms() -> list:
                         'league': row.get('league', '')[:150],
                         'market': market,
                         'selection': sel,
-                        'public_pct': pct,
-                        'volume': total_volume
+                        'prev_volume': total_volume,      # Toplam hacim
+                        'curr_volume': amt,               # Selection hacmi
+                        'impact_value': pct,              # Public yüzdesi
+                        'trigger_at': datetime.utcnow().isoformat()
                     }
                     alarms.append(alarm)
     
@@ -638,7 +641,10 @@ def calculate_volumeleader_alarms() -> list:
                 'league': row.get('league', '')[:150],
                 'market': market,
                 'selection': 'ALL',
-                'total_volume': vol
+                'prev_volume': min_volume_1x2,   # Minimum threshold
+                'curr_volume': vol,              # Mevcut hacim
+                'impact_value': round(vol / min_volume_1x2, 2) if min_volume_1x2 > 0 else 0,  # Oran
+                'trigger_at': datetime.utcnow().isoformat()
             }
             alarms.append(alarm)
     
