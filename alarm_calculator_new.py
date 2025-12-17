@@ -467,7 +467,7 @@ def calculate_mim_alarms() -> list:
     
     mim_min_incoming = get_setting('mim', 'mim_min_incoming', 300)
     mim_min_market_total = get_setting('mim', 'mim_min_market_total', 1000)
-    mim_max_ratio = get_setting('mim', 'mim_max_ratio', 12)
+    mim_max_ratio = get_setting('mim', 'mim_max_ratio', 0.10)  # 10% - yüksek MIM = güçlü hareket
     
     print(f"MIM: min_incoming={mim_min_incoming}, min_market_total={mim_min_market_total}, max_ratio={mim_max_ratio}")
     
@@ -560,10 +560,11 @@ def calculate_mim_alarms() -> list:
             if best_incoming < mim_min_incoming:
                 continue
             
-            # MIM hesapla
-            mim_value = market_total / best_incoming
+            # MIM hesapla: incoming / market_total
+            # Örnek: £1,000 / £10,000 = 0.10 (10%)
+            mim_value = best_incoming / market_total
             
-            if mim_value <= mim_max_ratio:
+            if mim_value >= mim_max_ratio:  # Yüksek MIM = güçlü hareket = alarm
                 match_id_hash = make_match_id_hash(home, away, curr_row.get('league', ''), kickoff or '')
                 alarm = {
                     'match_id_hash': match_id_hash,
