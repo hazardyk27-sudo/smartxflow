@@ -653,10 +653,20 @@ class AlarmCalculator:
             log(f"[Telegram] Notification error: {e}")
             return False
     
-    def _notify_new_alarms(self, alarms: List[Dict], alarm_type: str, existing_keys: set):
-        """Send Telegram notifications for new alarms"""
+    def _notify_new_alarms(self, alarms: List[Dict], alarm_type: str, existing_keys: set, updated_keys: set = None):
+        """Send Telegram notifications for new alarms and updated alarms (BigMoney/VolumeShock refresh)
+        
+        Args:
+            alarms: List of alarms to check
+            alarm_type: Table name (e.g., 'bigmoney_alarms')
+            existing_keys: Keys that already exist in DB (existing alarms)
+            updated_keys: Keys that have updated trigger_at (refreshed alarms - BigMoney/VolumeShock)
+        """
         if not self._is_telegram_enabled(alarm_type):
             return
+        
+        if updated_keys is None:
+            updated_keys = set()
         
         alarm_type_clean = alarm_type.replace('_alarms', '').upper()
         sent_count = 0
@@ -670,15 +680,26 @@ class AlarmCalculator:
             key = '|'.join(key_parts)
             
             is_new = key not in existing_keys
+            is_refreshed = key in updated_keys
             
-            should_send, is_retrigger, delta = self._check_dedupe(alarm, alarm_type_clean)
-            
-            if is_new and should_send:
-                if self._send_telegram_notification(alarm, alarm_type_clean, is_retrigger, delta):
-                    current_delta = float(alarm.get('delta', 0) or alarm.get('money_in', 0) or 0)
+            # For refreshed alarms (BigMoney/VolumeShock with new trigger_at), skip dedupe check
+            # Because this is a NEW money movement, we want to notify
+            if is_refreshed:
+                log(f"[Telegram] Refreshed alarm detected: {alarm_type_clean} - sending notification")
+                if self._send_telegram_notification(alarm, alarm_type_clean, is_retrigger=False, delta=0):
+                    current_delta = float(alarm.get('delta', 0) or alarm.get('money_in', 0) or alarm.get('incoming_money', 0) or 0)
                     self._log_telegram_sent(alarm, alarm_type_clean, current_delta)
                     sent_count += 1
                     time.sleep(0.5)
+            elif is_new:
+                # Normal new alarm - check dedupe
+                should_send, is_retrigger, delta = self._check_dedupe(alarm, alarm_type_clean)
+                if should_send:
+                    if self._send_telegram_notification(alarm, alarm_type_clean, is_retrigger, delta):
+                        current_delta = float(alarm.get('delta', 0) or alarm.get('money_in', 0) or 0)
+                        self._log_telegram_sent(alarm, alarm_type_clean, current_delta)
+                        sent_count += 1
+                        time.sleep(0.5)
         
         if sent_count > 0:
             log(f"[Telegram] Sent {sent_count} notifications for {alarm_type_clean}")
@@ -783,7 +804,10 @@ class AlarmCalculator:
             log(f"[UPSERT] {table}: {len(alarms)} unique alarms after dedup")
             
             # OPTIMIZED: Only fetch existing records for current batch using first key field filter
-            select_fields = ','.join(key_fields + ['trigger_at', 'created_at'])
+            # Include alarm_history for BigMoney/VolumeShock refresh tracking
+            refresh_tables = ['bigmoney_alarms', 'volumeshock_alarms']
+            extra_fields = ['incoming_money', 'volume_shock_value', 'alarm_history'] if table in refresh_tables else []
+            select_fields = ','.join(key_fields + ['trigger_at', 'created_at'] + extra_fields)
             existing_data = {}
             
             # Get unique values for the first key field (usually match_id or home)
@@ -805,7 +829,10 @@ class AlarmCalculator:
                         key = '|'.join(key_parts)
                         existing_data[key] = {
                             'trigger_at': e.get('trigger_at'),
-                            'created_at': e.get('created_at')
+                            'created_at': e.get('created_at'),
+                            'incoming_money': e.get('incoming_money', 0),
+                            'volume_shock_value': e.get('volume_shock_value', 0),
+                            'alarm_history': e.get('alarm_history', '[]')
                         }
                     query_type = "batch" if len(unique_keys) <= 100 else "full"
                     log(f"[UPSERT] Found {len(existing_data)} existing records ({query_type} query)")
@@ -813,36 +840,63 @@ class AlarmCalculator:
                 log(f"[UPSERT] Query failed, skipping timestamp preservation: {ex}")
             
             # Preserve original timestamps for existing alarms
+            # EXCEPTION: bigmoney_alarms and volumeshock_alarms should UPDATE trigger_at
+            # to show as "new" alarm when new money comes in
+            should_preserve_trigger = table not in refresh_tables
+            
             preserved_count = 0
+            updated_alarms = []  # Track alarms with changed trigger_at
             for alarm in alarms:
                 key_parts = [str(alarm.get(f, '')) for f in key_fields]
                 key = '|'.join(key_parts)
                 if key in existing_data:
                     orig = existing_data[key]
-                    if orig.get('trigger_at'):
-                        alarm['trigger_at'] = orig['trigger_at']
-                    if orig.get('created_at'):
-                        alarm['created_at'] = orig['created_at']
-                    preserved_count += 1
+                    if should_preserve_trigger:
+                        # Normal behavior: preserve trigger_at
+                        if orig.get('trigger_at'):
+                            alarm['trigger_at'] = orig['trigger_at']
+                        if orig.get('created_at'):
+                            alarm['created_at'] = orig['created_at']
+                        preserved_count += 1
+                    else:
+                        # BigMoney/VolumeShock: check if trigger_at changed
+                        old_trigger = orig.get('trigger_at', '')
+                        new_trigger = alarm.get('trigger_at', '')
+                        if old_trigger and new_trigger and old_trigger != new_trigger:
+                            updated_alarms.append(alarm)
+                            log(f"[UPSERT] {table}: trigger_at updated {old_trigger[:16]} -> {new_trigger[:16]}")
+                        # Preserve only created_at
+                        if orig.get('created_at'):
+                            alarm['created_at'] = orig['created_at']
             
             if preserved_count > 0:
                 log(f"[UPSERT] Preserved timestamps for {preserved_count} existing alarms")
+            if updated_alarms:
+                log(f"[UPSERT] {len(updated_alarms)} alarms will refresh (new trigger_at)")
             
             on_conflict = ",".join(key_fields)
             if self._post(table, alarms, on_conflict=on_conflict):
                 log(f"[UPSERT] {table}: {len(alarms)} alarms upserted (on_conflict={on_conflict})")
                 
-                # Send Telegram notifications for NEW alarms only
+                # Send Telegram notifications for NEW alarms and UPDATED alarms (BigMoney/VolumeShock)
                 existing_keys = set(existing_data.keys())
-                self._notify_new_alarms(alarms, table, existing_keys)
+                updated_keys = set()
+                for a in updated_alarms:
+                    key_parts = [str(a.get(f, '')) for f in key_fields]
+                    updated_keys.add('|'.join(key_parts))
+                self._notify_new_alarms(alarms, table, existing_keys, updated_keys)
                 
                 return len(alarms)
             else:
                 log(f"[UPSERT] {table}: POST failed, trying without on_conflict")
                 if self._post(table, alarms):
-                    # Send Telegram notifications for NEW alarms only
+                    # Send Telegram notifications for NEW alarms and UPDATED alarms (BigMoney/VolumeShock)
                     existing_keys = set(existing_data.keys())
-                    self._notify_new_alarms(alarms, table, existing_keys)
+                    updated_keys = set()
+                    for a in updated_alarms:
+                        key_parts = [str(a.get(f, '')) for f in key_fields]
+                        updated_keys.add('|'.join(key_parts))
+                    self._notify_new_alarms(alarms, table, existing_keys, updated_keys)
                     return len(alarms)
         except Exception as e:
             log(f"Upsert error {table}: {e}")
@@ -2428,6 +2482,17 @@ class AlarmCalculator:
         # NOT: VolumeShock alarmları silinmez - sadece upsert yapılır
         # Tablo temizleme KALDIRILDI - alarmlar kalıcı olmalı
         
+        # HISTORY TRACKING: Mevcut alarmları yükle (BigMoney gibi)
+        existing_alarms = {}
+        try:
+            existing = self._get('volumeshock_alarms', 'select=*') or []
+            for row in existing:
+                key = f"{row.get('home', '')}|{row.get('away', '')}|{row.get('market', '')}|{row.get('selection', '')}"
+                existing_alarms[key] = row
+            log(f"[VolumeShock] {len(existing_alarms)} existing alarms loaded for history tracking")
+        except Exception as e:
+            log(f"[VolumeShock] Existing alarms load failed: {e}")
+        
         config = self.configs.get('volumeshock')
         if not config:
             log("[VolumeShock] CONFIG YOK - Supabase'de volumeshock ayarlarını kaydedin!")
@@ -2540,8 +2605,60 @@ class AlarmCalculator:
                         log(f"  [VOLUMESHOCK] {home} vs {away} | {market_names.get(market, market)}-{selection} | Shock: {best_shock['shock_value']:.1f}x | £{best_shock['incoming']:,.0f} gelen (snap #{best_shock['snapshot_idx']})")
         
         if alarms:
-            new_count = self._upsert_alarms('volumeshock_alarms', alarms, ['home', 'away', 'market', 'selection'])
-            log(f"VolumeShock: {new_count} alarms upserted")
+            import json
+            
+            # HISTORY GROUPING: Aynı key için history oluştur (BigMoney gibi)
+            filtered_alarms = []
+            for alarm in alarms:
+                str_key = f"{alarm['home']}|{alarm['away']}|{alarm['market']}|{alarm['selection']}"
+                
+                current_history = []
+                
+                # Mevcut DB'deki history'yi yükle
+                if str_key in existing_alarms:
+                    old_alarm = existing_alarms[str_key]
+                    db_history = old_alarm.get('alarm_history') or []
+                    if isinstance(db_history, str):
+                        try:
+                            db_history = json.loads(db_history)
+                        except:
+                            db_history = []
+                    
+                    # DB'deki mevcut ana alarmı da history'ye ekle (eğer farklıysa)
+                    old_trigger = old_alarm.get('trigger_at', '')
+                    old_incoming = old_alarm.get('incoming_money', 0)
+                    old_shock = old_alarm.get('volume_shock_value', 0)
+                    main_trigger = alarm.get('trigger_at', '')
+                    
+                    if old_trigger and old_trigger != main_trigger and old_incoming > 0:
+                        db_history.append({
+                            'incoming_money': old_incoming,
+                            'trigger_at': old_trigger,
+                            'volume_shock_value': old_shock,
+                            'avg_previous': old_alarm.get('avg_previous', 0)
+                        })
+                    
+                    current_history.extend(db_history)
+                
+                # Tekrarları kaldır ve sırala (eski -> yeni)
+                seen_triggers = set()
+                unique_history = []
+                for h in current_history:
+                    t = h.get('trigger_at', '')
+                    if t and t not in seen_triggers:
+                        seen_triggers.add(t)
+                        unique_history.append(h)
+                
+                unique_history.sort(key=lambda x: x.get('trigger_at', ''))
+                unique_history = unique_history[-10:]  # Son 10 kayıt
+                
+                alarm['alarm_history'] = json.dumps(unique_history)
+                filtered_alarms.append(alarm)
+            
+            log(f"VolumeShock: {len(alarms)} alarms with history")
+            
+            new_count = self._upsert_alarms('volumeshock_alarms', filtered_alarms, ['home', 'away', 'market', 'selection'])
+            log(f"VolumeShock: {new_count} alarms upserted (with history)")
         else:
             log("VolumeShock: 0 alarm")
         
