@@ -426,6 +426,60 @@ def calculate_publicmove_alarms() -> list:
     
     return alarms
 
+def calculate_mim_alarms() -> list:
+    """MIM (Money In Market): Yuksek para hacmi ve etki"""
+    if not is_enabled('mim'):
+        print("MIM DEVRE DISI")
+        return []
+    
+    min_prev_volume = get_setting('mim', 'min_prev_volume', 3000)
+    min_impact = get_setting('mim', 'min_impact_threshold', 0.1)
+    
+    print(f"MIM: min_prev_volume={min_prev_volume}, min_impact={min_impact}")
+    
+    alarms = []
+    
+    for table, market in [('moneyway_1x2', '1X2'), ('moneyway_ou25', 'OU25'), ('moneyway_btts', 'BTTS')]:
+        data = fetch_data(table)
+        
+        if not data:
+            continue
+        
+        all_volumes = [parse_money(r.get('volume', '')) for r in data]
+        total_market = sum(all_volumes)
+        
+        for row in data:
+            kickoff = parse_date(row.get('date', ''))
+            if not kickoff:
+                continue
+            
+            match_volume = parse_money(row.get('volume', ''))
+            if match_volume < min_prev_volume:
+                continue
+            
+            impact = match_volume / total_market if total_market > 0 else 0
+            
+            if impact >= min_impact:
+                match_id_hash = make_match_id_hash(
+                    row.get('home', ''),
+                    row.get('away', ''),
+                    row.get('league', ''),
+                    kickoff
+                )
+                alarm = {
+                    'match_id_hash': match_id_hash,
+                    'home': row.get('home', '')[:100],
+                    'away': row.get('away', '')[:100],
+                    'league': row.get('league', '')[:150],
+                    'market': market,
+                    'selection': 'ALL',
+                    'total_volume': match_volume,
+                    'market_impact': round(impact * 100, 2)
+                }
+                alarms.append(alarm)
+    
+    return alarms
+
 def calculate_volumeleader_alarms() -> list:
     """VolumeLeader: En yuksek hacimli maclar"""
     if not is_enabled('volumeleader'):
@@ -487,7 +541,8 @@ def write_alarms_to_db(alarms: dict, dry_run: bool = False) -> dict:
         'dropping': 'dropping_alarms',
         'volumeshock': 'volumeshock_alarms',
         'publicmove': 'publicmove_alarms',
-        'volumeleader': 'volumeleader_alarms'
+        'volumeleader': 'volumeleader_alarms',
+        'mim': 'mim_alarms'
     }
     
     for alarm_type, alarm_list in alarms.items():
@@ -553,15 +608,21 @@ def run_all_calculations(write_to_db: bool = False):
     for a in volumeleader[:3]:
         print(f"  {a['home']} vs {a['away']} | {a['market']} | £{a['total_volume']}")
     
+    mim = calculate_mim_alarms()
+    print(f"\nMIM alarms: {len(mim)}")
+    for a in mim[:3]:
+        print(f"  {a['home']} vs {a['away']} | {a['market']} | impact={a['market_impact']}%")
+    
     print("\n" + "=" * 60)
     print("TOPLAM ALARM SAYILARI")
     print("=" * 60)
-    total = len(bigmoney) + len(dropping) + len(volumeshock) + len(publicmove) + len(volumeleader)
+    total = len(bigmoney) + len(dropping) + len(volumeshock) + len(publicmove) + len(volumeleader) + len(mim)
     print(f"BigMoney: {len(bigmoney)}")
     print(f"Dropping: {len(dropping)}")
     print(f"VolumeShock: {len(volumeshock)}")
     print(f"PublicMove: {len(publicmove)}")
     print(f"VolumeLeader: {len(volumeleader)}")
+    print(f"MIM: {len(mim)}")
     print(f"TOPLAM: {total}")
     
     alarms = {
@@ -569,7 +630,8 @@ def run_all_calculations(write_to_db: bool = False):
         'dropping': dropping,
         'volumeshock': volumeshock,
         'publicmove': publicmove,
-        'volumeleader': volumeleader
+        'volumeleader': volumeleader,
+        'mim': mim
     }
     
     if write_to_db:
