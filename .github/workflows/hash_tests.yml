@@ -1,0 +1,29 @@
+name: Hash System Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  hash-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Run Hash System Tests
+      run: |
+        echo "Running Hash System Validation Tests..."
+        python tests/test_hash.py
+        
+    - name: Verify Test Results
+      run: |
+        echo "All hash tests passed - system is locked"
