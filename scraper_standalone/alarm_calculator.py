@@ -116,8 +116,9 @@ def normalize_field(value: str) -> str:
        - ö → o, Ö → O
        - ç → c, Ç → C
     3. lowercase
-    4. collapse multiple spaces to single space
-    5. remove punctuation (keep alphanumeric + space)
+    4. remove punctuation (keep alphanumeric + space)
+    5. remove team suffixes: fc, fk, sk, sc, afc, cf, ac, as (word boundary)
+    6. collapse multiple spaces to single space
     """
     if not value:
         return ""
@@ -140,6 +141,15 @@ def normalize_field(value: str) -> str:
     # Remove punctuation (keep alphanumeric + space)
     import re
     value = re.sub(r'[^\w\s]', '', value)
+    
+    # Remove team suffixes at word boundary (end of string or followed by space)
+    # Suffixes: fc, fk, sk, sc, afc, cf, ac, as
+    suffixes = ['afc', 'fc', 'fk', 'sk', 'sc', 'cf', 'ac', 'as']
+    for suffix in suffixes:
+        # Match suffix at end of string (with optional trailing space)
+        value = re.sub(rf'\s+{suffix}$', '', value)
+        # Match suffix as standalone word
+        value = re.sub(rf'^{suffix}\s+', '', value)
     
     # Collapse multiple spaces
     value = ' '.join(value.split())
