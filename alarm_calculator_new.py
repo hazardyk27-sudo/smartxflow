@@ -308,9 +308,9 @@ def calculate_dropping_alarms() -> list:
                         'league': row.get('league', '')[:150],
                         'market': market,
                         'selection': sel,
-                        'prev_volume': opening,           # Opening odds
-                        'curr_volume': current,           # Current odds
-                        'impact_value': round(drop_pct, 2),  # Düşüş yüzdesi
+                        'opening_odds': opening,            # DB kolon adı
+                        'current_odds': current,            # DB kolon adı
+                        'drop_pct': round(drop_pct, 2),     # DB kolon adı
                         'trigger_at': datetime.utcnow().isoformat()
                     }
                     alarms.append(alarm)
