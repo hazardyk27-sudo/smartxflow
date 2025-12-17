@@ -1,11 +1,11 @@
 -- ALARM TABLOLARI - HASH BAZLI (match_id_hash)
 -- String eslesmesi YOK - sadece match_id_hash ile join
 -- RLS AKTIF - Client sadece okur, Scraper/Admin service role ile yazar
+-- FK YOK - Bagimsiz tablolar (fixtures'a bagimlilik kaldirildi)
 
--- 1. SHARP ALARMS
 CREATE TABLE IF NOT EXISTS sharp_alarms (
     id SERIAL PRIMARY KEY,
-    match_id_hash VARCHAR(12) NOT NULL REFERENCES fixtures(match_id_hash),
+    match_id_hash VARCHAR(12) NOT NULL,
     home VARCHAR(100) NOT NULL,
     away VARCHAR(100) NOT NULL,
     league VARCHAR(150),
@@ -21,10 +21,9 @@ CREATE TABLE IF NOT EXISTS sharp_alarms (
     UNIQUE (match_id_hash, market, selection)
 );
 
--- 2. INSIDER ALARMS
 CREATE TABLE IF NOT EXISTS insider_alarms (
     id SERIAL PRIMARY KEY,
-    match_id_hash VARCHAR(12) NOT NULL REFERENCES fixtures(match_id_hash),
+    match_id_hash VARCHAR(12) NOT NULL,
     home VARCHAR(100) NOT NULL,
     away VARCHAR(100) NOT NULL,
     league VARCHAR(150),
@@ -41,10 +40,9 @@ CREATE TABLE IF NOT EXISTS insider_alarms (
     UNIQUE (match_id_hash, market, selection)
 );
 
--- 3. BIGMONEY ALARMS
 CREATE TABLE IF NOT EXISTS bigmoney_alarms (
     id SERIAL PRIMARY KEY,
-    match_id_hash VARCHAR(12) NOT NULL REFERENCES fixtures(match_id_hash),
+    match_id_hash VARCHAR(12) NOT NULL,
     home VARCHAR(100) NOT NULL,
     away VARCHAR(100) NOT NULL,
     league VARCHAR(150),
@@ -60,10 +58,9 @@ CREATE TABLE IF NOT EXISTS bigmoney_alarms (
     UNIQUE (match_id_hash, market, selection)
 );
 
--- 4. VOLUMESHOCK ALARMS
 CREATE TABLE IF NOT EXISTS volumeshock_alarms (
     id SERIAL PRIMARY KEY,
-    match_id_hash VARCHAR(12) NOT NULL REFERENCES fixtures(match_id_hash),
+    match_id_hash VARCHAR(12) NOT NULL,
     home VARCHAR(100) NOT NULL,
     away VARCHAR(100) NOT NULL,
     league VARCHAR(150),
@@ -79,10 +76,9 @@ CREATE TABLE IF NOT EXISTS volumeshock_alarms (
     UNIQUE (match_id_hash, market, selection)
 );
 
--- 5. DROPPING ALARMS
 CREATE TABLE IF NOT EXISTS dropping_alarms (
     id SERIAL PRIMARY KEY,
-    match_id_hash VARCHAR(12) NOT NULL REFERENCES fixtures(match_id_hash),
+    match_id_hash VARCHAR(12) NOT NULL,
     home VARCHAR(100) NOT NULL,
     away VARCHAR(100) NOT NULL,
     league VARCHAR(150),
@@ -98,10 +94,9 @@ CREATE TABLE IF NOT EXISTS dropping_alarms (
     UNIQUE (match_id_hash, market, selection)
 );
 
--- 6. PUBLICMOVE ALARMS
 CREATE TABLE IF NOT EXISTS publicmove_alarms (
     id SERIAL PRIMARY KEY,
-    match_id_hash VARCHAR(12) NOT NULL REFERENCES fixtures(match_id_hash),
+    match_id_hash VARCHAR(12) NOT NULL,
     home VARCHAR(100) NOT NULL,
     away VARCHAR(100) NOT NULL,
     league VARCHAR(150),
@@ -118,10 +113,9 @@ CREATE TABLE IF NOT EXISTS publicmove_alarms (
     UNIQUE (match_id_hash, market, selection)
 );
 
--- 7. VOLUMELEADER ALARMS
 CREATE TABLE IF NOT EXISTS volumeleader_alarms (
     id SERIAL PRIMARY KEY,
-    match_id_hash VARCHAR(12) NOT NULL REFERENCES fixtures(match_id_hash),
+    match_id_hash VARCHAR(12) NOT NULL,
     home VARCHAR(100) NOT NULL,
     away VARCHAR(100) NOT NULL,
     league VARCHAR(150),
@@ -137,10 +131,9 @@ CREATE TABLE IF NOT EXISTS volumeleader_alarms (
     UNIQUE (match_id_hash, market, new_leader)
 );
 
--- 8. MIM ALARMS
 CREATE TABLE IF NOT EXISTS mim_alarms (
     id SERIAL PRIMARY KEY,
-    match_id_hash VARCHAR(12) NOT NULL REFERENCES fixtures(match_id_hash),
+    match_id_hash VARCHAR(12) NOT NULL,
     home VARCHAR(100) NOT NULL,
     away VARCHAR(100) NOT NULL,
     league VARCHAR(150),
@@ -175,13 +168,6 @@ CREATE INDEX IF NOT EXISTS idx_publicmove_trigger ON publicmove_alarms(trigger_a
 CREATE INDEX IF NOT EXISTS idx_volumeleader_trigger ON volumeleader_alarms(trigger_at);
 CREATE INDEX IF NOT EXISTS idx_mim_trigger ON mim_alarms(trigger_at);
 
--- ============================================================
--- ROW LEVEL SECURITY (RLS) - Guvenlik Kilidi
--- ============================================================
--- Client (anon key): Sadece SELECT
--- Scraper/Admin (service role): INSERT/UPDATE/DELETE (RLS bypass)
--- ============================================================
-
 -- RLS AKTIF ET
 ALTER TABLE sharp_alarms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE insider_alarms ENABLE ROW LEVEL SECURITY;
@@ -191,16 +177,6 @@ ALTER TABLE dropping_alarms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE publicmove_alarms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE volumeleader_alarms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE mim_alarms ENABLE ROW LEVEL SECURITY;
-
--- DROP EXISTING POLICIES (idempotent)
-DROP POLICY IF EXISTS "Allow public read sharp" ON sharp_alarms;
-DROP POLICY IF EXISTS "Allow public read insider" ON insider_alarms;
-DROP POLICY IF EXISTS "Allow public read bigmoney" ON bigmoney_alarms;
-DROP POLICY IF EXISTS "Allow public read volumeshock" ON volumeshock_alarms;
-DROP POLICY IF EXISTS "Allow public read dropping" ON dropping_alarms;
-DROP POLICY IF EXISTS "Allow public read publicmove" ON publicmove_alarms;
-DROP POLICY IF EXISTS "Allow public read volumeleader" ON volumeleader_alarms;
-DROP POLICY IF EXISTS "Allow public read mim" ON mim_alarms;
 
 -- SELECT POLICY - Herkes okuyabilir (anon dahil)
 CREATE POLICY "Allow public read sharp" ON sharp_alarms FOR SELECT USING (true);
@@ -214,11 +190,3 @@ CREATE POLICY "Allow public read mim" ON mim_alarms FOR SELECT USING (true);
 
 -- INSERT/UPDATE/DELETE YOK - Service role RLS'yi bypass eder
 -- Client tarafindan yazma denemesi otomatik olarak reddedilir
-
--- ============================================================
--- ONEMLI NOTLAR:
--- 1. Service role key SADECE scraper/admin tarafinda kullanilir
--- 2. Client (web app) SADECE anon key ile baglanir
--- 3. Anon key ile INSERT/UPDATE/DELETE denemesi BASARISIZ olur
--- 4. char_length(12) constraint yanlis hash yazilmasini engeller
--- ============================================================
