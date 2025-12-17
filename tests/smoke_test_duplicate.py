@@ -13,9 +13,9 @@ import sys
 import os
 from datetime import datetime, timezone
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'scraper_standalone'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'core'))
 
-from alarm_calculator import make_match_id_hash
+from hash_utils import make_match_id_hash
 
 def simulate_alarm_upsert():
     """

@@ -3,14 +3,16 @@
 Hash Sistemi Dogrulama Testleri
 4 zorunlu test - hepsi gecmeli
 CI'da her push'ta calisir
+Bagimsiz - dis bagimlilik yok
 """
 
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'scraper_standalone'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'core'))
 
-from alarm_calculator import make_match_id_hash, normalize_field, normalize_kickoff
+from hash_utils import make_match_id_hash, normalize_field, normalize_kickoff
+
 
 def test_a_same_match_two_scrapes():
     """Test A: Ayni mac, 2 scrape (10 dk arayla)"""
