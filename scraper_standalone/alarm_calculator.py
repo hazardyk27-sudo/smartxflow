@@ -388,12 +388,13 @@ class AlarmCalculator:
     
     def _format_volumeshock_telegram(self, alarm: Dict, home: str, away: str, market: str, selection: str, timestamp: str) -> str:
         """Format VolumeShock alarm for Telegram"""
-        prev_vol = float(alarm.get('prev_volume', 0) or alarm.get('previous_volume', 0) or 0)
-        curr_vol = float(alarm.get('current_volume', 0) or alarm.get('volume', 0) or 0)
-        multiplier = float(alarm.get('multiplier', 0) or alarm.get('shock_multiplier', 0) or 0)
+        prev_vol = float(alarm.get('avg_previous', 0) or alarm.get('prev_volume', 0) or 0)
+        incoming = float(alarm.get('incoming_money', 0) or alarm.get('current_volume', 0) or 0)
+        curr_vol = prev_vol + incoming
+        multiplier = float(alarm.get('volume_shock_value', 0) or alarm.get('multiplier', 0) or 0)
         
         if multiplier == 0 and prev_vol > 0:
-            multiplier = curr_vol / prev_vol
+            multiplier = incoming / prev_vol
         
         match_date = alarm.get('match_date', '')
         kickoff = alarm.get('kickoff', alarm.get('kickoff_utc', ''))
@@ -402,7 +403,7 @@ class AlarmCalculator:
                 from datetime import datetime
                 if 'T' in str(kickoff):
                     dt = datetime.fromisoformat(str(kickoff).replace('Z', '+00:00'))
-                    match_date_str = dt.strftime('%d %b - %H:%M')
+                    match_date_str = dt.strftime('%d %b \u2022 %H:%M')
                 else:
                     match_date_str = str(kickoff)[:16]
             except:
@@ -411,18 +412,18 @@ class AlarmCalculator:
             match_date_str = str(match_date) if match_date else ''
         
         lines = [
-            f"[VOLUME SHOCK] - {market}-{selection}'de ani hacim artisi tespit edildi",
-            f"Zaman: {timestamp}",
+            "\U0001F4CA <b>VOLUME SHOCK</b> \u2014 " + f"{market}-{selection}'de ani hacim artisi tespit edildi",
+            "\U0001F551 " + timestamp,
             "",
-            f"<b>{home}</b> vs <b>{away}</b>",
+            "\u26BD <b>" + home + "</b> vs <b>" + away + "</b>",
             "",
-            f"> {selection}: GBP {prev_vol:,.0f} -> GBP {curr_vol:,.0f}",
-            f"> {multiplier:.1f}x artis (10 dk icinde)",
+            "\U0001F4CA " + f"{selection}: \u00A3{prev_vol:,.0f} \u2192 \u00A3{curr_vol:,.0f}",
+            "\U0001F525 " + f"{multiplier:.1f}x artis (10 dk icinde)",
         ]
         
         if match_date_str:
             lines.append("")
-            lines.append(f"Mac: {match_date_str}")
+            lines.append("\U0001F4C5 Mac: " + match_date_str)
         
         vol1 = float(alarm.get('vol_1', 0) or 0)
         volx = float(alarm.get('vol_x', 0) or 0)
@@ -434,12 +435,12 @@ class AlarmCalculator:
             pctx = (volx / total_vol * 100) if total_vol > 0 else 0
             pct2 = (vol2 / total_vol * 100) if total_vol > 0 else 0
             lines.append("")
-            lines.append("----------------")
-            lines.append("Mevcut Hacimler:")
-            lines.append(f"  1: GBP {vol1:,.0f} ({pct1:.0f}%)")
-            lines.append(f"  X: GBP {volx:,.0f} ({pctx:.0f}%)")
-            lines.append(f"  2: GBP {vol2:,.0f} ({pct2:.0f}%)")
-            lines.append(f"  Total: GBP {total_vol:,.0f}")
+            lines.append("\u2501" * 18)
+            lines.append("\U0001F4CA Mevcut Hacimler:")
+            lines.append(f"  1: \u00A3{vol1:,.0f} ({pct1:.0f}%)")
+            lines.append(f"  X: \u00A3{volx:,.0f} ({pctx:.0f}%)")
+            lines.append(f"  2: \u00A3{vol2:,.0f} ({pct2:.0f}%)")
+            lines.append(f"  Total: \u00A3{total_vol:,.0f}")
         
         return "\n".join(lines)
     
