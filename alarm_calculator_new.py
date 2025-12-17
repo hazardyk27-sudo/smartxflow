@@ -573,9 +573,10 @@ def calculate_mim_alarms() -> list:
                     'league': curr_row.get('league', '')[:150],
                     'market': market,
                     'selection': best_sel,
-                    'market_total_money': market_total,
-                    'incoming_money': best_incoming,
-                    'mim_value': round(mim_value, 2)
+                    'prev_volume': market_total,       # DB kolon adı
+                    'curr_volume': best_incoming,      # DB kolon adı
+                    'impact_value': round(mim_value, 4),  # DB kolon adı (MIM değeri)
+                    'trigger_at': datetime.utcnow().isoformat()
                 }
                 alarms.append(alarm)
                 mim_count += 1
