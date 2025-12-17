@@ -472,6 +472,9 @@ def calculate_mim_alarms() -> list:
                 ]
             
             for sel, sel_amount in selections:
+                if sel_amount < 1500:
+                    continue
+                
                 impact = sel_amount / match_volume if match_volume > 0 else 0
                 
                 if impact >= min_impact:
