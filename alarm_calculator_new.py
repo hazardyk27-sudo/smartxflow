@@ -708,7 +708,7 @@ def run_all_calculations(write_to_db: bool = False):
     dropping = calculate_dropping_alarms()
     print(f"\nDropping alarms: {len(dropping)}")
     for a in dropping[:3]:
-        print(f"  {a['home']} vs {a['away']} | {a['market']}-{a['selection']} | {a['drop_pct']}% ({a.get('level', '?')})")
+        print(f"  {a['home']} vs {a['away']} | {a['market']}-{a['selection']} | {a['drop_pct']}%")
     
     volumeshock = calculate_volumeshock_alarms()
     print(f"\nVolumeShock alarms: {len(volumeshock)}")
@@ -718,17 +718,17 @@ def run_all_calculations(write_to_db: bool = False):
     publicmove = calculate_publicmove_alarms()
     print(f"\nPublicMove alarms: {len(publicmove)}")
     for a in publicmove[:3]:
-        print(f"  {a['home']} vs {a['away']} | {a['market']}-{a['selection']} | {a['public_pct']}%")
+        print(f"  {a['home']} vs {a['away']} | {a['market']}-{a['selection']} | {a['current_share']}%")
     
     volumeleader = calculate_volumeleader_alarms()
     print(f"\nVolumeLeader alarms: {len(volumeleader)}")
     for a in volumeleader[:3]:
-        print(f"  {a['home']} vs {a['away']} | {a['market']} | £{a['total_volume']}")
+        print(f"  {a['home']} vs {a['away']} | {a['market']} | {a['old_leader']} -> {a['new_leader']}")
     
     mim = calculate_mim_alarms()
     print(f"\nMIM alarms: {len(mim)}")
     for a in mim[:3]:
-        print(f"  {a['home']} vs {a['away']} | {a['market']}-{a['selection']} | MIM={a['mim_value']} (total={a['market_total_money']} / incoming={a['incoming_money']})")
+        print(f"  {a['home']} vs {a['away']} | {a['market']}-{a['selection']} | MIM={a['impact_value']} (prev={a['prev_volume']} / curr={a['curr_volume']})")
     
     print("\n" + "=" * 60)
     print("TOPLAM ALARM SAYILARI")
