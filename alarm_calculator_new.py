@@ -471,6 +471,8 @@ def calculate_mim_alarms() -> list:
                 match_snapshots[match_key] = []
             match_snapshots[match_key].append((scraped_at, row))
         
+        print(f"  {market}: {len(match_snapshots)} mac, snapshot sayilari: {[len(v) for v in list(match_snapshots.values())[:5]]}")
+        
         # Her maç için 2 snapshot karşılaştır
         for match_key, snapshots in match_snapshots.items():
             if len(snapshots) < 2:
@@ -686,7 +688,7 @@ def run_all_calculations(write_to_db: bool = False):
     mim = calculate_mim_alarms()
     print(f"\nMIM alarms: {len(mim)}")
     for a in mim[:3]:
-        print(f"  {a['home']} vs {a['away']} | {a['market']}-{a['selection']} | £{a['selection_amount']} / £{a['match_volume']} = {a['impact_pct']}%")
+        print(f"  {a['home']} vs {a['away']} | {a['market']}-{a['selection']} | MIM={a['mim_value']} (total={a['market_total_money']} / incoming={a['incoming_money']})")
     
     print("\n" + "=" * 60)
     print("TOPLAM ALARM SAYILARI")
