@@ -427,7 +427,7 @@ def calculate_publicmove_alarms() -> list:
     return alarms
 
 def calculate_mim_alarms() -> list:
-    """MIM (Money In Market): Yuksek para hacmi ve etki"""
+    """MIM (Money In Market): Secenege gelen para / mac market hacmi >= threshold"""
     if not is_enabled('mim'):
         print("MIM DEVRE DISI")
         return []
@@ -445,9 +445,6 @@ def calculate_mim_alarms() -> list:
         if not data:
             continue
         
-        all_volumes = [parse_money(r.get('volume', '')) for r in data]
-        total_market = sum(all_volumes)
-        
         for row in data:
             kickoff = parse_date(row.get('date', ''))
             if not kickoff:
@@ -457,26 +454,45 @@ def calculate_mim_alarms() -> list:
             if match_volume < min_prev_volume:
                 continue
             
-            impact = match_volume / total_market if total_market > 0 else 0
+            if market == '1X2':
+                selections = [
+                    ('1', parse_money(row.get('amt1', ''))),
+                    ('X', parse_money(row.get('amtx', ''))),
+                    ('2', parse_money(row.get('amt2', '')))
+                ]
+            elif market == 'OU25':
+                selections = [
+                    ('O', parse_money(row.get('amtover', ''))),
+                    ('U', parse_money(row.get('amtunder', '')))
+                ]
+            else:
+                selections = [
+                    ('Y', parse_money(row.get('amtyes', ''))),
+                    ('N', parse_money(row.get('amtno', '')))
+                ]
             
-            if impact >= min_impact:
-                match_id_hash = make_match_id_hash(
-                    row.get('home', ''),
-                    row.get('away', ''),
-                    row.get('league', ''),
-                    kickoff
-                )
-                alarm = {
-                    'match_id_hash': match_id_hash,
-                    'home': row.get('home', '')[:100],
-                    'away': row.get('away', '')[:100],
-                    'league': row.get('league', '')[:150],
-                    'market': market,
-                    'selection': 'ALL',
-                    'total_volume': match_volume,
-                    'market_impact': round(impact * 100, 2)
-                }
-                alarms.append(alarm)
+            for sel, sel_amount in selections:
+                impact = sel_amount / match_volume if match_volume > 0 else 0
+                
+                if impact >= min_impact:
+                    match_id_hash = make_match_id_hash(
+                        row.get('home', ''),
+                        row.get('away', ''),
+                        row.get('league', ''),
+                        kickoff
+                    )
+                    alarm = {
+                        'match_id_hash': match_id_hash,
+                        'home': row.get('home', '')[:100],
+                        'away': row.get('away', '')[:100],
+                        'league': row.get('league', '')[:150],
+                        'market': market,
+                        'selection': sel,
+                        'selection_amount': sel_amount,
+                        'match_volume': match_volume,
+                        'impact_pct': round(impact * 100, 2)
+                    }
+                    alarms.append(alarm)
     
     return alarms
 
@@ -611,7 +627,7 @@ def run_all_calculations(write_to_db: bool = False):
     mim = calculate_mim_alarms()
     print(f"\nMIM alarms: {len(mim)}")
     for a in mim[:3]:
-        print(f"  {a['home']} vs {a['away']} | {a['market']} | impact={a['market_impact']}%")
+        print(f"  {a['home']} vs {a['away']} | {a['market']}-{a['selection']} | £{a['selection_amount']} / £{a['match_volume']} = {a['impact_pct']}%")
     
     print("\n" + "=" * 60)
     print("TOPLAM ALARM SAYILARI")
