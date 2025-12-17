@@ -427,15 +427,27 @@ def calculate_publicmove_alarms() -> list:
     return alarms
 
 def calculate_mim_alarms() -> list:
-    """MIM (Money In Market): Secenege gelen para / mac market hacmi >= threshold"""
+    """
+    MIM (Money In Market) = market_total / incoming
+    incoming = amt_now - amt_prev (2 snapshot arası fark)
+    
+    MIM düşükse → güçlü hareket (alarm tetiklenir)
+    Şartlar:
+    - incoming >= mim_min_incoming (default 300)
+    - market_total >= mim_min_market_total (default 1000)
+    - mim_value <= mim_max_ratio (default 12)
+    
+    Sadece en yüksek incoming olan selection için hesapla
+    """
     if not is_enabled('mim'):
         print("MIM DEVRE DISI")
         return []
     
-    min_prev_volume = get_setting('mim', 'min_prev_volume', 3000)
-    min_impact = get_setting('mim', 'min_impact_threshold', 0.1)
+    mim_min_incoming = get_setting('mim', 'mim_min_incoming', 300)
+    mim_min_market_total = get_setting('mim', 'mim_min_market_total', 1000)
+    mim_max_ratio = get_setting('mim', 'mim_max_ratio', 12)
     
-    print(f"MIM: min_prev_volume={min_prev_volume}, min_impact={min_impact}")
+    print(f"MIM: min_incoming={mim_min_incoming}, min_market_total={mim_min_market_total}, max_ratio={mim_max_ratio}")
     
     alarms = []
     
@@ -445,57 +457,101 @@ def calculate_mim_alarms() -> list:
         if not data:
             continue
         
+        # Maç bazlı gruplama (home+away+league+date)
+        match_snapshots = {}
         for row in data:
             kickoff = parse_date(row.get('date', ''))
             if not kickoff:
                 continue
             
-            match_volume = parse_money(row.get('volume', ''))
-            if match_volume < min_prev_volume:
+            match_key = f"{row.get('home', '')}|{row.get('away', '')}|{row.get('league', '')}|{kickoff}"
+            scraped_at = row.get('scraped_at', row.get('created_at', ''))
+            
+            if match_key not in match_snapshots:
+                match_snapshots[match_key] = []
+            match_snapshots[match_key].append((scraped_at, row))
+        
+        # Her maç için 2 snapshot karşılaştır
+        for match_key, snapshots in match_snapshots.items():
+            if len(snapshots) < 2:
                 continue
+            
+            # Zamana göre sırala (en eski önce)
+            snapshots.sort(key=lambda x: x[0])
+            
+            prev_row = snapshots[-2][1]
+            curr_row = snapshots[-1][1]
+            
+            kickoff = parse_date(curr_row.get('date', ''))
             
             if market == '1X2':
                 selections = [
-                    ('1', parse_money(row.get('amt1', ''))),
-                    ('X', parse_money(row.get('amtx', ''))),
-                    ('2', parse_money(row.get('amt2', '')))
+                    ('1', 'amt1'),
+                    ('X', 'amtx'),
+                    ('2', 'amt2')
                 ]
+                market_total = (parse_money(curr_row.get('amt1', '')) + 
+                               parse_money(curr_row.get('amtx', '')) + 
+                               parse_money(curr_row.get('amt2', '')))
             elif market == 'OU25':
                 selections = [
-                    ('O', parse_money(row.get('amtover', ''))),
-                    ('U', parse_money(row.get('amtunder', '')))
+                    ('O', 'amtover'),
+                    ('U', 'amtunder')
                 ]
+                market_total = (parse_money(curr_row.get('amtover', '')) + 
+                               parse_money(curr_row.get('amtunder', '')))
             else:
                 selections = [
-                    ('Y', parse_money(row.get('amtyes', ''))),
-                    ('N', parse_money(row.get('amtno', '')))
+                    ('Y', 'amtyes'),
+                    ('N', 'amtno')
                 ]
+                market_total = (parse_money(curr_row.get('amtyes', '')) + 
+                               parse_money(curr_row.get('amtno', '')))
             
-            for sel, sel_amount in selections:
-                if sel_amount < 1500:
-                    continue
-                
-                impact = sel_amount / match_volume if match_volume > 0 else 0
-                
-                if impact >= min_impact:
-                    match_id_hash = make_match_id_hash(
-                        row.get('home', ''),
-                        row.get('away', ''),
-                        row.get('league', ''),
-                        kickoff
-                    )
-                    alarm = {
-                        'match_id_hash': match_id_hash,
-                        'home': row.get('home', '')[:100],
-                        'away': row.get('away', '')[:100],
-                        'league': row.get('league', '')[:150],
-                        'market': market,
-                        'selection': sel,
-                        'selection_amount': sel_amount,
-                        'match_volume': match_volume,
-                        'impact_pct': round(impact * 100, 2)
-                    }
-                    alarms.append(alarm)
+            if market_total < mim_min_market_total:
+                continue
+            
+            # Her selection için incoming hesapla
+            incoming_list = []
+            for sel, field in selections:
+                amt_now = parse_money(curr_row.get(field, ''))
+                amt_prev = parse_money(prev_row.get(field, ''))
+                incoming = amt_now - amt_prev
+                if incoming > 0:
+                    incoming_list.append((sel, incoming, amt_now))
+            
+            if not incoming_list:
+                continue
+            
+            # En yüksek incoming olan selection'ı bul
+            incoming_list.sort(key=lambda x: x[1], reverse=True)
+            best_sel, best_incoming, best_amt = incoming_list[0]
+            
+            if best_incoming < mim_min_incoming:
+                continue
+            
+            # MIM hesapla
+            mim_value = market_total / best_incoming
+            
+            if mim_value <= mim_max_ratio:
+                match_id_hash = make_match_id_hash(
+                    curr_row.get('home', ''),
+                    curr_row.get('away', ''),
+                    curr_row.get('league', ''),
+                    kickoff
+                )
+                alarm = {
+                    'match_id_hash': match_id_hash,
+                    'home': curr_row.get('home', '')[:100],
+                    'away': curr_row.get('away', '')[:100],
+                    'league': curr_row.get('league', '')[:150],
+                    'market': market,
+                    'selection': best_sel,
+                    'market_total_money': market_total,
+                    'incoming_money': best_incoming,
+                    'mim_value': round(mim_value, 2)
+                }
+                alarms.append(alarm)
     
     return alarms
 
