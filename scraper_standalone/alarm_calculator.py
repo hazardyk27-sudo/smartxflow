@@ -2483,12 +2483,12 @@ class AlarmCalculator:
         # NOT: VolumeShock alarmları silinmez - sadece upsert yapılır
         # Tablo temizleme KALDIRILDI - alarmlar kalıcı olmalı
         
-        # HISTORY TRACKING: Mevcut alarmları yükle (BigMoney gibi)
+        # HISTORY TRACKING: Mevcut alarmları yükle (match_id ile - BigMoney gibi)
         existing_alarms = {}
         try:
             existing = self._get('volumeshock_alarms', 'select=*') or []
             for row in existing:
-                key = f"{row.get('home', '')}|{row.get('away', '')}|{row.get('market', '')}|{row.get('selection', '')}"
+                key = f"{row.get('match_id', '')}|{row.get('market', '')}|{row.get('selection', '')}"
                 existing_alarms[key] = row
             log(f"[VolumeShock] {len(existing_alarms)} existing alarms loaded for history tracking")
         except Exception as e:
