@@ -2608,14 +2608,14 @@ class AlarmCalculator:
         if alarms:
             import json
             
-            # HISTORY GROUPING: Aynı key için history oluştur (BigMoney gibi)
+            # HISTORY GROUPING: Aynı key için history oluştur (match_id ile - BigMoney gibi)
             filtered_alarms = []
             for alarm in alarms:
-                str_key = f"{alarm['home']}|{alarm['away']}|{alarm['market']}|{alarm['selection']}"
+                str_key = f"{alarm['match_id']}|{alarm['market']}|{alarm['selection']}"
                 
                 current_history = []
                 
-                # Mevcut DB'deki history'yi yükle
+                # Mevcut DB'deki history'yi yükle (match_id ile)
                 if str_key in existing_alarms:
                     old_alarm = existing_alarms[str_key]
                     db_history = old_alarm.get('alarm_history') or []
@@ -2658,7 +2658,7 @@ class AlarmCalculator:
             
             log(f"VolumeShock: {len(alarms)} alarms with history")
             
-            new_count = self._upsert_alarms('volumeshock_alarms', filtered_alarms, ['home', 'away', 'market', 'selection'])
+            new_count = self._upsert_alarms('volumeshock_alarms', filtered_alarms, ['match_id', 'market', 'selection'])
             log(f"VolumeShock: {new_count} alarms upserted (with history)")
         else:
             log("VolumeShock: 0 alarm")
