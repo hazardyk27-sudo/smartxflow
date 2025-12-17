@@ -106,16 +106,42 @@ def normalize_team_name(name: str) -> str:
 def normalize_field(value: str) -> str:
     """
     IMMUTABLE CONTRACT: Normalize field for match_id_hash generation.
-    Rules (per replit.md):
-    - trim (strip leading/trailing whitespace)
-    - Turkish dotted/dotless I normalization BEFORE lowercase: ı → i, İ → I, then lowercase
-    - collapse multiple spaces to single space
+    Rules:
+    1. trim (strip leading/trailing whitespace)
+    2. Turkish character normalization BEFORE lowercase:
+       - ı → i, İ → I (dotless/dotted I)
+       - ş → s, Ş → S
+       - ğ → g, Ğ → G
+       - ü → u, Ü → U
+       - ö → o, Ö → O
+       - ç → c, Ç → C
+    3. lowercase
+    4. collapse multiple spaces to single space
+    5. remove punctuation (keep alphanumeric + space)
     """
     if not value:
         return ""
     value = str(value).strip()
-    value = value.replace('ı', 'i').replace('İ', 'I')
+    
+    # Turkish character normalization (BEFORE lowercase)
+    tr_map = {
+        'ı': 'i', 'İ': 'I',
+        'ş': 's', 'Ş': 'S',
+        'ğ': 'g', 'Ğ': 'G',
+        'ü': 'u', 'Ü': 'U',
+        'ö': 'o', 'Ö': 'O',
+        'ç': 'c', 'Ç': 'C'
+    }
+    for tr_char, en_char in tr_map.items():
+        value = value.replace(tr_char, en_char)
+    
     value = value.lower()
+    
+    # Remove punctuation (keep alphanumeric + space)
+    import re
+    value = re.sub(r'[^\w\s]', '', value)
+    
+    # Collapse multiple spaces
     value = ' '.join(value.split())
     return value
 
@@ -148,22 +174,52 @@ def normalize_kickoff(kickoff: str) -> str:
     return kickoff
 
 
-def generate_match_id_hash(home: str, away: str, league: str, kickoff: str) -> str:
+def make_match_id_hash(home: str, away: str, league: str, kickoff_utc: str, debug: bool = False) -> str:
     """
-    IMMUTABLE CONTRACT: Generate unique 12-character match ID hash.
-    Format: league|kickoff|home|away (all normalized)
-    Hash: MD5, first 12 hex characters
+    SINGLE SOURCE OF TRUTH: Generate unique 12-character match ID hash.
     
-    This MUST match app.py generate_match_id() exactly.
+    Input Format (IMMUTABLE):
+        "{league_norm}|{kickoff_utc_iso}|{home_norm}|{away_norm}"
+    
+    Rules:
+    - kickoff_utc MUST be UTC (Z or +00:00), format: YYYY-MM-DDTHH:MM
+    - home_norm/away_norm = normalize_field() applied
+    - NO odds/money/snapshot_time/score in input
+    - Hash: md5(utf-8).hexdigest()[:12]
+    
+    Args:
+        home: Home team name
+        away: Away team name  
+        league: League name (or league_id)
+        kickoff_utc: Kickoff time in UTC ISO format
+        debug: If True, logs input and output for verification
+    
+    Returns:
+        12-character MD5 hash
     """
     home_norm = normalize_field(home)
     away_norm = normalize_field(away)
     league_norm = normalize_field(league)
-    kickoff_norm = normalize_kickoff(kickoff)
+    kickoff_norm = normalize_kickoff(kickoff_utc)
     
+    # IMMUTABLE INPUT FORMAT
     canonical = f"{league_norm}|{kickoff_norm}|{home_norm}|{away_norm}"
     
-    return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
+    match_id_hash = hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
+    
+    if debug:
+        log(f"[HASH DEBUG] Input: home='{home}', away='{away}', league='{league}', kickoff='{kickoff_utc}'")
+        log(f"[HASH DEBUG] Normalized: home_norm='{home_norm}', away_norm='{away_norm}', league_norm='{league_norm}', kickoff_norm='{kickoff_norm}'")
+        log(f"[HASH DEBUG] Canonical: '{canonical}'")
+        log(f"[HASH DEBUG] Hash: '{match_id_hash}'")
+    
+    return match_id_hash
+
+
+# ALIAS for backward compatibility - DO NOT USE IN NEW CODE
+def generate_match_id_hash(home: str, away: str, league: str, kickoff: str) -> str:
+    """DEPRECATED: Use make_match_id_hash() instead. This is an alias for backward compatibility."""
+    return make_match_id_hash(home, away, league, kickoff)
 
 
 def parse_match_date(date_str: str) -> Optional[datetime]:
