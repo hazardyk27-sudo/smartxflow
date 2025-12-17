@@ -13,11 +13,18 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
-SUPABASE_KEY = os.environ.get('SUPABASE_ANON_KEY')
+SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY')
+SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
 
-HEADERS = {
-    'apikey': SUPABASE_KEY,
-    'Authorization': f'Bearer {SUPABASE_KEY}',
+HEADERS_READ = {
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': f'Bearer {SUPABASE_ANON_KEY}',
+    'Content-Type': 'application/json'
+}
+
+HEADERS_WRITE = {
+    'apikey': SUPABASE_SERVICE_KEY,
+    'Authorization': f'Bearer {SUPABASE_SERVICE_KEY}',
     'Content-Type': 'application/json',
     'Prefer': 'return=minimal'
 }
@@ -40,7 +47,7 @@ def fetch_alarm_settings() -> Dict[str, Dict]:
     
     r = requests.get(
         f'{SUPABASE_URL}/rest/v1/alarm_settings?select=*',
-        headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
+        headers=HEADERS_READ,
         timeout=10
     )
     if r.status_code == 200:
@@ -138,7 +145,7 @@ def make_match_id_hash(home: str, away: str, league: str, kickoff: str) -> str:
 def fetch_data(table: str, limit: int = 500) -> list:
     r = requests.get(
         f'{SUPABASE_URL}/rest/v1/{table}?select=*&limit={limit}',
-        headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
+        headers=HEADERS_READ,
         timeout=30
     )
     return r.json() if r.status_code == 200 else []
@@ -150,7 +157,7 @@ def fetch_all_data(table: str, page_size: int = 1000) -> list:
     while True:
         r = requests.get(
             f'{SUPABASE_URL}/rest/v1/{table}?select=*&order=id.desc&limit={page_size}&offset={offset}',
-            headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
+            headers=HEADERS_READ,
             timeout=30
         )
         if r.status_code != 200:
@@ -497,7 +504,7 @@ def calculate_mim_alarms() -> list:
             # Bu maç için son 20 history snapshot'ı çek (farklı değer bulmak için)
             r = requests.get(
                 f'{SUPABASE_URL}/rest/v1/{hist_table}?select=*&home=eq.{quote(home)}&away=eq.{quote(away)}&order=scraped_at.desc&limit=20',
-                headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
+                headers=HEADERS_READ,
                 timeout=15
             )
             
@@ -665,7 +672,7 @@ def write_alarms_to_db(alarms: dict, dry_run: bool = False) -> dict:
             
             r = requests.post(
                 f'{SUPABASE_URL}/rest/v1/{table}',
-                headers={**HEADERS, 'Prefer': 'resolution=merge-duplicates'},
+                headers={**HEADERS_WRITE, 'Prefer': 'resolution=merge-duplicates'},
                 json=alarm,
                 timeout=10
             )
