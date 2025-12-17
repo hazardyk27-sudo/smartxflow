@@ -142,6 +142,27 @@ def fetch_data(table: str, limit: int = 500) -> list:
     )
     return r.json() if r.status_code == 200 else []
 
+def fetch_all_data(table: str, page_size: int = 1000) -> list:
+    """Tum veriyi pagination ile cek"""
+    all_data = []
+    offset = 0
+    while True:
+        r = requests.get(
+            f'{SUPABASE_URL}/rest/v1/{table}?select=*&order=id.desc&limit={page_size}&offset={offset}',
+            headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
+            timeout=30
+        )
+        if r.status_code != 200:
+            break
+        batch = r.json()
+        if not batch:
+            break
+        all_data.extend(batch)
+        offset += page_size
+        if len(batch) < page_size:
+            break
+    return all_data
+
 def calculate_bigmoney_alarms() -> list:
     """BigMoney: Yuksek para girisi olan maclar"""
     if not is_enabled('bigmoney'):
@@ -452,7 +473,8 @@ def calculate_mim_alarms() -> list:
     alarms = []
     
     for table, market in [('moneyway_1x2', '1X2'), ('moneyway_ou25', 'OU25'), ('moneyway_btts', 'BTTS')]:
-        data = fetch_data(table)
+        data = fetch_all_data(table)
+        print(f"  {market}: {len(data)} toplam satir cekildi")
         
         if not data:
             continue
@@ -471,7 +493,8 @@ def calculate_mim_alarms() -> list:
                 match_snapshots[match_key] = []
             match_snapshots[match_key].append((scraped_at, row))
         
-        print(f"  {market}: {len(match_snapshots)} mac, snapshot sayilari: {[len(v) for v in list(match_snapshots.values())[:5]]}")
+        multi_snap = [k for k, v in match_snapshots.items() if len(v) >= 2]
+        print(f"  {market}: {len(match_snapshots)} mac, {len(multi_snap)} macta 2+ snapshot")
         
         # Her maç için 2 snapshot karşılaştır
         for match_key, snapshots in match_snapshots.items():
