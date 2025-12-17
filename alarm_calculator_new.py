@@ -8,6 +8,7 @@ import os
 import re
 import hashlib
 import requests
+from urllib.parse import quote
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 
@@ -472,64 +473,68 @@ def calculate_mim_alarms() -> list:
     
     alarms = []
     
-    for table, market in [('moneyway_1x2', '1X2'), ('moneyway_ou25', 'OU25'), ('moneyway_btts', 'BTTS')]:
-        data = fetch_all_data(table)
-        print(f"  {market}: {len(data)} toplam satir cekildi")
+    # Benzersiz maç listesini ana tablodan çek
+    for main_table, hist_table, market in [
+        ('moneyway_1x2', 'moneyway_1x2_history', '1X2'), 
+        ('moneyway_ou25', 'moneyway_ou25_history', 'OU25'), 
+        ('moneyway_btts', 'moneyway_btts_history', 'BTTS')
+    ]:
+        # Ana tablodan aktif maçları çek
+        matches = fetch_data(main_table, limit=500)
+        print(f"  {market}: {len(matches)} aktif mac")
         
-        if not data:
+        if not matches:
             continue
         
-        # Maç bazlı gruplama (home+away+league+date)
-        match_snapshots = {}
-        for row in data:
-            kickoff = parse_date(row.get('date', ''))
-            if not kickoff:
+        mim_count = 0
+        for match in matches:
+            home = match.get('home', '')
+            away = match.get('away', '')
+            
+            if not home or not away:
                 continue
             
-            match_key = f"{row.get('home', '')}|{row.get('away', '')}|{row.get('league', '')}|{kickoff}"
-            scraped_at = row.get('scraped_at', row.get('created_at', ''))
+            # Bu maç için son 20 history snapshot'ı çek (farklı değer bulmak için)
+            r = requests.get(
+                f'{SUPABASE_URL}/rest/v1/{hist_table}?select=*&home=eq.{quote(home)}&away=eq.{quote(away)}&order=scraped_at.desc&limit=20',
+                headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
+                timeout=15
+            )
             
-            if match_key not in match_snapshots:
-                match_snapshots[match_key] = []
-            match_snapshots[match_key].append((scraped_at, row))
-        
-        multi_snap = [k for k, v in match_snapshots.items() if len(v) >= 2]
-        print(f"  {market}: {len(match_snapshots)} mac, {len(multi_snap)} macta 2+ snapshot")
-        
-        # Her maç için 2 snapshot karşılaştır
-        for match_key, snapshots in match_snapshots.items():
+            if r.status_code != 200:
+                continue
+            
+            snapshots = r.json()
             if len(snapshots) < 2:
                 continue
             
-            # Zamana göre sırala (en eski önce)
-            snapshots.sort(key=lambda x: x[0])
+            curr_row = snapshots[0]  # En yeni
             
-            prev_row = snapshots[-2][1]
-            curr_row = snapshots[-1][1]
+            # Farklı değere sahip önceki snapshot bul
+            prev_row = None
+            curr_vol = parse_money(curr_row.get('volume', ''))
+            for snap in snapshots[1:]:
+                snap_vol = parse_money(snap.get('volume', ''))
+                if snap_vol != curr_vol:  # Farklı volume = farklı snapshot
+                    prev_row = snap
+                    break
+            
+            if not prev_row:
+                continue
             
             kickoff = parse_date(curr_row.get('date', ''))
             
             if market == '1X2':
-                selections = [
-                    ('1', 'amt1'),
-                    ('X', 'amtx'),
-                    ('2', 'amt2')
-                ]
+                selections = [('1', 'amt1'), ('X', 'amtx'), ('2', 'amt2')]
                 market_total = (parse_money(curr_row.get('amt1', '')) + 
                                parse_money(curr_row.get('amtx', '')) + 
                                parse_money(curr_row.get('amt2', '')))
             elif market == 'OU25':
-                selections = [
-                    ('O', 'amtover'),
-                    ('U', 'amtunder')
-                ]
+                selections = [('O', 'amtover'), ('U', 'amtunder')]
                 market_total = (parse_money(curr_row.get('amtover', '')) + 
                                parse_money(curr_row.get('amtunder', '')))
             else:
-                selections = [
-                    ('Y', 'amtyes'),
-                    ('N', 'amtno')
-                ]
+                selections = [('Y', 'amtyes'), ('N', 'amtno')]
                 market_total = (parse_money(curr_row.get('amtyes', '')) + 
                                parse_money(curr_row.get('amtno', '')))
             
@@ -559,16 +564,11 @@ def calculate_mim_alarms() -> list:
             mim_value = market_total / best_incoming
             
             if mim_value <= mim_max_ratio:
-                match_id_hash = make_match_id_hash(
-                    curr_row.get('home', ''),
-                    curr_row.get('away', ''),
-                    curr_row.get('league', ''),
-                    kickoff
-                )
+                match_id_hash = make_match_id_hash(home, away, curr_row.get('league', ''), kickoff or '')
                 alarm = {
                     'match_id_hash': match_id_hash,
-                    'home': curr_row.get('home', '')[:100],
-                    'away': curr_row.get('away', '')[:100],
+                    'home': home[:100],
+                    'away': away[:100],
                     'league': curr_row.get('league', '')[:150],
                     'market': market,
                     'selection': best_sel,
@@ -577,6 +577,9 @@ def calculate_mim_alarms() -> list:
                     'mim_value': round(mim_value, 2)
                 }
                 alarms.append(alarm)
+                mim_count += 1
+        
+        print(f"  {market}: {mim_count} MIM alarm")
     
     return alarms
 
