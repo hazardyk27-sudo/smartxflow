@@ -638,10 +638,10 @@ def calculate_volumeleader_alarms() -> list:
                 'away': row.get('away', '')[:100],
                 'league': row.get('league', '')[:150],
                 'market': market,
-                'selection': 'ALL',
-                'prev_volume': min_volume_1x2,   # Minimum threshold
-                'curr_volume': vol,              # Mevcut hacim
-                'impact_value': round(vol / min_volume_1x2, 2) if min_volume_1x2 > 0 else 0,  # Oran
+                'old_leader': '',                                    # DB kolon adı
+                'new_leader': row.get('home', '')[:50],              # En yüksek hacimli maç
+                'old_leader_share': 0.0,                             # DB kolon adı
+                'new_leader_share': min(round(vol / 1000, 2), 999.99),  # K cinsinden (max 999.99)
                 'trigger_at': datetime.utcnow().isoformat()
             }
             alarms.append(alarm)
