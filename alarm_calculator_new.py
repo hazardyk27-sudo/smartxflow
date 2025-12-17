@@ -447,9 +447,10 @@ def calculate_publicmove_alarms() -> list:
                         'league': row.get('league', '')[:150],
                         'market': market,
                         'selection': sel,
-                        'prev_volume': total_volume,      # Toplam hacim
-                        'curr_volume': amt,               # Selection hacmi
-                        'impact_value': pct,              # Public yüzdesi
+                        'odds_direction': 'up' if pct > 50 else 'down',  # DB kolon adı
+                        'share_direction': 'high',                       # DB kolon adı
+                        'current_odds': 0.0,                             # DB kolon adı
+                        'current_share': pct,                            # DB kolon adı (public yüzdesi)
                         'trigger_at': datetime.utcnow().isoformat()
                     }
                     alarms.append(alarm)
