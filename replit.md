@@ -60,7 +60,7 @@ The system uses a hybrid architecture with Supabase as the single source of trut
 - `dropping_odds_snapshots`: Stores time-series dropping odds data.
 
 **match_id_hash Contract:**
-A critical, immutable contract defines `match_id_hash` as a 12-character MD5 hash of a canonical string: `league|kickoff|home|away`. All components are normalized (trimmed, lowercase, single spaces, Turkish character normalization for league/home/away; kickoff normalized to `YYYY-MM-DDTHH:MM` UTC).
+A critical, immutable contract defines `match_id_hash` as a 12-character MD5 hash of a canonical string: `league|home|away`. All components are normalized (trimmed, lowercase, single spaces, Turkish character normalization). **NOTE:** Kickoff/date is NOT used in hash calculation - this simplifies the system and prevents format-related hash mismatches.
 
 **Endpoint Response Contract (`/api/match/<match_id_hash>/snapshot`):**
 The API response structure for match snapshots is immutable, ensuring backward compatibility. It includes `metadata`, `alarms` (grouped by type), `moneyway`, `dropping_odds`, and `updated_at_utc`. New fields can be added, but existing field names, types, or the overall structure cannot be changed.
@@ -84,7 +84,9 @@ The API response structure for match snapshots is immutable, ensuring backward c
 |---------|-------|
 | Uzunluk | 12 karakter (sabit) |
 | Algoritma | MD5 |
-| Format | `league\|kickoff\|home\|away` |
+| Format | `league\|home\|away` |
+
+**NOT:** Kickoff/date hash hesaplamasında KULLANILMIYOR - bu sistem basitleştirir ve format kaynaklı hash uyumsuzluklarını önler.
 
 **Normalizasyon Pipeline (Adım Adım):**
 
@@ -111,39 +113,20 @@ def normalize_field(value: str) -> str:
     value = ' '.join(value.split())
     return value
 
-def normalize_kickoff(kickoff: str) -> str:
+def generate_match_id(home: str, away: str, league: str) -> str:
     """
-    Adım 2: Kickoff normalizasyonu
-    Hedef: YYYY-MM-DDTHH:MM (UTC, saniye yok)
-    TÜM timezone offset'leri kaldırılır (+00:00, +03:00, Z, vb.)
-    """
-    if not kickoff:
-        return ""
-    kickoff = str(kickoff).strip()
-    # Tüm timezone offset'leri kaldır (+HH:MM formatı)
-    kickoff = re.sub(r'[+-]\d{2}:\d{2}$', '', kickoff)
-    kickoff = kickoff.replace('Z', '')
-    # ISO 8601 formatı: ilk 16 karakteri al (YYYY-MM-DDTHH:MM)
-    if 'T' in kickoff and len(kickoff) >= 16:
-        return kickoff[:16]
-    # Fallback: sadece tarih varsa T00:00 ekle
-    if len(kickoff) >= 10 and kickoff[4] == '-':
-        return kickoff[:16] if len(kickoff) >= 16 else kickoff[:10] + "T00:00"
-    return kickoff
-
-def generate_match_id(home: str, away: str, league: str, kickoff: str) -> str:
-    """
-    Adım 3: Hash üretimi
-    DEĞİŞMEYECEK HASH FONKSİYONU - Tüm sistemlerde bu kullanılır.
+    Hash üretimi - DEĞİŞMEYECEK HASH FONKSİYONU
+    Tüm sistemlerde (Scraper, Admin.exe, Backend) bu kullanılır.
+    
+    NOT: Kickoff/date KULLANILMIYOR - sadece league, home, away
     """
     # Normalizasyon
     home_norm = normalize_field(home)
     away_norm = normalize_field(away)
     league_norm = normalize_field(league)
-    kickoff_norm = normalize_kickoff(kickoff)
     
-    # Canonical string: league|kickoff|home|away (bu sıra SABİT)
-    canonical = f"{league_norm}|{kickoff_norm}|{home_norm}|{away_norm}"
+    # Canonical string: league|home|away (bu sıra SABİT)
+    canonical = f"{league_norm}|{home_norm}|{away_norm}"
     
     # 12 karakterlik MD5 hash
     return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
@@ -155,16 +138,14 @@ Girdi:
   home = "Manchester UTD"
   away = "Arsenal"
   league = "Premier League"
-  kickoff = "2025-01-15T20:00:00Z"
 
 Normalize:
   home = "manchester utd"
   away = "arsenal"
   league = "premier league"
-  kickoff = "2025-01-15T20:00"
 
-Canonical: "premier league|2025-01-15T20:00|manchester utd|arsenal"
-Hash: "a1b2c3d4e5f6" (12 karakter)
+Canonical: "premier league|manchester utd|arsenal"
+Hash: "7e0c6e92b4ba" (12 karakter)
 ```
 
 ---
