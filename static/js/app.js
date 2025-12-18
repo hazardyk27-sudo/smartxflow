@@ -3899,7 +3899,7 @@ function renderAlertBand() {
         } else if (alarm._type === 'mim') {
             const impact = alarm.impact || alarm.impact_score || alarm.money_impact || 0;
             const prevVol = alarm.prev_volume || alarm.previous_volume || 0;
-            const currVol = alarm.curr_volume || alarm.current_volume || alarm.total_volume || alarm.volume || 0;
+            const currVol = alarm.current_volume || alarm.curr_volume || alarm.total_volume || alarm.volume || 0;
             const incomingMoney = currVol - prevVol;
             value = incomingMoney > 0 ? `+£${Number(incomingMoney).toLocaleString('en-GB')}` : `${(impact * 100).toFixed(0)}%`;
         }
@@ -4730,7 +4730,7 @@ function renderAlarmsList(filterType) {
             const impact = alarm.impact || alarm.impact_score || alarm.money_impact || 0;
             const impactPct = (impact * 100).toFixed(1);
             const prevVol = alarm.prev_volume || alarm.previous_volume || 0;
-            const currVol = alarm.curr_volume || alarm.current_volume || alarm.total_volume || 0;
+            const currVol = alarm.current_volume || alarm.curr_volume || alarm.total_volume || 0;
             const incomingMoney = currVol - prevVol;
             metricContent = `<div class="acd-grid cols-3">
                 <div class="acd-stat">
@@ -4776,7 +4776,7 @@ function renderAlarmsList(filterType) {
         } else if (type === 'mim') {
             const impact = alarm.impact || alarm.impact_score || alarm.money_impact || 0;
             const impactPct = (impact * 100).toFixed(0);
-            const incomingMoney = (alarm.curr_volume || alarm.current_volume || 0) - (alarm.prev_volume || 0);
+            const incomingMoney = (alarm.current_volume || alarm.curr_volume || 0) - (alarm.prev_volume || 0);
             metricValue = incomingMoney > 0 ? `+£${Number(incomingMoney).toLocaleString('en-GB')}` : `${impactPct}%`;
         }
         
@@ -4804,7 +4804,7 @@ function renderAlarmsList(filterType) {
                     hValue = `<span class="vl-mini">${h.old_leader || '-'} › ${h.new_leader || '-'}</span>`;
                 } else if (type === 'mim') {
                     const hImpact = h.impact || h.impact_score || h.money_impact || 0;
-                    const hIncoming = (h.curr_volume || h.current_volume || 0) - (h.prev_volume || 0);
+                    const hIncoming = (h.current_volume || h.curr_volume || 0) - (h.prev_volume || 0);
                     hValue = hIncoming > 0 ? `+£${Number(hIncoming).toLocaleString('en-GB')}` : `${(hImpact * 100).toFixed(0)}%`;
                 }
                 return `<div class="history-item history-item-${type}"><span class="history-time">${hTime}</span><span class="history-val">${hValue}</span></div>`;
@@ -6333,7 +6333,7 @@ async function loadAdminMimData() {
                 const selection = alarm.selection || '-';
                 const level = alarm.level || '-';
                 const impact = (alarm.impact || alarm.impact_score || alarm.money_impact || 0).toFixed(2);
-                const volume = `£${Number(alarm.curr_volume || alarm.current_volume || alarm.total_volume || alarm.volume || 0).toLocaleString('en-GB')}`;
+                const volume = `£${Number(alarm.current_volume || alarm.curr_volume || alarm.total_volume || alarm.volume || 0).toLocaleString('en-GB')}`;
                 const eventTime = alarm.trigger_at || alarm.event_time || '-';
                 
                 const levelColor = level >= 3 ? '#3B82F6' : level >= 2 ? '#60a5fa' : '#93c5fd';
