@@ -771,6 +771,12 @@ def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
     - D (bugün): Korunur
     - D-1 (dün): Korunur
     - D-2+ (öncesi): Silinir
+    
+    Temizlenen tablolar:
+    - history tablolari (scraped_at bazli)
+    - moneyway/dropping tablolari (date bazli)
+    - fixtures (fixture_date bazli)
+    - alarm tablolari
     """
     _log = logger_callback if logger_callback else log
     
@@ -785,6 +791,9 @@ def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
     
     _log(f"[Cleanup] D-2+ silme: {d_minus_2} ve oncesi silinecek (bugun={today}, dun={yesterday})")
     
+    total_deleted = 0
+    
+    # 1. History tablolari (scraped_at bazli)
     history_tables = [
         "moneyway_1x2_history",
         "moneyway_ou25_history",
@@ -794,29 +803,76 @@ def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
         "dropping_btts_history",
     ]
     
-    total_deleted = 0
-    
     for table in history_tables:
         try:
             cutoff_iso = d_minus_2.strftime('%Y-%m-%dT23:59:59')
             url = f"{writer._rest_url(table)}?scraped_at=lt.{cutoff_iso}"
-            
             resp = requests.delete(url, headers=writer._headers(), timeout=30)
-            
             if resp.status_code in [200, 204]:
                 _log(f"  [Cleanup] {table}: D-2+ kayitlar silindi")
                 total_deleted += 1
-            elif resp.status_code == 404:
-                pass
-            else:
-                _log(f"  [Cleanup] {table}: Silme hatasi {resp.status_code}")
         except Exception as e:
             _log(f"  [Cleanup] {table}: Hata - {e}")
     
-    if total_deleted > 0:
-        _log(f"[Cleanup] Tamamlandi - {total_deleted} tablo temizlendi")
+    # 2. Moneyway/Dropping canli tablolari (date bazli - DD.Mon formatinda)
+    live_tables = [
+        "moneyway_1x2",
+        "moneyway_ou25", 
+        "moneyway_btts",
+        "dropping_1x2",
+        "dropping_ou25",
+        "dropping_btts",
+    ]
     
-    # Alarm tablolarını da temizle
+    months_map = {1:'jan',2:'feb',3:'mar',4:'apr',5:'may',6:'jun',7:'jul',8:'aug',9:'sep',10:'oct',11:'nov',12:'dec'}
+    valid_dates = []
+    for offset in range(0, 7):
+        d = today - timedelta(days=offset)
+        if offset <= 1:
+            month_str = months_map[d.month].capitalize()
+            valid_dates.append(f"{d.day:02d}.{month_str}")
+            valid_dates.append(f"{d.day}.{month_str}")
+    
+    _log(f"  [Cleanup] Gecerli tarihler: {valid_dates[:4]}...")
+    
+    for table in live_tables:
+        try:
+            r = requests.get(f"{writer._rest_url(table)}?select=id,date", headers=writer._headers(), timeout=60)
+            if r.status_code == 200:
+                rows = r.json()
+                old_ids = []
+                for row in rows:
+                    date_str = row.get('date', '')
+                    is_valid = any(date_str.startswith(vd) for vd in valid_dates)
+                    if not is_valid and row.get('id'):
+                        old_ids.append(str(row['id']))
+                
+                if old_ids:
+                    # Batch delete - 500'er grupla
+                    for i in range(0, len(old_ids), 500):
+                        batch = old_ids[i:i+500]
+                        ids_filter = ','.join(batch)
+                        requests.delete(f"{writer._rest_url(table)}?id=in.({ids_filter})", headers=writer._headers(), timeout=30)
+                    _log(f"  [Cleanup] {table}: {len(old_ids)} eski mac silindi")
+                    total_deleted += len(old_ids)
+        except Exception as e:
+            _log(f"  [Cleanup] {table}: Hata - {e}")
+    
+    # 3. Fixtures (fixture_date bazli)
+    try:
+        cutoff_date = d_minus_2.strftime('%Y-%m-%d')
+        url = f"{writer._rest_url('fixtures')}?fixture_date=lt.{cutoff_date}"
+        resp = requests.delete(url, headers=writer._headers(), timeout=30)
+        if resp.status_code in [200, 204]:
+            _log(f"  [Cleanup] fixtures: D-2+ kayitlar silindi")
+            total_deleted += 1
+    except Exception as e:
+        _log(f"  [Cleanup] fixtures: Hata - {e}")
+    
+    if total_deleted > 0:
+        _log(f"[Cleanup] Tamamlandi - {total_deleted} islem")
+    
+    # 4. Alarm tablolarini temizle
     try:
         from alarm_calculator import AlarmCalculator
         alarm_calc = AlarmCalculator(
