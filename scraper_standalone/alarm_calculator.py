@@ -1815,7 +1815,7 @@ class AlarmCalculator:
         """Get all matches with their latest data for a market (cached)
         
         YENİ ŞEMA: moneyway_snapshots'tan en son snapshot'ları çeker (volume/odds dahil).
-        ESKİ ŞEMA: market tablosundan çeker (geriye uyumluluk).
+        Legacy tablolar artık KULLANILMIYOR - doğrudan snapshot tablolarına gidilir.
         
         Pagination: PostgREST 1000 satır limiti nedeniyle pagination kullanır.
         """
@@ -1826,13 +1826,7 @@ class AlarmCalculator:
         
         log(f"FETCH {market} (latest)...")
         
-        # Önce eski tablo ismini dene (geriye uyumluluk - önce bunu dene çünkü daha zengin veri içerir)
-        matches = self._get(market, 'select=*')
-        if matches:
-            log(f"  -> {len(matches)} matches from {market} table (legacy)")
-            self._matches_cache[market] = matches
-            return matches
-        
+        # YENİ ŞEMA: Doğrudan snapshot tablolarından çek (legacy tablolar artık KULLANILMIYOR)
         # Yeni şema: Aggregated view'dan çek (selection'lar pivot edilmiş)
         if market in self.SNAPSHOT_TABLE_MAP:
             actual_table, market_filter, aggregated_view = self.SNAPSHOT_TABLE_MAP[market]
