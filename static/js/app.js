@@ -3817,7 +3817,7 @@ function formatAlertValue(alarm) {
         return '+' + (alarm.sharp_score || 0).toFixed(0);
     }
     if (type === 'insider') {
-        const dropPct = alarm.oran_dusus_pct || alarm.odds_drop_pct || 0;
+        const dropPct = alarm.drop_pct || alarm.oran_dusus_pct || alarm.odds_drop_pct || 0;
         return '-' + dropPct.toFixed(1) + '%';
     }
     if (type === 'bigmoney') {
@@ -3871,7 +3871,7 @@ function renderAlertBand() {
         if (alarm._type === 'sharp') {
             value = (alarm.sharp_score || 0).toFixed(1);
         } else if (alarm._type === 'insider') {
-            const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
+            const dropPct = Math.abs(alarm.drop_pct || alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
             value = `▼ ${dropPct}%`;
         } else if (alarm._type === 'volumeshock') {
             value = `${(alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0).toFixed(1)}x`;
@@ -4618,7 +4618,7 @@ function renderAlarmsList(filterType) {
         } else if (type === 'bigmoney') {
             badgeLabel = alarm.is_huge ? 'HUGE MONEY' : 'BIG MONEY';
             const money = alarm.incoming_money || alarm.stake || 0;
-            const selectionTotal = alarm.selection_total || alarm.volume || alarm.total_volume || 0;
+            const selectionTotal = alarm.total_selection || alarm.selection_total || alarm.volume || alarm.total_volume || 0;
             
             // Önceki alarmlar - alarm_history'den al
             let historyHtml = '';
@@ -5374,7 +5374,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const currShare = latest.current_share || 0;
             const selection = latest.selection || latest.side || '-';
             const market = latest.market || '';
-            const selTotal = latest.selection_total || latest.volume || 0;
+            const selTotal = latest.total_selection || latest.selection_total || latest.volume || 0;
             row2Left = `${selection} (${market})`;
             row2Right = `Sharp: ${score.toFixed(0)} | ▼${dropPct.toFixed(1)}%`;
             row3Left = `<span class="sm-money-hero">£${Number(incomingMoney).toLocaleString('en-GB')}</span> <span class="sm-money-label">yeni para</span>`;
@@ -5384,7 +5384,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const money = latest.incoming_money || latest.stake || 0;
             const selection = latest.selection || latest.side || '-';
             const market = latest.market || '';
-            const selectionTotal = latest.selection_total || latest.volume || latest.total_volume || 0;
+            const selectionTotal = latest.total_selection || latest.selection_total || latest.volume || latest.total_volume || 0;
             
             // BigMoney için özel kart yapısı
             const marketFormatted = market === '1X2' ? '1-X-2' : (market === 'OU25' ? 'O/U 2.5' : market);
@@ -5394,14 +5394,14 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             row3Right = selectionTotal > 0 ? `<span class="sm-total-muted">Olay sonrası: £${Number(selectionTotal).toLocaleString('en-GB')}</span>` : '';
             row4 = `Seçeneğe 10 dakika içinde büyük para girişi tespit edildi.`;
         } else if (type === 'insider') {
-            const dropPct = Math.abs(latest.oran_dusus_pct || latest.odds_drop_pct || 0);
+            const dropPct = Math.abs(latest.drop_pct || latest.oran_dusus_pct || latest.odds_drop_pct || 0);
             const rawOpenOdds = latest.opening_odds || 0;
             const rawLastOdds = latest.last_odds || latest.current_odds || 0;
             const openOdds = rawOpenOdds > 0 ? rawOpenOdds.toFixed(2) : '—';
             const lastOdds = rawLastOdds > 0 ? rawLastOdds.toFixed(2) : '—';
             const selection = latest.selection || latest.side || '-';
             const market = latest.market || '';
-            const gelenPara = latest.gelen_para || latest.incoming_money || 0;
+            const gelenPara = latest.total_money || latest.gelen_para || latest.incoming_money || 0;
             const hoursToKickoff = calculateHoursToKickoff(latest);
             const hoursDisplay = hoursToKickoff > 0 ? `${hoursToKickoff.toFixed(0)} saat` : '—';
             row2Left = `${selection} (${market})`;
@@ -5417,7 +5417,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const avgLast10 = latest.avg_last_amounts || latest.average_amount || 0;
             const selection = latest.selection || latest.side || '-';
             const market = latest.market || '';
-            const selTotal = latest.selection_total || latest.volume || 0;
+            const selTotal = latest.total_selection || latest.selection_total || latest.volume || 0;
             row2Left = `${selection} (${market})`;
             row2Right = '';
             row3Left = `<span class="sm-shock-badge">X${shockValue.toFixed(0)}</span> <span class="sm-shock-label">hacim şoku</span>`;
@@ -5450,7 +5450,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
         } else if (type === 'volumeleader') {
             const oldLeader = latest.old_leader || latest.previous_leader || '-';
             const newLeader = latest.new_leader || latest.selection || '-';
-            const totalVol = latest.total_volume || latest.volume || latest.selection_total || 0;
+            const totalVol = latest.total_volume || latest.volume || latest.total_selection || latest.selection_total || 0;
             const oldShare = latest.old_leader_share || 0;
             const newShare = latest.new_leader_share || 0;
             const market = latest.market || '';
@@ -5482,7 +5482,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                 bigmoney: { title: 'Geçmiş Big Money Girişleri', pillLabel: (a) => `£${Number(a.incoming_money || a.stake || 0).toLocaleString('en-GB')}` },
                 volumeshock: { title: 'Geçmiş Hacim Şokları', pillLabel: (a) => `X${(a.volume_shock_value || a.volume_shock || 0).toFixed(1)}` },
                 sharp: { title: 'Geçmiş Sharp Alarmları', pillLabel: (a) => `Sharp ${(a.sharp_score || 0).toFixed(0)}` },
-                insider: { title: 'Geçmiş Insider Alarmları', pillLabel: (a) => `▼${Math.abs(a.oran_dusus_pct || a.odds_drop_pct || 0).toFixed(1)}%` },
+                insider: { title: 'Geçmiş Insider Alarmları', pillLabel: (a) => `▼${Math.abs(a.drop_pct || a.oran_dusus_pct || a.odds_drop_pct || 0).toFixed(1)}%` },
                 dropping: { title: 'Geçmiş Oran Düşüşleri', pillLabel: (a) => `▼${(a.drop_pct || 0).toFixed(1)}%` },
                 publicmove: { title: 'Geçmiş Public Move', pillLabel: (a) => `%${(a.current_share || a.new_share || 0).toFixed(0)}` },
                 volumeleader: { title: 'Geçmiş Lider Değişimleri', pillLabel: (a) => a.new_leader || '-' },
@@ -5500,26 +5500,26 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                 if (type === 'bigmoney') {
                     const money = Number(a.incoming_money || a.stake || 0).toLocaleString('en-GB');
                     const sel = a.selection || a.side || '-';
-                    const total = Number(a.selection_total || a.volume || a.total_volume || 0).toLocaleString('en-GB');
+                    const total = Number(a.total_selection || a.selection_total || a.volume || a.total_volume || 0).toLocaleString('en-GB');
                     return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-bigmoney">${sel}</span><span class="tt-total">Sonrası: £${total}</span></div>`;
                 } else if (type === 'sharp') {
                     const money = Number(a.incoming_money || a.amount_change || a.volume || 0).toLocaleString('en-GB');
                     const score = (a.sharp_score || 0).toFixed(0);
                     const prevOdds = (a.previous_odds || 0).toFixed(2);
                     const currOdds = (a.current_odds || 0).toFixed(2);
-                    const total = Number(a.selection_total || a.volume || 0).toLocaleString('en-GB');
+                    const total = Number(a.total_selection || a.selection_total || a.volume || 0).toLocaleString('en-GB');
                     return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-sharp">Sharp ${score}</span><span class="tt-total">${prevOdds}→${currOdds} · £${total}</span></div>`;
                 } else if (type === 'volumeshock') {
                     const money = Number(a.incoming_money || 0).toLocaleString('en-GB');
                     const shock = (a.volume_shock_value || a.volume_shock || 0).toFixed(1);
                     const avg = Number(a.avg_last_amounts || a.average_amount || 0).toLocaleString('en-GB');
-                    const total = Number(a.selection_total || a.volume || 0).toLocaleString('en-GB');
+                    const total = Number(a.total_selection || a.selection_total || a.volume || 0).toLocaleString('en-GB');
                     return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-volumeshock">X${shock}</span><span class="tt-total">Son 10 ort: £${avg} — Sonrası: £${total}</span></div>`;
                 } else if (type === 'dropping') {
                     const openOdds = (a.opening_odds || 0).toFixed(2);
                     const currOdds = (a.current_odds || 0).toFixed(2);
                     const dropPct = (a.drop_pct || 0).toFixed(1);
-                    const vol = Number(a.volume || a.selection_total || 0).toLocaleString('en-GB');
+                    const vol = Number(a.volume || a.total_selection || a.selection_total || 0).toLocaleString('en-GB');
                     return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">${openOdds}→${currOdds}</span><span class="tt-pill pill-dropping">▼${dropPct}%</span><span class="tt-total">Volume: £${vol}</span></div>`;
                 } else if (type === 'publicmove') {
                     const prevShare = (a.previous_share || a.old_share || 0).toFixed(0);
@@ -5534,10 +5534,10 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                     const totalVol = Number(a.total_volume || a.volume || 0).toLocaleString('en-GB');
                     return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">${oldL}→${newL}</span><span class="tt-pill pill-volumeleader">%${oldShare}→%${newShare}</span><span class="tt-total">£${totalVol}</span></div>`;
                 } else if (type === 'insider') {
-                    const money = Number(a.gelen_para || a.incoming_money || 0).toLocaleString('en-GB');
+                    const money = Number(a.total_money || a.gelen_para || a.incoming_money || 0).toLocaleString('en-GB');
                     const openOdds = (a.opening_odds || 0).toFixed(2);
-                    const lastOdds = (a.last_odds || 0).toFixed(2);
-                    const dropPct = Math.abs(a.oran_dusus_pct || a.odds_drop_pct || 0).toFixed(1);
+                    const lastOdds = (a.last_odds || a.current_odds || 0).toFixed(2);
+                    const dropPct = Math.abs(a.drop_pct || a.oran_dusus_pct || a.odds_drop_pct || 0).toFixed(1);
                     const hours = calculateHoursToKickoff(a).toFixed(0);
                     return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-insider">▼${dropPct}%</span><span class="tt-total">${openOdds}→${lastOdds} · ${hours}s kala</span></div>`;
                 } else if (type === 'mim') {
@@ -5601,7 +5601,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                 } else if (type === 'volumeshock') {
                     hValue = `X${(a.volume_shock_value || a.volume_shock || 0).toFixed(1)}`;
                 } else if (type === 'insider') {
-                    hValue = `▼${Math.abs(a.oran_dusus_pct || a.odds_drop_pct || 0).toFixed(1)}%`;
+                    hValue = `▼${Math.abs(a.drop_pct || a.oran_dusus_pct || a.odds_drop_pct || 0).toFixed(1)}%`;
                 } else if (type === 'dropping') {
                     hValue = `▼${(a.drop_pct || 0).toFixed(1)}%`;
                 } else if (type === 'publicmove') {
