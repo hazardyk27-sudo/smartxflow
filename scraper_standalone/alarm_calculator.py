@@ -1061,7 +1061,7 @@ class AlarmCalculator:
             home = match.get('home', '')
             away = match.get('away', '')
             league = match.get('league', '')
-            kickoff = match.get('kickoff', match.get('kickoff_utc', ''))
+            kickoff = match.get('date', '')
             
             if not all([home, away, league, kickoff]):
                 return None
@@ -1121,7 +1121,7 @@ class AlarmCalculator:
                 home = match.get('home', '')
                 away = match.get('away', '')
                 league = match.get('league', '')
-                kickoff = match.get('kickoff', match.get('kickoff_utc', ''))
+                kickoff = match.get('date', '')
                 
                 if not all([home, away, league, kickoff]):
                     continue
@@ -1949,9 +1949,10 @@ class AlarmCalculator:
                 if total_volume < min_volume:
                     continue
                 
-                # match_id_hash ile history lookup (string eşleşmesi YOK)
-                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
+                # match_id_hash ile history lookup - date alanı kullanılmalı (moneyway tablolarında kickoff yok)
+                date_str = match.get('date', '')
+                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), date_str)
+                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
                 if len(history) < 2:
                     continue
                 
@@ -2057,7 +2058,7 @@ class AlarmCalculator:
                     
                     if sharp_score >= min_score:
                         trigger_at = latest.get('scraped_at', now_turkey_iso())
-                        match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
+                        match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                         
                         # UI ALAN ADLARIYLA ALARM KAYDI
                         alarm = {
@@ -2186,9 +2187,10 @@ class AlarmCalculator:
                 if not home or not away:
                     continue
                 
-                # match_id_hash ile history lookup (string eşleşmesi YOK)
-                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
+                # match_id_hash ile history lookup - date alanı kullanılmalı (moneyway tablolarında kickoff yok)
+                date_str = match.get('date', '')
+                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), date_str)
+                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
                 if len(history) < 3:
                     continue
                 
@@ -2332,7 +2334,7 @@ class AlarmCalculator:
                     
                     trigger_snap = history[drop_moment_index]
                     trigger_at = trigger_snap.get('scraped_at', now_turkey_iso())
-                    match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
+                    match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                     
                     alarm = {
                         'match_id': match_id,
@@ -2449,9 +2451,10 @@ class AlarmCalculator:
                 if not home or not away:
                     continue
                 
-                # match_id_hash ile history lookup (string eşleşmesi YOK)
-                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
+                # match_id_hash ile history lookup - date alanı kullanılmalı (moneyway tablolarında kickoff yok)
+                date_str = match.get('date', '')
+                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), date_str)
+                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
                 if len(history) < 2:
                     continue
                 
@@ -2476,7 +2479,7 @@ class AlarmCalculator:
                         continue
                     
                     selection_total = parse_volume(history[-1].get(amount_key, 0))
-                    match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
+                    match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                     
                     # Her büyük para hareketini AYRI alarm olarak kaydet
                     for snap_idx, snap in enumerate(big_snapshots):
@@ -2651,9 +2654,10 @@ class AlarmCalculator:
                 if not home or not away:
                     continue
                 
-                # match_id_hash ile history lookup (string eşleşmesi YOK)
-                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
+                # match_id_hash ile history lookup - date alanı kullanılmalı (moneyway tablolarında kickoff yok)
+                date_str = match.get('date', '')
+                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), date_str)
+                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
                 if len(history) < 5:
                     continue
                 
@@ -2700,7 +2704,7 @@ class AlarmCalculator:
                             }
                     
                     if best_shock:
-                        match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
+                        match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                         
                         alarm = {
                             'match_id': match_id,
@@ -2951,7 +2955,7 @@ class AlarmCalculator:
                         level = 'L1'
                     
                     trigger_at = history[-1].get('scraped_at', now_turkey_iso())
-                    match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
+                    match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                     
                     # Volume bilgisi (varsa)
                     volume = parse_float(match.get('volume', 0))
@@ -3075,9 +3079,10 @@ class AlarmCalculator:
                 if total_volume < min_volume:
                     continue
                 
-                # match_id_hash ile history lookup (string eşleşmesi YOK)
-                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
+                # match_id_hash ile history lookup - date alanı kullanılmalı (moneyway tablolarında kickoff yok)
+                date_str = match.get('date', '')
+                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), date_str)
+                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
                 if len(history) < 2:
                     continue
                 
@@ -3145,7 +3150,7 @@ class AlarmCalculator:
                     
                     if move_score >= min_score:
                         trigger_at = latest.get('scraped_at', now_turkey_iso())
-                        match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
+                        match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                         
                         alarm = {
                             'match_id': match_id,
@@ -3230,9 +3235,10 @@ class AlarmCalculator:
                 if total_volume < min_volume:
                     continue
                 
-                # match_id_hash ile history lookup (string eşleşmesi YOK)
-                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
+                # match_id_hash ile history lookup - date alanı kullanılmalı (moneyway tablolarında kickoff yok)
+                date_str = match.get('date', '')
+                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), date_str)
+                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
                 if len(history) < 2:
                     continue
                 
@@ -3264,7 +3270,7 @@ class AlarmCalculator:
                             continue
                         
                         trigger_at = curr_snap.get('scraped_at', now_turkey_iso())
-                        match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
+                        match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                         
                         alarm = {
                             'match_id': match_id,
@@ -3350,8 +3356,8 @@ class AlarmCalculator:
                 continue
             
             # match_id_hash ile history lookup (string eşleşmesi YOK)
-            match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-            history = self.get_match_history(match_id_hash, f"{market}_history", home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
+            match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
+            history = self.get_match_history(match_id_hash, f"{market}_history", home, away, match.get('league', ''), match.get('date', ''))
             if len(history) < 2:
                 continue
             
@@ -3383,7 +3389,7 @@ class AlarmCalculator:
                     continue
                 
                 trigger_at = curr_snap.get('scraped_at', now_turkey_iso())
-                match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
+                match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                 
                 alarm = {
                     'match_id': match_id,
