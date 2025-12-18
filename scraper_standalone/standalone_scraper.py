@@ -14,6 +14,43 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from bs4 import BeautifulSoup
 
+# Hash utils import - fixtures ve snapshots için match_id_hash üretimi
+import hashlib
+
+def normalize_field_for_hash(value: str) -> str:
+    """String normalizasyonu for match_id_hash"""
+    if not value:
+        return ""
+    value = value.strip()
+    # Türkçe karakter normalizasyonu (lowercase'den önce!)
+    value = value.replace('ı', 'i').replace('İ', 'I')
+    value = value.lower()
+    value = ' '.join(value.split())
+    return value
+
+def normalize_kickoff_for_hash(kickoff: str) -> str:
+    """Kickoff normalizasyonu: YYYY-MM-DDTHH:MM"""
+    if not kickoff:
+        return ""
+    kickoff = str(kickoff).strip()
+    kickoff = re.sub(r'[+-]\d{2}:\d{2}$', '', kickoff)
+    kickoff = kickoff.replace('Z', '')
+    if 'T' in kickoff and len(kickoff) >= 16:
+        return kickoff[:16]
+    if len(kickoff) >= 10 and kickoff[4] == '-':
+        return kickoff[:16] if len(kickoff) >= 16 else kickoff[:10] + "T00:00"
+    return kickoff
+
+def make_match_id_hash(home: str, away: str, league: str, kickoff_utc: str) -> str:
+    """12 karakterlik MD5 hash üret - Format: league|kickoff|home|away"""
+    home_norm = normalize_field_for_hash(home)
+    away_norm = normalize_field_for_hash(away)
+    league_norm = normalize_field_for_hash(league)
+    kickoff_norm = normalize_kickoff_for_hash(kickoff_utc)
+    canonical = f"{league_norm}|{kickoff_norm}|{home_norm}|{away_norm}"
+    return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
+
+
 def get_ssl_cert_path():
     """Get SSL certificate path with fallback for PyInstaller temp folder issues"""
     # Try certifi first
@@ -137,8 +174,14 @@ def load_config() -> Dict[str, str]:
         
         config = json.loads(content)
         
-        if not config.get('SUPABASE_URL') or not config.get('SUPABASE_ANON_KEY'):
-            log("ERROR: config.json'da SUPABASE_URL veya SUPABASE_ANON_KEY eksik!")
+        if not config.get('SUPABASE_URL'):
+            log("ERROR: config.json'da SUPABASE_URL eksik!")
+            input("Devam etmek icin Enter'a basin...")
+            sys.exit(1)
+        
+        # SERVICE_ROLE_KEY tercih et (RLS bypass), yoksa ANON_KEY kullan
+        if not config.get('SUPABASE_SERVICE_ROLE_KEY') and not config.get('SUPABASE_ANON_KEY'):
+            log("ERROR: config.json'da SUPABASE_SERVICE_ROLE_KEY veya SUPABASE_ANON_KEY eksik!")
             input("Devam etmek icin Enter'a basin...")
             sys.exit(1)
         
@@ -274,6 +317,41 @@ class SupabaseWriter:
             new_row['scraped_at'] = scraped_at
             history_rows.append(new_row)
         return self.insert_rows(table, history_rows)
+    
+    def upsert_fixtures(self, fixtures: List[Dict[str, Any]]) -> bool:
+        """Fixtures tablosuna UPSERT - match_id_hash unique key"""
+        if not fixtures:
+            return True
+        try:
+            headers = self._headers()
+            headers["Prefer"] = "resolution=merge-duplicates"
+            url = f"{self._rest_url('fixtures')}?on_conflict=match_id_hash"
+            
+            resp = requests.post(url, headers=headers, json=fixtures, timeout=30, verify=SSL_VERIFY)
+            if resp.status_code in [200, 201, 204]:
+                return True
+            else:
+                log(f"  [FIXTURES UPSERT ERR] {resp.status_code}: {resp.text[:200]}")
+                return False
+        except Exception as e:
+            log(f"  [FIXTURES UPSERT ERR] {e}")
+            return False
+    
+    def insert_snapshots(self, table: str, snapshots: List[Dict[str, Any]]) -> bool:
+        """Snapshot tablosuna INSERT - match_id_hash dahil"""
+        if not snapshots:
+            return True
+        try:
+            headers = self._headers()
+            resp = requests.post(self._rest_url(table), headers=headers, json=snapshots, timeout=30, verify=SSL_VERIFY)
+            if resp.status_code in [200, 201, 204]:
+                return True
+            else:
+                log(f"  [SNAPSHOT INSERT ERR] {table}: {resp.status_code}: {resp.text[:200]}")
+                return False
+        except Exception as e:
+            log(f"  [SNAPSHOT INSERT ERR] {table}: {e}")
+            return False
 
 
 def _text(node) -> str:
@@ -717,19 +795,65 @@ def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
     return total_deleted
 
 
+def parse_date_to_kickoff(date_str: str) -> str:
+    """Parse date string to kickoff_utc format (YYYY-MM-DDTHH:MM:SS+00:00)"""
+    if not date_str:
+        return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S+00:00')
+    
+    # Try various formats: "18 Dec 15:00", "Dec 18 15:00", "2025-12-18 15:00", etc.
+    date_str = date_str.strip()
+    now = datetime.utcnow()
+    
+    # Pattern: "18 Dec 15:00" or "18 Dec"
+    m = re.match(r'(\d{1,2})\s+(\w{3})\s*(\d{1,2}:\d{2})?', date_str)
+    if m:
+        day, month_str, time_part = m.groups()
+        months = {'jan':1,'feb':2,'mar':3,'apr':4,'may':5,'jun':6,'jul':7,'aug':8,'sep':9,'oct':10,'nov':11,'dec':12}
+        month = months.get(month_str.lower()[:3], now.month)
+        year = now.year
+        if time_part:
+            hour, minute = map(int, time_part.split(':'))
+        else:
+            hour, minute = 12, 0
+        try:
+            dt = datetime(year, month, int(day), hour, minute)
+            return dt.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        except:
+            pass
+    
+    return now.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+
+
 def run_scrape(writer: SupabaseWriter, logger_callback=None):
     _log = logger_callback if logger_callback else log
     _log("SCRAPE BASLIYOR...")
     session = requests.Session()
     scraped_at = get_turkey_now()
+    scraped_at_utc = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S+00:00')
     total_rows = 0
     write_errors = 0
     market_stats = []
+    
+    # Tüm maçları topla (fixtures için)
+    all_fixtures = {}  # match_id_hash -> fixture data
+    all_moneyway_snapshots = []
+    all_dropping_snapshots = []
     
     for dataset_key, url in DATASETS.items():
         table_name = MARKET_TABLE_MAP[dataset_key]
         history_table = f"{table_name}_history"
         extractor = EXTRACTORS[dataset_key]
+        is_moneyway = dataset_key.startswith('moneyway')
+        is_dropping = dataset_key.startswith('dropping')
+        
+        # Market type: 1X2, OU25, BTTS
+        market = dataset_key.split('-')[1].upper()
+        if market == 'OU25':
+            market = 'OU25'
+        elif market == 'BTTS':
+            market = 'BTTS'
+        else:
+            market = '1X2'
         
         try:
             _log(f"  {dataset_key} cekiliyor...")
@@ -737,6 +861,102 @@ def run_scrape(writer: SupabaseWriter, logger_callback=None):
             rows = extractor(table)
             
             if rows:
+                # Her satır için match_id_hash hesapla ve fixture/snapshot oluştur
+                for row in rows:
+                    home = row.get('home', '')
+                    away = row.get('away', '')
+                    league = row.get('league', '')
+                    date_str = row.get('date', '')
+                    
+                    # Kickoff UTC hesapla
+                    kickoff_utc = parse_date_to_kickoff(date_str)
+                    
+                    # match_id_hash üret
+                    match_id_hash = make_match_id_hash(home, away, league, kickoff_utc)
+                    
+                    # Fixture kaydet (unique by match_id_hash)
+                    if match_id_hash not in all_fixtures:
+                        fixture_date = kickoff_utc[:10]  # YYYY-MM-DD
+                        all_fixtures[match_id_hash] = {
+                            'match_id_hash': match_id_hash,
+                            'home_team': home[:100],
+                            'away_team': away[:100],
+                            'league': league[:150],
+                            'kickoff_utc': kickoff_utc,
+                            'fixture_date': fixture_date
+                        }
+                    
+                    # Snapshot oluştur
+                    if is_moneyway:
+                        # Moneyway snapshot - market bazlı selections
+                        if market == '1X2':
+                            selections = [
+                                ('1', row.get('odds1'), row.get('pct1'), row.get('amt1')),
+                                ('X', row.get('oddsx'), row.get('pctx'), row.get('amtx')),
+                                ('2', row.get('odds2'), row.get('pct2'), row.get('amt2'))
+                            ]
+                        elif market == 'OU25':
+                            selections = [
+                                ('O', row.get('over'), row.get('pctover'), row.get('amtover')),
+                                ('U', row.get('under'), row.get('pctunder'), row.get('amtunder'))
+                            ]
+                        else:  # BTTS
+                            selections = [
+                                ('Y', row.get('oddsyes'), row.get('pctyes'), row.get('amtyes')),
+                                ('N', row.get('oddsno'), row.get('pctno'), row.get('amtno'))
+                            ]
+                        
+                        for sel, odds, share, volume in selections:
+                            if odds or share or volume:
+                                all_moneyway_snapshots.append({
+                                    'match_id_hash': match_id_hash,
+                                    'market': market,
+                                    'selection': sel,
+                                    'odds': float(odds) if odds and odds.replace('.','').isdigit() else None,
+                                    'volume': _parse_volume(volume) if volume else None,
+                                    'share': _parse_percent_value(share) if share else None,
+                                    'scraped_at_utc': scraped_at_utc
+                                })
+                    
+                    elif is_dropping:
+                        # Dropping odds snapshot
+                        if market == '1X2':
+                            selections = [
+                                ('1', row.get('odds1'), row.get('odds1_prev'), row.get('pct1'), row.get('amt1')),
+                                ('X', row.get('oddsx'), row.get('oddsx_prev'), row.get('pctx'), row.get('amtx')),
+                                ('2', row.get('odds2'), row.get('odds2_prev'), row.get('pct2'), row.get('amt2'))
+                            ]
+                        elif market == 'OU25':
+                            selections = [
+                                ('O', row.get('over'), row.get('over_prev'), row.get('pctover'), row.get('amtover')),
+                                ('U', row.get('under'), row.get('under_prev'), row.get('pctunder'), row.get('amtunder'))
+                            ]
+                        else:  # BTTS
+                            selections = [
+                                ('Y', row.get('oddsyes'), row.get('oddsyes_prev'), row.get('pctyes'), row.get('amtyes')),
+                                ('N', row.get('oddsno'), row.get('oddsno_prev'), row.get('pctno'), row.get('amtno'))
+                            ]
+                        
+                        for sel, current, opening, share, volume in selections:
+                            if current or opening:
+                                cur_val = float(current) if current and current.replace('.','').isdigit() else None
+                                open_val = float(opening) if opening and opening.replace('.','').isdigit() else None
+                                drop_pct = None
+                                if cur_val and open_val and open_val > 0:
+                                    drop_pct = round((open_val - cur_val) / open_val * 100, 2)
+                                
+                                all_dropping_snapshots.append({
+                                    'match_id_hash': match_id_hash,
+                                    'market': market,
+                                    'selection': sel,
+                                    'opening_odds': open_val,
+                                    'current_odds': cur_val,
+                                    'drop_pct': drop_pct,
+                                    'volume': _parse_volume(volume) if volume else None,
+                                    'scraped_at_utc': scraped_at_utc
+                                })
+                
+                # Mevcut history tablolarına da yaz (geriye uyumluluk)
                 main_ok = writer.replace_table(table_name, rows)
                 history_ok = writer.append_history(history_table, rows, scraped_at)
                 
@@ -754,13 +974,71 @@ def run_scrape(writer: SupabaseWriter, logger_callback=None):
                 _log(f"  [!] {dataset_key}: Veri bulunamadi")
         except Exception as e:
             _log(f"  [HATA] {dataset_key}: {e}")
+            import traceback
+            _log(f"  [TRACEBACK] {traceback.format_exc()}")
+            write_errors += 1
+    
+    # Fixtures UPSERT
+    if all_fixtures:
+        fixtures_list = list(all_fixtures.values())
+        _log(f"  [FIXTURES] {len(fixtures_list)} mac fixtures'a yaziliyor...")
+        if writer.upsert_fixtures(fixtures_list):
+            _log(f"  [OK] Fixtures: {len(fixtures_list)} mac")
+        else:
+            _log(f"  [HATA] Fixtures yazma basarisiz!")
+            write_errors += 1
+    
+    # Snapshots INSERT
+    if all_moneyway_snapshots:
+        _log(f"  [SNAPSHOTS] {len(all_moneyway_snapshots)} moneyway snapshot yaziliyor...")
+        if writer.insert_snapshots('moneyway_snapshots', all_moneyway_snapshots):
+            _log(f"  [OK] Moneyway snapshots: {len(all_moneyway_snapshots)}")
+        else:
+            _log(f"  [HATA] Moneyway snapshots yazma basarisiz!")
+            write_errors += 1
+    
+    if all_dropping_snapshots:
+        _log(f"  [SNAPSHOTS] {len(all_dropping_snapshots)} dropping snapshot yaziliyor...")
+        if writer.insert_snapshots('dropping_odds_snapshots', all_dropping_snapshots):
+            _log(f"  [OK] Dropping snapshots: {len(all_dropping_snapshots)}")
+        else:
+            _log(f"  [HATA] Dropping snapshots yazma basarisiz!")
             write_errors += 1
     
     if write_errors > 0:
         _log(f"UYARI: {write_errors} tabloda yazma hatasi olustu!")
     
-    _log(f"Scrape tamamlandi - Toplam: {total_rows} satir")
+    _log(f"Scrape tamamlandi - Toplam: {total_rows} satir, {len(all_fixtures)} fixture, {len(all_moneyway_snapshots)+len(all_dropping_snapshots)} snapshot")
     return total_rows
+
+
+def _parse_volume(vol_str: str) -> float:
+    """Parse volume string like '£ 1.5M' or '£ 500K' to float"""
+    if not vol_str:
+        return 0.0
+    vol_str = vol_str.replace('£', '').replace(',', '').strip()
+    multiplier = 1.0
+    if vol_str.upper().endswith('M'):
+        multiplier = 1000000
+        vol_str = vol_str[:-1]
+    elif vol_str.upper().endswith('K'):
+        multiplier = 1000
+        vol_str = vol_str[:-1]
+    try:
+        return float(vol_str.strip()) * multiplier
+    except:
+        return 0.0
+
+
+def _parse_percent_value(pct_str: str) -> float:
+    """Parse percent string like '45.5%' to float"""
+    if not pct_str:
+        return 0.0
+    pct_str = pct_str.replace('%', '').strip()
+    try:
+        return float(pct_str)
+    except:
+        return 0.0
 
 
 def run_alarm_calculations_safe(supabase_url: str, supabase_key: str, logger_callback=None):
@@ -788,7 +1066,13 @@ def main():
     print()
     
     config = load_config()
-    writer = SupabaseWriter(config['SUPABASE_URL'], config['SUPABASE_ANON_KEY'])
+    
+    # SERVICE_ROLE_KEY tercih et (RLS bypass için), yoksa ANON_KEY kullan
+    supabase_key = config.get('SUPABASE_SERVICE_ROLE_KEY') or config.get('SUPABASE_ANON_KEY')
+    key_type = "SERVICE_ROLE" if config.get('SUPABASE_SERVICE_ROLE_KEY') else "ANON"
+    log(f"Supabase key: {key_type}")
+    
+    writer = SupabaseWriter(config['SUPABASE_URL'], supabase_key)
     
     log(f"Supabase baglantisi hazir")
     log(f"Scrape araligi: {SCRAPE_INTERVAL_MINUTES} dakika")
