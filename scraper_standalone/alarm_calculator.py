@@ -776,6 +776,22 @@ class AlarmCalculator:
     def _rest_url(self, table: str) -> str:
         return f"{self.url}/rest/v1/{table}"
     
+    def _reload_schema_cache(self) -> bool:
+        """Supabase PostgREST schema cache'ini yenile"""
+        try:
+            url = f"{self.url}/rest/v1/rpc/reload_schema_cache"
+            headers = self._headers()
+            resp = httpx.post(url, headers=headers, json={}, timeout=30)
+            if resp.status_code in [200, 204]:
+                log("[SCHEMA] PostgREST schema cache reloaded successfully")
+                return True
+            else:
+                log(f"[SCHEMA] Reload failed: HTTP {resp.status_code} - {resp.text[:200]}")
+                return False
+        except Exception as e:
+            log(f"[SCHEMA] Reload error: {e}")
+            return False
+    
     def _get(self, table: str, params: str = "") -> List[Dict]:
         try:
             url = f"{self._rest_url(table)}?{params}" if params else self._rest_url(table)
@@ -791,36 +807,30 @@ class AlarmCalculator:
             log(f"GET error {table}: {e}")
         return []
     
-    def _post(self, table: str, data: List[Dict], on_conflict=None) -> bool:
+    def _post(self, table: str, data: List[Dict], on_conflict=None, _retry=False) -> bool:
         try:
-            # PostgREST schema cache sorunu: alarm_type alanını payload'dan çıkar
-            # Tablo zaten DEFAULT değer veriyor, bu sayede cache güncellenmese de çalışır
-            cleaned_data = []
-            for record in data:
-                clean_record = {k: v for k, v in record.items() if k != 'alarm_type'}
-                cleaned_data.append(clean_record)
-            data = cleaned_data
-            
             headers = self._headers()
             headers["Prefer"] = "resolution=merge-duplicates"
             url = self._rest_url(table)
             if on_conflict:
                 url = f"{url}?on_conflict={on_conflict}"
-            if hasattr(httpx, 'post'):
-                resp = httpx.post(url, headers=headers, json=data, timeout=30)
-            else:
-                resp = httpx.post(url, headers=headers, json=data, timeout=30)
+            
+            resp = httpx.post(url, headers=headers, json=data, timeout=30)
             
             if resp.status_code in [200, 201]:
                 return True
             else:
-                # HTTP ERROR LOGLAMA - Sessiz hataları önle
+                error_body = resp.text[:500] if hasattr(resp, 'text') else str(resp.content[:500])
+                
+                # PGRST204 = Schema cache hatası - reload edip tekrar dene
+                if resp.status_code == 400 and 'PGRST204' in error_body and not _retry:
+                    log(f"[POST] {table}: Schema cache stale, reloading...")
+                    if self._reload_schema_cache():
+                        log(f"[POST] {table}: Retrying after schema reload...")
+                        return self._post(table, data, on_conflict, _retry=True)
+                
                 log(f"[POST ERROR] {table}: HTTP {resp.status_code}")
-                try:
-                    error_body = resp.text[:500] if hasattr(resp, 'text') else str(resp.content[:500])
-                    log(f"[POST ERROR] Response: {error_body}")
-                except:
-                    pass
+                log(f"[POST ERROR] Response: {error_body}")
                 if data and len(data) > 0:
                     log(f"[POST ERROR] First record keys: {list(data[0].keys())}")
                 return False
