@@ -838,21 +838,113 @@ class AlarmCalculator:
     }
     
     # Alan adı dönüşümleri (calculator → db) - GLOBAL
+    # Sadece tüm tablolarda ortak olan dönüşümler burada
     FIELD_MAPPING = {
         'match_id': 'match_id_hash',
         'selection_total': 'total_selection',
+        'oran_dusus_pct': 'drop_pct',
+        'odds_drop_pct': 'drop_pct',
     }
     
-    # Tablo bazlı ek dönüşümler
+    # Tablo bazlı ek dönüşümler (global mapping'i override eder)
+    # Her tablonun kendi field mapping'i - çakışma önlenir
     TABLE_FIELD_MAPPING = {
+        'bigmoney_alarms': {
+            'stake': 'incoming_money',
+            'volume': 'incoming_money',
+        },
         'insider_alarms': {
             'odds_drop_pct': 'drop_pct',
+            'oran_dusus_pct': 'drop_pct',
             'incoming_money': 'total_money',
+            'stake': 'total_money',
+            'volume': 'total_money',
+        },
+        'volumeshock_alarms': {
+            'volume_shock': 'volume_shock_value',
+            'volume_shock_multiplier': 'volume_shock_value',
+            'multiplier': 'volume_shock_value',
+            'stake': 'incoming_money',
+        },
+        'sharp_alarms': {
+            'volume': 'amount_change',
+            'stake': 'amount_change',
+        },
+        'publicmove_alarms': {
+            'volume': 'amount_change',
+            'stake': 'amount_change',
         },
     }
     
+    # Çoklu alias çözümlemesi için öncelik sıralaması
+    # Aynı hedef alana birden fazla kaynak alan map edildiğinde
+    # sıfır olmayan ilk değer kullanılır
+    ALIAS_PRIORITY = {
+        'volume_shock_value': ['volume_shock', 'volume_shock_multiplier', 'multiplier'],
+    }
+    
+    def _to_float(self, val) -> float:
+        """String veya numeric değeri float'a dönüştür."""
+        if val is None:
+            return 0.0
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return 0.0
+    
+    def _is_nonzero(self, val) -> bool:
+        """Değerin sıfır olmadığını kontrol et (string "0" dahil)."""
+        return self._to_float(val) != 0.0
+    
+    def _resolve_aliases(self, record: Dict, table: str) -> Dict:
+        """
+        Çoklu alias durumunda sıfır olmayan değeri seç.
+        Örn: volume_shock=2.5, multiplier=0 → volume_shock_value=2.5
+        
+        ÖNEMLİ: Eğer hedef alan zaten sıfır olmayan değer içeriyorsa korur.
+        String değerler ("0", "2.5") de doğru şekilde işlenir.
+        """
+        resolved = dict(record)
+        
+        for target_field, source_aliases in self.ALIAS_PRIORITY.items():
+            # Sadece ilgili tablolar için çözümle
+            if table == 'volumeshock_alarms' and target_field == 'volume_shock_value':
+                # Hedef alan zaten sıfır olmayan değer içeriyorsa koru
+                existing_value = resolved.get(target_field)
+                if existing_value is not None and self._is_nonzero(existing_value):
+                    # Mevcut değeri koru, sadece alias'ları temizle
+                    for alias in source_aliases:
+                        if alias in resolved and alias != target_field:
+                            del resolved[alias]
+                    continue
+                
+                # Alias'lardan sıfır olmayan ilk değeri bul
+                best_value = None
+                for alias in source_aliases:
+                    if alias in record:
+                        val = record.get(alias)
+                        if val is not None and self._is_nonzero(val):
+                            best_value = val
+                            break
+                        elif best_value is None:
+                            best_value = val  # Fallback: sıfır bile olsa al
+                
+                if best_value is not None:
+                    resolved[target_field] = best_value
+                
+                # Kaynak alias'ları temizle
+                for alias in source_aliases:
+                    if alias in resolved and alias != target_field:
+                        del resolved[alias]
+        
+        return resolved
+    
     def _post(self, table: str, data: List[Dict], on_conflict=None, _retry=False) -> bool:
         try:
+            # 0. Çoklu alias çözümlemesi (volume_shock_value gibi alanlar için)
+            if table in ['volumeshock_alarms']:
+                data = [self._resolve_aliases(record, table) for record in data]
+            
             # 1. Alan adlarını dönüştür (global + tablo bazlı)
             # 2. Tabloda olmayan kolonları çıkar (schema cache workaround)
             known_cols = self.KNOWN_COLUMNS.get(table)
@@ -865,6 +957,11 @@ class AlarmCalculator:
                     for k, v in record.items():
                         # Önce tablo bazlı, sonra global mapping uygula
                         new_key = table_mapping.get(k, self.FIELD_MAPPING.get(k, k))
+                        # Çoklu alias için: sıfır olmayan değeri koru
+                        if new_key in mapped_record and new_key in ['volume_shock_value']:
+                            existing = mapped_record[new_key]
+                            if existing is not None and existing != 0:
+                                continue  # Mevcut değer sıfır değilse koru
                         mapped_record[new_key] = v
                     # Sadece bilinen kolonları tut
                     clean_record = {k: v for k, v in mapped_record.items() if k in known_cols}
