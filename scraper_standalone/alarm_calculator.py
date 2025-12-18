@@ -818,8 +818,8 @@ class AlarmCalculator:
                               'selection', 'volume_shock_value', 'incoming_money',
                               'trigger_at', 'created_at', 'alarm_history'],
         'insider_alarms': ['id', 'match_id_hash', 'home', 'away', 'league', 'market', 
-                          'selection', 'odds_drop_pct', 'incoming_money', 'opening_odds', 
-                          'current_odds', 'trigger_at', 'created_at'],
+                          'selection', 'opening_odds', 'current_odds', 'drop_pct',
+                          'total_money', 'alarm_history', 'trigger_at', 'created_at'],
         'sharp_alarms': ['id', 'match_id_hash', 'home', 'away', 'league', 'market', 
                         'selection', 'sharp_score', 'amount_change', 'drop_pct', 
                         'share_diff', 'trigger_at', 'created_at'],
@@ -836,10 +836,12 @@ class AlarmCalculator:
                       'selection', 'money_impact', 'trigger_at', 'created_at'],
     }
     
-    # match_id → match_id_hash dönüşümü için mapping
+    # Alan adı dönüşümleri (calculator → db)
     FIELD_MAPPING = {
         'match_id': 'match_id_hash',
         'selection_total': 'total_selection',
+        'odds_drop_pct': 'drop_pct',
+        'incoming_money': 'total_money',
     }
     
     def _post(self, table: str, data: List[Dict], on_conflict=None, _retry=False) -> bool:
