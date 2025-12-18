@@ -29,7 +29,7 @@ except ImportError:
     import hashlib
     
     def normalize_field_for_hash(value: str) -> str:
-        """String normalizasyonu for match_id_hash"""
+        """String normalizasyonu for match_id_hash - MUST match core/hash_utils.py exactly"""
         if not value:
             return ""
         value = value.strip()
@@ -39,7 +39,19 @@ except ImportError:
         for tr_char, en_char in tr_map.items():
             value = value.replace(tr_char, en_char)
         value = value.lower()
+        # Remove special characters (keep only lowercase letters, digits, space)
+        value = re.sub(r'[^a-z0-9\s]', '', value)
         value = ' '.join(value.split())
+        # Remove team suffixes (fc, fk, sk, sc, afc, cf, ac, as)
+        suffixes = ['fc', 'fk', 'sk', 'sc', 'afc', 'cf', 'ac', 'as']
+        changed = True
+        while changed:
+            changed = False
+            for suffix in suffixes:
+                if value.endswith(' ' + suffix):
+                    value = value[:-len(suffix)-1].strip()
+                    changed = True
+                    break
         return value
 
     def normalize_kickoff_for_hash(kickoff: str) -> str:

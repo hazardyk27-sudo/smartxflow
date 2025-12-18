@@ -138,9 +138,10 @@ def normalize_field(value: str) -> str:
     
     value = value.lower()
     
-    # Remove punctuation (keep alphanumeric + space)
+    # Remove special characters (keep only lowercase letters, digits, space)
+    # MUST match core/hash_utils.py regex exactly
     import re
-    value = re.sub(r'[^\w\s]', '', value)
+    value = re.sub(r'[^a-z0-9\s]', '', value)
     
     # Remove team suffixes at word boundary (end of string or followed by space)
     # Suffixes: fc, fk, sk, sc, afc, cf, ac, as
