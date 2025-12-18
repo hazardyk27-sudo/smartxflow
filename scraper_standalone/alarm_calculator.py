@@ -2493,7 +2493,7 @@ class AlarmCalculator:
                         log(f"  [SHARP] {home} vs {away} | {market_names.get(market, market)}-{selection} | Score: {sharp_score:.1f} | Vol: £{amount_change:,.0f} | Drop: {drop_pct:.1f}%")
         
         if alarms:
-            new_count = self._upsert_alarms('sharp_alarms', alarms, ['home', 'away', 'market', 'selection'])
+            new_count = self._upsert_alarms('sharp_alarms', alarms, ['match_id_hash', 'market', 'selection'])
             log(f"Sharp: {new_count} alarms upserted")
         else:
             log("Sharp: 0 alarm")
@@ -2744,7 +2744,7 @@ class AlarmCalculator:
                     log(f"  [INSIDER] {home} vs {away} | {market_names.get(market, market)}-{selection} | Açılış: {opening_odds:.2f}->Şimdi: {actual_current_odds:.2f} (-%{actual_drop_pct:.1f}) | DüsusAnı: S{drop_moment_index} | Para: {total_incoming:,.0f}")
         
         if alarms:
-            new_count = self._upsert_alarms('insider_alarms', alarms, ['home', 'away', 'market', 'selection'])
+            new_count = self._upsert_alarms('insider_alarms', alarms, ['match_id_hash', 'market', 'selection'])
             log(f"Insider: {new_count} alarms upserted")
             
             # RACE CONDITION FIX: Upsert'ten SONRA geçersiz alarmları temizle
@@ -3242,14 +3242,14 @@ class AlarmCalculator:
                 if not home or not away:
                     continue
                 
-                # History'den maç verilerini al
-                key = f"{normalize_team_name(home)}|{normalize_team_name(away)}"
-                history_raw = history_map.get(key, [])
+                # History'den maç verilerini al - get_match_history kullan (tutarlılık için)
+                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
+                history_raw = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), match.get('date', ''))
                 
                 if len(history_raw) < 2:
                     continue
                 
-                # History'i scraped_at'e göre sırala (kronolojik doğruluk için)
+                # History'i scraped_at/scraped_at_utc'e göre sırala (kronolojik doğruluk için)
                 def parse_timestamp(s):
                     try:
                         # Tüm timestamp'leri naive'e çevir (karşılaştırma için)
@@ -3260,7 +3260,11 @@ class AlarmCalculator:
                     except:
                         return datetime.min
                 
-                history = sorted(history_raw, key=lambda x: parse_timestamp(x.get('scraped_at', '')))
+                def get_scraped_at(x):
+                    # scraped_at_utc (yeni şema) veya scraped_at (eski şema)
+                    return x.get('scraped_at_utc', x.get('scraped_at', ''))
+                
+                history = sorted(history_raw, key=lambda x: parse_timestamp(get_scraped_at(x)))
                 
                 for sel_idx, selection in enumerate(selections):
                     odds_key = odds_keys[sel_idx]
@@ -3291,7 +3295,7 @@ class AlarmCalculator:
                         # Son snapshot'ın zamanından geriye X dakika içindeki TÜM snapshot'larda drop devam etmeli
                         
                         # Son snapshot'ın zamanını al (referans nokta) - naive datetime kullan
-                        latest_scraped_at = parse_timestamp(history[-1].get('scraped_at', ''))
+                        latest_scraped_at = parse_timestamp(get_scraped_at(history[-1]))
                         if latest_scraped_at == datetime.min:
                             latest_scraped_at = datetime.now()
                         
@@ -3299,7 +3303,7 @@ class AlarmCalculator:
                         
                         # Kalıcılık penceresi içindeki snapshot'ları filtrele
                         for snap in history:
-                            snap_time = parse_timestamp(snap.get('scraped_at', ''))
+                            snap_time = parse_timestamp(get_scraped_at(snap))
                             if snap_time != datetime.min and snap_time >= persistence_threshold:
                                 recent_snapshots.append(snap)
                         
@@ -3337,7 +3341,7 @@ class AlarmCalculator:
                     else:
                         level = 'L1'
                     
-                    trigger_at = history[-1].get('scraped_at', now_turkey_iso())
+                    trigger_at = get_scraped_at(history[-1]) or now_turkey_iso()
                     match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                     
                     # Volume bilgisi (varsa)
@@ -3365,7 +3369,7 @@ class AlarmCalculator:
                     log(f"  [DROPPING-{level}] {home} vs {away} | {market_names.get(market, market)}-{selection} | {opening_odds:.2f}->{current_odds:.2f} (-%{drop_pct:.1f}) | Kalıcı: {len(recent_snapshots)} snap")
         
         if alarms:
-            new_count = self._upsert_alarms('dropping_alarms', alarms, ['home', 'away', 'market', 'selection'])
+            new_count = self._upsert_alarms('dropping_alarms', alarms, ['match_id_hash', 'market', 'selection'])
             log(f"Dropping: {new_count} alarms upserted")
             
             # RACE CONDITION FIX: Upsert'ten SONRA geçersiz alarmları temizle
@@ -3556,7 +3560,7 @@ class AlarmCalculator:
                         log(f"  [PUBLICMOVE] {home} vs {away} | {market_names.get(market, market)}-{selection} | Score: {move_score:.1f} | Vol: £{volume_change:,.0f}")
         
         if alarms:
-            new_count = self._upsert_alarms('publicmove_alarms', alarms, ['home', 'away', 'market', 'selection'])
+            new_count = self._upsert_alarms('publicmove_alarms', alarms, ['match_id_hash', 'market', 'selection'])
             log(f"PublicMove: {new_count} alarms upserted")
         else:
             log("PublicMove: 0 alarm")
