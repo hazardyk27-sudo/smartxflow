@@ -3780,6 +3780,7 @@ class AlarmCalculator:
                     'away': away,
                     'league': match.get('league', ''),
                     'market': market_name,
+                    'selection': 'ALL',  # MIM tüm market toplam hacmi üzerinden hesaplanır
                     'impact': round(impact, 4),
                     'prev_volume': round(prev_volume, 2),
                     'current_volume': round(curr_volume, 2),
@@ -3792,8 +3793,8 @@ class AlarmCalculator:
                 log(f"  [MIM] {home} vs {away} | Impact: {impact:.2%} | £{prev_volume:,.0f} -> £{curr_volume:,.0f}")
         
         if alarms:
-            # Constraint: match_id, market - Supabase unique constraint ile uyumlu
-            new_count = self._upsert_alarms('mim_alarms', alarms, ['match_id_hash', 'market'])
+            # Constraint: match_id_hash, market, selection - Supabase unique constraint ile uyumlu
+            new_count = self._upsert_alarms('mim_alarms', alarms, ['match_id_hash', 'market', 'selection'])
             log(f"MIM: {new_count} alarms upserted")
             return new_count
         else:
