@@ -105,23 +105,24 @@ def normalize_kickoff(kickoff: str) -> str:
     return kickoff
 
 
-def make_match_id_hash(home: str, away: str, league: str, kickoff_utc: str, debug: bool = False) -> str:
+def make_match_id_hash(home: str, away: str, league: str, kickoff_utc: str = None, debug: bool = False) -> str:
     """
     12 karakterlik MD5 hash uret
-    Format: league|kickoff|home|away
+    Format: league|home|away (kickoff KULLANILMIYOR)
+    
+    NOT: kickoff_utc parametresi geriye uyumluluk icin tutuldu ama KULLANILMIYOR.
+    Hash sadece league, home, away bilgilerine gore uretilir.
     """
     home_norm = normalize_field(home)
     away_norm = normalize_field(away)
     league_norm = normalize_field(league)
-    kickoff_norm = normalize_kickoff(kickoff_utc)
     
-    canonical = f"{league_norm}|{kickoff_norm}|{home_norm}|{away_norm}"
+    canonical = f"{league_norm}|{home_norm}|{away_norm}"
     
     if debug:
         print(f"  Home: '{home}' -> '{home_norm}'")
         print(f"  Away: '{away}' -> '{away_norm}'")
         print(f"  League: '{league}' -> '{league_norm}'")
-        print(f"  Kickoff: '{kickoff_utc}' -> '{kickoff_norm}'")
         print(f"  Canonical: '{canonical}'")
     
     return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]

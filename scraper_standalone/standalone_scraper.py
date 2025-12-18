@@ -55,13 +55,12 @@ except ImportError:
             return kickoff[:16] if len(kickoff) >= 16 else kickoff[:10] + "T00:00"
         return kickoff
 
-    def make_match_id_hash(home: str, away: str, league: str, kickoff_utc: str) -> str:
-        """12 karakterlik MD5 hash üret - Format: league|kickoff|home|away"""
+    def make_match_id_hash(home: str, away: str, league: str, kickoff_utc: str = None) -> str:
+        """12 karakterlik MD5 hash üret - Format: league|home|away (kickoff KULLANILMIYOR)"""
         home_norm = normalize_field_for_hash(home)
         away_norm = normalize_field_for_hash(away)
         league_norm = normalize_field_for_hash(league)
-        kickoff_norm = normalize_kickoff_for_hash(kickoff_utc)
-        canonical = f"{league_norm}|{kickoff_norm}|{home_norm}|{away_norm}"
+        canonical = f"{league_norm}|{home_norm}|{away_norm}"
         return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
 
 

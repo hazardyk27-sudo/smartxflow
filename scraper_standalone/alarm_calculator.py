@@ -184,24 +184,21 @@ def normalize_kickoff(kickoff: str) -> str:
     return kickoff
 
 
-def make_match_id_hash(home: str, away: str, league: str, kickoff_utc: str, debug: bool = False) -> str:
+def make_match_id_hash(home: str, away: str, league: str, kickoff_utc: str = None, debug: bool = False) -> str:
     """
     SINGLE SOURCE OF TRUTH: Generate unique 12-character match ID hash.
     
     Input Format (IMMUTABLE):
-        "{league_norm}|{kickoff_utc_iso}|{home_norm}|{away_norm}"
+        "{league_norm}|{home_norm}|{away_norm}"
     
-    Rules:
-    - kickoff_utc MUST be UTC (Z or +00:00), format: YYYY-MM-DDTHH:MM
-    - home_norm/away_norm = normalize_field() applied
-    - NO odds/money/snapshot_time/score in input
-    - Hash: md5(utf-8).hexdigest()[:12]
+    NOTE: kickoff_utc parametresi geriye uyumluluk icin tutuldu ama KULLANILMIYOR.
+    Hash sadece league, home, away bilgilerine gore uretilir.
     
     Args:
         home: Home team name
         away: Away team name  
         league: League name (or league_id)
-        kickoff_utc: Kickoff time in UTC ISO format
+        kickoff_utc: DEPRECATED - Geriye uyumluluk icin tutuldu, KULLANILMIYOR
         debug: If True, logs input and output for verification
     
     Returns:
@@ -210,25 +207,22 @@ def make_match_id_hash(home: str, away: str, league: str, kickoff_utc: str, debu
     home_norm = normalize_field(home)
     away_norm = normalize_field(away)
     league_norm = normalize_field(league)
-    kickoff_norm = normalize_kickoff(kickoff_utc)
     
-    # IMMUTABLE INPUT FORMAT
-    canonical = f"{league_norm}|{kickoff_norm}|{home_norm}|{away_norm}"
+    canonical = f"{league_norm}|{home_norm}|{away_norm}"
     
     match_id_hash = hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
     
     if debug:
-        log(f"[HASH DEBUG] Input: home='{home}', away='{away}', league='{league}', kickoff='{kickoff_utc}'")
-        log(f"[HASH DEBUG] Normalized: home_norm='{home_norm}', away_norm='{away_norm}', league_norm='{league_norm}', kickoff_norm='{kickoff_norm}'")
+        log(f"[HASH DEBUG] Input: home='{home}', away='{away}', league='{league}'")
+        log(f"[HASH DEBUG] Normalized: home_norm='{home_norm}', away_norm='{away_norm}', league_norm='{league_norm}'")
         log(f"[HASH DEBUG] Canonical: '{canonical}'")
         log(f"[HASH DEBUG] Hash: '{match_id_hash}'")
     
     return match_id_hash
 
 
-# ALIAS for backward compatibility - DO NOT USE IN NEW CODE
-def generate_match_id_hash(home: str, away: str, league: str, kickoff: str) -> str:
-    """DEPRECATED: Use make_match_id_hash() instead. This is an alias for backward compatibility."""
+def generate_match_id_hash(home: str, away: str, league: str, kickoff: str = None) -> str:
+    """DEPRECATED: Use make_match_id_hash() instead. kickoff parametresi KULLANILMIYOR."""
     return make_match_id_hash(home, away, league, kickoff)
 
 
