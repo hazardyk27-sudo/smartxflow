@@ -2023,8 +2023,7 @@ class AlarmCalculator:
     
     def get_match_history(self, match_id_hash: str, history_table: str, home: str = '', away: str = '', league: str = '', kickoff: str = '') -> List[Dict]:
         """Get historical snapshots for a match from cache
-        Primary: match_id_hash ile lookup
-        Fallback: league|home|away|date ile lookup (eski tablolar için)
+        MERGED: Hash ve fallback key kayıtlarını BİRLEŞTİRİR (eski + yeni veriler)
         """
         if history_table not in self._history_cache:
             market = history_table.replace('_history', '')
@@ -2032,24 +2031,39 @@ class AlarmCalculator:
         
         history_map = self._history_cache.get(history_table, {})
         
-        # Primary lookup: match_id_hash
-        if match_id_hash and match_id_hash in history_map:
-            return history_map.get(match_id_hash, [])
-        
-        # Fallback lookup: league|home|away|date (eski tablolar için)
+        # Fallback key oluştur
+        fallback_key = None
         if home and away:
-            # Normalizasyon: lower, trim, çoklu boşluk temizliği
             home_norm = ' '.join(home.strip().lower().split())
             away_norm = ' '.join(away.strip().lower().split())
             league_norm = ' '.join(league.strip().lower().split()) if league else ''
             kickoff_date = normalize_date_for_db(kickoff) if kickoff else ''
-            
-            # Güçlendirilmiş fallback key
             fallback_key = f"{league_norm}|{home_norm}|{away_norm}|{kickoff_date}"
-            if fallback_key in history_map:
-                return history_map.get(fallback_key, [])
         
-        return []
+        # MERGED: Hem hash hem fallback key'den gelen kayıtları birleştir
+        combined = []
+        seen_scraped_at = set()
+        
+        # Hash'li kayıtlar (yeni)
+        if match_id_hash and match_id_hash in history_map:
+            for snap in history_map.get(match_id_hash, []):
+                scraped = snap.get('scraped_at', snap.get('scraped_at_utc', ''))
+                if scraped not in seen_scraped_at:
+                    combined.append(snap)
+                    seen_scraped_at.add(scraped)
+        
+        # Fallback kayıtlar (eski, hash'siz)
+        if fallback_key and fallback_key in history_map:
+            for snap in history_map.get(fallback_key, []):
+                scraped = snap.get('scraped_at', snap.get('scraped_at_utc', ''))
+                if scraped not in seen_scraped_at:
+                    combined.append(snap)
+                    seen_scraped_at.add(scraped)
+        
+        # Zamana göre sırala (eski -> yeni)
+        combined.sort(key=lambda x: x.get('scraped_at', x.get('scraped_at_utc', '')))
+        
+        return combined
     
     def run_all_calculations(self) -> int:
         """Run all alarm calculations - OPTIMIZED with batch fetch
