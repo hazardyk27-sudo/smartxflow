@@ -3650,35 +3650,40 @@ function isMatchTodayOrFuture(alarm) {
     // Türkiye saati için bugünün tarihini al
     const now = new Date();
     const trTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
+    const currentYear = trTime.getFullYear();
     const currentMonth = trTime.getMonth();
     const currentDay = trTime.getDate();
+    const todayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
     
-    // match_date formatları:
-    // 1. "06.Dec 15:00:00" (boşluklu)
-    // 2. "06.Dec00:00:00" (boşluksuz)
-    if (matchDateStr) {
-        // Regex ile DD.MMM kısmını parse et (boşluklu veya boşluksuz)
-        const match = matchDateStr.match(/^(\d{1,2})\.([A-Za-z]{3})/);
-        if (match) {
-            const dayStr = match[1];
-            const monthStr = match[2];
-            const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
-                              'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
-            const matchMonth = monthMap[monthStr];
-            const matchDay = parseInt(dayStr);
-            
-            if (matchMonth !== undefined && !isNaN(matchDay)) {
-                // Bugün veya gelecek tarihse göster
-                if (matchMonth > currentMonth) return true;
-                if (matchMonth === currentMonth && matchDay >= currentDay) return true;
-                // Yıl geçişi durumu (Aralık -> Ocak)
-                if (matchMonth < currentMonth && currentMonth >= 10 && matchMonth <= 2) return true;
-                return false;
-            }
+    if (!matchDateStr) {
+        return false;
+    }
+    
+    // Format 1: YYYY-MM-DD (örn: 2025-12-18) - Supabase'den gelen format
+    const isoMatch = matchDateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+        const matchStr = isoMatch[0];
+        return matchStr >= todayStr;
+    }
+    
+    // Format 2: DD.MMM HH:MM:SS (örn: "20.Dec 17:00:00" veya "06.Dec00:00:00")
+    const ddMmmMatch = matchDateStr.match(/^(\d{1,2})\.([A-Za-z]{3})/);
+    if (ddMmmMatch) {
+        const dayStr = ddMmmMatch[1];
+        const monthStr = ddMmmMatch[2];
+        const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
+                          'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
+        const matchMonth = monthMap[monthStr];
+        const matchDay = parseInt(dayStr);
+        
+        if (matchMonth !== undefined && !isNaN(matchDay)) {
+            if (matchMonth > currentMonth) return true;
+            if (matchMonth === currentMonth && matchDay >= currentDay) return true;
+            if (matchMonth < currentMonth && currentMonth >= 10 && matchMonth <= 2) return true;
+            return false;
         }
     }
     
-    // match_date yoksa gösterme (eski/geçersiz alarm)
     return false;
 }
 
