@@ -157,25 +157,50 @@ def generate_bigmoney_html(
     
     prev_html = ""
     if previous_entries and len(previous_entries) > 0:
-        prev_items = ""
-        for prev in previous_entries[:4]:
-            prev_time = format_datetime_tr(prev.get('time', '') or prev.get('created_at', ''))
-            prev_money = format_money(prev.get('money', 0) or prev.get('delta_money', 0))
-            prev_items += f'''
-            <div class="prev-item">
-                <div class="prev-left">
-                    <span class="prev-dot"></span>
-                    <span class="prev-time">{prev_time}</span>
+        # Mevcut alarmı filtrele - aynı para değeri veya aynı zaman olan kayıtları atla
+        filtered_prev = []
+        for prev in previous_entries:
+            prev_money_val = prev.get('money', 0) or prev.get('delta_money', 0) or prev.get('incoming_money', 0)
+            prev_time_val = prev.get('time', '') or prev.get('created_at', '') or prev.get('trigger_at', '')
+            
+            # Mevcut alarmla aynı para değeri VE aynı zaman ise atla
+            if prev_money_val == delta_money and prev_time_val == alarm_time:
+                continue
+            # Sadece aynı para değeri ise ve çok yakın zamanda ise atla (5 dakika içinde)
+            if prev_money_val == delta_money:
+                try:
+                    from datetime import datetime
+                    if prev_time_val and alarm_time:
+                        prev_dt = datetime.fromisoformat(prev_time_val.replace('Z', '+00:00'))
+                        alarm_dt = datetime.fromisoformat(alarm_time.replace('Z', '+00:00'))
+                        diff_minutes = abs((alarm_dt - prev_dt).total_seconds() / 60)
+                        if diff_minutes < 5:
+                            continue
+                except:
+                    pass
+            filtered_prev.append(prev)
+        
+        # Filtreleme sonrası gerçekten önceki kayıt varsa göster
+        if filtered_prev:
+            prev_items = ""
+            for prev in filtered_prev[:4]:
+                prev_time = format_datetime_tr(prev.get('time', '') or prev.get('created_at', '') or prev.get('trigger_at', ''))
+                prev_money = format_money(prev.get('money', 0) or prev.get('delta_money', 0) or prev.get('incoming_money', 0))
+                prev_items += f'''
+                <div class="prev-item">
+                    <div class="prev-left">
+                        <span class="prev-dot"></span>
+                        <span class="prev-time">{prev_time}</span>
+                    </div>
+                    <span class="prev-money">{prev_money}</span>
                 </div>
-                <span class="prev-money">{prev_money}</span>
+                '''
+            prev_html = f'''
+            <div class="prev-section">
+                <div class="prev-title">ÖNCEKİ</div>
+                {prev_items}
             </div>
             '''
-        prev_html = f'''
-        <div class="prev-section">
-            <div class="prev-title">ÖNCEKİ</div>
-            {prev_items}
-        </div>
-        '''
     
     multiplier_html = ""
     if multiplier and multiplier > 1:
