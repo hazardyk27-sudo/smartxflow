@@ -1621,30 +1621,52 @@ class AlarmCalculator:
         
         log(f"[HISTORY] {history_table}: {len(rows)} total snapshots loaded")
         
-        # KEY: match_id_hash ile gruplama (string eşleşmesi YOK)
+        # KEY: match_id_hash ile gruplama, FALLBACK: home|away ile gruplama
         history_map = {}
+        fallback_count = 0
         for row in rows:
             match_hash = row.get('match_id_hash', '')
             if not match_hash:
-                continue
+                # FALLBACK: home|away ile key oluştur (eski tablolar için)
+                home = row.get('home', '').strip().lower()
+                away = row.get('away', '').strip().lower()
+                if home and away:
+                    match_hash = f"{home}|{away}"
+                    fallback_count += 1
+                else:
+                    continue
             if match_hash not in history_map:
                 history_map[match_hash] = []
             history_map[match_hash].append(row)
         
-        log(f"[HISTORY] {history_table}: {len(history_map)} unique matches (by match_id_hash)")
+        if fallback_count > 0:
+            log(f"[HISTORY] {history_table}: {fallback_count} rows used home|away fallback")
+        log(f"[HISTORY] {history_table}: {len(history_map)} unique matches")
         self._history_cache[history_table] = history_map
         return history_map
     
-    def get_match_history(self, match_id_hash: str, history_table: str) -> List[Dict]:
-        """Get historical snapshots for a match from cache (by match_id_hash)
-        String eşleşmesi YOK - sadece match_id_hash ile lookup
+    def get_match_history(self, match_id_hash: str, history_table: str, home: str = '', away: str = '') -> List[Dict]:
+        """Get historical snapshots for a match from cache
+        Primary: match_id_hash ile lookup
+        Fallback: home|away ile lookup (eski tablolar için)
         """
         if history_table not in self._history_cache:
             market = history_table.replace('_history', '')
             self.batch_fetch_history(market)
         
         history_map = self._history_cache.get(history_table, {})
-        return history_map.get(match_id_hash, [])
+        
+        # Primary lookup: match_id_hash
+        if match_id_hash and match_id_hash in history_map:
+            return history_map.get(match_id_hash, [])
+        
+        # Fallback lookup: home|away (eski tablolar için)
+        if home and away:
+            fallback_key = f"{home.strip().lower()}|{away.strip().lower()}"
+            if fallback_key in history_map:
+                return history_map.get(fallback_key, [])
+        
+        return []
     
     def run_all_calculations(self) -> int:
         """Run all alarm calculations - OPTIMIZED with batch fetch
@@ -1915,7 +1937,7 @@ class AlarmCalculator:
                 
                 # match_id_hash ile history lookup (string eşleşmesi YOK)
                 match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table)
+                history = self.get_match_history(match_id_hash, history_table, home, away)
                 if len(history) < 2:
                     continue
                 
@@ -2152,7 +2174,7 @@ class AlarmCalculator:
                 
                 # match_id_hash ile history lookup (string eşleşmesi YOK)
                 match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table)
+                history = self.get_match_history(match_id_hash, history_table, home, away)
                 if len(history) < 3:
                     continue
                 
@@ -2415,7 +2437,7 @@ class AlarmCalculator:
                 
                 # match_id_hash ile history lookup (string eşleşmesi YOK)
                 match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table)
+                history = self.get_match_history(match_id_hash, history_table, home, away)
                 if len(history) < 2:
                     continue
                 
@@ -2617,7 +2639,7 @@ class AlarmCalculator:
                 
                 # match_id_hash ile history lookup (string eşleşmesi YOK)
                 match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table)
+                history = self.get_match_history(match_id_hash, history_table, home, away)
                 if len(history) < 5:
                     continue
                 
@@ -3041,7 +3063,7 @@ class AlarmCalculator:
                 
                 # match_id_hash ile history lookup (string eşleşmesi YOK)
                 match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table)
+                history = self.get_match_history(match_id_hash, history_table, home, away)
                 if len(history) < 2:
                     continue
                 
@@ -3196,7 +3218,7 @@ class AlarmCalculator:
                 
                 # match_id_hash ile history lookup (string eşleşmesi YOK)
                 match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table)
+                history = self.get_match_history(match_id_hash, history_table, home, away)
                 if len(history) < 2:
                     continue
                 
@@ -3315,7 +3337,7 @@ class AlarmCalculator:
             
             # match_id_hash ile history lookup (string eşleşmesi YOK)
             match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-            history = self.get_match_history(match_id_hash, f"{market}_history")
+            history = self.get_match_history(match_id_hash, f"{market}_history", home, away)
             if len(history) < 2:
                 continue
             
