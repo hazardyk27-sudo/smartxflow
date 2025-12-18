@@ -3655,7 +3655,15 @@ function isMatchTodayOrFuture(alarm) {
     const currentDay = trTime.getDate();
     const todayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
     
+    // match_date yoksa, trigger_at tarihinden çıkar (MIM vs alarm tipleri için)
     if (!matchDateStr) {
+        const triggerAt = alarm.trigger_at || alarm.event_time || alarm.created_at || '';
+        if (triggerAt) {
+            const triggerDate = triggerAt.substring(0, 10); // YYYY-MM-DD kısmını al
+            if (triggerDate >= todayStr) {
+                return true;
+            }
+        }
         return false;
     }
     
@@ -3722,6 +3730,10 @@ async function loadAlertBand() {
         const volumeleader = (data.volumeleader || []).slice();
         volumeleader.forEach(a => { a._type = 'volumeleader'; a._score = a.new_leader_share || 50; });
         allAlarms = allAlarms.concat(volumeleader);
+        
+        const mim = (data.mim || []).slice();
+        mim.forEach(a => { a._type = 'mim'; a._score = (a.impact || a.impact_score || a.money_impact || 0) * 100; });
+        allAlarms = allAlarms.concat(mim);
         
         console.log('[AlertBand] Total alarms before filter:', allAlarms.length);
         const filteredAlarms = allAlarms.filter(isMatchTodayOrFuture);
@@ -3842,7 +3854,7 @@ function formatAlertValue(alarm) {
         return '%' + share.toFixed(0);
     }
     if (type === 'mim') {
-        const impact = alarm.impact || alarm.impact_score || 0;
+        const impact = alarm.impact || alarm.impact_score || alarm.money_impact || 0;
         const level = alarm.mim_level || 1;
         return `L${level} ${impact.toFixed(2)}`;
     }
@@ -4478,7 +4490,7 @@ function renderAlarmsList(filterType) {
             mainValue = `<span class="value-odds">${oldLeader} %${oldShare}</span><span class="arrow">→</span><span class="value-odds-new">${newLeader} %${newShare}</span>`;
         } else if (type === 'mim') {
             const level = alarm.level || 1;
-            const impact = (alarm.impact || alarm.impact_score || 0).toFixed(2);
+            const impact = (alarm.impact || alarm.impact_score || alarm.money_impact || 0).toFixed(2);
             mainValue = `<span class="value-highlight">L${level}</span><span class="sep">•</span><span class="value-pct">${impact}</span>`;
         }
         
@@ -5482,7 +5494,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             row4 = `Market lideri değişti. Bu seçenekte hacim üstünlüğü ele geçirildi.`;
         } else if (type === 'mim') {
             const level = latest.level || 1;
-            const impact = (latest.impact || 0).toFixed(2);
+            const impact = (latest.impact || latest.impact_score || latest.money_impact || 0).toFixed(2);
             const selection = latest.selection || latest.side || '-';
             const market = latest.market || '';
             row2Left = `${selection} (${market})`;
@@ -5506,7 +5518,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                 dropping: { title: 'Geçmiş Oran Düşüşleri', pillLabel: (a) => `▼${(a.drop_pct || 0).toFixed(1)}%` },
                 publicmove: { title: 'Geçmiş Public Move', pillLabel: (a) => `%${(a.current_share || a.new_share || 0).toFixed(0)}` },
                 volumeleader: { title: 'Geçmiş Lider Değişimleri', pillLabel: (a) => a.new_leader || '-' },
-                mim: { title: 'Geçmiş MIM Alarmları', pillLabel: (a) => `L${a.level || 1} ${(a.impact || 0).toFixed(2)}` }
+                mim: { title: 'Geçmiş MIM Alarmları', pillLabel: (a) => `L${a.level || 1} ${(a.impact || a.impact_score || a.money_impact || 0).toFixed(2)}` }
             };
             
             const theme = tooltipTheme[type] || { title: 'Geçmiş Alarmlar', pillLabel: () => '' };
@@ -5562,7 +5574,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                     return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-insider">▼${dropPct}%</span><span class="tt-total">${openOdds}→${lastOdds} · ${hours}s kala</span></div>`;
                 } else if (type === 'mim') {
                     const level = a.level || 1;
-                    const impact = (a.impact || 0).toFixed(2);
+                    const impact = (a.impact || a.impact_score || a.money_impact || 0).toFixed(2);
                     return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-pill pill-mim">L${level}</span><span class="tt-total">${impact} impact</span></div>`;
                 }
                 return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span></div>`;
@@ -5629,7 +5641,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                 } else if (type === 'volumeleader') {
                     hValue = `${a.old_leader || '-'}→${a.new_leader || '-'}`;
                 } else if (type === 'mim') {
-                    hValue = `L${a.level || 1} ${(a.impact || 0).toFixed(2)}`;
+                    hValue = `L${a.level || 1} ${(a.impact || a.impact_score || a.money_impact || 0).toFixed(2)}`;
                 }
                 return `<div class="smc-history-item"><span class="smc-h-time">${hTime}</span><span class="smc-h-val" style="color: ${config.color};">${hValue}</span></div>`;
             }).join('');
@@ -6320,7 +6332,7 @@ async function loadAdminMimData() {
                 const market = alarm.market || '-';
                 const selection = alarm.selection || '-';
                 const level = alarm.level || '-';
-                const impact = (alarm.impact || alarm.impact_score || 0).toFixed(2);
+                const impact = (alarm.impact || alarm.impact_score || alarm.money_impact || 0).toFixed(2);
                 const volume = `£${Number(alarm.curr_volume || alarm.current_volume || alarm.total_volume || alarm.volume || 0).toLocaleString('en-GB')}`;
                 const eventTime = alarm.trigger_at || alarm.event_time || '-';
                 
