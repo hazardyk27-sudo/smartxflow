@@ -322,14 +322,36 @@ class SupabaseWriter:
         return self.upsert_rows(table, clean_rows, on_conflict="league,home,away,date")
     
     def append_history(self, table: str, rows: List[Dict[str, Any]], scraped_at: str) -> bool:
-        """History tablosuna yeni kayit ekle - id kolonu kaldirilir (auto-increment kullanilir)"""
+        """History tablosuna yeni kayit ekle - match_id_hash dahil
+        
+        KRITIK: Her satira match_id_hash eklenir (date alanini kickoff olarak kullanir)
+        Bu sayede history <-> fixtures <-> alarms zinciri ayni ID ile baglanir
+        """
         history_rows = []
+        skipped = 0
+        
         for row in rows:
+            home = row.get('home', '').strip()
+            away = row.get('away', '').strip()
+            league = row.get('league', '').strip()
+            date_str = row.get('date', '').strip()
+            
+            if not home or not away or not date_str:
+                skipped += 1
+                continue
+            
+            match_id_hash = make_match_id_hash(home, away, league, date_str)
+            
             new_row = row.copy()
             if 'id' in new_row:
                 del new_row['id']
             new_row['scraped_at'] = scraped_at
+            new_row['match_id_hash'] = match_id_hash
             history_rows.append(new_row)
+        
+        if skipped > 0:
+            log(f"  [HISTORY WARN] {table}: {skipped} satir skip (eksik field)")
+        
         return self.insert_rows(table, history_rows)
     
     def upsert_fixtures(self, fixtures: List[Dict[str, Any]]) -> bool:
