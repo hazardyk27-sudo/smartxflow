@@ -1859,9 +1859,9 @@ class AlarmCalculator:
                 home = ' '.join(row.get('home', '').strip().lower().split())
                 away = ' '.join(row.get('away', '').strip().lower().split())
                 league = ' '.join(row.get('league', '').strip().lower().split())
-                # Kickoff date: sadece tarih kısmı (YYYY-MM-DD)
+                # Kickoff date: normalize_date_for_db ile YYYY-MM-DD formatına çevir
                 kickoff = row.get('date', row.get('kickoff', row.get('kickoff_utc', '')))
-                kickoff_date = str(kickoff)[:10] if kickoff else ''
+                kickoff_date = normalize_date_for_db(kickoff) if kickoff else ''
                 
                 if home and away:
                     # Güçlendirilmiş fallback key: league|home|away|date
@@ -1900,7 +1900,7 @@ class AlarmCalculator:
             home_norm = ' '.join(home.strip().lower().split())
             away_norm = ' '.join(away.strip().lower().split())
             league_norm = ' '.join(league.strip().lower().split()) if league else ''
-            kickoff_date = str(kickoff)[:10] if kickoff else ''
+            kickoff_date = normalize_date_for_db(kickoff) if kickoff else ''
             
             # Güçlendirilmiş fallback key
             fallback_key = f"{league_norm}|{home_norm}|{away_norm}|{kickoff_date}"
