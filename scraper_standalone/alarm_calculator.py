@@ -1922,16 +1922,21 @@ class AlarmCalculator:
             self._matches_cache[market] = enriched_matches
             return enriched_matches
         
+        # LEGACY FALLBACK: Eski tablodan çek (moneyway_1x2, moneyway_ou25, moneyway_btts)
+        matches = self._get(market, 'select=*')
+        if matches:
+            log(f"  -> {len(matches)} matches from {market} table (legacy)")
+            self._matches_cache[market] = matches
+            return matches
+        
         log(f"  -> 0 matches (no data found)")
         self._matches_cache[market] = []
         return []
     
-    # TABLO MAPPING: Eski market ismi -> (snapshot tablo, market filtresi, aggregated view)
-    # NOT: Market filtreleri Supabase'deki değerlerle UYUMLU olmalı: 1X2, OU25, BTTS
+    # TABLO MAPPING: Sadece dropping_odds için snapshot tablolar kullanılır
+    # Moneyway tabloları KALDIRILDI - legacy tablolara (moneyway_1x2_history vb.) fallback yapılır
+    # Çünkü gerçek veriler moneyway_1x2_history, moneyway_ou25_history, moneyway_btts_history tablolarında
     SNAPSHOT_TABLE_MAP = {
-        'moneyway_1x2': ('moneyway_snapshots', '1X2', 'moneyway_1x2_latest'),
-        'moneyway_ou25': ('moneyway_snapshots', 'OU25', 'moneyway_ou25_latest'),
-        'moneyway_btts': ('moneyway_snapshots', 'BTTS', 'moneyway_btts_latest'),
         'dropping_1x2': ('dropping_odds_snapshots', '1X2', None),
         'dropping_ou25': ('dropping_odds_snapshots', 'OU25', None),
         'dropping_btts': ('dropping_odds_snapshots', 'BTTS', None),
