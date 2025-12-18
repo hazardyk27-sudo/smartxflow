@@ -252,6 +252,62 @@ def parse_match_date(date_str: str) -> Optional[datetime]:
     return None
 
 
+def normalize_date_for_db(date_str: str) -> str:
+    """
+    Tüm tarih formatlarını PostgreSQL DATE formatına (YYYY-MM-DD) çevir.
+    
+    Desteklenen giriş formatları:
+    - "18.Dec 09:00:00" -> "2025-12-18"
+    - "18.Dec" -> "2025-12-18"
+    - "2025-12-18T09:00:00" -> "2025-12-18"
+    - "2025-12-18" -> "2025-12-18"
+    - "18.12.2025" -> "2025-12-18"
+    
+    Returns:
+        PostgreSQL DATE format (YYYY-MM-DD) veya boş string
+    """
+    if not date_str:
+        return ""
+    
+    date_str = str(date_str).strip()
+    
+    try:
+        today = now_turkey().date()
+        
+        if 'T' in date_str and '-' in date_str:
+            return date_str.split('T')[0]
+        
+        if date_str.count('-') == 2 and len(date_str) >= 10:
+            return date_str[:10]
+        
+        date_part = date_str.split()[0]
+        
+        if '.' in date_part:
+            parts = date_part.split('.')
+            if len(parts) == 2:
+                day = int(parts[0])
+                month_abbr = parts[1][:3]
+                month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+                            'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
+                month = month_map.get(month_abbr)
+                if month:
+                    year = today.year
+                    if month < today.month - 6:
+                        year += 1
+                    return f"{year}-{month:02d}-{day:02d}"
+            elif len(parts) == 3:
+                day = int(parts[0])
+                month = int(parts[1])
+                year = int(parts[2])
+                if year < 100:
+                    year += 2000
+                return f"{year}-{month:02d}-{day:02d}"
+    except Exception as e:
+        pass
+    
+    return ""
+
+
 class AlarmCalculator:
     """Supabase-based alarm calculator - OPTIMIZED with batch fetch"""
     
@@ -2233,12 +2289,12 @@ class AlarmCalculator:
                         
                         # UI ALAN ADLARIYLA ALARM KAYDI
                         alarm = {
-                            'match_id': match_id,
+                            'match_id_hash': match_id,
                             'home': home,
                             'away': away,
                             'market': market_names.get(market, market),
                             'selection': selection,
-                            'match_date': match.get('date', ''),
+                            'match_date': normalize_date_for_db(match.get('date', '')),
                             'trigger_at': trigger_at,
                             'created_at': now_turkey_iso(),
                             'alarm_type': 'sharp',
@@ -2508,7 +2564,7 @@ class AlarmCalculator:
                     match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                     
                     alarm = {
-                        'match_id': match_id,
+                        'match_id_hash': match_id,
                         'home': home,
                         'away': away,
                         'market': market_names.get(market, market),
@@ -2523,7 +2579,7 @@ class AlarmCalculator:
                         'drop_moment': trigger_at,
                         'surrounding_snapshots': surrounding_details,
                         'snapshot_count': len(surrounding_snapshots),
-                        'match_date': match.get('date', ''),
+                        'match_date': normalize_date_for_db(match.get('date', '')),
                         'trigger_at': trigger_at,
                         'created_at': now_turkey_iso(),
                         'alarm_type': 'insider'
@@ -2666,7 +2722,7 @@ class AlarmCalculator:
                         trigger_at = snap.get('scraped_at', now_turkey_iso())
                         
                         alarm = {
-                            'match_id': match_id,
+                            'match_id_hash': match_id,
                             'home': home,
                             'away': away,
                             'market': market_names.get(market, market),
@@ -2676,7 +2732,7 @@ class AlarmCalculator:
                             'is_huge': is_huge,
                             'huge_total': huge_total,
                             'alarm_type': 'HUGE MONEY' if is_huge else 'BIG MONEY',
-                            'match_date': match.get('date', ''),
+                            'match_date': normalize_date_for_db(match.get('date', '')),
                             'trigger_at': trigger_at,
                             'created_at': now_turkey_iso()
                         }
@@ -2690,7 +2746,7 @@ class AlarmCalculator:
             # Aynı key için tüm alarmları grupla - EN SON olanı ana, diğerleri history
             grouped_alarms = {}
             for alarm in alarms:
-                key = (alarm['match_id'], alarm['market'], alarm['selection'])
+                key = (alarm['match_id_hash'], alarm['market'], alarm['selection'])
                 if key not in grouped_alarms:
                     grouped_alarms[key] = []
                 grouped_alarms[key].append(alarm)
@@ -2756,7 +2812,7 @@ class AlarmCalculator:
             log(f"BigMoney: {len(alarms)} -> {len(filtered_alarms)} (grouped with history)")
             
             # Constraint: match_id, market, selection - Supabase unique constraint ile uyumlu
-            new_count = self._upsert_alarms('bigmoney_alarms', filtered_alarms, ['match_id', 'market', 'selection'])
+            new_count = self._upsert_alarms('bigmoney_alarms', filtered_alarms, ['match_id_hash', 'market', 'selection'])
             log(f"BigMoney: {new_count} alarms upserted (with history)")
             
             # NOT: BigMoney alarmları silinmez - sadece upsert yapılır
@@ -2878,7 +2934,7 @@ class AlarmCalculator:
                         match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                         
                         alarm = {
-                            'match_id': match_id,
+                            'match_id_hash': match_id,
                             'home': home,
                             'away': away,
                             'market': market_names.get(market, market),
@@ -2886,7 +2942,7 @@ class AlarmCalculator:
                             'volume_shock_value': round(best_shock['shock_value'], 2),
                             'incoming_money': best_shock['incoming'],
                             'avg_previous': round(best_shock['avg_prev'], 0),
-                            'match_date': match.get('date', ''),
+                            'match_date': normalize_date_for_db(match.get('date', '')),
                             'trigger_at': best_shock['trigger_at'],
                             'created_at': now_turkey_iso(),
                             'alarm_type': 'volumeshock'
@@ -2900,7 +2956,7 @@ class AlarmCalculator:
             # HISTORY GROUPING: Aynı key için history oluştur (match_id ile - BigMoney gibi)
             filtered_alarms = []
             for alarm in alarms:
-                str_key = f"{alarm['match_id']}|{alarm['market']}|{alarm['selection']}"
+                str_key = f"{alarm['match_id_hash']}|{alarm['market']}|{alarm['selection']}"
                 
                 current_history = []
                 
@@ -2947,7 +3003,7 @@ class AlarmCalculator:
             
             log(f"VolumeShock: {len(alarms)} alarms with history")
             
-            new_count = self._upsert_alarms('volumeshock_alarms', filtered_alarms, ['match_id', 'market', 'selection'])
+            new_count = self._upsert_alarms('volumeshock_alarms', filtered_alarms, ['match_id_hash', 'market', 'selection'])
             log(f"VolumeShock: {new_count} alarms upserted (with history)")
         else:
             log("VolumeShock: 0 alarm")
@@ -3132,7 +3188,7 @@ class AlarmCalculator:
                     volume = parse_float(match.get('volume', 0))
                     
                     alarm = {
-                        'match_id': match_id,
+                        'match_id_hash': match_id,
                         'home': home,
                         'away': away,
                         'market': market_names.get(market, market),
@@ -3142,7 +3198,7 @@ class AlarmCalculator:
                         'drop_pct': round(drop_pct, 2),
                         'level': level,
                         'volume': volume,
-                        'match_date': match.get('date', ''),
+                        'match_date': normalize_date_for_db(match.get('date', '')),
                         'trigger_at': trigger_at,
                         'created_at': now_turkey_iso(),
                         'alarm_type': 'dropping',
@@ -3324,7 +3380,7 @@ class AlarmCalculator:
                         match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                         
                         alarm = {
-                            'match_id': match_id,
+                            'match_id_hash': match_id,
                             'home': home,
                             'away': away,
                             'market': market_names.get(market, market),
@@ -3335,7 +3391,7 @@ class AlarmCalculator:
                             'previous_share': round(prev_pct, 2),
                             'current_share': round(current_pct, 2),
                             'share_change': round(share_change, 2),
-                            'match_date': match.get('date', ''),
+                            'match_date': normalize_date_for_db(match.get('date', '')),
                             'trigger_at': trigger_at,
                             'created_at': now_turkey_iso(),
                             'alarm_type': 'publicmove'
@@ -3444,7 +3500,7 @@ class AlarmCalculator:
                         match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                         
                         alarm = {
-                            'match_id': match_id,
+                            'match_id_hash': match_id,
                             'home': home,
                             'away': away,
                             'market': market_names.get(market, market),
@@ -3453,7 +3509,7 @@ class AlarmCalculator:
                             'new_leader': curr_leader[0],
                             'new_leader_share': round(curr_leader[1], 1),
                             'total_volume': trigger_volume,
-                            'match_date': match.get('date', ''),
+                            'match_date': normalize_date_for_db(match.get('date', '')),
                             'trigger_at': trigger_at,
                             'created_at': now_turkey_iso(),
                             'alarm_type': 'volumeleader'
@@ -3563,7 +3619,7 @@ class AlarmCalculator:
                 match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                 
                 alarm = {
-                    'match_id': match_id,
+                    'match_id_hash': match_id,
                     'home': home,
                     'away': away,
                     'league': match.get('league', ''),
@@ -3571,7 +3627,7 @@ class AlarmCalculator:
                     'impact': round(impact, 4),
                     'prev_volume': round(prev_volume, 2),
                     'current_volume': round(curr_volume, 2),
-                    'match_date': match.get('date', ''),
+                    'match_date': normalize_date_for_db(match.get('date', '')),
                     'trigger_at': trigger_at,
                     'created_at': now_turkey_iso(),
                     'alarm_type': 'mim'
@@ -3581,7 +3637,7 @@ class AlarmCalculator:
         
         if alarms:
             # Constraint: match_id, market - Supabase unique constraint ile uyumlu
-            new_count = self._upsert_alarms('mim_alarms', alarms, ['match_id', 'market'])
+            new_count = self._upsert_alarms('mim_alarms', alarms, ['match_id_hash', 'market'])
             log(f"MIM: {new_count} alarms upserted")
             return new_count
         else:
