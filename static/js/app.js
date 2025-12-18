@@ -3805,7 +3805,7 @@ function getAlertType(alarm) {
     if (type === 'publicmove') return { label: 'PUBLIC MOVE', color: 'gold', pillClass: 'publicmove' };
     if (type === 'volumeleader') return { label: 'LIDER DEGISTI', color: 'cyan', pillClass: 'volumeleader' };
     if (type === 'mim') {
-        const impact = alarm.impact || alarm.money_impact || 0;
+        const impact = alarm.impact || alarm.impact_score || alarm.money_impact || 0;
         const impactPct = (impact * 100).toFixed(0);
         return { label: `MIM ${impactPct}%`, color: 'cyan', pillClass: 'mim' };
     }
@@ -3842,7 +3842,7 @@ function formatAlertValue(alarm) {
         return '%' + share.toFixed(0);
     }
     if (type === 'mim') {
-        const impact = alarm.impact || 0;
+        const impact = alarm.impact || alarm.impact_score || 0;
         const level = alarm.mim_level || 1;
         return `L${level} ${impact.toFixed(2)}`;
     }
@@ -3885,9 +3885,9 @@ function renderAlertBand() {
         } else if (alarm._type === 'volumeleader') {
             value = `%${(alarm.new_leader_share || 0).toFixed(0)}`;
         } else if (alarm._type === 'mim') {
-            const impact = alarm.impact || alarm.money_impact || 0;
+            const impact = alarm.impact || alarm.impact_score || alarm.money_impact || 0;
             const prevVol = alarm.prev_volume || alarm.previous_volume || 0;
-            const currVol = alarm.current_volume || alarm.total_volume || alarm.volume || 0;
+            const currVol = alarm.curr_volume || alarm.current_volume || alarm.total_volume || alarm.volume || 0;
             const incomingMoney = currVol - prevVol;
             value = incomingMoney > 0 ? `+£${Number(incomingMoney).toLocaleString('en-GB')}` : `${(impact * 100).toFixed(0)}%`;
         }
@@ -4478,7 +4478,7 @@ function renderAlarmsList(filterType) {
             mainValue = `<span class="value-odds">${oldLeader} %${oldShare}</span><span class="arrow">→</span><span class="value-odds-new">${newLeader} %${newShare}</span>`;
         } else if (type === 'mim') {
             const level = alarm.level || 1;
-            const impact = (alarm.impact || 0).toFixed(2);
+            const impact = (alarm.impact || alarm.impact_score || 0).toFixed(2);
             mainValue = `<span class="value-highlight">L${level}</span><span class="sep">•</span><span class="value-pct">${impact}</span>`;
         }
         
@@ -4588,7 +4588,7 @@ function renderAlarmsList(filterType) {
             const openOdds = (alarm.opening_odds || 0).toFixed(2);
             const lastOdds = (alarm.current_odds || alarm.last_odds || 0).toFixed(2);
             const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
-            const gelenPara = alarm.gelen_para || 0;
+            const gelenPara = alarm.incoming_money || alarm.gelen_para || 0;
             metricContent = `<div class="acd-grid cols-2">
                 <div class="acd-stat">
                     <div class="acd-stat-val insider">${openOdds} → ${lastOdds}</div>
@@ -4715,10 +4715,10 @@ function renderAlarmsList(filterType) {
             historyLine = `${triggerTime}`;
         } else if (type === 'mim') {
             badgeLabel = 'MIM';
-            const impact = alarm.impact || alarm.money_impact || 0;
+            const impact = alarm.impact || alarm.impact_score || alarm.money_impact || 0;
             const impactPct = (impact * 100).toFixed(1);
             const prevVol = alarm.prev_volume || alarm.previous_volume || 0;
-            const currVol = alarm.current_volume || alarm.total_volume || 0;
+            const currVol = alarm.curr_volume || alarm.current_volume || alarm.total_volume || 0;
             const incomingMoney = currVol - prevVol;
             metricContent = `<div class="acd-grid cols-3">
                 <div class="acd-stat">
@@ -4762,9 +4762,9 @@ function renderAlarmsList(filterType) {
             const newL = alarm.new_leader || '-';
             metricValue = `<span class="vl-transition"><span class="vl-old">${oldL}</span><span class="vl-arrow">›</span><span class="vl-new">${newL}</span></span>`;
         } else if (type === 'mim') {
-            const impact = alarm.impact || alarm.money_impact || 0;
+            const impact = alarm.impact || alarm.impact_score || alarm.money_impact || 0;
             const impactPct = (impact * 100).toFixed(0);
-            const incomingMoney = (alarm.current_volume || 0) - (alarm.prev_volume || 0);
+            const incomingMoney = (alarm.curr_volume || alarm.current_volume || 0) - (alarm.prev_volume || 0);
             metricValue = incomingMoney > 0 ? `+£${Number(incomingMoney).toLocaleString('en-GB')}` : `${impactPct}%`;
         }
         
@@ -4791,8 +4791,8 @@ function renderAlarmsList(filterType) {
                 } else if (type === 'volumeleader') {
                     hValue = `<span class="vl-mini">${h.old_leader || '-'} › ${h.new_leader || '-'}</span>`;
                 } else if (type === 'mim') {
-                    const hImpact = h.impact || h.money_impact || 0;
-                    const hIncoming = (h.current_volume || 0) - (h.prev_volume || 0);
+                    const hImpact = h.impact || h.impact_score || h.money_impact || 0;
+                    const hIncoming = (h.curr_volume || h.current_volume || 0) - (h.prev_volume || 0);
                     hValue = hIncoming > 0 ? `+£${Number(hIncoming).toLocaleString('en-GB')}` : `${(hImpact * 100).toFixed(0)}%`;
                 }
                 return `<div class="history-item history-item-${type}"><span class="history-time">${hTime}</span><span class="history-val">${hValue}</span></div>`;
@@ -5795,7 +5795,7 @@ async function loadAdminInsiderData() {
             const oddsDropDisplay = oddsDrop > 0 ? `${oddsDrop.toFixed(1)}%` : '-';
             
             // Money in
-            const moneyIn = alarm.gelen_para || alarm.stake || alarm.incoming_money || 0;
+            const moneyIn = alarm.incoming_money || alarm.gelen_para || alarm.stake || 0;
             const moneyDisplay = moneyIn > 0 ? `£${Number(moneyIn).toLocaleString('en-GB', {minimumFractionDigits: 0, maximumFractionDigits: 0})}` : '-';
             
             // Volume shock
@@ -6320,8 +6320,8 @@ async function loadAdminMimData() {
                 const market = alarm.market || '-';
                 const selection = alarm.selection || '-';
                 const level = alarm.level || '-';
-                const impact = (alarm.impact || 0).toFixed(2);
-                const volume = `£${Number(alarm.total_volume || alarm.volume || 0).toLocaleString('en-GB')}`;
+                const impact = (alarm.impact || alarm.impact_score || 0).toFixed(2);
+                const volume = `£${Number(alarm.curr_volume || alarm.current_volume || alarm.total_volume || alarm.volume || 0).toLocaleString('en-GB')}`;
                 const eventTime = alarm.trigger_at || alarm.event_time || '-';
                 
                 const levelColor = level >= 3 ? '#3B82F6' : level >= 2 ? '#60a5fa' : '#93c5fd';
