@@ -3269,10 +3269,43 @@ class AlarmCalculator:
                 for sel_idx, selection in enumerate(selections):
                     odds_key = odds_keys[sel_idx]
                     
-                    # İlk snapshot = Opening odds
-                    opening_odds = parse_float(history[0].get(odds_key, 0))
-                    # Son snapshot = Current odds
-                    current_odds = parse_float(history[-1].get(odds_key, 0))
+                    # YENİ ŞEMA: selection bazında filtrele (dropping_odds_snapshots için)
+                    # Normalize selection matching: 'Over 2.5' → 'Over', 'Under 2.5' → 'Under' vb.
+                    def match_selection(snap_sel: str, target: str) -> bool:
+                        if not snap_sel:
+                            return False
+                        snap_sel_lower = snap_sel.lower().strip()
+                        target_lower = target.lower().strip()
+                        # Exact match
+                        if snap_sel_lower == target_lower:
+                            return True
+                        # Prefix match: 'over 2.5' starts with 'over'
+                        if snap_sel_lower.startswith(target_lower):
+                            return True
+                        return False
+                    
+                    selection_history = [h for h in history if match_selection(h.get('selection', ''), selection)]
+                    
+                    # Önce yeni şemayı dene (selection bazlı)
+                    opening_odds = 0.0
+                    current_odds = 0.0
+                    history_for_persistence = history  # Default: tüm history
+                    is_new_schema = False
+                    
+                    if len(selection_history) >= 2:
+                        # Yeni şema: selection filtrelenmiş history'den 'odds' kolonunu oku
+                        sel_history_sorted = sorted(selection_history, key=lambda x: parse_timestamp(get_scraped_at(x)))
+                        opening_odds = parse_float(sel_history_sorted[0].get('odds', 0))
+                        current_odds = parse_float(sel_history_sorted[-1].get('odds', 0))
+                        history_for_persistence = sel_history_sorted
+                        is_new_schema = True
+                    
+                    # Eski şema fallback: odds1, oddsx, odds2 vb. kolonları dene
+                    if opening_odds <= 0 or current_odds <= 0:
+                        opening_odds = parse_float(history[0].get(odds_key, 0))
+                        current_odds = parse_float(history[-1].get(odds_key, 0))
+                        history_for_persistence = history
+                        is_new_schema = False
                     
                     if current_odds <= 0 or opening_odds <= 0:
                         continue
@@ -3294,15 +3327,15 @@ class AlarmCalculator:
                     if persistence_enabled:
                         # Son snapshot'ın zamanından geriye X dakika içindeki TÜM snapshot'larda drop devam etmeli
                         
-                        # Son snapshot'ın zamanını al (referans nokta) - naive datetime kullan
-                        latest_scraped_at = parse_timestamp(get_scraped_at(history[-1]))
+                        # Son snapshot'ın zamanını al (referans nokta) - history_for_persistence kullan
+                        latest_scraped_at = parse_timestamp(get_scraped_at(history_for_persistence[-1]))
                         if latest_scraped_at == datetime.min:
                             latest_scraped_at = datetime.now()
                         
                         persistence_threshold = latest_scraped_at - timedelta(minutes=persistence_minutes)
                         
-                        # Kalıcılık penceresi içindeki snapshot'ları filtrele
-                        for snap in history:
+                        # Kalıcılık penceresi içindeki snapshot'ları filtrele - history_for_persistence kullan
+                        for snap in history_for_persistence:
                             snap_time = parse_timestamp(get_scraped_at(snap))
                             if snap_time != datetime.min and snap_time >= persistence_threshold:
                                 recent_snapshots.append(snap)
@@ -3317,7 +3350,11 @@ class AlarmCalculator:
                         # 2. Her snapshot'ta minimum L1 drop_pct eşiği karşılanmalı
                         drop_persistent = True
                         for snap in recent_snapshots:
-                            snap_odds = parse_float(snap.get(odds_key, 0))
+                            # Yeni şema: 'odds' kolonu, eski şema: odds_key (odds1, oddsx vb.)
+                            if is_new_schema:
+                                snap_odds = parse_float(snap.get('odds', 0))
+                            else:
+                                snap_odds = parse_float(snap.get(odds_key, 0))
                             if snap_odds <= 0:
                                 continue
                             # Oran opening'e geri dönmüşse veya üstüne çıktıysa, kalıcı drop değil
@@ -3341,7 +3378,7 @@ class AlarmCalculator:
                     else:
                         level = 'L1'
                     
-                    trigger_at = get_scraped_at(history[-1]) or now_turkey_iso()
+                    trigger_at = get_scraped_at(history_for_persistence[-1]) or now_turkey_iso()
                     match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                     
                     # Volume bilgisi (varsa)
