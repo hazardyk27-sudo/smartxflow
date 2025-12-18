@@ -457,12 +457,37 @@ def calculate_publicmove_alarms() -> list:
     
     return alarms
 
-# MIM Cache - TTL 12 dakika (scrape interval + buffer)
+# MIM Cache - TTL 10 dakika (aligned with bucket size)
 _mim_cache = {}
-_mim_cache_ttl = 720  # 12 dakika
+_mim_cache_ttl = 600  # 10 dakika (bucket size ile aynı)
+_mim_cache_max_size = 1000  # Max cache entries
+_mim_cache_last_cleanup = 0
+
+def _cleanup_mim_cache():
+    """Expired entries ve size limit cleanup"""
+    global _mim_cache, _mim_cache_last_cleanup
+    import time
+    now = time.time()
+    
+    # Cleanup her 60 saniyede bir
+    if now - _mim_cache_last_cleanup < 60:
+        return
+    _mim_cache_last_cleanup = now
+    
+    # Expired entries sil
+    expired_keys = [k for k, (data, ts) in _mim_cache.items() if now - ts >= _mim_cache_ttl]
+    for k in expired_keys:
+        del _mim_cache[k]
+    
+    # Size limit aşıldıysa tam olarak max_size'a düşür
+    if len(_mim_cache) > _mim_cache_max_size:
+        sorted_items = sorted(_mim_cache.items(), key=lambda x: x[1][1])
+        to_remove = len(_mim_cache) - _mim_cache_max_size
+        for k, _ in sorted_items[:to_remove]:
+            del _mim_cache[k]
 
 def _get_mim_cache_key(hist_table: str, home: str, away: str) -> str:
-    """MIM cache key üret"""
+    """MIM cache key üret - bucket size = TTL = 10 dakika"""
     import time
     bucket = int(time.time() // 600) * 600  # 10 dakikalık bucket
     return f"{hist_table}:{home}:{away}:{bucket}"
@@ -470,6 +495,7 @@ def _get_mim_cache_key(hist_table: str, home: str, away: str) -> str:
 def _get_from_mim_cache(key: str):
     """Cache'den veri al"""
     import time
+    _cleanup_mim_cache()  # Periodic cleanup
     if key in _mim_cache:
         data, timestamp = _mim_cache[key]
         if time.time() - timestamp < _mim_cache_ttl:
@@ -481,6 +507,7 @@ def _set_mim_cache(key: str, data):
     """Cache'e veri yaz"""
     import time
     _mim_cache[key] = (data, time.time())
+    _cleanup_mim_cache()  # Size limit kontrolü
 
 
 def calculate_mim_alarms() -> list:
