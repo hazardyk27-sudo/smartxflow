@@ -836,26 +836,34 @@ class AlarmCalculator:
                       'selection', 'money_impact', 'trigger_at', 'created_at'],
     }
     
-    # Alan adı dönüşümleri (calculator → db)
+    # Alan adı dönüşümleri (calculator → db) - GLOBAL
     FIELD_MAPPING = {
         'match_id': 'match_id_hash',
         'selection_total': 'total_selection',
-        'odds_drop_pct': 'drop_pct',
-        'incoming_money': 'total_money',
+    }
+    
+    # Tablo bazlı ek dönüşümler
+    TABLE_FIELD_MAPPING = {
+        'insider_alarms': {
+            'odds_drop_pct': 'drop_pct',
+            'incoming_money': 'total_money',
+        },
     }
     
     def _post(self, table: str, data: List[Dict], on_conflict=None, _retry=False) -> bool:
         try:
-            # 1. Alan adlarını dönüştür (match_id → match_id_hash vb.)
+            # 1. Alan adlarını dönüştür (global + tablo bazlı)
             # 2. Tabloda olmayan kolonları çıkar (schema cache workaround)
             known_cols = self.KNOWN_COLUMNS.get(table)
+            table_mapping = self.TABLE_FIELD_MAPPING.get(table, {})
+            
             if known_cols:
                 cleaned_data = []
                 for record in data:
-                    # Alan adlarını dönüştür
                     mapped_record = {}
                     for k, v in record.items():
-                        new_key = self.FIELD_MAPPING.get(k, k)
+                        # Önce tablo bazlı, sonra global mapping uygula
+                        new_key = table_mapping.get(k, self.FIELD_MAPPING.get(k, k))
                         mapped_record[new_key] = v
                     # Sadece bilinen kolonları tut
                     clean_record = {k: v for k, v in mapped_record.items() if k in known_cols}
