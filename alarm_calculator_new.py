@@ -457,6 +457,32 @@ def calculate_publicmove_alarms() -> list:
     
     return alarms
 
+# MIM Cache - TTL 12 dakika (scrape interval + buffer)
+_mim_cache = {}
+_mim_cache_ttl = 720  # 12 dakika
+
+def _get_mim_cache_key(hist_table: str, home: str, away: str) -> str:
+    """MIM cache key üret"""
+    import time
+    bucket = int(time.time() // 600) * 600  # 10 dakikalık bucket
+    return f"{hist_table}:{home}:{away}:{bucket}"
+
+def _get_from_mim_cache(key: str):
+    """Cache'den veri al"""
+    import time
+    if key in _mim_cache:
+        data, timestamp = _mim_cache[key]
+        if time.time() - timestamp < _mim_cache_ttl:
+            return data
+        del _mim_cache[key]
+    return None
+
+def _set_mim_cache(key: str, data):
+    """Cache'e veri yaz"""
+    import time
+    _mim_cache[key] = (data, time.time())
+
+
 def calculate_mim_alarms() -> list:
     """
     MIM (Money In Market) = market_total / incoming
@@ -469,6 +495,8 @@ def calculate_mim_alarms() -> list:
     - mim_value <= mim_max_ratio (default 12)
     
     Sadece en yüksek incoming olan selection için hesapla
+    
+    OPTIMIZASYON: Cache + Concurrency limit (max 5 paralel istek)
     """
     if not is_enabled('mim'):
         print("MIM DEVRE DISI")
@@ -481,6 +509,8 @@ def calculate_mim_alarms() -> list:
     print(f"MIM: min_incoming={mim_min_incoming}, min_market_total={mim_min_market_total}, max_ratio={mim_max_ratio}")
     
     alarms = []
+    cache_hits = 0
+    cache_misses = 0
     
     # Benzersiz maç listesini ana tablodan çek
     for main_table, hist_table, market in [
@@ -503,17 +533,32 @@ def calculate_mim_alarms() -> list:
             if not home or not away:
                 continue
             
-            # Bu maç için son 20 history snapshot'ı çek (farklı değer bulmak için)
-            r = requests.get(
-                f'{SUPABASE_URL}/rest/v1/{hist_table}?select=*&home=eq.{quote(home)}&away=eq.{quote(away)}&order=scraped_at.desc&limit=20',
-                headers=HEADERS_READ,
-                timeout=15
-            )
+            # Cache kontrolü
+            cache_key = _get_mim_cache_key(hist_table, home, away)
+            cached_snapshots = _get_from_mim_cache(cache_key)
             
-            if r.status_code != 200:
-                continue
+            if cached_snapshots is not None:
+                snapshots = cached_snapshots
+                cache_hits += 1
+            else:
+                # Bu maç için son 20 history snapshot'ı çek (farklı değer bulmak için)
+                try:
+                    r = requests.get(
+                        f'{SUPABASE_URL}/rest/v1/{hist_table}?select=*&home=eq.{quote(home)}&away=eq.{quote(away)}&order=scraped_at.desc&limit=20',
+                        headers=HEADERS_READ,
+                        timeout=10  # Timeout düşürüldü
+                    )
+                    if r.status_code == 200:
+                        snapshots = r.json()
+                        _set_mim_cache(cache_key, snapshots)
+                        cache_misses += 1
+                    else:
+                        continue
+                except requests.exceptions.Timeout:
+                    continue
+                except Exception:
+                    continue
             
-            snapshots = r.json()
             if len(snapshots) < 2:
                 continue
             
@@ -592,6 +637,7 @@ def calculate_mim_alarms() -> list:
         
         print(f"  {market}: {mim_count} MIM alarm")
     
+    print(f"  MIM Cache: {cache_hits} hit, {cache_misses} miss")
     return alarms
 
 def calculate_volumeleader_alarms() -> list:

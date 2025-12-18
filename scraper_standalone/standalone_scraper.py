@@ -15,40 +15,54 @@ from typing import Dict, List, Optional, Any
 from bs4 import BeautifulSoup
 
 # Hash utils import - fixtures ve snapshots için match_id_hash üretimi
-import hashlib
+# Canonical implementation from core/hash_utils.py
+try:
+    import sys
+    import os
+    # Add parent directory to path for core module import
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+    from core.hash_utils import make_match_id_hash
+except ImportError:
+    # Fallback: inline implementation if core module not available
+    import hashlib
+    
+    def normalize_field_for_hash(value: str) -> str:
+        """String normalizasyonu for match_id_hash"""
+        if not value:
+            return ""
+        value = value.strip()
+        # Türkçe karakter normalizasyonu
+        tr_map = {'ş': 's', 'Ş': 'S', 'ğ': 'g', 'Ğ': 'G', 'ü': 'u', 'Ü': 'U',
+                  'ı': 'i', 'İ': 'I', 'ö': 'o', 'Ö': 'O', 'ç': 'c', 'Ç': 'C'}
+        for tr_char, en_char in tr_map.items():
+            value = value.replace(tr_char, en_char)
+        value = value.lower()
+        value = ' '.join(value.split())
+        return value
 
-def normalize_field_for_hash(value: str) -> str:
-    """String normalizasyonu for match_id_hash"""
-    if not value:
-        return ""
-    value = value.strip()
-    # Türkçe karakter normalizasyonu (lowercase'den önce!)
-    value = value.replace('ı', 'i').replace('İ', 'I')
-    value = value.lower()
-    value = ' '.join(value.split())
-    return value
+    def normalize_kickoff_for_hash(kickoff: str) -> str:
+        """Kickoff normalizasyonu: YYYY-MM-DDTHH:MM"""
+        if not kickoff:
+            return ""
+        kickoff = str(kickoff).strip()
+        kickoff = re.sub(r'[+-]\d{2}:\d{2}$', '', kickoff)
+        kickoff = kickoff.replace('Z', '')
+        if 'T' in kickoff and len(kickoff) >= 16:
+            return kickoff[:16]
+        if len(kickoff) >= 10 and kickoff[4] == '-':
+            return kickoff[:16] if len(kickoff) >= 16 else kickoff[:10] + "T00:00"
+        return kickoff
 
-def normalize_kickoff_for_hash(kickoff: str) -> str:
-    """Kickoff normalizasyonu: YYYY-MM-DDTHH:MM"""
-    if not kickoff:
-        return ""
-    kickoff = str(kickoff).strip()
-    kickoff = re.sub(r'[+-]\d{2}:\d{2}$', '', kickoff)
-    kickoff = kickoff.replace('Z', '')
-    if 'T' in kickoff and len(kickoff) >= 16:
-        return kickoff[:16]
-    if len(kickoff) >= 10 and kickoff[4] == '-':
-        return kickoff[:16] if len(kickoff) >= 16 else kickoff[:10] + "T00:00"
-    return kickoff
-
-def make_match_id_hash(home: str, away: str, league: str, kickoff_utc: str) -> str:
-    """12 karakterlik MD5 hash üret - Format: league|kickoff|home|away"""
-    home_norm = normalize_field_for_hash(home)
-    away_norm = normalize_field_for_hash(away)
-    league_norm = normalize_field_for_hash(league)
-    kickoff_norm = normalize_kickoff_for_hash(kickoff_utc)
-    canonical = f"{league_norm}|{kickoff_norm}|{home_norm}|{away_norm}"
-    return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
+    def make_match_id_hash(home: str, away: str, league: str, kickoff_utc: str) -> str:
+        """12 karakterlik MD5 hash üret - Format: league|kickoff|home|away"""
+        home_norm = normalize_field_for_hash(home)
+        away_norm = normalize_field_for_hash(away)
+        league_norm = normalize_field_for_hash(league)
+        kickoff_norm = normalize_kickoff_for_hash(kickoff_utc)
+        canonical = f"{league_norm}|{kickoff_norm}|{home_norm}|{away_norm}"
+        return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
 
 
 def get_ssl_cert_path():
