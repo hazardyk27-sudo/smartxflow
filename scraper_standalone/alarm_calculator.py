@@ -142,18 +142,20 @@ def normalize_field(value: str) -> str:
     # MUST match core/hash_utils.py regex exactly
     import re
     value = re.sub(r'[^a-z0-9\s]', '', value)
-    
-    # Remove team suffixes at word boundary (end of string or followed by space)
-    # Suffixes: fc, fk, sk, sc, afc, cf, ac, as
-    suffixes = ['afc', 'fc', 'fk', 'sk', 'sc', 'cf', 'ac', 'as']
-    for suffix in suffixes:
-        # Match suffix at end of string (with optional trailing space)
-        value = re.sub(rf'\s+{suffix}$', '', value)
-        # Match suffix as standalone word
-        value = re.sub(rf'^{suffix}\s+', '', value)
-    
-    # Collapse multiple spaces
     value = ' '.join(value.split())
+    
+    # Remove team suffixes ONLY at end of string (core/hash_utils.py ile UYUMLU)
+    # Suffixes: fc, fk, sk, sc, afc, cf, ac, as
+    suffixes = ['fc', 'fk', 'sk', 'sc', 'afc', 'cf', 'ac', 'as']
+    changed = True
+    while changed:
+        changed = False
+        for suffix in suffixes:
+            if value.endswith(' ' + suffix):
+                value = value[:-len(suffix)-1].strip()
+                changed = True
+                break
+    
     return value
 
 
@@ -3734,14 +3736,14 @@ class AlarmCalculator:
                 prev_snap = sorted_history[i - 1]
                 curr_snap = sorted_history[i]
                 
-                prev_amt_1 = parse_volume(prev_snap.get('total_amount_1', 0))
-                prev_amt_x = parse_volume(prev_snap.get('total_amount_x', 0))
-                prev_amt_2 = parse_volume(prev_snap.get('total_amount_2', 0))
+                prev_amt_1 = parse_volume(prev_snap.get('amt1') or prev_snap.get('total_amount_1', 0))
+                prev_amt_x = parse_volume(prev_snap.get('amtx') or prev_snap.get('total_amount_x', 0))
+                prev_amt_2 = parse_volume(prev_snap.get('amt2') or prev_snap.get('total_amount_2', 0))
                 prev_volume = prev_amt_1 + prev_amt_x + prev_amt_2
                 
-                curr_amt_1 = parse_volume(curr_snap.get('total_amount_1', 0))
-                curr_amt_x = parse_volume(curr_snap.get('total_amount_x', 0))
-                curr_amt_2 = parse_volume(curr_snap.get('total_amount_2', 0))
+                curr_amt_1 = parse_volume(curr_snap.get('amt1') or curr_snap.get('total_amount_1', 0))
+                curr_amt_x = parse_volume(curr_snap.get('amtx') or curr_snap.get('total_amount_x', 0))
+                curr_amt_2 = parse_volume(curr_snap.get('amt2') or curr_snap.get('total_amount_2', 0))
                 curr_volume = curr_amt_1 + curr_amt_x + curr_amt_2
                 
                 if prev_volume < min_prev_volume:

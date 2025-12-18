@@ -48,17 +48,47 @@ import re
 def normalize_field(value):
     """
     Normalize a field value for match_id_hash generation.
-    Rules (per replit.md contract):
+    Rules (per replit.md contract - core/hash_utils.py ile UYUMLU):
     - trim (strip leading/trailing whitespace)
-    - Turkish dotted/dotless I normalization BEFORE lowercase: ı → i, İ → I, then lowercase
+    - Turkish character normalization BEFORE lowercase
+    - lowercase
+    - Remove special characters (only letters, numbers, spaces)
     - collapse multiple spaces to single space
+    - Remove suffixes (FC, FK, SK, etc.)
     """
     if not value:
         return ""
     value = str(value).strip()
-    value = value.replace('ı', 'i').replace('İ', 'I')
+    
+    # Turkish character normalization (core/hash_utils.py ile ayni)
+    tr_map = {
+        'ş': 's', 'Ş': 'S',
+        'ğ': 'g', 'Ğ': 'G',
+        'ü': 'u', 'Ü': 'U',
+        'ı': 'i', 'İ': 'I',
+        'ö': 'o', 'Ö': 'O',
+        'ç': 'c', 'Ç': 'C'
+    }
+    for tr_char, en_char in tr_map.items():
+        value = value.replace(tr_char, en_char)
+    
     value = value.lower()
+    
+    # Remove special characters (only letters, numbers, spaces)
+    value = re.sub(r'[^a-z0-9\s]', '', value)
     value = ' '.join(value.split())
+    
+    # Remove suffixes (FC, FK, SK, etc.)
+    suffixes = ['fc', 'fk', 'sk', 'sc', 'afc', 'cf', 'ac', 'as']
+    changed = True
+    while changed:
+        changed = False
+        for suffix in suffixes:
+            if value.endswith(' ' + suffix):
+                value = value[:-len(suffix)-1].strip()
+                changed = True
+                break
+    
     return value
 
 def normalize_kickoff(kickoff):
@@ -89,18 +119,18 @@ def generate_match_id(home, away, league, kickoff=''):
     Generate unique 12-character match ID hash.
     
     IMMUTABLE CONTRACT (per replit.md):
-    - Format: league|kickoff|home|away
+    - Format: league|home|away (kickoff KULLANILMIYOR)
     - Hash: MD5, first 12 hex characters
-    - All fields normalized via normalize_field() and normalize_kickoff()
+    - All fields normalized via normalize_field()
     
+    NOT: kickoff parametresi geriye uyumluluk icin tutuldu ama KULLANILMIYOR.
     This ensures: Scraper, Admin.exe, Backend all generate same hash for same match.
     """
     home_norm = normalize_field(home)
     away_norm = normalize_field(away)
     league_norm = normalize_field(league)
-    kickoff_norm = normalize_kickoff(kickoff)
     
-    canonical = f"{league_norm}|{kickoff_norm}|{home_norm}|{away_norm}"
+    canonical = f"{league_norm}|{home_norm}|{away_norm}"
     
     return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
 
