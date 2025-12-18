@@ -810,19 +810,37 @@ def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
 
 
 def parse_date_to_kickoff(date_str: str) -> str:
-    """Parse date string to kickoff_utc format (YYYY-MM-DDTHH:MM:SS+00:00)"""
+    """Parse date string to kickoff_utc format (YYYY-MM-DDTHH:MM:SS+00:00)
+    
+    Desteklenen formatlar:
+    - "21.Dec 13:30:00" (history format)
+    - "21.Dec 13:30" (history short)
+    - "18 Dec 15:00" (space format)
+    - "18 Dec" (date only)
+    """
     if not date_str:
         return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S+00:00')
     
-    # Try various formats: "18 Dec 15:00", "Dec 18 15:00", "2025-12-18 15:00", etc.
     date_str = date_str.strip()
     now = datetime.utcnow()
+    months = {'jan':1,'feb':2,'mar':3,'apr':4,'may':5,'jun':6,'jul':7,'aug':8,'sep':9,'oct':10,'nov':11,'dec':12}
     
-    # Pattern: "18 Dec 15:00" or "18 Dec"
-    m = re.match(r'(\d{1,2})\s+(\w{3})\s*(\d{1,2}:\d{2})?', date_str)
+    # Pattern 1: "21.Dec 13:30:00" veya "21.Dec 13:30" (history format - noktalı)
+    m = re.match(r'^(\d{1,2})\.([A-Za-z]{3})\s+(\d{1,2}):(\d{2})(?::\d{2})?', date_str)
+    if m:
+        day, month_str, hour, minute = m.groups()
+        month = months.get(month_str.lower()[:3], now.month)
+        year = now.year
+        try:
+            dt = datetime(year, month, int(day), int(hour), int(minute))
+            return dt.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        except:
+            pass
+    
+    # Pattern 2: "18 Dec 15:00" or "18 Dec" (space format)
+    m = re.match(r'^(\d{1,2})\s+(\w{3})\s*(\d{1,2}:\d{2})?', date_str)
     if m:
         day, month_str, time_part = m.groups()
-        months = {'jan':1,'feb':2,'mar':3,'apr':4,'may':5,'jun':6,'jul':7,'aug':8,'sep':9,'oct':10,'nov':11,'dec':12}
         month = months.get(month_str.lower()[:3], now.month)
         year = now.year
         if time_part:
