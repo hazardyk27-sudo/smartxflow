@@ -484,9 +484,9 @@ class AlarmCalculator:
             lines.append("")
             lines.append(f"x{trigger_count} tetikleme")
         
-        vol1 = float(alarm.get('vol_1', 0) or 0)
-        volx = float(alarm.get('vol_x', 0) or 0)
-        vol2 = float(alarm.get('vol_2', 0) or 0)
+        vol1 = parse_volume(alarm.get('amt1') or alarm.get('vol_1', 0))
+        volx = parse_volume(alarm.get('amtx') or alarm.get('vol_x', 0))
+        vol2 = parse_volume(alarm.get('amt2') or alarm.get('vol_2', 0))
         total_vol = vol1 + volx + vol2
         
         if total_vol > 0:
@@ -542,9 +542,9 @@ class AlarmCalculator:
             lines.append("")
             lines.append("\U0001F4C5 Mac: " + match_date_str)
         
-        vol1 = float(alarm.get('vol_1', 0) or 0)
-        volx = float(alarm.get('vol_x', 0) or 0)
-        vol2 = float(alarm.get('vol_2', 0) or 0)
+        vol1 = parse_volume(alarm.get('amt1') or alarm.get('vol_1', 0))
+        volx = parse_volume(alarm.get('amtx') or alarm.get('vol_x', 0))
+        vol2 = parse_volume(alarm.get('amt2') or alarm.get('vol_2', 0))
         total_vol = vol1 + volx + vol2
         
         if total_vol > 0:
