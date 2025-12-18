@@ -7843,6 +7843,7 @@ td.volume,
 .acd-stat-val.drop { color: #ff0000; }
 .acd-stat-val.volumeleader { color: #06b6d4; }
 .acd-stat-val.volumeleader-new { color: #22d3ee; }
+.acd-stat-val.mim { color: #3B82F6; }
 
 /* Volume Leader Transition - Minimal Style */
 .vl-transition {
