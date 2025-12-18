@@ -1810,35 +1810,175 @@ class AlarmCalculator:
         }
     
     def get_matches_with_latest(self, market: str) -> List[Dict]:
-        """Get all matches with their latest data for a market (cached)"""
+        """Get all matches with their latest data for a market (cached)
+        
+        YENİ ŞEMA: moneyway_snapshots'tan en son snapshot'ları çeker (volume/odds dahil).
+        ESKİ ŞEMA: market tablosundan çeker (geriye uyumluluk).
+        
+        Pagination: PostgREST 1000 satır limiti nedeniyle pagination kullanır.
+        """
+        import urllib.parse
+        
         if market in self._matches_cache:
             return self._matches_cache[market]
         
         log(f"FETCH {market} (latest)...")
+        
+        # Önce eski tablo ismini dene (geriye uyumluluk - önce bunu dene çünkü daha zengin veri içerir)
         matches = self._get(market, 'select=*')
-        log(f"  -> {len(matches)} matches")
-        self._matches_cache[market] = matches
-        return matches
+        if matches:
+            log(f"  -> {len(matches)} matches from {market} table (legacy)")
+            self._matches_cache[market] = matches
+            return matches
+        
+        # Yeni şema: Aggregated view'dan çek (selection'lar pivot edilmiş)
+        if market in self.SNAPSHOT_TABLE_MAP:
+            actual_table, market_filter, aggregated_view = self.SNAPSHOT_TABLE_MAP[market]
+            
+            # Önce aggregated view'ı dene (selection'lar pivot edilmiş)
+            if aggregated_view:
+                try:
+                    matches = self._get(aggregated_view, 'select=*')
+                    if matches:
+                        log(f"  -> {len(matches)} matches from {aggregated_view} (aggregated view)")
+                        self._matches_cache[market] = matches
+                        return matches
+                except Exception as e:
+                    log(f"  [WARN] Aggregated view {aggregated_view} not available: {e}, falling back to raw snapshots")
+            
+            # Fallback: Raw snapshots'tan aggregate et
+            encoded_filter = urllib.parse.quote(market_filter)
+            
+            # PAGINATION: Tüm snapshot'ları paginated olarak çek
+            all_snapshots = []
+            offset = 0
+            page_size = 1000
+            
+            while True:
+                params = f"select=*&market=eq.{encoded_filter}&order=scraped_at_utc.desc&limit={page_size}&offset={offset}"
+                batch = self._get(actual_table, params) or []
+                if not batch:
+                    break
+                all_snapshots.extend(batch)
+                if len(batch) < page_size:
+                    break
+                offset += page_size
+            
+            log(f"  -> {len(all_snapshots)} total snapshots fetched from {actual_table}")
+            
+            # Client-side aggregation: Selection'ları pivot et
+            # Her (match_id_hash, selection) için en son snapshot'ı tut
+            latest_by_match_sel = {}
+            for snap in all_snapshots:
+                h = snap.get('match_id_hash', '')
+                sel = snap.get('selection', '')
+                key = (h, sel)
+                if key not in latest_by_match_sel:
+                    latest_by_match_sel[key] = snap
+            
+            # match_id_hash bazında aggregate et
+            aggregated = {}
+            for (h, sel), snap in latest_by_match_sel.items():
+                if h not in aggregated:
+                    aggregated[h] = {
+                        'match_id_hash': h,
+                        'scraped_at': snap.get('scraped_at_utc', ''),
+                        # Snapshot'tan metadata al (fixtures boşsa diye)
+                        '_snap_home': snap.get('home', ''),
+                        '_snap_away': snap.get('away', ''),
+                        '_snap_league': snap.get('league', ''),
+                        '_snap_date': snap.get('date', snap.get('kickoff', '')),
+                    }
+                # Selection bazında alanları ekle
+                sel_lower = sel.lower().replace(' ', '_') if sel else 'unknown'
+                aggregated[h][f'vol_{sel_lower}'] = snap.get('volume', 0)
+                aggregated[h][f'odds_{sel_lower}'] = snap.get('odds', 0)
+                aggregated[h][f'pct_{sel_lower}'] = snap.get('share', 0)
+            
+            # Fixtures metadata ile zenginleştir
+            fixtures_map = {}
+            fixtures = self._get('fixtures', 'select=*') or []
+            for f in fixtures:
+                fh = f.get('match_id_hash', '')
+                if fh:
+                    fixtures_map[fh] = f
+            
+            enriched_matches = []
+            for match_hash, agg in aggregated.items():
+                fixture = fixtures_map.get(match_hash, {})
+                # Fixtures varsa oradan, yoksa snapshot'tan al
+                enriched = {
+                    **agg,
+                    'home': fixture.get('home_team') or agg.get('_snap_home', ''),
+                    'away': fixture.get('away_team') or agg.get('_snap_away', ''),
+                    'league': fixture.get('league') or agg.get('_snap_league', ''),
+                    'date': fixture.get('kickoff_utc') or agg.get('_snap_date', ''),
+                    'match_date': normalize_date_for_db(fixture.get('fixture_date') or agg.get('_snap_date', '')),
+                }
+                # Geçici alanları temizle
+                enriched.pop('_snap_home', None)
+                enriched.pop('_snap_away', None)
+                enriched.pop('_snap_league', None)
+                enriched.pop('_snap_date', None)
+                enriched_matches.append(enriched)
+            
+            log(f"  -> {len(enriched_matches)} unique matches aggregated from {actual_table}")
+            self._matches_cache[market] = enriched_matches
+            return enriched_matches
+        
+        log(f"  -> 0 matches (no data found)")
+        self._matches_cache[market] = []
+        return []
+    
+    # TABLO MAPPING: Eski market ismi -> (snapshot tablo, market filtresi, aggregated view)
+    SNAPSHOT_TABLE_MAP = {
+        'moneyway_1x2': ('moneyway_snapshots', '1X2', 'moneyway_1x2_latest'),
+        'moneyway_ou25': ('moneyway_snapshots', 'O/U 2.5', 'moneyway_ou25_latest'),
+        'moneyway_btts': ('moneyway_snapshots', 'BTTS', 'moneyway_btts_latest'),
+        'dropping_1x2': ('dropping_odds_snapshots', '1X2', None),
+        'dropping_ou25': ('dropping_odds_snapshots', 'O/U 2.5', None),
+        'dropping_btts': ('dropping_odds_snapshots', 'BTTS', None),
+    }
     
     def batch_fetch_history(self, market: str) -> Dict[str, List[Dict]]:
         """Batch fetch ALL history for a market - NO LIMIT, tüm snapshot'lar okunur
-        History zaten dünden önce temizlendiği için boyut küçük kalır.
+        
+        YENİ ŞEMA: moneyway_snapshots / dropping_odds_snapshots tablolarından
+        market filtresi ile okur.
+        
         KEY: match_id_hash (string eşleşmesi YOK)
         """
-        history_table = f"{market}_history"
+        # Cache key olarak eski market ismi kullan (uyumluluk için)
+        cache_key = f"{market}_history"
         
-        if history_table in self._history_cache:
-            return self._history_cache[history_table]
+        if cache_key in self._history_cache:
+            return self._history_cache[cache_key]
         
-        log(f"[HISTORY] Fetching {history_table} (NO LIMIT - tüm snapshot'lar)...")
+        import urllib.parse
+        
+        # Tablo mapping - yeni şemaya göre tablo ve market filtresi belirle
+        if market in self.SNAPSHOT_TABLE_MAP:
+            actual_table, market_filter, _ = self.SNAPSHOT_TABLE_MAP[market]
+            log(f"[HISTORY] Fetching {actual_table} (market={market_filter})...")
+        else:
+            # Fallback: eski tablo ismi dene (geriye uyumluluk)
+            actual_table = f"{market}_history"
+            market_filter = None
+            log(f"[HISTORY] Fetching {actual_table} (legacy mode)...")
         
         rows = []
         offset = 0
         page_size = 1000
         
         while True:
-            params = f"select=*&order=scraped_at.asc&limit={page_size}&offset={offset}"
-            batch = self._get(history_table, params)
+            # Market filtresi varsa ekle (URL encoded)
+            if market_filter:
+                encoded_filter = urllib.parse.quote(market_filter)
+                params = f"select=*&market=eq.{encoded_filter}&order=scraped_at_utc.asc&limit={page_size}&offset={offset}"
+            else:
+                params = f"select=*&order=scraped_at.asc&limit={page_size}&offset={offset}"
+            
+            batch = self._get(actual_table, params)
             if not batch:
                 break
             rows.extend(batch)
@@ -1846,7 +1986,7 @@ class AlarmCalculator:
                 break
             offset += page_size
         
-        log(f"[HISTORY] {history_table}: {len(rows)} total snapshots loaded")
+        log(f"[HISTORY] {actual_table}: {len(rows)} total snapshots loaded")
         
         # KEY: match_id_hash ile gruplama, FALLBACK: league|home|away|date ile gruplama
         history_map = {}
@@ -1874,9 +2014,9 @@ class AlarmCalculator:
             history_map[match_hash].append(row)
         
         if fallback_count > 0:
-            log(f"[HISTORY WARN] {history_table}: match_id_hash missing -> {fallback_count} rows using fallback key (league|home|away|date)")
-        log(f"[HISTORY] {history_table}: {len(history_map)} unique matches")
-        self._history_cache[history_table] = history_map
+            log(f"[HISTORY WARN] {cache_key}: match_id_hash missing -> {fallback_count} rows using fallback key (league|home|away|date)")
+        log(f"[HISTORY] {cache_key}: {len(history_map)} unique matches")
+        self._history_cache[cache_key] = history_map
         return history_map
     
     def get_match_history(self, match_id_hash: str, history_table: str, home: str = '', away: str = '', league: str = '', kickoff: str = '') -> List[Dict]:
