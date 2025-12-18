@@ -1933,12 +1933,13 @@ class AlarmCalculator:
         return []
     
     # TABLO MAPPING: Eski market ismi -> (snapshot tablo, market filtresi, aggregated view)
+    # NOT: Market filtreleri Supabase'deki değerlerle UYUMLU olmalı: 1X2, OU25, BTTS
     SNAPSHOT_TABLE_MAP = {
         'moneyway_1x2': ('moneyway_snapshots', '1X2', 'moneyway_1x2_latest'),
-        'moneyway_ou25': ('moneyway_snapshots', 'O/U 2.5', 'moneyway_ou25_latest'),
+        'moneyway_ou25': ('moneyway_snapshots', 'OU25', 'moneyway_ou25_latest'),
         'moneyway_btts': ('moneyway_snapshots', 'BTTS', 'moneyway_btts_latest'),
         'dropping_1x2': ('dropping_odds_snapshots', '1X2', None),
-        'dropping_ou25': ('dropping_odds_snapshots', 'O/U 2.5', None),
+        'dropping_ou25': ('dropping_odds_snapshots', 'OU25', None),
         'dropping_btts': ('dropping_odds_snapshots', 'BTTS', None),
     }
     
