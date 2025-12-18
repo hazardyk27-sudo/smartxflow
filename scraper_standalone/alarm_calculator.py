@@ -807,8 +807,44 @@ class AlarmCalculator:
             log(f"GET error {table}: {e}")
         return []
     
+    # PostgREST schema cache sorunu workaround: her tablo için bilinen kolonlar
+    # Yeni kolon eklendiğinde NOTIFY pgrst, 'reload schema' çalıştırılmalı
+    KNOWN_COLUMNS = {
+        'bigmoney_alarms': ['id', 'match_id', 'home', 'away', 'market', 'selection', 
+                           'incoming_money', 'selection_total', 'match_date', 'trigger_at', 
+                           'created_at', 'alarm_history'],
+        'volumeshock_alarms': ['id', 'match_id', 'home', 'away', 'market', 'selection',
+                              'volume_shock_value', 'incoming_money', 'match_date', 
+                              'trigger_at', 'created_at', 'alarm_history'],
+        'insider_alarms': ['id', 'match_id', 'home', 'away', 'market', 'selection',
+                          'odds_drop_pct', 'incoming_money', 'opening_odds', 'current_odds',
+                          'match_date', 'trigger_at', 'created_at'],
+        'sharp_alarms': ['id', 'match_id', 'home', 'away', 'market', 'selection',
+                        'sharp_score', 'amount_change', 'drop_pct', 'share_diff',
+                        'match_date', 'trigger_at', 'created_at'],
+        'volume_leader_alarms': ['id', 'match_id', 'home', 'away', 'market', 'match_date',
+                                'trigger_at', 'created_at', 'alarm_type', 'old_leader', 
+                                'old_leader_share', 'new_leader', 'new_leader_share', 'total_volume'],
+        'dropping_odds_alarms': ['id', 'match_id', 'home', 'away', 'market', 'selection',
+                                'opening_odds', 'current_odds', 'drop_pct', 'match_date',
+                                'trigger_at', 'created_at'],
+        'publicmove_alarms': ['id', 'match_id', 'home', 'away', 'market', 'selection',
+                             'public_score', 'amount_change', 'match_date', 'trigger_at', 'created_at'],
+        'mim_alarms': ['id', 'match_id', 'home', 'away', 'market', 'selection',
+                      'money_impact', 'match_date', 'trigger_at', 'created_at'],
+    }
+    
     def _post(self, table: str, data: List[Dict], on_conflict=None, _retry=False) -> bool:
         try:
+            # Tabloda olmayan kolonları çıkar (schema cache workaround)
+            known_cols = self.KNOWN_COLUMNS.get(table)
+            if known_cols:
+                cleaned_data = []
+                for record in data:
+                    clean_record = {k: v for k, v in record.items() if k in known_cols}
+                    cleaned_data.append(clean_record)
+                data = cleaned_data
+            
             headers = self._headers()
             headers["Prefer"] = "resolution=merge-duplicates"
             url = self._rest_url(table)
