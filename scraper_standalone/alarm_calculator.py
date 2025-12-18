@@ -793,6 +793,14 @@ class AlarmCalculator:
     
     def _post(self, table: str, data: List[Dict], on_conflict=None) -> bool:
         try:
+            # PostgREST schema cache sorunu: alarm_type alanını payload'dan çıkar
+            # Tablo zaten DEFAULT değer veriyor, bu sayede cache güncellenmese de çalışır
+            cleaned_data = []
+            for record in data:
+                clean_record = {k: v for k, v in record.items() if k != 'alarm_type'}
+                cleaned_data.append(clean_record)
+            data = cleaned_data
+            
             headers = self._headers()
             headers["Prefer"] = "resolution=merge-duplicates"
             url = self._rest_url(table)
