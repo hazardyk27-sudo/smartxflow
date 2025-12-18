@@ -1621,17 +1621,24 @@ class AlarmCalculator:
         
         log(f"[HISTORY] {history_table}: {len(rows)} total snapshots loaded")
         
-        # KEY: match_id_hash ile gruplama, FALLBACK: home|away ile gruplama
+        # KEY: match_id_hash ile gruplama, FALLBACK: league|home|away|date ile gruplama
         history_map = {}
         fallback_count = 0
         for row in rows:
             match_hash = row.get('match_id_hash', '')
             if not match_hash:
-                # FALLBACK: home|away ile key oluştur (eski tablolar için)
-                home = row.get('home', '').strip().lower()
-                away = row.get('away', '').strip().lower()
+                # FALLBACK: league|home|away|date ile key oluştur (eski tablolar için)
+                # Normalizasyon: lower, trim, çoklu boşluk temizliği
+                home = ' '.join(row.get('home', '').strip().lower().split())
+                away = ' '.join(row.get('away', '').strip().lower().split())
+                league = ' '.join(row.get('league', '').strip().lower().split())
+                # Kickoff date: sadece tarih kısmı (YYYY-MM-DD)
+                kickoff = row.get('date', row.get('kickoff', row.get('kickoff_utc', '')))
+                kickoff_date = str(kickoff)[:10] if kickoff else ''
+                
                 if home and away:
-                    match_hash = f"{home}|{away}"
+                    # Güçlendirilmiş fallback key: league|home|away|date
+                    match_hash = f"{league}|{home}|{away}|{kickoff_date}"
                     fallback_count += 1
                 else:
                     continue
@@ -1640,15 +1647,15 @@ class AlarmCalculator:
             history_map[match_hash].append(row)
         
         if fallback_count > 0:
-            log(f"[HISTORY] {history_table}: {fallback_count} rows used home|away fallback")
+            log(f"[HISTORY WARN] {history_table}: match_id_hash missing -> {fallback_count} rows using fallback key (league|home|away|date)")
         log(f"[HISTORY] {history_table}: {len(history_map)} unique matches")
         self._history_cache[history_table] = history_map
         return history_map
     
-    def get_match_history(self, match_id_hash: str, history_table: str, home: str = '', away: str = '') -> List[Dict]:
+    def get_match_history(self, match_id_hash: str, history_table: str, home: str = '', away: str = '', league: str = '', kickoff: str = '') -> List[Dict]:
         """Get historical snapshots for a match from cache
         Primary: match_id_hash ile lookup
-        Fallback: home|away ile lookup (eski tablolar için)
+        Fallback: league|home|away|date ile lookup (eski tablolar için)
         """
         if history_table not in self._history_cache:
             market = history_table.replace('_history', '')
@@ -1660,9 +1667,16 @@ class AlarmCalculator:
         if match_id_hash and match_id_hash in history_map:
             return history_map.get(match_id_hash, [])
         
-        # Fallback lookup: home|away (eski tablolar için)
+        # Fallback lookup: league|home|away|date (eski tablolar için)
         if home and away:
-            fallback_key = f"{home.strip().lower()}|{away.strip().lower()}"
+            # Normalizasyon: lower, trim, çoklu boşluk temizliği
+            home_norm = ' '.join(home.strip().lower().split())
+            away_norm = ' '.join(away.strip().lower().split())
+            league_norm = ' '.join(league.strip().lower().split()) if league else ''
+            kickoff_date = str(kickoff)[:10] if kickoff else ''
+            
+            # Güçlendirilmiş fallback key
+            fallback_key = f"{league_norm}|{home_norm}|{away_norm}|{kickoff_date}"
             if fallback_key in history_map:
                 return history_map.get(fallback_key, [])
         
@@ -1937,7 +1951,7 @@ class AlarmCalculator:
                 
                 # match_id_hash ile history lookup (string eşleşmesi YOK)
                 match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table, home, away)
+                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
                 if len(history) < 2:
                     continue
                 
@@ -2174,7 +2188,7 @@ class AlarmCalculator:
                 
                 # match_id_hash ile history lookup (string eşleşmesi YOK)
                 match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table, home, away)
+                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
                 if len(history) < 3:
                     continue
                 
@@ -2437,7 +2451,7 @@ class AlarmCalculator:
                 
                 # match_id_hash ile history lookup (string eşleşmesi YOK)
                 match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table, home, away)
+                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
                 if len(history) < 2:
                     continue
                 
@@ -2639,7 +2653,7 @@ class AlarmCalculator:
                 
                 # match_id_hash ile history lookup (string eşleşmesi YOK)
                 match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table, home, away)
+                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
                 if len(history) < 5:
                     continue
                 
@@ -3063,7 +3077,7 @@ class AlarmCalculator:
                 
                 # match_id_hash ile history lookup (string eşleşmesi YOK)
                 match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table, home, away)
+                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
                 if len(history) < 2:
                     continue
                 
@@ -3218,7 +3232,7 @@ class AlarmCalculator:
                 
                 # match_id_hash ile history lookup (string eşleşmesi YOK)
                 match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-                history = self.get_match_history(match_id_hash, history_table, home, away)
+                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
                 if len(history) < 2:
                     continue
                 
@@ -3337,7 +3351,7 @@ class AlarmCalculator:
             
             # match_id_hash ile history lookup (string eşleşmesi YOK)
             match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
-            history = self.get_match_history(match_id_hash, f"{market}_history", home, away)
+            history = self.get_match_history(match_id_hash, f"{market}_history", home, away, match.get('league', ''), match.get('kickoff', match.get('kickoff_utc', '')))
             if len(history) < 2:
                 continue
             
