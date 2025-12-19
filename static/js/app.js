@@ -5451,7 +5451,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const selTotal = latest.total_selection || latest.selection_total || latest.volume || 0;
             row2Left = `${selection} (${market})`;
             row2Right = `Sharp: ${score.toFixed(0)} | ▼${dropPct.toFixed(1)}%`;
-            row3Left = `<span class="sm-money-hero">£${Number(incomingMoney).toLocaleString('en-GB')}</span> <span class="sm-money-label">yeni para</span>`;
+            row3Left = `<span class="sm-sharp-money-hero">£${Number(incomingMoney).toLocaleString('en-GB')}</span> <span class="sm-money-label">yeni para</span>`;
             row3Right = selTotal > 0 ? `<span class="sm-total-muted">Sonrası: £${Number(selTotal).toLocaleString('en-GB')}</span>` : '';
             row4 = `Bu seçenekte 10 dk içinde yüksek hacimli para + oran düşüşü tespit edildi.`;
         } else if (type === 'bigmoney') {

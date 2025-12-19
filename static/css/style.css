@@ -7209,9 +7209,12 @@ td.volume,
 }
 
 /* Sharp kartlarında para değeri Sharp rengiyle (yeşil) */
-.smart-money-card.sharp .sm-money-hero {
+.smart-money-card.sharp .sm-money-hero,
+.sm-sharp-money-hero {
     color: #22c55e;
     text-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+    font-size: 18px;
+    font-weight: 700;
 }
 
 .sm-money-label {
