@@ -425,6 +425,27 @@ class AlarmCalculator:
                         return True, True, new_delta
                 return False, False, 0
             
+            if normalized_type == 'VOLUMESHOCK':
+                settings = self._telegram_settings or {}
+                cooldown_min = int(settings.get('volumeshock_cooldown_min', 60))
+                
+                try:
+                    from datetime import datetime, timezone
+                    if last_sent:
+                        last_time = datetime.fromisoformat(last_sent.replace('Z', '+00:00'))
+                        now = datetime.now(timezone.utc)
+                        elapsed_min = (now - last_time).total_seconds() / 60
+                        if elapsed_min >= cooldown_min:
+                            log(f"[Telegram] VolumeShock cooldown passed ({elapsed_min:.0f} min >= {cooldown_min} min)")
+                            return True, False, 0
+                        else:
+                            log(f"[Telegram] VolumeShock cooldown not passed ({elapsed_min:.0f} min < {cooldown_min} min)")
+                            return False, False, 0
+                except Exception as e:
+                    log(f"[Telegram] VolumeShock cooldown error: {e}")
+                    return False, False, 0
+                return False, False, 0
+            
             return False, False, 0
         except Exception as e:
             log(f"[Telegram] Dedupe check error: {e}")
@@ -907,6 +928,8 @@ class AlarmCalculator:
                       'selection', 'impact', 'prev_volume', 'current_volume',
                       'incoming_volume', 'total_market_volume',
                       'match_date', 'trigger_at', 'created_at'],
+        'telegram_sent_log': ['id', 'dedupe_key', 'match_id_hash', 'alarm_type', 
+                             'market', 'selection', 'last_sent_at', 'last_delta', 'send_count'],
     }
     
     # Alan adi donusumleri (calculator -> db) - GLOBAL
