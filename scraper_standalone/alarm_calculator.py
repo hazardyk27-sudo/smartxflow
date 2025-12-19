@@ -3639,13 +3639,20 @@ class AlarmCalculator:
                         'match_date': normalize_date_for_db(match.get('date', '')),
                         'trigger_at': trigger_at,
                         'created_at': now_turkey_iso(),
-                        'alarm_type': 'mim'
+                        'alarm_type': 'mim',
+                        '_log_incoming': round(incoming_money, 2),
+                        '_log_total': round(curr_total_volume, 2),
+                        '_log_components': (round(curr_amt_1, 2), round(curr_amt_x, 2), round(curr_amt_2, 2))
                     }
             
             # Bu maç için en son alarmları ekle
             for selection, alarm in latest_alarm_per_selection.items():
+                incoming = alarm.pop('_log_incoming', 0)
+                total = alarm.pop('_log_total', 0)
+                comp = alarm.pop('_log_components', (0, 0, 0))
                 alarms.append(alarm)
-                log(f"  [MIM] {home} vs {away} [{selection}] | Impact: {alarm['impact_score']*100:.1f}% | £{alarm['prev_volume']:,.0f} -> £{alarm['curr_volume']:,.0f}")
+                log(f"  [MIM] {home} vs {away} | {market_name} | {selection} | vol: {alarm['prev_volume']:,.0f}→{alarm['curr_volume']:,.0f} (+{incoming:,.0f}) | market_total: {total:,.0f} | impact: {alarm['impact_score']:.3f} (%{alarm['impact_score']*100:.1f})")
+                log(f"        → components: H={comp[0]:,.0f}, D={comp[1]:,.0f}, A={comp[2]:,.0f}")
         
         if alarms:
             new_count = self._upsert_alarms('mim_alarms', alarms, ['match_id_hash', 'market', 'selection'])
