@@ -553,7 +553,7 @@ h1, h2, h3, h4, h5, h6,
 .matches-table colgroup col.col-date { width: 65px; }
 .matches-table colgroup col.col-league { width: 130px; }
 .matches-table colgroup col.col-match { width: 200px; }
-.matches-table colgroup col.col-volume { width: 70px; }
+.matches-table colgroup col.col-volume { width: 85px; }
 
 .matches-table[data-selection-count="3"] colgroup col.col-selection { width: 90px; }
 .matches-table[data-selection-count="2"] colgroup col.col-selection { width: 110px; }
@@ -705,6 +705,7 @@ h1, h2, h3, h4, h5, h6,
     text-align: right;
     vertical-align: middle;
     line-height: var(--line-height);
+    white-space: nowrap;
 }
 
 .match-teams .vs {
