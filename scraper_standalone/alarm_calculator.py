@@ -3853,9 +3853,9 @@ class AlarmCalculator:
                         'league': match.get('league', ''),
                         'market': market_name,
                         'selection': selection,
-                        'impact': round(impact, 4),
+                        'impact_score': round(impact, 4),
                         'prev_volume': round(prev_amt, 2),
-                        'current_volume': round(curr_amt, 2),
+                        'curr_volume': round(curr_amt, 2),
                         'match_date': normalize_date_for_db(match.get('date', '')),
                         'trigger_at': trigger_at,
                         'created_at': now_turkey_iso(),
@@ -3865,7 +3865,7 @@ class AlarmCalculator:
             # Bu maç için en son alarmları ekle
             for selection, alarm in latest_alarm_per_selection.items():
                 alarms.append(alarm)
-                log(f"  [MIM] {home} vs {away} [{selection}] | Impact: {alarm['impact']*100:.1f}% | £{alarm['prev_volume']:,.0f} -> £{alarm['current_volume']:,.0f}")
+                log(f"  [MIM] {home} vs {away} [{selection}] | Impact: {alarm['impact_score']*100:.1f}% | £{alarm['prev_volume']:,.0f} -> £{alarm['curr_volume']:,.0f}")
         
         if alarms:
             new_count = self._upsert_alarms('mim_alarms', alarms, ['match_id_hash', 'market', 'selection'])
