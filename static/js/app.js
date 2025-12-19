@@ -4679,10 +4679,14 @@ function renderAlarmsList(filterType) {
                 try { alarmHistory = JSON.parse(alarmHistory); } catch(e) { alarmHistory = []; }
             }
             if (alarmHistory && alarmHistory.length > 0) {
-                // Deduplication: trigger_at + incoming_money kombinasyonu ile aynı kayıtları filtrele
+                // Deduplication: UTC timestamp + incoming_money kombinasyonu ile aynı kayıtları filtrele
+                // Farklı timezone formatları (UTC vs +03:00) aynı anı temsil edebilir
                 const seen = new Set();
                 const uniqueHistory = alarmHistory.filter(h => {
-                    const key = `${h.trigger_at || ''}|${h.incoming_money || 0}`;
+                    // Timestamp'i UTC milisaniyeye çevir (timezone farkını ortadan kaldırır)
+                    const ts = h.trigger_at ? new Date(h.trigger_at).getTime() : 0;
+                    const money = Math.round(h.incoming_money || 0); // Float karşılaştırma için yuvarla
+                    const key = `${ts}|${money}`;
                     if (seen.has(key)) return false;
                     seen.add(key);
                     return true;
