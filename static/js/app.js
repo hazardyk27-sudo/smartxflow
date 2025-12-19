@@ -4231,6 +4231,7 @@ function groupAlarmsByMatch(alarms) {
                 league: alarm.league || '',
                 match_date: alarm.match_date || alarm.fixture_date || '',
                 fixture_date: alarm.fixture_date || alarm.match_date || '',
+                kickoff_utc: alarm.kickoff_utc || '',
                 latestAlarm: alarm,
                 allAlarms: [],
                 history: [],
@@ -4249,6 +4250,7 @@ function groupAlarmsByMatch(alarms) {
             groups[groupKey].match_id = alarm.match_id || groups[groupKey].match_id;
             groups[groupKey].match_date = alarm.match_date || alarm.fixture_date || groups[groupKey].match_date;
             groups[groupKey].fixture_date = alarm.fixture_date || alarm.match_date || groups[groupKey].fixture_date;
+            groups[groupKey].kickoff_utc = alarm.kickoff_utc || groups[groupKey].kickoff_utc;
         }
     });
     
@@ -4587,7 +4589,7 @@ function renderAlarmsList(filterType) {
         const homeEscaped = home.replace(/'/g, "\\'");
         const awayEscaped = away.replace(/'/g, "\\'");
         const marketEscaped = market.replace(/'/g, "\\'");
-        const matchTimeFormatted = formatMatchTime3(group.match_date);
+        const matchTimeFormatted = formatMatchTime3(group.kickoff_utc || group.match_date);
         const marketLabel2 = `${market} → ${selection}`;
         // Dropping alarmlar icin created_at (oranin dustugu an) oncelikli
         const triggerTimeSource = type === 'dropping' 

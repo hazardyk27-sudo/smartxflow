@@ -4605,6 +4605,43 @@ def get_all_alarms_batch():
             print(f"[Alarms/All] Error fetching {alarm_type}: {e}")
             result[alarm_type] = fallback
     
+    # Enrich alarms with kickoff time from fixtures table
+    try:
+        all_hashes = set()
+        for alarm_type, alarms in result.items():
+            if isinstance(alarms, list):
+                for alarm in alarms:
+                    h = alarm.get('match_id_hash')
+                    if h:
+                        all_hashes.add(h)
+        
+        if all_hashes:
+            supabase = get_supabase_client()
+            if supabase and supabase.is_available:
+                import httpx
+                hash_list = list(all_hashes)[:200]
+                kickoff_map = {}
+                try:
+                    hash_filter = ','.join([f'"{h}"' for h in hash_list])
+                    url = f"{supabase._rest_url('fixtures')}?select=match_id_hash,kickoff_utc&match_id_hash=in.({hash_filter})"
+                    resp = httpx.get(url, headers=supabase._headers(), timeout=15)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        for row in data:
+                            kickoff_map[row['match_id_hash']] = row.get('kickoff_utc')
+                except Exception as e:
+                    print(f"[Alarms/All] Kickoff fetch error: {e}")
+                
+                if kickoff_map:
+                    for alarm_type, alarms in result.items():
+                        if isinstance(alarms, list):
+                            for alarm in alarms:
+                                h = alarm.get('match_id_hash')
+                                if h and h in kickoff_map:
+                                    alarm['kickoff_utc'] = kickoff_map[h]
+    except Exception as e:
+        print(f"[Alarms/All] Kickoff enrichment error: {e}")
+    
     return jsonify(result)
 
 
