@@ -3694,8 +3694,8 @@ class AlarmCalculator:
                     market_alarm_count += 1
                     
                     comp_str = ', '.join([f"{labels[j]}={comp[j]:,.0f}" for j in range(len(comp))])
-                    log(f"  [MIM] {home} vs {away} | {market_name} | {selection} | vol: {alarm['prev_volume']:,.0f}→{alarm['curr_volume']:,.0f} (+{alarm['incoming_volume']:,.0f}) | market_total: {alarm['total_market_volume']:,.0f} | impact: {alarm['impact_score']:.3f} (%{alarm['impact_score']*100:.1f})")
-                    log(f"        → components: {comp_str}")
+                    log(f"  [MIM] {home} vs {away} | {market_name} | {selection} | vol: {alarm['prev_volume']:,.0f}->{alarm['curr_volume']:,.0f} (+{alarm['incoming_volume']:,.0f}) | market_total: {alarm['total_market_volume']:,.0f} | impact: {alarm['impact_score']:.3f} (%{alarm['impact_score']*100:.1f})")
+                    log(f"        -> components: {comp_str}")
             
             log(f"[MIM] {market_name}: {market_alarm_count} alarm bulundu")
         
