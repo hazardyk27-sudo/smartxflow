@@ -262,7 +262,7 @@ function isYesterdayTurkey(value) {
 
 /**
  * VolumeShock için maça kaç saat kala hesaplama
- * @param {Object} alarm - Alarm objesi (match_date, trigger_at, hours_to_kickoff içerebilir)
+ * @param {Object} alarm - Alarm objesi (kickoff_utc, match_date, trigger_at, hours_to_kickoff içerebilir)
  * @returns {number} Maça kalan saat (0 veya pozitif değer)
  */
 function calculateHoursToKickoff(alarm) {
@@ -271,23 +271,24 @@ function calculateHoursToKickoff(alarm) {
         return alarm.hours_to_kickoff;
     }
     
-    // match_date ve trigger_at'tan hesapla
-    const matchDateRaw = alarm.match_date || alarm.kickoff || alarm.fixture_date;
+    // kickoff_utc öncelikli - tam tarih+saat içerir
+    // match_date sadece tarih içerir (2025-12-19), saat yok - bu yüzden 0 çıkıyordu
+    const kickoffRaw = alarm.kickoff_utc || alarm.kickoff || alarm.fixture_date;
     const triggerAtRaw = alarm.trigger_at || alarm.event_time || alarm.created_at;
     
-    if (!matchDateRaw || !triggerAtRaw) {
+    if (!kickoffRaw || !triggerAtRaw) {
         return 0;
     }
     
-    const matchTime = toTurkeyTime(matchDateRaw);
+    const kickoffTime = toTurkeyTime(kickoffRaw);
     const triggerTime = toTurkeyTime(triggerAtRaw);
     
-    if (!matchTime || !triggerTime || !matchTime.isValid() || !triggerTime.isValid()) {
+    if (!kickoffTime || !triggerTime || !kickoffTime.isValid() || !triggerTime.isValid()) {
         return 0;
     }
     
     // Saat farkı hesapla (maç zamanı - alarm zamanı)
-    const diffHours = matchTime.diff(triggerTime, 'hour', true);
+    const diffHours = kickoffTime.diff(triggerTime, 'hour', true);
     
     // Negatif değilse (maç henüz başlamamışsa) döndür
     return diffHours > 0 ? diffHours : 0;
