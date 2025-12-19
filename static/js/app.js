@@ -4679,7 +4679,15 @@ function renderAlarmsList(filterType) {
                 try { alarmHistory = JSON.parse(alarmHistory); } catch(e) { alarmHistory = []; }
             }
             if (alarmHistory && alarmHistory.length > 0) {
-                const historyItems = alarmHistory.slice().reverse().map(h => {
+                // Deduplication: trigger_at + incoming_money kombinasyonu ile aynı kayıtları filtrele
+                const seen = new Set();
+                const uniqueHistory = alarmHistory.filter(h => {
+                    const key = `${h.trigger_at || ''}|${h.incoming_money || 0}`;
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+                const historyItems = uniqueHistory.slice().reverse().map(h => {
                     const hTime = formatTriggerTimeFull(h.trigger_at);
                     const hMoney = Number(h.incoming_money || 0).toLocaleString('en-GB');
                     return `<div class="acd-history-item"><span class="acd-history-time">${hTime}</span><span class="acd-history-val">£${hMoney}</span></div>`;
@@ -4702,7 +4710,9 @@ function renderAlarmsList(filterType) {
                 <div class="acd-hero-amount">£${Number(money).toLocaleString('en-GB')}</div>
                 <div class="acd-hero-label">Büyük Para Girişi</div>
             </div>${totalHtml ? `<div class="acd-grid cols-1">${totalHtml}</div>` : ''}${historyHtml}`;
-            historyLine = alarmHistory.length > 0 ? `×${alarmHistory.length + 1}` : `${triggerTime}`;
+            // uniqueHistory varsa onun uzunluğunu kullan, yoksa alarmHistory
+            const historyCount = (typeof uniqueHistory !== 'undefined' && uniqueHistory.length > 0) ? uniqueHistory.length : (alarmHistory.length > 0 ? alarmHistory.length : 0);
+            historyLine = historyCount > 0 ? `×${historyCount + 1}` : `${triggerTime}`;
         } else if (type === 'dropping') {
             const level = alarm.level || 'L1';
             badgeLabel = `DROPPING ${level}`;
