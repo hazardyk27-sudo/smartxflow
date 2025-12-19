@@ -384,11 +384,12 @@ class AlarmCalculator:
     
     def _check_dedupe(self, alarm: Dict, alarm_type: str) -> tuple:
         """Check if alarm was already sent, returns (should_send, is_retrigger, delta)"""
-        match_id = alarm.get('match_id') or alarm.get('match_id_hash', '')
+        # CRITICAL: Always use match_id_hash for consistent deduplication
+        match_id_hash = alarm.get('match_id_hash', '')
         market = alarm.get('market', '')
         selection = alarm.get('selection', '')
         normalized_type = self._normalize_alarm_type(alarm_type)
-        dedupe_key = f"{match_id}|{normalized_type}|{market}|{selection}"
+        dedupe_key = f"{match_id_hash}|{normalized_type}|{market}|{selection}"
         
         try:
             existing = self._get('telegram_sent_log', f'dedupe_key=eq.{dedupe_key}&select=*')
@@ -674,15 +675,16 @@ class AlarmCalculator:
     def _log_telegram_sent(self, alarm: Dict, alarm_type: str, delta: float = 0):
         """Log sent notification to Supabase for deduplication"""
         try:
-            match_id = alarm.get('match_id') or alarm.get('match_id_hash', '')
+            # CRITICAL: Always use match_id_hash for consistent deduplication
+            match_id_hash = alarm.get('match_id_hash', '')
             market = alarm.get('market', '')
             selection = alarm.get('selection', '')
             normalized_type = self._normalize_alarm_type(alarm_type)
-            dedupe_key = f"{match_id}|{normalized_type}|{market}|{selection}"
+            dedupe_key = f"{match_id_hash}|{normalized_type}|{market}|{selection}"
             
             payload = [{
                 'dedupe_key': dedupe_key,
-                'match_id_hash': match_id[:12] if match_id else '',
+                'match_id_hash': match_id_hash[:12] if match_id_hash else '',
                 'alarm_type': normalized_type,
                 'market': market,
                 'selection': selection,
@@ -792,8 +794,10 @@ class AlarmCalculator:
         sent_count = 0
         
         for alarm in alarms:
+            # CRITICAL: Always use match_id_hash for deduplication key
+            # existing_keys uses match_id_hash from key_fields, so we must match
             key_parts = [
-                str(alarm.get('match_id') or alarm.get('match_id_hash', '')),
+                str(alarm.get('match_id_hash', '')),
                 str(alarm.get('market', '')),
                 str(alarm.get('selection', ''))
             ]
