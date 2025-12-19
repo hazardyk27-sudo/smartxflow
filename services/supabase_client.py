@@ -1347,8 +1347,10 @@ def write_insider_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
         
         mapped = {
             'match_id': alarm.get('match_id', ''),
+            'match_id_hash': alarm.get('match_id_hash', ''),
             'home': alarm.get('home', ''),
             'away': alarm.get('away', ''),
+            'league': alarm.get('league', ''),
             'market': alarm.get('market', ''),
             'selection': alarm.get('selection', ''),
             'odds_drop_pct': alarm.get('odds_drop_pct', 0),
@@ -1381,8 +1383,10 @@ def write_sharp_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
         
         mapped = {
             'match_id': alarm.get('match_id', ''),
+            'match_id_hash': alarm.get('match_id_hash', ''),
             'home': alarm.get('home', ''),
             'away': alarm.get('away', ''),
+            'league': alarm.get('league', ''),
             'market': alarm.get('market', ''),
             'selection': alarm.get('selection', ''),
             'sharp_score': alarm.get('sharp_score', 0),
@@ -1414,8 +1418,10 @@ def write_publicmove_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
     for alarm in alarms:
         mapped = {
             'match_id': alarm.get('match_id', ''),
+            'match_id_hash': alarm.get('match_id_hash', ''),
             'home': alarm.get('home', ''),
             'away': alarm.get('away', ''),
+            'league': alarm.get('league', ''),
             'market': alarm.get('market', ''),
             'selection': alarm.get('selection', ''),
             'trap_score': alarm.get('trap_score', 0),
@@ -1439,8 +1445,10 @@ def write_volumeleader_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
     for alarm in alarms:
         mapped = {
             'match_id': alarm.get('match_id', ''),
+            'match_id_hash': alarm.get('match_id_hash', ''),
             'home': alarm.get('home', ''),
             'away': alarm.get('away', ''),
+            'league': alarm.get('league', ''),
             'market': alarm.get('market', ''),
             'old_leader': alarm.get('old_leader', ''),
             'old_leader_share': alarm.get('old_leader_share', 0),
@@ -1462,8 +1470,10 @@ def write_bigmoney_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
     for alarm in alarms:
         mapped = {
             'match_id': alarm.get('match_id', ''),
+            'match_id_hash': alarm.get('match_id_hash', ''),
             'home': alarm.get('home', ''),
             'away': alarm.get('away', ''),
+            'league': alarm.get('league', ''),
             'market': alarm.get('market', ''),
             'selection': alarm.get('selection', ''),
             'incoming_money': alarm.get('incoming_money', 0),
@@ -1485,8 +1495,10 @@ def write_dropping_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
     for alarm in alarms:
         mapped = {
             'match_id': alarm.get('match_id', ''),
+            'match_id_hash': alarm.get('match_id_hash', ''),
             'home': alarm.get('home', ''),
             'away': alarm.get('away', ''),
+            'league': alarm.get('league', ''),
             'market': alarm.get('market', ''),
             'selection': alarm.get('selection', ''),
             'opening_odds': alarm.get('opening_odds'),
@@ -1508,8 +1520,10 @@ def write_volumeshock_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
     for alarm in alarms:
         mapped = {
             'match_id': alarm.get('match_id', ''),
+            'match_id_hash': alarm.get('match_id_hash', ''),
             'home': alarm.get('home', ''),
             'away': alarm.get('away', ''),
+            'league': alarm.get('league', ''),
             'market': alarm.get('market', ''),
             'selection': alarm.get('selection', ''),
             'volume_shock': alarm.get('volume_shock', 0),
