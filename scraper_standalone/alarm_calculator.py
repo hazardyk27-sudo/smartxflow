@@ -1933,14 +1933,10 @@ class AlarmCalculator:
         self._matches_cache[market] = []
         return []
     
-    # TABLO MAPPING: Sadece dropping_odds için snapshot tablolar kullanılır
-    # Moneyway tabloları KALDIRILDI - legacy tablolara (moneyway_1x2_history vb.) fallback yapılır
-    # Çünkü gerçek veriler moneyway_1x2_history, moneyway_ou25_history, moneyway_btts_history tablolarında
-    SNAPSHOT_TABLE_MAP = {
-        'dropping_1x2': ('dropping_odds_snapshots', '1X2', None),
-        'dropping_ou25': ('dropping_odds_snapshots', 'OU25', None),
-        'dropping_btts': ('dropping_odds_snapshots', 'BTTS', None),
-    }
+    # TABLO MAPPING: Boş - tüm marketler legacy tablolara fallback yapar
+    # Dropping: dropping_1x2_history, dropping_ou25_history, dropping_btts_history
+    # Moneyway: moneyway_1x2_history, moneyway_ou25_history, moneyway_btts_history
+    SNAPSHOT_TABLE_MAP = {}
     
     def batch_fetch_history(self, market: str) -> Dict[str, List[Dict]]:
         """Batch fetch ALL history for a market - NO LIMIT, tüm snapshot'lar okunur
