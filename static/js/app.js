@@ -5537,8 +5537,14 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
         } else if (type === 'mim') {
             const impact = latest.impact || latest.impact_score || latest.money_impact || 0;
             const impactPct = (impact * 100).toFixed(1);
-            const selection = latest.selection || latest.side || '-';
-            const market = latest.market || '';
+            const rawSelection = (latest.selection || latest.side || '-').toUpperCase();
+            const rawMarket = (latest.market || '').toUpperCase();
+            // Selection mapping: U->Under, O->Over, Y->Yes, N->No
+            const selectionMap = {'U': 'Under', 'O': 'Over', 'Y': 'Yes', 'N': 'No', '1': '1', 'X': 'X', '2': '2'};
+            const selection = selectionMap[rawSelection] || rawSelection;
+            // Market formatting: OU25->O/U 2.5, 1X2->1X2, BTTS->BTTS
+            const marketMap = {'OU25': 'O/U 2.5', 'O/U 2.5': 'O/U 2.5', '1X2': '1X2', 'BTTS': 'BTTS'};
+            const market = marketMap[rawMarket] || rawMarket;
             const prevVol = latest.prev_volume || latest.previous_volume || 0;
             const currVol = latest.current_volume || latest.curr_volume || 0;
             const incomingVol = latest.incoming_volume || (currVol - prevVol);
