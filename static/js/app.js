@@ -3494,7 +3494,7 @@ function highlightNewAlarm(alarm) {
     if (alarmType === 'sharp') {
         value = (alarm.sharp_score || 0).toFixed(1);
     } else if (alarmType === 'insider') {
-        value = `▼ ${Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1)}%`;
+        value = `▼ ${Math.abs(alarm.drop_pct || alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1)}%`;
     } else if (alarmType === 'volumeshock') {
         value = `${(alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0).toFixed(1)}x`;
     } else if (alarmType === 'bigmoney') {
@@ -3993,15 +3993,17 @@ function showAlertBandDetail(index) {
             </div>
         `;
     } else if (alarm._type === 'insider') {
+        const insiderDropPct = alarm.drop_pct || alarm.oran_dusus_pct || alarm.odds_drop_pct || 0;
+        const insiderMoney = alarm.total_money || alarm.incoming_money || alarm.stake || 0;
         detailsHtml = `
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                 <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                    <div style="color: #60a5fa; font-size: 20px; font-weight: 700;">${alarm.stake ? '£' + Number(alarm.stake).toLocaleString('en-GB') : '-'}</div>
-                    <div style="color: #8b949e; font-size: 11px;">Stake</div>
+                    <div style="color: #60a5fa; font-size: 20px; font-weight: 700;">${insiderMoney > 0 ? '£' + Number(insiderMoney).toLocaleString('en-GB') : '-'}</div>
+                    <div style="color: #8b949e; font-size: 11px;">Gelen Para</div>
                 </div>
                 <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                    <div style="color: #f87171; font-size: 20px; font-weight: 700;">${alarm.odds_drop_pct ? alarm.odds_drop_pct.toFixed(2) + '%' : '-'}</div>
-                    <div style="color: #8b949e; font-size: 11px;">Odds Drop</div>
+                    <div style="color: #f87171; font-size: 20px; font-weight: 700;">${insiderDropPct > 0 ? insiderDropPct.toFixed(2) + '%' : '-'}</div>
+                    <div style="color: #8b949e; font-size: 11px;">Oran Düşüşü</div>
                 </div>
             </div>
         `;
@@ -4456,8 +4458,8 @@ function renderAlarmsList(filterType) {
             mainValue = `${moneyPart}<span class="value-highlight">Sharp Puanı ${score}</span><span class="sep">\u2022</span><span class="value-pct">%${oddsSign}${Math.abs(oddsDrop).toFixed(1)}</span>`;
         } else if (type === 'insider') {
             const openingOdds = alarm.opening_odds || 0;
-            const lastOdds = alarm.last_odds || 0;
-            const oddsDrop = alarm.oran_dusus_pct || alarm.odds_drop_pct || 0;
+            const lastOdds = alarm.current_odds || alarm.last_odds || 0;
+            const oddsDrop = alarm.drop_pct || alarm.oran_dusus_pct || alarm.odds_drop_pct || 0;
             mainValue = `<span class="value-odds">${openingOdds.toFixed(2)}</span><span class="arrow">\u2192</span><span class="value-odds-new">${lastOdds.toFixed(2)}</span><span class="sep">\u2022</span><span class="value-pct-drop">\u2212${Math.abs(oddsDrop).toFixed(1)}%</span>`;
         } else if (type === 'bigmoney') {
             const money = alarm.incoming_money || alarm.stake || 0;
@@ -4599,8 +4601,8 @@ function renderAlarmsList(filterType) {
             badgeLabel = 'INSIDER';
             const openOdds = (alarm.opening_odds || 0).toFixed(2);
             const lastOdds = (alarm.current_odds || alarm.last_odds || 0).toFixed(2);
-            const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
-            const gelenPara = alarm.incoming_money || alarm.gelen_para || 0;
+            const dropPct = Math.abs(alarm.drop_pct || alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
+            const gelenPara = alarm.incoming_money || alarm.gelen_para || alarm.total_money || 0;
             metricContent = `<div class="acd-grid cols-2">
                 <div class="acd-stat">
                     <div class="acd-stat-val insider">${openOdds} → ${lastOdds}</div>
@@ -4731,7 +4733,8 @@ function renderAlarmsList(filterType) {
             const impactPct = (impact * 100).toFixed(1);
             const prevVol = alarm.prev_volume || alarm.previous_volume || 0;
             const currVol = alarm.current_volume || alarm.curr_volume || alarm.total_volume || 0;
-            const incomingMoney = currVol - prevVol;
+            const incomingMoney = alarm.incoming_volume || (currVol - prevVol);
+            const totalMarketVol = alarm.total_market_volume || currVol;
             metricContent = `<div class="acd-grid cols-3">
                 <div class="acd-stat">
                     <div class="acd-stat-val mim">${impactPct}%</div>
@@ -4759,7 +4762,7 @@ function renderAlarmsList(filterType) {
         if (type === 'sharp') {
             metricValue = (alarm.sharp_score || 0).toFixed(1);
         } else if (type === 'insider') {
-            const dropPct = Math.abs(alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
+            const dropPct = Math.abs(alarm.drop_pct || alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
             metricValue = `▼ ${dropPct}%`;
         } else if (type === 'volumeshock') {
             metricValue = `${(alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0).toFixed(1)}x`;
@@ -4776,7 +4779,7 @@ function renderAlarmsList(filterType) {
         } else if (type === 'mim') {
             const impact = alarm.impact || alarm.impact_score || alarm.money_impact || 0;
             const impactPct = (impact * 100).toFixed(0);
-            const incomingMoney = (alarm.current_volume || alarm.curr_volume || 0) - (alarm.prev_volume || 0);
+            const incomingMoney = alarm.incoming_volume || ((alarm.current_volume || alarm.curr_volume || 0) - (alarm.prev_volume || 0));
             metricValue = incomingMoney > 0 ? `+£${Number(incomingMoney).toLocaleString('en-GB')}` : `${impactPct}%`;
         }
         
