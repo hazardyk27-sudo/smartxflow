@@ -4679,27 +4679,38 @@ function renderAlarmsList(filterType) {
                 try { alarmHistory = JSON.parse(alarmHistory); } catch(e) { alarmHistory = []; }
             }
             if (alarmHistory && alarmHistory.length > 0) {
+                // Mevcut alarmın timestamp ve para değerini al
+                const currentTs = alarm.trigger_at ? new Date(alarm.trigger_at).getTime() : 0;
+                const currentMoney = Math.round(alarm.incoming_money || alarm.stake || 0);
+                
                 // Deduplication: UTC timestamp + incoming_money kombinasyonu ile aynı kayıtları filtrele
-                // Farklı timezone formatları (UTC vs +03:00) aynı anı temsil edebilir
+                // Ayrıca mevcut alarmı önceki listesinden çıkar
                 const seen = new Set();
                 const uniqueHistory = alarmHistory.filter(h => {
                     // Timestamp'i UTC milisaniyeye çevir (timezone farkını ortadan kaldırır)
                     const ts = h.trigger_at ? new Date(h.trigger_at).getTime() : 0;
-                    const money = Math.round(h.incoming_money || 0); // Float karşılaştırma için yuvarla
-                    const key = `${ts}|${money}`;
+                    const histMoney = Math.round(h.incoming_money || 0);
+                    
+                    // Mevcut alarm ile aynı ise gösterme (önceki değil, şu anki)
+                    if (ts === currentTs && histMoney === currentMoney) return false;
+                    
+                    const key = `${ts}|${histMoney}`;
                     if (seen.has(key)) return false;
                     seen.add(key);
                     return true;
                 });
-                const historyItems = uniqueHistory.slice().reverse().map(h => {
-                    const hTime = formatTriggerTimeFull(h.trigger_at);
-                    const hMoney = Number(h.incoming_money || 0).toLocaleString('en-GB');
-                    return `<div class="acd-history-item"><span class="acd-history-time">${hTime}</span><span class="acd-history-val">£${hMoney}</span></div>`;
-                }).join('');
-                historyHtml = `<div class="acd-history-section">
-                    <div class="acd-history-title">ÖNCEKİ</div>
-                    ${historyItems}
-                </div>`;
+                // Sadece önceki alarm varsa göster
+                if (uniqueHistory.length > 0) {
+                    const historyItems = uniqueHistory.slice().reverse().map(h => {
+                        const hTime = formatTriggerTimeFull(h.trigger_at);
+                        const hMoney = Number(h.incoming_money || 0).toLocaleString('en-GB');
+                        return `<div class="acd-history-item"><span class="acd-history-time">${hTime}</span><span class="acd-history-val">£${hMoney}</span></div>`;
+                    }).join('');
+                    historyHtml = `<div class="acd-history-section">
+                        <div class="acd-history-title">ÖNCEKİ</div>
+                        ${historyItems}
+                    </div>`;
+                }
             }
             
             // Toplam 0 ise gösterme, değilse göster
