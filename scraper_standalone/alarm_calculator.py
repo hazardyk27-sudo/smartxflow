@@ -3538,13 +3538,18 @@ class AlarmCalculator:
 
 
     def calculate_mim_alarms(self) -> int:
-        """Calculate MIM (Market Impact) alarms - SELECTION BAZLI
+        """Calculate MIM (Market Impact) alarms - SELECTION BAZLI - 3 MARKET
         
-        MIM Formülü (YENİ):
+        MIM Formülü:
         - Impact = (selection'a gelen yeni para) / (toplam volume)
-        - Örnek: amt1 £40k -> £100k, toplam £100k ise Impact = 60k / 100k = %60
+        - Örnek: Over'a £2k geldi, toplam £3k ise Impact = 2k / 3k = %66
         - Alarm üretilir: impact >= min_impact_threshold
-        - Her selection (1, X, 2) için AYRI alarm üretilir
+        - Her selection için AYRI alarm üretilir
+        
+        Marketler:
+        - 1X2: selections = 1, X, 2
+        - OU25: selections = O (Over), U (Under)
+        - BTTS: selections = Y (Yes), N (No)
         """
         config = self.configs.get('mim')
         if not config:
@@ -3560,114 +3565,146 @@ class AlarmCalculator:
         
         log(f"[MIM] Config: min_impact_threshold={min_impact_threshold} (%{min_impact_threshold*100:.0f}), min_total_volume={min_total_volume}")
         
-        alarms = []
-        market = 'moneyway_1x2'
-        market_name = '1X2'
+        all_alarms = []
         
-        matches = self.get_matches_with_latest(market)
-        if not matches:
-            log("[MIM] moneyway_1x2'de maç yok")
-            return 0
+        markets_config = [
+            {
+                'table': 'moneyway_1x2',
+                'name': '1X2',
+                'selections': [
+                    ('1', 'amt1', 'total_amount_1'),
+                    ('X', 'amtx', 'total_amount_x'),
+                    ('2', 'amt2', 'total_amount_2')
+                ],
+                'volume_keys': [('amt1', 'total_amount_1'), ('amtx', 'total_amount_x'), ('amt2', 'total_amount_2')],
+                'component_labels': ('H', 'D', 'A')
+            },
+            {
+                'table': 'moneyway_ou25',
+                'name': 'OU25',
+                'selections': [
+                    ('O', 'amtover', 'total_amount_over'),
+                    ('U', 'amtunder', 'total_amount_under')
+                ],
+                'volume_keys': [('amtover', 'total_amount_over'), ('amtunder', 'total_amount_under')],
+                'component_labels': ('Over', 'Under')
+            },
+            {
+                'table': 'moneyway_btts',
+                'name': 'BTTS',
+                'selections': [
+                    ('Y', 'amtyes', 'total_amount_yes'),
+                    ('N', 'amtno', 'total_amount_no')
+                ],
+                'volume_keys': [('amtyes', 'total_amount_yes'), ('amtno', 'total_amount_no')],
+                'component_labels': ('Yes', 'No')
+            }
+        ]
         
-        for match in matches:
-            home = match.get('home', '')
-            away = match.get('away', '')
+        for mkt_config in markets_config:
+            market_table = mkt_config['table']
+            market_name = mkt_config['name']
+            selections = mkt_config['selections']
+            volume_keys = mkt_config['volume_keys']
+            component_labels = mkt_config['component_labels']
             
-            if not self._is_valid_match_date(match.get('date', '')):
+            matches = self.get_matches_with_latest(market_table)
+            if not matches:
+                log(f"[MIM] {market_name}: maç yok")
                 continue
             
-            match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
-            history = self.get_match_history(match_id_hash, f"{market}_history", home, away, match.get('league', ''), match.get('date', ''))
-            if len(history) < 2:
-                continue
+            log(f"[MIM] {market_name}: {len(matches)} maç inceleniyor...")
+            market_alarm_count = 0
             
-            sorted_history = sorted(history, key=lambda x: x.get('scraped_at', ''))
-            
-            # Her selection için ayrı hesaplama
-            selections = [
-                ('1', 'amt1', 'total_amount_1'),
-                ('X', 'amtx', 'total_amount_x'),
-                ('2', 'amt2', 'total_amount_2')
-            ]
-            
-            # Her selection için EN SON qualifying spike'ı bul (tüm snapshot çiftlerini tara)
-            latest_alarm_per_selection = {}
-            
-            for i in range(1, len(sorted_history)):
-                prev_snap = sorted_history[i - 1]
-                curr_snap = sorted_history[i]
+            for match in matches:
+                home = match.get('home', '')
+                away = match.get('away', '')
                 
-                # Önceki toplam volume hesapla (min_total_volume kontrolü için)
-                prev_amt_1 = parse_volume(prev_snap.get('amt1') or prev_snap.get('total_amount_1', 0))
-                prev_amt_x = parse_volume(prev_snap.get('amtx') or prev_snap.get('total_amount_x', 0))
-                prev_amt_2 = parse_volume(prev_snap.get('amt2') or prev_snap.get('total_amount_2', 0))
-                prev_total_volume = prev_amt_1 + prev_amt_x + prev_amt_2
-                
-                # Şimdiki toplam volume hesapla
-                curr_amt_1 = parse_volume(curr_snap.get('amt1') or curr_snap.get('total_amount_1', 0))
-                curr_amt_x = parse_volume(curr_snap.get('amtx') or curr_snap.get('total_amount_x', 0))
-                curr_amt_2 = parse_volume(curr_snap.get('amt2') or curr_snap.get('total_amount_2', 0))
-                curr_total_volume = curr_amt_1 + curr_amt_x + curr_amt_2
-                
-                # Önceki toplam volume min_total_volume'dan düşükse atla
-                if prev_total_volume < min_total_volume:
+                if not self._is_valid_match_date(match.get('date', '')):
                     continue
                 
-                if curr_total_volume <= 0:
+                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
+                history = self.get_match_history(match_id_hash, f"{market_table}_history", home, away, match.get('league', ''), match.get('date', ''))
+                if len(history) < 2:
                     continue
                 
-                for selection, amt_key, alt_amt_key in selections:
-                    prev_amt = parse_volume(prev_snap.get(amt_key) or prev_snap.get(alt_amt_key, 0))
-                    curr_amt = parse_volume(curr_snap.get(amt_key) or curr_snap.get(alt_amt_key, 0))
+                sorted_history = sorted(history, key=lambda x: x.get('scraped_at', ''))
+                
+                latest_alarm_per_selection = {}
+                
+                for i in range(1, len(sorted_history)):
+                    prev_snap = sorted_history[i - 1]
+                    curr_snap = sorted_history[i]
                     
-                    # Gelen para = şimdiki - önceki
-                    incoming_money = curr_amt - prev_amt
+                    prev_volumes = []
+                    curr_volumes = []
+                    for amt_key, alt_key in volume_keys:
+                        prev_volumes.append(parse_volume(prev_snap.get(amt_key) or prev_snap.get(alt_key, 0)))
+                        curr_volumes.append(parse_volume(curr_snap.get(amt_key) or curr_snap.get(alt_key, 0)))
                     
-                    # Negatif para geldiyse (azaldıysa) atla
-                    if incoming_money <= 0:
+                    prev_total_volume = sum(prev_volumes)
+                    curr_total_volume = sum(curr_volumes)
+                    
+                    if prev_total_volume < min_total_volume:
                         continue
                     
-                    # Impact = gelen para / şimdiki toplam volume
-                    impact = incoming_money / curr_total_volume
-                    
-                    if impact < min_impact_threshold:
+                    if curr_total_volume <= 0:
                         continue
                     
-                    trigger_at = curr_snap.get('scraped_at', now_turkey_iso())
+                    for selection, amt_key, alt_amt_key in selections:
+                        prev_amt = parse_volume(prev_snap.get(amt_key) or prev_snap.get(alt_amt_key, 0))
+                        curr_amt = parse_volume(curr_snap.get(amt_key) or curr_snap.get(alt_amt_key, 0))
+                        
+                        incoming_money = curr_amt - prev_amt
+                        
+                        if incoming_money <= 0:
+                            continue
+                        
+                        impact = incoming_money / curr_total_volume
+                        
+                        if impact < min_impact_threshold:
+                            continue
+                        
+                        trigger_at = curr_snap.get('scraped_at', now_turkey_iso())
+                        
+                        latest_alarm_per_selection[selection] = {
+                            'match_id_hash': match_id_hash,
+                            'home': home,
+                            'away': away,
+                            'league': match.get('league', ''),
+                            'market': market_name,
+                            'selection': selection,
+                            'impact_score': round(impact, 4),
+                            'prev_volume': round(prev_amt, 2),
+                            'curr_volume': round(curr_amt, 2),
+                            'incoming_volume': round(incoming_money, 2),
+                            'total_market_volume': round(curr_total_volume, 2),
+                            'match_date': normalize_date_for_db(match.get('date', '')),
+                            'trigger_at': trigger_at,
+                            'created_at': now_turkey_iso(),
+                            'alarm_type': 'mim',
+                            '_log_components': tuple(curr_volumes),
+                            '_component_labels': component_labels
+                        }
+                
+                for selection, alarm in latest_alarm_per_selection.items():
+                    comp = alarm.pop('_log_components', ())
+                    labels = alarm.pop('_component_labels', ())
+                    all_alarms.append(alarm)
+                    market_alarm_count += 1
                     
-                    # Bu selection için EN SON qualifying spike'ı tut (üzerine yaz)
-                    latest_alarm_per_selection[selection] = {
-                        'match_id_hash': match_id_hash,
-                        'home': home,
-                        'away': away,
-                        'league': match.get('league', ''),
-                        'market': market_name,
-                        'selection': selection,
-                        'impact_score': round(impact, 4),
-                        'prev_volume': round(prev_amt, 2),
-                        'curr_volume': round(curr_amt, 2),
-                        'incoming_volume': round(incoming_money, 2),
-                        'total_market_volume': round(curr_total_volume, 2),
-                        'match_date': normalize_date_for_db(match.get('date', '')),
-                        'trigger_at': trigger_at,
-                        'created_at': now_turkey_iso(),
-                        'alarm_type': 'mim',
-                        '_log_components': (round(curr_amt_1, 2), round(curr_amt_x, 2), round(curr_amt_2, 2))
-                    }
+                    comp_str = ', '.join([f"{labels[j]}={comp[j]:,.0f}" for j in range(len(comp))])
+                    log(f"  [MIM] {home} vs {away} | {market_name} | {selection} | vol: {alarm['prev_volume']:,.0f}→{alarm['curr_volume']:,.0f} (+{alarm['incoming_volume']:,.0f}) | market_total: {alarm['total_market_volume']:,.0f} | impact: {alarm['impact_score']:.3f} (%{alarm['impact_score']*100:.1f})")
+                    log(f"        → components: {comp_str}")
             
-            # Bu maç için en son alarmları ekle
-            for selection, alarm in latest_alarm_per_selection.items():
-                comp = alarm.pop('_log_components', (0, 0, 0))
-                alarms.append(alarm)
-                log(f"  [MIM] {home} vs {away} | {market_name} | {selection} | vol: {alarm['prev_volume']:,.0f}→{alarm['curr_volume']:,.0f} (+{alarm['incoming_volume']:,.0f}) | market_total: {alarm['total_market_volume']:,.0f} | impact: {alarm['impact_score']:.3f} (%{alarm['impact_score']*100:.1f})")
-                log(f"        → components: H={comp[0]:,.0f}, D={comp[1]:,.0f}, A={comp[2]:,.0f}")
+            log(f"[MIM] {market_name}: {market_alarm_count} alarm bulundu")
         
-        if alarms:
-            new_count = self._upsert_alarms('mim_alarms', alarms, ['match_id_hash', 'market', 'selection'])
-            log(f"MIM: {new_count} alarms upserted")
+        if all_alarms:
+            new_count = self._upsert_alarms('mim_alarms', all_alarms, ['match_id_hash', 'market', 'selection'])
+            log(f"MIM TOPLAM: {new_count} alarms upserted (3 market)")
             return new_count
         else:
-            log("MIM: 0 alarm")
+            log("MIM: 0 alarm (3 market)")
         
         return 0
 
