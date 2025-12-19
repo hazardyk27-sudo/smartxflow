@@ -958,7 +958,6 @@ def run_scrape(writer: SupabaseWriter, logger_callback=None):
     # Tüm maçları topla (fixtures için)
     all_fixtures = {}  # match_id_hash -> fixture data
     all_moneyway_snapshots = []
-    all_dropping_snapshots = []
     
     for dataset_key, url in DATASETS.items():
         table_name = MARKET_TABLE_MAP[dataset_key]
@@ -1039,44 +1038,6 @@ def run_scrape(writer: SupabaseWriter, logger_callback=None):
                                     'scraped_at_utc': scraped_at_utc
                                 })
                     
-                    elif is_dropping:
-                        # Dropping odds snapshot
-                        if market == '1X2':
-                            selections = [
-                                ('1', row.get('odds1'), row.get('odds1_prev'), row.get('pct1'), row.get('amt1')),
-                                ('X', row.get('oddsx'), row.get('oddsx_prev'), row.get('pctx'), row.get('amtx')),
-                                ('2', row.get('odds2'), row.get('odds2_prev'), row.get('pct2'), row.get('amt2'))
-                            ]
-                        elif market == 'OU25':
-                            selections = [
-                                ('O', row.get('over'), row.get('over_prev'), row.get('pctover'), row.get('amtover')),
-                                ('U', row.get('under'), row.get('under_prev'), row.get('pctunder'), row.get('amtunder'))
-                            ]
-                        else:  # BTTS
-                            selections = [
-                                ('Y', row.get('oddsyes'), row.get('oddsyes_prev'), row.get('pctyes'), row.get('amtyes')),
-                                ('N', row.get('oddsno'), row.get('oddsno_prev'), row.get('pctno'), row.get('amtno'))
-                            ]
-                        
-                        for sel, current, opening, share, volume in selections:
-                            if current or opening:
-                                cur_val = float(current) if current and current.replace('.','').isdigit() else None
-                                open_val = float(opening) if opening and opening.replace('.','').isdigit() else None
-                                drop_pct = None
-                                if cur_val and open_val and open_val > 0:
-                                    drop_pct = round((open_val - cur_val) / open_val * 100, 2)
-                                
-                                all_dropping_snapshots.append({
-                                    'match_id_hash': match_id_hash,
-                                    'market': market,
-                                    'selection': sel,
-                                    'opening_odds': open_val,
-                                    'current_odds': cur_val,
-                                    'drop_pct': drop_pct,
-                                    'volume': _parse_volume(volume) if volume else None,
-                                    'scraped_at_utc': scraped_at_utc
-                                })
-                
                 # Mevcut history tablolarına da yaz (geriye uyumluluk)
                 main_ok = writer.replace_table(table_name, rows)
                 history_ok = writer.append_history(history_table, rows, scraped_at)
@@ -1118,18 +1079,10 @@ def run_scrape(writer: SupabaseWriter, logger_callback=None):
             _log(f"  [HATA] Moneyway snapshots yazma basarisiz!")
             write_errors += 1
     
-    if all_dropping_snapshots:
-        _log(f"  [SNAPSHOTS] {len(all_dropping_snapshots)} dropping snapshot yaziliyor...")
-        if writer.insert_snapshots('dropping_odds_snapshots', all_dropping_snapshots):
-            _log(f"  [OK] Dropping snapshots: {len(all_dropping_snapshots)}")
-        else:
-            _log(f"  [HATA] Dropping snapshots yazma basarisiz!")
-            write_errors += 1
-    
     if write_errors > 0:
         _log(f"UYARI: {write_errors} tabloda yazma hatasi olustu!")
     
-    _log(f"Scrape tamamlandi - Toplam: {total_rows} satir, {len(all_fixtures)} fixture, {len(all_moneyway_snapshots)+len(all_dropping_snapshots)} snapshot")
+    _log(f"Scrape tamamlandi - Toplam: {total_rows} satir, {len(all_fixtures)} fixture, {len(all_moneyway_snapshots)} snapshot")
     return total_rows
 
 
