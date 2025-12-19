@@ -4776,12 +4776,12 @@ function renderAlarmsList(filterType) {
                     <div class="acd-stat-lbl">Gelen Para</div>
                 </div>
                 <div class="acd-stat">
-                    <div class="acd-stat-val">£${Number(currVol).toLocaleString('en-GB')}</div>
-                    <div class="acd-stat-lbl">Toplam Hacim</div>
+                    <div class="acd-stat-val">£${Number(totalMarketVol).toLocaleString('en-GB')}</div>
+                    <div class="acd-stat-lbl">Market Hacmi</div>
                 </div>
             </div>
             <div class="acd-info-row">
-                <span>Önceki: £${Number(prevVol).toLocaleString('en-GB')}</span>
+                <span>Seçenek: £${Number(prevVol).toLocaleString('en-GB')} → £${Number(currVol).toLocaleString('en-GB')}</span>
             </div>`;
             historyLine = `${triggerTime}`;
         }
