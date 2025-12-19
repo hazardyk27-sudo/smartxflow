@@ -806,15 +806,17 @@ class AlarmCalculator:
             is_new = key not in existing_keys
             is_refreshed = key in updated_keys
             
-            # For refreshed alarms (BigMoney/VolumeShock with new trigger_at), skip dedupe check
-            # Because this is a NEW money movement, we want to notify
+            # For refreshed alarms (BigMoney/VolumeShock with new trigger_at), still check dedupe
+            # to prevent duplicate Telegram messages
             if is_refreshed:
-                log(f"[Telegram] Refreshed alarm detected: {alarm_type_clean} - sending notification")
-                if self._send_telegram_notification(alarm, alarm_type_clean, is_retrigger=False, delta=0):
-                    current_delta = float(alarm.get('delta', 0) or alarm.get('money_in', 0) or alarm.get('incoming_money', 0) or 0)
-                    self._log_telegram_sent(alarm, alarm_type_clean, current_delta)
-                    sent_count += 1
-                    time.sleep(0.5)
+                should_send, is_retrigger, delta = self._check_dedupe(alarm, alarm_type_clean)
+                if should_send:
+                    log(f"[Telegram] Refreshed alarm detected: {alarm_type_clean} - sending notification")
+                    if self._send_telegram_notification(alarm, alarm_type_clean, is_retrigger, delta):
+                        current_delta = float(alarm.get('delta', 0) or alarm.get('money_in', 0) or alarm.get('incoming_money', 0) or 0)
+                        self._log_telegram_sent(alarm, alarm_type_clean, current_delta)
+                        sent_count += 1
+                        time.sleep(0.5)
             elif is_new:
                 # Normal new alarm - check dedupe
                 should_send, is_retrigger, delta = self._check_dedupe(alarm, alarm_type_clean)
