@@ -1451,63 +1451,6 @@ class AlarmCalculator:
             log(f"[MONEYWAY BATCH ERROR] {e}")
         return 0
     
-    def write_dropping_snapshot(self, match_id_hash: str, market: str, selection: str,
-                                 opening_odds: float, current_odds: float, 
-                                 drop_pct: float, volume: float) -> bool:
-        """
-        PHASE 2: Write dropping odds snapshot to dropping_odds_snapshots table.
-        """
-        try:
-            payload = {
-                'match_id_hash': match_id_hash,
-                'market': market,
-                'selection': selection,
-                'opening_odds': round(opening_odds, 2) if opening_odds else None,
-                'current_odds': round(current_odds, 2) if current_odds else None,
-                'drop_pct': round(drop_pct, 2) if drop_pct else None,
-                'volume': round(volume, 2) if volume else None
-            }
-            
-            if self._post('dropping_odds_snapshots', [payload]):
-                return True
-        except Exception as e:
-            log(f"[DROPPING SNAPSHOT ERROR] {e}")
-        return False
-    
-    def write_dropping_snapshots_batch(self, snapshots: List[Dict]) -> int:
-        """
-        PHASE 2: Batch write dropping odds snapshots.
-        
-        Args:
-            snapshots: List of dicts with match_id_hash, market, selection, 
-                       opening_odds, current_odds, drop_pct, volume
-        
-        Returns:
-            Number of successfully written snapshots
-        """
-        if not snapshots:
-            return 0
-        
-        try:
-            payloads = []
-            for snap in snapshots:
-                payloads.append({
-                    'match_id_hash': snap.get('match_id_hash'),
-                    'market': snap.get('market'),
-                    'selection': snap.get('selection'),
-                    'opening_odds': round(snap.get('opening_odds', 0), 2) if snap.get('opening_odds') else None,
-                    'current_odds': round(snap.get('current_odds', 0), 2) if snap.get('current_odds') else None,
-                    'drop_pct': round(snap.get('drop_pct', 0), 2) if snap.get('drop_pct') else None,
-                    'volume': round(snap.get('volume', 0), 2) if snap.get('volume') else None
-                })
-            
-            if self._post('dropping_odds_snapshots', payloads):
-                log(f"[DROPPING] Batch write: {len(payloads)} snapshots")
-                return len(payloads)
-        except Exception as e:
-            log(f"[DROPPING BATCH ERROR] {e}")
-        return 0
-
     def cleanup_old_alarms(self, days_to_keep: int = 2) -> int:
         """
         D-2+ alarmları sil (bugün ve dün hariç tüm eski alarmlar)
@@ -1814,118 +1757,16 @@ class AlarmCalculator:
     def get_matches_with_latest(self, market: str) -> List[Dict]:
         """Get all matches with their latest data for a market (cached)
         
-        YENİ ŞEMA: moneyway_snapshots'tan en son snapshot'ları çeker (volume/odds dahil).
-        Legacy tablolar artık KULLANILMIYOR - doğrudan snapshot tablolarına gidilir.
-        
-        Pagination: PostgREST 1000 satır limiti nedeniyle pagination kullanır.
+        Legacy tablolardan çeker: moneyway_1x2, moneyway_ou25, dropping_1x2 vb.
         """
-        import urllib.parse
-        
         if market in self._matches_cache:
             return self._matches_cache[market]
         
         log(f"FETCH {market} (latest)...")
         
-        # YENİ ŞEMA: Doğrudan snapshot tablolarından çek (legacy tablolar artık KULLANILMIYOR)
-        # Yeni şema: Aggregated view'dan çek (selection'lar pivot edilmiş)
-        if market in self.SNAPSHOT_TABLE_MAP:
-            actual_table, market_filter, aggregated_view = self.SNAPSHOT_TABLE_MAP[market]
-            
-            # Önce aggregated view'ı dene (selection'lar pivot edilmiş)
-            if aggregated_view:
-                try:
-                    matches = self._get(aggregated_view, 'select=*')
-                    if matches:
-                        log(f"  -> {len(matches)} matches from {aggregated_view} (aggregated view)")
-                        self._matches_cache[market] = matches
-                        return matches
-                except Exception as e:
-                    log(f"  [WARN] Aggregated view {aggregated_view} not available: {e}, falling back to raw snapshots")
-            
-            # Fallback: Raw snapshots'tan aggregate et
-            encoded_filter = urllib.parse.quote(market_filter)
-            
-            # PAGINATION: Tüm snapshot'ları paginated olarak çek
-            all_snapshots = []
-            offset = 0
-            page_size = 1000
-            
-            while True:
-                params = f"select=*&market=eq.{encoded_filter}&order=scraped_at_utc.desc&limit={page_size}&offset={offset}"
-                batch = self._get(actual_table, params) or []
-                if not batch:
-                    break
-                all_snapshots.extend(batch)
-                if len(batch) < page_size:
-                    break
-                offset += page_size
-            
-            log(f"  -> {len(all_snapshots)} total snapshots fetched from {actual_table}")
-            
-            # Client-side aggregation: Selection'ları pivot et
-            # Her (match_id_hash, selection) için en son snapshot'ı tut
-            latest_by_match_sel = {}
-            for snap in all_snapshots:
-                h = snap.get('match_id_hash', '')
-                sel = snap.get('selection', '')
-                key = (h, sel)
-                if key not in latest_by_match_sel:
-                    latest_by_match_sel[key] = snap
-            
-            # match_id_hash bazında aggregate et
-            aggregated = {}
-            for (h, sel), snap in latest_by_match_sel.items():
-                if h not in aggregated:
-                    aggregated[h] = {
-                        'match_id_hash': h,
-                        'scraped_at': snap.get('scraped_at_utc', ''),
-                        # Snapshot'tan metadata al (fixtures boşsa diye)
-                        '_snap_home': snap.get('home', ''),
-                        '_snap_away': snap.get('away', ''),
-                        '_snap_league': snap.get('league', ''),
-                        '_snap_date': snap.get('date', snap.get('kickoff', '')),
-                    }
-                # Selection bazında alanları ekle
-                sel_lower = sel.lower().replace(' ', '_') if sel else 'unknown'
-                aggregated[h][f'vol_{sel_lower}'] = snap.get('volume', 0)
-                aggregated[h][f'odds_{sel_lower}'] = snap.get('odds', 0)
-                aggregated[h][f'pct_{sel_lower}'] = snap.get('share', 0)
-            
-            # Fixtures metadata ile zenginleştir
-            fixtures_map = {}
-            fixtures = self._get('fixtures', 'select=*') or []
-            for f in fixtures:
-                fh = f.get('match_id_hash', '')
-                if fh:
-                    fixtures_map[fh] = f
-            
-            enriched_matches = []
-            for match_hash, agg in aggregated.items():
-                fixture = fixtures_map.get(match_hash, {})
-                # Fixtures varsa oradan, yoksa snapshot'tan al
-                enriched = {
-                    **agg,
-                    'home': fixture.get('home_team') or agg.get('_snap_home', ''),
-                    'away': fixture.get('away_team') or agg.get('_snap_away', ''),
-                    'league': fixture.get('league') or agg.get('_snap_league', ''),
-                    'date': fixture.get('kickoff_utc') or agg.get('_snap_date', ''),
-                    'match_date': normalize_date_for_db(fixture.get('fixture_date') or agg.get('_snap_date', '')),
-                }
-                # Geçici alanları temizle
-                enriched.pop('_snap_home', None)
-                enriched.pop('_snap_away', None)
-                enriched.pop('_snap_league', None)
-                enriched.pop('_snap_date', None)
-                enriched_matches.append(enriched)
-            
-            log(f"  -> {len(enriched_matches)} unique matches aggregated from {actual_table}")
-            self._matches_cache[market] = enriched_matches
-            return enriched_matches
-        
-        # LEGACY FALLBACK: Eski tablodan çek (moneyway_1x2, moneyway_ou25, moneyway_btts)
         matches = self._get(market, 'select=*')
         if matches:
-            log(f"  -> {len(matches)} matches from {market} table (legacy)")
+            log(f"  -> {len(matches)} matches from {market} table")
             self._matches_cache[market] = matches
             return matches
         
@@ -1933,48 +1774,26 @@ class AlarmCalculator:
         self._matches_cache[market] = []
         return []
     
-    # TABLO MAPPING: Boş - tüm marketler legacy tablolara fallback yapar
-    # Dropping: dropping_1x2_history, dropping_ou25_history, dropping_btts_history
-    # Moneyway: moneyway_1x2_history, moneyway_ou25_history, moneyway_btts_history
-    SNAPSHOT_TABLE_MAP = {}
-    
     def batch_fetch_history(self, market: str) -> Dict[str, List[Dict]]:
         """Batch fetch ALL history for a market - NO LIMIT, tüm snapshot'lar okunur
         
-        YENİ ŞEMA: moneyway_snapshots / dropping_odds_snapshots tablolarından
-        market filtresi ile okur.
-        
+        Legacy tablolardan okur: dropping_1x2_history, moneyway_1x2_history vb.
         KEY: match_id_hash (string eşleşmesi YOK)
         """
-        # Cache key olarak eski market ismi kullan (uyumluluk için)
         cache_key = f"{market}_history"
         
         if cache_key in self._history_cache:
             return self._history_cache[cache_key]
         
-        import urllib.parse
-        
-        # Tablo mapping - yeni şemaya göre tablo ve market filtresi belirle
-        if market in self.SNAPSHOT_TABLE_MAP:
-            actual_table, market_filter, _ = self.SNAPSHOT_TABLE_MAP[market]
-            log(f"[HISTORY] Fetching {actual_table} (market={market_filter})...")
-        else:
-            # Fallback: eski tablo ismi dene (geriye uyumluluk)
-            actual_table = f"{market}_history"
-            market_filter = None
-            log(f"[HISTORY] Fetching {actual_table} (legacy mode)...")
+        actual_table = f"{market}_history"
+        log(f"[HISTORY] Fetching {actual_table}...")
         
         rows = []
         offset = 0
         page_size = 1000
         
         while True:
-            # Market filtresi varsa ekle (URL encoded)
-            if market_filter:
-                encoded_filter = urllib.parse.quote(market_filter)
-                params = f"select=*&market=eq.{encoded_filter}&order=scraped_at_utc.asc&limit={page_size}&offset={offset}"
-            else:
-                params = f"select=*&order=scraped_at.asc&limit={page_size}&offset={offset}"
+            params = f"select=*&order=scraped_at.asc&limit={page_size}&offset={offset}"
             
             batch = self._get(actual_table, params)
             if not batch:
@@ -3266,48 +3085,10 @@ class AlarmCalculator:
                 for sel_idx, selection in enumerate(selections):
                     odds_key = odds_keys[sel_idx]
                     
-                    # YENİ ŞEMA: selection bazında filtrele (dropping_odds_snapshots için)
-                    # Normalize selection matching: 'Over 2.5' → 'Over', 'Under 2.5' → 'Under' vb.
-                    def match_selection(snap_sel: str, target: str) -> bool:
-                        if not snap_sel:
-                            return False
-                        snap_sel_lower = snap_sel.lower().strip()
-                        target_lower = target.lower().strip()
-                        # Exact match
-                        if snap_sel_lower == target_lower:
-                            return True
-                        # Prefix match: 'over 2.5' starts with 'over'
-                        if snap_sel_lower.startswith(target_lower):
-                            return True
-                        return False
-                    
-                    selection_history = [h for h in history if match_selection(h.get('selection', ''), selection)]
-                    
-                    # Önce yeni şemayı dene (selection bazlı)
-                    opening_odds = 0.0
-                    current_odds = 0.0
-                    history_for_persistence = history  # Default: tüm history
-                    is_new_schema = False
-                    
-                    if len(selection_history) >= 2:
-                        # Yeni şema: dropping_odds_snapshots'tan opening_odds ve current_odds kolonlarını oku
-                        sel_history_sorted = sorted(selection_history, key=lambda x: parse_timestamp(get_scraped_at(x)))
-                        # Her snapshot'ta opening_odds ve current_odds var - en son snapshot'tan al
-                        latest_snap = sel_history_sorted[-1]
-                        first_snap = sel_history_sorted[0]
-                        # opening_odds: ilk snapshot'taki opening_odds veya current_odds
-                        opening_odds = parse_float(first_snap.get('opening_odds', 0)) or parse_float(first_snap.get('current_odds', 0))
-                        # current_odds: son snapshot'taki current_odds
-                        current_odds = parse_float(latest_snap.get('current_odds', 0))
-                        history_for_persistence = sel_history_sorted
-                        is_new_schema = True
-                    
-                    # Eski şema fallback: odds1, oddsx, odds2 vb. kolonları dene
-                    if opening_odds <= 0 or current_odds <= 0:
-                        opening_odds = parse_float(history[0].get(odds_key, 0))
-                        current_odds = parse_float(history[-1].get(odds_key, 0))
-                        history_for_persistence = history
-                        is_new_schema = False
+                    # Legacy şema: odds1, oddsx, odds2, over, under vb. kolonları kullan
+                    opening_odds = parse_float(history[0].get(odds_key, 0))
+                    current_odds = parse_float(history[-1].get(odds_key, 0))
+                    history_for_persistence = history
                     
                     if current_odds <= 0 or opening_odds <= 0:
                         continue
@@ -3352,11 +3133,8 @@ class AlarmCalculator:
                         # 2. Her snapshot'ta minimum L1 drop_pct eşiği karşılanmalı
                         drop_persistent = True
                         for snap in recent_snapshots:
-                            # Yeni şema: 'odds' kolonu, eski şema: odds_key (odds1, oddsx vb.)
-                            if is_new_schema:
-                                snap_odds = parse_float(snap.get('odds', 0))
-                            else:
-                                snap_odds = parse_float(snap.get(odds_key, 0))
+                            # Legacy şema: odds_key (odds1, oddsx vb.) kullan
+                            snap_odds = parse_float(snap.get(odds_key, 0))
                             if snap_odds <= 0:
                                 continue
                             # Oran opening'e geri dönmüşse veya üstüne çıktıysa, kalıcı drop değil
