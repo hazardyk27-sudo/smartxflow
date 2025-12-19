@@ -3581,7 +3581,7 @@ function parseAlarmTime(timeStr) {
 function formatMatchTime3(dateStr) {
     if (!dateStr) return '-';
     
-    const monthNames = ['Oca', 'Sub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Agu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
     const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
                        'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
     
@@ -3610,6 +3610,42 @@ function formatMatchTime3(dateStr) {
         const m = String(dt.getMinutes()).padStart(2, '0');
         const d = String(dt.getDate()).padStart(2, '0');
         return `${d} ${monthName} • ${h}:${m}`;
+    }
+    
+    // Format: ISO "2025-12-19T15:37:00" veya "2025-12-19T15:37:00+00:00"
+    const matchISO = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (matchISO) {
+        const [, year, month, day, hour, min] = matchISO;
+        const dt = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
+        dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
+        const monthName = monthNames[dt.getMonth()];
+        const h = String(dt.getHours()).padStart(2, '0');
+        const m = String(dt.getMinutes()).padStart(2, '0');
+        const d = String(dt.getDate()).padStart(2, '0');
+        return `${d} ${monthName} • ${h}:${m}`;
+    }
+    
+    // Format: "2025-12-19 15:37" (space separated)
+    const matchISOSpace = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+    if (matchISOSpace) {
+        const [, year, month, day, hour, min] = matchISOSpace;
+        const dt = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
+        dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
+        const monthName = monthNames[dt.getMonth()];
+        const h = String(dt.getHours()).padStart(2, '0');
+        const m = String(dt.getMinutes()).padStart(2, '0');
+        const d = String(dt.getDate()).padStart(2, '0');
+        return `${d} ${monthName} • ${h}:${m}`;
+    }
+    
+    // Format: sadece tarih "2025-12-19" (saat yok - varsayilan 00:00)
+    const matchDateOnly = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (matchDateOnly) {
+        const [, year, month, day] = matchDateOnly;
+        const dt = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        const monthName = monthNames[dt.getMonth()];
+        const d = String(dt.getDate()).padStart(2, '0');
+        return `${d} ${monthName}`;
     }
     
     // Fallback
