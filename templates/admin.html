@@ -4885,8 +4885,8 @@
             document.getElementById('mimTodayAlarms').textContent = todayAlarms.length;
             
             if (mimAlarms.length > 0) {
-                const avgImpact = mimAlarms.reduce((sum, a) => sum + (a.impact || 0), 0) / mimAlarms.length;
-                document.getElementById('mimAvgImpact').textContent = avgImpact.toFixed(2);
+                const avgImpact = mimAlarms.reduce((sum, a) => sum + (a.impact_score || a.impact || 0), 0) / mimAlarms.length;
+                document.getElementById('mimAvgImpact').textContent = (avgImpact * 100).toFixed(1) + '%';
             } else {
                 document.getElementById('mimAvgImpact').textContent = '-';
             }
@@ -4917,11 +4917,11 @@
                         <thead>
                             <tr style="background: #161b22; color: #8b949e;">
                                 <th style="padding: 10px; text-align: left;">Mac</th>
-                                <th style="padding: 10px; text-align: center;">Market</th>
+                                <th style="padding: 10px; text-align: center;">Market / Secim</th>
                                 <th style="padding: 10px; text-align: center;">Impact</th>
                                 <th style="padding: 10px; text-align: right;">Gelen Para</th>
-                                <th style="padding: 10px; text-align: right;">Toplam Hacim</th>
-                                <th style="padding: 10px; text-align: right;">Onceki Hacim</th>
+                                <th style="padding: 10px; text-align: right;">Market Toplam</th>
+                                <th style="padding: 10px; text-align: right;">Volume Degisimi</th>
                                 <th style="padding: 10px; text-align: center;">Zaman</th>
                             </tr>
                         </thead>
@@ -4931,25 +4931,30 @@
             mimFilteredAlarms.slice(0, 100).forEach(alarm => {
                 const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
                 const market = alarm.market || '-';
-                const impact = alarm.impact || alarm.money_impact || 0;
+                const selection = alarm.selection || '-';
+                const impact = alarm.impact_score || alarm.impact || 0;
                 const impactPct = (impact * 100).toFixed(1);
-                const prevVol = alarm.prev_volume || alarm.previous_volume || 0;
-                const currVol = alarm.current_volume || alarm.total_volume || alarm.volume || 0;
-                const moneyDiff = currVol - prevVol;
+                const prevVol = alarm.prev_volume || 0;
+                const currVol = alarm.curr_volume || 0;
+                const incomingVol = alarm.incoming_volume || (currVol - prevVol);
+                const totalMarketVol = alarm.total_market_volume || currVol;
                 
-                const eventTime = alarm.trigger_at || alarm.event_time || alarm.created_at || '-';
+                const eventTime = alarm.trigger_at || alarm.created_at || '-';
                 const formattedTime = eventTime !== '-' ? formatDateTime(eventTime) : '-';
                 
-                const impactColor = impact >= 0.20 ? '#22c55e' : impact >= 0.15 ? '#3B82F6' : '#60a5fa';
+                const impactColor = impact >= 0.50 ? '#22c55e' : impact >= 0.30 ? '#3B82F6' : '#60a5fa';
                 
                 html += `
                     <tr style="border-bottom: 1px solid #21262d; cursor: pointer;" onclick="showMimAlarmDetail(${JSON.stringify(alarm).replace(/"/g, '&quot;')})">
                         <td style="padding: 10px; color: #e6edf3;">${matchName}</td>
-                        <td style="padding: 10px; text-align: center;"><span style="background: rgba(59,130,246,0.2); color: #3B82F6; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${market}</span></td>
+                        <td style="padding: 10px; text-align: center;">
+                            <span style="background: rgba(59,130,246,0.2); color: #3B82F6; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${market}</span>
+                            <span style="background: rgba(34,197,94,0.2); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">${selection}</span>
+                        </td>
                         <td style="padding: 10px; text-align: center; color: ${impactColor}; font-weight: 700;">${impactPct}%</td>
-                        <td style="padding: 10px; text-align: right; color: #22c55e; font-weight: 600;">+£${Number(moneyDiff).toLocaleString('en-GB')}</td>
-                        <td style="padding: 10px; text-align: right; color: #e6edf3;">£${Number(currVol).toLocaleString('en-GB')}</td>
-                        <td style="padding: 10px; text-align: right; color: #8b949e;">£${Number(prevVol).toLocaleString('en-GB')}</td>
+                        <td style="padding: 10px; text-align: right; color: #22c55e; font-weight: 600;">+£${Number(incomingVol).toLocaleString('en-GB')}</td>
+                        <td style="padding: 10px; text-align: right; color: #e6edf3;">£${Number(totalMarketVol).toLocaleString('en-GB')}</td>
+                        <td style="padding: 10px; text-align: right; color: #8b949e;">£${Number(prevVol).toLocaleString('en-GB')} → £${Number(currVol).toLocaleString('en-GB')}</td>
                         <td style="padding: 10px; text-align: center; color: #8b949e; font-size: 11px;">${formattedTime}</td>
                     </tr>
                 `;
@@ -4965,26 +4970,81 @@
         }
         
         function showMimAlarmDetail(alarm) {
-            const impact = alarm.impact || alarm.money_impact || 0;
+            const impact = alarm.impact_score || alarm.impact || 0;
             const impactPct = (impact * 100).toFixed(1);
-            const prevVol = alarm.prev_volume || alarm.previous_volume || 0;
-            const currVol = alarm.current_volume || alarm.total_volume || 0;
-            const moneyDiff = currVol - prevVol;
+            const prevVol = alarm.prev_volume || 0;
+            const currVol = alarm.curr_volume || 0;
+            const incomingVol = alarm.incoming_volume || (currVol - prevVol);
+            const totalMarketVol = alarm.total_market_volume || currVol;
+            const selection = alarm.selection || '-';
+            const triggerTime = alarm.trigger_at ? formatDateTime(alarm.trigger_at) : '-';
+            const createdTime = alarm.created_at ? formatDateTime(alarm.created_at) : '-';
             
-            const body = document.querySelector('.modal-body') || document.createElement('div');
-            body.innerHTML = `
-                <div style="padding: 20px; background: #0d1117; border-radius: 8px;">
-                    <h3 style="color: #3B82F6; margin-bottom: 15px;">💎 MIM Alarm Detayi</h3>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                        <div><strong style="color: #8b949e;">Mac:</strong> <span style="color: #e6edf3;">${alarm.home} vs ${alarm.away}</span></div>
-                        <div><strong style="color: #8b949e;">Market:</strong> <span style="color: #e6edf3;">${alarm.market}</span></div>
-                        <div><strong style="color: #8b949e;">Impact:</strong> <span style="color: #3B82F6; font-weight: 700;">${impactPct}%</span></div>
-                        <div><strong style="color: #8b949e;">Gelen Para:</strong> <span style="color: #22c55e; font-weight: 600;">+£${Number(moneyDiff).toLocaleString('en-GB')}</span></div>
-                        <div><strong style="color: #8b949e;">Toplam Hacim:</strong> <span style="color: #e6edf3;">£${Number(currVol).toLocaleString('en-GB')}</span></div>
-                        <div><strong style="color: #8b949e;">Onceki Hacim:</strong> <span style="color: #8b949e;">£${Number(prevVol).toLocaleString('en-GB')}</span></div>
+            const modalContent = `
+                <div style="padding: 20px; background: #0d1117; border-radius: 8px; max-width: 500px; margin: 50px auto;">
+                    <h3 style="color: #3B82F6; margin-bottom: 20px; border-bottom: 1px solid #21262d; padding-bottom: 10px;">💎 MIM Alarm Detayi</h3>
+                    
+                    <div style="margin-bottom: 20px; padding: 15px; background: #161b22; border-radius: 8px;">
+                        <div style="font-size: 18px; color: #e6edf3; margin-bottom: 5px;">${alarm.home} vs ${alarm.away}</div>
+                        <div style="color: #8b949e; font-size: 13px;">${alarm.league || '-'}</div>
                     </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">MARKET / SECIM</div>
+                            <div style="color: #e6edf3; font-size: 14px;">${alarm.market} <span style="color: #22c55e;">${selection}</span></div>
+                        </div>
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">IMPACT SCORE</div>
+                            <div style="color: #3B82F6; font-size: 20px; font-weight: 700;">${impactPct}%</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="color: #8b949e; font-size: 11px; margin-bottom: 8px;">GELEN PARA (INCOMING VOLUME)</div>
+                        <div style="color: #22c55e; font-size: 24px; font-weight: 700;">+£${Number(incomingVol).toLocaleString('en-GB')}</div>
+                        <div style="color: #8b949e; font-size: 12px; margin-top: 5px;">
+                            Formul: incoming / market_total = ${Number(incomingVol).toLocaleString('en-GB')} / ${Number(totalMarketVol).toLocaleString('en-GB')} = ${impactPct}%
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;">
+                        <div style="background: #161b22; padding: 10px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 10px;">ONCEKI VOLUME</div>
+                            <div style="color: #e6edf3;">£${Number(prevVol).toLocaleString('en-GB')}</div>
+                        </div>
+                        <div style="background: #161b22; padding: 10px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 10px;">SIMDIKI VOLUME</div>
+                            <div style="color: #e6edf3;">£${Number(currVol).toLocaleString('en-GB')}</div>
+                        </div>
+                        <div style="background: #161b22; padding: 10px; border-radius: 6px; grid-column: span 2;">
+                            <div style="color: #8b949e; font-size: 10px;">MARKET TOPLAM VOLUME</div>
+                            <div style="color: #e6edf3;">£${Number(totalMarketVol).toLocaleString('en-GB')}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; border-top: 1px solid #21262d; padding-top: 15px;">
+                        <div>
+                            <div style="color: #8b949e; font-size: 10px;">TRIGGER ZAMANI</div>
+                            <div style="color: #e6edf3; font-size: 12px;">${triggerTime}</div>
+                        </div>
+                        <div>
+                            <div style="color: #8b949e; font-size: 10px;">OLUSTURULMA</div>
+                            <div style="color: #e6edf3; font-size: 12px;">${createdTime}</div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="this.closest('.mim-modal-overlay').remove()" style="margin-top: 20px; width: 100%; padding: 10px; background: #21262d; border: none; border-radius: 6px; color: #e6edf3; cursor: pointer;">Kapat</button>
                 </div>
             `;
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'mim-modal-overlay';
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+            overlay.innerHTML = modalContent;
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            document.body.appendChild(overlay);
+            
             console.log('MIM Alarm Detail:', alarm);
         }
         
