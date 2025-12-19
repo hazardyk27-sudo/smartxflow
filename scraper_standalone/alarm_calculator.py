@@ -3209,6 +3209,7 @@ class AlarmCalculator:
         log(f"[Dropping Config] Max Odds: 1X2={max_odds_1x2}, O/U2.5={max_odds_ou25}, BTTS={max_odds_btts}")
         
         alarms = []
+        seen_alarms = set()
         markets = ['dropping_1x2', 'dropping_ou25', 'dropping_btts']
         market_names = {'dropping_1x2': '1X2', 'dropping_ou25': 'O/U 2.5', 'dropping_btts': 'BTTS'}
         
@@ -3388,6 +3389,11 @@ class AlarmCalculator:
                     
                     # Volume bilgisi (varsa)
                     volume = parse_float(match.get('volume', 0))
+                    
+                    alarm_key = (match_id, market_names.get(market, market), selection)
+                    if alarm_key in seen_alarms:
+                        continue
+                    seen_alarms.add(alarm_key)
                     
                     alarm = {
                         'match_id_hash': match_id,
