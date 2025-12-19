@@ -4608,12 +4608,9 @@ function renderAlarmsList(filterType) {
             const score = (alarm.sharp_score || 0).toFixed(1);
             const volumeContrib = (alarm.volume_contrib || 0).toFixed(1);
             const oddsContrib = (alarm.odds_contrib || 0).toFixed(1);
-            const shareContrib = (alarm.share_contrib || 0).toFixed(1);
             const prevOdds = (alarm.previous_odds || 0).toFixed(2);
             const currOdds = (alarm.current_odds || 0).toFixed(2);
-            const prevShare = (alarm.previous_share || 0).toFixed(1);
-            const currShare = (alarm.current_share || 0).toFixed(1);
-            metricContent = `<div class="acd-grid">
+            metricContent = `<div class="acd-grid cols-3">
                 <div class="acd-stat">
                     <div class="acd-stat-val sharp">${score}</div>
                     <div class="acd-stat-lbl">Sharp Skor</div>
@@ -4626,14 +4623,9 @@ function renderAlarmsList(filterType) {
                     <div class="acd-stat-val">${oddsContrib}</div>
                     <div class="acd-stat-lbl">Oran Puan</div>
                 </div>
-                <div class="acd-stat">
-                    <div class="acd-stat-val">${shareContrib}</div>
-                    <div class="acd-stat-lbl">Pay Puan</div>
-                </div>
             </div>
             <div class="acd-info-row">
                 <span>Oran: ${prevOdds} → ${currOdds}</span>
-                <span>Pay: ${prevShare}% → ${currShare}%</span>
             </div>`;
             historyLine = `${triggerTime}`;
         } else if (type === 'insider') {
