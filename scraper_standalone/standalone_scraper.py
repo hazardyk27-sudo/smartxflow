@@ -964,7 +964,6 @@ def run_scrape(writer: SupabaseWriter, logger_callback=None):
         history_table = f"{table_name}_history"
         extractor = EXTRACTORS[dataset_key]
         is_moneyway = dataset_key.startswith('moneyway')
-        is_dropping = dataset_key.startswith('dropping')
         
         # Market type: 1X2, OU25, BTTS
         market = dataset_key.split('-')[1].upper()
