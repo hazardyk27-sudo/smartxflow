@@ -109,12 +109,12 @@ def normalize_field(value: str) -> str:
     Rules:
     1. trim (strip leading/trailing whitespace)
     2. Turkish character normalization BEFORE lowercase:
-       - ı → i, İ → I (dotless/dotted I)
-       - ş → s, Ş → S
-       - ğ → g, Ğ → G
-       - ü → u, Ü → U
-       - ö → o, Ö → O
-       - ç → c, Ç → C
+       - i (dotless) -> i, I (dotted) -> I
+       - s (cedilla) -> s, S (cedilla) -> S
+       - g (breve) -> g, G (breve) -> G
+       - u (umlaut) -> u, U (umlaut) -> U
+       - o (umlaut) -> o, O (umlaut) -> O
+       - c (cedilla) -> c, C (cedilla) -> C
     3. lowercase
     4. remove punctuation (keep alphanumeric + space)
     5. remove team suffixes: fc, fk, sk, sc, afc, cf, ac, as (word boundary)
@@ -901,7 +901,7 @@ class AlarmCalculator:
                       'match_date', 'trigger_at', 'created_at'],
     }
     
-    # Alan adı dönüşümleri (calculator → db) - GLOBAL
+    # Alan adi donusumleri (calculator -> db) - GLOBAL
     # Sadece tüm tablolarda ortak olan dönüşümler burada
     FIELD_MAPPING = {
         'match_id': 'match_id_hash',
@@ -967,7 +967,7 @@ class AlarmCalculator:
     def _resolve_aliases(self, record: Dict, table: str) -> Dict:
         """
         Çoklu alias durumunda sıfır olmayan değeri seç.
-        Örn: volume_shock=2.5, multiplier=0 → volume_shock_value=2.5
+        Orn: volume_shock=2.5, multiplier=0 -> volume_shock_value=2.5
         
         ÖNEMLİ: Eğer hedef alan zaten sıfır olmayan değer içeriyorsa korur.
         String değerler ("0", "2.5") de doğru şekilde işlenir.
@@ -1214,7 +1214,7 @@ class AlarmCalculator:
     
     def save_config_to_db(self, alarm_type: str, config: Dict, enabled: bool = True) -> bool:
         """Save alarm config to Supabase alarm_settings table
-        Admin Panel → Supabase yazma fonksiyonu
+        Admin Panel -> Supabase yazma fonksiyonu
         
         Args:
             alarm_type: Alarm türü (sharp, insider, bigmoney, volumeshock, dropping, publicmove, volumeleader)
@@ -2328,7 +2328,7 @@ class AlarmCalculator:
     def calculate_insider_alarms(self) -> int:
         """Calculate Insider Info alarms - GÖRSEL KURALLARINA GÖRE
         
-        1. Açılış→Şimdi Düşüş: Oranlar açılıştan >= %X düştü mü?
+        1. Acilis->Simdi Dusus: Oranlar acilistan >= %X dustu mu?
         2. Düşüş Anını Bul: En büyük tek seferlik ORAN düşüşünün olduğu snapshot
         3. Etraf Snapshotları: Düşüş anının etrafındaki N snapshot'a bak (N = sure_dakika)
         4. Sessiz Hareket: Tüm N snapshot'ta HacimSok < Esik VE GelenPara < MaxPara
@@ -2419,7 +2419,7 @@ class AlarmCalculator:
                     if current_odds > max_odds:
                         continue
                     
-                    # KURAL 1: Açılış→Şimdi drop kontrolü
+                    # KURAL 1: Acilis->Simdi drop kontrolu
                     overall_drop_pct = ((opening_odds - current_odds) / opening_odds) * 100
                     if overall_drop_pct < oran_dusus_esigi:
                         # Açılıştan bugüne yeterli düşüş yok
