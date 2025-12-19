@@ -896,7 +896,9 @@ class AlarmCalculator:
                              'selection', 'public_score', 'amount_change', 
                              'match_date', 'trigger_at', 'created_at'],
         'mim_alarms': ['id', 'match_id_hash', 'home', 'away', 'league', 'market', 
-                      'selection', 'money_impact', 'match_date', 'trigger_at', 'created_at'],
+                      'selection', 'impact', 'prev_volume', 'current_volume',
+                      'incoming_volume', 'total_market_volume',
+                      'match_date', 'trigger_at', 'created_at'],
     }
     
     # Alan adı dönüşümleri (calculator → db) - GLOBAL
@@ -935,6 +937,10 @@ class AlarmCalculator:
         'publicmove_alarms': {
             'volume': 'amount_change',
             'stake': 'amount_change',
+        },
+        'mim_alarms': {
+            'impact_score': 'impact',
+            'curr_volume': 'current_volume',
         },
     }
     
