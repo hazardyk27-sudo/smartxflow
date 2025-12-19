@@ -7837,6 +7837,7 @@ td.volume,
     font-weight: var(--weight-semibold);
     color: #c9d1d9;
     margin-bottom: 4px;
+    white-space: nowrap;
 }
 
 .acd-stat-val.sharp { color: #22c55e; }

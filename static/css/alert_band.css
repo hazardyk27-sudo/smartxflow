@@ -415,6 +415,8 @@
     font-family: 'JetBrains Mono', monospace;
     letter-spacing: 0.3px;
     vertical-align: middle;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .ab-pill.sharp .ab-val {
