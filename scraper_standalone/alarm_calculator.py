@@ -3293,10 +3293,15 @@ class AlarmCalculator:
                     is_new_schema = False
                     
                     if len(selection_history) >= 2:
-                        # Yeni şema: selection filtrelenmiş history'den 'odds' kolonunu oku
+                        # Yeni şema: dropping_odds_snapshots'tan opening_odds ve current_odds kolonlarını oku
                         sel_history_sorted = sorted(selection_history, key=lambda x: parse_timestamp(get_scraped_at(x)))
-                        opening_odds = parse_float(sel_history_sorted[0].get('odds', 0))
-                        current_odds = parse_float(sel_history_sorted[-1].get('odds', 0))
+                        # Her snapshot'ta opening_odds ve current_odds var - en son snapshot'tan al
+                        latest_snap = sel_history_sorted[-1]
+                        first_snap = sel_history_sorted[0]
+                        # opening_odds: ilk snapshot'taki opening_odds veya current_odds
+                        opening_odds = parse_float(first_snap.get('opening_odds', 0)) or parse_float(first_snap.get('current_odds', 0))
+                        # current_odds: son snapshot'taki current_odds
+                        current_odds = parse_float(latest_snap.get('current_odds', 0))
                         history_for_persistence = sel_history_sorted
                         is_new_schema = True
                     
