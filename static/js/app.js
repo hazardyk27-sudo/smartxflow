@@ -5535,15 +5535,19 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             row3Right = totalVol > 0 ? `<span class="sm-volume-muted">Volume: £${Number(totalVol).toLocaleString('en-GB')}</span>` : '';
             row4 = `Market lideri değişti. Bu seçenekte hacim üstünlüğü ele geçirildi.`;
         } else if (type === 'mim') {
-            const level = latest.level || 1;
-            const impact = (latest.impact || latest.impact_score || latest.money_impact || 0).toFixed(2);
+            const impact = latest.impact || latest.impact_score || latest.money_impact || 0;
+            const impactPct = (impact * 100).toFixed(1);
             const selection = latest.selection || latest.side || '-';
             const market = latest.market || '';
+            const prevVol = latest.prev_volume || latest.previous_volume || 0;
+            const currVol = latest.current_volume || latest.curr_volume || 0;
+            const incomingVol = latest.incoming_volume || (currVol - prevVol);
+            const totalMarketVol = latest.total_market_volume || currVol;
             row2Left = `${selection} (${market})`;
-            row2Right = `<span class="sm-mim-level">Level ${level}</span>`;
-            row3Left = `<span class="sm-mim-impact">${impact}</span> <span class="sm-mim-label">impact</span>`;
-            row3Right = '';
-            row4 = `Market Inefficiency Monitor - Piyasa verimsizliği tespit edildi.`;
+            row2Right = `<span class="sm-mim-impact-badge">${impactPct}%</span> <span class="sm-mim-impact-label">impact</span>`;
+            row3Left = `<span class="sm-mim-money">+£${Number(incomingVol).toLocaleString('en-GB')}</span> <span class="sm-money-label">gelen para</span>`;
+            row3Right = `<span class="sm-mim-total">Toplam: £${Number(totalMarketVol).toLocaleString('en-GB')}</span>`;
+            row4 = `Bu seçenekte son snapshot'ta yüksek hacim etkisi tespit edildi.`;
         }
         
         // Tüm alarm tipleri için portal tooltip oluştur (TEMALI)
