@@ -5325,14 +5325,30 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             if (!groups[key]) groups[key] = [];
             groups[key].push(a);
         });
-        // Her grubu zamana göre sırala (YENİDEN ESKİYE - DESC)
+        // Her grubu zamana göre sırala (YENİDEN ESKİYE - DESC) ve duplicate'leri temizle
         Object.keys(groups).forEach(k => {
             groups[k].sort((a, b) => {
-                // ISO string karşılaştırması (en güvenilir)
                 const aTime = a.trigger_at || a.created_at || a.triggered_at || '';
                 const bTime = b.trigger_at || b.created_at || b.triggered_at || '';
-                // DESC: b - a (yeni önce)
                 return bTime.localeCompare(aTime);
+            });
+            // Duplicate temizleme: ID veya (trigger_at + tüm değerler) bazlı
+            const seen = new Set();
+            groups[k] = groups[k].filter(alarm => {
+                // Önce ID varsa onu kullan (en güvenilir)
+                if (alarm.id) {
+                    if (seen.has(alarm.id)) return false;
+                    seen.add(alarm.id);
+                    return true;
+                }
+                // ID yoksa trigger_at + selection + market kombinasyonu kullan
+                const triggerTime = alarm.trigger_at || alarm.created_at || '';
+                const sel = alarm.selection || alarm.side || '';
+                const mkt = alarm.market || '';
+                const dedupKey = `${triggerTime}|${sel}|${mkt}`;
+                if (seen.has(dedupKey)) return false;
+                seen.add(dedupKey);
+                return true;
             });
         });
         return Object.values(groups);
