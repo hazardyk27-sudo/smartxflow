@@ -728,6 +728,61 @@
                     <span class="info-value" id="workMode">-</span>
                 </div>
             </div>
+
+            <div class="info-card" style="margin-top: 20px;">
+                <h3>🎛️ Alarm Goruntuleme Ayarlari</h3>
+                <p style="color: #8b949e; font-size: 13px; margin-bottom: 15px;">Web arayuzunde ve admin panelde hangi alarm turlerinin gosterilecegini secin.</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+                    <label class="alarm-visibility-toggle" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #161b22; border-radius: 6px; cursor: pointer;">
+                        <input type="checkbox" id="visibilitySharp" class="alarm-visibility-checkbox" data-alarm-type="sharp" checked onchange="saveAlarmVisibility()">
+                        <span style="color: #22c55e;">💰</span>
+                        <span style="color: #e6edf3; flex: 1;">Sharp Money</span>
+                    </label>
+                    <label class="alarm-visibility-toggle" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #161b22; border-radius: 6px; cursor: pointer;">
+                        <input type="checkbox" id="visibilityInsider" class="alarm-visibility-checkbox" data-alarm-type="insider" checked onchange="saveAlarmVisibility()">
+                        <span style="color: #a371f7;">🕵️</span>
+                        <span style="color: #e6edf3; flex: 1;">Insider Info</span>
+                    </label>
+                    <label class="alarm-visibility-toggle" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #161b22; border-radius: 6px; cursor: pointer;">
+                        <input type="checkbox" id="visibilityBigmoney" class="alarm-visibility-checkbox" data-alarm-type="bigmoney" checked onchange="saveAlarmVisibility()">
+                        <span style="color: #ffc107;">💰</span>
+                        <span style="color: #e6edf3; flex: 1;">Big Money</span>
+                    </label>
+                    <label class="alarm-visibility-toggle" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #161b22; border-radius: 6px; cursor: pointer;">
+                        <input type="checkbox" id="visibilityPublicmove" class="alarm-visibility-checkbox" data-alarm-type="publicmove" checked onchange="saveAlarmVisibility()">
+                        <span style="color: #60a5fa;">📊</span>
+                        <span style="color: #e6edf3; flex: 1;">Public Move</span>
+                    </label>
+                    <label class="alarm-visibility-toggle" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #161b22; border-radius: 6px; cursor: pointer;">
+                        <input type="checkbox" id="visibilityDropping" class="alarm-visibility-checkbox" data-alarm-type="dropping" checked onchange="saveAlarmVisibility()">
+                        <span style="color: #ef4444;">📉</span>
+                        <span style="color: #e6edf3; flex: 1;">Dropping Alert</span>
+                    </label>
+                    <label class="alarm-visibility-toggle" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #161b22; border-radius: 6px; cursor: pointer;">
+                        <input type="checkbox" id="visibilityVolumeshock" class="alarm-visibility-checkbox" data-alarm-type="volumeshock" checked onchange="saveAlarmVisibility()">
+                        <span style="color: #ff6b6b;">⚡</span>
+                        <span style="color: #e6edf3; flex: 1;">Hacim Soku</span>
+                    </label>
+                    <label class="alarm-visibility-toggle" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #161b22; border-radius: 6px; cursor: pointer;">
+                        <input type="checkbox" id="visibilityVolumeleader" class="alarm-visibility-checkbox" data-alarm-type="volumeleader" checked onchange="saveAlarmVisibility()">
+                        <span style="color: #06b6d4;">👑</span>
+                        <span style="color: #e6edf3; flex: 1;">Hacim Lideri</span>
+                    </label>
+                    <label class="alarm-visibility-toggle" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #161b22; border-radius: 6px; cursor: pointer;">
+                        <input type="checkbox" id="visibilityMim" class="alarm-visibility-checkbox" data-alarm-type="mim" checked onchange="saveAlarmVisibility()">
+                        <span style="color: #3B82F6;">💎</span>
+                        <span style="color: #e6edf3; flex: 1;">MIM</span>
+                    </label>
+                </div>
+                <div style="margin-top: 15px; display: flex; gap: 10px;">
+                    <button class="btn" onclick="toggleAllAlarms(true)" style="background: #238636; color: white; padding: 8px 16px; font-size: 12px;">
+                        <span>✓</span> Tumunu Goster
+                    </button>
+                    <button class="btn" onclick="toggleAllAlarms(false)" style="background: #6e4000; color: white; padding: 8px 16px; font-size: 12px;">
+                        <span>✗</span> Tumunu Gizle
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div id="page-markets" class="page-content">
@@ -2474,7 +2529,95 @@
     <div class="toast" id="toast"></div>
 
     <script>
+        // ============================================
+        // ALARM VISIBILITY SETTINGS
+        // ============================================
+        const ALARM_VISIBILITY_KEY = 'smartxflow_alarm_visibility';
+        
+        function getAlarmVisibility() {
+            try {
+                const stored = localStorage.getItem(ALARM_VISIBILITY_KEY);
+                if (stored) {
+                    return JSON.parse(stored);
+                }
+            } catch (e) {
+                console.error('Alarm visibility parse error:', e);
+            }
+            return {
+                sharp: true,
+                insider: true,
+                bigmoney: true,
+                publicmove: true,
+                dropping: true,
+                volumeshock: true,
+                volumeleader: true,
+                mim: true
+            };
+        }
+        
+        function saveAlarmVisibility() {
+            const visibility = {};
+            document.querySelectorAll('.alarm-visibility-checkbox').forEach(cb => {
+                const alarmType = cb.dataset.alarmType;
+                visibility[alarmType] = cb.checked;
+            });
+            localStorage.setItem(ALARM_VISIBILITY_KEY, JSON.stringify(visibility));
+            showToast('Alarm gorunurluk ayarlari kaydedildi!', 'success');
+            
+            updateNavItemVisibility();
+        }
+        
+        function loadAlarmVisibility() {
+            const visibility = getAlarmVisibility();
+            document.querySelectorAll('.alarm-visibility-checkbox').forEach(cb => {
+                const alarmType = cb.dataset.alarmType;
+                cb.checked = visibility[alarmType] !== false;
+            });
+            updateNavItemVisibility();
+        }
+        
+        function toggleAllAlarms(show) {
+            document.querySelectorAll('.alarm-visibility-checkbox').forEach(cb => {
+                cb.checked = show;
+            });
+            saveAlarmVisibility();
+        }
+        
+        function isAlarmTypeVisible(alarmType) {
+            const visibility = getAlarmVisibility();
+            return visibility[alarmType] !== false;
+        }
+        
+        function updateNavItemVisibility() {
+            const visibility = getAlarmVisibility();
+            const navMapping = {
+                'sharp': 'sharp',
+                'insider': 'insider',
+                'bigmoney': 'bigmoney',
+                'publicmove': 'publicmove',
+                'dropping': 'dropping',
+                'volumeshock': 'volumeshock',
+                'volumeleader': 'volumeleader',
+                'mim': 'mim'
+            };
+            
+            document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+                const page = item.dataset.page;
+                if (navMapping[page] !== undefined) {
+                    if (visibility[page] === false) {
+                        item.style.opacity = '0.4';
+                        item.style.pointerEvents = 'none';
+                    } else {
+                        item.style.opacity = '1';
+                        item.style.pointerEvents = 'auto';
+                    }
+                }
+            });
+        }
+        
+        // ============================================
         // Scraper Console variables
+        // ============================================
         let scraperSSE = null;
         
         function initScraperConsole() {
@@ -3169,6 +3312,7 @@
             loadDashboard();
             loadAlarms();
             loadSharpConfig();
+            loadAlarmVisibility();
         });
 
         function getSharpConfig() {
