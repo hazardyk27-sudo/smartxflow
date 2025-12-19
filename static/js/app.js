@@ -5553,7 +5553,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             row2Right = `<span class="sm-mim-impact-badge">${impactPct}%</span> <span class="sm-mim-impact-label">impact</span>`;
             row3Left = `<span class="sm-mim-money">+£${Number(incomingVol).toLocaleString('en-GB')}</span> <span class="sm-money-label">gelen para</span>`;
             row3Right = `<span class="sm-mim-total">Toplam: £${Number(totalMarketVol).toLocaleString('en-GB')}</span>`;
-            row4 = `Bu seçenekte son snapshot'ta yüksek hacim etkisi tespit edildi.`;
+            row4 = `Tek bir seçeneğe gelen ani paranın, ilgili marketin toplam hacmine oranla yarattığı etkiyi gösterir.`;
         }
         
         // Tüm alarm tipleri için portal tooltip oluştur (TEMALI)
