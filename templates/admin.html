@@ -3105,6 +3105,25 @@
             return dateStr;
         }
         
+        function formatDateTime(dateStr) {
+            if (!dateStr || dateStr === '-') return '-';
+            
+            try {
+                const dt = new Date(dateStr);
+                if (isNaN(dt.getTime())) return dateStr;
+                
+                const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+                const d = String(dt.getDate()).padStart(2, '0');
+                const monthName = monthNames[dt.getMonth()];
+                const h = String(dt.getHours()).padStart(2, '0');
+                const m = String(dt.getMinutes()).padStart(2, '0');
+                
+                return `${d} ${monthName} ${h}:${m}`;
+            } catch (e) {
+                return dateStr;
+            }
+        }
+        
         function getTodayDate() {
             const now = new Date();
             return now.toISOString().substring(0, 10);
