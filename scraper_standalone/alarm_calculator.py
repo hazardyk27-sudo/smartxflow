@@ -427,7 +427,22 @@ class AlarmCalculator:
             
             if normalized_type == 'VOLUMESHOCK':
                 settings = self._telegram_settings or {}
-                cooldown_min = int(settings.get('volumeshock_cooldown_min', 60))
+                
+                # Shock değeri kontrolü - aynı değerse gönderme
+                current_shock = float(alarm.get('volume_shock_value', 0) or alarm.get('volume_shock', 0) or 0)
+                
+                # Eğer shock değeri değişmediyse (veya çok az değiştiyse) gönderme
+                # min_shock_delta: yeni alarm için gereken minimum shock farkı (örn: 0.5 = 0.5x artış)
+                min_shock_delta = float(settings.get('volumeshock_min_shock_delta', 0.5))
+                
+                shock_diff = current_shock - last_delta
+                
+                if shock_diff < min_shock_delta:
+                    log(f"[Telegram] VolumeShock değer değişmedi - gönderilmeyecek (mevcut: {current_shock:.2f}x, önceki: {last_delta:.2f}x, fark: {shock_diff:.2f}x < min: {min_shock_delta})")
+                    return False, False, 0
+                
+                # Shock değeri yeterince değiştiyse, cooldown kontrolü yap
+                cooldown_min = int(settings.get('volumeshock_cooldown_min', 10))
                 
                 try:
                     from datetime import datetime, timezone
@@ -436,13 +451,16 @@ class AlarmCalculator:
                         now = datetime.now(timezone.utc)
                         elapsed_min = (now - last_time).total_seconds() / 60
                         if elapsed_min >= cooldown_min:
-                            log(f"[Telegram] VolumeShock cooldown passed ({elapsed_min:.0f} min >= {cooldown_min} min)")
-                            return True, False, 0
+                            log(f"[Telegram] VolumeShock YENİ DEĞER - gönderilecek ({current_shock:.2f}x vs {last_delta:.2f}x, fark: {shock_diff:.2f}x)")
+                            return True, True, current_shock
                         else:
-                            log(f"[Telegram] VolumeShock cooldown not passed ({elapsed_min:.0f} min < {cooldown_min} min)")
+                            log(f"[Telegram] VolumeShock cooldown bekliyor ({elapsed_min:.0f} min < {cooldown_min} min)")
                             return False, False, 0
+                    else:
+                        log(f"[Telegram] VolumeShock YENİ DEĞER - gönderilecek ({current_shock:.2f}x)")
+                        return True, True, current_shock
                 except Exception as e:
-                    log(f"[Telegram] VolumeShock cooldown error: {e}")
+                    log(f"[Telegram] VolumeShock error: {e}")
                     return False, False, 0
                 return False, False, 0
             
@@ -834,7 +852,11 @@ class AlarmCalculator:
                 if should_send:
                     log(f"[Telegram] Refreshed alarm detected: {alarm_type_clean} - sending notification")
                     if self._send_telegram_notification(alarm, alarm_type_clean, is_retrigger, delta):
-                        current_delta = float(alarm.get('delta', 0) or alarm.get('money_in', 0) or alarm.get('incoming_money', 0) or 0)
+                        # VolumeShock için shock değerini, diğerleri için para değerini kaydet
+                        if alarm_type_clean == 'VOLUMESHOCK':
+                            current_delta = float(alarm.get('volume_shock_value', 0) or alarm.get('volume_shock', 0) or 0)
+                        else:
+                            current_delta = float(alarm.get('delta', 0) or alarm.get('money_in', 0) or alarm.get('incoming_money', 0) or 0)
                         self._log_telegram_sent(alarm, alarm_type_clean, current_delta)
                         sent_count += 1
                         time.sleep(0.5)
@@ -843,7 +865,11 @@ class AlarmCalculator:
                 should_send, is_retrigger, delta = self._check_dedupe(alarm, alarm_type_clean)
                 if should_send:
                     if self._send_telegram_notification(alarm, alarm_type_clean, is_retrigger, delta):
-                        current_delta = float(alarm.get('delta', 0) or alarm.get('money_in', 0) or 0)
+                        # VolumeShock için shock değerini, diğerleri için para değerini kaydet
+                        if alarm_type_clean == 'VOLUMESHOCK':
+                            current_delta = float(alarm.get('volume_shock_value', 0) or alarm.get('volume_shock', 0) or 0)
+                        else:
+                            current_delta = float(alarm.get('delta', 0) or alarm.get('money_in', 0) or 0)
                         self._log_telegram_sent(alarm, alarm_type_clean, current_delta)
                         sent_count += 1
                         time.sleep(0.5)
