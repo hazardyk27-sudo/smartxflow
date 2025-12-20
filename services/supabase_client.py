@@ -383,80 +383,103 @@ class SupabaseClient:
                 print(f"[Supabase] Got {len(matches)} unique YESTERDAY matches from {history_table} (optimized)")
                 return matches
             elif date_filter == 'today':
-                today_pattern = now_tr.strftime('%d.%b')
-                print(f"[Supabase] Fetching today's matches ({today_pattern}) from: {history_table}")
+                # FIXTURES-FIRST APPROACH: Get all today's fixtures first, then batch fetch odds
+                today_date = now_tr.date()
+                today_str = today_date.strftime('%Y-%m-%d')
+                history_table = f"{market}_history"
+                print(f"[Supabase] TODAY: Fixtures-first approach for {today_str}")
                 
-                seen = {}
-                page = 0
-                page_size = 500
-                max_unique_matches = 300
-                max_pages = 10
+                # Step 1: Get ALL today's fixtures
+                fix_url = f"{self._rest_url('fixtures')}?select=*&fixture_date=eq.{today_str}&order=kickoff_utc.desc&limit=500"
+                fix_resp = httpx.get(fix_url, headers=self._headers(), timeout=15)
                 
-                while page < max_pages and len(seen) < max_unique_matches:
-                    offset = page * page_size
-                    url = f"{self._rest_url(history_table)}?select=*&date=like.*{today_pattern}*&order=scraped_at.desc&limit={page_size}&offset={offset}"
+                if fix_resp.status_code != 200:
+                    print(f"[Supabase] TODAY fixtures fetch error: {fix_resp.status_code}")
+                    return []
+                
+                fixtures = fix_resp.json()
+                print(f"[Supabase] TODAY: Got {len(fixtures)} fixtures from table")
+                
+                if not fixtures:
+                    return []
+                
+                # Step 2: Batch fetch odds from history for ALL fixtures
+                from urllib.parse import quote
+                odds_cache = {}
+                batch_size = 10
+                pairs = [(fix.get('home_team', ''), fix.get('away_team', '')) for fix in fixtures]
+                
+                for i in range(0, len(pairs), batch_size):
+                    batch_pairs = pairs[i:i+batch_size]
+                    or_filters = ','.join(
+                        f'and(home.eq.{quote(h, safe="")},away.eq.{quote(a, safe="")})'
+                        for h, a in batch_pairs if h and a
+                    )
                     
-                    resp = None
-                    for attempt in range(3):
-                        try:
-                            resp = httpx.get(url, headers=self._headers(), timeout=30)
-                            if resp.status_code == 200:
-                                break
-                            elif resp.status_code >= 500:
-                                print(f"[Supabase] Retry {attempt+1}/3 for page {page+1} (status {resp.status_code})")
-                                import time
-                                time.sleep(1)
-                        except Exception as e:
-                            print(f"[Supabase] Retry {attempt+1}/3 for page {page+1} (error: {e})")
-                            import time
-                            time.sleep(1)
+                    if not or_filters:
+                        continue
                     
-                    if resp and resp.status_code == 200:
-                        rows = resp.json()
-                        if not rows:
-                            break
+                    try:
+                        batch_url = f"{self._rest_url(history_table)}?or=({or_filters})&order=scraped_at.desc&limit=1000"
+                        batch_resp = httpx.get(batch_url, headers=self._headers(), timeout=30)
                         
-                        for row in rows:
-                            home = row.get('home', '')
-                            away = row.get('away', '')
-                            league = row.get('league', '')
-                            key = f"{home}|{away}|{league}"
-                            if key not in seen:
-                                seen[key] = row
-                            else:
-                                existing_time = seen[key].get('scraped_at', '')
-                                new_time = row.get('scraped_at', '')
-                                if new_time > existing_time:
-                                    seen[key] = row
-                        
-                        print(f"[Supabase] Page {page+1}: {len(rows)} rows, {len(seen)} unique matches")
-                        
-                        if len(rows) < page_size or len(seen) >= max_unique_matches:
-                            break
-                        page += 1
-                    else:
-                        print(f"[Supabase] ERROR {resp.status_code if resp else 'timeout'} on page {page+1} after 3 retries")
-                        break
+                        if batch_resp.status_code == 200:
+                            rows = batch_resp.json()
+                            for row in rows:
+                                cache_key = f"{row.get('home', '')}|{row.get('away', '')}"
+                                if cache_key not in odds_cache:
+                                    odds_cache[cache_key] = row
+                    except Exception as e:
+                        print(f"[Supabase] TODAY batch {i//batch_size + 1} error: {e}")
                 
+                print(f"[Supabase] TODAY: Batch fetched odds for {len(odds_cache)}/{len(fixtures)} matches")
+                
+                # Step 3: Build match list with odds
                 matches = []
-                for key, row in seen.items():
-                    latest = self._normalize_history_row(row, market)
+                tr_tz = pytz.timezone('Europe/Istanbul')
+                
+                for fix in fixtures:
+                    home = fix.get('home_team', '')
+                    away = fix.get('away_team', '')
+                    league = fix.get('league', '')
+                    
+                    kickoff_utc = fix.get('kickoff_utc', '')
+                    date_display = fix.get('fixture_date', '')
+                    if kickoff_utc:
+                        try:
+                            if isinstance(kickoff_utc, str):
+                                kickoff_dt = datetime.fromisoformat(kickoff_utc.replace('Z', '+00:00'))
+                            else:
+                                kickoff_dt = kickoff_utc
+                            kickoff_tr = kickoff_dt.astimezone(tr_tz)
+                            date_display = kickoff_tr.strftime('%d.%b %H:%M')
+                        except:
+                            pass
+                    
+                    cache_key = f"{home}|{away}"
+                    latest_odds = {
+                        'ScrapedAt': '',
+                        'Volume': '',
+                        'Odds1': '-',
+                        'OddsX': '-',
+                        'Odds2': '-'
+                    }
+                    
+                    if cache_key in odds_cache:
+                        row = odds_cache[cache_key]
+                        latest_odds = self._normalize_history_row(row, market)
+                    
                     matches.append({
-                        'home_team': row.get('home', ''),
-                        'away_team': row.get('away', ''),
-                        'league': row.get('league', ''),
-                        'date': row.get('date', ''),
-                        'latest': latest
+                        'home_team': home,
+                        'away_team': away,
+                        'league': league,
+                        'date': date_display,
+                        'match_id_hash': fix.get('match_id_hash', ''),
+                        'kickoff_utc': kickoff_utc,
+                        'latest': latest_odds
                     })
                 
-                # CRITICAL: Also fetch from fixtures table to catch matches not in history
-                today_date = now_tr.date()
-                fixtures_matches = self._get_matches_from_fixtures_today(seen, today_date, market)
-                if fixtures_matches:
-                    matches.extend(fixtures_matches)
-                    print(f"[Supabase] Added {len(fixtures_matches)} TODAY matches from fixtures table")
-                
-                print(f"[Supabase] Got {len(matches)} unique TODAY matches from {history_table} (optimized)")
+                print(f"[Supabase] TODAY: Got {len(matches)} matches (fixtures-first)")
                 return matches
             else:
                 # ALL mode: Optimized - early exit when enough unique matches found
