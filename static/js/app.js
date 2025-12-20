@@ -5507,8 +5507,28 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
         if (alarms.length === 0) return '';
         
         const latest = alarms[0];
-        const count = alarms.length;
-        console.log(`[SMC Card] Type: ${type}, Selection: ${latest.selection || latest.side}, Count: ${count}, Home: ${latest.home || latest.home_team}`);
+        
+        // alarm_history alanını kullan (BigMoney, Sharp, VolumeShock vb. için)
+        let allHistoryAlarms = [...alarms];
+        let alarmHistory = latest.alarm_history || [];
+        if (typeof alarmHistory === 'string') {
+            try { alarmHistory = JSON.parse(alarmHistory); } catch(e) { alarmHistory = []; }
+        }
+        if (Array.isArray(alarmHistory) && alarmHistory.length > 0) {
+            // alarm_history'deki kayıtları pseudo-alarm olarak ekle
+            allHistoryAlarms = alarmHistory.map(h => ({
+                ...latest,
+                incoming_money: h.incoming_money || h.stake || 0,
+                trigger_at: h.trigger_at || h.created_at || '',
+                total_selection: h.selection_total || h.total_selection || 0,
+                sharp_score: h.sharp_score || 0,
+                volume_shock_value: h.volume_shock_value || h.volume_shock || 0,
+                drop_pct: h.drop_pct || 0
+            }));
+        }
+        
+        const count = allHistoryAlarms.length;
+        console.log(`[SMC Card] Type: ${type}, Selection: ${latest.selection || latest.side}, Count: ${count}, HistoryCount: ${alarmHistory.length}, Home: ${latest.home || latest.home_team}`);
         
         const lastTime = formatSmartMoneyTime(latest.trigger_at || latest.event_time || latest.created_at || latest.triggered_at);
         
@@ -5653,8 +5673,8 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             
             const theme = tooltipTheme[type] || { title: 'Geçmiş Alarmlar', pillLabel: () => '' };
             
-            // Alarm tipine göre temalı tooltip item formatı
-            const tooltipItems = alarms.slice(0, 10).map(a => {
+            // Alarm tipine göre temalı tooltip item formatı (allHistoryAlarms kullan)
+            const tooltipItems = allHistoryAlarms.slice(0, 10).map(a => {
                 const t = formatSmartMoneyTime(a.trigger_at || a.event_time || a.created_at);
                 const timeOnly = t.includes('•') ? t.split('•')[1].trim() : t;
                 const pillValue = theme.pillLabel(a);
@@ -5753,7 +5773,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
         // History section - önceki alarmları göster (count > 1 ise)
         let historyHtml = '';
         if (count > 1) {
-            const historyItems = alarms.slice(1, 6).map(a => {
+            const historyItems = allHistoryAlarms.slice(1, 6).map(a => {
                 const hTime = formatSmartMoneyTime(a.trigger_at || a.event_time || a.created_at);
                 let hValue = '';
                 if (type === 'bigmoney') {
