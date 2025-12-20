@@ -503,10 +503,94 @@ class SupabaseClient:
                         'date': row.get('date', ''),
                         'latest': latest
                     })
-                print(f"[Supabase] Got {len(matches)} unique matches (optimized)")
+                
+                # CRITICAL: Also fetch from fixtures table to catch matches not in history
+                fixtures_matches = self._get_matches_from_fixtures(seen, today_date, yesterday_date)
+                if fixtures_matches:
+                    matches.extend(fixtures_matches)
+                    print(f"[Supabase] Added {len(fixtures_matches)} matches from fixtures table")
+                
+                print(f"[Supabase] Got {len(matches)} total unique matches (optimized)")
                 return matches
         except Exception as e:
             print(f"[Supabase] EXCEPTION in get_all_matches_with_latest: {e}")
+            return []
+    
+    def _get_matches_from_fixtures(self, seen: Dict, today_date, yesterday_date) -> List[Dict[str, Any]]:
+        """Fetch matches from fixtures table that are not already in seen dict
+        
+        This ensures matches are shown even if they don't have history table data yet.
+        """
+        if not self.is_available:
+            return []
+        
+        try:
+            from datetime import datetime
+            
+            # Fetch fixtures for today and yesterday
+            today_str = today_date.strftime('%Y-%m-%d')
+            yesterday_str = yesterday_date.strftime('%Y-%m-%d')
+            
+            url = f"{self._rest_url('fixtures')}?select=*&fixture_date=gte.{yesterday_str}&fixture_date=lte.{today_str}&order=kickoff_utc.desc&limit=500"
+            resp = httpx.get(url, headers=self._headers(), timeout=15)
+            
+            if resp.status_code != 200:
+                print(f"[Supabase] Fixtures fetch error: {resp.status_code}")
+                return []
+            
+            fixtures = resp.json()
+            new_matches = []
+            
+            for fix in fixtures:
+                home = fix.get('home_team', '')
+                away = fix.get('away_team', '')
+                league = fix.get('league', '')
+                key = f"{home}|{away}|{league}"
+                
+                # Skip if already in seen from history table
+                if key in seen:
+                    continue
+                
+                # Format date for UI (e.g., "20.Dec 15:30")
+                kickoff_utc = fix.get('kickoff_utc', '')
+                date_display = fix.get('fixture_date', '')
+                if kickoff_utc:
+                    try:
+                        import pytz
+                        tr_tz = pytz.timezone('Europe/Istanbul')
+                        if isinstance(kickoff_utc, str):
+                            kickoff_dt = datetime.fromisoformat(kickoff_utc.replace('Z', '+00:00'))
+                        else:
+                            kickoff_dt = kickoff_utc
+                        kickoff_tr = kickoff_dt.astimezone(tr_tz)
+                        date_display = kickoff_tr.strftime('%d.%b %H:%M')
+                    except:
+                        pass
+                
+                new_matches.append({
+                    'home_team': home,
+                    'away_team': away,
+                    'league': league,
+                    'date': date_display,
+                    'match_id_hash': fix.get('match_id_hash', ''),
+                    'kickoff_utc': kickoff_utc,
+                    'latest': {
+                        'ScrapedAt': '',
+                        'Volume': '',
+                        'Odds1': '-',
+                        'OddsX': '-',
+                        'Odds2': '-'
+                    }
+                })
+                
+                # Mark as seen to avoid duplicates
+                seen[key] = True
+            
+            print(f"[Supabase] Found {len(new_matches)} fixtures not in history table")
+            return new_matches
+            
+        except Exception as e:
+            print(f"[Supabase] Error fetching fixtures: {e}")
             return []
     
     def _get_matches_from_base_table(self, market: str) -> List[Dict[str, Any]]:
