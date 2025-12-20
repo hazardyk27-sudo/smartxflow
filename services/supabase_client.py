@@ -449,6 +449,8 @@ class SupabaseClient:
                             date_str = row.get('date', '')
                             if not date_str:
                                 continue
+                            
+                            include_match = False
                             try:
                                 date_part = date_str.split()[0]
                                 if '.' in date_part:
@@ -462,19 +464,26 @@ class SupabaseClient:
                                             year += 1
                                         match_date = datetime(year, month, day).date()
                                         if match_date >= yesterday_date:
-                                            home = row.get('home', '')
-                                            away = row.get('away', '')
-                                            league = row.get('league', '')
-                                            key = f"{home}|{away}|{league}"
-                                            if key not in seen:
-                                                seen[key] = row
-                                            else:
-                                                existing_time = seen[key].get('scraped_at', '')
-                                                new_time = row.get('scraped_at', '')
-                                                if new_time > existing_time:
-                                                    seen[key] = row
+                                            include_match = True
+                                    else:
+                                        include_match = True
+                                else:
+                                    include_match = True
                             except:
-                                pass
+                                include_match = True
+                            
+                            if include_match:
+                                home = row.get('home', '')
+                                away = row.get('away', '')
+                                league = row.get('league', '')
+                                key = f"{home}|{away}|{league}"
+                                if key not in seen:
+                                    seen[key] = row
+                                else:
+                                    existing_time = seen[key].get('scraped_at', '')
+                                    new_time = row.get('scraped_at', '')
+                                    if new_time > existing_time:
+                                        seen[key] = row
                         
                         print(f"[Supabase] Page {page+1}: {len(rows)} rows, {len(seen)} unique matches")
                         
