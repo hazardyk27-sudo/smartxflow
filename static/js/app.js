@@ -5509,27 +5509,37 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
         const latest = alarms[0];
         
         // alarm_history alanını kullan (BigMoney, Sharp, VolumeShock vb. için)
-        // latest: aktif/son alarm (her zaman dahil edilmeli)
-        // alarm_history: önceki alarmlar (latest hariç)
+        // NOT: alarm_history zaten tüm alarmları içeriyor (latest dahil)
+        // Bu yüzden sadece alarm_history'yi kullan, latest'i ayrıca ekleme
         let alarmHistory = latest.alarm_history || [];
         if (typeof alarmHistory === 'string') {
             try { alarmHistory = JSON.parse(alarmHistory); } catch(e) { alarmHistory = []; }
         }
         
-        // allHistoryAlarms: latest + alarm_history (toplam count için)
-        // Latest her zaman en başta olmalı
-        let allHistoryAlarms = [latest];
+        // allHistoryAlarms: alarm_history varsa onu kullan, yoksa sadece [latest]
+        let allHistoryAlarms = [];
         if (Array.isArray(alarmHistory) && alarmHistory.length > 0) {
-            const historyItems = alarmHistory.map(h => ({
-                ...latest,
-                incoming_money: h.incoming_money || h.stake || 0,
-                trigger_at: h.trigger_at || h.created_at || '',
-                total_selection: h.selection_total || h.total_selection || 0,
-                sharp_score: h.sharp_score || 0,
-                volume_shock_value: h.volume_shock_value || h.volume_shock || 0,
-                drop_pct: h.drop_pct || 0
-            }));
-            allHistoryAlarms = [latest, ...historyItems];
+            // alarm_history zaten tüm alarmları içeriyor, duplicate'leri timestamp ile filtrele
+            const seen = new Set();
+            allHistoryAlarms = alarmHistory
+                .map(h => ({
+                    ...latest,
+                    incoming_money: h.incoming_money || h.stake || 0,
+                    trigger_at: h.trigger_at || h.created_at || '',
+                    total_selection: h.selection_total || h.total_selection || 0,
+                    sharp_score: h.sharp_score || 0,
+                    volume_shock_value: h.volume_shock_value || h.volume_shock || 0,
+                    drop_pct: h.drop_pct || 0
+                }))
+                .filter(h => {
+                    const key = `${h.trigger_at}|${h.incoming_money}`;
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+        } else {
+            // alarm_history yoksa sadece latest
+            allHistoryAlarms = [latest];
         }
         
         const count = allHistoryAlarms.length;
