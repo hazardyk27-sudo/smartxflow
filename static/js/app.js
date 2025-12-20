@@ -5509,14 +5509,18 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
         const latest = alarms[0];
         
         // alarm_history alanını kullan (BigMoney, Sharp, VolumeShock vb. için)
-        let allHistoryAlarms = [...alarms];
+        // latest: aktif/son alarm (her zaman dahil edilmeli)
+        // alarm_history: önceki alarmlar (latest hariç)
         let alarmHistory = latest.alarm_history || [];
         if (typeof alarmHistory === 'string') {
             try { alarmHistory = JSON.parse(alarmHistory); } catch(e) { alarmHistory = []; }
         }
+        
+        // allHistoryAlarms: latest + alarm_history (toplam count için)
+        // Latest her zaman en başta olmalı
+        let allHistoryAlarms = [latest];
         if (Array.isArray(alarmHistory) && alarmHistory.length > 0) {
-            // alarm_history'deki kayıtları pseudo-alarm olarak ekle
-            allHistoryAlarms = alarmHistory.map(h => ({
+            const historyItems = alarmHistory.map(h => ({
                 ...latest,
                 incoming_money: h.incoming_money || h.stake || 0,
                 trigger_at: h.trigger_at || h.created_at || '',
@@ -5525,6 +5529,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                 volume_shock_value: h.volume_shock_value || h.volume_shock || 0,
                 drop_pct: h.drop_pct || 0
             }));
+            allHistoryAlarms = [latest, ...historyItems];
         }
         
         const count = allHistoryAlarms.length;
@@ -5770,35 +5775,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             }, 100);
         }
         
-        // History section - önceki alarmları göster (count > 1 ise)
-        let historyHtml = '';
-        if (count > 1) {
-            const historyItems = allHistoryAlarms.slice(1, 6).map(a => {
-                const hTime = formatSmartMoneyTime(a.trigger_at || a.event_time || a.created_at);
-                let hValue = '';
-                if (type === 'bigmoney') {
-                    hValue = `£${Number(a.incoming_money || a.stake || 0).toLocaleString('en-GB')}`;
-                } else if (type === 'sharp') {
-                    hValue = `Sharp ${(a.sharp_score || 0).toFixed(0)}`;
-                } else if (type === 'volumeshock') {
-                    hValue = `X${(a.volume_shock_value || a.volume_shock || 0).toFixed(1)}`;
-                } else if (type === 'insider') {
-                    hValue = `▼${Math.abs(a.drop_pct || a.oran_dusus_pct || a.odds_drop_pct || 0).toFixed(1)}%`;
-                } else if (type === 'dropping') {
-                    hValue = `▼${(a.drop_pct || 0).toFixed(1)}%`;
-                } else if (type === 'publicmove') {
-                    hValue = `%${(a.previous_share || 0).toFixed(0)}→%${(a.current_share || 0).toFixed(0)}`;
-                } else if (type === 'volumeleader') {
-                    hValue = `${a.old_leader || '-'}→${a.new_leader || '-'}`;
-                } else if (type === 'mim') {
-                    hValue = `L${a.level || 1} ${(a.impact || a.impact_score || a.money_impact || 0).toFixed(2)}`;
-                }
-                return `<div class="smc-history-item"><span class="smc-h-time">${hTime}</span><span class="smc-h-val" style="color: ${config.color};">${hValue}</span></div>`;
-            }).join('');
-            
-            const moreCount = count > 6 ? ` <span class="smc-more">+${count - 6} daha</span>` : '';
-            historyHtml = `<div class="smc-history-section"><div class="smc-history-title">ÖNCEKİ${moreCount}</div>${historyItems}</div>`;
-        }
+        // ÖNCEKİ listesi kaldırıldı - tooltip zaten history'yi gösteriyor
         
         return `
             <div class="smc-card ${type}">
@@ -5821,7 +5798,6 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                         <span class="smc-detail">${row3Right}</span>
                     </div>
                     <div class="smc-row smc-desc">${row4}</div>
-                    ${historyHtml}
                 </div>
             </div>
         `;
