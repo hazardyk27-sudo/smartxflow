@@ -4949,8 +4949,42 @@
             
             const shockColor = shockValue >= 10 ? '#22c55e' : shockValue >= 5 ? '#3fb950' : '#60a5fa';
             
+            let historyHtml = '';
+            let alarmHistory = [];
+            try {
+                if (alarm.alarm_history) {
+                    alarmHistory = typeof alarm.alarm_history === 'string' ? JSON.parse(alarm.alarm_history) : alarm.alarm_history;
+                }
+            } catch (e) {
+                console.error('VolumeShock history parse error:', e);
+            }
+            
+            if (alarmHistory && alarmHistory.length > 0) {
+                historyHtml = `
+                    <div style="background: #161b22; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                        <div style="color: #8b949e; font-size: 11px; margin-bottom: 10px;">📜 ÖNCEKİ ALARMLAR (${alarmHistory.length})</div>
+                        <div style="max-height: 150px; overflow-y: auto;">
+                `;
+                alarmHistory.slice().reverse().forEach((h, idx) => {
+                    const hShockRaw = parseFloat(h.volume_shock_value || h.volume_shock || 0);
+                    const hShock = isFinite(hShockRaw) ? hShockRaw.toFixed(2) : 'N/A';
+                    const hIncomingRaw = parseFloat(h.incoming_money || 0);
+                    const hIncoming = isFinite(hIncomingRaw) ? Number(hIncomingRaw).toLocaleString('en-GB') : '0';
+                    const hTime = h.trigger_at ? formatDateTime(h.trigger_at) : '-';
+                    historyHtml += `
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #21262d; font-size: 11px;">
+                            <span style="color: #8b949e;">${idx + 1}.</span>
+                            <span style="color: #ff6b6b;">⚡ ${hShock}x</span>
+                            <span style="color: #22c55e;">+£${hIncoming}</span>
+                            <span style="color: #6e7681;">${hTime}</span>
+                        </div>
+                    `;
+                });
+                historyHtml += '</div></div>';
+            }
+            
             const modalContent = `
-                <div style="padding: 20px; background: #0d1117; border-radius: 8px; max-width: 500px; margin: 50px auto;">
+                <div style="padding: 20px; background: #0d1117; border-radius: 8px; max-width: 500px; margin: 50px auto; max-height: 90vh; overflow-y: auto;">
                     <h3 style="color: #ff6b6b; margin-bottom: 20px; border-bottom: 1px solid #21262d; padding-bottom: 10px;">⚡ Hacim Soku Alarm Detayi</h3>
                     
                     <div style="margin-bottom: 20px; padding: 15px; background: #161b22; border-radius: 8px;">
@@ -4984,6 +5018,8 @@
                             <span style="color: #e6edf3;">£${Number(avgPrevious).toLocaleString('en-GB')}</span>
                         </div>
                     </div>
+                    
+                    ${historyHtml}
                     
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;">
                         <div style="background: #161b22; padding: 10px; border-radius: 6px;">
@@ -5581,8 +5617,42 @@
             const triggerTime = alarm.trigger_at ? formatDateTime(alarm.trigger_at) : '-';
             const createdTime = alarm.created_at ? formatDateTime(alarm.created_at) : '-';
             
+            let historyHtml = '';
+            let alarmHistory = [];
+            try {
+                if (alarm.alarm_history) {
+                    alarmHistory = typeof alarm.alarm_history === 'string' ? JSON.parse(alarm.alarm_history) : alarm.alarm_history;
+                }
+            } catch (e) {
+                console.error('MIM history parse error:', e);
+            }
+            
+            if (alarmHistory && alarmHistory.length > 0) {
+                historyHtml = `
+                    <div style="background: #161b22; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                        <div style="color: #8b949e; font-size: 11px; margin-bottom: 10px;">📜 ÖNCEKİ ALARMLAR (${alarmHistory.length})</div>
+                        <div style="max-height: 150px; overflow-y: auto;">
+                `;
+                alarmHistory.slice().reverse().forEach((h, idx) => {
+                    const hImpactRaw = parseFloat(h.impact_score || h.impact || 0);
+                    const hImpactPct = isFinite(hImpactRaw) ? (hImpactRaw * 100).toFixed(1) : 'N/A';
+                    const hIncomingRaw = parseFloat(h.incoming_volume || 0);
+                    const hIncoming = isFinite(hIncomingRaw) ? Number(hIncomingRaw).toLocaleString('en-GB') : '0';
+                    const hTime = h.trigger_at ? formatDateTime(h.trigger_at) : '-';
+                    historyHtml += `
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #21262d; font-size: 11px;">
+                            <span style="color: #8b949e;">${idx + 1}.</span>
+                            <span style="color: #3B82F6;">💎 ${hImpactPct}%</span>
+                            <span style="color: #22c55e;">+£${hIncoming}</span>
+                            <span style="color: #6e7681;">${hTime}</span>
+                        </div>
+                    `;
+                });
+                historyHtml += '</div></div>';
+            }
+            
             const modalContent = `
-                <div style="padding: 20px; background: #0d1117; border-radius: 8px; max-width: 500px; margin: 50px auto;">
+                <div style="padding: 20px; background: #0d1117; border-radius: 8px; max-width: 500px; margin: 50px auto; max-height: 90vh; overflow-y: auto;">
                     <h3 style="color: #3B82F6; margin-bottom: 20px; border-bottom: 1px solid #21262d; padding-bottom: 10px;">💎 MIM Alarm Detayi</h3>
                     
                     <div style="margin-bottom: 20px; padding: 15px; background: #161b22; border-radius: 8px;">
@@ -5608,6 +5678,8 @@
                             Formul: incoming / market_total = ${Number(incomingVol).toLocaleString('en-GB')} / ${Number(totalMarketVol).toLocaleString('en-GB')} = ${impactPct}%
                         </div>
                     </div>
+                    
+                    ${historyHtml}
                     
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;">
                         <div style="background: #161b22; padding: 10px; border-radius: 6px;">
