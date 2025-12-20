@@ -3696,22 +3696,123 @@
             }
 
             countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
-            container.innerHTML = alarms.map((alarm, idx) => `
-                <div class="alarm-item" onclick="showAlarmDetail(${idx})">
-                    <div class="alarm-info">
-                        <div class="alarm-match">${alarm.home} vs ${alarm.away}</div>
-                        <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
-                        <div class="alarm-breakdown" style="display: flex; gap: 12px; margin-top: 6px; font-size: 11px;">
-                            <span style="color: #f0883e;" title="Hacim Katkisi">⚡ ${(alarm.volume_contrib || alarm.shock_value || 0).toFixed(1)}</span>
-                            <span style="color: #58a6ff;" title="Oran Katkisi">📉 ${(alarm.odds_contrib || alarm.odds_value || 0).toFixed(1)}</span>
-                            <span style="color: #3fb950;" title="Pay Katkisi">📊 ${(alarm.share_contrib || alarm.share_value || 0).toFixed(1)}</span>
+            
+            let html = `
+                <div class="alarm-table-wrapper" style="overflow-x: auto;">
+                    <table class="alarm-table" style="width: 100%; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #161b22; color: #8b949e;">
+                                <th style="padding: 10px; text-align: left;">Maç</th>
+                                <th style="padding: 10px; text-align: center;">Market / Seçim</th>
+                                <th style="padding: 10px; text-align: center;">Sharp Score</th>
+                                <th style="padding: 10px; text-align: center;">Hacim Katkısı</th>
+                                <th style="padding: 10px; text-align: center;">Oran Katkısı</th>
+                                <th style="padding: 10px; text-align: center;">Pay Katkısı</th>
+                                <th style="padding: 10px; text-align: center;">Zaman</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            alarms.slice(0, 100).forEach(alarm => {
+                const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
+                const market = alarm.market || '-';
+                const selection = alarm.selection || '-';
+                const sharpScore = alarm.sharp_score || alarm.smart_score || 0;
+                const volumeContrib = alarm.volume_contrib || alarm.shock_value || 0;
+                const oddsContrib = alarm.odds_contrib || alarm.odds_value || 0;
+                const shareContrib = alarm.share_contrib || alarm.share_value || 0;
+                
+                const eventTime = alarm.trigger_at || alarm.created_at || '-';
+                const formattedTime = eventTime !== '-' ? formatDateTime(eventTime) : '-';
+                
+                const scoreColor = sharpScore >= 50 ? '#22c55e' : sharpScore >= 30 ? '#3B82F6' : '#8b949e';
+                
+                html += `
+                    <tr style="border-bottom: 1px solid #21262d; cursor: pointer;" onclick="showSharpDetail(${JSON.stringify(alarm).replace(/"/g, '&quot;')})">
+                        <td style="padding: 10px; color: #e6edf3;">${matchName}</td>
+                        <td style="padding: 10px; text-align: center;">
+                            <span style="background: rgba(59,130,246,0.2); color: #3B82F6; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${market}</span>
+                            <span style="background: rgba(34,197,94,0.2); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">${selection}</span>
+                        </td>
+                        <td style="padding: 10px; text-align: center; color: ${scoreColor}; font-weight: 700; font-size: 14px;">${sharpScore.toFixed(1)}</td>
+                        <td style="padding: 10px; text-align: center; color: #f0883e;">⚡ ${volumeContrib.toFixed(1)}</td>
+                        <td style="padding: 10px; text-align: center; color: #58a6ff;">📉 ${oddsContrib.toFixed(1)}</td>
+                        <td style="padding: 10px; text-align: center; color: #3fb950;">📊 ${shareContrib.toFixed(1)}</td>
+                        <td style="padding: 10px; text-align: center; color: #8b949e; font-size: 11px;">${formattedTime}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table></div>';
+            
+            if (alarms.length > 100) {
+                html += `<p style="text-align: center; color: #6e7681; padding: 10px; font-size: 12px;">+${alarms.length - 100} daha fazla alarm...</p>`;
+            }
+            
+            container.innerHTML = html;
+            window.currentAlarms = alarms;
+        }
+        
+        function showSharpDetail(alarm) {
+            const sharpScore = alarm.sharp_score || alarm.smart_score || 0;
+            const volumeContrib = alarm.volume_contrib || alarm.shock_value || 0;
+            const oddsContrib = alarm.odds_contrib || alarm.odds_value || 0;
+            const shareContrib = alarm.share_contrib || alarm.share_value || 0;
+            const triggerTime = alarm.trigger_at ? formatDateTime(alarm.trigger_at) : '-';
+            const createdTime = alarm.created_at ? formatDateTime(alarm.created_at) : '-';
+            const scoreColor = sharpScore >= 50 ? '#22c55e' : sharpScore >= 30 ? '#3B82F6' : '#8b949e';
+            
+            const modalContent = `
+                <div style="padding: 20px; background: #0d1117; border-radius: 8px; max-width: 500px; margin: 50px auto;">
+                    <h3 style="color: #22c55e; margin-bottom: 20px; border-bottom: 1px solid #21262d; padding-bottom: 10px;">🎯 Sharp Alarm Detayı</h3>
+                    
+                    <div style="margin-bottom: 20px; padding: 15px; background: #161b22; border-radius: 8px;">
+                        <div style="font-size: 18px; color: #e6edf3; margin-bottom: 5px;">${alarm.home} vs ${alarm.away}</div>
+                        <div style="color: #8b949e; font-size: 13px;">${alarm.league || '-'}</div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">MARKET / SEÇİM</div>
+                            <div style="color: #e6edf3; font-size: 14px;">${alarm.market} <span style="color: #22c55e;">${alarm.selection}</span></div>
+                        </div>
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">SHARP SCORE</div>
+                            <div style="color: ${scoreColor}; font-size: 24px; font-weight: 700;">${sharpScore.toFixed(1)}</div>
                         </div>
                     </div>
-                    <div class="alarm-score">${(alarm.sharp_score || alarm.smart_score || 0).toFixed(1)}</div>
+                    
+                    <div style="background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="color: #8b949e; font-size: 11px; margin-bottom: 8px;">SKOR DAĞILIMI</div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #f0883e;">⚡ Hacim Katkısı</span>
+                            <span style="color: #f0883e; font-weight: 700;">${volumeContrib.toFixed(1)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #58a6ff;">📉 Oran Katkısı</span>
+                            <span style="color: #58a6ff; font-weight: 700;">${oddsContrib.toFixed(1)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #3fb950;">📊 Pay Katkısı</span>
+                            <span style="color: #3fb950; font-weight: 700;">${shareContrib.toFixed(1)}</span>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; color: #8b949e; font-size: 12px; margin-bottom: 20px;">
+                        <span>Tetiklenme: ${triggerTime}</span>
+                        <span>Oluşturulma: ${createdTime}</span>
+                    </div>
+                    
+                    <button onclick="this.closest('.modal').remove()" style="width: 100%; padding: 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; cursor: pointer;">Kapat</button>
                 </div>
-            `).join('');
-
-            window.currentAlarms = alarms;
+            `;
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = modalContent;
+            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+            document.body.appendChild(modal);
         }
 
         function renderAlarms(alarms, totalCount = null) {
@@ -3805,86 +3906,128 @@
             }
 
             countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
-            container.innerHTML = alarms.map((alarm, idx) => {
-                const details = alarm.calc_details || {};
-                const hasDetails = Object.keys(details).length > 0;
+            
+            let html = `
+                <div class="alarm-table-wrapper" style="overflow-x: auto;">
+                    <table class="alarm-table" style="width: 100%; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #161b22; color: #8b949e;">
+                                <th style="padding: 10px; text-align: left;">Maç</th>
+                                <th style="padding: 10px; text-align: center;">Market / Seçim</th>
+                                <th style="padding: 10px; text-align: center;">Public Score</th>
+                                <th style="padding: 10px; text-align: right;">Hacim Değişimi</th>
+                                <th style="padding: 10px; text-align: center;">Oran Katkısı</th>
+                                <th style="padding: 10px; text-align: center;">Pay Katkısı</th>
+                                <th style="padding: 10px; text-align: center;">Zaman</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            alarms.slice(0, 100).forEach(alarm => {
+                const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
+                const market = alarm.market || '-';
+                const selection = alarm.selection || '-';
+                const publicScore = alarm.move_score || alarm.trap_score || alarm.sharp_score || alarm.public_score || 0;
+                const amountChange = alarm.amount_change || 0;
+                const oddsContrib = alarm.odds_value || alarm.odds_contrib || 0;
+                const shareContrib = alarm.share_value || alarm.share_contrib || 0;
                 
-                // Eğer calc_details yoksa, eski alarmlar için mesaj göster
-                const detailsContent = hasDetails ? `
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
-                        <!-- Hacim Şoku -->
-                        <div style="background: #21262d; padding: 8px; border-radius: 6px;">
-                            <div style="color: #FFD700; font-weight: 600; margin-bottom: 4px;">⚡ Hacim Şoku</div>
-                            <div style="color: #c9d1d9;">Para Girişi: <span style="color: #3fb950;">£${(alarm.amount_change || 0).toLocaleString('en-GB')}</span></div>
-                            <div style="color: #8b949e;">Çarpan: ×${details.volume_multiplier || 1}</div>
-                            <div style="color: #8b949e;">Max Cap: ${details.max_volume_cap || 40}</div>
-                            <div style="color: #FFD700; margin-top: 4px; font-weight: 600;">= ${(alarm.shock_value || 0).toFixed(2)}</div>
-                        </div>
-                        <!-- Oran Değişimi -->
-                        <div style="background: #21262d; padding: 8px; border-radius: 6px;">
-                            <div style="color: #58a6ff; font-weight: 600; margin-bottom: 4px;">📉 Oran Düşüşü</div>
-                            <div style="color: #c9d1d9;">Oran: <span style="color: #f85149;">${details.prev_odds}</span> → <span style="color: #3fb950;">${alarm.current_odds}</span></div>
-                            <div style="color: #c9d1d9;">Düşüş: <span style="color: #58a6ff;">%${details.drop_pct.toFixed(2)}</span></div>
-                            <div style="color: #8b949e;">Min Düşüş: %${details.min_drop_threshold}</div>
-                            <div style="color: #8b949e;">Çarpan: ×${details.odds_mult}</div>
-                            <div style="color: #58a6ff; margin-top: 4px; font-weight: 600;">= ${(alarm.odds_value || 0).toFixed(2)}</div>
-                        </div>
-                        <!-- Pay Değişimi -->
-                        <div style="background: #21262d; padding: 8px; border-radius: 6px;">
-                            <div style="color: #3fb950; font-weight: 600; margin-bottom: 4px;">📊 Pay Değişimi</div>
-                            <div style="color: #c9d1d9;">Pay: <span style="color: #8b949e;">${details.prev_share}%</span> → <span style="color: #3fb950;">${(alarm.current_share || 0).toFixed(1)}%</span></div>
-                            <div style="color: #c9d1d9;">Artış: <span style="color: #3fb950;">+${details.share_diff.toFixed(2)}%</span></div>
-                            <div style="color: #8b949e;">Çarpan: ×${details.share_mult}</div>
-                            <div style="color: #3fb950; margin-top: 4px; font-weight: 600;">= ${(alarm.share_value || 0).toFixed(2)}</div>
-                        </div>
-                    </div>
-                    <!-- Toplam Skor -->
-                    <div style="margin-top: 12px; padding: 8px; background: linear-gradient(135deg, #FFCC00, #FFD700); border-radius: 6px; text-align: center;">
-                        <span style="color: #000; font-weight: 600; font-size: 12px;">
-                            TOPLAM SKOR = ${(alarm.shock_value || 0).toFixed(1)} + ${(alarm.odds_value || 0).toFixed(1)} + ${(alarm.share_value || 0).toFixed(1)} = <span style="font-size: 14px;">${(alarm.sharp_score || 0).toFixed(1)}</span>
-                        </span>
-                    </div>
-                    <div style="margin-top: 8px; color: #8b949e; font-size: 10px; text-align: center;">
-                        Min Skor Eşiği: ${details.min_sharp_score || 10} | Hacim: £${(alarm.volume || 0).toLocaleString('en-GB')}
-                    </div>
-                ` : `
-                    <div style="text-align: center; padding: 20px; color: #f0883e;">
-                        <div style="font-size: 24px; margin-bottom: 8px;">⚠️</div>
-                        <div>Bu alarm eski formatta. Detayları görmek için:</div>
-                        <div style="margin-top: 8px;"><strong>"Alarmları Yeniden Hesapla"</strong> butonuna basın.</div>
-                    </div>
+                const eventTime = alarm.trigger_at || alarm.event_time || alarm.created_at || '-';
+                const formattedTime = eventTime !== '-' ? formatDateTime(eventTime) : '-';
+                
+                const scoreColor = publicScore >= 50 ? '#22c55e' : publicScore >= 30 ? '#3B82F6' : '#8b949e';
+                
+                html += `
+                    <tr style="border-bottom: 1px solid #21262d; cursor: pointer;" onclick="showPublicMoveDetail(${JSON.stringify(alarm).replace(/"/g, '&quot;')})">
+                        <td style="padding: 10px; color: #e6edf3;">${matchName}</td>
+                        <td style="padding: 10px; text-align: center;">
+                            <span style="background: rgba(255,215,0,0.2); color: #FFD700; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${market}</span>
+                            <span style="background: rgba(34,197,94,0.2); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">${selection}</span>
+                        </td>
+                        <td style="padding: 10px; text-align: center; color: ${scoreColor}; font-weight: 700; font-size: 14px;">${publicScore.toFixed(1)}</td>
+                        <td style="padding: 10px; text-align: right; color: #22c55e; font-weight: 600;">+£${Number(amountChange).toLocaleString('en-GB')}</td>
+                        <td style="padding: 10px; text-align: center; color: #58a6ff;">📉 ${oddsContrib.toFixed(1)}</td>
+                        <td style="padding: 10px; text-align: center; color: #3fb950;">📊 ${shareContrib.toFixed(1)}</td>
+                        <td style="padding: 10px; text-align: center; color: #8b949e; font-size: 11px;">${formattedTime}</td>
+                    </tr>
                 `;
-                
-                return `
-                <div class="alarm-item" style="border-left: 3px solid #FFD700; cursor: pointer;" onclick="toggleHtCalcDetails(${idx})">
-                    <div class="alarm-info" style="flex: 1;">
-                        <div class="alarm-match">
-                            <span style="background:linear-gradient(135deg, #FFCC00, #FFD700);color:#000;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;font-weight:600;">🪤 PUBLIC MOVE</span>
-                            ${alarm.home} vs ${alarm.away}
-                            <span style="color: #8b949e; font-size: 10px; margin-left: 8px;">▼ detay</span>
-                        </div>
-                        <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.event_time || ''}</div>
-                        <div class="alarm-breakdown" style="display: flex; gap: 12px; margin-top: 6px; font-size: 11px;">
-                            <span style="color: #FFD700;" title="Hacim">💰 £${Math.round(alarm.volume || 0).toLocaleString('en-GB')}</span>
-                            <span style="color: #58a6ff;" title="Oran Dususu">📉 ${(alarm.odds_drop || 0).toFixed(2)}</span>
-                            <span style="color: #3fb950;" title="Pay Degisimi">📊 ${(alarm.delta || alarm.share_change || 0).toFixed(1)}%</span>
-                        </div>
-                        <!-- Hesaplama Detayları -->
-                        <div id="htCalcDetails_${idx}" style="display: none; margin-top: 12px; padding: 12px; background: #161b22; border-radius: 8px; font-size: 11px; border: 1px solid #30363d;">
-                            <div style="font-weight: 600; color: #f0883e; margin-bottom: 8px; font-size: 12px;">📊 Hesaplama Detayları</div>
-                            ${detailsContent}
-                        </div>
-                    </div>
-                    <div class="alarm-score" style="background: linear-gradient(135deg, #FFCC00, #FFD700); color: #000;">${(alarm.move_score || alarm.trap_score || alarm.sharp_score || 0).toFixed(1)}</div>
-                </div>
-            `}).join('');
+            });
+            
+            html += '</tbody></table></div>';
+            
+            if (alarms.length > 100) {
+                html += `<p style="text-align: center; color: #6e7681; padding: 10px; font-size: 12px;">+${alarms.length - 100} daha fazla alarm...</p>`;
+            }
+            
+            container.innerHTML = html;
         }
         
-        function toggleHtCalcDetails(idx) {
-            const detailEl = document.getElementById(`htCalcDetails_${idx}`);
-            if (detailEl) {
-                detailEl.style.display = detailEl.style.display === 'none' ? 'block' : 'none';
-            }
+        function showPublicMoveDetail(alarm) {
+            const publicScore = alarm.move_score || alarm.trap_score || alarm.sharp_score || alarm.public_score || 0;
+            const amountChange = alarm.amount_change || 0;
+            const shockValue = alarm.shock_value || 0;
+            const oddsContrib = alarm.odds_value || alarm.odds_contrib || 0;
+            const shareContrib = alarm.share_value || alarm.share_contrib || 0;
+            const details = alarm.calc_details || {};
+            const triggerTime = alarm.trigger_at ? formatDateTime(alarm.trigger_at) : '-';
+            const createdTime = alarm.created_at ? formatDateTime(alarm.created_at) : '-';
+            const scoreColor = publicScore >= 50 ? '#22c55e' : publicScore >= 30 ? '#3B82F6' : '#8b949e';
+            
+            const modalContent = `
+                <div style="padding: 20px; background: #0d1117; border-radius: 8px; max-width: 500px; margin: 50px auto;">
+                    <h3 style="color: #FFD700; margin-bottom: 20px; border-bottom: 1px solid #21262d; padding-bottom: 10px;">🪤 Public Move Alarm Detayı</h3>
+                    
+                    <div style="margin-bottom: 20px; padding: 15px; background: #161b22; border-radius: 8px;">
+                        <div style="font-size: 18px; color: #e6edf3; margin-bottom: 5px;">${alarm.home} vs ${alarm.away}</div>
+                        <div style="color: #8b949e; font-size: 13px;">${alarm.league || '-'}</div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">MARKET / SEÇİM</div>
+                            <div style="color: #e6edf3; font-size: 14px;">${alarm.market} <span style="color: #22c55e;">${alarm.selection}</span></div>
+                        </div>
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">PUBLIC SCORE</div>
+                            <div style="color: ${scoreColor}; font-size: 24px; font-weight: 700;">${publicScore.toFixed(1)}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="color: #8b949e; font-size: 11px; margin-bottom: 8px;">SKOR DAĞILIMI</div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #22c55e;">💰 Hacim Değişimi</span>
+                            <span style="color: #22c55e; font-weight: 700;">+£${Number(amountChange).toLocaleString('en-GB')}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #FFD700;">⚡ Hacim Katkısı</span>
+                            <span style="color: #FFD700; font-weight: 700;">${shockValue.toFixed(1)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #58a6ff;">📉 Oran Katkısı</span>
+                            <span style="color: #58a6ff; font-weight: 700;">${oddsContrib.toFixed(1)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #3fb950;">📊 Pay Katkısı</span>
+                            <span style="color: #3fb950; font-weight: 700;">${shareContrib.toFixed(1)}</span>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; color: #8b949e; font-size: 12px; margin-bottom: 20px;">
+                        <span>Tetiklenme: ${triggerTime}</span>
+                        <span>Oluşturulma: ${createdTime}</span>
+                    </div>
+                    
+                    <button onclick="this.closest('.modal').remove()" style="width: 100%; padding: 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; cursor: pointer;">Kapat</button>
+                </div>
+            `;
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = modalContent;
+            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+            document.body.appendChild(modal);
         }
 
         function filterPublicMoveAlarms() {
@@ -4081,159 +4224,133 @@
             }
 
             countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
-            container.innerHTML = alarms.map((alarm, idx) => {
-                const alarmKey = `${alarm.home}_${alarm.away}_${alarm.market}_${alarm.selection}`;
-                const isExpanded = expandedInsiderAlarms[alarmKey] || false;
-                const expandIcon = isExpanded ? '▼' : '▶';
-                
-                const eventTime = alarm.event_time || alarm.created_at || '-';
-                let formattedEventTime = '-';
-                if (eventTime && eventTime !== '-') {
-                    try {
-                        const dt = new Date(eventTime);
-                        formattedEventTime = dt.toLocaleString('tr-TR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit'});
-                    } catch(e) { formattedEventTime = eventTime; }
-                }
-                
-                const dropTimeRaw = alarm.trigger_at || alarm.drop_moment || alarm.drop_time || '';
-                const dropTimeFormatted = dropTimeRaw ? (() => {
-                    try {
-                        const dt = new Date(dropTimeRaw);
-                        return dt.toLocaleString('tr-TR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
-                    } catch(e) { return dropTimeRaw; }
-                })() : '-';
-                
-                return `
-                <div class="insider-accordion-wrapper">
-                    <div class="alarm-item ${isExpanded ? 'expanded' : ''}" onclick="toggleInsiderAccordion('${alarmKey}', ${idx})" style="border-left: 3px solid #a371f7; cursor: pointer;">
-                        <div class="alarm-info">
-                            <div class="alarm-match">
-                                <span style="margin-right: 8px; color: #a371f7; font-size: 14px; font-weight: bold;">${expandIcon}</span>
-                                <span style="background:#a371f7;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">🕵️ INSIDER</span>
-                                ${alarm.home} vs ${alarm.away}
-                            </div>
-                            <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
-                            <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; font-size: 11px;">
-                                <span style="color: #a371f7;" title="Acilis→Simdi">📉 ${(alarm.opening_odds || alarm.open_odds || 0).toFixed(2)}→${(alarm.current_odds || 0).toFixed(2)} (%${(alarm.oran_dusus_pct || alarm.drop_pct || alarm.odds_change_percent || 0).toFixed(1)})</span>
-                                <span style="color: #ef4444;" title="Dusus Ani">⚡ Dusus Ani: ${dropTimeFormatted}</span>
-                                <span style="color: #f0883e;" title="Ortalama Hacim Soku">📊 Ort.HacimSok: ${(alarm.hacim_sok || alarm.avg_volume_shock || 0).toFixed(3)}x</span>
-                                <span style="color: #3fb950;" title="Kontrol Edilen Snapshot">📸 ${alarm.snapshot_count || alarm.surrounding_count || 7} snapshot</span>
-                            </div>
-                        </div>
-                        <div class="alarm-score" style="background: linear-gradient(135deg, #a371f7, #8b5cf6);">🕵️</div>
-                    </div>
-                    <div class="insider-detail-panel" id="insider_detail_${idx}" style="display: ${isExpanded ? 'block' : 'none'};">
-                        <div class="insider-detail-grid">
-                            <div class="insider-detail-section">
-                                <div class="insider-detail-title">📉 AÇILIŞ → ŞİMDİ ORAN DEĞİŞİMİ</div>
-                                <div class="insider-detail-row">
-                                    <span class="insider-detail-label">Açılış Oranı:</span>
-                                    <span class="insider-detail-value" style="color: #94a3b8; font-size: 15px; font-weight: 600;">${(alarm.opening_odds || 0).toFixed(2)}</span>
-                                </div>
-                                <div class="insider-detail-row">
-                                    <span class="insider-detail-label">Son Oran:</span>
-                                    <span class="insider-detail-value" style="color: #22c55e; font-weight: 700; font-size: 15px;">${(alarm.current_odds || 0).toFixed(2)}</span>
-                                </div>
-                                <div class="insider-detail-row">
-                                    <span class="insider-detail-label">Toplam Düşüş:</span>
-                                    <span class="insider-detail-value" style="color: #ef4444; font-weight: 700; font-size: 15px;">%${(alarm.oran_dusus_pct || alarm.drop_pct || 0).toFixed(2)}</span>
-                                </div>
-                                <div class="insider-detail-row" style="border-top: 1px solid #30363d; margin-top: 10px; padding-top: 10px; background: rgba(163,113,247,0.08); padding: 10px; border-radius: 6px; margin-left: -8px; margin-right: -8px;">
-                                    <span class="insider-detail-label" style="font-weight: 600;">📌 Seçenek:</span>
-                                    <span class="insider-detail-value" style="color: #a371f7; font-weight: 700; font-size: 15px;">${alarm.market} → ${alarm.selection}</span>
-                                </div>
-                            </div>
-                            <div class="insider-detail-section">
-                                <div class="insider-detail-title">⚡ DÜŞÜŞ ANI BİLGİSİ</div>
-                                <div class="insider-detail-row">
-                                    <span class="insider-detail-label">Düşüş Anı:</span>
-                                    <span class="insider-detail-value" style="color: #ef4444; font-weight: 700;">${dropTimeFormatted}</span>
-                                </div>
-                                <div class="insider-detail-row">
-                                    <span class="insider-detail-label">Kontrol Penceresi:</span>
-                                    <span class="insider-detail-value" style="color: #58a6ff;">${alarm.snapshot_count || 7} snapshot (düşüş anı etrafı)</span>
-                                </div>
-                                <div class="insider-detail-row">
-                                    <span class="insider-detail-label">Ort. Hacim Şok:</span>
-                                    <span class="insider-detail-value" style="color: #f59e0b; font-weight: 700;">${(alarm.hacim_sok || 0).toFixed(4)}x</span>
-                                </div>
-                                <div class="insider-detail-row">
-                                    <span class="insider-detail-label">Maç Saati:</span>
-                                    <span class="insider-detail-value" style="color: #3fb950;">${formatMatchDateTR(alarm.match_date)}</span>
-                                </div>
-                            </div>
-                            <div class="insider-detail-section">
-                                <div class="insider-detail-title">📸 DÜŞÜŞ ANI ETRAFINDAKİ SNAPSHOTLAR</div>
-                                ${((alarm.surrounding_snapshots || alarm.snapshot_details) && (alarm.surrounding_snapshots || alarm.snapshot_details).length > 0) ? 
-                                    (alarm.surrounding_snapshots || alarm.snapshot_details).map((snap, i, arr) => {
-                                        let snapTime = '-';
-                                        const timeField = snap.time || snap.scraped_at;
-                                        if (timeField) {
-                                            try {
-                                                const dt = new Date(timeField);
-                                                snapTime = dt.toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
-                                            } catch(e) { snapTime = timeField; }
-                                        }
-                                        const isDropMoment = snap.is_trigger === true || (i === Math.floor(arr.length / 2));
-                                        const labelStyle = isDropMoment ? 'color:#ef4444;font-weight:700;' : '';
-                                        const valueStyle = isDropMoment ? 'color:#ef4444;font-weight:700;' : 'color:#a371f7;font-weight:600;';
-                                        const marker = isDropMoment ? ' ← DÜŞÜŞ' : '';
-                                        // Gelen para hesapla (backend 'amount' veya 'incoming' kullanıyor)
-                                        let gelenPara = snap.incoming || 0;
-                                        const snapAmt = snap.amount !== undefined ? snap.amount : snap.amt;
-                                        const prevAmt = i > 0 ? (arr[i-1].amount !== undefined ? arr[i-1].amount : arr[i-1].amt) : undefined;
-                                        if (!gelenPara && i > 0 && snapAmt !== undefined && prevAmt !== undefined) {
-                                            gelenPara = (snapAmt || 0) - (prevAmt || 0);
-                                        }
-                                        const amtDisplay = snapAmt !== undefined ? '£' + Math.round(snapAmt) : '';
-                                        const gelenDisplay = gelenPara > 0 ? ' (+£' + Math.round(gelenPara) + ')' : '';
-                                        // Açılış oranına göre düşüş yüzdesi hesapla
-                                        const openingOdds = alarm.opening_odds || (arr[0] && arr[0].odds) || snap.odds;
-                                        const currentOdds = snap.odds || 0;
-                                        let dropPctDisplay = '';
-                                        if (openingOdds > 0 && i > 0) {
-                                            const dropPct = ((openingOdds - currentOdds) / openingOdds) * 100;
-                                            if (dropPct > 0) {
-                                                dropPctDisplay = ' <span style="color:#ef4444;font-size:10px;font-weight:600;">(-' + dropPct.toFixed(1) + '%)</span>';
-                                            } else if (dropPct < 0) {
-                                                dropPctDisplay = ' <span style="color:#22c55e;font-size:10px;font-weight:600;">(+' + Math.abs(dropPct).toFixed(1) + '%)</span>';
-                                            }
-                                        }
-                                        return '<div class="insider-detail-row"><span class="insider-detail-label" style="' + labelStyle + '">Snap ' + (i+1) + ':</span><span class="insider-detail-value"><span style="' + valueStyle + '">' + (snap.odds || 0).toFixed(2) + '</span>' + dropPctDisplay + ' <span style="color:#22c55e;font-size:11px;">' + amtDisplay + gelenDisplay + '</span> <span style="color:#64748b;font-size:11px;">(' + snapTime + ')' + marker + '</span></span></div>';
-                                    }).join('') 
-                                    : '<div class="insider-detail-row"><span class="insider-detail-label">Detay:</span><span class="insider-detail-value" style="color:#64748b;">Yeniden hesaplayın</span></div>'
-                                }
-                                <div class="insider-detail-row" style="border-top: 1px solid #30363d; margin-top: 8px; padding-top: 8px;">
-                                    <span class="insider-detail-label">Hesaplama:</span>
-                                    <span class="insider-detail-value" style="font-size: 11px; color: #64748b;">${alarm.created_at || '-'}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            
+            let html = `
+                <div class="alarm-table-wrapper" style="overflow-x: auto;">
+                    <table class="alarm-table" style="width: 100%; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #161b22; color: #8b949e;">
+                                <th style="padding: 10px; text-align: left;">Maç</th>
+                                <th style="padding: 10px; text-align: center;">Market / Seçim</th>
+                                <th style="padding: 10px; text-align: center;">Açılış→Şimdi</th>
+                                <th style="padding: 10px; text-align: center;">Düşüş%</th>
+                                <th style="padding: 10px; text-align: center;">Hacim Şoku</th>
+                                <th style="padding: 10px; text-align: center;">Zaman</th>
+                            </tr>
+                        </thead>
+                        <tbody>
             `;
-            }).join('');
-
+            
+            alarms.slice(0, 100).forEach(alarm => {
+                const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
+                const market = alarm.market || '-';
+                const selection = alarm.selection || '-';
+                const openingOdds = alarm.opening_odds || alarm.open_odds || 0;
+                const currentOdds = alarm.current_odds || 0;
+                const dropPct = alarm.oran_dusus_pct || alarm.drop_pct || alarm.odds_change_percent || 0;
+                const hacimSok = alarm.hacim_sok || alarm.avg_volume_shock || 0;
+                
+                const eventTime = alarm.trigger_at || alarm.created_at || '-';
+                const formattedTime = eventTime !== '-' ? formatDateTime(eventTime) : '-';
+                
+                html += `
+                    <tr style="border-bottom: 1px solid #21262d; cursor: pointer;" onclick="showInsiderDetail(${JSON.stringify(alarm).replace(/"/g, '&quot;')})">
+                        <td style="padding: 10px; color: #e6edf3;">${matchName}</td>
+                        <td style="padding: 10px; text-align: center;">
+                            <span style="background: rgba(163,113,247,0.2); color: #a371f7; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${market}</span>
+                            <span style="background: rgba(34,197,94,0.2); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">${selection}</span>
+                        </td>
+                        <td style="padding: 10px; text-align: center;">
+                            <span style="color: #94a3b8;">${openingOdds.toFixed(2)}</span>
+                            <span style="color: #8b949e;">→</span>
+                            <span style="color: #22c55e; font-weight: 600;">${currentOdds.toFixed(2)}</span>
+                        </td>
+                        <td style="padding: 10px; text-align: center; color: #ef4444; font-weight: 700; font-size: 14px;">%${dropPct.toFixed(1)}</td>
+                        <td style="padding: 10px; text-align: center; color: #f0883e; font-weight: 600;">${hacimSok.toFixed(2)}x</td>
+                        <td style="padding: 10px; text-align: center; color: #8b949e; font-size: 11px;">${formattedTime}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table></div>';
+            
+            if (alarms.length > 100) {
+                html += `<p style="text-align: center; color: #6e7681; padding: 10px; font-size: 12px;">+${alarms.length - 100} daha fazla alarm...</p>`;
+            }
+            
+            container.innerHTML = html;
             window.currentInsiderAlarms = alarms;
         }
         
-        function toggleInsiderAccordion(alarmKey, idx) {
-            expandedInsiderAlarms[alarmKey] = !expandedInsiderAlarms[alarmKey];
-            const detailPanel = document.getElementById('insider_detail_' + idx);
-            const alarmItem = detailPanel?.previousElementSibling;
+        function showInsiderDetail(alarm) {
+            const openingOdds = alarm.opening_odds || alarm.open_odds || 0;
+            const currentOdds = alarm.current_odds || 0;
+            const dropPct = alarm.oran_dusus_pct || alarm.drop_pct || alarm.odds_change_percent || 0;
+            const hacimSok = alarm.hacim_sok || alarm.avg_volume_shock || 0;
+            const snapshotCount = alarm.snapshot_count || alarm.surrounding_count || 7;
+            const triggerTime = alarm.trigger_at ? formatDateTime(alarm.trigger_at) : '-';
+            const createdTime = alarm.created_at ? formatDateTime(alarm.created_at) : '-';
+            const matchDate = formatMatchDateTR(alarm.match_date);
             
-            if (expandedInsiderAlarms[alarmKey]) {
-                detailPanel.style.display = 'block';
-                if (alarmItem) alarmItem.classList.add('expanded');
-            } else {
-                detailPanel.style.display = 'none';
-                if (alarmItem) alarmItem.classList.remove('expanded');
-            }
+            const modalContent = `
+                <div style="padding: 20px; background: #0d1117; border-radius: 8px; max-width: 500px; margin: 50px auto;">
+                    <h3 style="color: #a371f7; margin-bottom: 20px; border-bottom: 1px solid #21262d; padding-bottom: 10px;">🕵️ Insider Alarm Detayı</h3>
+                    
+                    <div style="margin-bottom: 20px; padding: 15px; background: #161b22; border-radius: 8px;">
+                        <div style="font-size: 18px; color: #e6edf3; margin-bottom: 5px;">${alarm.home} vs ${alarm.away}</div>
+                        <div style="color: #8b949e; font-size: 13px;">${alarm.league || '-'}</div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">MARKET / SEÇİM</div>
+                            <div style="color: #e6edf3; font-size: 14px;">${alarm.market} <span style="color: #a371f7;">${alarm.selection}</span></div>
+                        </div>
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">MAÇ TARİHİ</div>
+                            <div style="color: #58a6ff; font-size: 14px;">${matchDate}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(163,113,247,0.1); border: 1px solid rgba(163,113,247,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="color: #8b949e; font-size: 11px; margin-bottom: 8px;">ORAN DEĞİŞİMİ</div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #94a3b8;">📉 Açılış Oranı</span>
+                            <span style="color: #94a3b8; font-weight: 700;">${openingOdds.toFixed(2)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #22c55e;">📉 Son Oran</span>
+                            <span style="color: #22c55e; font-weight: 700;">${currentOdds.toFixed(2)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #ef4444;">📉 Düşüş Yüzdesi</span>
+                            <span style="color: #ef4444; font-weight: 700;">%${dropPct.toFixed(2)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #f0883e;">⚡ Hacim Şoku</span>
+                            <span style="color: #f0883e; font-weight: 700;">${hacimSok.toFixed(4)}x</span>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #161b22; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
+                        <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">SNAPSHOT BİLGİSİ</div>
+                        <div style="color: #3fb950; font-size: 14px;">${snapshotCount} snapshot kontrol edildi</div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; color: #8b949e; font-size: 12px; margin-bottom: 20px;">
+                        <span>Tetiklenme: ${triggerTime}</span>
+                        <span>Oluşturulma: ${createdTime}</span>
+                    </div>
+                    
+                    <button onclick="this.closest('.modal').remove()" style="width: 100%; padding: 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; cursor: pointer;">Kapat</button>
+                </div>
+            `;
             
-            const expandIcon = alarmItem?.querySelector('.alarm-match span:first-child');
-            if (expandIcon) {
-                expandIcon.textContent = expandedInsiderAlarms[alarmKey] ? '▼' : '▶';
-            }
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = modalContent;
+            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+            document.body.appendChild(modal);
         }
 
         function filterInsiderAlarms() {
@@ -4403,82 +4520,142 @@
             }
 
             countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
-            container.innerHTML = alarms.map((alarm, idx) => {
+            
+            let html = `
+                <div class="alarm-table-wrapper" style="overflow-x: auto;">
+                    <table class="alarm-table" style="width: 100%; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #161b22; color: #8b949e;">
+                                <th style="padding: 10px; text-align: left;">Maç</th>
+                                <th style="padding: 10px; text-align: center;">Market / Seçim</th>
+                                <th style="padding: 10px; text-align: right;">Gelen Para</th>
+                                <th style="padding: 10px; text-align: right;">Toplam</th>
+                                <th style="padding: 10px; text-align: center;">Durum</th>
+                                <th style="padding: 10px; text-align: center;">Zaman</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            alarms.slice(0, 100).forEach(alarm => {
+                const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
+                const market = alarm.market || '-';
+                const selection = alarm.selection || '-';
+                const incomingMoney = alarm.incoming_money || 0;
+                const totalSelection = alarm.total_selection || alarm.huge_total || incomingMoney;
                 const isHuge = alarm.is_huge;
-                const bgColor = isHuge ? '#ff7b00' : '#FF4500';
-                const icon = isHuge ? '🔥' : '💰';
-                const label = isHuge ? 'HUGE MONEY' : 'BIG MONEY';
-                const zebraStyle = idx % 2 === 0 ? 'background: #161b22;' : 'background: #1c2128;';
                 
-                return `
-                <div class="bigmoney-alarm-wrapper" id="bigmoney-alarm-${idx}">
-                    <div class="alarm-item" onclick="toggleBigMoneyDetail(${idx})" style="border-left: 3px solid ${bgColor}; cursor: pointer; ${zebraStyle}">
-                        <div class="alarm-info">
-                            <div class="alarm-match">
-                                <span style="margin-right: 8px; color: ${bgColor}; font-size: 14px; font-weight: bold;" id="bigmoney-toggle-icon-${idx}">▶</span>
-                                <span style="background:${bgColor};color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">${icon} ${label}</span>
-                                ${alarm.home} vs ${alarm.away}
-                            </div>
-                            <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
-                            <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
-                                <span style="color: ${bgColor};" title="Gelen Para">💰 Gelen: £${Math.round(alarm.incoming_money || 0).toLocaleString('en-GB')}</span>
-                                ${isHuge ? `<span style="color: #ff7b00;" title="Toplam">🔥 Toplam: £${Math.round(alarm.huge_total || 0).toLocaleString('en-GB')}</span>` : ''}
-                                <span style="color: #58a6ff;" title="Limit">📊 Limit: £${Math.round(alarm.big_money_limit || 15000).toLocaleString('en-GB')}</span>
-                                <span style="color: #3fb950;" title="Snapshot Sayisi">📸 ${alarm.snapshot_count || 1} kez</span>
-                            </div>
-                        </div>
-                        <div class="alarm-score" style="background: linear-gradient(135deg, ${bgColor}, ${isHuge ? '#ff5500' : '#CC3700'});">${icon}</div>
-                    </div>
-                    <div id="bigmoney-detail-${idx}" class="bigmoney-alarm-detail" style="display: none; background: #0d1117; border: 1px solid #30363d; border-top: none; border-left: 3px solid ${bgColor}; border-radius: 0 0 8px 8px; padding: 15px; margin-top: -5px;">
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                            <div class="bigmoney-detail-section">
-                                <div style="color: ${bgColor}; font-weight: 600; margin-bottom: 8px; font-size: 12px;">${icon} ${label} DETAYI</div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Gelen Para:</span> <span style="color: ${bgColor}; font-weight: 700; font-size: 16px;">£${Math.round(alarm.incoming_money || 0).toLocaleString('en-GB')}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Alarm Limiti:</span> <span style="color: #f0f6fc;">£${Math.round(alarm.big_money_limit || 15000).toLocaleString('en-GB')}</span></div>
-                                ${isHuge ? `<div class="detail-row-inline"><span style="color: #8b949e;">2 Snapshot Toplami:</span> <span style="color: #ff7b00; font-weight: 700;">£${Math.round(alarm.huge_total || 0).toLocaleString('en-GB')}</span></div>` : ''}
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Limit Asan Snapshot:</span> <span style="color: #3fb950;">${alarm.snapshot_count || 1} kez</span></div>
-                            </div>
-                            <div class="bigmoney-detail-section">
-                                <div style="color: #58a6ff; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📊 MAC BILGILERI</div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Ev Sahibi:</span> <span style="color: #f0f6fc;">${alarm.home}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Deplasman:</span> <span style="color: #f0f6fc;">${alarm.away}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Market:</span> <span style="color: #f0f6fc;">${alarm.market}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Secenek:</span> <span style="color: #a371f7; font-weight: 600;">${alarm.selection}</span></div>
-                            </div>
-                            <div class="bigmoney-detail-section">
-                                <div style="color: #f0883e; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📅 ZAMAN BILGILERI</div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Mac Tarihi:</span> <span style="color: #58a6ff;">${formatMatchDateTR(alarm.match_date)}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Hesaplama:</span> <span style="color: #f0f6fc;">${alarm.created_at || '-'}</span></div>
-                            </div>
-                        </div>
-                        <div style="margin-top: 12px; padding: 10px; background: rgba(${isHuge ? '255,123,0' : '255,69,0'}, 0.15); border-radius: 6px; border-left: 3px solid ${bgColor};">
-                            <span style="color: ${bgColor}; font-weight: 600;">${icon} ${label} Sinyali:</span>
-                            <span style="color: #c9d1d9; font-size: 12px; margin-left: 8px;">
-                                ${isHuge ? 
-                                    `2 ardisik snapshot'ta ${alarm.selection} secenegine £${(alarm.big_money_limit || 15000).toLocaleString('en-GB')}+ para girisi! Syndicates veya profesyonel bahisciler seri sekilde pozisyon aliyor olabilir!` 
-                                    : 
-                                    `Tek snapshot'ta ${alarm.selection} secenegine £${Math.round(alarm.incoming_money || 0).toLocaleString('en-GB')} para girisi! Buyuk oyuncular pozisyon aliyor olabilir!`
-                                }
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            `}).join('');
-
+                const eventTime = alarm.trigger_at || alarm.created_at || '-';
+                const formattedTime = eventTime !== '-' ? formatDateTime(eventTime) : '-';
+                
+                const bgColor = isHuge ? '#ff7b00' : '#FF4500';
+                const statusBadge = isHuge 
+                    ? `<span style="background: #ff7b00; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">🔥 HUGE</span>`
+                    : `<span style="background: #FF4500; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">💰 BIG</span>`;
+                
+                html += `
+                    <tr style="border-bottom: 1px solid #21262d; cursor: pointer;" onclick="showBigMoneyDetail(${JSON.stringify(alarm).replace(/"/g, '&quot;')})">
+                        <td style="padding: 10px; color: #e6edf3;">${matchName}</td>
+                        <td style="padding: 10px; text-align: center;">
+                            <span style="background: rgba(255,69,0,0.2); color: #FF4500; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${market}</span>
+                            <span style="background: rgba(34,197,94,0.2); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">${selection}</span>
+                        </td>
+                        <td style="padding: 10px; text-align: right; color: ${bgColor}; font-weight: 700; font-size: 14px;">+£${Number(incomingMoney).toLocaleString('en-GB')}</td>
+                        <td style="padding: 10px; text-align: right; color: #e6edf3;">£${Number(totalSelection).toLocaleString('en-GB')}</td>
+                        <td style="padding: 10px; text-align: center;">${statusBadge}</td>
+                        <td style="padding: 10px; text-align: center; color: #8b949e; font-size: 11px;">${formattedTime}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table></div>';
+            
+            if (alarms.length > 100) {
+                html += `<p style="text-align: center; color: #6e7681; padding: 10px; font-size: 12px;">+${alarms.length - 100} daha fazla alarm...</p>`;
+            }
+            
+            container.innerHTML = html;
             window.currentBigMoneyAlarms = alarms;
         }
         
-        function toggleBigMoneyDetail(idx) {
-            const detailEl = document.getElementById(`bigmoney-detail-${idx}`);
-            const toggleIcon = document.getElementById(`bigmoney-toggle-icon-${idx}`);
+        function showBigMoneyDetail(alarm) {
+            const incomingMoney = alarm.incoming_money || 0;
+            const totalSelection = alarm.total_selection || alarm.huge_total || incomingMoney;
+            const bigMoneyLimit = alarm.big_money_limit || 15000;
+            const isHuge = alarm.is_huge;
+            const snapshotCount = alarm.snapshot_count || 1;
+            const triggerTime = alarm.trigger_at ? formatDateTime(alarm.trigger_at) : '-';
+            const createdTime = alarm.created_at ? formatDateTime(alarm.created_at) : '-';
+            const matchDate = formatMatchDateTR(alarm.match_date);
             
-            if (detailEl.style.display === 'none') {
-                detailEl.style.display = 'block';
-                if (toggleIcon) toggleIcon.textContent = '▼';
-            } else {
-                detailEl.style.display = 'none';
-                if (toggleIcon) toggleIcon.textContent = '▶';
-            }
+            const bgColor = isHuge ? '#ff7b00' : '#FF4500';
+            const icon = isHuge ? '🔥' : '💰';
+            const label = isHuge ? 'HUGE MONEY' : 'BIG MONEY';
+            
+            const modalContent = `
+                <div style="padding: 20px; background: #0d1117; border-radius: 8px; max-width: 500px; margin: 50px auto;">
+                    <h3 style="color: ${bgColor}; margin-bottom: 20px; border-bottom: 1px solid #21262d; padding-bottom: 10px;">${icon} ${label} Alarm Detayı</h3>
+                    
+                    <div style="margin-bottom: 20px; padding: 15px; background: #161b22; border-radius: 8px;">
+                        <div style="font-size: 18px; color: #e6edf3; margin-bottom: 5px;">${alarm.home} vs ${alarm.away}</div>
+                        <div style="color: #8b949e; font-size: 13px;">${alarm.league || '-'}</div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">MARKET / SEÇİM</div>
+                            <div style="color: #e6edf3; font-size: 14px;">${alarm.market} <span style="color: ${bgColor};">${alarm.selection}</span></div>
+                        </div>
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">MAÇ TARİHİ</div>
+                            <div style="color: #58a6ff; font-size: 14px;">${matchDate}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(255,69,0,0.1); border: 1px solid rgba(255,69,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="color: #8b949e; font-size: 11px; margin-bottom: 8px;">PARA BİLGİSİ</div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: ${bgColor};">💰 Gelen Para</span>
+                            <span style="color: ${bgColor}; font-weight: 700; font-size: 18px;">+£${Number(incomingMoney).toLocaleString('en-GB')}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #e6edf3;">📊 Toplam</span>
+                            <span style="color: #e6edf3; font-weight: 700;">£${Number(totalSelection).toLocaleString('en-GB')}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #8b949e;">🎯 Alarm Limiti</span>
+                            <span style="color: #8b949e; font-weight: 600;">£${Number(bigMoneyLimit).toLocaleString('en-GB')}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #3fb950;">📸 Snapshot Sayısı</span>
+                            <span style="color: #3fb950; font-weight: 700;">${snapshotCount} kez</span>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(${isHuge ? '255,123,0' : '255,69,0'}, 0.15); border-radius: 6px; border-left: 3px solid ${bgColor}; padding: 12px; margin-bottom: 20px;">
+                        <span style="color: ${bgColor}; font-weight: 600;">${icon} ${label} Sinyali:</span>
+                        <p style="color: #c9d1d9; font-size: 12px; margin-top: 8px; line-height: 1.5;">
+                            ${isHuge 
+                                ? `2 ardışık snapshot'ta ${alarm.selection} seçeneğine £${Number(bigMoneyLimit).toLocaleString('en-GB')}+ para girişi! Syndicates veya profesyonel bahisçiler seri şekilde pozisyon alıyor olabilir!` 
+                                : `Tek snapshot'ta ${alarm.selection} seçeneğine £${Number(incomingMoney).toLocaleString('en-GB')} para girişi! Büyük oyuncular pozisyon alıyor olabilir!`
+                            }
+                        </p>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; color: #8b949e; font-size: 12px; margin-bottom: 20px;">
+                        <span>Tetiklenme: ${triggerTime}</span>
+                        <span>Oluşturulma: ${createdTime}</span>
+                    </div>
+                    
+                    <button onclick="this.closest('.modal').remove()" style="width: 100%; padding: 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; cursor: pointer;">Kapat</button>
+                </div>
+            `;
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = modalContent;
+            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+            document.body.appendChild(modal);
         }
 
         function filterBigMoneyAlarms() {
@@ -4583,88 +4760,158 @@
                 return;
             }
             
-            container.innerHTML = alarms.map((alarm, idx) => {
+            let html = `
+                <div class="alarm-table-wrapper" style="overflow-x: auto;">
+                    <table class="alarm-table" style="width: 100%; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #161b22; color: #8b949e;">
+                                <th style="padding: 10px; text-align: left;">Mac</th>
+                                <th style="padding: 10px; text-align: center;">Market / Secim</th>
+                                <th style="padding: 10px; text-align: center;">Shock Degeri</th>
+                                <th style="padding: 10px; text-align: right;">Gelen Para</th>
+                                <th style="padding: 10px; text-align: right;">Onceki Hacim</th>
+                                <th style="padding: 10px; text-align: center;">Zaman</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            alarms.slice(0, 100).forEach(alarm => {
+                const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
+                const market = alarm.market || '-';
+                const selection = alarm.selection || '-';
                 const incomingMoney = alarm.incoming_money || 0;
                 const avgPrevious = alarm.avg_previous || 0;
+                
                 let shockValue = alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier;
                 if (!shockValue || shockValue === 0) {
-                    shockValue = avgPrevious > 0 ? (incomingMoney / avgPrevious) : null;
+                    shockValue = avgPrevious > 0 ? (incomingMoney / avgPrevious) : 0;
                 }
-                const shockDisplay = shockValue !== null ? shockValue.toFixed(1) + 'x' : 'N/A';
-                const shockDetailDisplay = shockValue !== null ? shockValue.toFixed(3) + 'x' : 'N/A';
+                const shockDisplay = shockValue > 0 ? shockValue.toFixed(1) + 'x' : 'N/A';
                 
-                const matchDate = alarm.match_date || '-';
-                const calculatedHours = calculateHoursToKickoff(matchDate);
-                const hoursToKickoff = calculatedHours !== null ? calculatedHours : (alarm.hours_to_kickoff || 0);
-                const eventTime = alarm.event_time || '-';
-                const createdAt = alarm.created_at || '-';
-                const minSaat = alarm.hacim_soku_min_saat || 5;
-                const minEsik = alarm.hacim_soku_min_esik || 4;
+                const eventTime = alarm.trigger_at || alarm.created_at || '-';
+                const formattedTime = eventTime !== '-' ? formatDateTime(eventTime) : '-';
                 
-                return `
-                <div class="vs-alarm-wrapper" id="vs-alarm-${idx}">
-                    <div class="alarm-item" onclick="toggleVolumeShockDetail(${idx})" style="border-left: 3px solid #ff6b6b; cursor: pointer;">
-                        <div class="alarm-info">
-                            <div class="alarm-match">
-                                <span style="background:#ff6b6b;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">⚡ HACIM SOKU</span>
-                                ${alarm.home} vs ${alarm.away}
-                                <span id="vs-toggle-icon-${idx}" style="margin-left: 8px; color: #8b949e; font-size: 12px;">▼</span>
-                            </div>
-                            <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${createdAt}</div>
-                            <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
-                                <span style="color: #ff6b6b;" title="Sok Degeri">⚡ Sok: ${shockDisplay}</span>
-                                <span style="color: #58a6ff;" title="Mactan Once">⏰ Mactan ${hoursToKickoff.toFixed(1)}s once</span>
-                                <span style="color: #3fb950;" title="Gelen Para">💰 £${Math.round(incomingMoney).toLocaleString('en-GB')}</span>
-                            </div>
-                        </div>
-                        <div class="alarm-score" style="background: linear-gradient(135deg, #ff6b6b, #ff4757);">${shockDisplay}</div>
-                    </div>
-                    <div id="vs-detail-${idx}" class="vs-alarm-detail" style="display: none; background: #161b22; border: 1px solid #30363d; border-top: none; border-radius: 0 0 8px 8px; padding: 15px; margin-top: -5px;">
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                            <div class="vs-detail-section">
-                                <div style="color: #58a6ff; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📅 ZAMAN BILGILERI</div>
-                                <div class="vs-detail-row"><span style="color: #8b949e;">Mac Saati:</span> <span style="color: #3fb950;">${formatMatchDateTR(matchDate)}</span></div>
-                                <div class="vs-detail-row"><span style="color: #8b949e;">Olay Zamani:</span> <span style="color: #f0f6fc;">${eventTime}</span></div>
-                                <div class="vs-detail-row"><span style="color: #8b949e;">Hesaplama:</span> <span style="color: #f0f6fc;">${createdAt}</span></div>
-                                <div class="vs-detail-row"><span style="color: #8b949e;">Mactan Once:</span> <span style="color: #58a6ff; font-weight: 600;">${hoursToKickoff.toFixed(2)} saat</span></div>
-                            </div>
-                            <div class="vs-detail-section">
-                                <div style="color: #ff6b6b; font-weight: 600; margin-bottom: 8px; font-size: 12px;">⚡ SOK METRIKLERI</div>
-                                <div class="vs-detail-row"><span style="color: #8b949e;">Sok Degeri:</span> <span style="color: #ff6b6b; font-weight: 700; font-size: 16px;">${shockDetailDisplay}</span></div>
-                                <div class="vs-detail-row"><span style="color: #8b949e;">Gelen Para:</span> <span style="color: #3fb950; font-weight: 600;">£${Math.round(incomingMoney).toLocaleString('en-GB')}</span></div>
-                                <div class="vs-detail-row"><span style="color: #8b949e;">Ort. Onceki:</span> <span style="color: #f0f6fc;">£${Math.round(avgPrevious).toLocaleString('en-GB')}</span></div>
-                            </div>
-                            <div class="vs-detail-section">
-                                <div style="color: #a371f7; font-weight: 600; margin-bottom: 8px; font-size: 12px;">⚙️ KULLANILAN ESIKLER</div>
-                                <div class="vs-detail-row"><span style="color: #8b949e;">Min Saat:</span> <span style="color: #f0f6fc;">${minSaat} saat</span></div>
-                                <div class="vs-detail-row"><span style="color: #8b949e;">Min Sok Esigi:</span> <span style="color: #f0f6fc;">${minEsik}x</span></div>
-                            </div>
-                            <div class="vs-detail-section">
-                                <div style="color: #f0883e; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📊 MAC BILGILERI</div>
-                                <div class="vs-detail-row"><span style="color: #8b949e;">Ev Sahibi:</span> <span style="color: #f0f6fc;">${alarm.home}</span></div>
-                                <div class="vs-detail-row"><span style="color: #8b949e;">Deplasman:</span> <span style="color: #f0f6fc;">${alarm.away}</span></div>
-                                <div class="vs-detail-row"><span style="color: #8b949e;">Market:</span> <span style="color: #f0f6fc;">${alarm.market}</span></div>
-                                <div class="vs-detail-row"><span style="color: #8b949e;">Secenek:</span> <span style="color: #f0f6fc;">${alarm.selection}</span></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `}).join('');
+                const shockColor = shockValue >= 10 ? '#22c55e' : shockValue >= 5 ? '#3fb950' : '#60a5fa';
+                
+                html += `
+                    <tr style="border-bottom: 1px solid #21262d; cursor: pointer;" onclick="showVolumeShockDetail(${JSON.stringify(alarm).replace(/"/g, '&quot;')})">
+                        <td style="padding: 10px; color: #e6edf3;">${matchName}</td>
+                        <td style="padding: 10px; text-align: center;">
+                            <span style="background: rgba(255,107,107,0.2); color: #ff6b6b; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${market}</span>
+                            <span style="background: rgba(34,197,94,0.2); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">${selection}</span>
+                        </td>
+                        <td style="padding: 10px; text-align: center; color: ${shockColor}; font-weight: 700; font-size: 14px;">⚡ ${shockDisplay}</td>
+                        <td style="padding: 10px; text-align: right; color: #22c55e; font-weight: 600;">+£${Number(incomingMoney).toLocaleString('en-GB')}</td>
+                        <td style="padding: 10px; text-align: right; color: #8b949e;">£${Number(avgPrevious).toLocaleString('en-GB')}</td>
+                        <td style="padding: 10px; text-align: center; color: #8b949e; font-size: 11px;">${formattedTime}</td>
+                    </tr>
+                `;
+            });
             
+            html += '</tbody></table></div>';
+            
+            if (alarms.length > 100) {
+                html += `<p style="text-align: center; color: #6e7681; padding: 10px; font-size: 12px;">+${alarms.length - 100} daha fazla alarm...</p>`;
+            }
+            
+            container.innerHTML = html;
             window.currentVolumeShockAlarms = alarms;
         }
         
-        function toggleVolumeShockDetail(idx) {
-            const detailEl = document.getElementById(`vs-detail-${idx}`);
-            const toggleIcon = document.getElementById(`vs-toggle-icon-${idx}`);
-            
-            if (detailEl.style.display === 'none') {
-                detailEl.style.display = 'block';
-                if (toggleIcon) toggleIcon.textContent = '▲';
-            } else {
-                detailEl.style.display = 'none';
-                if (toggleIcon) toggleIcon.textContent = '▼';
+        function showVolumeShockDetail(alarm) {
+            const incomingMoney = alarm.incoming_money || 0;
+            const avgPrevious = alarm.avg_previous || 0;
+            let shockValue = alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier;
+            if (!shockValue || shockValue === 0) {
+                shockValue = avgPrevious > 0 ? (incomingMoney / avgPrevious) : 0;
             }
+            const shockDisplay = shockValue > 0 ? shockValue.toFixed(2) + 'x' : 'N/A';
+            const selection = alarm.selection || '-';
+            const triggerTime = alarm.trigger_at ? formatDateTime(alarm.trigger_at) : '-';
+            const createdTime = alarm.created_at ? formatDateTime(alarm.created_at) : '-';
+            const matchDate = formatMatchDateTR(alarm.match_date);
+            const minSaat = alarm.hacim_soku_min_saat || 5;
+            const minEsik = alarm.hacim_soku_min_esik || 4;
+            
+            const shockColor = shockValue >= 10 ? '#22c55e' : shockValue >= 5 ? '#3fb950' : '#60a5fa';
+            
+            const modalContent = `
+                <div style="padding: 20px; background: #0d1117; border-radius: 8px; max-width: 500px; margin: 50px auto;">
+                    <h3 style="color: #ff6b6b; margin-bottom: 20px; border-bottom: 1px solid #21262d; padding-bottom: 10px;">⚡ Hacim Soku Alarm Detayi</h3>
+                    
+                    <div style="margin-bottom: 20px; padding: 15px; background: #161b22; border-radius: 8px;">
+                        <div style="font-size: 18px; color: #e6edf3; margin-bottom: 5px;">${alarm.home} vs ${alarm.away}</div>
+                        <div style="color: #8b949e; font-size: 13px;">${alarm.league || '-'}</div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">MARKET / SECIM</div>
+                            <div style="color: #e6edf3; font-size: 14px;">${alarm.market} <span style="color: #22c55e;">${selection}</span></div>
+                        </div>
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">MAC TARIHI</div>
+                            <div style="color: #58a6ff; font-size: 14px;">${matchDate}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="color: #8b949e; font-size: 11px; margin-bottom: 8px;">SHOCK METRIKLERI</div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #ff6b6b;">⚡ Shock Degeri</span>
+                            <span style="color: ${shockColor}; font-weight: 700; font-size: 20px;">${shockDisplay}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #22c55e;">💰 Gelen Para</span>
+                            <span style="color: #22c55e; font-weight: 700;">+£${Number(incomingMoney).toLocaleString('en-GB')}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #8b949e;">📊 Onceki Ortalama</span>
+                            <span style="color: #e6edf3;">£${Number(avgPrevious).toLocaleString('en-GB')}</span>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;">
+                        <div style="background: #161b22; padding: 10px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 10px;">MIN SAAT ESIGI</div>
+                            <div style="color: #e6edf3;">${minSaat} saat</div>
+                        </div>
+                        <div style="background: #161b22; padding: 10px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 10px;">MIN SHOCK ESIGI</div>
+                            <div style="color: #e6edf3;">${minEsik}x</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(255,107,107,0.15); border-radius: 6px; border-left: 3px solid #ff6b6b; padding: 12px; margin-bottom: 20px;">
+                        <span style="color: #ff6b6b; font-weight: 600;">⚡ Hacim Soku Sinyali:</span>
+                        <p style="color: #c9d1d9; font-size: 12px; margin-top: 8px; line-height: 1.5;">
+                            ${selection} secenegine ortalama hacmin <strong style="color: #ff6b6b;">${shockDisplay}</strong> kati para girisi tespit edildi! 
+                            Bu ani hacim artisi profesyonel bahiscilerin pozisyon aldigi anlamina gelebilir.
+                        </p>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; border-top: 1px solid #21262d; padding-top: 15px;">
+                        <div>
+                            <div style="color: #8b949e; font-size: 10px;">TRIGGER ZAMANI</div>
+                            <div style="color: #e6edf3; font-size: 12px;">${triggerTime}</div>
+                        </div>
+                        <div>
+                            <div style="color: #8b949e; font-size: 10px;">OLUSTURULMA</div>
+                            <div style="color: #e6edf3; font-size: 12px;">${createdTime}</div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="this.closest('.vs-modal-overlay').remove()" style="margin-top: 20px; width: 100%; padding: 10px; background: #21262d; border: none; border-radius: 6px; color: #e6edf3; cursor: pointer;">Kapat</button>
+                </div>
+            `;
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'vs-modal-overlay';
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+            overlay.innerHTML = modalContent;
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            document.body.appendChild(overlay);
         }
         
         function filterVolumeShockAlarms() {
@@ -4871,80 +5118,151 @@
                 return;
             }
             
-            container.innerHTML = alarms.map((alarm, idx) => {
+            let html = `
+                <div class="alarm-table-wrapper" style="overflow-x: auto;">
+                    <table class="alarm-table" style="width: 100%; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #161b22; color: #8b949e;">
+                                <th style="padding: 10px; text-align: left;">Mac</th>
+                                <th style="padding: 10px; text-align: center;">Market</th>
+                                <th style="padding: 10px; text-align: center;">Eski Lider</th>
+                                <th style="padding: 10px; text-align: center;">Yeni Lider</th>
+                                <th style="padding: 10px; text-align: center;">Pay Degisimi</th>
+                                <th style="padding: 10px; text-align: right;">Toplam Hacim</th>
+                                <th style="padding: 10px; text-align: center;">Zaman</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            alarms.slice(0, 100).forEach(alarm => {
+                const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
+                const market = alarm.market || '-';
                 const oldLeader = alarm.old_leader || '-';
                 const newLeader = alarm.new_leader || '-';
                 const oldShare = alarm.old_leader_share || 0;
                 const newShare = alarm.new_leader_share || 0;
                 const volume = alarm.total_volume || 0;
-                const createdAt = alarm.created_at || '-';
-                const zebraStyle = idx % 2 === 0 ? 'background: #161b22;' : 'background: #1c2128;';
                 
-                return `
-                <div class="vl-alarm-wrapper" id="vl-alarm-${idx}">
-                    <div class="alarm-item" onclick="toggleVolumeLeaderDetail(${idx})" style="border-left: 3px solid #06b6d4; cursor: pointer; ${zebraStyle}">
-                        <div class="alarm-info">
-                            <div class="alarm-match">
-                                <span style="margin-right: 8px; color: #06b6d4; font-size: 14px; font-weight: bold;" id="vl-toggle-icon-${idx}">▶</span>
-                                <span style="background:#06b6d4;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">👑 LIDER DEGISTI</span>
-                                ${alarm.home} vs ${alarm.away}
-                            </div>
-                            <div class="alarm-meta">${alarm.market} | ${createdAt}</div>
-                            <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
-                                <span style="color: #f85149;" title="Eski Lider">🔴 ${oldLeader} (%${oldShare.toFixed(0)})</span>
-                                <span style="color: #8b949e;">→</span>
-                                <span style="color: #3fb950;" title="Yeni Lider">🟢 ${newLeader} (%${newShare.toFixed(0)})</span>
-                                <span style="color: #58a6ff;" title="Volume">💰 £${Math.round(volume).toLocaleString('en-GB')}</span>
-                            </div>
-                        </div>
-                        <div class="alarm-score" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">👑</div>
-                    </div>
-                    <div id="vl-detail-${idx}" class="vl-alarm-detail" style="display: none; background: #0d1117; border: 1px solid #30363d; border-top: none; border-left: 3px solid #06b6d4; border-radius: 0 0 8px 8px; padding: 15px; margin-top: -5px;">
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                            <div class="vl-detail-section">
-                                <div style="color: #06b6d4; font-weight: 600; margin-bottom: 8px; font-size: 12px;">👑 LIDER DEGISIMI DETAYI</div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Eski Lider:</span> <span style="color: #f85149; font-weight: 700; font-size: 15px;">${oldLeader}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Eski Pay:</span> <span style="color: #f85149; font-weight: 600;">%${oldShare.toFixed(1)}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Yeni Lider:</span> <span style="color: #3fb950; font-weight: 700; font-size: 15px;">${newLeader}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Yeni Pay:</span> <span style="color: #3fb950; font-weight: 600;">%${newShare.toFixed(1)}</span></div>
-                            </div>
-                            <div class="vl-detail-section">
-                                <div style="color: #58a6ff; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📊 MAC BILGILERI</div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Ev Sahibi:</span> <span style="color: #f0f6fc;">${alarm.home}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Deplasman:</span> <span style="color: #f0f6fc;">${alarm.away}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Market:</span> <span style="color: #f0f6fc;">${alarm.market}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Toplam Hacim:</span> <span style="color: #3fb950; font-weight: 600;">£${Math.round(volume).toLocaleString('en-GB')}</span></div>
-                            </div>
-                            <div class="vl-detail-section">
-                                <div style="color: #f0883e; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📅 ZAMAN BILGILERI</div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Mac Tarihi:</span> <span style="color: #58a6ff;">${formatMatchDateTR(alarm.match_date)}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Hesaplama:</span> <span style="color: #f0f6fc;">${createdAt}</span></div>
-                            </div>
-                        </div>
-                        <div style="margin-top: 12px; padding: 10px; background: rgba(6, 182, 212, 0.15); border-radius: 6px; border-left: 3px solid #06b6d4;">
-                            <span style="color: #06b6d4; font-weight: 600;">👑 Lider Degisimi Sinyali:</span>
-                            <span style="color: #c9d1d9; font-size: 12px; margin-left: 8px;">
-                                ${oldLeader} secenegi %${oldShare.toFixed(0)} payla liderken, ${newLeader} secenegi %${newShare.toFixed(0)} paya ulasarak yeni lider oldu. Buyuk oyuncular pozisyon degistiriyor olabilir!
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            `}).join('');
+                const eventTime = alarm.trigger_at || alarm.created_at || '-';
+                const formattedTime = eventTime !== '-' ? formatDateTime(eventTime) : '-';
+                
+                html += `
+                    <tr style="border-bottom: 1px solid #21262d; cursor: pointer;" onclick="showVolumeLeaderDetail(${JSON.stringify(alarm).replace(/"/g, '&quot;')})">
+                        <td style="padding: 10px; color: #e6edf3;">${matchName}</td>
+                        <td style="padding: 10px; text-align: center;">
+                            <span style="background: rgba(6,182,212,0.2); color: #06b6d4; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${market}</span>
+                        </td>
+                        <td style="padding: 10px; text-align: center;">
+                            <span style="color: #f85149; font-weight: 600;">${oldLeader}</span>
+                            <span style="color: #8b949e; font-size: 10px; display: block;">%${oldShare.toFixed(0)}</span>
+                        </td>
+                        <td style="padding: 10px; text-align: center;">
+                            <span style="color: #3fb950; font-weight: 600;">${newLeader}</span>
+                            <span style="color: #8b949e; font-size: 10px; display: block;">%${newShare.toFixed(0)}</span>
+                        </td>
+                        <td style="padding: 10px; text-align: center; color: #06b6d4; font-weight: 600;">
+                            <span style="color: #f85149;">%${oldShare.toFixed(0)}</span>
+                            <span style="color: #8b949e;"> → </span>
+                            <span style="color: #3fb950;">%${newShare.toFixed(0)}</span>
+                        </td>
+                        <td style="padding: 10px; text-align: right; color: #22c55e; font-weight: 600;">£${Number(volume).toLocaleString('en-GB')}</td>
+                        <td style="padding: 10px; text-align: center; color: #8b949e; font-size: 11px;">${formattedTime}</td>
+                    </tr>
+                `;
+            });
             
+            html += '</tbody></table></div>';
+            
+            if (alarms.length > 100) {
+                html += `<p style="text-align: center; color: #6e7681; padding: 10px; font-size: 12px;">+${alarms.length - 100} daha fazla alarm...</p>`;
+            }
+            
+            container.innerHTML = html;
             window.currentVolumeLeaderAlarms = alarms;
         }
         
-        function toggleVolumeLeaderDetail(idx) {
-            const detailEl = document.getElementById(`vl-detail-${idx}`);
-            const toggleIcon = document.getElementById(`vl-toggle-icon-${idx}`);
+        function showVolumeLeaderDetail(alarm) {
+            const oldLeader = alarm.old_leader || '-';
+            const newLeader = alarm.new_leader || '-';
+            const oldShare = alarm.old_leader_share || 0;
+            const newShare = alarm.new_leader_share || 0;
+            const volume = alarm.total_volume || 0;
+            const triggerTime = alarm.trigger_at ? formatDateTime(alarm.trigger_at) : '-';
+            const createdTime = alarm.created_at ? formatDateTime(alarm.created_at) : '-';
+            const matchDate = formatMatchDateTR(alarm.match_date);
             
-            if (detailEl.style.display === 'none') {
-                detailEl.style.display = 'block';
-                if (toggleIcon) toggleIcon.textContent = '▼';
-            } else {
-                detailEl.style.display = 'none';
-                if (toggleIcon) toggleIcon.textContent = '▶';
-            }
+            const modalContent = `
+                <div style="padding: 20px; background: #0d1117; border-radius: 8px; max-width: 500px; margin: 50px auto;">
+                    <h3 style="color: #06b6d4; margin-bottom: 20px; border-bottom: 1px solid #21262d; padding-bottom: 10px;">👑 Hacim Lideri Degisimi Detayi</h3>
+                    
+                    <div style="margin-bottom: 20px; padding: 15px; background: #161b22; border-radius: 8px;">
+                        <div style="font-size: 18px; color: #e6edf3; margin-bottom: 5px;">${alarm.home} vs ${alarm.away}</div>
+                        <div style="color: #8b949e; font-size: 13px;">${alarm.league || '-'}</div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">MARKET</div>
+                            <div style="color: #06b6d4; font-size: 14px; font-weight: 600;">${alarm.market}</div>
+                        </div>
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">MAC TARIHI</div>
+                            <div style="color: #58a6ff; font-size: 14px;">${matchDate}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="color: #8b949e; font-size: 11px; margin-bottom: 12px;">LIDER DEGISIMI</div>
+                        <div style="display: flex; justify-content: space-around; align-items: center;">
+                            <div style="text-align: center;">
+                                <div style="color: #f85149; font-size: 20px; font-weight: 700;">${oldLeader}</div>
+                                <div style="color: #f85149; font-size: 14px;">%${oldShare.toFixed(1)}</div>
+                                <div style="color: #8b949e; font-size: 10px;">ESKI LIDER</div>
+                            </div>
+                            <div style="color: #06b6d4; font-size: 24px;">→</div>
+                            <div style="text-align: center;">
+                                <div style="color: #3fb950; font-size: 20px; font-weight: 700;">${newLeader}</div>
+                                <div style="color: #3fb950; font-size: 14px;">%${newShare.toFixed(1)}</div>
+                                <div style="color: #8b949e; font-size: 10px;">YENI LIDER</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #161b22; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
+                        <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">TOPLAM HACIM</div>
+                        <div style="color: #22c55e; font-size: 20px; font-weight: 700;">£${Number(volume).toLocaleString('en-GB')}</div>
+                    </div>
+                    
+                    <div style="background: rgba(6,182,212,0.15); border-radius: 6px; border-left: 3px solid #06b6d4; padding: 12px; margin-bottom: 20px;">
+                        <span style="color: #06b6d4; font-weight: 600;">👑 Lider Degisimi Sinyali:</span>
+                        <p style="color: #c9d1d9; font-size: 12px; margin-top: 8px; line-height: 1.5;">
+                            ${oldLeader} secenegi %${oldShare.toFixed(0)} payla liderken, ${newLeader} secenegi %${newShare.toFixed(0)} paya ulasarak yeni lider oldu.
+                            Buyuk oyuncular pozisyon degistiriyor olabilir!
+                        </p>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; border-top: 1px solid #21262d; padding-top: 15px;">
+                        <div>
+                            <div style="color: #8b949e; font-size: 10px;">TRIGGER ZAMANI</div>
+                            <div style="color: #e6edf3; font-size: 12px;">${triggerTime}</div>
+                        </div>
+                        <div>
+                            <div style="color: #8b949e; font-size: 10px;">OLUSTURULMA</div>
+                            <div style="color: #e6edf3; font-size: 12px;">${createdTime}</div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="this.closest('.vl-modal-overlay').remove()" style="margin-top: 20px; width: 100%; padding: 10px; background: #21262d; border: none; border-radius: 6px; color: #e6edf3; cursor: pointer;">Kapat</button>
+                </div>
+            `;
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'vl-modal-overlay';
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+            overlay.innerHTML = modalContent;
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            document.body.appendChild(overlay);
         }
         
         function filterVolumeLeaderAlarms() {
@@ -5669,78 +5987,176 @@
             }
 
             countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
-            container.innerHTML = alarms.map((alarm, idx) => {
-                const levelColors = { 'L1': '#e74c3c', 'L2': '#f39c12', 'L3': '#c0392b' };
-                const bgColor = levelColors[alarm.level] || '#e74c3c';
-                const levelText = alarm.level === 'L1' ? 'Dusuk' : alarm.level === 'L2' ? 'Orta' : 'Yuksek';
-                const zebraStyle = idx % 2 === 0 ? 'background: #161b22;' : 'background: #1c2128;';
+            
+            let html = `
+                <div class="alarm-table-wrapper" style="overflow-x: auto;">
+                    <table class="alarm-table" style="width: 100%; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #161b22; color: #8b949e;">
+                                <th style="padding: 10px; text-align: left;">Mac</th>
+                                <th style="padding: 10px; text-align: center;">Market / Secim</th>
+                                <th style="padding: 10px; text-align: center;">Acilis → Simdi</th>
+                                <th style="padding: 10px; text-align: center;">Dusus %</th>
+                                <th style="padding: 10px; text-align: center;">Level</th>
+                                <th style="padding: 10px; text-align: right;">Hacim</th>
+                                <th style="padding: 10px; text-align: center;">Zaman</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            alarms.slice(0, 100).forEach(alarm => {
+                const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
+                const market = alarm.market || '-';
+                const selection = alarm.selection || '-';
+                const openingOdds = alarm.opening_odds || 0;
+                const currentOdds = alarm.current_odds || 0;
+                const dropPct = alarm.drop_pct || 0;
+                const level = alarm.level || 'L1';
+                const volume = alarm.volume || 0;
                 
-                return `
-                <div class="dropping-alarm-wrapper" id="dropping-alarm-${idx}">
-                    <div class="alarm-item" onclick="toggleDroppingDetail(${idx})" style="border-left: 3px solid ${bgColor}; cursor: pointer; ${zebraStyle}">
-                        <div class="alarm-info">
-                            <div class="alarm-match">
-                                <span style="margin-right: 8px; color: ${bgColor}; font-size: 14px; font-weight: bold;" id="dropping-toggle-icon-${idx}">▶</span>
-                                <span style="background:${bgColor};color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:8px;">📉 ${alarm.level}</span>
-                                ${alarm.home} vs ${alarm.away}
-                            </div>
-                            <div class="alarm-meta">${alarm.market} | ${alarm.selection} | ${alarm.created_at || ''}</div>
-                            <div class="alarm-breakdown" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
-                                <span style="color: ${bgColor};" title="Dusus Yuzdesi">📉 %${(alarm.drop_pct || 0).toFixed(1)}</span>
-                                <span style="color: #58a6ff;" title="Acilis Orani">📊 Acilis: ${alarm.opening_odds || 0}</span>
-                                <span style="color: #3fb950;" title="Guncel Oran">📈 Simdi: ${alarm.current_odds || 0}</span>
-                                <span style="color: #f0883e;" title="Hacim">💰 £${(alarm.volume || 0).toLocaleString('en-GB')}</span>
-                            </div>
-                        </div>
-                        <div class="alarm-score" style="background: linear-gradient(135deg, ${bgColor}, ${bgColor}dd);">${alarm.level}</div>
-                    </div>
-                    <div id="dropping-detail-${idx}" class="dropping-alarm-detail" style="display: none; background: #0d1117; border: 1px solid #30363d; border-top: none; border-left: 3px solid ${bgColor}; border-radius: 0 0 8px 8px; padding: 15px; margin-top: -5px;">
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                            <div class="dropping-detail-section">
-                                <div style="color: ${bgColor}; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📉 ORAN DUSUSU DETAYI</div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Acilis Orani:</span> <span style="color: #94a3b8; font-size: 15px; font-weight: 600;">${alarm.opening_odds || 0}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Guncel Oran:</span> <span style="color: #22c55e; font-weight: 700; font-size: 15px;">${alarm.current_odds || 0}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Dusus Yuzdesi:</span> <span style="color: ${bgColor}; font-weight: 700; font-size: 16px;">%${(alarm.drop_pct || 0).toFixed(2)}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Seviye:</span> <span style="color: ${bgColor}; font-weight: 700;">${alarm.level} (${levelText})</span></div>
-                            </div>
-                            <div class="dropping-detail-section">
-                                <div style="color: #58a6ff; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📊 MARKET BILGILERI</div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Ev Sahibi:</span> <span style="color: #f0f6fc;">${alarm.home}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Deplasman:</span> <span style="color: #f0f6fc;">${alarm.away}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Market:</span> <span style="color: #f0f6fc;">${alarm.market}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Secenek:</span> <span style="color: #a371f7; font-weight: 600;">${alarm.selection}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Hacim:</span> <span style="color: #3fb950; font-weight: 600;">£${(alarm.volume || 0).toLocaleString('en-GB')}</span></div>
-                            </div>
-                            <div class="dropping-detail-section">
-                                <div style="color: #f0883e; font-weight: 600; margin-bottom: 8px; font-size: 12px;">📅 ZAMAN BILGILERI</div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Mac Tarihi:</span> <span style="color: #58a6ff;">${formatMatchDateTR(alarm.match_date)}</span></div>
-                                <div class="detail-row-inline"><span style="color: #8b949e;">Hesaplama:</span> <span style="color: #f0f6fc;">${alarm.created_at || '-'}</span></div>
-                            </div>
-                        </div>
-                        <div style="margin-top: 12px; padding: 10px; background: rgba(${alarm.level === 'L1' ? '231,76,60' : alarm.level === 'L2' ? '243,156,18' : '192,57,43'}, 0.15); border-radius: 6px; border-left: 3px solid ${bgColor};">
-                            <span style="color: ${bgColor}; font-weight: 600;">📉 ${alarm.level} Sinyal:</span>
-                            <span style="color: #c9d1d9; font-size: 12px; margin-left: 8px;">
-                                ${alarm.level === 'L3' ? 'Cok buyuk oran dususu! Sharps agresif pozisyon aliyor olabilir!' : alarm.level === 'L2' ? 'Orta seviye oran dususu. Sharps aktivitesi muhtemel.' : 'Hafif oran dususu. Takip edilmeli.'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            `}).join('');
-
+                const eventTime = alarm.trigger_at || alarm.created_at || '-';
+                const formattedTime = eventTime !== '-' ? formatDateTime(eventTime) : '-';
+                
+                const levelColors = { 'L1': '#f0b429', 'L2': '#f39c12', 'L3': '#ef4444' };
+                const levelBg = { 'L1': 'rgba(240,180,41,0.2)', 'L2': 'rgba(243,156,18,0.2)', 'L3': 'rgba(239,68,68,0.2)' };
+                const levelColor = levelColors[level] || '#ef4444';
+                const levelBackground = levelBg[level] || 'rgba(239,68,68,0.2)';
+                
+                const dropColor = dropPct >= 15 ? '#ef4444' : dropPct >= 10 ? '#f39c12' : '#f0b429';
+                
+                html += `
+                    <tr style="border-bottom: 1px solid #21262d; cursor: pointer;" onclick="showDroppingDetail(${JSON.stringify(alarm).replace(/"/g, '&quot;')})">
+                        <td style="padding: 10px; color: #e6edf3;">${matchName}</td>
+                        <td style="padding: 10px; text-align: center;">
+                            <span style="background: rgba(239,68,68,0.2); color: #ef4444; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${market}</span>
+                            <span style="background: rgba(34,197,94,0.2); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">${selection}</span>
+                        </td>
+                        <td style="padding: 10px; text-align: center; color: #8b949e;">
+                            <span style="color: #94a3b8;">${openingOdds}</span>
+                            <span style="color: #6e7681;"> → </span>
+                            <span style="color: #22c55e; font-weight: 600;">${currentOdds}</span>
+                        </td>
+                        <td style="padding: 10px; text-align: center; color: ${dropColor}; font-weight: 700; font-size: 14px;">📉 ${dropPct.toFixed(1)}%</td>
+                        <td style="padding: 10px; text-align: center;">
+                            <span style="background: ${levelBackground}; color: ${levelColor}; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700;">${level}</span>
+                        </td>
+                        <td style="padding: 10px; text-align: right; color: #22c55e; font-weight: 600;">£${Number(volume).toLocaleString('en-GB')}</td>
+                        <td style="padding: 10px; text-align: center; color: #8b949e; font-size: 11px;">${formattedTime}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table></div>';
+            
+            if (alarms.length > 100) {
+                html += `<p style="text-align: center; color: #6e7681; padding: 10px; font-size: 12px;">+${alarms.length - 100} daha fazla alarm...</p>`;
+            }
+            
+            container.innerHTML = html;
             window.currentDroppingAlarms = alarms;
         }
         
-        function toggleDroppingDetail(idx) {
-            const detailEl = document.getElementById(`dropping-detail-${idx}`);
-            const toggleIcon = document.getElementById(`dropping-toggle-icon-${idx}`);
+        function showDroppingDetail(alarm) {
+            const openingOdds = alarm.opening_odds || 0;
+            const currentOdds = alarm.current_odds || 0;
+            const dropPct = alarm.drop_pct || 0;
+            const level = alarm.level || 'L1';
+            const volume = alarm.volume || 0;
+            const selection = alarm.selection || '-';
+            const triggerTime = alarm.trigger_at ? formatDateTime(alarm.trigger_at) : '-';
+            const createdTime = alarm.created_at ? formatDateTime(alarm.created_at) : '-';
+            const matchDate = formatMatchDateTR(alarm.match_date);
             
-            if (detailEl.style.display === 'none') {
-                detailEl.style.display = 'block';
-                if (toggleIcon) toggleIcon.textContent = '▼';
-            } else {
-                detailEl.style.display = 'none';
-                if (toggleIcon) toggleIcon.textContent = '▶';
-            }
+            const levelColors = { 'L1': '#f0b429', 'L2': '#f39c12', 'L3': '#ef4444' };
+            const levelTexts = { 'L1': 'Hafif Dusus', 'L2': 'Orta Dusus', 'L3': 'Agresif Dusus' };
+            const levelColor = levelColors[level] || '#ef4444';
+            const levelText = levelTexts[level] || 'Dusus';
+            
+            const signalMessages = {
+                'L1': 'Hafif oran dususu tespit edildi. Bu seviye takip edilmeli ancak henuz guclü bir sinyal degil.',
+                'L2': 'Orta seviye oran dususu! Sharps aktivitesi muhtemel. Bu maca dikkat edilmeli.',
+                'L3': 'Cok buyuk oran dususu! Sharps agresif bir sekilde pozisyon aliyor olabilir. Bu guclü bir sinyal!'
+            };
+            
+            const modalContent = `
+                <div style="padding: 20px; background: #0d1117; border-radius: 8px; max-width: 500px; margin: 50px auto;">
+                    <h3 style="color: ${levelColor}; margin-bottom: 20px; border-bottom: 1px solid #21262d; padding-bottom: 10px;">📉 Dropping Alarm Detayi</h3>
+                    
+                    <div style="margin-bottom: 20px; padding: 15px; background: #161b22; border-radius: 8px;">
+                        <div style="font-size: 18px; color: #e6edf3; margin-bottom: 5px;">${alarm.home} vs ${alarm.away}</div>
+                        <div style="color: #8b949e; font-size: 13px;">${alarm.league || '-'}</div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">MARKET / SECIM</div>
+                            <div style="color: #e6edf3; font-size: 14px;">${alarm.market} <span style="color: #22c55e;">${selection}</span></div>
+                        </div>
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">MAC TARIHI</div>
+                            <div style="color: #58a6ff; font-size: 14px;">${matchDate}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="color: #8b949e; font-size: 11px; margin-bottom: 12px;">ORAN DUSUSU</div>
+                        <div style="display: flex; justify-content: space-around; align-items: center; margin-bottom: 15px;">
+                            <div style="text-align: center;">
+                                <div style="color: #94a3b8; font-size: 24px; font-weight: 700;">${openingOdds}</div>
+                                <div style="color: #8b949e; font-size: 10px;">ACILIS</div>
+                            </div>
+                            <div style="color: ${levelColor}; font-size: 24px;">→</div>
+                            <div style="text-align: center;">
+                                <div style="color: #22c55e; font-size: 24px; font-weight: 700;">${currentOdds}</div>
+                                <div style="color: #8b949e; font-size: 10px;">SIMDI</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: ${levelColor};">📉 Dusus Yuzdesi</span>
+                            <span style="color: ${levelColor}; font-weight: 700; font-size: 18px;">${dropPct.toFixed(2)}%</span>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;">
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 10px;">LEVEL</div>
+                            <div style="color: ${levelColor}; font-size: 18px; font-weight: 700;">${level} - ${levelText}</div>
+                        </div>
+                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
+                            <div style="color: #8b949e; font-size: 10px;">HACIM</div>
+                            <div style="color: #22c55e; font-size: 18px; font-weight: 700;">£${Number(volume).toLocaleString('en-GB')}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(239,68,68,0.15); border-radius: 6px; border-left: 3px solid ${levelColor}; padding: 12px; margin-bottom: 20px;">
+                        <span style="color: ${levelColor}; font-weight: 600;">📉 ${level} Sinyal:</span>
+                        <p style="color: #c9d1d9; font-size: 12px; margin-top: 8px; line-height: 1.5;">
+                            ${signalMessages[level] || signalMessages['L1']}
+                        </p>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; border-top: 1px solid #21262d; padding-top: 15px;">
+                        <div>
+                            <div style="color: #8b949e; font-size: 10px;">TRIGGER ZAMANI</div>
+                            <div style="color: #e6edf3; font-size: 12px;">${triggerTime}</div>
+                        </div>
+                        <div>
+                            <div style="color: #8b949e; font-size: 10px;">OLUSTURULMA</div>
+                            <div style="color: #e6edf3; font-size: 12px;">${createdTime}</div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="this.closest('.dropping-modal-overlay').remove()" style="margin-top: 20px; width: 100%; padding: 10px; background: #21262d; border: none; border-radius: 6px; color: #e6edf3; cursor: pointer;">Kapat</button>
+                </div>
+            `;
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'dropping-modal-overlay';
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+            overlay.innerHTML = modalContent;
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            document.body.appendChild(overlay);
         }
 
         function filterDroppingAlarms() {
