@@ -374,8 +374,8 @@ class SupabaseClient:
                 seen = {}
                 page = 0
                 page_size = 500
-                max_unique_matches = 150
-                max_pages = 6
+                max_unique_matches = 300
+                max_pages = 10
                 
                 while page < max_pages and len(seen) < max_unique_matches:
                     offset = page * page_size
@@ -431,8 +431,8 @@ class SupabaseClient:
                 seen = {}
                 page = 0
                 page_size = 500
-                max_unique_matches = 200
-                max_pages = 8
+                max_unique_matches = 400
+                max_pages = 12
                 
                 print(f"[Supabase] Fetching ALL matches (optimized, max {max_unique_matches} unique)...")
                 
