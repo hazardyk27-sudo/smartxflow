@@ -714,6 +714,33 @@ h1, h2, h3, h4, h5, h6,
     font-weight: var(--weight-regular);
 }
 
+.match-status {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+    vertical-align: middle;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.match-status.live {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #fff;
+    animation: pulse-live 1.5s ease-in-out infinite;
+}
+
+.match-status.ended {
+    background: #374151;
+    color: #9ca3af;
+}
+
+@keyframes pulse-live {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
 .selection-cell {
     text-align: center;
     vertical-align: middle;

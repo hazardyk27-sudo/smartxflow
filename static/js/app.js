@@ -238,6 +238,23 @@ function nowTurkey() {
     return dayjs().tz(APP_TIMEZONE);
 }
 
+function getMatchStatus(dateStr) {
+    if (!dateStr) return '';
+    const matchTime = toTurkeyTime(dateStr);
+    if (!matchTime || !matchTime.isValid()) return '';
+    
+    const now = nowTurkey();
+    const diffMinutes = now.diff(matchTime, 'minute');
+    
+    if (diffMinutes < 0) {
+        return '';
+    } else if (diffMinutes <= 105) {
+        return '<span class="match-status live">CANLI</span>';
+    } else {
+        return '<span class="match-status ended">BİTTİ</span>';
+    }
+}
+
 function formatTurkeyTime(value, format = 'HH:mm') {
     const dt = toTurkeyTime(value);
     return dt ? dt.format(format) : '';
@@ -616,11 +633,12 @@ function renderMatches(data) {
                 const block1 = renderMoneywayBlock('1', d.Pct1, d.Odds1 || d['1'], d.Amt1);
                 const blockX = renderMoneywayBlock('X', d.PctX, d.OddsX || d['X'], d.AmtX);
                 const block2 = renderMoneywayBlock('2', d.Pct2, d.Odds2 || d['2'], d.Amt2);
+                const matchStatus = getMatchStatus(match.date);
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
                         <td class="mw-outcomes-cell" colspan="3">
                             <div class="mw-grid mw-grid-3">
                                 ${block1}
@@ -640,11 +658,12 @@ function renderMatches(data) {
                 const cellX = renderDrop1X2Cell('X', d.OddsX || d['X'], trendXData);
                 const cell2 = renderDrop1X2Cell('2', d.Odds2 || d['2'], trend2Data);
                 
+                const matchStatus = getMatchStatus(match.date);
                 return `
                     <tr class="dropping-1x2-row" data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
                         <td class="drop-cell">${cell1}</td>
                         <td class="drop-cell">${cellX}</td>
                         <td class="drop-cell">${cell2}</td>
@@ -659,11 +678,12 @@ function renderMatches(data) {
             if (isMoneyway) {
                 const blockUnder = renderMoneywayBlock('U 2.5', d.PctUnder, d.Under, d.AmtUnder);
                 const blockOver = renderMoneywayBlock('O 2.5', d.PctOver, d.Over, d.AmtOver);
+                const matchStatus = getMatchStatus(match.date);
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
                         <td class="mw-outcomes-cell" colspan="2">
                             <div class="mw-grid mw-grid-2">
                                 ${blockUnder}
@@ -680,11 +700,12 @@ function renderMatches(data) {
                 const cellUnder = renderOddsWithTrend(d.Under, trendUnderData);
                 const cellOver = renderOddsWithTrend(d.Over, trendOverData);
                 
+                const matchStatus = getMatchStatus(match.date);
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
                         <td class="selection-cell"><div>${cellUnder}</div></td>
                         <td class="selection-cell"><div>${cellOver}</div></td>
                         <td class="volume-cell">${formatVolume(d.Volume)}</td>
@@ -698,11 +719,12 @@ function renderMatches(data) {
             if (isMoneyway) {
                 const blockYes = renderMoneywayBlock('Yes', d.PctYes, d.OddsYes || d.Yes, d.AmtYes);
                 const blockNo = renderMoneywayBlock('No', d.PctNo, d.OddsNo || d.No, d.AmtNo);
+                const matchStatus = getMatchStatus(match.date);
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
                         <td class="mw-outcomes-cell" colspan="2">
                             <div class="mw-grid mw-grid-2">
                                 ${blockYes}
@@ -719,11 +741,12 @@ function renderMatches(data) {
                 const cellYes = renderOddsWithTrend(d.OddsYes || d.Yes, trendYesData);
                 const cellNo = renderOddsWithTrend(d.OddsNo || d.No, trendNoData);
                 
+                const matchStatus = getMatchStatus(match.date);
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
                         <td class="selection-cell"><div>${cellYes}</div></td>
                         <td class="selection-cell"><div>${cellNo}</div></td>
                         <td class="volume-cell">${formatVolume(d.Volume)}</td>
