@@ -62,6 +62,7 @@ jobs:
       - name: Build Desktop App EXE
         run: |
           pyinstaller --onefile --windowed --name SmartXFlowDesktop ^
+            --icon "smartxflow.ico" ^
             --add-data "app.py;." ^
             --add-data "config.json;." ^
             --add-data "BUILD_INFO.txt;." ^

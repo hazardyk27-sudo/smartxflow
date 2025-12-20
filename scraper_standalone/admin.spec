@@ -20,6 +20,7 @@ a = Analysis(
         ('BUILD_INFO.txt', '.'),
         ('standalone_scraper.py', '.'),
         ('alarm_calculator.py', '.'),
+        ('smartxflow.ico', '.'),
         (certifi_path, 'certifi'),
         # Flask app and dependencies
         ('../app.py', '.'),
@@ -97,5 +98,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,
+    icon='smartxflow.ico',
 )
