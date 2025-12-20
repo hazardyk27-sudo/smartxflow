@@ -248,7 +248,7 @@ function getMatchStatus(dateStr) {
     
     if (diffMinutes < 0) {
         return '';
-    } else if (diffMinutes <= 105) {
+    } else if (diffMinutes <= 113) {
         return '<span class="match-status live">CANLI</span>';
     } else {
         return '<span class="match-status ended">BİTTİ</span>';
