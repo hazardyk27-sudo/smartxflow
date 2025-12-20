@@ -5177,19 +5177,30 @@ async function tryFindMatchInAllMarkets(homeLower, awayLower, homeTeam, awayTeam
         const marketTab = document.querySelector(`[data-market="${market}"]`);
         if (marketTab) {
             marketTab.click();
-            await new Promise(resolve => setTimeout(resolve, 1200));
             
-            const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
-            for (let i = 0; i < dataSource.length; i++) {
-                const m = dataSource[i];
-                const mHome = (m.home_team || m.Home || '').toLowerCase().trim();
-                const mAway = (m.away_team || m.Away || '').toLowerCase().trim();
-                
-                if ((mHome.includes(homeLower) || homeLower.includes(mHome)) &&
-                    (mAway.includes(awayLower) || awayLower.includes(mAway))) {
-                    openMatchModal(i);
+            const startTime = Date.now();
+            const maxWait = 1200;
+            const pollInterval = 100;
+            let foundIndex = -1;
+            
+            while (Date.now() - startTime < maxWait) {
+                const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
+                for (let i = 0; i < dataSource.length; i++) {
+                    const m = dataSource[i];
+                    const mHome = (m.home_team || m.Home || '').toLowerCase().trim();
+                    const mAway = (m.away_team || m.Away || '').toLowerCase().trim();
+                    
+                    if ((mHome.includes(homeLower) || homeLower.includes(mHome)) &&
+                        (mAway.includes(awayLower) || awayLower.includes(mAway))) {
+                        foundIndex = i;
+                        break;
+                    }
+                }
+                if (foundIndex >= 0) {
+                    openMatchModal(foundIndex);
                     return;
                 }
+                await new Promise(resolve => setTimeout(resolve, pollInterval));
             }
         }
     }
@@ -5204,21 +5215,26 @@ async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, home
         marketTab.click();
     }
     
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
+    const startTime = Date.now();
+    const maxWait = 1500;
+    const pollInterval = 100;
     let foundIndex = -1;
     
-    for (let i = 0; i < dataSource.length; i++) {
-        const m = dataSource[i];
-        const mHome = (m.home_team || m.Home || '').toLowerCase().trim();
-        const mAway = (m.away_team || m.Away || '').toLowerCase().trim();
-        
-        if ((mHome.includes(homeLower) || homeLower.includes(mHome)) &&
-            (mAway.includes(awayLower) || awayLower.includes(mAway))) {
-            foundIndex = i;
-            break;
+    while (Date.now() - startTime < maxWait) {
+        const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
+        for (let i = 0; i < dataSource.length; i++) {
+            const m = dataSource[i];
+            const mHome = (m.home_team || m.Home || '').toLowerCase().trim();
+            const mAway = (m.away_team || m.Away || '').toLowerCase().trim();
+            
+            if ((mHome.includes(homeLower) || homeLower.includes(mHome)) &&
+                (mAway.includes(awayLower) || awayLower.includes(mAway))) {
+                foundIndex = i;
+                break;
+            }
         }
+        if (foundIndex >= 0) break;
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
     }
     
     if (foundIndex >= 0) {
