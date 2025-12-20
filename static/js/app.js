@@ -5545,14 +5545,21 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                     league: latest.league,
                     market: latest.market || h.market,
                     selection: h.selection || latest.selection || latest.side,
-                    // Her kaydın KENDİ değerleri
+                    // Her kaydın KENDİ değerleri - backend'den gelen ham değerler
                     incoming_money: h.incoming_money || h.stake || 0,
                     trigger_at: h.trigger_at || h.created_at || '',
-                    total_selection: h.selection_total || h.total_selection || h.balance_after || 0,
+                    selection_total: h.selection_total || 0,
+                    total_selection: h.total_selection || 0,
+                    balance_after: h.balance_after || 0,
+                    volume: h.volume || 0,
+                    total_volume: h.total_volume || 0,
                     sharp_score: h.sharp_score || 0,
                     volume_shock_value: h.volume_shock_value || h.volume_shock || 0,
-                    drop_pct: h.drop_pct || 0
-                }));
+                    drop_pct: h.drop_pct || 0,
+                    _utcMs: toUtcMs(h.trigger_at || h.created_at || '')
+                }))
+                // UTC timestamp'e göre sırala (yeniden eskiye)
+                .sort((a, b) => b._utcMs - a._utcMs);
         }
         
         // alarm_history boşsa sadece latest'i kullan
@@ -5710,7 +5717,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             // Kartta gösterilen (latest) alarmı atla - timestamp ile karşılaştır
             const latestTs = toUtcMs(latest.trigger_at || latest.event_time || latest.created_at || '');
             const tooltipAlarms = allHistoryAlarms.filter(a => {
-                const aTs = toUtcMs(a.trigger_at || a.event_time || a.created_at || '');
+                const aTs = a._utcMs || toUtcMs(a.trigger_at || a.event_time || a.created_at || '');
                 return aTs !== latestTs; // Latest ile aynı zamanda olanı atla
             }).slice(0, 10);
             const tooltipItems = tooltipAlarms.map(a => {
@@ -5721,7 +5728,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                 if (type === 'bigmoney') {
                     const money = Number(a.incoming_money || a.stake || 0).toLocaleString('en-GB');
                     const sel = a.selection || a.side || '-';
-                    const totalVal = a.total_selection || a.selection_total || a.volume || a.total_volume || 0;
+                    const totalVal = a.selection_total || a.total_selection || a.balance_after || a.volume || a.total_volume || 0;
                     const totalText = totalVal > 0 ? `Sonrası: £${Number(totalVal).toLocaleString('en-GB')}` : '';
                     return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-bigmoney">${sel}</span>${totalText ? `<span class="tt-total">${totalText}</span>` : ''}</div>`;
                 } else if (type === 'sharp') {
