@@ -1271,7 +1271,7 @@ function parseVolume(match) {
 let previousOddsData = null;
 let modalOddsData = null;
 
-function openMatchModal(index) {
+async function openMatchModal(index) {
     const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
     if (index >= 0 && index < dataSource.length) {
         selectedMatch = dataSource[index];
@@ -1300,9 +1300,15 @@ function openMatchModal(index) {
         });
         
         document.getElementById('modalOverlay').classList.add('active');
-        loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league || '');
         
-        renderMatchAlarmsSection(selectedMatch.home_team, selectedMatch.away_team);
+        const home = selectedMatch.home_team;
+        const away = selectedMatch.away_team;
+        const league = selectedMatch.league || '';
+        
+        await Promise.all([
+            loadChartWithTrends(home, away, selectedChartMarket, league),
+            renderMatchAlarmsSection(home, away)
+        ]);
     }
 }
 
