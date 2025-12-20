@@ -927,7 +927,7 @@ class AlarmCalculator:
         'mim_alarms': ['id', 'match_id_hash', 'home', 'away', 'league', 'market', 
                       'selection', 'impact', 'prev_volume', 'current_volume',
                       'incoming_volume', 'total_market_volume',
-                      'match_date', 'trigger_at', 'created_at'],
+                      'match_date', 'trigger_at', 'created_at', 'alarm_history'],
         'telegram_sent_log': ['id', 'dedupe_key', 'match_id_hash', 'alarm_type', 
                              'market', 'selection', 'last_sent_at', 'last_delta', 'send_count'],
     }
@@ -3738,8 +3738,63 @@ class AlarmCalculator:
             log(f"[MIM] {market_name}: {market_alarm_count} alarm bulundu")
         
         if all_alarms:
-            new_count = self._upsert_alarms('mim_alarms', all_alarms, ['match_id_hash', 'market', 'selection'])
-            log(f"MIM TOPLAM: {new_count} alarms upserted (3 market)")
+            # Mevcut alarmları çek (alarm_history birleştirmesi için)
+            existing = self._get('mim_alarms', 
+                                 'select=match_id_hash,market,selection,impact,incoming_volume,trigger_at,alarm_history&limit=5000')
+            existing_map = {}
+            for e in existing:
+                key = f"{e.get('match_id_hash')}_{e.get('market')}_{e.get('selection')}"
+                existing_map[key] = e
+            
+            # Her alarm için history birleştir
+            filtered_alarms = []
+            for alarm in all_alarms:
+                key = f"{alarm['match_id_hash']}_{alarm['market']}_{alarm['selection']}"
+                
+                # Mevcut history'i al
+                current_history = []
+                if key in existing_map:
+                    old_alarm = existing_map[key]
+                    try:
+                        old_history = old_alarm.get('alarm_history', '[]')
+                        if old_history:
+                            current_history = json.loads(old_history) if isinstance(old_history, str) else old_history
+                    except:
+                        current_history = []
+                    
+                    # Eski alarmı history'e ekle
+                    current_history.append({
+                        'impact_score': old_alarm.get('impact', 0),
+                        'incoming_volume': old_alarm.get('incoming_volume', 0),
+                        'trigger_at': old_alarm.get('trigger_at', '')
+                    })
+                
+                # Yeni (şu anki) alarmı da history'e ekle
+                current_history.append({
+                    'impact_score': alarm.get('impact_score', 0),
+                    'incoming_volume': alarm.get('incoming_volume', 0),
+                    'trigger_at': alarm.get('trigger_at', '')
+                })
+                
+                # Tekrarları kaldır ve sırala (eski -> yeni)
+                seen_triggers = set()
+                unique_history = []
+                for h in current_history:
+                    t = h.get('trigger_at', '')
+                    if t and t not in seen_triggers:
+                        seen_triggers.add(t)
+                        unique_history.append(h)
+                
+                unique_history.sort(key=lambda x: x.get('trigger_at', ''))
+                unique_history = unique_history[-10:]  # Son 10 kayıt
+                
+                alarm['alarm_history'] = json.dumps(unique_history)
+                filtered_alarms.append(alarm)
+            
+            log(f"MIM: {len(all_alarms)} alarms with history")
+            
+            new_count = self._upsert_alarms('mim_alarms', filtered_alarms, ['match_id_hash', 'market', 'selection'])
+            log(f"MIM TOPLAM: {new_count} alarms upserted (3 market, with history)")
             return new_count
         else:
             log("MIM: 0 alarm (3 market)")
