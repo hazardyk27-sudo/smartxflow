@@ -5706,8 +5706,14 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             
             const theme = tooltipTheme[type] || { title: 'Geçmiş Alarmlar', pillLabel: () => '' };
             
-            // Alarm tipine göre temalı tooltip item formatı (allHistoryAlarms kullan)
-            const tooltipItems = allHistoryAlarms.slice(0, 10).map(a => {
+            // Alarm tipine göre temalı tooltip item formatı
+            // Kartta gösterilen (latest) alarmı atla - timestamp ile karşılaştır
+            const latestTs = toUtcMs(latest.trigger_at || latest.event_time || latest.created_at || '');
+            const tooltipAlarms = allHistoryAlarms.filter(a => {
+                const aTs = toUtcMs(a.trigger_at || a.event_time || a.created_at || '');
+                return aTs !== latestTs; // Latest ile aynı zamanda olanı atla
+            }).slice(0, 10);
+            const tooltipItems = tooltipAlarms.map(a => {
                 const t = formatSmartMoneyTime(a.trigger_at || a.event_time || a.created_at);
                 const timeOnly = t.includes('•') ? t.split('•')[1].trim() : t;
                 const pillValue = theme.pillLabel(a);
@@ -5715,8 +5721,9 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                 if (type === 'bigmoney') {
                     const money = Number(a.incoming_money || a.stake || 0).toLocaleString('en-GB');
                     const sel = a.selection || a.side || '-';
-                    const total = Number(a.total_selection || a.selection_total || a.volume || a.total_volume || 0).toLocaleString('en-GB');
-                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-bigmoney">${sel}</span><span class="tt-total">Sonrası: £${total}</span></div>`;
+                    const totalVal = a.total_selection || a.selection_total || a.volume || a.total_volume || 0;
+                    const totalText = totalVal > 0 ? `Sonrası: £${Number(totalVal).toLocaleString('en-GB')}` : '';
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-bigmoney">${sel}</span>${totalText ? `<span class="tt-total">${totalText}</span>` : ''}</div>`;
                 } else if (type === 'sharp') {
                     const money = Number(a.incoming_money || a.amount_change || a.volume || 0).toLocaleString('en-GB');
                     const score = (a.sharp_score || 0).toFixed(0);
