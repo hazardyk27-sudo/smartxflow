@@ -5515,17 +5515,25 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             try { alarmHistory = JSON.parse(alarmHistory); } catch(e) { alarmHistory = []; }
         }
         
+        // Timestamp'ı UTC milisaniyeye çevir (timezone normalize)
+        function toUtcMs(ts) {
+            if (!ts) return 0;
+            try { return new Date(ts).getTime(); } catch(e) { return 0; }
+        }
+        
         // allHistoryAlarms: alarm_history'yi doğrudan kullan (kendi alanlarını koru)
         let allHistoryAlarms = [];
         if (Array.isArray(alarmHistory) && alarmHistory.length > 0) {
             // Her kayıt kendi değerlerini korusun, latest'den sadece eksik metadata al
+            // Duplicate kontrolü: UTC timestamp + incoming_money
             const seen = new Set();
             allHistoryAlarms = alarmHistory
                 .filter(h => {
-                    // Unique key: timestamp + incoming_money kombinasyonu
+                    // UTC'ye normalize et - timezone farkı olsa bile aynı anı yakala
                     const ts = h.trigger_at || h.created_at || '';
-                    const money = h.incoming_money || h.stake || 0;
-                    const key = `${ts}|${money}`;
+                    const utcMs = toUtcMs(ts);
+                    const money = Math.round(h.incoming_money || h.stake || 0);
+                    const key = `${utcMs}|${money}`;
                     if (seen.has(key)) return false;
                     seen.add(key);
                     return true;
