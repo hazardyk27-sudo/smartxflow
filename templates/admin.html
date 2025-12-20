@@ -3759,52 +3759,164 @@
             const volumeContrib = alarm.volume_contrib || alarm.shock_value || 0;
             const oddsContrib = alarm.odds_contrib || alarm.odds_value || 0;
             const shareContrib = alarm.share_contrib || alarm.share_value || 0;
-            const triggerTime = alarm.trigger_at ? formatDateTime(alarm.trigger_at) : '-';
-            const createdTime = alarm.created_at ? formatDateTime(alarm.created_at) : '-';
+            const createdTime = alarm.created_at || '-';
             const scoreColor = sharpScore >= 50 ? '#22c55e' : sharpScore >= 30 ? '#3B82F6' : '#8b949e';
+            const minSharpScore = alarm.min_sharp_score || 30;
+            const triggered = sharpScore >= minSharpScore;
+            const statusText = triggered ? 'Tetiklendi' : 'Tetiklenmedi';
+            const statusColor = triggered ? '#22c55e' : '#ef4444';
+            
+            const formatMoney = (val) => val ? '£' + parseFloat(val).toLocaleString('en-GB', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '£0';
+            const formatPct = (val) => val ? parseFloat(val).toFixed(2) + '%' : '0%';
+            const formatNum = (val) => val ? parseFloat(val).toFixed(2) : '0';
             
             const modalContent = `
-                <div style="padding: 20px; background: #0d1117; border-radius: 8px; max-width: 500px; margin: 50px auto;">
-                    <h3 style="color: #22c55e; margin-bottom: 20px; border-bottom: 1px solid #21262d; padding-bottom: 10px;">🎯 Sharp Alarm Detayı</h3>
-                    
-                    <div style="margin-bottom: 20px; padding: 15px; background: #161b22; border-radius: 8px;">
-                        <div style="font-size: 18px; color: #e6edf3; margin-bottom: 5px;">${alarm.home} vs ${alarm.away}</div>
-                        <div style="color: #8b949e; font-size: 13px;">${alarm.league || '-'}</div>
+                <div style="padding: 20px; background: #0d1117; border-radius: 8px; max-width: 600px; margin: 30px auto; max-height: 90vh; overflow-y: auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #21262d; padding-bottom: 10px;">
+                        <h3 style="color: #22c55e; margin: 0;">Alarm Detaylari</h3>
+                        <span onclick="this.closest('.modal').remove()" style="color: #8b949e; cursor: pointer; font-size: 20px;">×</span>
                     </div>
                     
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
-                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
-                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">MARKET / SEÇİM</div>
-                            <div style="color: #e6edf3; font-size: 14px;">${alarm.market} <span style="color: #22c55e;">${alarm.selection}</span></div>
+                    <!-- Mac ve Secim Bilgisi -->
+                    <div style="color: #f0883e; font-weight: 600; margin-bottom: 10px; font-size: 14px;">Mac ve Secim Bilgisi</div>
+                    <div style="background: #161b22; border-radius: 6px; margin-bottom: 15px; font-size: 13px;">
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">Mac</span>
+                            <span style="color: #e6edf3; font-weight: 600;">${alarm.home} vs ${alarm.away}</span>
                         </div>
-                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
-                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">SHARP SCORE</div>
-                            <div style="color: ${scoreColor}; font-size: 24px; font-weight: 700;">${sharpScore.toFixed(1)}</div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">Market</span>
+                            <span style="color: #e6edf3;">${alarm.market || '-'}</span>
                         </div>
-                    </div>
-                    
-                    <div style="background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <div style="color: #8b949e; font-size: 11px; margin-bottom: 8px;">SKOR DAĞILIMI</div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <span style="color: #f0883e;">⚡ Hacim Katkısı</span>
-                            <span style="color: #f0883e; font-weight: 700;">${volumeContrib.toFixed(1)}</span>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">Secenek</span>
+                            <span style="color: #e6edf3;">${alarm.selection || '-'}</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <span style="color: #58a6ff;">📉 Oran Katkısı</span>
-                            <span style="color: #58a6ff; font-weight: 700;">${oddsContrib.toFixed(1)}</span>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">Mac Tarihi</span>
+                            <span style="color: #58a6ff;">${alarm.match_date || alarm.fixture_date || '-'}</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="color: #3fb950;">📊 Pay Katkısı</span>
-                            <span style="color: #3fb950; font-weight: 700;">${shareContrib.toFixed(1)}</span>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px;">
+                            <span style="color: #8b949e;">Hesaplama Tarihi</span>
+                            <span style="color: #e6edf3;">${createdTime}</span>
                         </div>
                     </div>
                     
-                    <div style="display: flex; justify-content: space-between; color: #8b949e; font-size: 12px; margin-bottom: 20px;">
-                        <span>Tetiklenme: ${triggerTime}</span>
-                        <span>Oluşturulma: ${createdTime}</span>
+                    <!-- Hacim Soku -->
+                    <div style="color: #f0883e; font-weight: 600; margin-bottom: 10px; font-size: 14px;">Hacim Soku</div>
+                    <div style="background: #161b22; border-radius: 6px; margin-bottom: 15px; font-size: 13px;">
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">amount_change (gelen para)</span>
+                            <span style="color: #e6edf3;">${formatMoney(alarm.amount_change || alarm.incoming_money)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">avg_last_amounts</span>
+                            <span style="color: #e6edf3;">${formatMoney(alarm.avg_last_amounts || alarm.avg_previous)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">shock_raw</span>
+                            <span style="color: #f0883e;">${formatNum(alarm.shock_raw || alarm.volume_shock_value)}x</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">volume_multiplier</span>
+                            <span style="color: #e6edf3;">${alarm.volume_multiplier || '-'}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">shock_value</span>
+                            <span style="color: #22c55e; font-weight: 600;">${formatNum(alarm.shock_value)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">max_volume_cap</span>
+                            <span style="color: #e6edf3;">${alarm.max_volume_cap || '-'}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px;">
+                            <span style="color: #8b949e;">volume_contrib (capped)</span>
+                            <span style="color: #22c55e; font-weight: 600;">${formatNum(volumeContrib)}</span>
+                        </div>
                     </div>
                     
-                    <button onclick="this.closest('.modal').remove()" style="width: 100%; padding: 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; cursor: pointer;">Kapat</button>
+                    <!-- Oran Dususu -->
+                    <div style="color: #58a6ff; font-weight: 600; margin-bottom: 10px; font-size: 14px;">Oran Dususu</div>
+                    <div style="background: #161b22; border-radius: 6px; margin-bottom: 15px; font-size: 13px;">
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">previous_odds</span>
+                            <span style="color: #e6edf3;">${formatNum(alarm.previous_odds || alarm.prev_odds)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">current_odds</span>
+                            <span style="color: #e6edf3;">${formatNum(alarm.current_odds)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">drop_pct</span>
+                            <span style="color: #ef4444;">${formatPct(alarm.drop_pct || alarm.odds_drop_pct)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">odds_multiplier</span>
+                            <span style="color: #e6edf3;">${alarm.odds_multiplier || '-'}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">odds_value</span>
+                            <span style="color: #f0883e; font-weight: 600;">${formatNum(alarm.odds_value)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">max_odds_cap</span>
+                            <span style="color: #e6edf3;">${alarm.max_odds_cap || '-'}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px;">
+                            <span style="color: #8b949e;">odds_contrib (capped)</span>
+                            <span style="color: #f0883e; font-weight: 600;">${formatNum(oddsContrib)}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Pay Degisimi -->
+                    <div style="color: #3fb950; font-weight: 600; margin-bottom: 10px; font-size: 14px;">Pay Degisimi</div>
+                    <div style="background: #161b22; border-radius: 6px; margin-bottom: 15px; font-size: 13px;">
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">previous_share</span>
+                            <span style="color: #e6edf3;">${formatPct(alarm.previous_share || alarm.prev_share)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">current_share</span>
+                            <span style="color: #e6edf3;">${formatPct(alarm.current_share)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">share_diff</span>
+                            <span style="color: #3fb950;">${formatPct(alarm.share_diff)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">share_multiplier</span>
+                            <span style="color: #e6edf3;">${alarm.share_multiplier || '-'}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">share_value</span>
+                            <span style="color: #22c55e; font-weight: 600;">${formatNum(alarm.share_value)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">max_share_cap</span>
+                            <span style="color: #e6edf3;">${alarm.max_share_cap || '-'}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px;">
+                            <span style="color: #8b949e;">share_contrib (capped)</span>
+                            <span style="color: #22c55e; font-weight: 600;">${formatNum(shareContrib)}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Final Skor -->
+                    <div style="color: #22c55e; font-weight: 600; margin-bottom: 10px; font-size: 14px;">Final Skor</div>
+                    <div style="background: #161b22; border-radius: 6px; margin-bottom: 20px; font-size: 13px;">
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">SharpScore</span>
+                            <span style="color: ${scoreColor}; font-weight: 700; font-size: 16px;">${formatNum(sharpScore)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #21262d;">
+                            <span style="color: #8b949e;">min_sharp_score</span>
+                            <span style="color: #e6edf3;">${minSharpScore}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 10px 15px;">
+                            <span style="color: #8b949e;">Durum</span>
+                            <span style="color: ${statusColor}; font-weight: 600;">${statusText}</span>
+                        </div>
+                    </div>
                 </div>
             `;
             
