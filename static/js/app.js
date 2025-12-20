@@ -898,9 +898,7 @@ function isValidOdds(value) {
 function filterMatches(query) {
     let filtered = [...matches];
     
-    // NOT: hasValidMarketData filtresi kaldırıldı
-    // Bitmiş maçlar fixtures'dan geliyor ve odds verisi olmayabilir
-    // Bu maçlar da listelenmelidir
+    filtered = filtered.filter(m => hasValidMarketData(m, currentMarket));
     
     if (query) {
         filtered = filtered.filter(m => 
