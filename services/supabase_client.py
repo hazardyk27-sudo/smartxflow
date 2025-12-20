@@ -432,7 +432,7 @@ class SupabaseClient:
                 page = 0
                 page_size = 500
                 max_unique_matches = 400
-                max_pages = 12
+                max_pages = 20
                 
                 print(f"[Supabase] Fetching ALL matches (optimized, max {max_unique_matches} unique)...")
                 
