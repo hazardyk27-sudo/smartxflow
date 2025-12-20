@@ -2745,7 +2745,6 @@ class AlarmCalculator:
                     if not big_snapshots:
                         continue
                     
-                    selection_total = parse_volume(history[-1].get(amount_key, 0))
                     match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                     
                     # Her büyük para hareketini AYRI alarm olarak kaydet
@@ -2760,6 +2759,10 @@ class AlarmCalculator:
                                 huge_total = snap['incoming'] + next_snap['incoming']
                         
                         trigger_at = snap.get('scraped_at', now_turkey_iso())
+                        
+                        # HER ALARM İÇİN O ANKİ selection_total değerini al
+                        # snap['index'] = bu alarmın tetiklendiği history index
+                        selection_total = parse_volume(history[snap['index']].get(amount_key, 0))
                         
                         alarm = {
                             'match_id_hash': match_id,
