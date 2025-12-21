@@ -4578,10 +4578,30 @@
 
         // ==================== BIG MONEY FUNCTIONS ====================
         let allBigMoneyAlarms = [];
+        let bigMoneySortColumn = 'trigger_at';
+        let bigMoneySortAsc = false;
 
         async function loadBigMoneyPage() {
             await loadBigMoneyConfig();
             await loadBigMoneyAlarms();
+        }
+        
+        function sortBigMoneyBy(column) {
+            if (bigMoneySortColumn === column) {
+                bigMoneySortAsc = !bigMoneySortAsc;
+            } else {
+                bigMoneySortColumn = column;
+                bigMoneySortAsc = column === 'match';
+            }
+            filterBigMoneyAlarms();
+        }
+        
+        function getAlarmCount(alarm) {
+            let history = alarm.alarm_history || [];
+            if (typeof history === 'string') {
+                try { history = JSON.parse(history); } catch(e) { history = []; }
+            }
+            return Array.isArray(history) ? history.length + 1 : 1;
         }
 
         async function loadDroppingPage() {
@@ -4632,39 +4652,73 @@
                 return;
             }
 
+            // Sıralama uygula
+            const sorted = [...alarms].sort((a, b) => {
+                let valA, valB;
+                switch (bigMoneySortColumn) {
+                    case 'match':
+                        valA = (a.home || '').toLowerCase();
+                        valB = (b.home || '').toLowerCase();
+                        break;
+                    case 'incoming':
+                        valA = a.incoming_money || 0;
+                        valB = b.incoming_money || 0;
+                        break;
+                    case 'total':
+                        valA = a.total_selection || 0;
+                        valB = b.total_selection || 0;
+                        break;
+                    case 'count':
+                        valA = getAlarmCount(a);
+                        valB = getAlarmCount(b);
+                        break;
+                    case 'trigger_at':
+                    default:
+                        valA = new Date(a.trigger_at || a.created_at || 0).getTime();
+                        valB = new Date(b.trigger_at || b.created_at || 0).getTime();
+                        break;
+                }
+                if (valA < valB) return bigMoneySortAsc ? -1 : 1;
+                if (valA > valB) return bigMoneySortAsc ? 1 : -1;
+                return 0;
+            });
+
             countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
+            
+            const sortIcon = (col) => bigMoneySortColumn === col ? (bigMoneySortAsc ? ' ▲' : ' ▼') : '';
             
             let html = `
                 <div class="alarm-table-wrapper" style="overflow-x: auto;">
                     <table class="alarm-table" style="width: 100%; font-size: 12px;">
                         <thead>
                             <tr style="background: #161b22; color: #8b949e;">
-                                <th style="padding: 10px; text-align: left;">Maç</th>
+                                <th style="padding: 10px; text-align: left; cursor: pointer;" onclick="sortBigMoneyBy('match')">Maç${sortIcon('match')}</th>
                                 <th style="padding: 10px; text-align: center;">Market / Seçim</th>
-                                <th style="padding: 10px; text-align: right;">Gelen Para</th>
-                                <th style="padding: 10px; text-align: right;">Toplam</th>
-                                <th style="padding: 10px; text-align: center;">Durum</th>
-                                <th style="padding: 10px; text-align: center;">Zaman</th>
+                                <th style="padding: 10px; text-align: right; cursor: pointer;" onclick="sortBigMoneyBy('incoming')">Gelen Para${sortIcon('incoming')}</th>
+                                <th style="padding: 10px; text-align: right; cursor: pointer;" onclick="sortBigMoneyBy('total')">Toplam${sortIcon('total')}</th>
+                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortBigMoneyBy('count')">Sayı${sortIcon('count')}</th>
+                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortBigMoneyBy('trigger_at')">Zaman${sortIcon('trigger_at')}</th>
                             </tr>
                         </thead>
                         <tbody>
             `;
             
-            alarms.slice(0, 100).forEach(alarm => {
+            sorted.slice(0, 100).forEach(alarm => {
                 const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
                 const market = alarm.market || '-';
                 const selection = alarm.selection || '-';
                 const incomingMoney = alarm.incoming_money || 0;
                 const totalSelection = alarm.total_selection || alarm.huge_total || incomingMoney;
                 const isHuge = alarm.is_huge;
+                const alarmCount = getAlarmCount(alarm);
                 
                 const eventTime = alarm.trigger_at || alarm.created_at || '-';
                 const formattedTime = eventTime !== '-' ? formatDateTime(eventTime) : '-';
                 
                 const bgColor = isHuge ? '#ff7b00' : '#FF4500';
-                const statusBadge = isHuge 
-                    ? `<span style="background: #ff7b00; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">🔥 HUGE</span>`
-                    : `<span style="background: #FF4500; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">💰 BIG</span>`;
+                const countDisplay = alarmCount > 1 
+                    ? `<span style="background: #FF4500; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">x${alarmCount}</span>`
+                    : `<span style="color: #8b949e;">1</span>`;
                 
                 html += `
                     <tr style="border-bottom: 1px solid #21262d; cursor: pointer;" onclick="showBigMoneyDetail(${JSON.stringify(alarm).replace(/"/g, '&quot;')})">
@@ -4675,7 +4729,7 @@
                         </td>
                         <td style="padding: 10px; text-align: right; color: ${bgColor}; font-weight: 700; font-size: 14px;">+£${Number(incomingMoney).toLocaleString('en-GB')}</td>
                         <td style="padding: 10px; text-align: right; color: #e6edf3;">£${Number(totalSelection).toLocaleString('en-GB')}</td>
-                        <td style="padding: 10px; text-align: center;">${statusBadge}</td>
+                        <td style="padding: 10px; text-align: center;">${countDisplay}</td>
                         <td style="padding: 10px; text-align: center; color: #8b949e; font-size: 11px;">${formattedTime}</td>
                     </tr>
                 `;
