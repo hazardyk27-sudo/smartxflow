@@ -4280,6 +4280,18 @@
 
         // ==================== INSIDER INFO FUNCTIONS ====================
         let allInsiderAlarms = [];
+        let insiderSortColumn = 'trigger_at';
+        let insiderSortAsc = false;
+        
+        function sortInsiderBy(column) {
+            if (insiderSortColumn === column) {
+                insiderSortAsc = !insiderSortAsc;
+            } else {
+                insiderSortColumn = column;
+                insiderSortAsc = column === 'match';
+            }
+            filterInsiderAlarms();
+        }
 
         async function loadInsiderPage() {
             await loadInsiderConfig();
@@ -4336,25 +4348,59 @@
                 return;
             }
 
+            // Sıralama uygula
+            const sorted = [...alarms].sort((a, b) => {
+                let valA, valB;
+                switch (insiderSortColumn) {
+                    case 'match':
+                        valA = (a.home || '').toLowerCase();
+                        valB = (b.home || '').toLowerCase();
+                        break;
+                    case 'drop':
+                        valA = a.oran_dusus_pct || a.drop_pct || 0;
+                        valB = b.oran_dusus_pct || b.drop_pct || 0;
+                        break;
+                    case 'shock':
+                        valA = a.hacim_sok || a.avg_volume_shock || 0;
+                        valB = b.hacim_sok || b.avg_volume_shock || 0;
+                        break;
+                    case 'count':
+                        valA = getAlarmCount(a);
+                        valB = getAlarmCount(b);
+                        break;
+                    case 'trigger_at':
+                    default:
+                        valA = new Date(a.trigger_at || a.created_at || 0).getTime();
+                        valB = new Date(b.trigger_at || b.created_at || 0).getTime();
+                        break;
+                }
+                if (valA < valB) return insiderSortAsc ? -1 : 1;
+                if (valA > valB) return insiderSortAsc ? 1 : -1;
+                return 0;
+            });
+
             countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
+            
+            const sortIcon = (col) => insiderSortColumn === col ? (insiderSortAsc ? ' ▲' : ' ▼') : '';
             
             let html = `
                 <div class="alarm-table-wrapper" style="overflow-x: auto;">
                     <table class="alarm-table" style="width: 100%; font-size: 12px;">
                         <thead>
                             <tr style="background: #161b22; color: #8b949e;">
-                                <th style="padding: 10px; text-align: left;">Maç</th>
+                                <th style="padding: 10px; text-align: left; cursor: pointer;" onclick="sortInsiderBy('match')">Maç${sortIcon('match')}</th>
                                 <th style="padding: 10px; text-align: center;">Market / Seçim</th>
                                 <th style="padding: 10px; text-align: center;">Açılış→Şimdi</th>
-                                <th style="padding: 10px; text-align: center;">Düşüş%</th>
-                                <th style="padding: 10px; text-align: center;">Hacim Şoku</th>
-                                <th style="padding: 10px; text-align: center;">Zaman</th>
+                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortInsiderBy('drop')">Düşüş%${sortIcon('drop')}</th>
+                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortInsiderBy('shock')">Hacim Şoku${sortIcon('shock')}</th>
+                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortInsiderBy('count')">Sayı${sortIcon('count')}</th>
+                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortInsiderBy('trigger_at')">Zaman${sortIcon('trigger_at')}</th>
                             </tr>
                         </thead>
                         <tbody>
             `;
             
-            alarms.slice(0, 100).forEach(alarm => {
+            sorted.slice(0, 100).forEach(alarm => {
                 const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
                 const market = alarm.market || '-';
                 const selection = alarm.selection || '-';
@@ -4362,9 +4408,14 @@
                 const currentOdds = alarm.current_odds || 0;
                 const dropPct = alarm.oran_dusus_pct || alarm.drop_pct || alarm.odds_change_percent || 0;
                 const hacimSok = alarm.hacim_sok || alarm.avg_volume_shock || 0;
+                const alarmCount = getAlarmCount(alarm);
                 
                 const eventTime = alarm.trigger_at || alarm.created_at || '-';
                 const formattedTime = eventTime !== '-' ? formatDateTime(eventTime) : '-';
+                
+                const countDisplay = alarmCount > 1 
+                    ? `<span style="background: #a371f7; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">x${alarmCount}</span>`
+                    : `<span style="color: #8b949e;">1</span>`;
                 
                 html += `
                     <tr style="border-bottom: 1px solid #21262d; cursor: pointer;" onclick="showInsiderDetail(${JSON.stringify(alarm).replace(/"/g, '&quot;')})">
@@ -4380,6 +4431,7 @@
                         </td>
                         <td style="padding: 10px; text-align: center; color: #ef4444; font-weight: 700; font-size: 14px;">%${dropPct.toFixed(1)}</td>
                         <td style="padding: 10px; text-align: center; color: #f0883e; font-weight: 600;">${hacimSok.toFixed(2)}x</td>
+                        <td style="padding: 10px; text-align: center;">${countDisplay}</td>
                         <td style="padding: 10px; text-align: center; color: #8b949e; font-size: 11px;">${formattedTime}</td>
                     </tr>
                 `;
@@ -4882,6 +4934,18 @@
         // =====================================================
         
         let allVolumeShockAlarms = [];
+        let volumeShockSortColumn = 'trigger_at';
+        let volumeShockSortAsc = false;
+        
+        function sortVolumeShockBy(column) {
+            if (volumeShockSortColumn === column) {
+                volumeShockSortAsc = !volumeShockSortAsc;
+            } else {
+                volumeShockSortColumn = column;
+                volumeShockSortAsc = column === 'match';
+            }
+            filterVolumeShockAlarms();
+        }
         
         async function loadVolumeShockPage() {
             await loadVolumeShockConfig();
@@ -4927,28 +4991,62 @@
                 return;
             }
             
+            // Sıralama uygula
+            const sorted = [...alarms].sort((a, b) => {
+                let valA, valB;
+                switch (volumeShockSortColumn) {
+                    case 'match':
+                        valA = (a.home || '').toLowerCase();
+                        valB = (b.home || '').toLowerCase();
+                        break;
+                    case 'shock':
+                        valA = a.volume_shock_value || a.volume_shock || 0;
+                        valB = b.volume_shock_value || b.volume_shock || 0;
+                        break;
+                    case 'incoming':
+                        valA = a.incoming_money || 0;
+                        valB = b.incoming_money || 0;
+                        break;
+                    case 'count':
+                        valA = getAlarmCount(a);
+                        valB = getAlarmCount(b);
+                        break;
+                    case 'trigger_at':
+                    default:
+                        valA = new Date(a.trigger_at || a.created_at || 0).getTime();
+                        valB = new Date(b.trigger_at || b.created_at || 0).getTime();
+                        break;
+                }
+                if (valA < valB) return volumeShockSortAsc ? -1 : 1;
+                if (valA > valB) return volumeShockSortAsc ? 1 : -1;
+                return 0;
+            });
+            
+            const sortIcon = (col) => volumeShockSortColumn === col ? (volumeShockSortAsc ? ' ▲' : ' ▼') : '';
+            
             let html = `
                 <div class="alarm-table-wrapper" style="overflow-x: auto;">
                     <table class="alarm-table" style="width: 100%; font-size: 12px;">
                         <thead>
                             <tr style="background: #161b22; color: #8b949e;">
-                                <th style="padding: 10px; text-align: left;">Mac</th>
+                                <th style="padding: 10px; text-align: left; cursor: pointer;" onclick="sortVolumeShockBy('match')">Mac${sortIcon('match')}</th>
                                 <th style="padding: 10px; text-align: center;">Market / Secim</th>
-                                <th style="padding: 10px; text-align: center;">Shock Degeri</th>
-                                <th style="padding: 10px; text-align: right;">Gelen Para</th>
-                                <th style="padding: 10px; text-align: right;">Onceki Hacim</th>
-                                <th style="padding: 10px; text-align: center;">Zaman</th>
+                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortVolumeShockBy('shock')">Shock Degeri${sortIcon('shock')}</th>
+                                <th style="padding: 10px; text-align: right; cursor: pointer;" onclick="sortVolumeShockBy('incoming')">Gelen Para${sortIcon('incoming')}</th>
+                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortVolumeShockBy('count')">Sayı${sortIcon('count')}</th>
+                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortVolumeShockBy('trigger_at')">Zaman${sortIcon('trigger_at')}</th>
                             </tr>
                         </thead>
                         <tbody>
             `;
             
-            alarms.slice(0, 100).forEach(alarm => {
+            sorted.slice(0, 100).forEach(alarm => {
                 const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
                 const market = alarm.market || '-';
                 const selection = alarm.selection || '-';
                 const incomingMoney = alarm.incoming_money || 0;
                 const avgPrevious = alarm.avg_previous || 0;
+                const alarmCount = getAlarmCount(alarm);
                 
                 let shockValue = alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier;
                 if (!shockValue || shockValue === 0) {
@@ -4960,6 +5058,9 @@
                 const formattedTime = eventTime !== '-' ? formatDateTime(eventTime) : '-';
                 
                 const shockColor = shockValue >= 10 ? '#22c55e' : shockValue >= 5 ? '#3fb950' : '#60a5fa';
+                const countDisplay = alarmCount > 1 
+                    ? `<span style="background: #ff6b6b; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">x${alarmCount}</span>`
+                    : `<span style="color: #8b949e;">1</span>`;
                 
                 html += `
                     <tr style="border-bottom: 1px solid #21262d; cursor: pointer;" onclick="showVolumeShockDetail(${JSON.stringify(alarm).replace(/"/g, '&quot;')})">
@@ -4970,7 +5071,7 @@
                         </td>
                         <td style="padding: 10px; text-align: center; color: ${shockColor}; font-weight: 700; font-size: 14px;">⚡ ${shockDisplay}</td>
                         <td style="padding: 10px; text-align: right; color: #22c55e; font-weight: 600;">+£${Number(incomingMoney).toLocaleString('en-GB')}</td>
-                        <td style="padding: 10px; text-align: right; color: #8b949e;">£${Number(avgPrevious).toLocaleString('en-GB')}</td>
+                        <td style="padding: 10px; text-align: center;">${countDisplay}</td>
                         <td style="padding: 10px; text-align: center; color: #8b949e; font-size: 11px;">${formattedTime}</td>
                     </tr>
                 `;
@@ -5279,6 +5380,18 @@
         // =====================================================
         
         let allVolumeLeaderAlarms = [];
+        let volumeLeaderSortColumn = 'trigger_at';
+        let volumeLeaderSortAsc = false;
+        
+        function sortVolumeLeaderBy(column) {
+            if (volumeLeaderSortColumn === column) {
+                volumeLeaderSortAsc = !volumeLeaderSortAsc;
+            } else {
+                volumeLeaderSortColumn = column;
+                volumeLeaderSortAsc = column === 'match';
+            }
+            filterVolumeLeaderAlarms();
+        }
         
         async function loadVolumeLeaderPage() {
             await loadVolumeLeaderConfig();
@@ -5321,24 +5434,54 @@
                 return;
             }
             
+            // Sıralama uygula
+            const sorted = [...alarms].sort((a, b) => {
+                let valA, valB;
+                switch (volumeLeaderSortColumn) {
+                    case 'match':
+                        valA = (a.home || '').toLowerCase();
+                        valB = (b.home || '').toLowerCase();
+                        break;
+                    case 'volume':
+                        valA = a.total_volume || 0;
+                        valB = b.total_volume || 0;
+                        break;
+                    case 'count':
+                        valA = getAlarmCount(a);
+                        valB = getAlarmCount(b);
+                        break;
+                    case 'trigger_at':
+                    default:
+                        valA = new Date(a.trigger_at || a.created_at || 0).getTime();
+                        valB = new Date(b.trigger_at || b.created_at || 0).getTime();
+                        break;
+                }
+                if (valA < valB) return volumeLeaderSortAsc ? -1 : 1;
+                if (valA > valB) return volumeLeaderSortAsc ? 1 : -1;
+                return 0;
+            });
+            
+            const sortIcon = (col) => volumeLeaderSortColumn === col ? (volumeLeaderSortAsc ? ' ▲' : ' ▼') : '';
+            
             let html = `
                 <div class="alarm-table-wrapper" style="overflow-x: auto;">
                     <table class="alarm-table" style="width: 100%; font-size: 12px;">
                         <thead>
                             <tr style="background: #161b22; color: #8b949e;">
-                                <th style="padding: 10px; text-align: left;">Mac</th>
+                                <th style="padding: 10px; text-align: left; cursor: pointer;" onclick="sortVolumeLeaderBy('match')">Mac${sortIcon('match')}</th>
                                 <th style="padding: 10px; text-align: center;">Market</th>
                                 <th style="padding: 10px; text-align: center;">Eski Lider</th>
                                 <th style="padding: 10px; text-align: center;">Yeni Lider</th>
                                 <th style="padding: 10px; text-align: center;">Pay Degisimi</th>
-                                <th style="padding: 10px; text-align: right;">Toplam Hacim</th>
-                                <th style="padding: 10px; text-align: center;">Zaman</th>
+                                <th style="padding: 10px; text-align: right; cursor: pointer;" onclick="sortVolumeLeaderBy('volume')">Toplam Hacim${sortIcon('volume')}</th>
+                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortVolumeLeaderBy('count')">Sayı${sortIcon('count')}</th>
+                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortVolumeLeaderBy('trigger_at')">Zaman${sortIcon('trigger_at')}</th>
                             </tr>
                         </thead>
                         <tbody>
             `;
             
-            alarms.slice(0, 100).forEach(alarm => {
+            sorted.slice(0, 100).forEach(alarm => {
                 const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
                 const market = alarm.market || '-';
                 const oldLeader = alarm.old_leader || '-';
@@ -5346,9 +5489,14 @@
                 const oldShare = alarm.old_leader_share || 0;
                 const newShare = alarm.new_leader_share || 0;
                 const volume = alarm.total_volume || 0;
+                const alarmCount = getAlarmCount(alarm);
                 
                 const eventTime = alarm.trigger_at || alarm.created_at || '-';
                 const formattedTime = eventTime !== '-' ? formatDateTime(eventTime) : '-';
+                
+                const countDisplay = alarmCount > 1 
+                    ? `<span style="background: #06b6d4; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">x${alarmCount}</span>`
+                    : `<span style="color: #8b949e;">1</span>`;
                 
                 html += `
                     <tr style="border-bottom: 1px solid #21262d; cursor: pointer;" onclick="showVolumeLeaderDetail(${JSON.stringify(alarm).replace(/"/g, '&quot;')})">
@@ -5370,6 +5518,7 @@
                             <span style="color: #3fb950;">%${newShare.toFixed(0)}</span>
                         </td>
                         <td style="padding: 10px; text-align: right; color: #22c55e; font-weight: 600;">£${Number(volume).toLocaleString('en-GB')}</td>
+                        <td style="padding: 10px; text-align: center;">${countDisplay}</td>
                         <td style="padding: 10px; text-align: center; color: #8b949e; font-size: 11px;">${formattedTime}</td>
                     </tr>
                 `;
@@ -5528,6 +5677,18 @@
         // ============================================
         let mimAlarms = [];
         let mimFilteredAlarms = [];
+        let mimSortColumn = 'trigger_at';
+        let mimSortAsc = false;
+        
+        function sortMimBy(column) {
+            if (mimSortColumn === column) {
+                mimSortAsc = !mimSortAsc;
+            } else {
+                mimSortColumn = column;
+                mimSortAsc = column === 'match';
+            }
+            renderMimAlarms();
+        }
         
         async function loadMimPage() {
             await Promise.all([loadMimConfig(), loadMimAlarms()]);
@@ -5602,24 +5763,62 @@
                 return;
             }
             
+            // Sıralama uygula
+            const sorted = [...mimFilteredAlarms].sort((a, b) => {
+                let valA, valB;
+                switch (mimSortColumn) {
+                    case 'match':
+                        valA = (a.home || '').toLowerCase();
+                        valB = (b.home || '').toLowerCase();
+                        break;
+                    case 'impact':
+                        valA = a.impact_score || a.impact || 0;
+                        valB = b.impact_score || b.impact || 0;
+                        break;
+                    case 'incoming':
+                        const prevA = a.prev_volume || 0;
+                        const currA = a.curr_volume || a.current_volume || 0;
+                        valA = a.incoming_volume || (currA - prevA) || 0;
+                        const prevB = b.prev_volume || 0;
+                        const currB = b.curr_volume || b.current_volume || 0;
+                        valB = b.incoming_volume || (currB - prevB) || 0;
+                        break;
+                    case 'count':
+                        valA = getAlarmCount(a);
+                        valB = getAlarmCount(b);
+                        break;
+                    case 'trigger_at':
+                    default:
+                        valA = new Date(a.trigger_at || a.created_at || 0).getTime();
+                        valB = new Date(b.trigger_at || b.created_at || 0).getTime();
+                        break;
+                }
+                if (valA < valB) return mimSortAsc ? -1 : 1;
+                if (valA > valB) return mimSortAsc ? 1 : -1;
+                return 0;
+            });
+            
+            const sortIcon = (col) => mimSortColumn === col ? (mimSortAsc ? ' ▲' : ' ▼') : '';
+            
             let html = `
                 <div class="alarm-table-wrapper" style="overflow-x: auto;">
                     <table class="alarm-table" style="width: 100%; font-size: 12px;">
                         <thead>
                             <tr style="background: #161b22; color: #8b949e;">
-                                <th style="padding: 10px; text-align: left;">Mac</th>
+                                <th style="padding: 10px; text-align: left; cursor: pointer;" onclick="sortMimBy('match')">Mac${sortIcon('match')}</th>
                                 <th style="padding: 10px; text-align: center;">Market / Secim</th>
-                                <th style="padding: 10px; text-align: center;">Impact</th>
-                                <th style="padding: 10px; text-align: right;">Gelen Para</th>
+                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortMimBy('impact')">Impact${sortIcon('impact')}</th>
+                                <th style="padding: 10px; text-align: right; cursor: pointer;" onclick="sortMimBy('incoming')">Gelen Para${sortIcon('incoming')}</th>
                                 <th style="padding: 10px; text-align: right;">Market Toplam</th>
                                 <th style="padding: 10px; text-align: right;">Volume Degisimi</th>
-                                <th style="padding: 10px; text-align: center;">Zaman</th>
+                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortMimBy('count')">Sayı${sortIcon('count')}</th>
+                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortMimBy('trigger_at')">Zaman${sortIcon('trigger_at')}</th>
                             </tr>
                         </thead>
                         <tbody>
             `;
             
-            mimFilteredAlarms.slice(0, 100).forEach(alarm => {
+            sorted.slice(0, 100).forEach(alarm => {
                 const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
                 const market = alarm.market || '-';
                 const selection = alarm.selection || '-';
@@ -5629,11 +5828,15 @@
                 const currVol = alarm.curr_volume || alarm.current_volume || 0;
                 const incomingVol = alarm.incoming_volume || (currVol - prevVol);
                 const totalMarketVol = alarm.total_market_volume || (currVol * 3) || currVol;
+                const alarmCount = getAlarmCount(alarm);
                 
                 const eventTime = alarm.trigger_at || alarm.created_at || '-';
                 const formattedTime = eventTime !== '-' ? formatDateTime(eventTime) : '-';
                 
                 const impactColor = impact >= 0.50 ? '#22c55e' : impact >= 0.30 ? '#3B82F6' : '#60a5fa';
+                const countDisplay = alarmCount > 1 
+                    ? `<span style="background: #3B82F6; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">x${alarmCount}</span>`
+                    : `<span style="color: #8b949e;">1</span>`;
                 
                 html += `
                     <tr style="border-bottom: 1px solid #21262d; cursor: pointer;" onclick="showMimAlarmDetail(${JSON.stringify(alarm).replace(/"/g, '&quot;')})">
@@ -5646,6 +5849,7 @@
                         <td style="padding: 10px; text-align: right; color: #22c55e; font-weight: 600;">+£${Number(incomingVol).toLocaleString('en-GB')}</td>
                         <td style="padding: 10px; text-align: right; color: #e6edf3;">£${Number(totalMarketVol).toLocaleString('en-GB')}</td>
                         <td style="padding: 10px; text-align: right; color: #8b949e;">£${Number(prevVol).toLocaleString('en-GB')} → £${Number(currVol).toLocaleString('en-GB')}</td>
+                        <td style="padding: 10px; text-align: center;">${countDisplay}</td>
                         <td style="padding: 10px; text-align: center; color: #8b949e; font-size: 11px;">${formattedTime}</td>
                     </tr>
                 `;
@@ -6165,6 +6369,18 @@
 
         // ==================== DROPPING ALERT FUNCTIONS ====================
         let allDroppingAlarms = [];
+        let droppingSortColumn = 'trigger_at';
+        let droppingSortAsc = false;
+        
+        function sortDroppingBy(column) {
+            if (droppingSortColumn === column) {
+                droppingSortAsc = !droppingSortAsc;
+            } else {
+                droppingSortColumn = column;
+                droppingSortAsc = column === 'match';
+            }
+            filterDroppingAlarms();
+        }
 
         async function loadDroppingConfig() {
             try {
@@ -6225,26 +6441,60 @@
                 return;
             }
 
+            // Sıralama uygula
+            const sorted = [...alarms].sort((a, b) => {
+                let valA, valB;
+                switch (droppingSortColumn) {
+                    case 'match':
+                        valA = (a.home || '').toLowerCase();
+                        valB = (b.home || '').toLowerCase();
+                        break;
+                    case 'drop':
+                        valA = a.drop_pct || 0;
+                        valB = b.drop_pct || 0;
+                        break;
+                    case 'volume':
+                        valA = a.volume || 0;
+                        valB = b.volume || 0;
+                        break;
+                    case 'count':
+                        valA = getAlarmCount(a);
+                        valB = getAlarmCount(b);
+                        break;
+                    case 'trigger_at':
+                    default:
+                        valA = new Date(a.trigger_at || a.created_at || 0).getTime();
+                        valB = new Date(b.trigger_at || b.created_at || 0).getTime();
+                        break;
+                }
+                if (valA < valB) return droppingSortAsc ? -1 : 1;
+                if (valA > valB) return droppingSortAsc ? 1 : -1;
+                return 0;
+            });
+
             countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
+            
+            const sortIcon = (col) => droppingSortColumn === col ? (droppingSortAsc ? ' ▲' : ' ▼') : '';
             
             let html = `
                 <div class="alarm-table-wrapper" style="overflow-x: auto;">
                     <table class="alarm-table" style="width: 100%; font-size: 12px;">
                         <thead>
                             <tr style="background: #161b22; color: #8b949e;">
-                                <th style="padding: 10px; text-align: left;">Mac</th>
+                                <th style="padding: 10px; text-align: left; cursor: pointer;" onclick="sortDroppingBy('match')">Mac${sortIcon('match')}</th>
                                 <th style="padding: 10px; text-align: center;">Market / Secim</th>
                                 <th style="padding: 10px; text-align: center;">Acilis → Simdi</th>
-                                <th style="padding: 10px; text-align: center;">Dusus %</th>
+                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortDroppingBy('drop')">Dusus %${sortIcon('drop')}</th>
                                 <th style="padding: 10px; text-align: center;">Level</th>
-                                <th style="padding: 10px; text-align: right;">Hacim</th>
-                                <th style="padding: 10px; text-align: center;">Zaman</th>
+                                <th style="padding: 10px; text-align: right; cursor: pointer;" onclick="sortDroppingBy('volume')">Hacim${sortIcon('volume')}</th>
+                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortDroppingBy('count')">Sayı${sortIcon('count')}</th>
+                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortDroppingBy('trigger_at')">Zaman${sortIcon('trigger_at')}</th>
                             </tr>
                         </thead>
                         <tbody>
             `;
             
-            alarms.slice(0, 100).forEach(alarm => {
+            sorted.slice(0, 100).forEach(alarm => {
                 const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
                 const market = alarm.market || '-';
                 const selection = alarm.selection || '-';
@@ -6253,6 +6503,7 @@
                 const dropPct = alarm.drop_pct || 0;
                 const level = alarm.level || 'L1';
                 const volume = alarm.volume || 0;
+                const alarmCount = getAlarmCount(alarm);
                 
                 const eventTime = alarm.trigger_at || alarm.created_at || '-';
                 const formattedTime = eventTime !== '-' ? formatDateTime(eventTime) : '-';
@@ -6263,6 +6514,9 @@
                 const levelBackground = levelBg[level] || 'rgba(239,68,68,0.2)';
                 
                 const dropColor = dropPct >= 15 ? '#ef4444' : dropPct >= 10 ? '#f39c12' : '#f0b429';
+                const countDisplay = alarmCount > 1 
+                    ? `<span style="background: #ef4444; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">x${alarmCount}</span>`
+                    : `<span style="color: #8b949e;">1</span>`;
                 
                 html += `
                     <tr style="border-bottom: 1px solid #21262d; cursor: pointer;" onclick="showDroppingDetail(${JSON.stringify(alarm).replace(/"/g, '&quot;')})">
@@ -6281,6 +6535,7 @@
                             <span style="background: ${levelBackground}; color: ${levelColor}; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700;">${level}</span>
                         </td>
                         <td style="padding: 10px; text-align: right; color: #22c55e; font-weight: 600;">£${Number(volume).toLocaleString('en-GB')}</td>
+                        <td style="padding: 10px; text-align: center;">${countDisplay}</td>
                         <td style="padding: 10px; text-align: center; color: #8b949e; font-size: 11px;">${formattedTime}</td>
                     </tr>
                 `;
