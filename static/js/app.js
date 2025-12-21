@@ -157,7 +157,7 @@ function toTurkeyTime(raw) {
             return parsed.tz(APP_TIMEZONE);
         }
         
-        // 5) Arbworld format: "30.Nov 23:55:00" - Scraper'dan ZATEN TR saatinde geliyor, dönüşüm yapma
+        // 5) Arbworld format: "30.Nov 23:55:00" - UTC olarak geliyor, +3 saat ekle
         const arbworldMatch = str.match(/^(\d{1,2})\.(\w{3})\s*(\d{2}:\d{2}(?::\d{2})?)$/i);
         if (arbworldMatch) {
             const monthMap = {
@@ -166,16 +166,16 @@ function toTurkeyTime(raw) {
             };
             const day = parseInt(arbworldMatch[1]);
             const month = monthMap[arbworldMatch[2]];
-            if (month === undefined) return dayjs(str).tz(APP_TIMEZONE, true);
+            if (month === undefined) return dayjs.utc(str).tz(APP_TIMEZONE);
             
             const now = dayjs().tz(APP_TIMEZONE);
             const currentYear = now.year();
             
             // Year rollover logic: en yakın tarihi seç
-            // Arbworld tarihleri ZATEN TR saatinde - keepLocalTime=true ile sadece timezone etiketi ekle
+            // Arbworld tarihleri UTC olarak geliyor - UTC olarak parse et ve +3 saat ekle
             const candidates = [currentYear - 1, currentYear, currentYear + 1].map(year => {
                 const isoStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T${arbworldMatch[3]}`;
-                return dayjs(isoStr).tz(APP_TIMEZONE, true);
+                return dayjs.utc(isoStr).tz(APP_TIMEZONE);
             });
             
             const nowTR = dayjs().tz(APP_TIMEZONE);
