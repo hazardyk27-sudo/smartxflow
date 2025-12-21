@@ -415,27 +415,164 @@ def match_detail(home, away):
 matches_cache = {
     'data': {},  # market -> data
     'timestamp': {},  # market -> timestamp
-    'ttl': 60  # 1 dakika cache (sık güncellenen veri)
+    'ttl': 60,  # 1 dakika cache (sık güncellenen veri)
+    'warming': set(),  # markets currently being warmed (to prevent duplicate fetches)
+    'lock': threading.Lock()  # thread lock for cache access
 }
+
+def warm_matches_cache():
+    """Pre-fill cache for common markets on server startup"""
+    import time as time_module
+    print("[Cache Warming] Starting background cache warm-up...")
+    
+    markets_to_warm = ['moneyway_1x2', 'dropping_1x2', 'moneyway_ou25', 'dropping_ou25', 'moneyway_btts', 'dropping_btts']
+    
+    for market in markets_to_warm:
+        try:
+            # Mark this market as being warmed
+            with matches_cache['lock']:
+                matches_cache['warming'].add(market)
+            
+            is_dropping = market.startswith('dropping')
+            matches_with_latest = db.get_all_matches_with_latest(market, date_filter=None)
+            
+            enriched = []
+            for m in matches_with_latest:
+                latest = m.get('latest', {})
+                odds = {}
+                prev_odds = {}
+                
+                if latest:
+                    if market in ['moneyway_1x2', 'dropping_1x2']:
+                        odds = {
+                            'Odds1': latest.get('Odds1', latest.get('1', '-')),
+                            'OddsX': latest.get('OddsX', latest.get('X', '-')),
+                            'Odds2': latest.get('Odds2', latest.get('2', '-')),
+                            'Pct1': latest.get('Pct1', ''),
+                            'Amt1': latest.get('Amt1', ''),
+                            'PctX': latest.get('PctX', ''),
+                            'AmtX': latest.get('AmtX', ''),
+                            'Pct2': latest.get('Pct2', ''),
+                            'Amt2': latest.get('Amt2', ''),
+                            'Volume': latest.get('Volume', '')
+                        }
+                        if is_dropping:
+                            prev_odds = {
+                                'PrevOdds1': latest.get('Odds1_prev', ''),
+                                'PrevOddsX': latest.get('OddsX_prev', ''),
+                                'PrevOdds2': latest.get('Odds2_prev', ''),
+                                'Trend1': latest.get('Trend1', ''),
+                                'TrendX': latest.get('TrendX', ''),
+                                'Trend2': latest.get('Trend2', '')
+                            }
+                    elif market in ['moneyway_ou25', 'dropping_ou25']:
+                        odds = {
+                            'Under': latest.get('Under', '-'),
+                            'Over': latest.get('Over', '-'),
+                            'PctUnder': latest.get('PctUnder', ''),
+                            'AmtUnder': latest.get('AmtUnder', ''),
+                            'PctOver': latest.get('PctOver', ''),
+                            'AmtOver': latest.get('AmtOver', ''),
+                            'Volume': latest.get('Volume', '')
+                        }
+                        if is_dropping:
+                            prev_odds = {
+                                'PrevUnder': latest.get('Under_prev', ''),
+                                'PrevOver': latest.get('Over_prev', ''),
+                                'TrendUnder': latest.get('TrendUnder', ''),
+                                'TrendOver': latest.get('TrendOver', '')
+                            }
+                    elif market in ['moneyway_btts', 'dropping_btts']:
+                        odds = {
+                            'OddsYes': latest.get('OddsYes', latest.get('Yes', '-')),
+                            'OddsNo': latest.get('OddsNo', latest.get('No', '-')),
+                            'PctYes': latest.get('PctYes', ''),
+                            'AmtYes': latest.get('AmtYes', ''),
+                            'PctNo': latest.get('PctNo', ''),
+                            'AmtNo': latest.get('AmtNo', ''),
+                            'Volume': latest.get('Volume', '')
+                        }
+                        if is_dropping:
+                            prev_odds = {
+                                'PrevYes': latest.get('OddsYes_prev', ''),
+                                'PrevNo': latest.get('OddsNo_prev', ''),
+                                'TrendYes': latest.get('TrendYes', ''),
+                                'TrendNo': latest.get('TrendNo', '')
+                            }
+                
+                home = m.get('home_team', '')
+                away = m.get('away_team', '')
+                league = m.get('league', '')
+                date = m.get('date', '')
+                
+                enriched.append({
+                    'home_team': home,
+                    'away_team': away,
+                    'league': league,
+                    'date': date,
+                    'match_id': generate_match_id(home, away, league, date),
+                    'odds': {**odds, **prev_odds},
+                    'history_count': 1
+                })
+            
+            matches_cache['data'][market] = enriched
+            matches_cache['timestamp'][market] = time_module.time()
+            print(f"[Cache Warming] {market}: {len(enriched)} matches cached")
+        except Exception as e:
+            print(f"[Cache Warming] Error warming {market}: {e}")
+        finally:
+            # Remove from warming set when done
+            with matches_cache['lock']:
+                matches_cache['warming'].discard(market)
+    
+    print("[Cache Warming] Complete!")
+
+# Start cache warming in background thread
+cache_warming_thread = threading.Thread(target=warm_matches_cache, daemon=True)
+cache_warming_thread.start()
 
 @app.route('/api/matches')
 def get_matches():
-    """Get all matches from database - optimized with cache"""
+    """Get matches from database with pagination support"""
     import time
     market = request.args.get('market', 'moneyway_1x2')
     date_filter = request.args.get('date_filter', None)
+    limit = request.args.get('limit', type=int, default=None)
+    offset = request.args.get('offset', type=int, default=0)
     is_dropping = market.startswith('dropping')
     
     now = time.time()
     
     cache_key = f"{market}_{date_filter}" if date_filter else market
     
+    # Wait if this market is being warmed by background thread (max 30 seconds)
+    wait_count = 0
+    while cache_key in matches_cache.get('warming', set()) and wait_count < 30:
+        time.sleep(1)
+        wait_count += 1
+    
     if cache_key in matches_cache['data']:
         last_time = matches_cache['timestamp'].get(cache_key, 0)
         if (now - last_time) < matches_cache['ttl']:
-            return jsonify(matches_cache['data'][cache_key])
+            cached_data = matches_cache['data'][cache_key]
+            if limit is not None:
+                sliced = cached_data[offset:offset + limit]
+                return jsonify({'matches': sliced, 'total': len(cached_data), 'has_more': offset + limit < len(cached_data)})
+            return jsonify(cached_data)
     
-    matches_with_latest = db.get_all_matches_with_latest(market, date_filter=date_filter)
+    # Mark this cache_key as being fetched to prevent concurrent fetches
+    with matches_cache['lock']:
+        if cache_key in matches_cache.get('warming', set()):
+            # Another thread is fetching, wait for it
+            pass
+        else:
+            matches_cache['warming'].add(cache_key)
+    
+    try:
+        matches_with_latest = db.get_all_matches_with_latest(market, date_filter=date_filter)
+    finally:
+        with matches_cache['lock']:
+            matches_cache['warming'].discard(cache_key)
     
     enriched = []
     for m in matches_with_latest:
@@ -519,6 +656,9 @@ def get_matches():
     matches_cache['data'][cache_key] = enriched
     matches_cache['timestamp'][cache_key] = now
     
+    if limit is not None:
+        sliced = enriched[offset:offset + limit]
+        return jsonify({'matches': sliced, 'total': len(enriched), 'has_more': offset + limit < len(enriched)})
     return jsonify(enriched)
 
 

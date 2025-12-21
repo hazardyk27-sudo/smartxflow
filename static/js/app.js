@@ -15,6 +15,9 @@ let chartViewMode = 'percent';
 let isClientMode = true;
 let isAlarmsPageActive = false;
 let matchesDisplayCount = 20;
+let currentOffset = 0;
+let totalMatchCount = 0;
+let hasMoreMatches = false;
 
 // Request locking to prevent duplicate API calls
 let _loadMatchesLock = false;
@@ -392,7 +395,7 @@ function setupSearch() {
     }
 }
 
-async function loadMatches() {
+async function loadMatches(appendMode = false) {
     // Prevent duplicate requests - if already loading, wait for that one
     if (_loadMatchesLock) {
         if (_loadMatchesPending) {
@@ -405,14 +408,19 @@ async function loadMatches() {
     
     const tbody = document.getElementById('matchesTableBody');
     const colspan = currentMarket.includes('1x2') ? 7 : 6;
-    tbody.innerHTML = `
-        <tr class="loading-row">
-            <td colspan="${colspan}">
-                <div class="loading-spinner"></div>
-                Loading matches...
-            </td>
-        </tr>
-    `;
+    
+    if (!appendMode) {
+        currentOffset = 0;
+        matches = [];
+        tbody.innerHTML = `
+            <tr class="loading-row">
+                <td colspan="${colspan}">
+                    <div class="loading-spinner"></div>
+                    Loading matches...
+                </td>
+            </tr>
+        `;
+    }
     
     updateTableHeaders();
     
@@ -424,7 +432,7 @@ async function loadMatches() {
                 oddsTrendCache = {};
             }
             
-            let apiUrl = `/api/matches?market=${currentMarket}`;
+            let apiUrl = `/api/matches?market=${currentMarket}&limit=${matchesDisplayCount}&offset=${currentOffset}`;
             if (dateFilterMode === 'YESTERDAY') {
                 apiUrl += '&date_filter=yesterday';
             } else if (dateFilterMode === 'TODAY') {
@@ -432,8 +440,32 @@ async function loadMatches() {
             }
             
             const response = await fetch(apiUrl);
-            const apiMatches = await response.json();
-            matches = apiMatches || [];
+            const result = await response.json();
+            
+            // Handle new paginated response format
+            if (result.matches !== undefined) {
+                const newMatches = result.matches || [];
+                totalMatchCount = result.total || 0;
+                hasMoreMatches = result.has_more || false;
+                
+                // Prevent infinite loop: if no new matches returned, stop pagination
+                if (newMatches.length === 0) {
+                    hasMoreMatches = false;
+                }
+                
+                if (appendMode) {
+                    matches = [...matches, ...newMatches];
+                } else {
+                    matches = newMatches;
+                }
+                currentOffset += newMatches.length;
+            } else {
+                // Fallback for old non-paginated response
+                matches = result || [];
+                totalMatchCount = matches.length;
+                hasMoreMatches = false;
+            }
+            
             filteredMatches = applySorting(matches);
             renderMatches(filteredMatches);
             
@@ -638,9 +670,8 @@ function renderMatches(data) {
     const isDropping = currentMarket.startsWith('dropping');
     const isMoneyway = currentMarket.startsWith('moneyway');
     
-    const displayData = data.slice(0, matchesDisplayCount);
-    const hasMore = data.length > matchesDisplayCount;
-    const remainingCount = data.length - matchesDisplayCount;
+    const displayData = data;
+    const remainingCount = totalMatchCount - matches.length;
     const colspan = currentMarket.includes('1x2') ? 7 : 6;
     
     let html = displayData.map((match, idx) => {
@@ -778,7 +809,7 @@ function renderMatches(data) {
         }
     }).join('');
     
-    if (hasMore) {
+    if (hasMoreMatches && remainingCount > 0) {
         html += `
             <tr class="load-more-row">
                 <td colspan="${colspan}">
@@ -801,13 +832,8 @@ function renderMatches(data) {
 }
 
 function loadMoreMatches() {
-    matchesDisplayCount += 20;
-    renderMatches(filteredMatches);
-    
-    const tbody = document.getElementById('matchesTableBody');
-    const rows = tbody.querySelectorAll('tr:not(.load-more-row)');
-    if (rows.length > 20) {
-        rows[rows.length - 20]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (hasMoreMatches && !_loadMatchesLock) {
+        loadMatches(true);
     }
 }
 
