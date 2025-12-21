@@ -593,6 +593,186 @@ class SupabaseClient:
             print(f"[Supabase] EXCEPTION in get_all_matches_with_latest: {e}")
             return []
     
+    def get_matches_paginated(self, market: str, limit: int = 20, offset: int = 0) -> Dict[str, Any]:
+        """FAST paginated match fetch - fixtures first, then only needed odds
+        
+        Returns: {matches: [...], total: N, has_more: bool}
+        
+        Strategy:
+        1. Get N fixtures from fixtures table (with limit/offset) - ~20 rows
+        2. Batch fetch odds only for those N matches - ~100 rows max
+        Result: 10,000 rows -> 120 rows = 80x faster
+        """
+        if not self.is_available:
+            return {'matches': [], 'total': 0, 'has_more': False}
+        
+        try:
+            import time
+            start_time = time.time()
+            from datetime import datetime, timedelta
+            from urllib.parse import quote
+            import pytz
+            
+            tr_tz = pytz.timezone('Europe/Istanbul')
+            now_tr = datetime.now(tr_tz)
+            today_date = now_tr.date()
+            yesterday_date = today_date - timedelta(days=1)
+            
+            today_str = today_date.strftime('%Y-%m-%d')
+            yesterday_str = yesterday_date.strftime('%Y-%m-%d')
+            
+            # Step 1: Get total count first (with Prefer: count=exact)
+            count_headers = self._headers()
+            count_headers['Prefer'] = 'count=exact'
+            count_url = f"{self._rest_url('fixtures')}?select=match_id_hash&fixture_date=gte.{yesterday_str}&limit=1"
+            count_resp = httpx.get(count_url, headers=count_headers, timeout=10)
+            
+            total = 0
+            if count_resp.status_code == 200:
+                content_range = count_resp.headers.get('content-range', '')
+                if '/' in content_range:
+                    try:
+                        total = int(content_range.split('/')[-1])
+                    except:
+                        total = 0
+                # Don't do fallback count - it's expensive and unnecessary
+                # has_more is calculated based on returned row count
+            
+            # Step 2: Get fixtures with limit/offset (FAST - just N rows)
+            fix_url = f"{self._rest_url('fixtures')}?select=*&fixture_date=gte.{yesterday_str}&order=kickoff_utc.desc&limit={limit}&offset={offset}"
+            fix_resp = httpx.get(fix_url, headers=self._headers(), timeout=10)
+            
+            if fix_resp.status_code != 200:
+                print(f"[Paginated] Fixtures fetch error: {fix_resp.status_code}")
+                return {'matches': [], 'total': 0, 'has_more': False}
+            
+            fixtures = fix_resp.json()
+            print(f"[Paginated] Got {len(fixtures)} fixtures (offset={offset}, limit={limit})")
+            
+            if not fixtures:
+                return {'matches': [], 'total': total, 'has_more': False}
+            
+            # Step 3: Batch fetch odds ONLY for these fixtures
+            history_table = f"{market}_history"
+            odds_cache = {}
+            
+            # Build home|away pairs for batch query
+            pairs = [(fix.get('home_team', ''), fix.get('away_team', '')) for fix in fixtures]
+            
+            # Single batch query for all fixtures (max 20 pairs = ~200 rows)
+            or_filters = ','.join(
+                f'and(home.eq.{quote(h, safe="")},away.eq.{quote(a, safe="")})'
+                for h, a in pairs if h and a
+            )
+            
+            if or_filters:
+                batch_url = f"{self._rest_url(history_table)}?or=({or_filters})&order=scraped_at.desc&limit=500"
+                batch_resp = httpx.get(batch_url, headers=self._headers(), timeout=15)
+                
+                if batch_resp.status_code == 200:
+                    rows = batch_resp.json()
+                    for row in rows:
+                        cache_key = f"{row.get('home', '')}|{row.get('away', '')}"
+                        if cache_key not in odds_cache:
+                            odds_cache[cache_key] = row
+                    print(f"[Paginated] Batch fetched {len(odds_cache)} odds from {history_table}")
+            
+            # Step 4: Build match list
+            matches = []
+            for fix in fixtures:
+                home = fix.get('home_team', '')
+                away = fix.get('away_team', '')
+                league = fix.get('league', '')
+                
+                kickoff_utc = fix.get('kickoff_utc', '')
+                date_display = fix.get('fixture_date', '')
+                if kickoff_utc:
+                    try:
+                        if isinstance(kickoff_utc, str):
+                            kickoff_dt = datetime.fromisoformat(kickoff_utc.replace('Z', '+00:00'))
+                        else:
+                            kickoff_dt = kickoff_utc
+                        kickoff_tr = kickoff_dt.astimezone(tr_tz)
+                        date_display = kickoff_tr.strftime('%d.%b %H:%M')
+                    except:
+                        pass
+                
+                cache_key = f"{home}|{away}"
+                latest_odds = self._get_empty_odds(market)
+                
+                if cache_key in odds_cache:
+                    row = odds_cache[cache_key]
+                    latest_odds = self._normalize_history_row(row, market)
+                
+                matches.append({
+                    'home_team': home,
+                    'away_team': away,
+                    'league': league,
+                    'date': date_display,
+                    'match_id_hash': fix.get('match_id_hash', ''),
+                    'kickoff_utc': kickoff_utc,
+                    'latest': latest_odds
+                })
+            
+            elapsed = time.time() - start_time
+            # If total is unknown (0), assume more data exists if we got a full page
+            if total == 0:
+                has_more = len(fixtures) == limit
+            else:
+                has_more = offset + len(fixtures) < total
+            print(f"[Paginated] Completed in {elapsed:.2f}s - {len(matches)} matches, total={total}, has_more={has_more}")
+            
+            return {
+                'matches': matches,
+                'total': total,
+                'has_more': has_more
+            }
+        except Exception as e:
+            print(f"[Paginated] EXCEPTION: {e}")
+            import traceback
+            traceback.print_exc()
+            return {'matches': [], 'total': 0, 'has_more': False}
+    
+    def _get_empty_odds(self, market: str) -> Dict[str, Any]:
+        """Return empty odds structure for a market"""
+        if market in ['moneyway_1x2', 'dropping_1x2']:
+            return {
+                'ScrapedAt': '',
+                'Volume': '',
+                'Odds1': '-',
+                'OddsX': '-',
+                'Odds2': '-',
+                'Pct1': '',
+                'Amt1': '',
+                'PctX': '',
+                'AmtX': '',
+                'Pct2': '',
+                'Amt2': ''
+            }
+        elif market in ['moneyway_ou25', 'dropping_ou25']:
+            return {
+                'ScrapedAt': '',
+                'Volume': '',
+                'Under': '-',
+                'Over': '-',
+                'PctUnder': '',
+                'AmtUnder': '',
+                'PctOver': '',
+                'AmtOver': ''
+            }
+        elif market in ['moneyway_btts', 'dropping_btts']:
+            return {
+                'ScrapedAt': '',
+                'Volume': '',
+                'OddsYes': '-',
+                'OddsNo': '-',
+                'PctYes': '',
+                'AmtYes': '',
+                'PctNo': '',
+                'AmtNo': ''
+            }
+        return {'ScrapedAt': '', 'Volume': ''}
+    
     def _get_matches_from_fixtures(self, seen: Dict, today_date, yesterday_date, market: str = 'moneyway_1x2') -> List[Dict[str, Any]]:
         """Fetch matches from fixtures table that are not already in seen dict
         
@@ -1492,6 +1672,18 @@ class HybridDatabase:
             if matches:
                 return matches
         return self.local.get_all_matches_with_latest(market)
+    
+    def get_matches_paginated(self, market: str, limit: int = 20, offset: int = 0) -> Dict[str, Any]:
+        """FAST paginated match fetch - delegates to Supabase"""
+        if self.supabase.is_available:
+            return self.supabase.get_matches_paginated(market, limit=limit, offset=offset)
+        # Fallback to local (no pagination - just return all)
+        matches = self.local.get_all_matches_with_latest(market)
+        return {
+            'matches': matches[offset:offset + limit],
+            'total': len(matches),
+            'has_more': offset + limit < len(matches)
+        }
     
     def save_scraped_data(self, market: str, rows: List[Dict[str, Any]]) -> int:
         if not self.supabase.is_available:
