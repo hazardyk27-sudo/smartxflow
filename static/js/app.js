@@ -1013,17 +1013,39 @@ function applySorting(data) {
     // Oran bilgisi olmayan maçları filtrele (moneyway markets için)
     if (!currentMarket.startsWith('dropping_')) {
         const beforeOddsFilter = sortedData.length;
+        
+        // Geçerli oran değeri mi kontrol et - placeholder değerler değilse geçerli
+        const isValidOdds = (val) => {
+            if (val === null || val === undefined) return false;
+            if (typeof val === 'number') return val > 0;
+            if (typeof val === 'string') {
+                // Boş veya sadece tire/boşluk varsa geçersiz
+                let v = val.trim().toLowerCase();
+                if (v === '' || v === '-' || v === '--' || v === '—') return false;
+                // Sembol ve boşlukları kaldır (%, £, €, TL, vb.)
+                const cleaned = v.replace(/[%£€$,\s]/g, '').replace(/tl$/i, '').replace(/[^\d.]/g, '');
+                // Sayıya çevir ve 0'dan büyük mü kontrol et
+                const num = parseFloat(cleaned);
+                if (isNaN(num) || num <= 0) return false;
+                return true;
+            }
+            return false;
+        };
+        
         sortedData = sortedData.filter(m => {
             const d = m.details || m.odds || {};
-            // En az bir oran değeri olmalı - tüm olası key'leri kontrol et
-            const hasOdds = d.Odds1 || d.Odds2 || d.OddsX || d.OddsUnder || d.OddsOver || d.OddsYes || d.OddsNo
-                || d['1'] || d['X'] || d['2'] || d.Under || d.Over || d.Yes || d.No
-                || d.Pct1 || d.PctX || d.Pct2 || d.PctUnder || d.PctOver || d.PctYes || d.PctNo
-                || d.Amt1 || d.AmtX || d.Amt2 || d.Volume;
-            return hasOdds;
+            // En az bir geçerli oran değeri olmalı
+            const hasValidOdds = isValidOdds(d.Odds1) || isValidOdds(d.Odds2) || isValidOdds(d.OddsX) 
+                || isValidOdds(d.OddsUnder) || isValidOdds(d.OddsOver) || isValidOdds(d.OddsYes) || isValidOdds(d.OddsNo)
+                || isValidOdds(d['1']) || isValidOdds(d['X']) || isValidOdds(d['2']) 
+                || isValidOdds(d.Under) || isValidOdds(d.Over) || isValidOdds(d.Yes) || isValidOdds(d.No)
+                || isValidOdds(d.Pct1) || isValidOdds(d.PctX) || isValidOdds(d.Pct2) 
+                || isValidOdds(d.PctUnder) || isValidOdds(d.PctOver) || isValidOdds(d.PctYes) || isValidOdds(d.PctNo)
+                || isValidOdds(d.Amt1) || isValidOdds(d.AmtX) || isValidOdds(d.Amt2) || isValidOdds(d.Volume);
+            return hasValidOdds;
         });
         if (beforeOddsFilter !== sortedData.length) {
-            console.log('[Filter] Removed matches without odds:', beforeOddsFilter - sortedData.length);
+            console.log('[Filter] Removed matches without valid odds:', beforeOddsFilter - sortedData.length);
         }
     }
     
