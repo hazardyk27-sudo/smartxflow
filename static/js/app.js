@@ -166,16 +166,16 @@ function toTurkeyTime(raw) {
             };
             const day = parseInt(arbworldMatch[1]);
             const month = monthMap[arbworldMatch[2]];
-            if (month === undefined) return dayjs.tz(str, APP_TIMEZONE);
+            if (month === undefined) return dayjs(str).tz(APP_TIMEZONE, true);
             
             const now = dayjs().tz(APP_TIMEZONE);
             const currentYear = now.year();
             
             // Year rollover logic: en yakın tarihi seç
-            // Arbworld tarihleri TR saatinde - doğrudan Istanbul timezone'unda parse et
+            // Arbworld tarihleri TR saatinde - keepLocalTime=true ile parse et
             const candidates = [currentYear - 1, currentYear, currentYear + 1].map(year => {
                 const isoStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T${arbworldMatch[3]}`;
-                return dayjs.tz(isoStr, APP_TIMEZONE);
+                return dayjs(isoStr).tz(APP_TIMEZONE, true);
             });
             
             const nowTR = dayjs().tz(APP_TIMEZONE);
