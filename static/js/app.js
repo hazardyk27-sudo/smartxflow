@@ -16,6 +16,10 @@ let isClientMode = true;
 let isAlarmsPageActive = false;
 let matchesDisplayCount = 20;
 
+// Request locking to prevent duplicate API calls
+let _loadMatchesLock = false;
+let _loadMatchesPending = null;
+
 const APP_TIMEZONE = 'Europe/Istanbul';
 
 // ============================================
@@ -24,7 +28,7 @@ const APP_TIMEZONE = 'Europe/Istanbul';
 // ============================================
 let _alarmBatchCache = null;
 let _alarmCacheTime = 0;
-const ALARM_CACHE_TTL = 45000; // 45 seconds
+const ALARM_CACHE_TTL = 120000; // 120 seconds (2 minutes)
 
 async function fetchAlarmsBatch(forceRefresh = false) {
     const now = Date.now();
@@ -389,6 +393,16 @@ function setupSearch() {
 }
 
 async function loadMatches() {
+    // Prevent duplicate requests - if already loading, wait for that one
+    if (_loadMatchesLock) {
+        if (_loadMatchesPending) {
+            return _loadMatchesPending;
+        }
+        return;
+    }
+    
+    _loadMatchesLock = true;
+    
     const tbody = document.getElementById('matchesTableBody');
     const colspan = currentMarket.includes('1x2') ? 7 : 6;
     tbody.innerHTML = `
@@ -402,35 +416,42 @@ async function loadMatches() {
     
     updateTableHeaders();
     
-    try {
-        if (currentMarket.startsWith('dropping')) {
-            await loadOddsTrend(currentMarket);
-        } else {
-            oddsTrendCache = {};
+    _loadMatchesPending = (async () => {
+        try {
+            if (currentMarket.startsWith('dropping')) {
+                await loadOddsTrend(currentMarket);
+            } else {
+                oddsTrendCache = {};
+            }
+            
+            let apiUrl = `/api/matches?market=${currentMarket}`;
+            if (dateFilterMode === 'YESTERDAY') {
+                apiUrl += '&date_filter=yesterday';
+            } else if (dateFilterMode === 'TODAY') {
+                apiUrl += '&date_filter=today';
+            }
+            
+            const response = await fetch(apiUrl);
+            const apiMatches = await response.json();
+            matches = apiMatches || [];
+            filteredMatches = applySorting(matches);
+            renderMatches(filteredMatches);
+            
+            if (currentMarket.startsWith('dropping')) {
+                attachTrendTooltipListeners();
+            }
+        } catch (error) {
+            console.error('Error loading matches:', error);
+            matches = [];
+            filteredMatches = [];
+            renderMatches([]);
+        } finally {
+            _loadMatchesLock = false;
+            _loadMatchesPending = null;
         }
-        
-        let apiUrl = `/api/matches?market=${currentMarket}`;
-        if (dateFilterMode === 'YESTERDAY') {
-            apiUrl += '&date_filter=yesterday';
-        } else if (dateFilterMode === 'TODAY') {
-            apiUrl += '&date_filter=today';
-        }
-        
-        const response = await fetch(apiUrl);
-        const apiMatches = await response.json();
-        matches = apiMatches || [];
-        filteredMatches = applySorting(matches);
-        renderMatches(filteredMatches);
-        
-        if (currentMarket.startsWith('dropping')) {
-            attachTrendTooltipListeners();
-        }
-    } catch (error) {
-        console.error('Error loading matches:', error);
-        matches = [];
-        filteredMatches = [];
-        renderMatches([]);
-    }
+    })();
+    
+    return _loadMatchesPending;
 }
 
 function updateTableHeaders() {
