@@ -1003,9 +1003,28 @@ function applySorting(data) {
     } else {
         console.log('[Filter] ALL mode (today + future):', todayStr, '+');
         sortedData = sortedData.filter(m => {
-            return isDateTodayOrFutureTR(m.date);
+            const matchDateStr = getMatchDateTR(m.date);
+            if (!matchDateStr) return false;
+            return matchDateStr >= todayStr;
         });
         console.log('[Filter] ALL filtered count:', sortedData.length);
+    }
+    
+    // Oran bilgisi olmayan maçları filtrele (moneyway markets için)
+    if (!currentMarket.startsWith('dropping_')) {
+        const beforeOddsFilter = sortedData.length;
+        sortedData = sortedData.filter(m => {
+            const d = m.details || m.odds || {};
+            // En az bir oran değeri olmalı - tüm olası key'leri kontrol et
+            const hasOdds = d.Odds1 || d.Odds2 || d.OddsX || d.OddsUnder || d.OddsOver || d.OddsYes || d.OddsNo
+                || d['1'] || d['X'] || d['2'] || d.Under || d.Over || d.Yes || d.No
+                || d.Pct1 || d.PctX || d.Pct2 || d.PctUnder || d.PctOver || d.PctYes || d.PctNo
+                || d.Amt1 || d.AmtX || d.Amt2 || d.Volume;
+            return hasOdds;
+        });
+        if (beforeOddsFilter !== sortedData.length) {
+            console.log('[Filter] Removed matches without odds:', beforeOddsFilter - sortedData.length);
+        }
     }
     
     return sortedData.sort((a, b) => {
