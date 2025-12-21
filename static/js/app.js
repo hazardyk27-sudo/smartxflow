@@ -472,6 +472,13 @@ async function loadMatches(appendMode = false) {
             if (currentMarket.startsWith('dropping')) {
                 attachTrendTooltipListeners();
             }
+            
+            // Auto-load remaining pages in background if has_more
+            if (hasMoreMatches && !appendMode) {
+                _loadMatchesLock = false;
+                _loadMatchesPending = null;
+                loadAllRemainingMatches();
+            }
         } catch (error) {
             console.error('Error loading matches:', error);
             matches = [];
@@ -484,6 +491,54 @@ async function loadMatches(appendMode = false) {
     })();
     
     return _loadMatchesPending;
+}
+
+// Background load all remaining matches after initial page
+async function loadAllRemainingMatches() {
+    const maxPages = 50; // Safety limit
+    let page = 0;
+    
+    while (hasMoreMatches && page < maxPages) {
+        page++;
+        try {
+            let apiUrl = `/api/matches?market=${currentMarket}&limit=${matchesDisplayCount}&offset=${currentOffset}`;
+            if (dateFilterMode === 'YESTERDAY') {
+                apiUrl += '&date_filter=yesterday';
+            } else if (dateFilterMode === 'TODAY') {
+                apiUrl += '&date_filter=today';
+            }
+            
+            const response = await fetch(apiUrl);
+            const result = await response.json();
+            
+            if (result.matches !== undefined) {
+                const newMatches = result.matches || [];
+                hasMoreMatches = result.has_more || false;
+                
+                if (newMatches.length === 0) {
+                    hasMoreMatches = false;
+                    break;
+                }
+                
+                matches = [...matches, ...newMatches];
+                currentOffset += newMatches.length;
+                
+                // Re-render with all matches
+                filteredMatches = applySorting(matches);
+                renderMatches(filteredMatches);
+                
+                if (currentMarket.startsWith('dropping')) {
+                    attachTrendTooltipListeners();
+                }
+            } else {
+                break;
+            }
+        } catch (error) {
+            console.error('[Background] Error loading page', page, error);
+            break;
+        }
+    }
+    console.log('[Pagination] Loaded all matches:', matches.length);
 }
 
 function updateTableHeaders() {
