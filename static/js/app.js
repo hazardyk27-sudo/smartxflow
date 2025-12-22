@@ -432,35 +432,34 @@ async function loadMatches(appendMode = false) {
                 oddsTrendCache = {};
             }
             
-            let apiUrl = `/api/matches?market=${currentMarket}&limit=${matchesDisplayCount}&offset=${currentOffset}`;
-            if (dateFilterMode === 'YESTERDAY') {
-                apiUrl += '&date_filter=yesterday';
+            // Use BULK mode for ALL filter (no date_filter) - instant on cache hit
+            let apiUrl;
+            if (dateFilterMode === 'ALL') {
+                apiUrl = `/api/matches?market=${currentMarket}&bulk=1`;
+            } else if (dateFilterMode === 'YESTERDAY') {
+                apiUrl = `/api/matches?market=${currentMarket}&date_filter=yesterday&bulk=1`;
             } else if (dateFilterMode === 'TODAY') {
-                apiUrl += '&date_filter=today';
+                apiUrl = `/api/matches?market=${currentMarket}&date_filter=today&bulk=1`;
+            } else {
+                apiUrl = `/api/matches?market=${currentMarket}&bulk=1`;
             }
+            
+            console.log('[Matches] Loading with bulk mode:', apiUrl);
+            const startTime = performance.now();
             
             const response = await fetch(apiUrl);
             const result = await response.json();
             
-            // Handle new paginated response format
+            const elapsed = Math.round(performance.now() - startTime);
+            console.log(`[Matches] Loaded ${result.matches?.length || 0} matches in ${elapsed}ms`);
+            
+            // Handle response
             if (result.matches !== undefined) {
-                const newMatches = result.matches || [];
-                totalMatchCount = result.total || 0;
-                hasMoreMatches = result.has_more || false;
-                
-                // Prevent infinite loop: if no new matches returned, stop pagination
-                if (newMatches.length === 0) {
-                    hasMoreMatches = false;
-                }
-                
-                if (appendMode) {
-                    matches = [...matches, ...newMatches];
-                } else {
-                    matches = newMatches;
-                }
-                currentOffset += newMatches.length;
+                matches = result.matches || [];
+                totalMatchCount = result.total || matches.length;
+                hasMoreMatches = false; // Bulk mode returns all, no more pages
+                currentOffset = matches.length;
             } else {
-                // Fallback for old non-paginated response
                 matches = result || [];
                 totalMatchCount = matches.length;
                 hasMoreMatches = false;
@@ -471,13 +470,6 @@ async function loadMatches(appendMode = false) {
             
             if (currentMarket.startsWith('dropping')) {
                 attachTrendTooltipListeners();
-            }
-            
-            // Auto-load remaining pages in background if has_more
-            if (hasMoreMatches && !appendMode) {
-                _loadMatchesLock = false;
-                _loadMatchesPending = null;
-                loadAllRemainingMatches();
             }
         } catch (error) {
             console.error('Error loading matches:', error);

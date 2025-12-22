@@ -43,6 +43,33 @@ def set_alarm_cache(data):
     _server_alarm_cache_time = time.time()
 # ============================================
 
+# ============================================
+# SERVER-SIDE MATCHES CACHE
+# Loads all matches instantly on cache hit
+# ============================================
+_server_matches_cache = {}  # {market: data}
+_server_matches_cache_time = {}  # {market: timestamp}
+SERVER_MATCHES_CACHE_TTL = 30  # 30 seconds cache
+
+def get_cached_matches(market, force_refresh=False):
+    """Get matches from server-side cache"""
+    global _server_matches_cache, _server_matches_cache_time
+    
+    now = time.time()
+    cache_time = _server_matches_cache_time.get(market, 0)
+    
+    if not force_refresh and market in _server_matches_cache and (now - cache_time) < SERVER_MATCHES_CACHE_TTL:
+        return _server_matches_cache[market], True
+    
+    return None, False
+
+def set_matches_cache(market, data):
+    """Update server-side matches cache"""
+    global _server_matches_cache, _server_matches_cache_time
+    _server_matches_cache[market] = data
+    _server_matches_cache_time[market] = time.time()
+# ============================================
+
 def resource_path(relative_path):
     """Get absolute path to resource - works for dev and PyInstaller EXE"""
     if hasattr(sys, '_MEIPASS'):
@@ -560,18 +587,152 @@ def warm_matches_cache():
 
 @app.route('/api/matches')
 def get_matches():
-    """Get matches from database with TRUE server-side pagination
+    """Get matches from database with server-side caching
     
-    NEW: Uses fixtures-first approach - fetches only N fixtures, then their odds
-    Result: 10,000 rows -> ~100 rows = 80x faster
+    Params:
+    - bulk=1: Returns ALL matches at once (uses server cache, instant on hit)
+    - refresh=true: Force cache refresh
+    
+    Result: Cache hit = 0ms, Cache miss = ~2s (fetches all pages)
     """
-    import time
+    import time as t
+    start_time = t.time()
+    
     market = request.args.get('market', 'moneyway_1x2')
     date_filter = request.args.get('date_filter', None)
     limit = request.args.get('limit', type=int, default=20)
     offset = request.args.get('offset', type=int, default=0)
+    bulk_mode = request.args.get('bulk', '0') == '1'
+    force_refresh = request.args.get('refresh', 'false').lower() == 'true'
     is_dropping = market.startswith('dropping')
     
+    # BULK MODE: Return all matches from cache (instant on hit)
+    # Works for both ALL mode (no date_filter) and TODAY/YESTERDAY filters
+    if bulk_mode:
+        cache_key = f"{market}_{date_filter or 'all'}"
+        cached_data, from_cache = get_cached_matches(cache_key, force_refresh)
+        
+        if cached_data:
+            elapsed = (t.time() - start_time) * 1000
+            print(f"[Matches/Bulk] Cache HIT for {market} - {elapsed:.0f}ms, {len(cached_data)} matches")
+            return jsonify({'matches': cached_data, 'total': len(cached_data), 'has_more': False})
+        
+        # Cache miss - fetch ALL matches in one go
+        all_matches = []
+        
+        # For date_filter, use get_all_matches_with_latest (already returns all)
+        if date_filter:
+            matches_with_latest = db.get_all_matches_with_latest(market, date_filter=date_filter)
+            page_matches_list = [matches_with_latest]
+        else:
+            # For ALL mode, paginate through all results
+            page_matches_list = []
+            current_offset = 0
+            page_limit = 100
+            max_pages = 50
+            
+            for page in range(max_pages):
+                result = db.get_matches_paginated(market, limit=page_limit, offset=current_offset)
+                page_matches = result.get('matches', [])
+                if not page_matches:
+                    break
+                page_matches_list.append(page_matches)
+                current_offset += len(page_matches)
+                if not result.get('has_more', False):
+                    break
+        
+        # Process all pages
+        for page_matches in page_matches_list:
+            if not page_matches:
+                continue
+            
+            # Transform to expected format
+            for m in page_matches:
+                latest = m.get('latest', {})
+                odds = {}
+                prev_odds = {}
+                
+                if latest:
+                    if market in ['moneyway_1x2', 'dropping_1x2']:
+                        odds = {
+                            'Odds1': latest.get('Odds1', latest.get('1', '-')),
+                            'OddsX': latest.get('OddsX', latest.get('X', '-')),
+                            'Odds2': latest.get('Odds2', latest.get('2', '-')),
+                            'Pct1': latest.get('Pct1', ''),
+                            'Amt1': latest.get('Amt1', ''),
+                            'PctX': latest.get('PctX', ''),
+                            'AmtX': latest.get('AmtX', ''),
+                            'Pct2': latest.get('Pct2', ''),
+                            'Amt2': latest.get('Amt2', ''),
+                            'Volume': latest.get('Volume', '')
+                        }
+                        if is_dropping:
+                            prev_odds = {
+                                'PrevOdds1': latest.get('Odds1_prev', ''),
+                                'PrevOddsX': latest.get('OddsX_prev', ''),
+                                'PrevOdds2': latest.get('Odds2_prev', ''),
+                                'Trend1': latest.get('Trend1', ''),
+                                'TrendX': latest.get('TrendX', ''),
+                                'Trend2': latest.get('Trend2', '')
+                            }
+                    elif market in ['moneyway_ou25', 'dropping_ou25']:
+                        odds = {
+                            'Under': latest.get('Under', '-'),
+                            'Over': latest.get('Over', '-'),
+                            'PctUnder': latest.get('PctUnder', ''),
+                            'AmtUnder': latest.get('AmtUnder', ''),
+                            'PctOver': latest.get('PctOver', ''),
+                            'AmtOver': latest.get('AmtOver', ''),
+                            'Volume': latest.get('Volume', '')
+                        }
+                        if is_dropping:
+                            prev_odds = {
+                                'PrevUnder': latest.get('Under_prev', ''),
+                                'PrevOver': latest.get('Over_prev', ''),
+                                'TrendUnder': latest.get('TrendUnder', ''),
+                                'TrendOver': latest.get('TrendOver', '')
+                            }
+                    elif market in ['moneyway_btts', 'dropping_btts']:
+                        odds = {
+                            'OddsYes': latest.get('OddsYes', latest.get('Yes', '-')),
+                            'OddsNo': latest.get('OddsNo', latest.get('No', '-')),
+                            'PctYes': latest.get('PctYes', ''),
+                            'AmtYes': latest.get('AmtYes', ''),
+                            'PctNo': latest.get('PctNo', ''),
+                            'AmtNo': latest.get('AmtNo', ''),
+                            'Volume': latest.get('Volume', '')
+                        }
+                        if is_dropping:
+                            prev_odds = {
+                                'PrevYes': latest.get('OddsYes_prev', ''),
+                                'PrevNo': latest.get('OddsNo_prev', ''),
+                                'TrendYes': latest.get('TrendYes', ''),
+                                'TrendNo': latest.get('TrendNo', '')
+                            }
+                
+                home = m.get('home_team', '')
+                away = m.get('away_team', '')
+                league = m.get('league', '')
+                date = m.get('date', '')
+                
+                all_matches.append({
+                    'home_team': home,
+                    'away_team': away,
+                    'league': league,
+                    'date': date,
+                    'match_id': m.get('match_id_hash', generate_match_id(home, away, league, date)),
+                    'odds': {**odds, **prev_odds},
+                    'history_count': 1
+                })
+        
+        # Cache the result
+        set_matches_cache(cache_key, all_matches)
+        elapsed = (t.time() - start_time) * 1000
+        print(f"[Matches/Bulk] Cache MISS for {market} - fetched {len(all_matches)} matches in {elapsed:.0f}ms")
+        
+        return jsonify({'matches': all_matches, 'total': len(all_matches), 'has_more': False})
+    
+    # PAGINATED MODE (legacy): Use for non-bulk requests
     # Use new paginated function for ALL/no date_filter (most common case)
     if date_filter is None:
         result = db.get_matches_paginated(market, limit=limit, offset=offset)
