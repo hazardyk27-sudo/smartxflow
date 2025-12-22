@@ -8264,3 +8264,49 @@ td.volume,
     opacity: 0.75;
     color: #8B949E;
 }
+
+/* =====================================================
+   APP LOGO V2 - SMART [ICON] FLOW - Centered
+   ===================================================== */
+
+.logo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.app-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.logo-smart,
+.logo-flow {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    color: #fff;
+}
+
+.logo-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    display: block;
+    position: relative;
+    top: 0.5px;
+}
+
+.logo-subtitle {
+    margin-top: 2px;
+    text-align: left;
+    font-size: 11px;
+    opacity: 0.7;
+    letter-spacing: 0.15px;
+    color: #8B949E;
+}
