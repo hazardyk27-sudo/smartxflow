@@ -5,7 +5,7 @@ integrations = ["web_scraper:1.0.0"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["cacert", "cairo", "dbus", "ffmpeg-full", "fontconfig", "freetype", "ghostscript", "gitFull", "glibcLocales", "gobject-introspection", "gtk3", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pkg-config", "playwright-driver", "qhull", "tcl", "tk", "xcodebuild", "xorg.libX11", "xorg.libXext", "xorg.libXrender", "xorg.libxcb", "xvfb-run", "zlib", "zstd", "unzip"]
+packages = ["cacert", "cairo", "dbus", "ffmpeg-full", "fontconfig", "freetype", "ghostscript", "gitFull", "glibcLocales", "gobject-introspection", "gtk3", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pkg-config", "playwright-driver", "qhull", "tcl", "tk", "unzip", "xcodebuild", "xorg.libX11", "xorg.libXext", "xorg.libXrender", "xorg.libxcb", "xvfb-run", "zlib", "zstd"]
 
 [workflows]
 runButton = "Project"

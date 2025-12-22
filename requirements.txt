@@ -16,3 +16,4 @@ pandas
 pytz
 Pillow
 playwright
+Pillow
