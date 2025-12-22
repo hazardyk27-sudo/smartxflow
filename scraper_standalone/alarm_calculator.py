@@ -2161,7 +2161,7 @@ class AlarmCalculator:
             range_min = parse_float(config.get(f'odds_range_{i}_min')) or 0
             range_max = parse_float(config.get(f'odds_range_{i}_max')) or 99
             range_mult = parse_float(config.get(f'odds_range_{i}_mult')) or odds_multiplier_default
-            range_drop = parse_float(config.get(f'odds_range_{i}_drop')) or 0  # Min drop eşiği
+            range_drop = parse_float(config.get(f'odds_range_{i}_min_drop')) or 0  # Min drop eşiği
             if range_min > 0 or range_max < 99:
                 odds_ranges.append({'min': range_min, 'max': range_max, 'mult': range_mult, 'drop': range_drop})
         
