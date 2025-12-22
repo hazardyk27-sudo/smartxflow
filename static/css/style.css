@@ -8210,3 +8210,57 @@ td.volume,
     font-size: 12px;
     font-weight: 600;
 }
+
+/* =====================================================
+   APP LOGO - Header Branding
+   ===================================================== */
+
+.app-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+}
+
+.app-logo-icon {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    display: block;
+}
+
+.app-logo-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1;
+}
+
+.logo-title {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.logo-smart {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    color: #fff;
+}
+
+.logo-flow {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: #fff;
+}
+
+.logo-subtitle {
+    margin-top: 2px;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.2px;
+    opacity: 0.75;
+    color: #8B949E;
+}
