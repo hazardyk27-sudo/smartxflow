@@ -493,10 +493,11 @@ async function loadMatches(appendMode = false) {
     return _loadMatchesPending;
 }
 
-// Background load all remaining matches after initial page
+// Background load all remaining matches after initial page - NO re-render during load
 async function loadAllRemainingMatches() {
     const maxPages = 50; // Safety limit
     let page = 0;
+    let allNewMatches = [];
     
     while (hasMoreMatches && page < maxPages) {
         page++;
@@ -520,16 +521,8 @@ async function loadAllRemainingMatches() {
                     break;
                 }
                 
-                matches = [...matches, ...newMatches];
+                allNewMatches = [...allNewMatches, ...newMatches];
                 currentOffset += newMatches.length;
-                
-                // Re-render with all matches
-                filteredMatches = applySorting(matches);
-                renderMatches(filteredMatches);
-                
-                if (currentMarket.startsWith('dropping')) {
-                    attachTrendTooltipListeners();
-                }
             } else {
                 break;
             }
@@ -538,7 +531,18 @@ async function loadAllRemainingMatches() {
             break;
         }
     }
-    console.log('[Pagination] Loaded all matches:', matches.length);
+    
+    // Single render after ALL pages loaded
+    if (allNewMatches.length > 0) {
+        matches = [...matches, ...allNewMatches];
+        filteredMatches = applySorting(matches);
+        renderMatches(filteredMatches);
+        
+        if (currentMarket.startsWith('dropping')) {
+            attachTrendTooltipListeners();
+        }
+    }
+    console.log('[Pagination] Loaded all matches in single batch:', matches.length);
 }
 
 function updateTableHeaders() {

@@ -17,6 +17,32 @@ import queue
 from datetime import datetime, timedelta
 from flask import Flask, render_template, jsonify, request, Response
 
+# ============================================
+# SERVER-SIDE ALARM CACHE
+# Reduces Supabase calls from ~2s to <50ms
+# ============================================
+_server_alarm_cache = None
+_server_alarm_cache_time = 0
+SERVER_ALARM_CACHE_TTL = 30  # 30 seconds cache
+
+def get_cached_alarms(force_refresh=False):
+    """Get alarms from server-side cache or refresh from Supabase"""
+    global _server_alarm_cache, _server_alarm_cache_time
+    
+    now = time.time()
+    
+    if not force_refresh and _server_alarm_cache and (now - _server_alarm_cache_time) < SERVER_ALARM_CACHE_TTL:
+        return _server_alarm_cache, True  # data, from_cache
+    
+    return None, False
+
+def set_alarm_cache(data):
+    """Update server-side alarm cache"""
+    global _server_alarm_cache, _server_alarm_cache_time
+    _server_alarm_cache = data
+    _server_alarm_cache_time = time.time()
+# ============================================
+
 def resource_path(relative_path):
     """Get absolute path to resource - works for dev and PyInstaller EXE"""
     if hasattr(sys, '_MEIPASS'):
@@ -4774,16 +4800,26 @@ def get_telegram_stats():
 def get_all_alarms_batch():
     """
     Batch endpoint - Returns all 8 alarm types in a single request.
-    This reduces 8 separate API calls to 1, significantly reducing Supabase requests.
+    Uses server-side cache to reduce response time from ~2s to <50ms.
     
     Query params:
     - types: comma-separated list of alarm types to include (default: all)
       Example: ?types=sharp,insider,bigmoney,mim
-    
-    Future: This endpoint can be extended to include moneyway and dropping data
-    for match detail modal (single RPC for all match data).
+    - refresh: set to 'true' to force cache refresh
     """
+    import time as t
+    start_time = t.time()
+    
     requested_types = request.args.get('types', 'all')
+    force_refresh = request.args.get('refresh', 'false').lower() == 'true'
+    
+    # Check server-side cache first (only for 'all' requests)
+    if requested_types == 'all':
+        cached_data, from_cache = get_cached_alarms(force_refresh)
+        if cached_data:
+            elapsed = (t.time() - start_time) * 1000
+            print(f"[Alarms/All] Cache HIT - {elapsed:.0f}ms")
+            return jsonify(cached_data)
     
     result = {}
     
@@ -4854,6 +4890,12 @@ def get_all_alarms_batch():
                                     alarm['kickoff_utc'] = kickoff_map[h]
     except Exception as e:
         print(f"[Alarms/All] Kickoff enrichment error: {e}")
+    
+    # Update server-side cache (only for 'all' requests)
+    if requested_types == 'all':
+        set_alarm_cache(result)
+        elapsed = (t.time() - start_time) * 1000
+        print(f"[Alarms/All] Cache MISS - fetched fresh in {elapsed:.0f}ms")
     
     return jsonify(result)
 
