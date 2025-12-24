@@ -8231,7 +8231,7 @@ td.volume,
 .app-logo {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 3px;
     line-height: 1;
 }
 
