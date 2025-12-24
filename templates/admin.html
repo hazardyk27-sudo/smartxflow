@@ -5731,8 +5731,8 @@
             
             const today = new Date().toISOString().split('T')[0];
             const todayAlarms = mimAlarms.filter(a => {
-                const alarmDate = (a.trigger_at || a.created_at || '').split('T')[0];
-                return alarmDate === today;
+                const matchDate = (a.match_date || '').split('T')[0];
+                return matchDate === today;
             });
             document.getElementById('mimTodayAlarms').textContent = todayAlarms.length;
             
@@ -5744,6 +5744,11 @@
             }
             
             document.getElementById('mimAlarmCount').textContent = mimFilteredAlarms.length;
+            if (mimAlarms.length !== mimFilteredAlarms.length) {
+                document.getElementById('mimAlarmTotalCount').textContent = `/ ${mimAlarms.length} toplam`;
+            } else {
+                document.getElementById('mimAlarmTotalCount').textContent = '';
+            }
         }
         
         function renderMimAlarms() {
@@ -5981,23 +5986,24 @@
         
         function filterMimAlarms() {
             const searchInput = document.getElementById('mimSearchInput');
-            const dateFilter = document.getElementById('mimAlarmDateFilter')?.value || '';
+            const dateFilter = dateFilterModes['mim'] || 'all';
             const searchTerm = (searchInput?.value || '').toLowerCase();
+            
+            const today = new Date().toISOString().split('T')[0];
+            const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
             
             mimFilteredAlarms = mimAlarms.filter(alarm => {
                 const matchName = `${alarm.home || ''} ${alarm.away || ''}`.toLowerCase();
                 const matchesSearch = !searchTerm || matchName.includes(searchTerm);
                 
                 let matchesDate = true;
-                if (dateFilter) {
-                    const matchDate = alarm.match_date || alarm.kickoff || '';
-                    const today = new Date().toISOString().split('T')[0];
-                    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+                if (dateFilter && dateFilter !== 'all') {
+                    const matchDate = (alarm.match_date || '').split('T')[0];
                     
                     if (dateFilter === 'today') {
-                        matchesDate = matchDate.startsWith(today);
+                        matchesDate = matchDate === today;
                     } else if (dateFilter === 'yesterday') {
-                        matchesDate = matchDate.startsWith(yesterday);
+                        matchesDate = matchDate === yesterday;
                     } else if (dateFilter === 'future') {
                         matchesDate = matchDate > today;
                     }
@@ -6006,6 +6012,7 @@
                 return matchesSearch && matchesDate;
             });
             
+            updateMimStats();
             renderMimAlarms();
         }
         
