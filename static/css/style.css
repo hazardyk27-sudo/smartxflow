@@ -8227,10 +8227,10 @@ td.volume,
 }
 
 .app-logo {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
-    height: 100%;
+    line-height: 1;
 }
 
 .logo-smart,
@@ -8246,9 +8246,8 @@ td.volume,
     width: 18px;
     height: 18px;
     flex-shrink: 0;
-    display: block;
-    position: relative;
-    top: -1px;
+    display: inline-flex;
+    align-items: center;
     opacity: 1;
     filter:
         drop-shadow(0 0 8px rgba(0,255,120,0.45))
@@ -8261,12 +8260,12 @@ td.volume,
     position: absolute;
     top: 100%;
     left: 0;
-    margin-top: 5px;
+    margin-top: 2px;
     font-size: 11px;
     font-weight: 400;
     opacity: 0.7;
     letter-spacing: 0.2px;
-    line-height: 1;
+    line-height: 1.1;
     color: #8B949E;
     white-space: nowrap;
 }
