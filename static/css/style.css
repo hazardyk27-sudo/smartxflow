@@ -135,7 +135,7 @@ h1, h2, h3, h4, h5, h6,
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 52px;
+    height: 56px;
     padding: 0 16px;
     background: #161b22;
     border-bottom: 1px solid #30363d;
@@ -144,6 +144,7 @@ h1, h2, h3, h4, h5, h6,
 .header-left {
     display: flex;
     align-items: center;
+    height: 100%;
     gap: 12px;
 }
 
@@ -8246,8 +8247,8 @@ td.volume,
     width: 18px;
     height: 18px;
     flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
+    display: block;
+    transform: translateY(-1px);
     opacity: 1;
     filter:
         drop-shadow(0 0 8px rgba(0,255,120,0.45))
@@ -8258,14 +8259,13 @@ td.volume,
 
 .logo-subtitle {
     position: absolute;
-    top: 100%;
     left: 0;
-    margin-top: 2px;
+    top: calc(50% + 12px);
     font-size: 11px;
     font-weight: 400;
     opacity: 0.7;
     letter-spacing: 0.2px;
-    line-height: 1.1;
+    line-height: 1;
     color: #8B949E;
     white-space: nowrap;
 }
