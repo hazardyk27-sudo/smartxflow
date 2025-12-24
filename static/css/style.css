@@ -8236,8 +8236,8 @@ td.volume,
 .logo-smart,
 .logo-flow {
     font-size: 16px;
-    font-weight: 600;
-    letter-spacing: 0.6px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
     line-height: 1;
     color: #fff;
 }
@@ -8251,18 +8251,20 @@ td.volume,
     top: -1px;
     opacity: 1;
     filter:
-        drop-shadow(0 0 6px rgba(0,255,120,0.35))
-        drop-shadow(0 0 6px rgba(255,60,60,0.28));
+        drop-shadow(0 0 8px rgba(0,255,120,0.45))
+        drop-shadow(0 0 8px rgba(200,45,45,0.35))
+        contrast(1.1)
+        brightness(1.05);
 }
 
 .logo-subtitle {
     position: absolute;
     top: 100%;
     left: 0;
-    margin-top: 2px;
+    margin-top: 5px;
     font-size: 11px;
     font-weight: 400;
-    opacity: 0.6;
+    opacity: 0.7;
     letter-spacing: 0.2px;
     line-height: 1;
     color: #8B949E;
