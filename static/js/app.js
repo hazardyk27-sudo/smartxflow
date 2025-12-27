@@ -5153,7 +5153,7 @@ function renderAlarmsList(filterType) {
         let historySection = '';
         if (historyCount > 0 && isOpen) {
             const historyItems = group.history.map(h => {
-                const hTime = formatTriggerTime(h.trigger_at || h.event_time || h.created_at);
+                const hTime = formatTriggerTimeWithDay(h.trigger_at || h.event_time || h.created_at);
                 let hValue = '';
                 if (type === 'sharp') {
                     hValue = `Sharp ${(h.sharp_score || 0).toFixed(1)}`;
@@ -5378,6 +5378,41 @@ function formatTriggerTime(dateStr) {
     const dt = parseAlarmDateTR(dateStr);
     if (!dt || !dt.isValid()) return '-';
     return dt.format('HH:mm');
+}
+
+function formatTriggerTimeWithDay(dateStr) {
+    if (!dateStr) return '-';
+    
+    // Eğer format DD.MM.YYYY HH:MM ise zaten Turkey saati
+    if (dateStr.includes('.') && dateStr.includes(' ')) {
+        const parts = dateStr.split(' ');
+        if (parts.length >= 2 && parts[1].includes(':')) {
+            const dateParts = parts[0].split('.');
+            if (dateParts.length >= 2) {
+                return `${dateParts[0]}.${dateParts[1]} ${parts[1]}`;
+            }
+        }
+    }
+    
+    // ISO format with timezone offset
+    if (dateStr.includes('+03:00') || dateStr.includes('+03')) {
+        const dt = dayjs(dateStr).tz(APP_TIMEZONE);
+        if (dt && dt.isValid()) {
+            return dt.format('DD.MM HH:mm');
+        }
+    }
+    
+    // ISO format offsetsiz
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+        const dt = dayjs(dateStr).tz(APP_TIMEZONE, true);
+        if (dt && dt.isValid()) {
+            return dt.format('DD.MM HH:mm');
+        }
+    }
+    
+    const dt = parseAlarmDateTR(dateStr);
+    if (!dt || !dt.isValid()) return '-';
+    return dt.format('DD.MM HH:mm');
 }
 
 function formatTriggerTimeShort(dateStr) {
