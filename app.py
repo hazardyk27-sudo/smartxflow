@@ -4960,7 +4960,7 @@ def get_telegram_stats():
 @app.route('/api/alarms/all', methods=['GET'])
 def get_all_alarms_batch():
     """
-    Batch endpoint - Returns all 8 alarm types in a single request.
+    Batch endpoint - Returns all 7 alarm types in a single request.
     Uses server-side cache to reduce response time from ~2s to <50ms.
     
     Query params:
@@ -4991,7 +4991,6 @@ def get_all_alarms_batch():
         'bigmoney': (get_bigmoney_alarms_from_supabase, big_money_alarms if 'big_money_alarms' in dir() else []),
         'volumeshock': (get_volumeshock_alarms_from_supabase, volume_shock_alarms if 'volume_shock_alarms' in dir() else []),
         'dropping': (get_dropping_alarms_from_supabase, dropping_alarms if 'dropping_alarms' in dir() else []),
-        'publicmove': (get_publicmove_alarms_from_supabase, publicmove_alarms if 'publicmove_alarms' in dir() else []),
         'volumeleader': (get_volumeleader_alarms_from_supabase, volume_leader_alarms if 'volume_leader_alarms' in dir() else []),
         'mim': (get_mim_alarms_from_supabase, [])
     }
