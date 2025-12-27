@@ -6123,9 +6123,17 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                         }
                         
                         tooltipEl.style.left = leftPos + 'px';
+                        requestAnimationFrame(() => {
+                            tooltipEl.classList.add('show');
+                        });
                     });
                     badge.addEventListener('mouseleave', () => {
-                        tooltipEl.style.display = 'none';
+                        tooltipEl.classList.remove('show');
+                        setTimeout(() => {
+                            if (!tooltipEl.classList.contains('show')) {
+                                tooltipEl.style.display = 'none';
+                            }
+                        }, 150);
                     });
                 }
             }, 100);
