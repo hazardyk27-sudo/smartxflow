@@ -402,7 +402,7 @@ async function refreshMatchData() {
             window._bulkMatchesCache = {};
         }
         
-        await loadMatchesWithRetry();
+        await loadMatches();
         updateLastRefreshDisplay();
         console.log('[AutoRefresh] Maçlar güncellendi');
     } catch (e) {
