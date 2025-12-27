@@ -490,7 +490,8 @@ class SupabaseClient:
                 print(f"[Supabase] ALL: Hash-based approach (match_id_hash)")
                 
                 # Step 1: Get ALL unique matches from history with FULL odds data
-                history_url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit=1000"
+                # Note: Each match can have 50+ rows, so need high limit to get all unique matches
+                history_url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit=10000"
                 history_resp = httpx.get(history_url, headers=self._headers(), timeout=30)
                 
                 if history_resp.status_code != 200:
@@ -644,7 +645,8 @@ class SupabaseClient:
             
             # Step 1: Get ALL unique matches from history with FULL odds data
             # Use match_id_hash for deduplication, get latest by scraped_at
-            history_url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit=1000"
+            # Note: Each match can have 50+ rows, so need high limit to get all unique matches
+            history_url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit=10000"
             history_resp = httpx.get(history_url, headers=self._headers(), timeout=20)
             
             if history_resp.status_code != 200:
