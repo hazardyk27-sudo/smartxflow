@@ -482,126 +482,145 @@ class SupabaseClient:
                 print(f"[Supabase] TODAY: Got {len(matches)} matches (fixtures-first)")
                 return matches
             else:
-                # ALL mode: Optimized - early exit when enough unique matches found
+                # ALL mode: Hash-based approach for consistent matching
                 today_date = now_tr.date()
                 yesterday_date = today_date - timedelta(days=1)
+                yesterday_str = yesterday_date.strftime('%Y-%m-%d')
                 
-                month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
-                            'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
+                print(f"[Supabase] ALL: Hash-based approach (match_id_hash)")
                 
-                seen = {}
-                page = 0
-                page_size = 1000
-                max_unique_matches = 400
-                max_pages = 10
+                # Step 1: Get ALL unique matches from history with FULL odds data
+                history_url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit=1000"
+                history_resp = httpx.get(history_url, headers=self._headers(), timeout=30)
                 
-                print(f"[Supabase] Fetching ALL matches (optimized, max {max_unique_matches} unique)...")
+                if history_resp.status_code != 200:
+                    print(f"[Supabase] ALL: History fetch error: {history_resp.status_code}")
+                    return []
                 
-                while page < max_pages and len(seen) < max_unique_matches:
-                    offset = page * page_size
-                    url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit={page_size}&offset={offset}"
-                    
-                    resp = None
-                    for attempt in range(3):
-                        try:
-                            resp = httpx.get(url, headers=self._headers(), timeout=30)
-                            if resp.status_code == 200:
-                                break
-                            elif resp.status_code >= 500:
-                                print(f"[Supabase] Retry {attempt+1}/3 for ALL page {page+1} (status {resp.status_code})")
-                                import time
-                                time.sleep(1)
-                        except Exception as e:
-                            print(f"[Supabase] Retry {attempt+1}/3 for ALL page {page+1} (error: {e})")
-                            import time
-                            time.sleep(1)
-                    
-                    if resp and resp.status_code == 200:
-                        rows = resp.json()
-                        if not rows:
-                            break
-                        
-                        for row in rows:
-                            date_str = row.get('date', '')
-                            if not date_str:
-                                continue
-                            
-                            include_match = False
-                            try:
-                                date_part = date_str.split()[0]
-                                if '.' in date_part:
-                                    parts = date_part.split('.')
-                                    if len(parts) >= 2:
-                                        day = int(parts[0])
-                                        month_abbr = parts[1][:3]
-                                        month = month_map.get(month_abbr, today_date.month)
-                                        year = today_date.year
-                                        if month < today_date.month and today_date.month >= 11 and month <= 2:
-                                            year += 1
-                                        match_date = datetime(year, month, day).date()
-                                        if match_date >= yesterday_date:
-                                            include_match = True
-                                    else:
-                                        include_match = True
-                                else:
-                                    include_match = True
-                            except:
-                                include_match = True
-                            
-                            if include_match:
-                                home = row.get('home', '')
-                                away = row.get('away', '')
-                                league = row.get('league', '')
-                                key = f"{home}|{away}|{league}"
-                                if key not in seen:
-                                    seen[key] = row
-                                else:
-                                    existing_time = seen[key].get('scraped_at', '')
-                                    new_time = row.get('scraped_at', '')
-                                    if new_time > existing_time:
-                                        seen[key] = row
-                        
-                        print(f"[Supabase] Page {page+1}: {len(rows)} rows, {len(seen)} unique matches")
-                        
-                        if len(rows) < page_size or len(seen) >= max_unique_matches:
-                            break
-                        page += 1
-                    else:
-                        print(f"[Supabase] ERROR on ALL page {page+1} after 3 retries")
-                        break
+                history_rows = history_resp.json()
+                print(f"[Supabase] ALL: Got {len(history_rows)} history rows")
                 
+                # Deduplicate by match_id_hash - keep first (latest) occurrence
+                odds_by_hash = {}
+                for row in history_rows:
+                    match_hash = row.get('match_id_hash', '')
+                    if match_hash and match_hash not in odds_by_hash:
+                        odds_by_hash[match_hash] = row
+                
+                print(f"[Supabase] ALL: {len(odds_by_hash)} unique matches by hash")
+                
+                # Step 2: Get fixtures metadata for kickoff times
+                fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,kickoff_utc,fixture_date&fixture_date=gte.{yesterday_str}"
+                fix_resp = httpx.get(fix_url, headers=self._headers(), timeout=10)
+                
+                fixtures_by_hash = {}
+                if fix_resp.status_code == 200:
+                    for fix in fix_resp.json():
+                        match_hash = fix.get('match_id_hash', '')
+                        if match_hash:
+                            fixtures_by_hash[match_hash] = fix
+                    print(f"[Supabase] ALL: Got {len(fixtures_by_hash)} fixtures metadata")
+                
+                # Step 3: Build match list with full odds
                 matches = []
-                for key, row in seen.items():
-                    latest = self._normalize_history_row(row, market)
+                tr_tz = pytz.timezone('Europe/Istanbul')
+                
+                for match_hash, row in odds_by_hash.items():
+                    home = row.get('home', '')
+                    away = row.get('away', '')
+                    league = row.get('league', '')
+                    date_str = row.get('date', '')
+                    
+                    # Get kickoff from fixtures if available
+                    kickoff_utc = ''
+                    date_display = date_str
+                    if match_hash in fixtures_by_hash:
+                        fix = fixtures_by_hash[match_hash]
+                        kickoff_utc = fix.get('kickoff_utc', '')
+                        if kickoff_utc:
+                            try:
+                                if isinstance(kickoff_utc, str):
+                                    kickoff_dt = datetime.fromisoformat(kickoff_utc.replace('Z', '+00:00'))
+                                else:
+                                    kickoff_dt = kickoff_utc
+                                kickoff_tr = kickoff_dt.astimezone(tr_tz)
+                                date_display = kickoff_tr.strftime('%d.%b %H:%M')
+                            except:
+                                pass
+                    
+                    # Get FULL odds from history row
+                    latest_odds = self._normalize_history_row(row, market)
+                    
                     matches.append({
-                        'home_team': row.get('home', ''),
-                        'away_team': row.get('away', ''),
-                        'league': row.get('league', ''),
-                        'date': row.get('date', ''),
-                        'latest': latest
+                        'home_team': home,
+                        'away_team': away,
+                        'league': league,
+                        'date': date_display,
+                        'match_id_hash': match_hash,
+                        'kickoff_utc': kickoff_utc,
+                        'latest': latest_odds
                     })
                 
-                # CRITICAL: Also fetch from fixtures table to catch matches not in history
-                fixtures_matches = self._get_matches_from_fixtures(seen, today_date, yesterday_date, market)
-                if fixtures_matches:
-                    matches.extend(fixtures_matches)
-                    print(f"[Supabase] Added {len(fixtures_matches)} matches from fixtures table")
+                # Step 4: Add fixtures that are NOT in history (new matches without odds yet)
+                # Batch fetch all missing fixtures at once for performance
+                missing_hashes = [h for h in fixtures_by_hash.keys() if h not in odds_by_hash]
+                fixtures_only_count = 0
                 
-                print(f"[Supabase] Got {len(matches)} total unique matches (optimized)")
+                if missing_hashes:
+                    # Batch fetch all fixture details at once
+                    batch_fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{yesterday_str}"
+                    try:
+                        batch_fix_resp = httpx.get(batch_fix_url, headers=self._headers(), timeout=10)
+                        if batch_fix_resp.status_code == 200:
+                            all_fixtures = {f.get('match_id_hash'): f for f in batch_fix_resp.json()}
+                            
+                            for match_hash in missing_hashes:
+                                if match_hash in all_fixtures:
+                                    fd = all_fixtures[match_hash]
+                                    kickoff_utc = fd.get('kickoff_utc', '')
+                                    date_display = fd.get('fixture_date', '')
+                                    if kickoff_utc:
+                                        try:
+                                            if isinstance(kickoff_utc, str):
+                                                kickoff_dt = datetime.fromisoformat(kickoff_utc.replace('Z', '+00:00'))
+                                            else:
+                                                kickoff_dt = kickoff_utc
+                                            kickoff_tr = kickoff_dt.astimezone(tr_tz)
+                                            date_display = kickoff_tr.strftime('%d.%b %H:%M')
+                                        except:
+                                            pass
+                                    
+                                    matches.append({
+                                        'home_team': fd.get('home_team', ''),
+                                        'away_team': fd.get('away_team', ''),
+                                        'league': fd.get('league', ''),
+                                        'date': date_display,
+                                        'match_id_hash': match_hash,
+                                        'kickoff_utc': kickoff_utc,
+                                        'latest': self._get_empty_odds(market)
+                                    })
+                                    fixtures_only_count += 1
+                    except Exception as e:
+                        print(f"[Supabase] ALL: Batch fixtures fetch error: {e}")
+                
+                if fixtures_only_count > 0:
+                    print(f"[Supabase] ALL: Added {fixtures_only_count} matches from fixtures (no history yet)")
+                
+                print(f"[Supabase] ALL: Got {len(matches)} total unique matches with full odds")
                 return matches
         except Exception as e:
             print(f"[Supabase] EXCEPTION in get_all_matches_with_latest: {e}")
             return []
     
     def get_matches_paginated(self, market: str, limit: int = 20, offset: int = 0) -> Dict[str, Any]:
-        """FAST paginated match fetch - fixtures first, then only needed odds
+        """FAST paginated match fetch using match_id_hash for consistent matching
         
         Returns: {matches: [...], total: N, has_more: bool}
         
         Strategy:
-        1. Get N fixtures from fixtures table (with limit/offset) - ~20 rows
-        2. Batch fetch odds only for those N matches - ~100 rows max
-        Result: 10,000 rows -> 120 rows = 80x faster
+        1. Get all unique matches from history (with full odds data)
+        2. Enrich with fixtures metadata where available
+        3. Use match_id_hash as the single source of truth for matching
         """
         if not self.is_available:
             return {'matches': [], 'total': 0, 'has_more': False}
@@ -621,149 +640,132 @@ class SupabaseClient:
             today_str = today_date.strftime('%Y-%m-%d')
             yesterday_str = yesterday_date.strftime('%Y-%m-%d')
             
-            # Step 1: Get total count first (with Prefer: count=exact)
-            count_headers = self._headers()
-            count_headers['Prefer'] = 'count=exact'
-            count_url = f"{self._rest_url('fixtures')}?select=match_id_hash&fixture_date=gte.{yesterday_str}&limit=1"
-            count_resp = httpx.get(count_url, headers=count_headers, timeout=10)
+            history_table = f"{market}_history"
             
-            total = 0
-            if count_resp.status_code == 200:
-                content_range = count_resp.headers.get('content-range', '')
-                if '/' in content_range:
-                    try:
-                        total = int(content_range.split('/')[-1])
-                    except:
-                        total = 0
-                # Don't do fallback count - it's expensive and unnecessary
-                # has_more is calculated based on returned row count
+            # Step 1: Get ALL unique matches from history with FULL odds data
+            # Use match_id_hash for deduplication, get latest by scraped_at
+            history_url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit=1000"
+            history_resp = httpx.get(history_url, headers=self._headers(), timeout=20)
             
-            # Step 2: Get fixtures with limit/offset (FAST - just N rows)
-            # IMPORTANT: Use nullslast to prevent NULL kickoff_utc rows from being front-loaded
-            fix_url = f"{self._rest_url('fixtures')}?select=*&fixture_date=gte.{yesterday_str}&order=kickoff_utc.desc.nullslast,fixture_date.desc&limit={limit}&offset={offset}"
-            fix_resp = httpx.get(fix_url, headers=self._headers(), timeout=10)
-            
-            if fix_resp.status_code != 200:
-                print(f"[Paginated] Fixtures fetch error: {fix_resp.status_code}")
+            if history_resp.status_code != 200:
+                print(f"[Paginated] History fetch error: {history_resp.status_code}")
                 return {'matches': [], 'total': 0, 'has_more': False}
             
-            fixtures = fix_resp.json()
-            print(f"[Paginated] Got {len(fixtures)} fixtures (offset={offset}, limit={limit})")
+            history_rows = history_resp.json()
+            print(f"[Paginated] Got {len(history_rows)} history rows")
             
-            if not fixtures:
-                return {'matches': [], 'total': total, 'has_more': False}
+            # Deduplicate by match_id_hash - keep first (latest) occurrence
+            odds_by_hash = {}
+            for row in history_rows:
+                match_hash = row.get('match_id_hash', '')
+                if match_hash and match_hash not in odds_by_hash:
+                    odds_by_hash[match_hash] = row
             
-            # Step 3: Batch fetch odds ONLY for these fixtures
-            history_table = f"{market}_history"
-            odds_cache = {}
+            print(f"[Paginated] {len(odds_by_hash)} unique matches by hash")
             
-            # Build home|away pairs for batch query
-            pairs = [(fix.get('home_team', ''), fix.get('away_team', '')) for fix in fixtures]
+            # Step 2: Get fixtures metadata for kickoff times
+            fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,kickoff_utc,fixture_date&fixture_date=gte.{yesterday_str}"
+            fix_resp = httpx.get(fix_url, headers=self._headers(), timeout=10)
             
-            # Single batch query for all fixtures (max 20 pairs = ~200 rows)
-            or_filters = ','.join(
-                f'and(home.eq.{quote(h, safe="")},away.eq.{quote(a, safe="")})'
-                for h, a in pairs if h and a
-            )
+            fixtures_by_hash = {}
+            if fix_resp.status_code == 200:
+                for fix in fix_resp.json():
+                    match_hash = fix.get('match_id_hash', '')
+                    if match_hash:
+                        fixtures_by_hash[match_hash] = fix
+                print(f"[Paginated] Got {len(fixtures_by_hash)} fixtures metadata")
             
-            if or_filters:
-                batch_url = f"{self._rest_url(history_table)}?or=({or_filters})&order=scraped_at.desc&limit=500"
-                batch_resp = httpx.get(batch_url, headers=self._headers(), timeout=15)
-                
-                if batch_resp.status_code == 200:
-                    rows = batch_resp.json()
-                    for row in rows:
-                        cache_key = f"{row.get('home', '')}|{row.get('away', '')}"
-                        if cache_key not in odds_cache:
-                            odds_cache[cache_key] = row
-                    print(f"[Paginated] Batch fetched {len(odds_cache)} odds from {history_table}")
-            
-            # Step 4: Build match list from fixtures
+            # Step 3: Build match list with full odds
             matches = []
-            seen_keys = set()
-            
-            for fix in fixtures:
-                home = fix.get('home_team', '')
-                away = fix.get('away_team', '')
-                league = fix.get('league', '')
+            for match_hash, row in odds_by_hash.items():
+                home = row.get('home', '')
+                away = row.get('away', '')
+                league = row.get('league', '')
+                date_str = row.get('date', '')
                 
-                kickoff_utc = fix.get('kickoff_utc', '')
-                date_display = fix.get('fixture_date', '')
-                if kickoff_utc:
-                    try:
-                        if isinstance(kickoff_utc, str):
-                            kickoff_dt = datetime.fromisoformat(kickoff_utc.replace('Z', '+00:00'))
-                        else:
-                            kickoff_dt = kickoff_utc
-                        kickoff_tr = kickoff_dt.astimezone(tr_tz)
-                        date_display = kickoff_tr.strftime('%d.%b %H:%M')
-                    except:
-                        pass
+                # Get kickoff from fixtures if available
+                kickoff_utc = ''
+                date_display = date_str
+                if match_hash in fixtures_by_hash:
+                    fix = fixtures_by_hash[match_hash]
+                    kickoff_utc = fix.get('kickoff_utc', '')
+                    if kickoff_utc:
+                        try:
+                            if isinstance(kickoff_utc, str):
+                                kickoff_dt = datetime.fromisoformat(kickoff_utc.replace('Z', '+00:00'))
+                            else:
+                                kickoff_dt = kickoff_utc
+                            kickoff_tr = kickoff_dt.astimezone(tr_tz)
+                            date_display = kickoff_tr.strftime('%d.%b %H:%M')
+                        except:
+                            pass
                 
-                cache_key = f"{home}|{away}"
-                seen_keys.add(cache_key)
-                latest_odds = self._get_empty_odds(market)
-                
-                if cache_key in odds_cache:
-                    row = odds_cache[cache_key]
-                    latest_odds = self._normalize_history_row(row, market)
+                # Get FULL odds from history row
+                latest_odds = self._normalize_history_row(row, market)
                 
                 matches.append({
                     'home_team': home,
                     'away_team': away,
                     'league': league,
                     'date': date_display,
-                    'match_id_hash': fix.get('match_id_hash', ''),
+                    'match_id_hash': match_hash,
                     'kickoff_utc': kickoff_utc,
                     'latest': latest_odds
                 })
             
-            # Step 5: Add matches from history that are NOT in fixtures (fallback)
-            history_only_count = 0
-            history_url = f"{self._rest_url(history_table)}?select=home,away,league,date,match_id_hash&order=scraped_at.desc&limit=500"
-            try:
-                history_resp = httpx.get(history_url, headers=self._headers(), timeout=15)
-                if history_resp.status_code == 200:
-                    history_rows = history_resp.json()
-                    seen_history_keys = set()
-                    for row in history_rows:
-                        home = row.get('home', '')
-                        away = row.get('away', '')
-                        cache_key = f"{home}|{away}"
-                        if cache_key in seen_keys or cache_key in seen_history_keys:
-                            continue
-                        seen_history_keys.add(cache_key)
-                        date_str = row.get('date', '')
-                        if not date_str:
-                            continue
-                        latest_odds = self._normalize_history_row(row, market)
-                        matches.append({
-                            'home_team': home,
-                            'away_team': away,
-                            'league': row.get('league', ''),
-                            'date': date_str,
-                            'match_id_hash': row.get('match_id_hash', ''),
-                            'kickoff_utc': '',
-                            'latest': latest_odds
-                        })
-                        history_only_count += 1
-                    if history_only_count > 0:
-                        print(f"[Paginated] Added {history_only_count} matches from history (not in fixtures)")
-            except Exception as he:
-                print(f"[Paginated] History fallback error: {he}")
+            # Step 4: Add fixtures that are NOT in history (new matches without odds yet)
+            # Batch fetch all missing fixtures at once for performance
+            missing_hashes = [h for h in fixtures_by_hash.keys() if h not in odds_by_hash]
+            fixtures_only_count = 0
             
+            if missing_hashes:
+                # Batch fetch all fixture details at once
+                batch_fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{yesterday_str}"
+                try:
+                    batch_fix_resp = httpx.get(batch_fix_url, headers=self._headers(), timeout=10)
+                    if batch_fix_resp.status_code == 200:
+                        all_fixtures = {f.get('match_id_hash'): f for f in batch_fix_resp.json()}
+                        
+                        for match_hash in missing_hashes:
+                            if match_hash in all_fixtures:
+                                fd = all_fixtures[match_hash]
+                                kickoff_utc = fd.get('kickoff_utc', '')
+                                date_display = fd.get('fixture_date', '')
+                                if kickoff_utc:
+                                    try:
+                                        if isinstance(kickoff_utc, str):
+                                            kickoff_dt = datetime.fromisoformat(kickoff_utc.replace('Z', '+00:00'))
+                                        else:
+                                            kickoff_dt = kickoff_utc
+                                        kickoff_tr = kickoff_dt.astimezone(tr_tz)
+                                        date_display = kickoff_tr.strftime('%d.%b %H:%M')
+                                    except:
+                                        pass
+                                
+                                matches.append({
+                                    'home_team': fd.get('home_team', ''),
+                                    'away_team': fd.get('away_team', ''),
+                                    'league': fd.get('league', ''),
+                                    'date': date_display,
+                                    'match_id_hash': match_hash,
+                                    'kickoff_utc': kickoff_utc,
+                                    'latest': self._get_empty_odds(market)
+                                })
+                                fixtures_only_count += 1
+                except Exception as e:
+                    print(f"[Paginated] Batch fixtures fetch error: {e}")
+            
+            if fixtures_only_count > 0:
+                print(f"[Paginated] Added {fixtures_only_count} matches from fixtures (no history yet)")
+            
+            total = len(matches)
             elapsed = time.time() - start_time
-            # If total is unknown (0), assume more data exists if we got a full page
-            if total == 0:
-                has_more = len(fixtures) == limit
-            else:
-                has_more = offset + len(fixtures) < total
-            print(f"[Paginated] Completed in {elapsed:.2f}s - {len(matches)} matches, total={total}, has_more={has_more}")
+            print(f"[Paginated] Completed in {elapsed:.2f}s - {total} matches with full odds")
             
             return {
                 'matches': matches,
                 'total': total,
-                'has_more': has_more
+                'has_more': False
             }
         except Exception as e:
             print(f"[Paginated] EXCEPTION: {e}")
