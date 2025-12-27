@@ -490,16 +490,32 @@ class SupabaseClient:
                 print(f"[Supabase] ALL: Hash-based approach (match_id_hash)")
                 
                 # Step 1: Get ALL unique matches from history with FULL odds data
-                # Note: Each match can have 50+ rows, so need high limit to get all unique matches
-                history_url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit=10000"
-                history_resp = httpx.get(history_url, headers=self._headers(), timeout=30)
+                # Note: Supabase has 1000 row default limit, use parallel Range requests
+                import concurrent.futures
                 
-                if history_resp.status_code != 200:
-                    print(f"[Supabase] ALL: History fetch error: {history_resp.status_code}")
+                history_rows = []
+                batch_size = 1000
+                max_rows = 15000  # Reduced for performance balance
+                
+                def fetch_batch(offset):
+                    headers = self._headers()
+                    headers['Range'] = f'{offset}-{offset + batch_size - 1}'
+                    history_url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc"
+                    resp = httpx.get(history_url, headers=headers, timeout=30)
+                    if resp.status_code in [200, 206]:
+                        return resp.json()
                     return []
                 
-                history_rows = history_resp.json()
-                print(f"[Supabase] ALL: Got {len(history_rows)} history rows")
+                # Fetch all batches in parallel for speed
+                offsets = list(range(0, max_rows, batch_size))
+                with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                    results = list(executor.map(fetch_batch, offsets))
+                
+                for batch in results:
+                    if batch:
+                        history_rows.extend(batch)
+                
+                print(f"[Supabase] ALL: Got {len(history_rows)} history rows (parallel)")
                 
                 # Deduplicate by match_id_hash - keep first (latest) occurrence
                 odds_by_hash = {}
@@ -645,16 +661,32 @@ class SupabaseClient:
             
             # Step 1: Get ALL unique matches from history with FULL odds data
             # Use match_id_hash for deduplication, get latest by scraped_at
-            # Note: Each match can have 50+ rows, so need high limit to get all unique matches
-            history_url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc&limit=10000"
-            history_resp = httpx.get(history_url, headers=self._headers(), timeout=20)
+            # Note: Supabase has 1000 row default limit, use parallel Range requests
+            import concurrent.futures
             
-            if history_resp.status_code != 200:
-                print(f"[Paginated] History fetch error: {history_resp.status_code}")
-                return {'matches': [], 'total': 0, 'has_more': False}
+            history_rows = []
+            batch_size = 1000
+            max_rows = 15000  # Reduced for performance balance
             
-            history_rows = history_resp.json()
-            print(f"[Paginated] Got {len(history_rows)} history rows")
+            def fetch_batch(offset):
+                headers = self._headers()
+                headers['Range'] = f'{offset}-{offset + batch_size - 1}'
+                history_url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc"
+                resp = httpx.get(history_url, headers=headers, timeout=30)
+                if resp.status_code in [200, 206]:
+                    return resp.json()
+                return []
+            
+            # Fetch all batches in parallel for speed
+            offsets = list(range(0, max_rows, batch_size))
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                results = list(executor.map(fetch_batch, offsets))
+            
+            for batch in results:
+                if batch:
+                    history_rows.extend(batch)
+            
+            print(f"[Paginated] Got {len(history_rows)} history rows (parallel)")
             
             # Deduplicate by match_id_hash - keep first (latest) occurrence
             odds_by_hash = {}
