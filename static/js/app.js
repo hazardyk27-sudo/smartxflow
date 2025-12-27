@@ -1108,43 +1108,42 @@ function applySorting(data) {
         console.log('[Filter] ALL filtered count:', sortedData.length);
     }
     
-    // Oran bilgisi olmayan maçları filtrele (moneyway markets için)
-    if (!currentMarket.startsWith('dropping_')) {
-        const beforeOddsFilter = sortedData.length;
-        
-        // Geçerli oran değeri mi kontrol et - placeholder değerler değilse geçerli
-        const isValidOdds = (val) => {
-            if (val === null || val === undefined) return false;
-            if (typeof val === 'number') return val > 0;
-            if (typeof val === 'string') {
-                // Boş veya sadece tire/boşluk varsa geçersiz
-                let v = val.trim().toLowerCase();
-                if (v === '' || v === '-' || v === '--' || v === '—') return false;
-                // Sembol ve boşlukları kaldır (%, £, €, TL, vb.)
-                const cleaned = v.replace(/[%£€$,\s]/g, '').replace(/tl$/i, '').replace(/[^\d.]/g, '');
-                // Sayıya çevir ve 0'dan büyük mü kontrol et
-                const num = parseFloat(cleaned);
-                if (isNaN(num) || num <= 0) return false;
-                return true;
-            }
-            return false;
-        };
-        
-        sortedData = sortedData.filter(m => {
-            const d = m.details || m.odds || {};
-            // En az bir geçerli oran değeri olmalı
-            const hasValidOdds = isValidOdds(d.Odds1) || isValidOdds(d.Odds2) || isValidOdds(d.OddsX) 
-                || isValidOdds(d.OddsUnder) || isValidOdds(d.OddsOver) || isValidOdds(d.OddsYes) || isValidOdds(d.OddsNo)
-                || isValidOdds(d['1']) || isValidOdds(d['X']) || isValidOdds(d['2']) 
-                || isValidOdds(d.Under) || isValidOdds(d.Over) || isValidOdds(d.Yes) || isValidOdds(d.No)
-                || isValidOdds(d.Pct1) || isValidOdds(d.PctX) || isValidOdds(d.Pct2) 
-                || isValidOdds(d.PctUnder) || isValidOdds(d.PctOver) || isValidOdds(d.PctYes) || isValidOdds(d.PctNo)
-                || isValidOdds(d.Amt1) || isValidOdds(d.AmtX) || isValidOdds(d.Amt2) || isValidOdds(d.Volume);
-            return hasValidOdds;
-        });
-        if (beforeOddsFilter !== sortedData.length) {
-            console.log('[Filter] Removed matches without valid odds:', beforeOddsFilter - sortedData.length);
+    // Oran bilgisi olmayan maçları filtrele (tüm marketler için)
+    const beforeOddsFilter = sortedData.length;
+    
+    // Geçerli oran değeri mi kontrol et - placeholder değerler değilse geçerli
+    const isValidOdds = (val) => {
+        if (val === null || val === undefined) return false;
+        if (typeof val === 'number') return val !== 0 && !isNaN(val);
+        if (typeof val === 'string') {
+            // Boş veya sadece tire/boşluk varsa geçersiz
+            let v = val.trim().toLowerCase();
+            if (v === '' || v === '-' || v === '--' || v === '—') return false;
+            // Sembol ve boşlukları kaldır (%, £, €, TL, ↓, ↑ vb.) - negatif işareti koru
+            const cleaned = v.replace(/[%£€$,\s↓↑]/g, '').replace(/tl$/i, '').replace(/[^\d.\-]/g, '');
+            // Sayıya çevir (negatif de olabilir - dropping odds için)
+            const num = parseFloat(cleaned);
+            if (isNaN(num)) return false;
+            return true;
         }
+        return false;
+    };
+    
+    sortedData = sortedData.filter(m => {
+        const d = m.details || m.odds || {};
+        // En az bir geçerli oran değeri olmalı
+        const hasValidOdds = isValidOdds(d.Odds1) || isValidOdds(d.Odds2) || isValidOdds(d.OddsX) 
+            || isValidOdds(d.OddsUnder) || isValidOdds(d.OddsOver) || isValidOdds(d.OddsYes) || isValidOdds(d.OddsNo)
+            || isValidOdds(d['1']) || isValidOdds(d['X']) || isValidOdds(d['2']) 
+            || isValidOdds(d.Under) || isValidOdds(d.Over) || isValidOdds(d.Yes) || isValidOdds(d.No)
+            || isValidOdds(d.Pct1) || isValidOdds(d.PctX) || isValidOdds(d.Pct2) 
+            || isValidOdds(d.PctUnder) || isValidOdds(d.PctOver) || isValidOdds(d.PctYes) || isValidOdds(d.PctNo)
+            || isValidOdds(d.Amt1) || isValidOdds(d.AmtX) || isValidOdds(d.Amt2) || isValidOdds(d.Volume)
+            || isValidOdds(d.open_odds) || isValidOdds(d.current_odds) || isValidOdds(d.drop_pct);
+        return hasValidOdds;
+    });
+    if (beforeOddsFilter !== sortedData.length) {
+        console.log('[Filter] Removed matches without valid odds:', beforeOddsFilter - sortedData.length);
     }
     
     return sortedData.sort((a, b) => {
