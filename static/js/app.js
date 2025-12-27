@@ -5,7 +5,7 @@ let chart = null;
 let selectedMatch = null;
 let selectedChartMarket = 'moneyway_1x2';
 let autoScrapeRunning = false;
-let currentSortColumn = 'date';
+let currentSortColumn = 'volume';
 let currentSortDirection = 'desc';
 let chartVisibleSeries = {};
 let dateFilterMode = 'ALL';
@@ -22,6 +22,11 @@ let hasMoreMatches = false;
 // Request locking to prevent duplicate API calls
 let _loadMatchesLock = false;
 let _loadMatchesPending = null;
+
+// Auto-refresh system (10 dakika interval)
+let _lastMatchRefreshTime = null;
+let _matchRefreshInterval = null;
+const MATCH_REFRESH_INTERVAL = 10 * 60 * 1000; // 10 dakika
 
 const APP_TIMEZONE = 'Europe/Istanbul';
 
@@ -338,7 +343,90 @@ document.addEventListener('DOMContentLoaded', () => {
     window.statusInterval = window.setInterval(checkStatus, 60000);
     
     setTimeout(() => preloadDropMarkets(), 2000);
+    
+    // 10 dakikalık otomatik maç yenileme
+    setupAutoRefresh();
+    
+    // Sekmeye geri dönüşte otomatik kontrol
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 });
+
+// Son güncelleme zamanını header'da göster
+function updateLastRefreshDisplay() {
+    const now = dayjs().tz(APP_TIMEZONE);
+    _lastMatchRefreshTime = now;
+    
+    let refreshEl = document.getElementById('lastRefreshTime');
+    if (!refreshEl) {
+        // Element yoksa oluştur ve header'a ekle
+        const statusArea = document.querySelector('.status-area');
+        if (statusArea) {
+            refreshEl = document.createElement('span');
+            refreshEl.id = 'lastRefreshTime';
+            refreshEl.className = 'last-refresh-time';
+            refreshEl.style.cssText = 'margin-left: 15px; color: #888; font-size: 12px;';
+            statusArea.appendChild(refreshEl);
+        }
+    }
+    
+    if (refreshEl) {
+        refreshEl.textContent = `Son güncelleme: ${now.format('HH:mm')} (TR)`;
+    }
+}
+
+// 10 dakikalık otomatik yenileme kurulumu
+function setupAutoRefresh() {
+    // İlk yükleme zamanını kaydet
+    updateLastRefreshDisplay();
+    
+    // 10 dakikada bir maçları yenile
+    _matchRefreshInterval = setInterval(async () => {
+        console.log('[AutoRefresh] 10 dakika doldu, maçlar yenileniyor...');
+        await refreshMatchData();
+    }, MATCH_REFRESH_INTERVAL);
+    
+    console.log('[AutoRefresh] Kuruldu - 10 dakikada bir yenilenecek');
+}
+
+// Maç verilerini yenile (tek fonksiyon)
+async function refreshMatchData() {
+    // Zaten yükleme varsa bekle
+    if (_loadMatchesLock) {
+        console.log('[AutoRefresh] Zaten yükleme var, atlanıyor');
+        return;
+    }
+    
+    try {
+        // Cache'i temizle ve yeniden yükle
+        if (window._bulkMatchesCache) {
+            window._bulkMatchesCache = {};
+        }
+        
+        await loadMatchesWithRetry();
+        updateLastRefreshDisplay();
+        console.log('[AutoRefresh] Maçlar güncellendi');
+    } catch (e) {
+        console.error('[AutoRefresh] Hata:', e);
+    }
+}
+
+// Sekme görünürlük değişikliğinde kontrol
+function handleVisibilityChange() {
+    if (document.visibilityState === 'visible') {
+        // Sekmeye geri dönüldü - 10 dakikadan fazla geçtiyse yenile
+        if (_lastMatchRefreshTime) {
+            const now = dayjs().tz(APP_TIMEZONE);
+            const diffMs = now.diff(_lastMatchRefreshTime);
+            
+            if (diffMs > MATCH_REFRESH_INTERVAL) {
+                console.log('[AutoRefresh] Sekmeye dönüldü, veri eski - yenileniyor...');
+                refreshMatchData();
+            } else {
+                console.log('[AutoRefresh] Sekmeye dönüldü, veri güncel');
+            }
+        }
+    }
+}
 
 function setupTabs() {
     document.querySelectorAll('.market-tabs .tab').forEach(tab => {
@@ -361,7 +449,7 @@ function setupTabs() {
             showTrendSortButtons(isDropMarket);
             
             if (!isDropMarket && (currentSortColumn === 'trend_down' || currentSortColumn === 'trend_up')) {
-                currentSortColumn = 'date';
+                currentSortColumn = 'volume';
                 currentSortDirection = 'desc';
             }
             
