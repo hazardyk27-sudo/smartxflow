@@ -639,7 +639,8 @@ class SupabaseClient:
                 # has_more is calculated based on returned row count
             
             # Step 2: Get fixtures with limit/offset (FAST - just N rows)
-            fix_url = f"{self._rest_url('fixtures')}?select=*&fixture_date=gte.{yesterday_str}&order=kickoff_utc.desc&limit={limit}&offset={offset}"
+            # IMPORTANT: Use nullslast to prevent NULL kickoff_utc rows from being front-loaded
+            fix_url = f"{self._rest_url('fixtures')}?select=*&fixture_date=gte.{yesterday_str}&order=kickoff_utc.desc.nullslast,fixture_date.desc&limit={limit}&offset={offset}"
             fix_resp = httpx.get(fix_url, headers=self._headers(), timeout=10)
             
             if fix_resp.status_code != 200:

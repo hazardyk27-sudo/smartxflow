@@ -1101,12 +1101,17 @@ function applySorting(data) {
     } else {
         console.log('[Filter] ALL mode (today + future):', todayStr, '+');
         
-        // DEBUG: Man City maçını bul ve tarihini logla
-        const cityMatch = sortedData.find(m => m.home_team?.toLowerCase().includes('nottm') || m.away_team?.toLowerCase().includes('city'));
-        if (cityMatch) {
-            console.log('[Filter DEBUG] City match found:', cityMatch.home_team, 'vs', cityMatch.away_team, 'date:', cityMatch.date, 'parsed:', getMatchDateTR(cityMatch.date));
+        // DEBUG: Nottm Fores vs Man City maçını bul - TAM ISIM EŞLEŞMESI
+        const manCityMatch = sortedData.find(m => 
+            (m.home_team?.toLowerCase().includes('nottm') && m.away_team?.toLowerCase().includes('man city')) ||
+            (m.home_team?.toLowerCase().includes('man city') && m.away_team?.toLowerCase().includes('nottm'))
+        );
+        if (manCityMatch) {
+            console.log('[Filter DEBUG] Man City match found:', manCityMatch.home_team, 'vs', manCityMatch.away_team, 'date:', manCityMatch.date);
         } else {
-            console.log('[Filter DEBUG] City match NOT in initial data');
+            // Nottm olan tüm maçları listele
+            const nottmMatches = sortedData.filter(m => m.home_team?.toLowerCase().includes('nottm') || m.away_team?.toLowerCase().includes('nottm'));
+            console.log('[Filter DEBUG] Man City match NOT found. All Nottm matches:', nottmMatches.map(m => `${m.home_team} vs ${m.away_team}`));
         }
         
         sortedData = sortedData.filter(m => {
