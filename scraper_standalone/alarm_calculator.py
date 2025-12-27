@@ -1763,6 +1763,7 @@ class AlarmCalculator:
         """Get all matches with their latest data for a market (cached)
         
         Legacy tablolardan çeker: moneyway_1x2, moneyway_ou25, dropping_1x2 vb.
+        ENRICHED: batch_fetch_history cache'inden match_id_hash eklenir
         """
         if market in self._matches_cache:
             return self._matches_cache[market]
@@ -1770,14 +1771,83 @@ class AlarmCalculator:
         log(f"FETCH {market} (latest)...")
         
         matches = self._get(market, 'select=*')
-        if matches:
-            log(f"  -> {len(matches)} matches from {market} table")
-            self._matches_cache[market] = matches
-            return matches
+        if not matches:
+            log(f"  -> 0 matches (no data found)")
+            self._matches_cache[market] = []
+            return []
         
-        log(f"  -> 0 matches (no data found)")
-        self._matches_cache[market] = []
-        return []
+        log(f"  -> {len(matches)} matches from {market} table")
+        
+        # ENRICHMENT: batch_fetch_history cache'inden match_id_hash çek
+        # Bu cache TÜM history'i içeriyor (limit yok)
+        history_table = f"{market}_history"
+        self.batch_fetch_history(market)  # Cache'i doldur
+        history_map = self._history_cache.get(history_table, {})
+        
+        # History'deki snapshot'lardan normalized string key -> 12-char hash mapping oluştur
+        # KEY: league|home|away|date (normalized) -> VALUE: 12-char canonical hash
+        hash_lookup = {}
+        for snapshots in history_map.values():
+            for snap in snapshots:
+                canonical_hash = snap.get('match_id_hash', '')
+                if not canonical_hash or len(canonical_hash) != 12:
+                    continue
+                # Snapshot'tan normalized key oluştur
+                home = ' '.join(snap.get('home', '').strip().lower().split())
+                away = ' '.join(snap.get('away', '').strip().lower().split())
+                league = ' '.join(snap.get('league', '').strip().lower().split())
+                kickoff = snap.get('date', snap.get('kickoff', snap.get('kickoff_utc', '')))
+                kickoff_date = normalize_date_for_db(kickoff) if kickoff else ''
+                normalized_key = f"{league}|{home}|{away}|{kickoff_date}"
+                if normalized_key not in hash_lookup:
+                    hash_lookup[normalized_key] = canonical_hash
+        
+        log(f"  [HASH LOOKUP] {len(hash_lookup)} canonical hashes from history cache")
+        
+        # Her match'e history'den match_id_hash ekle
+        enriched_count = 0
+        missing_count = 0
+        for match in matches:
+            existing_hash = match.get('match_id_hash', '')
+            if existing_hash and len(existing_hash) == 12:
+                continue  # Zaten canonical 12-char hash var
+            
+            home = match.get('home', match.get('Home', ''))
+            away = match.get('away', match.get('Away', ''))
+            league = match.get('league', '')
+            date_str = match.get('date', '')
+            kickoff_date = normalize_date_for_db(date_str) if date_str else ''
+            
+            # History lookup key (batch_fetch_history ile AYNI format)
+            home_norm = ' '.join(home.strip().lower().split())
+            away_norm = ' '.join(away.strip().lower().split())
+            league_norm = ' '.join(league.strip().lower().split())
+            lookup_key = f"{league_norm}|{home_norm}|{away_norm}|{kickoff_date}"
+            
+            # Önce tarihli key dene, sonra tarihsiz
+            if lookup_key in hash_lookup:
+                match['match_id_hash'] = hash_lookup[lookup_key]
+                enriched_count += 1
+            else:
+                # Tarihsiz key dene (eski history kayıtları için)
+                simple_key = f"{league_norm}|{home_norm}|{away_norm}|"
+                found = False
+                for k, h in hash_lookup.items():
+                    if k.startswith(simple_key):
+                        match['match_id_hash'] = h
+                        enriched_count += 1
+                        found = True
+                        break
+                if not found:
+                    missing_count += 1
+        
+        if enriched_count > 0:
+            log(f"  [ENRICHED] {enriched_count} matches got match_id_hash from history")
+        if missing_count > 0:
+            log(f"  [WARN] {missing_count} matches have NO canonical hash (will be skipped)")
+        
+        self._matches_cache[market] = matches
+        return matches
     
     def batch_fetch_history(self, market: str) -> Dict[str, List[Dict]]:
         """Batch fetch ALL history for a market - NO LIMIT, tüm snapshot'lar okunur
@@ -2140,9 +2210,13 @@ class AlarmCalculator:
                 if total_volume < min_volume:
                     continue
                 
-                # match_id_hash: Maçtan gelen değeri kullan, yoksa hesapla
+                # match_id_hash: History cache'den enriched değeri kullan - FALLBACK YOK
                 date_str = match.get('date', '')
-                match_id_hash = match.get('match_id_hash') or generate_match_id_hash(home, away, match.get('league', ''), date_str)
+                match_id_hash = match.get('match_id_hash', '')
+                if not match_id_hash:
+                    # NO FALLBACK: Hash yoksa bu maçı atla (veri hatası)
+                    log(f"  [SKIP NO HASH] {home} vs {away} | canonical hash yok, atlanıyor")
+                    continue
                 history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
                 if len(history) < 2:
                     log(f"  [Sharp SKIP] {home} vs {away} | history < 2 ({len(history)} snapshots)")
@@ -2380,9 +2454,13 @@ class AlarmCalculator:
                 if not home or not away:
                     continue
                 
-                # match_id_hash: Maçtan gelen değeri kullan, yoksa hesapla
+                # match_id_hash: History cache'den enriched değeri kullan - FALLBACK YOK
                 date_str = match.get('date', '')
-                match_id_hash = match.get('match_id_hash') or generate_match_id_hash(home, away, match.get('league', ''), date_str)
+                match_id_hash = match.get('match_id_hash', '')
+                if not match_id_hash:
+                    # NO FALLBACK: Hash yoksa bu maçı atla (veri hatası)
+                    log(f"  [SKIP NO HASH] {home} vs {away} | canonical hash yok, atlanıyor")
+                    continue
                 history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
                 if len(history) < 3:
                     log(f"  [Insider SKIP] {home} vs {away} | history < 3 ({len(history)} snapshots)")
@@ -2646,9 +2724,13 @@ class AlarmCalculator:
                 if not home or not away:
                     continue
                 
-                # match_id_hash: Maçtan gelen değeri kullan, yoksa hesapla
+                # match_id_hash: History cache'den enriched değeri kullan - FALLBACK YOK
                 date_str = match.get('date', '')
-                match_id_hash = match.get('match_id_hash') or generate_match_id_hash(home, away, match.get('league', ''), date_str)
+                match_id_hash = match.get('match_id_hash', '')
+                if not match_id_hash:
+                    # NO FALLBACK: Hash yoksa bu maçı atla (veri hatası)
+                    log(f"  [SKIP NO HASH] {home} vs {away} | canonical hash yok, atlanıyor")
+                    continue
                 history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
                 if len(history) < 2:
                     log(f"  [BigMoney SKIP] {home} vs {away} | history < 2 ({len(history)} snapshots)")
@@ -2854,9 +2936,13 @@ class AlarmCalculator:
                 if not home or not away:
                     continue
                 
-                # match_id_hash: Maçtan gelen değeri kullan, yoksa hesapla
+                # match_id_hash: History cache'den enriched değeri kullan - FALLBACK YOK
                 date_str = match.get('date', '')
-                match_id_hash = match.get('match_id_hash') or generate_match_id_hash(home, away, match.get('league', ''), date_str)
+                match_id_hash = match.get('match_id_hash', '')
+                if not match_id_hash:
+                    # NO FALLBACK: Hash yoksa bu maçı atla (veri hatası)
+                    log(f"  [SKIP NO HASH] {home} vs {away} | canonical hash yok, atlanıyor")
+                    continue
                 history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
                 if len(history) < 5:
                     log(f"  [VolumeShock SKIP] {home} vs {away} | history < 5 ({len(history)} snapshots)")
@@ -3287,9 +3373,13 @@ class AlarmCalculator:
                 if total_volume < min_volume:
                     continue
                 
-                # match_id_hash: Maçtan gelen değeri kullan, yoksa hesapla
+                # match_id_hash: History cache'den enriched değeri kullan - FALLBACK YOK
                 date_str = match.get('date', '')
-                match_id_hash = match.get('match_id_hash') or generate_match_id_hash(home, away, match.get('league', ''), date_str)
+                match_id_hash = match.get('match_id_hash', '')
+                if not match_id_hash:
+                    # NO FALLBACK: Hash yoksa bu maçı atla (veri hatası)
+                    log(f"  [SKIP NO HASH] {home} vs {away} | canonical hash yok, atlanıyor")
+                    continue
                 history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
                 if len(history) < 2:
                     log(f"  [VolumeLeader SKIP] {home} vs {away} | history < 2 ({len(history)} snapshots)")
