@@ -689,6 +689,7 @@ function cleanPct(val) {
 }
 
 function renderMatches(data) {
+    console.log('[renderMatches] Called with', data?.length || 0, 'matches');
     const tbody = document.getElementById('matchesTableBody');
     const countEl = document.getElementById('matchCount');
     
