@@ -1134,6 +1134,7 @@ function applySorting(data) {
         // Hem details/odds objesi hem de doğrudan match objesi kontrol edilir
         // Bazı API'ler veriyi farklı yapıda döndürüyor olabilir
         const checkOdds = (obj) => {
+            if (!obj || typeof obj !== 'object') return false;
             return isValidOdds(obj.Odds1) || isValidOdds(obj.Odds2) || isValidOdds(obj.OddsX) 
                 || isValidOdds(obj.OddsUnder) || isValidOdds(obj.OddsOver) || isValidOdds(obj.OddsYes) || isValidOdds(obj.OddsNo)
                 || isValidOdds(obj['1']) || isValidOdds(obj['X']) || isValidOdds(obj['2']) 
@@ -1146,8 +1147,20 @@ function applySorting(data) {
                 || isValidOdds(obj.amt1) || isValidOdds(obj.amt2) || isValidOdds(obj.amtx)
                 || isValidOdds(obj.pct1) || isValidOdds(obj.pct2) || isValidOdds(obj.pctx);
         };
-        // En az bir geçerli oran değeri olmalı (details veya match objesinde)
-        const hasValidOdds = checkOdds(d) || checkOdds(m);
+        
+        // Fallback: ALL mode'da odds history/snapshots array icinde olabilir
+        const checkHistoryArray = (arr) => {
+            if (!Array.isArray(arr) || arr.length === 0) return false;
+            const first = arr[0];
+            // history[0].snapshot veya dogrudan history[0] olabilir
+            const snapshot = first.snapshot || first;
+            return checkOdds(snapshot);
+        };
+        
+        // En az bir geçerli oran değeri olmalı (details, match, veya history icinde)
+        let hasValidOdds = checkOdds(d) || checkOdds(m);
+        if (!hasValidOdds && m.history) hasValidOdds = checkHistoryArray(m.history);
+        if (!hasValidOdds && m.snapshots) hasValidOdds = checkHistoryArray(m.snapshots);
         return hasValidOdds;
     });
     if (beforeOddsFilter !== sortedData.length) {
