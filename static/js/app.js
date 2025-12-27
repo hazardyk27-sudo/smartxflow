@@ -6035,8 +6035,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                 return aTs !== latestTs; // Latest ile aynı zamanda olanı atla
             }).slice(0, 10);
             const tooltipItems = tooltipAlarms.map(a => {
-                const t = formatSmartMoneyTime(a.trigger_at || a.event_time || a.created_at);
-                const timeOnly = t.includes('•') ? t.split('•')[1].trim() : t;
+                const timeWithDay = formatTriggerTimeWithDay(a.trigger_at || a.event_time || a.created_at);
                 const pillValue = theme.pillLabel(a);
                 
                 if (type === 'bigmoney') {
@@ -6044,51 +6043,51 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                     const sel = a.selection || a.side || '-';
                     const totalVal = a.selection_total || a.total_selection || a.balance_after || a.volume || a.total_volume || 0;
                     const totalText = totalVal > 0 ? `Sonrası: £${Number(totalVal).toLocaleString('en-GB')}` : '';
-                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-bigmoney">${sel}</span>${totalText ? `<span class="tt-total">${totalText}</span>` : ''}</div>`;
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-bigmoney">${sel}</span>${totalText ? `<span class="tt-total">${totalText}</span>` : ''}</div>`;
                 } else if (type === 'sharp') {
                     const money = Number(a.incoming_money || a.amount_change || a.volume || 0).toLocaleString('en-GB');
                     const score = (a.sharp_score || 0).toFixed(0);
                     const prevOdds = (a.previous_odds || 0).toFixed(2);
                     const currOdds = (a.current_odds || 0).toFixed(2);
                     const total = Number(a.total_selection || a.selection_total || a.volume || 0).toLocaleString('en-GB');
-                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-sharp">Sharp ${score}</span><span class="tt-total">${prevOdds}→${currOdds} · £${total}</span></div>`;
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-sharp">Sharp ${score}</span><span class="tt-total">${prevOdds}→${currOdds} · £${total}</span></div>`;
                 } else if (type === 'volumeshock') {
                     const money = Number(a.incoming_money || 0).toLocaleString('en-GB');
                     const shock = (a.volume_shock_value || a.volume_shock || 0).toFixed(1);
                     const avg = Number(a.avg_last_amounts || a.average_amount || 0).toLocaleString('en-GB');
                     const total = Number(a.total_selection || a.selection_total || a.volume || 0).toLocaleString('en-GB');
-                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-volumeshock">X${shock}</span><span class="tt-total">Son 10 ort: £${avg} — Sonrası: £${total}</span></div>`;
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-volumeshock">X${shock}</span><span class="tt-total">Son 10 ort: £${avg} — Sonrası: £${total}</span></div>`;
                 } else if (type === 'dropping') {
                     const openOdds = (a.opening_odds || 0).toFixed(2);
                     const currOdds = (a.current_odds || 0).toFixed(2);
                     const dropPct = (a.drop_pct || 0).toFixed(1);
                     const vol = Number(a.volume || a.total_selection || a.selection_total || 0).toLocaleString('en-GB');
-                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">${openOdds}→${currOdds}</span><span class="tt-pill pill-dropping">▼${dropPct}%</span><span class="tt-total">Volume: £${vol}</span></div>`;
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span><span class="tt-money">${openOdds}→${currOdds}</span><span class="tt-pill pill-dropping">▼${dropPct}%</span><span class="tt-total">Volume: £${vol}</span></div>`;
                 } else if (type === 'publicmove') {
                     const prevShare = (a.previous_share || a.old_share || 0).toFixed(0);
                     const currShare = (a.current_share || a.new_share || 0).toFixed(0);
                     const publicPara = Number(a.incoming_money || a.public_money || a.volume || 0).toLocaleString('en-GB');
-                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${publicPara}</span><span class="tt-pill pill-publicmove">%${prevShare}→%${currShare}</span><span class="tt-total">Public yükseldi</span></div>`;
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span><span class="tt-money">£${publicPara}</span><span class="tt-pill pill-publicmove">%${prevShare}→%${currShare}</span><span class="tt-total">Public yükseldi</span></div>`;
                 } else if (type === 'volumeleader') {
                     const oldL = a.old_leader || a.previous_leader || '-';
                     const newL = a.new_leader || a.selection || '-';
                     const oldShare = (a.old_leader_share || 0).toFixed(0);
                     const newShare = (a.new_leader_share || 0).toFixed(0);
                     const totalVol = Number(a.total_volume || a.volume || 0).toLocaleString('en-GB');
-                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">${oldL}→${newL}</span><span class="tt-pill pill-volumeleader">%${oldShare}→%${newShare}</span><span class="tt-total">£${totalVol}</span></div>`;
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span><span class="tt-money">${oldL}→${newL}</span><span class="tt-pill pill-volumeleader">%${oldShare}→%${newShare}</span><span class="tt-total">£${totalVol}</span></div>`;
                 } else if (type === 'insider') {
                     const money = Number(a.total_money || a.gelen_para || a.incoming_money || 0).toLocaleString('en-GB');
                     const openOdds = (a.opening_odds || 0).toFixed(2);
                     const lastOdds = (a.last_odds || a.current_odds || 0).toFixed(2);
                     const dropPct = Math.abs(a.drop_pct || a.oran_dusus_pct || a.odds_drop_pct || 0).toFixed(1);
                     const hours = calculateHoursToKickoff(a).toFixed(0);
-                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-insider">▼${dropPct}%</span><span class="tt-total">${openOdds}→${lastOdds} · ${hours}s kala</span></div>`;
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-insider">▼${dropPct}%</span><span class="tt-total">${openOdds}→${lastOdds} · ${hours}s kala</span></div>`;
                 } else if (type === 'mim') {
                     const level = a.level || 1;
                     const impact = (a.impact || a.impact_score || a.money_impact || 0).toFixed(2);
-                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span><span class="tt-pill pill-mim">L${level}</span><span class="tt-total">${impact} impact</span></div>`;
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span><span class="tt-pill pill-mim">L${level}</span><span class="tt-total">${impact} impact</span></div>`;
                 }
-                return `<div class="smc-tooltip-item"><span class="tt-time">${timeOnly}</span></div>`;
+                return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span></div>`;
             }).join('');
             
             countBadgeHtml = `<span class="smc-count-badge smc-count-${type}" data-tooltip-id="${tooltipId}" onclick="event.stopPropagation();">x${count}</span>`;
