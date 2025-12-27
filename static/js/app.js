@@ -1149,11 +1149,20 @@ function applySorting(data) {
         };
         
         // Fallback: ALL mode'da odds history/snapshots array icinde olabilir
+        // Snapshot JSON string olarak gelebilir - parse etmek lazim
         const checkHistoryArray = (arr) => {
             if (!Array.isArray(arr) || arr.length === 0) return false;
             const first = arr[0];
             // history[0].snapshot veya dogrudan history[0] olabilir
-            const snapshot = first.snapshot || first;
+            let snapshot = first.snapshot || first.snapshot_json || first;
+            // JSON string ise parse et
+            if (typeof snapshot === 'string') {
+                try {
+                    snapshot = JSON.parse(snapshot);
+                } catch (e) {
+                    return false;
+                }
+            }
             return checkOdds(snapshot);
         };
         
