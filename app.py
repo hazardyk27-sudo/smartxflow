@@ -87,11 +87,11 @@ from services.supabase_client import (
     get_database, get_supabase_client,
     get_sharp_alarms_from_supabase, get_insider_alarms_from_supabase,
     get_bigmoney_alarms_from_supabase, get_volumeshock_alarms_from_supabase,
-    get_dropping_alarms_from_supabase, get_publicmove_alarms_from_supabase,
+    get_dropping_alarms_from_supabase,
     get_volumeleader_alarms_from_supabase, get_mim_alarms_from_supabase,
     delete_alarms_from_supabase,
     write_insider_alarms_to_supabase, write_sharp_alarms_to_supabase,
-    write_publicmove_alarms_to_supabase, write_volumeleader_alarms_to_supabase,
+    write_volumeleader_alarms_to_supabase,
     write_bigmoney_alarms_to_supabase, write_dropping_alarms_to_supabase,
     write_volumeshock_alarms_to_supabase
 )

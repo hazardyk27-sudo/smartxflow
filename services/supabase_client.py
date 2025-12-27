@@ -1775,11 +1775,6 @@ def get_dropping_alarms_from_supabase() -> List[Dict[str, Any]]:
     return fetch_alarms_from_supabase('dropping_alarms')
 
 
-def get_publicmove_alarms_from_supabase() -> List[Dict[str, Any]]:
-    """Get PublicMove alarms from Supabase"""
-    return fetch_alarms_from_supabase('publicmove_alarms')
-
-
 def get_volumeleader_alarms_from_supabase() -> List[Dict[str, Any]]:
     """Get VolumeLeader alarms from Supabase"""
     return fetch_alarms_from_supabase('volume_leader_alarms')
@@ -1952,33 +1947,6 @@ def write_sharp_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
         }
         mapped_alarms.append(mapped)
     return write_alarms_to_supabase('sharp_alarms', mapped_alarms, on_conflict='home,away,market,selection')
-
-
-def write_publicmove_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
-    """Write PublicMove alarms to Supabase - ADMIN.EXE ALANLARI"""
-    mapped_alarms = []
-    for alarm in alarms:
-        mapped = {
-            'match_id': alarm.get('match_id', ''),
-            'match_id_hash': alarm.get('match_id_hash', ''),
-            'home': alarm.get('home', ''),
-            'away': alarm.get('away', ''),
-            'league': alarm.get('league', ''),
-            'market': alarm.get('market', ''),
-            'selection': alarm.get('selection', ''),
-            'trap_score': alarm.get('trap_score', 0),
-            'incoming_money': alarm.get('incoming_money', 0),
-            'odds_drop_pct': alarm.get('odds_drop_pct', 0),
-            'previous_share': alarm.get('previous_share', 0),
-            'current_share': alarm.get('current_share', 0),
-            'share_change': alarm.get('share_change', 0),
-            'match_date': alarm.get('match_date', ''),
-            'trigger_at': alarm.get('trigger_at', ''),
-            'created_at': alarm.get('created_at', ''),
-            'alarm_type': alarm.get('alarm_type', 'publicmove')
-        }
-        mapped_alarms.append(mapped)
-    return write_alarms_to_supabase('publicmove_alarms', mapped_alarms, on_conflict='home,away,market,selection')
 
 
 def write_volumeleader_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:

@@ -1,7 +1,7 @@
 """
-SmartXFlow Alarm Calculator Module v1.24
+SmartXFlow Alarm Calculator Module v1.25
 Standalone alarm calculation for PC-based scraper
-Calculates: Sharp, Insider, BigMoney, VolumeShock, Dropping, PublicMove, VolumeLeader
+Calculates: Sharp, Insider, BigMoney, VolumeShock, Dropping, VolumeLeader, MIM
 OPTIMIZED: Batch fetch per market, in-memory calculations
 DEFAULT_SETTINGS: Fallback values for all alarm types when Supabase config missing
 PHASE 2: match_id_hash contract compliant (league|kickoff|home|away)
@@ -652,21 +652,6 @@ class AlarmCalculator:
         
         return "\n".join(lines)
     
-    def _format_publicmove_telegram(self, alarm: Dict, home: str, away: str, market: str, selection: str, timestamp: str) -> str:
-        """Format PublicMove alarm for Telegram"""
-        share_change = float(alarm.get('share_change', 0) or 0)
-        
-        lines = [
-            f"[PUBLIC MOVE] - {market}-{selection}'de halk hareketi",
-            f"Zaman: {timestamp}",
-            "",
-            f"<b>{home}</b> vs <b>{away}</b>",
-            "",
-            f"> Pay Degisimi: {share_change:+.1f}%",
-        ]
-        
-        return "\n".join(lines)
-    
     def _format_volumeleader_telegram(self, alarm: Dict, home: str, away: str, market: str, selection: str, timestamp: str) -> str:
         """Format VolumeLeader alarm for Telegram"""
         share = float(alarm.get('share', 0) or alarm.get('current_share', 0) or 0)
@@ -766,8 +751,6 @@ class AlarmCalculator:
                 text = self._format_sharp_telegram(alarm, home, away, market, selection, timestamp)
             elif normalized_type == 'INSIDER':
                 text = self._format_insider_telegram(alarm, home, away, market, selection, timestamp)
-            elif normalized_type == 'PUBLICMOVE':
-                text = self._format_publicmove_telegram(alarm, home, away, market, selection, timestamp)
             elif normalized_type == 'VOLUMELEADER':
                 text = self._format_volumeleader_telegram(alarm, home, away, market, selection, timestamp)
             elif normalized_type == 'MIM':
@@ -947,9 +930,6 @@ class AlarmCalculator:
         'dropping_alarms': ['id', 'match_id_hash', 'home', 'away', 'league', 'market', 
                            'selection', 'opening_odds', 'current_odds', 'drop_pct', 'level',
                            'match_date', 'trigger_at', 'created_at'],
-        'publicmove_alarms': ['id', 'match_id_hash', 'home', 'away', 'league', 'market', 
-                             'selection', 'public_score', 'amount_change', 
-                             'match_date', 'trigger_at', 'created_at'],
         'mim_alarms': ['id', 'match_id_hash', 'home', 'away', 'league', 'market', 
                       'selection', 'impact', 'prev_volume', 'current_volume',
                       'incoming_volume', 'total_market_volume',
@@ -988,10 +968,6 @@ class AlarmCalculator:
             'stake': 'incoming_money',
         },
         'sharp_alarms': {
-            'volume': 'amount_change',
-            'stake': 'amount_change',
-        },
-        'publicmove_alarms': {
             'volume': 'amount_change',
             'stake': 'amount_change',
         },
@@ -1274,7 +1250,7 @@ class AlarmCalculator:
         Admin Panel -> Supabase yazma fonksiyonu
         
         Args:
-            alarm_type: Alarm türü (sharp, insider, bigmoney, volumeshock, dropping, publicmove, volumeleader)
+            alarm_type: Alarm türü (sharp, insider, bigmoney, volumeshock, dropping, volumeleader, mim)
             config: Config dict (tüm ayarlar)
             enabled: Alarm aktif mi
         
@@ -1562,7 +1538,6 @@ class AlarmCalculator:
             'bigmoney_alarms',
             'volumeshock_alarms',
             'dropping_alarms',
-            'publicmove_alarms',
             'volume_leader_alarms',
             'mim_alarms'
         ]
@@ -1766,43 +1741,6 @@ class AlarmCalculator:
                 'min_volume_ou25': 1,
                 'persistence_enabled': True,
                 'persistence_minutes': 30
-            },
-            'publicmove': {
-                'enabled': True,
-                'min_share': 1,
-                'max_odds_cap': 80,
-                'max_share_cap': 50,
-                'max_volume_cap': 70,
-                'min_volume_1x2': 2999,
-                'min_sharp_score': 60,
-                'min_volume_btts': 999,
-                'min_volume_ou25': 1499,
-                'odds_range_1_max': 1.6,
-                'odds_range_1_min': 1.01,
-                'odds_range_2_max': 2.1,
-                'odds_range_2_min': 1.59,
-                'odds_range_3_max': 3.5,
-                'odds_range_3_min': 2.09,
-                'odds_range_4_max': 7,
-                'odds_range_4_min': 3.49,
-                'min_amount_change': 1999,
-                'odds_range_1_mult': 10,
-                'odds_range_2_mult': 6,
-                'odds_range_3_mult': 3,
-                'odds_range_4_mult': 1.5,
-                'share_range_1_max': 30,
-                'share_range_1_min': 1,
-                'share_range_2_max': 60,
-                'share_range_2_min': 30,
-                'share_range_3_max': 80,
-                'share_range_3_min': 60,
-                'share_range_4_max': 100,
-                'share_range_4_min': 80,
-                'volume_multiplier': 10,
-                'share_range_1_mult': 1,
-                'share_range_2_mult': 3,
-                'share_range_3_mult': 6,
-                'share_range_4_mult': 10
             },
             'volumeleader': {
                 'enabled': True,
@@ -2031,7 +1969,7 @@ class AlarmCalculator:
             log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['VolumeShock'] = 0
         
-        log("5/8 Dropping hesaplaniyor...")
+        log("5/7 Dropping hesaplaniyor...")
         try:
             dropping_count = self.calculate_dropping_alarms() or 0
             alarm_counts['Dropping'] = dropping_count
@@ -2043,19 +1981,7 @@ class AlarmCalculator:
             log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['Dropping'] = 0
         
-        log("6/8 PublicMove hesaplaniyor...")
-        try:
-            publicmove_count = self.calculate_publicmove_alarms() or 0
-            alarm_counts['PublicMove'] = publicmove_count
-            total_alarms += publicmove_count
-            log(f"  -> PublicMove: {publicmove_count} alarm")
-        except Exception as e:
-            import traceback
-            log(f"!!! PublicMove error: {e}")
-            log(f"Traceback: {traceback.format_exc()}")
-            alarm_counts['PublicMove'] = 0
-        
-        log("7/8 VolumeLeader hesaplaniyor...")
+        log("6/7 VolumeLeader hesaplaniyor...")
         try:
             volumeleader_count = self.calculate_volumeleader_alarms() or 0
             alarm_counts['VolumeLeader'] = volumeleader_count
@@ -2067,7 +1993,7 @@ class AlarmCalculator:
             log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['VolumeLeader'] = 0
         
-        log("8/8 MIM (Market Impact) hesaplaniyor...")
+        log("7/7 MIM (Market Impact) hesaplaniyor...")
         try:
             mim_count = self.calculate_mim_alarms() or 0
             alarm_counts['MIM'] = mim_count
@@ -2214,11 +2140,12 @@ class AlarmCalculator:
                 if total_volume < min_volume:
                     continue
                 
-                # match_id_hash ile history lookup - date alanı kullanılmalı (moneyway tablolarında kickoff yok)
+                # match_id_hash: Maçtan gelen değeri kullan, yoksa hesapla
                 date_str = match.get('date', '')
-                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), date_str)
+                match_id_hash = match.get('match_id_hash') or generate_match_id_hash(home, away, match.get('league', ''), date_str)
                 history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
                 if len(history) < 2:
+                    log(f"  [Sharp SKIP] {home} vs {away} | history < 2 ({len(history)} snapshots)")
                     continue
                 
                 latest = history[-1]
@@ -2453,11 +2380,12 @@ class AlarmCalculator:
                 if not home or not away:
                     continue
                 
-                # match_id_hash ile history lookup - date alanı kullanılmalı (moneyway tablolarında kickoff yok)
+                # match_id_hash: Maçtan gelen değeri kullan, yoksa hesapla
                 date_str = match.get('date', '')
-                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), date_str)
+                match_id_hash = match.get('match_id_hash') or generate_match_id_hash(home, away, match.get('league', ''), date_str)
                 history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
                 if len(history) < 3:
+                    log(f"  [Insider SKIP] {home} vs {away} | history < 3 ({len(history)} snapshots)")
                     continue
                 
                 first = history[0]
@@ -2926,11 +2854,12 @@ class AlarmCalculator:
                 if not home or not away:
                     continue
                 
-                # match_id_hash ile history lookup - date alanı kullanılmalı (moneyway tablolarında kickoff yok)
+                # match_id_hash: Maçtan gelen değeri kullan, yoksa hesapla
                 date_str = match.get('date', '')
-                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), date_str)
+                match_id_hash = match.get('match_id_hash') or generate_match_id_hash(home, away, match.get('league', ''), date_str)
                 history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
                 if len(history) < 5:
+                    log(f"  [VolumeShock SKIP] {home} vs {away} | history < 5 ({len(history)} snapshots)")
                     continue
                 
                 for sel_idx, selection in enumerate(selections):
@@ -3133,11 +3062,12 @@ class AlarmCalculator:
                 if not home or not away:
                     continue
                 
-                # History'den maç verilerini al - get_match_history kullan (tutarlılık için)
-                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
+                # match_id_hash: Maçtan gelen değeri kullan, yoksa hesapla
+                match_id_hash = match.get('match_id_hash') or generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                 history_raw = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), match.get('date', ''))
                 
                 if len(history_raw) < 2:
+                    log(f"  [Dropping SKIP] {home} vs {away} | history < 2 ({len(history_raw)} snapshots)")
                     continue
                 
                 # History'i scraped_at/scraped_at_utc'e göre sırala (kronolojik doğruluk için)
@@ -3299,170 +3229,6 @@ class AlarmCalculator:
                 log("Dropping: 0 alarm - table cleared")
             except Exception as e:
                 log(f"[Dropping] Table clear failed: {e}")
-        
-        return len(alarms)
-    
-    def calculate_publicmove_alarms(self) -> int:
-        """Calculate Public Move alarms - same logic as Sharp"""
-        # NOT: PublicMove alarmları silinmez - sadece upsert yapılır
-        # Tablo temizleme KALDIRILDI - alarmlar kalıcı olmalı
-        
-        config = self.configs.get('publicmove')
-        if not config:
-            log("[PublicMove] CONFIG YOK - Supabase'de publicmove ayarlarını kaydedin!")
-            return 0
-        
-        # Config validation
-        required_keys = ['min_sharp_score', 'min_volume_1x2', 'min_volume_ou25', 'min_volume_btts']
-        missing_keys = [k for k in required_keys if config.get(k) is None]
-        if missing_keys:
-            log(f"[PublicMove] CONFIG EKSIK KEY'LER: {missing_keys} - Supabase'de tamamlayın!")
-            return 0
-        
-        # CRITICAL: parse_float - FALLBACK OLMADAN
-        min_score = parse_float(config.get('min_sharp_score'))
-        min_amount_change = parse_float(config.get('min_amount_change')) or 0
-        log(f"[PublicMove Config] min_score: {min_score}, min_amount_change: {min_amount_change}")
-        
-        alarms = []
-        markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
-        market_names = {'moneyway_1x2': '1X2', 'moneyway_ou25': 'O/U 2.5', 'moneyway_btts': 'BTTS'}
-        
-        for market in markets:
-            if '1x2' in market:
-                min_volume = parse_float(config.get('min_volume_1x2'))
-                selections = ['1', 'X', '2']
-                odds_keys = ['odds1', 'oddsx', 'odds2']
-                amount_keys = ['amt1', 'amtx', 'amt2']
-                pct_keys = ['pct1', 'pctx', 'pct2']
-            elif 'ou25' in market:
-                min_volume = parse_float(config.get('min_volume_ou25'))
-                selections = ['Over', 'Under']
-                odds_keys = ['over', 'under']
-                amount_keys = ['amtover', 'amtunder']
-                pct_keys = ['pctover', 'pctunder']
-            else:
-                min_volume = parse_float(config.get('min_volume_btts'))
-                selections = ['Yes', 'No']
-                odds_keys = ['oddsyes', 'oddsno']
-                amount_keys = ['amtyes', 'amtno']
-                pct_keys = ['pctyes', 'pctno']
-            
-            history_table = f"{market}_history"
-            matches = self.get_matches_with_latest(market)
-            
-            for match in matches:
-                if not self._is_valid_match_date(match.get('date', '')):
-                    continue
-                
-                home = match.get('home', match.get('Home', ''))
-                away = match.get('away', match.get('Away', ''))
-                if not home or not away:
-                    continue
-                
-                total_volume = parse_volume(match.get('volume', '0'))
-                if total_volume < min_volume:
-                    continue
-                
-                # match_id_hash ile history lookup - date alanı kullanılmalı (moneyway tablolarında kickoff yok)
-                date_str = match.get('date', '')
-                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), date_str)
-                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
-                if len(history) < 2:
-                    continue
-                
-                # PUBLIC MOVE: Sadece son 2 saatteki hareketlere bak
-                now = now_turkey()
-                two_hours_ago = now - timedelta(hours=2)
-                
-                filtered_history = []
-                for snap in history:
-                    scraped_at = snap.get('scraped_at', snap.get('scrapedat', ''))
-                    if scraped_at:
-                        try:
-                            if 'T' in str(scraped_at):
-                                snap_time_str = str(scraped_at).split('+')[0].split('.')[0]
-                                snap_time = datetime.strptime(snap_time_str, '%Y-%m-%dT%H:%M:%S')
-                            else:
-                                snap_time = datetime.strptime(str(scraped_at)[:19], '%Y-%m-%d %H:%M:%S')
-                            
-                            if snap_time >= two_hours_ago:
-                                filtered_history.append(snap)
-                        except:
-                            filtered_history.append(snap)
-                    else:
-                        filtered_history.append(snap)
-                
-                history = filtered_history
-                if len(history) < 2:
-                    continue
-                
-                latest = history[-1]
-                prev = history[-2]
-                
-                for sel_idx, selection in enumerate(selections):
-                    odds_key = odds_keys[sel_idx]
-                    amount_key = amount_keys[sel_idx]
-                    pct_key = pct_keys[sel_idx]
-                    
-                    current_odds = parse_float(latest.get(odds_key, 0))
-                    prev_odds = parse_float(prev.get(odds_key, 0))
-                    
-                    current_amount = parse_volume(latest.get(amount_key, 0))
-                    prev_amount = parse_volume(prev.get(amount_key, 0))
-                    
-                    current_pct = parse_float(latest.get(pct_key, 0))
-                    prev_pct = parse_float(prev.get(pct_key, 0))
-                    
-                    if current_odds <= 0 or prev_odds <= 0:
-                        continue
-                    
-                    volume_change = current_amount - prev_amount
-                    if volume_change <= 0:
-                        continue
-                    
-                    # min_amount_change filtresi
-                    if volume_change < min_amount_change:
-                        continue
-                    
-                    odds_drop = prev_odds - current_odds
-                    if odds_drop <= 0:
-                        continue
-                    
-                    share_change = current_pct - prev_pct
-                    
-                    move_score = (volume_change / 500) + (odds_drop / 0.05) * 3 + share_change
-                    
-                    if move_score >= min_score:
-                        trigger_at = latest.get('scraped_at', now_turkey_iso())
-                        match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
-                        
-                        alarm = {
-                            'match_id_hash': match_id,
-                            'home': home,
-                            'away': away,
-                            'league': match.get('league', ''),
-                            'market': market_names.get(market, market),
-                            'selection': selection,
-                            'trap_score': round(move_score, 2),
-                            'incoming_money': volume_change,
-                            'odds_drop_pct': round((odds_drop / prev_odds * 100) if prev_odds > 0 else 0, 2),
-                            'previous_share': round(prev_pct, 2),
-                            'current_share': round(current_pct, 2),
-                            'share_change': round(share_change, 2),
-                            'match_date': normalize_date_for_db(match.get('date', '')),
-                            'trigger_at': trigger_at,
-                            'created_at': now_turkey_iso(),
-                            'alarm_type': 'publicmove'
-                        }
-                        alarms.append(alarm)
-                        log(f"  [PUBLICMOVE] {home} vs {away} | {market_names.get(market, market)}-{selection} | Score: {move_score:.1f} | Vol: £{volume_change:,.0f}")
-        
-        if alarms:
-            new_count = self._upsert_alarms('publicmove_alarms', alarms, ['match_id_hash', 'market', 'selection'])
-            log(f"PublicMove: {new_count} alarms upserted")
-        else:
-            log("PublicMove: 0 alarm")
         
         return len(alarms)
     
@@ -3692,9 +3458,11 @@ class AlarmCalculator:
                 if not self._is_valid_match_date(match.get('date', '')):
                     continue
                 
-                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
+                # match_id_hash: Maçtan gelen değeri kullan, yoksa hesapla
+                match_id_hash = match.get('match_id_hash') or generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                 history = self.get_match_history(match_id_hash, f"{market_table}_history", home, away, match.get('league', ''), match.get('date', ''))
                 if len(history) < 2:
+                    log(f"  [MIM SKIP] {home} vs {away} | history < 2 ({len(history)} snapshots)")
                     continue
                 
                 sorted_history = sorted(history, key=lambda x: x.get('scraped_at', ''))
