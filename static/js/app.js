@@ -1100,6 +1100,15 @@ function applySorting(data) {
         console.log('[Filter] TODAY filtered count:', sortedData.length);
     } else {
         console.log('[Filter] ALL mode (today + future):', todayStr, '+');
+        
+        // DEBUG: Man City maçını bul ve tarihini logla
+        const cityMatch = sortedData.find(m => m.home_team?.toLowerCase().includes('nottm') || m.away_team?.toLowerCase().includes('city'));
+        if (cityMatch) {
+            console.log('[Filter DEBUG] City match found:', cityMatch.home_team, 'vs', cityMatch.away_team, 'date:', cityMatch.date, 'parsed:', getMatchDateTR(cityMatch.date));
+        } else {
+            console.log('[Filter DEBUG] City match NOT in initial data');
+        }
+        
         sortedData = sortedData.filter(m => {
             const matchDateStr = getMatchDateTR(m.date);
             if (!matchDateStr) return false;
@@ -1170,6 +1179,14 @@ function applySorting(data) {
         let hasValidOdds = checkOdds(d) || checkOdds(m);
         if (!hasValidOdds && m.history) hasValidOdds = checkHistoryArray(m.history);
         if (!hasValidOdds && m.snapshots) hasValidOdds = checkHistoryArray(m.snapshots);
+        
+        // DEBUG: Log ilk 3 filtrelenen maçın yapısını göster
+        if (!hasValidOdds && window._debugFilterCount === undefined) window._debugFilterCount = 0;
+        if (!hasValidOdds && window._debugFilterCount < 3) {
+            console.log('[Filter DEBUG] Rejected match:', m.home_team, 'vs', m.away_team, 'Keys:', Object.keys(m), 'details:', d, 'history:', m.history?.slice(0,1));
+            window._debugFilterCount++;
+        }
+        
         return hasValidOdds;
     });
     if (beforeOddsFilter !== sortedData.length) {
