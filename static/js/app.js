@@ -65,7 +65,7 @@ function getCachedAlarmsWithType() {
     if (!_alarmBatchCache) return [];
     
     let all = [];
-    const types = ['sharp', 'insider', 'bigmoney', 'volumeshock', 'dropping', 'publicmove', 'volumeleader', 'mim'];
+    const types = ['sharp', 'insider', 'bigmoney', 'volumeshock', 'dropping', 'volumeleader', 'mim'];
     types.forEach(type => {
         const items = _alarmBatchCache[type] || [];
         items.forEach(a => { a._type = type; });
@@ -75,7 +75,7 @@ function getCachedAlarmsWithType() {
 }
 
 function getCachedAlarmCounts() {
-    if (!_alarmBatchCache) return { sharp: 0, insider: 0, bigmoney: 0, volumeshock: 0, dropping: 0, publicmove: 0, volumeleader: 0, mim: 0, total: 0 };
+    if (!_alarmBatchCache) return { sharp: 0, insider: 0, bigmoney: 0, volumeshock: 0, dropping: 0, volumeleader: 0, mim: 0, total: 0 };
     
     const counts = {
         sharp: (_alarmBatchCache.sharp || []).length,
@@ -83,11 +83,10 @@ function getCachedAlarmCounts() {
         bigmoney: (_alarmBatchCache.bigmoney || []).length,
         volumeshock: (_alarmBatchCache.volumeshock || []).length,
         dropping: (_alarmBatchCache.dropping || []).length,
-        publicmove: (_alarmBatchCache.publicmove || []).length,
         volumeleader: (_alarmBatchCache.volumeleader || []).length,
         mim: (_alarmBatchCache.mim || []).length
     };
-    counts.total = counts.sharp + counts.insider + counts.bigmoney + counts.volumeshock + counts.dropping + counts.publicmove + counts.volumeleader + counts.mim;
+    counts.total = counts.sharp + counts.insider + counts.bigmoney + counts.volumeshock + counts.dropping + counts.volumeleader + counts.mim;
     return counts;
 }
 
