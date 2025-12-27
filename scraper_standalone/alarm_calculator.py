@@ -2718,11 +2718,12 @@ class AlarmCalculator:
                 if not home or not away:
                     continue
                 
-                # match_id_hash ile history lookup - date alanı kullanılmalı (moneyway tablolarında kickoff yok)
+                # match_id_hash: Maçtan gelen değeri kullan, yoksa hesapla
                 date_str = match.get('date', '')
-                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), date_str)
+                match_id_hash = match.get('match_id_hash') or generate_match_id_hash(home, away, match.get('league', ''), date_str)
                 history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
                 if len(history) < 2:
+                    log(f"  [BigMoney SKIP] {home} vs {away} | history < 2 ({len(history)} snapshots)")
                     continue
                 
                 for sel_idx, selection in enumerate(selections):
@@ -2745,7 +2746,7 @@ class AlarmCalculator:
                     if not big_snapshots:
                         continue
                     
-                    match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
+                    match_id = match_id_hash
                     
                     # Her büyük para hareketini AYRI alarm olarak kaydet
                     for snap_idx, snap in enumerate(big_snapshots):
@@ -3520,11 +3521,12 @@ class AlarmCalculator:
                 if total_volume < min_volume:
                     continue
                 
-                # match_id_hash ile history lookup - date alanı kullanılmalı (moneyway tablolarında kickoff yok)
+                # match_id_hash: Maçtan gelen değeri kullan, yoksa hesapla
                 date_str = match.get('date', '')
-                match_id_hash = generate_match_id_hash(home, away, match.get('league', ''), date_str)
+                match_id_hash = match.get('match_id_hash') or generate_match_id_hash(home, away, match.get('league', ''), date_str)
                 history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
                 if len(history) < 2:
+                    log(f"  [VolumeLeader SKIP] {home} vs {away} | history < 2 ({len(history)} snapshots)")
                     continue
                 
                 for i in range(1, len(history)):
@@ -3555,7 +3557,7 @@ class AlarmCalculator:
                             continue
                         
                         trigger_at = curr_snap.get('scraped_at', now_turkey_iso())
-                        match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
+                        match_id = match_id_hash
                         
                         alarm = {
                             'match_id_hash': match_id,
