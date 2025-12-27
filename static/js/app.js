@@ -5383,9 +5383,11 @@ function formatTriggerTime(dateStr) {
 function formatTriggerTimeWithDay(dateStr) {
     if (!dateStr) return '-';
     
+    const str = String(dateStr).trim();
+    
     // Eğer format DD.MM.YYYY HH:MM ise zaten Turkey saati
-    if (dateStr.includes('.') && dateStr.includes(' ')) {
-        const parts = dateStr.split(' ');
+    if (str.includes('.') && str.includes(' ')) {
+        const parts = str.split(' ');
         if (parts.length >= 2 && parts[1].includes(':')) {
             const dateParts = parts[0].split('.');
             if (dateParts.length >= 2) {
@@ -5394,23 +5396,47 @@ function formatTriggerTimeWithDay(dateStr) {
         }
     }
     
-    // ISO format with timezone offset
-    if (dateStr.includes('+03:00') || dateStr.includes('+03')) {
-        const dt = dayjs(dateStr).tz(APP_TIMEZONE);
+    // UTC timestamp with Z suffix - +3 saat ekle
+    if (str.endsWith('Z')) {
+        const dt = dayjs.utc(str).tz(APP_TIMEZONE);
         if (dt && dt.isValid()) {
             return dt.format('DD.MM HH:mm');
         }
     }
     
-    // ISO format offsetsiz
-    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateStr)) {
-        const dt = dayjs(dateStr).tz(APP_TIMEZONE, true);
+    // UTC timestamp with +00:00 suffix - +3 saat ekle
+    if (str.includes('+00:00')) {
+        const dt = dayjs.utc(str.replace('+00:00', 'Z')).tz(APP_TIMEZONE);
         if (dt && dt.isValid()) {
             return dt.format('DD.MM HH:mm');
         }
     }
     
-    const dt = parseAlarmDateTR(dateStr);
+    // ISO format with Turkey timezone offset (+03:00)
+    if (str.includes('+03:00') || str.includes('+03')) {
+        const dt = dayjs(str).tz(APP_TIMEZONE);
+        if (dt && dt.isValid()) {
+            return dt.format('DD.MM HH:mm');
+        }
+    }
+    
+    // ISO format offsetsiz - zaten Turkey saati varsay
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(str)) {
+        const dt = dayjs(str).tz(APP_TIMEZONE, true);
+        if (dt && dt.isValid()) {
+            return dt.format('DD.MM HH:mm');
+        }
+    }
+    
+    // ISO format with milliseconds but no offset - Turkey saati varsay
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+$/.test(str)) {
+        const dt = dayjs(str).tz(APP_TIMEZONE, true);
+        if (dt && dt.isValid()) {
+            return dt.format('DD.MM HH:mm');
+        }
+    }
+    
+    const dt = parseAlarmDateTR(str);
     if (!dt || !dt.isValid()) return '-';
     return dt.format('DD.MM HH:mm');
 }
