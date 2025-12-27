@@ -2646,23 +2646,52 @@ class AlarmCalculator:
                 if not home or not away:
                     continue
                 
+                # DEBUG: Nott-Man City maçı için verbose log
+                is_debug_match = 'nottingham' in home.lower() or 'forest' in home.lower() or 'man city' in away.lower() or 'manchester city' in away.lower()
+                
                 # match_id_hash: Maçtan gelen değeri kullan, yoksa hesapla
                 date_str = match.get('date', '')
                 match_id_hash = match.get('match_id_hash') or generate_match_id_hash(home, away, match.get('league', ''), date_str)
+                
+                if is_debug_match:
+                    log(f"[BigMoney DEBUG] ========== {home} vs {away} ==========")
+                    log(f"[BigMoney DEBUG] match_id_hash: {match_id_hash}")
+                    log(f"[BigMoney DEBUG] market: {market}")
+                    log(f"[BigMoney DEBUG] limit (threshold): {limit}")
+                    log(f"[BigMoney DEBUG] date: {date_str}")
+                
                 history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
+                
+                if is_debug_match:
+                    log(f"[BigMoney DEBUG] history snapshots: {len(history)}")
+                
                 if len(history) < 2:
                     log(f"  [BigMoney SKIP] {home} vs {away} | history < 2 ({len(history)} snapshots)")
+                    if is_debug_match:
+                        log(f"[BigMoney DEBUG] FAIL: history < 2 snapshots")
                     continue
                 
                 for sel_idx, selection in enumerate(selections):
                     amount_key = amount_keys[sel_idx]
                     
                     big_snapshots = []
+                    max_incoming = 0
+                    max_incoming_idx = -1
+                    
+                    if is_debug_match:
+                        log(f"[BigMoney DEBUG] Selection: {selection}, amount_key: {amount_key}")
                     
                     for i in range(1, len(history)):
                         curr_amt = parse_volume(history[i].get(amount_key, 0))
                         prev_amt = parse_volume(history[i-1].get(amount_key, 0))
                         incoming = curr_amt - prev_amt
+                        
+                        if is_debug_match and incoming > 1000:
+                            log(f"[BigMoney DEBUG]   snapshot[{i}]: prev={prev_amt:.0f}, curr={curr_amt:.0f}, delta={incoming:.0f}, limit={limit}, PASS={incoming >= limit}")
+                        
+                        if incoming > max_incoming:
+                            max_incoming = incoming
+                            max_incoming_idx = i
                         
                         if incoming >= limit:
                             big_snapshots.append({
@@ -2670,6 +2699,11 @@ class AlarmCalculator:
                                 'incoming': incoming,
                                 'scraped_at': history[i].get('scraped_at', '')
                             })
+                    
+                    if is_debug_match:
+                        log(f"[BigMoney DEBUG] {selection}: max_incoming={max_incoming:.0f} (idx={max_incoming_idx}), big_snapshots={len(big_snapshots)}")
+                        if max_incoming < limit:
+                            log(f"[BigMoney DEBUG] FAIL: max_incoming ({max_incoming:.0f}) < limit ({limit})")
                     
                     if not big_snapshots:
                         continue
