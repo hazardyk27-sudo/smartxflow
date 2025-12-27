@@ -678,8 +678,10 @@ class SupabaseClient:
                             odds_cache[cache_key] = row
                     print(f"[Paginated] Batch fetched {len(odds_cache)} odds from {history_table}")
             
-            # Step 4: Build match list
+            # Step 4: Build match list from fixtures
             matches = []
+            seen_keys = set()
+            
             for fix in fixtures:
                 home = fix.get('home_team', '')
                 away = fix.get('away_team', '')
@@ -699,6 +701,7 @@ class SupabaseClient:
                         pass
                 
                 cache_key = f"{home}|{away}"
+                seen_keys.add(cache_key)
                 latest_odds = self._get_empty_odds(market)
                 
                 if cache_key in odds_cache:
@@ -714,6 +717,40 @@ class SupabaseClient:
                     'kickoff_utc': kickoff_utc,
                     'latest': latest_odds
                 })
+            
+            # Step 5: Add matches from history that are NOT in fixtures (fallback)
+            history_only_count = 0
+            history_url = f"{self._rest_url(history_table)}?select=home,away,league,date,match_id_hash&order=scraped_at.desc&limit=500"
+            try:
+                history_resp = httpx.get(history_url, headers=self._headers(), timeout=15)
+                if history_resp.status_code == 200:
+                    history_rows = history_resp.json()
+                    seen_history_keys = set()
+                    for row in history_rows:
+                        home = row.get('home', '')
+                        away = row.get('away', '')
+                        cache_key = f"{home}|{away}"
+                        if cache_key in seen_keys or cache_key in seen_history_keys:
+                            continue
+                        seen_history_keys.add(cache_key)
+                        date_str = row.get('date', '')
+                        if not date_str:
+                            continue
+                        latest_odds = self._normalize_history_row(row, market)
+                        matches.append({
+                            'home_team': home,
+                            'away_team': away,
+                            'league': row.get('league', ''),
+                            'date': date_str,
+                            'match_id_hash': row.get('match_id_hash', ''),
+                            'kickoff_utc': '',
+                            'latest': latest_odds
+                        })
+                        history_only_count += 1
+                    if history_only_count > 0:
+                        print(f"[Paginated] Added {history_only_count} matches from history (not in fixtures)")
+            except Exception as he:
+                print(f"[Paginated] History fallback error: {he}")
             
             elapsed = time.time() - start_time
             # If total is unknown (0), assume more data exists if we got a full page
