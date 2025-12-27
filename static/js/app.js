@@ -1131,15 +1131,23 @@ function applySorting(data) {
     
     sortedData = sortedData.filter(m => {
         const d = m.details || m.odds || {};
-        // En az bir geçerli oran değeri olmalı
-        const hasValidOdds = isValidOdds(d.Odds1) || isValidOdds(d.Odds2) || isValidOdds(d.OddsX) 
-            || isValidOdds(d.OddsUnder) || isValidOdds(d.OddsOver) || isValidOdds(d.OddsYes) || isValidOdds(d.OddsNo)
-            || isValidOdds(d['1']) || isValidOdds(d['X']) || isValidOdds(d['2']) 
-            || isValidOdds(d.Under) || isValidOdds(d.Over) || isValidOdds(d.Yes) || isValidOdds(d.No)
-            || isValidOdds(d.Pct1) || isValidOdds(d.PctX) || isValidOdds(d.Pct2) 
-            || isValidOdds(d.PctUnder) || isValidOdds(d.PctOver) || isValidOdds(d.PctYes) || isValidOdds(d.PctNo)
-            || isValidOdds(d.Amt1) || isValidOdds(d.AmtX) || isValidOdds(d.Amt2) || isValidOdds(d.Volume)
-            || isValidOdds(d.open_odds) || isValidOdds(d.current_odds) || isValidOdds(d.drop_pct);
+        // Hem details/odds objesi hem de doğrudan match objesi kontrol edilir
+        // Bazı API'ler veriyi farklı yapıda döndürüyor olabilir
+        const checkOdds = (obj) => {
+            return isValidOdds(obj.Odds1) || isValidOdds(obj.Odds2) || isValidOdds(obj.OddsX) 
+                || isValidOdds(obj.OddsUnder) || isValidOdds(obj.OddsOver) || isValidOdds(obj.OddsYes) || isValidOdds(obj.OddsNo)
+                || isValidOdds(obj['1']) || isValidOdds(obj['X']) || isValidOdds(obj['2']) 
+                || isValidOdds(obj.Under) || isValidOdds(obj.Over) || isValidOdds(obj.Yes) || isValidOdds(obj.No)
+                || isValidOdds(obj.Pct1) || isValidOdds(obj.PctX) || isValidOdds(obj.Pct2) 
+                || isValidOdds(obj.PctUnder) || isValidOdds(obj.PctOver) || isValidOdds(obj.PctYes) || isValidOdds(obj.PctNo)
+                || isValidOdds(obj.Amt1) || isValidOdds(obj.AmtX) || isValidOdds(obj.Amt2) || isValidOdds(obj.Volume)
+                || isValidOdds(obj.open_odds) || isValidOdds(obj.current_odds) || isValidOdds(obj.drop_pct)
+                || isValidOdds(obj.odds1) || isValidOdds(obj.odds2) || isValidOdds(obj.oddsx)
+                || isValidOdds(obj.amt1) || isValidOdds(obj.amt2) || isValidOdds(obj.amtx)
+                || isValidOdds(obj.pct1) || isValidOdds(obj.pct2) || isValidOdds(obj.pctx);
+        };
+        // En az bir geçerli oran değeri olmalı (details veya match objesinde)
+        const hasValidOdds = checkOdds(d) || checkOdds(m);
         return hasValidOdds;
     });
     if (beforeOddsFilter !== sortedData.length) {

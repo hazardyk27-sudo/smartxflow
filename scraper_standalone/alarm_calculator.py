@@ -75,6 +75,77 @@ def parse_float(val) -> float:
         return 0.0
 
 
+# Takım adı normalizasyonu - kısaltılmış isimler → tam isimler
+# Web scraper farklı isim formatları kullanabiliyor, bu mapping onları standartlaştırır
+TEAM_NAME_ALIASES = {
+    # Premier League
+    'nottm fores': 'nottingham forest',
+    'nottm forest': 'nottingham forest',
+    'nott forest': 'nottingham forest',
+    'man city': 'manchester city',
+    'man utd': 'manchester united',
+    'man united': 'manchester united',
+    'spurs': 'tottenham',
+    'wolves': 'wolverhampton',
+    'newcastle utd': 'newcastle united',
+    'newcastle u': 'newcastle united',
+    'brighton': 'brighton and hove albion',
+    'west ham': 'west ham united',
+    'leicester': 'leicester city',
+    # La Liga
+    'atlético madrid': 'atletico madrid',
+    'atlético': 'atletico madrid',
+    'real sociedad': 'real sociedad',
+    'athletic': 'athletic bilbao',
+    # Bundesliga
+    'bayern': 'bayern munich',
+    'bayern münchen': 'bayern munich',
+    'dortmund': 'borussia dortmund',
+    'leverkusen': 'bayer leverkusen',
+    'gladbach': 'borussia monchengladbach',
+    # Serie A
+    'inter': 'inter milan',
+    'ac milan': 'milan',
+    'juve': 'juventus',
+    # Ligue 1
+    'psg': 'paris saint germain',
+    'paris sg': 'paris saint germain',
+    # Türkiye
+    'fb': 'fenerbahce',
+    'gs': 'galatasaray',
+    'bjk': 'besiktas',
+    'ts': 'trabzonspor',
+}
+
+def normalize_team_name(name: str) -> str:
+    """Normalize team name - convert abbreviations to full names AND strip common suffixes.
+    
+    Two-step process:
+    1. First strip common suffixes (FC, SC, AC, etc.) - handles legacy data
+    2. Then apply alias mapping - handles abbreviations (Nottm Fores -> nottingham forest)
+    
+    Examples: 
+    - 'Aston Villa FC' -> 'aston villa'
+    - 'Nottm Fores' -> 'nottingham forest'
+    - 'Man City SC' -> 'manchester city'
+    """
+    if not name:
+        return ''
+    
+    # Step 1: Normalize whitespace and lowercase
+    n = ' '.join(name.strip().lower().split())
+    
+    # Step 2: Strip common suffixes (for legacy data compatibility)
+    suffixes = [' fc', ' sc', ' cf', ' afc', ' bc', ' fk', ' sk', ' as', ' ac', ' us', ' ss']
+    for suffix in suffixes:
+        if n.endswith(suffix):
+            n = n[:-len(suffix)].strip()
+            break
+    
+    # Step 3: Apply alias mapping (for abbreviations)
+    return TEAM_NAME_ALIASES.get(n, n)
+
+
 def parse_volume(val) -> float:
     if val is None:
         return 0.0
@@ -85,22 +156,6 @@ def parse_volume(val) -> float:
         return float(s) if s else 0.0
     except:
         return 0.0
-
-
-def normalize_team_name(name: str) -> str:
-    """Normalize team name for consistent cache key matching.
-    Removes common suffixes like FC, SC, etc. and normalizes whitespace.
-    Examples: 'Aston Villa FC' -> 'aston villa', 'Man City' -> 'man city'
-    """
-    if not name:
-        return ""
-    n = name.lower().strip()
-    suffixes = [' fc', ' sc', ' cf', ' afc', ' bc', ' fk', ' sk', ' as', ' ac', ' us', ' ss']
-    for suffix in suffixes:
-        if n.endswith(suffix):
-            n = n[:-len(suffix)].strip()
-    n = ' '.join(n.split())
-    return n
 
 
 def normalize_field(value: str) -> str:
@@ -1811,15 +1866,18 @@ class AlarmCalculator:
         log(f"[HISTORY] {actual_table}: {len(rows)} total snapshots loaded")
         
         # KEY: match_id_hash ile gruplama, FALLBACK: league|home|away|date ile gruplama
+        # ALIAS NORMALIZATION: Kısaltılmış takım adlarını (Nottm Fores -> nottingham forest) dönüştür
         history_map = {}
         fallback_count = 0
         for row in rows:
             match_hash = row.get('match_id_hash', '')
             if not match_hash:
                 # FALLBACK: league|home|away|date ile key oluştur (eski tablolar için)
-                # Normalizasyon: lower, trim, çoklu boşluk temizliği
-                home = ' '.join(row.get('home', '').strip().lower().split())
-                away = ' '.join(row.get('away', '').strip().lower().split())
+                # Normalizasyon: lower, trim, çoklu boşluk temizliği + alias normalization
+                home_raw = ' '.join(row.get('home', '').strip().lower().split())
+                away_raw = ' '.join(row.get('away', '').strip().lower().split())
+                home = normalize_team_name(home_raw)
+                away = normalize_team_name(away_raw)
                 league = ' '.join(row.get('league', '').strip().lower().split())
                 # Kickoff date: normalize_date_for_db ile YYYY-MM-DD formatına çevir
                 kickoff = row.get('date', row.get('kickoff', row.get('kickoff_utc', '')))
@@ -1851,11 +1909,13 @@ class AlarmCalculator:
         
         history_map = self._history_cache.get(history_table, {})
         
-        # Fallback key oluştur
+        # Fallback key oluştur - ALIAS NORMALIZATION ile (batch_fetch_history ile aynı)
         fallback_key = None
         if home and away:
-            home_norm = ' '.join(home.strip().lower().split())
-            away_norm = ' '.join(away.strip().lower().split())
+            home_raw = ' '.join(home.strip().lower().split())
+            away_raw = ' '.join(away.strip().lower().split())
+            home_norm = normalize_team_name(home_raw)
+            away_norm = normalize_team_name(away_raw)
             league_norm = ' '.join(league.strip().lower().split()) if league else ''
             kickoff_date = normalize_date_for_db(kickoff) if kickoff else ''
             fallback_key = f"{league_norm}|{home_norm}|{away_norm}|{kickoff_date}"
