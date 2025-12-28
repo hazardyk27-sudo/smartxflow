@@ -413,7 +413,16 @@ async function refreshMatchData() {
 // Sekme görünürlük değişikliğinde kontrol
 function handleVisibilityChange() {
     if (document.visibilityState === 'visible') {
-        // Sekmeye geri dönüldü - 10 dakikadan fazla geçtiyse yenile
+        // Sekmeye geri dönüldü - interval'i yeniden başlat
+        if (!_matchRefreshInterval) {
+            console.log('[AutoRefresh] Tab aktif - interval yeniden başlatıldı');
+            _matchRefreshInterval = setInterval(async () => {
+                console.log('[AutoRefresh] 10 dakika doldu, maçlar yenileniyor...');
+                await refreshMatchData();
+            }, MATCH_REFRESH_INTERVAL);
+        }
+        
+        // 10 dakikadan fazla geçtiyse yenile
         if (_lastMatchRefreshTime) {
             const now = dayjs().tz(APP_TIMEZONE);
             const diffMs = now.diff(_lastMatchRefreshTime);
@@ -424,6 +433,13 @@ function handleVisibilityChange() {
             } else {
                 console.log('[AutoRefresh] Sekmeye dönüldü, veri güncel');
             }
+        }
+    } else if (document.visibilityState === 'hidden') {
+        // Tab arka plana gitti - interval'i durdur (Supabase istek tasarrufu)
+        if (_matchRefreshInterval) {
+            clearInterval(_matchRefreshInterval);
+            _matchRefreshInterval = null;
+            console.log('[AutoRefresh] Tab arka planda - interval durduruldu');
         }
     }
 }

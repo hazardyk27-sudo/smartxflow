@@ -23,7 +23,7 @@ from flask import Flask, render_template, jsonify, request, Response
 # ============================================
 _server_alarm_cache = None
 _server_alarm_cache_time = 0
-SERVER_ALARM_CACHE_TTL = 30  # 30 seconds cache
+SERVER_ALARM_CACHE_TTL = 120  # 120 seconds cache - Supabase istek optimizasyonu
 
 def get_cached_alarms(force_refresh=False):
     """Get alarms from server-side cache or refresh from Supabase"""
@@ -49,7 +49,7 @@ def set_alarm_cache(data):
 # ============================================
 _server_matches_cache = {}  # {market: data}
 _server_matches_cache_time = {}  # {market: timestamp}
-SERVER_MATCHES_CACHE_TTL = 30  # 30 seconds cache
+SERVER_MATCHES_CACHE_TTL = 120  # 120 seconds cache - Supabase istek optimizasyonu
 
 def get_cached_matches(market, force_refresh=False):
     """Get matches from server-side cache"""
