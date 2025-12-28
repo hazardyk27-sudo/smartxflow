@@ -374,18 +374,27 @@ function updateLastRefreshDisplay() {
     }
 }
 
+// Jitter: 0-60 saniye arası random delay (synchronized spike önleme)
+function getRefreshJitter() {
+    return Math.floor(Math.random() * 60000); // 0-60 saniye
+}
+
 // 10 dakikalık otomatik yenileme kurulumu
 function setupAutoRefresh() {
     // İlk yükleme zamanını kaydet
     updateLastRefreshDisplay();
     
-    // 10 dakikada bir maçları yenile
+    // Jitter ekleyerek kullanıcıların aynı anda istek yapmasını önle
+    const jitter = getRefreshJitter();
+    const intervalWithJitter = MATCH_REFRESH_INTERVAL + jitter;
+    
+    // 10 dakika + jitter'da bir maçları yenile
     _matchRefreshInterval = setInterval(async () => {
         console.log('[AutoRefresh] 10 dakika doldu, maçlar yenileniyor...');
         await refreshMatchData();
-    }, MATCH_REFRESH_INTERVAL);
+    }, intervalWithJitter);
     
-    console.log('[AutoRefresh] Kuruldu - 10 dakikada bir yenilenecek');
+    console.log(`[AutoRefresh] Kuruldu - ${Math.round(intervalWithJitter/1000)}s'de bir yenilenecek (jitter: ${Math.round(jitter/1000)}s)`);
 }
 
 // Maç verilerini yenile (tek fonksiyon)
@@ -413,13 +422,15 @@ async function refreshMatchData() {
 // Sekme görünürlük değişikliğinde kontrol
 function handleVisibilityChange() {
     if (document.visibilityState === 'visible') {
-        // Sekmeye geri dönüldü - interval'i yeniden başlat
+        // Sekmeye geri dönüldü - interval'i yeniden başlat (jitter ile)
         if (!_matchRefreshInterval) {
-            console.log('[AutoRefresh] Tab aktif - interval yeniden başlatıldı');
+            const jitter = getRefreshJitter();
+            const intervalWithJitter = MATCH_REFRESH_INTERVAL + jitter;
+            console.log(`[AutoRefresh] Tab aktif - interval yeniden başlatıldı (jitter: ${Math.round(jitter/1000)}s)`);
             _matchRefreshInterval = setInterval(async () => {
                 console.log('[AutoRefresh] 10 dakika doldu, maçlar yenileniyor...');
                 await refreshMatchData();
-            }, MATCH_REFRESH_INTERVAL);
+            }, intervalWithJitter);
         }
         
         // 10 dakikadan fazla geçtiyse yenile
