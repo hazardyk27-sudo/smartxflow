@@ -1640,7 +1640,11 @@ async function openMatchModal(index) {
         
         bulkHistoryCache = {};
         bulkHistoryCacheKey = '';
-        await loadAllMarketsAtOnce(home, away, league);
+        
+        const alarmsPromise = fetchAlarmsBatch();
+        const marketsPromise = loadAllMarketsAtOnce(home, away, league);
+        
+        await Promise.all([marketsPromise, alarmsPromise]);
         
         await Promise.all([
             loadChartWithTrends(home, away, selectedChartMarket, league),
