@@ -70,6 +70,33 @@ def set_matches_cache(market, data):
     _server_matches_cache_time[market] = time.time()
 # ============================================
 
+# ============================================
+# SERVER-SIDE MATCH HISTORY CACHE
+# Modal 2. acilista anlik yukleme icin
+# ============================================
+_server_history_cache = {}  # {match_key: data}
+_server_history_cache_time = {}  # {match_key: timestamp}
+SERVER_HISTORY_CACHE_TTL = 120  # 120 seconds cache
+
+def get_cached_history(match_key, force_refresh=False):
+    """Get match history from server-side cache"""
+    global _server_history_cache, _server_history_cache_time
+    
+    now = time.time()
+    cache_time = _server_history_cache_time.get(match_key, 0)
+    
+    if not force_refresh and match_key in _server_history_cache and (now - cache_time) < SERVER_HISTORY_CACHE_TTL:
+        return _server_history_cache[match_key], True
+    
+    return None, False
+
+def set_history_cache(match_key, data):
+    """Update server-side match history cache"""
+    global _server_history_cache, _server_history_cache_time
+    _server_history_cache[match_key] = data
+    _server_history_cache_time[match_key] = time.time()
+# ============================================
+
 def resource_path(relative_path):
     """Get absolute path to resource - works for dev and PyInstaller EXE"""
     if hasattr(sys, '_MEIPASS'):
@@ -926,15 +953,24 @@ def get_matches():
 def get_match_history_bulk():
     """Get historical data for ALL markets of a single match in one request.
     This is faster than calling /api/match/history 6 times separately.
+    Server-side cache: 2. acilista 0ms.
     """
     home = request.args.get('home', '')
     away = request.args.get('away', '')
     league = request.args.get('league', '')
     
-    print(f"[DEBUG] /api/match/history/bulk called: home={home}, away={away}, league='{league}'")
-    
     if not home or not away:
         return jsonify({'error': 'Missing home or away parameter', 'markets': {}})
+    
+    cache_key = f"{home.lower().strip()}|{away.lower().strip()}|{league.lower().strip()}"
+    
+    cached_data, from_cache = get_cached_history(cache_key)
+    if from_cache:
+        print(f"[History/Bulk] Cache HIT for {home} vs {away} - 0ms")
+        return jsonify({'markets': cached_data})
+    
+    start_time = time.time()
+    print(f"[History/Bulk] Cache MISS for {home} vs {away}, fetching...")
     
     all_markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts', 
                    'dropping_1x2', 'dropping_ou25', 'dropping_btts']
@@ -1011,6 +1047,11 @@ def get_match_history_bulk():
             'history': history,
             'chart_data': chart_data
         }
+    
+    elapsed = int((time.time() - start_time) * 1000)
+    print(f"[History/Bulk] Fetched {home} vs {away} in {elapsed}ms, caching...")
+    
+    set_history_cache(cache_key, result)
     
     return jsonify({'markets': result})
 
