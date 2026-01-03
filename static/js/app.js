@@ -493,6 +493,7 @@ function setupModalChartTabs() {
             tab.classList.add('active');
             selectedChartMarket = tab.dataset.market;
             if (selectedMatch) {
+                showChartLoading();
                 loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league || '');
             }
         });
@@ -1628,17 +1629,48 @@ async function openMatchModal(index) {
             }
         });
         
+        showSmartMoneyLoading();
+        showChartLoading();
+        
         document.getElementById('modalOverlay').classList.add('active');
         
         const home = selectedMatch.home_team;
         const away = selectedMatch.away_team;
         const league = selectedMatch.league || '';
         
+        bulkHistoryCache = {};
+        bulkHistoryCacheKey = '';
+        await loadAllMarketsAtOnce(home, away, league);
+        
         await Promise.all([
             loadChartWithTrends(home, away, selectedChartMarket, league),
             renderMatchAlarmsSection(home, away)
         ]);
     }
+}
+
+function showSmartMoneyLoading() {
+    const loading = document.getElementById('smartMoneyLoading');
+    const grid = document.getElementById('smartMoneyGrid');
+    const empty = document.getElementById('smartMoneyEmpty');
+    if (loading) loading.style.display = 'flex';
+    if (grid) grid.style.display = 'none';
+    if (empty) empty.style.display = 'none';
+}
+
+function hideSmartMoneyLoading() {
+    const loading = document.getElementById('smartMoneyLoading');
+    if (loading) loading.style.display = 'none';
+}
+
+function showChartLoading() {
+    const loading = document.getElementById('chartLoading');
+    if (loading) loading.style.display = 'flex';
+}
+
+function hideChartLoading() {
+    const loading = document.getElementById('chartLoading');
+    if (loading) loading.style.display = 'none';
 }
 
 let bulkHistoryCache = {};
@@ -1708,9 +1740,11 @@ async function loadChartWithTrends(home, away, market, league = '') {
         updateMatchInfoCard();
         
         loadChart(home, away, market, league);
+        hideChartLoading();
     } catch (e) {
         console.error('Error loading chart with trends:', e);
         loadChart(home, away, market, league);
+        hideChartLoading();
     }
 }
 
@@ -5735,10 +5769,15 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
     const empty = document.getElementById('smartMoneyEmpty');
     const chevron = document.getElementById('smartMoneyChevron');
     
-    if (!section) return;
+    if (!section) {
+        hideSmartMoneyLoading();
+        return;
+    }
     
     await loadAllAlarmsOnce(true);
     const matchAlarms = getMatchAlarms(homeTeam, awayTeam);
+    
+    hideSmartMoneyLoading();
     
     smartMoneySectionOpen = true;
     chevron.textContent = '▼';

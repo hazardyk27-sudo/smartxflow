@@ -5574,6 +5574,31 @@ td.volume,
     opacity: 0.6;
 }
 
+.smart-money-loading,
+.chart-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    color: #8b949e;
+    font-size: 13px;
+    gap: 10px;
+}
+
+.chart-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(22, 27, 34, 0.9);
+    z-index: 10;
+}
+
+.chart-wrapper {
+    position: relative;
+}
+
 .smart-money-card {
     background: #161b22;
     border: 1px solid #30363d;
