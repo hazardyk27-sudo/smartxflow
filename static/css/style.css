@@ -8425,16 +8425,20 @@ table.desktop-only {
     }
     
     .header-right {
+        display: none !important;
+    }
+    
+    .header-left {
         flex: 1;
         display: flex;
-        flex-wrap: nowrap;
-        justify-content: flex-end;
         align-items: center;
-        gap: 4px;
+        justify-content: space-between;
     }
     
     .logo-container {
         gap: 0;
+        display: flex;
+        align-items: center;
     }
     
     .app-logo {
@@ -8454,39 +8458,29 @@ table.desktop-only {
         display: none;
     }
     
-    /* Hide refresh button and status indicator on mobile */
-    .status-indicator {
-        display: none !important;
-    }
-    
-    .refresh-btn {
-        display: none !important;
-    }
-    
-    /* Last update - compact format, right aligned */
-    .last-update-info {
-        padding: 4px 8px;
-        font-size: 10px;
-        gap: 4px;
-        border-radius: 12px;
-        background: rgba(33, 38, 45, 0.8);
+    /* Mobile: Last update next to logo */
+    .logo-container .last-update-info {
         display: flex;
+        padding: 3px 6px;
+        font-size: 9px;
+        gap: 3px;
+        border-radius: 10px;
+        background: rgba(33, 38, 45, 0.8);
+        margin-left: 8px;
         align-items: center;
     }
     
-    .last-update-label {
-        display: inline;
-        font-size: 9px;
-        color: #8B949E;
+    .logo-container .last-update-label {
+        display: none;
     }
     
-    .last-update-time {
-        font-size: 10px;
+    .logo-container .last-update-time {
+        font-size: 9px;
         font-weight: 500;
         color: #E6EDF3;
     }
     
-    .last-update-tz {
+    .logo-container .last-update-tz {
         display: none;
     }
 
@@ -8655,6 +8649,11 @@ table.desktop-only {
         width: 12px;
         height: 12px;
         stroke: #8B949E;
+    }
+    
+    .mobile-alarm-text {
+        font-size: 9px;
+        color: #8B949E;
     }
     
     .mobile-alarm-badge {

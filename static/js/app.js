@@ -3616,12 +3616,14 @@ async function checkStatus() {
         }
         
         const lastUpdateTime = document.getElementById('lastUpdateTime');
+        const mobileLastUpdateTime = document.getElementById('mobileLastUpdateTime');
+        const updateText = status.last_data_update_tr || '--:--';
+        
         if (lastUpdateTime) {
-            if (status.last_data_update_tr) {
-                lastUpdateTime.textContent = status.last_data_update_tr;
-            } else {
-                lastUpdateTime.textContent = '--:--';
-            }
+            lastUpdateTime.textContent = updateText;
+        }
+        if (mobileLastUpdateTime) {
+            mobileLastUpdateTime.textContent = updateText;
         }
         
     } catch (error) {
