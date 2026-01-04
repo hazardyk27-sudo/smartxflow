@@ -1033,6 +1033,12 @@ function renderMobileMatchCards(data) {
         return;
     }
     
+    const isDropping = currentMarket.startsWith('dropping');
+    const isMoneyway = currentMarket.startsWith('moneyway');
+    const is1x2 = currentMarket.includes('1x2');
+    const isOU = currentMarket.includes('ou25');
+    const isBTTS = currentMarket.includes('btts');
+    
     const html = data.map((match, idx) => {
         const d = match.details || match.odds || {};
         const volume = formatVolumeCompact(d.Volume);
@@ -1046,6 +1052,129 @@ function renderMobileMatchCards(data) {
             dateStr = match.date || '';
         }
         
+        // For Dropping/Odds markets - show odds row with percentage changes
+        if (isDropping) {
+            let oddsRow = '';
+            
+            if (is1x2) {
+                const odds1 = formatOdds(d.Odds1 || d['1']);
+                const oddsX = formatOdds(d.OddsX || d['X']);
+                const odds2 = formatOdds(d.Odds2 || d['2']);
+                const drop1 = formatDropPct(d.Drop1 || d.DropPct1);
+                const dropX = formatDropPct(d.DropX || d.DropPctX);
+                const drop2 = formatDropPct(d.Drop2 || d.DropPct2);
+                
+                oddsRow = `
+                    <div class="mobile-odds-row">
+                        ${renderMobileOddsBlock('1', odds1, drop1)}
+                        ${renderMobileOddsBlock('X', oddsX, dropX)}
+                        ${renderMobileOddsBlock('2', odds2, drop2)}
+                    </div>
+                `;
+            } else if (isOU) {
+                const oddsO = formatOdds(d.OddsOver || d.Over);
+                const oddsU = formatOdds(d.OddsUnder || d.Under);
+                const dropO = formatDropPct(d.DropOver || d.DropPctOver);
+                const dropU = formatDropPct(d.DropUnder || d.DropPctUnder);
+                
+                oddsRow = `
+                    <div class="mobile-odds-row mobile-odds-row-2">
+                        ${renderMobileOddsBlock('O', oddsO, dropO)}
+                        ${renderMobileOddsBlock('U', oddsU, dropU)}
+                    </div>
+                `;
+            } else if (isBTTS) {
+                const oddsY = formatOdds(d.OddsYes || d.Yes);
+                const oddsN = formatOdds(d.OddsNo || d.No);
+                const dropY = formatDropPct(d.DropYes || d.DropPctYes);
+                const dropN = formatDropPct(d.DropNo || d.DropPctNo);
+                
+                oddsRow = `
+                    <div class="mobile-odds-row mobile-odds-row-2">
+                        ${renderMobileOddsBlock('Y', oddsY, dropY)}
+                        ${renderMobileOddsBlock('N', oddsN, dropN)}
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="match-card match-card-odds" data-index="${idx}" onclick="openMatchModal(${idx})">
+                    <div class="match-card-header">
+                        <div class="match-card-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</div>
+                        <span class="match-card-volume">${volume}</span>
+                    </div>
+                    <div class="match-card-meta">
+                        <span class="match-card-league">${match.league || '-'}</span>
+                        <span class="match-card-separator">•</span>
+                        <span class="match-card-datetime">${dateStr}</span>
+                    </div>
+                    ${oddsRow}
+                </div>
+            `;
+        }
+        
+        // For Moneyway markets - show odds with percentages
+        if (isMoneyway) {
+            let oddsRow = '';
+            
+            if (is1x2) {
+                const odds1 = formatOdds(d.Odds1 || d['1']);
+                const oddsX = formatOdds(d.OddsX || d['X']);
+                const odds2 = formatOdds(d.Odds2 || d['2']);
+                const pct1 = d.Pct1 ? d.Pct1 + '%' : null;
+                const pctX = d.PctX ? d.PctX + '%' : null;
+                const pct2 = d.Pct2 ? d.Pct2 + '%' : null;
+                
+                oddsRow = `
+                    <div class="mobile-odds-row">
+                        ${renderMobileOddsBlockMW('1', odds1, pct1)}
+                        ${renderMobileOddsBlockMW('X', oddsX, pctX)}
+                        ${renderMobileOddsBlockMW('2', odds2, pct2)}
+                    </div>
+                `;
+            } else if (isOU) {
+                const oddsO = formatOdds(d.OddsOver || d.Over);
+                const oddsU = formatOdds(d.OddsUnder || d.Under);
+                const pctO = d.PctOver ? d.PctOver + '%' : null;
+                const pctU = d.PctUnder ? d.PctUnder + '%' : null;
+                
+                oddsRow = `
+                    <div class="mobile-odds-row mobile-odds-row-2">
+                        ${renderMobileOddsBlockMW('O', oddsO, pctO)}
+                        ${renderMobileOddsBlockMW('U', oddsU, pctU)}
+                    </div>
+                `;
+            } else if (isBTTS) {
+                const oddsY = formatOdds(d.OddsYes || d.Yes);
+                const oddsN = formatOdds(d.OddsNo || d.No);
+                const pctY = d.PctYes ? d.PctYes + '%' : null;
+                const pctN = d.PctNo ? d.PctNo + '%' : null;
+                
+                oddsRow = `
+                    <div class="mobile-odds-row mobile-odds-row-2">
+                        ${renderMobileOddsBlockMW('Y', oddsY, pctY)}
+                        ${renderMobileOddsBlockMW('N', oddsN, pctN)}
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="match-card match-card-odds" data-index="${idx}" onclick="openMatchModal(${idx})">
+                    <div class="match-card-header">
+                        <div class="match-card-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</div>
+                        <span class="match-card-volume">${volume}</span>
+                    </div>
+                    <div class="match-card-meta">
+                        <span class="match-card-league">${match.league || '-'}</span>
+                        <span class="match-card-separator">•</span>
+                        <span class="match-card-datetime">${dateStr}</span>
+                    </div>
+                    ${oddsRow}
+                </div>
+            `;
+        }
+        
+        // Default: Simple card (fallback)
         return `
             <div class="match-card" data-index="${idx}" onclick="openMatchModal(${idx})">
                 <div class="match-card-left">
@@ -1065,6 +1194,78 @@ function renderMobileMatchCards(data) {
     }).join('');
     
     cardList.innerHTML = html;
+}
+
+function renderMobileOddsBlock(label, odds, dropPct) {
+    const dropClass = getDropClass(dropPct);
+    const dropDisplay = dropPct || '—';
+    
+    return `
+        <div class="mobile-odds-block">
+            <div class="mobile-odds-label">${label}</div>
+            <div class="mobile-odds-value">${odds}</div>
+            <div class="mobile-odds-drop ${dropClass}">${dropDisplay}</div>
+        </div>
+    `;
+}
+
+function renderMobileOddsBlockMW(label, odds, pct) {
+    // For Moneyway - show share percentage (neutral color)
+    const pctDisplay = pct || '—';
+    
+    return `
+        <div class="mobile-odds-block">
+            <div class="mobile-odds-label">${label}</div>
+            <div class="mobile-odds-value">${odds}</div>
+            <div class="mobile-odds-pct">${pctDisplay}</div>
+        </div>
+    `;
+}
+
+function formatDropPct(val) {
+    if (!val || val === '-' || val === '—') return null;
+    // If already formatted with % sign, return as-is
+    const strVal = String(val).trim();
+    if (strVal.includes('%')) {
+        return strVal;
+    }
+    const num = parseFloat(strVal);
+    if (isNaN(num)) return null;
+    const sign = num > 0 ? '+' : '';
+    return sign + num.toFixed(2) + '%';
+}
+
+function getDropClass(dropPct) {
+    if (!dropPct) return '';
+    const num = parseFloat(dropPct);
+    if (isNaN(num)) return '';
+    if (num < 0) return 'drop-negative';
+    if (num > 0) return 'drop-positive';
+    return '';
+}
+
+// ========== MOBILE SORT CONTROL ==========
+
+let mobileCurrentSort = 'volume';
+
+function setMobileSort(sortType) {
+    mobileCurrentSort = sortType;
+    
+    // Map mobile sort options to desktop column names
+    const sortMap = {
+        'volume': 'volume',
+        'kickoff': 'date',
+        'league': 'league',
+        'drop': 'sel1'  // Sort by first selection drop %
+    };
+    
+    const desktopSort = sortMap[sortType] || 'volume';
+    
+    if (typeof sortByColumn === 'function') {
+        sortByColumn(desktopSort);
+    } else {
+        loadMatches();
+    }
 }
 
 // ========== MOBILE 2-ROW TAB SYSTEM ==========
