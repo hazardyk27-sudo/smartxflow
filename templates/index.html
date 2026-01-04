@@ -32,9 +32,8 @@
                 </div>
                 <div class="logo-subtitle">Betting money flow monitor</div>
                 <!-- Mobile: Last update next to logo -->
-                <div class="mobile-last-update mobile-only" id="mobileLastUpdate">
-                    <span class="mobile-update-label">Son güncelleme</span>
-                    <span class="mobile-update-time" id="mobileLastUpdateTime">--:--</span>
+                <div class="last-update-info mobile-only" id="mobileLastUpdate">
+                    <span class="last-update-time" id="mobileLastUpdateTime">--:--</span>
                 </div>
             </div>
         </div>
@@ -177,16 +176,17 @@
                         <button class="seg-btn" id="segToday" onclick="setDayFilter('today')">Bugün</button>
                         <button class="seg-btn" id="segYesterday" onclick="setDayFilter('yesterday')">Dün</button>
                     </div>
+                </div>
+                <div class="mobile-filter-right">
+                    <span class="mobile-match-count"><span id="mobileMatchCount">0</span> Maç</span>
                     <button class="mobile-alarm-btn" onclick="toggleAlarmsSidebar()">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                         </svg>
+                        <span class="mobile-alarm-text">Alarmlar</span>
                         <span class="mobile-alarm-badge" id="mobileAlarmBadge">0</span>
                     </button>
-                </div>
-                <div class="mobile-filter-right">
-                    <span class="mobile-match-count"><span id="mobileMatchCount">0</span> Maç</span>
                 </div>
             </div>
 
