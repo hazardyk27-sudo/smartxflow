@@ -1146,6 +1146,74 @@ function renderMobileMoneywayBlock(label, oddsValue, pctValue) {
     `;
 }
 
+// Mobile Odds Card - Shows odds with percentage drop changes (for Dropping/Odds pages)
+function renderMobileOddsCard(match, idx, d, volume, dateStr) {
+    let oddsBlocks = '';
+    
+    if (currentMarket.includes('1x2')) {
+        oddsBlocks = `
+            ${renderMobileOddsBlock('1', d.Odds1 || d['1'], d.Drop1)}
+            ${renderMobileOddsBlock('X', d.OddsX || d['X'], d.DropX)}
+            ${renderMobileOddsBlock('2', d.Odds2 || d['2'], d.Drop2)}
+        `;
+    } else if (currentMarket.includes('ou25')) {
+        oddsBlocks = `
+            ${renderMobileOddsBlock('U 2.5', d.Under, d.DropUnder)}
+            ${renderMobileOddsBlock('O 2.5', d.Over, d.DropOver)}
+        `;
+    } else {
+        oddsBlocks = `
+            ${renderMobileOddsBlock('Yes', d.OddsYes || d.Yes, d.DropYes)}
+            ${renderMobileOddsBlock('No', d.OddsNo || d.No, d.DropNo)}
+        `;
+    }
+    
+    const blockCount = currentMarket.includes('1x2') ? 'three' : 'two';
+    
+    return `
+        <div class="match-card odds-card dropping-card" data-index="${idx}" onclick="openMatchModal(${idx})">
+            <div class="odds-card-header">
+                <div class="odds-card-teams">${match.home_team} – ${match.away_team}</div>
+                <div class="odds-card-volume">${volume}</div>
+            </div>
+            <div class="odds-card-meta">
+                <span>${match.league || '-'}</span>
+                <span class="meta-sep">•</span>
+                <span>${dateStr}</span>
+            </div>
+            <div class="odds-card-row ${blockCount}">
+                ${oddsBlocks}
+            </div>
+        </div>
+    `;
+}
+
+function renderMobileOddsBlock(label, oddsValue, dropValue) {
+    const odds = formatOdds(oddsValue);
+    let dropHtml = '';
+    
+    if (dropValue !== null && dropValue !== undefined) {
+        const dropNum = parseFloat(String(dropValue).replace('%', ''));
+        if (!isNaN(dropNum) && dropNum !== 0) {
+            const dropClass = dropNum > 0 ? 'pct-down' : 'pct-up';
+            const arrow = dropNum > 0 ? '▼' : '▲';
+            dropHtml = `<div class="odds-block-pct ${dropClass}"><span class="trend-icon">${arrow}</span> ${Math.abs(dropNum).toFixed(1)}%</div>`;
+        } else {
+            dropHtml = `<div class="odds-block-pct">—</div>`;
+        }
+    } else {
+        dropHtml = `<div class="odds-block-pct">—</div>`;
+    }
+    
+    return `
+        <div class="odds-block drop-block">
+            <div class="odds-block-label">${label}</div>
+            <div class="odds-block-value">${odds}</div>
+            ${dropHtml}
+        </div>
+    `;
+}
+
 // ========== MOBILE 2-ROW TAB SYSTEM ==========
 
 let mobileGroup = 'moneyway';

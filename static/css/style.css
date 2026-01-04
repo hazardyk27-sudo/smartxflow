@@ -8417,28 +8417,58 @@ table.desktop-only {
         align-items: center;
         position: relative;
         z-index: 100;
+        justify-content: space-between;
     }
     
     .header-left {
         flex: 0 0 auto;
         min-width: 0;
+        display: flex;
+        align-items: center;
     }
     
     .header-right {
+        display: flex !important;
+        align-items: center;
+        gap: 0;
+        flex: 0 0 auto;
+    }
+    
+    /* Hide desktop elements on mobile */
+    .header-right .status-indicator,
+    .header-right .refresh-btn,
+    .header-right .last-update-label,
+    .header-right .last-update-tz {
         display: none !important;
     }
     
-    .header-left {
-        flex: 1;
+    /* Show only last update time on mobile right side */
+    .header-right .last-update-info {
         display: flex;
+        padding: 3px 8px;
+        font-size: 10px;
+        gap: 3px;
+        border-radius: 10px;
+        background: rgba(33, 38, 45, 0.8);
         align-items: center;
-        justify-content: space-between;
+    }
+    
+    .header-right .last-update-time {
+        font-size: 10px;
+        font-weight: 500;
+        color: #E6EDF3;
     }
     
     .logo-container {
         gap: 0;
         display: flex;
         align-items: center;
+        flex-direction: row;
+    }
+    
+    /* Hide mobile last update inside logo container */
+    .logo-container .last-update-info.mobile-only {
+        display: none !important;
     }
     
     .app-logo {
@@ -8455,32 +8485,6 @@ table.desktop-only {
     }
     
     .logo-subtitle {
-        display: none;
-    }
-    
-    /* Mobile: Last update next to logo */
-    .logo-container .last-update-info {
-        display: flex;
-        padding: 3px 6px;
-        font-size: 9px;
-        gap: 3px;
-        border-radius: 10px;
-        background: rgba(33, 38, 45, 0.8);
-        margin-left: 8px;
-        align-items: center;
-    }
-    
-    .logo-container .last-update-label {
-        display: none;
-    }
-    
-    .logo-container .last-update-time {
-        font-size: 9px;
-        font-weight: 500;
-        color: #E6EDF3;
-    }
-    
-    .logo-container .last-update-tz {
         display: none;
     }
 
@@ -8662,6 +8666,13 @@ table.desktop-only {
         color: #58D68D;
         min-width: 14px;
         text-align: center;
+    }
+    
+    /* Ensure alarm text is visible on mobile */
+    .mobile-alarm-text {
+        display: inline !important;
+        font-size: 10px;
+        font-weight: 500;
     }
     
     /* Hide desktop match count on mobile */
