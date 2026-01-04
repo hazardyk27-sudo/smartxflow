@@ -8669,36 +8669,6 @@ table.desktop-only {
         display: none !important;
     }
 
-    /* ========== MOBILE SORT CONTROL ========== */
-    .mobile-sort-control {
-        display: flex !important;
-        align-items: center;
-        justify-content: flex-end;
-        padding: 6px 10px;
-        gap: 6px;
-    }
-    
-    .mobile-sort-label {
-        font-size: 10px;
-        color: #8B949E;
-    }
-    
-    .mobile-sort-select {
-        background: rgba(33, 38, 45, 0.8);
-        border: 1px solid #30363d;
-        border-radius: 6px;
-        padding: 4px 8px;
-        font-size: 10px;
-        color: #E6EDF3;
-        cursor: pointer;
-        font-family: 'Inter', sans-serif;
-    }
-    
-    .mobile-sort-select:focus {
-        outline: none;
-        border-color: #58D68D;
-    }
-
     /* ========== MATCH CARD LIST (Replaces Table) ========== */
     .table-container {
         border-radius: 8px;
@@ -8801,96 +8771,6 @@ table.desktop-only {
     .match-card-arrow {
         color: #484f58;
         font-size: 12px;
-    }
-    
-    /* ========== ODDS CARD SPECIFIC ========== */
-    .match-card-odds {
-        flex-direction: column;
-        align-items: stretch;
-        padding: 10px 12px;
-        gap: 6px;
-    }
-    
-    .match-card-odds .match-card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 8px;
-    }
-    
-    .match-card-odds .match-card-teams {
-        flex: 1;
-        min-width: 0;
-    }
-    
-    .match-card-odds .match-card-volume {
-        flex-shrink: 0;
-        font-size: 11px;
-        padding: 2px 6px;
-        background: rgba(34, 197, 94, 0.15);
-        border-radius: 4px;
-    }
-    
-    .match-card-odds .match-card-meta {
-        margin-bottom: 4px;
-    }
-    
-    /* Mobile Odds Row - 3 blocks */
-    .mobile-odds-row {
-        display: flex;
-        gap: 6px;
-        width: 100%;
-    }
-    
-    .mobile-odds-row-2 {
-        /* For 2 blocks (OU, BTTS) */
-    }
-    
-    .mobile-odds-block {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 6px 4px;
-        background: rgba(33, 38, 45, 0.6);
-        border-radius: 6px;
-        border: 1px solid rgba(48, 54, 61, 0.5);
-    }
-    
-    .mobile-odds-label {
-        font-size: 9px;
-        font-weight: 600;
-        color: #8B949E;
-        margin-bottom: 2px;
-    }
-    
-    .mobile-odds-value {
-        font-size: 14px;
-        font-weight: 700;
-        color: #E6EDF3;
-        line-height: 1.2;
-    }
-    
-    .mobile-odds-drop {
-        font-size: 10px;
-        font-weight: 500;
-        color: #8B949E;
-        margin-top: 2px;
-    }
-    
-    .mobile-odds-drop.drop-negative {
-        color: #F87171;
-    }
-    
-    .mobile-odds-drop.drop-positive {
-        color: #4ADE80;
-    }
-    
-    .mobile-odds-pct {
-        font-size: 10px;
-        font-weight: 500;
-        color: #58D68D;
-        margin-top: 2px;
     }
 
     /* ========== ALARMS SIDEBAR - Full Screen ========== */
