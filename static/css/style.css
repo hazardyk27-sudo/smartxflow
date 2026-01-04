@@ -8772,6 +8772,111 @@ table.desktop-only {
         color: #484f58;
         font-size: 12px;
     }
+    
+    /* ========== MOBILE ODDS CARD (Dropping view) ========== */
+    .match-card.odds-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 12px;
+    }
+    
+    .odds-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .odds-card-teams {
+        font-size: 14px;
+        font-weight: 600;
+        color: #e6edf3;
+        flex: 1;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .odds-card-volume {
+        font-size: 12px;
+        font-weight: 600;
+        color: #22c55e;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    
+    .odds-card-meta {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        color: #8b949e;
+    }
+    
+    .odds-card-meta .meta-sep {
+        color: #484f58;
+    }
+    
+    .odds-card-row {
+        display: flex;
+        gap: 6px;
+        margin-top: 4px;
+    }
+    
+    .odds-card-row.three .odds-block {
+        flex: 1;
+    }
+    
+    .odds-card-row.two .odds-block {
+        flex: 1;
+    }
+    
+    .odds-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: rgba(33, 38, 45, 0.8);
+        border-radius: 6px;
+        padding: 8px 4px;
+        border: 1px solid rgba(48, 54, 61, 0.5);
+    }
+    
+    .odds-block-label {
+        font-size: 10px;
+        font-weight: 500;
+        color: #8b949e;
+        margin-bottom: 2px;
+    }
+    
+    .odds-block-value {
+        font-size: 15px;
+        font-weight: 700;
+        color: #e6edf3;
+        font-family: 'Inter', monospace;
+    }
+    
+    .odds-block-pct {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        font-size: 10px;
+        color: #6e7681;
+        margin-top: 2px;
+    }
+    
+    .odds-block-pct.pct-up {
+        color: #22c55e;
+    }
+    
+    .odds-block-pct.pct-down {
+        color: #ef4444;
+    }
+    
+    .odds-block-pct .trend-icon {
+        font-size: 9px;
+    }
 
     /* ========== ALARMS SIDEBAR - Full Screen ========== */
     .alarms-sidebar {

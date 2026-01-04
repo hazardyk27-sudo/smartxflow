@@ -1033,6 +1033,9 @@ function renderMobileMatchCards(data) {
         return;
     }
     
+    const isDropping = currentMarket.startsWith('dropping');
+    const isMoneyway = currentMarket.startsWith('moneyway');
+    
     const html = data.map((match, idx) => {
         const d = match.details || match.odds || {};
         const volume = formatVolumeCompact(d.Volume);
@@ -1046,6 +1049,12 @@ function renderMobileMatchCards(data) {
             dateStr = match.date || '';
         }
         
+        // Odds view (Dropping): Show odds with percentage changes
+        if (isDropping) {
+            return renderMobileOddsCard(match, idx, d, volume, dateStr);
+        }
+        
+        // Moneyway view: Simple card with volume
         return `
             <div class="match-card" data-index="${idx}" onclick="openMatchModal(${idx})">
                 <div class="match-card-left">
@@ -1065,6 +1074,88 @@ function renderMobileMatchCards(data) {
     }).join('');
     
     cardList.innerHTML = html;
+}
+
+// Mobile Odds Card for Dropping view
+function renderMobileOddsCard(match, idx, d, volume, dateStr) {
+    let oddsBlocks = '';
+    
+    if (currentMarket.includes('1x2')) {
+        // 1X2 market: 3 blocks
+        const trend1Data = getOddsTrendData(match.home_team, match.away_team, 'odds1');
+        const trendXData = getOddsTrendData(match.home_team, match.away_team, 'oddsx');
+        const trend2Data = getOddsTrendData(match.home_team, match.away_team, 'odds2');
+        
+        oddsBlocks = `
+            ${renderMobileOddsBlock('1', d.Odds1 || d['1'], trend1Data)}
+            ${renderMobileOddsBlock('X', d.OddsX || d['X'], trendXData)}
+            ${renderMobileOddsBlock('2', d.Odds2 || d['2'], trend2Data)}
+        `;
+    } else if (currentMarket.includes('ou25')) {
+        // O/U 2.5 market: 2 blocks
+        const trendUnderData = getOddsTrendData(match.home_team, match.away_team, 'under');
+        const trendOverData = getOddsTrendData(match.home_team, match.away_team, 'over');
+        
+        oddsBlocks = `
+            ${renderMobileOddsBlock('U 2.5', d.Under, trendUnderData)}
+            ${renderMobileOddsBlock('O 2.5', d.Over, trendOverData)}
+        `;
+    } else {
+        // BTTS market: 2 blocks
+        const trendYesData = getOddsTrendData(match.home_team, match.away_team, 'oddsyes');
+        const trendNoData = getOddsTrendData(match.home_team, match.away_team, 'oddsno');
+        
+        oddsBlocks = `
+            ${renderMobileOddsBlock('Yes', d.OddsYes || d.Yes, trendYesData)}
+            ${renderMobileOddsBlock('No', d.OddsNo || d.No, trendNoData)}
+        `;
+    }
+    
+    const blockCount = currentMarket.includes('1x2') ? 'three' : 'two';
+    
+    return `
+        <div class="match-card odds-card" data-index="${idx}" onclick="openMatchModal(${idx})">
+            <div class="odds-card-header">
+                <div class="odds-card-teams">${match.home_team} – ${match.away_team}</div>
+                <div class="odds-card-volume">${volume}</div>
+            </div>
+            <div class="odds-card-meta">
+                <span>${match.league || '-'}</span>
+                <span class="meta-sep">•</span>
+                <span>${dateStr}</span>
+            </div>
+            <div class="odds-card-row ${blockCount}">
+                ${oddsBlocks}
+            </div>
+        </div>
+    `;
+}
+
+function renderMobileOddsBlock(label, oddsValue, trendData) {
+    const odds = formatOdds(oddsValue);
+    let pctChange = '—';
+    let pctClass = '';
+    let trendIcon = '';
+    
+    if (trendData && trendData.pctChange !== null && trendData.pctChange !== undefined) {
+        const pct = parseFloat(trendData.pctChange);
+        if (!isNaN(pct) && pct !== 0) {
+            pctChange = (pct > 0 ? '+' : '') + pct.toFixed(1) + '%';
+            pctClass = pct > 0 ? 'pct-up' : 'pct-down';
+            trendIcon = pct > 0 ? '↑' : '↓';
+        }
+    }
+    
+    return `
+        <div class="odds-block">
+            <div class="odds-block-label">${label}</div>
+            <div class="odds-block-value">${odds}</div>
+            <div class="odds-block-pct ${pctClass}">
+                ${trendIcon ? `<span class="trend-icon">${trendIcon}</span>` : ''}
+                <span>${pctChange}</span>
+            </div>
+        </div>
+    `;
 }
 
 // ========== MOBILE 2-ROW TAB SYSTEM ==========
