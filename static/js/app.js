@@ -531,10 +531,20 @@ async function loadMatches(appendMode = false) {
             <tr class="loading-row">
                 <td colspan="${colspan}">
                     <div class="loading-spinner"></div>
-                    Loading matches...
+                    Yükleniyor...
                 </td>
             </tr>
         `;
+        // Mobile loading state
+        const cardList = document.getElementById('matchCardList');
+        if (cardList) {
+            cardList.innerHTML = `
+                <div class="mobile-loading-state">
+                    <div class="loading-spinner"></div>
+                    <span>Yükleniyor...</span>
+                </div>
+            `;
+        }
     }
     
     updateTableHeaders();

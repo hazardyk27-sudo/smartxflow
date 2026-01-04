@@ -8459,29 +8459,24 @@ table.desktop-only {
     }
     
     /* Mobile: Last update next to logo */
-    .logo-container .last-update-info {
+    .mobile-last-update {
         display: flex;
-        padding: 3px 6px;
-        font-size: 9px;
-        gap: 3px;
-        border-radius: 10px;
-        background: rgba(33, 38, 45, 0.8);
+        align-items: baseline;
+        gap: 4px;
         margin-left: 8px;
-        align-items: center;
     }
     
-    .logo-container .last-update-label {
-        display: none;
-    }
-    
-    .logo-container .last-update-time {
+    .mobile-update-label {
         font-size: 9px;
-        font-weight: 500;
-        color: #E6EDF3;
+        color: #6e7681;
+        white-space: nowrap;
     }
     
-    .logo-container .last-update-tz {
-        display: none;
+    .mobile-update-time {
+        font-size: 10px;
+        font-weight: 600;
+        color: #58D68D;
+        white-space: nowrap;
     }
 
     /* ========== TAB BAR - Compact Pills ========== */
@@ -8578,6 +8573,7 @@ table.desktop-only {
     .mobile-filter-left {
         display: flex;
         align-items: center;
+        gap: 8px;
     }
     
     .mobile-filter-right {
@@ -8651,11 +8647,6 @@ table.desktop-only {
         stroke: #8B949E;
     }
     
-    .mobile-alarm-text {
-        font-size: 9px;
-        color: #8B949E;
-    }
-    
     .mobile-alarm-badge {
         font-size: 10px;
         font-weight: 700;
@@ -8685,6 +8676,27 @@ table.desktop-only {
     .match-card-list {
         display: flex;
         flex-direction: column;
+    }
+    
+    /* Mobile Loading State */
+    .mobile-loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+        gap: 12px;
+        color: #8b949e;
+        font-size: 13px;
+    }
+    
+    .mobile-loading-state .loading-spinner {
+        width: 24px;
+        height: 24px;
+        border: 2px solid rgba(88, 214, 141, 0.2);
+        border-top-color: #58D68D;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
     }
     
     .match-card {
