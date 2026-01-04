@@ -8312,27 +8312,32 @@ td.volume,
    ===================================================== */
 
 @media (max-width: 768px) {
-    /* Header - Hamburger Menu */
+    /* Header - Single Row Layout */
     .header {
-        flex-wrap: wrap;
-        height: auto;
-        padding: 10px 12px;
+        display: flex;
+        flex-wrap: nowrap;
+        height: 48px;
+        padding: 0 10px;
         gap: 8px;
+        align-items: center;
     }
     
     .header-left {
-        flex: 1;
+        flex: 0 0 auto;
         min-width: 0;
     }
     
     .header-right {
-        flex-wrap: wrap;
+        flex: 1;
+        display: flex;
+        flex-wrap: nowrap;
         justify-content: flex-end;
+        align-items: center;
         gap: 6px;
     }
     
     .logo-container {
-        gap: 1px;
+        gap: 0;
     }
     
     .app-logo {
@@ -8340,26 +8345,45 @@ td.volume,
     }
     
     .logo-smart, .logo-flow {
-        font-size: 14px;
+        font-size: 12px;
     }
     
     .logo-icon {
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
     }
     
     .logo-subtitle {
-        font-size: 10px;
+        display: none;
     }
     
     .status-indicator {
-        padding: 4px 8px;
-        font-size: 11px;
+        padding: 4px 6px;
+        font-size: 10px;
+        gap: 4px;
+        border-radius: 12px;
+    }
+    
+    .status-indicator .status-text {
+        display: inline;
+        font-size: 9px;
+    }
+    
+    .status-dot {
+        width: 6px;
+        height: 6px;
     }
     
     .refresh-btn {
         padding: 4px 8px;
-        font-size: 11px;
+        font-size: 10px;
+        gap: 4px;
+        border-radius: 12px;
+    }
+    
+    .refresh-btn svg {
+        width: 10px;
+        height: 10px;
     }
     
     .refresh-btn span {
@@ -8367,12 +8391,22 @@ td.volume,
     }
     
     .last-update-info {
-        padding: 4px 8px;
-        font-size: 10px;
+        padding: 4px 6px;
+        font-size: 9px;
+        gap: 3px;
+        border-radius: 12px;
     }
     
     .last-update-label {
         display: none;
+    }
+    
+    .last-update-time {
+        font-size: 9px;
+    }
+    
+    .last-update-tz {
+        font-size: 8px;
     }
     
     /* Alert Band */
@@ -8544,27 +8578,41 @@ td.volume,
 /* Extra Small Screens */
 @media (max-width: 480px) {
     .header {
-        padding: 8px;
+        height: 44px;
+        padding: 0 8px;
+        gap: 4px;
+    }
+    
+    .header-right {
+        gap: 4px;
     }
     
     .logo-smart, .logo-flow {
-        font-size: 12px;
+        font-size: 11px;
     }
     
     .logo-icon {
-        width: 14px;
-        height: 14px;
+        width: 12px;
+        height: 12px;
     }
     
-    .logo-subtitle {
-        display: none;
+    .status-indicator {
+        padding: 3px 5px;
     }
     
     .status-indicator .status-text {
         display: none;
     }
     
+    .refresh-btn {
+        padding: 3px 6px;
+    }
+    
     .last-update-info {
+        padding: 3px 5px;
+    }
+    
+    .last-update-tz {
         display: none;
     }
     
