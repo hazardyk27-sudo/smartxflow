@@ -8416,7 +8416,7 @@ table.desktop-only {
     .header {
         display: flex;
         flex-wrap: nowrap;
-        height: 56px;
+        height: 120px;
         padding: 0 10px;
         gap: 6px;
         align-items: center;
@@ -8497,12 +8497,12 @@ table.desktop-only {
     }
     
     .logo-smart, .logo-flow {
-        font-size: 40px;
+        font-size: 100px;
     }
     
     .logo-icon {
-        width: 42px;
-        height: 42px;
+        width: 106px;
+        height: 106px;
     }
     
     .logo-subtitle {
