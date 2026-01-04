@@ -809,7 +809,7 @@ function formatPct(val) {
     const cleaned = String(val).replace(/[%\s]/g, '');
     const num = parseFloat(cleaned);
     if (isNaN(num)) return '-';
-    return num.toFixed(1) + '%';
+    return '%' + num.toFixed(1);
 }
 
 function cleanPct(val) {
