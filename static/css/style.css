@@ -8296,6 +8296,11 @@ td.volume,
         brightness(1.05);
 }
 
+/* Hide mobile-only last update on desktop */
+.mobile-last-update {
+    display: none;
+}
+
 .logo-subtitle {
     font-size: 12px;
     font-weight: 400;
@@ -8466,8 +8471,24 @@ table.desktop-only {
         flex-direction: row;
     }
     
-    /* Hide mobile last update inside logo container */
-    .logo-container .last-update-info.mobile-only {
+    /* Mobile: Show "Son: 17:40" next to logo - clean, no pill */
+    .mobile-last-update {
+        display: inline-flex !important;
+        align-items: center;
+        margin-left: 8px;
+        font-size: 10px;
+        color: #6e7681;
+        font-weight: 400;
+        white-space: nowrap;
+    }
+    
+    .mobile-last-update #mobileLastUpdateTime {
+        color: #8b949e;
+        margin-left: 2px;
+    }
+    
+    /* Hide header-right last update info on mobile */
+    .header-right .last-update-info {
         display: none !important;
     }
     

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=136">
+    <link rel="stylesheet" href="/static/css/style.css?v=137">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
@@ -31,10 +31,8 @@
                     <span class="logo-flow">FLOW</span>
                 </div>
                 <div class="logo-subtitle">Betting money flow monitor</div>
-                <!-- Mobile: Last update next to logo -->
-                <div class="last-update-info mobile-only" id="mobileLastUpdate">
-                    <span class="last-update-time" id="mobileLastUpdateTime">--:--</span>
-                </div>
+                <!-- Mobile: Last update next to logo (no pill/background) -->
+                <span class="mobile-last-update" id="mobileLastUpdate">Son: <span id="mobileLastUpdateTime">--:--</span></span>
             </div>
         </div>
         <div class="header-right">
