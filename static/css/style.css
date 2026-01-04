@@ -9456,7 +9456,7 @@ table.desktop-only {
         background: transparent !important;
         border: none !important;
         border-radius: 0 !important;
-        border-bottom: 1px solid rgba(48, 54, 61, 0.3) !important;
+        border-bottom: none !important;
         display: flex !important;
         flex-direction: row !important;
         align-items: center !important;
@@ -9504,28 +9504,29 @@ table.desktop-only {
     
     /* Odds value */
     .column-row .row-value.odds {
-        font-size: 15px !important;
-        font-weight: 700 !important;
-        color: #e6edf3 !important;
-        margin-right: 12px !important;
-        min-width: 40px !important;
-    }
-    
-    /* Stake/Money value - compact */
-    .column-row .row-value.money {
-        font-size: 11px !important;
-        color: #4ade80 !important;
-        margin-right: 8px !important;
-        white-space: nowrap !important;
-        max-width: 70px !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-    }
-    
-    /* Percentage - push to right */
-    .column-row .row-value.pct {
-        font-size: 12px !important;
+        font-size: 13px !important;
         font-weight: 600 !important;
+        color: #e6edf3 !important;
+        min-width: 45px !important;
+        text-align: left !important;
+    }
+    
+    /* Stake/Money value */
+    .column-row .row-value.money {
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        color: #4ade80 !important;
+        min-width: 65px !important;
+        text-align: left !important;
+        white-space: nowrap !important;
+    }
+    
+    /* Percentage - aligned */
+    .column-row .row-value.pct {
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        min-width: 50px !important;
+        text-align: right !important;
         margin-left: auto !important;
         white-space: nowrap !important;
     }
