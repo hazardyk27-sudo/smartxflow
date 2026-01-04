@@ -2137,51 +2137,42 @@ function updateMatchInfoCard() {
                     <div class="info-column">
                         <div class="column-header">1</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
                             <span class="row-value odds">${formatOdds(d.Odds1 || d['1'])}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Stake</span>
-                            <span class="row-value money ${c1}">${formatVolume(d.Amt1)}</span>
+                            <span class="row-value pct ${c1}">${formatPct(d.Pct1)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">%</span>
-                            <span class="row-value pct ${c1}">${formatPct(d.Pct1)}</span>
+                            <span class="row-value money ${c1}">${formatVolume(d.Amt1)}</span>
                         </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">X</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
                             <span class="row-value odds">${formatOdds(d.OddsX || d['X'])}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Stake</span>
-                            <span class="row-value money ${cX}">${formatVolume(d.AmtX)}</span>
+                            <span class="row-value pct ${cX}">${formatPct(d.PctX)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">%</span>
-                            <span class="row-value pct ${cX}">${formatPct(d.PctX)}</span>
+                            <span class="row-value money ${cX}">${formatVolume(d.AmtX)}</span>
                         </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">2</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
                             <span class="row-value odds">${formatOdds(d.Odds2 || d['2'])}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Stake</span>
-                            <span class="row-value money ${c2}">${formatVolume(d.Amt2)}</span>
+                            <span class="row-value pct ${c2}">${formatPct(d.Pct2)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">%</span>
-                            <span class="row-value pct ${c2}">${formatPct(d.Pct2)}</span>
+                            <span class="row-value money ${c2}">${formatVolume(d.Amt2)}</span>
                         </div>
                     </div>
                 </div>
                 <div class="volume-bar">
-                    <span class="volume-label">TOTAL VOLUME</span>
+                    <span class="volume-label">TOPLAM HACİM</span>
                     <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;
@@ -2226,38 +2217,32 @@ function updateMatchInfoCard() {
             html = `
                 <div class="info-columns">
                     <div class="info-column">
-                        <div class="column-header">Under 2.5</div>
+                        <div class="column-header">U2.5</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
                             <span class="row-value odds">${formatOdds(d.Under)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Stake</span>
-                            <span class="row-value money ${cU}">${formatVolume(d.AmtUnder)}</span>
+                            <span class="row-value pct ${cU}">${formatPct(d.PctUnder)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">%</span>
-                            <span class="row-value pct ${cU}">${formatPct(d.PctUnder)}</span>
+                            <span class="row-value money ${cU}">${formatVolume(d.AmtUnder)}</span>
                         </div>
                     </div>
                     <div class="info-column">
-                        <div class="column-header">Over 2.5</div>
+                        <div class="column-header">O2.5</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
                             <span class="row-value odds">${formatOdds(d.Over)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Stake</span>
-                            <span class="row-value money ${cO}">${formatVolume(d.AmtOver)}</span>
+                            <span class="row-value pct ${cO}">${formatPct(d.PctOver)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">%</span>
-                            <span class="row-value pct ${cO}">${formatPct(d.PctOver)}</span>
+                            <span class="row-value money ${cO}">${formatVolume(d.AmtOver)}</span>
                         </div>
                     </div>
                 </div>
                 <div class="volume-bar">
-                    <span class="volume-label">Total Volume</span>
+                    <span class="volume-label">TOPLAM HACİM</span>
                     <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;
@@ -2295,38 +2280,32 @@ function updateMatchInfoCard() {
             html = `
                 <div class="info-columns">
                     <div class="info-column">
-                        <div class="column-header">Yes</div>
+                        <div class="column-header">Evet</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
                             <span class="row-value odds">${formatOdds(d.OddsYes || d.Yes)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Stake</span>
-                            <span class="row-value money ${cY}">${formatVolume(d.AmtYes)}</span>
+                            <span class="row-value pct ${cY}">${formatPct(d.PctYes)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">%</span>
-                            <span class="row-value pct ${cY}">${formatPct(d.PctYes)}</span>
+                            <span class="row-value money ${cY}">${formatVolume(d.AmtYes)}</span>
                         </div>
                     </div>
                     <div class="info-column">
-                        <div class="column-header">No</div>
+                        <div class="column-header">Hayır</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
                             <span class="row-value odds">${formatOdds(d.OddsNo || d.No)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Stake</span>
-                            <span class="row-value money ${cN}">${formatVolume(d.AmtNo)}</span>
+                            <span class="row-value pct ${cN}">${formatPct(d.PctNo)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">%</span>
-                            <span class="row-value pct ${cN}">${formatPct(d.PctNo)}</span>
+                            <span class="row-value money ${cN}">${formatVolume(d.AmtNo)}</span>
                         </div>
                     </div>
                 </div>
                 <div class="volume-bar">
-                    <span class="volume-label">Total Volume</span>
+                    <span class="volume-label">TOPLAM HACİM</span>
                     <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;
@@ -6070,7 +6049,7 @@ async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, home
 // ============================================
 
 let cachedAllAlarms = null;
-let smartMoneySectionOpen = true;
+let smartMoneySectionOpen = false;
 
 async function loadAllAlarmsOnce(forceRefresh = false) {
     // Use centralized cache system
@@ -6149,9 +6128,17 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
     
     hideSmartMoneyLoading();
     
-    smartMoneySectionOpen = true;
-    chevron.textContent = '▼';
-    grid.style.display = 'grid';
+    // Start collapsed on mobile
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+        smartMoneySectionOpen = false;
+        chevron.textContent = '▶';
+        grid.style.display = 'none';
+    } else {
+        smartMoneySectionOpen = true;
+        chevron.textContent = '▼';
+        grid.style.display = 'grid';
+    }
     
     if (matchAlarms.length === 0) {
         grid.style.display = 'none';
