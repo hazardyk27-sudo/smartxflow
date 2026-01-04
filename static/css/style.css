@@ -9510,23 +9510,26 @@ table.desktop-only {
         font-size: 14px !important;
         font-weight: 700 !important;
         color: #e6edf3 !important;
-        min-width: 50px !important;
+        min-width: 45px !important;
+        text-align: left !important;
     }
     
-    /* Stake value - muted green */
+    /* Stake value - same size as pct */
     .row-value.money {
-        font-size: 11px !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
         color: #4ade80 !important;
-        margin-left: 8px !important;
-        min-width: 70px !important;
+        min-width: 75px !important;
+        text-align: right !important;
     }
     
-    /* Percentage - right aligned */
+    /* Percentage - same size as money */
     .row-value.pct {
-        font-size: 11px !important;
+        font-size: 12px !important;
         font-weight: 500 !important;
+        min-width: 50px !important;
+        text-align: right !important;
         margin-left: auto !important;
-        padding-right: 4px !important;
     }
     
     /* Old column-value classes - override */
@@ -9541,12 +9544,14 @@ table.desktop-only {
     }
     
     .column-value.money {
-        font-size: 11px !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
         color: #4ade80 !important;
     }
     
     .column-value.pct {
-        font-size: 11px !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
     }
     
     /* Total Volume - minimal */
