@@ -1121,10 +1121,12 @@ function renderMobileMoneywayCard(match, idx, d, volume, dateStr) {
     
     const blockCount = currentMarket.includes('1x2') ? 'three' : 'two';
     
+    const matchStatus = getMatchStatus(match.date);
+    
     return `
         <div class="match-card odds-card moneyway-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
-                <div class="odds-card-teams">${match.home_team} – ${match.away_team}</div>
+                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${matchStatus}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
             <div class="odds-card-meta">
@@ -1192,11 +1194,12 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr) {
     }
     
     const blockCount = currentMarket.includes('1x2') ? 'three' : 'two';
+    const matchStatus = getMatchStatus(match.date);
     
     return `
         <div class="match-card odds-card dropping-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
-                <div class="odds-card-teams">${match.home_team} – ${match.away_team}</div>
+                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${matchStatus}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
             <div class="odds-card-meta">
