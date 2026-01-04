@@ -9143,3 +9143,103 @@ table.desktop-only {
         scroll-behavior: smooth;
     }
 }
+
+/* =====================================================
+   MOBILE HEADER - FINAL OVERRIDE (Must be last!)
+   Logo left with slogan, Son güncelleme right
+   ===================================================== */
+@media (max-width: 768px) {
+    .header {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        height: 56px !important;
+        padding: 8px 12px !important;
+    }
+    
+    .header-left {
+        display: flex !important;
+        align-items: center !important;
+    }
+    
+    .logo-container {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 1px !important;
+    }
+    
+    .app-logo {
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+    }
+    
+    .logo-smart, .logo-flow {
+        font-size: 18px !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.5px !important;
+    }
+    
+    .logo-icon {
+        width: 20px !important;
+        height: 20px !important;
+    }
+    
+    .logo-subtitle {
+        display: block !important;
+        font-size: 9px !important;
+        color: #8b949e !important;
+        opacity: 0.9 !important;
+        margin-top: 1px !important;
+    }
+    
+    .header-right {
+        display: flex !important;
+        align-items: center !important;
+    }
+    
+    .header-right .status-indicator,
+    .header-right .refresh-btn,
+    .header-right .last-update-info {
+        display: none !important;
+    }
+    
+    .mobile-last-update {
+        display: flex !important;
+        align-items: center !important;
+        font-size: 12px !important;
+        color: #6e7681 !important;
+        white-space: nowrap !important;
+    }
+    
+    .mobile-last-update #mobileLastUpdateTime {
+        color: #8b949e !important;
+        margin-left: 3px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .header {
+        height: 52px !important;
+        padding: 6px 10px !important;
+    }
+    
+    .logo-smart, .logo-flow {
+        font-size: 16px !important;
+    }
+    
+    .logo-icon {
+        width: 18px !important;
+        height: 18px !important;
+    }
+    
+    .logo-subtitle {
+        font-size: 8px !important;
+    }
+    
+    .mobile-last-update {
+        font-size: 11px !important;
+    }
+}
