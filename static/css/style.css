@@ -8436,68 +8436,58 @@ table.desktop-only {
     
     /* ---- LAYER B: Market Selection (1X2 | 2.5 | BTTS) ---- */
     .mobile-tab-row.market-row {
-        display: flex;
-        width: 100%;
-        background: rgba(22, 27, 34, 0.8);
-        border-radius: 0;
-        padding: 6px 12px;
-        gap: 4px;
-        border-bottom: 1px solid rgba(48, 54, 61, 0.4);
+        display: flex !important;
+        width: 100% !important;
+        background: transparent !important;
+        border-radius: 0 !important;
+        padding: 8px 16px !important;
+        gap: 8px !important;
+        border-bottom: 1px solid rgba(48, 54, 61, 0.3) !important;
     }
     
     .mobile-tab-row.market-row .mobile-tab-btn {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
-        padding: 8px 6px;
-        font-size: 12px;
-        font-weight: 500;
-        color: #6e7681;
-        background: transparent;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: all 0.18s ease;
-        white-space: nowrap;
+        flex: 1 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+        padding: 10px 8px !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
+        color: #6e7681 !important;
+        background: transparent !important;
+        border: none !important;
+        border-radius: 6px !important;
+        cursor: pointer !important;
+        transition: all 0.18s ease !important;
+        white-space: nowrap !important;
+        position: relative !important;
     }
     
     .mobile-tab-row.market-row .mobile-tab-btn::before {
-        content: '';
-        width: 0;
-        height: 0;
-        background: #4ade80;
-        border-radius: 50%;
-        transition: all 0.18s ease;
+        content: '' !important;
+        width: 0 !important;
+        height: 0 !important;
+        background: #4ade80 !important;
+        border-radius: 50% !important;
+        transition: all 0.18s ease !important;
+        flex-shrink: 0 !important;
     }
     
     .mobile-tab-row.market-row .mobile-tab-btn.active {
-        color: #4ade80;
-        font-weight: 600;
-        background: rgba(74, 222, 128, 0.08);
+        color: #4ade80 !important;
+        font-weight: 600 !important;
+        background: rgba(74, 222, 128, 0.1) !important;
     }
     
     .mobile-tab-row.market-row .mobile-tab-btn.active::before {
-        width: 5px;
-        height: 5px;
+        width: 6px !important;
+        height: 6px !important;
     }
     
     .mobile-tab-row.market-row .mobile-tab-btn:active {
-        opacity: 0.8;
-    }
-    
-    /* Legacy fallback - remove old styles */
-    .mobile-tab-row {
-        display: flex;
-        width: 100%;
-    }
-    
-    .mobile-tab-btn {
-        flex: 1;
-        background: transparent;
-        border: none;
-        cursor: pointer;
+        opacity: 0.7 !important;
+        transform: scale(0.98) !important;
     }
     
     /* ========== SAFE AREA + OVERFLOW FIX ========== */
