@@ -1151,20 +1151,30 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr) {
     let oddsBlocks = '';
     
     if (currentMarket.includes('1x2')) {
+        const trend1 = getOddsTrendData(match.home_team, match.away_team, 'odds1');
+        const trendX = getOddsTrendData(match.home_team, match.away_team, 'oddsx');
+        const trend2 = getOddsTrendData(match.home_team, match.away_team, 'odds2');
+        
         oddsBlocks = `
-            ${renderMobileOddsBlock('1', d.Odds1 || d['1'], d.Drop1)}
-            ${renderMobileOddsBlock('X', d.OddsX || d['X'], d.DropX)}
-            ${renderMobileOddsBlock('2', d.Odds2 || d['2'], d.Drop2)}
+            ${renderMobileOddsBlock('1', d.Odds1 || d['1'], trend1)}
+            ${renderMobileOddsBlock('X', d.OddsX || d['X'], trendX)}
+            ${renderMobileOddsBlock('2', d.Odds2 || d['2'], trend2)}
         `;
     } else if (currentMarket.includes('ou25')) {
+        const trendUnder = getOddsTrendData(match.home_team, match.away_team, 'under');
+        const trendOver = getOddsTrendData(match.home_team, match.away_team, 'over');
+        
         oddsBlocks = `
-            ${renderMobileOddsBlock('U 2.5', d.Under, d.DropUnder)}
-            ${renderMobileOddsBlock('O 2.5', d.Over, d.DropOver)}
+            ${renderMobileOddsBlock('U 2.5', d.Under, trendUnder)}
+            ${renderMobileOddsBlock('O 2.5', d.Over, trendOver)}
         `;
     } else {
+        const trendYes = getOddsTrendData(match.home_team, match.away_team, 'yes');
+        const trendNo = getOddsTrendData(match.home_team, match.away_team, 'no');
+        
         oddsBlocks = `
-            ${renderMobileOddsBlock('Yes', d.OddsYes || d.Yes, d.DropYes)}
-            ${renderMobileOddsBlock('No', d.OddsNo || d.No, d.DropNo)}
+            ${renderMobileOddsBlock('Yes', d.OddsYes || d.Yes, trendYes)}
+            ${renderMobileOddsBlock('No', d.OddsNo || d.No, trendNo)}
         `;
     }
     
@@ -1188,16 +1198,17 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr) {
     `;
 }
 
-function renderMobileOddsBlock(label, oddsValue, dropValue) {
+function renderMobileOddsBlock(label, oddsValue, trendData) {
     const odds = formatOdds(oddsValue);
     let dropHtml = '';
     
-    if (dropValue !== null && dropValue !== undefined) {
-        const dropNum = parseFloat(String(dropValue).replace('%', ''));
-        if (!isNaN(dropNum) && dropNum !== 0) {
-            const dropClass = dropNum > 0 ? 'pct-down' : 'pct-up';
-            const arrow = dropNum > 0 ? '▼' : '▲';
-            dropHtml = `<div class="odds-block-pct ${dropClass}"><span class="trend-icon">${arrow}</span> ${Math.abs(dropNum).toFixed(1)}%</div>`;
+    if (trendData && trendData.pct_change !== null && trendData.pct_change !== undefined) {
+        const pctChange = trendData.pct_change;
+        if (pctChange !== 0) {
+            const isDown = trendData.trend === 'down';
+            const dropClass = isDown ? 'pct-down' : 'pct-up';
+            const arrow = isDown ? '▼' : '▲';
+            dropHtml = `<div class="odds-block-pct ${dropClass}"><span class="trend-icon">${arrow}</span> ${Math.abs(pctChange).toFixed(1)}%</div>`;
         } else {
             dropHtml = `<div class="odds-block-pct">—</div>`;
         }
