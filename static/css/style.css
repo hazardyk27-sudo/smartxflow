@@ -359,24 +359,47 @@ h1, h2, h3, h4, h5, h6,
     padding: var(--space-md) var(--space-xl);
     background: transparent;
     border: none;
-    color: #8b949e;
+    color: #6e7681;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
-    border-radius: var(--space-sm);
-    transition: all 0.2s;
+    border-radius: 0;
+    transition: all 0.18s ease;
     white-space: nowrap;
     font-family: 'Inter', sans-serif;
+    position: relative;
+}
+
+.tab::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 2px;
+    background: #4ade80;
+    border-radius: 1px;
+    transition: width 0.18s ease;
 }
 
 .tab:hover {
-    background: #1E2530;
+    background: transparent;
     color: #c9d1d9;
 }
 
 .tab.active {
-    background: #238636;
-    color: #fff;
+    background: transparent;
+    color: #4ade80;
+    font-weight: 600;
+}
+
+.tab.active::after {
+    width: 70%;
+}
+
+.tab.active svg {
+    stroke: #4ade80;
 }
 
 .main-content {
