@@ -8369,40 +8369,38 @@ table.desktop-only {
         display: none !important;
     }
     
-    /* ========== MOBILE 2-ROW TAB SYSTEM - Ultra Compact Premium ========== */
+    /* ========== MOBILE 2-ROW TAB SYSTEM - Ultra Minimal ========== */
     .mobile-tab-system {
         display: flex !important;
         flex-direction: column;
         gap: 0;
         padding: 0;
-        background: #0d1117;
+        background: transparent;
     }
     
-    /* ---- LAYER A: Group Selection (Moneyway | Odds) - Thin Segmented ---- */
+    /* ---- LAYER A: Group Selection (Moneyway | Odds) ---- */
     .mobile-tab-row.group-row {
         display: flex;
         width: 100%;
         background: transparent;
-        border-radius: 0;
-        padding: 0;
+        padding: 0 16px;
         gap: 0;
-        border-bottom: 1px solid rgba(48, 54, 61, 0.3);
+        border: none;
     }
     
     .mobile-tab-row.group-row .mobile-tab-btn {
-        flex: 1;
-        display: flex;
+        flex: 0 0 auto;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 10px 6px;
-        font-size: 13px;
+        padding: 8px 12px;
+        font-size: 12px;
         font-weight: 500;
-        color: #6e7681;
+        color: #484f58;
         background: transparent;
         border: none;
-        border-radius: 0;
         cursor: pointer;
-        transition: all 0.15s ease;
+        transition: color 0.12s ease;
         white-space: nowrap;
         position: relative;
     }
@@ -8410,58 +8408,54 @@ table.desktop-only {
     .mobile-tab-row.group-row .mobile-tab-btn::after {
         content: '';
         position: absolute;
-        bottom: -1px;
+        bottom: 0;
         left: 50%;
         transform: translateX(-50%);
         width: 0;
-        height: 2px;
+        height: 1.5px;
         background: #4ade80;
-        border-radius: 1px;
-        transition: width 0.15s ease;
+        transition: width 0.12s ease;
     }
     
     .mobile-tab-row.group-row .mobile-tab-btn.active {
-        color: #58d68d;
-        font-weight: 600;
-        background: transparent;
+        color: #8b949e;
+        font-weight: 500;
     }
     
     .mobile-tab-row.group-row .mobile-tab-btn.active::after {
-        width: 40px;
+        width: 100%;
     }
     
     .mobile-tab-row.group-row .mobile-tab-btn:active {
-        opacity: 0.7;
+        opacity: 0.6;
     }
     
-    /* ---- LAYER B: Market Selection (1X2 | 2.5 | BTTS) - Compact Pills ---- */
+    /* ---- LAYER B: Market Selection (1X2 | 2.5 | BTTS) ---- */
     .mobile-tab-row.market-row {
         display: flex !important;
         width: 100% !important;
         background: transparent !important;
-        border-radius: 0 !important;
-        padding: 4px 12px 6px !important;
-        gap: 6px !important;
-        border-bottom: 1px solid rgba(48, 54, 61, 0.25) !important;
+        padding: 2px 16px 6px !important;
+        gap: 0 !important;
+        border: none !important;
+        border-bottom: 1px solid rgba(48, 54, 61, 0.15) !important;
     }
     
     .mobile-tab-row.market-row .mobile-tab-btn {
-        flex: 1 !important;
-        display: flex !important;
+        flex: 0 0 auto !important;
+        display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
         gap: 4px !important;
-        padding: 6px 4px !important;
+        padding: 4px 10px !important;
         font-size: 11px !important;
         font-weight: 500 !important;
-        color: #6e7681 !important;
+        color: #484f58 !important;
         background: transparent !important;
         border: none !important;
-        border-radius: 4px !important;
         cursor: pointer !important;
-        transition: all 0.15s ease !important;
+        transition: color 0.12s ease !important;
         white-space: nowrap !important;
-        position: relative !important;
     }
     
     .mobile-tab-row.market-row .mobile-tab-btn::before {
@@ -8470,23 +8464,22 @@ table.desktop-only {
         height: 0 !important;
         background: #4ade80 !important;
         border-radius: 50% !important;
-        transition: all 0.15s ease !important;
+        transition: all 0.12s ease !important;
         flex-shrink: 0 !important;
     }
     
     .mobile-tab-row.market-row .mobile-tab-btn.active {
-        color: #58d68d !important;
-        font-weight: 600 !important;
-        background: rgba(74, 222, 128, 0.06) !important;
+        color: #8b949e !important;
+        background: transparent !important;
     }
     
     .mobile-tab-row.market-row .mobile-tab-btn.active::before {
-        width: 4px !important;
-        height: 4px !important;
+        width: 3px !important;
+        height: 3px !important;
     }
     
     .mobile-tab-row.market-row .mobile-tab-btn:active {
-        opacity: 0.6 !important;
+        opacity: 0.5 !important;
     }
     
     /* ========== SAFE AREA + OVERFLOW FIX ========== */
