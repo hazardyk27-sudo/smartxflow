@@ -8458,30 +8458,24 @@ table.desktop-only {
         display: none;
     }
     
-    /* Mobile: Last update next to logo */
-    .logo-container .last-update-info {
+    /* Mobile Header: Logo left, Last update right */
+    .mobile-last-update {
         display: flex;
-        padding: 3px 6px;
-        font-size: 9px;
-        gap: 3px;
-        border-radius: 10px;
-        background: rgba(33, 38, 45, 0.8);
-        margin-left: 8px;
         align-items: center;
+        gap: 4px;
     }
     
-    .logo-container .last-update-label {
-        display: none;
-    }
-    
-    .logo-container .last-update-time {
+    .mobile-update-label {
         font-size: 9px;
-        font-weight: 500;
-        color: #E6EDF3;
+        color: #6e7681;
+        white-space: nowrap;
     }
     
-    .logo-container .last-update-tz {
-        display: none;
+    .mobile-update-time {
+        font-size: 10px;
+        font-weight: 600;
+        color: #58D68D;
+        white-space: nowrap;
     }
 
     /* ========== TAB BAR - Compact Pills ========== */
@@ -8649,6 +8643,11 @@ table.desktop-only {
         width: 12px;
         height: 12px;
         stroke: #8B949E;
+    }
+    
+    .mobile-alarm-text {
+        font-size: 9px;
+        color: #8B949E;
     }
     
     .mobile-alarm-text {
