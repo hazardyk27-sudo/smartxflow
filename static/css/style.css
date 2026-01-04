@@ -9525,6 +9525,14 @@ table.desktop-only {
         white-space: nowrap !important;
     }
     
+    /* Separator between pct and money */
+    .column-row .row-value.pct::after {
+        content: '·' !important;
+        margin: 0 6px !important;
+        color: rgba(110, 118, 129, 0.4) !important;
+        font-weight: 300 !important;
+    }
+    
     /* Stake/Money value - TERTIARY (üçüncül) */
     .column-row .row-value.money {
         font-size: 11px !important;
@@ -9533,7 +9541,6 @@ table.desktop-only {
         min-width: 55px !important;
         text-align: right !important;
         white-space: nowrap !important;
-        margin-left: 8px !important;
     }
     
     /* Volume bar - simple text */
@@ -9565,25 +9572,26 @@ table.desktop-only {
     .smart-money-header {
         padding: 6px 10px !important;
         background: transparent !important;
-        border: 1px solid rgba(48, 54, 61, 0.25) !important;
+        border: 1px solid rgba(48, 54, 61, 0.15) !important;
         border-radius: 4px !important;
     }
     
     .smart-money-icon {
-        font-size: 10px !important;
+        font-size: 9px !important;
+        opacity: 0.7 !important;
     }
     
     .smart-money-title {
-        font-size: 10px !important;
+        font-size: 9px !important;
         font-weight: 500 !important;
-        color: #6e7681 !important;
+        color: #484f58 !important;
         text-transform: uppercase !important;
         letter-spacing: 0.5px !important;
     }
     
     .smart-money-chevron {
-        font-size: 8px !important;
-        color: #484f58 !important;
+        font-size: 7px !important;
+        color: #3d444d !important;
     }
     
     .smart-money-grid {
@@ -9643,15 +9651,16 @@ table.desktop-only {
     
     /* === CHART LEGEND FILTERS - Compact === */
     .chart-legend-filters {
-        gap: 6px !important;
+        gap: 5px !important;
+        margin-top: 10px !important;
         margin-bottom: 8px !important;
         flex-wrap: wrap !important;
     }
     
     .legend-item {
-        padding: 4px 8px !important;
-        font-size: 10px !important;
-        border-radius: 4px !important;
+        padding: 3px 6px !important;
+        font-size: 9px !important;
+        border-radius: 3px !important;
     }
     
     /* === VOLUME DISPLAY - Simple Text === */
