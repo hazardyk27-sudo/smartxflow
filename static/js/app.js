@@ -2141,12 +2141,12 @@ function updateMatchInfoCard() {
                             <span class="row-value odds">${formatOdds(d.Odds1 || d['1'])}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">%</span>
-                            <span class="row-value pct ${c1}">${formatPct(d.Pct1)}</span>
-                        </div>
-                        <div class="column-row">
                             <span class="row-label">Stake</span>
                             <span class="row-value money ${c1}">${formatVolume(d.Amt1)}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">%</span>
+                            <span class="row-value pct ${c1}">${formatPct(d.Pct1)}</span>
                         </div>
                     </div>
                     <div class="info-column">
@@ -2156,12 +2156,12 @@ function updateMatchInfoCard() {
                             <span class="row-value odds">${formatOdds(d.OddsX || d['X'])}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">%</span>
-                            <span class="row-value pct ${cX}">${formatPct(d.PctX)}</span>
-                        </div>
-                        <div class="column-row">
                             <span class="row-label">Stake</span>
                             <span class="row-value money ${cX}">${formatVolume(d.AmtX)}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">%</span>
+                            <span class="row-value pct ${cX}">${formatPct(d.PctX)}</span>
                         </div>
                     </div>
                     <div class="info-column">
@@ -2171,12 +2171,12 @@ function updateMatchInfoCard() {
                             <span class="row-value odds">${formatOdds(d.Odds2 || d['2'])}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">%</span>
-                            <span class="row-value pct ${c2}">${formatPct(d.Pct2)}</span>
-                        </div>
-                        <div class="column-row">
                             <span class="row-label">Stake</span>
                             <span class="row-value money ${c2}">${formatVolume(d.Amt2)}</span>
+                        </div>
+                        <div class="column-row">
+                            <span class="row-label">%</span>
+                            <span class="row-value pct ${c2}">${formatPct(d.Pct2)}</span>
                         </div>
                     </div>
                 </div>
