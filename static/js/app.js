@@ -1033,6 +1033,9 @@ function renderMobileMatchCards(data) {
         return;
     }
     
+    const isDropping = currentMarket.startsWith('dropping');
+    const isMoneyway = currentMarket.startsWith('moneyway');
+    
     const html = data.map((match, idx) => {
         const d = match.details || match.odds || {};
         const volume = formatVolumeCompact(d.Volume);
@@ -1046,6 +1049,17 @@ function renderMobileMatchCards(data) {
             dateStr = match.date || '';
         }
         
+        // Moneyway view: Show odds with percentage donut
+        if (isMoneyway) {
+            return renderMobileMoneywayCard(match, idx, d, volume, dateStr);
+        }
+        
+        // Dropping view: Show odds with percentage changes
+        if (isDropping) {
+            return renderMobileOddsCard(match, idx, d, volume, dateStr);
+        }
+        
+        // Default card
         return `
             <div class="match-card" data-index="${idx}" onclick="openMatchModal(${idx})">
                 <div class="match-card-left">
@@ -1065,6 +1079,71 @@ function renderMobileMatchCards(data) {
     }).join('');
     
     cardList.innerHTML = html;
+}
+
+// Mobile Moneyway Card - Shows odds with betting percentages
+function renderMobileMoneywayCard(match, idx, d, volume, dateStr) {
+    let oddsBlocks = '';
+    
+    if (currentMarket.includes('1x2')) {
+        // 1X2 market: 3 blocks with percentages
+        oddsBlocks = `
+            ${renderMobileMoneywayBlock('1', d.Odds1 || d['1'], d.Pct1)}
+            ${renderMobileMoneywayBlock('X', d.OddsX || d['X'], d.PctX)}
+            ${renderMobileMoneywayBlock('2', d.Odds2 || d['2'], d.Pct2)}
+        `;
+    } else if (currentMarket.includes('ou25')) {
+        // O/U 2.5 market: 2 blocks
+        oddsBlocks = `
+            ${renderMobileMoneywayBlock('U 2.5', d.Under, d.PctUnder)}
+            ${renderMobileMoneywayBlock('O 2.5', d.Over, d.PctOver)}
+        `;
+    } else {
+        // BTTS market: 2 blocks
+        oddsBlocks = `
+            ${renderMobileMoneywayBlock('Yes', d.OddsYes || d.Yes, d.PctYes)}
+            ${renderMobileMoneywayBlock('No', d.OddsNo || d.No, d.PctNo)}
+        `;
+    }
+    
+    const blockCount = currentMarket.includes('1x2') ? 'three' : 'two';
+    
+    return `
+        <div class="match-card odds-card moneyway-card" data-index="${idx}" onclick="openMatchModal(${idx})">
+            <div class="odds-card-header">
+                <div class="odds-card-teams">${match.home_team} – ${match.away_team}</div>
+                <div class="odds-card-volume">${volume}</div>
+            </div>
+            <div class="odds-card-meta">
+                <span>${match.league || '-'}</span>
+                <span class="meta-sep">•</span>
+                <span>${dateStr}</span>
+            </div>
+            <div class="odds-card-row ${blockCount}">
+                ${oddsBlocks}
+            </div>
+        </div>
+    `;
+}
+
+function renderMobileMoneywayBlock(label, oddsValue, pctValue) {
+    const odds = formatOdds(oddsValue);
+    let pct = '—';
+    
+    if (pctValue !== null && pctValue !== undefined) {
+        const pctNum = parseFloat(String(pctValue).replace('%', ''));
+        if (!isNaN(pctNum)) {
+            pct = pctNum.toFixed(0) + '%';
+        }
+    }
+    
+    return `
+        <div class="odds-block mw-block">
+            <div class="odds-block-label">${label}</div>
+            <div class="odds-block-value">${odds}</div>
+            <div class="odds-block-pct mw-pct">${pct}</div>
+        </div>
+    `;
 }
 
 // ========== MOBILE 2-ROW TAB SYSTEM ==========
