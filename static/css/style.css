@@ -242,7 +242,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .last-update-label {
-    color: var(--color-text-muted);
+    color: #4ade80;
 }
 
 .last-update-time {
@@ -9210,13 +9210,14 @@ table.desktop-only {
         display: flex !important;
         align-items: center !important;
         font-size: 12px !important;
-        color: #6e7681 !important;
+        color: #4ade80 !important;
         white-space: nowrap !important;
     }
     
     .mobile-last-update #mobileLastUpdateTime {
-        color: #8b949e !important;
+        color: #4ade80 !important;
         margin-left: 3px !important;
+        font-weight: 600 !important;
     }
 }
 
