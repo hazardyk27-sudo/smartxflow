@@ -8722,13 +8722,14 @@ table.desktop-only {
         font-weight: 600;
     }
     
-    /* Mobile Alarm Button - Compact icon-only style */
+    /* Mobile Alarm Button */
     .mobile-alarm-btn {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 3px;
-        padding: 5px 8px;
+        gap: 4px;
+        padding: 5px 10px;
+        margin-left: 6px;
         background: rgba(33, 38, 45, 0.8);
         border: none;
         border-radius: 6px;
@@ -8745,6 +8746,12 @@ table.desktop-only {
         width: 12px;
         height: 12px;
         stroke: #8B949E;
+    }
+    
+    .mobile-alarm-text {
+        font-size: 10px;
+        font-weight: 500;
+        color: #8B949E;
     }
     
     .mobile-alarm-badge {
