@@ -5,15 +5,20 @@
 import os
 import sys
 import certifi
+from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
 
 block_cipher = None
 
 certifi_path = os.path.dirname(certifi.where())
 
+# Collect pywebview data files and dlls
+webview_datas = collect_data_files('webview')
+webview_binaries = collect_dynamic_libs('webview')
+
 a = Analysis(
     ['desktop_app.py'],
     pathex=['.'],
-    binaries=[],
+    binaries=webview_binaries,
     datas=[
         ('smartxflow.ico', '.'),
         (certifi_path, 'certifi'),
@@ -22,21 +27,29 @@ a = Analysis(
         ('static', 'static'),
         ('services', 'services'),
         ('core', 'core'),
-    ],
+    ] + webview_datas,
     hiddenimports=[
         'flask',
         'flask.json',
         'jinja2',
         'werkzeug',
+        'werkzeug.serving',
         'markupsafe',
         'itsdangerous',
         'click',
         'webview',
+        'webview.platforms',
         'webview.platforms.edgechromium',
+        'webview.platforms.winforms',
         'clr_loader',
         'pythonnet',
         'requests',
         'httpx',
+        'httpx._transports',
+        'httpx._transports.default',
+        'httpcore',
+        'h11',
+        'h2',
         'bs4',
         'pytz',
         'certifi',
