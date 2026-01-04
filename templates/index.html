@@ -156,16 +156,32 @@
                         </svg>
                         Dünün Maçları
                     </button>
-                    <!-- Mobile: Segmented Control -->
-                    <div class="day-filter-segment mobile-only" id="dayFilterSegment">
+                </div>
+                
+                <!-- Desktop: Match count -->
+                <div class="match-count desktop-only">
+                    <span id="matchCount">0</span> Matches
+                </div>
+            </div>
+            
+            <!-- Mobile: Filter Bar (below search) -->
+            <div class="mobile-filter-bar mobile-only">
+                <div class="mobile-filter-left">
+                    <div class="day-filter-segment" id="dayFilterSegment">
                         <button class="seg-btn active" id="segAll" onclick="setDayFilter('all')">Tümü</button>
                         <button class="seg-btn" id="segToday" onclick="setDayFilter('today')">Bugün</button>
                         <button class="seg-btn" id="segYesterday" onclick="setDayFilter('yesterday')">Dün</button>
                     </div>
                 </div>
-                
-                <div class="match-count">
-                    <span id="matchCount">0</span> Matches
+                <div class="mobile-filter-right">
+                    <span class="mobile-match-count" id="mobileMatchCount">0</span>
+                    <button class="mobile-alarm-btn" onclick="toggleAlarmsSidebar()">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        <span class="mobile-alarm-badge" id="mobileAlarmBadge">0</span>
+                    </button>
                 </div>
             </div>
 

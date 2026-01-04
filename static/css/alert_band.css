@@ -833,16 +833,22 @@
    ===================================================== */
 
 @media (max-width: 768px) {
+    /* Hide alarm button from band on mobile - moved to filter bar */
+    .btn-alarms {
+        display: none !important;
+    }
+    
     .alert-band {
-        height: 32px;
+        height: 28px;
         padding: 0;
         position: relative;
         z-index: 99;
     }
     
     .alert-band-track {
-        padding: 0 8px;
+        padding: 0 10px;
         gap: 6px;
+        width: 100%;
     }
     
     .alert-band-track-inner {
@@ -851,7 +857,7 @@
     
     .ab-pill {
         padding: 2px 6px;
-        height: 22px;
+        height: 20px;
         border-radius: 6px;
         font-size: 9px;
     }
@@ -863,46 +869,23 @@
     }
     
     .ab-match {
-        font-size: 10px;
-        max-width: 80px;
+        font-size: 9px;
+        max-width: 70px;
         overflow: hidden;
         text-overflow: ellipsis;
     }
     
     .ab-value {
-        font-size: 9px;
+        font-size: 8px;
         padding: 1px 4px;
     }
     
     .ab-time {
-        font-size: 8px;
-    }
-    
-    .btn-alarms {
-        padding: 4px 8px;
-        font-size: 9px;
-        gap: 4px;
-        height: 100%;
-        border-left: 1px solid #30363d;
-    }
-    
-    .btn-alarms svg {
-        width: 12px;
-        height: 12px;
-    }
-    
-    .btn-alarms span:not(.alarms-badge) {
-        display: none;
-    }
-    
-    .alarms-badge {
-        font-size: 9px;
-        padding: 1px 4px;
-        min-width: 14px;
+        font-size: 7px;
     }
     
     .alert-band-empty {
-        font-size: 10px;
+        font-size: 9px;
     }
 }
 

@@ -808,9 +808,13 @@ function renderMatches(data) {
     console.log('[renderMatches] Called with', data?.length || 0, 'matches');
     const tbody = document.getElementById('matchesTableBody');
     const countEl = document.getElementById('matchCount');
+    const mobileCountEl = document.getElementById('mobileMatchCount');
     
     if (countEl) {
         countEl.textContent = data.length;
+    }
+    if (mobileCountEl) {
+        mobileCountEl.textContent = data.length;
     }
     
     if (data.length === 0) {
@@ -4538,10 +4542,15 @@ function renderAlertBand() {
 
 function updateAlertBandBadge() {
     const badge = document.getElementById('alarmsBadge');
+    const mobileBadge = document.getElementById('mobileAlarmBadge');
+    const count = alertBandData.length;
+    
     if (badge) {
-        const count = alertBandData.length;
         badge.textContent = count;
         badge.setAttribute('data-count', count);
+    }
+    if (mobileBadge) {
+        mobileBadge.textContent = count;
     }
 }
 
@@ -4826,7 +4835,9 @@ function groupAlarmsByMatch(alarms) {
 
 function updateAlarmCounts() {
     const badge = document.getElementById('alarmsBadge');
+    const mobileBadge = document.getElementById('mobileAlarmBadge');
     if (badge) badge.textContent = allAlarmsData.length;
+    if (mobileBadge) mobileBadge.textContent = allAlarmsData.length;
     
     const countAll = document.getElementById('countAll');
     const countSharp = document.getElementById('countSharp');

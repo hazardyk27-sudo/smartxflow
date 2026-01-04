@@ -8454,59 +8454,40 @@ table.desktop-only {
         display: none;
     }
     
+    /* Hide refresh button and status indicator on mobile */
     .status-indicator {
-        padding: 3px 6px;
-        font-size: 9px;
-        gap: 3px;
-        border-radius: 10px;
-        background: rgba(33, 38, 45, 0.8);
-    }
-    
-    .status-indicator .status-text {
-        font-size: 8px;
-    }
-    
-    .status-dot {
-        width: 5px;
-        height: 5px;
+        display: none !important;
     }
     
     .refresh-btn {
-        padding: 3px 6px;
-        font-size: 9px;
-        gap: 3px;
-        border-radius: 10px;
-        min-height: 24px;
-        min-width: 24px;
+        display: none !important;
     }
     
-    .refresh-btn svg {
-        width: 10px;
-        height: 10px;
-    }
-    
-    .refresh-btn span {
-        display: none;
-    }
-    
+    /* Last update - compact format, right aligned */
     .last-update-info {
-        padding: 3px 6px;
-        font-size: 8px;
-        gap: 2px;
-        border-radius: 10px;
+        padding: 4px 8px;
+        font-size: 10px;
+        gap: 4px;
+        border-radius: 12px;
         background: rgba(33, 38, 45, 0.8);
+        display: flex;
+        align-items: center;
     }
     
     .last-update-label {
-        display: none;
+        display: inline;
+        font-size: 9px;
+        color: #8B949E;
     }
     
     .last-update-time {
-        font-size: 9px;
+        font-size: 10px;
+        font-weight: 500;
+        color: #E6EDF3;
     }
     
     .last-update-tz {
-        font-size: 7px;
+        display: none;
     }
 
     /* ========== TAB BAR - Compact Pills ========== */
@@ -8587,28 +8568,45 @@ table.desktop-only {
         font-size: 13px;
     }
 
-    /* ========== DAY FILTER - Segmented Control ========== */
-    .toolbar-left .btn-today {
-        display: none;
+    /* ========== MOBILE FILTER BAR ========== */
+    .mobile-filter-bar {
+        display: flex !important;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 10px;
+        background: rgba(22, 27, 34, 0.9);
+        border-radius: 8px;
+        margin-top: 6px;
+        gap: 8px;
     }
     
-    /* Segmented Control Container */
+    .mobile-filter-left {
+        display: flex;
+        align-items: center;
+    }
+    
+    .mobile-filter-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    /* Segmented Control - Compact */
     .day-filter-segment {
         display: flex;
-        background: #21262d;
-        border-radius: 8px;
-        padding: 3px;
+        background: rgba(33, 38, 45, 0.8);
+        border-radius: 6px;
+        padding: 2px;
         gap: 2px;
-        border: 1px solid #30363d;
     }
     
     .day-filter-segment .seg-btn {
-        flex: 1;
-        padding: 6px 12px;
+        padding: 5px 10px;
         background: transparent;
         border: none;
-        border-radius: 6px;
-        font-size: 11px;
+        border-radius: 5px;
+        font-size: 10px;
         font-weight: 600;
         color: #8b949e;
         cursor: pointer;
@@ -8617,29 +8615,59 @@ table.desktop-only {
     }
     
     .day-filter-segment .seg-btn.active {
-        background: #238636;
-        color: #fff;
+        background: rgba(46, 160, 67, 0.3);
+        color: #58D68D;
     }
     
-    .day-filter-segment .seg-btn:not(.active):hover {
+    .day-filter-segment .seg-btn:not(.active):active {
         background: rgba(255,255,255,0.05);
-        color: #c9d1d9;
-    }
-
-    /* ========== MATCH COUNT - Small Badge ========== */
-    .match-count {
-        position: absolute;
-        right: 8px;
-        top: 50%;
-        transform: translateY(-50%);
-        padding: 3px 8px;
-        font-size: 10px;
-        border-radius: 10px;
-        background: rgba(33, 38, 45, 0.9);
     }
     
-    .match-count span {
+    /* Mobile Match Count */
+    .mobile-match-count {
+        font-size: 11px;
         font-weight: 700;
+        color: #E6EDF3;
+        padding: 3px 8px;
+        background: rgba(33, 38, 45, 0.8);
+        border-radius: 10px;
+    }
+    
+    /* Mobile Alarm Button */
+    .mobile-alarm-btn {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        background: rgba(33, 38, 45, 0.8);
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        color: #8B949E;
+        transition: all 0.15s;
+    }
+    
+    .mobile-alarm-btn:active {
+        background: rgba(46, 160, 67, 0.2);
+    }
+    
+    .mobile-alarm-btn svg {
+        width: 12px;
+        height: 12px;
+        stroke: #8B949E;
+    }
+    
+    .mobile-alarm-badge {
+        font-size: 10px;
+        font-weight: 700;
+        color: #58D68D;
+        min-width: 14px;
+        text-align: center;
+    }
+    
+    /* Hide desktop match count on mobile */
+    .match-count {
+        display: none !important;
     }
 
     /* ========== MATCH CARD LIST (Replaces Table) ========== */
