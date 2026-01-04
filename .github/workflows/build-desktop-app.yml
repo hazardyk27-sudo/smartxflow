@@ -1,13 +1,21 @@
-name: Build Desktop App
+name: Build SmartXFlow Apps
 
 on:
   workflow_dispatch:
   push:
     paths:
+      - 'desktop_app.py'
+      - 'desktop_app.spec'
       - 'desktop_app/**'
+      - 'scraper_standalone/**'
+      - 'smartxflow.ico'
+      - 'app.py'
+      - 'templates/**'
+      - 'static/**'
 
 jobs:
-  build-windows:
+  build-desktop:
+    name: Build Desktop App V1.01
     runs-on: windows-latest
     
     steps:
@@ -21,16 +29,44 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller requests pytz
+        pip install pyinstaller pywebview flask requests httpx beautifulsoup4 pytz certifi pythonnet
     
-    - name: Build executable
-      working-directory: desktop_app
+    - name: Build Desktop executable
       run: |
-        pyinstaller smartxflow_app.spec
+        pyinstaller desktop_app.spec
     
-    - name: Upload artifact
+    - name: Upload Desktop App
       uses: actions/upload-artifact@v4
       with:
-        name: SmartXFlowApp-Windows
-        path: desktop_app/dist/SmartXFlowApp.exe
+        name: SmartXFlowDesktop-V1.01
+        path: dist/SmartXFlowDesktopV1.01.exe
+        retention-days: 30
+
+  build-admin:
+    name: Build Admin Panel
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller pywebview flask requests httpx beautifulsoup4 pytz certifi pythonnet
+    
+    - name: Build Admin executable
+      working-directory: scraper_standalone
+      run: |
+        pyinstaller admin.spec
+    
+    - name: Upload Admin Panel
+      uses: actions/upload-artifact@v4
+      with:
+        name: SmartXFlowAdmin
+        path: scraper_standalone/dist/SmartXFlowAdminV1.25.exe
         retention-days: 30
