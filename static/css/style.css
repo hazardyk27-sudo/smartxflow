@@ -8710,22 +8710,28 @@ table.desktop-only {
     /* Mobile Match Count */
     .mobile-match-count {
         font-size: 11px;
-        font-weight: 700;
+        font-weight: 600;
         color: #E6EDF3;
-        padding: 3px 8px;
+        padding: 4px 10px;
         background: rgba(33, 38, 45, 0.8);
-        border-radius: 10px;
+        border-radius: 12px;
     }
     
-    /* Mobile Alarm Button */
+    .mobile-match-count .match-label {
+        color: #4ade80;
+        font-weight: 600;
+    }
+    
+    /* Mobile Alarm Button - Compact icon-only style */
     .mobile-alarm-btn {
         display: flex;
         align-items: center;
-        gap: 4px;
-        padding: 4px 8px;
+        justify-content: center;
+        gap: 3px;
+        padding: 5px 8px;
         background: rgba(33, 38, 45, 0.8);
         border: none;
-        border-radius: 10px;
+        border-radius: 6px;
         cursor: pointer;
         color: #8B949E;
         transition: all 0.15s;
@@ -8741,24 +8747,12 @@ table.desktop-only {
         stroke: #8B949E;
     }
     
-    .mobile-alarm-text {
-        font-size: 9px;
-        color: #8B949E;
-    }
-    
     .mobile-alarm-badge {
         font-size: 10px;
         font-weight: 700;
-        color: #58D68D;
-        min-width: 14px;
+        color: #4ade80;
+        min-width: 12px;
         text-align: center;
-    }
-    
-    /* Ensure alarm text is visible on mobile */
-    .mobile-alarm-text {
-        display: inline !important;
-        font-size: 10px;
-        font-weight: 500;
     }
     
     /* Hide desktop match count on mobile */
