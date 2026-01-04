@@ -827,3 +827,102 @@
     0%, 100% { filter: brightness(1); }
     50% { filter: brightness(1.2); }
 }
+
+/* =====================================================
+   MOBILE ALERT BAND - Compact Premium
+   ===================================================== */
+
+@media (max-width: 768px) {
+    .alert-band {
+        height: 32px;
+        padding: 0;
+        position: relative;
+        z-index: 99;
+    }
+    
+    .alert-band-track {
+        padding: 0 8px;
+        gap: 6px;
+    }
+    
+    .alert-band-track-inner {
+        gap: 6px;
+    }
+    
+    .ab-pill {
+        padding: 2px 6px;
+        height: 22px;
+        border-radius: 6px;
+        font-size: 9px;
+    }
+    
+    .ab-dot {
+        width: 5px;
+        height: 5px;
+        margin-right: 3px;
+    }
+    
+    .ab-match {
+        font-size: 10px;
+        max-width: 80px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .ab-value {
+        font-size: 9px;
+        padding: 1px 4px;
+    }
+    
+    .ab-time {
+        font-size: 8px;
+    }
+    
+    .btn-alarms {
+        padding: 4px 8px;
+        font-size: 9px;
+        gap: 4px;
+        height: 100%;
+        border-left: 1px solid #30363d;
+    }
+    
+    .btn-alarms svg {
+        width: 12px;
+        height: 12px;
+    }
+    
+    .btn-alarms span:not(.alarms-badge) {
+        display: none;
+    }
+    
+    .alarms-badge {
+        font-size: 9px;
+        padding: 1px 4px;
+        min-width: 14px;
+    }
+    
+    .alert-band-empty {
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .alert-band {
+        height: 28px;
+    }
+    
+    .ab-pill {
+        padding: 2px 5px;
+        height: 20px;
+    }
+    
+    .ab-match {
+        max-width: 60px;
+        font-size: 9px;
+    }
+    
+    .ab-value {
+        font-size: 8px;
+        padding: 1px 3px;
+    }
+}

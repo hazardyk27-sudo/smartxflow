@@ -1004,6 +1004,133 @@ function loadMoreMatches() {
     }
 }
 
+// ========== MOBILE MATCH CARD RENDERING ==========
+
+function isMobileView() {
+    return window.innerWidth <= 768;
+}
+
+function renderMobileMatchCards(data) {
+    const cardList = document.getElementById('matchCardList');
+    if (!cardList) return;
+    
+    if (data.length === 0) {
+        cardList.innerHTML = `
+            <div class="match-card" style="justify-content: center; padding: 40px 20px;">
+                <div style="text-align: center; color: #8b949e;">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.4; margin-bottom: 8px;">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                    <p style="font-size: 12px;">Bu market için veri bulunamadı</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    const html = data.map((match, idx) => {
+        const d = match.details || match.odds || {};
+        const volume = formatVolumeCompact(d.Volume);
+        
+        // Format date for mobile: "4 Oca 20:30"
+        let dateStr = '';
+        try {
+            const dt = dayjs(match.date).tz('Europe/Istanbul');
+            dateStr = dt.format('D MMM HH:mm');
+        } catch(e) {
+            dateStr = match.date || '';
+        }
+        
+        return `
+            <div class="match-card" data-index="${idx}" onclick="openMatchModal(${idx})">
+                <div class="match-card-left">
+                    <div class="match-card-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</div>
+                    <div class="match-card-meta">
+                        <span class="match-card-league">${match.league || '-'}</span>
+                        <span class="match-card-separator">•</span>
+                        <span class="match-card-datetime">${dateStr}</span>
+                    </div>
+                </div>
+                <div class="match-card-right">
+                    <span class="match-card-volume">${volume}</span>
+                    <span class="match-card-arrow">›</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    cardList.innerHTML = html;
+}
+
+// Mobile Day Filter Segmented Control
+let currentDayFilter = 'all';
+
+function setDayFilter(filter) {
+    currentDayFilter = filter;
+    
+    // Update segmented control UI
+    document.querySelectorAll('.day-filter-segment .seg-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    const btnId = filter === 'all' ? 'segAll' : (filter === 'today' ? 'segToday' : 'segYesterday');
+    const activeBtn = document.getElementById(btnId);
+    if (activeBtn) activeBtn.classList.add('active');
+    
+    // Sync with desktop buttons
+    const todayBtn = document.getElementById('todayBtn');
+    const yesterdayBtn = document.getElementById('yesterdayBtn');
+    
+    if (filter === 'today') {
+        if (todayBtn && !todayBtn.classList.contains('active')) {
+            toggleTodayFilter();
+        }
+        if (yesterdayBtn && yesterdayBtn.classList.contains('active')) {
+            toggleYesterdayFilter();
+        }
+    } else if (filter === 'yesterday') {
+        if (yesterdayBtn && !yesterdayBtn.classList.contains('active')) {
+            toggleYesterdayFilter();
+        }
+        if (todayBtn && todayBtn.classList.contains('active')) {
+            toggleTodayFilter();
+        }
+    } else {
+        // All - turn off both filters
+        if (todayBtn && todayBtn.classList.contains('active')) {
+            toggleTodayFilter();
+        }
+        if (yesterdayBtn && yesterdayBtn.classList.contains('active')) {
+            toggleYesterdayFilter();
+        }
+    }
+}
+
+// Update renderMatches to also render mobile cards
+const originalRenderMatches = renderMatches;
+function renderMatchesWithMobile(data) {
+    // Always render table for desktop
+    const tbody = document.getElementById('matchesTableBody');
+    const countEl = document.getElementById('matchCount');
+    
+    if (countEl) {
+        countEl.textContent = data.length;
+    }
+    
+    // Render mobile cards
+    renderMobileMatchCards(data);
+    
+    // Original table rendering (for desktop)
+    originalRenderMatches(data);
+}
+
+// Override renderMatches after original is defined
+window.renderMatches = function(data) {
+    renderMobileMatchCards(data);
+    originalRenderMatches.call(this, data);
+};
+
 function getTableTrendArrow(current, previous) {
     if (!current || !previous) return '';
     const curr = parseFloat(String(current).replace(/[^0-9.]/g, ''));

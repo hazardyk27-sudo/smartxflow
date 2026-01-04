@@ -8307,19 +8307,62 @@ td.volume,
 }
 
 /* =====================================================
-   MOBILE RESPONSIVE STYLES
+   MOBILE / DESKTOP VISIBILITY HELPERS
+   ===================================================== */
+
+.mobile-only {
+    display: none !important;
+}
+
+.desktop-only {
+    display: flex;
+}
+
+/* Table specifically */
+table.desktop-only {
+    display: table;
+}
+
+/* =====================================================
+   MOBILE RESPONSIVE STYLES - Premium Compact Design
    Only applies to screens <= 768px
    ===================================================== */
 
 @media (max-width: 768px) {
-    /* Header - Single Row Layout */
+    .mobile-only {
+        display: flex !important;
+    }
+    
+    .desktop-only {
+        display: none !important;
+    }
+    
+    table.desktop-only {
+        display: none !important;
+    }
+    
+    /* ========== SAFE AREA + OVERFLOW FIX ========== */
+    html, body {
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    body {
+        padding-top: env(safe-area-inset-top);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+    }
+    
+    /* ========== HEADER - Compact Single Row ========== */
     .header {
         display: flex;
         flex-wrap: nowrap;
-        height: 48px;
+        height: 40px;
         padding: 0 10px;
-        gap: 8px;
+        gap: 6px;
         align-items: center;
+        position: relative;
+        z-index: 100;
     }
     
     .header-left {
@@ -8333,7 +8376,7 @@ td.volume,
         flex-wrap: nowrap;
         justify-content: flex-end;
         align-items: center;
-        gap: 6px;
+        gap: 4px;
     }
     
     .logo-container {
@@ -8345,12 +8388,12 @@ td.volume,
     }
     
     .logo-smart, .logo-flow {
-        font-size: 12px;
+        font-size: 11px;
     }
     
     .logo-icon {
-        width: 14px;
-        height: 14px;
+        width: 12px;
+        height: 12px;
     }
     
     .logo-subtitle {
@@ -8358,27 +8401,29 @@ td.volume,
     }
     
     .status-indicator {
-        padding: 4px 6px;
-        font-size: 10px;
-        gap: 4px;
-        border-radius: 12px;
+        padding: 3px 6px;
+        font-size: 9px;
+        gap: 3px;
+        border-radius: 10px;
+        background: rgba(33, 38, 45, 0.8);
     }
     
     .status-indicator .status-text {
-        display: inline;
-        font-size: 9px;
+        font-size: 8px;
     }
     
     .status-dot {
-        width: 6px;
-        height: 6px;
+        width: 5px;
+        height: 5px;
     }
     
     .refresh-btn {
-        padding: 4px 8px;
-        font-size: 10px;
-        gap: 4px;
-        border-radius: 12px;
+        padding: 3px 6px;
+        font-size: 9px;
+        gap: 3px;
+        border-radius: 10px;
+        min-height: 24px;
+        min-width: 24px;
     }
     
     .refresh-btn svg {
@@ -8391,10 +8436,11 @@ td.volume,
     }
     
     .last-update-info {
-        padding: 4px 6px;
-        font-size: 9px;
-        gap: 3px;
-        border-radius: 12px;
+        padding: 3px 6px;
+        font-size: 8px;
+        gap: 2px;
+        border-radius: 10px;
+        background: rgba(33, 38, 45, 0.8);
     }
     
     .last-update-label {
@@ -8406,31 +8452,18 @@ td.volume,
     }
     
     .last-update-tz {
-        font-size: 8px;
+        font-size: 7px;
     }
-    
-    /* Alert Band */
-    .alert-band {
-        padding: 6px 8px;
-    }
-    
-    .btn-alarms {
-        padding: 6px 10px;
-        font-size: 11px;
-    }
-    
-    .btn-alarms span:not(.alarms-badge) {
-        display: none;
-    }
-    
-    /* Market Tabs - Horizontal Scroll */
+
+    /* ========== TAB BAR - Compact Pills ========== */
     .market-tabs {
-        padding: 8px;
-        gap: 6px;
+        padding: 6px 8px;
+        gap: 4px;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
         -ms-overflow-style: none;
+        background: #161b22;
     }
     
     .market-tabs::-webkit-scrollbar {
@@ -8438,128 +8471,251 @@ td.volume,
     }
     
     .tab {
-        padding: 8px 12px;
-        font-size: 11px;
+        padding: 5px 10px;
+        font-size: 10px;
         flex-shrink: 0;
+        border-radius: 14px;
+        min-height: 28px;
+        gap: 4px;
     }
     
     .tab svg {
-        width: 12px;
-        height: 12px;
+        width: 10px;
+        height: 10px;
     }
     
-    /* Main Content */
+    .tab.active {
+        background: #238636;
+    }
+
+    /* ========== MAIN CONTENT ========== */
     .main-content {
         padding: 8px;
-        height: calc(100vh - 140px);
+        height: auto;
+        min-height: calc(100vh - 150px);
+        overflow-y: auto;
     }
     
-    /* Toolbar */
+    .matches-section {
+        height: auto;
+    }
+
+    /* ========== TOOLBAR - Compact Layout ========== */
     .toolbar {
+        display: flex;
         flex-direction: column;
-        gap: 10px;
-        margin-bottom: 10px;
+        gap: 8px;
+        margin-bottom: 8px;
+        position: relative;
     }
     
     .toolbar-left {
+        display: flex;
         flex-direction: column;
         width: 100%;
+        gap: 6px;
+    }
+    
+    /* Search - Compact */
+    .search-box {
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 8px;
+        gap: 6px;
+    }
+    
+    .search-box svg {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .search-box input {
+        font-size: 13px;
+    }
+
+    /* ========== DAY FILTER - Segmented Control ========== */
+    .toolbar-left .btn-today {
+        display: none;
+    }
+    
+    /* Segmented Control Container */
+    .day-filter-segment {
+        display: flex;
+        background: #21262d;
+        border-radius: 8px;
+        padding: 3px;
+        gap: 2px;
+        border: 1px solid #30363d;
+    }
+    
+    .day-filter-segment .seg-btn {
+        flex: 1;
+        padding: 6px 12px;
+        background: transparent;
+        border: none;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #8b949e;
+        cursor: pointer;
+        transition: all 0.15s;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .day-filter-segment .seg-btn.active {
+        background: #238636;
+        color: #fff;
+    }
+    
+    .day-filter-segment .seg-btn:not(.active):hover {
+        background: rgba(255,255,255,0.05);
+        color: #c9d1d9;
+    }
+
+    /* ========== MATCH COUNT - Small Badge ========== */
+    .match-count {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 3px 8px;
+        font-size: 10px;
+        border-radius: 10px;
+        background: rgba(33, 38, 45, 0.9);
+    }
+    
+    .match-count span {
+        font-weight: 700;
+    }
+
+    /* ========== MATCH CARD LIST (Replaces Table) ========== */
+    .table-container {
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #30363d;
+    }
+    
+    /* Hide table on mobile */
+    .matches-table {
+        display: none;
+    }
+    
+    /* Match Card List */
+    .match-card-list {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .match-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        background: #161b22;
+        border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+        cursor: pointer;
+        transition: background 0.15s;
         gap: 8px;
     }
     
-    .search-box {
-        width: 100%;
-        padding: 10px 12px;
+    .match-card:last-child {
+        border-bottom: none;
     }
     
-    .btn-today {
-        width: 100%;
-        justify-content: center;
-        padding: 10px 12px;
+    .match-card:active {
+        background: rgba(255, 255, 255, 0.05);
     }
     
-    .match-count {
-        width: 100%;
-        text-align: center;
-        padding: 6px 12px;
-        font-size: 12px;
+    .match-card-left {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
     }
     
-    /* Table - Card View on Mobile */
-    .table-container {
-        border-radius: 8px;
-        overflow-x: auto;
-    }
-    
-    .matches-table {
-        min-width: 600px;
-    }
-    
-    .matches-table th {
-        padding: 8px 6px;
-        font-size: 10px;
-    }
-    
-    .matches-table td {
-        padding: 10px 6px;
-        font-size: 12px;
-        height: auto;
-    }
-    
-    .match-date {
-        font-size: 10px;
-    }
-    
-    .match-date .date-line {
-        font-size: 11px;
-    }
-    
-    .match-date .time-line {
-        font-size: 9px;
-    }
-    
-    .match-league {
-        font-size: 10px;
-        max-width: 80px;
-    }
-    
-    .match-teams {
-        font-size: 12px;
-    }
-    
-    .selection-odds {
+    .match-card-teams {
         font-size: 13px;
+        font-weight: 600;
+        color: #e6edf3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
-    .selection-money {
-        font-size: 10px;
+    .match-card-teams .vs {
+        color: #6e7681;
+        font-weight: 400;
+        margin: 0 4px;
     }
     
-    .selection-pct {
-        font-size: 10px;
+    .match-card-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: #8b949e;
     }
     
-    .volume-cell {
+    .match-card-league {
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .match-card-separator {
+        color: #484f58;
+    }
+    
+    .match-card-datetime {
+        white-space: nowrap;
+        color: #6e7681;
+    }
+    
+    .match-card-right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+    
+    .match-card-volume {
+        font-size: 12px;
+        font-weight: 600;
+        color: #22c55e;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .match-card-arrow {
+        color: #484f58;
         font-size: 12px;
     }
-    
-    /* Alarms Sidebar - Full Screen */
+
+    /* ========== ALARMS SIDEBAR - Full Screen ========== */
     .alarms-sidebar {
         width: 100% !important;
         max-width: 100% !important;
+        top: 0 !important;
+        padding-top: env(safe-area-inset-top);
     }
     
     .alarms-sidebar-header {
-        padding: 12px 16px;
+        padding: 10px 12px;
+    }
+    
+    .alarms-sidebar-title {
+        font-size: 14px;
     }
     
     .alarms-sidebar-content {
-        padding: 12px;
+        padding: 10px;
     }
     
     .alarm-card {
-        padding: 10px 12px;
+        padding: 10px;
         min-height: auto;
+        border-radius: 6px;
     }
     
     .alarm-name {
