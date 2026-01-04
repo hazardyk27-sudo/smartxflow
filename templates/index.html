@@ -70,7 +70,8 @@
         </button>
     </div>
 
-    <nav class="market-tabs">
+    <!-- Desktop: Single row tabs -->
+    <nav class="market-tabs desktop-only">
         <button class="tab active" data-market="moneyway_1x2">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
@@ -111,6 +112,19 @@
             Odds BTTS
         </button>
     </nav>
+    
+    <!-- Mobile: 2-row tab system -->
+    <div class="mobile-tab-system mobile-only">
+        <div class="mobile-tab-row group-row">
+            <button class="mobile-tab-btn active" data-group="moneyway" onclick="setMobileGroup('moneyway')">Moneyway</button>
+            <button class="mobile-tab-btn" data-group="dropping" onclick="setMobileGroup('dropping')">Odds</button>
+        </div>
+        <div class="mobile-tab-row market-row">
+            <button class="mobile-tab-btn active" data-market-type="1x2" onclick="setMobileMarket('1x2')">1X2</button>
+            <button class="mobile-tab-btn" data-market-type="ou25" onclick="setMobileMarket('ou25')">2.5</button>
+            <button class="mobile-tab-btn" data-market-type="btts" onclick="setMobileMarket('btts')">BTTS</button>
+        </div>
+    </div>
 
     <main class="main-content">
         <section class="matches-section">

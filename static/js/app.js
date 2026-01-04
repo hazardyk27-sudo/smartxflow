@@ -1063,6 +1063,58 @@ function renderMobileMatchCards(data) {
     cardList.innerHTML = html;
 }
 
+// ========== MOBILE 2-ROW TAB SYSTEM ==========
+
+let mobileGroup = 'moneyway';
+let mobileMarketType = '1x2';
+
+function setMobileGroup(group) {
+    mobileGroup = group;
+    
+    // Update group row UI
+    document.querySelectorAll('.mobile-tab-row.group-row .mobile-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.group === group) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Trigger market change
+    updateMobileMarket();
+}
+
+function setMobileMarket(marketType) {
+    mobileMarketType = marketType;
+    
+    // Update market row UI
+    document.querySelectorAll('.mobile-tab-row.market-row .mobile-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.marketType === marketType) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Trigger market change
+    updateMobileMarket();
+}
+
+function updateMobileMarket() {
+    // Combine group + market type to get final market
+    const market = mobileGroup + '_' + mobileMarketType;
+    
+    // Sync with desktop tabs and trigger data load
+    const desktopTab = document.querySelector(`.market-tabs .tab[data-market="${market}"]`);
+    if (desktopTab) {
+        // Remove active from all desktop tabs
+        document.querySelectorAll('.market-tabs .tab').forEach(t => t.classList.remove('active'));
+        desktopTab.classList.add('active');
+        
+        // Set current market and load data
+        currentMarket = market;
+        loadMatches();
+    }
+}
+
 // Mobile Day Filter Segmented Control
 let currentDayFilter = 'all';
 

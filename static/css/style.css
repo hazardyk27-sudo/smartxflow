@@ -8341,6 +8341,60 @@ table.desktop-only {
         display: none !important;
     }
     
+    /* ========== MOBILE 2-ROW TAB SYSTEM ========== */
+    .mobile-tab-system {
+        display: flex !important;
+        flex-direction: column;
+        gap: 4px;
+        padding: 8px 10px;
+        background: #161b22;
+        border-bottom: 1px solid rgba(48, 54, 61, 0.6);
+    }
+    
+    .mobile-tab-row {
+        display: flex;
+        width: 100%;
+        background: rgba(33, 38, 45, 0.6);
+        border-radius: 8px;
+        padding: 2px;
+        gap: 2px;
+    }
+    
+    .mobile-tab-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 4px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #8B949E;
+        background: transparent;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+    
+    .mobile-tab-btn:active {
+        transform: scale(0.97);
+    }
+    
+    .mobile-tab-btn.active {
+        background: rgba(46, 160, 67, 0.25);
+        color: #58D68D;
+        font-weight: 600;
+    }
+    
+    .mobile-tab-row.group-row .mobile-tab-btn {
+        font-size: 13px;
+    }
+    
+    .mobile-tab-row.market-row .mobile-tab-btn {
+        font-size: 12px;
+    }
+    
     /* ========== SAFE AREA + OVERFLOW FIX ========== */
     html, body {
         overflow-x: hidden;
