@@ -6163,6 +6163,8 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
     
     hideSmartMoneyLoading();
     
+    renderMobileHeroAlarm(matchAlarms);
+    
     smartMoneySectionOpen = true;
     chevron.textContent = '▼';
     grid.style.display = 'grid';
@@ -7368,5 +7370,107 @@ async function deleteMimAlarms() {
         }
     } catch (e) {
         showToast('Bağlantı hatası', 'error');
+    }
+}
+
+// ============================================
+// MOBILE TAB SYSTEM
+// ============================================
+
+let currentMobileTab = 'chart';
+
+function switchMobileTab(tabName) {
+    currentMobileTab = tabName;
+    
+    document.querySelectorAll('.mobile-main-tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.dataset.tab === tabName) {
+            tab.classList.add('active');
+        }
+    });
+    
+    document.getElementById('mobileTabChart').style.display = tabName === 'chart' ? 'block' : 'none';
+    document.getElementById('mobileTabEvents').style.display = tabName === 'events' ? 'block' : 'none';
+    document.getElementById('mobileTabDetails').style.display = tabName === 'details' ? 'block' : 'none';
+    
+    if (tabName === 'chart' && window.oddsChart) {
+        setTimeout(() => window.oddsChart.resize(), 100);
+    }
+}
+
+function renderMobileHeroAlarm(alarms) {
+    const container = document.getElementById('mobileHeroAlarm');
+    if (!container) return;
+    
+    if (!alarms || alarms.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    const typePriority = { dropping: 1, insider: 2, volumeshock: 3, sharp: 4, bigmoney: 5, publicmove: 6, volumeleader: 7, mim: 8 };
+    const typeColors = { sharp: '#ef4444', insider: '#60a5fa', bigmoney: '#fbbf24', volumeshock: '#F6C343', dropping: '#f85149', publicmove: '#FFCC00', volumeleader: '#06b6d4', mim: '#3B82F6' };
+    const typeLabels = { sharp: 'Sharp', insider: 'Insider', bigmoney: 'Big Money', volumeshock: 'Hacim Soku', dropping: 'Dropping', publicmove: 'Public Move', volumeleader: 'Hacim Lideri', mim: 'MIM' };
+    
+    const sorted = [...alarms].sort((a, b) => (typePriority[a._type] || 99) - (typePriority[b._type] || 99));
+    const hero = sorted[0];
+    const moreCount = alarms.length - 1;
+    
+    let metric = '';
+    let detail = '';
+    
+    if (hero._type === 'dropping') {
+        const dropPct = hero.drop_pct || hero.odds_drop_pct || 0;
+        metric = `▼${dropPct.toFixed(1)}%`;
+        detail = `${hero.market || ''} | ${hero.selection || hero.side || ''}`;
+    } else if (hero._type === 'volumeshock') {
+        const shock = hero.volume_shock || hero.shock_multiplier || 0;
+        metric = `${shock.toFixed(1)}x`;
+        detail = `${hero.market || ''} | ${hero.selection || hero.side || ''}`;
+    } else if (hero._type === 'insider' || hero._type === 'sharp') {
+        const score = hero.score || hero.sharp_score || 0;
+        metric = score.toFixed ? score.toFixed(1) : score;
+        detail = `${hero.market || ''} | ${hero.selection || hero.side || ''}`;
+    } else {
+        const stake = hero.stake || hero.volume || 0;
+        metric = stake > 0 ? '£' + Number(stake).toLocaleString('en-GB') : '-';
+        detail = `${hero.market || ''} | ${hero.selection || hero.side || ''}`;
+    }
+    
+    const triggerTime = hero.trigger_at || hero.created_at || '';
+    let timeStr = '';
+    if (triggerTime) {
+        const dt = dayjs.utc(triggerTime).tz('Europe/Istanbul');
+        if (dt.isValid()) {
+            timeStr = dt.format('DD MMM • HH:mm');
+        }
+    }
+    
+    const color = typeColors[hero._type] || '#8b949e';
+    const label = typeLabels[hero._type] || hero._type;
+    
+    container.innerHTML = `
+        <div class="hero-alarm-card" style="border-left-color: ${color};">
+            <div class="hero-alarm-header">
+                <span class="hero-alarm-type" style="color: ${color};">${label}</span>
+                <span class="hero-alarm-time">${timeStr}</span>
+            </div>
+            <div class="hero-alarm-metric">${metric}</div>
+            <div class="hero-alarm-detail">${detail}</div>
+            ${moreCount > 0 ? `<span class="hero-alarm-more" onclick="switchMobileTab('events')">+${moreCount} daha</span>` : ''}
+        </div>
+    `;
+}
+
+function exportChart(format) {
+    if (format === 'png') {
+        const canvas = document.getElementById('oddsChart');
+        if (canvas) {
+            const link = document.createElement('a');
+            link.download = 'smartxflow-chart.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    } else if (format === 'csv') {
+        showToast('CSV export yakinda', 'info');
     }
 }
