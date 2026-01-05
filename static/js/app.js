@@ -3293,7 +3293,8 @@ async function loadChart(home, away, market, league = '') {
             }, { passive: true });
             
             canvas.addEventListener('touchend', function() {
-                // Keep crosshair at last touched position (don't reset)
+                // Keep crosshair at last touched position - force one final redraw
+                chart.update('none');
             }, { passive: true });
         }
     } catch (error) {
