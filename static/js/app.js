@@ -1237,6 +1237,7 @@ function renderMobileOddsBlock(label, oddsValue, trendData) {
     let dropHtml = '';
     
     if (trendData && trendData.pct_change !== null && trendData.pct_change !== undefined) {
+        // Have percentage change - show with arrow and percentage
         const pctChange = trendData.pct_change;
         if (pctChange !== 0) {
             const isDown = trendData.trend === 'down';
@@ -1246,6 +1247,12 @@ function renderMobileOddsBlock(label, oddsValue, trendData) {
         } else {
             dropHtml = `<div class="odds-block-pct">—</div>`;
         }
+    } else if (trendData && trendData.trend && (trendData.trend === 'down' || trendData.trend === 'up')) {
+        // No percentage but have trend direction - show arrow only
+        const isDown = trendData.trend === 'down';
+        const dropClass = isDown ? 'pct-down' : 'pct-up';
+        const arrow = isDown ? '▼' : '▲';
+        dropHtml = `<div class="odds-block-pct ${dropClass}"><span class="trend-icon">${arrow}</span></div>`;
     } else {
         dropHtml = `<div class="odds-block-pct">—</div>`;
     }
@@ -4639,7 +4646,11 @@ function getOddsTrendData(home, away, selection) {
 function renderOddsWithTrend(oddsValue, trendData) {
     const formattedOdds = formatOdds(oddsValue);
     
-    if (!trendData || !trendData.history || trendData.history.length < 2) {
+    // Check if we have valid trend data with history OR just trend direction
+    const hasHistory = trendData && trendData.history && trendData.history.length >= 2;
+    const hasTrendOnly = trendData && trendData.trend && (trendData.trend === 'down' || trendData.trend === 'up') && !hasHistory;
+    
+    if (!hasHistory && !hasTrendOnly) {
         const trendIcon = generateTrendIconSVG('flat', 0);
         return `
             <div class="odds-trend-cell odds-trend-no-data">
@@ -4649,8 +4660,11 @@ function renderOddsWithTrend(oddsValue, trendData) {
         `;
     }
     
-    const trendIcon = generateTrendIconSVG(trendData.trend, trendData.pct_change);
-    const pctHtml = formatPctChange(trendData.pct_change, trendData.trend);
+    // Show trend icon (works with or without percentage)
+    const trendIcon = generateTrendIconSVG(trendData.trend, trendData.pct_change || 0);
+    const pctHtml = trendData.pct_change !== null && trendData.pct_change !== undefined 
+        ? formatPctChange(trendData.pct_change, trendData.trend)
+        : ''; // No percentage display when we only have direction
     
     const tooltipData = JSON.stringify({
         old: trendData.old,
@@ -4672,7 +4686,11 @@ function renderOddsWithTrend(oddsValue, trendData) {
 function renderDrop1X2Cell(label, oddsValue, trendData) {
     const formattedOdds = formatOdds(oddsValue);
     
-    if (!trendData || !trendData.history || trendData.history.length < 2) {
+    // Check if we have valid trend data with history OR just trend direction
+    const hasHistory = trendData && trendData.history && trendData.history.length >= 2;
+    const hasTrendOnly = trendData && trendData.trend && (trendData.trend === 'down' || trendData.trend === 'up') && !hasHistory;
+    
+    if (!hasHistory && !hasTrendOnly) {
         const trendIcon = generateTrendIconSVG('flat', 0);
         return `
             <div class="drop-mini-card">
@@ -4682,8 +4700,11 @@ function renderDrop1X2Cell(label, oddsValue, trendData) {
         `;
     }
     
-    const trendIcon = generateTrendIconSVG(trendData.trend, trendData.pct_change);
-    const pctHtml = formatPctChange(trendData.pct_change, trendData.trend);
+    // Show trend icon (works with or without percentage)
+    const trendIcon = generateTrendIconSVG(trendData.trend, trendData.pct_change || 0);
+    const pctHtml = trendData.pct_change !== null && trendData.pct_change !== undefined 
+        ? formatPctChange(trendData.pct_change, trendData.trend)
+        : ''; // No percentage when we only have direction
     
     const tooltipData = JSON.stringify({
         old: trendData.old,
@@ -4699,7 +4720,7 @@ function renderDrop1X2Cell(label, oddsValue, trendData) {
         <div class="drop-mini-card" data-tooltip="${tooltipData}">
             <div class="drop-trend-icon">${trendIcon}</div>
             <div class="drop-odds">${formattedOdds}</div>
-            <div class="drop-change ${changeClass}">${pctHtml}</div>
+            ${pctHtml ? `<div class="drop-change ${changeClass}">${pctHtml}</div>` : ''}
         </div>
     `;
 }
