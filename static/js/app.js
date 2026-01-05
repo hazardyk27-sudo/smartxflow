@@ -2419,20 +2419,17 @@ function setMobileSelection(sel) {
     document.querySelectorAll('.mob-sel-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.sel === sel);
     });
-    if (chart && isMobile()) {
-        updateMobileSingleLine();
+    // Reload chart with new selection (single series)
+    if (selectedMatch && isMobile()) {
+        loadChartHistory(selectedMatch.MatchId, selectedChartMarket);
     }
 }
 
 function updateMobileSingleLine() {
-    if (!chart || !isMobile()) return;
-    
-    chart.data.datasets.forEach((ds, idx) => {
-        const isVisible = ds.label === mobileSelectedLine;
-        chart.setDatasetVisibility(idx, isVisible);
-    });
-    chart.update('none');
-    updateMobileValuePanel();
+    // Deprecated - chart now reloads with single series
+    if (selectedMatch && isMobile()) {
+        loadChartHistory(selectedMatch.MatchId, selectedChartMarket);
+    }
 }
 
 function toggleMobileTimeDropdown() {
@@ -2471,20 +2468,21 @@ let mobileChartHistoryData = [];
 function updateMobileValueHeader(dataIndex) {
     if (!isMobile() || !chart) return;
     
-    const visibleDs = chart.data.datasets.find((ds, idx) => chart.isDatasetVisible(idx));
-    if (!visibleDs) return;
+    // Get the single dataset (mobile only has one)
+    const ds = chart.data.datasets[0];
+    if (!ds) return;
     
     let idx = dataIndex;
-    if (idx === undefined || idx < 0) {
-        idx = visibleDs.data.length - 1;
+    if (idx === undefined || idx < 0 || idx >= ds.data.length) {
+        idx = ds.data.length - 1;
     }
     
     const timeLabel = chart.data.labels[idx] || '--:--';
-    const value = visibleDs.data[idx];
+    const value = ds.data[idx];
     
     // Format big value
     let bigValueText = '--';
-    if (value !== null) {
+    if (value !== null && value !== undefined) {
         if (chartViewMode === 'money') {
             bigValueText = '£' + Math.round(value).toLocaleString();
         } else {
@@ -2500,30 +2498,40 @@ function updateMobileValueHeader(dataIndex) {
         const h = mobileChartHistoryData[idx];
         const pick = mobileSelectedLine;
         
+        // Helper to parse stake value
+        const parseStake = (val) => {
+            if (!val) return '--';
+            const num = parseFloat(String(val).replace(/[£,]/g, ''));
+            return isNaN(num) ? '--' : '£' + num.toLocaleString();
+        };
+        
         // Get odds and stake based on selection
         if (pick === '1') {
             oddsText = h.Odds1 || '--';
-            stakeText = h.Amt1 ? '£' + parseFloat(h.Amt1.replace(/[£,]/g, '')).toLocaleString() : '--';
+            stakeText = parseStake(h.Amt1);
         } else if (pick === 'X') {
             oddsText = h.OddsX || '--';
-            stakeText = h.AmtX ? '£' + parseFloat(h.AmtX.replace(/[£,]/g, '')).toLocaleString() : '--';
+            stakeText = parseStake(h.AmtX);
         } else if (pick === '2') {
             oddsText = h.Odds2 || '--';
-            stakeText = h.Amt2 ? '£' + parseFloat(h.Amt2.replace(/[£,]/g, '')).toLocaleString() : '--';
+            stakeText = parseStake(h.Amt2);
         } else if (pick === 'Under') {
             oddsText = h.Under || h.OddsUnder || '--';
-            stakeText = h.AmtUnder ? '£' + parseFloat(h.AmtUnder.replace(/[£,]/g, '')).toLocaleString() : '--';
+            stakeText = parseStake(h.AmtUnder);
         } else if (pick === 'Over') {
             oddsText = h.Over || h.OddsOver || '--';
-            stakeText = h.AmtOver ? '£' + parseFloat(h.AmtOver.replace(/[£,]/g, '')).toLocaleString() : '--';
+            stakeText = parseStake(h.AmtOver);
         } else if (pick === 'Yes') {
             oddsText = h.Yes || h.OddsYes || '--';
-            stakeText = h.AmtYes ? '£' + parseFloat(h.AmtYes.replace(/[£,]/g, '')).toLocaleString() : '--';
+            stakeText = parseStake(h.AmtYes);
         } else if (pick === 'No') {
             oddsText = h.No || h.OddsNo || '--';
-            stakeText = h.AmtNo ? '£' + parseFloat(h.AmtNo.replace(/[£,]/g, '')).toLocaleString() : '--';
+            stakeText = parseStake(h.AmtNo);
         }
     }
+    
+    // Debug log
+    console.log('[MobileHeader]', { idx, timeLabel, value: bigValueText, odds: oddsText, stake: stakeText, pick: mobileSelectedLine });
     
     // Update header elements
     const bigValueEl = document.getElementById('mvhBigValue');
@@ -2903,18 +2911,32 @@ async function loadChart(home, away, market, league = '') {
             updateMobileSelectionButtons(market);
         }
         
-        datasets.forEach((ds, idx) => {
-            const key = `${market}_${ds.label}`;
-            if (chartVisibleSeries[key] === undefined) {
-                chartVisibleSeries[key] = true;
+        // Mobile: filter to single dataset only
+        if (isMobile()) {
+            // Find selected dataset, or fallback to first available
+            let selectedDs = datasets.find(ds => ds.label === mobileSelectedLine);
+            if (!selectedDs && datasets.length > 0) {
+                selectedDs = datasets[0];
+                mobileSelectedLine = selectedDs.label;
+                // Update button state
+                document.querySelectorAll('.mob-sel-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.sel === mobileSelectedLine);
+                });
             }
-            // Mobile: show only selected line
-            if (isMobile()) {
-                ds.hidden = ds.label !== mobileSelectedLine;
-            } else {
+            if (selectedDs) {
+                datasets = [selectedDs];
+                console.log('[MobileChart] Single series:', mobileSelectedLine, 'Points:', selectedDs.data.length);
+            }
+        } else {
+            // Desktop: apply visibility state
+            datasets.forEach((ds, idx) => {
+                const key = `${market}_${ds.label}`;
+                if (chartVisibleSeries[key] === undefined) {
+                    chartVisibleSeries[key] = true;
+                }
                 ds.hidden = !chartVisibleSeries[key];
-            }
-        });
+            });
+        }
         
         chart = new Chart(ctx, {
             type: 'line',
