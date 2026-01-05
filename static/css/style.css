@@ -9938,30 +9938,28 @@ table.desktop-only {
         overflow: hidden !important;
     }
     
-    /* === 7. DETAILS TAB === */
-    .details-section {
-        padding: 16px !important;
+    /* === 7. MOBİLDE GİZLENECEKLER === */
+    
+    /* Zoom UI tamamen gizle */
+    .zoom-controls,
+    .zoom-slider,
+    .zoom-info,
+    .zoom-range,
+    .data-zoom,
+    .zoom-bar,
+    .chart-zoom-info,
+    [class*="zoom"],
+    .brush-container,
+    .range-selector {
+        display: none !important;
     }
     
-    .details-export-row {
-        display: flex !important;
-        gap: 10px !important;
-    }
-    
-    .details-btn {
-        flex: 1 !important;
-        padding: 12px !important;
-        font-size: 12px !important;
-        font-weight: 500 !important;
-        color: #c9d1d9 !important;
-        background: #161b22 !important;
-        border: 1px solid #30363d !important;
-        border-radius: 8px !important;
-        cursor: pointer !important;
-    }
-    
-    .details-btn:active {
-        background: #21262d !important;
+    /* PNG/CSV export butonları gizle */
+    .export-buttons,
+    .chart-export-btn,
+    .export-btn,
+    [class*="export"] {
+        display: none !important;
     }
     
     /* === GENEL === */
