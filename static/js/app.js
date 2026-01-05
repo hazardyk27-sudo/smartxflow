@@ -866,9 +866,9 @@ function renderMatches(data) {
         const d = match.details || match.odds || {};
         
         if (currentMarket.includes('1x2')) {
-            const trend1 = isDropping ? (getDirectTrendArrow(d.Trend1) || getTableTrendArrow(d.Odds1 || d['1'], d.PrevOdds1)) : '';
-            const trendX = isDropping ? (getDirectTrendArrow(d.TrendX) || getTableTrendArrow(d.OddsX || d['X'], d.PrevOddsX)) : '';
-            const trend2 = isDropping ? (getDirectTrendArrow(d.Trend2) || getTableTrendArrow(d.Odds2 || d['2'], d.PrevOdds2)) : '';
+            const trend1 = isDropping ? (getDirectTrendArrow(d.Trend1) || getTableTrendArrow(d.Odds1 || d['1'], d.Odds1_prev || d.PrevOdds1)) : '';
+            const trendX = isDropping ? (getDirectTrendArrow(d.TrendX) || getTableTrendArrow(d.OddsX || d['X'], d.OddsX_prev || d.PrevOddsX)) : '';
+            const trend2 = isDropping ? (getDirectTrendArrow(d.Trend2) || getTableTrendArrow(d.Odds2 || d['2'], d.Odds2_prev || d.PrevOdds2)) : '';
             
             if (isMoneyway) {
                 const block1 = renderMoneywayBlock('1', d.Pct1, d.Odds1 || d['1'], d.Amt1);
@@ -913,8 +913,8 @@ function renderMatches(data) {
                 `;
             }
         } else if (currentMarket.includes('ou25')) {
-            const trendUnder = isDropping ? (getDirectTrendArrow(d.TrendUnder) || getTableTrendArrow(d.Under, d.PrevUnder)) : '';
-            const trendOver = isDropping ? (getDirectTrendArrow(d.TrendOver) || getTableTrendArrow(d.Over, d.PrevOver)) : '';
+            const trendUnder = isDropping ? (getDirectTrendArrow(d.TrendUnder) || getTableTrendArrow(d.Under, d.Under_prev || d.PrevUnder)) : '';
+            const trendOver = isDropping ? (getDirectTrendArrow(d.TrendOver) || getTableTrendArrow(d.Over, d.Over_prev || d.PrevOver)) : '';
             
             if (isMoneyway) {
                 const blockUnder = renderMoneywayBlock('U 2.5', d.PctUnder, d.Under, d.AmtUnder);
@@ -954,8 +954,8 @@ function renderMatches(data) {
                 `;
             }
         } else {
-            const trendYes = isDropping ? (getDirectTrendArrow(d.TrendYes) || getTableTrendArrow(d.OddsYes || d.Yes, d.PrevYes)) : '';
-            const trendNo = isDropping ? (getDirectTrendArrow(d.TrendNo) || getTableTrendArrow(d.OddsNo || d.No, d.PrevNo)) : '';
+            const trendYes = isDropping ? (getDirectTrendArrow(d.TrendYes) || getTableTrendArrow(d.OddsYes || d.Yes, d.Yes_prev || d.PrevYes)) : '';
+            const trendNo = isDropping ? (getDirectTrendArrow(d.TrendNo) || getTableTrendArrow(d.OddsNo || d.No, d.No_prev || d.PrevNo)) : '';
             
             if (isMoneyway) {
                 const blockYes = renderMoneywayBlock('Yes', d.PctYes, d.OddsYes || d.Yes, d.AmtYes);
@@ -1188,8 +1188,8 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr) {
             ${renderMobileOddsBlock('O 2.5', d.Over, trendOver)}
         `;
     } else {
-        const trendYes = getOddsTrendData(match.home_team, match.away_team, 'yes');
-        const trendNo = getOddsTrendData(match.home_team, match.away_team, 'no');
+        const trendYes = getOddsTrendData(match.home_team, match.away_team, 'oddsyes');
+        const trendNo = getOddsTrendData(match.home_team, match.away_team, 'oddsno');
         
         oddsBlocks = `
             ${renderMobileOddsBlock('Yes', d.OddsYes || d.Yes, trendYes)}
@@ -1379,9 +1379,10 @@ function getTableTrendArrow(current, previous) {
 
 function getDirectTrendArrow(trendValue) {
     if (!trendValue) return '';
-    const t = String(trendValue).trim();
-    if (t === '↑' || t.includes('↑')) return '<span class="trend-up">↑</span>';
-    if (t === '↓' || t.includes('↓')) return '<span class="trend-down">↓</span>';
+    const t = String(trendValue).trim().toLowerCase();
+    // Handle text values: "down", "up" from API
+    if (t === 'down' || t === '↓' || t.includes('↓')) return '<span class="trend-down">↓</span>';
+    if (t === 'up' || t === '↑' || t.includes('↑')) return '<span class="trend-up">↑</span>';
     return '';
 }
 
