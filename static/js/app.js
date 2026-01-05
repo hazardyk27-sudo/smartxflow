@@ -2615,40 +2615,83 @@ function updateMobileValueHeader(dataIndex) {
     let oddsText = '--';
     let stakeText = '--';
     let pctText = '--';
+    let dropPctText = '--';
     
     if (mobileChartHistoryData && mobileChartHistoryData[idx]) {
         const h = mobileChartHistoryData[idx];
         const pick = mobileSelectedLine;
         
-        // Get odds, stake, and percentage based on selection
-        if (pick === '1') {
-            oddsText = h.Odds1 || h['1'] || '--';
-            stakeText = parseStake(h.Amt1);
-            pctText = parsePct(h.Pct1);
-        } else if (pick === 'X') {
-            oddsText = h.OddsX || h['X'] || '--';
-            stakeText = parseStake(h.AmtX);
-            pctText = parsePct(h.PctX);
-        } else if (pick === '2') {
-            oddsText = h.Odds2 || h['2'] || '--';
-            stakeText = parseStake(h.Amt2);
-            pctText = parsePct(h.Pct2);
-        } else if (pick === 'Under') {
-            oddsText = h.Under || h.OddsUnder || '--';
-            stakeText = parseStake(h.AmtUnder);
-            pctText = parsePct(h.PctUnder);
-        } else if (pick === 'Over') {
-            oddsText = h.Over || h.OddsOver || '--';
-            stakeText = parseStake(h.AmtOver);
-            pctText = parsePct(h.PctOver);
-        } else if (pick === 'Yes') {
-            oddsText = h.Yes || h.OddsYes || '--';
-            stakeText = parseStake(h.AmtYes);
-            pctText = parsePct(h.PctYes);
-        } else if (pick === 'No') {
-            oddsText = h.No || h.OddsNo || '--';
-            stakeText = parseStake(h.AmtNo);
-            pctText = parsePct(h.PctNo);
+        // For dropping odds, use Volume as stake
+        if (isDropping) {
+            stakeText = parseStake(h.Volume);
+            // Calculate drop percentage from opening vs current odds
+            let openOdds = 0, currentOdds = 0;
+            if (pick === '1') {
+                oddsText = h.Odds1 || h['1'] || '--';
+                openOdds = parseFloat(h.Opening1 || h.Open1 || h.Odds1_open || 0);
+                currentOdds = parseFloat(h.Odds1 || h['1'] || 0);
+            } else if (pick === 'X') {
+                oddsText = h.OddsX || h['X'] || '--';
+                openOdds = parseFloat(h.OpeningX || h.OpenX || h.OddsX_open || 0);
+                currentOdds = parseFloat(h.OddsX || h['X'] || 0);
+            } else if (pick === '2') {
+                oddsText = h.Odds2 || h['2'] || '--';
+                openOdds = parseFloat(h.Opening2 || h.Open2 || h.Odds2_open || 0);
+                currentOdds = parseFloat(h.Odds2 || h['2'] || 0);
+            } else if (pick === 'Under') {
+                oddsText = h.Under || h.OddsUnder || '--';
+                openOdds = parseFloat(h.OpeningUnder || h.OpenUnder || 0);
+                currentOdds = parseFloat(h.Under || h.OddsUnder || 0);
+            } else if (pick === 'Over') {
+                oddsText = h.Over || h.OddsOver || '--';
+                openOdds = parseFloat(h.OpeningOver || h.OpenOver || 0);
+                currentOdds = parseFloat(h.Over || h.OddsOver || 0);
+            } else if (pick === 'Yes') {
+                oddsText = h.Yes || h.OddsYes || '--';
+                openOdds = parseFloat(h.OpeningYes || h.OpenYes || 0);
+                currentOdds = parseFloat(h.Yes || h.OddsYes || 0);
+            } else if (pick === 'No') {
+                oddsText = h.No || h.OddsNo || '--';
+                openOdds = parseFloat(h.OpeningNo || h.OpenNo || 0);
+                currentOdds = parseFloat(h.No || h.OddsNo || 0);
+            }
+            // Calculate drop percentage
+            if (openOdds > 0 && currentOdds > 0) {
+                const dropVal = ((openOdds - currentOdds) / openOdds) * 100;
+                dropPctText = (dropVal >= 0 ? '-' : '+') + Math.abs(dropVal).toFixed(1) + '%';
+            }
+            pctText = dropPctText;
+        } else {
+            // Moneyway: use Amt and Pct fields
+            if (pick === '1') {
+                oddsText = h.Odds1 || h['1'] || '--';
+                stakeText = parseStake(h.Amt1);
+                pctText = parsePct(h.Pct1);
+            } else if (pick === 'X') {
+                oddsText = h.OddsX || h['X'] || '--';
+                stakeText = parseStake(h.AmtX);
+                pctText = parsePct(h.PctX);
+            } else if (pick === '2') {
+                oddsText = h.Odds2 || h['2'] || '--';
+                stakeText = parseStake(h.Amt2);
+                pctText = parsePct(h.Pct2);
+            } else if (pick === 'Under') {
+                oddsText = h.Under || h.OddsUnder || '--';
+                stakeText = parseStake(h.AmtUnder);
+                pctText = parsePct(h.PctUnder);
+            } else if (pick === 'Over') {
+                oddsText = h.Over || h.OddsOver || '--';
+                stakeText = parseStake(h.AmtOver);
+                pctText = parsePct(h.PctOver);
+            } else if (pick === 'Yes') {
+                oddsText = h.Yes || h.OddsYes || '--';
+                stakeText = parseStake(h.AmtYes);
+                pctText = parsePct(h.PctYes);
+            } else if (pick === 'No') {
+                oddsText = h.No || h.OddsNo || '--';
+                stakeText = parseStake(h.AmtNo);
+                pctText = parsePct(h.PctNo);
+            }
         }
     }
     
