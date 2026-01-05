@@ -9954,8 +9954,14 @@ table.desktop-only {
     .data-zoom,
     .zoom-bar,
     .chart-zoom-info,
-    [class*="zoom"],
+    .chart-zoom-controls,
     .brush-container,
+    .brush-slider,
+    .brush-track,
+    .brush-range,
+    .brush-handle,
+    .brush-label,
+    .chart-zoom-hint,
     .range-selector {
         display: none !important;
     }

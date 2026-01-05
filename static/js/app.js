@@ -3132,6 +3132,9 @@ let brushEndIndex = 100;
 let brushDataLength = 0;
 
 function createBrushSlider(container, historyData, mainChart) {
+    // Skip brush slider on mobile
+    if (isMobile()) return;
+    
     brushDataLength = historyData.length;
     brushStartIndex = 0;
     brushEndIndex = brushDataLength - 1;
