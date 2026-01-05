@@ -8,6 +8,7 @@ SmartXFlow Monitor is a professional betting odds tracking tool designed to scra
 - SADECE İSTENENİ YAP
 - ANLAMADIĞINDA SOR
 - KURALLARA UY
+- DESKTOP UI'A DOKUNMA - Kullanıcı söyleyene kadar sadece mobil (@media max-width: 768px) değişiklik yap
 - GITHUB KULLANICI ADI: hazardyk27-sudo
 - UYGULAMA = desktop_app.py
 - SCRAPER'A DOKUNMA
