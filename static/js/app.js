@@ -9,14 +9,14 @@ let currentSortColumn = 'volume';
 let currentSortDirection = 'desc';
 let chartVisibleSeries = {};
 let dateFilterMode = 'ALL';
-let chartTimeRange = '10min';
+let chartTimeRange = '6hour'; // Default: 6 hours
 let currentChartHistoryData = [];
 let chartViewMode = 'percent';
 let isClientMode = true;
 
 // Mobile chart controls
 let mobileSelectedLine = '1'; // Default: show only "1" line on mobile
-let mobileTimeRange = '1440'; // Default: 1 day (matches active button)
+let mobileTimeRange = '360'; // Default: 6 hours (matches active button)
 let isAlarmsPageActive = false;
 let matchesDisplayCount = 20;
 let currentOffset = 0;
@@ -2589,10 +2589,16 @@ function updateZoomSliderUI() {
 }
 
 function applyMobileZoom() {
-    if (!chart || !mobileZoomFullData.length) return;
+    if (!chart || !mobileZoomFullData || mobileZoomFullData.length === 0) return;
+    
+    // Ensure valid indices
+    const maxIdx = mobileZoomFullData.length - 1;
+    const startIdx = Math.max(0, Math.min(mobileZoomStartIdx, maxIdx));
+    const endIdx = Math.max(startIdx + 1, Math.min(mobileZoomEndIdx, maxIdx));
     
     // Slice data based on zoom range
-    const zoomedData = mobileZoomFullData.slice(mobileZoomStartIdx, mobileZoomEndIdx + 1);
+    const zoomedData = mobileZoomFullData.slice(startIdx, endIdx + 1);
+    if (zoomedData.length === 0) return;
     
     // Update chart data
     const labels = zoomedData.map(h => {
@@ -2604,21 +2610,26 @@ function applyMobileZoom() {
     const sel = mobileSelectedLine;
     const values = zoomedData.map(h => {
         if (chartViewMode === 'money') {
-            return h['Amt' + sel] || 0;
+            return parseFloat(h['Amt' + sel]) || 0;
         } else {
-            return h['Share' + sel] || 0;
+            return parseFloat(h['Share' + sel]) || 0;
         }
     });
     
+    // Update chart
     chart.data.labels = labels;
-    chart.data.datasets[0].data = values;
+    if (chart.data.datasets[0]) {
+        chart.data.datasets[0].data = values;
+    }
     
     // Update stored data for value panel
     mobileChartHistoryData = zoomedData;
     
     // Reset crosshair to last point
     mobileCrosshairIndex = values.length - 1;
-    chart.setActiveElements([{ datasetIndex: 0, index: mobileCrosshairIndex }]);
+    if (mobileCrosshairIndex >= 0) {
+        chart.setActiveElements([{ datasetIndex: 0, index: mobileCrosshairIndex }]);
+    }
     
     chart.update('none');
     updateMobileValuePanel(mobileCrosshairIndex);
