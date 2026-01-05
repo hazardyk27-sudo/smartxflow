@@ -9596,6 +9596,12 @@ table.desktop-only {
     .mobile-value-panel {
         display: none !important;
     }
+    .chart-tab .tab-short {
+        display: none !important;
+    }
+    .chart-tab .tab-full {
+        display: inline !important;
+    }
 }
 
 @media (max-width: 768px) {
@@ -10140,12 +10146,81 @@ table.desktop-only {
     
     /* === 10. MOBİL GRAFİK BÜYÜT === */
     .chart-wrapper {
-        height: 280px !important;
+        min-height: 340px !important;
+        height: 40vh !important;
+        max-height: 460px !important;
         padding: 8px !important;
     }
     
     #oddsChart {
         height: 100% !important;
+    }
+    
+    /* === 11. MARKET TABS 2x3 GRID === */
+    .chart-tabs {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 8px !important;
+        padding: 12px 16px !important;
+        margin: 0 !important;
+        overflow: visible !important;
+    }
+    
+    .chart-tab {
+        height: 34px !important;
+        padding: 6px 8px !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
+        border-radius: 6px !important;
+        white-space: nowrap !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    
+    .chart-tab .tab-full {
+        display: none !important;
+    }
+    
+    .chart-tab .tab-short {
+        display: inline !important;
+    }
+    
+    /* === 12. VALUE PANEL GELİŞTİRİLMİŞ === */
+    .mobile-value-panel {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        padding: 8px 12px !important;
+        background: #161b22 !important;
+        border-bottom: 1px solid #21262d !important;
+        font-size: 11px !important;
+    }
+    
+    .mvp-item {
+        display: inline-flex !important;
+        gap: 3px !important;
+    }
+    
+    .mvp-label {
+        color: #8b949e !important;
+    }
+    
+    .mvp-value {
+        color: #4ade80 !important;
+        font-weight: 600 !important;
+    }
+    
+    .mvp-odds {
+        color: #60a5fa !important;
+        font-weight: 600 !important;
+    }
+    
+    .mvp-stake {
+        color: #fbbf24 !important;
+        font-weight: 600 !important;
     }
     
     /* === GENEL === */

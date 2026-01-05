@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=162">
+    <link rel="stylesheet" href="/static/css/style.css?v=163">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
@@ -342,12 +342,12 @@
                 
                 <div class="mobile-tab-content active" id="mobileTabChart">
                     <div class="chart-tabs" id="modalChartTabs">
-                        <button class="chart-tab active" data-market="moneyway_1x2">Moneyway 1X2</button>
-                        <button class="chart-tab" data-market="moneyway_ou25">Moneyway 2.5</button>
-                        <button class="chart-tab" data-market="moneyway_btts">Moneyway BTTS</button>
-                        <button class="chart-tab" data-market="dropping_1x2">Odds 1X2</button>
-                        <button class="chart-tab" data-market="dropping_ou25">Odds 2.5</button>
-                        <button class="chart-tab" data-market="dropping_btts">Odds BTTS</button>
+                        <button class="chart-tab active" data-market="moneyway_1x2"><span class="tab-full">Moneyway 1X2</span><span class="tab-short">MW 1X2</span></button>
+                        <button class="chart-tab" data-market="moneyway_ou25"><span class="tab-full">Moneyway 2.5</span><span class="tab-short">MW 2.5</span></button>
+                        <button class="chart-tab" data-market="moneyway_btts"><span class="tab-full">Moneyway BTTS</span><span class="tab-short">MW BTTS</span></button>
+                        <button class="chart-tab" data-market="dropping_1x2"><span class="tab-full">Odds 1X2</span><span class="tab-short">OD 1X2</span></button>
+                        <button class="chart-tab" data-market="dropping_ou25"><span class="tab-full">Odds 2.5</span><span class="tab-short">OD 2.5</span></button>
+                        <button class="chart-tab" data-market="dropping_btts"><span class="tab-full">Odds BTTS</span><span class="tab-short">OD BTTS</span></button>
                     </div>
                     
                     <!-- Mobile Controls Row 1: Quick Controls -->
@@ -387,7 +387,11 @@
                     <div class="mobile-value-panel" id="mobileValuePanel">
                         <span class="mvp-time" id="mvpTime">--:--</span>
                         <span class="mvp-divider">•</span>
-                        <span class="mvp-value" id="mvpValue">--%</span>
+                        <span class="mvp-item"><span class="mvp-label">Değer:</span> <span class="mvp-value" id="mvpValue">--</span></span>
+                        <span class="mvp-divider">•</span>
+                        <span class="mvp-item"><span class="mvp-label">Odds:</span> <span class="mvp-odds" id="mvpOdds">--</span></span>
+                        <span class="mvp-divider">•</span>
+                        <span class="mvp-item"><span class="mvp-label">Stake:</span> <span class="mvp-stake" id="mvpStake">--</span></span>
                     </div>
                     
                     <div class="chart-wrapper">
@@ -444,6 +448,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=1735572003"></script>
+    <script src="/static/js/app.js?v=1735572004"></script>
 </body>
 </html>

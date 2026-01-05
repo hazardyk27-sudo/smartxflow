@@ -2454,6 +2454,9 @@ function setMobileTimeRange(range) {
     }
 }
 
+// Store chart history data for mobile value panel
+let mobileChartHistoryData = [];
+
 function updateMobileValuePanel(dataIndex) {
     if (!isMobile() || !chart) return;
     
@@ -2467,11 +2470,45 @@ function updateMobileValuePanel(dataIndex) {
     
     const timeLabel = chart.data.labels[idx] || '--:--';
     const value = visibleDs.data[idx];
-    const unit = chartViewMode === 'money' ? '£' : '%';
     const valueText = value !== null ? (chartViewMode === 'money' ? '£' + value.toLocaleString() : value.toFixed(1) + '%') : '--';
+    
+    // Get odds and stake from history data
+    let oddsText = '--';
+    let stakeText = '--';
+    
+    if (mobileChartHistoryData && mobileChartHistoryData[idx]) {
+        const h = mobileChartHistoryData[idx];
+        const pick = mobileSelectedLine;
+        
+        // Get odds based on selection
+        if (pick === '1') {
+            oddsText = h.Odds1 || '--';
+            stakeText = h.Amt1 || '--';
+        } else if (pick === 'X') {
+            oddsText = h.OddsX || '--';
+            stakeText = h.AmtX || '--';
+        } else if (pick === '2') {
+            oddsText = h.Odds2 || '--';
+            stakeText = h.Amt2 || '--';
+        } else if (pick === 'Under') {
+            oddsText = h.Under || h.OddsUnder || '--';
+            stakeText = h.AmtUnder || '--';
+        } else if (pick === 'Over') {
+            oddsText = h.Over || h.OddsOver || '--';
+            stakeText = h.AmtOver || '--';
+        } else if (pick === 'Yes') {
+            oddsText = h.Yes || h.OddsYes || '--';
+            stakeText = h.AmtYes || '--';
+        } else if (pick === 'No') {
+            oddsText = h.No || h.OddsNo || '--';
+            stakeText = h.AmtNo || '--';
+        }
+    }
     
     document.getElementById('mvpTime').textContent = timeLabel;
     document.getElementById('mvpValue').textContent = valueText;
+    document.getElementById('mvpOdds').textContent = oddsText;
+    document.getElementById('mvpStake').textContent = stakeText;
 }
 
 function updateMobileSelectionButtons(market) {
@@ -2820,6 +2857,11 @@ async function loadChart(home, away, market, league = '') {
         }
         
         const tooltipHistory = historyData;
+        
+        // Store history data for mobile value panel
+        if (isMobile()) {
+            mobileChartHistoryData = historyData;
+        }
         
         renderChartLegendFilters(datasets, market);
         
