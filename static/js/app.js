@@ -16,7 +16,7 @@ let isClientMode = true;
 
 // Mobile chart controls
 let mobileSelectedLine = '1'; // Default: show only "1" line on mobile
-let mobileTimeRange = 'all'; // Default: show all data
+let mobileTimeRange = '1440'; // Default: 1 day (matches active button)
 let isAlarmsPageActive = false;
 let matchesDisplayCount = 20;
 let currentOffset = 0;
@@ -2448,6 +2448,19 @@ function toggleMobileTimeDropdown() {
 
 function setMobileTimeRange(range) {
     mobileTimeRange = range;
+    
+    // Map mobile range to chartTimeRange format (same as desktop)
+    const rangeMap = {
+        '10': '10min',
+        '30': '30min',
+        '60': '1hour',
+        '360': '6hour',
+        '720': '12hour',
+        '1440': '1day',
+        'all': '1day'
+    };
+    chartTimeRange = rangeMap[range] || '1day';
+    
     const labels = { 'all': 'Tümü', '10': '10 dk', '30': '30 dk', '60': '1 saat', '360': '6 saat', '720': '12 saat', '1440': '1 gün' };
     
     // Update dropdown menu (legacy)
