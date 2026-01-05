@@ -3294,18 +3294,12 @@ async function loadChart(home, away, market, league = '') {
                 return nearestIdx;
             }
             
-            // Touch move handler for live value updates + crosshair
-            canvas.addEventListener('touchmove', function(e) {
-                const idx = getNearestIndexFromTouch(e.touches[0].clientX);
-                if (idx >= 0) {
-                    mobileCrosshairIndex = idx;
-                    updateMobileValuePanel(idx);
-                    chart.setActiveElements([{ datasetIndex: 0, index: idx }]);
-                    chart.update('none');
-                }
-            }, { passive: true });
+            // Scrub mode flag - prevents page scroll while interacting with chart
+            let isScrubbing = false;
             
+            // Touch start - enter scrub mode
             canvas.addEventListener('touchstart', function(e) {
+                isScrubbing = true;
                 const idx = getNearestIndexFromTouch(e.touches[0].clientX);
                 if (idx >= 0) {
                     mobileCrosshairIndex = idx;
@@ -3315,8 +3309,23 @@ async function loadChart(home, away, market, league = '') {
                 }
             }, { passive: true });
             
+            // Touch move - prevent scroll, update crosshair
+            canvas.addEventListener('touchmove', function(e) {
+                if (isScrubbing) {
+                    e.preventDefault(); // Prevent page scroll while scrubbing
+                }
+                const idx = getNearestIndexFromTouch(e.touches[0].clientX);
+                if (idx >= 0) {
+                    mobileCrosshairIndex = idx;
+                    updateMobileValuePanel(idx);
+                    chart.setActiveElements([{ datasetIndex: 0, index: idx }]);
+                    chart.update('none');
+                }
+            }, { passive: false }); // passive: false required for preventDefault
+            
+            // Touch end - exit scrub mode, keep dot visible
             canvas.addEventListener('touchend', function() {
-                // Re-apply active element to keep dot visible after touch ends
+                isScrubbing = false;
                 const idx = mobileCrosshairIndex >= 0 ? mobileCrosshairIndex : chart.data.datasets[0].data.length - 1;
                 chart.setActiveElements([{ datasetIndex: 0, index: idx }]);
                 chart.update('none');
