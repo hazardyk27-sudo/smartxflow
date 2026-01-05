@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=158">
+    <link rel="stylesheet" href="/static/css/style.css?v=157">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
@@ -335,77 +335,43 @@
             <div class="modal-body">
                 <div class="match-info-card" id="matchInfoCard"></div>
                 
-                <div class="mobile-hero-alarm" id="mobileHeroAlarm"></div>
-                
-                <div class="mobile-main-tabs" id="mobileMainTabs">
-                    <button class="mobile-main-tab active" data-tab="chart" onclick="switchMobileTab('chart')">Grafik</button>
-                    <button class="mobile-main-tab" data-tab="events" onclick="switchMobileTab('events')">Olaylar</button>
-                    <button class="mobile-main-tab" data-tab="details" onclick="switchMobileTab('details')">Detay</button>
-                </div>
-                
-                <div class="mobile-tab-content" id="mobileTabChart">
-                    <div class="chart-tabs" id="modalChartTabs">
-                        <button class="chart-tab active" data-market="moneyway_1x2">Moneyway 1X2</button>
-                        <button class="chart-tab" data-market="moneyway_ou25">Moneyway 2.5</button>
-                        <button class="chart-tab" data-market="moneyway_btts">Moneyway BTTS</button>
-                        <button class="chart-tab" data-market="dropping_1x2">Odds 1X2</button>
-                        <button class="chart-tab" data-market="dropping_ou25">Odds 2.5</button>
-                        <button class="chart-tab" data-market="dropping_btts">Odds BTTS</button>
-                    </div>
-                    
-                    <div class="chart-legend-filters" id="chartLegendFilters"></div>
-                    
-                    <div class="chart-wrapper">
-                        <div class="chart-loading" id="chartLoading" style="display:none;">
-                            <div class="loading-spinner"></div>
-                            <span>Grafik yukleniyor...</span>
-                        </div>
-                        <canvas id="oddsChart"></canvas>
-                    </div>
-                </div>
-                
-                <div class="mobile-tab-content" id="mobileTabEvents" style="display:none;">
-                    <div class="smart-money-section" id="smartMoneySection">
-                        <div class="smart-money-header" onclick="toggleSmartMoneySection()">
-                            <div class="smart-money-header-left">
-                                <span class="smart-money-icon">⚡</span>
-                                <span class="smart-money-title">Smart Money Events</span>
-                            </div>
-                            <div class="smart-money-header-right">
-                                <span class="smart-money-chevron" id="smartMoneyChevron">▼</span>
-                            </div>
-                        </div>
-                        <div class="smart-money-loading" id="smartMoneyLoading" style="display:none;">
-                            <div class="loading-spinner"></div>
-                            <span>Yukleniyor...</span>
-                        </div>
-                        <div class="smart-money-grid" id="smartMoneyGrid"></div>
-                        <div class="smart-money-empty" id="smartMoneyEmpty" style="display:none;">
-                            Bu mac icin smart money eventi yok.
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mobile-tab-content" id="mobileTabDetails" style="display:none;">
-                    <div class="mobile-details-section">
-                        <div class="mobile-export-buttons">
-                            <button class="mobile-export-btn" onclick="exportChart('png')">PNG Indir</button>
-                            <button class="mobile-export-btn" onclick="exportChart('csv')">CSV Indir</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="desktop-smart-money-section" id="desktopSmartMoneySection">
+                <div class="smart-money-section" id="smartMoneySection">
                     <div class="smart-money-header" onclick="toggleSmartMoneySection()">
                         <div class="smart-money-header-left">
                             <span class="smart-money-icon">⚡</span>
                             <span class="smart-money-title">Smart Money Events</span>
                         </div>
                         <div class="smart-money-header-right">
-                            <span class="smart-money-chevron">▼</span>
+                            <span class="smart-money-chevron" id="smartMoneyChevron">▼</span>
                         </div>
                     </div>
-                    <div class="smart-money-grid" id="desktopSmartMoneyGrid"></div>
+                    <div class="smart-money-loading" id="smartMoneyLoading" style="display:none;">
+                        <div class="loading-spinner"></div>
+                        <span>Yukleniyor...</span>
+                    </div>
+                    <div class="smart-money-grid" id="smartMoneyGrid"></div>
+                    <div class="smart-money-empty" id="smartMoneyEmpty" style="display:none;">
+                        Bu mac icin smart money eventi yok.
+                    </div>
+                </div>
+                
+                <div class="chart-tabs" id="modalChartTabs">
+                    <button class="chart-tab active" data-market="moneyway_1x2">Moneyway 1X2</button>
+                    <button class="chart-tab" data-market="moneyway_ou25">Moneyway 2.5</button>
+                    <button class="chart-tab" data-market="moneyway_btts">Moneyway BTTS</button>
+                    <button class="chart-tab" data-market="dropping_1x2">Odds 1X2</button>
+                    <button class="chart-tab" data-market="dropping_ou25">Odds 2.5</button>
+                    <button class="chart-tab" data-market="dropping_btts">Odds BTTS</button>
+                </div>
+                
+                <div class="chart-legend-filters" id="chartLegendFilters"></div>
+                
+                <div class="chart-wrapper">
+                    <div class="chart-loading" id="chartLoading" style="display:none;">
+                        <div class="loading-spinner"></div>
+                        <span>Grafik yukleniyor...</span>
+                    </div>
+                    <canvas id="oddsChart"></canvas>
                 </div>
             </div>
         </div>
@@ -430,6 +396,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=1735572001"></script>
+    <script src="/static/js/app.js?v=1735572000"></script>
 </body>
 </html>

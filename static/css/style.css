@@ -9578,16 +9578,11 @@ table.desktop-only {
 }
 
 /* =====================================================
-   MOBILE MODAL - V2 Tab System
-   Sıra: Header → Summary → Hero Alarm → Tabs → Tab Content
+   MOBILE MODAL - Final Spec v4
+   Sıra: Header → Moneyway → Smart Events → Tabs → Controls → Chart
    ===================================================== */
 
 @media (max-width: 768px) {
-    
-    /* === DESKTOP ELEMENTS HIDE === */
-    .desktop-smart-money-section {
-        display: none !important;
-    }
     
     /* === 1. STICKY HEADER === */
     .modal-header {
@@ -9625,7 +9620,7 @@ table.desktop-only {
         opacity: 0.7 !important;
     }
     
-    /* === 2. MONEYWAY SUMMARY CARD === */
+    /* === 2. MONEYWAY SUMMARY - Tek kart, 3 satır === */
     .match-info-card {
         background: #161b22 !important;
         border: none !important;
@@ -9640,6 +9635,7 @@ table.desktop-only {
         gap: 0 !important;
     }
     
+    /* Her satır = 1 seçim */
     .match-info-card .info-column {
         display: flex !important;
         align-items: center !important;
@@ -9661,6 +9657,7 @@ table.desktop-only {
         padding-top: 0 !important;
     }
     
+    /* Badge - küçük yuvarlak */
     .match-info-card .column-header {
         flex-shrink: 0 !important;
         display: flex !important;
@@ -9678,6 +9675,7 @@ table.desktop-only {
         padding: 0 !important;
     }
     
+    /* Orta: Odds + Stake */
     .match-info-card .column-row {
         display: inline !important;
         margin: 0 !important;
@@ -9700,6 +9698,7 @@ table.desktop-only {
         color: #8b949e !important;
     }
     
+    /* Sağ: Yüzde + mini progress */
     .match-info-card .column-row.row-pct {
         display: inline-flex !important;
         align-items: center !important;
@@ -9723,6 +9722,7 @@ table.desktop-only {
         text-align: right !important;
     }
     
+    /* Progress bar - satırın altında */
     .match-info-card .info-column .mobile-progress {
         position: absolute !important;
         bottom: 0 !important;
@@ -9734,11 +9734,12 @@ table.desktop-only {
         max-width: calc(100% - 40px) !important;
     }
     
+    /* Volume bar */
     .volume-bar {
         background: transparent !important;
         border: none !important;
         border-radius: 0 !important;
-        padding: 10px 0 0 0 !important;
+        padding: 10px 16px !important;
         margin: 0 !important;
         display: flex !important;
         justify-content: space-between !important;
@@ -9759,111 +9760,87 @@ table.desktop-only {
         color: #4ade80 !important;
     }
     
-    /* === 3. HERO ALARM CARD === */
-    .mobile-hero-alarm {
-        margin: 0 16px 12px 16px !important;
+    /* === 3. SMART MONEY EVENTS - Tek kolon liste === */
+    .smart-money-section {
+        margin: 12px 16px !important;
     }
     
-    .mobile-hero-alarm:empty {
-        display: none !important;
+    .smart-money-header {
+        padding: 0 0 8px 0 !important;
+        background: transparent !important;
+        border: none !important;
+        border-bottom: 1px solid #21262d !important;
+        border-radius: 0 !important;
+        margin-bottom: 8px !important;
     }
     
-    .hero-alarm-card {
+    .smart-money-icon {
+        font-size: 12px !important;
+    }
+    
+    .smart-money-title {
+        font-size: 10px !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        color: #8b949e !important;
+    }
+    
+    /* Grid YASAK - sadece tek kolon */
+    .smart-money-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+    }
+    
+    .smart-money-card {
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 10px 12px !important;
+        border-left: 3px solid !important;
+        border-radius: 6px !important;
         background: #161b22 !important;
-        border-radius: 10px !important;
-        padding: 12px !important;
-        border-left: 3px solid #ef4444 !important;
+        gap: 2px !important;
     }
     
-    .hero-alarm-header {
+    /* Satır 1: Alarm adı + zaman */
+    .sm-type-label {
         display: flex !important;
         justify-content: space-between !important;
         align-items: center !important;
-        margin-bottom: 6px !important;
-    }
-    
-    .hero-alarm-type {
         font-size: 10px !important;
         font-weight: 600 !important;
         text-transform: uppercase !important;
         letter-spacing: 0.3px !important;
+        margin-bottom: 2px !important;
     }
     
-    .hero-alarm-time {
+    .sm-time {
         font-size: 9px !important;
         color: #6e7681 !important;
+        margin: 0 !important;
+        font-weight: 400 !important;
     }
     
-    .hero-alarm-metric {
-        font-size: 18px !important;
-        font-weight: 700 !important;
-        color: #e6edf3 !important;
-        margin-bottom: 4px !important;
-    }
-    
-    .hero-alarm-detail {
+    /* Satır 2-3: Detaylar */
+    .sm-details {
         font-size: 12px !important;
-        color: #8b949e !important;
+        line-height: 1.3 !important;
+        color: #c9d1d9 !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
     }
     
-    .hero-alarm-more {
-        display: inline-block !important;
-        margin-top: 8px !important;
-        padding: 4px 10px !important;
-        font-size: 10px !important;
-        font-weight: 500 !important;
-        color: #58a6ff !important;
-        background: rgba(88, 166, 255, 0.1) !important;
-        border-radius: 10px !important;
-        cursor: pointer !important;
-    }
-    
-    /* === 4. MAIN TABS - Chart | Events | Details === */
-    .mobile-main-tabs {
-        display: flex !important;
-        gap: 0 !important;
-        margin: 0 16px 12px 16px !important;
-        background: #21262d !important;
-        border-radius: 8px !important;
-        padding: 3px !important;
-    }
-    
-    .mobile-main-tab {
-        flex: 1 !important;
-        padding: 8px 0 !important;
-        font-size: 12px !important;
-        font-weight: 500 !important;
-        color: #8b949e !important;
-        background: transparent !important;
-        border: none !important;
-        border-radius: 6px !important;
-        cursor: pointer !important;
-        transition: all 0.2s !important;
-    }
-    
-    .mobile-main-tab.active {
-        background: #4ade80 !important;
-        color: #0d1117 !important;
-        font-weight: 600 !important;
-    }
-    
-    /* === 5. TAB CONTENT === */
-    .mobile-tab-content {
-        display: block !important;
-    }
-    
-    .mobile-tab-content[style*="display: none"] {
-        display: none !important;
-    }
-    
-    /* === 6. CHART TAB CONTENT === */
+    /* === 4. MARKET TABS - Yatay scroll === */
     .chart-tabs {
         display: flex !important;
         flex-wrap: nowrap !important;
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch !important;
         gap: 6px !important;
-        padding: 0 16px 10px 16px !important;
+        padding: 10px 16px !important;
         margin: 0 !important;
         background: transparent !important;
         border: none !important;
@@ -9892,11 +9869,12 @@ table.desktop-only {
         border-color: rgba(74, 222, 128, 0.4) !important;
     }
     
+    /* === 5. CONTROLS === */
     .chart-legend-filters {
         display: flex !important;
         flex-wrap: wrap !important;
         gap: 6px !important;
-        padding: 0 16px 8px 16px !important;
+        padding: 8px 16px !important;
         margin: 0 !important;
     }
     
@@ -9915,138 +9893,24 @@ table.desktop-only {
         color: #4ade80 !important;
     }
     
+    /* === 6. CHART - Tam genişlik, 220-260px === */
     .chart-wrapper {
         height: 240px !important;
         min-height: 220px !important;
         max-height: 260px !important;
         padding: 8px !important;
-        margin: 0 16px 16px 16px !important;
+        margin: 8px 16px 16px 16px !important;
         border-radius: 8px !important;
         background: #161b22 !important;
         border: none !important;
     }
     
-    /* === 7. EVENTS TAB CONTENT === */
-    .smart-money-section {
-        margin: 0 !important;
-        padding: 0 16px !important;
-    }
-    
-    .smart-money-header {
-        padding: 0 0 8px 0 !important;
-        background: transparent !important;
-        border: none !important;
-        border-bottom: 1px solid #21262d !important;
-        border-radius: 0 !important;
-        margin-bottom: 8px !important;
-    }
-    
-    .smart-money-icon {
-        font-size: 12px !important;
-    }
-    
-    .smart-money-title {
-        font-size: 10px !important;
-        font-weight: 600 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.5px !important;
-        color: #8b949e !important;
-    }
-    
-    .smart-money-grid {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 6px !important;
-    }
-    
-    .smart-money-card {
-        display: flex !important;
-        flex-direction: column !important;
-        padding: 10px 12px !important;
-        border-left: 3px solid !important;
-        border-radius: 6px !important;
-        background: #161b22 !important;
-        gap: 2px !important;
-    }
-    
-    .sm-type-label {
-        display: flex !important;
-        justify-content: space-between !important;
-        align-items: center !important;
-        font-size: 10px !important;
-        font-weight: 600 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.3px !important;
-        margin-bottom: 2px !important;
-    }
-    
-    .sm-time {
-        font-size: 9px !important;
-        color: #6e7681 !important;
-        margin: 0 !important;
-        font-weight: 400 !important;
-    }
-    
-    .sm-details {
-        font-size: 12px !important;
-        line-height: 1.3 !important;
-        color: #c9d1d9 !important;
-        display: -webkit-box !important;
-        -webkit-line-clamp: 2 !important;
-        -webkit-box-orient: vertical !important;
-        overflow: hidden !important;
-    }
-    
-    /* === 8. DETAILS TAB CONTENT === */
-    .mobile-details-section {
-        padding: 0 16px !important;
-    }
-    
-    .mobile-export-buttons {
-        display: flex !important;
-        gap: 10px !important;
-    }
-    
-    .mobile-export-btn {
-        flex: 1 !important;
-        padding: 12px !important;
-        font-size: 12px !important;
-        font-weight: 500 !important;
-        color: #e6edf3 !important;
-        background: #21262d !important;
-        border: 1px solid #30363d !important;
-        border-radius: 8px !important;
-        cursor: pointer !important;
-    }
-    
-    .mobile-export-btn:active {
-        background: #30363d !important;
-    }
-    
-    /* === GENEL === */
+    /* === GENEL SPACING === */
     .modal-body {
         padding: 0 !important;
     }
     
     .modal-content {
         padding-bottom: 16px !important;
-    }
-}
-
-/* === DESKTOP: Hide mobile elements === */
-@media (min-width: 769px) {
-    .mobile-hero-alarm,
-    .mobile-main-tabs,
-    #mobileTabEvents,
-    #mobileTabDetails {
-        display: none !important;
-    }
-    
-    .desktop-smart-money-section {
-        display: block !important;
-    }
-    
-    #mobileTabChart {
-        display: block !important;
     }
 }
