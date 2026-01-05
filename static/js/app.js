@@ -2487,6 +2487,142 @@ function setMobileTimeRange(range) {
 // Store chart history data for mobile value panel
 let mobileChartHistoryData = [];
 let mobileCrosshairIndex = -1; // Active crosshair position (-1 = last point)
+let mobileZoomFullData = []; // Full dataset for zoom slider
+let mobileZoomStartIdx = 0;
+let mobileZoomEndIdx = 100;
+
+// Initialize mobile zoom slider
+function initMobileZoomSlider(historyData) {
+    if (!isMobile()) return;
+    
+    const slider = document.getElementById('mobileZoomSlider');
+    if (!slider) return;
+    
+    // Hide if not enough data points
+    if (!historyData || historyData.length < 10) {
+        slider.style.display = 'none';
+        return;
+    }
+    
+    slider.style.display = 'block';
+    mobileZoomFullData = historyData;
+    
+    const startInput = document.getElementById('zoomSliderStart');
+    const endInput = document.getElementById('zoomSliderEnd');
+    const rangeEl = document.getElementById('zoomSliderRange');
+    
+    if (!startInput || !endInput) return;
+    
+    // Set max to data length
+    const maxIdx = historyData.length - 1;
+    startInput.max = maxIdx;
+    endInput.max = maxIdx;
+    startInput.value = 0;
+    endInput.value = maxIdx;
+    mobileZoomStartIdx = 0;
+    mobileZoomEndIdx = maxIdx;
+    
+    updateZoomSliderUI();
+    
+    // Remove old listeners and add new
+    startInput.oninput = function() {
+        let startVal = parseInt(this.value);
+        let endVal = parseInt(endInput.value);
+        
+        // Ensure minimum gap of 5 points
+        if (startVal >= endVal - 4) {
+            startVal = endVal - 5;
+            this.value = startVal;
+        }
+        
+        mobileZoomStartIdx = startVal;
+        updateZoomSliderUI();
+        applyMobileZoom();
+    };
+    
+    endInput.oninput = function() {
+        let endVal = parseInt(this.value);
+        let startVal = parseInt(startInput.value);
+        
+        // Ensure minimum gap of 5 points
+        if (endVal <= startVal + 4) {
+            endVal = startVal + 5;
+            this.value = endVal;
+        }
+        
+        mobileZoomEndIdx = endVal;
+        updateZoomSliderUI();
+        applyMobileZoom();
+    };
+}
+
+function updateZoomSliderUI() {
+    const startInput = document.getElementById('zoomSliderStart');
+    const endInput = document.getElementById('zoomSliderEnd');
+    const rangeEl = document.getElementById('zoomSliderRange');
+    const labelStart = document.getElementById('zoomLabelStart');
+    const labelEnd = document.getElementById('zoomLabelEnd');
+    
+    if (!startInput || !endInput || !rangeEl) return;
+    
+    const max = parseInt(endInput.max) || 100;
+    const startPct = (mobileZoomStartIdx / max) * 100;
+    const endPct = (mobileZoomEndIdx / max) * 100;
+    
+    rangeEl.style.left = startPct + '%';
+    rangeEl.style.width = (endPct - startPct) + '%';
+    
+    // Update labels with times
+    if (labelStart && labelEnd && mobileZoomFullData.length > 0) {
+        const startData = mobileZoomFullData[mobileZoomStartIdx];
+        const endData = mobileZoomFullData[mobileZoomEndIdx];
+        
+        if (startData && startData.ScrapedAt) {
+            const dt = toTurkeyTime(startData.ScrapedAt);
+            labelStart.textContent = dt ? dt.format('HH:mm') : '--';
+        }
+        if (endData && endData.ScrapedAt) {
+            const dt = toTurkeyTime(endData.ScrapedAt);
+            labelEnd.textContent = dt ? dt.format('HH:mm') : '--';
+        }
+    }
+}
+
+function applyMobileZoom() {
+    if (!chart || !mobileZoomFullData.length) return;
+    
+    // Slice data based on zoom range
+    const zoomedData = mobileZoomFullData.slice(mobileZoomStartIdx, mobileZoomEndIdx + 1);
+    
+    // Update chart data
+    const labels = zoomedData.map(h => {
+        const dt = toTurkeyTime(h.ScrapedAt);
+        return dt ? dt.format('HH:mm') : '';
+    });
+    
+    // Get current selection values
+    const sel = mobileSelectedLine;
+    const values = zoomedData.map(h => {
+        if (chartViewMode === 'money') {
+            return h['Amt' + sel] || 0;
+        } else {
+            return h['Share' + sel] || 0;
+        }
+    });
+    
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = values;
+    
+    // Update stored data for value panel
+    mobileChartHistoryData = zoomedData;
+    
+    // Reset crosshair to last point
+    mobileCrosshairIndex = values.length - 1;
+    chart.setActiveElements([{ datasetIndex: 0, index: mobileCrosshairIndex }]);
+    
+    chart.update('none');
+    updateMobileValuePanel(mobileCrosshairIndex);
+}
 
 // Mobile crosshair plugin - draws ONLY vertical line at active index
 const mobileCrosshairPlugin = {
@@ -2963,9 +3099,10 @@ async function loadChart(home, away, market, league = '') {
         
         const tooltipHistory = historyData;
         
-        // Store history data for mobile value panel
+        // Store history data for mobile value panel and init zoom slider
         if (isMobile()) {
             mobileChartHistoryData = historyData;
+            initMobileZoomSlider(historyData);
         }
         
         renderChartLegendFilters(datasets, market);

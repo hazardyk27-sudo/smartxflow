@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=171">
+    <link rel="stylesheet" href="/static/css/style.css?v=172">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
@@ -383,6 +383,20 @@
                         <button class="time-pill active" data-range="1440" onclick="setMobileTimeRange('1440')">1G</button>
                     </div>
                     
+                    <!-- Mobile Zoom Slider -->
+                    <div class="mobile-zoom-slider" id="mobileZoomSlider" style="display: none;">
+                        <div class="zoom-slider-labels">
+                            <span class="zoom-label-start" id="zoomLabelStart">--</span>
+                            <span class="zoom-label-title">Zoom</span>
+                            <span class="zoom-label-end" id="zoomLabelEnd">--</span>
+                        </div>
+                        <div class="zoom-slider-track">
+                            <div class="zoom-slider-range" id="zoomSliderRange"></div>
+                            <input type="range" class="zoom-slider-input zoom-start" id="zoomSliderStart" min="0" max="100" value="0">
+                            <input type="range" class="zoom-slider-input zoom-end" id="zoomSliderEnd" min="0" max="100" value="100">
+                        </div>
+                    </div>
+                    
                     <!-- Mobile Controls Row: Metric + Selection -->
                     <div class="mobile-chart-controls" id="mobileChartControls">
                         <div class="mob-ctrl-row">
@@ -446,6 +460,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=1735572024"></script>
+    <script src="/static/js/app.js?v=1735572025"></script>
 </body>
 </html>
