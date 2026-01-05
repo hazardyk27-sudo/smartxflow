@@ -1172,14 +1172,6 @@ function renderMobileMoneywayBlock(label, oddsValue, pctValue) {
 function renderMobileOddsCard(match, idx, d, volume, dateStr) {
     let oddsBlocks = '';
     
-    // Debug: Log first few matches to check data structure (API uses PrevOdds1, not Odds1_prev)
-    if (idx < 3) {
-        console.log('[MobileOddsCard DEBUG]', match.home_team, 'vs', match.away_team, 'd:', JSON.stringify({
-            Odds1: d.Odds1, PrevOdds1: d.PrevOdds1, Trend1: d.Trend1,
-            Over: d.Over, PrevOver: d.PrevOver, TrendOver: d.TrendOver
-        }));
-    }
-    
     // Use trend data directly from match details (d) instead of cache
     // API field names: PrevOdds1, PrevOddsX, PrevOdds2, PrevUnder, PrevOver, PrevYes, PrevNo
     // Trend fields: Trend1, TrendX, Trend2, TrendUnder, TrendOver, TrendYes, TrendNo
