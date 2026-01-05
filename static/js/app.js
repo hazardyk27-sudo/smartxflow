@@ -2132,6 +2132,9 @@ function updateMatchInfoCard() {
             const c1 = getColorClass(d.Pct1);
             const cX = getColorClass(d.PctX);
             const c2 = getColorClass(d.Pct2);
+            const pct1 = parseFloat(d.Pct1) || 0;
+            const pctX = parseFloat(d.PctX) || 0;
+            const pct2 = parseFloat(d.Pct2) || 0;
             html = `
                 <div class="info-columns info-columns-3">
                     <div class="info-column" data-selection="1">
@@ -2148,6 +2151,7 @@ function updateMatchInfoCard() {
                             <span class="row-label label-pct">%</span>
                             <span class="row-value pct ${c1}">${formatPct(d.Pct1)}</span>
                         </div>
+                        <div class="mobile-progress" style="width: ${pct1}%"></div>
                     </div>
                     <div class="info-column" data-selection="X">
                         <div class="column-header">X</div>
@@ -2163,6 +2167,7 @@ function updateMatchInfoCard() {
                             <span class="row-label label-pct">%</span>
                             <span class="row-value pct ${cX}">${formatPct(d.PctX)}</span>
                         </div>
+                        <div class="mobile-progress" style="width: ${pctX}%"></div>
                     </div>
                     <div class="info-column" data-selection="2">
                         <div class="column-header">2</div>
@@ -2178,6 +2183,7 @@ function updateMatchInfoCard() {
                             <span class="row-label label-pct">%</span>
                             <span class="row-value pct ${c2}">${formatPct(d.Pct2)}</span>
                         </div>
+                        <div class="mobile-progress" style="width: ${pct2}%"></div>
                     </div>
                 </div>
                 <div class="volume-bar">
@@ -2223,10 +2229,12 @@ function updateMatchInfoCard() {
         if (isMoneyway) {
             const cU = getColorClass(d.PctUnder);
             const cO = getColorClass(d.PctOver);
+            const pctU = parseFloat(d.PctUnder) || 0;
+            const pctO = parseFloat(d.PctOver) || 0;
             html = `
                 <div class="info-columns">
                     <div class="info-column" data-selection="U 2.5">
-                        <div class="column-header">Under 2.5</div>
+                        <div class="column-header">U 2.5</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
                             <span class="row-value odds">${formatOdds(d.Under)}</span>
@@ -2239,9 +2247,10 @@ function updateMatchInfoCard() {
                             <span class="row-label label-pct">%</span>
                             <span class="row-value pct ${cU}">${formatPct(d.PctUnder)}</span>
                         </div>
+                        <div class="mobile-progress" style="width: ${pctU}%"></div>
                     </div>
                     <div class="info-column" data-selection="O 2.5">
-                        <div class="column-header">Over 2.5</div>
+                        <div class="column-header">O 2.5</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
                             <span class="row-value odds">${formatOdds(d.Over)}</span>
@@ -2254,10 +2263,11 @@ function updateMatchInfoCard() {
                             <span class="row-label label-pct">%</span>
                             <span class="row-value pct ${cO}">${formatPct(d.PctOver)}</span>
                         </div>
+                        <div class="mobile-progress" style="width: ${pctO}%"></div>
                     </div>
                 </div>
                 <div class="volume-bar">
-                    <span class="volume-label">Total Volume</span>
+                    <span class="volume-label">TOTAL VOLUME</span>
                     <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;
@@ -2292,10 +2302,12 @@ function updateMatchInfoCard() {
         if (isMoneyway) {
             const cY = getColorClass(d.PctYes);
             const cN = getColorClass(d.PctNo);
+            const pctY = parseFloat(d.PctYes) || 0;
+            const pctN = parseFloat(d.PctNo) || 0;
             html = `
                 <div class="info-columns">
                     <div class="info-column" data-selection="Evet">
-                        <div class="column-header">Yes</div>
+                        <div class="column-header">Evet</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
                             <span class="row-value odds">${formatOdds(d.OddsYes || d.Yes)}</span>
@@ -2308,9 +2320,10 @@ function updateMatchInfoCard() {
                             <span class="row-label label-pct">%</span>
                             <span class="row-value pct ${cY}">${formatPct(d.PctYes)}</span>
                         </div>
+                        <div class="mobile-progress" style="width: ${pctY}%"></div>
                     </div>
                     <div class="info-column" data-selection="Hayır">
-                        <div class="column-header">No</div>
+                        <div class="column-header">Hayır</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
                             <span class="row-value odds">${formatOdds(d.OddsNo || d.No)}</span>
@@ -2323,10 +2336,11 @@ function updateMatchInfoCard() {
                             <span class="row-label label-pct">%</span>
                             <span class="row-value pct ${cN}">${formatPct(d.PctNo)}</span>
                         </div>
+                        <div class="mobile-progress" style="width: ${pctN}%"></div>
                     </div>
                 </div>
                 <div class="volume-bar">
-                    <span class="volume-label">Total Volume</span>
+                    <span class="volume-label">TOTAL VOLUME</span>
                     <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;
