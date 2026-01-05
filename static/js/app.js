@@ -2477,6 +2477,7 @@ let mobileChartHistoryData = [];
 function updateMobileValueHeader(dataIndex) {
     if (!isMobile() || !chart) return;
     
+    // Get the single dataset (mobile only has one)
     const ds = chart.data.datasets[0];
     if (!ds) return;
     
@@ -2487,148 +2488,72 @@ function updateMobileValueHeader(dataIndex) {
     
     const timeLabel = chart.data.labels[idx] || '--:--';
     const value = ds.data[idx];
-    const market = selectedChartMarket || '';
-    const isOddsMarket = market.startsWith('dropping');
     
+    // Format big value
     let bigValueText = '--';
-    let subtitleText = '';
-    
-    if (mobileChartHistoryData && mobileChartHistoryData[idx]) {
-        const h = mobileChartHistoryData[idx];
-        const pick = mobileSelectedLine;
-        
-        // Helper functions
-        const parseStake = (val) => {
-            if (!val) return null;
-            const num = parseFloat(String(val).replace(/[£,]/g, ''));
-            return isNaN(num) ? null : num;
-        };
-        const formatStake = (num) => num ? '£' + Math.round(num).toLocaleString() : '--';
-        const formatPct = (val) => {
-            if (!val) return null;
-            const num = parseFloat(String(val).replace('%', ''));
-            return isNaN(num) ? null : num;
-        };
-        
-        // Get values based on selection
-        let odds = '--', stake = null, pct = null;
-        if (pick === '1') {
-            odds = h.Odds1 || '--';
-            stake = parseStake(h.Amt1);
-            pct = formatPct(h.Pct1);
-        } else if (pick === 'X') {
-            odds = h.OddsX || '--';
-            stake = parseStake(h.AmtX);
-            pct = formatPct(h.PctX);
-        } else if (pick === '2') {
-            odds = h.Odds2 || '--';
-            stake = parseStake(h.Amt2);
-            pct = formatPct(h.Pct2);
-        } else if (pick === 'Under') {
-            odds = h.Under || h.OddsUnder || '--';
-            stake = parseStake(h.AmtUnder);
-            pct = formatPct(h.PctUnder);
-        } else if (pick === 'Over') {
-            odds = h.Over || h.OddsOver || '--';
-            stake = parseStake(h.AmtOver);
-            pct = formatPct(h.PctOver);
-        } else if (pick === 'Yes') {
-            odds = h.Yes || h.OddsYes || '--';
-            stake = parseStake(h.AmtYes);
-            pct = formatPct(h.PctYes);
-        } else if (pick === 'No') {
-            odds = h.No || h.OddsNo || '--';
-            stake = parseStake(h.AmtNo);
-            pct = formatPct(h.PctNo);
-        }
-        
-        if (isOddsMarket) {
-            // ODDS markets: main value = odds, NO stake shown
-            bigValueText = odds;
-            subtitleText = timeLabel;
-        } else {
-            // MONEYWAY markets: main value based on mode, subtitle = £ + % always
-            if (chartViewMode === 'money') {
-                bigValueText = stake ? formatStake(stake) : '--';
-            } else {
-                bigValueText = pct !== null ? pct.toFixed(1) + '%' : '--';
-            }
-            // Subtitle always shows both £ and %
-            const stakeStr = stake ? formatStake(stake) : '--';
-            const pctStr = pct !== null ? '%' + pct.toFixed(1) : '--%';
-            subtitleText = stakeStr + ' • ' + pctStr;
-        }
-    } else if (value !== null && value !== undefined) {
-        // Fallback from chart data
+    if (value !== null && value !== undefined) {
         if (chartViewMode === 'money') {
             bigValueText = '£' + Math.round(value).toLocaleString();
         } else {
             bigValueText = value.toFixed(1) + '%';
         }
-        subtitleText = timeLabel;
     }
+    
+    // Get odds and stake from history data
+    let oddsText = '--';
+    let stakeText = '--';
+    
+    if (mobileChartHistoryData && mobileChartHistoryData[idx]) {
+        const h = mobileChartHistoryData[idx];
+        const pick = mobileSelectedLine;
+        
+        // Helper to parse stake value
+        const parseStake = (val) => {
+            if (!val) return '--';
+            const num = parseFloat(String(val).replace(/[£,]/g, ''));
+            return isNaN(num) ? '--' : '£' + num.toLocaleString();
+        };
+        
+        // Get odds and stake based on selection
+        if (pick === '1') {
+            oddsText = h.Odds1 || '--';
+            stakeText = parseStake(h.Amt1);
+        } else if (pick === 'X') {
+            oddsText = h.OddsX || '--';
+            stakeText = parseStake(h.AmtX);
+        } else if (pick === '2') {
+            oddsText = h.Odds2 || '--';
+            stakeText = parseStake(h.Amt2);
+        } else if (pick === 'Under') {
+            oddsText = h.Under || h.OddsUnder || '--';
+            stakeText = parseStake(h.AmtUnder);
+        } else if (pick === 'Over') {
+            oddsText = h.Over || h.OddsOver || '--';
+            stakeText = parseStake(h.AmtOver);
+        } else if (pick === 'Yes') {
+            oddsText = h.Yes || h.OddsYes || '--';
+            stakeText = parseStake(h.AmtYes);
+        } else if (pick === 'No') {
+            oddsText = h.No || h.OddsNo || '--';
+            stakeText = parseStake(h.AmtNo);
+        }
+    }
+    
+    // Debug log
+    console.log('[MobileHeader]', { idx, timeLabel, value: bigValueText, odds: oddsText, stake: stakeText, pick: mobileSelectedLine });
     
     // Update header elements
     const bigValueEl = document.getElementById('mvhBigValue');
     const changeEl = document.getElementById('mvhChange');
+    const oddsEl = document.getElementById('mvhOdds');
+    const stakeEl = document.getElementById('mvhStake');
+    const timeEl = document.getElementById('mvhTime');
     
     if (bigValueEl) bigValueEl.textContent = bigValueText;
-    if (changeEl) changeEl.textContent = subtitleText;
-}
-
-// Wrapper that also updates crosshair (only called during active touch)
-function updateMobileValueWithCrosshair(dataIndex) {
-    updateMobileValueHeader(dataIndex);
-    updateMobileCrosshair(dataIndex);
-}
-
-// Mobile crosshair management
-function createMobileCrosshair() {
-    const wrapper = document.querySelector('.chart-wrapper');
-    if (!wrapper || wrapper.querySelector('.mobile-crosshair')) return;
-    
-    const crosshair = document.createElement('div');
-    crosshair.className = 'mobile-crosshair';
-    crosshair.innerHTML = '<div class="mobile-crosshair-dot"></div>';
-    wrapper.appendChild(crosshair);
-}
-
-function updateMobileCrosshair(dataIndex) {
-    if (!isMobile() || !chart) return;
-    
-    const crosshair = document.querySelector('.mobile-crosshair');
-    if (!crosshair) return;
-    
-    const ds = chart.data.datasets[0];
-    if (!ds || ds.data.length === 0) {
-        crosshair.classList.remove('active');
-        return;
-    }
-    
-    const meta = chart.getDatasetMeta(0);
-    if (!meta || !meta.data || !meta.data[dataIndex]) {
-        crosshair.classList.remove('active');
-        return;
-    }
-    
-    const point = meta.data[dataIndex];
-    const chartArea = chart.chartArea;
-    
-    crosshair.classList.add('active');
-    crosshair.style.left = point.x + 'px';
-    crosshair.style.top = chartArea.top + 'px';
-    crosshair.style.height = (chartArea.bottom - chartArea.top) + 'px';
-    
-    // Position the dot
-    const dot = crosshair.querySelector('.mobile-crosshair-dot');
-    if (dot) {
-        dot.style.top = (point.y - chartArea.top) + 'px';
-    }
-}
-
-function hideMobileCrosshair() {
-    const crosshair = document.querySelector('.mobile-crosshair');
-    if (crosshair) crosshair.classList.remove('active');
+    if (changeEl) changeEl.textContent = 'Son değer • ' + timeLabel;
+    if (oddsEl) oddsEl.textContent = oddsText;
+    if (stakeEl) stakeEl.textContent = stakeText;
+    if (timeEl) timeEl.textContent = timeLabel;
 }
 
 // Legacy alias for compatibility
@@ -3279,21 +3204,20 @@ async function loadChart(home, away, market, league = '') {
         
         createBrushSlider(chartContainer, historyData, chart);
         
-        // Mobile: add crosshair, touch events, and update initial value
+        // Mobile: add touch event for value panel and update initial value
         if (isMobile()) {
-            createMobileCrosshair();
             updateMobileValuePanel();
             
+            // Touch move handler for live value updates
             const canvas = document.getElementById('oddsChart');
-            
-            // Touch move handler for live value updates with crosshair
             canvas.addEventListener('touchmove', function(e) {
                 const rect = canvas.getBoundingClientRect();
                 const x = e.touches[0].clientX - rect.left;
                 const y = e.touches[0].clientY - rect.top;
+                // Use synthesized event object for Chart.js compatibility
                 const points = chart.getElementsAtEventForMode({ x: x, y: y, type: 'touchmove' }, 'index', { intersect: false }, false);
                 if (points.length > 0) {
-                    updateMobileValueWithCrosshair(points[0].index);
+                    updateMobileValuePanel(points[0].index);
                 }
             }, { passive: true });
             
@@ -3303,13 +3227,12 @@ async function loadChart(home, away, market, league = '') {
                 const y = e.touches[0].clientY - rect.top;
                 const points = chart.getElementsAtEventForMode({ x: x, y: y, type: 'touchstart' }, 'index', { intersect: false }, false);
                 if (points.length > 0) {
-                    updateMobileValueWithCrosshair(points[0].index);
+                    updateMobileValuePanel(points[0].index);
                 }
             }, { passive: true });
             
             canvas.addEventListener('touchend', function() {
-                // Reset to last value and hide crosshair on touch end
-                hideMobileCrosshair();
+                // Reset to last value on touch end
                 setTimeout(() => updateMobileValuePanel(), 100);
             }, { passive: true });
         }

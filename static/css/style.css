@@ -9879,16 +9879,15 @@ table.desktop-only {
     }
     
     .chart-wrapper {
-        min-height: 360px !important;
-        height: 48vh !important;
-        max-height: 520px !important;
+        min-height: 420px !important;
+        height: 58vh !important;
+        max-height: 650px !important;
         width: calc(100% - 16px) !important;
         padding: 8px 4px !important;
         margin: 0 8px 8px 8px !important;
         background: #0d1117 !important;
         border: none !important;
         border-radius: 12px !important;
-        position: relative !important;
     }
     
     /* === 6. EVENTS TAB İÇERİĞİ === */
@@ -10157,44 +10156,15 @@ table.desktop-only {
     
     /* === 10. MOBİL GRAFİK BÜYÜT (Finance App Style - Eksensiz) === */
     .chart-wrapper {
-        min-height: 360px !important;
-        height: 48vh !important;
-        max-height: 520px !important;
+        min-height: 420px !important;
+        height: 58vh !important;
+        max-height: 650px !important;
         width: calc(100% - 16px) !important;
         padding: 8px 4px !important;
         margin: 0 8px 8px 8px !important;
         background: #0d1117 !important;
         border: none !important;
         border-radius: 12px !important;
-        position: relative !important;
-    }
-    
-    /* Crosshair line for mobile touch tracking */
-    .mobile-crosshair {
-        position: absolute !important;
-        top: 0 !important;
-        width: 1px !important;
-        height: 100% !important;
-        background: rgba(255, 255, 255, 0.25) !important;
-        pointer-events: none !important;
-        z-index: 10 !important;
-        display: none !important;
-    }
-    
-    .mobile-crosshair.active {
-        display: block !important;
-    }
-    
-    .mobile-crosshair-dot {
-        position: absolute !important;
-        width: 8px !important;
-        height: 8px !important;
-        background: #4ade80 !important;
-        border: 2px solid #fff !important;
-        border-radius: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        pointer-events: none !important;
-        z-index: 11 !important;
     }
     
     #oddsChart {
