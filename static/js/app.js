@@ -2071,18 +2071,8 @@ async function loadAllMarketsAtOnce(home, away, league = '') {
 
 async function loadChartWithTrends(home, away, market, league = '') {
     // DEBUG: Show mobile detection status
-    const debugInfo = `Mobile: ${isMobile()}, Width: ${window.innerWidth}px`;
+    const debugInfo = `Mobile: ${isMobile()}, W: ${window.innerWidth}`;
     console.log('[ChartTrends]', debugInfo);
-    
-    // Add visual debug indicator
-    let debugEl = document.getElementById('mobileDebugIndicator');
-    if (!debugEl) {
-        debugEl = document.createElement('div');
-        debugEl.id = 'mobileDebugIndicator';
-        debugEl.style.cssText = 'position:fixed;top:0;left:0;background:red;color:white;padding:5px 10px;z-index:99999;font-size:12px;';
-        document.body.appendChild(debugEl);
-    }
-    debugEl.textContent = debugInfo;
     
     try {
         let data = { history: [] };
@@ -2957,6 +2947,19 @@ async function loadChart(home, away, market, league = '') {
                 ds.hidden = !chartVisibleSeries[key];
             });
         }
+        
+        // DEBUG: Log final datasets before chart creation
+        console.log('[LoadChart] FINAL - Creating chart with', datasets.length, 'datasets:', datasets.map(d => d.label));
+        
+        // Visual debug: show dataset count on chart
+        let dsDebug = document.getElementById('datasetDebug');
+        if (!dsDebug) {
+            dsDebug = document.createElement('div');
+            dsDebug.id = 'datasetDebug';
+            dsDebug.style.cssText = 'position:fixed;top:0;left:0;background:blue;color:white;padding:5px 10px;z-index:99999;font-size:12px;';
+            document.body.appendChild(dsDebug);
+        }
+        dsDebug.textContent = `DS: ${datasets.length} [${datasets.map(d => d.label).join(',')}] Mobile: ${isMobile()}`;
         
         chart = new Chart(ctx, {
             type: 'line',
