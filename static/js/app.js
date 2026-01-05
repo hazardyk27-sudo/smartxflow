@@ -2473,6 +2473,61 @@ function setMobileTimeRange(range) {
 
 // Store chart history data for mobile value panel
 let mobileChartHistoryData = [];
+let mobileCrosshairIndex = -1; // Active crosshair position (-1 = last point)
+
+// Mobile crosshair plugin - draws vertical line at active index
+const mobileCrosshairPlugin = {
+    id: 'mobileCrosshair',
+    afterDraw: function(chart) {
+        if (!isMobile()) return;
+        
+        const ctx = chart.ctx;
+        const chartArea = chart.chartArea;
+        const ds = chart.data.datasets[0];
+        if (!ds || !ds.data || ds.data.length === 0) return;
+        
+        // Determine which index to show crosshair at
+        let idx = mobileCrosshairIndex;
+        if (idx < 0 || idx >= ds.data.length) {
+            idx = ds.data.length - 1;
+        }
+        
+        // Get X position for this index
+        const meta = chart.getDatasetMeta(0);
+        if (!meta || !meta.data || !meta.data[idx]) return;
+        
+        const x = meta.data[idx].x;
+        
+        // Draw vertical line
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x, chartArea.top);
+        ctx.lineTo(x, chartArea.bottom);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(139, 148, 158, 0.5)';
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.restore();
+        
+        // Draw dot at the data point
+        const y = meta.data[idx].y;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = ds.borderColor || '#4ade80';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#0d1117';
+        ctx.fill();
+        ctx.restore();
+    }
+};
+
+// Register the plugin globally
+if (typeof Chart !== 'undefined') {
+    Chart.register(mobileCrosshairPlugin);
+}
 
 function updateMobileValueHeader(dataIndex) {
     if (!isMobile() || !chart) return;
@@ -3204,20 +3259,23 @@ async function loadChart(home, away, market, league = '') {
         
         createBrushSlider(chartContainer, historyData, chart);
         
-        // Mobile: add touch event for value panel and update initial value
+        // Mobile: add touch event for value panel, crosshair, and update initial value
         if (isMobile()) {
+            mobileCrosshairIndex = -1; // Start at last point
             updateMobileValuePanel();
             
-            // Touch move handler for live value updates
+            // Touch move handler for live value updates + crosshair
             const canvas = document.getElementById('oddsChart');
             canvas.addEventListener('touchmove', function(e) {
                 const rect = canvas.getBoundingClientRect();
                 const x = e.touches[0].clientX - rect.left;
                 const y = e.touches[0].clientY - rect.top;
-                // Use synthesized event object for Chart.js compatibility
                 const points = chart.getElementsAtEventForMode({ x: x, y: y, type: 'touchmove' }, 'index', { intersect: false }, false);
                 if (points.length > 0) {
-                    updateMobileValuePanel(points[0].index);
+                    const idx = points[0].index;
+                    mobileCrosshairIndex = idx;
+                    updateMobileValuePanel(idx);
+                    chart.update('none'); // Redraw crosshair without animation
                 }
             }, { passive: true });
             
@@ -3227,13 +3285,15 @@ async function loadChart(home, away, market, league = '') {
                 const y = e.touches[0].clientY - rect.top;
                 const points = chart.getElementsAtEventForMode({ x: x, y: y, type: 'touchstart' }, 'index', { intersect: false }, false);
                 if (points.length > 0) {
-                    updateMobileValuePanel(points[0].index);
+                    const idx = points[0].index;
+                    mobileCrosshairIndex = idx;
+                    updateMobileValuePanel(idx);
+                    chart.update('none');
                 }
             }, { passive: true });
             
             canvas.addEventListener('touchend', function() {
-                // Reset to last value on touch end
-                setTimeout(() => updateMobileValuePanel(), 100);
+                // Keep crosshair at last touched position (don't reset)
             }, { passive: true });
         }
     } catch (error) {
