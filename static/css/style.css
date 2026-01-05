@@ -9879,9 +9879,9 @@ table.desktop-only {
     }
     
     .chart-wrapper {
-        min-height: 420px !important;
-        height: 58vh !important;
-        max-height: 650px !important;
+        min-height: 360px !important;
+        height: 48vh !important;
+        max-height: 500px !important;
         width: calc(100% - 16px) !important;
         padding: 8px 4px !important;
         margin: 0 8px 8px 8px !important;
@@ -10156,9 +10156,9 @@ table.desktop-only {
     
     /* === 10. MOBİL GRAFİK BÜYÜT (Finance App Style - Eksensiz) === */
     .chart-wrapper {
-        min-height: 420px !important;
-        height: 58vh !important;
-        max-height: 650px !important;
+        min-height: 360px !important;
+        height: 48vh !important;
+        max-height: 500px !important;
         width: calc(100% - 16px) !important;
         padding: 8px 4px !important;
         margin: 0 8px 8px 8px !important;
