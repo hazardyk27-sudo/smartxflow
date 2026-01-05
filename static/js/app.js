@@ -2070,10 +2070,6 @@ async function loadAllMarketsAtOnce(home, away, league = '') {
 }
 
 async function loadChartWithTrends(home, away, market, league = '') {
-    // DEBUG: Show mobile detection status
-    const debugInfo = `Mobile: ${isMobile()}, W: ${window.innerWidth}`;
-    console.log('[ChartTrends]', debugInfo);
-    
     try {
         let data = { history: [] };
         
@@ -2660,7 +2656,6 @@ function formatTimeLabel(date) {
 }
 
 async function loadChart(home, away, market, league = '') {
-    console.log('[LoadChart] START - isMobile:', isMobile(), 'width:', window.innerWidth, 'mobileSelectedLine:', mobileSelectedLine);
     try {
         let data = { history: [] };
         
@@ -2917,15 +2912,12 @@ async function loadChart(home, away, market, league = '') {
         }
         
         // Mobile: filter to single dataset only
-        console.log('[LoadChart] Before filter - isMobile:', isMobile(), 'datasets count:', datasets.length, 'labels:', datasets.map(d => d.label));
         if (isMobile()) {
             // Find selected dataset, or fallback to first available
             let selectedDs = datasets.find(ds => ds.label === mobileSelectedLine);
-            console.log('[MobileChart] Looking for:', mobileSelectedLine, 'found:', !!selectedDs);
             if (!selectedDs && datasets.length > 0) {
                 selectedDs = datasets[0];
                 mobileSelectedLine = selectedDs.label;
-                console.log('[MobileChart] Fallback to:', mobileSelectedLine);
                 // Update button state
                 document.querySelectorAll('.mob-sel-btn').forEach(btn => {
                     btn.classList.toggle('active', btn.dataset.sel === mobileSelectedLine);
@@ -2933,9 +2925,6 @@ async function loadChart(home, away, market, league = '') {
             }
             if (selectedDs) {
                 datasets = [selectedDs];
-                console.log('[MobileChart] Single series:', mobileSelectedLine, 'Points:', selectedDs.data.length);
-            } else {
-                console.log('[MobileChart] ERROR: No dataset found!');
             }
         } else {
             // Desktop: apply visibility state
@@ -2947,19 +2936,6 @@ async function loadChart(home, away, market, league = '') {
                 ds.hidden = !chartVisibleSeries[key];
             });
         }
-        
-        // DEBUG: Log final datasets before chart creation
-        console.log('[LoadChart] FINAL - Creating chart with', datasets.length, 'datasets:', datasets.map(d => d.label));
-        
-        // Visual debug: show dataset count on chart
-        let dsDebug = document.getElementById('datasetDebug');
-        if (!dsDebug) {
-            dsDebug = document.createElement('div');
-            dsDebug.id = 'datasetDebug';
-            dsDebug.style.cssText = 'position:fixed;top:0;left:0;background:blue;color:white;padding:5px 10px;z-index:99999;font-size:12px;';
-            document.body.appendChild(dsDebug);
-        }
-        dsDebug.textContent = `DS: ${datasets.length} [${datasets.map(d => d.label).join(',')}] Mobile: ${isMobile()}`;
         
         chart = new Chart(ctx, {
             type: 'line',
@@ -3133,28 +3109,31 @@ async function loadChart(home, away, market, league = '') {
                 scales: {
                     x: {
                         grid: {
-                            color: 'rgba(255, 255, 255, 0.06)',
+                            color: isMobile() ? 'rgba(255, 255, 255, 0.03)' : 'rgba(255, 255, 255, 0.06)',
                             drawBorder: false
                         },
                         border: {
                             display: false
                         },
                         ticks: {
-                            color: '#a1a1aa',
-                            font: { size: 11 }
+                            color: isMobile() ? '#6e7681' : '#a1a1aa',
+                            font: { size: isMobile() ? 10 : 11 },
+                            maxTicksLimit: isMobile() ? 6 : 10,
+                            maxRotation: 0
                         }
                     },
                     y: {
                         grid: {
-                            color: 'rgba(255, 255, 255, 0.06)',
+                            color: isMobile() ? 'rgba(255, 255, 255, 0.03)' : 'rgba(255, 255, 255, 0.06)',
                             drawBorder: false
                         },
                         border: {
                             display: false
                         },
                         ticks: {
-                            color: '#8e8e95',
-                            font: { size: 11 },
+                            color: isMobile() ? '#6e7681' : '#8e8e95',
+                            font: { size: isMobile() ? 10 : 11 },
+                            maxTicksLimit: isMobile() ? 5 : 8,
                             callback: function(value) {
                                 if (value >= 1000000) {
                                     return (value / 1000000).toFixed(1) + 'M';
@@ -3169,7 +3148,7 @@ async function loadChart(home, away, market, league = '') {
                 elements: {
                     point: {
                         radius: 0,
-                        hoverRadius: 4,
+                        hoverRadius: isMobile() ? 6 : 4,
                         borderWidth: 2
                     },
                     line: {
@@ -3177,7 +3156,7 @@ async function loadChart(home, away, market, league = '') {
                     }
                 }
             },
-            plugins: {
+            plugins: isMobile() ? {} : {
                 zoom: {
                     pan: {
                         enabled: true,

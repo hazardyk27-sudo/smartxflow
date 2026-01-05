@@ -9879,13 +9879,13 @@ table.desktop-only {
     }
     
     .chart-wrapper {
-        min-height: 340px !important;
-        height: 40vh !important;
-        max-height: 460px !important;
-        padding: 8px !important;
-        margin: 8px 16px 16px 16px !important;
-        border-radius: 8px !important;
-        background: #161b22 !important;
+        min-height: 360px !important;
+        height: 45vh !important;
+        max-height: 520px !important;
+        padding: 4px 8px !important;
+        margin: 4px 12px 8px 12px !important;
+        border-radius: 12px !important;
+        background: #0d1117 !important;
         border: none !important;
     }
     
@@ -10153,16 +10153,29 @@ table.desktop-only {
         font-weight: 600 !important;
     }
     
-    /* === 10. MOBİL GRAFİK BÜYÜT === */
+    /* === 10. MOBİL GRAFİK BÜYÜT (Finance App Style) === */
     .chart-wrapper {
-        min-height: 340px !important;
-        height: 40vh !important;
-        max-height: 460px !important;
-        padding: 8px !important;
+        min-height: 360px !important;
+        height: 45vh !important;
+        max-height: 520px !important;
+        padding: 4px 8px !important;
+        margin: 4px 12px 8px 12px !important;
+        background: #0d1117 !important;
+        border: none !important;
+        border-radius: 12px !important;
     }
     
     #oddsChart {
         height: 100% !important;
+        background: transparent !important;
+    }
+    
+    /* Zoom slider gizle */
+    .brush-slider-container,
+    .brush-slider,
+    .brush-handle,
+    .brush-help-text {
+        display: none !important;
     }
     
     /* === 11. MARKET TABS 2x3 GRID === */
