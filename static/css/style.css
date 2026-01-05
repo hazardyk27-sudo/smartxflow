@@ -9540,8 +9540,9 @@ table.desktop-only {
     
     /* === CHART WRAPPER - Compact === */
     .chart-wrapper {
-        height: 240px !important;
-        min-height: 220px !important;
+        min-height: 340px !important;
+        height: 40vh !important;
+        max-height: 460px !important;
         padding: 10px !important;
         margin-bottom: 12px !important;
         border-radius: 8px !important;
@@ -9876,9 +9877,9 @@ table.desktop-only {
     }
     
     .chart-wrapper {
-        height: 240px !important;
-        min-height: 220px !important;
-        max-height: 260px !important;
+        min-height: 340px !important;
+        height: 40vh !important;
+        max-height: 460px !important;
         padding: 8px !important;
         margin: 8px 16px 16px 16px !important;
         border-radius: 8px !important;
