@@ -2443,11 +2443,22 @@ function toggleMobileTimeDropdown() {
 function setMobileTimeRange(range) {
     mobileTimeRange = range;
     const labels = { 'all': 'Tümü', '10': '10 dk', '30': '30 dk', '60': '1 saat', '360': '6 saat', '720': '12 saat', '1440': '1 gün' };
-    document.getElementById('mobTimeLabel').textContent = labels[range] || 'Tümü';
+    
+    // Update dropdown menu (legacy)
+    const mobTimeLabel = document.getElementById('mobTimeLabel');
+    if (mobTimeLabel) mobTimeLabel.textContent = labels[range] || 'Tümü';
+    
     document.querySelectorAll('.mob-time-option').forEach(opt => {
         opt.classList.toggle('active', opt.dataset.range === range);
     });
-    document.getElementById('mobTimeMenu').classList.remove('open');
+    
+    const mobTimeMenu = document.getElementById('mobTimeMenu');
+    if (mobTimeMenu) mobTimeMenu.classList.remove('open');
+    
+    // Update time pills active state
+    document.querySelectorAll('.time-pill').forEach(pill => {
+        pill.classList.toggle('active', pill.dataset.range === range);
+    });
     
     if (selectedMatch && isMobile()) {
         loadChartHistory(selectedMatch.MatchId, selectedChartMarket);
@@ -2457,7 +2468,7 @@ function setMobileTimeRange(range) {
 // Store chart history data for mobile value panel
 let mobileChartHistoryData = [];
 
-function updateMobileValuePanel(dataIndex) {
+function updateMobileValueHeader(dataIndex) {
     if (!isMobile() || !chart) return;
     
     const visibleDs = chart.data.datasets.find((ds, idx) => chart.isDatasetVisible(idx));
@@ -2470,7 +2481,16 @@ function updateMobileValuePanel(dataIndex) {
     
     const timeLabel = chart.data.labels[idx] || '--:--';
     const value = visibleDs.data[idx];
-    const valueText = value !== null ? (chartViewMode === 'money' ? '£' + value.toLocaleString() : value.toFixed(1) + '%') : '--';
+    
+    // Format big value
+    let bigValueText = '--';
+    if (value !== null) {
+        if (chartViewMode === 'money') {
+            bigValueText = '£' + Math.round(value).toLocaleString();
+        } else {
+            bigValueText = value.toFixed(1) + '%';
+        }
+    }
     
     // Get odds and stake from history data
     let oddsText = '--';
@@ -2480,35 +2500,48 @@ function updateMobileValuePanel(dataIndex) {
         const h = mobileChartHistoryData[idx];
         const pick = mobileSelectedLine;
         
-        // Get odds based on selection
+        // Get odds and stake based on selection
         if (pick === '1') {
             oddsText = h.Odds1 || '--';
-            stakeText = h.Amt1 || '--';
+            stakeText = h.Amt1 ? '£' + parseFloat(h.Amt1.replace(/[£,]/g, '')).toLocaleString() : '--';
         } else if (pick === 'X') {
             oddsText = h.OddsX || '--';
-            stakeText = h.AmtX || '--';
+            stakeText = h.AmtX ? '£' + parseFloat(h.AmtX.replace(/[£,]/g, '')).toLocaleString() : '--';
         } else if (pick === '2') {
             oddsText = h.Odds2 || '--';
-            stakeText = h.Amt2 || '--';
+            stakeText = h.Amt2 ? '£' + parseFloat(h.Amt2.replace(/[£,]/g, '')).toLocaleString() : '--';
         } else if (pick === 'Under') {
             oddsText = h.Under || h.OddsUnder || '--';
-            stakeText = h.AmtUnder || '--';
+            stakeText = h.AmtUnder ? '£' + parseFloat(h.AmtUnder.replace(/[£,]/g, '')).toLocaleString() : '--';
         } else if (pick === 'Over') {
             oddsText = h.Over || h.OddsOver || '--';
-            stakeText = h.AmtOver || '--';
+            stakeText = h.AmtOver ? '£' + parseFloat(h.AmtOver.replace(/[£,]/g, '')).toLocaleString() : '--';
         } else if (pick === 'Yes') {
             oddsText = h.Yes || h.OddsYes || '--';
-            stakeText = h.AmtYes || '--';
+            stakeText = h.AmtYes ? '£' + parseFloat(h.AmtYes.replace(/[£,]/g, '')).toLocaleString() : '--';
         } else if (pick === 'No') {
             oddsText = h.No || h.OddsNo || '--';
-            stakeText = h.AmtNo || '--';
+            stakeText = h.AmtNo ? '£' + parseFloat(h.AmtNo.replace(/[£,]/g, '')).toLocaleString() : '--';
         }
     }
     
-    document.getElementById('mvpTime').textContent = timeLabel;
-    document.getElementById('mvpValue').textContent = valueText;
-    document.getElementById('mvpOdds').textContent = oddsText;
-    document.getElementById('mvpStake').textContent = stakeText;
+    // Update header elements
+    const bigValueEl = document.getElementById('mvhBigValue');
+    const changeEl = document.getElementById('mvhChange');
+    const oddsEl = document.getElementById('mvhOdds');
+    const stakeEl = document.getElementById('mvhStake');
+    const timeEl = document.getElementById('mvhTime');
+    
+    if (bigValueEl) bigValueEl.textContent = bigValueText;
+    if (changeEl) changeEl.textContent = 'Son değer • ' + timeLabel;
+    if (oddsEl) oddsEl.textContent = oddsText;
+    if (stakeEl) stakeEl.textContent = stakeText;
+    if (timeEl) timeEl.textContent = timeLabel;
+}
+
+// Legacy alias for compatibility
+function updateMobileValuePanel(dataIndex) {
+    updateMobileValueHeader(dataIndex);
 }
 
 function updateMobileSelectionButtons(market) {
