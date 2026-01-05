@@ -2404,6 +2404,15 @@ function isMobile() {
     return window.innerWidth <= 768;
 }
 
+// Reload chart with current mobile state
+async function loadChartHistory(matchId, market) {
+    if (!selectedMatch) return;
+    const home = selectedMatch.home_team;
+    const away = selectedMatch.away_team;
+    const league = selectedMatch.league || '';
+    await loadChartWithTrends(home, away, market, league);
+}
+
 function setMobileViewMode(mode) {
     chartViewMode = mode;
     document.querySelectorAll('.mob-view-btn').forEach(btn => {
@@ -3106,31 +3115,40 @@ async function loadChart(home, away, market, league = '') {
                         }
                     }
                 },
-                scales: {
+                scales: isMobile() ? {
+                    // Mobile: eksensiz, gridsiz - sadece çizgi
+                    x: {
+                        display: false,
+                        grid: { display: false, drawBorder: false },
+                        ticks: { display: false }
+                    },
+                    y: {
+                        display: false,
+                        grid: { display: false, drawBorder: false },
+                        ticks: { display: false }
+                    }
+                } : {
+                    // Desktop: normal eksenler
                     x: {
                         grid: {
-                            color: isMobile() ? 'rgba(255, 255, 255, 0.03)' : 'rgba(255, 255, 255, 0.06)',
+                            color: 'rgba(255, 255, 255, 0.06)',
                             drawBorder: false
                         },
-                        border: {
-                            display: false
-                        },
-                        ticks: Object.assign({
-                            color: isMobile() ? '#6e7681' : '#a1a1aa',
-                            font: { size: isMobile() ? 10 : 11 }
-                        }, isMobile() ? { maxTicksLimit: 6, maxRotation: 0 } : {})
+                        border: { display: false },
+                        ticks: {
+                            color: '#a1a1aa',
+                            font: { size: 11 }
+                        }
                     },
                     y: {
                         grid: {
-                            color: isMobile() ? 'rgba(255, 255, 255, 0.03)' : 'rgba(255, 255, 255, 0.06)',
+                            color: 'rgba(255, 255, 255, 0.06)',
                             drawBorder: false
                         },
-                        border: {
-                            display: false
-                        },
-                        ticks: Object.assign({
-                            color: isMobile() ? '#6e7681' : '#8e8e95',
-                            font: { size: isMobile() ? 10 : 11 },
+                        border: { display: false },
+                        ticks: {
+                            color: '#8e8e95',
+                            font: { size: 11 },
                             callback: function(value) {
                                 if (value >= 1000000) {
                                     return (value / 1000000).toFixed(1) + 'M';
@@ -3139,7 +3157,7 @@ async function loadChart(home, away, market, league = '') {
                                 }
                                 return value;
                             }
-                        }, isMobile() ? { maxTicksLimit: 5 } : {})
+                        }
                     }
                 },
                 elements: {

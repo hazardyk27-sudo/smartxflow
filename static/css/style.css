@@ -9879,14 +9879,15 @@ table.desktop-only {
     }
     
     .chart-wrapper {
-        min-height: 360px !important;
-        height: 45vh !important;
-        max-height: 520px !important;
-        padding: 4px 8px !important;
-        margin: 4px 12px 8px 12px !important;
-        border-radius: 12px !important;
+        min-height: 420px !important;
+        height: 58vh !important;
+        max-height: 650px !important;
+        width: calc(100% - 16px) !important;
+        padding: 8px 4px !important;
+        margin: 0 8px 8px 8px !important;
         background: #0d1117 !important;
         border: none !important;
+        border-radius: 12px !important;
     }
     
     /* === 6. EVENTS TAB İÇERİĞİ === */
@@ -10153,13 +10154,14 @@ table.desktop-only {
         font-weight: 600 !important;
     }
     
-    /* === 10. MOBİL GRAFİK BÜYÜT (Finance App Style) === */
+    /* === 10. MOBİL GRAFİK BÜYÜT (Finance App Style - Eksensiz) === */
     .chart-wrapper {
-        min-height: 360px !important;
-        height: 45vh !important;
-        max-height: 520px !important;
-        padding: 4px 8px !important;
-        margin: 4px 12px 8px 12px !important;
+        min-height: 420px !important;
+        height: 58vh !important;
+        max-height: 650px !important;
+        width: calc(100% - 16px) !important;
+        padding: 8px 4px !important;
+        margin: 0 8px 8px 8px !important;
         background: #0d1117 !important;
         border: none !important;
         border-radius: 12px !important;
@@ -10167,6 +10169,7 @@ table.desktop-only {
     
     #oddsChart {
         height: 100% !important;
+        width: 100% !important;
         background: transparent !important;
     }
     
