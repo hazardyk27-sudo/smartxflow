@@ -891,10 +891,10 @@ function renderMatches(data) {
                     </tr>
                 `;
             } else {
-                // Use buildTrendDataFromMatch to avoid team name mismatch with cache
-                const trend1Data = buildTrendDataFromMatch(d.Odds1 || d['1'], d.Odds1_prev, d.Trend1);
-                const trendXData = buildTrendDataFromMatch(d.OddsX || d['X'], d.OddsX_prev, d.TrendX);
-                const trend2Data = buildTrendDataFromMatch(d.Odds2 || d['2'], d.Odds2_prev, d.Trend2);
+                // Use buildTrendDataFromMatch - API field names: PrevOdds1, PrevOddsX, PrevOdds2
+                const trend1Data = buildTrendDataFromMatch(d.Odds1 || d['1'], d.PrevOdds1 || d.Odds1_prev, d.Trend1);
+                const trendXData = buildTrendDataFromMatch(d.OddsX || d['X'], d.PrevOddsX || d.OddsX_prev, d.TrendX);
+                const trend2Data = buildTrendDataFromMatch(d.Odds2 || d['2'], d.PrevOdds2 || d.Odds2_prev, d.Trend2);
                 
                 const cell1 = renderDrop1X2Cell('1', d.Odds1 || d['1'], trend1Data);
                 const cellX = renderDrop1X2Cell('X', d.OddsX || d['X'], trendXData);
@@ -936,9 +936,9 @@ function renderMatches(data) {
                     </tr>
                 `;
             } else {
-                // Use buildTrendDataFromMatch to avoid team name mismatch with cache
-                const trendUnderData = buildTrendDataFromMatch(d.Under, d.Under_prev, d.TrendUnder);
-                const trendOverData = buildTrendDataFromMatch(d.Over, d.Over_prev, d.TrendOver);
+                // Use buildTrendDataFromMatch - API field names: PrevUnder, PrevOver
+                const trendUnderData = buildTrendDataFromMatch(d.Under, d.PrevUnder || d.Under_prev, d.TrendUnder);
+                const trendOverData = buildTrendDataFromMatch(d.Over, d.PrevOver || d.Over_prev, d.TrendOver);
                 
                 const cellUnder = renderOddsWithTrend(d.Under, trendUnderData);
                 const cellOver = renderOddsWithTrend(d.Over, trendOverData);
@@ -978,9 +978,9 @@ function renderMatches(data) {
                     </tr>
                 `;
             } else {
-                // Use buildTrendDataFromMatch to avoid team name mismatch with cache
-                const trendYesData = buildTrendDataFromMatch(d.OddsYes || d.Yes, d.OddsYes_prev || d.Yes_prev, d.TrendYes);
-                const trendNoData = buildTrendDataFromMatch(d.OddsNo || d.No, d.OddsNo_prev || d.No_prev, d.TrendNo);
+                // Use buildTrendDataFromMatch - API field names: PrevYes, PrevNo
+                const trendYesData = buildTrendDataFromMatch(d.OddsYes || d.Yes, d.PrevYes || d.OddsYes_prev || d.Yes_prev, d.TrendYes);
+                const trendNoData = buildTrendDataFromMatch(d.OddsNo || d.No, d.PrevNo || d.OddsNo_prev || d.No_prev, d.TrendNo);
                 
                 const cellYes = renderOddsWithTrend(d.OddsYes || d.Yes, trendYesData);
                 const cellNo = renderOddsWithTrend(d.OddsNo || d.No, trendNoData);
@@ -1172,12 +1172,21 @@ function renderMobileMoneywayBlock(label, oddsValue, pctValue) {
 function renderMobileOddsCard(match, idx, d, volume, dateStr) {
     let oddsBlocks = '';
     
+    // Debug: Log first few matches to check data structure (API uses PrevOdds1, not Odds1_prev)
+    if (idx < 3) {
+        console.log('[MobileOddsCard DEBUG]', match.home_team, 'vs', match.away_team, 'd:', JSON.stringify({
+            Odds1: d.Odds1, PrevOdds1: d.PrevOdds1, Trend1: d.Trend1,
+            Over: d.Over, PrevOver: d.PrevOver, TrendOver: d.TrendOver
+        }));
+    }
+    
     // Use trend data directly from match details (d) instead of cache
-    // This avoids team name mismatch issues
+    // API field names: PrevOdds1, PrevOddsX, PrevOdds2, PrevUnder, PrevOver, PrevYes, PrevNo
+    // Trend fields: Trend1, TrendX, Trend2, TrendUnder, TrendOver, TrendYes, TrendNo
     if (currentMarket.includes('1x2')) {
-        const trend1 = buildTrendDataFromMatch(d.Odds1 || d['1'], d.Odds1_prev, d.Trend1);
-        const trendX = buildTrendDataFromMatch(d.OddsX || d['X'], d.OddsX_prev, d.TrendX);
-        const trend2 = buildTrendDataFromMatch(d.Odds2 || d['2'], d.Odds2_prev, d.Trend2);
+        const trend1 = buildTrendDataFromMatch(d.Odds1 || d['1'], d.PrevOdds1 || d.Odds1_prev, d.Trend1);
+        const trendX = buildTrendDataFromMatch(d.OddsX || d['X'], d.PrevOddsX || d.OddsX_prev, d.TrendX);
+        const trend2 = buildTrendDataFromMatch(d.Odds2 || d['2'], d.PrevOdds2 || d.Odds2_prev, d.Trend2);
         
         oddsBlocks = `
             ${renderMobileOddsBlock('1', d.Odds1 || d['1'], trend1)}
@@ -1185,16 +1194,16 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr) {
             ${renderMobileOddsBlock('2', d.Odds2 || d['2'], trend2)}
         `;
     } else if (currentMarket.includes('ou25')) {
-        const trendUnder = buildTrendDataFromMatch(d.Under, d.Under_prev, d.TrendUnder);
-        const trendOver = buildTrendDataFromMatch(d.Over, d.Over_prev, d.TrendOver);
+        const trendUnder = buildTrendDataFromMatch(d.Under, d.PrevUnder || d.Under_prev, d.TrendUnder);
+        const trendOver = buildTrendDataFromMatch(d.Over, d.PrevOver || d.Over_prev, d.TrendOver);
         
         oddsBlocks = `
             ${renderMobileOddsBlock('U 2.5', d.Under, trendUnder)}
             ${renderMobileOddsBlock('O 2.5', d.Over, trendOver)}
         `;
     } else {
-        const trendYes = buildTrendDataFromMatch(d.OddsYes || d.Yes, d.OddsYes_prev || d.Yes_prev, d.TrendYes);
-        const trendNo = buildTrendDataFromMatch(d.OddsNo || d.No, d.OddsNo_prev || d.No_prev, d.TrendNo);
+        const trendYes = buildTrendDataFromMatch(d.OddsYes || d.Yes, d.PrevYes || d.OddsYes_prev || d.Yes_prev, d.TrendYes);
+        const trendNo = buildTrendDataFromMatch(d.OddsNo || d.No, d.PrevNo || d.OddsNo_prev || d.No_prev, d.TrendNo);
         
         oddsBlocks = `
             ${renderMobileOddsBlock('Yes', d.OddsYes || d.Yes, trendYes)}
