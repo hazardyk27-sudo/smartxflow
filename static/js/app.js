@@ -3171,15 +3171,25 @@ async function loadChart(home, away, market, league = '') {
                     }
                 },
                 scales: isMobile() ? {
-                    // Mobile: eksensiz, gridsiz - sadece çizgi
+                    // Mobile: eksensiz ama grid var
                     x: {
-                        display: false,
-                        grid: { display: false, drawBorder: false },
+                        display: true,
+                        grid: { 
+                            display: true, 
+                            color: 'rgba(255, 255, 255, 0.08)',
+                            drawBorder: false 
+                        },
+                        border: { display: false },
                         ticks: { display: false }
                     },
                     y: {
-                        display: false,
-                        grid: { display: false, drawBorder: false },
+                        display: true,
+                        grid: { 
+                            display: true, 
+                            color: 'rgba(255, 255, 255, 0.08)',
+                            drawBorder: false 
+                        },
+                        border: { display: false },
                         ticks: { display: false }
                     }
                 } : {
