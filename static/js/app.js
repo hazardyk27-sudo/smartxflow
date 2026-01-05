@@ -2574,9 +2574,12 @@ function updateMobileValueHeader(dataIndex) {
     
     if (bigValueEl) bigValueEl.textContent = bigValueText;
     if (changeEl) changeEl.textContent = subtitleText;
-    
-    // Update crosshair position
-    updateMobileCrosshair(idx);
+}
+
+// Wrapper that also updates crosshair (only called during active touch)
+function updateMobileValueWithCrosshair(dataIndex) {
+    updateMobileValueHeader(dataIndex);
+    updateMobileCrosshair(dataIndex);
 }
 
 // Mobile crosshair management
@@ -3290,7 +3293,7 @@ async function loadChart(home, away, market, league = '') {
                 const y = e.touches[0].clientY - rect.top;
                 const points = chart.getElementsAtEventForMode({ x: x, y: y, type: 'touchmove' }, 'index', { intersect: false }, false);
                 if (points.length > 0) {
-                    updateMobileValuePanel(points[0].index);
+                    updateMobileValueWithCrosshair(points[0].index);
                 }
             }, { passive: true });
             
@@ -3300,7 +3303,7 @@ async function loadChart(home, away, market, league = '') {
                 const y = e.touches[0].clientY - rect.top;
                 const points = chart.getElementsAtEventForMode({ x: x, y: y, type: 'touchstart' }, 'index', { intersect: false }, false);
                 if (points.length > 0) {
-                    updateMobileValuePanel(points[0].index);
+                    updateMobileValueWithCrosshair(points[0].index);
                 }
             }, { passive: true });
             
