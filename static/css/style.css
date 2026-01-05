@@ -1514,8 +1514,9 @@ h1, h2, h3, h4, h5, h6,
     }
     
     .chart-wrapper {
-        height: 350px;
-        min-height: 300px;
+        min-height: 340px !important;
+        height: 40vh !important;
+        max-height: 460px !important;
         padding: 16px;
     }
     
@@ -9153,8 +9154,9 @@ table.desktop-only {
     
     /* Charts */
     .chart-wrapper {
-        height: 280px;
-        min-height: 250px;
+        min-height: 340px !important;
+        height: 40vh !important;
+        max-height: 460px !important;
         padding: 12px;
         margin-bottom: 16px;
     }
