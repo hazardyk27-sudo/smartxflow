@@ -2475,10 +2475,10 @@ function setMobileTimeRange(range) {
 let mobileChartHistoryData = [];
 let mobileCrosshairIndex = -1; // Active crosshair position (-1 = last point)
 
-// Mobile crosshair plugin - draws vertical line at active index
+// Mobile crosshair plugin - draws ONLY vertical line at active index
 const mobileCrosshairPlugin = {
     id: 'mobileCrosshair',
-    afterDraw: function(chart) {
+    afterDatasetsDraw: function(chart) {
         if (!isMobile()) return;
         
         const ctx = chart.ctx;
@@ -2498,28 +2498,15 @@ const mobileCrosshairPlugin = {
         
         const x = meta.data[idx].x;
         
-        // Draw vertical line
+        // Draw vertical line only (no dot - Chart.js handles the dot via activeElements)
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(x, chartArea.top);
         ctx.lineTo(x, chartArea.bottom);
         ctx.lineWidth = 1;
-        ctx.strokeStyle = 'rgba(139, 148, 158, 0.5)';
+        ctx.strokeStyle = 'rgba(139, 148, 158, 0.6)';
         ctx.setLineDash([4, 4]);
         ctx.stroke();
-        ctx.restore();
-        
-        // Draw dot at the data point
-        const y = meta.data[idx].y;
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(x, y, 6, 0, Math.PI * 2);
-        ctx.fillStyle = ds.borderColor || '#4ade80';
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(x, y, 3, 0, Math.PI * 2);
-        ctx.fillStyle = '#0d1117';
-        ctx.fill();
         ctx.restore();
     }
 };
@@ -3263,37 +3250,60 @@ async function loadChart(home, away, market, league = '') {
         if (isMobile()) {
             mobileCrosshairIndex = -1; // Start at last point
             updateMobileValuePanel();
+            chart.setActiveElements([{ datasetIndex: 0, index: chart.data.datasets[0].data.length - 1 }]);
+            chart.update('none');
+            
+            const canvas = document.getElementById('oddsChart');
+            
+            // Helper to find nearest data index from touch X position
+            function getNearestIndexFromTouch(touchX) {
+                const rect = canvas.getBoundingClientRect();
+                const canvasX = touchX - rect.left;
+                
+                // Get chart area bounds
+                const chartArea = chart.chartArea;
+                const meta = chart.getDatasetMeta(0);
+                if (!meta || !meta.data || meta.data.length === 0) return -1;
+                
+                // Find nearest point by X position
+                let nearestIdx = 0;
+                let nearestDist = Infinity;
+                
+                for (let i = 0; i < meta.data.length; i++) {
+                    const pointX = meta.data[i].x;
+                    const dist = Math.abs(pointX - canvasX);
+                    if (dist < nearestDist) {
+                        nearestDist = dist;
+                        nearestIdx = i;
+                    }
+                }
+                
+                return nearestIdx;
+            }
             
             // Touch move handler for live value updates + crosshair
-            const canvas = document.getElementById('oddsChart');
             canvas.addEventListener('touchmove', function(e) {
-                const rect = canvas.getBoundingClientRect();
-                const x = e.touches[0].clientX - rect.left;
-                const y = e.touches[0].clientY - rect.top;
-                const points = chart.getElementsAtEventForMode({ x: x, y: y, type: 'touchmove' }, 'index', { intersect: false }, false);
-                if (points.length > 0) {
-                    const idx = points[0].index;
+                const idx = getNearestIndexFromTouch(e.touches[0].clientX);
+                if (idx >= 0) {
                     mobileCrosshairIndex = idx;
                     updateMobileValuePanel(idx);
-                    chart.update('none'); // Redraw crosshair without animation
+                    chart.setActiveElements([{ datasetIndex: 0, index: idx }]);
+                    chart.update('none');
                 }
             }, { passive: true });
             
             canvas.addEventListener('touchstart', function(e) {
-                const rect = canvas.getBoundingClientRect();
-                const x = e.touches[0].clientX - rect.left;
-                const y = e.touches[0].clientY - rect.top;
-                const points = chart.getElementsAtEventForMode({ x: x, y: y, type: 'touchstart' }, 'index', { intersect: false }, false);
-                if (points.length > 0) {
-                    const idx = points[0].index;
+                const idx = getNearestIndexFromTouch(e.touches[0].clientX);
+                if (idx >= 0) {
                     mobileCrosshairIndex = idx;
                     updateMobileValuePanel(idx);
+                    chart.setActiveElements([{ datasetIndex: 0, index: idx }]);
                     chart.update('none');
                 }
             }, { passive: true });
             
             canvas.addEventListener('touchend', function() {
-                // Keep crosshair at last touched position - force one final redraw
+                // Keep crosshair at last touched position
                 chart.update('none');
             }, { passive: true });
         }
