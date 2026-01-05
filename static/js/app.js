@@ -2672,8 +2672,14 @@ function updateMobileValueHeader(dataIndex) {
             }
         }
     } else if (isDropping) {
-        // Dropping Odds: big value shows odds, secondary shows percentage
-        bigValueText = oddsText;
+        // Dropping Odds: big value shows odds (clean, no symbol)
+        if (value !== null && value !== undefined) {
+            bigValueText = value.toFixed(2);
+        } else if (oddsText && oddsText !== '--') {
+            // Fallback: clean odds text (remove any symbols)
+            const cleanOdds = String(oddsText).replace(/[^0-9.]/g, '');
+            bigValueText = cleanOdds || oddsText;
+        }
         secondaryText = pctText;
         secondaryLabel = 'Yüzde';
     }
