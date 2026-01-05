@@ -3115,12 +3115,10 @@ async function loadChart(home, away, market, league = '') {
                         border: {
                             display: false
                         },
-                        ticks: {
+                        ticks: Object.assign({
                             color: isMobile() ? '#6e7681' : '#a1a1aa',
-                            font: { size: isMobile() ? 10 : 11 },
-                            maxTicksLimit: isMobile() ? 6 : 10,
-                            maxRotation: 0
-                        }
+                            font: { size: isMobile() ? 10 : 11 }
+                        }, isMobile() ? { maxTicksLimit: 6, maxRotation: 0 } : {})
                     },
                     y: {
                         grid: {
@@ -3130,10 +3128,9 @@ async function loadChart(home, away, market, league = '') {
                         border: {
                             display: false
                         },
-                        ticks: {
+                        ticks: Object.assign({
                             color: isMobile() ? '#6e7681' : '#8e8e95',
                             font: { size: isMobile() ? 10 : 11 },
-                            maxTicksLimit: isMobile() ? 5 : 8,
                             callback: function(value) {
                                 if (value >= 1000000) {
                                     return (value / 1000000).toFixed(1) + 'M';
@@ -3142,7 +3139,7 @@ async function loadChart(home, away, market, league = '') {
                                 }
                                 return value;
                             }
-                        }
+                        }, isMobile() ? { maxTicksLimit: 5 } : {})
                     }
                 },
                 elements: {
