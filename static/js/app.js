@@ -13,6 +13,10 @@ let chartTimeRange = '10min';
 let currentChartHistoryData = [];
 let chartViewMode = 'percent';
 let isClientMode = true;
+
+// Mobile chart controls
+let mobileSelectedLine = '1'; // Default: show only "1" line on mobile
+let mobileTimeRange = 'all'; // Default: show all data
 let isAlarmsPageActive = false;
 let matchesDisplayCount = 20;
 let currentOffset = 0;
@@ -2395,6 +2399,127 @@ function switchMobileTab(tabName) {
     if (targetTab) targetTab.classList.add('active');
 }
 
+// === MOBILE CHART CONTROLS ===
+function isMobile() {
+    return window.innerWidth <= 768;
+}
+
+function setMobileViewMode(mode) {
+    chartViewMode = mode;
+    document.querySelectorAll('.mob-view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === mode);
+    });
+    if (selectedMatch && isMobile()) {
+        loadChartHistory(selectedMatch.MatchId, selectedChartMarket);
+    }
+}
+
+function setMobileSelection(sel) {
+    mobileSelectedLine = sel;
+    document.querySelectorAll('.mob-sel-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.sel === sel);
+    });
+    if (chart && isMobile()) {
+        updateMobileSingleLine();
+    }
+}
+
+function updateMobileSingleLine() {
+    if (!chart || !isMobile()) return;
+    
+    chart.data.datasets.forEach((ds, idx) => {
+        const isVisible = ds.label === mobileSelectedLine;
+        chart.setDatasetVisibility(idx, isVisible);
+    });
+    chart.update('none');
+    updateMobileValuePanel();
+}
+
+function toggleMobileTimeDropdown() {
+    const menu = document.getElementById('mobTimeMenu');
+    if (menu) menu.classList.toggle('open');
+}
+
+function setMobileTimeRange(range) {
+    mobileTimeRange = range;
+    const labels = { 'all': 'Tümü', '10': '10 dk', '30': '30 dk', '60': '1 saat', '360': '6 saat', '720': '12 saat', '1440': '1 gün' };
+    document.getElementById('mobTimeLabel').textContent = labels[range] || 'Tümü';
+    document.querySelectorAll('.mob-time-option').forEach(opt => {
+        opt.classList.toggle('active', opt.dataset.range === range);
+    });
+    document.getElementById('mobTimeMenu').classList.remove('open');
+    
+    if (selectedMatch && isMobile()) {
+        loadChartHistory(selectedMatch.MatchId, selectedChartMarket);
+    }
+}
+
+function updateMobileValuePanel(dataIndex) {
+    if (!isMobile() || !chart) return;
+    
+    const visibleDs = chart.data.datasets.find((ds, idx) => chart.isDatasetVisible(idx));
+    if (!visibleDs) return;
+    
+    let idx = dataIndex;
+    if (idx === undefined || idx < 0) {
+        idx = visibleDs.data.length - 1;
+    }
+    
+    const timeLabel = chart.data.labels[idx] || '--:--';
+    const value = visibleDs.data[idx];
+    const unit = chartViewMode === 'money' ? '£' : '%';
+    const valueText = value !== null ? (chartViewMode === 'money' ? '£' + value.toLocaleString() : value.toFixed(1) + '%') : '--';
+    
+    document.getElementById('mvpTime').textContent = timeLabel;
+    document.getElementById('mvpValue').textContent = valueText;
+}
+
+function updateMobileSelectionButtons(market) {
+    const toggle = document.getElementById('mobSelectionToggle');
+    if (!toggle) return;
+    
+    let buttons = [];
+    let validSelections = [];
+    if (market.includes('1x2')) {
+        buttons = [
+            { sel: '1', label: '1' },
+            { sel: 'X', label: 'X' },
+            { sel: '2', label: '2' }
+        ];
+        validSelections = ['1', 'X', '2'];
+    } else if (market.includes('ou25')) {
+        buttons = [
+            { sel: 'Under', label: 'Alt' },
+            { sel: 'Over', label: 'Üst' }
+        ];
+        validSelections = ['Under', 'Over'];
+    } else if (market.includes('btts')) {
+        buttons = [
+            { sel: 'Yes', label: 'Evet' },
+            { sel: 'No', label: 'Hayır' }
+        ];
+        validSelections = ['Yes', 'No'];
+    }
+    
+    // Only reset selection if current selection is not valid for this market
+    if (!validSelections.includes(mobileSelectedLine)) {
+        mobileSelectedLine = validSelections[0] || '1';
+    }
+    
+    toggle.innerHTML = buttons.map((b) => 
+        `<button class="mob-sel-btn ${b.sel === mobileSelectedLine ? 'active' : ''}" data-sel="${b.sel}" onclick="setMobileSelection('${b.sel}')">${b.label}</button>`
+    ).join('');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    const dropdown = document.querySelector('.mob-time-dropdown');
+    const menu = document.getElementById('mobTimeMenu');
+    if (dropdown && menu && !dropdown.contains(e.target)) {
+        menu.classList.remove('open');
+    }
+});
+
 function closeModal() {
     document.getElementById('modalOverlay').classList.remove('active');
     switchMobileTab('chart');
@@ -2698,12 +2823,22 @@ async function loadChart(home, away, market, league = '') {
         
         renderChartLegendFilters(datasets, market);
         
+        // Mobile: update selection buttons based on market
+        if (isMobile()) {
+            updateMobileSelectionButtons(market);
+        }
+        
         datasets.forEach((ds, idx) => {
             const key = `${market}_${ds.label}`;
             if (chartVisibleSeries[key] === undefined) {
                 chartVisibleSeries[key] = true;
             }
-            ds.hidden = !chartVisibleSeries[key];
+            // Mobile: show only selected line
+            if (isMobile()) {
+                ds.hidden = ds.label !== mobileSelectedLine;
+            } else {
+                ds.hidden = !chartVisibleSeries[key];
+            }
         });
         
         chart = new Chart(ctx, {
@@ -2726,6 +2861,20 @@ async function loadChart(home, away, market, league = '') {
                     tooltip: {
                         enabled: false,
                         external: function(context) {
+                            // Mobile: disable tooltip popup, use value panel instead
+                            if (isMobile()) {
+                                const tooltipEl = document.getElementById('chartjs-tooltip');
+                                if (tooltipEl) {
+                                    tooltipEl.style.opacity = 0;
+                                    tooltipEl.style.visibility = 'hidden';
+                                }
+                                // Update mobile value panel
+                                const tooltipModel = context.tooltip;
+                                if (tooltipModel.dataPoints && tooltipModel.dataPoints.length > 0) {
+                                    updateMobileValuePanel(tooltipModel.dataPoints[0].dataIndex);
+                                }
+                                return;
+                            }
                             let tooltipEl = document.getElementById('chartjs-tooltip');
                             if (!tooltipEl) {
                                 tooltipEl = document.createElement('div');
@@ -2940,6 +3089,39 @@ async function loadChart(home, away, market, league = '') {
         const chartContainer = document.getElementById('oddsChart').parentElement;
         
         createBrushSlider(chartContainer, historyData, chart);
+        
+        // Mobile: add touch event for value panel and update initial value
+        if (isMobile()) {
+            updateMobileValuePanel();
+            
+            // Touch move handler for live value updates
+            const canvas = document.getElementById('oddsChart');
+            canvas.addEventListener('touchmove', function(e) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.touches[0].clientX - rect.left;
+                const y = e.touches[0].clientY - rect.top;
+                // Use synthesized event object for Chart.js compatibility
+                const points = chart.getElementsAtEventForMode({ x: x, y: y, type: 'touchmove' }, 'index', { intersect: false }, false);
+                if (points.length > 0) {
+                    updateMobileValuePanel(points[0].index);
+                }
+            }, { passive: true });
+            
+            canvas.addEventListener('touchstart', function(e) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.touches[0].clientX - rect.left;
+                const y = e.touches[0].clientY - rect.top;
+                const points = chart.getElementsAtEventForMode({ x: x, y: y, type: 'touchstart' }, 'index', { intersect: false }, false);
+                if (points.length > 0) {
+                    updateMobileValuePanel(points[0].index);
+                }
+            }, { passive: true });
+            
+            canvas.addEventListener('touchend', function() {
+                // Reset to last value on touch end
+                setTimeout(() => updateMobileValuePanel(), 100);
+            }, { passive: true });
+        }
     } catch (error) {
         console.error('Error loading chart:', error);
     }

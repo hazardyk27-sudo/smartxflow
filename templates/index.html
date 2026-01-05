@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=160">
+    <link rel="stylesheet" href="/static/css/style.css?v=161">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
@@ -350,7 +350,45 @@
                         <button class="chart-tab" data-market="dropping_btts">Odds BTTS</button>
                     </div>
                     
+                    <!-- Mobile Controls Row 1: Quick Controls -->
+                    <div class="mobile-chart-controls" id="mobileChartControls">
+                        <div class="mob-ctrl-row">
+                            <div class="mob-view-toggle">
+                                <button class="mob-view-btn active" data-view="percent" onclick="setMobileViewMode('percent')">%</button>
+                                <button class="mob-view-btn" data-view="money" onclick="setMobileViewMode('money')">£</button>
+                            </div>
+                            <div class="mob-selection-toggle" id="mobSelectionToggle">
+                                <button class="mob-sel-btn active" data-sel="1" onclick="setMobileSelection('1')">1</button>
+                                <button class="mob-sel-btn" data-sel="X" onclick="setMobileSelection('X')">X</button>
+                                <button class="mob-sel-btn" data-sel="2" onclick="setMobileSelection('2')">2</button>
+                            </div>
+                            <div class="mob-time-dropdown">
+                                <button class="mob-time-btn" id="mobTimeBtn" onclick="toggleMobileTimeDropdown()">
+                                    <span class="mob-time-icon">⏱</span>
+                                    <span class="mob-time-label" id="mobTimeLabel">Tümü</span>
+                                    <span class="mob-time-arrow">▼</span>
+                                </button>
+                                <div class="mob-time-menu" id="mobTimeMenu">
+                                    <button class="mob-time-option active" data-range="all" onclick="setMobileTimeRange('all')">Tümü</button>
+                                    <button class="mob-time-option" data-range="10" onclick="setMobileTimeRange('10')">10 dk</button>
+                                    <button class="mob-time-option" data-range="30" onclick="setMobileTimeRange('30')">30 dk</button>
+                                    <button class="mob-time-option" data-range="60" onclick="setMobileTimeRange('60')">1 saat</button>
+                                    <button class="mob-time-option" data-range="360" onclick="setMobileTimeRange('360')">6 saat</button>
+                                    <button class="mob-time-option" data-range="720" onclick="setMobileTimeRange('720')">12 saat</button>
+                                    <button class="mob-time-option" data-range="1440" onclick="setMobileTimeRange('1440')">1 gün</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="chart-legend-filters" id="chartLegendFilters"></div>
+                    
+                    <!-- Mobile Value Panel -->
+                    <div class="mobile-value-panel" id="mobileValuePanel">
+                        <span class="mvp-time" id="mvpTime">--:--</span>
+                        <span class="mvp-divider">•</span>
+                        <span class="mvp-value" id="mvpValue">--%</span>
+                    </div>
                     
                     <div class="chart-wrapper">
                         <div class="chart-loading" id="chartLoading" style="display:none;">
@@ -406,6 +444,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=1735572000"></script>
+    <script src="/static/js/app.js?v=1735572002"></script>
 </body>
 </html>

@@ -9582,13 +9582,19 @@ table.desktop-only {
    Header → Summary → [Tabs: Chart|Events|Details] → Active Tab Content
    ===================================================== */
 
-/* DESKTOP: Tab bar gizle, tüm içerik görünür */
+/* DESKTOP: Tab bar ve mobil kontroller gizle, tüm içerik görünür */
 @media (min-width: 769px) {
     .mobile-tab-bar {
         display: none !important;
     }
     .mobile-tab-content {
         display: block !important;
+    }
+    .mobile-chart-controls {
+        display: none !important;
+    }
+    .mobile-value-panel {
+        display: none !important;
     }
 }
 
@@ -9960,6 +9966,180 @@ table.desktop-only {
     .export-btn,
     [class*="export"] {
         display: none !important;
+    }
+    
+    /* Desktop legend filters mobilde gizle */
+    .chart-legend-filters {
+        display: none !important;
+    }
+    
+    /* === 8. MOBİL KONTROLLER === */
+    .mobile-chart-controls {
+        display: block !important;
+        padding: 8px 16px !important;
+        background: #0d1117 !important;
+    }
+    
+    .mob-ctrl-row {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 8px !important;
+    }
+    
+    /* %/£ Toggle */
+    .mob-view-toggle {
+        display: flex !important;
+        background: #161b22 !important;
+        border-radius: 6px !important;
+        overflow: hidden !important;
+        border: 1px solid #30363d !important;
+    }
+    
+    .mob-view-btn {
+        padding: 8px 14px !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        color: #8b949e !important;
+        background: transparent !important;
+        border: none !important;
+        cursor: pointer !important;
+        min-height: 36px !important;
+    }
+    
+    .mob-view-btn.active {
+        background: #238636 !important;
+        color: #fff !important;
+    }
+    
+    /* 1-X-2 Selection Toggle */
+    .mob-selection-toggle {
+        display: flex !important;
+        background: #161b22 !important;
+        border-radius: 6px !important;
+        overflow: hidden !important;
+        border: 1px solid #30363d !important;
+    }
+    
+    .mob-sel-btn {
+        padding: 8px 12px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: #8b949e !important;
+        background: transparent !important;
+        border: none !important;
+        cursor: pointer !important;
+        min-height: 36px !important;
+        min-width: 32px !important;
+    }
+    
+    .mob-sel-btn.active {
+        background: #3b82f6 !important;
+        color: #fff !important;
+    }
+    
+    /* Time Dropdown */
+    .mob-time-dropdown {
+        position: relative !important;
+    }
+    
+    .mob-time-btn {
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        padding: 8px 10px !important;
+        font-size: 12px !important;
+        color: #c9d1d9 !important;
+        background: #161b22 !important;
+        border: 1px solid #30363d !important;
+        border-radius: 6px !important;
+        cursor: pointer !important;
+        min-height: 36px !important;
+    }
+    
+    .mob-time-icon {
+        font-size: 11px !important;
+    }
+    
+    .mob-time-arrow {
+        font-size: 8px !important;
+        opacity: 0.6 !important;
+    }
+    
+    .mob-time-menu {
+        display: none;
+        position: absolute !important;
+        top: 100% !important;
+        right: 0 !important;
+        margin-top: 4px !important;
+        background: #161b22 !important;
+        border: 1px solid #30363d !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+        z-index: 100 !important;
+        min-width: 100px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+    }
+    
+    .mob-time-menu.open {
+        display: block !important;
+    }
+    
+    .mob-time-option {
+        display: block !important;
+        width: 100% !important;
+        padding: 10px 14px !important;
+        font-size: 13px !important;
+        color: #c9d1d9 !important;
+        background: transparent !important;
+        border: none !important;
+        text-align: left !important;
+        cursor: pointer !important;
+    }
+    
+    .mob-time-option:hover,
+    .mob-time-option.active {
+        background: #21262d !important;
+    }
+    
+    .mob-time-option.active {
+        color: #4ade80 !important;
+    }
+    
+    /* === 9. MOBİL VALUE PANEL === */
+    .mobile-value-panel {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        padding: 10px 16px !important;
+        background: #161b22 !important;
+        border-bottom: 1px solid #21262d !important;
+        font-size: 13px !important;
+    }
+    
+    .mvp-time {
+        color: #8b949e !important;
+        font-weight: 500 !important;
+    }
+    
+    .mvp-divider {
+        color: #30363d !important;
+    }
+    
+    .mvp-value {
+        color: #4ade80 !important;
+        font-weight: 600 !important;
+    }
+    
+    /* === 10. MOBİL GRAFİK BÜYÜT === */
+    .chart-wrapper {
+        height: 280px !important;
+        padding: 8px !important;
+    }
+    
+    #oddsChart {
+        height: 100% !important;
     }
     
     /* === GENEL === */
