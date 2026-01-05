@@ -2612,8 +2612,9 @@ function updateMobileValueHeader(dataIndex) {
         // Helper to parse stake value
         const parseStake = (val) => {
             if (!val) return '--';
-            const num = parseFloat(String(val).replace(/[£,]/g, ''));
-            return isNaN(num) ? '--' : '£' + num.toLocaleString();
+            // Remove £, commas, and spaces before parsing
+            const num = parseFloat(String(val).replace(/[£,\s]/g, ''));
+            return isNaN(num) ? '--' : '£' + Math.round(num).toLocaleString();
         };
         
         // Get odds and stake based on selection
