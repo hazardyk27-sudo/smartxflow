@@ -2488,6 +2488,52 @@ function setMobileTimeRange(range) {
 let mobileChartHistoryData = [];
 let mobileCrosshairIndex = -1; // Active crosshair position (-1 = last point)
 
+// Mobile background grid plugin - draws evenly spaced grid lines (independent of data)
+const mobileBackgroundGridPlugin = {
+    id: 'mobileBackgroundGrid',
+    beforeDatasetsDraw: function(chart) {
+        if (!isMobile()) return;
+        
+        const ctx = chart.ctx;
+        const chartArea = chart.chartArea;
+        if (!chartArea) return;
+        
+        const { left, right, top, bottom } = chartArea;
+        const width = right - left;
+        const height = bottom - top;
+        
+        // Grid configuration - fixed number of lines for consistent look
+        const horizontalLines = 4; // 4 horizontal lines
+        const verticalLines = 5;   // 5 vertical lines
+        const gridColor = 'rgba(255, 255, 255, 0.06)';
+        
+        ctx.save();
+        ctx.strokeStyle = gridColor;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([]);
+        
+        // Draw horizontal lines (evenly spaced)
+        for (let i = 1; i <= horizontalLines; i++) {
+            const y = top + (height / (horizontalLines + 1)) * i;
+            ctx.beginPath();
+            ctx.moveTo(left, y);
+            ctx.lineTo(right, y);
+            ctx.stroke();
+        }
+        
+        // Draw vertical lines (evenly spaced)
+        for (let i = 1; i <= verticalLines; i++) {
+            const x = left + (width / (verticalLines + 1)) * i;
+            ctx.beginPath();
+            ctx.moveTo(x, top);
+            ctx.lineTo(x, bottom);
+            ctx.stroke();
+        }
+        
+        ctx.restore();
+    }
+};
+
 // Mobile crosshair plugin - draws ONLY vertical line at active index
 const mobileCrosshairPlugin = {
     id: 'mobileCrosshair',
@@ -2524,8 +2570,9 @@ const mobileCrosshairPlugin = {
     }
 };
 
-// Register the plugin globally
+// Register the plugins globally
 if (typeof Chart !== 'undefined') {
+    Chart.register(mobileBackgroundGridPlugin);
     Chart.register(mobileCrosshairPlugin);
 }
 
@@ -3171,25 +3218,15 @@ async function loadChart(home, away, market, league = '') {
                     }
                 },
                 scales: isMobile() ? {
-                    // Mobile: eksensiz ama grid var
+                    // Mobile: eksensiz - custom plugin ile grid çiziliyor
                     x: {
-                        display: true,
-                        grid: { 
-                            display: true, 
-                            color: 'rgba(255, 255, 255, 0.08)',
-                            drawBorder: false 
-                        },
-                        border: { display: false },
+                        display: false,
+                        grid: { display: false, drawBorder: false },
                         ticks: { display: false }
                     },
                     y: {
-                        display: true,
-                        grid: { 
-                            display: true, 
-                            color: 'rgba(255, 255, 255, 0.08)',
-                            drawBorder: false 
-                        },
-                        border: { display: false },
+                        display: false,
+                        grid: { display: false, drawBorder: false },
                         ticks: { display: false }
                     }
                 } : {
