@@ -244,6 +244,11 @@ class SupabaseClient:
         }
         
         if market in ['moneyway_1x2', 'dropping_1x2']:
+            # Get current and previous odds (prev may be empty)
+            odds1_prev = row.get('odds1_prev', '') or row.get('opening_odds_1', '') or row.get('open_odds1', '') or row.get('opening1', '')
+            oddsx_prev = row.get('oddsx_prev', '') or row.get('opening_odds_x', '') or row.get('open_oddsx', '') or row.get('openingx', '')
+            odds2_prev = row.get('odds2_prev', '') or row.get('opening_odds_2', '') or row.get('open_odds2', '') or row.get('opening2', '')
+            
             result.update({
                 'Odds1': row.get('odds1', ''),
                 'OddsX': row.get('oddsx', ''),
@@ -254,14 +259,21 @@ class SupabaseClient:
                 'AmtX': row.get('amtx', ''),
                 'Pct2': row.get('pct2', ''),
                 'Amt2': row.get('amt2', ''),
-                'Odds1_prev': row.get('odds1_prev', ''),
-                'OddsX_prev': row.get('oddsx_prev', ''),
-                'Odds2_prev': row.get('odds2_prev', ''),
+                'Odds1_prev': odds1_prev,
+                'OddsX_prev': oddsx_prev,
+                'Odds2_prev': odds2_prev,
                 'Trend1': row.get('trend1', ''),
                 'TrendX': row.get('trendx', ''),
-                'Trend2': row.get('trend2', '')
+                'Trend2': row.get('trend2', ''),
+                'DropPct1': row.get('drop_pct_1', row.get('droppct1', '')),
+                'DropPctX': row.get('drop_pct_x', row.get('droppctx', '')),
+                'DropPct2': row.get('drop_pct_2', row.get('droppct2', ''))
             })
         elif market in ['moneyway_ou25', 'dropping_ou25']:
+            # Get current and previous odds (prev may be empty, try opening_odds fallbacks)
+            under_prev = row.get('under_prev', '') or row.get('opening_under', '') or row.get('open_under', '')
+            over_prev = row.get('over_prev', '') or row.get('opening_over', '') or row.get('open_over', '')
+            
             result.update({
                 'Under': row.get('under', ''),
                 'Over': row.get('over', ''),
@@ -270,12 +282,18 @@ class SupabaseClient:
                 'AmtUnder': row.get('amtunder', ''),
                 'PctOver': row.get('pctover', ''),
                 'AmtOver': row.get('amtover', ''),
-                'Under_prev': row.get('under_prev', ''),
-                'Over_prev': row.get('over_prev', ''),
+                'Under_prev': under_prev,
+                'Over_prev': over_prev,
                 'TrendUnder': row.get('trendunder', ''),
-                'TrendOver': row.get('trendover', '')
+                'TrendOver': row.get('trendover', ''),
+                'DropPctUnder': row.get('drop_pct_under', row.get('droppctunder', '')),
+                'DropPctOver': row.get('drop_pct_over', row.get('droppctover', ''))
             })
         elif market in ['moneyway_btts', 'dropping_btts']:
+            # Get current and previous odds (prev may be empty, try opening_odds fallbacks)
+            yes_prev = row.get('oddsyes_prev', '') or row.get('opening_yes', '') or row.get('open_yes', '')
+            no_prev = row.get('oddsno_prev', '') or row.get('opening_no', '') or row.get('open_no', '')
+            
             result.update({
                 'Yes': row.get('yes', ''),
                 'No': row.get('no', ''),
@@ -285,10 +303,12 @@ class SupabaseClient:
                 'AmtYes': row.get('amtyes', ''),
                 'PctNo': row.get('pctno', ''),
                 'AmtNo': row.get('amtno', ''),
-                'OddsYes_prev': row.get('oddsyes_prev', ''),
-                'OddsNo_prev': row.get('oddsno_prev', ''),
+                'OddsYes_prev': yes_prev,
+                'OddsNo_prev': no_prev,
                 'TrendYes': row.get('trendyes', ''),
-                'TrendNo': row.get('trendno', '')
+                'TrendNo': row.get('trendno', ''),
+                'DropPctYes': row.get('drop_pct_yes', row.get('droppctyes', '')),
+                'DropPctNo': row.get('drop_pct_no', row.get('droppctno', ''))
             })
         
         return result

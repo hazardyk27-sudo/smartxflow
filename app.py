@@ -543,7 +543,10 @@ def warm_matches_cache():
                                 'PrevOdds2': latest.get('Odds2_prev', ''),
                                 'Trend1': latest.get('Trend1', ''),
                                 'TrendX': latest.get('TrendX', ''),
-                                'Trend2': latest.get('Trend2', '')
+                                'Trend2': latest.get('Trend2', ''),
+                                'DropPct1': latest.get('DropPct1', ''),
+                                'DropPctX': latest.get('DropPctX', ''),
+                                'DropPct2': latest.get('DropPct2', '')
                             }
                     elif market in ['moneyway_ou25', 'dropping_ou25']:
                         odds = {
@@ -560,7 +563,9 @@ def warm_matches_cache():
                                 'PrevUnder': latest.get('Under_prev', ''),
                                 'PrevOver': latest.get('Over_prev', ''),
                                 'TrendUnder': latest.get('TrendUnder', ''),
-                                'TrendOver': latest.get('TrendOver', '')
+                                'TrendOver': latest.get('TrendOver', ''),
+                                'DropPctUnder': latest.get('DropPctUnder', ''),
+                                'DropPctOver': latest.get('DropPctOver', '')
                             }
                     elif market in ['moneyway_btts', 'dropping_btts']:
                         odds = {
@@ -577,7 +582,9 @@ def warm_matches_cache():
                                 'PrevYes': latest.get('OddsYes_prev', ''),
                                 'PrevNo': latest.get('OddsNo_prev', ''),
                                 'TrendYes': latest.get('TrendYes', ''),
-                                'TrendNo': latest.get('TrendNo', '')
+                                'TrendNo': latest.get('TrendNo', ''),
+                                'DropPctYes': latest.get('DropPctYes', ''),
+                                'DropPctNo': latest.get('DropPctNo', '')
                             }
                 
                 home = m.get('home_team', '')
@@ -700,7 +707,10 @@ def get_matches():
                                 'PrevOdds2': latest.get('Odds2_prev', ''),
                                 'Trend1': latest.get('Trend1', ''),
                                 'TrendX': latest.get('TrendX', ''),
-                                'Trend2': latest.get('Trend2', '')
+                                'Trend2': latest.get('Trend2', ''),
+                                'DropPct1': latest.get('DropPct1', ''),
+                                'DropPctX': latest.get('DropPctX', ''),
+                                'DropPct2': latest.get('DropPct2', '')
                             }
                     elif market in ['moneyway_ou25', 'dropping_ou25']:
                         odds = {
@@ -717,7 +727,9 @@ def get_matches():
                                 'PrevUnder': latest.get('Under_prev', ''),
                                 'PrevOver': latest.get('Over_prev', ''),
                                 'TrendUnder': latest.get('TrendUnder', ''),
-                                'TrendOver': latest.get('TrendOver', '')
+                                'TrendOver': latest.get('TrendOver', ''),
+                                'DropPctUnder': latest.get('DropPctUnder', ''),
+                                'DropPctOver': latest.get('DropPctOver', '')
                             }
                     elif market in ['moneyway_btts', 'dropping_btts']:
                         odds = {
@@ -734,7 +746,9 @@ def get_matches():
                                 'PrevYes': latest.get('OddsYes_prev', ''),
                                 'PrevNo': latest.get('OddsNo_prev', ''),
                                 'TrendYes': latest.get('TrendYes', ''),
-                                'TrendNo': latest.get('TrendNo', '')
+                                'TrendNo': latest.get('TrendNo', ''),
+                                'DropPctYes': latest.get('DropPctYes', ''),
+                                'DropPctNo': latest.get('DropPctNo', '')
                             }
                 
                 home = m.get('home_team', '')
