@@ -9576,3 +9576,107 @@ table.desktop-only {
         color: #4ade80 !important;
     }
 }
+
+/* =====================================================
+   MOBILE MODAL - Odds Card Redesign (User Request)
+   - Selection label instead of "Odds"
+   - Remove % label
+   - Reduce stake-pct spacing
+   - Bigger match title
+   ===================================================== */
+
+@media (max-width: 768px) {
+    /* Match title bigger like TOTAL VOLUME */
+    .modal-title h2 {
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.3px !important;
+    }
+    
+    /* Info columns: horizontal single-line rows */
+    .match-info-card .info-columns {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0 !important;
+    }
+    
+    .match-info-card .info-column {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        padding: 10px 14px !important;
+        gap: 8px !important;
+        border-bottom: 1px solid rgba(48, 54, 61, 0.3) !important;
+        background: transparent !important;
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-top: none !important;
+    }
+    
+    .match-info-card .info-column:last-child {
+        border-bottom: none !important;
+    }
+    
+    /* Hide desktop column header */
+    .match-info-card .column-header {
+        display: none !important;
+    }
+    
+    /* Show selection label via data attribute */
+    .match-info-card .info-column[data-selection]::before {
+        content: attr(data-selection);
+        font-size: 13px;
+        font-weight: 600;
+        color: #8b949e;
+        min-width: 45px;
+        flex-shrink: 0;
+    }
+    
+    /* Column rows become inline */
+    .match-info-card .column-row {
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        margin-bottom: 0 !important;
+    }
+    
+    /* Hide "Odds" label - we use selection instead */
+    .match-info-card .column-row .row-label {
+        display: none !important;
+    }
+    
+    /* Odds value */
+    .match-info-card .row-value.odds {
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        color: #e6edf3 !important;
+        min-width: 50px !important;
+    }
+    
+    /* Stake value - show "Stake" label */
+    .match-info-card .column-row:nth-child(2) .row-label {
+        display: inline !important;
+        font-size: 11px !important;
+        color: #6e7681 !important;
+    }
+    
+    .match-info-card .row-value.money {
+        font-size: 13px !important;
+    }
+    
+    /* Hide % label completely */
+    .match-info-card .label-pct {
+        display: none !important;
+    }
+    
+    /* Reduce spacing for pct row */
+    .match-info-card .row-pct {
+        margin-left: 0 !important;
+    }
+    
+    .match-info-card .row-value.pct {
+        font-size: 13px !important;
+        font-weight: 600 !important;
+    }
+}

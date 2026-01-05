@@ -2134,7 +2134,7 @@ function updateMatchInfoCard() {
             const c2 = getColorClass(d.Pct2);
             html = `
                 <div class="info-columns info-columns-3">
-                    <div class="info-column">
+                    <div class="info-column" data-selection="1">
                         <div class="column-header">1</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
@@ -2144,12 +2144,12 @@ function updateMatchInfoCard() {
                             <span class="row-label">Stake</span>
                             <span class="row-value money ${c1}">${formatVolume(d.Amt1)}</span>
                         </div>
-                        <div class="column-row">
-                            <span class="row-label">%</span>
+                        <div class="column-row row-pct">
+                            <span class="row-label label-pct">%</span>
                             <span class="row-value pct ${c1}">${formatPct(d.Pct1)}</span>
                         </div>
                     </div>
-                    <div class="info-column">
+                    <div class="info-column" data-selection="X">
                         <div class="column-header">X</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
@@ -2159,12 +2159,12 @@ function updateMatchInfoCard() {
                             <span class="row-label">Stake</span>
                             <span class="row-value money ${cX}">${formatVolume(d.AmtX)}</span>
                         </div>
-                        <div class="column-row">
-                            <span class="row-label">%</span>
+                        <div class="column-row row-pct">
+                            <span class="row-label label-pct">%</span>
                             <span class="row-value pct ${cX}">${formatPct(d.PctX)}</span>
                         </div>
                     </div>
-                    <div class="info-column">
+                    <div class="info-column" data-selection="2">
                         <div class="column-header">2</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
@@ -2174,8 +2174,8 @@ function updateMatchInfoCard() {
                             <span class="row-label">Stake</span>
                             <span class="row-value money ${c2}">${formatVolume(d.Amt2)}</span>
                         </div>
-                        <div class="column-row">
-                            <span class="row-label">%</span>
+                        <div class="column-row row-pct">
+                            <span class="row-label label-pct">%</span>
                             <span class="row-value pct ${c2}">${formatPct(d.Pct2)}</span>
                         </div>
                     </div>
@@ -2225,7 +2225,7 @@ function updateMatchInfoCard() {
             const cO = getColorClass(d.PctOver);
             html = `
                 <div class="info-columns">
-                    <div class="info-column">
+                    <div class="info-column" data-selection="U 2.5">
                         <div class="column-header">Under 2.5</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
@@ -2235,12 +2235,12 @@ function updateMatchInfoCard() {
                             <span class="row-label">Stake</span>
                             <span class="row-value money ${cU}">${formatVolume(d.AmtUnder)}</span>
                         </div>
-                        <div class="column-row">
-                            <span class="row-label">%</span>
+                        <div class="column-row row-pct">
+                            <span class="row-label label-pct">%</span>
                             <span class="row-value pct ${cU}">${formatPct(d.PctUnder)}</span>
                         </div>
                     </div>
-                    <div class="info-column">
+                    <div class="info-column" data-selection="O 2.5">
                         <div class="column-header">Over 2.5</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
@@ -2250,8 +2250,8 @@ function updateMatchInfoCard() {
                             <span class="row-label">Stake</span>
                             <span class="row-value money ${cO}">${formatVolume(d.AmtOver)}</span>
                         </div>
-                        <div class="column-row">
-                            <span class="row-label">%</span>
+                        <div class="column-row row-pct">
+                            <span class="row-label label-pct">%</span>
                             <span class="row-value pct ${cO}">${formatPct(d.PctOver)}</span>
                         </div>
                     </div>
@@ -2294,7 +2294,7 @@ function updateMatchInfoCard() {
             const cN = getColorClass(d.PctNo);
             html = `
                 <div class="info-columns">
-                    <div class="info-column">
+                    <div class="info-column" data-selection="Evet">
                         <div class="column-header">Yes</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
@@ -2304,12 +2304,12 @@ function updateMatchInfoCard() {
                             <span class="row-label">Stake</span>
                             <span class="row-value money ${cY}">${formatVolume(d.AmtYes)}</span>
                         </div>
-                        <div class="column-row">
-                            <span class="row-label">%</span>
+                        <div class="column-row row-pct">
+                            <span class="row-label label-pct">%</span>
                             <span class="row-value pct ${cY}">${formatPct(d.PctYes)}</span>
                         </div>
                     </div>
-                    <div class="info-column">
+                    <div class="info-column" data-selection="Hayır">
                         <div class="column-header">No</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
@@ -2319,8 +2319,8 @@ function updateMatchInfoCard() {
                             <span class="row-label">Stake</span>
                             <span class="row-value money ${cN}">${formatVolume(d.AmtNo)}</span>
                         </div>
-                        <div class="column-row">
-                            <span class="row-label">%</span>
+                        <div class="column-row row-pct">
+                            <span class="row-label label-pct">%</span>
                             <span class="row-value pct ${cN}">${formatPct(d.PctNo)}</span>
                         </div>
                     </div>
