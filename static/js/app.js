@@ -2656,6 +2656,7 @@ function formatTimeLabel(date) {
 }
 
 async function loadChart(home, away, market, league = '') {
+    console.log('[LoadChart] START - isMobile:', isMobile(), 'width:', window.innerWidth, 'mobileSelectedLine:', mobileSelectedLine);
     try {
         let data = { history: [] };
         
@@ -2912,12 +2913,15 @@ async function loadChart(home, away, market, league = '') {
         }
         
         // Mobile: filter to single dataset only
+        console.log('[LoadChart] Before filter - isMobile:', isMobile(), 'datasets count:', datasets.length, 'labels:', datasets.map(d => d.label));
         if (isMobile()) {
             // Find selected dataset, or fallback to first available
             let selectedDs = datasets.find(ds => ds.label === mobileSelectedLine);
+            console.log('[MobileChart] Looking for:', mobileSelectedLine, 'found:', !!selectedDs);
             if (!selectedDs && datasets.length > 0) {
                 selectedDs = datasets[0];
                 mobileSelectedLine = selectedDs.label;
+                console.log('[MobileChart] Fallback to:', mobileSelectedLine);
                 // Update button state
                 document.querySelectorAll('.mob-sel-btn').forEach(btn => {
                     btn.classList.toggle('active', btn.dataset.sel === mobileSelectedLine);
@@ -2926,6 +2930,8 @@ async function loadChart(home, away, market, league = '') {
             if (selectedDs) {
                 datasets = [selectedDs];
                 console.log('[MobileChart] Single series:', mobileSelectedLine, 'Points:', selectedDs.data.length);
+            } else {
+                console.log('[MobileChart] ERROR: No dataset found!');
             }
         } else {
             // Desktop: apply visibility state
