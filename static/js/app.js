@@ -891,9 +891,10 @@ function renderMatches(data) {
                     </tr>
                 `;
             } else {
-                const trend1Data = getOddsTrendData(match.home_team, match.away_team, 'odds1');
-                const trendXData = getOddsTrendData(match.home_team, match.away_team, 'oddsx');
-                const trend2Data = getOddsTrendData(match.home_team, match.away_team, 'odds2');
+                // Use buildTrendDataFromMatch to avoid team name mismatch with cache
+                const trend1Data = buildTrendDataFromMatch(d.Odds1 || d['1'], d.Odds1_prev, d.Trend1);
+                const trendXData = buildTrendDataFromMatch(d.OddsX || d['X'], d.OddsX_prev, d.TrendX);
+                const trend2Data = buildTrendDataFromMatch(d.Odds2 || d['2'], d.Odds2_prev, d.Trend2);
                 
                 const cell1 = renderDrop1X2Cell('1', d.Odds1 || d['1'], trend1Data);
                 const cellX = renderDrop1X2Cell('X', d.OddsX || d['X'], trendXData);
@@ -935,8 +936,9 @@ function renderMatches(data) {
                     </tr>
                 `;
             } else {
-                const trendUnderData = getOddsTrendData(match.home_team, match.away_team, 'under');
-                const trendOverData = getOddsTrendData(match.home_team, match.away_team, 'over');
+                // Use buildTrendDataFromMatch to avoid team name mismatch with cache
+                const trendUnderData = buildTrendDataFromMatch(d.Under, d.Under_prev, d.TrendUnder);
+                const trendOverData = buildTrendDataFromMatch(d.Over, d.Over_prev, d.TrendOver);
                 
                 const cellUnder = renderOddsWithTrend(d.Under, trendUnderData);
                 const cellOver = renderOddsWithTrend(d.Over, trendOverData);
@@ -976,8 +978,9 @@ function renderMatches(data) {
                     </tr>
                 `;
             } else {
-                const trendYesData = getOddsTrendData(match.home_team, match.away_team, 'oddsyes');
-                const trendNoData = getOddsTrendData(match.home_team, match.away_team, 'oddsno');
+                // Use buildTrendDataFromMatch to avoid team name mismatch with cache
+                const trendYesData = buildTrendDataFromMatch(d.OddsYes || d.Yes, d.OddsYes_prev || d.Yes_prev, d.TrendYes);
+                const trendNoData = buildTrendDataFromMatch(d.OddsNo || d.No, d.OddsNo_prev || d.No_prev, d.TrendNo);
                 
                 const cellYes = renderOddsWithTrend(d.OddsYes || d.Yes, trendYesData);
                 const cellNo = renderOddsWithTrend(d.OddsNo || d.No, trendNoData);
@@ -1169,10 +1172,12 @@ function renderMobileMoneywayBlock(label, oddsValue, pctValue) {
 function renderMobileOddsCard(match, idx, d, volume, dateStr) {
     let oddsBlocks = '';
     
+    // Use trend data directly from match details (d) instead of cache
+    // This avoids team name mismatch issues
     if (currentMarket.includes('1x2')) {
-        const trend1 = getOddsTrendData(match.home_team, match.away_team, 'odds1');
-        const trendX = getOddsTrendData(match.home_team, match.away_team, 'oddsx');
-        const trend2 = getOddsTrendData(match.home_team, match.away_team, 'odds2');
+        const trend1 = buildTrendDataFromMatch(d.Odds1 || d['1'], d.Odds1_prev, d.Trend1);
+        const trendX = buildTrendDataFromMatch(d.OddsX || d['X'], d.OddsX_prev, d.TrendX);
+        const trend2 = buildTrendDataFromMatch(d.Odds2 || d['2'], d.Odds2_prev, d.Trend2);
         
         oddsBlocks = `
             ${renderMobileOddsBlock('1', d.Odds1 || d['1'], trend1)}
@@ -1180,16 +1185,16 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr) {
             ${renderMobileOddsBlock('2', d.Odds2 || d['2'], trend2)}
         `;
     } else if (currentMarket.includes('ou25')) {
-        const trendUnder = getOddsTrendData(match.home_team, match.away_team, 'under');
-        const trendOver = getOddsTrendData(match.home_team, match.away_team, 'over');
+        const trendUnder = buildTrendDataFromMatch(d.Under, d.Under_prev, d.TrendUnder);
+        const trendOver = buildTrendDataFromMatch(d.Over, d.Over_prev, d.TrendOver);
         
         oddsBlocks = `
             ${renderMobileOddsBlock('U 2.5', d.Under, trendUnder)}
             ${renderMobileOddsBlock('O 2.5', d.Over, trendOver)}
         `;
     } else {
-        const trendYes = getOddsTrendData(match.home_team, match.away_team, 'oddsyes');
-        const trendNo = getOddsTrendData(match.home_team, match.away_team, 'oddsno');
+        const trendYes = buildTrendDataFromMatch(d.OddsYes || d.Yes, d.OddsYes_prev || d.Yes_prev, d.TrendYes);
+        const trendNo = buildTrendDataFromMatch(d.OddsNo || d.No, d.OddsNo_prev || d.No_prev, d.TrendNo);
         
         oddsBlocks = `
             ${renderMobileOddsBlock('Yes', d.OddsYes || d.Yes, trendYes)}
@@ -1375,6 +1380,47 @@ function getTableTrendArrow(current, previous) {
     if (curr > prev) return '<span class="trend-up">↑</span>';
     if (curr < prev) return '<span class="trend-down">↓</span>';
     return '';
+}
+
+// Build trend data object from match details (d object) instead of cache
+// This avoids team name mismatch issues between match list and trend cache
+function buildTrendDataFromMatch(currentOdds, prevOdds, trendText) {
+    const curr = parseFloat(String(currentOdds || '').replace(/[^0-9.]/g, ''));
+    const prev = parseFloat(String(prevOdds || '').replace(/[^0-9.]/g, ''));
+    
+    if (isNaN(curr) || isNaN(prev) || prev === 0) {
+        // No valid previous odds - check if trendText provides direction
+        if (trendText) {
+            const t = String(trendText).trim().toLowerCase();
+            if (t === 'down' || t.includes('↓')) {
+                return { trend: 'down', pct_change: null, old: null, new: curr || null, history: [curr] };
+            } else if (t === 'up' || t.includes('↑')) {
+                return { trend: 'up', pct_change: null, old: null, new: curr || null, history: [curr] };
+            }
+        }
+        return null;
+    }
+    
+    // Calculate percentage change
+    const pctChange = ((curr - prev) / prev) * 100;
+    let trend = 'stable';
+    if (curr < prev) trend = 'down';
+    else if (curr > prev) trend = 'up';
+    
+    // Override with explicit trend text if available
+    if (trendText) {
+        const t = String(trendText).trim().toLowerCase();
+        if (t === 'down' || t.includes('↓')) trend = 'down';
+        else if (t === 'up' || t.includes('↑')) trend = 'up';
+    }
+    
+    return {
+        trend: trend,
+        pct_change: Math.round(pctChange * 10) / 10,
+        old: prev,
+        new: curr,
+        history: [prev, curr]
+    };
 }
 
 function getDirectTrendArrow(trendValue) {
@@ -4568,6 +4614,13 @@ function getOddsTrendData(home, away, selection) {
     const matchData = oddsTrendCache[key];
     
     if (!matchData || !matchData.values) {
+        // Debug: first 5 misses per page load
+        if (!window._trendDebugCount) window._trendDebugCount = 0;
+        if (window._trendDebugCount < 5) {
+            const cacheKeys = Object.keys(oddsTrendCache).slice(0, 5);
+            console.log(`[TrendDebug] MISS: "${key}" not in cache. Sample keys:`, cacheKeys);
+            window._trendDebugCount++;
+        }
         return null;
     }
     
