@@ -2404,57 +2404,6 @@ function isMobile() {
     return window.innerWidth <= 768;
 }
 
-// Mobile crosshair state
-let mobileCrosshairX = null;
-let mobileCrosshairIndex = null;
-
-// Chart.js plugin for mobile crosshair
-const mobileCrosshairPlugin = {
-    id: 'mobileCrosshair',
-    afterDraw: function(chart) {
-        if (!isMobile() || mobileCrosshairX === null) return;
-        
-        const ctx = chart.ctx;
-        const chartArea = chart.chartArea;
-        if (!chartArea) return;
-        
-        // Draw vertical line
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(mobileCrosshairX, chartArea.top);
-        ctx.lineTo(mobileCrosshairX, chartArea.bottom);
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = 'rgba(139, 148, 158, 0.6)';
-        ctx.setLineDash([4, 4]);
-        ctx.stroke();
-        ctx.restore();
-        
-        // Draw circle at data point
-        if (mobileCrosshairIndex !== null && chart.data.datasets.length > 0) {
-            const dataset = chart.data.datasets[0];
-            const meta = chart.getDatasetMeta(0);
-            if (meta.data[mobileCrosshairIndex]) {
-                const point = meta.data[mobileCrosshairIndex];
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
-                ctx.fillStyle = dataset.borderColor || '#4ade80';
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(point.x, point.y, 3, 0, 2 * Math.PI);
-                ctx.fillStyle = '#0d1117';
-                ctx.fill();
-                ctx.restore();
-            }
-        }
-    }
-};
-
-// Register plugin globally
-if (typeof Chart !== 'undefined') {
-    Chart.register(mobileCrosshairPlugin);
-}
-
 // Reload chart with current mobile state
 async function loadChartHistory(matchId, market) {
     if (!selectedMatch) return;
@@ -3255,36 +3204,20 @@ async function loadChart(home, away, market, league = '') {
         
         createBrushSlider(chartContainer, historyData, chart);
         
-        // Mobile: add touch event for value panel, crosshair, and update initial value
+        // Mobile: add touch event for value panel and update initial value
         if (isMobile()) {
-            // Set initial crosshair at last data point after chart renders
-            setTimeout(() => {
-                const lastIndex = historyData.length - 1;
-                mobileCrosshairIndex = lastIndex;
-                const meta = chart.getDatasetMeta(0);
-                if (meta.data && meta.data[lastIndex]) {
-                    mobileCrosshairX = meta.data[lastIndex].x;
-                    chart.update('none');
-                }
-            }, 100);
             updateMobileValuePanel();
             
-            // Touch move handler for live value updates and crosshair
+            // Touch move handler for live value updates
             const canvas = document.getElementById('oddsChart');
             canvas.addEventListener('touchmove', function(e) {
                 const rect = canvas.getBoundingClientRect();
                 const x = e.touches[0].clientX - rect.left;
                 const y = e.touches[0].clientY - rect.top;
+                // Use synthesized event object for Chart.js compatibility
                 const points = chart.getElementsAtEventForMode({ x: x, y: y, type: 'touchmove' }, 'index', { intersect: false }, false);
                 if (points.length > 0) {
-                    const idx = points[0].index;
-                    const pointMeta = chart.getDatasetMeta(0);
-                    if (pointMeta.data[idx]) {
-                        mobileCrosshairX = pointMeta.data[idx].x;
-                        mobileCrosshairIndex = idx;
-                        chart.update('none');
-                    }
-                    updateMobileValuePanel(idx);
+                    updateMobileValuePanel(points[0].index);
                 }
             }, { passive: true });
             
@@ -3294,20 +3227,13 @@ async function loadChart(home, away, market, league = '') {
                 const y = e.touches[0].clientY - rect.top;
                 const points = chart.getElementsAtEventForMode({ x: x, y: y, type: 'touchstart' }, 'index', { intersect: false }, false);
                 if (points.length > 0) {
-                    const idx = points[0].index;
-                    const pointMeta = chart.getDatasetMeta(0);
-                    if (pointMeta.data[idx]) {
-                        mobileCrosshairX = pointMeta.data[idx].x;
-                        mobileCrosshairIndex = idx;
-                        chart.update('none');
-                    }
-                    updateMobileValuePanel(idx);
+                    updateMobileValuePanel(points[0].index);
                 }
             }, { passive: true });
             
-            // Keep crosshair at last touched position (don't reset)
             canvas.addEventListener('touchend', function() {
-                // Crosshair stays at last position - no reset
+                // Reset to last value on touch end
+                setTimeout(() => updateMobileValuePanel(), 100);
             }, { passive: true });
         }
     } catch (error) {
