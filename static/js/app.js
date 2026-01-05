@@ -2591,9 +2591,10 @@ function updateMobileValueHeader(dataIndex) {
     const timeLabel = chart.data.labels[idx] || '--:--';
     const value = ds.data[idx];
     
-    // Detect market type
-    const isMoneyway = currentMarket.startsWith('moneyway');
-    const isDropping = currentMarket.startsWith('dropping');
+    // Detect market type - use selectedChartMarket in modal context
+    const activeMarket = selectedChartMarket || currentMarket;
+    const isMoneyway = activeMarket.startsWith('moneyway');
+    const isDropping = activeMarket.startsWith('dropping');
     
     // Helper to parse stake value
     const parseStake = (val) => {
@@ -2685,7 +2686,7 @@ function updateMobileValueHeader(dataIndex) {
     }
     
     // Debug log
-    console.log('[MobileHeader]', { idx, timeLabel, bigValue: bigValueText, secondary: secondaryText, odds: oddsText, stake: stakeText, pct: pctText, pick: mobileSelectedLine, market: currentMarket });
+    console.log('[MobileHeader]', { idx, timeLabel, bigValue: bigValueText, secondary: secondaryText, odds: oddsText, stake: stakeText, pct: pctText, pick: mobileSelectedLine, market: activeMarket, isDropping });
     
     // Update header elements
     const bigValueEl = document.getElementById('mvhBigValue');
