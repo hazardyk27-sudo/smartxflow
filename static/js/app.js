@@ -2383,8 +2383,21 @@ function getTrendArrow(current, previous) {
     return '';
 }
 
+function switchMobileTab(tabName) {
+    document.querySelectorAll('.mobile-tab-bar .mob-tab').forEach(t => {
+        t.classList.remove('active');
+        if (t.dataset.tab === tabName) t.classList.add('active');
+    });
+    document.querySelectorAll('.mobile-tab-content').forEach(c => {
+        c.classList.remove('active');
+    });
+    const targetTab = document.getElementById('mobileTab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
+    if (targetTab) targetTab.classList.add('active');
+}
+
 function closeModal() {
     document.getElementById('modalOverlay').classList.remove('active');
+    switchMobileTab('chart');
     
     const chartTooltip = document.getElementById('chartjs-tooltip');
     if (chartTooltip) {
