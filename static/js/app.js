@@ -2591,71 +2591,122 @@ function updateMobileValueHeader(dataIndex) {
     const timeLabel = chart.data.labels[idx] || '--:--';
     const value = ds.data[idx];
     
-    // Format big value
-    let bigValueText = '--';
-    if (value !== null && value !== undefined) {
-        if (chartViewMode === 'money') {
-            bigValueText = '£' + Math.round(value).toLocaleString();
-        } else {
-            bigValueText = value.toFixed(1) + '%';
-        }
-    }
+    // Detect market type
+    const isMoneyway = currentMarket.startsWith('moneyway');
+    const isDropping = currentMarket.startsWith('dropping');
     
-    // Get odds and stake from history data
+    // Helper to parse stake value
+    const parseStake = (val) => {
+        if (!val) return '--';
+        const num = parseFloat(String(val).replace(/[£,\s]/g, ''));
+        return isNaN(num) ? '--' : '£' + Math.round(num).toLocaleString();
+    };
+    
+    // Helper to get percentage value
+    const parsePct = (val) => {
+        if (!val) return '--';
+        const str = String(val).replace('%', '').trim();
+        const num = parseFloat(str);
+        return isNaN(num) ? '--' : num.toFixed(1) + '%';
+    };
+    
+    // Get data from history
     let oddsText = '--';
     let stakeText = '--';
+    let pctText = '--';
     
     if (mobileChartHistoryData && mobileChartHistoryData[idx]) {
         const h = mobileChartHistoryData[idx];
         const pick = mobileSelectedLine;
         
-        // Helper to parse stake value
-        const parseStake = (val) => {
-            if (!val) return '--';
-            // Remove £, commas, and spaces before parsing
-            const num = parseFloat(String(val).replace(/[£,\s]/g, ''));
-            return isNaN(num) ? '--' : '£' + Math.round(num).toLocaleString();
-        };
-        
-        // Get odds and stake based on selection
+        // Get odds, stake, and percentage based on selection
         if (pick === '1') {
-            oddsText = h.Odds1 || '--';
+            oddsText = h.Odds1 || h['1'] || '--';
             stakeText = parseStake(h.Amt1);
+            pctText = parsePct(h.Pct1);
         } else if (pick === 'X') {
-            oddsText = h.OddsX || '--';
+            oddsText = h.OddsX || h['X'] || '--';
             stakeText = parseStake(h.AmtX);
+            pctText = parsePct(h.PctX);
         } else if (pick === '2') {
-            oddsText = h.Odds2 || '--';
+            oddsText = h.Odds2 || h['2'] || '--';
             stakeText = parseStake(h.Amt2);
+            pctText = parsePct(h.Pct2);
         } else if (pick === 'Under') {
             oddsText = h.Under || h.OddsUnder || '--';
             stakeText = parseStake(h.AmtUnder);
+            pctText = parsePct(h.PctUnder);
         } else if (pick === 'Over') {
             oddsText = h.Over || h.OddsOver || '--';
             stakeText = parseStake(h.AmtOver);
+            pctText = parsePct(h.PctOver);
         } else if (pick === 'Yes') {
             oddsText = h.Yes || h.OddsYes || '--';
             stakeText = parseStake(h.AmtYes);
+            pctText = parsePct(h.PctYes);
         } else if (pick === 'No') {
             oddsText = h.No || h.OddsNo || '--';
             stakeText = parseStake(h.AmtNo);
+            pctText = parsePct(h.PctNo);
         }
     }
     
+    // Format values based on market type
+    let bigValueText = '--';
+    let secondaryText = '--';
+    let secondaryLabel = 'Stake';
+    
+    if (isMoneyway) {
+        // Moneyway: big value shows selected mode, secondary shows the OTHER value
+        if (value !== null && value !== undefined) {
+            if (chartViewMode === 'money') {
+                bigValueText = '£' + Math.round(value).toLocaleString();
+                // Show percentage in secondary
+                secondaryText = pctText;
+                secondaryLabel = 'Yüzde';
+            } else {
+                bigValueText = value.toFixed(1) + '%';
+                // Show stake in secondary
+                secondaryText = stakeText;
+                secondaryLabel = 'Stake';
+            }
+        }
+    } else if (isDropping) {
+        // Dropping Odds: big value shows odds, secondary shows percentage
+        bigValueText = oddsText;
+        secondaryText = pctText;
+        secondaryLabel = 'Yüzde';
+    }
+    
     // Debug log
-    console.log('[MobileHeader]', { idx, timeLabel, value: bigValueText, odds: oddsText, stake: stakeText, pick: mobileSelectedLine });
+    console.log('[MobileHeader]', { idx, timeLabel, bigValue: bigValueText, secondary: secondaryText, odds: oddsText, stake: stakeText, pct: pctText, pick: mobileSelectedLine, market: currentMarket });
     
     // Update header elements
     const bigValueEl = document.getElementById('mvhBigValue');
     const changeEl = document.getElementById('mvhChange');
     const oddsEl = document.getElementById('mvhOdds');
+    const oddsLabelEl = document.getElementById('mvhOddsLabel');
     const stakeEl = document.getElementById('mvhStake');
+    const stakeLabelEl = document.getElementById('mvhStakeLabel');
     const timeEl = document.getElementById('mvhTime');
     
     if (bigValueEl) bigValueEl.textContent = bigValueText;
     if (changeEl) changeEl.textContent = 'Son değer • ' + timeLabel;
-    if (oddsEl) oddsEl.textContent = oddsText;
-    if (stakeEl) stakeEl.textContent = stakeText;
+    
+    if (isDropping) {
+        // Dropping: big value=odds, then Stake + Yüzde below
+        if (oddsLabelEl) oddsLabelEl.textContent = 'Stake';
+        if (oddsEl) oddsEl.textContent = stakeText;
+        if (stakeLabelEl) stakeLabelEl.textContent = 'Yüzde';
+        if (stakeEl) stakeEl.textContent = pctText;
+    } else {
+        // Moneyway: show odds normally, swap stake/pct based on mode
+        if (oddsLabelEl) oddsLabelEl.textContent = 'Odds';
+        if (oddsEl) oddsEl.textContent = oddsText;
+        if (stakeLabelEl) stakeLabelEl.textContent = secondaryLabel;
+        if (stakeEl) stakeEl.textContent = secondaryText;
+    }
+    
     if (timeEl) timeEl.textContent = timeLabel;
 }
 
