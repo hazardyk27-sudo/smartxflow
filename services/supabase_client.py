@@ -1167,6 +1167,9 @@ class SupabaseClient:
                 'AmtX': row.get('amtx', ''),
                 'Pct2': row.get('pct2', ''),
                 'Amt2': row.get('amt2', ''),
+                'Odds1_prev': row.get('odds1_prev', ''),
+                'OddsX_prev': row.get('oddsx_prev', ''),
+                'Odds2_prev': row.get('odds2_prev', ''),
                 'Trend1': row.get('trend1', ''),
                 'TrendX': row.get('trendx', ''),
                 'Trend2': row.get('trend2', '')
@@ -1180,6 +1183,8 @@ class SupabaseClient:
                 'AmtUnder': row.get('amtunder', ''),
                 'PctOver': row.get('pctover', ''),
                 'AmtOver': row.get('amtover', ''),
+                'Under_prev': row.get('under_prev', ''),
+                'Over_prev': row.get('over_prev', ''),
                 'TrendUnder': row.get('trendunder', ''),
                 'TrendOver': row.get('trendover', '')
             })
@@ -1195,6 +1200,8 @@ class SupabaseClient:
                 'AmtYes': row.get('amtyes', ''),
                 'PctNo': row.get('pctno', ''),
                 'AmtNo': row.get('amtno', ''),
+                'OddsYes_prev': row.get('oddsyes_prev', ''),
+                'OddsNo_prev': row.get('oddsno_prev', ''),
                 'TrendYes': row.get('trendyes', ''),
                 'TrendNo': row.get('trendno', '')
             })
