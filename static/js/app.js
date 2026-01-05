@@ -2416,6 +2416,7 @@ const mobileCrosshairPlugin = {
         
         const ctx = chart.ctx;
         const chartArea = chart.chartArea;
+        if (!chartArea) return;
         
         // Draw vertical line
         ctx.save();
@@ -3256,13 +3257,16 @@ async function loadChart(home, away, market, league = '') {
         
         // Mobile: add touch event for value panel, crosshair, and update initial value
         if (isMobile()) {
-            // Set initial crosshair at last data point
-            const lastIndex = historyData.length - 1;
-            mobileCrosshairIndex = lastIndex;
-            const meta = chart.getDatasetMeta(0);
-            if (meta.data[lastIndex]) {
-                mobileCrosshairX = meta.data[lastIndex].x;
-            }
+            // Set initial crosshair at last data point after chart renders
+            setTimeout(() => {
+                const lastIndex = historyData.length - 1;
+                mobileCrosshairIndex = lastIndex;
+                const meta = chart.getDatasetMeta(0);
+                if (meta.data && meta.data[lastIndex]) {
+                    mobileCrosshairX = meta.data[lastIndex].x;
+                    chart.update('none');
+                }
+            }, 100);
             updateMobileValuePanel();
             
             // Touch move handler for live value updates and crosshair
@@ -3278,7 +3282,7 @@ async function loadChart(home, away, market, league = '') {
                     if (pointMeta.data[idx]) {
                         mobileCrosshairX = pointMeta.data[idx].x;
                         mobileCrosshairIndex = idx;
-                        chart.draw();
+                        chart.update('none');
                     }
                     updateMobileValuePanel(idx);
                 }
@@ -3295,7 +3299,7 @@ async function loadChart(home, away, market, league = '') {
                     if (pointMeta.data[idx]) {
                         mobileCrosshairX = pointMeta.data[idx].x;
                         mobileCrosshairIndex = idx;
-                        chart.draw();
+                        chart.update('none');
                     }
                     updateMobileValuePanel(idx);
                 }
