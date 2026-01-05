@@ -3303,7 +3303,9 @@ async function loadChart(home, away, market, league = '') {
             }, { passive: true });
             
             canvas.addEventListener('touchend', function() {
-                // Keep crosshair at last touched position
+                // Re-apply active element to keep dot visible after touch ends
+                const idx = mobileCrosshairIndex >= 0 ? mobileCrosshairIndex : chart.data.datasets[0].data.length - 1;
+                chart.setActiveElements([{ datasetIndex: 0, index: idx }]);
                 chart.update('none');
             }, { passive: true });
         }
