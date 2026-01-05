@@ -2624,43 +2624,51 @@ function updateMobileValueHeader(dataIndex) {
         // For dropping odds, use Volume as stake
         if (isDropping) {
             stakeText = parseStake(h.Volume);
-            // Calculate drop percentage from opening vs current odds
+            // Calculate drop percentage from _prev vs current odds
             let openOdds = 0, currentOdds = 0;
             if (pick === '1') {
                 oddsText = h.Odds1 || h['1'] || '--';
-                openOdds = parseFloat(h.Opening1 || h.Open1 || h.Odds1_open || 0);
+                openOdds = parseFloat(h.Odds1_prev || h.Opening1 || 0);
                 currentOdds = parseFloat(h.Odds1 || h['1'] || 0);
+                // Oynanma yüzdesi: dropping odds'ta boş olabilir, varsa kullan
+                pctText = parsePct(h.Pct1);
             } else if (pick === 'X') {
                 oddsText = h.OddsX || h['X'] || '--';
-                openOdds = parseFloat(h.OpeningX || h.OpenX || h.OddsX_open || 0);
+                openOdds = parseFloat(h.OddsX_prev || h.OpeningX || 0);
                 currentOdds = parseFloat(h.OddsX || h['X'] || 0);
+                pctText = parsePct(h.PctX);
             } else if (pick === '2') {
                 oddsText = h.Odds2 || h['2'] || '--';
-                openOdds = parseFloat(h.Opening2 || h.Open2 || h.Odds2_open || 0);
+                openOdds = parseFloat(h.Odds2_prev || h.Opening2 || 0);
                 currentOdds = parseFloat(h.Odds2 || h['2'] || 0);
+                pctText = parsePct(h.Pct2);
             } else if (pick === 'Under') {
                 oddsText = h.Under || h.OddsUnder || '--';
-                openOdds = parseFloat(h.OpeningUnder || h.OpenUnder || 0);
+                openOdds = parseFloat(h.Under_prev || h.OpeningUnder || 0);
                 currentOdds = parseFloat(h.Under || h.OddsUnder || 0);
+                pctText = parsePct(h.PctUnder);
             } else if (pick === 'Over') {
                 oddsText = h.Over || h.OddsOver || '--';
-                openOdds = parseFloat(h.OpeningOver || h.OpenOver || 0);
+                openOdds = parseFloat(h.Over_prev || h.OpeningOver || 0);
                 currentOdds = parseFloat(h.Over || h.OddsOver || 0);
+                pctText = parsePct(h.PctOver);
             } else if (pick === 'Yes') {
                 oddsText = h.Yes || h.OddsYes || '--';
-                openOdds = parseFloat(h.OpeningYes || h.OpenYes || 0);
+                openOdds = parseFloat(h.Yes_prev || h.OpeningYes || 0);
                 currentOdds = parseFloat(h.Yes || h.OddsYes || 0);
+                pctText = parsePct(h.PctYes);
             } else if (pick === 'No') {
                 oddsText = h.No || h.OddsNo || '--';
-                openOdds = parseFloat(h.OpeningNo || h.OpenNo || 0);
+                openOdds = parseFloat(h.No_prev || h.OpeningNo || 0);
                 currentOdds = parseFloat(h.No || h.OddsNo || 0);
+                pctText = parsePct(h.PctNo);
             }
-            // Calculate drop percentage
-            if (openOdds > 0 && currentOdds > 0) {
+            // Calculate drop percentage if pctText is empty
+            if (pctText === '--' && openOdds > 0 && currentOdds > 0) {
                 const dropVal = ((openOdds - currentOdds) / openOdds) * 100;
                 dropPctText = (dropVal >= 0 ? '-' : '+') + Math.abs(dropVal).toFixed(1) + '%';
+                pctText = dropPctText;
             }
-            pctText = dropPctText;
         } else {
             // Moneyway: use Amt and Pct fields
             if (pick === '1') {
@@ -2744,10 +2752,10 @@ function updateMobileValueHeader(dataIndex) {
     if (changeEl) changeEl.textContent = 'Son değer • ' + timeLabel;
     
     if (isDropping) {
-        // Dropping: big value=odds, then Stake + Yüzde below
+        // Dropping: big value=odds, then Stake + Düşüş below
         if (oddsLabelEl) oddsLabelEl.textContent = 'Stake';
         if (oddsEl) oddsEl.textContent = stakeText;
-        if (stakeLabelEl) stakeLabelEl.textContent = 'Yüzde';
+        if (stakeLabelEl) stakeLabelEl.textContent = 'Düşüş';
         if (stakeEl) stakeEl.textContent = pctText;
     } else {
         // Moneyway: show odds normally, swap stake/pct based on mode
