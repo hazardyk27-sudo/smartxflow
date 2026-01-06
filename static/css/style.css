@@ -9626,19 +9626,21 @@ table.desktop-only {
     }
     
     .modal-title h2 {
-        font-size: 14px !important;
-        font-weight: 600 !important;
-        color: #e6edf3 !important;
-        margin-bottom: 2px !important;
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        color: #f0f6fc !important;
+        margin-bottom: 4px !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
         max-width: calc(100vw - 80px) !important;
+        letter-spacing: -0.01em !important;
     }
     
     .modal-subtitle {
-        font-size: 11px !important;
-        color: #6e7681 !important;
+        font-size: 12px !important;
+        color: #8b949e !important;
+        font-weight: 500 !important;
     }
     
     .modal-close {
