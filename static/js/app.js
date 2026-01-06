@@ -960,8 +960,8 @@ function renderMatches(data) {
             const trendNo = isDropping ? (getDirectTrendArrow(d.TrendNo) || getTableTrendArrow(d.OddsNo || d.No, d.No_prev || d.PrevNo)) : '';
             
             if (isMoneyway) {
-                const blockYes = renderMoneywayBlock('Yes', d.PctYes, d.OddsYes || d.Yes, d.AmtYes);
-                const blockNo = renderMoneywayBlock('No', d.PctNo, d.OddsNo || d.No, d.AmtNo);
+                const blockYes = renderMoneywayBlock('Evet', d.PctYes, d.OddsYes || d.Yes, d.AmtYes);
+                const blockNo = renderMoneywayBlock('Hayır', d.PctNo, d.OddsNo || d.No, d.AmtNo);
                 const matchStatus = getMatchStatus(match.date);
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
@@ -1121,8 +1121,8 @@ function renderMobileMoneywayCard(match, idx, d, volume, dateStr) {
     } else {
         // BTTS market: 2 blocks
         oddsBlocks = `
-            ${renderMobileMoneywayBlock('Yes', d.OddsYes || d.Yes, d.PctYes)}
-            ${renderMobileMoneywayBlock('No', d.OddsNo || d.No, d.PctNo)}
+            ${renderMobileMoneywayBlock('Evet', d.OddsYes || d.Yes, d.PctYes)}
+            ${renderMobileMoneywayBlock('Hayır', d.OddsNo || d.No, d.PctNo)}
         `;
     }
     
@@ -1199,8 +1199,8 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr) {
         const trendNo = buildTrendDataFromMatch(d.OddsNo || d.No, d.PrevNo || d.OddsNo_prev || d.No_prev, d.TrendNo, d.DropPctNo);
         
         oddsBlocks = `
-            ${renderMobileOddsBlock('Yes', d.OddsYes || d.Yes, trendYes)}
-            ${renderMobileOddsBlock('No', d.OddsNo || d.No, trendNo)}
+            ${renderMobileOddsBlock('Evet', d.OddsYes || d.Yes, trendYes)}
+            ${renderMobileOddsBlock('Hayır', d.OddsNo || d.No, trendNo)}
         `;
     }
     
@@ -2424,14 +2424,14 @@ function updateMatchInfoCard() {
             html = `
                 <div class="info-columns">
                     <div class="info-column">
-                        <div class="column-header">Yes</div>
+                        <div class="column-header">Evet</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
                             <span class="row-value odds">${formatOdds(d.OddsYes || d.Yes)}${trendYes}</span>
                         </div>
                     </div>
                     <div class="info-column">
-                        <div class="column-header">No</div>
+                        <div class="column-header">Hayır</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
                             <span class="row-value odds">${formatOdds(d.OddsNo || d.No)}${trendNo}</span>
