@@ -2221,7 +2221,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
-                            <span class="row-value money ${c1}">${formatVolume(d.Amt1)}</span>
+                            <span class="row-value money ${c1}">${formatVolumeCompact(d.Amt1)}</span>
                         </div>
                         <div class="column-row row-pct">
                             <span class="row-label label-pct">%</span>
@@ -2237,7 +2237,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
-                            <span class="row-value money ${cX}">${formatVolume(d.AmtX)}</span>
+                            <span class="row-value money ${cX}">${formatVolumeCompact(d.AmtX)}</span>
                         </div>
                         <div class="column-row row-pct">
                             <span class="row-label label-pct">%</span>
@@ -2253,7 +2253,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
-                            <span class="row-value money ${c2}">${formatVolume(d.Amt2)}</span>
+                            <span class="row-value money ${c2}">${formatVolumeCompact(d.Amt2)}</span>
                         </div>
                         <div class="column-row row-pct">
                             <span class="row-label label-pct">%</span>
@@ -2317,7 +2317,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
-                            <span class="row-value money ${cU}">${formatVolume(d.AmtUnder)}</span>
+                            <span class="row-value money ${cU}">${formatVolumeCompact(d.AmtUnder)}</span>
                         </div>
                         <div class="column-row row-pct">
                             <span class="row-label label-pct">%</span>
@@ -2333,7 +2333,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
-                            <span class="row-value money ${cO}">${formatVolume(d.AmtOver)}</span>
+                            <span class="row-value money ${cO}">${formatVolumeCompact(d.AmtOver)}</span>
                         </div>
                         <div class="column-row row-pct">
                             <span class="row-label label-pct">%</span>
@@ -2390,7 +2390,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
-                            <span class="row-value money ${cY}">${formatVolume(d.AmtYes)}</span>
+                            <span class="row-value money ${cY}">${formatVolumeCompact(d.AmtYes)}</span>
                         </div>
                         <div class="column-row row-pct">
                             <span class="row-label label-pct">%</span>
@@ -2406,7 +2406,7 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="column-row">
                             <span class="row-label">Stake</span>
-                            <span class="row-value money ${cN}">${formatVolume(d.AmtNo)}</span>
+                            <span class="row-value money ${cN}">${formatVolumeCompact(d.AmtNo)}</span>
                         </div>
                         <div class="column-row row-pct">
                             <span class="row-label label-pct">%</span>
