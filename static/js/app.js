@@ -918,8 +918,8 @@ function renderMatches(data) {
             const trendOver = isDropping ? (getDirectTrendArrow(d.TrendOver) || getTableTrendArrow(d.Over, d.Over_prev || d.PrevOver)) : '';
             
             if (isMoneyway) {
-                const blockUnder = renderMoneywayBlock('U 2.5', d.PctUnder, d.Under, d.AmtUnder);
-                const blockOver = renderMoneywayBlock('O 2.5', d.PctOver, d.Over, d.AmtOver);
+                const blockUnder = renderMoneywayBlock('Alt', d.PctUnder, d.Under, d.AmtUnder);
+                const blockOver = renderMoneywayBlock('Üst', d.PctOver, d.Over, d.AmtOver);
                 const matchStatus = getMatchStatus(match.date);
                 return `
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
@@ -1115,8 +1115,8 @@ function renderMobileMoneywayCard(match, idx, d, volume, dateStr) {
     } else if (currentMarket.includes('ou25')) {
         // O/U 2.5 market: 2 blocks
         oddsBlocks = `
-            ${renderMobileMoneywayBlock('U 2.5', d.Under, d.PctUnder)}
-            ${renderMobileMoneywayBlock('O 2.5', d.Over, d.PctOver)}
+            ${renderMobileMoneywayBlock('Alt', d.Under, d.PctUnder)}
+            ${renderMobileMoneywayBlock('Üst', d.Over, d.PctOver)}
         `;
     } else {
         // BTTS market: 2 blocks
@@ -1191,8 +1191,8 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr) {
         const trendOver = buildTrendDataFromMatch(d.Over, d.PrevOver || d.Over_prev, d.TrendOver, d.DropPctOver);
         
         oddsBlocks = `
-            ${renderMobileOddsBlock('U 2.5', d.Under, trendUnder)}
-            ${renderMobileOddsBlock('O 2.5', d.Over, trendOver)}
+            ${renderMobileOddsBlock('Alt', d.Under, trendUnder)}
+            ${renderMobileOddsBlock('Üst', d.Over, trendOver)}
         `;
     } else {
         const trendYes = buildTrendDataFromMatch(d.OddsYes || d.Yes, d.PrevYes || d.OddsYes_prev || d.Yes_prev, d.TrendYes, d.DropPctYes);
@@ -2309,8 +2309,8 @@ function updateMatchInfoCard() {
             const pctO = parseFloat(d.PctOver) || 0;
             html = `
                 <div class="info-columns">
-                    <div class="info-column" data-selection="U 2.5">
-                        <div class="column-header">U 2.5</div>
+                    <div class="info-column" data-selection="Alt">
+                        <div class="column-header">Alt</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
                             <span class="row-value odds">${formatOdds(d.Under)}</span>
@@ -2325,8 +2325,8 @@ function updateMatchInfoCard() {
                         </div>
                         <div class="mobile-progress" style="width: ${pctU}%"></div>
                     </div>
-                    <div class="info-column" data-selection="O 2.5">
-                        <div class="column-header">O 2.5</div>
+                    <div class="info-column" data-selection="Üst">
+                        <div class="column-header">Üst</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
                             <span class="row-value odds">${formatOdds(d.Over)}</span>
@@ -2351,14 +2351,14 @@ function updateMatchInfoCard() {
             html = `
                 <div class="info-columns">
                     <div class="info-column">
-                        <div class="column-header">Under 2.5</div>
+                        <div class="column-header">Alt</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
                             <span class="row-value odds">${formatOdds(d.Under)}${trendUnder}</span>
                         </div>
                     </div>
                     <div class="info-column">
-                        <div class="column-header">Over 2.5</div>
+                        <div class="column-header">Üst</div>
                         <div class="column-row">
                             <span class="row-label">Odds</span>
                             <span class="row-value odds">${formatOdds(d.Over)}${trendOver}</span>
