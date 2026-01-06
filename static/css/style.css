@@ -9688,17 +9688,20 @@ table.desktop-only {
         flex-shrink: 0 !important;
         display: flex !important;
         align-items: center !important;
-        justify-content: center !important;
-        width: 28px !important;
-        height: 28px !important;
-        background: rgba(74, 222, 128, 0.12) !important;
+        justify-content: flex-start !important;
+        width: auto !important;
+        min-width: 32px !important;
+        height: auto !important;
+        background: transparent !important;
         border: none !important;
-        border-radius: 50% !important;
+        border-radius: 0 !important;
         font-size: 11px !important;
-        font-weight: 600 !important;
-        color: #4ade80 !important;
+        font-weight: 500 !important;
+        color: #6e7681 !important;
         margin: 0 !important;
         padding: 0 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
     }
     
     .match-info-card .column-row {
@@ -9711,23 +9714,22 @@ table.desktop-only {
     }
     
     .match-info-card .row-value.odds {
-        font-size: 16px !important;
+        font-size: 18px !important;
         font-weight: 700 !important;
         color: #e6edf3 !important;
-        margin-right: 8px !important;
+        margin-right: 0 !important;
+        flex: 1 !important;
     }
     
     .match-info-card .row-value.money {
-        font-size: 12px !important;
-        font-weight: 400 !important;
-        color: #8b949e !important;
+        display: none !important;
     }
     
     .match-info-card .column-row.row-pct {
         display: inline-flex !important;
         align-items: center !important;
         margin-left: auto !important;
-        gap: 6px !important;
+        gap: 0 !important;
     }
     
     .match-info-card .column-row.row-pct::before {
@@ -9739,22 +9741,21 @@ table.desktop-only {
     }
     
     .match-info-card .row-value.pct {
-        font-size: 13px !important;
+        font-size: 14px !important;
         font-weight: 600 !important;
         color: #4ade80 !important;
-        min-width: 45px !important;
+        min-width: 55px !important;
         text-align: right !important;
     }
     
     .match-info-card .info-column .mobile-progress {
         position: absolute !important;
         bottom: 0 !important;
-        left: 40px !important;
-        right: 0 !important;
-        height: 2px !important;
-        background: #4ade80 !important;
-        border-radius: 1px !important;
-        max-width: calc(100% - 40px) !important;
+        left: 36px !important;
+        right: 60px !important;
+        height: 3px !important;
+        background: linear-gradient(90deg, #4ade80 0%, #22c55e 100%) !important;
+        border-radius: 2px !important;
     }
     
     .volume-bar {
