@@ -8680,14 +8680,17 @@ table.desktop-only {
     /* Segmented Control - Compact */
     .day-filter-segment {
         display: flex;
+        align-items: center;
         background: rgba(33, 38, 45, 0.8);
         border-radius: 6px;
         padding: 2px;
         gap: 2px;
+        height: 30px;
     }
     
     .day-filter-segment .seg-btn {
-        padding: 5px 10px;
+        padding: 0 10px;
+        height: 26px;
         background: transparent;
         border: none;
         border-radius: 5px;
@@ -8697,6 +8700,9 @@ table.desktop-only {
         cursor: pointer;
         transition: all 0.15s;
         font-family: 'Inter', sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     .day-filter-segment .seg-btn.active {
@@ -8729,7 +8735,8 @@ table.desktop-only {
         align-items: center;
         justify-content: center;
         gap: 4px;
-        padding: 5px 10px;
+        padding: 0 10px;
+        height: 30px;
         margin-left: 6px;
         background: rgba(33, 38, 45, 0.8);
         border: none;
