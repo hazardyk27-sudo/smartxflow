@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=183">
+    <link rel="stylesheet" href="/static/css/style.css?v=184">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
@@ -350,6 +350,40 @@
                         <button class="chart-tab" data-market="dropping_btts"><span class="tab-full">Odds BTTS</span><span class="tab-short">OD BTTS</span></button>
                     </div>
                     
+                    <div class="desktop-chart-controls" id="desktopChartControls">
+                        <div class="dcc-left">
+                            <div class="dcc-view-toggle">
+                                <button class="dcc-view-btn active" data-view="percent" onclick="setDesktopViewMode('percent')">% Yuzde</button>
+                                <button class="dcc-view-btn" data-view="money" onclick="setDesktopViewMode('money')">£ Para</button>
+                            </div>
+                            <div class="dcc-divider"></div>
+                            <div class="dcc-selection-toggle" id="dccSelectionToggle">
+                                <button class="dcc-sel-btn active" data-sel="1" onclick="setDesktopSelection('1')"><span class="dcc-dot" style="background:#3b82f6"></span>1</button>
+                                <button class="dcc-sel-btn" data-sel="X" onclick="setDesktopSelection('X')"><span class="dcc-dot" style="background:#22c55e"></span>X</button>
+                                <button class="dcc-sel-btn" data-sel="2" onclick="setDesktopSelection('2')"><span class="dcc-dot" style="background:#eab308"></span>2</button>
+                            </div>
+                            <div class="dcc-divider"></div>
+                            <div class="dcc-time-toggle">
+                                <button class="dcc-time-btn active" data-range="10" onclick="setDesktopTimeRange('10')">10 dk</button>
+                                <button class="dcc-time-btn" data-range="30" onclick="setDesktopTimeRange('30')">30 dk</button>
+                                <button class="dcc-time-btn" data-range="60" onclick="setDesktopTimeRange('60')">1 saat</button>
+                                <button class="dcc-time-btn" data-range="360" onclick="setDesktopTimeRange('360')">6 saat</button>
+                                <button class="dcc-time-btn" data-range="720" onclick="setDesktopTimeRange('720')">12 saat</button>
+                                <button class="dcc-time-btn" data-range="1440" onclick="setDesktopTimeRange('1440')">1 gun</button>
+                            </div>
+                        </div>
+                        <div class="dcc-right">
+                            <button class="dcc-export-btn" onclick="exportChartPNG()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                                PNG
+                            </button>
+                            <button class="dcc-export-btn" onclick="exportChartCSV()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                CSV
+                            </button>
+                        </div>
+                    </div>
+                    
                     <!-- Mobile Finance-App Style Value Header -->
                     <div class="mobile-value-header" id="mobileValueHeader">
                         <div class="mvh-main">
@@ -446,6 +480,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=1735572047"></script>
+    <script src="/static/js/app.js?v=1735572049"></script>
 </body>
 </html>
