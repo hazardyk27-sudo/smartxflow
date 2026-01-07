@@ -3510,16 +3510,29 @@ async function loadChart(home, away, market, league = '') {
                     const height = bottom - top;
                     
                     ctx.save();
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
-                    ctx.lineWidth = 1;
                     
-                    for (let i = 1; i <= 3; i++) {
-                        const y = top + (height * i / 4);
+                    // Subtle horizontal reference lines (25%, 75%)
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+                    ctx.lineWidth = 0.5;
+                    ctx.setLineDash([]);
+                    
+                    [0.25, 0.75].forEach(pct => {
+                        const y = top + (height * pct);
                         ctx.beginPath();
                         ctx.moveTo(left, y);
                         ctx.lineTo(right, y);
                         ctx.stroke();
-                    }
+                    });
+                    
+                    // Middle reference line - dashed, slightly more visible
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+                    ctx.lineWidth = 0.5;
+                    ctx.setLineDash([4, 4]);
+                    const midY = top + (height * 0.5);
+                    ctx.beginPath();
+                    ctx.moveTo(left, midY);
+                    ctx.lineTo(right, midY);
+                    ctx.stroke();
                     
                     ctx.restore();
                 }
