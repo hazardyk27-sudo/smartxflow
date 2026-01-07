@@ -3405,19 +3405,53 @@ async function loadChart(home, away, market, league = '') {
                         }
                     }
                 },
-                scales: isMobile() ? {
-                    // Mobile: eksensiz - custom plugin ile grid çiziliyor
-                    x: {
-                        display: false,
-                        grid: { display: false, drawBorder: false },
-                        ticks: { display: false }
-                    },
-                    y: {
-                        display: false,
-                        grid: { display: false, drawBorder: false },
-                        ticks: { display: false }
+                scales: isMobile() ? (function() {
+                    // Mobile: Calculate Y-axis with outlier clamping
+                    const allValues = datasets.flatMap(ds => ds.data.filter(v => v !== null && v !== undefined));
+                    if (allValues.length === 0) {
+                        return {
+                            x: { display: false, grid: { display: false, drawBorder: false }, ticks: { display: false } },
+                            y: { display: false, grid: { display: false, drawBorder: false }, ticks: { display: false } }
+                        };
                     }
-                } : {
+                    
+                    // Sort values for percentile calculation
+                    const sorted = [...allValues].sort((a, b) => a - b);
+                    const len = sorted.length;
+                    
+                    // Use 5th and 95th percentile to exclude extreme outliers
+                    const p5Idx = Math.floor(len * 0.05);
+                    const p95Idx = Math.floor(len * 0.95);
+                    const p5 = sorted[p5Idx];
+                    const p95 = sorted[p95Idx];
+                    
+                    // Calculate range with padding
+                    const range = p95 - p5;
+                    const padding = range * 0.08;
+                    
+                    // Use actual min/max but clamp to reasonable range
+                    const actualMin = Math.min(...allValues);
+                    const actualMax = Math.max(...allValues);
+                    
+                    // Clamp: if actual values are within 2x of percentile range, use them
+                    const clampedMin = actualMin < p5 - range ? p5 - padding : actualMin - padding;
+                    const clampedMax = actualMax > p95 + range ? p95 + padding : actualMax + padding;
+                    
+                    return {
+                        x: {
+                            display: false,
+                            grid: { display: false, drawBorder: false },
+                            ticks: { display: false }
+                        },
+                        y: {
+                            display: false,
+                            grid: { display: false, drawBorder: false },
+                            ticks: { display: false },
+                            suggestedMin: clampedMin,
+                            suggestedMax: clampedMax
+                        }
+                    };
+                })() : {
                     // Desktop: normal eksenler
                     x: {
                         grid: {
