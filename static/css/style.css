@@ -10088,6 +10088,117 @@ table.desktop-only {
         border: none !important;
     }
     
+    /* === SMC CARDS - Premium Compact Design === */
+    .smc-cards-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+        padding: 0 !important;
+    }
+    
+    .smc-card {
+        display: flex !important;
+        background: #161b22 !important;
+        border: none !important;
+        border-radius: 10px !important;
+        overflow: hidden !important;
+    }
+    
+    .smc-stripe {
+        width: 4px !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .smc-content {
+        flex: 1 !important;
+        padding: 12px 14px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 4px !important;
+        min-width: 0 !important;
+    }
+    
+    .smc-row {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 8px !important;
+    }
+    
+    .smc-row.smc-header {
+        margin-bottom: 2px !important;
+    }
+    
+    .smc-left {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        min-width: 0 !important;
+    }
+    
+    .smc-dot {
+        width: 6px !important;
+        height: 6px !important;
+        border-radius: 50% !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .smc-badge {
+        font-size: 10px !important;
+        font-weight: 600 !important;
+        color: #c9d1d9 !important;
+        letter-spacing: 0.02em !important;
+    }
+    
+    .smc-count-badge {
+        font-size: 9px !important;
+        font-weight: 600 !important;
+        color: #8b949e !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        padding: 2px 5px !important;
+        border-radius: 4px !important;
+    }
+    
+    .smc-card .smc-time {
+        font-size: 10px !important;
+        color: #6e7681 !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .smc-label {
+        font-size: 12px !important;
+        font-weight: 500 !important;
+        color: #c9d1d9 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    
+    .smc-value {
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .smc-detail {
+        font-size: 11px !important;
+        color: #8b949e !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    
+    .smc-row.smc-desc {
+        font-size: 10px !important;
+        color: #6e7681 !important;
+        font-style: italic !important;
+        margin-top: 0 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        display: block !important;
+    }
+    
     /* === 7. MOBİLDE GİZLENECEKLER === */
     
     /* Zoom UI tamamen gizle */
