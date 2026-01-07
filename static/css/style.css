@@ -9949,8 +9949,12 @@ table.desktop-only {
     }
     
     .smart-money-chevron {
-        font-size: 9px !important;
-        color: #6e7681 !important;
+        display: none !important;
+    }
+    
+    .smart-money-header {
+        pointer-events: none !important;
+        cursor: default !important;
     }
     
     .smart-money-grid {
