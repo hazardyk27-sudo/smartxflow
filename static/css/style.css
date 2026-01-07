@@ -8683,14 +8683,15 @@ table.desktop-only {
         align-items: center;
         background: rgba(33, 38, 45, 0.8);
         border-radius: 6px;
-        padding: 2px;
+        padding: 0 2px;
         gap: 2px;
-        height: 30px;
+        height: 32px;
+        box-sizing: border-box;
     }
     
     .day-filter-segment .seg-btn {
         padding: 0 10px;
-        height: 26px;
+        height: 28px;
         background: transparent;
         border: none;
         border-radius: 5px;
@@ -8736,7 +8737,7 @@ table.desktop-only {
         justify-content: center;
         gap: 4px;
         padding: 0 10px;
-        height: 30px;
+        height: 32px;
         margin-left: 6px;
         background: rgba(33, 38, 45, 0.8);
         border: none;
@@ -8744,6 +8745,7 @@ table.desktop-only {
         cursor: pointer;
         color: #8B949E;
         transition: all 0.15s;
+        box-sizing: border-box;
     }
     
     .mobile-alarm-btn:active {
