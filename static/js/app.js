@@ -2635,8 +2635,8 @@ const mobileCrosshairPlugin = {
         ctx.moveTo(x, chartArea.top);
         ctx.lineTo(x, chartArea.bottom);
         ctx.lineWidth = 1;
-        ctx.strokeStyle = 'rgba(139, 148, 158, 0.6)';
-        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = 'rgba(139, 148, 158, 0.35)';
+        ctx.setLineDash([]);
         ctx.stroke();
         ctx.restore();
     }
@@ -2989,8 +2989,14 @@ async function loadChart(home, away, market, league = '') {
         
         function createHexGradient(hex) {
             const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-            gradient.addColorStop(0, hexToRgba(hex, 0.35));
-            gradient.addColorStop(1, hexToRgba(hex, 0.02));
+            if (isMobile()) {
+                gradient.addColorStop(0, hexToRgba(hex, 0.12));
+                gradient.addColorStop(0.5, hexToRgba(hex, 0.04));
+                gradient.addColorStop(1, hexToRgba(hex, 0));
+            } else {
+                gradient.addColorStop(0, hexToRgba(hex, 0.35));
+                gradient.addColorStop(1, hexToRgba(hex, 0.02));
+            }
             return gradient;
         }
         
@@ -3447,15 +3453,43 @@ async function loadChart(home, away, market, league = '') {
                 elements: {
                     point: {
                         radius: 0,
-                        hoverRadius: isMobile() ? 6 : 4,
-                        borderWidth: 2
+                        hoverRadius: isMobile() ? 8 : 4,
+                        borderWidth: isMobile() ? 3 : 2,
+                        hoverBorderWidth: isMobile() ? 3 : 2,
+                        hoverBackgroundColor: isMobile() ? '#fff' : undefined
                     },
                     line: {
-                        borderWidth: 2
+                        borderWidth: isMobile() ? 2.5 : 2,
+                        borderCapStyle: isMobile() ? 'round' : 'butt',
+                        borderJoinStyle: isMobile() ? 'round' : 'miter'
                     }
                 }
             },
-            plugins: isMobile() ? {} : {
+            plugins: isMobile() ? [{
+                id: 'mobileGridPlugin',
+                beforeDraw: function(chart) {
+                    const ctx = chart.ctx;
+                    const chartArea = chart.chartArea;
+                    if (!chartArea) return;
+                    
+                    const { left, right, top, bottom } = chartArea;
+                    const height = bottom - top;
+                    
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+                    ctx.lineWidth = 1;
+                    
+                    for (let i = 1; i <= 3; i++) {
+                        const y = top + (height * i / 4);
+                        ctx.beginPath();
+                        ctx.moveTo(left, y);
+                        ctx.lineTo(right, y);
+                        ctx.stroke();
+                    }
+                    
+                    ctx.restore();
+                }
+            }] : {
                 zoom: {
                     pan: {
                         enabled: true,
