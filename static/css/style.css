@@ -1270,6 +1270,30 @@ h1, h2, h3, h4, h5, h6,
     flex-wrap: wrap;
 }
 
+/* Desktop: Position filter bar right after market tabs */
+@media (min-width: 769px) {
+    .mobile-tab-content.active {
+        display: flex;
+        flex-direction: column;
+    }
+    .mobile-tab-content.active .chart-tabs {
+        order: 1;
+    }
+    .mobile-tab-content.active .chart-legend-filters {
+        order: 2;
+        margin-top: 8px;
+        margin-bottom: var(--space-lg);
+    }
+    .mobile-tab-content.active .chart-wrapper {
+        order: 3;
+    }
+    .mobile-tab-content.active .mobile-value-header,
+    .mobile-tab-content.active .mobile-time-pills,
+    .mobile-tab-content.active .mobile-chart-controls {
+        display: none;
+    }
+}
+
 .chart-filter-group {
     display: flex;
     gap: 12px;
