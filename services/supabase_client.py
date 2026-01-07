@@ -410,7 +410,7 @@ class SupabaseClient:
                 print(f"[Supabase] TODAY: Fixtures-first approach for {today_str}")
                 
                 # Step 1: Get ALL today's fixtures
-                fix_url = f"{self._rest_url('fixtures')}?select=*&fixture_date=eq.{today_str}&order=kickoff_utc.desc&limit=500"
+                fix_url = f"{self._rest_url('fixtures')}?select=*&fixture_date=eq.{today_str}&order=kickoff_utc.desc&limit=1000"
                 fix_resp = httpx.get(fix_url, headers=self._headers(), timeout=15)
                 
                 if fix_resp.status_code != 200:
@@ -885,7 +885,7 @@ class SupabaseClient:
             today_str = today_date.strftime('%Y-%m-%d')
             yesterday_str = yesterday_date.strftime('%Y-%m-%d')
             
-            url = f"{self._rest_url('fixtures')}?select=*&fixture_date=gte.{yesterday_str}&fixture_date=lte.{today_str}&order=kickoff_utc.desc&limit=500"
+            url = f"{self._rest_url('fixtures')}?select=*&fixture_date=gte.{yesterday_str}&fixture_date=lte.{today_str}&order=kickoff_utc.desc&limit=1000"
             resp = httpx.get(url, headers=self._headers(), timeout=15)
             
             if resp.status_code != 200:
@@ -1012,7 +1012,7 @@ class SupabaseClient:
             
             today_str = today_date.strftime('%Y-%m-%d')
             
-            url = f"{self._rest_url('fixtures')}?select=*&fixture_date=eq.{today_str}&order=kickoff_utc.desc&limit=300"
+            url = f"{self._rest_url('fixtures')}?select=*&fixture_date=eq.{today_str}&order=kickoff_utc.desc&limit=1000"
             resp = httpx.get(url, headers=self._headers(), timeout=15)
             
             if resp.status_code != 200:
@@ -1487,7 +1487,7 @@ class SupabaseClient:
             from urllib.parse import quote
             home_enc = quote(home, safe='')
             away_enc = quote(away, safe='')
-            url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}&order=scraped_at.asc&limit=500"
+            url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}&order=scraped_at.asc&limit=1000"
             resp = httpx.get(url, headers=self._headers(), timeout=15)
             if resp.status_code == 200:
                 return resp.json()
