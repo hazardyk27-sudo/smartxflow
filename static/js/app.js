@@ -1502,6 +1502,22 @@ function formatVolumeCompact(value) {
     return '£' + Math.round(num).toLocaleString('en-GB');
 }
 
+function parseMoneyValue(value) {
+    if (!value || value === '-') return null;
+    let str = String(value).replace(/[£€$,\s]/g, '');
+    let multiplier = 1;
+    if (str.toUpperCase().includes('M')) { 
+        multiplier = 1000000; 
+        str = str.replace(/M/gi, ''); 
+    } else if (str.toUpperCase().includes('K')) { 
+        multiplier = 1000; 
+        str = str.replace(/K/gi, ''); 
+    }
+    str = str.replace(/[^0-9.]/g, '');
+    const num = parseFloat(str) * multiplier;
+    return isNaN(num) ? null : num;
+}
+
 function formatDateTwoLine(dateStr) {
     if (!dateStr || dateStr === '-') return '<div class="date-line">-</div>';
     
@@ -3044,10 +3060,7 @@ async function loadChart(home, away, market, league = '') {
                     const color = [colors['1'], colors['X'], colors['2']][idx];
                     datasets.push({
                         label: label,
-                        data: historyData.map(h => {
-                            const val = h[key];
-                            return val ? parseFloat(String(val).replace(/[^0-9.]/g, '')) : null;
-                        }),
+                        data: historyData.map(h => parseMoneyValue(h[key])),
                         borderColor: color,
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
@@ -3098,10 +3111,7 @@ async function loadChart(home, away, market, league = '') {
                     const color = [colors['Under'], colors['Over']][idx];
                     datasets.push({
                         label: label,
-                        data: historyData.map(h => {
-                            const val = h[key];
-                            return val ? parseFloat(String(val).replace(/[^0-9.]/g, '')) : null;
-                        }),
+                        data: historyData.map(h => parseMoneyValue(h[key])),
                         borderColor: color,
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
@@ -3151,10 +3161,7 @@ async function loadChart(home, away, market, league = '') {
                     const color = [colors['Yes'], colors['No']][idx];
                     datasets.push({
                         label: label,
-                        data: historyData.map(h => {
-                            const val = h[key];
-                            return val ? parseFloat(String(val).replace(/[^0-9.]/g, '')) : null;
-                        }),
+                        data: historyData.map(h => parseMoneyValue(h[key])),
                         borderColor: color,
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
