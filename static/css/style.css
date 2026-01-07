@@ -1517,7 +1517,8 @@ h1, h2, h3, h4, h5, h6,
         min-height: 340px !important;
         height: 40vh !important;
         max-height: 460px !important;
-        padding: 16px;
+        padding: 16px 12px;
+        margin: 0 8px;
     }
     
     .info-row {
