@@ -1259,13 +1259,13 @@ h1, h2, h3, h4, h5, h6,
     color: #d8ffee;
 }
 
-/* Premium Chart Legend Filters */
+/* Premium Chart Legend Filters - Desktop: below market tabs, before chart */
 .chart-legend-filters {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     gap: 12px;
-    margin-top: var(--space-lg);
+    margin-top: 0;
     margin-bottom: var(--space-lg);
     flex-wrap: wrap;
 }

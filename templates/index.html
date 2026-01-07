@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=183">
+    <link rel="stylesheet" href="/static/css/style.css?v=184">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
@@ -350,6 +350,8 @@
                         <button class="chart-tab" data-market="dropping_btts"><span class="tab-full">Odds BTTS</span><span class="tab-short">OD BTTS</span></button>
                     </div>
                     
+                    <div class="chart-legend-filters" id="chartLegendFilters"></div>
+                    
                     <!-- Mobile Finance-App Style Value Header -->
                     <div class="mobile-value-header" id="mobileValueHeader">
                         <div class="mvh-main">
@@ -397,8 +399,6 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="chart-legend-filters" id="chartLegendFilters"></div>
                 </div>
                 
                 <div class="mobile-tab-content" id="mobileTabEvents">
