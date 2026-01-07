@@ -1444,117 +1444,6 @@ h1, h2, h3, h4, h5, h6,
     height: 14px;
 }
 
-.desktop-chart-controls {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px 16px;
-    background: linear-gradient(180deg, #0d1117 0%, #0a0d12 100%);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 12px;
-    margin-top: 12px;
-    margin-bottom: 8px;
-}
-
-.dcc-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.dcc-right {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.dcc-divider {
-    width: 1px;
-    height: 24px;
-    background: rgba(255,255,255,0.12);
-    margin: 0 8px;
-}
-
-.dcc-view-toggle,
-.dcc-selection-toggle,
-.dcc-time-toggle {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.dcc-view-btn,
-.dcc-sel-btn,
-.dcc-time-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    height: 32px;
-    padding: 0 12px;
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px;
-    color: rgba(255,255,255,0.5);
-    font-size: 12px;
-    font-weight: 500;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-}
-
-.dcc-view-btn:hover,
-.dcc-sel-btn:hover,
-.dcc-time-btn:hover {
-    border-color: rgba(63, 182, 139, 0.3);
-    color: rgba(255,255,255,0.8);
-}
-
-.dcc-view-btn.active,
-.dcc-sel-btn.active,
-.dcc-time-btn.active {
-    background: rgba(63, 182, 139, 0.12);
-    border-color: rgba(63, 182, 139, 0.5);
-    color: #d8ffee;
-}
-
-.dcc-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.dcc-export-btn {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 6px 10px;
-    background: #21262d;
-    border: 1px solid #30363d;
-    border-radius: 6px;
-    color: #8b949e;
-    font-size: 11px;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.dcc-export-btn:hover {
-    background: #30363d;
-    color: #c9d1d9;
-    border-color: #8b949e;
-}
-
-.dcc-export-btn svg {
-    width: 14px;
-    height: 14px;
-}
-
 .chart-legend-btn.inactive .legend-color-dot {
     opacity: 0.4;
 }
@@ -1638,10 +1527,6 @@ h1, h2, h3, h4, h5, h6,
     
     .info-item {
         min-width: 80px;
-    }
-    
-    .desktop-chart-controls {
-        display: none !important;
     }
 }
 

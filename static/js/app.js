@@ -2572,126 +2572,6 @@ function setMobileTimeRange(range) {
     }
 }
 
-// === DESKTOP CHART CONTROLS ===
-function setDesktopViewMode(mode) {
-    chartViewMode = mode;
-    document.querySelectorAll('.dcc-view-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.view === mode);
-    });
-    if (selectedMatch && !isMobile()) {
-        loadChartHistory(selectedMatch.MatchId, selectedChartMarket);
-    }
-}
-
-function setDesktopSelection(sel) {
-    // Update active state for all selection buttons
-    document.querySelectorAll('.dcc-sel-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.sel === sel);
-    });
-    // Toggle chart series visibility using chartVisibleSeries and legend system
-    if (chart && chart.data && chart.data.datasets) {
-        chart.data.datasets.forEach((ds, idx) => {
-            const key = `${selectedChartMarket}_${ds.label}`;
-            // Show only the selected series, hide others
-            const shouldShow = ds.label === sel;
-            chartVisibleSeries[key] = shouldShow;
-            ds.hidden = !shouldShow;
-        });
-        chart.update();
-        // Also update legend button states
-        document.querySelectorAll('.chart-legend-btn').forEach(btn => {
-            const btnLabel = btn.textContent.trim();
-            // Find matching legend item by looking for the series key
-            chart.data.datasets.forEach(ds => {
-                if (btn.querySelector('span:last-child')?.textContent === ds.label || 
-                    btn.querySelector('span:last-child')?.textContent.includes(ds.label)) {
-                    const key = `${selectedChartMarket}_${ds.label}`;
-                    btn.classList.toggle('active', chartVisibleSeries[key]);
-                    btn.classList.toggle('inactive', !chartVisibleSeries[key]);
-                }
-            });
-        });
-    }
-}
-
-function setDesktopTimeRange(range) {
-    const rangeMap = {
-        '10': '10min',
-        '30': '30min',
-        '60': '1hour',
-        '360': '6hour',
-        '720': '12hour',
-        '1440': '1day'
-    };
-    chartTimeRange = rangeMap[range] || '1day';
-    mobileTimeRange = range;
-    
-    document.querySelectorAll('.dcc-time-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.range === range);
-    });
-    
-    if (selectedMatch && !isMobile()) {
-        loadChartHistory(selectedMatch.MatchId, selectedChartMarket);
-    }
-}
-
-function updateDesktopSelectionButtons(market) {
-    const container = document.getElementById('dccSelectionToggle');
-    if (!container) return;
-    
-    let buttons = [];
-    if (market.includes('1x2')) {
-        buttons = [
-            { sel: '1', label: '1', color: '#3b82f6' },
-            { sel: 'X', label: 'X', color: '#22c55e' },
-            { sel: '2', label: '2', color: '#eab308' }
-        ];
-    } else if (market.includes('ou25')) {
-        buttons = [
-            { sel: 'Under', label: 'U', color: '#3b82f6' },
-            { sel: 'Over', label: 'O', color: '#22c55e' }
-        ];
-    } else if (market.includes('btts')) {
-        buttons = [
-            { sel: 'Yes', label: 'Y', color: '#22c55e' },
-            { sel: 'No', label: 'N', color: '#ef4444' }
-        ];
-    }
-    
-    container.innerHTML = buttons.map((b, idx) => 
-        `<button class="dcc-sel-btn ${idx === 0 ? 'active' : ''}" data-sel="${b.sel}" onclick="setDesktopSelection('${b.sel}')"><span class="dcc-dot" style="background:${b.color}"></span>${b.label}</button>`
-    ).join('');
-}
-
-function exportChartPNG() {
-    if (!chart) return;
-    const link = document.createElement('a');
-    link.download = 'chart.png';
-    link.href = chart.toBase64Image();
-    link.click();
-}
-
-function exportChartCSV() {
-    if (!chart || !chart.data) return;
-    const labels = chart.data.labels || [];
-    const datasets = chart.data.datasets || [];
-    
-    let csv = 'Time,' + datasets.map(ds => ds.label).join(',') + '\n';
-    labels.forEach((label, idx) => {
-        const row = [label];
-        datasets.forEach(ds => {
-            row.push(ds.data[idx] !== null ? ds.data[idx] : '');
-        });
-        csv += row.join(',') + '\n';
-    });
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const link = document.createElement('a');
-    link.download = 'chart_data.csv';
-    link.href = URL.createObjectURL(blob);
-    link.click();
-}
-
 // Store chart history data for mobile value panel
 let mobileChartHistoryData = [];
 let mobileCrosshairIndex = -1; // Active crosshair position (-1 = last point)
@@ -3332,11 +3212,9 @@ async function loadChart(home, away, market, league = '') {
         
         renderChartLegendFilters(datasets, market);
         
-        // Update selection buttons based on market
+        // Mobile: update selection buttons based on market
         if (isMobile()) {
             updateMobileSelectionButtons(market);
-        } else {
-            updateDesktopSelectionButtons(market);
         }
         
         // Mobile: filter to single dataset only
