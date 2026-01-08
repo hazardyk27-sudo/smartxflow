@@ -2712,58 +2712,44 @@ function updateMobileValueHeader(dataIndex) {
         // For dropping odds, use Volume as stake
         if (isDropping) {
             stakeText = parseStake(h.Volume);
-            // Get drop percentage - first try DropPct fields, then calculate
-            let openOdds = 0, currentOdds = 0, dropPctField = null;
+            // Calculate change based on OPENING odds (ilk açılış oranı)
+            let openingOdds = 0, currentOdds = 0;
             if (pick === '1') {
                 oddsText = h.Odds1 || h['1'] || '--';
-                openOdds = parseFloat(h.Odds1_prev || h.Opening1 || 0);
+                openingOdds = parseFloat(h.Opening1 || 0);
                 currentOdds = parseFloat(h.Odds1 || h['1'] || 0);
-                dropPctField = h.DropPct1;
             } else if (pick === 'X') {
                 oddsText = h.OddsX || h['X'] || '--';
-                openOdds = parseFloat(h.OddsX_prev || h.OpeningX || 0);
+                openingOdds = parseFloat(h.OpeningX || 0);
                 currentOdds = parseFloat(h.OddsX || h['X'] || 0);
-                dropPctField = h.DropPctX;
             } else if (pick === '2') {
                 oddsText = h.Odds2 || h['2'] || '--';
-                openOdds = parseFloat(h.Odds2_prev || h.Opening2 || 0);
+                openingOdds = parseFloat(h.Opening2 || 0);
                 currentOdds = parseFloat(h.Odds2 || h['2'] || 0);
-                dropPctField = h.DropPct2;
             } else if (pick === 'Under') {
                 oddsText = h.Under || h.OddsUnder || '--';
-                openOdds = parseFloat(h.Under_prev || h.OpeningUnder || 0);
+                openingOdds = parseFloat(h.OpeningUnder || 0);
                 currentOdds = parseFloat(h.Under || h.OddsUnder || 0);
-                dropPctField = h.DropPctUnder;
             } else if (pick === 'Over') {
                 oddsText = h.Over || h.OddsOver || '--';
-                openOdds = parseFloat(h.Over_prev || h.OpeningOver || 0);
+                openingOdds = parseFloat(h.OpeningOver || 0);
                 currentOdds = parseFloat(h.Over || h.OddsOver || 0);
-                dropPctField = h.DropPctOver;
             } else if (pick === 'Yes') {
                 oddsText = h.Yes || h.OddsYes || '--';
-                openOdds = parseFloat(h.Yes_prev || h.OpeningYes || 0);
+                openingOdds = parseFloat(h.OpeningYes || 0);
                 currentOdds = parseFloat(h.Yes || h.OddsYes || 0);
-                dropPctField = h.DropPctYes;
             } else if (pick === 'No') {
                 oddsText = h.No || h.OddsNo || '--';
-                openOdds = parseFloat(h.No_prev || h.OpeningNo || 0);
+                openingOdds = parseFloat(h.OpeningNo || 0);
                 currentOdds = parseFloat(h.No || h.OddsNo || 0);
-                dropPctField = h.DropPctNo;
             }
-            // Use DropPct field if available
-            if (dropPctField && dropPctField !== '' && dropPctField !== '--') {
-                const dropNum = parseFloat(String(dropPctField).replace('%', ''));
-                if (!isNaN(dropNum)) {
-                    pctText = (dropNum >= 0 ? '-' : '+') + Math.abs(dropNum).toFixed(1) + '%';
-                }
+            // Calculate change: (opening - current) / opening * 100
+            // Positive = odds went down = show as "-X%", Negative = odds went up = show as "+X%"
+            if (openingOdds > 0 && currentOdds > 0) {
+                const changeVal = ((openingOdds - currentOdds) / openingOdds) * 100;
+                pctText = (changeVal >= 0 ? '-' : '+') + Math.abs(changeVal).toFixed(1) + '%';
             }
-            // Calculate drop percentage if still empty
-            if (pctText === '--' && openOdds > 0 && currentOdds > 0) {
-                const dropVal = ((openOdds - currentOdds) / openOdds) * 100;
-                dropPctText = (dropVal >= 0 ? '-' : '+') + Math.abs(dropVal).toFixed(1) + '%';
-                pctText = dropPctText;
-            }
-            // If still no value, compare against first history point (opening)
+            // Fallback: compare against first history point if no Opening field
             if (pctText === '--' && mobileChartHistoryData && mobileChartHistoryData.length > 0 && currentOdds > 0) {
                 const firstH = mobileChartHistoryData[0];
                 let firstOdds = 0;
@@ -2775,8 +2761,8 @@ function updateMobileValueHeader(dataIndex) {
                 else if (pick === 'Yes') firstOdds = parseFloat(firstH.Yes || firstH.OddsYes || 0);
                 else if (pick === 'No') firstOdds = parseFloat(firstH.No || firstH.OddsNo || 0);
                 if (firstOdds > 0) {
-                    const dropVal = ((firstOdds - currentOdds) / firstOdds) * 100;
-                    pctText = (dropVal >= 0 ? '-' : '+') + Math.abs(dropVal).toFixed(1) + '%';
+                    const changeVal = ((firstOdds - currentOdds) / firstOdds) * 100;
+                    pctText = (changeVal >= 0 ? '-' : '+') + Math.abs(changeVal).toFixed(1) + '%';
                 }
             }
         } else {
