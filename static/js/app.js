@@ -2847,15 +2847,13 @@ function updateMobileValueHeader(dataIndex) {
         if (stakeEl) {
             stakeEl.textContent = pctText;
             // Color based on sign: green for positive, red for negative
-            const pctNum = parseFloat(String(pctText).replace(/[^0-9.\-+]/g, ''));
-            if (!isNaN(pctNum)) {
-                if (pctNum > 0) {
-                    stakeEl.style.color = '#22c55e'; // green
-                } else if (pctNum < 0) {
-                    stakeEl.style.color = '#ef4444'; // red
-                } else {
-                    stakeEl.style.color = ''; // default
-                }
+            const pctStr = String(pctText).trim();
+            if (pctStr.startsWith('+') || (pctStr.match(/^[0-9]/) && parseFloat(pctStr) > 0)) {
+                stakeEl.style.color = '#22c55e'; // green for positive
+            } else if (pctStr.startsWith('-') || pctStr.includes('-')) {
+                stakeEl.style.color = '#ef4444'; // red for negative
+            } else {
+                stakeEl.style.color = ''; // default
             }
         }
     } else {
