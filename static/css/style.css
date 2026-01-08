@@ -10535,6 +10535,15 @@ table.desktop-only {
         color: #eab308 !important;
     }
     
+    /* Değişim value colors based on sign */
+    #mvhStake.positive {
+        color: #22c55e !important;
+    }
+    
+    #mvhStake.negative {
+        color: #ef4444 !important;
+    }
+    
     .mvh-sep {
         opacity: 0.4 !important;
     }

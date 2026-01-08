@@ -2846,14 +2846,13 @@ function updateMobileValueHeader(dataIndex) {
         if (stakeLabelEl) stakeLabelEl.textContent = 'Değişim';
         if (stakeEl) {
             stakeEl.textContent = pctText;
-            // Color based on sign: green for positive, red for negative
+            // Color based on sign: green for positive, red for negative (use classes for !important override)
+            stakeEl.classList.remove('positive', 'negative');
             const pctStr = String(pctText).trim();
             if (pctStr.startsWith('+') || (pctStr.match(/^[0-9]/) && parseFloat(pctStr) > 0)) {
-                stakeEl.style.color = '#22c55e'; // green for positive
-            } else if (pctStr.startsWith('-') || pctStr.includes('-')) {
-                stakeEl.style.color = '#ef4444'; // red for negative
-            } else {
-                stakeEl.style.color = ''; // default
+                stakeEl.classList.add('positive'); // green
+            } else if (pctStr.startsWith('-')) {
+                stakeEl.classList.add('negative'); // red
             }
         }
     } else {
