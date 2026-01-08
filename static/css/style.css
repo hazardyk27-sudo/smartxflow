@@ -10530,6 +10530,11 @@ table.desktop-only {
         font-weight: 600 !important;
     }
     
+    /* Para value yellow for Dropping Odds */
+    #mvhOdds {
+        color: #eab308 !important;
+    }
+    
     .mvh-sep {
         opacity: 0.4 !important;
     }

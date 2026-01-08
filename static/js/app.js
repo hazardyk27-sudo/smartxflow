@@ -2840,11 +2840,24 @@ function updateMobileValueHeader(dataIndex) {
     if (changeEl) changeEl.textContent = 'Son değer • ' + timeLabel;
     
     if (isDropping) {
-        // Dropping: big value=odds, then Stake + Düşüş below
-        if (oddsLabelEl) oddsLabelEl.textContent = 'Stake';
+        // Dropping: big value=odds, then Para + Değişim below
+        if (oddsLabelEl) oddsLabelEl.textContent = 'Para';
         if (oddsEl) oddsEl.textContent = stakeText;
-        if (stakeLabelEl) stakeLabelEl.textContent = 'Düşüş';
-        if (stakeEl) stakeEl.textContent = pctText;
+        if (stakeLabelEl) stakeLabelEl.textContent = 'Değişim';
+        if (stakeEl) {
+            stakeEl.textContent = pctText;
+            // Color based on sign: green for positive, red for negative
+            const pctNum = parseFloat(String(pctText).replace(/[^0-9.\-+]/g, ''));
+            if (!isNaN(pctNum)) {
+                if (pctNum > 0) {
+                    stakeEl.style.color = '#22c55e'; // green
+                } else if (pctNum < 0) {
+                    stakeEl.style.color = '#ef4444'; // red
+                } else {
+                    stakeEl.style.color = ''; // default
+                }
+            }
+        }
     } else {
         // Moneyway: show odds normally, swap stake/pct based on mode
         if (oddsLabelEl) oddsLabelEl.textContent = 'Odds';
