@@ -2848,13 +2848,17 @@ function updateMobileValueHeader(dataIndex) {
     if (changeEl) changeEl.textContent = 'Son değer • ' + timeLabel;
     
     if (isDropping) {
-        // Dropping: big value=odds, then Para + Değişim below
+        // Dropping Odds: Para (yellow) + Değişim (green/red based on sign)
         if (oddsLabelEl) oddsLabelEl.textContent = 'Para';
-        if (oddsEl) oddsEl.textContent = stakeText;
+        if (oddsEl) {
+            oddsEl.textContent = stakeText;
+            oddsEl.classList.remove('moneyway-oran');
+            oddsEl.classList.add('dropping-para');
+        }
         if (stakeLabelEl) stakeLabelEl.textContent = 'Değişim';
         if (stakeEl) {
             stakeEl.textContent = pctText;
-            // Color based on sign: green for positive, red for negative (use classes for !important override)
+            stakeEl.classList.remove('moneyway-para');
             stakeEl.classList.remove('positive', 'negative');
             const pctStr = String(pctText).trim();
             if (pctStr.startsWith('+') || (pctStr.match(/^[0-9]/) && parseFloat(pctStr) > 0)) {
@@ -2868,6 +2872,7 @@ function updateMobileValueHeader(dataIndex) {
         if (oddsLabelEl) oddsLabelEl.textContent = 'Oran';
         if (oddsEl) {
             oddsEl.textContent = oddsText;
+            oddsEl.classList.remove('dropping-para');
             oddsEl.classList.add('moneyway-oran');
         }
         if (stakeLabelEl) stakeLabelEl.textContent = secondaryLabel;

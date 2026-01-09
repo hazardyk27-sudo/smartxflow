@@ -10530,8 +10530,8 @@ table.desktop-only {
         font-weight: 600 !important;
     }
     
-    /* Para value yellow for Dropping Odds */
-    #mvhOdds {
+    /* Dropping Odds: Para value yellow */
+    #mvhOdds.dropping-para {
         color: #eab308 !important;
     }
     
