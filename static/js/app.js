@@ -2802,7 +2802,7 @@ function updateMobileValueHeader(dataIndex) {
     // Format values based on market type
     let bigValueText = '--';
     let secondaryText = '--';
-    let secondaryLabel = 'Stake';
+    let secondaryLabel = 'Para';
     
     if (isMoneyway) {
         // Moneyway: big value shows selected mode, secondary shows the OTHER value
@@ -2816,7 +2816,7 @@ function updateMobileValueHeader(dataIndex) {
                 bigValueText = value.toFixed(1) + '%';
                 // Show stake in secondary
                 secondaryText = stakeText;
-                secondaryLabel = 'Stake';
+                secondaryLabel = 'Para';
             }
         }
     } else if (isDropping) {
@@ -2864,11 +2864,18 @@ function updateMobileValueHeader(dataIndex) {
             }
         }
     } else {
-        // Moneyway: show odds normally, swap stake/pct based on mode
-        if (oddsLabelEl) oddsLabelEl.textContent = 'Odds';
-        if (oddsEl) oddsEl.textContent = oddsText;
+        // Moneyway: Oran (white) + Para (yellow)
+        if (oddsLabelEl) oddsLabelEl.textContent = 'Oran';
+        if (oddsEl) {
+            oddsEl.textContent = oddsText;
+            oddsEl.classList.add('moneyway-oran');
+        }
         if (stakeLabelEl) stakeLabelEl.textContent = secondaryLabel;
-        if (stakeEl) stakeEl.textContent = secondaryText;
+        if (stakeEl) {
+            stakeEl.textContent = secondaryText;
+            stakeEl.classList.remove('positive', 'negative');
+            stakeEl.classList.add('moneyway-para');
+        }
     }
     
     if (timeEl) timeEl.textContent = timeLabel;

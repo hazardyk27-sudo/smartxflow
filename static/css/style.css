@@ -10544,6 +10544,16 @@ table.desktop-only {
         color: #ef4444 !important;
     }
     
+    /* Moneyway: Para value yellow */
+    #mvhStake.moneyway-para {
+        color: #eab308 !important;
+    }
+    
+    /* Moneyway: Oran value white */
+    #mvhOdds.moneyway-oran {
+        color: #e6edf3 !important;
+    }
+    
     .mvh-sep {
         opacity: 0.4 !important;
     }
