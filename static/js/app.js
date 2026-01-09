@@ -2664,6 +2664,75 @@ if (typeof Chart !== 'undefined') {
     Chart.register(mobileCrosshairPlugin);
 }
 
+// Mobile value tween animation (rolling numbers like stock apps)
+const mobileValueTweens = {};
+function animateMobileValue(el, newText, duration = 200) {
+    if (!el) return;
+    
+    const oldText = el.textContent || '';
+    if (oldText === newText) return;
+    
+    // Extract numeric values for tween
+    const extractNum = (str) => {
+        const cleaned = String(str).replace(/[^0-9.\-]/g, '');
+        return parseFloat(cleaned) || 0;
+    };
+    
+    const oldNum = extractNum(oldText);
+    const newNum = extractNum(newText);
+    
+    // Get prefix and suffix from new text
+    const match = String(newText).match(/^([^0-9\-]*)(-?[\d,.]+)(.*)$/);
+    const prefix = match ? match[1] : '';
+    const suffix = match ? match[3] : '';
+    const hasDecimal = newText.includes('.');
+    const decimalPlaces = hasDecimal ? (newText.split('.')[1] || '').replace(/[^0-9]/g, '').length : 0;
+    
+    // Cancel previous animation on this element
+    const elId = el.id || Math.random().toString();
+    if (mobileValueTweens[elId]) {
+        cancelAnimationFrame(mobileValueTweens[elId]);
+    }
+    
+    // If no valid numbers or same value, just set directly
+    if (isNaN(oldNum) || isNaN(newNum) || oldNum === newNum) {
+        el.textContent = newText;
+        return;
+    }
+    
+    const startTime = performance.now();
+    const diff = newNum - oldNum;
+    
+    function animate(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Ease out cubic
+        const eased = 1 - Math.pow(1 - progress, 3);
+        
+        const currentVal = oldNum + (diff * eased);
+        
+        // Format with same structure as target
+        let formatted;
+        if (hasDecimal) {
+            formatted = currentVal.toFixed(decimalPlaces);
+        } else {
+            formatted = Math.round(currentVal).toLocaleString();
+        }
+        
+        el.textContent = prefix + formatted + suffix;
+        
+        if (progress < 1) {
+            mobileValueTweens[elId] = requestAnimationFrame(animate);
+        } else {
+            el.textContent = newText;
+            delete mobileValueTweens[elId];
+        }
+    }
+    
+    mobileValueTweens[elId] = requestAnimationFrame(animate);
+}
+
 function updateMobileValueHeader(dataIndex) {
     if (!isMobile() || !chart) return;
     
@@ -2844,20 +2913,21 @@ function updateMobileValueHeader(dataIndex) {
     const stakeLabelEl = document.getElementById('mvhStakeLabel');
     const timeEl = document.getElementById('mvhTime');
     
-    if (bigValueEl) bigValueEl.textContent = bigValueText;
+    // Animate big value (rolling number effect)
+    animateMobileValue(bigValueEl, bigValueText);
     if (changeEl) changeEl.textContent = 'Son değer • ' + timeLabel;
     
     if (isDropping) {
         // Dropping Odds: Para (yellow) + Değişim (green/red based on sign)
         if (oddsLabelEl) oddsLabelEl.textContent = 'Para';
         if (oddsEl) {
-            oddsEl.textContent = stakeText;
+            animateMobileValue(oddsEl, stakeText);
             oddsEl.classList.remove('moneyway-oran');
             oddsEl.classList.add('dropping-para');
         }
         if (stakeLabelEl) stakeLabelEl.textContent = 'Değişim';
         if (stakeEl) {
-            stakeEl.textContent = pctText;
+            animateMobileValue(stakeEl, pctText);
             stakeEl.classList.remove('moneyway-para');
             stakeEl.classList.remove('positive', 'negative');
             const pctStr = String(pctText).trim();
@@ -2871,13 +2941,13 @@ function updateMobileValueHeader(dataIndex) {
         // Moneyway: Oran (white) + Para (yellow)
         if (oddsLabelEl) oddsLabelEl.textContent = 'Oran';
         if (oddsEl) {
-            oddsEl.textContent = oddsText;
+            animateMobileValue(oddsEl, oddsText);
             oddsEl.classList.remove('dropping-para');
             oddsEl.classList.add('moneyway-oran');
         }
         if (stakeLabelEl) stakeLabelEl.textContent = secondaryLabel;
         if (stakeEl) {
-            stakeEl.textContent = secondaryText;
+            animateMobileValue(stakeEl, secondaryText);
             stakeEl.classList.remove('positive', 'negative');
             stakeEl.classList.add('moneyway-para');
         }
