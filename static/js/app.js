@@ -496,6 +496,10 @@ function setupModalChartTabs() {
             document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             selectedChartMarket = tab.dataset.market;
+            // Reset tween animation when switching markets
+            if (typeof mobileBigValueTween !== 'undefined') {
+                mobileBigValueTween.reset();
+            }
             if (selectedMatch) {
                 showChartLoading();
                 loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league || '');
@@ -2664,6 +2668,153 @@ if (typeof Chart !== 'undefined') {
     Chart.register(mobileCrosshairPlugin);
 }
 
+// Mobile Big Value Tween Animation System
+const mobileBigValueTween = {
+    currentValue: null,
+    targetValue: null,
+    startValue: null,
+    startTime: null,
+    duration: 200, // ms
+    animationId: null,
+    valueType: null, // 'odds', 'percent', 'money'
+    element: null,
+    
+    // easeOutCubic easing function
+    easeOutCubic: function(t) {
+        return 1 - Math.pow(1 - t, 3);
+    },
+    
+    // Parse numeric value from formatted text
+    parseValue: function(text) {
+        if (!text || text === '--') return null;
+        const str = String(text).trim();
+        // Remove currency symbols, commas, spaces
+        let cleaned = str.replace(/[£€$,\s]/g, '');
+        // Handle K/M suffixes
+        let multiplier = 1;
+        if (cleaned.endsWith('k') || cleaned.endsWith('K')) {
+            multiplier = 1000;
+            cleaned = cleaned.slice(0, -1);
+        } else if (cleaned.endsWith('m') || cleaned.endsWith('M')) {
+            multiplier = 1000000;
+            cleaned = cleaned.slice(0, -1);
+        }
+        // Remove % if present
+        cleaned = cleaned.replace('%', '');
+        const num = parseFloat(cleaned);
+        return isNaN(num) ? null : num * multiplier;
+    },
+    
+    // Detect value type from text
+    detectType: function(text) {
+        if (!text || text === '--') return 'unknown';
+        const str = String(text).trim();
+        if (str.startsWith('£') || str.startsWith('€') || str.startsWith('$')) return 'money';
+        if (str.endsWith('%')) return 'percent';
+        return 'odds';
+    },
+    
+    // Format value based on type
+    formatValue: function(value, type) {
+        if (value === null || isNaN(value)) return '--';
+        if (type === 'money') {
+            if (value >= 1000000) {
+                return '£' + (value / 1000000).toFixed(1) + 'M';
+            } else if (value >= 1000) {
+                return '£' + Math.round(value / 1000).toLocaleString() + 'k';
+            } else {
+                return '£' + Math.round(value).toLocaleString();
+            }
+        } else if (type === 'percent') {
+            return value.toFixed(1) + '%';
+        } else {
+            // odds - 2 decimals
+            return value.toFixed(2);
+        }
+    },
+    
+    // Animation frame
+    animate: function() {
+        if (this.currentValue === null || this.targetValue === null) {
+            this.animationId = null;
+            return;
+        }
+        
+        const now = performance.now();
+        const elapsed = now - this.startTime;
+        const progress = Math.min(elapsed / this.duration, 1);
+        const easedProgress = this.easeOutCubic(progress);
+        
+        // Interpolate value
+        this.currentValue = this.startValue + (this.targetValue - this.startValue) * easedProgress;
+        
+        // Update element
+        if (this.element) {
+            this.element.textContent = this.formatValue(this.currentValue, this.valueType);
+        }
+        
+        // Continue animation if not complete
+        if (progress < 1) {
+            this.animationId = requestAnimationFrame(() => this.animate());
+        } else {
+            this.currentValue = this.targetValue;
+            this.animationId = null;
+        }
+    },
+    
+    // Set new target value
+    setTarget: function(element, formattedText) {
+        const newTarget = this.parseValue(formattedText);
+        const newType = this.detectType(formattedText);
+        
+        // If can't parse or type unknown, just set text directly
+        if (newTarget === null || newType === 'unknown') {
+            element.textContent = formattedText;
+            this.currentValue = null;
+            this.targetValue = null;
+            return;
+        }
+        
+        this.element = element;
+        this.valueType = newType;
+        
+        // If no current value, set immediately
+        if (this.currentValue === null) {
+            this.currentValue = newTarget;
+            this.targetValue = newTarget;
+            element.textContent = formattedText;
+            return;
+        }
+        
+        // If same target, skip
+        if (Math.abs(this.targetValue - newTarget) < 0.001) {
+            return;
+        }
+        
+        // Start new tween from current position
+        this.startValue = this.currentValue;
+        this.targetValue = newTarget;
+        this.startTime = performance.now();
+        
+        // Start animation if not already running
+        if (!this.animationId) {
+            this.animationId = requestAnimationFrame(() => this.animate());
+        }
+    },
+    
+    // Reset state (e.g., when switching markets)
+    reset: function() {
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
+        this.currentValue = null;
+        this.targetValue = null;
+        this.startValue = null;
+        this.element = null;
+    }
+};
+
 function updateMobileValueHeader(dataIndex) {
     if (!isMobile() || !chart) return;
     
@@ -2844,7 +2995,10 @@ function updateMobileValueHeader(dataIndex) {
     const stakeLabelEl = document.getElementById('mvhStakeLabel');
     const timeEl = document.getElementById('mvhTime');
     
-    if (bigValueEl) bigValueEl.textContent = bigValueText;
+    // Use tween animation for smooth value transitions on mobile
+    if (bigValueEl) {
+        mobileBigValueTween.setTarget(bigValueEl, bigValueText);
+    }
     if (changeEl) changeEl.textContent = 'Son değer • ' + timeLabel;
     
     if (isDropping) {
