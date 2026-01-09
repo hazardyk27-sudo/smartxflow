@@ -2668,149 +2668,82 @@ if (typeof Chart !== 'undefined') {
     Chart.register(mobileCrosshairPlugin);
 }
 
-// Mobile Big Value Tween Animation System
+// Mobile Big Value Odometer Animation System (Rolling Digits)
 const mobileBigValueTween = {
-    currentValue: null,
-    targetValue: null,
-    startValue: null,
-    startTime: null,
-    duration: 200, // ms
-    animationId: null,
-    valueType: null, // 'odds', 'percent', 'money'
+    currentText: '',
     element: null,
+    duration: 250, // ms
     
-    // easeOutCubic easing function
-    easeOutCubic: function(t) {
-        return 1 - Math.pow(1 - t, 3);
-    },
-    
-    // Parse numeric value from formatted text
-    parseValue: function(text) {
-        if (!text || text === '--') return null;
-        const str = String(text).trim();
-        // Remove currency symbols, commas, spaces
-        let cleaned = str.replace(/[£€$,\s]/g, '');
-        // Handle K/M suffixes
-        let multiplier = 1;
-        if (cleaned.endsWith('k') || cleaned.endsWith('K')) {
-            multiplier = 1000;
-            cleaned = cleaned.slice(0, -1);
-        } else if (cleaned.endsWith('m') || cleaned.endsWith('M')) {
-            multiplier = 1000000;
-            cleaned = cleaned.slice(0, -1);
-        }
-        // Remove % if present
-        cleaned = cleaned.replace('%', '');
-        const num = parseFloat(cleaned);
-        return isNaN(num) ? null : num * multiplier;
-    },
-    
-    // Detect value type from text
-    detectType: function(text) {
-        if (!text || text === '--') return 'unknown';
-        const str = String(text).trim();
-        if (str.startsWith('£') || str.startsWith('€') || str.startsWith('$')) return 'money';
-        if (str.endsWith('%')) return 'percent';
-        return 'odds';
-    },
-    
-    // Format value based on type
-    formatValue: function(value, type) {
-        if (value === null || isNaN(value)) return '--';
-        if (type === 'money') {
-            if (value >= 1000000) {
-                return '£' + (value / 1000000).toFixed(1) + 'M';
-            } else if (value >= 1000) {
-                return '£' + Math.round(value / 1000).toLocaleString() + 'k';
-            } else {
-                return '£' + Math.round(value).toLocaleString();
-            }
-        } else if (type === 'percent') {
-            return value.toFixed(1) + '%';
-        } else {
-            // odds - 2 decimals
-            return value.toFixed(2);
-        }
-    },
-    
-    // Animation frame
-    animate: function() {
-        if (this.currentValue === null || this.targetValue === null) {
-            this.animationId = null;
-            return;
-        }
-        
-        const now = performance.now();
-        const elapsed = now - this.startTime;
-        const progress = Math.min(elapsed / this.duration, 1);
-        const easedProgress = this.easeOutCubic(progress);
-        
-        // Interpolate value
-        this.currentValue = this.startValue + (this.targetValue - this.startValue) * easedProgress;
-        
-        // Update element
-        if (this.element) {
-            this.element.textContent = this.formatValue(this.currentValue, this.valueType);
-        }
-        
-        // Continue animation if not complete
-        if (progress < 1) {
-            this.animationId = requestAnimationFrame(() => this.animate());
-        } else {
-            this.currentValue = this.targetValue;
-            this.animationId = null;
-        }
-    },
-    
-    // Set new target value
-    setTarget: function(element, formattedText) {
-        const newTarget = this.parseValue(formattedText);
-        const newType = this.detectType(formattedText);
-        
-        // If can't parse or type unknown, just set text directly
-        if (newTarget === null || newType === 'unknown') {
-            element.textContent = formattedText;
-            this.currentValue = null;
-            this.targetValue = null;
-            return;
-        }
-        
+    // Set new target value with odometer animation
+    setTarget: function(element, newText) {
+        if (!element) return;
         this.element = element;
-        this.valueType = newType;
         
-        // If no current value, set immediately
-        if (this.currentValue === null) {
-            this.currentValue = newTarget;
-            this.targetValue = newTarget;
-            element.textContent = formattedText;
+        const oldText = this.currentText || element.textContent || '';
+        newText = String(newText || '--');
+        
+        // If same text, skip
+        if (oldText === newText) return;
+        
+        // If first time or '--', set directly
+        if (!oldText || oldText === '--' || newText === '--') {
+            element.textContent = newText;
+            this.currentText = newText;
             return;
         }
         
-        // If same target, skip
-        if (Math.abs(this.targetValue - newTarget) < 0.001) {
-            return;
-        }
+        // Build odometer HTML
+        element.innerHTML = this.buildOdometerHtml(oldText, newText);
+        this.currentText = newText;
         
-        // Start new tween from current position
-        this.startValue = this.currentValue;
-        this.targetValue = newTarget;
-        this.startTime = performance.now();
-        
-        // Start animation if not already running
-        if (!this.animationId) {
-            this.animationId = requestAnimationFrame(() => this.animate());
-        }
+        // Trigger animation after a frame
+        requestAnimationFrame(() => {
+            element.querySelectorAll('.odometer-digit.changing').forEach(digit => {
+                digit.classList.add('animate');
+            });
+        });
     },
     
-    // Reset state (e.g., when switching markets)
-    reset: function() {
-        if (this.animationId) {
-            cancelAnimationFrame(this.animationId);
-            this.animationId = null;
+    // Build HTML for odometer effect
+    buildOdometerHtml: function(oldText, newText) {
+        // Pad to same length
+        const maxLen = Math.max(oldText.length, newText.length);
+        const oldChars = oldText.padStart(maxLen, ' ').split('');
+        const newChars = newText.padStart(maxLen, ' ').split('');
+        
+        let html = '';
+        for (let i = 0; i < maxLen; i++) {
+            const oldChar = oldChars[i];
+            const newChar = newChars[i];
+            
+            if (oldChar === newChar) {
+                // Static character
+                html += `<span class="odometer-digit static">${this.escapeHtml(newChar)}</span>`;
+            } else {
+                // Changing character - animate
+                html += `<span class="odometer-digit changing">`;
+                html += `<span class="odometer-old">${this.escapeHtml(oldChar)}</span>`;
+                html += `<span class="odometer-new">${this.escapeHtml(newChar)}</span>`;
+                html += `</span>`;
+            }
         }
-        this.currentValue = null;
-        this.targetValue = null;
-        this.startValue = null;
+        return html;
+    },
+    
+    escapeHtml: function(char) {
+        if (char === ' ') return '&nbsp;';
+        if (char === '<') return '&lt;';
+        if (char === '>') return '&gt;';
+        if (char === '&') return '&amp;';
+        return char;
+    },
+    
+    // Reset state
+    reset: function() {
+        this.currentText = '';
+        if (this.element) {
+            this.element.innerHTML = '';
+        }
         this.element = null;
     }
 };

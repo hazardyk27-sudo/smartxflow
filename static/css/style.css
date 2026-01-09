@@ -10554,6 +10554,48 @@ table.desktop-only {
         color: #e6edf3 !important;
     }
     
+    /* === ODOMETER / ROLLING DIGITS ANIMATION === */
+    #mvhBigValue {
+        display: inline-flex;
+        overflow: hidden;
+    }
+    
+    .odometer-digit {
+        display: inline-block;
+        position: relative;
+    }
+    
+    .odometer-digit.static {
+        /* No animation needed */
+    }
+    
+    .odometer-digit.changing {
+        overflow: hidden;
+        height: 1.2em;
+    }
+    
+    .odometer-digit.changing .odometer-old,
+    .odometer-digit.changing .odometer-new {
+        display: block;
+        transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    
+    .odometer-digit.changing .odometer-old {
+        transform: translateY(0);
+    }
+    
+    .odometer-digit.changing .odometer-new {
+        transform: translateY(0);
+    }
+    
+    .odometer-digit.changing.animate .odometer-old {
+        transform: translateY(-100%);
+    }
+    
+    .odometer-digit.changing.animate .odometer-new {
+        transform: translateY(-100%);
+    }
+    
     .mvh-sep {
         opacity: 0.4 !important;
     }
