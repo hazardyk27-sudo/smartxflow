@@ -1176,14 +1176,13 @@ function renderMobileMoneywayBlock(label, oddsValue, pctValue) {
 function renderMobileOddsCard(match, idx, d, volume, dateStr) {
     let oddsBlocks = '';
     
-    // Use trend data directly from match details (d) instead of cache
-    // API field names: PrevOdds1, PrevOddsX, PrevOdds2, PrevUnder, PrevOver, PrevYes, PrevNo
-    // Trend fields: Trend1, TrendX, Trend2, TrendUnder, TrendOver, TrendYes, TrendNo
-    // DropPct fields: DropPct1, DropPctX, DropPct2, etc. (pre-calculated from API)
+    // USE oddsTrendCache for Opening → Current calculation (correct for Dropping Odds)
+    // This cache contains first snapshot (Opening) vs last snapshot (Current)
+    // Falls back to buildTrendDataFromMatch if cache miss
     if (currentMarket.includes('1x2')) {
-        const trend1 = buildTrendDataFromMatch(d.Odds1 || d['1'], d.PrevOdds1 || d.Odds1_prev, d.Trend1, d.DropPct1);
-        const trendX = buildTrendDataFromMatch(d.OddsX || d['X'], d.PrevOddsX || d.OddsX_prev, d.TrendX, d.DropPctX);
-        const trend2 = buildTrendDataFromMatch(d.Odds2 || d['2'], d.PrevOdds2 || d.Odds2_prev, d.Trend2, d.DropPct2);
+        const trend1 = getTrendFromCache(match, 'odds1') || buildTrendDataFromMatch(d.Odds1 || d['1'], d.PrevOdds1 || d.Odds1_prev, d.Trend1, d.DropPct1);
+        const trendX = getTrendFromCache(match, 'oddsx') || buildTrendDataFromMatch(d.OddsX || d['X'], d.PrevOddsX || d.OddsX_prev, d.TrendX, d.DropPctX);
+        const trend2 = getTrendFromCache(match, 'odds2') || buildTrendDataFromMatch(d.Odds2 || d['2'], d.PrevOdds2 || d.Odds2_prev, d.Trend2, d.DropPct2);
         
         oddsBlocks = `
             ${renderMobileOddsBlock('1', d.Odds1 || d['1'], trend1)}
@@ -1191,16 +1190,16 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr) {
             ${renderMobileOddsBlock('2', d.Odds2 || d['2'], trend2)}
         `;
     } else if (currentMarket.includes('ou25')) {
-        const trendUnder = buildTrendDataFromMatch(d.Under, d.PrevUnder || d.Under_prev, d.TrendUnder, d.DropPctUnder);
-        const trendOver = buildTrendDataFromMatch(d.Over, d.PrevOver || d.Over_prev, d.TrendOver, d.DropPctOver);
+        const trendUnder = getTrendFromCache(match, 'under') || buildTrendDataFromMatch(d.Under, d.PrevUnder || d.Under_prev, d.TrendUnder, d.DropPctUnder);
+        const trendOver = getTrendFromCache(match, 'over') || buildTrendDataFromMatch(d.Over, d.PrevOver || d.Over_prev, d.TrendOver, d.DropPctOver);
         
         oddsBlocks = `
             ${renderMobileOddsBlock('Alt', d.Under, trendUnder)}
             ${renderMobileOddsBlock('Üst', d.Over, trendOver)}
         `;
     } else {
-        const trendYes = buildTrendDataFromMatch(d.OddsYes || d.Yes, d.PrevYes || d.OddsYes_prev || d.Yes_prev, d.TrendYes, d.DropPctYes);
-        const trendNo = buildTrendDataFromMatch(d.OddsNo || d.No, d.PrevNo || d.OddsNo_prev || d.No_prev, d.TrendNo, d.DropPctNo);
+        const trendYes = getTrendFromCache(match, 'oddsyes') || buildTrendDataFromMatch(d.OddsYes || d.Yes, d.PrevYes || d.OddsYes_prev || d.Yes_prev, d.TrendYes, d.DropPctYes);
+        const trendNo = getTrendFromCache(match, 'oddsno') || buildTrendDataFromMatch(d.OddsNo || d.No, d.PrevNo || d.OddsNo_prev || d.No_prev, d.TrendNo, d.DropPctNo);
         
         oddsBlocks = `
             ${renderMobileOddsBlock('Evet', d.OddsYes || d.Yes, trendYes)}
@@ -1398,9 +1397,14 @@ function getTableTrendArrow(current, previous) {
 // Build trend data object from match details (d object) instead of cache
 // This avoids team name mismatch issues between match list and trend cache
 // dropPct: Optional pre-calculated drop percentage from API (DropPct1, DropPctX, etc.)
-function buildTrendDataFromMatch(currentOdds, prevOdds, trendText, dropPct) {
+// openingOdds: Optional opening odds for calculating drop from opening (preferred over prevOdds)
+function buildTrendDataFromMatch(currentOdds, prevOdds, trendText, dropPct, openingOdds) {
     const curr = parseFloat(String(currentOdds || '').replace(/[^0-9.]/g, ''));
     const prev = parseFloat(String(prevOdds || '').replace(/[^0-9.]/g, ''));
+    const opening = parseFloat(String(openingOdds || '').replace(/[^0-9.]/g, ''));
+    
+    // Determine base for comparison: Opening > Prev
+    const baseOdds = (!isNaN(opening) && opening > 0) ? opening : prev;
     
     // If we have a pre-calculated drop percentage from API, use it directly
     if (dropPct && dropPct !== '') {
@@ -1410,15 +1414,15 @@ function buildTrendDataFromMatch(currentOdds, prevOdds, trendText, dropPct) {
             return {
                 trend: trend,
                 pct_change: Math.abs(pctVal),
-                old: prev || null,
+                old: baseOdds || null,
                 new: curr || null,
-                history: prev && curr ? [prev, curr] : [curr]
+                history: baseOdds && curr ? [baseOdds, curr] : [curr]
             };
         }
     }
     
-    if (isNaN(curr) || isNaN(prev) || prev === 0) {
-        // No valid previous odds - check if trendText provides direction
+    if (isNaN(curr) || isNaN(baseOdds) || baseOdds === 0) {
+        // No valid base odds - check if trendText provides direction
         if (trendText) {
             const t = String(trendText).trim().toLowerCase();
             if (t === 'down' || t.includes('↓')) {
@@ -1430,11 +1434,11 @@ function buildTrendDataFromMatch(currentOdds, prevOdds, trendText, dropPct) {
         return null;
     }
     
-    // Calculate percentage change
-    const pctChange = ((curr - prev) / prev) * 100;
+    // Calculate percentage change from base (Opening or Prev)
+    const pctChange = ((curr - baseOdds) / baseOdds) * 100;
     let trend = 'stable';
-    if (curr < prev) trend = 'down';
-    else if (curr > prev) trend = 'up';
+    if (curr < baseOdds) trend = 'down';
+    else if (curr > baseOdds) trend = 'up';
     
     // Override with explicit trend text if available
     if (trendText) {
@@ -1446,9 +1450,9 @@ function buildTrendDataFromMatch(currentOdds, prevOdds, trendText, dropPct) {
     return {
         trend: trend,
         pct_change: Math.round(pctChange * 10) / 10,
-        old: prev,
+        old: baseOdds,
         new: curr,
-        history: [prev, curr]
+        history: [baseOdds, curr]
     };
 }
 
@@ -1631,6 +1635,24 @@ function getMaxTrendPct(match) {
         }
     }
     return maxPct;
+}
+
+// Get trend data from oddsTrendCache (Opening → Current, NOT Prev → Current)
+function getTrendFromCache(match, selectionKey) {
+    const matchKey = `${match.home_team}|${match.away_team}`;
+    const matchData = oddsTrendCache[matchKey];
+    if (!matchData || !matchData.values) return null;
+    
+    const selData = matchData.values[selectionKey];
+    if (!selData) return null;
+    
+    return {
+        trend: selData.trend || 'stable',
+        pct_change: selData.pct_change,
+        old: selData.old,
+        new: selData.new,
+        history: selData.history || [selData.old, selData.new]
+    };
 }
 
 function applySorting(data) {
