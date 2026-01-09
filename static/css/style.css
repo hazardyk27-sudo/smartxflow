@@ -10555,14 +10555,10 @@ table.desktop-only {
     }
     
     /* === ODOMETER / ROLLING DIGITS ANIMATION === */
-    #mvhBigValue {
-        display: inline-flex;
-        overflow: hidden;
-    }
-    
     .odometer-digit {
         display: inline-block;
         position: relative;
+        vertical-align: baseline;
     }
     
     .odometer-digit.static {
@@ -10572,6 +10568,7 @@ table.desktop-only {
     .odometer-digit.changing {
         overflow: hidden;
         height: 1.2em;
+        vertical-align: baseline;
     }
     
     .odometer-digit.changing .odometer-old,
