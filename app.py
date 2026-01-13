@@ -303,13 +303,34 @@ def cleanup_old_matches():
 
 
 def start_cleanup_scheduler():
-    """Start daily cleanup scheduler for old matches"""
+    """Start daily cleanup scheduler for old matches - runs at 05:00 Turkey time"""
     global cleanup_thread
     
     def cleanup_loop():
+        # İlk başlatmada bir kez çalıştır
+        cleanup_old_matches()
+        
         while True:
+            # Şu anki Türkiye saatini al
+            now = now_turkey()
+            
+            # Yarın saat 05:00'i hesapla
+            tomorrow_5am = now.replace(hour=5, minute=0, second=0, microsecond=0)
+            if now.hour >= 5:
+                # Saat 5'i geçtiyse, yarın 05:00
+                tomorrow_5am = tomorrow_5am + timedelta(days=1)
+            
+            # Beklenecek süre (saniye)
+            wait_seconds = (tomorrow_5am - now).total_seconds()
+            
+            # En az 60 saniye bekle (rapid loop önleme)
+            wait_seconds = max(60, wait_seconds)
+            
+            print(f"[Cleanup Scheduler] Next cleanup at 05:00 Turkey time, waiting {wait_seconds/3600:.1f} hours")
+            time.sleep(wait_seconds)
+            
+            # Cleanup çalıştır
             cleanup_old_matches()
-            time.sleep(600)
     
     cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
     cleanup_thread.start()
