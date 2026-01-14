@@ -1444,15 +1444,14 @@ function buildTrendDataFromMatch(currentOdds, prevOdds, trendText, dropPct, open
     // Calculate percentage change from base (Opening or Prev)
     const pctChange = ((curr - baseOdds) / baseOdds) * 100;
     let trend = 'stable';
-    if (curr < baseOdds) trend = 'down';
-    else if (curr > baseOdds) trend = 'up';
     
-    // Override with explicit trend text if available
-    if (trendText) {
-        const t = String(trendText).trim().toLowerCase();
-        if (t === 'down' || t.includes('↓')) trend = 'down';
-        else if (t === 'up' || t.includes('↑')) trend = 'up';
-    }
+    // Use a small threshold to avoid showing color for tiny changes
+    const threshold = 0.5; // 0.5% minimum change to show color
+    if (pctChange < -threshold) trend = 'down';
+    else if (pctChange > threshold) trend = 'up';
+    
+    // DO NOT override with trendText - our calculation from opening odds is more accurate
+    // trendText from arbworld represents snapshot-to-snapshot changes, not opening-to-current
     
     return {
         trend: trend,
