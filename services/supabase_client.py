@@ -1208,11 +1208,16 @@ class SupabaseClient:
         
         return result
     
+    _opening_odds_cache = {}  # {market: {hash: odds_dict, ...}, ...}
+    _opening_odds_cache_time = {}  # {market: timestamp}
+    
     def get_opening_odds_batch(self, market: str, match_hashes: List[str]) -> Dict[str, Dict]:
         """Get true opening odds (from first/oldest history record) for each match
         
-        OPTIMIZED: Uses single batch query with RPC or paginated fetch instead of 
-        individual requests per match. Reduces 300+ requests to 2-3 requests.
+        OPTIMIZED: 
+        1. Long-term cache (opening odds never change)
+        2. Only fetch missing hashes from API
+        3. Batch queries instead of individual requests
         
         Returns: {match_id_hash: {odds_field: value, ...}, ...}
         """
@@ -1223,59 +1228,88 @@ class SupabaseClient:
             import time
             start_time = time.time()
             
-            history_table = f"{market}_history"
+            # Initialize cache for this market
+            if market not in self._opening_odds_cache:
+                self._opening_odds_cache[market] = {}
+            
+            cache = self._opening_odds_cache[market]
             opening_by_hash = {}
             
-            # OPTIMIZED: Fetch ALL first records with single batch query
-            # Use 'in' operator to get all matches at once, ordered by scraped_at
-            # Then group by match_id_hash and take the first (oldest) for each
+            # Check which hashes are already cached
+            missing_hashes = []
+            for h in match_hashes:
+                if h in cache:
+                    opening_by_hash[h] = cache[h]
+                else:
+                    missing_hashes.append(h)
             
-            # Process in batches of 100 hashes (URL length limit)
+            # If all cached, return immediately
+            if not missing_hashes:
+                print(f"[Opening] All {len(match_hashes)} matches from cache (0.0s)")
+                return opening_by_hash
+            
+            history_table = f"{market}_history"
+            
+            # Process in parallel batches of 100 hashes (URL length limit)
+            import concurrent.futures
             batch_size = 100
             all_rows = []
             
-            for i in range(0, len(match_hashes), batch_size):
-                batch = match_hashes[i:i+batch_size]
-                hash_list = ','.join(batch)
-                
-                # Single query: get all records for batch, ordered by scraped_at ascending
+            def fetch_batch(batch_hashes):
+                hash_list = ','.join(batch_hashes)
                 url = f"{self._rest_url(history_table)}?match_id_hash=in.({hash_list})&order=scraped_at.asc&limit=2000"
-                
                 try:
                     resp = httpx.get(url, headers=self._headers(), timeout=30)
                     if resp.status_code == 200:
-                        all_rows.extend(resp.json())
-                except Exception as e:
-                    print(f"[Opening] Batch {i//batch_size} error: {e}")
-                    continue
+                        return resp.json()
+                except Exception:
+                    pass
+                return []
+            
+            # Split into batches and fetch in parallel
+            batches = [missing_hashes[i:i+batch_size] for i in range(0, len(missing_hashes), batch_size)]
+            
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                results = list(executor.map(fetch_batch, batches))
+            
+            for batch_result in results:
+                all_rows.extend(batch_result)
             
             # Group by match_id_hash and take FIRST (oldest) record for each
             # Since we ordered by scraped_at asc, first occurrence is the oldest
             seen_hashes = set()
+            new_found = 0
             for row in all_rows:
                 match_hash = row.get('match_id_hash', '')
                 if match_hash and match_hash not in seen_hashes:
                     seen_hashes.add(match_hash)
                     
+                    odds_data = None
                     if '1x2' in market:
-                        opening_by_hash[match_hash] = {
+                        odds_data = {
                             'OpeningOdds1': row.get('odds1', '') or row.get('odds1_prev', ''),
                             'OpeningOddsX': row.get('oddsx', '') or row.get('oddsx_prev', ''),
                             'OpeningOdds2': row.get('odds2', '') or row.get('odds2_prev', '')
                         }
                     elif 'ou25' in market:
-                        opening_by_hash[match_hash] = {
+                        odds_data = {
                             'OpeningOver': row.get('over', '') or row.get('over_prev', ''),
                             'OpeningUnder': row.get('under', '') or row.get('under_prev', '')
                         }
                     elif 'btts' in market:
-                        opening_by_hash[match_hash] = {
+                        odds_data = {
                             'OpeningYes': row.get('oddsyes', '') or row.get('yes', '') or row.get('oddsyes_prev', ''),
                             'OpeningNo': row.get('oddsno', '') or row.get('no', '') or row.get('oddsno_prev', '')
                         }
+                    
+                    if odds_data:
+                        opening_by_hash[match_hash] = odds_data
+                        cache[match_hash] = odds_data  # Add to long-term cache
+                        new_found += 1
             
             elapsed = time.time() - start_time
-            print(f"[Opening] Got opening odds for {len(opening_by_hash)}/{len(match_hashes)} matches in {elapsed:.1f}s (batch optimized)")
+            cached_count = len(match_hashes) - len(missing_hashes)
+            print(f"[Opening] {cached_count} cached + {new_found} fetched = {len(opening_by_hash)}/{len(match_hashes)} in {elapsed:.1f}s")
             return opening_by_hash
             
         except Exception as e:
