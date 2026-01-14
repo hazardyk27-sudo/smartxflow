@@ -529,6 +529,9 @@ async function loadMatches(appendMode = false) {
     
     _loadMatchesLock = true;
     
+    // Capture market at request start to detect race conditions
+    const requestMarket = currentMarket;
+    
     const tbody = document.getElementById('matchesTableBody');
     const colspan = currentMarket.includes('1x2') ? 7 : 6;
     
@@ -562,22 +565,24 @@ async function loadMatches(appendMode = false) {
     
     _loadMatchesPending = (async () => {
         try {
-            if (currentMarket.startsWith('dropping')) {
-                await loadOddsTrend(currentMarket);
+            // Use requestMarket for all request-scoped work to avoid race conditions
+            if (requestMarket.startsWith('dropping')) {
+                await loadOddsTrend(requestMarket);
             } else {
                 oddsTrendCache = {};
             }
             
             // Use BULK mode for ALL filter (no date_filter) - instant on cache hit
+            // Use requestMarket (captured at start) to ensure consistent request
             let apiUrl;
             if (dateFilterMode === 'ALL') {
-                apiUrl = `/api/matches?market=${currentMarket}&bulk=1`;
+                apiUrl = `/api/matches?market=${requestMarket}&bulk=1`;
             } else if (dateFilterMode === 'YESTERDAY') {
-                apiUrl = `/api/matches?market=${currentMarket}&date_filter=yesterday&bulk=1`;
+                apiUrl = `/api/matches?market=${requestMarket}&date_filter=yesterday&bulk=1`;
             } else if (dateFilterMode === 'TODAY') {
-                apiUrl = `/api/matches?market=${currentMarket}&date_filter=today&bulk=1`;
+                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today&bulk=1`;
             } else {
-                apiUrl = `/api/matches?market=${currentMarket}&bulk=1`;
+                apiUrl = `/api/matches?market=${requestMarket}&bulk=1`;
             }
             
             console.log('[Matches] Loading with bulk mode:', apiUrl);
@@ -588,6 +593,14 @@ async function loadMatches(appendMode = false) {
             
             const elapsed = Math.round(performance.now() - startTime);
             console.log(`[Matches] Loaded ${result.matches?.length || 0} matches in ${elapsed}ms`);
+            
+            // Race condition check: if market changed during fetch, discard results and reload
+            if (currentMarket !== requestMarket) {
+                console.log(`[Matches] Race condition detected: request was for ${requestMarket} but current market is ${currentMarket}. Triggering fresh load.`);
+                // Schedule fresh load after lock is released (in finally block)
+                setTimeout(() => loadMatches(), 0);
+                return;
+            }
             
             // Handle response
             if (result.matches !== undefined) {
