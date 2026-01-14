@@ -565,10 +565,13 @@ async function loadMatches(appendMode = false) {
     
     _loadMatchesPending = (async () => {
         try {
-            // Use requestMarket for all request-scoped work to avoid race conditions
+            // For DROPPING markets: DO NOT load oddsTrendCache - API data has true opening odds in PrevOdds
+            // For OTHER markets (moneyway): Load oddsTrendCache for charts, tooltips, and modal features
             if (requestMarket.startsWith('dropping')) {
-                await loadOddsTrend(requestMarket);
+                // Clear cache - dropping uses API's PrevOdds directly (true opening odds from scraper)
+                oddsTrendCache = {};
             } else {
+                // Keep existing cache behavior for non-dropping markets
                 oddsTrendCache = {};
             }
             
@@ -1189,13 +1192,13 @@ function renderMobileMoneywayBlock(label, oddsValue, pctValue) {
 function renderMobileOddsCard(match, idx, d, volume, dateStr) {
     let oddsBlocks = '';
     
-    // USE oddsTrendCache for Opening → Current calculation (correct for Dropping Odds)
-    // This cache contains first snapshot (Opening) vs last snapshot (Current)
-    // Falls back to buildTrendDataFromMatch if cache miss
+    // IMPORTANT: For Dropping Odds, use API data directly (PrevOdds = opening odds from arbworld.net)
+    // Do NOT use oddsTrendCache because it contains recent snapshots, not true opening odds
+    // PrevOdds fields from scraper are already the opening odds from the source website
     if (currentMarket.includes('1x2')) {
-        const trend1 = getTrendFromCache(match, 'odds1') || buildTrendDataFromMatch(d.Odds1 || d['1'], d.PrevOdds1 || d.Odds1_prev, d.Trend1, d.DropPct1);
-        const trendX = getTrendFromCache(match, 'oddsx') || buildTrendDataFromMatch(d.OddsX || d['X'], d.PrevOddsX || d.OddsX_prev, d.TrendX, d.DropPctX);
-        const trend2 = getTrendFromCache(match, 'odds2') || buildTrendDataFromMatch(d.Odds2 || d['2'], d.PrevOdds2 || d.Odds2_prev, d.Trend2, d.DropPct2);
+        const trend1 = buildTrendDataFromMatch(d.Odds1 || d['1'], d.PrevOdds1 || d.Odds1_prev, d.Trend1, d.DropPct1);
+        const trendX = buildTrendDataFromMatch(d.OddsX || d['X'], d.PrevOddsX || d.OddsX_prev, d.TrendX, d.DropPctX);
+        const trend2 = buildTrendDataFromMatch(d.Odds2 || d['2'], d.PrevOdds2 || d.Odds2_prev, d.Trend2, d.DropPct2);
         
         oddsBlocks = `
             ${renderMobileOddsBlock('1', d.Odds1 || d['1'], trend1)}
@@ -1203,16 +1206,16 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr) {
             ${renderMobileOddsBlock('2', d.Odds2 || d['2'], trend2)}
         `;
     } else if (currentMarket.includes('ou25')) {
-        const trendUnder = getTrendFromCache(match, 'under') || buildTrendDataFromMatch(d.Under, d.PrevUnder || d.Under_prev, d.TrendUnder, d.DropPctUnder);
-        const trendOver = getTrendFromCache(match, 'over') || buildTrendDataFromMatch(d.Over, d.PrevOver || d.Over_prev, d.TrendOver, d.DropPctOver);
+        const trendUnder = buildTrendDataFromMatch(d.Under, d.PrevUnder || d.Under_prev, d.TrendUnder, d.DropPctUnder);
+        const trendOver = buildTrendDataFromMatch(d.Over, d.PrevOver || d.Over_prev, d.TrendOver, d.DropPctOver);
         
         oddsBlocks = `
             ${renderMobileOddsBlock('Alt', d.Under, trendUnder)}
             ${renderMobileOddsBlock('Üst', d.Over, trendOver)}
         `;
     } else {
-        const trendYes = getTrendFromCache(match, 'oddsyes') || buildTrendDataFromMatch(d.OddsYes || d.Yes, d.PrevYes || d.OddsYes_prev || d.Yes_prev, d.TrendYes, d.DropPctYes);
-        const trendNo = getTrendFromCache(match, 'oddsno') || buildTrendDataFromMatch(d.OddsNo || d.No, d.PrevNo || d.OddsNo_prev || d.No_prev, d.TrendNo, d.DropPctNo);
+        const trendYes = buildTrendDataFromMatch(d.OddsYes || d.Yes, d.PrevYes || d.OddsYes_prev || d.Yes_prev, d.TrendYes, d.DropPctYes);
+        const trendNo = buildTrendDataFromMatch(d.OddsNo || d.No, d.PrevNo || d.OddsNo_prev || d.No_prev, d.TrendNo, d.DropPctNo);
         
         oddsBlocks = `
             ${renderMobileOddsBlock('Evet', d.OddsYes || d.Yes, trendYes)}
