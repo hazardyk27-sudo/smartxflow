@@ -787,6 +787,38 @@ def get_matches():
                     'history_count': 1
                 })
         
+        # For DROPPING markets: Get true opening odds from first history record
+        # The _prev fields in history only store previous snapshot, not true opening
+        if is_dropping and all_matches:
+            match_hashes = [m.get('match_id') for m in all_matches if m.get('match_id')]
+            opening_odds = db.get_opening_odds_batch(market, match_hashes)
+            
+            if opening_odds:
+                for match in all_matches:
+                    match_id = match.get('match_id')
+                    if match_id in opening_odds:
+                        opening = opening_odds[match_id]
+                        odds = match.get('odds', {})
+                        
+                        # Override PrevOdds with true opening odds
+                        if '1x2' in market:
+                            if opening.get('OpeningOdds1'):
+                                odds['PrevOdds1'] = opening['OpeningOdds1']
+                            if opening.get('OpeningOddsX'):
+                                odds['PrevOddsX'] = opening['OpeningOddsX']
+                            if opening.get('OpeningOdds2'):
+                                odds['PrevOdds2'] = opening['OpeningOdds2']
+                        elif 'ou25' in market:
+                            if opening.get('OpeningOver'):
+                                odds['PrevOver'] = opening['OpeningOver']
+                            if opening.get('OpeningUnder'):
+                                odds['PrevUnder'] = opening['OpeningUnder']
+                        elif 'btts' in market:
+                            if opening.get('OpeningYes'):
+                                odds['PrevYes'] = opening['OpeningYes']
+                            if opening.get('OpeningNo'):
+                                odds['PrevNo'] = opening['OpeningNo']
+        
         # Cache the result
         set_matches_cache(cache_key, all_matches)
         elapsed = (t.time() - start_time) * 1000

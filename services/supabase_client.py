@@ -1208,6 +1208,77 @@ class SupabaseClient:
         
         return result
     
+    def get_opening_odds_batch(self, market: str, match_hashes: List[str]) -> Dict[str, Dict]:
+        """Get true opening odds (from first/oldest history record) for each match
+        
+        The _prev fields in the FIRST history record contain the true opening odds
+        as scraped from arbworld.net's "start" column. We use these instead of the
+        current odds values which are from when scraping started.
+        
+        Returns: {match_id_hash: {odds_field: value, ...}, ...}
+        """
+        if not self.is_available or not match_hashes:
+            return {}
+        
+        try:
+            import concurrent.futures
+            
+            history_table = f"{market}_history"
+            opening_by_hash = {}
+            
+            # Fetch first (oldest) record for each match in batches
+            # Using order=scraped_at.asc&limit=1 with match_id_hash filter
+            # Use the _prev fields which contain arbworld's "start" odds
+            def fetch_opening_for_batch(hash_batch):
+                results = {}
+                for match_hash in hash_batch:
+                    try:
+                        url = f"{self._rest_url(history_table)}?match_id_hash=eq.{match_hash}&order=scraped_at.asc&limit=1"
+                        resp = httpx.get(url, headers=self._headers(), timeout=10)
+                        if resp.status_code == 200:
+                            rows = resp.json()
+                            if rows:
+                                row = rows[0]
+                                if '1x2' in market:
+                                    # Use _prev fields from first record = true opening from arbworld
+                                    results[match_hash] = {
+                                        'OpeningOdds1': row.get('odds1_prev', '') or row.get('odds1', ''),
+                                        'OpeningOddsX': row.get('oddsx_prev', '') or row.get('oddsx', ''),
+                                        'OpeningOdds2': row.get('odds2_prev', '') or row.get('odds2', '')
+                                    }
+                                elif 'ou25' in market:
+                                    # Use _prev fields from first record = true opening from arbworld
+                                    results[match_hash] = {
+                                        'OpeningOver': row.get('over_prev', '') or row.get('over', ''),
+                                        'OpeningUnder': row.get('under_prev', '') or row.get('under', '')
+                                    }
+                                elif 'btts' in market:
+                                    # Use _prev fields from first record = true opening from arbworld
+                                    results[match_hash] = {
+                                        'OpeningYes': row.get('oddsyes_prev', '') or row.get('oddsyes', row.get('yes', '')),
+                                        'OpeningNo': row.get('oddsno_prev', '') or row.get('oddsno', row.get('no', ''))
+                                    }
+                    except Exception as e:
+                        continue
+                return results
+            
+            # Split hashes into batches for parallel processing
+            batch_size = 10
+            hash_batches = [match_hashes[i:i+batch_size] for i in range(0, len(match_hashes), batch_size)]
+            
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                batch_results = list(executor.map(fetch_opening_for_batch, hash_batches))
+            
+            for batch_result in batch_results:
+                opening_by_hash.update(batch_result)
+            
+            print(f"[Opening] Got opening odds for {len(opening_by_hash)}/{len(match_hashes)} matches")
+            return opening_by_hash
+            
+        except Exception as e:
+            print(f"[Opening] Error fetching opening odds: {e}")
+            return {}
+    
     def _normalize_row(self, row: Dict, market: str) -> Dict[str, Any]:
         """Convert lowercase Supabase columns to expected format"""
         if market in ['moneyway_1x2', 'dropping_1x2']:
@@ -1812,6 +1883,12 @@ class HybridDatabase:
         if self.supabase.is_available:
             return self.supabase.get_last_data_update()
         return None
+    
+    def get_opening_odds_batch(self, market: str, match_hashes: List[str]) -> Dict[str, Dict]:
+        """Get true opening odds from first history record - delegates to Supabase"""
+        if self.supabase.is_available:
+            return self.supabase.get_opening_odds_batch(market, match_hashes)
+        return {}
 
 
 _database = None
