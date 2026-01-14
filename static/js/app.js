@@ -1318,6 +1318,11 @@ function updateMobileMarket() {
 let currentDayFilter = 'all';
 
 function setDayFilter(filter) {
+    // Check if filter actually changed
+    if (currentDayFilter === filter) {
+        return; // No change, skip reload
+    }
+    
     currentDayFilter = filter;
     
     // Update segmented control UI
@@ -1329,54 +1334,40 @@ function setDayFilter(filter) {
     const activeBtn = document.getElementById(btnId);
     if (activeBtn) activeBtn.classList.add('active');
     
-    // Sync with desktop buttons
+    // Sync with desktop buttons (skipLoad=true to prevent multiple loadMatches calls)
     const todayBtn = document.getElementById('todayBtn');
     const yesterdayBtn = document.getElementById('yesterdayBtn');
     
     if (filter === 'today') {
         if (todayBtn && !todayBtn.classList.contains('active')) {
-            toggleTodayFilter();
+            toggleTodayFilter(true);
         }
         if (yesterdayBtn && yesterdayBtn.classList.contains('active')) {
-            toggleYesterdayFilter();
+            toggleYesterdayFilter(true);
         }
     } else if (filter === 'yesterday') {
         if (yesterdayBtn && !yesterdayBtn.classList.contains('active')) {
-            toggleYesterdayFilter();
+            toggleYesterdayFilter(true);
         }
         if (todayBtn && todayBtn.classList.contains('active')) {
-            toggleTodayFilter();
+            toggleTodayFilter(true);
         }
     } else {
         // All - turn off both filters
         if (todayBtn && todayBtn.classList.contains('active')) {
-            toggleTodayFilter();
+            toggleTodayFilter(true);
         }
         if (yesterdayBtn && yesterdayBtn.classList.contains('active')) {
-            toggleYesterdayFilter();
+            toggleYesterdayFilter(true);
         }
     }
+    
+    // Single loadMatches call at the end
+    loadMatches();
 }
 
-// Update renderMatches to also render mobile cards
+// Store original renderMatches and override to include mobile cards
 const originalRenderMatches = renderMatches;
-function renderMatchesWithMobile(data) {
-    // Always render table for desktop
-    const tbody = document.getElementById('matchesTableBody');
-    const countEl = document.getElementById('matchCount');
-    
-    if (countEl) {
-        countEl.textContent = data.length;
-    }
-    
-    // Render mobile cards
-    renderMobileMatchCards(data);
-    
-    // Original table rendering (for desktop)
-    originalRenderMatches(data);
-}
-
-// Override renderMatches after original is defined
 window.renderMatches = function(data) {
     renderMobileMatchCards(data);
     originalRenderMatches.call(this, data);
@@ -2014,7 +2005,7 @@ function showTrendSortButtons(show) {
     }
 }
 
-function toggleTodayFilter() {
+function toggleTodayFilter(skipLoad = false) {
     const todayBtn = document.getElementById('todayBtn');
     const yesterdayBtn = document.getElementById('yesterdayBtn');
     
@@ -2028,10 +2019,10 @@ function toggleTodayFilter() {
     }
     
     console.log('[Filter] Mode changed to:', dateFilterMode);
-    loadMatches();
+    if (!skipLoad) loadMatches();
 }
 
-function toggleYesterdayFilter() {
+function toggleYesterdayFilter(skipLoad = false) {
     const todayBtn = document.getElementById('todayBtn');
     const yesterdayBtn = document.getElementById('yesterdayBtn');
     
@@ -2045,7 +2036,7 @@ function toggleYesterdayFilter() {
     }
     
     console.log('[Filter] Mode changed to:', dateFilterMode);
-    loadMatches();
+    if (!skipLoad) loadMatches();
 }
 
 function parseDate(dateStr) {

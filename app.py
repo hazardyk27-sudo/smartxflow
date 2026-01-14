@@ -1843,17 +1843,10 @@ def load_publicmove_alarms_from_file():
     return []
 
 def save_publicmove_alarms_to_file(alarms):
-    """Save PublicMove alarms to both JSON file and Supabase"""
+    """Save PublicMove alarms to JSON file (Supabase write disabled - alarm type removed)"""
     success = False
     
-    # 1. Supabase'e yaz (primary)
-    try:
-        if write_publicmove_alarms_to_supabase(alarms):
-            success = True
-    except Exception as e:
-        print(f"[PublicMove] Supabase write error: {e}")
-    
-    # 2. JSON'a yaz (fallback)
+    # JSON'a yaz (fallback only - Supabase write disabled)
     try:
         with open(PUBLICMOVE_ALARMS_FILE, 'w') as f:
             json.dump(alarms, f, indent=2, ensure_ascii=False)
@@ -5232,7 +5225,6 @@ def get_match_snapshot(match_id):
             'bigmoney': (get_bigmoney_alarms_from_supabase, big_money_alarms),
             'volumeshock': (get_volumeshock_alarms_from_supabase, volume_shock_alarms),
             'dropping': (get_dropping_alarms_from_supabase, dropping_alarms),
-            'publicmove': (get_publicmove_alarms_from_supabase, publicmove_alarms),
             'volumeleader': (get_volumeleader_alarms_from_supabase, volume_leader_alarms),
             'mim': (get_mim_alarms_from_supabase, [])
         }
