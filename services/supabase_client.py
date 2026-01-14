@@ -1211,9 +1211,9 @@ class SupabaseClient:
     def get_opening_odds_batch(self, market: str, match_hashes: List[str]) -> Dict[str, Dict]:
         """Get true opening odds (from first/oldest history record) for each match
         
-        The _prev fields in the FIRST history record contain the true opening odds
-        as scraped from arbworld.net's "start" column. We use these instead of the
-        current odds values which are from when scraping started.
+        The FIRST history record's main odds fields (odds1, oddsx, odds2, over, under, etc.)
+        contain the true opening odds from arbworld.net's "start" column at the time
+        of first scrape. The _prev fields contain the PREVIOUS snapshot, not the opening.
         
         Returns: {match_id_hash: {odds_field: value, ...}, ...}
         """
@@ -1228,7 +1228,7 @@ class SupabaseClient:
             
             # Fetch first (oldest) record for each match in batches
             # Using order=scraped_at.asc&limit=1 with match_id_hash filter
-            # Use the _prev fields which contain arbworld's "start" odds
+            # Use the main odds fields (NOT _prev) which contain the true opening
             def fetch_opening_for_batch(hash_batch):
                 results = {}
                 for match_hash in hash_batch:
@@ -1240,23 +1240,23 @@ class SupabaseClient:
                             if rows:
                                 row = rows[0]
                                 if '1x2' in market:
-                                    # Use _prev fields from first record = true opening from arbworld
+                                    # Primary: main odds fields, Fallback: _prev fields
                                     results[match_hash] = {
-                                        'OpeningOdds1': row.get('odds1_prev', '') or row.get('odds1', ''),
-                                        'OpeningOddsX': row.get('oddsx_prev', '') or row.get('oddsx', ''),
-                                        'OpeningOdds2': row.get('odds2_prev', '') or row.get('odds2', '')
+                                        'OpeningOdds1': row.get('odds1', '') or row.get('odds1_prev', ''),
+                                        'OpeningOddsX': row.get('oddsx', '') or row.get('oddsx_prev', ''),
+                                        'OpeningOdds2': row.get('odds2', '') or row.get('odds2_prev', '')
                                     }
                                 elif 'ou25' in market:
-                                    # Use _prev fields from first record = true opening from arbworld
+                                    # Primary: main odds fields, Fallback: _prev fields
                                     results[match_hash] = {
-                                        'OpeningOver': row.get('over_prev', '') or row.get('over', ''),
-                                        'OpeningUnder': row.get('under_prev', '') or row.get('under', '')
+                                        'OpeningOver': row.get('over', '') or row.get('over_prev', ''),
+                                        'OpeningUnder': row.get('under', '') or row.get('under_prev', '')
                                     }
                                 elif 'btts' in market:
-                                    # Use _prev fields from first record = true opening from arbworld
+                                    # Primary: main odds fields, Fallback: _prev fields
                                     results[match_hash] = {
-                                        'OpeningYes': row.get('oddsyes_prev', '') or row.get('oddsyes', row.get('yes', '')),
-                                        'OpeningNo': row.get('oddsno_prev', '') or row.get('oddsno', row.get('no', ''))
+                                        'OpeningYes': row.get('oddsyes', '') or row.get('yes', '') or row.get('oddsyes_prev', ''),
+                                        'OpeningNo': row.get('oddsno', '') or row.get('no', '') or row.get('oddsno_prev', '')
                                     }
                     except Exception as e:
                         continue
