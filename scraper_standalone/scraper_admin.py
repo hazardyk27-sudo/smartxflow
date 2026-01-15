@@ -16,7 +16,7 @@ from datetime import datetime
 from collections import deque
 import queue
 
-VERSION = "1.26"
+VERSION = "1.27"
 CONFIG_FILE = "config.json"
 
 # Scraper Console - Global Log Buffer & State
@@ -105,6 +105,148 @@ def log_alarm_engine(message, level='INFO'):
 # Hardcoded Supabase credentials (fallback)
 EMBEDDED_SUPABASE_URL = "https://pswdvnmqjjnjodwzkmkp.supabase.co"
 EMBEDDED_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzd2R2bm1xampuam9kd3prbWtwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3NzA0NzMsImV4cCI6MjA3ODM0NjQ3M30.Xt7kHbzOxK9-tqg4y0v5E_H5kLEcWZyLNqfQlLo3w3s"
+
+# SSL Health Check State
+SSL_ERROR_COUNT = 0
+SSL_LAST_ALERT_TIME = None
+
+
+def check_ssl_health():
+    """
+    SSL/TLS sertifika durumunu kontrol et.
+    PyInstaller temp klasöründeki certifi dosyasının erişilebilir olup olmadığını test eder.
+    Sadece dosya varlığını kontrol eder - network bağımlılığı yok.
+    Returns: (is_healthy: bool, error_message: str or None)
+    """
+    try:
+        import certifi
+        
+        cert_path = certifi.where()
+        
+        if not os.path.exists(cert_path):
+            return False, f"Sertifika dosyası bulunamadı: {cert_path}"
+        
+        file_size = os.path.getsize(cert_path)
+        if file_size < 1000:
+            return False, f"Sertifika dosyası bozuk (boyut: {file_size} bytes)"
+        
+        try:
+            with open(cert_path, 'r', encoding='utf-8') as f:
+                content = f.read(100)
+                if '-----BEGIN CERTIFICATE-----' not in content:
+                    return False, "Sertifika dosyası geçersiz format"
+        except Exception as e:
+            return False, f"Sertifika dosyası okunamadı: {e}"
+        
+        return True, None
+            
+    except ImportError:
+        return False, "certifi modülü yüklenemedi"
+    except Exception as e:
+        return False, f"SSL kontrol hatası: {str(e)}"
+
+
+def send_telegram_alert(message, bot_token=None, chat_id=None):
+    """
+    Telegram'a uyarı mesajı gönder.
+    SSL hatası durumunda kullanılır.
+    """
+    try:
+        import requests
+        
+        if not bot_token:
+            bot_token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+        if not chat_id:
+            chat_id = os.environ.get('TELEGRAM_CHAT_ID', '')
+        
+        if not bot_token or not chat_id:
+            logging.warning("Telegram credentials not configured")
+            return False
+        
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        
+        full_message = f"⚠️ SmartXFlow Admin Panel Uyarı\n\n{message}\n\n🕐 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        payload = {
+            'chat_id': chat_id,
+            'text': full_message,
+            'parse_mode': 'HTML'
+        }
+        
+        try:
+            response = requests.post(url, json=payload, timeout=10)
+            if response.status_code == 200:
+                logging.info(f"Telegram alert sent: {message[:50]}...")
+                return True
+            else:
+                logging.error(f"Telegram send failed: {response.status_code}")
+                return False
+        except requests.exceptions.SSLError:
+            logging.error("Telegram SSL error - skipping alert")
+            return False
+        except Exception as e:
+            logging.error(f"Telegram request error: {e}")
+            return False
+            
+    except Exception as e:
+        logging.error(f"send_telegram_alert error: {e}")
+        return False
+
+
+def restart_application():
+    """
+    Uygulamayı yeniden başlat.
+    SSL hatası veya kritik hata durumunda kullanılır.
+    """
+    try:
+        logging.info("=== APPLICATION RESTART INITIATED ===")
+        
+        python = sys.executable
+        args = sys.argv[:]
+        
+        if getattr(sys, 'frozen', False):
+            logging.info(f"Restarting frozen app: {python}")
+            os.execv(python, [python] + args[1:] if len(args) > 1 else [python])
+        else:
+            logging.info(f"Restarting script: {python} {args}")
+            os.execv(python, [python] + args)
+            
+    except Exception as e:
+        logging.error(f"Restart failed: {e}")
+        log_scraper(f"KRITIK: Yeniden başlatma başarısız - {e}", level='ERROR')
+
+
+def handle_ssl_error(error_message):
+    """
+    SSL hatası tespit edildiğinde:
+    1. Telegram'a uyarı gönder
+    2. Log'a yaz
+    3. Uygulamayı yeniden başlat
+    """
+    global SSL_ERROR_COUNT, SSL_LAST_ALERT_TIME
+    
+    SSL_ERROR_COUNT += 1
+    current_time = datetime.now()
+    
+    log_scraper(f"🔴 SSL HATASI TESPİT EDİLDİ: {error_message}", level='ERROR')
+    log_scraper(f"SSL hata sayısı: {SSL_ERROR_COUNT}", level='ERROR')
+    
+    should_send_alert = True
+    if SSL_LAST_ALERT_TIME:
+        minutes_since_last = (current_time - SSL_LAST_ALERT_TIME).total_seconds() / 60
+        if minutes_since_last < 5:
+            should_send_alert = False
+            log_scraper("Telegram uyarısı 5 dk içinde zaten gönderildi, atlanıyor")
+    
+    if should_send_alert:
+        alert_msg = f"🔴 SSL Sertifika Hatası!\n\n{error_message}\n\n🔄 Uygulama otomatik yeniden başlatılıyor..."
+        send_telegram_alert(alert_msg)
+        SSL_LAST_ALERT_TIME = current_time
+    
+    log_scraper("⏳ 5 saniye sonra yeniden başlatılacak...")
+    time.sleep(5)
+    
+    restart_application()
 
 def setup_logging():
     """Log dosyası oluştur"""
@@ -421,9 +563,20 @@ def run_scraper(config):
         log_scraper("Supabase bağlantısı hazır")
         
         cycle_count = 0
+        ssl_check_interval = 5
+        
         while not SCRAPER_STATE.get('stop_requested', False):
             cycle_count += 1
             try:
+                if cycle_count % ssl_check_interval == 1:
+                    log_scraper("🔒 SSL sertifika kontrolü yapılıyor...")
+                    ssl_ok, ssl_error = check_ssl_health()
+                    if not ssl_ok:
+                        log_scraper(f"🔴 SSL HATASI: {ssl_error}", level='ERROR')
+                        handle_ssl_error(ssl_error)
+                        return
+                    log_scraper("✅ SSL sertifikaları sağlıklı")
+                
                 SCRAPER_STATE['status'] = 'Veri çekiliyor...'
                 log_scraper("-" * 50)
                 log_scraper(f"DÖNGÜ #{cycle_count} BAŞLIYOR...")
@@ -440,9 +593,24 @@ def run_scraper(config):
                 
             except Exception as e:
                 import traceback
-                log_scraper(f"DÖNGÜ HATASI: {str(e)}", level='ERROR')
+                error_str = str(e)
+                log_scraper(f"DÖNGÜ HATASI: {error_str}", level='ERROR')
                 log_scraper(f"Traceback: {traceback.format_exc()}", level='ERROR')
-                SCRAPER_STATE['status'] = f'Hata: {str(e)[:50]}'
+                SCRAPER_STATE['status'] = f'Hata: {error_str[:50]}'
+                
+                ssl_error_indicators = [
+                    'TLS CA certificate bundle',
+                    'certificate verify failed',
+                    'CERTIFICATE_VERIFY_FAILED',
+                    'cacert.pem',
+                    'SSLCertVerificationError'
+                ]
+                is_ssl_error = any(indicator in error_str for indicator in ssl_error_indicators)
+                
+                if is_ssl_error:
+                    log_scraper("🔴 SSL sertifika hatası tespit edildi!", level='ERROR')
+                    handle_ssl_error(error_str)
+                    return
             
             if SCRAPER_STATE.get('stop_requested', False):
                 break
