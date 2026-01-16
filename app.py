@@ -6693,6 +6693,437 @@ def alarm_engine_console_page():
     return html
 
 
+# ============================================
+# LICENSE MANAGEMENT API
+# ============================================
+
+import secrets
+import string
+import logging as license_logging
+import httpx
+
+def generate_license_key():
+    """Generate unique license key: SXF-XXXX-XXXX-XXXX"""
+    chars = string.ascii_uppercase + string.digits
+    block1 = ''.join(secrets.choice(chars) for _ in range(4))
+    block2 = ''.join(secrets.choice(chars) for _ in range(4))
+    block3 = ''.join(secrets.choice(chars) for _ in range(4))
+    return f"SXF-{block1}-{block2}-{block3}"
+
+def get_license_db():
+    """Get Supabase REST API client for license operations"""
+    sc = get_supabase_client()
+    if not sc or not sc.is_available:
+        return None
+    return {
+        'url': sc.url,
+        'headers': {
+            "apikey": sc.key,
+            "Authorization": f"Bearer {sc.key}",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation"
+        }
+    }
+
+def license_select(table, columns='*', filters=None, order_by=None, desc=False):
+    """SELECT from license tables"""
+    cfg = get_license_db()
+    if not cfg:
+        return None
+    
+    url = f"{cfg['url']}/rest/v1/{table}?select={columns}"
+    if filters:
+        for k, v in filters.items():
+            url += f"&{k}=eq.{v}"
+    if order_by:
+        url += f"&order={order_by}.{'desc' if desc else 'asc'}"
+    
+    try:
+        resp = httpx.get(url, headers=cfg['headers'], timeout=10)
+        if resp.status_code == 200:
+            return resp.json()
+        license_logging.error(f"license_select error: {resp.status_code} - {resp.text}")
+        return []
+    except Exception as e:
+        license_logging.error(f"license_select exception: {e}")
+        return []
+
+def license_insert(table, data):
+    """INSERT into license tables"""
+    cfg = get_license_db()
+    if not cfg:
+        return None
+    
+    url = f"{cfg['url']}/rest/v1/{table}"
+    try:
+        resp = httpx.post(url, headers=cfg['headers'], json=data, timeout=10)
+        if resp.status_code in [200, 201]:
+            return resp.json()
+        license_logging.error(f"license_insert error: {resp.status_code} - {resp.text}")
+        return None
+    except Exception as e:
+        license_logging.error(f"license_insert exception: {e}")
+        return None
+
+def license_update(table, data, filters):
+    """UPDATE license tables"""
+    cfg = get_license_db()
+    if not cfg:
+        return None
+    
+    url = f"{cfg['url']}/rest/v1/{table}"
+    for k, v in filters.items():
+        url += f"?{k}=eq.{v}"
+    
+    try:
+        resp = httpx.patch(url, headers=cfg['headers'], json=data, timeout=10)
+        if resp.status_code in [200, 204]:
+            return True
+        license_logging.error(f"license_update error: {resp.status_code} - {resp.text}")
+        return False
+    except Exception as e:
+        license_logging.error(f"license_update exception: {e}")
+        return False
+
+def license_delete(table, filters):
+    """DELETE from license tables"""
+    cfg = get_license_db()
+    if not cfg:
+        return None
+    
+    url = f"{cfg['url']}/rest/v1/{table}"
+    for k, v in filters.items():
+        url += f"?{k}=eq.{v}"
+    
+    try:
+        resp = httpx.delete(url, headers=cfg['headers'], timeout=10)
+        if resp.status_code in [200, 204]:
+            return True
+        license_logging.error(f"license_delete error: {resp.status_code} - {resp.text}")
+        return False
+    except Exception as e:
+        license_logging.error(f"license_delete exception: {e}")
+        return False
+
+
+@app.route('/api/licenses/create', methods=['POST'])
+def create_license():
+    """Create a new license key"""
+    try:
+        if not get_license_db():
+            return jsonify({'success': False, 'error': 'Supabase baglantisi yok'})
+        
+        data = request.get_json() or {}
+        email = data.get('email', '').strip()
+        duration_days = int(data.get('duration_days', 30))
+        note = data.get('note', '').strip()
+        max_devices = int(data.get('max_devices', 2))
+        
+        if not email:
+            return jsonify({'success': False, 'error': 'Email gerekli'})
+        
+        # Generate unique key
+        for _ in range(10):
+            key = generate_license_key()
+            existing = license_select('licenses', 'key', {'key': key})
+            if not existing:
+                break
+        else:
+            return jsonify({'success': False, 'error': 'Key olusturulamadi'})
+        
+        # Calculate expiry
+        from datetime import datetime, timedelta
+        now = datetime.utcnow()
+        expires_at = now + timedelta(days=duration_days)
+        
+        # Insert license
+        result = license_insert('licenses', {
+            'key': key,
+            'email': email,
+            'duration_days': duration_days,
+            'expires_at': expires_at.isoformat(),
+            'status': 'active',
+            'max_devices': max_devices,
+            'note': note or None
+        })
+        
+        if result:
+            return jsonify({'success': True, 'key': key})
+        else:
+            return jsonify({'success': False, 'error': 'Veritabani hatasi'})
+            
+    except Exception as e:
+        license_logging.error(f"Create license error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/licenses/list')
+def list_licenses():
+    """List all licenses with device counts"""
+    try:
+        if not get_license_db():
+            return jsonify({'success': False, 'error': 'Supabase baglantisi yok'})
+        
+        # Get all licenses
+        licenses = license_select('licenses', '*', None, 'created_at', True) or []
+        
+        # Get device counts
+        devices = license_select('license_devices', 'license_key') or []
+        device_counts = {}
+        for d in devices:
+            key = d.get('license_key')
+            device_counts[key] = device_counts.get(key, 0) + 1
+        
+        # Add device count to each license
+        for lic in licenses:
+            lic['device_count'] = device_counts.get(lic.get('key'), 0)
+        
+        return jsonify({'success': True, 'licenses': licenses})
+        
+    except Exception as e:
+        license_logging.error(f"List licenses error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/licenses/stats')
+def license_stats():
+    """Get license statistics"""
+    try:
+        if not get_license_db():
+            return jsonify({'success': False, 'error': 'Supabase baglantisi yok'})
+        
+        from datetime import datetime
+        now = datetime.utcnow()
+        
+        # Get all licenses
+        licenses = license_select('licenses', 'status,expires_at') or []
+        
+        total = 0
+        active = 0
+        expired = 0
+        
+        for lic in licenses:
+            total += 1
+            status = lic.get('status', 'active')
+            expires_at = lic.get('expires_at')
+            
+            if status == 'revoked':
+                continue
+            
+            if expires_at:
+                try:
+                    exp_date = datetime.fromisoformat(expires_at.replace('Z', '+00:00').replace('+00:00', ''))
+                    if exp_date < now:
+                        expired += 1
+                    else:
+                        active += 1
+                except:
+                    active += 1
+            else:
+                active += 1
+        
+        # Get device count
+        devices = license_select('license_devices', 'id') or []
+        device_count = len(devices)
+        
+        return jsonify({
+            'success': True,
+            'total': total,
+            'active': active,
+            'expired': expired,
+            'devices': device_count
+        })
+        
+    except Exception as e:
+        license_logging.error(f"License stats error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/licenses/extend', methods=['POST'])
+def extend_license():
+    """Extend license expiry date"""
+    try:
+        if not get_license_db():
+            return jsonify({'success': False, 'error': 'Supabase baglantisi yok'})
+        
+        data = request.get_json() or {}
+        key = data.get('key', '').strip()
+        days = int(data.get('days', 30))
+        
+        if not key:
+            return jsonify({'success': False, 'error': 'Key gerekli'})
+        
+        # Get current license
+        lic = license_select('licenses', 'expires_at', {'key': key})
+        if not lic:
+            return jsonify({'success': False, 'error': 'Lisans bulunamadi'})
+        
+        # Calculate new expiry
+        from datetime import datetime, timedelta
+        current_expires = lic[0].get('expires_at')
+        
+        try:
+            exp_date = datetime.fromisoformat(current_expires.replace('Z', '+00:00').replace('+00:00', ''))
+        except:
+            exp_date = datetime.utcnow()
+        
+        # If already expired, extend from now
+        now = datetime.utcnow()
+        if exp_date < now:
+            exp_date = now
+        
+        new_expires = exp_date + timedelta(days=days)
+        
+        # Update license
+        result = license_update('licenses', {
+            'expires_at': new_expires.isoformat(),
+            'status': 'active'
+        }, {'key': key})
+        
+        if result:
+            return jsonify({'success': True, 'new_expires': new_expires.isoformat()})
+        else:
+            return jsonify({'success': False, 'error': 'Guncelleme basarisiz'})
+            
+    except Exception as e:
+        license_logging.error(f"Extend license error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/licenses/reset-devices', methods=['POST'])
+def reset_license_devices():
+    """Reset all devices for a license"""
+    try:
+        if not get_license_db():
+            return jsonify({'success': False, 'error': 'Supabase baglantisi yok'})
+        
+        data = request.get_json() or {}
+        key = data.get('key', '').strip()
+        
+        if not key:
+            return jsonify({'success': False, 'error': 'Key gerekli'})
+        
+        # Delete all devices for this key
+        license_delete('license_devices', {'license_key': key})
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        license_logging.error(f"Reset devices error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/licenses/delete', methods=['POST'])
+def delete_license():
+    """Delete a license"""
+    try:
+        if not get_license_db():
+            return jsonify({'success': False, 'error': 'Supabase baglantisi yok'})
+        
+        data = request.get_json() or {}
+        key = data.get('key', '').strip()
+        
+        if not key:
+            return jsonify({'success': False, 'error': 'Key gerekli'})
+        
+        # Delete license (devices will be deleted via CASCADE)
+        license_delete('licenses', {'key': key})
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        license_logging.error(f"Delete license error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/licenses/validate', methods=['POST'])
+def validate_license():
+    """Validate license for desktop app activation"""
+    try:
+        if not get_license_db():
+            return jsonify({'valid': False, 'error': 'Supabase baglantisi yok'})
+        
+        data = request.get_json() or {}
+        key = data.get('key', '').strip()
+        device_id = data.get('device_id', '').strip()
+        device_name = data.get('device_name', '')
+        
+        if not key or not device_id:
+            return jsonify({'valid': False, 'error': 'Key ve device_id gerekli'})
+        
+        # Get license
+        lic = license_select('licenses', '*', {'key': key})
+        if not lic:
+            return jsonify({'valid': False, 'error': 'Gecersiz lisans anahtari'})
+        
+        license_data = lic[0]
+        
+        # Check status
+        if license_data.get('status') == 'revoked':
+            return jsonify({'valid': False, 'error': 'Bu lisans iptal edilmis'})
+        
+        # Check expiry
+        from datetime import datetime
+        now = datetime.utcnow()
+        expires_at = license_data.get('expires_at')
+        
+        if expires_at:
+            try:
+                exp_date = datetime.fromisoformat(expires_at.replace('Z', '+00:00').replace('+00:00', ''))
+                if exp_date < now:
+                    return jsonify({'valid': False, 'error': 'Lisans suresi dolmus', 'expired': True})
+                days_left = (exp_date - now).days
+            except:
+                days_left = 0
+        else:
+            days_left = 9999
+        
+        # Check device
+        devices = license_select('license_devices', 'device_id', {'license_key': key}) or []
+        device_ids = [d.get('device_id') for d in devices]
+        max_devices = license_data.get('max_devices', 2)
+        
+        if device_id in device_ids:
+            # Device already registered - update last_seen
+            license_update('license_devices', {
+                'last_seen': datetime.utcnow().isoformat()
+            }, {'license_key': key, 'device_id': device_id})
+            
+            return jsonify({
+                'valid': True,
+                'days_left': days_left,
+                'expires_at': expires_at,
+                'email': license_data.get('email')
+            })
+        
+        # Check if max devices reached
+        if len(device_ids) >= max_devices:
+            return jsonify({
+                'valid': False,
+                'error': f'Bu lisans {max_devices} cihazda aktif, limit asildi',
+                'device_limit': True
+            })
+        
+        # Register new device
+        license_insert('license_devices', {
+            'license_key': key,
+            'device_id': device_id,
+            'device_name': device_name or None
+        })
+        
+        return jsonify({
+            'valid': True,
+            'days_left': days_left,
+            'expires_at': expires_at,
+            'email': license_data.get('email'),
+            'new_device': True
+        })
+        
+    except Exception as e:
+        license_logging.error(f"Validate license error: {e}")
+        return jsonify({'valid': False, 'error': str(e)})
+
+
 def main():
     """Main entry point with error handling for EXE"""
     try:

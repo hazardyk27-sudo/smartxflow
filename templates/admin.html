@@ -673,6 +673,11 @@
                 <span class="nav-item-icon">📲</span>
                 <span>Telegram</span>
             </div>
+            <div class="nav-category">Yonetim</div>
+            <div class="nav-item" onclick="showPage('license')" data-page="license">
+                <span class="nav-item-icon">🔑</span>
+                <span>Lisans</span>
+            </div>
         </nav>
         <div class="sidebar-footer">
             <a href="/" class="back-home">
@@ -2513,6 +2518,157 @@
             <div class="info-card" style="padding: 0; overflow: hidden;">
                 <div style="background: #010409; padding: 15px; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.6; height: 500px; overflow-y: auto;" id="alarmEngineConsoleOutput">
                     <div style="color: #484f58;">[Alarm Engine Console bağlanıyor...]</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LICENSE PAGE -->
+        <div id="page-license" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title" style="color: #fbbf24;">🔑 Lisans Yonetimi</h2>
+                    <p class="page-subtitle">Lisans anahtarları olustur ve yonet</p>
+                </div>
+            </div>
+
+            <div class="grid-two-col">
+                <!-- Yeni Lisans Oluştur -->
+                <div class="info-card" style="border-left: 3px solid #fbbf24;">
+                    <h3>🔑 Yeni Lisans Olustur</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="licenseEmail" placeholder="kullanici@email.com" style="width: 100%;">
+                            <span class="form-hint">Lisansin ait oldugu kullanici emaili</span>
+                        </div>
+                        <div class="form-group">
+                            <label>Sure</label>
+                            <select id="licenseDuration" style="padding: 8px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3;">
+                                <option value="7">1 Hafta (7 gun)</option>
+                                <option value="14">2 Hafta (14 gun)</option>
+                                <option value="30" selected>1 Ay (30 gun)</option>
+                                <option value="90">3 Ay (90 gun)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Not (opsiyonel)</label>
+                            <input type="text" id="licenseNote" placeholder="Ornek: VIP musteri" style="width: 100%;">
+                        </div>
+                    </div>
+                    <div class="btn-group" style="margin-top: 20px;">
+                        <button class="btn btn-primary" onclick="createLicense()" style="background: #238636;">
+                            <span class="btn-icon">🔑</span> Key Olustur
+                        </button>
+                    </div>
+                    
+                    <!-- Oluşturulan Key Gösterimi -->
+                    <div id="generatedKeySection" style="display: none; margin-top: 20px; padding: 15px; background: #1c2128; border-radius: 8px; border: 1px solid #3fb950;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="color: #8b949e; font-size: 12px; margin-bottom: 5px;">Olusturulan Key:</div>
+                                <div id="generatedKeyValue" style="font-family: monospace; font-size: 18px; color: #3fb950; font-weight: 600;"></div>
+                            </div>
+                            <button class="btn" onclick="copyGeneratedKey()" style="background: #21262d;">
+                                <span>📋</span> Kopyala
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- İstatistikler -->
+                <div class="info-card" style="border-left: 3px solid #58a6ff;">
+                    <h3>📊 Lisans Istatistikleri</h3>
+                    <div class="stats-mini">
+                        <div class="stat-mini-item">
+                            <span class="stat-mini-value" id="licenseTotalCount">0</span>
+                            <span class="stat-mini-label">Toplam Lisans</span>
+                        </div>
+                        <div class="stat-mini-item">
+                            <span class="stat-mini-value" id="licenseActiveCount" style="color: #3fb950;">0</span>
+                            <span class="stat-mini-label">Aktif</span>
+                        </div>
+                        <div class="stat-mini-item">
+                            <span class="stat-mini-value" id="licenseExpiredCount" style="color: #f85149;">0</span>
+                            <span class="stat-mini-label">Suresi Dolmus</span>
+                        </div>
+                        <div class="stat-mini-item">
+                            <span class="stat-mini-value" id="licenseDevicesCount" style="color: #58a6ff;">0</span>
+                            <span class="stat-mini-label">Bagli Cihaz</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lisans Arama -->
+            <div class="info-card" style="margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0;">📋 Lisans Listesi</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="position: relative;">
+                            <input type="text" id="licenseSearchInput" placeholder="Email veya Key ara..." 
+                                   oninput="searchLicenses()" 
+                                   style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 250px;">
+                            <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                        </div>
+                        <select id="licenseStatusFilter" onchange="searchLicenses()" style="padding: 8px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3;">
+                            <option value="">Tumu</option>
+                            <option value="active">Aktif</option>
+                            <option value="expired">Suresi Dolmus</option>
+                            <option value="revoked">Iptal Edilmis</option>
+                        </select>
+                        <button class="btn" onclick="loadLicenses()" style="background: #21262d;">
+                            <span>🔄</span> Yenile
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Lisans Tablosu -->
+                <div style="overflow-x: auto;">
+                    <table class="market-table" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Key</th>
+                                <th>Email</th>
+                                <th>Sure</th>
+                                <th>Bitis</th>
+                                <th>Kalan Gun</th>
+                                <th>Cihaz</th>
+                                <th>Durum</th>
+                                <th>Not</th>
+                                <th>Islemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="licenseTableBody">
+                            <tr>
+                                <td colspan="9" style="text-align: center; color: #8b949e; padding: 30px;">
+                                    Lisanslar yukleniyor...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Süre Uzatma Modal -->
+            <div id="extendLicenseModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;">
+                <div style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 24px; width: 400px; max-width: 90%;">
+                    <h3 style="color: #fbbf24; margin-bottom: 20px;">⏰ Sure Uzat</h3>
+                    <input type="hidden" id="extendLicenseKey">
+                    <div class="form-group">
+                        <label>Eklenecek Sure</label>
+                        <select id="extendDuration" style="width: 100%; padding: 8px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3;">
+                            <option value="7">+1 Hafta (7 gun)</option>
+                            <option value="14">+2 Hafta (14 gun)</option>
+                            <option value="30">+1 Ay (30 gun)</option>
+                            <option value="90">+3 Ay (90 gun)</option>
+                        </select>
+                    </div>
+                    <div class="btn-group" style="margin-top: 20px; justify-content: flex-end;">
+                        <button class="btn" onclick="closeExtendModal()" style="background: #21262d;">Iptal</button>
+                        <button class="btn btn-primary" onclick="confirmExtendLicense()" style="background: #238636;">Uzat</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -6869,6 +7025,248 @@
                 loadAlarms();
             }, 100);
         }
+
+        // ============================================
+        // LICENSE MANAGEMENT
+        // ============================================
+        let allLicenses = [];
+
+        async function createLicense() {
+            const email = document.getElementById('licenseEmail').value.trim();
+            const duration = parseInt(document.getElementById('licenseDuration').value);
+            const note = document.getElementById('licenseNote').value.trim();
+
+            if (!email) {
+                showToast('Email adresi gerekli!', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/licenses/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, duration_days: duration, note })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('generatedKeyValue').textContent = data.key;
+                    document.getElementById('generatedKeySection').style.display = 'block';
+                    document.getElementById('licenseEmail').value = '';
+                    document.getElementById('licenseNote').value = '';
+                    showToast('Lisans olusturuldu!', 'success');
+                    loadLicenses();
+                    loadLicenseStats();
+                } else {
+                    showToast(data.error || 'Lisans olusturulamadi!', 'error');
+                }
+            } catch (error) {
+                console.error('Create license error:', error);
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+
+        function copyGeneratedKey() {
+            const key = document.getElementById('generatedKeyValue').textContent;
+            navigator.clipboard.writeText(key).then(() => {
+                showToast('Key kopyalandi!', 'success');
+            });
+        }
+
+        async function loadLicenses() {
+            try {
+                const response = await fetch('/api/licenses/list');
+                const data = await response.json();
+                
+                if (data.success) {
+                    allLicenses = data.licenses || [];
+                    renderLicenseTable(allLicenses);
+                }
+            } catch (error) {
+                console.error('Load licenses error:', error);
+            }
+        }
+
+        async function loadLicenseStats() {
+            try {
+                const response = await fetch('/api/licenses/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('licenseTotalCount').textContent = data.total || 0;
+                    document.getElementById('licenseActiveCount').textContent = data.active || 0;
+                    document.getElementById('licenseExpiredCount').textContent = data.expired || 0;
+                    document.getElementById('licenseDevicesCount').textContent = data.devices || 0;
+                }
+            } catch (error) {
+                console.error('Load license stats error:', error);
+            }
+        }
+
+        function searchLicenses() {
+            const query = document.getElementById('licenseSearchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('licenseStatusFilter').value;
+
+            let filtered = allLicenses;
+
+            if (query) {
+                filtered = filtered.filter(lic => 
+                    (lic.key && lic.key.toLowerCase().includes(query)) ||
+                    (lic.email && lic.email.toLowerCase().includes(query))
+                );
+            }
+
+            if (statusFilter) {
+                filtered = filtered.filter(lic => lic.status === statusFilter);
+            }
+
+            renderLicenseTable(filtered);
+        }
+
+        function renderLicenseTable(licenses) {
+            const tbody = document.getElementById('licenseTableBody');
+            
+            if (!licenses || licenses.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #8b949e; padding: 30px;">Lisans bulunamadi.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = licenses.map(lic => {
+                const expiresAt = new Date(lic.expires_at);
+                const now = new Date();
+                const daysLeft = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
+                
+                let statusBadge = '';
+                if (lic.status === 'active') {
+                    if (daysLeft <= 0) {
+                        statusBadge = '<span style="background: #f85149; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Suresi Doldu</span>';
+                    } else if (daysLeft <= 7) {
+                        statusBadge = '<span style="background: #f0883e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Yaklasıyor</span>';
+                    } else {
+                        statusBadge = '<span style="background: #238636; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Aktif</span>';
+                    }
+                } else if (lic.status === 'expired') {
+                    statusBadge = '<span style="background: #f85149; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Suresi Doldu</span>';
+                } else if (lic.status === 'revoked') {
+                    statusBadge = '<span style="background: #6e4000; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Iptal</span>';
+                }
+
+                const daysLeftText = daysLeft > 0 ? `${daysLeft} gun` : '<span style="color: #f85149;">Doldu</span>';
+                const deviceCount = lic.device_count || 0;
+
+                return `
+                    <tr>
+                        <td style="font-family: monospace; color: #58a6ff;">${lic.key}</td>
+                        <td>${lic.email || '-'}</td>
+                        <td>${lic.duration_days} gun</td>
+                        <td>${expiresAt.toLocaleDateString('tr-TR')}</td>
+                        <td>${daysLeftText}</td>
+                        <td>${deviceCount}/${lic.max_devices || 2}</td>
+                        <td>${statusBadge}</td>
+                        <td style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${lic.note || ''}">${lic.note || '-'}</td>
+                        <td>
+                            <div style="display: flex; gap: 5px;">
+                                <button onclick="openExtendModal('${lic.key}')" title="Sure Uzat" style="background: #238636; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">⏰</button>
+                                <button onclick="resetDevices('${lic.key}')" title="Cihazlari Sifirla" style="background: #58a6ff; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">🔄</button>
+                                <button onclick="deleteLicense('${lic.key}')" title="Sil" style="background: #f85149; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openExtendModal(key) {
+            document.getElementById('extendLicenseKey').value = key;
+            document.getElementById('extendLicenseModal').style.display = 'flex';
+        }
+
+        function closeExtendModal() {
+            document.getElementById('extendLicenseModal').style.display = 'none';
+        }
+
+        async function confirmExtendLicense() {
+            const key = document.getElementById('extendLicenseKey').value;
+            const days = parseInt(document.getElementById('extendDuration').value);
+
+            try {
+                const response = await fetch('/api/licenses/extend', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key, days })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showToast(`Lisans ${days} gun uzatildi!`, 'success');
+                    closeExtendModal();
+                    loadLicenses();
+                } else {
+                    showToast(data.error || 'Uzatma basarisiz!', 'error');
+                }
+            } catch (error) {
+                console.error('Extend license error:', error);
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+
+        async function resetDevices(key) {
+            if (!confirm('Bu lisansa bagli tum cihazlar silinecek. Emin misiniz?')) return;
+
+            try {
+                const response = await fetch('/api/licenses/reset-devices', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Cihazlar sifirlandi!', 'success');
+                    loadLicenses();
+                    loadLicenseStats();
+                } else {
+                    showToast(data.error || 'Sifirlama basarisiz!', 'error');
+                }
+            } catch (error) {
+                console.error('Reset devices error:', error);
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+
+        async function deleteLicense(key) {
+            if (!confirm('Bu lisans kalici olarak silinecek. Emin misiniz?')) return;
+
+            try {
+                const response = await fetch('/api/licenses/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Lisans silindi!', 'success');
+                    loadLicenses();
+                    loadLicenseStats();
+                } else {
+                    showToast(data.error || 'Silme basarisiz!', 'error');
+                }
+            } catch (error) {
+                console.error('Delete license error:', error);
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+
+        // Load license data when license page is shown
+        const originalShowPage = showPage;
+        showPage = function(pageName) {
+            originalShowPage(pageName);
+            if (pageName === 'license') {
+                loadLicenses();
+                loadLicenseStats();
+            }
+        };
     </script>
 </body>
 </html>
