@@ -2622,10 +2622,10 @@ const mobileBackgroundGridPlugin = {
         const width = right - left;
         const height = bottom - top;
         
-        // Grid configuration - fixed number of lines for consistent look
-        const horizontalLines = 4; // 4 horizontal lines
-        const verticalLines = 5;   // 5 vertical lines
-        const gridColor = 'rgba(255, 255, 255, 0.06)';
+        // Grid configuration - minimal 2x2 grid for clean look
+        const horizontalLines = 2; // 2 horizontal lines (top/bottom thirds)
+        const verticalLines = 2;   // 2 vertical lines (left/right thirds)
+        const gridColor = 'rgba(255, 255, 255, 0.08)';
         
         ctx.save();
         ctx.strokeStyle = gridColor;
