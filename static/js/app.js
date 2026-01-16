@@ -2622,9 +2622,7 @@ const mobileBackgroundGridPlugin = {
         const width = right - left;
         const height = bottom - top;
         
-        // Grid configuration - minimal 2x2 grid for clean look
-        const horizontalLines = 2; // 2 horizontal lines (top/bottom thirds)
-        const verticalLines = 2;   // 2 vertical lines (left/right thirds)
+        // Grid configuration - single cross at center (+ shape)
         const gridColor = 'rgba(255, 255, 255, 0.08)';
         
         ctx.save();
@@ -2632,23 +2630,19 @@ const mobileBackgroundGridPlugin = {
         ctx.lineWidth = 1;
         ctx.setLineDash([]);
         
-        // Draw horizontal lines (evenly spaced)
-        for (let i = 1; i <= horizontalLines; i++) {
-            const y = top + (height / (horizontalLines + 1)) * i;
-            ctx.beginPath();
-            ctx.moveTo(left, y);
-            ctx.lineTo(right, y);
-            ctx.stroke();
-        }
+        // Draw single horizontal line at center
+        const centerY = top + (height / 2);
+        ctx.beginPath();
+        ctx.moveTo(left, centerY);
+        ctx.lineTo(right, centerY);
+        ctx.stroke();
         
-        // Draw vertical lines (evenly spaced)
-        for (let i = 1; i <= verticalLines; i++) {
-            const x = left + (width / (verticalLines + 1)) * i;
-            ctx.beginPath();
-            ctx.moveTo(x, top);
-            ctx.lineTo(x, bottom);
-            ctx.stroke();
-        }
+        // Draw single vertical line at center
+        const centerX = left + (width / 2);
+        ctx.beginPath();
+        ctx.moveTo(centerX, top);
+        ctx.lineTo(centerX, bottom);
+        ctx.stroke();
         
         ctx.restore();
     }
