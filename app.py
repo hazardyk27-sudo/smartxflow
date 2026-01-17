@@ -6772,8 +6772,9 @@ def license_update(table, data, filters):
         return None
     
     url = f"{cfg['url']}/rest/v1/{table}"
-    for k, v in filters.items():
-        url += f"?{k}=eq.{v}"
+    filter_parts = [f"{k}=eq.{v}" for k, v in filters.items()]
+    if filter_parts:
+        url += "?" + "&".join(filter_parts)
     
     try:
         resp = httpx.patch(url, headers=cfg['headers'], json=data, timeout=10)
@@ -6792,8 +6793,9 @@ def license_delete(table, filters):
         return None
     
     url = f"{cfg['url']}/rest/v1/{table}"
-    for k, v in filters.items():
-        url += f"?{k}=eq.{v}"
+    filter_parts = [f"{k}=eq.{v}" for k, v in filters.items()]
+    if filter_parts:
+        url += "?" + "&".join(filter_parts)
     
     try:
         resp = httpx.delete(url, headers=cfg['headers'], timeout=10)
