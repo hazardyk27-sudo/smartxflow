@@ -704,7 +704,7 @@ class SupabaseClient:
             # Fetch latest history rows in parallel batches using Range header
             history_rows = []
             batch_size = 1000
-            max_rows = 10000  # Fetch more to ensure we get all active match data
+            max_rows = 30000  # Increased to cover more matches (history table is very large)
             
             def fetch_history_range(offset):
                 headers = self._headers()
