@@ -650,14 +650,14 @@ class SupabaseClient:
             return []
     
     def get_matches_paginated(self, market: str, limit: int = 20, offset: int = 0) -> Dict[str, Any]:
-        """FAST paginated match fetch using match_id_hash for consistent matching
+        """FAST paginated match fetch - fixtures-first approach
         
         Returns: {matches: [...], total: N, has_more: bool}
         
-        Strategy:
-        1. Get all unique matches from history (with full odds data)
-        2. Enrich with fixtures metadata where available
-        3. Use match_id_hash as the single source of truth for matching
+        Strategy (NEW - fixtures-first for performance):
+        1. Get ALL D-1+ fixtures (single source of truth for active matches)
+        2. Get history data ONLY for these fixture hashes (targeted query)
+        3. Build match list from fixtures, enriched with history odds
         """
         if not self.is_available:
             return {'matches': [], 'total': 0, 'has_more': False}
@@ -668,94 +668,94 @@ class SupabaseClient:
             from datetime import datetime, timedelta
             from urllib.parse import quote
             import pytz
+            import concurrent.futures
             
             tr_tz = pytz.timezone('Europe/Istanbul')
             now_tr = datetime.now(tr_tz)
             today_date = now_tr.date()
             yesterday_date = today_date - timedelta(days=1)
-            
-            today_str = today_date.strftime('%Y-%m-%d')
             yesterday_str = yesterday_date.strftime('%Y-%m-%d')
             
             history_table = f"{market}_history"
             
-            # Step 1: Get ALL unique matches from history with FULL odds data
-            # Use match_id_hash for deduplication, get latest by scraped_at
-            # Note: Supabase has 1000 row default limit, use parallel Range requests
-            import concurrent.futures
+            # Step 1: Get ALL D-1+ fixtures (this is the source of truth)
+            fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{yesterday_str}"
+            fix_resp = httpx.get(fix_url, headers=self._headers(), timeout=15)
             
-            history_rows = []
-            batch_size = 1000
-            max_rows = 15000  # Reduced for performance balance
-            
-            def fetch_batch(offset):
-                headers = self._headers()
-                headers['Range'] = f'{offset}-{offset + batch_size - 1}'
-                history_url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc"
-                resp = httpx.get(history_url, headers=headers, timeout=30)
-                if resp.status_code in [200, 206]:
-                    return resp.json()
-                return []
-            
-            # Fetch all batches in parallel for speed
-            offsets = list(range(0, max_rows, batch_size))
-            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-                results = list(executor.map(fetch_batch, offsets))
-            
-            for batch in results:
-                if batch:
-                    history_rows.extend(batch)
-            
-            print(f"[Paginated] Got {len(history_rows)} history rows (parallel)")
-            
-            # Deduplicate by match_id_hash - keep first (latest) occurrence
-            odds_by_hash = {}
-            for row in history_rows:
-                match_hash = row.get('match_id_hash', '')
-                if match_hash and match_hash not in odds_by_hash:
-                    odds_by_hash[match_hash] = row
-            
-            print(f"[Paginated] {len(odds_by_hash)} unique matches by hash")
-            
-            # Step 2: Get fixtures metadata for kickoff times
-            fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,kickoff_utc,fixture_date&fixture_date=gte.{yesterday_str}"
-            fix_resp = httpx.get(fix_url, headers=self._headers(), timeout=10)
-            
+            fixtures_list = []
             fixtures_by_hash = {}
             if fix_resp.status_code == 200:
-                for fix in fix_resp.json():
+                fixtures_list = fix_resp.json()
+                for fix in fixtures_list:
                     match_hash = fix.get('match_id_hash', '')
                     if match_hash:
                         fixtures_by_hash[match_hash] = fix
-                print(f"[Paginated] Got {len(fixtures_by_hash)} fixtures metadata")
             
-            # Step 3: Build match list with full odds
+            print(f"[Paginated] Got {len(fixtures_by_hash)} D-1+ fixtures")
+            
+            if not fixtures_by_hash:
+                return {'matches': [], 'total': 0, 'has_more': False}
+            
+            # Step 2: Get history data for these fixture hashes
+            # Split hashes into batches for IN query (Supabase URL limit)
+            all_hashes = list(fixtures_by_hash.keys())
+            odds_by_hash = {}
+            batch_size = 50  # Supabase URL limit safe batch
+            
+            def fetch_history_batch(hash_batch):
+                if not hash_batch:
+                    return []
+                # Build IN query: match_id_hash=in.(hash1,hash2,...)
+                hash_list = ','.join(hash_batch)
+                url = f"{self._rest_url(history_table)}?match_id_hash=in.({hash_list})&order=scraped_at.desc"
+                try:
+                    resp = httpx.get(url, headers=self._headers(), timeout=30)
+                    if resp.status_code == 200:
+                        return resp.json()
+                except:
+                    pass
+                return []
+            
+            # Parallel fetch history batches
+            hash_batches = [all_hashes[i:i+batch_size] for i in range(0, len(all_hashes), batch_size)]
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                results = list(executor.map(fetch_history_batch, hash_batches))
+            
+            # Deduplicate - keep latest (first) per hash
+            for batch_rows in results:
+                for row in batch_rows:
+                    match_hash = row.get('match_id_hash', '')
+                    if match_hash and match_hash not in odds_by_hash:
+                        odds_by_hash[match_hash] = row
+            
+            print(f"[Paginated] Got history for {len(odds_by_hash)} matches")
+            
+            # Step 3: Build match list from fixtures, enriched with history
             matches = []
-            for match_hash, row in odds_by_hash.items():
-                home = row.get('home', '')
-                away = row.get('away', '')
-                league = row.get('league', '')
-                date_str = row.get('date', '')
+            for match_hash, fix in fixtures_by_hash.items():
+                home = fix.get('home_team', '')
+                away = fix.get('away_team', '')
+                league = fix.get('league', '')
+                kickoff_utc = fix.get('kickoff_utc', '')
                 
-                # Get kickoff from fixtures if available
-                kickoff_utc = ''
-                date_display = date_str
-                if match_hash in fixtures_by_hash:
-                    fix = fixtures_by_hash[match_hash]
-                    kickoff_utc = fix.get('kickoff_utc', '')
-                    if kickoff_utc:
-                        try:
-                            if isinstance(kickoff_utc, str):
-                                kickoff_dt = datetime.fromisoformat(kickoff_utc.replace('Z', '+00:00'))
-                            else:
-                                kickoff_dt = kickoff_utc
-                            kickoff_tr = kickoff_dt.astimezone(tr_tz)
-                            date_display = kickoff_tr.strftime('%d.%b %H:%M')
-                        except:
-                            pass
+                # Format date
+                date_display = fix.get('fixture_date', '')
+                if kickoff_utc:
+                    try:
+                        if isinstance(kickoff_utc, str):
+                            kickoff_dt = datetime.fromisoformat(kickoff_utc.replace('Z', '+00:00'))
+                        else:
+                            kickoff_dt = kickoff_utc
+                        kickoff_tr = kickoff_dt.astimezone(tr_tz)
+                        date_display = kickoff_tr.strftime('%d.%b %H:%M')
+                    except:
+                        pass
                 
-                # Get FULL odds from history row
-                latest_odds = self._normalize_history_row(row, market)
+                # Get odds from history if available
+                if match_hash in odds_by_hash:
+                    latest_odds = self._normalize_history_row(odds_by_hash[match_hash], market)
+                else:
+                    latest_odds = self._get_empty_odds(market)
                 
                 matches.append({
                     'home_team': home,
@@ -767,54 +767,9 @@ class SupabaseClient:
                     'latest': latest_odds
                 })
             
-            # Step 4: Add fixtures that are NOT in history (new matches without odds yet)
-            # Batch fetch all missing fixtures at once for performance
-            missing_hashes = [h for h in fixtures_by_hash.keys() if h not in odds_by_hash]
-            fixtures_only_count = 0
-            
-            if missing_hashes:
-                # Batch fetch all fixture details at once
-                batch_fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{yesterday_str}"
-                try:
-                    batch_fix_resp = httpx.get(batch_fix_url, headers=self._headers(), timeout=10)
-                    if batch_fix_resp.status_code == 200:
-                        all_fixtures = {f.get('match_id_hash'): f for f in batch_fix_resp.json()}
-                        
-                        for match_hash in missing_hashes:
-                            if match_hash in all_fixtures:
-                                fd = all_fixtures[match_hash]
-                                kickoff_utc = fd.get('kickoff_utc', '')
-                                date_display = fd.get('fixture_date', '')
-                                if kickoff_utc:
-                                    try:
-                                        if isinstance(kickoff_utc, str):
-                                            kickoff_dt = datetime.fromisoformat(kickoff_utc.replace('Z', '+00:00'))
-                                        else:
-                                            kickoff_dt = kickoff_utc
-                                        kickoff_tr = kickoff_dt.astimezone(tr_tz)
-                                        date_display = kickoff_tr.strftime('%d.%b %H:%M')
-                                    except:
-                                        pass
-                                
-                                matches.append({
-                                    'home_team': fd.get('home_team', ''),
-                                    'away_team': fd.get('away_team', ''),
-                                    'league': fd.get('league', ''),
-                                    'date': date_display,
-                                    'match_id_hash': match_hash,
-                                    'kickoff_utc': kickoff_utc,
-                                    'latest': self._get_empty_odds(market)
-                                })
-                                fixtures_only_count += 1
-                except Exception as e:
-                    print(f"[Paginated] Batch fixtures fetch error: {e}")
-            
-            if fixtures_only_count > 0:
-                print(f"[Paginated] Added {fixtures_only_count} matches from fixtures (no history yet)")
-            
             total = len(matches)
             elapsed = time.time() - start_time
-            print(f"[Paginated] Completed in {elapsed:.2f}s - {total} matches with full odds")
+            print(f"[Paginated] Completed in {elapsed:.2f}s - {total} matches (fixtures-first)")
             
             return {
                 'matches': matches,
@@ -1616,7 +1571,7 @@ class SupabaseClient:
     
     def cleanup_old_matches(self, cutoff_date: str) -> Dict[str, int]:
         """
-        Delete D-2+ matches from all tables.
+        Delete D-2+ matches from all tables including fixtures and snapshots.
         cutoff_date format: YYYY-MM-DD (matches older than this date will be deleted)
         Returns count of deleted records per table.
         """
@@ -1625,23 +1580,37 @@ class SupabaseClient:
         
         deleted = {}
         
-        # History tabloları
-        history_tables = ['moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history', 
-                          'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history']
+        # 1. Fixtures tablosunu temizle (fixture_date < cutoff_date)
+        try:
+            headers = self._headers()
+            headers['Prefer'] = 'return=representation'
+            url = f"{self._rest_url('fixtures')}?fixture_date=lt.{cutoff_date}"
+            resp = httpx.delete(url, headers=headers, timeout=120)
+            
+            if resp.status_code == 200:
+                try:
+                    deleted_rows = resp.json()
+                    count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
+                    if count > 0:
+                        deleted['fixtures'] = count
+                        print(f"[Cleanup] Deleted {count} old fixtures")
+                except:
+                    pass
+            elif resp.status_code not in [204, 404]:
+                print(f"[Cleanup] Error deleting fixtures: {resp.status_code}")
+        except Exception as e:
+            print(f"[Cleanup] Exception for fixtures: {e}")
         
-        # History tablolarını sil (scraped_at < cutoff_date)
-        for table in history_tables:
+        # 2. Snapshot tabloları (scraped_at_utc < cutoff_date)
+        snapshot_tables = ['moneyway_snapshots', 'dropping_odds_snapshots']
+        for table in snapshot_tables:
             try:
-                # Prefer header ile silinen kayıtları döndür
                 headers = self._headers()
                 headers['Prefer'] = 'return=representation'
-                
-                # scraped_at sütunu ile filtrele
-                url = f"{self._rest_url(table)}?scraped_at=lt.{cutoff_date}T00:00:00"
-                resp = httpx.delete(url, headers=headers, timeout=60)
+                url = f"{self._rest_url(table)}?scraped_at_utc=lt.{cutoff_date}T00:00:00"
+                resp = httpx.delete(url, headers=headers, timeout=120)
                 
                 if resp.status_code == 200:
-                    # Silinen kayıtları say
                     try:
                         deleted_rows = resp.json()
                         count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
@@ -1650,13 +1619,33 @@ class SupabaseClient:
                             print(f"[Cleanup] Deleted {count} old records from {table}")
                     except:
                         pass
-                elif resp.status_code == 204:
-                    # No content - silme başarılı ama kayıt yok
-                    pass
-                elif resp.status_code == 404:
-                    pass  # Tablo yok, sorun değil
-                else:
-                    print(f"[Cleanup] Error deleting from {table}: {resp.status_code} - {resp.text[:100]}")
+                elif resp.status_code not in [204, 404]:
+                    print(f"[Cleanup] Error deleting from {table}: {resp.status_code}")
+            except Exception as e:
+                print(f"[Cleanup] Exception for {table}: {e}")
+        
+        # 3. History tabloları (scraped_at < cutoff_date)
+        history_tables = ['moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history', 
+                          'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history']
+        
+        for table in history_tables:
+            try:
+                headers = self._headers()
+                headers['Prefer'] = 'return=representation'
+                url = f"{self._rest_url(table)}?scraped_at=lt.{cutoff_date}T00:00:00"
+                resp = httpx.delete(url, headers=headers, timeout=120)
+                
+                if resp.status_code == 200:
+                    try:
+                        deleted_rows = resp.json()
+                        count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
+                        if count > 0:
+                            deleted[table] = count
+                            print(f"[Cleanup] Deleted {count} old records from {table}")
+                    except:
+                        pass
+                elif resp.status_code not in [204, 404]:
+                    print(f"[Cleanup] Error deleting from {table}: {resp.status_code}")
             except Exception as e:
                 print(f"[Cleanup] Exception for {table}: {e}")
         
