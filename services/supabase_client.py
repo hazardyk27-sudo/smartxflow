@@ -696,37 +696,41 @@ class SupabaseClient:
             if not fixtures_by_hash:
                 return {'matches': [], 'total': 0, 'has_more': False}
             
-            # Step 2: Get history data for these fixture hashes
-            # Split hashes into batches for IN query (Supabase URL limit)
-            all_hashes = list(fixtures_by_hash.keys())
+            # Step 2: Get history data - fetch latest rows and match with fixtures
+            # Note: IN query on match_id_hash times out (no index), so we fetch latest N rows instead
+            all_hashes = set(fixtures_by_hash.keys())
             odds_by_hash = {}
-            batch_size = 50  # Supabase URL limit safe batch
             
-            def fetch_history_batch(hash_batch):
-                if not hash_batch:
-                    return []
-                # Build IN query: match_id_hash=in.(hash1,hash2,...)
-                hash_list = ','.join(hash_batch)
-                url = f"{self._rest_url(history_table)}?match_id_hash=in.({hash_list})&order=scraped_at.desc"
+            # Fetch latest history rows in parallel batches using Range header
+            history_rows = []
+            batch_size = 1000
+            max_rows = 10000  # Fetch more to ensure we get all active match data
+            
+            def fetch_history_range(offset):
+                headers = self._headers()
+                headers['Range'] = f'{offset}-{offset + batch_size - 1}'
+                url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc"
                 try:
-                    resp = httpx.get(url, headers=self._headers(), timeout=30)
-                    if resp.status_code == 200:
+                    resp = httpx.get(url, headers=headers, timeout=30)
+                    if resp.status_code in [200, 206]:
                         return resp.json()
-                except:
-                    pass
+                except Exception as e:
+                    print(f"[Paginated] History range error: {e}")
                 return []
             
-            # Parallel fetch history batches
-            hash_batches = [all_hashes[i:i+batch_size] for i in range(0, len(all_hashes), batch_size)]
-            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                results = list(executor.map(fetch_history_batch, hash_batches))
+            # Parallel fetch using Range headers (faster than IN query on unindexed table)
+            offsets = list(range(0, max_rows, batch_size))
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                results = list(executor.map(fetch_history_range, offsets))
             
-            # Deduplicate - keep latest (first) per hash
-            for batch_rows in results:
-                for row in batch_rows:
-                    match_hash = row.get('match_id_hash', '')
-                    if match_hash and match_hash not in odds_by_hash:
-                        odds_by_hash[match_hash] = row
+            for batch in results:
+                history_rows.extend(batch)
+            
+            # Filter to only fixture hashes and deduplicate (keep latest per hash)
+            for row in history_rows:
+                match_hash = row.get('match_id_hash', '')
+                if match_hash in all_hashes and match_hash not in odds_by_hash:
+                    odds_by_hash[match_hash] = row
             
             print(f"[Paginated] Got history for {len(odds_by_hash)} matches")
             
