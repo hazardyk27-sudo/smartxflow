@@ -7126,6 +7126,144 @@ def validate_license():
         return jsonify({'valid': False, 'error': str(e)})
 
 
+@app.route('/license-preview')
+def license_preview():
+    """Preview activation screen for testing"""
+    device_id = "test123abc456"
+    return f'''<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>SmartXFlow Aktivasyon</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            color: #c9d1d9;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }}
+        .container {{
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            padding: 40px;
+            width: 420px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }}
+        .logo {{ font-size: 48px; margin-bottom: 10px; }}
+        h1 {{ color: #58a6ff; font-size: 24px; margin-bottom: 8px; }}
+        .subtitle {{ color: #8b949e; font-size: 14px; margin-bottom: 30px; }}
+        .form-group {{ margin-bottom: 20px; text-align: left; }}
+        label {{
+            display: block; color: #8b949e; font-size: 12px;
+            margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;
+        }}
+        input {{
+            width: 100%; padding: 14px 16px; background: #0d1117;
+            border: 1px solid #30363d; border-radius: 8px; color: #e6edf3;
+            font-size: 16px; font-family: monospace; letter-spacing: 1px;
+            text-transform: uppercase;
+        }}
+        input:focus {{ outline: none; border-color: #58a6ff; box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15); }}
+        input::placeholder {{ color: #484f58; text-transform: none; letter-spacing: normal; }}
+        .btn {{
+            width: 100%; padding: 14px;
+            background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+            border: none; border-radius: 8px; color: white;
+            font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+        }}
+        .btn:hover {{ transform: translateY(-1px); box-shadow: 0 4px 12px rgba(35, 134, 54, 0.4); }}
+        .btn:disabled {{ opacity: 0.6; cursor: not-allowed; transform: none; }}
+        .error {{
+            background: rgba(248, 81, 73, 0.1); border: 1px solid #f85149;
+            color: #f85149; padding: 12px; border-radius: 8px;
+            margin-bottom: 20px; font-size: 13px; display: none;
+        }}
+        .success {{
+            background: rgba(35, 134, 54, 0.1); border: 1px solid #238636;
+            color: #3fb950; padding: 12px; border-radius: 8px;
+            margin-bottom: 20px; font-size: 13px; display: none;
+        }}
+        .contact {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #30363d; color: #8b949e; font-size: 12px; }}
+        .contact a {{ color: #58a6ff; text-decoration: none; }}
+        .device-info {{ margin-top: 20px; padding: 10px; background: #0d1117; border-radius: 6px; font-size: 11px; color: #484f58; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🔑</div>
+        <h1>SmartXFlow Monitor</h1>
+        <p class="subtitle">Lisans Aktivasyonu</p>
+        <div id="errorMsg" class="error"></div>
+        <div id="successMsg" class="success"></div>
+        <div class="form-group">
+            <label>Lisans Anahtari</label>
+            <input type="text" id="licenseKey" placeholder="SXF-XXXX-XXXX-XXXX" maxlength="18">
+        </div>
+        <button class="btn" id="activateBtn" onclick="activate()">✓ Aktive Et</button>
+        <div class="contact">Lisans almak icin:<br>📱 Telegram: <a href="https://t.me/smartxflow">@smartxflow</a></div>
+        <div class="device-info">Cihaz ID: {device_id}</div>
+    </div>
+    <script>
+        const keyInput = document.getElementById('licenseKey');
+        keyInput.addEventListener('input', function(e) {{
+            let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (value.length > 3 && !value.startsWith('SXF')) value = 'SXF' + value.substring(0, 12);
+            let formatted = '';
+            if (value.length > 0) {{
+                formatted = value.substring(0, 3);
+                if (value.length > 3) formatted += '-' + value.substring(3, 7);
+                if (value.length > 7) formatted += '-' + value.substring(7, 11);
+                if (value.length > 11) formatted += '-' + value.substring(11, 15);
+            }}
+            e.target.value = formatted;
+        }});
+        async function activate() {{
+            const key = keyInput.value.trim();
+            const errorEl = document.getElementById('errorMsg');
+            const successEl = document.getElementById('successMsg');
+            const btn = document.getElementById('activateBtn');
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+            if (!key || key.length < 18) {{
+                errorEl.textContent = 'Lutfen gecerli bir lisans anahtari girin.';
+                errorEl.style.display = 'block';
+                return;
+            }}
+            btn.disabled = true;
+            btn.textContent = 'Dogrulanıyor...';
+            try {{
+                const response = await fetch('/api/licenses/validate', {{
+                    method: 'POST',
+                    headers: {{'Content-Type': 'application/json'}},
+                    body: JSON.stringify({{key: key, device_id: '{device_id}', device_name: 'Web Test'}})
+                }});
+                const result = await response.json();
+                if (result.valid) {{
+                    successEl.textContent = 'Lisans aktif! Kalan gun: ' + result.days_left;
+                    successEl.style.display = 'block';
+                }} else {{
+                    errorEl.textContent = result.error || 'Lisans dogrulanamadi.';
+                    errorEl.style.display = 'block';
+                }}
+            }} catch (e) {{
+                errorEl.textContent = 'Baglanti hatasi. Lutfen tekrar deneyin.';
+                errorEl.style.display = 'block';
+            }}
+            btn.disabled = false;
+            btn.textContent = '✓ Aktive Et';
+        }}
+        keyInput.addEventListener('keypress', function(e) {{ if (e.key === 'Enter') activate(); }});
+    </script>
+</body>
+</html>'''
+
+
 def main():
     """Main entry point with error handling for EXE"""
     try:
