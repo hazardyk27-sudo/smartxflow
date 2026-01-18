@@ -3394,6 +3394,11 @@
             if (pageId === 'volumeleader') loadVolumeLeaderPage();
             if (pageId === 'mim') loadMimPage();
             if (pageId === 'telegram') loadTelegramPage();
+            if (pageId === 'license') loadLicensePage();
+        }
+        
+        async function loadLicensePage() {
+            await Promise.all([loadLicenses(), loadLicenseStats()]);
         }
         
         async function loadTelegramPage() {
