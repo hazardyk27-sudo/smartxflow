@@ -21,8 +21,9 @@
             width: 260px;
             background: #161b22;
             border-right: 1px solid #30363d;
-            min-height: 100vh;
+            height: 100vh;
             position: fixed;
+            overflow-y: auto;
             left: 0;
             top: 0;
             display: flex;
@@ -639,6 +640,10 @@
                 <span class="nav-item-icon">🔔</span>
                 <span>Alarm Engine</span>
             </div>
+            <div class="nav-item" onclick="showPage('license')" data-page="license">
+                <span class="nav-item-icon">🔑</span>
+                <span>Lisans Yonetimi</span>
+            </div>
             
             <div class="nav-category">Alarmlar</div>
             <div class="nav-item" onclick="showPage('sharp')" data-page="sharp">
@@ -672,11 +677,6 @@
             <div class="nav-item" onclick="showPage('telegram')" data-page="telegram">
                 <span class="nav-item-icon">📲</span>
                 <span>Telegram</span>
-            </div>
-            <div class="nav-category">Yonetim</div>
-            <div class="nav-item" onclick="showPage('license')" data-page="license">
-                <span class="nav-item-icon">🔑</span>
-                <span>Lisans</span>
             </div>
         </nav>
         <div class="sidebar-footer">
