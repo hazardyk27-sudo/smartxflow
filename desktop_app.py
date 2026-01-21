@@ -262,10 +262,11 @@ def show_activation_window(api_base_url, device_id, device_name):
                 0 0 80px rgba(30,144,255,0.08);
         }}
         .logo {{
-            width: 64px;
-            height: 64px;
-            margin-bottom: 16px;
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
             border-radius: 12px;
+            object-fit: contain;
         }}
         .brand-badge {{
             display: inline-flex;

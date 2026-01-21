@@ -7159,10 +7159,11 @@ def license_preview():
                 0 0 80px rgba(30,144,255,0.08);
         }}
         .logo {{
-            width: 64px;
-            height: 64px;
-            margin-bottom: 16px;
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
             border-radius: 12px;
+            object-fit: contain;
         }}
         .brand-badge {{
             display: inline-flex;
