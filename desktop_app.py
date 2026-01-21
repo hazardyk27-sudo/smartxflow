@@ -313,6 +313,7 @@ def show_activation_window(api_base_url, device_id, device_name):
             margin-bottom: 32px;
         }}
         .subtitle .green {{ color: #22c55e; }}
+        .subtitle .red {{ color: #ef4444; }}
         .subtitle .muted {{ color: #8b949e; }}
         .form-group {{ margin-bottom: 24px; text-align: left; }}
         label {{
@@ -529,7 +530,7 @@ def show_activation_window(api_base_url, device_id, device_name):
 <body>
     <div class="container" id="mainContainer">
         <h1>SmartXFlow Monitor</h1>
-        <p class="subtitle"><span class="green">Akilli Para</span> <span class="muted">&</span> <span class="muted">Oran Takibi</span></p>
+        <p class="subtitle"><span class="green">Akilli Para</span> <span class="muted">&</span> <span class="red">Oran Takibi</span></p>
         
         <div id="progressBar" class="progress-bar">
             <div class="progress-bar-fill" id="progressFill"></div>
