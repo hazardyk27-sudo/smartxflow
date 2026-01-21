@@ -7126,7 +7126,7 @@ def validate_license():
         return jsonify({'valid': False, 'error': str(e)})
 
 
-@app.route('/license-preview')
+@app.route('/lisans')
 def license_preview():
     """Preview activation screen for testing"""
     device_id = "test123abc456"
