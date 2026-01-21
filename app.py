@@ -7158,15 +7158,22 @@ def license_preview():
                 0 20px 60px rgba(0,0,0,0.6),
                 0 0 80px rgba(30,144,255,0.08);
         }}
+        .logo {{
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            border-radius: 12px;
+        }}
         .brand-badge {{
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: linear-gradient(135deg, rgba(30,144,255,0.15) 0%, rgba(30,144,255,0.05) 100%);
-            border: 1px solid rgba(30,144,255,0.3);
+            background: linear-gradient(135deg, rgba(30,144,255,0.18) 0%, rgba(30,144,255,0.06) 100%);
+            border: 1px solid rgba(30,144,255,0.35);
             padding: 8px 16px;
             border-radius: 30px;
             margin-bottom: 16px;
+            box-shadow: 0 0 20px rgba(30,144,255,0.12), 0 0 40px rgba(30,144,255,0.06);
         }}
         .brand-badge-icon {{
             width: 20px;
@@ -7224,11 +7231,12 @@ def license_preview():
             letter-spacing: 2px;
             text-transform: uppercase;
             transition: all 0.2s ease;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 0 20px rgba(30,144,255,0.08);
         }}
         input:focus {{ 
             outline: none; 
             border-color: #1e90ff; 
-            box-shadow: 0 0 0 1px #1e90ff, 0 0 20px rgba(30,144,255,0.25);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 0 0 1px #1e90ff, 0 0 24px rgba(30,144,255,0.3);
         }}
         input::placeholder {{ 
             color: #30363d; 
@@ -7252,8 +7260,9 @@ def license_preview():
             overflow: hidden;
         }}
         .btn:hover {{ 
-            transform: translateY(-2px); 
-            box-shadow: 0 8px 24px rgba(29, 185, 84, 0.4);
+            transform: translateY(-3px); 
+            box-shadow: 0 12px 28px rgba(29, 185, 84, 0.45);
+            background: linear-gradient(135deg, #22c55e 0%, #34d058 100%);
         }}
         .btn:active {{
             transform: translateY(0);
@@ -7263,6 +7272,12 @@ def license_preview():
             cursor: not-allowed; 
             transform: none;
             box-shadow: none;
+        }}
+        .btn-hint {{
+            margin-top: 12px;
+            font-size: 11px;
+            color: #484f58;
+            text-align: center;
         }}
         .btn-loading {{
             display: none;
@@ -7415,12 +7430,13 @@ def license_preview():
 </head>
 <body>
     <div class="container" id="mainContainer">
+        <img src="/static/images/smartxflow_logo.png" alt="SmartXFlow" class="logo">
         <div class="brand-badge">
             <div class="brand-badge-icon">SXF</div>
-            <span class="brand-badge-text">Premium Software</span>
+            <span class="brand-badge-text">Premium Yazilim</span>
         </div>
         <h1>SmartXFlow Monitor</h1>
-        <p class="subtitle">Real-time Market Intelligence</p>
+        <p class="subtitle">Akilli Para & Oran Takibi</p>
         
         <div id="progressBar" class="progress-bar">
             <div class="progress-bar-fill" id="progressFill"></div>
@@ -7438,6 +7454,7 @@ def license_preview():
             <span class="btn-text">Lisansi Aktif Et</span>
             <div class="btn-loading"><div class="spinner"></div></div>
         </button>
+        <div class="btn-hint">Lisans dogrulamasi birkac saniye surebilir</div>
         
         <div class="telegram-card">
             <div class="telegram-left">
@@ -7452,7 +7469,7 @@ def license_preview():
         
         <div class="device-info">
             <span class="device-info-icon">🔒</span>
-            <span>Device ID otomatik alindi</span>
+            <span>Cihaz otomatik tanimlandi</span>
         </div>
     </div>
     <script>
