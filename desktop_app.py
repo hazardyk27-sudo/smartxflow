@@ -262,10 +262,10 @@ def show_activation_window(api_base_url, device_id, device_name):
                 0 0 80px rgba(30,144,255,0.08);
         }}
         .logo {{
-            width: 80px;
-            height: 80px;
+            width: 100px;
+            height: auto;
+            max-height: 100px;
             margin-bottom: 20px;
-            border-radius: 12px;
             object-fit: contain;
         }}
         .brand-badge {{
@@ -306,13 +306,14 @@ def show_activation_window(api_base_url, device_id, device_name):
             letter-spacing: -0.5px;
         }}
         .subtitle {{ 
-            color: #1e90ff; 
             font-size: 13px; 
             font-weight: 500;
             letter-spacing: 2px;
             text-transform: uppercase;
             margin-bottom: 32px;
         }}
+        .subtitle .green {{ color: #22c55e; }}
+        .subtitle .red {{ color: #ef4444; }}
         .form-group {{ margin-bottom: 24px; text-align: left; }}
         label {{
             display: block; 
@@ -525,7 +526,7 @@ def show_activation_window(api_base_url, device_id, device_name):
 <body>
     <div class="container" id="mainContainer">
         <h1>SmartXFlow Monitor</h1>
-        <p class="subtitle">Akilli Para & Oran Takibi</p>
+        <p class="subtitle"><span class="green">Akilli Para</span> & <span class="red">Oran Takibi</span></p>
         
         <div id="progressBar" class="progress-bar">
             <div class="progress-bar-fill" id="progressFill"></div>

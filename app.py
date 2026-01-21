@@ -7159,10 +7159,10 @@ def license_preview():
                 0 0 80px rgba(30,144,255,0.08);
         }}
         .logo {{
-            width: 80px;
-            height: 80px;
+            width: 100px;
+            height: auto;
+            max-height: 100px;
             margin-bottom: 20px;
-            border-radius: 12px;
             object-fit: contain;
         }}
         .brand-badge {{
@@ -7203,13 +7203,14 @@ def license_preview():
             letter-spacing: -0.5px;
         }}
         .subtitle {{ 
-            color: #1e90ff; 
             font-size: 13px; 
             font-weight: 500;
             letter-spacing: 2px;
             text-transform: uppercase;
             margin-bottom: 32px;
         }}
+        .subtitle .green {{ color: #22c55e; }}
+        .subtitle .red {{ color: #ef4444; }}
         .form-group {{ margin-bottom: 24px; text-align: left; }}
         label {{
             display: block; 
@@ -7433,7 +7434,7 @@ def license_preview():
     <div class="container" id="mainContainer">
         <img src="/static/images/smartxflow_logo.png" alt="SmartXFlow" class="logo">
         <h1>SmartXFlow Monitor</h1>
-        <p class="subtitle">Akilli Para & Oran Takibi</p>
+        <p class="subtitle"><span class="green">Akilli Para</span> & <span class="red">Oran Takibi</span></p>
         
         <div id="progressBar" class="progress-bar">
             <div class="progress-bar-fill" id="progressFill"></div>
