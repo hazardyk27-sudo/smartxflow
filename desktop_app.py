@@ -242,7 +242,7 @@ def show_activation_window(api_base_url, device_id, device_name):
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            background: linear-gradient(135deg, #080b10 0%, #0d1117 50%, #0b0f14 100%);
             color: #c9d1d9;
             min-height: 100vh;
             display: flex;
@@ -250,162 +250,316 @@ def show_activation_window(api_base_url, device_id, device_name):
             justify-content: center;
         }}
         .container {{
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 16px;
-            padding: 40px;
-            width: 420px;
+            background: linear-gradient(180deg, #0f141a 0%, #0b0f14 100%);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 20px;
+            padding: 48px 40px;
+            width: 440px;
             text-align: center;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            box-shadow: 
+                0 0 0 1px rgba(255,255,255,0.04),
+                0 20px 60px rgba(0,0,0,0.6),
+                0 0 80px rgba(30,144,255,0.08);
         }}
-        .logo {{
-            font-size: 48px;
-            margin-bottom: 10px;
+        .brand-badge {{
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, rgba(30,144,255,0.15) 0%, rgba(30,144,255,0.05) 100%);
+            border: 1px solid rgba(30,144,255,0.3);
+            padding: 8px 16px;
+            border-radius: 30px;
+            margin-bottom: 16px;
         }}
-        h1 {{
-            color: #58a6ff;
-            font-size: 24px;
-            margin-bottom: 8px;
+        .brand-badge-icon {{
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #1e90ff 0%, #00bfff 100%);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            color: white;
         }}
-        .subtitle {{
-            color: #8b949e;
-            font-size: 14px;
-            margin-bottom: 30px;
-        }}
-        .form-group {{
-            margin-bottom: 20px;
-            text-align: left;
-        }}
-        label {{
-            display: block;
-            color: #8b949e;
-            font-size: 12px;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }}
-        input {{
-            width: 100%;
-            padding: 14px 16px;
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            color: #e6edf3;
-            font-size: 16px;
-            font-family: monospace;
+        .brand-badge-text {{
+            font-size: 11px;
+            font-weight: 600;
+            color: #1e90ff;
             letter-spacing: 1px;
             text-transform: uppercase;
         }}
-        input:focus {{
-            outline: none;
-            border-color: #58a6ff;
-            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+        h1 {{ 
+            color: #e6edf3; 
+            font-size: 28px; 
+            font-weight: 700;
+            margin-bottom: 6px;
+            letter-spacing: -0.5px;
         }}
-        input::placeholder {{
-            color: #484f58;
-            text-transform: none;
-            letter-spacing: normal;
+        .subtitle {{ 
+            color: #1e90ff; 
+            font-size: 13px; 
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 32px;
+        }}
+        .form-group {{ margin-bottom: 24px; text-align: left; }}
+        label {{
+            display: block; 
+            color: #8b949e; 
+            font-size: 11px;
+            margin-bottom: 10px; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            font-weight: 500;
+        }}
+        input {{
+            width: 100%; 
+            padding: 16px 18px; 
+            background: #0d1117;
+            border: 1px solid #21262d; 
+            border-radius: 10px; 
+            color: #e6edf3;
+            font-size: 18px; 
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; 
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }}
+        input:focus {{ 
+            outline: none; 
+            border-color: #1e90ff; 
+            box-shadow: 0 0 0 1px #1e90ff, 0 0 20px rgba(30,144,255,0.25);
+        }}
+        input::placeholder {{ 
+            color: #30363d; 
+            text-transform: uppercase; 
+            letter-spacing: 2px;
+            font-size: 16px;
         }}
         .btn {{
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
-            border: none;
-            border-radius: 8px;
+            width: 100%; 
+            padding: 16px;
+            background: linear-gradient(135deg, #1db954 0%, #22c55e 100%);
+            border: none; 
+            border-radius: 10px; 
             color: white;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
+            font-size: 15px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: all 0.25s ease;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
         }}
-        .btn:hover {{
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(35, 134, 54, 0.4);
+        .btn:hover {{ 
+            transform: translateY(-2px); 
+            box-shadow: 0 8px 24px rgba(29, 185, 84, 0.4);
         }}
-        .btn:disabled {{
-            opacity: 0.6;
-            cursor: not-allowed;
+        .btn:active {{ transform: translateY(0); }}
+        .btn:disabled {{ 
+            opacity: 0.6; 
+            cursor: not-allowed; 
             transform: none;
+            box-shadow: none;
         }}
-        .error {{
-            background: rgba(248, 81, 73, 0.1);
-            border: 1px solid #f85149;
-            color: #f85149;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 13px;
+        .btn-loading {{
             display: none;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }}
+        .btn-loading .spinner {{
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }}
+        @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
+        .error {{
+            background: rgba(248, 81, 73, 0.1); 
+            border: 1px solid rgba(248, 81, 73, 0.3);
+            color: #f85149; 
+            padding: 14px 16px; 
+            border-radius: 10px;
+            margin-bottom: 20px; 
+            font-size: 13px; 
+            display: none;
+            text-align: left;
         }}
         .success {{
-            background: rgba(35, 134, 54, 0.1);
-            border: 1px solid #238636;
-            color: #3fb950;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 13px;
+            background: rgba(35, 134, 54, 0.15); 
+            border: 1px solid rgba(35, 134, 54, 0.3);
+            color: #3fb950; 
+            padding: 14px 16px; 
+            border-radius: 10px;
+            margin-bottom: 20px; 
+            font-size: 13px; 
             display: none;
+            text-align: center;
         }}
-        .contact {{
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #30363d;
+        .success-icon {{
+            font-size: 24px;
+            margin-bottom: 8px;
+            animation: successPop 0.4s ease;
+        }}
+        @keyframes successPop {{
+            0% {{ transform: scale(0); opacity: 0; }}
+            50% {{ transform: scale(1.2); }}
+            100% {{ transform: scale(1); opacity: 1; }}
+        }}
+        .telegram-card {{
+            margin-top: 32px;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, rgba(30,144,255,0.08) 0%, rgba(30,144,255,0.03) 100%);
+            border: 1px solid rgba(30,144,255,0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }}
+        .telegram-card:hover {{
+            border-color: rgba(30,144,255,0.4);
+            background: linear-gradient(135deg, rgba(30,144,255,0.12) 0%, rgba(30,144,255,0.05) 100%);
+        }}
+        .telegram-left {{
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }}
+        .telegram-icon {{
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #0088cc 0%, #00a8e8 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }}
+        .telegram-text {{ text-align: left; }}
+        .telegram-title {{
+            color: #e6edf3;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }}
+        .telegram-sub {{
             color: #8b949e;
-            font-size: 12px;
-        }}
-        .contact a {{
-            color: #58a6ff;
-            text-decoration: none;
-        }}
-        .device-info {{
-            margin-top: 20px;
-            padding: 10px;
-            background: #0d1117;
-            border-radius: 6px;
             font-size: 11px;
+        }}
+        .telegram-link {{
+            color: #1e90ff;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 8px 14px;
+            background: rgba(30,144,255,0.1);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }}
+        .telegram-link:hover {{ background: rgba(30,144,255,0.2); }}
+        .device-info {{ 
+            margin-top: 20px; 
+            padding: 12px 16px; 
+            background: rgba(13,17,23,0.6); 
+            border: 1px solid #21262d;
+            border-radius: 8px; 
+            font-size: 11px; 
             color: #484f58;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }}
+        .device-info-icon {{ opacity: 0.6; }}
+        .progress-bar {{
+            display: none;
+            height: 3px;
+            background: #21262d;
+            border-radius: 2px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }}
+        .progress-bar-fill {{
+            height: 100%;
+            background: linear-gradient(90deg, #1e90ff, #00bfff);
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: progressPulse 1.5s ease infinite;
+        }}
+        @keyframes progressPulse {{
+            0%, 100% {{ opacity: 1; }}
+            50% {{ opacity: 0.7; }}
+        }}
+        .fade-out {{
+            animation: fadeOut 0.5s ease forwards;
+        }}
+        @keyframes fadeOut {{
+            to {{ opacity: 0; transform: scale(0.98); }}
         }}
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="logo">🔑</div>
+    <div class="container" id="mainContainer">
+        <div class="brand-badge">
+            <div class="brand-badge-icon">SXF</div>
+            <span class="brand-badge-text">Premium Software</span>
+        </div>
         <h1>SmartXFlow Monitor</h1>
-        <p class="subtitle">Lisans Aktivasyonu</p>
+        <p class="subtitle">Real-time Market Intelligence</p>
+        
+        <div id="progressBar" class="progress-bar">
+            <div class="progress-bar-fill" id="progressFill"></div>
+        </div>
         
         <div id="errorMsg" class="error"></div>
         <div id="successMsg" class="success"></div>
         
         <div class="form-group">
-            <label>Lisans Anahtarı</label>
-            <input type="text" id="licenseKey" placeholder="SXF-XXXX-XXXX-XXXX" maxlength="18">
+            <label>Lisans Anahtari</label>
+            <input type="text" id="licenseKey" placeholder="SXF-XXXX-XXXX-XXXX" maxlength="18" autocomplete="off" spellcheck="false">
         </div>
         
         <button class="btn" id="activateBtn" onclick="activate()">
-            ✓ Aktive Et
+            <span class="btn-text">Lisansi Aktif Et</span>
+            <div class="btn-loading"><div class="spinner"></div></div>
         </button>
         
-        <div class="contact">
-            Lisans almak için:<br>
-            📱 Telegram: <a href="https://t.me/smartxflow">@smartxflow</a>
+        <div class="telegram-card">
+            <div class="telegram-left">
+                <div class="telegram-icon">✈</div>
+                <div class="telegram-text">
+                    <div class="telegram-title">Lisans & Destek</div>
+                    <div class="telegram-sub">7/24 destek hatti</div>
+                </div>
+            </div>
+            <a href="https://t.me/smartxflow" target="_blank" class="telegram-link">@smartxflow</a>
         </div>
         
         <div class="device-info">
-            Cihaz ID: {device_id}
+            <span class="device-info-icon">🔒</span>
+            <span>Device ID otomatik alindi</span>
         </div>
     </div>
     
     <script>
         const keyInput = document.getElementById('licenseKey');
+        const btn = document.getElementById('activateBtn');
+        const btnText = btn.querySelector('.btn-text');
+        const btnLoading = btn.querySelector('.btn-loading');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
         
         keyInput.addEventListener('input', function(e) {{
             let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-            
-            if (value.length > 3 && !value.startsWith('SXF')) {{
-                value = 'SXF' + value.substring(0, 12);
-            }}
-            
+            if (value.length > 3 && !value.startsWith('SXF')) value = 'SXF' + value.substring(0, 12);
             let formatted = '';
             if (value.length > 0) {{
                 formatted = value.substring(0, 3);
@@ -413,55 +567,80 @@ def show_activation_window(api_base_url, device_id, device_name):
                 if (value.length > 7) formatted += '-' + value.substring(7, 11);
                 if (value.length > 11) formatted += '-' + value.substring(11, 15);
             }}
-            
             e.target.value = formatted;
         }});
+        
+        function showLoading() {{
+            btn.disabled = true;
+            btnText.style.opacity = '0';
+            btnLoading.style.display = 'block';
+            progressBar.style.display = 'block';
+            let progress = 0;
+            const interval = setInterval(() => {{
+                progress += Math.random() * 15;
+                if (progress > 90) progress = 90;
+                progressFill.style.width = progress + '%';
+            }}, 200);
+            return interval;
+        }}
+        
+        function hideLoading(interval) {{
+            clearInterval(interval);
+            progressFill.style.width = '100%';
+            setTimeout(() => {{
+                btn.disabled = false;
+                btnText.style.opacity = '1';
+                btnLoading.style.display = 'none';
+                progressBar.style.display = 'none';
+                progressFill.style.width = '0%';
+            }}, 300);
+        }}
         
         async function activate() {{
             const key = keyInput.value.trim();
             const errorEl = document.getElementById('errorMsg');
             const successEl = document.getElementById('successMsg');
-            const btn = document.getElementById('activateBtn');
             
             errorEl.style.display = 'none';
             successEl.style.display = 'none';
             
             if (!key || key.length < 18) {{
-                errorEl.textContent = 'Lütfen geçerli bir lisans anahtarı girin.';
+                errorEl.textContent = 'Lutfen gecerli bir lisans anahtari girin.';
                 errorEl.style.display = 'block';
+                keyInput.focus();
                 return;
             }}
             
-            btn.disabled = true;
-            btn.textContent = 'Doğrulanıyor...';
+            const loadingInterval = showLoading();
             
             try {{
                 const result = await pywebview.api.validate(key);
                 
+                hideLoading(loadingInterval);
+                
                 if (result.valid) {{
-                    successEl.textContent = 'Lisans aktif! Uygulama açılıyor...';
+                    successEl.innerHTML = '<div class="success-icon">✓</div>Lisans aktif! Uygulama aciliyor...';
                     successEl.style.display = 'block';
                     
                     setTimeout(() => {{
-                        pywebview.api.close_and_continue();
+                        document.getElementById('mainContainer').classList.add('fade-out');
+                        setTimeout(() => {{
+                            pywebview.api.close_and_continue();
+                        }}, 500);
                     }}, 1500);
                 }} else {{
-                    errorEl.textContent = result.error || 'Lisans doğrulanamadı.';
+                    errorEl.textContent = result.error || 'Lisans dogrulanamadi.';
                     errorEl.style.display = 'block';
-                    btn.disabled = false;
-                    btn.textContent = '✓ Aktive Et';
                 }}
             }} catch (e) {{
-                errorEl.textContent = 'Bağlantı hatası. Lütfen tekrar deneyin.';
+                hideLoading(loadingInterval);
+                errorEl.textContent = 'Baglanti hatasi. Lutfen tekrar deneyin.';
                 errorEl.style.display = 'block';
-                btn.disabled = false;
-                btn.textContent = '✓ Aktive Et';
             }}
         }}
         
-        keyInput.addEventListener('keypress', function(e) {{
-            if (e.key === 'Enter') activate();
-        }});
+        keyInput.addEventListener('keypress', function(e) {{ if (e.key === 'Enter') activate(); }});
+        keyInput.focus();
     </script>
 </body>
 </html>
