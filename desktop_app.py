@@ -262,10 +262,10 @@ def show_activation_window(api_base_url, device_id, device_name):
                 0 0 80px rgba(30,144,255,0.08);
         }}
         .logo {{
-            width: 100px;
+            width: 72px;
             height: auto;
-            max-height: 100px;
-            margin-bottom: 20px;
+            max-height: 72px;
+            margin-bottom: 16px;
             object-fit: contain;
         }}
         .brand-badge {{
@@ -313,7 +313,7 @@ def show_activation_window(api_base_url, device_id, device_name):
             margin-bottom: 32px;
         }}
         .subtitle .green {{ color: #22c55e; }}
-        .subtitle .red {{ color: #ef4444; }}
+        .subtitle .muted {{ color: #8b949e; }}
         .form-group {{ margin-bottom: 24px; text-align: left; }}
         label {{
             display: block; 
@@ -432,18 +432,18 @@ def show_activation_window(api_base_url, device_id, device_name):
         }}
         .telegram-card {{
             margin-top: 32px;
-            padding: 16px 20px;
-            background: linear-gradient(135deg, rgba(30,144,255,0.08) 0%, rgba(30,144,255,0.03) 100%);
-            border: 1px solid rgba(30,144,255,0.2);
-            border-radius: 12px;
+            padding: 14px 18px;
+            background: rgba(13,17,23,0.5);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             transition: all 0.2s ease;
         }}
         .telegram-card:hover {{
-            border-color: rgba(30,144,255,0.4);
-            background: linear-gradient(135deg, rgba(30,144,255,0.12) 0%, rgba(30,144,255,0.05) 100%);
+            border-color: rgba(255,255,255,0.1);
+            background: rgba(13,17,23,0.7);
         }}
         .telegram-left {{
             display: flex;
@@ -472,16 +472,19 @@ def show_activation_window(api_base_url, device_id, device_name):
             font-size: 11px;
         }}
         .telegram-link {{
-            color: #1e90ff;
+            color: #8b949e;
             text-decoration: none;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
-            padding: 8px 14px;
-            background: rgba(30,144,255,0.1);
-            border-radius: 8px;
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
             transition: all 0.2s ease;
         }}
-        .telegram-link:hover {{ background: rgba(30,144,255,0.2); }}
+        .telegram-link:hover {{
+            background: rgba(255,255,255,0.1);
+            color: #c9d1d9;
+        }}
         .device-info {{ 
             margin-top: 20px; 
             padding: 12px 16px; 
@@ -526,7 +529,7 @@ def show_activation_window(api_base_url, device_id, device_name):
 <body>
     <div class="container" id="mainContainer">
         <h1>SmartXFlow Monitor</h1>
-        <p class="subtitle"><span class="green">Akilli Para</span> & <span class="red">Oran Takibi</span></p>
+        <p class="subtitle"><span class="green">Akilli Para</span> <span class="muted">&</span> <span class="muted">Oran Takibi</span></p>
         
         <div id="progressBar" class="progress-bar">
             <div class="progress-bar-fill" id="progressFill"></div>
