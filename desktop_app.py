@@ -523,10 +523,6 @@ def show_activation_window(api_base_url, device_id, device_name):
 </head>
 <body>
     <div class="container" id="mainContainer">
-        <div class="brand-badge">
-            <div class="brand-badge-icon">SXF</div>
-            <span class="brand-badge-text">Premium Yazilim</span>
-        </div>
         <h1>SmartXFlow Monitor</h1>
         <p class="subtitle">Akilli Para & Oran Takibi</p>
         

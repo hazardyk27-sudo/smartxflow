@@ -7431,10 +7431,6 @@ def license_preview():
 <body>
     <div class="container" id="mainContainer">
         <img src="/static/images/smartxflow_logo.png" alt="SmartXFlow" class="logo">
-        <div class="brand-badge">
-            <div class="brand-badge-icon">SXF</div>
-            <span class="brand-badge-text">Premium Yazilim</span>
-        </div>
         <h1>SmartXFlow Monitor</h1>
         <p class="subtitle">Akilli Para & Oran Takibi</p>
         
