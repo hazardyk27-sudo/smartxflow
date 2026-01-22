@@ -142,13 +142,30 @@ def make_match_id_hash(home: str, away: str, league: str, kickoff: str) -> str:
     canonical = f"{league_n}|{kickoff_n}|{home_n}|{away_n}"
     return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
 
-def fetch_data(table: str, limit: int = 500) -> list:
-    r = requests.get(
-        f'{SUPABASE_URL}/rest/v1/{table}?select=*&limit={limit}',
-        headers=HEADERS_READ,
-        timeout=30
-    )
-    return r.json() if r.status_code == 200 else []
+def fetch_data(table: str, limit: int = 20000) -> list:
+    """Veri çek - pagination ile tüm veriyi al"""
+    all_data = []
+    page_size = 1000  # Her seferde 1000 kayıt
+    offset = 0
+    
+    while offset < limit:
+        batch_limit = min(page_size, limit - offset)
+        r = requests.get(
+            f'{SUPABASE_URL}/rest/v1/{table}?select=*&order=id.desc&limit={batch_limit}&offset={offset}',
+            headers=HEADERS_READ,
+            timeout=30
+        )
+        if r.status_code != 200:
+            break
+        batch = r.json()
+        if not batch:
+            break
+        all_data.extend(batch)
+        offset += len(batch)
+        if len(batch) < batch_limit:
+            break
+    
+    return all_data
 
 def fetch_all_data(table: str, page_size: int = 1000) -> list:
     """Tum veriyi pagination ile cek"""
