@@ -6666,62 +6666,76 @@ def license_preview():
             50% {{ transform: scale(1.2); }}
             100% {{ transform: scale(1); opacity: 1; }}
         }}
-        .telegram-card {{
-            margin-top: 32px;
-            padding: 14px 18px;
+        .shopier-btn {{
+            margin-top: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(255,107,0,0.3);
+        }}
+        .shopier-btn:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,107,0,0.4);
+        }}
+        .shopier-icon {{
+            font-size: 18px;
+        }}
+        .social-section {{
+            margin-top: 20px;
+            padding: 16px;
             background: rgba(13,17,23,0.5);
             border: 1px solid rgba(255,255,255,0.06);
             border-radius: 10px;
+            text-align: center;
+        }}
+        .social-title {{
+            color: #8b949e;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }}
+        .social-icons {{
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            transition: all 0.2s ease;
+            justify-content: center;
+            gap: 16px;
         }}
-        .telegram-card:hover {{
-            border-color: rgba(255,255,255,0.1);
-            background: rgba(13,17,23,0.7);
-        }}
-        .telegram-left {{
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }}
-        .telegram-icon {{
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, #0088cc 0%, #00a8e8 100%);
+        .social-icon {{
+            width: 40px;
+            height: 40px;
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
-        }}
-        .telegram-text {{
-            text-align: left;
-        }}
-        .telegram-title {{
-            color: #e6edf3;
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 2px;
-        }}
-        .telegram-sub {{
-            color: #8b949e;
-            font-size: 11px;
-        }}
-        .telegram-link {{
-            color: #8b949e;
-            text-decoration: none;
-            font-size: 12px;
-            font-weight: 500;
-            padding: 6px 12px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 6px;
             transition: all 0.2s ease;
+            cursor: pointer;
         }}
-        .telegram-link:hover {{
-            background: rgba(255,255,255,0.1);
-            color: #c9d1d9;
+        .social-icon svg {{
+            width: 20px;
+            height: 20px;
+        }}
+        .social-icon.instagram {{
+            background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+        }}
+        .social-icon.telegram {{
+            background: #0088cc;
+        }}
+        .social-icon.email {{
+            background: #ea4335;
+        }}
+        .social-icon:hover {{
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }}
         .device-info {{ 
             margin-top: 20px; 
@@ -6790,15 +6804,24 @@ def license_preview():
         </button>
         <div class="btn-hint">Lisans dogrulamasi birkac saniye surebilir</div>
         
-        <div class="telegram-card">
-            <div class="telegram-left">
-                <div class="telegram-icon">✈</div>
-                <div class="telegram-text">
-                    <div class="telegram-title">Lisans & Destek</div>
-                    <div class="telegram-sub">7/24 destek hatti</div>
-                </div>
+        <a href="https://shopier.com" target="_blank" class="shopier-btn">
+            <span class="shopier-icon">🛒</span>
+            <span>Key Satin Al</span>
+        </a>
+        
+        <div class="social-section">
+            <div class="social-title">Sosyal Medya</div>
+            <div class="social-icons">
+                <a href="https://www.instagram.com/smartxflow/" target="_blank" class="social-icon instagram" title="Instagram">
+                    <svg viewBox="0 0 24 24" fill="white"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                </a>
+                <a href="https://t.me/smartxflow" target="_blank" class="social-icon telegram" title="Telegram">
+                    <svg viewBox="0 0 24 24" fill="white"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                </a>
+                <a href="mailto:smartxflow29@gmail.com" class="social-icon email" title="Email">
+                    <svg viewBox="0 0 24 24" fill="white"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                </a>
             </div>
-            <a href="https://t.me/smartxflow" target="_blank" class="telegram-link">@smartxflow</a>
         </div>
         
         <div class="device-info">
