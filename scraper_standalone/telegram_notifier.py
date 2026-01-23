@@ -6,9 +6,54 @@ Single responsibility: Send messages to Telegram with retry and rate limit handl
 import os
 import time
 import logging
+import ssl
 from typing import Optional
 from datetime import datetime
 from io import BytesIO
+
+TELEGRAM_ERROR_FLAG = False
+TELEGRAM_ERROR_MESSAGE = ""
+SSL_ERROR_FLAG = False
+SSL_ERROR_MESSAGE = ""
+RESTART_REQUIRED = False
+
+def check_ssl_error(exception) -> bool:
+    """SSL sertifika hatası kontrol et"""
+    global SSL_ERROR_FLAG, SSL_ERROR_MESSAGE, RESTART_REQUIRED
+    error_str = str(exception).lower()
+    if 'certificate' in error_str or 'ssl' in error_str or 'handshake' in error_str:
+        SSL_ERROR_FLAG = True
+        SSL_ERROR_MESSAGE = str(exception)
+        RESTART_REQUIRED = True
+        logging.error(f"[SSL HATASI] Sertifika hatasi tespit edildi: {exception}")
+        return True
+    return False
+
+def set_telegram_error(message: str):
+    """Telegram hatası kaydet"""
+    global TELEGRAM_ERROR_FLAG, TELEGRAM_ERROR_MESSAGE
+    TELEGRAM_ERROR_FLAG = True
+    TELEGRAM_ERROR_MESSAGE = message
+    logging.error(f"[TELEGRAM HATASI] {message}")
+
+def get_telegram_error_status() -> dict:
+    """Telegram ve SSL hata durumlarını döndür"""
+    return {
+        'telegram_error': TELEGRAM_ERROR_FLAG,
+        'telegram_error_message': TELEGRAM_ERROR_MESSAGE,
+        'ssl_error': SSL_ERROR_FLAG,
+        'ssl_error_message': SSL_ERROR_MESSAGE,
+        'restart_required': RESTART_REQUIRED
+    }
+
+def clear_telegram_error_flags():
+    """Hata flag'lerini temizle"""
+    global TELEGRAM_ERROR_FLAG, TELEGRAM_ERROR_MESSAGE, SSL_ERROR_FLAG, SSL_ERROR_MESSAGE, RESTART_REQUIRED
+    TELEGRAM_ERROR_FLAG = False
+    TELEGRAM_ERROR_MESSAGE = ""
+    SSL_ERROR_FLAG = False
+    SSL_ERROR_MESSAGE = ""
+    RESTART_REQUIRED = False
 
 try:
     import httpx
@@ -120,13 +165,18 @@ def send_telegram_message(text: str, token: Optional[str] = None, chat_id: Optio
                 if attempt < max_retries - 1:
                     time.sleep(retry_delays[attempt])
                     continue
+                set_telegram_error(f"API hatası {status_code}: {response.text[:100]}")
                 return False
                 
         except Exception as e:
             logger.error(f"[Telegram] Error on attempt {attempt + 1}: {e}")
+            if check_ssl_error(e):
+                set_telegram_error(f"SSL hatası: {e}")
+                return False
             if attempt < max_retries - 1:
                 time.sleep(retry_delays[attempt])
                 continue
+            set_telegram_error(f"Mesaj gönderilemedi: {e}")
             return False
     
     return False
@@ -197,13 +247,18 @@ def send_telegram_photo(
                 if attempt < max_retries - 1:
                     time.sleep(retry_delays[attempt])
                     continue
+                set_telegram_error(f"Foto API hatası {status_code}: {response.text[:100]}")
                 return False
                 
         except Exception as e:
             logger.error(f"[Telegram] Photo error on attempt {attempt + 1}: {e}")
+            if check_ssl_error(e):
+                set_telegram_error(f"SSL hatası (foto): {e}")
+                return False
             if attempt < max_retries - 1:
                 time.sleep(retry_delays[attempt])
                 continue
+            set_telegram_error(f"Foto gönderilemedi: {e}")
             return False
     
     return False
