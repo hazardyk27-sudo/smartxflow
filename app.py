@@ -6172,7 +6172,10 @@ def create_license():
         # Calculate expiry
         from datetime import datetime, timedelta
         now = datetime.utcnow()
-        expires_at = now + timedelta(days=duration_days)
+        if duration_days == 0:
+            expires_at = now + timedelta(days=36500)
+        else:
+            expires_at = now + timedelta(days=duration_days)
         
         # Insert license
         result = license_insert('licenses', {
