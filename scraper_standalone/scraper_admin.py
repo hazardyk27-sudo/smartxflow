@@ -3,7 +3,7 @@ SmartXFlow Admin Panel v1.22 - Web Admin + Scraper + Console
 Web admin paneli (pywebview) + Arka planda scraper + Canlı konsol
 İlk açılışta config yoksa setup formu açılır ve config.json oluşturulur.
 Scraper Konsol: Canlı log görüntüleme, SSE stream, ayrı pencere desteği.
-V1.22: Insider fix (recovery check), BigMoney duplicate filter, Dropping persistence
+V1.22: BigMoney duplicate filter, Dropping persistence
 """
 import sys
 import os

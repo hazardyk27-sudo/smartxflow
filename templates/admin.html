@@ -333,69 +333,6 @@
             border-radius: 6px;
         }
         
-        /* Insider Accordion Styles */
-        .insider-accordion-wrapper {
-            border-bottom: 1px solid #21262d;
-        }
-        .insider-accordion-wrapper:last-child {
-            border-bottom: none;
-        }
-        .insider-accordion-wrapper .alarm-item {
-            border-bottom: none;
-            padding: 10px 16px;
-        }
-        .insider-accordion-wrapper .alarm-item.expanded {
-            background: #1c2128;
-            border-bottom: 1px solid #30363d;
-        }
-        .insider-detail-panel {
-            background: #0d1117;
-            border-left: 3px solid #a371f7;
-            padding: 16px 20px;
-            margin-left: 3px;
-        }
-        .insider-detail-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-        @media (max-width: 900px) {
-            .insider-detail-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        .insider-detail-section {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            padding: 14px;
-        }
-        .insider-detail-title {
-            font-size: 12px;
-            font-weight: 600;
-            color: #a371f7;
-            margin-bottom: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .insider-detail-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #21262d;
-        }
-        .insider-detail-row:last-child {
-            border-bottom: none;
-        }
-        .insider-detail-label {
-            color: #8b949e;
-            font-size: 13px;
-        }
-        .insider-detail-value {
-            color: #e6edf3;
-            font-size: 14px;
-        }
         
         /* Date Filter Button Styles */
         .date-filter-group {
@@ -650,10 +587,6 @@
                 <span class="nav-item-icon">🎯</span>
                 <span>Sharp</span>
             </div>
-            <div class="nav-item" onclick="showPage('insider')" data-page="insider">
-                <span class="nav-item-icon">🕵️</span>
-                <span>Insider Info</span>
-            </div>
             <div class="nav-item" onclick="showPage('bigmoney')" data-page="bigmoney">
                 <span class="nav-item-icon">💰</span>
                 <span>Big Money</span>
@@ -739,11 +672,6 @@
                         <input type="checkbox" id="visibilitySharp" class="alarm-visibility-checkbox" data-alarm-type="sharp" checked onchange="saveAlarmVisibility()">
                         <span style="color: #22c55e;">💰</span>
                         <span style="color: #e6edf3; flex: 1;">Sharp Money</span>
-                    </label>
-                    <label class="alarm-visibility-toggle" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #161b22; border-radius: 6px; cursor: pointer;">
-                        <input type="checkbox" id="visibilityInsider" class="alarm-visibility-checkbox" data-alarm-type="insider" checked onchange="saveAlarmVisibility()">
-                        <span style="color: #a371f7;">🕵️</span>
-                        <span style="color: #e6edf3; flex: 1;">Insider Info</span>
                     </label>
                     <label class="alarm-visibility-toggle" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #161b22; border-radius: 6px; cursor: pointer;">
                         <input type="checkbox" id="visibilityBigmoney" class="alarm-visibility-checkbox" data-alarm-type="bigmoney" checked onchange="saveAlarmVisibility()">
@@ -1567,108 +1495,6 @@
             </div>
         </div>
 
-        <!-- INSIDER INFO PAGE -->
-        <div id="page-insider" class="page-content">
-            <div class="page-header">
-                <div>
-                    <h2 class="page-title" style="color: #a371f7;">🕵️ Insider Info</h2>
-                    <p class="page-subtitle">Dusuk hacim soku + yuksek oran dususu = Iceriden bilgi sezgisi</p>
-                </div>
-                <div class="header-actions">
-                    <button class="btn btn-danger" onclick="deleteAllInsiderAlarms()">Tum Insider Alarmlari Sil</button>
-                    <button class="btn" onclick="recalculateInsiderAlarms()" style="background: linear-gradient(135deg, #a371f7, #8b5cf6); color: white;">🕵️ Insider Hesapla</button>
-                    <button class="btn" onclick="resetInsiderCalculation()" style="background: #f0b429; color: white;">Sifirla</button>
-                    <button class="btn btn-primary" onclick="saveInsiderConfig()">Kaydet</button>
-                    <button class="btn" onclick="deleteAlarmConfig('insider')" style="background: #6e4000; color: white;">Ayarlari Sil</button>
-                </div>
-            </div>
-
-            <div class="config-grid">
-                <div class="info-card" style="border-left: 3px solid #a371f7;">
-                    <h3>🕵️ Insider Info Alarm Ayarlari</h3>
-                    <p class="form-hint" style="font-size: 12px; color: #8b949e; margin-bottom: 15px;">
-                        Aciliş→Şimdi oran dususu + dusus ani etrafinda sessiz hareket = Insider bilgisi suphesi<br>
-                        <strong>Yeni Mantik:</strong> Acilis→Simdi dusus >= Esik VE dusus aninin etrafindaki snapshotlarda HacimSok &lt; Esik, GelenPara &lt; MaxPara
-                    </p>
-                    <div class="form-group">
-                        <label>Hacim Sok Esigi</label>
-                        <input type="number" id="insider_hacim_sok_esigi" value="2" step="0.1" class="form-input">
-                        <p class="form-hint" style="font-size: 10px; color: #8b949e;">Dusus ani etrafindaki snapshotlarda HacimSok bu degerden DUSUK olmali</p>
-                    </div>
-                    <div class="form-group">
-                        <label>Oran Dusus Esigi (%)</label>
-                        <input type="number" id="insider_oran_dusus_esigi" value="3" step="0.1" class="form-input">
-                        <p class="form-hint" style="font-size: 10px; color: #8b949e;">Acilis→Simdi oran dususu bu degere ESIT veya YUKSEK olmali</p>
-                    </div>
-                    <div class="form-group">
-                        <label>Kontrol Snapshot Sayisi</label>
-                        <input type="number" id="insider_sure_dakika" value="30" step="10" min="10" class="form-input">
-                        <p class="form-hint" style="font-size: 10px; color: #8b949e;">Dusus aninin etrafinda kontrol edilecek snapshot sayisi (7 = 3 once + 1 dusus + 3 sonra)</p>
-                    </div>
-                    <div class="form-group">
-                        <label>Max Para (£)</label>
-                        <input type="number" id="insider_max_para" value="5000" step="500" class="form-input">
-                        <p class="form-hint" style="font-size: 10px; color: #8b949e;">Dusus ani etrafindaki snapshotlarda GelenPara bu degerden DUSUK olmali</p>
-                    </div>
-                    <div class="form-group">
-                        <label>Max Oran Esigi</label>
-                        <input type="number" id="insider_max_odds_esigi" value="10.0" step="0.01" min="1.0" class="form-input" inputmode="decimal" lang="en">
-                        <p class="form-hint" style="font-size: 10px; color: #8b949e;">Secenegin orani bu degerden YUKSEKSE elenir (ornek: 2.2)</p>
-                    </div>
-                </div>
-
-                <div class="info-card">
-                    <h3>📖 Nasil Calisir?</h3>
-                    <div style="font-size: 12px; color: #8b949e; line-height: 1.6;">
-                        <p><strong style="color: #a371f7;">1. Acilis→Simdi Dusus:</strong> Oranlar acilistan bugune >= %X dusmus mu?</p>
-                        <p><strong style="color: #f0883e;">2. Dusus Anini Bul:</strong> En buyuk tek seferlik dususun oldugu snapshot</p>
-                        <p><strong style="color: #58a6ff;">3. Etraf Snapshotlari:</strong> Dusus aninin etrafindaki N snapshot'a bak</p>
-                        <p><strong style="color: #3fb950;">4. Sessiz Hareket:</strong> Bu snapshotlarda HacimSok &lt; Esik VE GelenPara &lt; MaxPara</p>
-                        <div style="margin-top: 12px; padding: 10px; background: #21262d; border-radius: 6px; border-left: 3px solid #a371f7;">
-                            <strong style="color: #a371f7;">Ornek (7 snapshot):</strong>
-                            <div style="margin-top: 6px; font-family: monospace; font-size: 11px;">
-                                [S1] [S2] [S3] [<span style="color: #ef4444; font-weight: bold;">S4*</span>] [S5] [S6] [S7]<br>
-                                <span style="color: #64748b; margin-left: 80px;">↑ Dusus Ani</span>
-                            </div>
-                            <p style="margin-top: 8px; color: #8b949e;">Tum 7 snapshot'ta HacimSok &lt; 0.2 VE GelenPara &lt; £300 ise = <span style="color: #a371f7; font-weight: 600;">INSIDER ALARM!</span></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="info-card" style="margin-top: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                    <h3 style="margin: 0; color: #a371f7;">🕵️ Insider Alarmlar <span id="insiderAlarmCount" class="badge" style="background: #a371f7;">0</span> <span id="insiderAlarmTotalCount" class="alarm-total-count"></span></h3>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <div class="date-filter-group">
-                            <button class="date-filter-btn" onclick="setDateFilter('insider', 'yesterday')">Dün</button>
-                            <button class="date-filter-btn" onclick="setDateFilter('insider', 'today')">Bugün</button>
-                            <button class="date-filter-btn" onclick="setDateFilter('insider', 'future')">Gelecek</button>
-                            <button class="date-filter-btn active" onclick="setDateFilter('insider', 'all')">Tümü</button>
-                        </div>
-                        <input type="hidden" id="insiderAlarmDateFilter" value="">
-                        <div style="position: relative;">
-                            <input type="text" id="insiderSearchInput" placeholder="Takim ara..." 
-                                   oninput="filterInsiderAlarms()" 
-                                   style="padding: 8px 12px 8px 32px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; width: 160px;">
-                            <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); stroke: #8b949e;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-                <div id="insiderCalcStatus" style="display: none; padding: 15px; margin-bottom: 15px; background: #1c2128; border-radius: 8px; border-left: 4px solid #a371f7;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div class="spinner" style="width: 20px; height: 20px; border: 3px solid #30363d; border-top-color: #a371f7; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                        <span id="insiderCalcProgress" style="color: #a371f7; font-weight: 500;">Hesaplama devam ediyor...</span>
-                    </div>
-                </div>
-                <div id="insiderAlarmList" class="alarm-list">
-                    <p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz Insider alarm yok. "🕵️ Insider Hesapla" butonuna basin.</p>
-                </div>
-            </div>
-        </div>
-
         <!-- BIG MONEY PAGE -->
         <div id="page-bigmoney" class="page-content">
             <div class="page-header">
@@ -2268,9 +2094,6 @@
                                 <input type="checkbox" class="telegram-alarm-type" value="SHARP" checked> 🎯 Sharp
                             </label>
                             <label style="display: flex; align-items: center; gap: 5px; background: #21262d; padding: 6px 10px; border-radius: 6px; cursor: pointer;">
-                                <input type="checkbox" class="telegram-alarm-type" value="INSIDER" checked> 🕵️ Insider
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 5px; background: #21262d; padding: 6px 10px; border-radius: 6px; cursor: pointer;">
                                 <input type="checkbox" class="telegram-alarm-type" value="BIGMONEY" checked> 💰 BigMoney
                             </label>
                             <label style="display: flex; align-items: center; gap: 5px; background: #21262d; padding: 6px 10px; border-radius: 6px; cursor: pointer;">
@@ -2693,7 +2516,6 @@
             }
             return {
                 sharp: true,
-                insider: true,
                 bigmoney: true,
                 publicmove: true,
                 dropping: true,
@@ -2740,7 +2562,6 @@
             const visibility = getAlarmVisibility();
             const navMapping = {
                 'sharp': 'sharp',
-                'insider': 'insider',
                 'bigmoney': 'bigmoney',
                 'publicmove': 'publicmove',
                 'dropping': 'dropping',
@@ -3330,7 +3151,6 @@
             const filterFunctions = {
                 'sharp': filterAlarms,
                 'ht': filterPublicMoveAlarms,
-                'insider': filterInsiderAlarms,
                 'bigMoney': filterBigMoneyAlarms,
                 'dropping': filterDroppingAlarms,
                 'volumeShock': filterVolumeShockAlarms,
@@ -3387,7 +3207,6 @@
             if (pageId === 'markets') loadMarkets();
             if (pageId === 'sharp') loadSharpAlarms();
             if (pageId === 'publicmove') loadPublicMovePage();
-            if (pageId === 'insider') loadInsiderPage();
             if (pageId === 'bigmoney') loadBigMoneyPage();
             if (pageId === 'dropping') loadDroppingPage();
             if (pageId === 'volumeshock') loadVolumeShockPage();
@@ -3575,7 +3394,6 @@
         async function deleteAlarmConfig(alarmType) {
             const alarmNames = {
                 'sharp': 'Sharp',
-                'insider': 'Insider',
                 'bigmoney': 'Big Money',
                 'volumeshock': 'Hacim Soku',
                 'dropping': 'Dropping',
@@ -3689,67 +3507,6 @@
                 showCalcStatus(false, 'Baglanti hatasi!');
                 showToast('Baglanti hatasi!', 'error');
             }
-        }
-
-        async function resetInsiderCalculation() {
-            try {
-                const response = await fetch('/api/insider/reset', { method: 'POST' });
-                const data = await response.json();
-                if (data.success) {
-                    hideInsiderCalcStatus();
-                    showToast('Insider hesaplama sifirlandi!', 'success');
-                }
-            } catch (error) {
-                showToast('Sifirlama hatasi!', 'error');
-            }
-        }
-        
-        async function recalculateInsiderAlarms() {
-            showToast('Insider alarmlar hesaplaniyor...', 'info');
-            showInsiderCalcStatus(true, 'Insider alarm hesaplama baslatiliyor...');
-            
-            try {
-                const response = await fetch('/api/insider/calculate', { method: 'POST' });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    showInsiderCalcStatus(false, `Tamamlandi! ${result.count || 0} Insider alarm bulundu.`);
-                    showToast(`${result.count || 0} Insider alarm uretildi!`, 'success');
-                    loadInsiderAlarms();
-                    
-                    setTimeout(() => hideInsiderCalcStatus(), 3000);
-                } else {
-                    showInsiderCalcStatus(false, 'Insider hesaplama hatasi!');
-                    showToast('Insider hesaplama hatasi!', 'error');
-                }
-            } catch (error) {
-                showInsiderCalcStatus(false, 'Baglanti hatasi!');
-                showToast('Baglanti hatasi!', 'error');
-            }
-        }
-
-        function showInsiderCalcStatus(isCalculating, message) {
-            const statusEl = document.getElementById('insiderCalcStatus');
-            const progressEl = document.getElementById('insiderCalcProgress');
-            const spinnerEl = statusEl.querySelector('.spinner');
-            
-            statusEl.style.display = 'block';
-            progressEl.textContent = message;
-            
-            if (isCalculating) {
-                spinnerEl.style.display = 'block';
-                progressEl.style.color = '#a371f7';
-                statusEl.style.borderLeftColor = '#a371f7';
-            } else {
-                spinnerEl.style.display = 'none';
-                progressEl.style.color = '#3fb950';
-                statusEl.style.borderLeftColor = '#3fb950';
-            }
-        }
-
-        function hideInsiderCalcStatus() {
-            const statusEl = document.getElementById('insiderCalcStatus');
-            statusEl.style.display = 'none';
         }
 
         function showCalcStatus(isCalculating, message) {
@@ -4428,356 +4185,6 @@
             } catch (error) {
                 showToast('Hata: ' + error.message, 'error');
             }
-        }
-
-        // ==================== INSIDER INFO FUNCTIONS ====================
-        let allInsiderAlarms = [];
-        let insiderSortColumn = 'trigger_at';
-        let insiderSortAsc = false;
-        
-        function sortInsiderBy(column) {
-            if (insiderSortColumn === column) {
-                insiderSortAsc = !insiderSortAsc;
-            } else {
-                insiderSortColumn = column;
-                insiderSortAsc = column === 'match';
-            }
-            filterInsiderAlarms();
-        }
-
-        async function loadInsiderPage() {
-            await loadInsiderConfig();
-            await loadInsiderAlarms();
-        }
-
-        async function loadInsiderConfig() {
-            try {
-                const response = await fetch('/api/alarm-settings/insider');
-                if (response.ok) {
-                    const data = await response.json();
-                    const config = data.setting?.config || {};
-                    document.getElementById('insider_hacim_sok_esigi').value = config.hacim_sok_esigi ?? '';
-                    document.getElementById('insider_oran_dusus_esigi').value = config.oran_dusus_esigi ?? '';
-                    document.getElementById('insider_sure_dakika').value = config.sure_dakika ?? '';
-                    document.getElementById('insider_max_para').value = config.max_para ?? '';
-                    document.getElementById('insider_max_odds_esigi').value = config.max_odds_esigi ?? '';
-                }
-            } catch (error) {
-                console.error('Insider config yukleme hatasi:', error);
-            }
-        }
-
-        async function loadInsiderAlarms() {
-            try {
-                const response = await fetch('/api/insider/alarms');
-                if (response.ok) {
-                    const alarms = await response.json();
-                    // Yeniden eskiye sirala
-                    allInsiderAlarms = sortAlarmsNewestFirst(alarms);
-                    updateTotalCount('insiderAlarmTotalCount', allInsiderAlarms.length);
-                    renderInsiderAlarms(allInsiderAlarms);
-                }
-            } catch (error) {
-                console.error('Insider alarm yukleme hatasi:', error);
-            }
-        }
-
-        let expandedInsiderAlarms = {};
-        
-        function renderInsiderAlarms(alarms, totalCount = null) {
-            const container = document.getElementById('insiderAlarmList');
-            const countEl = document.getElementById('insiderAlarmCount');
-            
-            if (!alarms || alarms.length === 0) {
-                const searchTerm = document.getElementById('insiderSearchInput')?.value || '';
-                if (searchTerm) {
-                    container.innerHTML = '<p style="color: #8b949e; padding: 20px 0; text-align: center;">Aramayla eslesen Insider alarm yok.</p>';
-                    countEl.textContent = `0/${totalCount || 0}`;
-                } else {
-                    container.innerHTML = '<p style="color: #8b949e; padding: 20px 0; text-align: center;">Henuz Insider alarm yok. "🕵️ Insider Hesapla" butonuna basin.</p>';
-                    countEl.textContent = '0';
-                }
-                return;
-            }
-
-            // Sıralama uygula
-            const sorted = [...alarms].sort((a, b) => {
-                let valA, valB;
-                switch (insiderSortColumn) {
-                    case 'match':
-                        valA = (a.home || '').toLowerCase();
-                        valB = (b.home || '').toLowerCase();
-                        break;
-                    case 'drop':
-                        valA = a.oran_dusus_pct || a.drop_pct || 0;
-                        valB = b.oran_dusus_pct || b.drop_pct || 0;
-                        break;
-                    case 'shock':
-                        valA = a.hacim_sok || a.avg_volume_shock || 0;
-                        valB = b.hacim_sok || b.avg_volume_shock || 0;
-                        break;
-                    case 'count':
-                        valA = getAlarmCount(a);
-                        valB = getAlarmCount(b);
-                        break;
-                    case 'trigger_at':
-                    default:
-                        valA = new Date(a.trigger_at || a.created_at || 0).getTime();
-                        valB = new Date(b.trigger_at || b.created_at || 0).getTime();
-                        break;
-                }
-                if (valA < valB) return insiderSortAsc ? -1 : 1;
-                if (valA > valB) return insiderSortAsc ? 1 : -1;
-                return 0;
-            });
-
-            countEl.textContent = totalCount ? `${alarms.length}/${totalCount}` : alarms.length;
-            
-            const sortIcon = (col) => insiderSortColumn === col ? (insiderSortAsc ? ' ▲' : ' ▼') : '';
-            
-            let html = `
-                <div class="alarm-table-wrapper" style="overflow-x: auto;">
-                    <table class="alarm-table" style="width: 100%; font-size: 12px;">
-                        <thead>
-                            <tr style="background: #161b22; color: #8b949e;">
-                                <th style="padding: 10px; text-align: left; cursor: pointer;" onclick="sortInsiderBy('match')">Maç${sortIcon('match')}</th>
-                                <th style="padding: 10px; text-align: center;">Market / Seçim</th>
-                                <th style="padding: 10px; text-align: center;">Açılış→Şimdi</th>
-                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortInsiderBy('drop')">Düşüş%${sortIcon('drop')}</th>
-                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortInsiderBy('shock')">Hacim Şoku${sortIcon('shock')}</th>
-                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortInsiderBy('count')">Sayı${sortIcon('count')}</th>
-                                <th style="padding: 10px; text-align: center; cursor: pointer;" onclick="sortInsiderBy('trigger_at')">Zaman${sortIcon('trigger_at')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-            
-            sorted.slice(0, 100).forEach(alarm => {
-                const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
-                const market = alarm.market || '-';
-                const selection = alarm.selection || '-';
-                const openingOdds = alarm.opening_odds || alarm.open_odds || 0;
-                const currentOdds = alarm.current_odds || 0;
-                const dropPct = alarm.oran_dusus_pct || alarm.drop_pct || alarm.odds_change_percent || 0;
-                const hacimSok = alarm.hacim_sok || alarm.avg_volume_shock || 0;
-                const alarmCount = getAlarmCount(alarm);
-                
-                const eventTime = alarm.trigger_at || alarm.created_at || '-';
-                const formattedTime = eventTime !== '-' ? formatDateTime(eventTime) : '-';
-                
-                const countDisplay = alarmCount > 1 
-                    ? `<span style="background: #a371f7; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">x${alarmCount}</span>`
-                    : `<span style="color: #8b949e;">1</span>`;
-                
-                html += `
-                    <tr style="border-bottom: 1px solid #21262d; cursor: pointer;" onclick="showInsiderDetail(${JSON.stringify(alarm).replace(/"/g, '&quot;')})">
-                        <td style="padding: 10px; color: #e6edf3;">${matchName}</td>
-                        <td style="padding: 10px; text-align: center;">
-                            <span style="background: rgba(163,113,247,0.2); color: #a371f7; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${market}</span>
-                            <span style="background: rgba(34,197,94,0.2); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">${selection}</span>
-                        </td>
-                        <td style="padding: 10px; text-align: center;">
-                            <span style="color: #94a3b8;">${openingOdds.toFixed(2)}</span>
-                            <span style="color: #8b949e;">→</span>
-                            <span style="color: #22c55e; font-weight: 600;">${currentOdds.toFixed(2)}</span>
-                        </td>
-                        <td style="padding: 10px; text-align: center; color: #ef4444; font-weight: 700; font-size: 14px;">%${dropPct.toFixed(1)}</td>
-                        <td style="padding: 10px; text-align: center; color: #f0883e; font-weight: 600;">${hacimSok.toFixed(2)}x</td>
-                        <td style="padding: 10px; text-align: center;">${countDisplay}</td>
-                        <td style="padding: 10px; text-align: center; color: #8b949e; font-size: 11px;">${formattedTime}</td>
-                    </tr>
-                `;
-            });
-            
-            html += '</tbody></table></div>';
-            
-            if (alarms.length > 100) {
-                html += `<p style="text-align: center; color: #6e7681; padding: 10px; font-size: 12px;">+${alarms.length - 100} daha fazla alarm...</p>`;
-            }
-            
-            container.innerHTML = html;
-            window.currentInsiderAlarms = alarms;
-        }
-        
-        function showInsiderDetail(alarm) {
-            const openingOdds = alarm.opening_odds || alarm.open_odds || 0;
-            const currentOdds = alarm.current_odds || 0;
-            const dropPct = alarm.oran_dusus_pct || alarm.drop_pct || alarm.odds_change_percent || 0;
-            const hacimSok = alarm.hacim_sok || alarm.avg_volume_shock || 0;
-            const snapshotCount = alarm.snapshot_count || alarm.surrounding_count || 7;
-            const triggerTime = alarm.trigger_at ? formatDateTime(alarm.trigger_at) : '-';
-            const createdTime = alarm.created_at ? formatDateTime(alarm.created_at) : '-';
-            const matchDate = formatMatchDateTR(alarm.match_date);
-            
-            const modalContent = `
-                <div style="padding: 20px; background: #0d1117; border-radius: 8px; max-width: 500px; margin: 50px auto;">
-                    <h3 style="color: #a371f7; margin-bottom: 20px; border-bottom: 1px solid #21262d; padding-bottom: 10px;">🕵️ Insider Alarm Detayı</h3>
-                    
-                    <div style="margin-bottom: 20px; padding: 15px; background: #161b22; border-radius: 8px;">
-                        <div style="font-size: 18px; color: #e6edf3; margin-bottom: 5px;">${alarm.home} vs ${alarm.away}</div>
-                        <div style="color: #8b949e; font-size: 13px;">${alarm.league || '-'}</div>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
-                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
-                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">MARKET / SEÇİM</div>
-                            <div style="color: #e6edf3; font-size: 14px;">${alarm.market} <span style="color: #a371f7;">${alarm.selection}</span></div>
-                        </div>
-                        <div style="background: #161b22; padding: 12px; border-radius: 6px;">
-                            <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">MAÇ TARİHİ</div>
-                            <div style="color: #58a6ff; font-size: 14px;">${matchDate}</div>
-                        </div>
-                    </div>
-                    
-                    <div style="background: rgba(163,113,247,0.1); border: 1px solid rgba(163,113,247,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <div style="color: #8b949e; font-size: 11px; margin-bottom: 8px;">ORAN DEĞİŞİMİ</div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <span style="color: #94a3b8;">📉 Açılış Oranı</span>
-                            <span style="color: #94a3b8; font-weight: 700;">${openingOdds.toFixed(2)}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <span style="color: #22c55e;">📉 Son Oran</span>
-                            <span style="color: #22c55e; font-weight: 700;">${currentOdds.toFixed(2)}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <span style="color: #ef4444;">📉 Düşüş Yüzdesi</span>
-                            <span style="color: #ef4444; font-weight: 700;">%${dropPct.toFixed(2)}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="color: #f0883e;">⚡ Hacim Şoku</span>
-                            <span style="color: #f0883e; font-weight: 700;">${hacimSok.toFixed(4)}x</span>
-                        </div>
-                    </div>
-                    
-                    <div style="background: #161b22; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
-                        <div style="color: #8b949e; font-size: 11px; margin-bottom: 4px;">SNAPSHOT BİLGİSİ</div>
-                        <div style="color: #3fb950; font-size: 14px;">${snapshotCount} snapshot kontrol edildi</div>
-                    </div>
-                    
-                    <div style="display: flex; justify-content: space-between; color: #8b949e; font-size: 12px; margin-bottom: 20px;">
-                        <span>Tetiklenme: ${triggerTime}</span>
-                        <span>Oluşturulma: ${createdTime}</span>
-                    </div>
-                    
-                    <button onclick="this.closest('.modal').remove()" style="width: 100%; padding: 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; cursor: pointer;">Kapat</button>
-                </div>
-            `;
-            
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.innerHTML = modalContent;
-            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-            document.body.appendChild(modal);
-        }
-
-        function filterInsiderAlarms() {
-            const searchTerm = document.getElementById('insiderSearchInput').value.toLowerCase().trim();
-            let filtered = filterAlarmsByDateMode(allInsiderAlarms, 'insider');
-            
-            if (searchTerm) {
-                filtered = filtered.filter(alarm => 
-                    (alarm.home || '').toLowerCase().includes(searchTerm) ||
-                    (alarm.away || '').toLowerCase().includes(searchTerm)
-                );
-            }
-            
-            updateTotalCount('insiderAlarmTotalCount', allInsiderAlarms.length);
-            renderInsiderAlarms(filtered, allInsiderAlarms.length);
-        }
-
-        async function saveInsiderConfig() {
-            const config = {
-                hacim_sok_esigi: parseFloat(document.getElementById('insider_hacim_sok_esigi').value) || 2,
-                oran_dusus_esigi: parseFloat(document.getElementById('insider_oran_dusus_esigi').value) || 3,
-                sure_dakika: parseInt(document.getElementById('insider_sure_dakika').value) || 30,
-                max_para: parseFloat(document.getElementById('insider_max_para').value) || 5000,
-                max_odds_esigi: parseFloat(document.getElementById('insider_max_odds_esigi').value) || 10.0,
-                min_volume_1x2: 3000,
-                min_volume_ou25: 1000,
-                min_volume_btts: 1000
-            };
-            
-            try {
-                const response = await fetch('/api/alarm-settings/insider', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabled: true, config: config })
-                });
-                if (response.ok) {
-                    showToast('Insider ayarlari kaydedildi!', 'success');
-                } else {
-                    showToast('Kayit hatasi!', 'error');
-                }
-            } catch (error) {
-                showToast('Baglanti hatasi!', 'error');
-            }
-        }
-
-        async function deleteAllInsiderAlarms() {
-            if (!confirm('Tum Insider alarmlari silinecek. Emin misiniz?')) return;
-            
-            try {
-                const response = await fetch('/api/insider/delete', { method: 'POST' });
-                if (response.ok) {
-                    showToast('Tum Insider alarmlar silindi!', 'success');
-                    loadInsiderAlarms();
-                } else {
-                    showToast('Silme hatasi!', 'error');
-                }
-            } catch (error) {
-                showToast('Baglanti hatasi!', 'error');
-            }
-        }
-
-        function showInsiderAlarmDetail(idx) {
-            const alarm = window.currentInsiderAlarms[idx];
-            if (!alarm) return;
-
-            const modal = document.getElementById('alarmDetailModal');
-            const body = document.getElementById('alarmDetailBody');
-
-            body.innerHTML = `
-                <div class="detail-section">
-                    <h4 style="color: #a371f7;">🕵️ Insider Info Alarm Detaylari</h4>
-                    <div class="detail-row"><span class="detail-label">Mac</span><span class="detail-value">${alarm.home} vs ${alarm.away}</span></div>
-                    <div class="detail-row"><span class="detail-label">Market</span><span class="detail-value">${alarm.market}</span></div>
-                    <div class="detail-row"><span class="detail-label">Secenek</span><span class="detail-value">${alarm.selection}</span></div>
-                    <div class="detail-row"><span class="detail-label">Mac Tarihi</span><span class="detail-value" style="color: #58a6ff;">${formatMatchDateTR(alarm.match_date)}</span></div>
-                    <div class="detail-row"><span class="detail-label">Hesaplama Tarihi</span><span class="detail-value">${alarm.created_at || '-'}</span></div>
-                </div>
-                <div class="detail-section">
-                    <h4>📊 Oran Bilgileri</h4>
-                    <div class="detail-row"><span class="detail-label">Opening Odds (Acilis)</span><span class="detail-value">${alarm.opening_odds || '-'}</span></div>
-                    <div class="detail-row"><span class="detail-label">Son Oran</span><span class="detail-value">${alarm.current_odds || '-'}</span></div>
-                    <div class="detail-row"><span class="detail-label">Oran Dususu (maks)</span><span class="detail-value highlight" style="color: #a371f7;">${(alarm.oran_dusus_pct || alarm.drop_pct || 0).toFixed(2)}%</span></div>
-                </div>
-                <div class="detail-section">
-                    <h4>⚡ Hacim Soku & Para</h4>
-                    <div class="detail-row"><span class="detail-label">Ortalama Hacim Soku</span><span class="detail-value">${(alarm.hacim_sok || 0).toFixed(2)}x</span></div>
-                    <div class="detail-row"><span class="detail-label">Hacim Sok Esigi</span><span class="detail-value">&lt; ${alarm.insider_hacim_sok_esigi ?? 'N/A'}x</span></div>
-                    <div class="detail-row"><span class="detail-label">Ortalama Gelen Para</span><span class="detail-value">£${Math.round(alarm.gelen_para || 0).toLocaleString('en-GB')}</span></div>
-                    <div class="detail-row"><span class="detail-label">Max Para Esigi</span><span class="detail-value">&lt; £${alarm.insider_max_para ?? 'N/A'}</span></div>
-                    <div class="detail-row"><span class="detail-label">Son Oran</span><span class="detail-value" style="color: #f0b429;">${(alarm.current_odds || 0).toFixed(2)}</span></div>
-                    <div class="detail-row"><span class="detail-label">Max Oran Esigi</span><span class="detail-value">≤ ${alarm.insider_max_odds_esigi ?? 'N/A'}</span></div>
-                </div>
-                <div class="detail-section">
-                    <h4>⏱️ Sure & Snapshot</h4>
-                    <div class="detail-row"><span class="detail-label">Gerekli Sure</span><span class="detail-value">${alarm.insider_sure_dakika ?? 'N/A'} dakika</span></div>
-                    <div class="detail-row"><span class="detail-label">Ardisik Snapshot</span><span class="detail-value">${alarm.snapshot_count ?? 'N/A'} snapshot</span></div>
-                </div>
-                <div class="detail-section">
-                    <h4 style="color: #a371f7;">🕵️ Insider Sinyali</h4>
-                    <p style="font-size: 12px; color: #8b949e; line-height: 1.6;">
-                        Bu macta ${alarm.insider_sure_dakika ?? 'N/A'} dakika boyunca (${alarm.snapshot_count ?? 'N/A'} ardisik snapshot):
-                        <br>• Hacim Soku ${(alarm.hacim_sok || 0).toFixed(2)}x < ${alarm.insider_hacim_sok_esigi ?? 'N/A'}x (dusuk)
-                        <br>• Oran Dususu ${(alarm.oran_dusus_pct || alarm.drop_pct || 0).toFixed(1)}% >= ${alarm.insider_oran_dusus_esigi ?? 'N/A'}% (yuksek)
-                        <br>• Gelen Para £${Math.round(alarm.gelen_para || 0).toLocaleString('en-GB')} < £${alarm.insider_max_para ?? 'N/A'} (dusuk)
-                        <br><br>
-                        <strong style="color: #a371f7;">Sonuc:</strong> Buyuk para girisi olmadan oranlar dusuyor = birileri bir seyler biliyor olabilir!
-                    </p>
-                </div>
-            `;
-            modal.style.display = 'flex';
         }
 
         // ==================== BIG MONEY FUNCTIONS ====================

@@ -112,12 +112,12 @@ from core.settings import init_mode, is_server_mode, is_client_mode, get_scrape_
 from core.timezone import now_turkey, now_turkey_iso, now_turkey_formatted, format_turkey_time, format_time_only, TURKEY_TZ
 from services.supabase_client import (
     get_database, get_supabase_client,
-    get_sharp_alarms_from_supabase, get_insider_alarms_from_supabase,
+    get_sharp_alarms_from_supabase,
     get_bigmoney_alarms_from_supabase, get_volumeshock_alarms_from_supabase,
     get_dropping_alarms_from_supabase,
     get_volumeleader_alarms_from_supabase, get_mim_alarms_from_supabase,
     delete_alarms_from_supabase,
-    write_insider_alarms_to_supabase, write_sharp_alarms_to_supabase,
+    write_sharp_alarms_to_supabase,
     write_volumeleader_alarms_to_supabase,
     write_bigmoney_alarms_to_supabase, write_dropping_alarms_to_supabase,
     write_volumeshock_alarms_to_supabase
@@ -338,7 +338,7 @@ def start_cleanup_scheduler():
 
 def run_alarm_calculations():
     """Run all alarm calculations"""
-    global sharp_alarms, insider_alarms, big_money_alarms, volume_shock_alarms, last_alarm_calc_time, insider_config
+    global sharp_alarms, big_money_alarms, volume_shock_alarms, last_alarm_calc_time
     
     try:
         print(f"[Alarm Scheduler] Starting alarm calculations at {now_turkey_iso()}")
@@ -355,17 +355,6 @@ def run_alarm_calculations():
                 print(f"[Alarm Scheduler] Sharp: {len(sharp_alarms)} alarms")
         except Exception as e:
             print(f"[Alarm Scheduler] Sharp error: {e}")
-        
-        # Insider alarms - eski alarmlar korunur, yeniler eklenir (oran değişirse)
-        try:
-            new_insider = calculate_insider_scores(insider_config, insider_alarms)
-            if new_insider:
-                # Mevcut alarmları koru, yenileri ekle
-                insider_alarms = merge_insider_alarms(insider_alarms, new_insider)
-                save_insider_alarms_to_file(insider_alarms)
-                print(f"[Alarm Scheduler] Insider: {len(insider_alarms)} alarms")
-        except Exception as e:
-            print(f"[Alarm Scheduler] Insider error: {e}")
         
         # Big Money alarms
         try:
@@ -1594,7 +1583,7 @@ def get_match_details():
 
 def refresh_configs_from_supabase():
     """Refresh all alarm configs from Supabase alarm_settings table - LIVE RELOAD"""
-    global sharp_config, publicmove_config, big_money_config, volume_shock_config, volume_leader_config, dropping_config, insider_config
+    global sharp_config, publicmove_config, big_money_config, volume_shock_config, volume_leader_config, dropping_config
     
     supabase = get_supabase_client()
     if not supabase or not supabase.is_available:
@@ -1655,13 +1644,6 @@ def refresh_configs_from_supabase():
                 dropping_config['enabled'] = enabled
                 if old != dropping_config:
                     changes.append('dropping')
-                    
-            elif alarm_type == 'insider' and config:
-                old = insider_config.copy()
-                insider_config.update(config)
-                insider_config['enabled'] = enabled
-                if old != insider_config:
-                    changes.append('insider')
         
         if changes:
             print(f"[Config Refresh] Updated configs from Supabase: {', '.join(changes)}")
@@ -1718,61 +1700,6 @@ def save_sharp_config_to_file(config):
     return success
 
 sharp_config = load_sharp_config_from_file()
-
-# Insider Config - dedicated config for Insider alarm calculations
-INSIDER_CONFIG_FILE = 'insider_config.json'
-
-def load_insider_config_from_file():
-    """Load Insider config from JSON file - NO DEFAULTS (tüm değerler Supabase'den gelmeli)"""
-    config = {}
-    try:
-        if os.path.exists(INSIDER_CONFIG_FILE):
-            with open(INSIDER_CONFIG_FILE, 'r') as f:
-                config = json.load(f)
-                print(f"[Insider] Config loaded from {INSIDER_CONFIG_FILE}: oran_dusus_esigi={config.get('oran_dusus_esigi')}")
-    except Exception as e:
-        print(f"[Insider] Config load error: {e}")
-    return config
-
-insider_config = load_insider_config_from_file()
-
-def save_insider_config(config):
-    """Save Insider config to both Supabase and JSON file"""
-    success = False
-    
-    # 1. Supabase'e yaz (primary)
-    try:
-        supabase = get_supabase_client()
-        if supabase and supabase.is_available:
-            # Supabase'deki field isimleri - NO DEFAULTS (Replit değer göndermemeli)
-            supabase_config = {
-                'hacim_sok_esigi': config.get('hacim_sok_esigi'),
-                'oran_dusus_esigi': config.get('oran_dusus_esigi'),
-                'sure_dakika': config.get('sure_dakika'),
-                'max_para': config.get('max_para'),
-                'max_odds_esigi': config.get('max_odds_esigi')
-            }
-            # None değerleri temizle
-            supabase_config = {k: v for k, v in supabase_config.items() if v is not None}
-            # Eğer config boşsa Supabase'e yazma
-            if not supabase_config:
-                print("[Insider] Config boş - Supabase'e yazılmadı")
-            elif supabase.update_alarm_setting('insider', config.get('enabled') if 'enabled' in config else None, supabase_config):
-                print(f"[Insider] Config saved to Supabase: oran_dusus_esigi={config.get('oran_dusus_esigi')}")
-                success = True
-    except Exception as e:
-        print(f"[Insider] Supabase save error: {e}")
-    
-    # 2. JSON'a yaz (fallback)
-    try:
-        with open(INSIDER_CONFIG_FILE, 'w') as f:
-            json.dump(config, f, indent=2)
-        print(f"[Insider] Config saved to JSON: oran_dusus_esigi={config.get('oran_dusus_esigi')}")
-        success = True
-    except Exception as e:
-        print(f"[Insider] JSON save error: {e}")
-    
-    return success
 
 SHARP_ALARMS_FILE = 'sharp_alarms.json'
 
@@ -1892,584 +1819,6 @@ def save_publicmove_alarms_to_file(alarms):
 publicmove_alarms = load_publicmove_alarms_from_file()
 publicmove_calculating = False
 publicmove_calc_progress = ""
-
-# ==================== INSIDER INFO ALARM SYSTEM ====================
-INSIDER_ALARMS_FILE = 'insider_alarms.json'
-
-def load_insider_alarms_from_file():
-    """Load Insider alarms from JSON file"""
-    try:
-        if os.path.exists(INSIDER_ALARMS_FILE):
-            with open(INSIDER_ALARMS_FILE, 'r') as f:
-                alarms = json.load(f)
-                print(f"[Insider] Loaded {len(alarms)} alarms from {INSIDER_ALARMS_FILE}")
-                return alarms
-    except Exception as e:
-        print(f"[Insider] Alarms load error: {e}")
-    return []
-
-def save_insider_alarms_to_file(alarms):
-    """Save Insider alarms to both JSON file and Supabase"""
-    success = False
-    
-    # 1. Supabase'e yaz (primary)
-    try:
-        if write_insider_alarms_to_supabase(alarms):
-            success = True
-    except Exception as e:
-        print(f"[Insider] Supabase write error: {e}")
-    
-    # 2. JSON'a yaz (fallback)
-    try:
-        with open(INSIDER_ALARMS_FILE, 'w') as f:
-            json.dump(alarms, f, indent=2, ensure_ascii=False)
-        print(f"[Insider] Saved {len(alarms)} alarms to {INSIDER_ALARMS_FILE}")
-        success = True
-    except Exception as e:
-        print(f"[Insider] JSON save error: {e}")
-    
-    return success
-
-
-def merge_insider_alarms(existing_alarms, new_alarms):
-    """
-    Merge existing and new insider alarms.
-    - Keep existing alarms (don't delete old ones)
-    - Add new alarms (avoid duplicates)
-    - Remove D-2+ alarms (old matches)
-    """
-    today = now_turkey().date()
-    yesterday = today - timedelta(days=1)
-    
-    # Create unique key for each alarm
-    def alarm_key(alarm):
-        return f"{alarm.get('home', '')}_{alarm.get('away', '')}_{alarm.get('market', '')}_{alarm.get('selection', '')}_{alarm.get('event_time', '')}"
-    
-    # Start with existing alarms
-    merged = {}
-    
-    # Add existing alarms (filter out D-2+ ones)
-    for alarm in existing_alarms:
-        match_date_str = alarm.get('match_date', '')
-        try:
-            # Parse match date
-            if match_date_str:
-                date_part = match_date_str.split()[0]
-                if '.' in date_part:
-                    parts = date_part.split('.')
-                    if len(parts) == 2:
-                        day = int(parts[0])
-                        month_abbr = parts[1][:3]
-                        month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
-                                    'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
-                        month = month_map.get(month_abbr, today.month)
-                        match_date = datetime(today.year, month, day).date()
-                    elif len(parts) == 3:
-                        match_date = datetime.strptime(date_part, '%d.%m.%Y').date()
-                    else:
-                        match_date = today
-                else:
-                    match_date = today
-                
-                # Skip D-2+ alarms
-                if match_date < yesterday:
-                    continue
-        except:
-            pass  # Keep alarm if date parsing fails
-        
-        key = alarm_key(alarm)
-        merged[key] = alarm
-    
-    # Add new alarms
-    added_count = 0
-    for alarm in new_alarms:
-        key = alarm_key(alarm)
-        if key not in merged:
-            merged[key] = alarm
-            added_count += 1
-    
-    result = list(merged.values())
-    print(f"[Insider] Merged: {len(existing_alarms)} existing + {added_count} new = {len(result)} total (D-2+ filtered)")
-    
-    return result
-
-
-insider_alarms = load_insider_alarms_from_file()
-insider_calculating = False
-insider_calc_progress = ""
-
-
-@app.route('/api/insider/config', methods=['GET'])
-def get_insider_config():
-    """Get Insider config with default fallback"""
-    merged_config = DEFAULT_ALARM_SETTINGS.get('insider', {}).get('config', {}).copy()
-    
-    try:
-        supabase = get_supabase_client()
-        if supabase and supabase.is_available:
-            db_setting = supabase.get_alarm_setting('insider')
-            if db_setting:
-                db_config = db_setting.get('config')
-                if db_config and isinstance(db_config, dict):
-                    for key, value in db_config.items():
-                        if value is not None:
-                            merged_config[key] = value
-    except Exception as e:
-        print(f"[Insider Config] Supabase error: {e}")
-    
-    if isinstance(insider_config, dict):
-        for key, value in insider_config.items():
-            if value is not None:
-                merged_config[key] = value
-    
-    return jsonify(merged_config)
-
-
-@app.route('/api/insider/config', methods=['POST'])
-def save_insider_config_endpoint():
-    """Save Insider config"""
-    global insider_config
-    try:
-        data = request.get_json()
-        if data:
-            insider_config.update(data)
-            save_insider_config(insider_config)
-            print(f"[Insider] Config updated: oran_dusus_esigi={insider_config.get('oran_dusus_esigi')}, hacim_sok_esigi={insider_config.get('hacim_sok_esigi')}, max_para={insider_config.get('max_para')}")
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@app.route('/api/insider/alarms', methods=['GET'])
-def get_insider_alarms():
-    """Get all Insider alarms - reads from Supabase first, fallback to local JSON only on error"""
-    supabase_alarms = get_insider_alarms_from_supabase()
-    if supabase_alarms is not None:  # Boş liste dahil Supabase verisini kullan
-        return jsonify(supabase_alarms)
-    return jsonify(insider_alarms)  # Sadece Supabase hatası durumunda JSON fallback
-
-
-@app.route('/api/insider/status', methods=['GET'])
-def get_insider_status():
-    """Get Insider calculation status"""
-    return jsonify({
-        'calculating': insider_calculating,
-        'progress': insider_calc_progress,
-        'alarm_count': len(insider_alarms)
-    })
-
-@app.route('/api/insider/reset', methods=['POST'])
-def reset_insider_calculation():
-    """Reset Insider calculation flag (force unlock)"""
-    global insider_calculating, insider_calc_progress
-    insider_calculating = False
-    insider_calc_progress = "Kullanici tarafindan sifirlandi"
-    print("[Insider] Calculation flag reset by user")
-    return jsonify({'success': True, 'message': 'Calculation reset'})
-
-
-@app.route('/api/insider/delete', methods=['POST'])
-def delete_insider_alarms():
-    """Delete all Insider alarms from both Supabase and local JSON"""
-    global insider_alarms
-    try:
-        insider_alarms = []
-        save_insider_alarms_to_file(insider_alarms)
-        delete_alarms_from_supabase('insider_alarms')
-        print("[Insider] All alarms deleted")
-        return jsonify({'success': True})
-    except Exception as e:
-        print(f"[Insider] Delete error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@app.route('/api/insider/calculate', methods=['POST'])
-def calculate_insider_alarms_endpoint():
-    """Calculate Insider Info alarms based on config"""
-    global insider_alarms, insider_calculating, insider_calc_progress
-    
-    if insider_calculating:
-        return jsonify({'success': False, 'error': 'Hesaplama zaten devam ediyor', 'calculating': True})
-    
-    try:
-        insider_calculating = True
-        insider_calc_progress = "Hesaplama baslatiliyor..."
-        new_alarms = calculate_insider_scores(sharp_config, insider_alarms)
-        insider_alarms = merge_insider_alarms(insider_alarms, new_alarms)
-        save_insider_alarms_to_file(insider_alarms)
-        insider_calc_progress = f"Tamamlandi! {len(insider_alarms)} alarm bulundu."
-        insider_calculating = False
-        return jsonify({'success': True, 'count': len(insider_alarms)})
-    except Exception as e:
-        insider_calculating = False
-        insider_calc_progress = f"Hata: {str(e)}"
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-def calculate_insider_scores(config, existing_alarms=None):
-    """
-    Calculate Insider Info alarms with rolling window approach.
-    
-    INSIDER ALARM CONDITIONS (must be met for consecutive snapshots):
-    1. HacimSok < insider_hacim_sok_esigi (default: 2)
-    2. OranDususu >= insider_oran_dusus_esigi (default: 3%)
-    3. GelenPara < insider_max_para (default: 5000)
-    
-    These conditions must persist for insider_sure_dakika minutes (default: 30)
-    which equals 3 consecutive 10-minute snapshots.
-    
-    DUPLICATE PREVENTION: If alarm already exists for same match+market+selection
-    and the odds haven't changed since last alarm, don't create a new alarm.
-    """
-    alarms = []
-    existing_alarms = existing_alarms or []
-    
-    # Build lookup dict for existing alarms: key -> last_odds
-    existing_odds_map = {}
-    for ea in existing_alarms:
-        key = f"{ea.get('home', '')}_{ea.get('away', '')}_{ea.get('market', '')}_{ea.get('selection', '')}"
-        existing_odds_map[key] = ea.get('last_odds', 0)
-    
-    supabase = get_supabase_client()
-    if not supabase or not supabase.is_available:
-        print("[Insider] Supabase not available")
-        return alarms
-    
-    # Get config parameters - NO DEFAULTS (tüm değerler Supabase'den gelmeli)
-    # None kontrolü yapılmalı (0 değeri geçerli olabilir)
-    hacim_sok_esigi = config.get('hacim_sok_esigi') if config.get('hacim_sok_esigi') is not None else config.get('insider_hacim_sok_esigi')
-    oran_dusus_esigi = config.get('oran_dusus_esigi') if config.get('oran_dusus_esigi') is not None else config.get('insider_oran_dusus_esigi')
-    sure_dakika = config.get('sure_dakika') if config.get('sure_dakika') is not None else config.get('insider_sure_dakika')
-    max_para = config.get('max_para') if config.get('max_para') is not None else config.get('insider_max_para')
-    max_odds_esigi = config.get('max_odds_esigi') if config.get('max_odds_esigi') is not None else config.get('insider_max_odds_esigi')
-    
-    # Config eksikse hesaplama yapma (None kontrolü - 0 geçerli değer)
-    missing = []
-    if hacim_sok_esigi is None: missing.append('hacim_sok_esigi')
-    if oran_dusus_esigi is None: missing.append('oran_dusus_esigi')
-    if sure_dakika is None: missing.append('sure_dakika')
-    if max_para is None: missing.append('max_para')
-    if max_odds_esigi is None: missing.append('max_odds_esigi')
-    
-    if missing:
-        print(f"[Insider] CONFIG EKSIK - Supabase'den config yüklenemedi! Eksik: {missing}")
-        return alarms
-    
-    # Calculate required consecutive snapshots (10 min per snapshot)
-    snapshot_interval = 10  # minutes
-    required_streak = max(1, sure_dakika // snapshot_interval)
-    
-    print(f"[Insider] Config: HacimSok<{hacim_sok_esigi}, OranDusus>={oran_dusus_esigi}%, Sure={sure_dakika}dk ({required_streak} snapshot), MaxPara<{max_para}, MaxOdds<{max_odds_esigi}")
-    
-    markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
-    market_names = {'moneyway_1x2': '1X2', 'moneyway_ou25': 'O/U 2.5', 'moneyway_btts': 'BTTS'}
-    
-    # Prematch kuralı: D-2+ maçlar hariç tutulur (Sharp ile aynı)
-    today = now_turkey().date()
-    yesterday = today - timedelta(days=1)
-    
-    for market in markets:
-        try:
-            if '1x2' in market:
-                selections = ['1', 'X', '2']
-                odds_keys = ['odds1', 'oddsx', 'odds2']
-                amount_keys = ['amt1', 'amtx', 'amt2']
-            elif 'ou25' in market:
-                selections = ['Over', 'Under']
-                odds_keys = ['over', 'under']
-                amount_keys = ['amtover', 'amtunder']
-            else:
-                selections = ['Yes', 'No']
-                odds_keys = ['oddsyes', 'oddsno']
-                amount_keys = ['amtyes', 'amtno']
-            
-            history_table = f"{market}_history"
-            matches = supabase.get_all_matches_with_latest(market)
-            if not matches:
-                continue
-            
-            # D-2+ filtresi uygula - sadece bugün ve yarın maçlarını işle
-            filtered_matches = []
-            for match in matches:
-                match_date_str = match.get('date', '')
-                if match_date_str:
-                    try:
-                        date_part = match_date_str.split()[0]
-                        if '.' in date_part:
-                            parts = date_part.split('.')
-                            if len(parts) == 2:
-                                day = int(parts[0])
-                                month_abbr = parts[1][:3]
-                                month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
-                                            'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
-                                month = month_map.get(month_abbr, today.month)
-                                match_date = datetime(today.year, month, day).date()
-                            elif len(parts) == 3:
-                                match_date = datetime.strptime(date_part, '%d.%m.%Y').date()
-                            else:
-                                match_date = today
-                        elif '-' in date_part:
-                            match_date = datetime.strptime(date_part.split('T')[0], '%Y-%m-%d').date()
-                        else:
-                            match_date = today
-                        
-                        # D-2 veya daha eski maçları atla
-                        if match_date < yesterday:
-                            continue
-                        filtered_matches.append(match)
-                    except:
-                        filtered_matches.append(match)
-                else:
-                    filtered_matches.append(match)
-            
-            print(f"[Insider] Processing {len(filtered_matches)}/{len(matches)} matches for {market} (D-2+ filtered)")
-            
-            for match in filtered_matches:
-                home = match.get('home_team', match.get('home', match.get('Home', '')))
-                away = match.get('away_team', match.get('away', match.get('Away', '')))
-                
-                if not home or not away:
-                    continue
-                
-                # Use faster history fetch (same as Sharp) - tek request
-                history = supabase.get_match_history_for_sharp(home, away, history_table)
-                if not history or len(history) < required_streak + 1:
-                    continue
-                
-                match_date_str = match.get('date', '')
-                
-                for sel_idx, selection in enumerate(selections):
-                    odds_key = odds_keys[sel_idx]
-                    amount_key = amount_keys[sel_idx]
-                    
-                    # Get opening odds (first snapshot)
-                    opening_odds = parse_float(history[0].get(odds_key, '0'))
-                    if opening_odds <= 0:
-                        continue
-                    
-                    # Max odds filter - skip selections with odds higher than threshold
-                    last_odds = parse_float(history[-1].get(odds_key, '0'))
-                    if last_odds > max_odds_esigi:
-                        continue  # Skip this selection - odds too high
-                    
-                    # Calculate metrics for each snapshot
-                    snapshot_metrics = []
-                    for i, snap in enumerate(history):
-                        current_odds = parse_float(snap.get(odds_key, '0'))
-                        current_amount = parse_volume(snap.get(amount_key, '0'))
-                        
-                        # Calculate odds drop from opening
-                        if current_odds > 0 and current_odds < opening_odds:
-                            odds_drop_pct = ((opening_odds - current_odds) / opening_odds) * 100
-                        else:
-                            odds_drop_pct = 0
-                        
-                        # Calculate amount change and shock from previous snapshot
-                        if i > 0:
-                            prev_amount = parse_volume(history[i-1].get(amount_key, '0'))
-                            amount_change = current_amount - prev_amount
-                            
-                            # Calculate average of previous amounts for shock
-                            prev_amounts = []
-                            for j in range(max(0, i-5), i):
-                                amt = parse_volume(history[j].get(amount_key, '0'))
-                                if amt > 0:
-                                    prev_amounts.append(amt)
-                            
-                            if prev_amounts and amount_change > 0:
-                                avg_prev = sum(prev_amounts) / len(prev_amounts)
-                                hacim_sok = amount_change / avg_prev if avg_prev > 0 else 0
-                            else:
-                                hacim_sok = 0
-                            
-                            # Gelen para = amount_change (positive money flow)
-                            gelen_para = max(0, amount_change)
-                        else:
-                            hacim_sok = 0
-                            gelen_para = 0
-                            amount_change = 0
-                        
-                        snapshot_metrics.append({
-                            'index': i,
-                            'odds': current_odds,
-                            'odds_drop_pct': odds_drop_pct,
-                            'hacim_sok': hacim_sok,
-                            'gelen_para': gelen_para,
-                            'amount_change': amount_change,
-                            'amount': current_amount  # Store actual amount for window calculation
-                        })
-                    
-                    # ========================================================
-                    # YENİ MANTIK: Açılıştan bugüne oran düşüşü + düşüş anı etrafındaki snapshotlar
-                    # ========================================================
-                    
-                    # Son snapshot'taki oran
-                    current_odds = snapshot_metrics[-1]['odds'] if snapshot_metrics else 0
-                    
-                    # Açılıştan bugüne oran düşüşü (%)
-                    if opening_odds > 0 and current_odds > 0 and current_odds < opening_odds:
-                        opening_to_now_drop_pct = ((opening_odds - current_odds) / opening_odds) * 100
-                    else:
-                        opening_to_now_drop_pct = 0
-                    
-                    # KOŞUL 1: Açılıştan bugüne oran düşüşü >= eşik
-                    if opening_to_now_drop_pct < oran_dusus_esigi:
-                        continue  # Yeterli düşüş yok, sonraki selection'a geç
-                    
-                    # ========================================================
-                    # En büyük YÜZDESEL oran düşüşünün gerçekleştiği anı bul
-                    # ========================================================
-                    max_drop_index = -1
-                    max_single_drop_pct = 0
-                    
-                    for i in range(1, len(snapshot_metrics)):
-                        prev_odds = snapshot_metrics[i-1]['odds']
-                        curr_odds = snapshot_metrics[i]['odds']
-                        
-                        if prev_odds > 0 and curr_odds < prev_odds:
-                            # YÜZDESEL düşüş hesapla (mutlak değil)
-                            single_drop_pct = ((prev_odds - curr_odds) / prev_odds) * 100
-                            if single_drop_pct > max_single_drop_pct:
-                                max_single_drop_pct = single_drop_pct
-                                max_drop_index = i
-                    
-                    # Eğer düşüş anı bulunamadıysa, son snapshot'ı kullan
-                    if max_drop_index == -1:
-                        max_drop_index = len(snapshot_metrics) - 1
-                    
-                    # ========================================================
-                    # Düşüş anının etrafındaki snapshotlara bak
-                    # required_streak: Toplam bakılacak snapshot sayısı (admin'den ayarlanabilir)
-                    # Örnek: 7 snapshot = 3 öncesi + 1 düşüş anı + 3 sonrası
-                    # ========================================================
-                    half_window = required_streak // 2
-                    
-                    # Window sınırlarını hesapla
-                    window_start_idx = max(0, max_drop_index - half_window)
-                    window_end_idx = min(len(snapshot_metrics), max_drop_index + half_window + 1)
-                    
-                    # Window'u al
-                    window = snapshot_metrics[window_start_idx:window_end_idx]
-                    
-                    if len(window) < 2:
-                        continue  # Yeterli snapshot yok
-                    
-                    # Check if ALL snapshots in window meet conditions (HacimSok, GelenPara)
-                    all_qualify = True
-                    for snap_metric in window:
-                        # Condition 1: HacimSok < esik (düşük hacim şoku = sessiz hareket)
-                        if snap_metric['hacim_sok'] >= hacim_sok_esigi:
-                            all_qualify = False
-                            break
-                        # Condition 2: GelenPara < max_para (düşük para girişi)
-                        if snap_metric['gelen_para'] >= max_para:
-                            all_qualify = False
-                            break
-                    
-                    alarm_triggered = all_qualify
-                    best_window = window if all_qualify else None
-                    best_window_drop_pct = opening_to_now_drop_pct  # Açılıştan bugüne düşüş
-                    
-                    if alarm_triggered and best_window:
-                        # DUPLICATE PREVENTION: Check if alarm already exists with same odds
-                        alarm_key = f"{home}_{away}_{market_names.get(market, market)}_{selection}"
-                        last_odds_val = parse_float(history[-1].get(odds_key, '0'))
-                        
-                        if alarm_key in existing_odds_map:
-                            prev_last_odds = existing_odds_map[alarm_key]
-                            # If odds haven't changed, skip creating duplicate alarm
-                            if abs(last_odds_val - prev_last_odds) < 0.01:
-                                print(f"[Insider] SKIP: {home} vs {away} [{selection}] - oran degismedi ({last_odds_val:.2f} = {prev_last_odds:.2f})")
-                                continue
-                        
-                        # Use last snapshot in window for alarm details
-                        last_snap = best_window[-1]
-                        first_snap = best_window[0]
-                        
-                        # Calculate averages over the window
-                        avg_hacim_sok = sum(s['hacim_sok'] for s in best_window) / len(best_window)
-                        
-                        # Gelen Para: Window boyunca gelen toplam para (son - ilk)
-                        window_first_amount = first_snap.get('amount', 0)
-                        window_last_amount = last_snap.get('amount', 0)
-                        window_gelen_para = max(0, window_last_amount - window_first_amount)
-                        
-                        # Event time: hareketin tespit edildiği snapshot zamanı
-                        last_snap_idx = last_snap['index']
-                        first_snap_idx = first_snap['index']
-                        event_time = history[last_snap_idx].get('scraped_at', '') if last_snap_idx < len(history) else ''
-                        
-                        # Açılıştan bugüne oran bilgileri (YENİ)
-                        window_start_odds = opening_odds  # Açılış oranı
-                        window_end_odds = current_odds    # Şu anki oran (son snapshot)
-                        
-                        # Açılıştan bugüne düşüş yüzdesi
-                        window_odds_drop_pct = opening_to_now_drop_pct
-                        
-                        # Snapshot detayları (her snapshot için oran, zaman ve para)
-                        snapshot_details = []
-                        for snap in best_window:
-                            snap_idx = snap['index']
-                            snap_odds = snap['odds']
-                            snap_amount = snap.get('amount', 0)
-                            snap_time = history[snap_idx].get('scraped_at', '') if snap_idx < len(history) else ''
-                            snapshot_details.append({
-                                'odds': snap_odds,
-                                'amount': snap_amount,
-                                'time': snap_time
-                            })
-                        
-                        created_at = now_turkey().strftime('%d.%m.%Y %H:%M')
-                        last_odds = parse_float(history[-1].get(odds_key, '0'))
-                        
-                        # Düşüş anı zamanı (drop_time)
-                        drop_time = history[max_drop_index].get('scraped_at', '') if max_drop_index < len(history) else ''
-                        
-                        alarm = {
-                            'home': home,
-                            'away': away,
-                            'market': market_names.get(market, market),
-                            'selection': selection,
-                            'hacim_sok': avg_hacim_sok,
-                            'oran_dusus_pct': window_odds_drop_pct,  # Açılıştan bugüne düşüş
-                            'gelen_para': window_gelen_para,  # Window boyunca toplam gelen para (son - ilk)
-                            'opening_odds': opening_odds,
-                            'current_odds': last_odds,  # Template için - son oran değeri
-                            'last_odds': last_odds,
-                            # Düşüş anı bilgisi (YENİ)
-                            'drop_time': drop_time,
-                            'drop_index': max_drop_index,
-                            # Snapshot window bilgileri
-                            'window_start_odds': window_start_odds,
-                            'window_end_odds': window_end_odds,
-                            'window_odds_drop_pct': window_odds_drop_pct,
-                            'snapshot_details': snapshot_details,
-                            # Config
-                            'insider_hacim_sok_esigi': hacim_sok_esigi,
-                            'insider_oran_dusus_esigi': oran_dusus_esigi,
-                            'insider_sure_dakika': sure_dakika,
-                            'insider_max_para': max_para,
-                            'insider_max_odds_esigi': max_odds_esigi,
-                            'snapshot_count': required_streak,
-                            'match_date': match_date_str,
-                            'event_time': event_time,
-                            'created_at': created_at,
-                            'triggered': True
-                        }
-                        alarms.append(alarm)
-                        drop_snap_time = drop_time[:16] if drop_time else ''
-                        print(f"[Insider] ALARM: {home} vs {away} [{selection}] Acilis->Simdi: {opening_odds:.2f}->{current_odds:.2f} ({opening_to_now_drop_pct:.1f}%), DususAni: {drop_snap_time}, Window: {len(best_window)} snap")
-        
-        except Exception as e:
-            print(f"[Insider] Error processing {market}: {e}")
-            import traceback
-            traceback.print_exc()
-            continue
-    
-    print(f"[Insider] Total alarms found: {len(alarms)}")
-    return alarms
 
 
 # ============================================================================
@@ -5066,7 +4415,7 @@ def get_all_alarms_batch():
     
     Query params:
     - types: comma-separated list of alarm types to include (default: all)
-      Example: ?types=sharp,insider,bigmoney,mim
+      Example: ?types=sharp,bigmoney,mim
     - refresh: set to 'true' to force cache refresh
     """
     import time as t
@@ -5088,7 +4437,6 @@ def get_all_alarms_batch():
     # Define all alarm types and their fetch functions
     alarm_fetchers = {
         'sharp': (get_sharp_alarms_from_supabase, sharp_alarms if 'sharp_alarms' in dir() else []),
-        'insider': (get_insider_alarms_from_supabase, insider_alarms if 'insider_alarms' in dir() else []),
         'bigmoney': (get_bigmoney_alarms_from_supabase, big_money_alarms if 'big_money_alarms' in dir() else []),
         'volumeshock': (get_volumeshock_alarms_from_supabase, volume_shock_alarms if 'volume_shock_alarms' in dir() else []),
         'dropping': (get_dropping_alarms_from_supabase, dropping_alarms if 'dropping_alarms' in dir() else []),
@@ -5253,7 +4601,6 @@ def get_match_snapshot(match_id):
     if 'alarms' in sections_to_include:
         alarm_fetchers = {
             'sharp': (get_sharp_alarms_from_supabase, sharp_alarms),
-            'insider': (get_insider_alarms_from_supabase, insider_alarms),
             'bigmoney': (get_bigmoney_alarms_from_supabase, big_money_alarms),
             'volumeshock': (get_volumeshock_alarms_from_supabase, volume_shock_alarms),
             'dropping': (get_dropping_alarms_from_supabase, dropping_alarms),
@@ -5665,19 +5012,6 @@ DEFAULT_ALARM_SETTINGS = {
             'odds_range_2_min_drop': 3,
             'odds_range_3_min_drop': 7,
             'odds_range_4_min_drop': 15
-        }
-    },
-    'insider': {
-        'enabled': True,
-        'config': {
-            'max_para': 100,
-            'sure_dakika': 7,
-            'max_odds_esigi': 1.85,
-            'min_volume_1x2': 3000,
-            'hacim_sok_esigi': 0.1,
-            'min_volume_btts': 1000,
-            'min_volume_ou25': 1000,
-            'oran_dusus_esigi': 6
         }
     },
     'bigmoney': {
