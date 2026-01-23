@@ -920,7 +920,7 @@ def run_all_calculations(write_to_db: bool = False):
     
     return alarms
 
-def run_continuous(interval_minutes: int = 10, write_to_db: bool = True):
+def run_continuous(interval_minutes: int = 9, write_to_db: bool = True):
     """
     Sürekli çalışan alarm hesaplama döngüsü.
     SSL hatası alınca 5 dakika bekleyip otomatik restart yapar.
