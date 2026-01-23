@@ -923,11 +923,11 @@ def run_all_calculations(write_to_db: bool = False):
 def run_continuous(interval_minutes: int = 9, write_to_db: bool = True):
     """
     Sürekli çalışan alarm hesaplama döngüsü.
-    SSL hatası alınca 5 dakika bekleyip otomatik restart yapar.
+    SSL hatası alınca 1 dakika bekleyip otomatik restart yapar.
     """
     import time
     
-    RESTART_WAIT_SECONDS = 300  # 5 dakika
+    RESTART_WAIT_SECONDS = 60  # 1 dakika
     
     while True:
         try:
@@ -945,7 +945,7 @@ def run_continuous(interval_minutes: int = 9, write_to_db: bool = True):
                 print("\n" + "!" * 60)
                 print("SSL HATASI ALGILANDI!")
                 print(f"Hata: {error_status.get('ssl_error_message', 'Bilinmiyor')}")
-                print(f"5 dakika bekleniyor... ({RESTART_WAIT_SECONDS} saniye)")
+                print(f"1 dakika bekleniyor... ({RESTART_WAIT_SECONDS} saniye)")
                 print("!" * 60)
                 
                 for remaining in range(RESTART_WAIT_SECONDS, 0, -10):
@@ -964,7 +964,7 @@ def run_continuous(interval_minutes: int = 9, write_to_db: bool = True):
             break
         except Exception as e:
             print(f"\nBEKLENMEYEN HATA: {e}")
-            print(f"5 dakika bekleniyor...")
+            print(f"1 dakika bekleniyor...")
             time.sleep(RESTART_WAIT_SECONDS)
             continue
 
