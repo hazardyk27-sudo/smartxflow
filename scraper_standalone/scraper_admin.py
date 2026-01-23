@@ -221,7 +221,7 @@ def handle_ssl_error(error_message):
     SSL hatası tespit edildiğinde:
     1. Telegram'a uyarı gönder
     2. Log'a yaz
-    3. Uygulamayı yeniden başlat
+    3. 1 dakika bekleyip döngüye devam et (restart yerine)
     """
     global SSL_ERROR_COUNT, SSL_LAST_ALERT_TIME
     
@@ -239,14 +239,14 @@ def handle_ssl_error(error_message):
             log_scraper("Telegram uyarısı 5 dk içinde zaten gönderildi, atlanıyor")
     
     if should_send_alert:
-        alert_msg = f"🔴 SSL Sertifika Hatası!\n\n{error_message}\n\n🔄 Uygulama otomatik yeniden başlatılıyor..."
+        alert_msg = f"🔴 SSL Sertifika Hatası!\n\n{error_message}\n\n⏳ 1 dakika bekleniyor, sonra yeniden denenecek..."
         send_telegram_alert(alert_msg)
         SSL_LAST_ALERT_TIME = current_time
     
-    log_scraper("⏳ 5 saniye sonra yeniden başlatılacak...")
-    time.sleep(5)
-    
-    restart_application()
+    log_scraper("⏳ 1 dakika bekleniyor, sonra yeniden denenecek...")
+    for remaining in range(60, 0, -10):
+        log_scraper(f"  Yeniden denemeye {remaining} saniye...")
+        time.sleep(10)
 
 def setup_logging():
     """Log dosyası oluştur"""
