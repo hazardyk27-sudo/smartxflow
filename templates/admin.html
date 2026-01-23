@@ -2377,6 +2377,19 @@
                             <label>Not (opsiyonel)</label>
                             <input type="text" id="licenseNote" placeholder="Ornek: VIP musteri" style="width: 100%;">
                         </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" id="telegramMembership" onchange="toggleTelegramInput()" style="width: 18px; height: 18px; accent-color: #0088cc;">
+                                <span style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="color: #0088cc;">📢</span> Telegram Grup Uyeligi Dahil
+                                </span>
+                            </label>
+                        </div>
+                        <div class="form-group" id="telegramUsernameGroup" style="display: none; grid-column: span 2;">
+                            <label>Telegram Kullanici Adi</label>
+                            <input type="text" id="telegramUsername" placeholder="@kullaniciadi" style="width: 100%;">
+                            <span class="form-hint">Gruba eklenecek Telegram kullanici adi</span>
+                        </div>
                     </div>
                     <div class="btn-group" style="margin-top: 20px;">
                         <button class="btn btn-primary" onclick="createLicense()" style="background: #238636;">
@@ -6444,13 +6457,29 @@
         // ============================================
         let allLicenses = [];
 
+        function toggleTelegramInput() {
+            const checkbox = document.getElementById('telegramMembership');
+            const usernameGroup = document.getElementById('telegramUsernameGroup');
+            usernameGroup.style.display = checkbox.checked ? 'block' : 'none';
+            if (!checkbox.checked) {
+                document.getElementById('telegramUsername').value = '';
+            }
+        }
+
         async function createLicense() {
             const email = document.getElementById('licenseEmail').value.trim();
             const duration = parseInt(document.getElementById('licenseDuration').value);
             const note = document.getElementById('licenseNote').value.trim();
+            const telegramMembership = document.getElementById('telegramMembership').checked;
+            const telegramUsername = document.getElementById('telegramUsername').value.trim();
 
             if (!email) {
                 showToast('Email adresi gerekli!', 'error');
+                return;
+            }
+
+            if (telegramMembership && !telegramUsername) {
+                showToast('Telegram kullanici adi gerekli!', 'error');
                 return;
             }
 
@@ -6458,7 +6487,13 @@
                 const response = await fetch('/api/licenses/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, duration_days: duration, note })
+                    body: JSON.stringify({ 
+                        email, 
+                        duration_days: duration, 
+                        note,
+                        telegram_membership: telegramMembership,
+                        telegram_username: telegramUsername || null
+                    })
                 });
 
                 const data = await response.json();
@@ -6467,6 +6502,9 @@
                     document.getElementById('generatedKeySection').style.display = 'block';
                     document.getElementById('licenseEmail').value = '';
                     document.getElementById('licenseNote').value = '';
+                    document.getElementById('telegramMembership').checked = false;
+                    document.getElementById('telegramUsername').value = '';
+                    document.getElementById('telegramUsernameGroup').style.display = 'none';
                     showToast('Lisans olusturuldu!', 'success');
                     loadLicenses();
                     loadLicenseStats();
@@ -6566,11 +6604,13 @@
 
                 const daysLeftText = daysLeft > 0 ? `${daysLeft} gun` : '<span style="color: #f85149;">Doldu</span>';
                 const deviceCount = lic.device_count || 0;
+                const telegramBadge = lic.telegram_membership ? 
+                    `<span style="background: #0088cc; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 6px;" title="${lic.telegram_username || ''}">📢 ${lic.telegram_username || 'TG'}</span>` : '';
 
                 return `
                     <tr>
                         <td style="font-family: monospace; color: #58a6ff;">${lic.key}</td>
-                        <td>${lic.email || '-'}</td>
+                        <td>${lic.email || '-'}${telegramBadge}</td>
                         <td>${lic.duration_days} gun</td>
                         <td>${expiresAt.toLocaleDateString('tr-TR')}</td>
                         <td>${daysLeftText}</td>

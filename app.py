@@ -6154,6 +6154,8 @@ def create_license():
         duration_days = int(data.get('duration_days', 30))
         note = data.get('note', '').strip()
         max_devices = int(data.get('max_devices', 2))
+        telegram_membership = data.get('telegram_membership', False)
+        telegram_username = data.get('telegram_username', '').strip() if data.get('telegram_username') else None
         
         if not email:
             return jsonify({'success': False, 'error': 'Email gerekli'})
@@ -6180,7 +6182,9 @@ def create_license():
             'expires_at': expires_at.isoformat(),
             'status': 'active',
             'max_devices': max_devices,
-            'note': note or None
+            'note': note or None,
+            'telegram_membership': telegram_membership,
+            'telegram_username': telegram_username
         })
         
         if result:
