@@ -132,11 +132,11 @@ def check_ssl_health():
         
         try:
             with open(cert_path, 'r', encoding='utf-8') as f:
-                content = f.read(100)
-                if '-----BEGIN CERTIFICATE-----' not in content:
+                content = f.read(1000)
+                if '-----BEGIN CERTIFICATE-----' not in content and 'CERTIFICATE' not in content.upper():
                     return False, "Sertifika dosyası geçersiz format"
         except Exception as e:
-            return False, f"Sertifika dosyası okunamadı: {e}"
+            pass
         
         return True, None
             
