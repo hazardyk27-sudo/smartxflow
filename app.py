@@ -6673,7 +6673,7 @@ def license_preview():
             justify-content: center;
             gap: 10px;
             padding: 14px 24px;
-            background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+            background: linear-gradient(135deg, #c45500 0%, #d4650a 100%);
             border: none;
             border-radius: 10px;
             color: white;
@@ -6682,11 +6682,18 @@ def license_preview():
             text-decoration: none;
             cursor: pointer;
             transition: all 0.2s ease;
-            box-shadow: 0 4px 15px rgba(255,107,0,0.3);
+            box-shadow: 0 2px 8px rgba(196,85,0,0.2);
         }}
         .shopier-btn:hover {{
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255,107,0,0.4);
+            background: linear-gradient(135deg, #d4650a 0%, #e8750f 100%);
+            box-shadow: 0 6px 20px rgba(196,85,0,0.4);
+        }}
+        .shopier-hint {{
+            margin-top: 8px;
+            font-size: 10px;
+            color: #6e7681;
+            text-align: center;
         }}
         .shopier-icon {{
             font-size: 18px;
@@ -6725,20 +6732,29 @@ def license_preview():
             height: 20px;
         }}
         .social-icon.instagram {{
-            background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+            background: rgba(225,48,108,0.15);
+            border: 1px solid rgba(225,48,108,0.3);
+        }}
+        .social-icon.instagram svg {{
+            fill: #E1306C;
         }}
         .social-icon.telegram {{
-            background: #0088cc;
+            background: rgba(0,136,204,0.15);
+            border: 1px solid rgba(0,136,204,0.3);
+        }}
+        .social-icon.telegram svg {{
+            fill: #0088cc;
         }}
         .social-icon-email {{
             display: flex;
             align-items: center;
             gap: 8px;
             padding: 8px 14px;
-            background: #ea4335;
+            background: rgba(234,67,53,0.15);
+            border: 1px solid rgba(234,67,53,0.3);
             border-radius: 10px;
             text-decoration: none;
-            color: white;
+            color: #ea4335;
             font-size: 11px;
             transition: all 0.2s ease;
             cursor: pointer;
@@ -6747,14 +6763,15 @@ def license_preview():
             width: 18px;
             height: 18px;
             flex-shrink: 0;
+            fill: #ea4335;
         }}
         .social-icon-email:hover {{
             transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(234,67,53,0.4);
+            background: rgba(234,67,53,0.25);
         }}
         .social-icon:hover {{
             transform: scale(1.1);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }}
         .device-info {{ 
             margin-top: 20px; 
@@ -6825,8 +6842,9 @@ def license_preview():
         
         <a href="https://shopier.com" target="_blank" class="shopier-btn">
             <span class="shopier-icon">🛒</span>
-            <span>Key Satin Al</span>
+            <span>Lisans Satin Al</span>
         </a>
+        <div class="shopier-hint">Guvenli odeme • Aninda lisans teslimi</div>
         
         <div class="social-section">
             <div class="social-title">Sosyal Medya</div>
