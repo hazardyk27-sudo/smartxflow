@@ -666,11 +666,10 @@ def show_activation_window(api_base_url, device_id, device_name):
         
         function copyEmail() {{
             const email = 'smartxflow29@gmail.com';
+            const emailSpan = document.getElementById('emailText');
             navigator.clipboard.writeText(email).then(() => {{
-                const emailSpan = document.getElementById('emailText');
-                const original = emailSpan.textContent;
                 emailSpan.textContent = 'Kopyalandi!';
-                setTimeout(() => {{ emailSpan.textContent = original; }}, 1500);
+                setTimeout(() => {{ emailSpan.textContent = email; }}, 1500);
             }});
         }}
         
