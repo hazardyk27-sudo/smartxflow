@@ -920,7 +920,61 @@ def run_all_calculations(write_to_db: bool = False):
     
     return alarms
 
+def run_continuous(interval_minutes: int = 10, write_to_db: bool = True):
+    """
+    Sürekli çalışan alarm hesaplama döngüsü.
+    SSL hatası alınca 5 dakika bekleyip otomatik restart yapar.
+    """
+    import time
+    
+    RESTART_WAIT_SECONDS = 300  # 5 dakika
+    
+    while True:
+        try:
+            clear_error_flags()
+            
+            print("\n" + "=" * 60)
+            print(f"ALARM HESAPLAMA BAŞLIYOR - {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print("=" * 60)
+            
+            run_all_calculations(write_to_db=write_to_db)
+            
+            error_status = get_error_status()
+            
+            if error_status.get('ssl_error') or error_status.get('restart_required'):
+                print("\n" + "!" * 60)
+                print("SSL HATASI ALGILANDI!")
+                print(f"Hata: {error_status.get('ssl_error_message', 'Bilinmiyor')}")
+                print(f"5 dakika bekleniyor... ({RESTART_WAIT_SECONDS} saniye)")
+                print("!" * 60)
+                
+                for remaining in range(RESTART_WAIT_SECONDS, 0, -10):
+                    print(f"  Yeniden başlatmaya {remaining} saniye...")
+                    time.sleep(10)
+                
+                print("\nYENİDEN BAŞLATILIYOR...")
+                clear_error_flags()
+                continue
+            
+            print(f"\nSonraki hesaplama {interval_minutes} dakika sonra...")
+            time.sleep(interval_minutes * 60)
+            
+        except KeyboardInterrupt:
+            print("\nDurduruldu (Ctrl+C)")
+            break
+        except Exception as e:
+            print(f"\nBEKLENMEYEN HATA: {e}")
+            print(f"5 dakika bekleniyor...")
+            time.sleep(RESTART_WAIT_SECONDS)
+            continue
+
+
 if __name__ == '__main__':
     import sys
     write = '--write' in sys.argv
-    run_all_calculations(write_to_db=write)
+    continuous = '--continuous' in sys.argv
+    
+    if continuous:
+        run_continuous(interval_minutes=10, write_to_db=write)
+    else:
+        run_all_calculations(write_to_db=write)
