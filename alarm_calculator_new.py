@@ -6,6 +6,8 @@ Threshold'lar alarm_settings tablosundan okunur
 
 import os
 import re
+import sys
+import ssl
 import hashlib
 import requests
 from urllib.parse import quote
@@ -15,6 +17,50 @@ from typing import Optional, Dict, Any
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY')
 SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+
+SSL_ERROR_FLAG = False
+SSL_ERROR_MESSAGE = ""
+TELEGRAM_ERROR_FLAG = False
+TELEGRAM_ERROR_MESSAGE = ""
+RESTART_REQUIRED = False
+
+def check_ssl_error(exception) -> bool:
+    """SSL sertifika hatası kontrol et"""
+    global SSL_ERROR_FLAG, SSL_ERROR_MESSAGE, RESTART_REQUIRED
+    error_str = str(exception).lower()
+    if 'certificate' in error_str or 'ssl' in error_str or 'handshake' in error_str:
+        SSL_ERROR_FLAG = True
+        SSL_ERROR_MESSAGE = str(exception)
+        RESTART_REQUIRED = True
+        print(f"[SSL HATASI] Sertifika hatasi tespit edildi: {exception}")
+        return True
+    return False
+
+def set_telegram_error(message: str):
+    """Telegram hatası kaydet"""
+    global TELEGRAM_ERROR_FLAG, TELEGRAM_ERROR_MESSAGE
+    TELEGRAM_ERROR_FLAG = True
+    TELEGRAM_ERROR_MESSAGE = message
+    print(f"[TELEGRAM HATASI] {message}")
+
+def get_error_status() -> Dict[str, Any]:
+    """Hata durumlarını döndür"""
+    return {
+        'ssl_error': SSL_ERROR_FLAG,
+        'ssl_error_message': SSL_ERROR_MESSAGE,
+        'telegram_error': TELEGRAM_ERROR_FLAG,
+        'telegram_error_message': TELEGRAM_ERROR_MESSAGE,
+        'restart_required': RESTART_REQUIRED
+    }
+
+def clear_error_flags():
+    """Hata flag'lerini temizle"""
+    global SSL_ERROR_FLAG, SSL_ERROR_MESSAGE, TELEGRAM_ERROR_FLAG, TELEGRAM_ERROR_MESSAGE, RESTART_REQUIRED
+    SSL_ERROR_FLAG = False
+    SSL_ERROR_MESSAGE = ""
+    TELEGRAM_ERROR_FLAG = False
+    TELEGRAM_ERROR_MESSAGE = ""
+    RESTART_REQUIRED = False
 
 HEADERS_READ = {
     'apikey': SUPABASE_ANON_KEY,
@@ -45,19 +91,25 @@ def fetch_alarm_settings() -> Dict[str, Dict]:
     if SETTINGS_CACHE:
         return SETTINGS_CACHE
     
-    r = requests.get(
-        f'{SUPABASE_URL}/rest/v1/alarm_settings?select=*',
-        headers=HEADERS_READ,
-        timeout=10
-    )
-    if r.status_code == 200:
-        for row in r.json():
-            alarm_type = row.get('alarm_type', '')
-            SETTINGS_CACHE[alarm_type] = {
-                'enabled': row.get('enabled', True),
-                'config': row.get('config', {})
-            }
-    print(f"Yuklenen alarm ayarlari: {list(SETTINGS_CACHE.keys())}")
+    try:
+        r = requests.get(
+            f'{SUPABASE_URL}/rest/v1/alarm_settings?select=*',
+            headers=HEADERS_READ,
+            timeout=10
+        )
+        if r.status_code == 200:
+            for row in r.json():
+                alarm_type = row.get('alarm_type', '')
+                SETTINGS_CACHE[alarm_type] = {
+                    'enabled': row.get('enabled', True),
+                    'config': row.get('config', {})
+                }
+        print(f"Yuklenen alarm ayarlari: {list(SETTINGS_CACHE.keys())}")
+    except Exception as e:
+        if check_ssl_error(e):
+            print("[fetch_alarm_settings] SSL hatasi - bos cache donuyor")
+        else:
+            print(f"[fetch_alarm_settings] Hata: {e}")
     return SETTINGS_CACHE
 
 def get_setting(alarm_type: str, key: str, default: Any = None) -> Any:
@@ -150,19 +202,25 @@ def fetch_data(table: str, limit: int = 20000) -> list:
     
     while offset < limit:
         batch_limit = min(page_size, limit - offset)
-        r = requests.get(
-            f'{SUPABASE_URL}/rest/v1/{table}?select=*&order=id.desc&limit={batch_limit}&offset={offset}',
-            headers=HEADERS_READ,
-            timeout=30
-        )
-        if r.status_code != 200:
-            break
-        batch = r.json()
-        if not batch:
-            break
-        all_data.extend(batch)
-        offset += len(batch)
-        if len(batch) < batch_limit:
+        try:
+            r = requests.get(
+                f'{SUPABASE_URL}/rest/v1/{table}?select=*&order=id.desc&limit={batch_limit}&offset={offset}',
+                headers=HEADERS_READ,
+                timeout=30
+            )
+            if r.status_code != 200:
+                break
+            batch = r.json()
+            if not batch:
+                break
+            all_data.extend(batch)
+            offset += len(batch)
+            if len(batch) < batch_limit:
+                break
+        except Exception as e:
+            if check_ssl_error(e):
+                return all_data
+            print(f"[fetch_data] Hata: {e}")
             break
     
     return all_data
@@ -172,19 +230,25 @@ def fetch_all_data(table: str, page_size: int = 1000) -> list:
     all_data = []
     offset = 0
     while True:
-        r = requests.get(
-            f'{SUPABASE_URL}/rest/v1/{table}?select=*&order=id.desc&limit={page_size}&offset={offset}',
-            headers=HEADERS_READ,
-            timeout=30
-        )
-        if r.status_code != 200:
-            break
-        batch = r.json()
-        if not batch:
-            break
-        all_data.extend(batch)
-        offset += page_size
-        if len(batch) < page_size:
+        try:
+            r = requests.get(
+                f'{SUPABASE_URL}/rest/v1/{table}?select=*&order=id.desc&limit={page_size}&offset={offset}',
+                headers=HEADERS_READ,
+                timeout=30
+            )
+            if r.status_code != 200:
+                break
+            batch = r.json()
+            if not batch:
+                break
+            all_data.extend(batch)
+            offset += page_size
+            if len(batch) < page_size:
+                break
+        except Exception as e:
+            if check_ssl_error(e):
+                return all_data
+            print(f"[fetch_all_data] Hata: {e}")
             break
     return all_data
 
@@ -765,18 +829,25 @@ def write_alarms_to_db(alarms: dict, dry_run: bool = False) -> dict:
                 success += 1
                 continue
             
-            r = requests.post(
-                f'{SUPABASE_URL}/rest/v1/{table}',
-                headers={**HEADERS_WRITE, 'Prefer': 'resolution=merge-duplicates'},
-                json=alarm,
-                timeout=10
-            )
-            if r.status_code in [200, 201]:
-                success += 1
-            else:
+            try:
+                r = requests.post(
+                    f'{SUPABASE_URL}/rest/v1/{table}',
+                    headers={**HEADERS_WRITE, 'Prefer': 'resolution=merge-duplicates'},
+                    json=alarm,
+                    timeout=10
+                )
+                if r.status_code in [200, 201]:
+                    success += 1
+                else:
+                    failed += 1
+                    if failed <= 3:
+                        print(f"  HATA {table}: {r.status_code} - {r.text[:100]}")
+            except Exception as e:
+                if check_ssl_error(e):
+                    results[alarm_type] = {'success': success, 'failed': failed, 'ssl_error': True}
+                    return results
                 failed += 1
-                if failed <= 3:
-                    print(f"  HATA {table}: {r.status_code} - {r.text[:100]}")
+                print(f"  [write_alarms_to_db] Exception: {e}")
         
         results[alarm_type] = {'success': success, 'failed': failed}
         print(f"{table}: {success} basarili, {failed} basarisiz")
