@@ -74,7 +74,7 @@ function getCachedAlarmsWithType() {
     if (!_alarmBatchCache) return [];
     
     let all = [];
-    const types = ['sharp', 'insider', 'bigmoney', 'volumeshock', 'dropping', 'volumeleader', 'mim'];
+    const types = ['sharp', 'bigmoney', 'volumeshock', 'dropping', 'volumeleader', 'mim'];
     types.forEach(type => {
         const items = _alarmBatchCache[type] || [];
         items.forEach(a => { a._type = type; });
@@ -84,18 +84,17 @@ function getCachedAlarmsWithType() {
 }
 
 function getCachedAlarmCounts() {
-    if (!_alarmBatchCache) return { sharp: 0, insider: 0, bigmoney: 0, volumeshock: 0, dropping: 0, volumeleader: 0, mim: 0, total: 0 };
+    if (!_alarmBatchCache) return { sharp: 0, bigmoney: 0, volumeshock: 0, dropping: 0, volumeleader: 0, mim: 0, total: 0 };
     
     const counts = {
         sharp: (_alarmBatchCache.sharp || []).length,
-        insider: (_alarmBatchCache.insider || []).length,
         bigmoney: (_alarmBatchCache.bigmoney || []).length,
         volumeshock: (_alarmBatchCache.volumeshock || []).length,
         dropping: (_alarmBatchCache.dropping || []).length,
         volumeleader: (_alarmBatchCache.volumeleader || []).length,
         mim: (_alarmBatchCache.mim || []).length
     };
-    counts.total = counts.sharp + counts.insider + counts.bigmoney + counts.volumeshock + counts.dropping + counts.volumeleader + counts.mim;
+    counts.total = counts.sharp + counts.bigmoney + counts.volumeshock + counts.dropping + counts.volumeleader + counts.mim;
     return counts;
 }
 
@@ -5124,8 +5123,6 @@ function highlightNewAlarm(alarm) {
     let value = '';
     if (alarmType === 'sharp') {
         value = (alarm.sharp_score || 0).toFixed(1);
-    } else if (alarmType === 'insider') {
-        value = `▼ ${Math.abs(alarm.drop_pct || alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1)}%`;
     } else if (alarmType === 'volumeshock') {
         value = `${(alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0).toFixed(1)}x`;
     } else if (alarmType === 'bigmoney') {
@@ -5374,10 +5371,6 @@ async function loadAlertBand() {
         sharp.forEach(a => { a._type = 'sharp'; a._score = a.sharp_score || 0; });
         allAlarms = allAlarms.concat(sharp);
         
-        const insider = (data.insider || []).slice();
-        insider.forEach(a => { a._type = 'insider'; a._score = a.insider_score || 0; });
-        allAlarms = allAlarms.concat(insider);
-        
         const bigmoney = (data.bigmoney || []).slice();
         bigmoney.forEach(a => { a._type = 'bigmoney'; a._score = a.incoming_money || a.stake || a.volume || 0; });
         allAlarms = allAlarms.concat(bigmoney);
@@ -5466,7 +5459,6 @@ function groupAlarmsForBand(alarms) {
 function getAlertType(alarm) {
     const type = alarm._type;
     if (type === 'sharp') return { label: 'SHARP MOVE', color: 'green', pillClass: 'sharp' };
-    if (type === 'insider') return { label: 'INSIDER INFO', color: 'purple', pillClass: 'insider' };
     if (type === 'bigmoney') {
         const stake = alarm.stake || alarm.volume || 0;
         if (stake >= 50000) {
@@ -5495,10 +5487,6 @@ function formatAlertValue(alarm) {
     const type = alarm._type;
     if (type === 'sharp') {
         return '+' + (alarm.sharp_score || 0).toFixed(0);
-    }
-    if (type === 'insider') {
-        const dropPct = alarm.drop_pct || alarm.oran_dusus_pct || alarm.odds_drop_pct || 0;
-        return '-' + dropPct.toFixed(1) + '%';
     }
     if (type === 'bigmoney') {
         const val = alarm.incoming_money || alarm.stake || alarm.volume || 0;
@@ -5550,9 +5538,6 @@ function renderAlertBand() {
         let value = '';
         if (alarm._type === 'sharp') {
             value = (alarm.sharp_score || 0).toFixed(1);
-        } else if (alarm._type === 'insider') {
-            const dropPct = Math.abs(alarm.drop_pct || alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
-            value = `▼ ${dropPct}%`;
         } else if (alarm._type === 'volumeshock') {
             value = `${(alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0).toFixed(1)}x`;
         } else if (alarm._type === 'bigmoney') {
@@ -5664,21 +5649,6 @@ function showAlertBandDetail(index) {
                 </div>
             </div>
         `;
-    } else if (alarm._type === 'insider') {
-        const insiderDropPct = alarm.drop_pct || alarm.oran_dusus_pct || alarm.odds_drop_pct || 0;
-        const insiderMoney = alarm.total_money || alarm.incoming_money || alarm.stake || 0;
-        detailsHtml = `
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                    <div style="color: #60a5fa; font-size: 20px; font-weight: 700;">${insiderMoney > 0 ? '£' + Number(insiderMoney).toLocaleString('en-GB') : '-'}</div>
-                    <div style="color: #8b949e; font-size: 11px;">Gelen Para</div>
-                </div>
-                <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
-                    <div style="color: #f87171; font-size: 20px; font-weight: 700;">${insiderDropPct > 0 ? insiderDropPct.toFixed(2) + '%' : '-'}</div>
-                    <div style="color: #8b949e; font-size: 11px;">Oran Düşüşü</div>
-                </div>
-            </div>
-        `;
     } else {
         detailsHtml = `
             <div style="background: #21262d; border-radius: 8px; padding: 16px; text-align: center;">
@@ -5688,7 +5658,7 @@ function showAlertBandDetail(index) {
         `;
     }
     
-    const typeColors = { sharp: '#ef4444', insider: '#60a5fa', bigmoney: '#fbbf24', volumeshock: '#F6C343', dropping: '#f85149', publicmove: '#FFCC00', volumeleader: '#06b6d4', mim: '#3B82F6' };
+    const typeColors = { sharp: '#ef4444', bigmoney: '#fbbf24', volumeshock: '#F6C343', dropping: '#f85149', publicmove: '#FFCC00', volumeleader: '#06b6d4', mim: '#3B82F6' };
     
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 480px;">
@@ -5706,7 +5676,7 @@ function showAlertBandDetail(index) {
             <div class="modal-body" style="padding: 20px;">
                 <div style="text-align: center; margin-bottom: 20px;">
                     <div style="font-size: 42px; font-weight: 700; color: ${typeColors[alarm._type] || '#8b949e'};">${value}</div>
-                    <div style="color: #8b949e; font-size: 13px;">${alarm._type === 'sharp' ? 'Sharp Score' : (alarm._type === 'insider' ? 'Insider Score' : 'Stake')}</div>
+                    <div style="color: #8b949e; font-size: 13px;">${alarm._type === 'sharp' ? 'Sharp Score' : 'Stake'}</div>
                 </div>
                 <div style="background: #0d1117; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
                     <div style="font-size: 18px; font-weight: 600; color: #fff; text-align: center; margin-bottom: 8px;">
@@ -5739,7 +5709,6 @@ let allAlarmsData = [];
 let groupedAlarmsData = [];
 let alarmsDataByType = {
     sharp: [],
-    insider: [],
     bigmoney: [],
     volumeshock: [],
     dropping: [],
@@ -5789,7 +5758,6 @@ async function loadAllAlarms(forceRefresh = false) {
         
         // Process batch response
         const rawSharp = data.sharp || [];
-        const rawInsider = data.insider || [];
         const rawBigmoney = data.bigmoney || [];
         const rawVolumeshock = data.volumeshock || [];
         const rawDropping = data.dropping || [];
@@ -5798,7 +5766,6 @@ async function loadAllAlarms(forceRefresh = false) {
         const rawMim = data.mim || [];
         
         alarmsDataByType.sharp = rawSharp.filter(isMatchTodayOrFuture);
-        alarmsDataByType.insider = rawInsider.filter(isMatchTodayOrFuture);
         alarmsDataByType.bigmoney = rawBigmoney.filter(isMatchTodayOrFuture);
         alarmsDataByType.volumeshock = rawVolumeshock.filter(isMatchTodayOrFuture);
         alarmsDataByType.dropping = rawDropping.filter(isMatchTodayOrFuture);
@@ -5807,7 +5774,6 @@ async function loadAllAlarms(forceRefresh = false) {
         alarmsDataByType.mim = rawMim.filter(isMatchTodayOrFuture);
         
         const sharpWithType = alarmsDataByType.sharp.map(a => ({ ...a, _type: 'sharp' }));
-        const insiderWithType = alarmsDataByType.insider.map(a => ({ ...a, _type: 'insider' }));
         const bigmoneyWithType = alarmsDataByType.bigmoney.map(a => ({ ...a, _type: 'bigmoney' }));
         const volumeshockWithType = alarmsDataByType.volumeshock.map(a => ({ ...a, _type: 'volumeshock' }));
         const droppingWithType = alarmsDataByType.dropping.map(a => ({ ...a, _type: 'dropping' }));
@@ -5815,7 +5781,7 @@ async function loadAllAlarms(forceRefresh = false) {
         const volumeleaderWithType = alarmsDataByType.volumeleader.map(a => ({ ...a, _type: 'volumeleader' }));
         const mimWithType = alarmsDataByType.mim.map(a => ({ ...a, _type: 'mim' }));
         
-        allAlarmsData = [...sharpWithType, ...insiderWithType, ...bigmoneyWithType, ...volumeshockWithType, ...droppingWithType, ...publicmoveWithType, ...volumeleaderWithType, ...mimWithType];
+        allAlarmsData = [...sharpWithType, ...bigmoneyWithType, ...volumeshockWithType, ...droppingWithType, ...publicmoveWithType, ...volumeleaderWithType, ...mimWithType];
         
         allAlarmsData.sort((a, b) => {
             const dateA = parseAlarmDate(a.trigger_at || a.event_time || a.created_at);
@@ -5915,7 +5881,6 @@ function updateAlarmCounts() {
     
     const countAll = document.getElementById('countAll');
     const countSharp = document.getElementById('countSharp');
-    const countInsider = document.getElementById('countInsider');
     const countBigmoney = document.getElementById('countBigmoney');
     const countVolumeshock = document.getElementById('countVolumeshock');
     const countDropping = document.getElementById('countDropping');
@@ -5925,7 +5890,6 @@ function updateAlarmCounts() {
     
     if (countAll) countAll.textContent = allAlarmsData.length;
     if (countSharp) countSharp.textContent = alarmsDataByType.sharp?.length || 0;
-    if (countInsider) countInsider.textContent = alarmsDataByType.insider?.length || 0;
     if (countBigmoney) countBigmoney.textContent = alarmsDataByType.bigmoney?.length || 0;
     if (countVolumeshock) countVolumeshock.textContent = alarmsDataByType.volumeshock?.length || 0;
     if (countDropping) countDropping.textContent = alarmsDataByType.dropping?.length || 0;
@@ -5974,7 +5938,6 @@ function parseAlarmDate(dateStr) {
 const alarmFilterColors = {
     all: null,
     sharp: '#4ade80',
-    insider: '#a855f7',
     bigmoney: '#F08A24',
     volumeshock: '#F6C343',
     dropping: '#f85149',
@@ -5986,7 +5949,6 @@ const alarmFilterColors = {
 const alarmFilterLabels = {
     all: 'Tumu',
     sharp: 'Sharp',
-    insider: 'Insider Info',
     bigmoney: 'Buyuk Para',
     volumeshock: 'Hacim Soku',
     dropping: 'Dropping',
@@ -6077,12 +6039,12 @@ function getFilteredAlarms() {
         } else if (currentAlarmSort === 'oldest') {
             return dateA - dateB;
         } else if (currentAlarmSort === 'score_high') {
-            const scoreA = a.latestAlarm.sharp_score || a.latestAlarm.insider_score || a.latestAlarm.incoming_money || 0;
-            const scoreB = b.latestAlarm.sharp_score || b.latestAlarm.insider_score || b.latestAlarm.incoming_money || 0;
+            const scoreA = a.latestAlarm.sharp_score || a.latestAlarm.incoming_money || 0;
+            const scoreB = b.latestAlarm.sharp_score || b.latestAlarm.incoming_money || 0;
             return scoreB - scoreA;
         } else if (currentAlarmSort === 'score_low') {
-            const scoreA = a.latestAlarm.sharp_score || a.latestAlarm.insider_score || a.latestAlarm.incoming_money || 0;
-            const scoreB = b.latestAlarm.sharp_score || b.latestAlarm.insider_score || b.latestAlarm.incoming_money || 0;
+            const scoreA = a.latestAlarm.sharp_score || a.latestAlarm.incoming_money || 0;
+            const scoreB = b.latestAlarm.sharp_score || b.latestAlarm.incoming_money || 0;
             return scoreA - scoreB;
         }
         return dateB - dateA;
@@ -6109,8 +6071,8 @@ function renderAlarmsList(filterType) {
     
     const displayGroups = groups.slice(0, alarmsDisplayCount);
     const hasMore = groups.length > alarmsDisplayCount;
-    const typeLabels = { sharp: 'SHARP', insider: 'INSIDER', bigmoney: 'BIG MONEY', volumeshock: 'HACIM SOKU', dropping: 'DROPPING', publicmove: 'PUBLIC MOVE', volumeleader: 'LİDER DEĞİŞTİ', mim: 'MIM' };
-    const typeColors = { sharp: '#4ade80', insider: '#a855f7', bigmoney: '#F08A24', volumeshock: '#F6C343', dropping: '#f85149', publicmove: '#FFCC00', volumeleader: '#06b6d4', mim: '#3B82F6' };
+    const typeLabels = { sharp: 'SHARP', bigmoney: 'BIG MONEY', volumeshock: 'HACIM SOKU', dropping: 'DROPPING', publicmove: 'PUBLIC MOVE', volumeleader: 'LİDER DEĞİŞTİ', mim: 'MIM' };
+    const typeColors = { sharp: '#4ade80', bigmoney: '#F08A24', volumeshock: '#F6C343', dropping: '#f85149', publicmove: '#FFCC00', volumeleader: '#06b6d4', mim: '#3B82F6' };
     
     let html = displayGroups.map((group, idx) => {
         const type = group.type;
@@ -6132,11 +6094,6 @@ function renderAlarmsList(filterType) {
             const volume = alarm.volume || alarm.stake || 0;
             const moneyPart = volume > 0 ? `<span class="value-money">\u00A3${Number(volume).toLocaleString('en-GB')}</span><span class="sep">\u2022</span>` : '';
             mainValue = `${moneyPart}<span class="value-highlight">Sharp Puanı ${score}</span><span class="sep">\u2022</span><span class="value-pct">%${oddsSign}${Math.abs(oddsDrop).toFixed(1)}</span>`;
-        } else if (type === 'insider') {
-            const openingOdds = alarm.opening_odds || 0;
-            const lastOdds = alarm.current_odds || alarm.last_odds || 0;
-            const oddsDrop = alarm.drop_pct || alarm.oran_dusus_pct || alarm.odds_drop_pct || 0;
-            mainValue = `<span class="value-odds">${openingOdds.toFixed(2)}</span><span class="arrow">\u2192</span><span class="value-odds-new">${lastOdds.toFixed(2)}</span><span class="sep">\u2022</span><span class="value-pct-drop">\u2212${Math.abs(oddsDrop).toFixed(1)}%</span>`;
         } else if (type === 'bigmoney') {
             const money = alarm.incoming_money || alarm.stake || 0;
             mainValue = `<span class="value-money">£${Number(money).toLocaleString('en-GB')}</span>`;
@@ -6183,7 +6140,6 @@ function renderAlarmsList(filterType) {
         const stripeColors = {
             'bigmoney': '#F08A24',
             'sharp': '#22c55e',
-            'insider': '#a855f7',
             'dropping': '#f85149',
             'volumeshock': '#F6C343',
             'publicmove': '#FFCC00',
@@ -6195,7 +6151,6 @@ function renderAlarmsList(filterType) {
         const typeBadges = {
             'bigmoney': alarm.is_huge ? 'HUGE' : 'BIG',
             'sharp': 'SHARP',
-            'insider': 'INSIDER',
             'dropping': alarm.level || 'DROP',
             'volumeshock': 'HS',
             'publicmove': 'TRAP',
@@ -6209,8 +6164,6 @@ function renderAlarmsList(filterType) {
             mainMoney = alarm.incoming_money || alarm.stake || 0;
         } else if (type === 'sharp') {
             mainMoney = alarm.volume || alarm.stake || 0;
-        } else if (type === 'insider') {
-            mainMoney = alarm.stake || alarm.volume || 0;
         } else if (type === 'volumeshock') {
             mainMoney = alarm.incoming_money || 0;
         } else if (type === 'dropping') {
@@ -6263,26 +6216,6 @@ function renderAlarmsList(filterType) {
             </div>
             <div class="acd-info-row">
                 <span>Oran: ${prevOdds} → ${currOdds}</span>
-            </div>`;
-            historyLine = `${triggerTime}`;
-        } else if (type === 'insider') {
-            badgeLabel = 'INSIDER';
-            const openOdds = (alarm.opening_odds || 0).toFixed(2);
-            const lastOdds = (alarm.current_odds || alarm.last_odds || 0).toFixed(2);
-            const dropPct = Math.abs(alarm.drop_pct || alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
-            const gelenPara = alarm.incoming_money || alarm.gelen_para || alarm.total_money || 0;
-            metricContent = `<div class="acd-grid cols-2">
-                <div class="acd-stat">
-                    <div class="acd-stat-val insider">${openOdds} → ${lastOdds}</div>
-                    <div class="acd-stat-lbl">Oran Değişimi</div>
-                </div>
-                <div class="acd-stat">
-                    <div class="acd-stat-val drop">▼ ${dropPct}%</div>
-                    <div class="acd-stat-lbl">Düşüş</div>
-                </div>
-            </div>
-            <div class="acd-info-row">
-                <span>Gelen Para: £${Number(gelenPara).toLocaleString('en-GB')}</span>
             </div>`;
             historyLine = `${triggerTime}`;
         } else if (type === 'volumeshock') {
@@ -6454,9 +6387,6 @@ function renderAlarmsList(filterType) {
         let metricValue = '';
         if (type === 'sharp') {
             metricValue = (alarm.sharp_score || 0).toFixed(1);
-        } else if (type === 'insider') {
-            const dropPct = Math.abs(alarm.drop_pct || alarm.oran_dusus_pct || alarm.odds_drop_pct || 0).toFixed(1);
-            metricValue = `▼ ${dropPct}%`;
         } else if (type === 'volumeshock') {
             metricValue = `${(alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0).toFixed(1)}x`;
         } else if (type === 'bigmoney') {
@@ -6486,8 +6416,6 @@ function renderAlarmsList(filterType) {
                 let hValue = '';
                 if (type === 'sharp') {
                     hValue = `Sharp ${(h.sharp_score || 0).toFixed(1)}`;
-                } else if (type === 'insider') {
-                    hValue = `▼ ${Math.abs(h.oran_dusus_pct || h.odds_drop_pct || 0).toFixed(1)}%`;
                 } else if (type === 'volumeshock') {
                     hValue = `${(h.volume_shock_value || h.volume_shock || h.volume_shock_multiplier || 0).toFixed(1)}x`;
                 } else if (type === 'bigmoney') {
@@ -7098,7 +7026,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
         return Object.values(groups);
     }
     
-    const grouped = { sharp: [], insider: [], bigmoney: [], volumeshock: [], dropping: [], publicmove: [], volumeleader: [], mim: [] };
+    const grouped = { sharp: [], bigmoney: [], volumeshock: [], dropping: [], publicmove: [], volumeleader: [], mim: [] };
     matchAlarms.forEach(a => {
         if (a._type && grouped[a._type]) {
             grouped[a._type].push(a);
@@ -7115,7 +7043,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
     });
     
     // Selection bazlı alt gruplar oluştur (volumeshock, bigmoney, sharp için)
-    const selectionGroupedTypes = ['volumeshock', 'bigmoney', 'sharp', 'insider', 'dropping', 'publicmove', 'mim'];
+    const selectionGroupedTypes = ['volumeshock', 'bigmoney', 'sharp', 'dropping', 'publicmove', 'mim'];
     const selectionGroups = {};
     selectionGroupedTypes.forEach(type => {
         if (grouped[type].length > 0) {
@@ -7135,12 +7063,6 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             color: '#f97316',
             icon: '💰',
             description: 'Yuksek hacimli para girisi.'
-        },
-        insider: {
-            title: 'Insider',
-            color: '#A855F7',
-            icon: '🕵',
-            description: 'Dusuk hacim, yuksek oran dususu.'
         },
         volumeshock: {
             title: 'Hacim Soku',
@@ -7279,24 +7201,6 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             row3Left = `<span class="sm-money-hero">£${Number(money).toLocaleString('en-GB')}</span> <span class="sm-money-label">gelen para</span>`;
             row3Right = selectionTotal > 0 ? `<span class="sm-total-muted">Olay sonrası: £${Number(selectionTotal).toLocaleString('en-GB')}</span>` : '';
             row4 = `Seçeneğe 10 dakika içinde büyük para girişi tespit edildi.`;
-        } else if (type === 'insider') {
-            const dropPct = Math.abs(latest.drop_pct || latest.oran_dusus_pct || latest.odds_drop_pct || 0);
-            const rawOpenOdds = latest.opening_odds || 0;
-            const rawLastOdds = latest.last_odds || latest.current_odds || 0;
-            const openOdds = rawOpenOdds > 0 ? rawOpenOdds.toFixed(2) : '—';
-            const lastOdds = rawLastOdds > 0 ? rawLastOdds.toFixed(2) : '—';
-            const selection = latest.selection || latest.side || '-';
-            const market = latest.market || '';
-            const gelenPara = latest.total_money || latest.gelen_para || latest.incoming_money || 0;
-            const hoursToKickoff = calculateHoursToKickoff(latest);
-            const hoursDisplay = hoursToKickoff > 0 ? `${hoursToKickoff.toFixed(0)} saat` : '—';
-            row2Left = `${selection} (${market})`;
-            row2Right = `<span class="sm-kickoff-info">Maça kalan: ${hoursDisplay}</span>`;
-            row3Left = (rawOpenOdds > 0 && rawLastOdds > 0) ? 
-                `<span class="sm-insider-odds-hero">${openOdds} → ${lastOdds}</span> <span class="sm-insider-drop">▼${dropPct.toFixed(1)}%</span>` : 
-                `<span class="sm-insider-drop">▼${dropPct.toFixed(1)}%</span>`;
-            row3Right = `<span class="sm-money-muted">£${Number(gelenPara).toLocaleString('en-GB')} gelen para</span>`;
-            row4 = `Güçlü para girişi olmamasına rağmen oran düşüşü gerçekleşti.`;
         } else if (type === 'volumeshock') {
             const shockValue = latest.volume_shock_value || latest.volume_shock || latest.volume_shock_multiplier || 0;
             const incomingMoney = latest.incoming_money || 0;
@@ -7378,7 +7282,6 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                 bigmoney: { title: 'Geçmiş Big Money Girişleri', pillLabel: (a) => `£${Number(a.incoming_money || a.stake || 0).toLocaleString('en-GB')}` },
                 volumeshock: { title: 'Geçmiş Hacim Şokları', pillLabel: (a) => `X${(a.volume_shock_value || a.volume_shock || 0).toFixed(1)}` },
                 sharp: { title: 'Geçmiş Sharp Alarmları', pillLabel: (a) => `Sharp ${(a.sharp_score || 0).toFixed(0)}` },
-                insider: { title: 'Geçmiş Insider Alarmları', pillLabel: (a) => `▼${Math.abs(a.drop_pct || a.oran_dusus_pct || a.odds_drop_pct || 0).toFixed(1)}%` },
                 dropping: { title: 'Geçmiş Oran Düşüşleri', pillLabel: (a) => `▼${(a.drop_pct || 0).toFixed(1)}%` },
                 publicmove: { title: 'Geçmiş Public Move', pillLabel: (a) => `%${(a.current_share || a.new_share || 0).toFixed(0)}` },
                 volumeleader: { title: 'Geçmiş Lider Değişimleri', pillLabel: (a) => a.new_leader || '-' },
@@ -7435,13 +7338,6 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                     const newShare = (a.new_leader_share || 0).toFixed(0);
                     const totalVol = Number(a.total_volume || a.volume || 0).toLocaleString('en-GB');
                     return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span><span class="tt-money">${oldL}→${newL}</span><span class="tt-pill pill-volumeleader">%${oldShare}→%${newShare}</span><span class="tt-total">£${totalVol}</span></div>`;
-                } else if (type === 'insider') {
-                    const money = Number(a.total_money || a.gelen_para || a.incoming_money || 0).toLocaleString('en-GB');
-                    const openOdds = (a.opening_odds || 0).toFixed(2);
-                    const lastOdds = (a.last_odds || a.current_odds || 0).toFixed(2);
-                    const dropPct = Math.abs(a.drop_pct || a.oran_dusus_pct || a.odds_drop_pct || 0).toFixed(1);
-                    const hours = calculateHoursToKickoff(a).toFixed(0);
-                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span><span class="tt-money">£${money}</span><span class="tt-pill pill-insider">▼${dropPct}%</span><span class="tt-total">${openOdds}→${lastOdds} · ${hours}s kala</span></div>`;
                 } else if (type === 'mim') {
                     const level = a.level || 1;
                     const impact = (a.impact || a.impact_score || a.money_impact || 0).toFixed(2);
@@ -7593,7 +7489,7 @@ function openAdminPanel() {
     const overlay = document.getElementById('adminPanelOverlay');
     if (overlay) {
         overlay.classList.add('open');
-        loadAdminInsiderData();
+        loadAdminVolumeLeaderData();
     }
 }
 
@@ -7604,112 +7500,7 @@ function closeAdminPanel() {
     }
 }
 
-async function loadAdminInsiderData() {
-    const body = document.getElementById('adminPanelBody');
-    if (!body) return;
-    
-    body.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8;">Yükleniyor...</div>';
-    
-    try {
-        // Use centralized cache system
-        await fetchAlarmsBatch();
-        const alarms = getCachedAlarmsByType('insider');
-        
-        if (!alarms || alarms.length === 0) {
-            body.innerHTML = '<div class="admin-no-data">Insider alarm bulunamadı.</div>';
-            return;
-        }
-        
-        // Sort by event_time descending
-        alarms.sort((a, b) => {
-            const ta = new Date(a.trigger_at || a.event_time || a.created_at).getTime();
-            const tb = new Date(b.trigger_at || b.event_time || b.created_at).getTime();
-            return tb - ta;
-        });
-        
-        let tableHtml = `
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>Maç</th>
-                        <th>Market</th>
-                        <th>Maç Saati</th>
-                        <th>Oran Düşüşü</th>
-                        <th>Gelen Para</th>
-                        <th>Hacim Şok</th>
-                        <th>Snapshot Sayısı</th>
-                        <th>Alarm Zamanı</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-        
-        alarms.forEach(alarm => {
-            const matchName = `${alarm.home || '-'} vs ${alarm.away || '-'}`;
-            const market = `${alarm.market || '-'} → ${alarm.selection || '-'}`;
-            
-            // Match time (TR saati olarak formatla)
-            const matchDate = formatMatchDateShort(alarm.match_date) || '-';
-            
-            // Odds drop percentage
-            const oddsDrop = alarm.oran_dusus_pct || alarm.odds_drop_pct || 0;
-            const oddsDropDisplay = oddsDrop > 0 ? `${oddsDrop.toFixed(1)}%` : '-';
-            
-            // Money in
-            const moneyIn = alarm.incoming_money || alarm.gelen_para || alarm.stake || 0;
-            const moneyDisplay = moneyIn > 0 ? `£${Number(moneyIn).toLocaleString('en-GB', {minimumFractionDigits: 0, maximumFractionDigits: 0})}` : '-';
-            
-            // Volume shock
-            const volShock = alarm.hacim_sok || alarm.volume_shock || 0;
-            const volShockDisplay = volShock > 0 ? `${volShock.toFixed(3)}x` : '-';
-            
-            // Snapshot count
-            const snapCount = alarm.snapshot_count || '-';
-            
-            // Event time (alarm creation time based on snapshot)
-            const eventTime = alarm.trigger_at || alarm.event_time || alarm.created_at;
-            let eventTimeDisplay = '-';
-            if (eventTime) {
-                const dt = toTurkeyTime(eventTime);
-                if (dt && dt.isValid()) {
-                    eventTimeDisplay = dt.format('DD.MM.YYYY HH:mm:ss');
-                }
-            }
-            
-            tableHtml += `
-                <tr>
-                    <td class="match-col">${matchName}</td>
-                    <td class="market-col"><span class="admin-badge insider">🕵️ ${market}</span></td>
-                    <td>${matchDate}</td>
-                    <td class="admin-value-negative">${oddsDropDisplay}</td>
-                    <td class="admin-value-positive">${moneyDisplay}</td>
-                    <td class="admin-value-warning">${volShockDisplay}</td>
-                    <td style="text-align:center;">${snapCount}</td>
-                    <td class="admin-value-muted">${eventTimeDisplay}</td>
-                </tr>
-            `;
-        });
-        
-        tableHtml += `
-                </tbody>
-            </table>
-            <div style="margin-top:16px; padding:12px; background:#161b22; border-radius:8px; font-size:12px; color:#64748b;">
-                <strong style="color:#a855f7;">📊 Özet:</strong> Toplam ${alarms.length} Insider alarm | 
-                Eşik: Hacim Şok &lt; ${alarms[0]?.insider_hacim_sok_esigi ?? 'N/A'}x, 
-                Oran Düşüş &gt; ${alarms[0]?.insider_oran_dusus_esigi ?? 'N/A'}%, 
-                Max Para &lt; £${alarms[0]?.insider_max_para ?? 'N/A'}
-            </div>
-        `;
-        
-        body.innerHTML = tableHtml;
-        
-    } catch (e) {
-        console.error('Admin panel veri yükleme hatası:', e);
-        body.innerHTML = '<div class="admin-no-data">Veri yüklenirken hata oluştu.</div>';
-    }
-}
-
-let currentAdminTab = 'insider';
+let currentAdminTab = 'volumeleader';
 
 function switchAdminTab(tab) {
     currentAdminTab = tab;
@@ -7718,9 +7509,7 @@ function switchAdminTab(tab) {
         t.classList.toggle('active', t.dataset.tab === tab);
     });
     
-    if (tab === 'insider') {
-        loadAdminInsiderData();
-    } else if (tab === 'volumeleader') {
+    if (tab === 'volumeleader') {
         loadAdminVolumeLeaderData();
     } else if (tab === 'dropping') {
         loadAdminDroppingData();
