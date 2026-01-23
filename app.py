@@ -6820,7 +6820,7 @@ def license_preview():
     <div class="container" id="mainContainer">
         <img src="/static/images/smartxflow_logo.png" alt="SmartXFlow" class="logo">
         <h1>SmartXFlow Monitor</h1>
-        <p class="subtitle"><span class="green">Akilli Para</span> <span class="muted">&</span> <span class="red">Oran Takibi</span></p>
+        <p class="subtitle"><span class="green">Akıllı Para</span> <span class="muted">&</span> <span class="red">Oran Takibi</span></p>
         
         <div id="progressBar" class="progress-bar">
             <div class="progress-bar-fill" id="progressFill"></div>
