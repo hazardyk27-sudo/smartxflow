@@ -1681,6 +1681,13 @@ function applySorting(data) {
     
     if (dateFilterMode === 'YESTERDAY') {
         console.log('[Filter] YESTERDAY mode:', yesterdayStr);
+        if (sortedData.length > 0) {
+            console.log('[Filter DEBUG] First 3 matches raw dates:', sortedData.slice(0, 3).map(m => ({
+                home: m.home_team,
+                date: m.date,
+                parsed: getMatchDateTR(m.date)
+            })));
+        }
         sortedData = sortedData.filter(m => {
             const matchDateStr = getMatchDateTR(m.date);
             if (!matchDateStr) return false;
