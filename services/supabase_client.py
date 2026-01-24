@@ -340,12 +340,13 @@ class SupabaseClient:
                 
                 # kickoff_utc kullanarak Türkiye saatine göre filtreleme
                 from datetime import time as dt_time
+                from urllib.parse import quote
                 yesterday_start_tr = tr_tz.localize(datetime.combine(yesterday_date, dt_time.min))
                 yesterday_end_tr = tr_tz.localize(datetime.combine(yesterday_date + timedelta(days=1), dt_time.min))
-                yesterday_start_utc = yesterday_start_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S+00:00')
-                yesterday_end_utc = yesterday_end_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+                yesterday_start_utc = yesterday_start_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
+                yesterday_end_utc = yesterday_end_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
                 
-                fix_url = f"{self._rest_url('fixtures')}?select=*&kickoff_utc=gte.{yesterday_start_utc}&kickoff_utc=lt.{yesterday_end_utc}&order=kickoff_utc.desc&limit=500"
+                fix_url = f"{self._rest_url('fixtures')}?select=*&kickoff_utc=gte.{quote(yesterday_start_utc)}&kickoff_utc=lt.{quote(yesterday_end_utc)}&order=kickoff_utc.desc&limit=500"
                 fix_resp = httpx.get(fix_url, headers=self._headers(), timeout=15)
                 
                 if fix_resp.status_code != 200:
@@ -425,12 +426,13 @@ class SupabaseClient:
                 # Step 1: Get ALL today's fixtures using kickoff_utc (Türkiye saatine göre)
                 # Türkiye saati gün başlangıcı ve bitişi UTC olarak hesaplanır
                 from datetime import time as dt_time
+                from urllib.parse import quote
                 today_start_tr = tr_tz.localize(datetime.combine(today_date, dt_time.min))
                 today_end_tr = tr_tz.localize(datetime.combine(today_date + timedelta(days=1), dt_time.min))
-                today_start_utc = today_start_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S+00:00')
-                today_end_utc = today_end_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+                today_start_utc = today_start_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
+                today_end_utc = today_end_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
                 
-                fix_url = f"{self._rest_url('fixtures')}?select=*&kickoff_utc=gte.{today_start_utc}&kickoff_utc=lt.{today_end_utc}&order=kickoff_utc.desc&limit=1000"
+                fix_url = f"{self._rest_url('fixtures')}?select=*&kickoff_utc=gte.{quote(today_start_utc)}&kickoff_utc=lt.{quote(today_end_utc)}&order=kickoff_utc.desc&limit=1000"
                 fix_resp = httpx.get(fix_url, headers=self._headers(), timeout=15)
                 
                 if fix_resp.status_code != 200:
