@@ -171,7 +171,45 @@ function toTurkeyTime(raw) {
             return parsed.tz(APP_TIMEZONE);
         }
         
-        // 5) Arbworld format: "30.Nov 23:55:00" - Olduğu gibi göster (TR saati)
+        // 5a) Arbworld format: "23:30 24.Jan" (saat önce, tarih sonra) - TR saati
+        const arbworldReverseMatch = str.match(/^(\d{2}:\d{2})\s+(\d{1,2})\.(\w{3})$/i);
+        if (arbworldReverseMatch) {
+            const monthMap = {
+                'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+                'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+            };
+            const time = arbworldReverseMatch[1];
+            const day = parseInt(arbworldReverseMatch[2]);
+            const month = monthMap[arbworldReverseMatch[3]];
+            if (month === undefined) {
+                return dayjs(str).tz(APP_TIMEZONE, true);
+            }
+            
+            const now = dayjs().tz(APP_TIMEZONE);
+            const currentYear = now.year();
+            
+            // Year rollover logic: en yakın tarihi seç
+            const candidates = [currentYear - 1, currentYear, currentYear + 1].map(year => {
+                const isoStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T${time}:00`;
+                return dayjs.tz(isoStr, APP_TIMEZONE);
+            });
+            
+            let best = candidates[1]; // default: current year
+            let minDiff = Math.abs(candidates[1].diff(now, 'day'));
+            
+            candidates.forEach(c => {
+                if (!c.isValid()) return;
+                const diff = Math.abs(c.diff(now, 'day'));
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    best = c;
+                }
+            });
+            
+            return best.isValid() ? best : dayjs().tz(APP_TIMEZONE);
+        }
+        
+        // 5b) Arbworld format: "30.Nov 23:55:00" - Olduğu gibi göster (TR saati)
         const arbworldMatch = str.match(/^(\d{1,2})\.(\w{3})\s*(\d{2}:\d{2}(?::\d{2})?)$/i);
         if (arbworldMatch) {
             const monthMap = {
