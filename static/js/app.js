@@ -1719,13 +1719,6 @@ function applySorting(data) {
     
     if (dateFilterMode === 'YESTERDAY') {
         console.log('[Filter] YESTERDAY mode:', yesterdayStr);
-        if (sortedData.length > 0) {
-            console.log('[Filter DEBUG] First 3 matches raw dates:', sortedData.slice(0, 3).map(m => ({
-                home: m.home_team,
-                date: m.date,
-                parsed: getMatchDateTR(m.date)
-            })));
-        }
         sortedData = sortedData.filter(m => {
             const matchDateStr = getMatchDateTR(m.date);
             if (!matchDateStr) return false;
@@ -1734,14 +1727,6 @@ function applySorting(data) {
         console.log('[Filter] YESTERDAY filtered count:', sortedData.length);
     } else if (dateFilterMode === 'TODAY') {
         console.log('[Filter] TODAY mode:', todayStr);
-        // DEBUG: Arsenal maçını bul
-        const arsenalMatch = sortedData.find(m => 
-            m.home_team?.toLowerCase().includes('arsenal') || m.away_team?.toLowerCase().includes('arsenal')
-        );
-        if (arsenalMatch) {
-            console.log('[Filter DEBUG] Arsenal match:', arsenalMatch.home_team, 'vs', arsenalMatch.away_team, 
-                'raw date:', arsenalMatch.date, 'parsed:', getMatchDateTR(arsenalMatch.date));
-        }
         sortedData = sortedData.filter(m => {
             const matchDateStr = getMatchDateTR(m.date);
             if (!matchDateStr) return false;
