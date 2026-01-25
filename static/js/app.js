@@ -6136,11 +6136,16 @@ function renderAlarmsList(filterType) {
         
         if (type === 'sharp') {
             const score = (alarm.sharp_score || 0).toFixed(1);
-            const oddsDrop = alarm.odds_drop_pct || 0;
-            const oddsSign = oddsDrop < 0 ? '\u2212' : '+';
+            const oddsDrop = alarm.odds_drop_pct || alarm.drop_pct || 0;
+            const openingOdds = alarm.opening_odds || 0;
+            const currentOdds = alarm.current_odds || 0;
+            const oddsSign = oddsDrop > 0 ? '\u25BC' : '\u25B2';
             const volume = alarm.volume || alarm.stake || 0;
             const moneyPart = volume > 0 ? `<span class="value-money">\u00A3${Number(volume).toLocaleString('en-GB')}</span><span class="sep">\u2022</span>` : '';
-            mainValue = `${moneyPart}<span class="value-highlight">Sharp Puanı ${score}</span><span class="sep">\u2022</span><span class="value-pct">%${oddsSign}${Math.abs(oddsDrop).toFixed(1)}</span>`;
+            const oddsPart = openingOdds > 0 && currentOdds > 0 
+                ? `<span class="value-odds">${openingOdds.toFixed(2)}</span><span class="arrow">\u2192</span><span class="value-odds-new">${currentOdds.toFixed(2)}</span><span class="sep">\u2022</span>` 
+                : '';
+            mainValue = `${moneyPart}${oddsPart}<span class="value-highlight">Sharp Puanı ${score}</span><span class="sep">\u2022</span><span class="value-pct">${oddsSign}${Math.abs(oddsDrop).toFixed(1)}%</span>`;
         } else if (type === 'bigmoney') {
             const money = alarm.incoming_money || alarm.stake || 0;
             mainValue = `<span class="value-money">£${Number(money).toLocaleString('en-GB')}</span>`;
