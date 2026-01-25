@@ -1834,11 +1834,65 @@ class AlarmCalculator:
         self._matches_cache[market] = []
         return []
     
+    def _get_active_fixture_hashes(self) -> List[str]:
+        """D-1+ maçların match_id_hash listesini döndür (dün, bugün, gelecek)
+        
+        Fallback: fixtures boşsa, son 3 günlük scraped verileri çek
+        Cache: Boş liste de cache'lenir (repeated query önleme)
+        """
+        # Cache kontrolü - None değil, '_checked' flag ile
+        if hasattr(self, '_active_hashes_checked') and self._active_hashes_checked:
+            return getattr(self, '_active_hashes_cache', []) or []
+        
+        # D-1 tarihini hesapla (Turkey timezone)
+        if TURKEY_TZ:
+            today = datetime.now(TURKEY_TZ).date()
+        else:
+            today = datetime.now().date()
+        d_minus_1 = today - timedelta(days=1)
+        d_minus_1_str = d_minus_1.strftime('%Y-%m-%d')
+        
+        log(f"[HISTORY] Fetching D-1+ fixture hashes (>= {d_minus_1_str})...")
+        
+        # fixtures tablosundan sadece D-1+ maçların hash'lerini çek (pagination ile)
+        hashes = []
+        offset = 0
+        page_size = 1000
+        
+        while True:
+            params = f"select=match_id_hash&fixture_date=gte.{d_minus_1_str}&limit={page_size}&offset={offset}"
+            fixtures = self._get('fixtures', params)
+            
+            if not fixtures:
+                break
+            
+            batch_hashes = [str(f.get('match_id_hash')) for f in fixtures if f.get('match_id_hash')]
+            hashes.extend(batch_hashes)
+            
+            if len(fixtures) < page_size:
+                break
+            offset += page_size
+        
+        # Cache'i işaretle - tekrar sorgu yapılmasın
+        self._active_hashes_checked = True
+        
+        if hashes:
+            log(f"[HISTORY] Found {len(hashes)} active fixtures (D-1+)")
+            self._active_hashes_cache = hashes
+            return hashes
+        
+        # FALLBACK: fixtures boşsa boş liste döndür - batch_fetch_history eski yönteme geçecek
+        log("[HISTORY] No active fixtures found - will use scraped_at fallback")
+        self._active_hashes_cache = []  # Boş liste = fallback kullan
+        return []
+    
     def batch_fetch_history(self, market: str) -> Dict[str, List[Dict]]:
-        """Batch fetch ALL history for a market - NO LIMIT, tüm snapshot'lar okunur
+        """Batch fetch history for D-1+ matches only - OPTIMIZED
         
         Legacy tablolardan okur: dropping_1x2_history, moneyway_1x2_history vb.
         KEY: match_id_hash (string eşleşmesi YOK)
+        OPTIMIZATION: Sadece D-1+ fixtures'ların history'sini çeker (~%90 istek azalması)
+        FALLBACK: Fixtures boşsa son 3 günlük scraped_at verilerini çeker
         """
         cache_key = f"{market}_history"
         
@@ -1848,22 +1902,55 @@ class AlarmCalculator:
         actual_table = f"{market}_history"
         log(f"[HISTORY] Fetching {actual_table}...")
         
+        # D-1+ fixture hash'lerini al
+        active_hashes = self._get_active_fixture_hashes()
+        
         rows = []
-        offset = 0
-        page_size = 1000
         
-        while True:
-            params = f"select=*&order=scraped_at.asc&limit={page_size}&offset={offset}"
+        if active_hashes:
+            log(f"[HISTORY] {actual_table}: Using D-1+ filter ({len(active_hashes)} fixtures)")
+            # Hash'leri 50'lik batch'lere böl (URL length limiti için)
+            batch_size = 50
+            for i in range(0, len(active_hashes), batch_size):
+                batch_hashes = active_hashes[i:i + batch_size]
+                hash_list = ','.join(batch_hashes)
+                
+                # IN query ile sadece bu hash'lerin history'sini çek
+                offset = 0
+                page_size = 1000
+                
+                while True:
+                    params = f"select=*&match_id_hash=in.({hash_list})&order=scraped_at.asc&limit={page_size}&offset={offset}"
+                    
+                    batch = self._get(actual_table, params)
+                    if not batch:
+                        break
+                    rows.extend(batch)
+                    if len(batch) < page_size:
+                        break
+                    offset += page_size
+        else:
+            # FALLBACK: fixtures boşsa son 3 günlük scraped verileri çek
+            log(f"[HISTORY] {actual_table}: Using scraped_at fallback (last 3 days)")
+            if TURKEY_TZ:
+                cutoff = datetime.now(TURKEY_TZ) - timedelta(days=3)
+            else:
+                cutoff = datetime.now() - timedelta(days=3)
+            cutoff_iso = cutoff.strftime('%Y-%m-%dT00:00:00')
             
-            batch = self._get(actual_table, params)
-            if not batch:
-                break
-            rows.extend(batch)
-            if len(batch) < page_size:
-                break
-            offset += page_size
+            offset = 0
+            page_size = 1000
+            while True:
+                params = f"select=*&scraped_at=gte.{cutoff_iso}&order=scraped_at.asc&limit={page_size}&offset={offset}"
+                batch = self._get(actual_table, params)
+                if not batch:
+                    break
+                rows.extend(batch)
+                if len(batch) < page_size:
+                    break
+                offset += page_size
         
-        log(f"[HISTORY] {actual_table}: {len(rows)} total snapshots loaded")
+        log(f"[HISTORY] {actual_table}: {len(rows)} snapshots loaded")
         
         # KEY: match_id_hash ile gruplama, FALLBACK: league|home|away|date ile gruplama
         # ALIAS NORMALIZATION: Kısaltılmış takım adlarını (Nottm Fores -> nottingham forest) dönüştür

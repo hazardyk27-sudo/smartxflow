@@ -883,7 +883,76 @@ def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
     if total_deleted > 0:
         _log(f"[Cleanup] Tamamlandi - {total_deleted} islem")
     
-    # 4. Alarm tablolarini temizle
+    # 4. Orphan history kayitlarini temizle (fixtures'da olmayan match_id_hash'ler)
+    try:
+        # Önce aktif fixture hash'lerini al (pagination ile)
+        active_hashes = set()
+        offset = 0
+        page_size = 1000
+        
+        while True:
+            fixture_resp = requests.get(
+                f"{writer._rest_url('fixtures')}?select=match_id_hash&limit={page_size}&offset={offset}",
+                headers=writer._headers(), timeout=60
+            )
+            if fixture_resp.status_code != 200:
+                break
+            batch = fixture_resp.json()
+            if not batch:
+                break
+            for f in batch:
+                if f.get('match_id_hash'):
+                    active_hashes.add(f.get('match_id_hash'))
+            if len(batch) < page_size:
+                break
+            offset += page_size
+        
+        if active_hashes:
+            _log(f"  [Cleanup] {len(active_hashes)} aktif fixture hash'i")
+            
+            for table in history_tables:
+                try:
+                    # History tablosundaki tüm unique hash'leri al (pagination ile)
+                    history_hashes = set()
+                    offset = 0
+                    
+                    while True:
+                        hist_resp = requests.get(
+                            f"{writer._rest_url(table)}?select=match_id_hash&limit={page_size}&offset={offset}",
+                            headers=writer._headers(), timeout=60
+                        )
+                        if hist_resp.status_code != 200:
+                            break
+                        batch = hist_resp.json()
+                        if not batch:
+                            break
+                        for h in batch:
+                            if h.get('match_id_hash'):
+                                history_hashes.add(h.get('match_id_hash'))
+                        if len(batch) < page_size:
+                            break
+                        offset += page_size
+                    
+                    orphan_hashes = history_hashes - active_hashes
+                    
+                    if orphan_hashes:
+                        # Orphan hash'leri batch'ler halinde sil
+                        orphan_list = list(orphan_hashes)
+                        for i in range(0, len(orphan_list), 50):
+                            batch = orphan_list[i:i+50]
+                            hash_filter = ','.join(batch)
+                            requests.delete(
+                                f"{writer._rest_url(table)}?match_id_hash=in.({hash_filter})",
+                                headers=writer._headers(), timeout=30
+                            )
+                        _log(f"  [Cleanup] {table}: {len(orphan_hashes)} orphan kayit silindi")
+                        total_deleted += len(orphan_hashes)
+                except Exception as e:
+                    _log(f"  [Cleanup] {table} orphan cleanup hatasi: {e}")
+    except Exception as e:
+        _log(f"[Cleanup] Orphan cleanup hatasi: {e}")
+    
+    # 5. Alarm tablolarini temizle
     try:
         from alarm_calculator import AlarmCalculator
         alarm_calc = AlarmCalculator(
