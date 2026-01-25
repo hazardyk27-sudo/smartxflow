@@ -7230,13 +7230,16 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const score = latest.sharp_score || 0;
             const incomingMoney = latest.incoming_money || latest.amount_change || latest.volume || 0;
             const dropPct = latest.drop_pct || latest.odds_drop_pct || 0;
-            const prevShare = latest.previous_share || 0;
-            const currShare = latest.current_share || 0;
+            const openingOdds = latest.opening_odds || 0;
+            const currentOdds = latest.current_odds || 0;
             const selection = latest.selection || latest.side || '-';
             const market = latest.market || '';
             const selTotal = latest.total_selection || latest.selection_total || latest.volume || 0;
+            const oddsPart = openingOdds > 0 && currentOdds > 0 
+                ? `<span class="sm-dropping-main">${openingOdds.toFixed(2)} → ${currentOdds.toFixed(2)}</span> | ` 
+                : '';
             row2Left = `${selection} (${market})`;
-            row2Right = `Sharp: ${score.toFixed(0)} | ▼${dropPct.toFixed(1)}%`;
+            row2Right = `${oddsPart}Sharp: ${score.toFixed(0)} | ▼${dropPct.toFixed(1)}%`;
             row3Left = `<span class="sm-sharp-money-hero">£${Number(incomingMoney).toLocaleString('en-GB')}</span> <span class="sm-money-label">yeni para</span>`;
             row3Right = selTotal > 0 ? `<span class="sm-total-muted">Sonrası: £${Number(selTotal).toLocaleString('en-GB')}</span>` : '';
             row4 = `Bu seçenekte 10 dk içinde yüksek hacimli para + oran düşüşü tespit edildi.`;
