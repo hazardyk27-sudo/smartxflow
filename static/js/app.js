@@ -6137,13 +6137,13 @@ function renderAlarmsList(filterType) {
         if (type === 'sharp') {
             const score = (alarm.sharp_score || 0).toFixed(1);
             const oddsDrop = alarm.odds_drop_pct || alarm.drop_pct || 0;
-            const openingOdds = alarm.opening_odds || 0;
-            const currentOdds = alarm.current_odds || 0;
+            const prevOdds = alarm.previous_odds || 0;
+            const currOdds = alarm.current_odds || 0;
             const oddsSign = oddsDrop > 0 ? '\u25BC' : '\u25B2';
             const volume = alarm.volume || alarm.stake || 0;
             const moneyPart = volume > 0 ? `<span class="value-money">\u00A3${Number(volume).toLocaleString('en-GB')}</span><span class="sep">\u2022</span>` : '';
-            const oddsPart = openingOdds > 0 && currentOdds > 0 
-                ? `<span class="value-odds">${openingOdds.toFixed(2)}</span><span class="arrow">\u2192</span><span class="value-odds-new">${currentOdds.toFixed(2)}</span><span class="sep">\u2022</span>` 
+            const oddsPart = prevOdds > 0 && currOdds > 0 
+                ? `<span class="value-odds">${prevOdds.toFixed(2)}</span><span class="arrow">\u2192</span><span class="value-odds-new">${currOdds.toFixed(2)}</span><span class="sep">\u2022</span>` 
                 : '';
             mainValue = `${moneyPart}${oddsPart}<span class="value-highlight">Sharp Puanı ${score}</span><span class="sep">\u2022</span><span class="value-pct">${oddsSign}${Math.abs(oddsDrop).toFixed(1)}%</span>`;
         } else if (type === 'bigmoney') {
@@ -7230,13 +7230,13 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const score = latest.sharp_score || 0;
             const incomingMoney = latest.incoming_money || latest.amount_change || latest.volume || 0;
             const dropPct = latest.drop_pct || latest.odds_drop_pct || 0;
-            const openingOdds = latest.opening_odds || 0;
-            const currentOdds = latest.current_odds || 0;
+            const prevOdds = latest.previous_odds || 0;
+            const currOdds = latest.current_odds || 0;
             const selection = latest.selection || latest.side || '-';
             const market = latest.market || '';
             const selTotal = latest.total_selection || latest.selection_total || latest.volume || 0;
-            const oddsPart = openingOdds > 0 && currentOdds > 0 
-                ? `<span class="sm-dropping-main">${openingOdds.toFixed(2)} → ${currentOdds.toFixed(2)}</span> | ` 
+            const oddsPart = prevOdds > 0 && currOdds > 0 
+                ? `<span class="sm-dropping-main">${prevOdds.toFixed(2)} → ${currOdds.toFixed(2)}</span> | ` 
                 : '';
             row2Left = `${selection} (${market})`;
             row2Right = `${oddsPart}Sharp: ${score.toFixed(0)} | ▼${dropPct.toFixed(1)}%`;
