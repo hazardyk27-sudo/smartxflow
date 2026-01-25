@@ -1820,11 +1820,20 @@ function applySorting(data) {
         if (!hasValidOdds && m.history) hasValidOdds = checkHistoryArray(m.history);
         if (!hasValidOdds && m.snapshots) hasValidOdds = checkHistoryArray(m.snapshots);
         
-        // DEBUG: Log ilk 3 filtrelenen maçın yapısını göster
-        if (!hasValidOdds && window._debugFilterCount === undefined) window._debugFilterCount = 0;
-        if (!hasValidOdds && window._debugFilterCount < 3) {
-            console.log('[Filter DEBUG] Rejected match:', m.home_team, 'vs', m.away_team, 'Keys:', Object.keys(m), 'details:', d, 'history:', m.history?.slice(0,1));
-            window._debugFilterCount++;
+        // DEBUG: Log filtrelenen maçları göster - Sassuolo özellikle
+        if (!hasValidOdds) {
+            if (m.home_team?.toLowerCase().includes('sassuolo') || m.away_team?.toLowerCase().includes('sassuolo')) {
+                console.log('[Filter DEBUG] Sassuolo REJECTED:', m.home_team, 'vs', m.away_team, 'details:', d, 'odds:', m.odds);
+            }
+            if (window._debugFilterCount === undefined) window._debugFilterCount = 0;
+            if (window._debugFilterCount < 3) {
+                console.log('[Filter DEBUG] Rejected match:', m.home_team, 'vs', m.away_team, 'Keys:', Object.keys(m), 'details:', d, 'history:', m.history?.slice(0,1));
+                window._debugFilterCount++;
+            }
+        }
+        // Sassuolo kabul edildiyse logla
+        if (hasValidOdds && (m.home_team?.toLowerCase().includes('sassuolo') || m.away_team?.toLowerCase().includes('sassuolo'))) {
+            console.log('[Filter DEBUG] Sassuolo ACCEPTED:', m.home_team, 'vs', m.away_team, 'details:', d, 'odds:', m.odds);
         }
         
         return hasValidOdds;
