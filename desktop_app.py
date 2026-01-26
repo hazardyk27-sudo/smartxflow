@@ -110,16 +110,20 @@ def save_license(key, email, expires_at, days_left):
 def validate_license_online(key, device_id, device_name, api_base_url):
     """Online lisans doğrulama"""
     try:
-        import requests
+        import urllib.request
+        import urllib.error
         
         url = f"{api_base_url}/api/licenses/validate"
-        response = requests.post(url, json={
+        payload = json.dumps({
             'key': key,
             'device_id': device_id,
             'device_name': device_name
-        }, timeout=10)
+        }).encode('utf-8')
         
-        data = response.json()
+        req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode('utf-8'))
+        
         logging.info(f"License validation response: {data}")
         return data
         
@@ -144,12 +148,14 @@ def send_heartbeat():
         return
     
     try:
-        import requests
+        import urllib.request
         url = f"{_heartbeat_api_base}/api/heartbeat"
-        requests.post(url, json={
+        payload = json.dumps({
             'license_key': _heartbeat_license_key,
             'device_id': _heartbeat_device_id
-        }, timeout=5)
+        }).encode('utf-8')
+        req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
+        urllib.request.urlopen(req, timeout=5)
         logging.debug("Heartbeat sent successfully")
     except Exception as e:
         logging.debug(f"Heartbeat error: {e}")
