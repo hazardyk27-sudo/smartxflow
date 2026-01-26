@@ -8178,14 +8178,14 @@ async function validateWebLicense() {
             const validUntil = data.expires_at || new Date(Date.now() + 24*60*60*1000).toISOString();
             localStorage.setItem(WEB_LICENSE_VALID_KEY, validUntil);
             
-            // Kalan gun hesapla
-            let daysRemaining = data.days_remaining;
+            // Kalan gun hesapla - API days_left donuyor
+            let daysRemaining = data.days_left || data.days_remaining;
             if (!daysRemaining && data.expires_at) {
                 const expiresDate = new Date(data.expires_at);
                 const now = new Date();
                 daysRemaining = Math.ceil((expiresDate - now) / (1000 * 60 * 60 * 24));
             }
-            if (!daysRemaining) daysRemaining = 36500; // Lifetime varsayilan
+            if (!daysRemaining || daysRemaining > 9000) daysRemaining = 36500; // Lifetime
             
             successDiv.innerHTML = '<div style="font-size:24px;margin-bottom:8px;">✓</div>Lisans aktif! Kalan gun: ' + daysRemaining;
             successDiv.style.display = 'block';
