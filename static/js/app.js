@@ -5252,7 +5252,7 @@ function parseAlarmTime(timeStr) {
     }
 }
 
-// Maç saatini +3 saat ekleyerek formatla (format: "02.Dec 12:00:00" -> "02 Ara • 15:00")
+// Maç saatini Türkiye saatine çevirerek formatla (dayjs kullanarak)
 function formatMatchTime3(dateStr) {
     if (!dateStr) return '-';
     
@@ -5260,67 +5260,59 @@ function formatMatchTime3(dateStr) {
     const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
                        'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
     
-    // Format: "02.Dec 12:00:00"
+    // Format: "02.Dec 12:00:00" - scraper'dan gelen UTC format
     const match1 = dateStr.match(/^(\d{2})\.([A-Za-z]{3})\s+(\d{2}):(\d{2}):?(\d{2})?$/);
     if (match1) {
         const [, day, monthStr, hour, min] = match1;
         const monthIdx = monthMap[monthStr] ?? 0;
-        const dt = new Date(2025, monthIdx, parseInt(day), parseInt(hour), parseInt(min));
-        dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
-        const monthName = monthNames[dt.getMonth()];
-        const h = String(dt.getHours()).padStart(2, '0');
-        const m = String(dt.getMinutes()).padStart(2, '0');
-        const d = String(dt.getDate()).padStart(2, '0');
-        return `${d} ${monthName} • ${h}:${m}`;
+        // UTC olarak oluştur, sonra Istanbul'a çevir
+        const utcDate = dayjs.utc(`2025-${String(monthIdx + 1).padStart(2, '0')}-${day}T${hour}:${min}:00`);
+        const trDate = utcDate.tz('Europe/Istanbul');
+        const monthName = monthNames[trDate.month()];
+        return `${trDate.format('DD')} ${monthName} • ${trDate.format('HH:mm')}`;
     }
     
-    // Format: "DD.MM.YYYY HH:MM"
+    // Format: "DD.MM.YYYY HH:MM" - UTC olarak kabul et
     const match2 = dateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/);
     if (match2) {
         const [, day, month, year, hour, min] = match2;
-        const dt = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
-        dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
-        const monthName = monthNames[dt.getMonth()];
-        const h = String(dt.getHours()).padStart(2, '0');
-        const m = String(dt.getMinutes()).padStart(2, '0');
-        const d = String(dt.getDate()).padStart(2, '0');
-        return `${d} ${monthName} • ${h}:${m}`;
+        const utcDate = dayjs.utc(`${year}-${month}-${day}T${hour}:${min}:00`);
+        const trDate = utcDate.tz('Europe/Istanbul');
+        const monthName = monthNames[trDate.month()];
+        return `${trDate.format('DD')} ${monthName} • ${trDate.format('HH:mm')}`;
     }
     
-    // Format: ISO "2025-12-19T15:37:00" veya "2025-12-19T15:37:00+00:00"
+    // Format: ISO "2025-12-19T15:37:00" veya "2025-12-19T15:37:00+00:00" veya "2025-12-19T15:37:00Z"
     const matchISO = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
     if (matchISO) {
-        const [, year, month, day, hour, min] = matchISO;
-        const dt = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
-        dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
-        const monthName = monthNames[dt.getMonth()];
-        const h = String(dt.getHours()).padStart(2, '0');
-        const m = String(dt.getMinutes()).padStart(2, '0');
-        const d = String(dt.getDate()).padStart(2, '0');
-        return `${d} ${monthName} • ${h}:${m}`;
+        // Eğer timezone bilgisi varsa (Z veya +00:00) direkt parse et, yoksa UTC kabul et
+        let dt;
+        if (dateStr.includes('+') || dateStr.includes('Z')) {
+            dt = dayjs(dateStr).tz('Europe/Istanbul');
+        } else {
+            dt = dayjs.utc(dateStr).tz('Europe/Istanbul');
+        }
+        const monthName = monthNames[dt.month()];
+        return `${dt.format('DD')} ${monthName} • ${dt.format('HH:mm')}`;
     }
     
-    // Format: "2025-12-19 15:37" (space separated)
+    // Format: "2025-12-19 15:37" (space separated) - UTC olarak kabul et
     const matchISOSpace = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
     if (matchISOSpace) {
         const [, year, month, day, hour, min] = matchISOSpace;
-        const dt = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
-        dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
-        const monthName = monthNames[dt.getMonth()];
-        const h = String(dt.getHours()).padStart(2, '0');
-        const m = String(dt.getMinutes()).padStart(2, '0');
-        const d = String(dt.getDate()).padStart(2, '0');
-        return `${d} ${monthName} • ${h}:${m}`;
+        const utcDate = dayjs.utc(`${year}-${month}-${day}T${hour}:${min}:00`);
+        const trDate = utcDate.tz('Europe/Istanbul');
+        const monthName = monthNames[trDate.month()];
+        return `${trDate.format('DD')} ${monthName} • ${trDate.format('HH:mm')}`;
     }
     
-    // Format: sadece tarih "2025-12-19" (saat yok - varsayilan 00:00)
+    // Format: sadece tarih "2025-12-19" (saat yok)
     const matchDateOnly = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (matchDateOnly) {
         const [, year, month, day] = matchDateOnly;
-        const dt = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        const monthName = monthNames[dt.getMonth()];
-        const d = String(dt.getDate()).padStart(2, '0');
-        return `${d} ${monthName}`;
+        const dt = dayjs(`${year}-${month}-${day}`);
+        const monthName = monthNames[dt.month()];
+        return `${dt.format('DD')} ${monthName}`;
     }
     
     // Fallback
@@ -5335,21 +5327,25 @@ function formatMatchDateShort(dateStr) {
     const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
                        'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
     
-    // Format: "02.Dec 14:00:00"
+    // Format: "02.Dec 14:00:00" - scraper'dan gelen UTC format
     const match1 = dateStr.match(/^(\d{2})\.([A-Za-z]{3})\s+(\d{2}):(\d{2}):?(\d{2})?$/);
     if (match1) {
         const [, day, monthStr, hour, min] = match1;
         const monthIdx = monthMap[monthStr] ?? 0;
-        const dt = new Date(2025, monthIdx, parseInt(day), parseInt(hour), parseInt(min));
-        dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
-        const monthName = monthNames[dt.getMonth()];
-        const h = String(dt.getHours()).padStart(2, '0');
-        const m = String(dt.getMinutes()).padStart(2, '0');
-        const d = String(dt.getDate()).padStart(2, '0');
-        return `${d} ${monthName} ${h}:${m}`;
+        // UTC olarak oluştur, sonra Istanbul'a çevir
+        const utcDate = dayjs.utc(`2025-${String(monthIdx + 1).padStart(2, '0')}-${day}T${hour}:${min}:00`);
+        const trDate = utcDate.tz('Europe/Istanbul');
+        const monthName = monthNames[trDate.month()];
+        return `${trDate.format('DD')} ${monthName} ${trDate.format('HH:mm')}`;
     }
     
-    // Fallback
+    // Fallback: toTurkeyTime ile dene
+    const dt = toTurkeyTime(dateStr);
+    if (dt && dt.isValid()) {
+        const monthName = monthNames[dt.month()];
+        return `${dt.format('DD')} ${monthName} ${dt.format('HH:mm')}`;
+    }
+    
     return '';
 }
 
