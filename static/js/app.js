@@ -8207,6 +8207,19 @@ async function validateWebLicense() {
 function initLicenseCheck() {
     if (!checkWebLicense()) {
         showLicenseGate();
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) logoutBtn.style.display = 'none';
+    } else {
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) logoutBtn.style.display = 'flex';
+    }
+}
+
+function logoutWebLicense() {
+    if (confirm('Cikis yapmak istediginize emin misiniz?')) {
+        localStorage.removeItem(WEB_LICENSE_KEY);
+        localStorage.removeItem(WEB_LICENSE_VALID_KEY);
+        window.location.reload();
     }
 }
 
