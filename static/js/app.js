@@ -8223,6 +8223,21 @@ function logoutWebLicense() {
     }
 }
 
+function copyLicenseEmail() {
+    const email = 'smartxflow29@gmail.com';
+    const emailText = document.getElementById('licenseEmailText');
+    
+    navigator.clipboard.writeText(email).then(() => {
+        if (emailText) {
+            const original = emailText.textContent;
+            emailText.textContent = 'Kopyalandi!';
+            setTimeout(() => { emailText.textContent = original; }, 1500);
+        }
+    }).catch(() => {
+        window.location.href = 'mailto:' + email;
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(initLicenseCheck, 100);
 });
