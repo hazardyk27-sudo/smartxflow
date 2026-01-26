@@ -40,7 +40,7 @@ const APP_TIMEZONE = 'Europe/Istanbul';
 // ============================================
 let _alarmBatchCache = null;
 let _alarmCacheTime = 0;
-const ALARM_CACHE_TTL = 120000; // 120 seconds (2 minutes)
+const ALARM_CACHE_TTL = 60000; // 60 seconds (1 minute)
 
 async function fetchAlarmsBatch(forceRefresh = false) {
     const now = Date.now();

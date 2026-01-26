@@ -55,7 +55,7 @@ The system uses a hybrid architecture with Supabase as the single source of trut
     - `/api/alarms/all`: Batch endpoint for 7 alarm types, with client-side caching (45s TTL).
     - `/api/match/<match_id>/snapshot`: Endpoint for all match-related data (alarms, metadata, moneyway, dropping_odds). Uses a 12-character MD5 `match_id`.
 - **Supabase Request Optimization (2025-12-28):**
-    - Server-side cache TTL: 120 saniye (alarm ve match verisi)
+    - Server-side cache TTL: 60 saniye (alarm ve match verisi)
     - Tab Visibility: Arka plandaki tab'lar auto-refresh yapmaz
     - Jitter: 0-60 saniye random delay (synchronized spike önleme)
     - Baseline: 75k istek/gün → Hedef: ~25-30k istek/gün (%60-80 azalma)
