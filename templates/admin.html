@@ -664,6 +664,92 @@
                 </div>
             </div>
 
+            <!-- ANALYTICS SECTION -->
+            <div class="info-card" style="margin-top: 20px; border-left: 3px solid #a78bfa;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0; color: #a78bfa;">📊 Kullanici Analitikleri</h3>
+                    <button class="btn" onclick="loadAnalyticsDashboard()" style="background: #21262d; padding: 6px 12px; font-size: 12px;">
+                        <span>🔄</span> Yenile
+                    </button>
+                </div>
+                
+                <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+                    <div class="stat-card" style="padding: 15px;">
+                        <div class="stat-value green" id="analyticsOnline" style="font-size: 28px;">-</div>
+                        <div class="stat-label">Simdi Online</div>
+                    </div>
+                    <div class="stat-card" style="padding: 15px;">
+                        <div class="stat-value" id="analyticsActiveUsers" style="font-size: 28px;">-</div>
+                        <div class="stat-label">Aktif Lisans</div>
+                    </div>
+                    <div class="stat-card" style="padding: 15px;">
+                        <div class="stat-value orange" id="analyticsExpiringSoon" style="font-size: 28px;">-</div>
+                        <div class="stat-label">3 Gun Icinde Bitecek</div>
+                    </div>
+                    <div class="stat-card" style="padding: 15px;">
+                        <div class="stat-value" id="analyticsTotalDevices" style="font-size: 28px;">-</div>
+                        <div class="stat-label">Toplam Cihaz</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <!-- Abonelik Turleri -->
+                    <div style="background: #21262d; padding: 15px; border-radius: 8px;">
+                        <h4 style="color: #8b949e; font-size: 12px; text-transform: uppercase; margin-bottom: 12px;">Abonelik Dagilimi</h4>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #e6edf3;">1 Gunluk</span>
+                                <span id="analyticsOneDay" style="color: #f0883e; font-weight: 600;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #e6edf3;">3 Gunluk</span>
+                                <span id="analyticsThreeDay" style="color: #f0883e; font-weight: 600;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #e6edf3;">Aylik</span>
+                                <span id="analyticsMonthly" style="color: #58a6ff; font-weight: 600;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #e6edf3;">Lifetime</span>
+                                <span id="analyticsLifetime" style="color: #3fb950; font-weight: 600;">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Yeni Kayitlar -->
+                    <div style="background: #21262d; padding: 15px; border-radius: 8px;">
+                        <h4 style="color: #8b949e; font-size: 12px; text-transform: uppercase; margin-bottom: 12px;">Yeni Kayitlar</h4>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #e6edf3;">Bugun</span>
+                                <span id="analyticsNewToday" style="color: #3fb950; font-weight: 600;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #e6edf3;">Bu Hafta</span>
+                                <span id="analyticsNewWeek" style="color: #58a6ff; font-weight: 600;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid #30363d;">
+                                <span style="color: #e6edf3;">Tahmini Gelir</span>
+                                <span id="analyticsRevenue" style="color: #fbbf24; font-weight: 700; font-size: 16px;">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Online Kullanicilar Listesi -->
+                <div style="margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h4 style="color: #3fb950; margin: 0; font-size: 14px;">🟢 Online Kullanicilar</h4>
+                        <span id="analyticsOnlineCount" style="color: #8b949e; font-size: 12px;">0 kullanici</span>
+                    </div>
+                    <div id="onlineUsersList" style="background: #0d1117; border-radius: 6px; max-height: 200px; overflow-y: auto;">
+                        <div style="padding: 20px; text-align: center; color: #8b949e; font-size: 13px;">
+                            Veriler yukleniyor...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="info-card" style="margin-top: 20px;">
                 <h3>🎛️ Alarm Goruntuleme Ayarlari</h3>
                 <p style="color: #8b949e; font-size: 13px; margin-bottom: 15px;">Web arayuzunde ve admin panelde hangi alarm turlerinin gosterilecegini secin.</p>
@@ -6725,7 +6811,84 @@
                 loadLicenses();
                 loadLicenseStats();
             }
+            if (pageName === 'dashboard') {
+                loadAnalyticsDashboard();
+            }
         };
+
+        // ============================================
+        // ANALYTICS DASHBOARD
+        // ============================================
+        async function loadAnalyticsDashboard() {
+            try {
+                const [dashboardRes, onlineRes] = await Promise.all([
+                    fetch('/api/analytics/dashboard'),
+                    fetch('/api/analytics/online-users')
+                ]);
+                
+                const dashboardData = await dashboardRes.json();
+                const onlineData = await onlineRes.json();
+                
+                if (dashboardData.success && dashboardData.data) {
+                    const d = dashboardData.data;
+                    
+                    document.getElementById('analyticsOnline').textContent = d.online_users || 0;
+                    document.getElementById('analyticsActiveUsers').textContent = d.active_licenses || 0;
+                    document.getElementById('analyticsExpiringSoon').textContent = d.expiring_soon || 0;
+                    document.getElementById('analyticsTotalDevices').textContent = d.total_devices || 0;
+                    
+                    if (d.subscription_types) {
+                        document.getElementById('analyticsOneDay').textContent = d.subscription_types.one_day || 0;
+                        document.getElementById('analyticsThreeDay').textContent = d.subscription_types.three_day || 0;
+                        document.getElementById('analyticsMonthly').textContent = d.subscription_types.monthly || 0;
+                        document.getElementById('analyticsLifetime').textContent = d.subscription_types.lifetime || 0;
+                    }
+                    
+                    document.getElementById('analyticsNewToday').textContent = d.new_today || 0;
+                    document.getElementById('analyticsNewWeek').textContent = d.new_this_week || 0;
+                    document.getElementById('analyticsRevenue').textContent = '$' + (d.estimated_revenue || 0).toLocaleString();
+                }
+                
+                if (onlineData.success) {
+                    document.getElementById('analyticsOnlineCount').textContent = onlineData.count + ' kullanici';
+                    renderOnlineUsers(onlineData.users || []);
+                }
+                
+            } catch (error) {
+                console.error('Analytics load error:', error);
+            }
+        }
+
+        function renderOnlineUsers(users) {
+            const container = document.getElementById('onlineUsersList');
+            
+            if (!users || users.length === 0) {
+                container.innerHTML = '<div style="padding: 20px; text-align: center; color: #8b949e; font-size: 13px;">Simdi online kullanici yok</div>';
+                return;
+            }
+            
+            let html = '<table style="width: 100%; font-size: 12px;">';
+            html += '<thead><tr style="color: #8b949e; border-bottom: 1px solid #21262d;"><th style="padding: 8px; text-align: left;">Email</th><th style="padding: 8px; text-align: left;">Key</th><th style="padding: 8px; text-align: left;">IP</th><th style="padding: 8px; text-align: left;">Son Gorulme</th></tr></thead>';
+            html += '<tbody>';
+            
+            users.forEach(user => {
+                const lastSeen = user.last_seen ? new Date(user.last_seen).toLocaleTimeString('tr-TR') : '-';
+                html += `<tr style="border-bottom: 1px solid #161b22;">
+                    <td style="padding: 8px; color: #e6edf3;">${user.email || 'N/A'}</td>
+                    <td style="padding: 8px; color: #8b949e; font-family: monospace;">${user.license_key || '-'}</td>
+                    <td style="padding: 8px; color: #58a6ff;">${user.ip_address || '-'}</td>
+                    <td style="padding: 8px; color: #3fb950;">${lastSeen}</td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Auto-load analytics on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(loadAnalyticsDashboard, 500);
+        });
     </script>
 </body>
 </html>

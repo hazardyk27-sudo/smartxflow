@@ -6467,6 +6467,213 @@ def validate_license():
         return jsonify({'valid': False, 'error': str(e)})
 
 
+# ============================================
+# ANALYTICS & HEARTBEAT SYSTEM
+# ============================================
+
+@app.route('/api/heartbeat', methods=['POST'])
+def heartbeat():
+    """Desktop app heartbeat - tracks online users"""
+    try:
+        if not get_license_db():
+            return jsonify({'success': False, 'error': 'DB not available'})
+        
+        data = request.get_json() or {}
+        license_key = data.get('license_key', '').strip()
+        device_id = data.get('device_id', '').strip()
+        
+        if not license_key or not device_id:
+            return jsonify({'success': False, 'error': 'Missing params'})
+        
+        lic = license_select('licenses', 'key', {'key': license_key})
+        if not lic:
+            return jsonify({'success': False, 'error': 'Invalid license'})
+        
+        device = license_select('license_devices', 'device_id', {'license_key': license_key, 'device_id': device_id})
+        if not device:
+            return jsonify({'success': False, 'error': 'Device not registered'})
+        
+        from datetime import datetime
+        now = datetime.utcnow()
+        
+        cfg = get_license_db()
+        url = f"{cfg['url']}/rest/v1/user_sessions?license_key=eq.{license_key}&device_id=eq.{device_id}"
+        
+        try:
+            resp = httpx.get(url, headers=cfg['headers'], timeout=10)
+            existing = resp.json() if resp.status_code == 200 else []
+        except:
+            existing = []
+        
+        session_data = {
+            'license_key': license_key,
+            'device_id': device_id,
+            'last_seen': now.isoformat(),
+            'ip_address': request.remote_addr or 'unknown'
+        }
+        
+        if existing:
+            license_update('user_sessions', {'last_seen': now.isoformat(), 'ip_address': request.remote_addr or 'unknown'}, 
+                          {'license_key': license_key, 'device_id': device_id})
+        else:
+            license_insert('user_sessions', session_data)
+        
+        return jsonify({'success': True, 'server_time': now.isoformat()})
+        
+    except Exception as e:
+        license_logging.error(f"Heartbeat error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/analytics/dashboard')
+def analytics_dashboard():
+    """Admin dashboard analytics"""
+    try:
+        if not get_license_db():
+            return jsonify({'success': False, 'error': 'DB not available'})
+        
+        from datetime import datetime, timedelta
+        now = datetime.utcnow()
+        today = now.date()
+        week_ago = now - timedelta(days=7)
+        five_min_ago = now - timedelta(minutes=5)
+        
+        licenses = license_select('licenses', 'status,expires_at,duration_days,created_at') or []
+        sessions = license_select('user_sessions', 'license_key,device_id,last_seen') or []
+        devices = license_select('license_devices', 'license_key') or []
+        
+        total_licenses = len(licenses)
+        active_licenses = 0
+        expired_licenses = 0
+        lifetime_count = 0
+        one_day_count = 0
+        three_day_count = 0
+        monthly_count = 0
+        new_today = 0
+        new_this_week = 0
+        expiring_soon = 0
+        
+        for lic in licenses:
+            status = lic.get('status', 'active')
+            expires_at = lic.get('expires_at')
+            duration = lic.get('duration_days', 30)
+            created_at = lic.get('created_at', '')
+            
+            if duration == 0:
+                lifetime_count += 1
+            elif duration == 1:
+                one_day_count += 1
+            elif duration == 3:
+                three_day_count += 1
+            else:
+                monthly_count += 1
+            
+            if status == 'revoked':
+                continue
+            
+            try:
+                exp_date = datetime.fromisoformat(expires_at.replace('Z', '+00:00').replace('+00:00', ''))
+                if exp_date < now:
+                    expired_licenses += 1
+                else:
+                    active_licenses += 1
+                    days_until_expire = (exp_date - now).days
+                    if days_until_expire <= 3:
+                        expiring_soon += 1
+            except:
+                active_licenses += 1
+            
+            try:
+                created = datetime.fromisoformat(created_at.replace('Z', '+00:00').replace('+00:00', ''))
+                if created.date() == today:
+                    new_today += 1
+                if created >= week_ago:
+                    new_this_week += 1
+            except:
+                pass
+        
+        online_users = 0
+        for sess in sessions:
+            try:
+                last_seen = datetime.fromisoformat(sess.get('last_seen', '').replace('Z', '+00:00').replace('+00:00', ''))
+                if last_seen >= five_min_ago:
+                    online_users += 1
+            except:
+                pass
+        
+        total_devices = len(devices)
+        
+        estimated_monthly_revenue = (one_day_count * 5) + (three_day_count * 10) + (monthly_count * 25) + (lifetime_count * 100)
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'total_licenses': total_licenses,
+                'active_licenses': active_licenses,
+                'expired_licenses': expired_licenses,
+                'online_users': online_users,
+                'total_devices': total_devices,
+                'subscription_types': {
+                    'one_day': one_day_count,
+                    'three_day': three_day_count,
+                    'monthly': monthly_count,
+                    'lifetime': lifetime_count
+                },
+                'new_today': new_today,
+                'new_this_week': new_this_week,
+                'expiring_soon': expiring_soon,
+                'estimated_revenue': estimated_monthly_revenue,
+                'server_time': now.isoformat()
+            }
+        })
+        
+    except Exception as e:
+        license_logging.error(f"Analytics dashboard error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/analytics/online-users')
+def analytics_online_users():
+    """Get online users list"""
+    try:
+        if not get_license_db():
+            return jsonify({'success': False, 'error': 'DB not available'})
+        
+        from datetime import datetime, timedelta
+        now = datetime.utcnow()
+        five_min_ago = now - timedelta(minutes=5)
+        
+        sessions = license_select('user_sessions', '*') or []
+        licenses = license_select('licenses', 'key,email') or []
+        
+        email_map = {lic.get('key'): lic.get('email') for lic in licenses}
+        
+        online_users = []
+        for sess in sessions:
+            try:
+                last_seen = datetime.fromisoformat(sess.get('last_seen', '').replace('Z', '+00:00').replace('+00:00', ''))
+                if last_seen >= five_min_ago:
+                    online_users.append({
+                        'license_key': sess.get('license_key', '')[:8] + '...',
+                        'email': email_map.get(sess.get('license_key'), 'N/A'),
+                        'device_id': sess.get('device_id', '')[:8] + '...',
+                        'ip_address': sess.get('ip_address', 'N/A'),
+                        'last_seen': sess.get('last_seen')
+                    })
+            except:
+                pass
+        
+        return jsonify({
+            'success': True,
+            'count': len(online_users),
+            'users': online_users
+        })
+        
+    except Exception as e:
+        license_logging.error(f"Online users error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
 @app.route('/lisans')
 def license_preview():
     """Preview activation screen for testing"""

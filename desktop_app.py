@@ -127,6 +127,67 @@ def validate_license_online(key, device_id, device_name, api_base_url):
         logging.error(f"Online validation error: {e}")
         return {'valid': False, 'error': f'Bağlantı hatası: {str(e)}'}
 
+
+# ============================================
+# HEARTBEAT SYSTEM - Track online users
+# ============================================
+_heartbeat_thread = None
+_heartbeat_stop = False
+_heartbeat_license_key = None
+_heartbeat_device_id = None
+_heartbeat_api_base = None
+
+def send_heartbeat():
+    """Send heartbeat ping to server"""
+    global _heartbeat_license_key, _heartbeat_device_id, _heartbeat_api_base
+    if not _heartbeat_license_key or not _heartbeat_device_id or not _heartbeat_api_base:
+        return
+    
+    try:
+        import requests
+        url = f"{_heartbeat_api_base}/api/heartbeat"
+        requests.post(url, json={
+            'license_key': _heartbeat_license_key,
+            'device_id': _heartbeat_device_id
+        }, timeout=5)
+        logging.debug("Heartbeat sent successfully")
+    except Exception as e:
+        logging.debug(f"Heartbeat error: {e}")
+
+def heartbeat_loop():
+    """Background thread for heartbeat"""
+    global _heartbeat_stop
+    logging.info("Heartbeat loop started")
+    
+    while not _heartbeat_stop:
+        send_heartbeat()
+        for _ in range(300):
+            if _heartbeat_stop:
+                break
+            time.sleep(1)
+    
+    logging.info("Heartbeat loop stopped")
+
+def start_heartbeat(license_key, device_id, api_base_url):
+    """Start heartbeat background thread"""
+    global _heartbeat_thread, _heartbeat_stop, _heartbeat_license_key, _heartbeat_device_id, _heartbeat_api_base
+    
+    _heartbeat_stop = False
+    _heartbeat_license_key = license_key
+    _heartbeat_device_id = device_id
+    _heartbeat_api_base = api_base_url
+    
+    _heartbeat_thread = threading.Thread(target=heartbeat_loop, daemon=True)
+    _heartbeat_thread.start()
+    logging.info(f"Heartbeat started for {license_key[:8]}...")
+
+def stop_heartbeat():
+    """Stop heartbeat background thread"""
+    global _heartbeat_stop
+    _heartbeat_stop = True
+    logging.info("Heartbeat stop requested")
+
+
 os.environ['PYWEBVIEW_GUI'] = 'edgechromium'
 os.environ['SMARTX_DESKTOP'] = '1'
 
@@ -214,12 +275,14 @@ class LicenseAPI:
         if result.get('valid'):
             self.license_valid = True
             self.license_data = result
+            self.license_key = key
             save_license(
                 key, 
                 result.get('email', ''),
                 result.get('expires_at', ''),
                 result.get('days_left', 0)
             )
+            start_heartbeat(key, self.device_id, self.api_base_url)
         
         return result
     
@@ -832,6 +895,7 @@ def main():
                 result.get('expires_at', ''),
                 days_left
             )
+            start_heartbeat(saved_license['key'], device_id, api_base_url)
         else:
             logging.warning(f"Saved license invalid: {result.get('error')}")
             if result.get('expired'):
