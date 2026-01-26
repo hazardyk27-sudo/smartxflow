@@ -8098,3 +8098,98 @@ async function deleteMimAlarms() {
         showToast('Bağlantı hatası', 'error');
     }
 }
+
+// ============================================
+// WEB LICENSE GATE SYSTEM
+// ============================================
+const WEB_LICENSE_KEY = 'smartxflow_web_license';
+const WEB_LICENSE_VALID_KEY = 'smartxflow_license_valid_until';
+
+function checkWebLicense() {
+    const savedKey = localStorage.getItem(WEB_LICENSE_KEY);
+    const validUntil = localStorage.getItem(WEB_LICENSE_VALID_KEY);
+    
+    if (savedKey && validUntil) {
+        const validDate = new Date(validUntil);
+        if (validDate > new Date()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function showLicenseGate() {
+    const gate = document.getElementById('licenseGate');
+    if (gate) {
+        gate.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function hideLicenseGate() {
+    const gate = document.getElementById('licenseGate');
+    if (gate) {
+        gate.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+async function validateWebLicense() {
+    const input = document.getElementById('licenseKeyInput');
+    const errorDiv = document.getElementById('licenseError');
+    const loadingDiv = document.getElementById('licenseLoading');
+    const submitBtn = document.getElementById('licenseSubmitBtn');
+    
+    const key = input.value.trim().toUpperCase();
+    
+    if (!key) {
+        errorDiv.textContent = 'Lisans anahtarı girin';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    errorDiv.style.display = 'none';
+    loadingDiv.style.display = 'block';
+    submitBtn.disabled = true;
+    
+    try {
+        const res = await fetch('/api/licenses/validate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: key, device_id: 'web-browser', device_name: navigator.userAgent.substring(0, 50) })
+        });
+        
+        const data = await res.json();
+        
+        if (data.valid) {
+            localStorage.setItem(WEB_LICENSE_KEY, key);
+            const validUntil = data.expires_at || new Date(Date.now() + 24*60*60*1000).toISOString();
+            localStorage.setItem(WEB_LICENSE_VALID_KEY, validUntil);
+            hideLicenseGate();
+            window.location.reload();
+        } else {
+            errorDiv.textContent = data.error || 'Gecersiz lisans anahtari';
+            errorDiv.style.display = 'block';
+        }
+    } catch (e) {
+        errorDiv.textContent = 'Baglanti hatasi';
+        errorDiv.style.display = 'block';
+    } finally {
+        loadingDiv.style.display = 'none';
+        submitBtn.disabled = false;
+    }
+}
+
+function initLicenseCheck() {
+    if (!checkWebLicense()) {
+        showLicenseGate();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(initLicenseCheck, 100);
+});
+
+document.getElementById('licenseKeyInput')?.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') validateWebLicense();
+});
