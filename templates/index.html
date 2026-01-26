@@ -22,25 +22,251 @@
     </script>
 </head>
 <body>
-    <!-- License Gate Modal -->
-    <div id="licenseGate" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:99999; justify-content:center; align-items:center;">
-        <div style="background:#161b22; border:1px solid #30363d; border-radius:12px; padding:40px; max-width:400px; width:90%; text-align:center;">
-            <div style="margin-bottom:20px;">
-                <span style="color:#58a6ff; font-size:24px; font-weight:700;">SMART</span>
-                <span style="color:#3fb950; font-size:24px; font-weight:700;">XFLOW</span>
+    <!-- License Gate Modal - Premium Design -->
+    <div id="licenseGate" class="license-gate">
+        <div class="license-container">
+            <img src="/static/images/smartxflow_logo.png" alt="SmartXFlow" class="license-logo">
+            <h1 class="license-title">SmartXFlow Monitor</h1>
+            <p class="license-subtitle"><span class="green">Akilli Para</span> <span class="muted">&</span> <span class="red">Oran Takibi</span></p>
+            
+            <div id="licenseProgressBar" class="license-progress-bar">
+                <div class="license-progress-fill" id="licenseProgressFill"></div>
             </div>
-            <h2 style="color:#e6edf3; margin-bottom:10px; font-size:18px;">Lisans Dogrulama</h2>
-            <p style="color:#8b949e; font-size:13px; margin-bottom:20px;">Devam etmek icin lisans anahtarinizi girin</p>
-            <input type="text" id="licenseKeyInput" placeholder="XXXX-XXXX-XXXX-XXXX" 
-                style="width:100%; padding:12px; background:#0d1117; border:1px solid #30363d; border-radius:8px; color:#e6edf3; font-size:14px; text-align:center; letter-spacing:1px; margin-bottom:15px; box-sizing:border-box;">
-            <div id="licenseError" style="color:#f85149; font-size:12px; margin-bottom:15px; display:none;"></div>
-            <button id="licenseSubmitBtn" onclick="validateWebLicense()" 
-                style="width:100%; padding:12px; background:#238636; border:none; border-radius:8px; color:#fff; font-size:14px; font-weight:600; cursor:pointer;">
-                Dogrula
+            
+            <div id="licenseError" class="license-error"></div>
+            <div id="licenseSuccess" class="license-success"></div>
+            
+            <div class="license-form-group">
+                <label>Lisans Anahtari</label>
+                <input type="text" id="licenseKeyInput" placeholder="SXF-XXXX-XXXX-XXXX" maxlength="18" autocomplete="off" spellcheck="false">
+            </div>
+            
+            <button id="licenseSubmitBtn" class="license-btn" onclick="validateWebLicense()">
+                <span class="license-btn-text">Dogrula ve Giris Yap</span>
+                <div class="license-btn-loading" id="licenseBtnLoading">
+                    <div class="license-spinner"></div>
+                </div>
             </button>
-            <div id="licenseLoading" style="display:none; color:#8b949e; margin-top:15px; font-size:12px;">Dogrulanıyor...</div>
+            <p class="license-btn-hint">Lisans anahtariniz yoksa asagidan satin alabilirsiniz</p>
+            
+            <a href="https://shopier.com/smartxflow" target="_blank" class="license-shopier-btn">
+                <span class="license-shopier-icon">🛒</span>
+                <span>Lisans Satin Al</span>
+            </a>
+            <p class="license-shopier-hint">Guvenli odeme • Aninda teslimat</p>
         </div>
     </div>
+    
+    <style>
+        .license-gate {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #080b10 0%, #0d1117 50%, #0b0f14 100%);
+            z-index: 99999;
+            align-items: center;
+            justify-content: center;
+        }
+        .license-container {
+            background: linear-gradient(180deg, #0f141a 0%, #0b0f14 100%);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 20px;
+            padding: 48px 40px;
+            width: 440px;
+            max-width: 90%;
+            text-align: center;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 20px 60px rgba(0,0,0,0.6), 0 0 80px rgba(30,144,255,0.08);
+        }
+        .license-logo {
+            width: 64px;
+            height: auto;
+            max-height: 64px;
+            margin-bottom: 14px;
+            object-fit: contain;
+        }
+        .license-title {
+            color: #e6edf3;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            letter-spacing: -0.5px;
+        }
+        .license-subtitle {
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 32px;
+        }
+        .license-subtitle .green { color: #22c55e; }
+        .license-subtitle .red { color: #ef4444; }
+        .license-subtitle .muted { color: #8b949e; }
+        .license-form-group {
+            margin-bottom: 24px;
+            text-align: left;
+        }
+        .license-form-group label {
+            display: block;
+            color: #8b949e;
+            font-size: 11px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+        .license-form-group input {
+            width: 100%;
+            padding: 16px 18px;
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 10px;
+            color: #e6edf3;
+            font-size: 18px;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 0 20px rgba(30,144,255,0.08);
+            box-sizing: border-box;
+        }
+        .license-form-group input:focus {
+            outline: none;
+            border-color: #1e90ff;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 0 0 2px rgba(30,144,255,0.4), 0 0 20px rgba(30,144,255,0.25);
+        }
+        .license-form-group input::placeholder {
+            color: #30363d;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 16px;
+        }
+        .license-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #1db954 0%, #22c55e 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+        .license-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(29, 185, 84, 0.45);
+            background: linear-gradient(135deg, #22c55e 0%, #34d058 100%);
+        }
+        .license-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .license-btn-hint {
+            margin-top: 12px;
+            font-size: 11px;
+            color: #484f58;
+            text-align: center;
+        }
+        .license-btn-loading {
+            display: none;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .license-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: licenseSpin 0.8s linear infinite;
+        }
+        @keyframes licenseSpin {
+            to { transform: rotate(360deg); }
+        }
+        .license-error {
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid rgba(248, 81, 73, 0.3);
+            color: #f85149;
+            padding: 14px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            display: none;
+            text-align: left;
+        }
+        .license-success {
+            background: rgba(35, 134, 54, 0.15);
+            border: 1px solid rgba(35, 134, 54, 0.3);
+            color: #3fb950;
+            padding: 14px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            display: none;
+            text-align: center;
+        }
+        .license-progress-bar {
+            display: none;
+            height: 3px;
+            background: #21262d;
+            border-radius: 2px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .license-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1e90ff, #00bfff);
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: licenseProgressPulse 1.5s ease infinite;
+        }
+        @keyframes licenseProgressPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .license-shopier-btn {
+            margin-top: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #c45500 0%, #d4650a 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(196,85,0,0.2);
+        }
+        .license-shopier-btn:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #d4650a 0%, #e8750f 100%);
+            box-shadow: 0 6px 20px rgba(196,85,0,0.4);
+        }
+        .license-shopier-hint {
+            margin-top: 8px;
+            font-size: 10px;
+            color: #6e7681;
+            text-align: center;
+        }
+        .license-shopier-icon {
+            font-size: 18px;
+        }
+    </style>
 
     <header class="header">
         <div class="header-left">

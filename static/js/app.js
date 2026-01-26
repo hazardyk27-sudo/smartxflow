@@ -8137,22 +8137,32 @@ function hideLicenseGate() {
 async function validateWebLicense() {
     const input = document.getElementById('licenseKeyInput');
     const errorDiv = document.getElementById('licenseError');
-    const loadingDiv = document.getElementById('licenseLoading');
+    const successDiv = document.getElementById('licenseSuccess');
+    const progressBar = document.getElementById('licenseProgressBar');
+    const progressFill = document.getElementById('licenseProgressFill');
     const submitBtn = document.getElementById('licenseSubmitBtn');
+    const btnText = submitBtn.querySelector('.license-btn-text');
+    const btnLoading = document.getElementById('licenseBtnLoading');
     
     const key = input.value.trim().toUpperCase();
     
     if (!key) {
-        errorDiv.textContent = 'Lisans anahtarı girin';
+        errorDiv.textContent = 'Lisans anahtari girin';
         errorDiv.style.display = 'block';
         return;
     }
     
     errorDiv.style.display = 'none';
-    loadingDiv.style.display = 'block';
+    successDiv.style.display = 'none';
+    progressBar.style.display = 'block';
+    progressFill.style.width = '30%';
+    btnText.style.opacity = '0';
+    btnLoading.style.display = 'block';
     submitBtn.disabled = true;
     
     try {
+        progressFill.style.width = '60%';
+        
         const res = await fetch('/api/licenses/validate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -8160,22 +8170,36 @@ async function validateWebLicense() {
         });
         
         const data = await res.json();
+        progressFill.style.width = '90%';
         
         if (data.valid) {
+            progressFill.style.width = '100%';
             localStorage.setItem(WEB_LICENSE_KEY, key);
             const validUntil = data.expires_at || new Date(Date.now() + 24*60*60*1000).toISOString();
             localStorage.setItem(WEB_LICENSE_VALID_KEY, validUntil);
-            hideLicenseGate();
-            window.location.reload();
+            
+            successDiv.innerHTML = '<div style="font-size:24px;margin-bottom:8px;">✓</div>Lisans dogrulandi! Yonlendiriliyorsunuz...';
+            successDiv.style.display = 'block';
+            progressBar.style.display = 'none';
+            
+            setTimeout(() => {
+                hideLicenseGate();
+                window.location.reload();
+            }, 1500);
         } else {
             errorDiv.textContent = data.error || 'Gecersiz lisans anahtari';
             errorDiv.style.display = 'block';
+            progressBar.style.display = 'none';
+            btnText.style.opacity = '1';
+            btnLoading.style.display = 'none';
+            submitBtn.disabled = false;
         }
     } catch (e) {
         errorDiv.textContent = 'Baglanti hatasi';
         errorDiv.style.display = 'block';
-    } finally {
-        loadingDiv.style.display = 'none';
+        progressBar.style.display = 'none';
+        btnText.style.opacity = '1';
+        btnLoading.style.display = 'none';
         submitBtn.disabled = false;
     }
 }
