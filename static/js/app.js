@@ -7158,6 +7158,15 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
         if (typeof alarmHistory === 'string') {
             try { alarmHistory = JSON.parse(alarmHistory); } catch(e) { alarmHistory = []; }
         }
+        // Her eleman string ise parse et (Supabase bazen iç elemanları da string olarak döner)
+        if (Array.isArray(alarmHistory)) {
+            alarmHistory = alarmHistory.map(h => {
+                if (typeof h === 'string') {
+                    try { return JSON.parse(h); } catch(e) { return {}; }
+                }
+                return h;
+            });
+        }
         
         // Timestamp'ı UTC milisaniyeye çevir (timezone normalize)
         function toUtcMs(ts) {
@@ -7200,6 +7209,9 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                     sharp_score: h.sharp_score || 0,
                     volume_shock_value: h.volume_shock_value || h.volume_shock || 0,
                     drop_pct: h.drop_pct || 0,
+                    // MIM alanları
+                    impact: h.impact || h.impact_score || h.money_impact || 0,
+                    incoming_volume: h.incoming_volume || h.selection_delta || h.incoming_money || h.delta || 0,
                     _utcMs: toUtcMs(h.trigger_at || h.created_at || '')
                 }))
                 // UTC timestamp'e göre sırala (yeniden eskiye)
