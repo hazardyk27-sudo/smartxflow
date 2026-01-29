@@ -7336,7 +7336,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                 dropping: { title: 'Geçmiş Oran Düşüşleri', pillLabel: (a) => `▼${(a.drop_pct || 0).toFixed(1)}%` },
                 publicmove: { title: 'Geçmiş Public Move', pillLabel: (a) => `%${(a.current_share || a.new_share || 0).toFixed(0)}` },
                 volumeleader: { title: 'Geçmiş Lider Değişimleri', pillLabel: (a) => a.new_leader || '-' },
-                mim: { title: 'Geçmiş MIM Alarmları', pillLabel: (a) => `L${a.level || 1} ${(a.impact || a.impact_score || a.money_impact || 0).toFixed(2)}` }
+                mim: { title: 'Geçmiş MIM Alarmları', pillLabel: (a) => `${((a.impact || a.impact_score || a.money_impact || 0) * 100).toFixed(0)}%` }
             };
             
             const theme = tooltipTheme[type] || { title: 'Geçmiş Alarmlar', pillLabel: () => '' };
@@ -7390,9 +7390,11 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                     const totalVol = Number(a.total_volume || a.volume || 0).toLocaleString('en-GB');
                     return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span><span class="tt-money">${oldL}→${newL}</span><span class="tt-pill pill-volumeleader">%${oldShare}→%${newShare}</span><span class="tt-total">£${totalVol}</span></div>`;
                 } else if (type === 'mim') {
-                    const level = a.level || 1;
-                    const impact = (a.impact || a.impact_score || a.money_impact || 0).toFixed(2);
-                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span><span class="tt-pill pill-mim">L${level}</span><span class="tt-total">${impact} impact</span></div>`;
+                    const impact = a.impact || a.impact_score || a.money_impact || 0;
+                    const impactPct = (impact * 100).toFixed(0);
+                    const incomingMoney = a.selection_delta || a.incoming_money || a.delta || 0;
+                    const moneyText = incomingMoney > 0 ? `+£${Number(incomingMoney).toLocaleString('en-GB')}` : '';
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span><span class="tt-pill pill-mim">${impactPct}%</span><span class="tt-total">${moneyText} ${impact.toFixed(2)} impact</span></div>`;
                 }
                 return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span></div>`;
             }).join('');
