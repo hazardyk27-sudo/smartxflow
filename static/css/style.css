@@ -7677,6 +7677,11 @@ td.volume,
     min-width: 60px;
 }
 
+/* MIM tooltip için mavi para rengi */
+.tooltip-mim .smc-tooltip-item .tt-money {
+    color: #58a6ff;
+}
+
 .smc-tooltip-item .tt-total {
     color: #6e7681;
     font-size: 10px;
