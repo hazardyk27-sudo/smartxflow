@@ -7406,7 +7406,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
                     const impactPct = (impact * 100).toFixed(0);
                     const incomingMoney = a.incoming_volume || a.selection_delta || a.incoming_money || a.delta || 0;
                     const moneyText = incomingMoney > 0 ? `+£${Number(incomingMoney).toLocaleString('en-GB')}` : '';
-                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span><span class="tt-pill pill-mim">${impactPct}%</span><span class="tt-total">${moneyText} ${impact.toFixed(2)} impact</span></div>`;
+                    return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span><span class="tt-money">${moneyText}</span><span class="tt-pill pill-mim">${impactPct}%</span></div>`;
                 }
                 return `<div class="smc-tooltip-item"><span class="tt-time">${timeWithDay}</span></div>`;
             }).join('');
