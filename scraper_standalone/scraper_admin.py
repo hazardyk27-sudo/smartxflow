@@ -110,6 +110,81 @@ EMBEDDED_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 SSL_ERROR_COUNT = 0
 SSL_LAST_ALERT_TIME = None
 
+# Scrape Error Alert State (10 dakika cooldown)
+SCRAPE_ERROR_LAST_ALERT_TIME = None
+SCRAPE_ERROR_COOLDOWN_MINUTES = 10
+
+# No Data Warning State (30 dakika veri gelmezse)
+LAST_SUCCESSFUL_SCRAPE_TIME = None
+NO_DATA_LAST_ALERT_TIME = None
+NO_DATA_WARNING_MINUTES = 30
+NO_DATA_ALERT_COOLDOWN_MINUTES = 30
+
+
+def send_scrape_error_alert(error_message: str) -> bool:
+    """
+    Scrape hatası olduğunda Telegram'a bildirim gönder.
+    10 dakika cooldown ile spam önleme.
+    """
+    global SCRAPE_ERROR_LAST_ALERT_TIME
+    
+    current_time = datetime.now()
+    
+    # Cooldown kontrolü
+    if SCRAPE_ERROR_LAST_ALERT_TIME:
+        minutes_since_last = (current_time - SCRAPE_ERROR_LAST_ALERT_TIME).total_seconds() / 60
+        if minutes_since_last < SCRAPE_ERROR_COOLDOWN_MINUTES:
+            log_scraper(f"Scrape hata bildirimi {SCRAPE_ERROR_COOLDOWN_MINUTES} dk cooldown'da, atlanıyor")
+            return False
+    
+    alert_msg = f"🔴 <b>VERİ ÇEKME HATASI</b>\n\n{error_message[:500]}"
+    
+    result = send_telegram_alert(alert_msg)
+    if result:
+        SCRAPE_ERROR_LAST_ALERT_TIME = current_time
+        log_scraper("✅ Scrape hata bildirimi Telegram'a gönderildi")
+    
+    return result
+
+
+def check_and_send_no_data_warning() -> bool:
+    """
+    30 dakika veri gelmezse Telegram'a uyarı gönder.
+    30 dakika cooldown ile spam önleme.
+    """
+    global NO_DATA_LAST_ALERT_TIME
+    
+    if not LAST_SUCCESSFUL_SCRAPE_TIME:
+        return False
+    
+    current_time = datetime.now()
+    minutes_since_last_data = (current_time - LAST_SUCCESSFUL_SCRAPE_TIME).total_seconds() / 60
+    
+    # 30 dakikadan fazla veri gelmemişse
+    if minutes_since_last_data < NO_DATA_WARNING_MINUTES:
+        return False
+    
+    # Cooldown kontrolü
+    if NO_DATA_LAST_ALERT_TIME:
+        minutes_since_last_alert = (current_time - NO_DATA_LAST_ALERT_TIME).total_seconds() / 60
+        if minutes_since_last_alert < NO_DATA_ALERT_COOLDOWN_MINUTES:
+            return False
+    
+    alert_msg = f"⚠️ <b>VERİ GELMİYOR</b>\n\nSon başarılı veri çekme: {int(minutes_since_last_data)} dakika önce\n\nScraper durumunu kontrol edin!"
+    
+    result = send_telegram_alert(alert_msg)
+    if result:
+        NO_DATA_LAST_ALERT_TIME = current_time
+        log_scraper("⚠️ No data warning Telegram'a gönderildi")
+    
+    return result
+
+
+def update_last_successful_scrape():
+    """Başarılı scrape zamanını güncelle"""
+    global LAST_SUCCESSFUL_SCRAPE_TIME
+    LAST_SUCCESSFUL_SCRAPE_TIME = datetime.now()
+
 
 def check_ssl_health():
     """
@@ -585,6 +660,10 @@ def run_scraper(config):
                 SCRAPER_STATE['last_rows'] = rows
                 SCRAPER_STATE['last_scrape'] = datetime.now().isoformat()
                 
+                # Başarılı scrape - zamanı güncelle
+                if rows > 0:
+                    update_last_successful_scrape()
+                
                 log_scraper(f"Veri çekme tamamlandı: {rows} satır")
                 
                 log_scraper(">>> Alarm Engine'e sinyal gönderiliyor...")
@@ -597,6 +676,9 @@ def run_scraper(config):
                 log_scraper(f"DÖNGÜ HATASI: {error_str}", level='ERROR')
                 log_scraper(f"Traceback: {traceback.format_exc()}", level='ERROR')
                 SCRAPER_STATE['status'] = f'Hata: {error_str[:50]}'
+                
+                # Telegram'a hata bildirimi gönder (10 dk cooldown)
+                send_scrape_error_alert(error_str)
                 
                 ssl_error_indicators = [
                     'TLS CA certificate bundle',
@@ -621,10 +703,14 @@ def run_scraper(config):
             log_scraper(f"{interval_minutes} dakika bekleniyor...")
             log_scraper("-" * 50)
             
-            for _ in range(interval_minutes * 60):
+            for i in range(interval_minutes * 60):
                 if SCRAPER_STATE.get('stop_requested', False):
                     break
                 time.sleep(1)
+                
+                # Her 5 dakikada bir "veri gelmiyor" kontrolü
+                if i > 0 and i % 300 == 0:
+                    check_and_send_no_data_warning()
         
         log_scraper("Scraper durduruldu")
         SCRAPER_STATE['running'] = False
