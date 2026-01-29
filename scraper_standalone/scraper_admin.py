@@ -225,17 +225,32 @@ def send_telegram_alert(message, bot_token=None, chat_id=None):
     """
     Telegram'a uyarı mesajı gönder.
     SSL hatası durumunda kullanılır.
+    Config.json veya environment variable'dan credentials okur.
     """
     try:
         import requests
         
+        # Önce config.json'dan oku
+        if not bot_token or not chat_id:
+            try:
+                if os.path.exists(CONFIG_FILE):
+                    with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                        config = json.load(f)
+                        if not bot_token:
+                            bot_token = config.get('TELEGRAM_BOT_TOKEN', '')
+                        if not chat_id:
+                            chat_id = config.get('TELEGRAM_CHAT_ID', '')
+            except Exception as e:
+                logging.debug(f"Config okuma hatası: {e}")
+        
+        # Fallback: environment variable
         if not bot_token:
             bot_token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
         if not chat_id:
             chat_id = os.environ.get('TELEGRAM_CHAT_ID', '')
         
         if not bot_token or not chat_id:
-            logging.warning("Telegram credentials not configured")
+            logging.warning("Telegram credentials not configured (config.json veya env)")
             return False
         
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
