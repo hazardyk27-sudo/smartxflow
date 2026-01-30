@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 import traceback
 
-from scraper.moneyway import scrape_all, DATASETS
+from scraper.moneyway import DATASETS, EXTRACTOR_MAP, HEADERS, fetch_table, parse_cookie_string
 from services.supabase_client import get_supabase_client
 
 MAX_RETRIES = 3
