@@ -54,6 +54,54 @@ ALARM_ENGINE_STATE = {
 # Scraper -> Alarm Engine iletişim event'i
 SCRAPE_COMPLETE_EVENT = threading.Event()
 
+# Supabase sinyal kontrol için son işlenen ID
+LAST_PROCESSED_SIGNAL_ID = 0
+SIGNAL_CHECK_LOCK = threading.Lock()
+
+def check_supabase_signal(supabase_url: str, supabase_key: str) -> bool:
+    """Supabase'den Replit scraper sinyali kontrol et"""
+    global LAST_PROCESSED_SIGNAL_ID
+    
+    try:
+        # İşlenmemiş sinyalleri al
+        url = f"{supabase_url}/rest/v1/scraper_signal?processed=eq.false&order=id.desc&limit=1"
+        headers = {
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}"
+        }
+        
+        r = requests.get(url, headers=headers, timeout=5)
+        if r.status_code != 200:
+            return False
+        
+        signals = r.json()
+        if not signals:
+            return False
+        
+        signal = signals[0]
+        signal_id = signal.get('id', 0)
+        
+        with SIGNAL_CHECK_LOCK:
+            if signal_id <= LAST_PROCESSED_SIGNAL_ID:
+                return False
+            LAST_PROCESSED_SIGNAL_ID = signal_id
+        
+        # Sinyali işlendi olarak işaretle
+        update_url = f"{supabase_url}/rest/v1/scraper_signal?id=eq.{signal_id}"
+        update_data = {
+            "processed": True,
+            "processed_at": datetime.utcnow().isoformat() + "+00:00"
+        }
+        headers["Content-Type"] = "application/json"
+        requests.patch(update_url, json=update_data, headers=headers, timeout=5)
+        
+        log_alarm_engine(f"<<< REPLIT SİNYALİ ALINDI (ID: {signal_id}, {signal.get('match_count', 0)} maç)")
+        return True
+        
+    except Exception as e:
+        # Hata durumunda sessizce devam et
+        return False
+
 
 def log_scraper(message, level='INFO'):
     """Scraper logunu buffer'a ve SSE client'lara gönder"""
@@ -754,19 +802,32 @@ def run_alarm_engine(config):
         
         log_alarm_engine("=" * 50)
         log_alarm_engine(f"SmartXFlow Alarm Engine v{VERSION} başlatıldı")
-        log_alarm_engine("MODE: Event-based (Scraper sinyali bekliyor)")
+        log_alarm_engine("MODE: Hybrid (Yerel + Replit Supabase sinyali)")
         log_alarm_engine(f"Supabase URL: {config.get('SUPABASE_URL', '')[:40]}...")
         log_alarm_engine("=" * 50)
+        
+        supabase_url = config.get('SUPABASE_URL', '')
+        supabase_key = config.get('SUPABASE_ANON_KEY', '')
+        supabase_check_counter = 0
         
         cycle_count = 0
         while not ALARM_ENGINE_STATE.get('stop_requested', False):
             ALARM_ENGINE_STATE['status'] = 'Scraper sinyali bekleniyor...'
-            log_alarm_engine("Scraper'dan sinyal bekleniyor...")
+            log_alarm_engine("Sinyal bekleniyor (Yerel + Replit)...")
             
             while not ALARM_ENGINE_STATE.get('stop_requested', False):
+                # 1. Yerel scraper sinyali kontrol et
                 if SCRAPE_COMPLETE_EVENT.wait(timeout=1.0):
                     SCRAPE_COMPLETE_EVENT.clear()
+                    log_alarm_engine("<<< YEREL SCRAPER SİNYALİ ALINDI")
                     break
+                
+                # 2. Her 5 saniyede bir Supabase sinyali kontrol et
+                supabase_check_counter += 1
+                if supabase_check_counter >= 5 and supabase_url and supabase_key:
+                    supabase_check_counter = 0
+                    if check_supabase_signal(supabase_url, supabase_key):
+                        break
             
             if ALARM_ENGINE_STATE.get('stop_requested', False):
                 break

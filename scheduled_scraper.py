@@ -43,6 +43,36 @@ def send_telegram(message: str, is_error: bool = False) -> bool:
         print(f"[Telegram] Hata: {e}")
         return False
 
+def send_alarm_engine_signal(supabase_url: str, supabase_key: str, match_count: int, snapshot_count: int = 0) -> bool:
+    """Alarm Engine'e sinyal gönder - scrape tamamlandığında çağrılır"""
+    try:
+        data = {
+            "source": SCRAPER_SOURCE,
+            "signal_type": "scrape_complete",
+            "match_count": match_count,
+            "snapshot_count": snapshot_count,
+            "processed": False
+        }
+        
+        url = f"{supabase_url}/rest/v1/scraper_signal"
+        headers = {
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation"
+        }
+        
+        r = requests.post(url, json=data, headers=headers, timeout=10)
+        success = r.status_code in [200, 201]
+        if success:
+            print(f"[Signal] Alarm Engine'e sinyal gönderildi ✓ ({match_count} maç)")
+        else:
+            print(f"[Signal] Sinyal gönderilemedi - HTTP {r.status_code}: {r.text[:100]}")
+        return success
+    except Exception as e:
+        print(f"[Signal] Hata: {e}")
+        return False
+
 def update_heartbeat(supabase_url: str, supabase_key: str, status: str, match_count: int = 0, error_msg: Optional[str] = None) -> bool:
     try:
         now = datetime.now(timezone.utc).isoformat()
@@ -198,6 +228,8 @@ def main():
         update_heartbeat(supabase_url, supabase_key, "error", rows, error[:200])
     else:
         update_heartbeat(supabase_url, supabase_key, "active", rows)
+        # Alarm Engine'e sinyal gönder
+        send_alarm_engine_signal(supabase_url, supabase_key, rows, rows)
     
     print("=" * 60)
     print(f"Tamamlandı: {rows} satır")
