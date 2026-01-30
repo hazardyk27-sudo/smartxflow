@@ -12,6 +12,7 @@ import time
 import socket
 import logging
 import json
+import requests
 from datetime import datetime
 from collections import deque
 import queue
