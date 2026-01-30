@@ -375,7 +375,7 @@ class SupabaseClient:
                         batch_resp = httpx.get(batch_url, headers=self._headers(), timeout=20)
                         if batch_resp.status_code == 200:
                             for row in batch_resp.json():
-                                key = f"{row.get('home', '')}|{row.get('away', '')}"
+                                key = f"{row.get('home', '')}|{row.get('away', '')}|{row.get('league', '')}"
                                 if key not in odds_cache or row.get('scraped_at', '') > odds_cache[key].get('scraped_at', ''):
                                     odds_cache[key] = row
                     except Exception as e:
@@ -387,7 +387,7 @@ class SupabaseClient:
                     home = fix.get('home_team', '')
                     away = fix.get('away_team', '')
                     league = fix.get('league', '')
-                    key = f"{home}|{away}"
+                    key = f"{home}|{away}|{league}"
                     
                     if key in odds_cache:
                         row = odds_cache[key]
@@ -468,7 +468,7 @@ class SupabaseClient:
                         if batch_resp.status_code == 200:
                             rows = batch_resp.json()
                             for row in rows:
-                                cache_key = f"{row.get('home', '')}|{row.get('away', '')}"
+                                cache_key = f"{row.get('home', '')}|{row.get('away', '')}|{row.get('league', '')}"
                                 if cache_key not in odds_cache:
                                     odds_cache[cache_key] = row
                     except Exception as e:
@@ -498,7 +498,7 @@ class SupabaseClient:
                         except:
                             pass
                     
-                    cache_key = f"{home}|{away}"
+                    cache_key = f"{home}|{away}|{league}"
                     latest_odds = {
                         'ScrapedAt': '',
                         'Volume': '',
