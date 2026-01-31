@@ -430,24 +430,12 @@ def run_alarm_calculations():
 def start_alarm_scheduler():
     """Start periodic alarm calculation scheduler
     
-    Runs alarm calculations every 10 minutes.
+    DISABLED: Alarm calculation is handled by Admin Panel via scraper_signal.
+    Web App only reads alarms from Supabase.
     """
-    global alarm_scheduler_thread
-    
-    alarm_interval = 600  # 10 minutes
-    
-    def alarm_loop():
-        import time
-        while True:
-            try:
-                run_alarm_calculations()
-            except Exception as e:
-                print(f"[Alarm Scheduler] Loop error: {e}")
-            time.sleep(alarm_interval)
-    
-    alarm_scheduler_thread = threading.Thread(target=alarm_loop, daemon=True)
-    alarm_scheduler_thread.start()
-    print(f"[Alarm Scheduler] ENABLED - Running every {alarm_interval // 60} minutes")
+    print("[Alarm Scheduler] DISABLED - Alarms calculated by Admin Panel")
+    print("[Alarm Scheduler] Signal flow: Scraper -> scraper_signal -> Admin Panel")
+    return
 
 
 def start_server_scheduler():

@@ -63,11 +63,12 @@ def send_alarm_engine_signal(supabase_url: str, supabase_key: str, match_count: 
         }
         
         r = requests.post(url, json=data, headers=headers, timeout=10)
-        success = r.status_code in [200, 201]
+        print(f"[Signal] HTTP {r.status_code}: {r.text[:200]}")
+        success = r.status_code in [200, 201] and len(r.text) > 10
         if success:
             print(f"[Signal] Alarm Engine'e sinyal gönderildi ✓ ({match_count} maç)")
         else:
-            print(f"[Signal] Sinyal gönderilemedi - HTTP {r.status_code}: {r.text[:100]}")
+            print(f"[Signal] Sinyal gönderilemedi - HTTP {r.status_code}")
         return success
     except Exception as e:
         print(f"[Signal] Hata: {e}")
