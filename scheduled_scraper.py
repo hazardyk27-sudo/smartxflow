@@ -238,5 +238,20 @@ def main():
         print(f"Son hata: {error}")
     print("=" * 60)
 
+def run_loop():
+    """9 dakikada bir scrape döngüsü"""
+    INTERVAL_MINUTES = 9
+    print(f"[Loop] Scraper {INTERVAL_MINUTES} dakikada bir çalışacak")
+    
+    while True:
+        try:
+            main()
+        except Exception as e:
+            print(f"[Loop] main() hatası: {e}")
+            traceback.print_exc()
+        
+        print(f"\n[Loop] Sonraki çalışma {INTERVAL_MINUTES} dakika sonra...")
+        time.sleep(INTERVAL_MINUTES * 60)
+
 if __name__ == "__main__":
-    main()
+    run_loop()

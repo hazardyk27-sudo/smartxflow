@@ -17,22 +17,11 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "SmartXFlow Test"
+args = "SmartXFlow Web"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "SmartXFlow Web"
-
-[[workflows.workflow]]
-name = "SmartXFlow Test"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python test_scraper.py"
-
-[workflows.workflow.metadata]
-outputType = "console"
+args = "SmartXFlow Scraper"
 
 [[workflows.workflow]]
 name = "SmartXFlow Web"
@@ -45,6 +34,17 @@ waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow]]
+name = "SmartXFlow Scraper"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python scheduled_scraper.py"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [userenv]
 
