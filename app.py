@@ -430,12 +430,24 @@ def run_alarm_calculations():
 def start_alarm_scheduler():
     """Start periodic alarm calculation scheduler
     
-    DISABLED: Alarm calculation is now handled by the standalone EXE.
-    Web App only reads alarms from Supabase (single source of truth).
+    Runs alarm calculations every 10 minutes.
     """
-    print("[Alarm Scheduler] DISABLED - Alarms are calculated by standalone EXE")
-    print("[Alarm Scheduler] Web App reads alarms from Supabase (read-only mode)")
-    return
+    global alarm_scheduler_thread
+    
+    alarm_interval = 600  # 10 minutes
+    
+    def alarm_loop():
+        import time
+        while True:
+            try:
+                run_alarm_calculations()
+            except Exception as e:
+                print(f"[Alarm Scheduler] Loop error: {e}")
+            time.sleep(alarm_interval)
+    
+    alarm_scheduler_thread = threading.Thread(target=alarm_loop, daemon=True)
+    alarm_scheduler_thread.start()
+    print(f"[Alarm Scheduler] ENABLED - Running every {alarm_interval // 60} minutes")
 
 
 def start_server_scheduler():
