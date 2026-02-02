@@ -4041,8 +4041,8 @@ function renderChartLegendFilters(datasets, market) {
             { key: 'Over', label: 'Üst 2.5', color: '#22c55e' }
         ],
         'moneyway_btts': [
-            { key: 'Yes', label: 'BTTS Yes', color: '#22c55e' },
-            { key: 'No', label: 'BTTS No', color: '#ef4444' }
+            { key: 'Yes', label: 'KG Evet', color: '#22c55e' },
+            { key: 'No', label: 'KG Hayır', color: '#ef4444' }
         ],
         'dropping_1x2': [
             { key: '1', label: '1', color: '#3b82f6' },
@@ -4054,8 +4054,8 @@ function renderChartLegendFilters(datasets, market) {
             { key: 'Over', label: 'Üst 2.5', color: '#22c55e' }
         ],
         'dropping_btts': [
-            { key: 'Yes', label: 'BTTS Yes', color: '#22c55e' },
-            { key: 'No', label: 'BTTS No', color: '#ef4444' }
+            { key: 'Yes', label: 'KG Evet', color: '#22c55e' },
+            { key: 'No', label: 'KG Hayır', color: '#ef4444' }
         ]
     };
     
@@ -4533,10 +4533,10 @@ function exportChartCSV() {
     const marketLabels = {
         'moneyway_1x2': 'Moneyway 1X2',
         'moneyway_ou25': 'Moneyway Alt/Üst 2.5',
-        'moneyway_btts': 'Moneyway BTTS',
+        'moneyway_btts': 'Moneyway KG',
         'dropping_1x2': 'Oran 1X2',
         'dropping_ou25': 'Oran A/Ü 2.5',
-        'dropping_btts': 'Oran BTTS'
+        'dropping_btts': 'Oran KG'
     };
     const marketLabel = marketLabels[market] || market;
     
@@ -6564,7 +6564,7 @@ function formatMarketChip(market, selection) {
     let marketShort = market;
     if (market.toLowerCase().includes('1x2')) marketShort = '1X2';
     else if (market.toLowerCase().includes('ou') || market.toLowerCase().includes('2.5')) marketShort = 'A/Ü 2.5';
-    else if (market.toLowerCase().includes('btts')) marketShort = 'BTTS';
+    else if (market.toLowerCase().includes('btts')) marketShort = 'KG';
     
     // Selection mapping
     const rawSel = (selection || '').toUpperCase();
@@ -6950,7 +6950,7 @@ async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, home
         const marketLabels = {
             'dropping_1x2': 'Drop 1X2',
             'dropping_ou25': 'Drop 2.5',
-            'dropping_btts': 'Drop BTTS'
+            'dropping_btts': 'Drop KG'
         };
         showToast(`Maç henüz veritabanında yok. Alarm detayları kartta mevcut.`, 'info');
     }
@@ -7339,7 +7339,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const selectionMap = {'U': 'A', 'O': 'Ü', 'Y': 'Yes', 'N': 'No', '1': '1', 'X': 'X', '2': '2'};
             const selection = selectionMap[rawSelection] || rawSelection;
             // Market formatting: OU25->A/Ü 2.5, 1X2->1X2, BTTS->BTTS
-            const marketMap = {'OU25': 'A/Ü 2.5', 'O/U 2.5': 'A/Ü 2.5', '1X2': '1X2', 'BTTS': 'BTTS'};
+            const marketMap = {'OU25': 'A/Ü 2.5', 'O/U 2.5': 'A/Ü 2.5', '1X2': '1X2', 'BTTS': 'KG'};
             const market = marketMap[rawMarket] || rawMarket;
             const prevVol = latest.prev_volume || latest.previous_volume || 0;
             const currVol = latest.current_volume || latest.curr_volume || 0;
