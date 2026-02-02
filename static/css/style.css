@@ -4417,6 +4417,7 @@ td.volume,
 
 .alarm-filter-option .filter-label {
     flex: 1;
+    white-space: nowrap;
 }
 
 .alarm-filter-option .filter-count {
