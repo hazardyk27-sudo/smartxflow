@@ -403,13 +403,18 @@
             flex-shrink: 0;
         }
         @media (max-width: 768px) {
+            .header-right {
+                align-items: stretch;
+            }
             .logout-btn {
                 padding: 0 12px;
-                border-radius: 8px;
+                border-radius: 6px;
                 margin-left: 8px;
                 font-size: 10px;
-                height: 32px;
+                height: auto;
                 align-self: stretch;
+                display: flex;
+                align-items: center;
             }
             .logout-btn svg {
                 width: 10px;
