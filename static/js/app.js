@@ -1121,7 +1121,11 @@ function renderMobileMatchCards(data) {
         let dateStr = '';
         try {
             const dt = dayjs(match.date).tz('Europe/Istanbul');
-            dateStr = dt.format('D MMM HH:mm');
+            const day = dt.format('D');
+            const monthIdx = dt.month();
+            const monthsTR = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+            const time = dt.format('HH:mm');
+            dateStr = `${day} ${monthsTR[monthIdx]} ${time}`;
         } catch(e) {
             dateStr = match.date || '';
         }
