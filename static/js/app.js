@@ -779,8 +779,8 @@ function updateTableHeaders() {
             <th class="col-date sortable ${getActiveClass('date')}" data-sort="date" onclick="sortByColumn('date')">DATE <span class="sort-arrow">${getArrow('date')}</span></th>
             <th class="col-league sortable ${getActiveClass('league')}" data-sort="league" onclick="sortByColumn('league')">LEAGUE <span class="sort-arrow">${getArrow('league')}</span></th>
             <th class="col-match sortable ${getActiveClass('match')}" data-sort="match" onclick="sortByColumn('match')">MATCH <span class="sort-arrow">${getArrow('match')}</span></th>
-            <th class="col-selection sortable ${getActiveClass('sel1')}" data-sort="sel1" onclick="sortByColumn('sel1')">UNDER <span class="sort-arrow">${getArrow('sel1')}</span></th>
-            <th class="col-selection sortable ${getActiveClass('sel2')}" data-sort="sel2" onclick="sortByColumn('sel2')">OVER <span class="sort-arrow">${getArrow('sel2')}</span></th>
+            <th class="col-selection sortable ${getActiveClass('sel1')}" data-sort="sel1" onclick="sortByColumn('sel1')">ALT <span class="sort-arrow">${getArrow('sel1')}</span></th>
+            <th class="col-selection sortable ${getActiveClass('sel2')}" data-sort="sel2" onclick="sortByColumn('sel2')">ÜST <span class="sort-arrow">${getArrow('sel2')}</span></th>
             <th class="col-volume sortable ${getActiveClass('volume')}" data-sort="volume" onclick="sortByColumn('volume')">VOLUME <span class="sort-arrow">${getArrow('volume')}</span></th>
         `;
     } else if (currentMarket.includes('btts')) {
@@ -3531,9 +3531,9 @@ async function loadChart(home, away, market, league = '') {
                                             }
                                         } else if (market.includes('ou25')) {
                                             if (datasetLabel.toLowerCase().includes('under')) {
-                                                label = 'Under'; odds = h.Under || '-'; amt = h.AmtUnder || ''; pct = h.PctUnder || '';
+                                                label = 'Alt'; odds = h.Under || '-'; amt = h.AmtUnder || ''; pct = h.PctUnder || '';
                                             } else {
-                                                label = 'Over'; odds = h.Over || '-'; amt = h.AmtOver || ''; pct = h.PctOver || '';
+                                                label = 'Üst'; odds = h.Over || '-'; amt = h.AmtOver || ''; pct = h.PctOver || '';
                                             }
                                         } else if (market.includes('btts')) {
                                             if (datasetLabel.toLowerCase().includes('yes')) {
@@ -4037,8 +4037,8 @@ function renderChartLegendFilters(datasets, market) {
             { key: '2', label: '2', color: '#eab308' }
         ],
         'moneyway_ou25': [
-            { key: 'Under', label: 'Under 2.5', color: '#3b82f6' },
-            { key: 'Over', label: 'Over 2.5', color: '#22c55e' }
+            { key: 'Under', label: 'Alt 2.5', color: '#3b82f6' },
+            { key: 'Over', label: 'Üst 2.5', color: '#22c55e' }
         ],
         'moneyway_btts': [
             { key: 'Yes', label: 'BTTS Yes', color: '#22c55e' },
@@ -4050,8 +4050,8 @@ function renderChartLegendFilters(datasets, market) {
             { key: '2', label: '2', color: '#eab308' }
         ],
         'dropping_ou25': [
-            { key: 'Under', label: 'Under 2.5', color: '#3b82f6' },
-            { key: 'Over', label: 'Over 2.5', color: '#22c55e' }
+            { key: 'Under', label: 'Alt 2.5', color: '#3b82f6' },
+            { key: 'Over', label: 'Üst 2.5', color: '#22c55e' }
         ],
         'dropping_btts': [
             { key: 'Yes', label: 'BTTS Yes', color: '#22c55e' },
@@ -7327,7 +7327,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const rawSelection = (latest.selection || latest.side || '-').toUpperCase();
             const rawMarket = (latest.market || '').toUpperCase();
             // Selection mapping: U->Under, O->Over, Y->Yes, N->No
-            const selectionMap = {'U': 'Under', 'O': 'Over', 'Y': 'Yes', 'N': 'No', '1': '1', 'X': 'X', '2': '2'};
+            const selectionMap = {'U': 'Alt', 'O': 'Üst', 'Y': 'Yes', 'N': 'No', '1': '1', 'X': 'X', '2': '2'};
             const selection = selectionMap[rawSelection] || rawSelection;
             // Market formatting: OU25->O/U 2.5, 1X2->1X2, BTTS->BTTS
             const marketMap = {'OU25': 'O/U 2.5', 'O/U 2.5': 'O/U 2.5', '1X2': '1X2', 'BTTS': 'BTTS'};
