@@ -3292,7 +3292,7 @@ async function loadChart(home, away, market, league = '') {
                     ? ['AmtUnder', 'AmtOver'] 
                     : ['PctUnder', 'PctOver'];
                 dataKeys.forEach((key, idx) => {
-                    const label = ['Under', 'Over'][idx];
+                    const label = ['Alt', 'Üst'][idx];
                     const color = [colors['Under'], colors['Over']][idx];
                     datasets.push({
                         label: label,

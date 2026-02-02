@@ -152,10 +152,10 @@
             
             const legendLabels = {
                 'moneyway_1x2': [{key:'1',label:'1',color:'#3b82f6'},{key:'X',label:'X',color:'#22c55e'},{key:'2',label:'2',color:'#eab308'}],
-                'moneyway_ou25': [{key:'Under',label:'Under 2.5',color:'#3b82f6'},{key:'Over',label:'Over 2.5',color:'#22c55e'}],
+                'moneyway_ou25': [{key:'Under',label:'Alt 2.5',color:'#3b82f6'},{key:'Over',label:'Üst 2.5',color:'#22c55e'}],
                 'moneyway_btts': [{key:'Yes',label:'BTTS Yes',color:'#22c55e'},{key:'No',label:'BTTS No',color:'#ef4444'}],
                 'dropping_1x2': [{key:'1',label:'1',color:'#3b82f6'},{key:'X',label:'X',color:'#22c55e'},{key:'2',label:'2',color:'#eab308'}],
-                'dropping_ou25': [{key:'Under',label:'Under 2.5',color:'#3b82f6'},{key:'Over',label:'Over 2.5',color:'#22c55e'}],
+                'dropping_ou25': [{key:'Under',label:'Alt 2.5',color:'#3b82f6'},{key:'Over',label:'Üst 2.5',color:'#22c55e'}],
                 'dropping_btts': [{key:'Yes',label:'BTTS Yes',color:'#22c55e'},{key:'No',label:'BTTS No',color:'#ef4444'}]
             };
             
@@ -243,8 +243,8 @@
             } else if (market.includes('ou25')) {
                 const showUnder = chartVisibleSeries[market+'_Under'] !== false;
                 const showOver = chartVisibleSeries[market+'_Over'] !== false;
-                if (showUnder) datasets.push({label:'Under 2.5',data:bucketedHistory.map(h=>isMoneyway?(usePct?parseFloat(h.PctUnder)||0:parseFloat(h.AmtUnder)||0):parseFloat(h.Under)||0),borderColor:'#3b82f6',backgroundColor:createGradient('#3b82f6'),tension:0.4,pointRadius:0,pointHoverRadius:4,borderWidth:2,fill:true});
-                if (showOver) datasets.push({label:'Over 2.5',data:bucketedHistory.map(h=>isMoneyway?(usePct?parseFloat(h.PctOver)||0:parseFloat(h.AmtOver)||0):parseFloat(h.Over)||0),borderColor:'#22c55e',backgroundColor:createGradient('#22c55e'),tension:0.4,pointRadius:0,pointHoverRadius:4,borderWidth:2,fill:true});
+                if (showUnder) datasets.push({label:'Alt 2.5',data:bucketedHistory.map(h=>isMoneyway?(usePct?parseFloat(h.PctUnder)||0:parseFloat(h.AmtUnder)||0):parseFloat(h.Under)||0),borderColor:'#3b82f6',backgroundColor:createGradient('#3b82f6'),tension:0.4,pointRadius:0,pointHoverRadius:4,borderWidth:2,fill:true});
+                if (showOver) datasets.push({label:'Üst 2.5',data:bucketedHistory.map(h=>isMoneyway?(usePct?parseFloat(h.PctOver)||0:parseFloat(h.AmtOver)||0):parseFloat(h.Over)||0),borderColor:'#22c55e',backgroundColor:createGradient('#22c55e'),tension:0.4,pointRadius:0,pointHoverRadius:4,borderWidth:2,fill:true});
             } else {
                 const showYes = chartVisibleSeries[market+'_Yes'] !== false;
                 const showNo = chartVisibleSeries[market+'_No'] !== false;
