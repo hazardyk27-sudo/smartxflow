@@ -379,33 +379,34 @@
         .license-device-icon {
             opacity: 0.6;
         }
-        /* Logout Button */
+        /* Logout Button - Versiyon A: Minimal & Modern */
         .logout-btn {
             display: none;
             align-items: center;
             gap: 6px;
-            padding: 8px 12px;
-            background: rgba(248, 81, 73, 0.1);
-            border: 1px solid rgba(248, 81, 73, 0.3);
-            border-radius: 6px;
-            color: #f85149;
+            padding: 10px 16px;
+            background: #E5484D;
+            border: none;
+            border-radius: 10px;
+            color: white;
             font-size: 12px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
             margin-left: 12px;
+            box-shadow: 0 4px 12px rgba(229, 72, 77, 0.25);
         }
         .logout-btn:hover {
-            background: rgba(248, 81, 73, 0.2);
-            border-color: rgba(248, 81, 73, 0.5);
+            background: #DC3D43;
             transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(229, 72, 77, 0.35);
         }
         .logout-btn svg {
             flex-shrink: 0;
         }
         @media (max-width: 768px) {
             .logout-btn {
-                padding: 6px 8px;
+                padding: 10px 16px;
             }
             .logout-btn .logout-text {
                 display: none;
