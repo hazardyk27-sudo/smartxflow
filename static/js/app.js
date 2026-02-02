@@ -7136,7 +7136,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             description: 'Mactan once erken hacim artisi.'
         },
         dropping: {
-            title: 'Dropping',
+            title: 'Oran Düşüşü',
             color: '#f85149',
             icon: '📉',
             description: 'Acilisindan bu yana oran dususu.'
