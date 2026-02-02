@@ -5965,6 +5965,13 @@ const dateFilterLabels = {
     future: 'Gelecek'
 };
 
+const dateFilterColors = {
+    all: '#ffffff',
+    today: '#4ade80',
+    yesterday: '#f85149',
+    future: '#3B82F6'
+};
+
 function toggleDateFilterDropdown() {
     const dropdown = document.getElementById('alarmDateDropdown');
     const options = document.getElementById('alarmDateOptions');
@@ -5982,6 +5989,12 @@ function selectDateFilter(dateFilter) {
     const labelEl = document.getElementById('dateLabelDisplay');
     if (labelEl) {
         labelEl.textContent = dateFilterLabels[dateFilter] || 'Tümü';
+    }
+    
+    // Dot rengini güncelle
+    const dotEl = document.getElementById('dateDotDisplay');
+    if (dotEl) {
+        dotEl.style.background = dateFilterColors[dateFilter] || '#ffffff';
     }
     
     // Dropdown'ı kapat
