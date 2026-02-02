@@ -5852,9 +5852,9 @@ async function loadAllAlarms(forceRefresh = false) {
         updateAlarmCounts();
         alarmsDisplayCount = 30;
         
-        const selectEl = document.getElementById('alarmDateFilterSelect');
-        if (selectEl) {
-            selectEl.value = currentAlarmDateFilter;
+        const labelEl = document.getElementById('dateLabelDisplay');
+        if (labelEl) {
+            labelEl.textContent = dateFilterLabels[currentAlarmDateFilter] || 'Tümü';
         }
         
         renderAlarmsList(currentAlarmFilter);
@@ -5958,14 +5958,37 @@ function updateAlarmCounts() {
 
 let currentAlarmDateFilter = 'all'; // all, today, yesterday, future
 
-function filterAlarmsByDate(dateFilter) {
-    console.log('[filterAlarmsByDate] Date filter changed to:', dateFilter);
+const dateFilterLabels = {
+    all: 'Tümü',
+    today: 'Bugün',
+    yesterday: 'Dün',
+    future: 'Gelecek'
+};
+
+function toggleDateFilterDropdown() {
+    const dropdown = document.getElementById('alarmDateDropdown');
+    const options = document.getElementById('alarmDateOptions');
+    if (dropdown && options) {
+        dropdown.classList.toggle('open');
+        options.style.display = options.style.display === 'block' ? 'none' : 'block';
+    }
+}
+
+function selectDateFilter(dateFilter) {
+    console.log('[selectDateFilter] Date filter changed to:', dateFilter);
     currentAlarmDateFilter = dateFilter;
     
-    const selectEl = document.getElementById('alarmDateFilterSelect');
-    if (selectEl && selectEl.value !== dateFilter) {
-        selectEl.value = dateFilter;
+    // Label'ı güncelle
+    const labelEl = document.getElementById('dateLabelDisplay');
+    if (labelEl) {
+        labelEl.textContent = dateFilterLabels[dateFilter] || 'Tümü';
     }
+    
+    // Dropdown'ı kapat
+    const dropdown = document.getElementById('alarmDateDropdown');
+    const options = document.getElementById('alarmDateOptions');
+    if (dropdown) dropdown.classList.remove('open');
+    if (options) options.style.display = 'none';
     
     alarmsDisplayCount = 30;
     renderAlarmsList(currentAlarmFilter);
