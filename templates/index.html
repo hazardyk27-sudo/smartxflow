@@ -715,12 +715,12 @@
                     </div>
                 </div>
                 <div class="alarms-sidebar-field">
-                    <label>SIRALA:</label>
-                    <select id="alarmSortSelect" onchange="sortAlarms(this.value)">
-                        <option value="newest">En yeni</option>
-                        <option value="oldest">En eski</option>
-                        <option value="score_high">Score (yuksek)</option>
-                        <option value="score_low">Score (dusuk)</option>
+                    <label>TARİH:</label>
+                    <select id="alarmDateFilterSelect" onchange="filterAlarmsByDate(this.value)">
+                        <option value="all">Tümü</option>
+                        <option value="today">Bugün</option>
+                        <option value="yesterday">Dün</option>
+                        <option value="future">Gelecek</option>
                     </select>
                 </div>
             </div>

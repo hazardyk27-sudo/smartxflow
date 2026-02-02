@@ -5763,7 +5763,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================
 
 let currentAlarmFilter = 'all';
-let currentAlarmSort = 'newest';
 let allAlarmsData = [];
 let groupedAlarmsData = [];
 let alarmsDataByType = {
@@ -5853,9 +5852,9 @@ async function loadAllAlarms(forceRefresh = false) {
         updateAlarmCounts();
         alarmsDisplayCount = 30;
         
-        const selectEl = document.getElementById('alarmSortSelect');
+        const selectEl = document.getElementById('alarmDateFilterSelect');
         if (selectEl) {
-            selectEl.value = currentAlarmSort;
+            selectEl.value = currentAlarmDateFilter;
         }
         
         renderAlarmsList(currentAlarmFilter);
@@ -5957,17 +5956,63 @@ function updateAlarmCounts() {
     if (countMim) countMim.textContent = alarmsDataByType.mim?.length || 0;
 }
 
-function sortAlarms(sortType) {
-    console.log('[sortAlarms] Sort type changed to:', sortType);
-    currentAlarmSort = sortType;
+let currentAlarmDateFilter = 'all'; // all, today, yesterday, future
+
+function filterAlarmsByDate(dateFilter) {
+    console.log('[filterAlarmsByDate] Date filter changed to:', dateFilter);
+    currentAlarmDateFilter = dateFilter;
     
-    const selectEl = document.getElementById('alarmSortSelect');
-    if (selectEl && selectEl.value !== sortType) {
-        selectEl.value = sortType;
+    const selectEl = document.getElementById('alarmDateFilterSelect');
+    if (selectEl && selectEl.value !== dateFilter) {
+        selectEl.value = dateFilter;
     }
     
     alarmsDisplayCount = 30;
     renderAlarmsList(currentAlarmFilter);
+}
+
+function getMatchDateFromAlarm(alarm) {
+    // match_date alanını kullan (maçın oynanacağı tarih)
+    const matchDate = alarm.match_date || alarm.fixture_date || alarm.kickoff_utc || '';
+    if (!matchDate) return null;
+    
+    try {
+        const dt = dayjs(matchDate).tz('Europe/Istanbul');
+        return dt.format('YYYY-MM-DD');
+    } catch(e) {
+        return null;
+    }
+}
+
+function filterAlarmsByMatchDate(alarms) {
+    if (currentAlarmDateFilter === 'all') {
+        // Tümü: Bugün + Gelecek (Dün hariç)
+        const today = dayjs().tz('Europe/Istanbul').format('YYYY-MM-DD');
+        return alarms.filter(alarm => {
+            const matchDateStr = getMatchDateFromAlarm(alarm);
+            if (!matchDateStr) return true; // Tarih yoksa göster
+            return matchDateStr >= today;
+        });
+    }
+    
+    const today = dayjs().tz('Europe/Istanbul');
+    const todayStr = today.format('YYYY-MM-DD');
+    const yesterdayStr = today.subtract(1, 'day').format('YYYY-MM-DD');
+    const tomorrowStr = today.add(1, 'day').format('YYYY-MM-DD');
+    
+    return alarms.filter(alarm => {
+        const matchDateStr = getMatchDateFromAlarm(alarm);
+        if (!matchDateStr) return currentAlarmDateFilter === 'all';
+        
+        if (currentAlarmDateFilter === 'today') {
+            return matchDateStr === todayStr;
+        } else if (currentAlarmDateFilter === 'yesterday') {
+            return matchDateStr === yesterdayStr;
+        } else if (currentAlarmDateFilter === 'future') {
+            return matchDateStr >= tomorrowStr;
+        }
+        return true;
+    });
 }
 
 function parseAlarmDate(dateStr) {
@@ -6076,6 +6121,31 @@ function getFilteredAlarms() {
         ? [...groupedAlarmsData]
         : groupedAlarmsData.filter(g => g.type === currentAlarmFilter);
     
+    // Tarih filtrelemesi uygula
+    if (currentAlarmDateFilter !== 'none') {
+        const today = dayjs().tz('Europe/Istanbul');
+        const todayStr = today.format('YYYY-MM-DD');
+        const yesterdayStr = today.subtract(1, 'day').format('YYYY-MM-DD');
+        const tomorrowStr = today.add(1, 'day').format('YYYY-MM-DD');
+        
+        groups = groups.filter(g => {
+            const matchDateStr = getMatchDateFromAlarm(g.latestAlarm);
+            if (!matchDateStr) return currentAlarmDateFilter === 'all';
+            
+            if (currentAlarmDateFilter === 'all') {
+                // Tümü: Bugün + Gelecek (Dün hariç)
+                return matchDateStr >= todayStr;
+            } else if (currentAlarmDateFilter === 'today') {
+                return matchDateStr === todayStr;
+            } else if (currentAlarmDateFilter === 'yesterday') {
+                return matchDateStr === yesterdayStr;
+            } else if (currentAlarmDateFilter === 'future') {
+                return matchDateStr >= tomorrowStr;
+            }
+            return true;
+        });
+    }
+    
     if (alarmSearchQuery) {
         groups = groups.filter(g => {
             const home = g.home.toLowerCase();
@@ -6087,32 +6157,19 @@ function getFilteredAlarms() {
         });
     }
     
-    console.log('[getFilteredAlarms] Sorting by:', currentAlarmSort, 'Groups count:', groups.length);
+    console.log('[getFilteredAlarms] Date filter:', currentAlarmDateFilter, 'Groups count:', groups.length);
     
+    // Varsayılan sıralama: En yeniden eskiye (trigger_at bazlı)
     groups.sort((a, b) => {
         const dateA = parseAlarmDate(a.latestAlarm.trigger_at || a.latestAlarm.event_time || a.latestAlarm.created_at);
         const dateB = parseAlarmDate(b.latestAlarm.trigger_at || b.latestAlarm.event_time || b.latestAlarm.created_at);
-        
-        if (currentAlarmSort === 'newest') {
-            return dateB - dateA;
-        } else if (currentAlarmSort === 'oldest') {
-            return dateA - dateB;
-        } else if (currentAlarmSort === 'score_high') {
-            const scoreA = a.latestAlarm.sharp_score || a.latestAlarm.incoming_money || 0;
-            const scoreB = b.latestAlarm.sharp_score || b.latestAlarm.incoming_money || 0;
-            return scoreB - scoreA;
-        } else if (currentAlarmSort === 'score_low') {
-            const scoreA = a.latestAlarm.sharp_score || a.latestAlarm.incoming_money || 0;
-            const scoreB = b.latestAlarm.sharp_score || b.latestAlarm.incoming_money || 0;
-            return scoreA - scoreB;
-        }
         return dateB - dateA;
     });
     
     if (groups.length > 0) {
-        console.log('[getFilteredAlarms] First 3 after sort:', groups.slice(0, 3).map(g => ({
+        console.log('[getFilteredAlarms] First 3 after filter:', groups.slice(0, 3).map(g => ({
             home: g.home,
-            time: g.latestAlarm.trigger_at || g.latestAlarm.event_time
+            matchDate: getMatchDateFromAlarm(g.latestAlarm)
         })));
     }
     
