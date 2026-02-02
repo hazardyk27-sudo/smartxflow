@@ -5738,7 +5738,7 @@ function showAlertBandDetail(index) {
                         ${home} vs ${away}
                     </div>
                     <div style="text-align: center; color: #8b949e; font-size: 13px;">
-                        ${(alarm.market || '-').replace(/O\/U/gi, 'A/Ü')} | <span style="color: #58a6ff;">${{'U': 'A', 'O': 'Ü', 'Y': 'E', 'N': 'H'}[(alarm.selection || alarm.side || '-').toUpperCase()] || (alarm.selection || alarm.side || '-')}</span>
+                        ${(alarm.market || '-').replace(/O\/U/gi, 'A/Ü')} | <span style="color: #58a6ff;">${{'U': 'Alt', 'O': 'Üst', 'Y': 'Evet', 'N': 'Hayır', 'UNDER': 'Alt', 'OVER': 'Üst', 'YES': 'Evet', 'NO': 'Hayır'}[(alarm.selection || alarm.side || '-').toUpperCase()] || (alarm.selection || alarm.side || '-')}</span>
                     </div>
                 </div>
                 ${detailsHtml}
@@ -6568,7 +6568,7 @@ function formatMarketChip(market, selection) {
     
     // Selection mapping
     const rawSel = (selection || '').toUpperCase();
-    const selMap = {'U': 'A', 'O': 'Ü', 'Y': 'E', 'N': 'H', '1': '1', 'X': 'X', '2': '2'};
+    const selMap = {'U': 'Alt', 'O': 'Üst', 'Y': 'Evet', 'N': 'Hayır', '1': '1', 'X': 'X', '2': '2', 'UNDER': 'Alt', 'OVER': 'Üst', 'YES': 'Evet', 'NO': 'Hayır'};
     const mappedSel = selMap[rawSel] || rawSel;
     
     return `${marketShort} · ${mappedSel}`;
@@ -7336,7 +7336,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const rawSelection = (latest.selection || latest.side || '-').toUpperCase();
             const rawMarket = (latest.market || '').toUpperCase();
             // Selection mapping: U->Under, O->Over, Y->Yes, N->No
-            const selectionMap = {'U': 'A', 'O': 'Ü', 'Y': 'Yes', 'N': 'No', '1': '1', 'X': 'X', '2': '2'};
+            const selectionMap = {'U': 'Alt', 'O': 'Üst', 'Y': 'Evet', 'N': 'Hayır', '1': '1', 'X': 'X', '2': '2', 'UNDER': 'Alt', 'OVER': 'Üst', 'YES': 'Evet', 'NO': 'Hayır'};
             const selection = selectionMap[rawSelection] || rawSelection;
             // Market formatting: OU25->A/Ü 2.5, 1X2->1X2, BTTS->BTTS
             const marketMap = {'OU25': 'A/Ü 2.5', 'O/U 2.5': 'A/Ü 2.5', '1X2': '1X2', 'BTTS': 'KG'};
