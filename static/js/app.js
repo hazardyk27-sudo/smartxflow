@@ -5187,20 +5187,24 @@ function highlightNewAlarm(alarm) {
     if (alarmType === 'volumeleader') {
         const oldLeader = alarm.old_leader || alarm.previous_leader || '?';
         const newLeader = alarm.new_leader || alarm.selection || '?';
+        const isMobile = window.innerWidth <= 768;
+        const matchDisplay = isMobile ? home : `${home} - ${away}`;
         contentHtml = `
             <span class="ab-dot dot-${info.pillClass}"></span>
             <span class="ab-type">${info.label}</span>
             <span class="ab-sep">—</span>
-            <span class="ab-match">${home} - ${away}</span>
+            <span class="ab-match">${matchDisplay}</span>
             <span class="ab-sep">—</span>
             <span class="ab-leader-change">${oldLeader} <span class="ab-arrow">▸</span> ${newLeader}</span>
         `;
     } else {
+        const isMobile = window.innerWidth <= 768;
+        const matchDisplay = isMobile ? home : `${home} - ${away}`;
         contentHtml = `
             <span class="ab-dot dot-${info.pillClass}"></span>
             <span class="ab-type">${info.label}</span>
             <span class="ab-sep">—</span>
-            <span class="ab-match">${home} - ${away}</span>
+            <span class="ab-match">${matchDisplay}</span>
             <span class="ab-sep">—</span>
             <span class="ab-sel">${selection}</span>
             <span class="ab-val">${value}</span>
@@ -5605,6 +5609,10 @@ function renderAlertBand() {
         const alarmType = alarm._type || '';
         const alarmMarket = (alarm.market || '').replace(/'/g, "\\'");
         
+        // Mobil kontrolü - sadece ev sahibi takım göster
+        const isMobile = window.innerWidth <= 768;
+        const matchDisplay = isMobile ? home : `${home} - ${away}`;
+        
         // Volume Leader için özel format: OLD_LEADER > NEW_LEADER
         if (alarm._type === 'volumeleader') {
             const oldLeader = alarm.old_leader || alarm.previous_leader || '?';
@@ -5614,7 +5622,7 @@ function renderAlertBand() {
                     <span class="ab-dot dot-${info.pillClass}"></span>
                     <span class="ab-type">${info.label}</span>
                     <span class="ab-sep">—</span>
-                    <span class="ab-match">${home} - ${away}</span>
+                    <span class="ab-match">${matchDisplay}</span>
                     <span class="ab-sep">—</span>
                     <span class="ab-leader-change">${oldLeader} <span class="ab-arrow">▸</span> ${newLeader}</span>
                 </div>
@@ -5626,7 +5634,7 @@ function renderAlertBand() {
                 <span class="ab-dot dot-${info.pillClass}"></span>
                 <span class="ab-type">${info.label}</span>
                 <span class="ab-sep">—</span>
-                <span class="ab-match">${home} - ${away}</span>
+                <span class="ab-match">${matchDisplay}</span>
                 <span class="ab-sep">—</span>
                 <span class="ab-sel">${selection}</span>
                 <span class="ab-val">${value}</span>
