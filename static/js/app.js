@@ -4532,11 +4532,11 @@ function exportChartCSV() {
     
     const marketLabels = {
         'moneyway_1x2': 'Moneyway 1X2',
-        'moneyway_ou25': 'Moneyway Over/Under 2.5',
+        'moneyway_ou25': 'Moneyway Alt/Üst 2.5',
         'moneyway_btts': 'Moneyway BTTS',
-        'dropping_1x2': 'Dropping Odds 1X2',
-        'dropping_ou25': 'Dropping Odds O/U 2.5',
-        'dropping_btts': 'Dropping Odds BTTS'
+        'dropping_1x2': 'Oran 1X2',
+        'dropping_ou25': 'Oran A/Ü 2.5',
+        'dropping_btts': 'Oran BTTS'
     };
     const marketLabel = marketLabels[market] || market;
     
