@@ -2310,7 +2310,7 @@ function updateMatchInfoCard() {
                     <div class="info-column" data-selection="1">
                         <div class="column-header">1</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
+                            <span class="row-label">Oran</span>
                             <span class="row-value odds">${formatOdds(d.Odds1 || d['1'])}</span>
                         </div>
                         <div class="column-row">
@@ -2326,7 +2326,7 @@ function updateMatchInfoCard() {
                     <div class="info-column" data-selection="X">
                         <div class="column-header">X</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
+                            <span class="row-label">Oran</span>
                             <span class="row-value odds">${formatOdds(d.OddsX || d['X'])}</span>
                         </div>
                         <div class="column-row">
@@ -2342,7 +2342,7 @@ function updateMatchInfoCard() {
                     <div class="info-column" data-selection="2">
                         <div class="column-header">2</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
+                            <span class="row-label">Oran</span>
                             <span class="row-value odds">${formatOdds(d.Odds2 || d['2'])}</span>
                         </div>
                         <div class="column-row">
@@ -2367,21 +2367,21 @@ function updateMatchInfoCard() {
                     <div class="info-column">
                         <div class="column-header">1</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
+                            <span class="row-label">Oran</span>
                             <span class="row-value odds">${formatOdds(d.Odds1 || d['1'])}${trend1}</span>
                         </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">X</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
+                            <span class="row-label">Oran</span>
                             <span class="row-value odds">${formatOdds(d.OddsX || d['X'])}${trendX}</span>
                         </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">2</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
+                            <span class="row-label">Oran</span>
                             <span class="row-value odds">${formatOdds(d.Odds2 || d['2'])}${trend2}</span>
                         </div>
                     </div>
@@ -2406,7 +2406,7 @@ function updateMatchInfoCard() {
                     <div class="info-column" data-selection="Alt">
                         <div class="column-header">Alt</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
+                            <span class="row-label">Oran</span>
                             <span class="row-value odds">${formatOdds(d.Under)}</span>
                         </div>
                         <div class="column-row">
@@ -2422,7 +2422,7 @@ function updateMatchInfoCard() {
                     <div class="info-column" data-selection="Üst">
                         <div class="column-header">Üst</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
+                            <span class="row-label">Oran</span>
                             <span class="row-value odds">${formatOdds(d.Over)}</span>
                         </div>
                         <div class="column-row">
@@ -2447,14 +2447,14 @@ function updateMatchInfoCard() {
                     <div class="info-column">
                         <div class="column-header">Alt</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
+                            <span class="row-label">Oran</span>
                             <span class="row-value odds">${formatOdds(d.Under)}${trendUnder}</span>
                         </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">Üst</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
+                            <span class="row-label">Oran</span>
                             <span class="row-value odds">${formatOdds(d.Over)}${trendOver}</span>
                         </div>
                     </div>
@@ -2479,7 +2479,7 @@ function updateMatchInfoCard() {
                     <div class="info-column" data-selection="Evet">
                         <div class="column-header">Evet</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
+                            <span class="row-label">Oran</span>
                             <span class="row-value odds">${formatOdds(d.OddsYes || d.Yes)}</span>
                         </div>
                         <div class="column-row">
@@ -2495,7 +2495,7 @@ function updateMatchInfoCard() {
                     <div class="info-column" data-selection="Hayır">
                         <div class="column-header">Hayır</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
+                            <span class="row-label">Oran</span>
                             <span class="row-value odds">${formatOdds(d.OddsNo || d.No)}</span>
                         </div>
                         <div class="column-row">
@@ -2520,14 +2520,14 @@ function updateMatchInfoCard() {
                     <div class="info-column">
                         <div class="column-header">Evet</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
+                            <span class="row-label">Oran</span>
                             <span class="row-value odds">${formatOdds(d.OddsYes || d.Yes)}${trendYes}</span>
                         </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">Hayır</div>
                         <div class="column-row">
-                            <span class="row-label">Odds</span>
+                            <span class="row-label">Oran</span>
                             <span class="row-value odds">${formatOdds(d.OddsNo || d.No)}${trendNo}</span>
                         </div>
                     </div>
