@@ -6991,7 +6991,7 @@ function getMatchAlarms(homeTeam, awayTeam) {
 function formatSmartMoneyTime(dateStr) {
     if (!dateStr) return '-';
     
-    const monthNames = ['Oca', 'Sub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Agu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
     
     // Direct parse for DD.MM.YYYY HH:MM format - +3 saat ekle
     const match1 = dateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/);
