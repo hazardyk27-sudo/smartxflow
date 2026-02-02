@@ -7327,7 +7327,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const rawSelection = (latest.selection || latest.side || '-').toUpperCase();
             const rawMarket = (latest.market || '').toUpperCase();
             // Selection mapping: U->Under, O->Over, Y->Yes, N->No
-            const selectionMap = {'U': 'Alt', 'O': 'Üst', 'Y': 'Yes', 'N': 'No', '1': '1', 'X': 'X', '2': '2'};
+            const selectionMap = {'U': 'A', 'O': 'Ü', 'Y': 'Yes', 'N': 'No', '1': '1', 'X': 'X', '2': '2'};
             const selection = selectionMap[rawSelection] || rawSelection;
             // Market formatting: OU25->O/U 2.5, 1X2->1X2, BTTS->BTTS
             const marketMap = {'OU25': 'O/U 2.5', 'O/U 2.5': 'O/U 2.5', '1X2': '1X2', 'BTTS': 'BTTS'};
