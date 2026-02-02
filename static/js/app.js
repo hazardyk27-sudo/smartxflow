@@ -2357,7 +2357,7 @@ function updateMatchInfoCard() {
                     </div>
                 </div>
                 <div class="volume-bar">
-                    <span class="volume-label">TOTAL VOLUME</span>
+                    <span class="volume-label">TOPLAM MİKTAR</span>
                     <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;
@@ -2437,7 +2437,7 @@ function updateMatchInfoCard() {
                     </div>
                 </div>
                 <div class="volume-bar">
-                    <span class="volume-label">TOTAL VOLUME</span>
+                    <span class="volume-label">TOPLAM MİKTAR</span>
                     <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;
@@ -2510,7 +2510,7 @@ function updateMatchInfoCard() {
                     </div>
                 </div>
                 <div class="volume-bar">
-                    <span class="volume-label">TOTAL VOLUME</span>
+                    <span class="volume-label">TOPLAM MİKTAR</span>
                     <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;
