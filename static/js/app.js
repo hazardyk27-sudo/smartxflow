@@ -5163,7 +5163,9 @@ function highlightNewAlarm(alarm) {
     const info = getAlertType(alarm);
     const home = alarm.home || alarm.home_team || '?';
     const away = alarm.away || alarm.away_team || '?';
-    const selection = alarm.selection || alarm.side || '';
+    const rawSel = (alarm.selection || alarm.side || '').toUpperCase();
+    const selMap = {'U': 'A', 'O': 'Ü', 'Y': 'E', 'N': 'H', '1': '1', 'X': 'X', '2': '2'};
+    const selection = selMap[rawSel] || rawSel;
     const alarmType = alarm._type || 'sharp';
     
     // Value hesapla
@@ -5579,7 +5581,9 @@ function renderAlertBand() {
         const info = getAlertType(alarm);
         const home = alarm.home || alarm.home_team || '?';
         const away = alarm.away || alarm.away_team || '?';
-        const selection = alarm.selection || alarm.side || '';
+        const rawSel = (alarm.selection || alarm.side || '').toUpperCase();
+        const selMap = {'U': 'A', 'O': 'Ü', 'Y': 'E', 'N': 'H', '1': '1', 'X': 'X', '2': '2'};
+        const selection = selMap[rawSel] || rawSel;
         
         // Minimal value format
         let value = '';
