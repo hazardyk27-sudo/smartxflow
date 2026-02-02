@@ -6006,7 +6006,7 @@ const alarmFilterLabels = {
     sharp: 'Sharp',
     bigmoney: 'Buyuk Para',
     volumeshock: 'Hacim Soku',
-    dropping: 'Dropping',
+    dropping: 'Oran Düşüşü',
     publicmove: 'Public Move',
     volumeleader: 'Lider Degisti',
     mim: 'MIM'
@@ -6126,7 +6126,7 @@ function renderAlarmsList(filterType) {
     
     const displayGroups = groups.slice(0, alarmsDisplayCount);
     const hasMore = groups.length > alarmsDisplayCount;
-    const typeLabels = { sharp: 'SHARP', bigmoney: 'BIG MONEY', volumeshock: 'HACIM SOKU', dropping: 'DROPPING', publicmove: 'PUBLIC MOVE', volumeleader: 'LİDER DEĞİŞTİ', mim: 'MIM' };
+    const typeLabels = { sharp: 'SHARP', bigmoney: 'BIG MONEY', volumeshock: 'HACIM SOKU', dropping: 'ORAN DÜŞÜŞÜ', publicmove: 'PUBLIC MOVE', volumeleader: 'LİDER DEĞİŞTİ', mim: 'MIM' };
     const typeColors = { sharp: '#4ade80', bigmoney: '#F08A24', volumeshock: '#F6C343', dropping: '#f85149', publicmove: '#FFCC00', volumeleader: '#06b6d4', mim: '#3B82F6' };
     
     let html = displayGroups.map((group, idx) => {
@@ -6360,7 +6360,7 @@ function renderAlarmsList(filterType) {
             historyLine = historyCount > 0 ? `×${historyCount + 1}` : `${triggerTime}`;
         } else if (type === 'dropping') {
             const level = alarm.level || 'L1';
-            badgeLabel = `DROPPING ${level}`;
+            badgeLabel = `ORAN DÜŞÜŞÜ ${level}`;
             const openOdds = (alarm.opening_odds || 0).toFixed(2);
             const currOdds = (alarm.current_odds || 0).toFixed(2);
             const dropPct = (alarm.drop_pct || 0).toFixed(1);
