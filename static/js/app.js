@@ -1574,7 +1574,7 @@ function formatDateTwoLine(dateStr) {
     
     const dt = toTurkeyTime(dateStr);
     if (dt && dt.isValid()) {
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
         const day = dt.date();
         const month = months[dt.month()];
         const time = dt.format('HH:mm');
