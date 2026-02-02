@@ -5518,9 +5518,9 @@ function getAlertType(alarm) {
     if (type === 'volumeshock') return { label: 'HACIM SOKU', color: 'gold', pillClass: 'volumeshock' };
     if (type === 'dropping') {
         const level = alarm.level || 'L1';
-        if (level === 'L3') return { label: 'DROP L3', color: 'red', pillClass: 'dropping-l3' };
-        if (level === 'L2') return { label: 'DROP L2', color: 'red', pillClass: 'dropping-l2' };
-        return { label: 'DROP L1', color: 'red', pillClass: 'dropping-l1' };
+        if (level === 'L3') return { label: 'DÜŞÜŞ L3', color: 'red', pillClass: 'dropping-l3' };
+        if (level === 'L2') return { label: 'DÜŞÜŞ L2', color: 'red', pillClass: 'dropping-l2' };
+        return { label: 'DÜŞÜŞ L1', color: 'red', pillClass: 'dropping-l1' };
     }
     if (type === 'publicmove') return { label: 'PUBLIC MOVE', color: 'gold', pillClass: 'publicmove' };
     if (type === 'volumeleader') return { label: 'LIDER DEGISTI', color: 'cyan', pillClass: 'volumeleader' };
@@ -6211,7 +6211,7 @@ function renderAlarmsList(filterType) {
         const typeBadges = {
             'bigmoney': alarm.is_huge ? 'HUGE' : 'BIG',
             'sharp': 'SHARP',
-            'dropping': alarm.level || 'DROP',
+            'dropping': alarm.level || 'DÜŞÜŞ',
             'volumeshock': 'HS',
             'publicmove': 'TRAP',
             'volumeleader': 'LİDER',
