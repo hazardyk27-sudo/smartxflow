@@ -7275,7 +7275,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const selectionTotal = latest.total_selection || latest.selection_total || latest.volume || latest.total_volume || 0;
             
             // BigMoney için özel kart yapısı
-            const marketFormatted = market === '1X2' ? '1-X-2' : (market === 'OU25' ? 'O/U 2.5' : market);
+            const marketFormatted = market === '1X2' ? '1-X-2' : (market === 'OU25' ? 'A/Ü 2.5' : market);
             row2Left = `${selection} (${marketFormatted})`;
             row2Right = '';
             row3Left = `<span class="sm-money-hero">£${Number(money).toLocaleString('en-GB')}</span> <span class="sm-money-label">gelen para</span>`;
@@ -7338,8 +7338,8 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             // Selection mapping: U->Under, O->Over, Y->Yes, N->No
             const selectionMap = {'U': 'A', 'O': 'Ü', 'Y': 'Yes', 'N': 'No', '1': '1', 'X': 'X', '2': '2'};
             const selection = selectionMap[rawSelection] || rawSelection;
-            // Market formatting: OU25->O/U 2.5, 1X2->1X2, BTTS->BTTS
-            const marketMap = {'OU25': 'O/U 2.5', 'O/U 2.5': 'O/U 2.5', '1X2': '1X2', 'BTTS': 'BTTS'};
+            // Market formatting: OU25->A/Ü 2.5, 1X2->1X2, BTTS->BTTS
+            const marketMap = {'OU25': 'A/Ü 2.5', 'O/U 2.5': 'A/Ü 2.5', '1X2': '1X2', 'BTTS': 'BTTS'};
             const market = marketMap[rawMarket] || rawMarket;
             const prevVol = latest.prev_volume || latest.previous_volume || 0;
             const currVol = latest.current_volume || latest.curr_volume || 0;
