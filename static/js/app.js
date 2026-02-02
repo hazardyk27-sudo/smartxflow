@@ -5738,7 +5738,7 @@ function showAlertBandDetail(index) {
                         ${home} vs ${away}
                     </div>
                     <div style="text-align: center; color: #8b949e; font-size: 13px;">
-                        ${alarm.market || '-'} | <span style="color: #58a6ff;">${alarm.selection || alarm.side || '-'}</span>
+                        ${(alarm.market || '-').replace(/O\/U/gi, 'A/Ü')} | <span style="color: #58a6ff;">${{'U': 'A', 'O': 'Ü', 'Y': 'E', 'N': 'H'}[(alarm.selection || alarm.side || '-').toUpperCase()] || (alarm.selection || alarm.side || '-')}</span>
                     </div>
                 </div>
                 ${detailsHtml}
@@ -6563,10 +6563,15 @@ function toggleAlarmDetail(alarmId) {
 function formatMarketChip(market, selection) {
     let marketShort = market;
     if (market.toLowerCase().includes('1x2')) marketShort = '1X2';
-    else if (market.toLowerCase().includes('ou') || market.toLowerCase().includes('2.5')) marketShort = 'O/U 2.5';
+    else if (market.toLowerCase().includes('ou') || market.toLowerCase().includes('2.5')) marketShort = 'A/Ü 2.5';
     else if (market.toLowerCase().includes('btts')) marketShort = 'BTTS';
     
-    return `${marketShort} · ${selection}`;
+    // Selection mapping
+    const rawSel = (selection || '').toUpperCase();
+    const selMap = {'U': 'A', 'O': 'Ü', 'Y': 'E', 'N': 'H', '1': '1', 'X': 'X', '2': '2'};
+    const mappedSel = selMap[rawSel] || rawSel;
+    
+    return `${marketShort} · ${mappedSel}`;
 }
 
 function loadMoreAlarms() {
