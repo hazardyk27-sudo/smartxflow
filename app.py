@@ -1540,10 +1540,17 @@ def get_match_details():
     
     try:
         match_data = None
+        home_lower = home.lower().strip()
+        away_lower = away.lower().strip()
+        
         for market in ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts', 'dropping_1x2', 'dropping_ou25', 'dropping_btts']:
             matches_list = db.get_all_matches_with_latest(market)
             for m in matches_list:
-                if m.get('home_team') == home and m.get('away_team') == away:
+                m_home = (m.get('home_team') or '').lower().strip()
+                m_away = (m.get('away_team') or '').lower().strip()
+                # Partial match - isimler içeriyorsa kabul et
+                if (home_lower in m_home or m_home in home_lower) and \
+                   (away_lower in m_away or m_away in away_lower):
                     match_data = m
                     break
             if match_data:
