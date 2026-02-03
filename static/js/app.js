@@ -2818,8 +2818,7 @@ const mobileBackgroundGridPlugin = {
     }
 };
 
-// Mobile crosshair plugin - draws ONLY vertical line at active index
-// Uses chart.$crosshairIndex property set by touch events
+// Mobile crosshair plugin - draws vertical line at active/hover point
 const mobileCrosshairPlugin = {
     id: 'mobileCrosshair',
     afterDatasetsDraw: function(chart) {
@@ -2830,9 +2829,18 @@ const mobileCrosshairPlugin = {
         const ds = chart.data.datasets[0];
         if (!ds || !ds.data || ds.data.length === 0) return;
         
-        // Use chart instance property for crosshair index
-        let idx = chart.$crosshairIndex;
-        if (idx === undefined || idx < 0 || idx >= ds.data.length) {
+        // Get active element from Chart.js hover system
+        const activeElements = chart.getActiveElements();
+        let idx;
+        
+        if (activeElements && activeElements.length > 0) {
+            // Use hover position
+            idx = activeElements[0].index;
+        } else if (chart.$crosshairIndex !== undefined && chart.$crosshairIndex >= 0) {
+            // Use manually set crosshair index
+            idx = chart.$crosshairIndex;
+        } else {
+            // Default to last point
             idx = ds.data.length - 1;
         }
         
@@ -2842,7 +2850,7 @@ const mobileCrosshairPlugin = {
         
         const x = meta.data[idx].x;
         
-        // Draw vertical line only (no dot - Chart.js handles the dot via activeElements)
+        // Draw vertical line
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(x, chartArea.top);
