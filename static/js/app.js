@@ -2191,20 +2191,22 @@ async function openMatchModalFromAPI(homeTeam, awayTeam) {
         
         const data = await response.json();
         
-        if (!data || data.error) {
+        if (!data || !data.success || !data.match) {
             showToast('Maç bulunamadı', 'error');
             return;
         }
         
+        const matchData = data.match;
+        
         // selectedMatch objesini oluştur
         selectedMatch = {
-            home_team: data.home || homeTeam,
-            away_team: data.away || awayTeam,
-            league: data.league || '',
-            date: data.kickoff_utc || data.date || '',
-            match_id: data.match_id || '',
-            odds: data.odds || null,
-            details: data.details || null
+            home_team: matchData.home_team || homeTeam,
+            away_team: matchData.away_team || awayTeam,
+            league: matchData.league || '',
+            date: matchData.date || '',
+            match_id: matchData.match_id || '',
+            odds: matchData.odds || null,
+            details: matchData.details || null
         };
         
         selectedChartMarket = currentMarket;
