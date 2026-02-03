@@ -1581,17 +1581,6 @@ def get_match_details():
             m_date = match_data.get('date', '')
             match_id = generate_match_id(m_home, m_away, m_league, m_date)
             
-            # Get history from supabase if available
-            history = []
-            try:
-                sb_client = get_supabase_client()
-                if sb_client:
-                    history_resp = sb_client.table('moneyway_snapshots').select('*').eq('match_id_hash', match_id).order('scraped_at_utc', desc=True).limit(50).execute()
-                    if history_resp.data:
-                        history = history_resp.data
-            except Exception as he:
-                print(f"[Match Details] History fetch error: {he}")
-            
             return jsonify({
                 'success': True,
                 'match': {
@@ -1600,8 +1589,6 @@ def get_match_details():
                     'league': m_league,
                     'date': m_date,
                     'match_id': match_id,
-                    'history': history,
-                    'history_count': len(history),
                     'odds': odds_data,
                     'details': odds_data
                 }
