@@ -2173,7 +2173,7 @@ async function openMatchModalFromMatches(index) {
         bulkHistoryCacheKey = '';
         
         await loadChartWithTrends(home, away, selectedChartMarket, league);
-        await loadSmartMoneyData(home, away, league);
+        await renderMatchAlarmsSection(home, away);
     }
 }
 
@@ -2244,7 +2244,7 @@ async function openMatchModalFromAPI(homeTeam, awayTeam) {
         bulkHistoryCacheKey = '';
         
         await loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league);
-        await loadSmartMoneyData(selectedMatch.home_team, selectedMatch.away_team, selectedMatch.league);
+        await renderMatchAlarmsSection(selectedMatch.home_team, selectedMatch.away_team);
         
     } catch (error) {
         console.error('[openMatchModalFromAPI] Error:', error);
