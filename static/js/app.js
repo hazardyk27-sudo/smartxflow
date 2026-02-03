@@ -2177,6 +2177,77 @@ async function openMatchModalFromMatches(index) {
     }
 }
 
+// API'den maç verisi çekip modal aç (listede olmayan maçlar için)
+async function openMatchModalFromAPI(homeTeam, awayTeam) {
+    try {
+        // Match details API'sinden veri çek
+        const params = new URLSearchParams({ home: homeTeam, away: awayTeam });
+        const response = await fetch(`/api/match/details?${params}`);
+        
+        if (!response.ok) {
+            showToast('Maç bilgisi alınamadı', 'error');
+            return;
+        }
+        
+        const data = await response.json();
+        
+        if (!data || data.error) {
+            showToast('Maç bulunamadı', 'error');
+            return;
+        }
+        
+        // selectedMatch objesini oluştur
+        selectedMatch = {
+            home_team: data.home || homeTeam,
+            away_team: data.away || awayTeam,
+            league: data.league || '',
+            date: data.kickoff_utc || data.date || '',
+            match_id: data.match_id || '',
+            odds: data.odds || null,
+            details: data.details || null
+        };
+        
+        selectedChartMarket = currentMarket;
+        previousOddsData = null;
+        modalOddsData = selectedMatch.odds || selectedMatch.details || null;
+        
+        document.getElementById('modalMatchTitle').textContent = 
+            `${selectedMatch.home_team} vs ${selectedMatch.away_team}`;
+        
+        const headerDt = toTurkeyTime(selectedMatch.date);
+        let headerDateText = selectedMatch.date || '';
+        if (headerDt && headerDt.isValid()) {
+            headerDateText = headerDt.format('DD.MM HH:mm');
+        }
+        document.getElementById('modalLeague').textContent = 
+            `${selectedMatch.league || ''} • ${headerDateText}`;
+        
+        updateMatchInfoCard();
+        
+        document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
+            t.classList.remove('active');
+            if (t.dataset.market === currentMarket) {
+                t.classList.add('active');
+            }
+        });
+        
+        showSmartMoneyLoading();
+        showChartLoading();
+        
+        document.getElementById('modalOverlay').classList.add('active');
+        
+        bulkHistoryCache = {};
+        bulkHistoryCacheKey = '';
+        
+        await initChartWithHistory();
+        await loadSmartMoneyData(selectedMatch.home_team, selectedMatch.away_team, selectedMatch.league);
+        
+    } catch (error) {
+        console.error('[openMatchModalFromAPI] Error:', error);
+        showToast('Maç bilgisi alınırken hata oluştu', 'error');
+    }
+}
+
 async function openMatchModal(index) {
     const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
     if (index >= 0 && index < dataSource.length) {
@@ -7039,11 +7110,9 @@ async function tryFindMatchInAllMarkets(homeLower, awayLower, homeTeam, awayTeam
         }
     }
     
-    // Maç listede bulunamadı - direkt maç sayfasına yönlendir
-    console.log('[goToMatch] Listede bulunamadı, match detail sayfasına yönlendiriliyor:', homeTeam, 'vs', awayTeam);
-    const homeEncoded = encodeURIComponent(homeTeam.trim());
-    const awayEncoded = encodeURIComponent(awayTeam.trim());
-    window.location.href = `/match/${homeEncoded}/${awayEncoded}`;
+    // Maç listede bulunamadı - API'den veri çekip modal aç
+    console.log('[goToMatch] Listede bulunamadı, API ile modal açılıyor:', homeTeam, 'vs', awayTeam);
+    await openMatchModalFromAPI(homeTeam.trim(), awayTeam.trim());
 }
 
 async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, homeTeam, awayTeam) {
