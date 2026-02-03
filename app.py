@@ -1543,21 +1543,36 @@ def get_match_details():
         home_lower = home.lower().strip()
         away_lower = away.lower().strip()
         
-        for market in ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts', 'dropping_1x2', 'dropping_ou25', 'dropping_btts']:
-            matches_list = db.get_all_matches_with_latest(market)
-            for m in matches_list:
-                m_home = (m.get('home_team') or '').lower().strip()
-                m_away = (m.get('away_team') or '').lower().strip()
-                # Partial match - isimler içeriyorsa kabul et
-                if (home_lower in m_home or m_home in home_lower) and \
-                   (away_lower in m_away or m_away in away_lower):
-                    match_data = m
-                    break
-            if match_data:
+        # Use get_matches_paginated which includes latest odds data
+        result = db.get_matches_paginated('moneyway_1x2', limit=500, offset=0)
+        matches_list = result.get('matches', [])
+        
+        for m in matches_list:
+            m_home = (m.get('home_team') or '').lower().strip()
+            m_away = (m.get('away_team') or '').lower().strip()
+            # Partial match - isimler içeriyorsa kabul et
+            if (home_lower in m_home or m_home in home_lower) and \
+               (away_lower in m_away or m_away in away_lower):
+                # Transform latest to odds format like /api/matches does
+                latest = m.get('latest', {})
+                if latest:
+                    m['odds'] = {
+                        'Odds1': latest.get('Odds1', latest.get('1', '-')),
+                        'OddsX': latest.get('OddsX', latest.get('X', '-')),
+                        'Odds2': latest.get('Odds2', latest.get('2', '-')),
+                        'Pct1': latest.get('Pct1', ''),
+                        'Amt1': latest.get('Amt1', ''),
+                        'PctX': latest.get('PctX', ''),
+                        'AmtX': latest.get('AmtX', ''),
+                        'Pct2': latest.get('Pct2', ''),
+                        'Amt2': latest.get('Amt2', ''),
+                        'Volume': latest.get('Volume', '')
+                    }
+                match_data = m
                 break
         
         if match_data:
-            odds_data = match_data.get('odds') or match_data.get('details') or {}
+            odds_data = match_data.get('odds') or {}
             return jsonify({
                 'success': True,
                 'match': {
