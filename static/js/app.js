@@ -3315,9 +3315,9 @@ async function loadChart(home, away, market, league = '') {
         function createHexGradient(hex) {
             const gradient = ctx.createLinearGradient(0, 0, 0, 400);
             if (isMobile()) {
-                gradient.addColorStop(0, hexToRgba(hex, 0.18));
-                gradient.addColorStop(0.4, hexToRgba(hex, 0.08));
-                gradient.addColorStop(0.7, hexToRgba(hex, 0.03));
+                // Very subtle area fill - premium style
+                gradient.addColorStop(0, hexToRgba(hex, 0.08));
+                gradient.addColorStop(0.5, hexToRgba(hex, 0.03));
                 gradient.addColorStop(1, hexToRgba(hex, 0));
             } else {
                 gradient.addColorStop(0, hexToRgba(hex, 0.35));
@@ -3326,22 +3326,6 @@ async function loadChart(home, away, market, league = '') {
             return gradient;
         }
         
-        function createMobileLineGradient(hex) {
-            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-            const lightHex = lightenHex(hex, 25);
-            gradient.addColorStop(0, lightHex);
-            gradient.addColorStop(1, hex);
-            return gradient;
-        }
-        
-        function lightenHex(hex, percent) {
-            const num = parseInt(hex.slice(1), 16);
-            const amt = Math.round(2.55 * percent);
-            const R = Math.min(255, (num >> 16) + amt);
-            const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
-            const B = Math.min(255, (num & 0x0000FF) + amt);
-            return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
-        }
         
         const filteredHistory = filterHistoryByTimeRange(data.history);
         
@@ -3390,7 +3374,7 @@ async function loadChart(home, away, market, league = '') {
                     datasets.push({
                         label: label,
                         data: dataArr,
-                        borderColor: isMobile() ? createMobileLineGradient(color) : color,
+                        borderColor: color,
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
@@ -3418,7 +3402,7 @@ async function loadChart(home, away, market, league = '') {
                     datasets.push({
                         label: label,
                         data: dataArr,
-                        borderColor: isMobile() ? createMobileLineGradient(color) : color,
+                        borderColor: color,
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
@@ -3445,7 +3429,7 @@ async function loadChart(home, away, market, league = '') {
                     datasets.push({
                         label: label,
                         data: dataArr,
-                        borderColor: isMobile() ? createMobileLineGradient(color) : color,
+                        borderColor: color,
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
@@ -3472,7 +3456,7 @@ async function loadChart(home, away, market, league = '') {
                     datasets.push({
                         label: label,
                         data: dataArr,
-                        borderColor: isMobile() ? createMobileLineGradient(color) : color,
+                        borderColor: color,
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
@@ -3499,7 +3483,7 @@ async function loadChart(home, away, market, league = '') {
                     datasets.push({
                         label: label,
                         data: dataArr,
-                        borderColor: isMobile() ? createMobileLineGradient(color) : color,
+                        borderColor: color,
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
@@ -3526,7 +3510,7 @@ async function loadChart(home, away, market, league = '') {
                     datasets.push({
                         label: label,
                         data: dataArr,
-                        borderColor: isMobile() ? createMobileLineGradient(color) : color,
+                        borderColor: color,
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
@@ -3855,39 +3839,41 @@ async function loadChart(home, away, market, league = '') {
                     const { left, right, top, bottom } = chartArea;
                     const width = right - left;
                     const height = bottom - top;
+                    const radius = 12;
+                    const padding = 4;
                     
                     ctx.save();
                     
-                    // Premium dark background gradient (navy/anthracite)
-                    const bgGradient = ctx.createLinearGradient(0, top, 0, bottom);
-                    bgGradient.addColorStop(0, 'rgba(15, 23, 42, 0.95)');
-                    bgGradient.addColorStop(0.6, 'rgba(15, 23, 42, 0.85)');
-                    bgGradient.addColorStop(1, 'rgba(8, 12, 25, 0.98)');
-                    ctx.fillStyle = bgGradient;
-                    ctx.fillRect(left, top, width, height);
+                    // Premium solid anthracite background (NO gradient)
+                    ctx.beginPath();
+                    ctx.roundRect(left - padding, top - padding, width + padding * 2, height + padding * 2, radius);
+                    ctx.fillStyle = '#0E141B';
+                    ctx.fill();
                     
-                    // Very subtle horizontal reference lines (%70 more transparent)
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.012)';
+                    // Subtle border for "box" feel
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    
+                    // Inset shadow at bottom for depth
+                    const shadowGradient = ctx.createLinearGradient(0, bottom - 50, 0, bottom);
+                    shadowGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+                    shadowGradient.addColorStop(1, 'rgba(0, 0, 0, 0.35)');
+                    ctx.fillStyle = shadowGradient;
+                    ctx.fillRect(left, bottom - 50, width, 50);
+                    
+                    // Horizontal grid lines only - very subtle, dashed
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
                     ctx.lineWidth = 0.5;
-                    ctx.setLineDash([]);
+                    ctx.setLineDash([2, 6]);
                     
-                    [0.25, 0.75].forEach(pct => {
+                    [0.25, 0.5, 0.75].forEach(pct => {
                         const y = top + (height * pct);
                         ctx.beginPath();
                         ctx.moveTo(left, y);
                         ctx.lineTo(right, y);
                         ctx.stroke();
                     });
-                    
-                    // Middle reference line - barely visible
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.035)';
-                    ctx.lineWidth = 0.5;
-                    ctx.setLineDash([4, 4]);
-                    const midY = top + (height * 0.5);
-                    ctx.beginPath();
-                    ctx.moveTo(left, midY);
-                    ctx.lineTo(right, midY);
-                    ctx.stroke();
                     
                     ctx.restore();
                 }
