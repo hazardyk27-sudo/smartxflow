@@ -3378,7 +3378,7 @@ async function loadChart(home, away, market, league = '') {
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 5 : 0) : 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 2.5 : 0) : 0,
                         pointHoverRadius: 4,
                         pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
@@ -3406,7 +3406,7 @@ async function loadChart(home, away, market, league = '') {
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 5 : 0) : 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 2.5 : 0) : 0,
                         pointHoverRadius: 4,
                         pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
@@ -3433,7 +3433,7 @@ async function loadChart(home, away, market, league = '') {
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 5 : 0) : 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 2.5 : 0) : 0,
                         pointHoverRadius: 4,
                         pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
@@ -3460,7 +3460,7 @@ async function loadChart(home, away, market, league = '') {
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 5 : 0) : 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 2.5 : 0) : 0,
                         pointHoverRadius: 4,
                         pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
@@ -3487,7 +3487,7 @@ async function loadChart(home, away, market, league = '') {
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 5 : 0) : 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 2.5 : 0) : 0,
                         pointHoverRadius: 4,
                         pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
@@ -3514,7 +3514,7 @@ async function loadChart(home, away, market, league = '') {
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 5 : 0) : 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 2.5 : 0) : 0,
                         pointHoverRadius: 4,
                         pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
@@ -4142,7 +4142,7 @@ async function loadChart(home, away, market, league = '') {
                         mobileCrosshairIndex = idx;
                         updateMobileValuePanel(idx);
                         chart.setActiveElements([{ datasetIndex: 0, index: idx }]);
-                        chart.update('none');
+                        chart.draw(); // Force redraw for crosshair line
                         updateFloatingTooltip(touchX, touchY, idx);
                     }
                 }
