@@ -3976,17 +3976,14 @@ async function loadChart(home, away, market, league = '') {
             
             const canvas = document.getElementById('oddsChart');
             
-            // Helper to find nearest data index from touch X position
+            // Helper to find nearest data index from touch X position (SNAP to nearest point)
             function getNearestIndexFromTouch(touchX) {
                 const rect = canvas.getBoundingClientRect();
                 const canvasX = touchX - rect.left;
                 
-                // Get chart area bounds
-                const chartArea = chart.chartArea;
                 const meta = chart.getDatasetMeta(0);
                 if (!meta || !meta.data || meta.data.length === 0) return -1;
                 
-                // Find nearest point by X position
                 let nearestIdx = 0;
                 let nearestDist = Infinity;
                 
@@ -4002,41 +3999,189 @@ async function loadChart(home, away, market, league = '') {
                 return nearestIdx;
             }
             
-            // Scrub mode flag - prevents page scroll while interacting with chart
-            let isScrubbing = false;
+            // Long-press inspection mode state
+            let isInspecting = false;
+            let longPressTimer = null;
+            let touchStartX = 0;
+            let touchStartY = 0;
+            const LONG_PRESS_DURATION = 350; // ms
+            const MOVE_THRESHOLD = 10; // pixels - if moved more, cancel long-press
             
-            // Touch start - enter scrub mode
+            // Create floating tooltip element
+            let floatingTooltip = document.getElementById('mobileFloatingTooltip');
+            if (!floatingTooltip) {
+                floatingTooltip = document.createElement('div');
+                floatingTooltip.id = 'mobileFloatingTooltip';
+                floatingTooltip.className = 'mobile-floating-tooltip';
+                floatingTooltip.style.cssText = `
+                    position: fixed;
+                    display: none;
+                    background: rgba(15, 23, 42, 0.95);
+                    border: 1px solid rgba(59, 130, 246, 0.5);
+                    border-radius: 8px;
+                    padding: 8px 12px;
+                    font-size: 12px;
+                    color: #fff;
+                    z-index: 10000;
+                    pointer-events: none;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+                    backdrop-filter: blur(8px);
+                    min-width: 80px;
+                    text-align: center;
+                `;
+                document.body.appendChild(floatingTooltip);
+            }
+            
+            // Update floating tooltip position (avoids finger)
+            function updateFloatingTooltip(touchX, touchY, idx) {
+                if (!isInspecting || idx < 0) {
+                    floatingTooltip.style.display = 'none';
+                    return;
+                }
+                
+                const h = mobileChartHistoryData[idx];
+                if (!h) {
+                    floatingTooltip.style.display = 'none';
+                    return;
+                }
+                
+                // Get current selection value
+                let value = '-';
+                let label = mobileSelectedLine || '1';
+                const market = selectedChartMarket || 'moneyway_1x2';
+                
+                if (market.includes('1x2')) {
+                    if (label === '1') value = h.Pct1 || h.Odds1 || h['1'] || '-';
+                    else if (label === 'X') value = h.PctX || h.OddsX || h['X'] || '-';
+                    else if (label === '2') value = h.Pct2 || h.Odds2 || h['2'] || '-';
+                } else if (market.includes('ou25')) {
+                    if (label === 'Alt' || label === 'Under') value = h.PctUnder || h.Under || '-';
+                    else value = h.PctOver || h.Over || '-';
+                } else if (market.includes('btts')) {
+                    if (label === 'Yes') value = h.PctYes || h.Yes || '-';
+                    else value = h.PctNo || h.No || '-';
+                }
+                
+                // Format time
+                const scrapedAt = h.ScrapedAt || '';
+                let timeStr = '';
+                if (scrapedAt) {
+                    const d = new Date(scrapedAt);
+                    timeStr = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                }
+                
+                floatingTooltip.innerHTML = `
+                    <div style="font-weight: 600; color: #3b82f6;">${label}: ${value}</div>
+                    <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">${timeStr}</div>
+                `;
+                
+                // Position: above finger, auto left/right to avoid edges
+                const tooltipWidth = 100;
+                const tooltipHeight = 50;
+                const screenWidth = window.innerWidth;
+                
+                let left = touchX - tooltipWidth / 2;
+                let top = touchY - 70; // Above finger
+                
+                // Keep within screen bounds
+                if (left < 10) left = 10;
+                if (left + tooltipWidth > screenWidth - 10) left = screenWidth - tooltipWidth - 10;
+                if (top < 10) top = touchY + 60; // Below finger if too high
+                
+                floatingTooltip.style.left = left + 'px';
+                floatingTooltip.style.top = top + 'px';
+                floatingTooltip.style.display = 'block';
+            }
+            
+            // Visual feedback for inspection mode
+            function enterInspectionMode() {
+                isInspecting = true;
+                canvas.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.6)';
+                // Haptic feedback if available
+                if (navigator.vibrate) navigator.vibrate(30);
+            }
+            
+            function exitInspectionMode() {
+                isInspecting = false;
+                canvas.style.boxShadow = '';
+                floatingTooltip.style.display = 'none';
+                // Return to last point
+                const idx = chart.data.datasets[0].data.length - 1;
+                mobileCrosshairIndex = idx;
+                chart.setActiveElements([{ datasetIndex: 0, index: idx }]);
+                chart.update('none');
+                updateMobileValuePanel(idx);
+            }
+            
+            // Touch start - start long-press timer
             canvas.addEventListener('touchstart', function(e) {
-                isScrubbing = true;
-                const idx = getNearestIndexFromTouch(e.touches[0].clientX);
-                if (idx >= 0) {
-                    mobileCrosshairIndex = idx;
-                    updateMobileValuePanel(idx);
-                    chart.setActiveElements([{ datasetIndex: 0, index: idx }]);
-                    chart.update('none');
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                
+                // Start long-press timer
+                longPressTimer = setTimeout(function() {
+                    enterInspectionMode();
+                    const idx = getNearestIndexFromTouch(touchStartX);
+                    if (idx >= 0) {
+                        mobileCrosshairIndex = idx;
+                        updateMobileValuePanel(idx);
+                        chart.setActiveElements([{ datasetIndex: 0, index: idx }]);
+                        chart.update('none');
+                        updateFloatingTooltip(touchStartX, touchStartY, idx);
+                    }
+                }, LONG_PRESS_DURATION);
+            }, { passive: true });
+            
+            // Touch move - if inspecting, update crosshair; otherwise allow scroll
+            canvas.addEventListener('touchmove', function(e) {
+                const touchX = e.touches[0].clientX;
+                const touchY = e.touches[0].clientY;
+                const deltaX = Math.abs(touchX - touchStartX);
+                const deltaY = Math.abs(touchY - touchStartY);
+                
+                // If moved before long-press completed, cancel it (allow scroll)
+                if (!isInspecting && (deltaX > MOVE_THRESHOLD || deltaY > MOVE_THRESHOLD)) {
+                    if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
+                    return; // Allow normal scroll
+                }
+                
+                // If in inspection mode, prevent scroll and update crosshair
+                if (isInspecting) {
+                    e.preventDefault();
+                    const idx = getNearestIndexFromTouch(touchX);
+                    if (idx >= 0) {
+                        mobileCrosshairIndex = idx;
+                        updateMobileValuePanel(idx);
+                        chart.setActiveElements([{ datasetIndex: 0, index: idx }]);
+                        chart.update('none');
+                        updateFloatingTooltip(touchX, touchY, idx);
+                    }
+                }
+            }, { passive: false });
+            
+            // Touch end - exit inspection mode
+            canvas.addEventListener('touchend', function() {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
+                if (isInspecting) {
+                    exitInspectionMode();
                 }
             }, { passive: true });
             
-            // Touch move - prevent scroll, update crosshair
-            canvas.addEventListener('touchmove', function(e) {
-                if (isScrubbing) {
-                    e.preventDefault(); // Prevent page scroll while scrubbing
+            // Touch cancel - cleanup
+            canvas.addEventListener('touchcancel', function() {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
                 }
-                const idx = getNearestIndexFromTouch(e.touches[0].clientX);
-                if (idx >= 0) {
-                    mobileCrosshairIndex = idx;
-                    updateMobileValuePanel(idx);
-                    chart.setActiveElements([{ datasetIndex: 0, index: idx }]);
-                    chart.update('none');
+                if (isInspecting) {
+                    exitInspectionMode();
                 }
-            }, { passive: false }); // passive: false required for preventDefault
-            
-            // Touch end - exit scrub mode, keep dot visible
-            canvas.addEventListener('touchend', function() {
-                isScrubbing = false;
-                const idx = mobileCrosshairIndex >= 0 ? mobileCrosshairIndex : chart.data.datasets[0].data.length - 1;
-                chart.setActiveElements([{ datasetIndex: 0, index: idx }]);
-                chart.update('none');
             }, { passive: true });
         }
     } catch (error) {
