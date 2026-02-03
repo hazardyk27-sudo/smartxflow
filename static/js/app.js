@@ -2776,7 +2776,7 @@ function setMobileTimeRange(range) {
 
 // Store chart history data for mobile value panel
 let mobileChartHistoryData = [];
-let mobileCrosshairIndex = -1; // Active crosshair position (-1 = last point)
+// mobileCrosshairIndex moved to chart.$crosshairIndex (instance property)
 
 // Mobile background grid plugin - draws evenly spaced grid lines (independent of data)
 const mobileBackgroundGridPlugin = {
@@ -2819,6 +2819,7 @@ const mobileBackgroundGridPlugin = {
 };
 
 // Mobile crosshair plugin - draws ONLY vertical line at active index
+// Uses chart.$crosshairIndex property set by touch events
 const mobileCrosshairPlugin = {
     id: 'mobileCrosshair',
     afterDatasetsDraw: function(chart) {
@@ -2829,9 +2830,9 @@ const mobileCrosshairPlugin = {
         const ds = chart.data.datasets[0];
         if (!ds || !ds.data || ds.data.length === 0) return;
         
-        // Determine which index to show crosshair at
-        let idx = mobileCrosshairIndex;
-        if (idx < 0 || idx >= ds.data.length) {
+        // Use chart instance property for crosshair index
+        let idx = chart.$crosshairIndex;
+        if (idx === undefined || idx < 0 || idx >= ds.data.length) {
             idx = ds.data.length - 1;
         }
         
@@ -3378,7 +3379,7 @@ async function loadChart(home, away, market, league = '') {
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 2.5 : 0) : 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 1.5 : 0) : 0,
                         pointHoverRadius: 4,
                         pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
@@ -3406,7 +3407,7 @@ async function loadChart(home, away, market, league = '') {
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 2.5 : 0) : 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 1.5 : 0) : 0,
                         pointHoverRadius: 4,
                         pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
@@ -3433,7 +3434,7 @@ async function loadChart(home, away, market, league = '') {
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 2.5 : 0) : 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 1.5 : 0) : 0,
                         pointHoverRadius: 4,
                         pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
@@ -3460,7 +3461,7 @@ async function loadChart(home, away, market, league = '') {
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 2.5 : 0) : 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 1.5 : 0) : 0,
                         pointHoverRadius: 4,
                         pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
@@ -3487,7 +3488,7 @@ async function loadChart(home, away, market, league = '') {
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 2.5 : 0) : 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 1.5 : 0) : 0,
                         pointHoverRadius: 4,
                         pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
@@ -3514,7 +3515,7 @@ async function loadChart(home, away, market, league = '') {
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 2.5 : 0) : 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 1.5 : 0) : 0,
                         pointHoverRadius: 4,
                         pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
@@ -3955,7 +3956,7 @@ async function loadChart(home, away, market, league = '') {
         
         // Mobile: add touch event for value panel, crosshair, and update initial value
         if (isMobile()) {
-            mobileCrosshairIndex = -1; // Start at last point
+            chart.$crosshairIndex = -1; // Start at last point (will default to last)
             updateMobileValuePanel();
             chart.setActiveElements([{ datasetIndex: 0, index: chart.data.datasets[0].data.length - 1 }]);
             chart.update('none');
@@ -4093,9 +4094,9 @@ async function loadChart(home, away, market, league = '') {
                 floatingTooltip.style.display = 'none';
                 // Return to last point
                 const idx = chart.data.datasets[0].data.length - 1;
-                mobileCrosshairIndex = idx;
+                chart.$crosshairIndex = idx;
                 chart.setActiveElements([{ datasetIndex: 0, index: idx }]);
-                chart.update('none');
+                chart.draw();
                 updateMobileValuePanel(idx);
             }
             
@@ -4109,10 +4110,10 @@ async function loadChart(home, away, market, league = '') {
                     enterInspectionMode();
                     const idx = getNearestIndexFromTouch(touchStartX);
                     if (idx >= 0) {
-                        mobileCrosshairIndex = idx;
+                        chart.$crosshairIndex = idx;
                         updateMobileValuePanel(idx);
                         chart.setActiveElements([{ datasetIndex: 0, index: idx }]);
-                        chart.update('none');
+                        chart.draw();
                         updateFloatingTooltip(touchStartX, touchStartY, idx);
                     }
                 }, LONG_PRESS_DURATION);
@@ -4139,7 +4140,7 @@ async function loadChart(home, away, market, league = '') {
                     e.preventDefault();
                     const idx = getNearestIndexFromTouch(touchX);
                     if (idx >= 0) {
-                        mobileCrosshairIndex = idx;
+                        chart.$crosshairIndex = idx;
                         updateMobileValuePanel(idx);
                         chart.setActiveElements([{ datasetIndex: 0, index: idx }]);
                         chart.draw(); // Force redraw for crosshair line
