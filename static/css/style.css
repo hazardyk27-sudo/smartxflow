@@ -1827,7 +1827,7 @@ h1, h2, h3, h4, h5, h6,
     
     .chart-wrapper-full {
         height: 340px;
-        margin: 0 12px;
+        margin: 0 2px;
         border-radius: 16px;
         border: 1px solid rgba(255, 255, 255, 0.08);
     }
