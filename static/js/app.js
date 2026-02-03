@@ -3400,7 +3400,7 @@ async function loadChart(home, away, market, league = '') {
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
                         pointBorderWidth: isMobile() ? 3 : 2,
                         pointStyle: 'circle',
-                        borderWidth: isMobile() ? 3 : 2
+                        borderWidth: isMobile() ? 1.5 : 2
                     });
                 });
             } else {
@@ -3428,7 +3428,7 @@ async function loadChart(home, away, market, league = '') {
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
                         pointBorderWidth: isMobile() ? 3 : 2,
                         pointStyle: 'circle',
-                        borderWidth: isMobile() ? 3 : 2
+                        borderWidth: isMobile() ? 1.5 : 2
                     });
                 });
             }
@@ -3455,7 +3455,7 @@ async function loadChart(home, away, market, league = '') {
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
                         pointBorderWidth: isMobile() ? 3 : 2,
                         pointStyle: 'circle',
-                        borderWidth: isMobile() ? 3 : 2
+                        borderWidth: isMobile() ? 1.5 : 2
                     });
                 });
             } else {
@@ -3482,7 +3482,7 @@ async function loadChart(home, away, market, league = '') {
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
                         pointBorderWidth: isMobile() ? 3 : 2,
                         pointStyle: 'circle',
-                        borderWidth: isMobile() ? 3 : 2
+                        borderWidth: isMobile() ? 1.5 : 2
                     });
                 });
             }
@@ -3509,7 +3509,7 @@ async function loadChart(home, away, market, league = '') {
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
                         pointBorderWidth: isMobile() ? 3 : 2,
                         pointStyle: 'circle',
-                        borderWidth: isMobile() ? 3 : 2
+                        borderWidth: isMobile() ? 1.5 : 2
                     });
                 });
             } else {
@@ -3536,7 +3536,7 @@ async function loadChart(home, away, market, league = '') {
                         pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
                         pointBorderWidth: isMobile() ? 3 : 2,
                         pointStyle: 'circle',
-                        borderWidth: isMobile() ? 3 : 2
+                        borderWidth: isMobile() ? 1.5 : 2
                     });
                 });
             }
@@ -3834,7 +3834,7 @@ async function loadChart(home, away, market, league = '') {
                     point: {
                         radius: 0,
                         hoverRadius: isMobile() ? 8 : 4,
-                        borderWidth: isMobile() ? 3 : 2,
+                        borderWidth: isMobile() ? 1.5 : 2,
                         hoverBorderWidth: isMobile() ? 3 : 2,
                         hoverBackgroundColor: isMobile() ? '#fff' : undefined
                     },
