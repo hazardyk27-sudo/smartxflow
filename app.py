@@ -1573,13 +1573,35 @@ def get_match_details():
         
         if match_data:
             odds_data = match_data.get('odds') or {}
+            
+            # Generate match_id from team names and league
+            m_home = match_data.get('home_team', home)
+            m_away = match_data.get('away_team', away)
+            m_league = match_data.get('league', '')
+            m_date = match_data.get('date', '')
+            match_id = generate_match_id(m_home, m_away, m_league, m_date)
+            
+            # Get history from supabase if available
+            history = []
+            try:
+                sb_client = get_supabase_client()
+                if sb_client:
+                    history_resp = sb_client.table('moneyway_snapshots').select('*').eq('match_id_hash', match_id).order('scraped_at_utc', desc=True).limit(50).execute()
+                    if history_resp.data:
+                        history = history_resp.data
+            except Exception as he:
+                print(f"[Match Details] History fetch error: {he}")
+            
             return jsonify({
                 'success': True,
                 'match': {
-                    'home_team': home,
-                    'away_team': away,
-                    'league': match_data.get('league', ''),
-                    'date': match_data.get('date', ''),
+                    'home_team': m_home,
+                    'away_team': m_away,
+                    'league': m_league,
+                    'date': m_date,
+                    'match_id': match_id,
+                    'history': history,
+                    'history_count': len(history),
                     'odds': odds_data,
                     'details': odds_data
                 }

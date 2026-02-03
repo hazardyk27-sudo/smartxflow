@@ -2172,7 +2172,7 @@ async function openMatchModalFromMatches(index) {
         bulkHistoryCache = {};
         bulkHistoryCacheKey = '';
         
-        await initChartWithHistory();
+        await loadChartWithTrends(home, away, selectedChartMarket, league);
         await loadSmartMoneyData(home, away, league);
     }
 }
@@ -2205,6 +2205,8 @@ async function openMatchModalFromAPI(homeTeam, awayTeam) {
             league: matchData.league || '',
             date: matchData.date || '',
             match_id: matchData.match_id || '',
+            history: matchData.history || [],
+            history_count: matchData.history_count || 0,
             odds: matchData.odds || null,
             details: matchData.details || null
         };
@@ -2241,7 +2243,7 @@ async function openMatchModalFromAPI(homeTeam, awayTeam) {
         bulkHistoryCache = {};
         bulkHistoryCacheKey = '';
         
-        await initChartWithHistory();
+        await loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league);
         await loadSmartMoneyData(selectedMatch.home_team, selectedMatch.away_team, selectedMatch.league);
         
     } catch (error) {
