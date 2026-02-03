@@ -3315,14 +3315,32 @@ async function loadChart(home, away, market, league = '') {
         function createHexGradient(hex) {
             const gradient = ctx.createLinearGradient(0, 0, 0, 400);
             if (isMobile()) {
-                gradient.addColorStop(0, hexToRgba(hex, 0.12));
-                gradient.addColorStop(0.5, hexToRgba(hex, 0.04));
+                gradient.addColorStop(0, hexToRgba(hex, 0.18));
+                gradient.addColorStop(0.4, hexToRgba(hex, 0.08));
+                gradient.addColorStop(0.7, hexToRgba(hex, 0.03));
                 gradient.addColorStop(1, hexToRgba(hex, 0));
             } else {
                 gradient.addColorStop(0, hexToRgba(hex, 0.35));
                 gradient.addColorStop(1, hexToRgba(hex, 0.02));
             }
             return gradient;
+        }
+        
+        function createMobileLineGradient(hex) {
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            const lightHex = lightenHex(hex, 25);
+            gradient.addColorStop(0, lightHex);
+            gradient.addColorStop(1, hex);
+            return gradient;
+        }
+        
+        function lightenHex(hex, percent) {
+            const num = parseInt(hex.slice(1), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = Math.min(255, (num >> 16) + amt);
+            const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
+            const B = Math.min(255, (num & 0x0000FF) + amt);
+            return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
         }
         
         const filteredHistory = filterHistoryByTimeRange(data.history);
@@ -3367,20 +3385,22 @@ async function loadChart(home, away, market, league = '') {
                 dataKeys.forEach((key, idx) => {
                     const label = ['1', 'X', '2'][idx];
                     const color = [colors['1'], colors['X'], colors['2']][idx];
+                    const dataArr = historyData.map(h => parseMoneyValue(h[key]));
+                    const lastIdx = dataArr.length - 1;
                     datasets.push({
                         label: label,
-                        data: historyData.map(h => parseMoneyValue(h[key])),
-                        borderColor: color,
+                        data: dataArr,
+                        borderColor: isMobile() ? createMobileLineGradient(color) : color,
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 5 : 0) : 0,
                         pointHoverRadius: 4,
-                        pointBackgroundColor: color,
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
+                        pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
+                        pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
+                        pointBorderWidth: isMobile() ? 3 : 2,
                         pointStyle: 'circle',
-                        borderWidth: 2
+                        borderWidth: isMobile() ? 3 : 2
                     });
                 });
             } else {
@@ -3388,25 +3408,27 @@ async function loadChart(home, away, market, league = '') {
                     const altKey = ['1', 'X', '2'][idx];
                     const label = ['1', 'X', '2'][idx];
                     const color = [colors['1'], colors['X'], colors['2']][idx];
+                    const dataArr = historyData.map(h => {
+                        const val = h[key] || h[altKey];
+                        if (!val) return null;
+                        const num = parseFloat(String(val).split('\n')[0]);
+                        return isNaN(num) ? null : num;
+                    });
+                    const lastIdx = dataArr.length - 1;
                     datasets.push({
                         label: label,
-                        data: historyData.map(h => {
-                            const val = h[key] || h[altKey];
-                            if (!val) return null;
-                            const num = parseFloat(String(val).split('\n')[0]);
-                            return isNaN(num) ? null : num;
-                        }),
-                        borderColor: color,
+                        data: dataArr,
+                        borderColor: isMobile() ? createMobileLineGradient(color) : color,
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 5 : 0) : 0,
                         pointHoverRadius: 4,
-                        pointBackgroundColor: color,
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
+                        pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
+                        pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
+                        pointBorderWidth: isMobile() ? 3 : 2,
                         pointStyle: 'circle',
-                        borderWidth: 2
+                        borderWidth: isMobile() ? 3 : 2
                     });
                 });
             }
@@ -3418,45 +3440,49 @@ async function loadChart(home, away, market, league = '') {
                 dataKeys.forEach((key, idx) => {
                     const label = ['Alt', 'Üst'][idx];
                     const color = [colors['Under'], colors['Over']][idx];
+                    const dataArr = historyData.map(h => parseMoneyValue(h[key]));
+                    const lastIdx = dataArr.length - 1;
                     datasets.push({
                         label: label,
-                        data: historyData.map(h => parseMoneyValue(h[key])),
-                        borderColor: color,
+                        data: dataArr,
+                        borderColor: isMobile() ? createMobileLineGradient(color) : color,
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 5 : 0) : 0,
                         pointHoverRadius: 4,
-                        pointBackgroundColor: color,
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
+                        pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
+                        pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
+                        pointBorderWidth: isMobile() ? 3 : 2,
                         pointStyle: 'circle',
-                        borderWidth: 2
+                        borderWidth: isMobile() ? 3 : 2
                     });
                 });
             } else {
                 ['Under', 'Over'].forEach((key, idx) => {
                     const label = key;
                     const color = colors[key];
+                    const dataArr = historyData.map(h => {
+                        const val = h[key];
+                        if (!val) return null;
+                        const num = parseFloat(String(val).split('\n')[0]);
+                        return isNaN(num) ? null : num;
+                    });
+                    const lastIdx = dataArr.length - 1;
                     datasets.push({
                         label: label,
-                        data: historyData.map(h => {
-                            const val = h[key];
-                            if (!val) return null;
-                            const num = parseFloat(String(val).split('\n')[0]);
-                            return isNaN(num) ? null : num;
-                        }),
-                        borderColor: color,
+                        data: dataArr,
+                        borderColor: isMobile() ? createMobileLineGradient(color) : color,
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 5 : 0) : 0,
                         pointHoverRadius: 4,
-                        pointBackgroundColor: color,
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
+                        pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
+                        pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
+                        pointBorderWidth: isMobile() ? 3 : 2,
                         pointStyle: 'circle',
-                        borderWidth: 2
+                        borderWidth: isMobile() ? 3 : 2
                     });
                 });
             }
@@ -3468,45 +3494,49 @@ async function loadChart(home, away, market, league = '') {
                 dataKeys.forEach((key, idx) => {
                     const label = ['Yes', 'No'][idx];
                     const color = [colors['Yes'], colors['No']][idx];
+                    const dataArr = historyData.map(h => parseMoneyValue(h[key]));
+                    const lastIdx = dataArr.length - 1;
                     datasets.push({
                         label: label,
-                        data: historyData.map(h => parseMoneyValue(h[key])),
-                        borderColor: color,
+                        data: dataArr,
+                        borderColor: isMobile() ? createMobileLineGradient(color) : color,
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 5 : 0) : 0,
                         pointHoverRadius: 4,
-                        pointBackgroundColor: color,
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
+                        pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
+                        pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
+                        pointBorderWidth: isMobile() ? 3 : 2,
                         pointStyle: 'circle',
-                        borderWidth: 2
+                        borderWidth: isMobile() ? 3 : 2
                     });
                 });
             } else {
                 ['Yes', 'No'].forEach((key, idx) => {
                     const label = key;
                     const color = colors[key];
+                    const dataArr = historyData.map(h => {
+                        const val = h['Odds' + key] || h[key];
+                        if (!val) return null;
+                        const num = parseFloat(String(val).split('\n')[0]);
+                        return isNaN(num) ? null : num;
+                    });
+                    const lastIdx = dataArr.length - 1;
                     datasets.push({
                         label: label,
-                        data: historyData.map(h => {
-                            const val = h['Odds' + key] || h[key];
-                            if (!val) return null;
-                            const num = parseFloat(String(val).split('\n')[0]);
-                            return isNaN(num) ? null : num;
-                        }),
-                        borderColor: color,
+                        data: dataArr,
+                        borderColor: isMobile() ? createMobileLineGradient(color) : color,
                         backgroundColor: createHexGradient(color),
                         tension: 0.4,
                         fill: true,
-                        pointRadius: 0,
+                        pointRadius: isMobile() ? dataArr.map((v, i) => i === lastIdx ? 5 : 0) : 0,
                         pointHoverRadius: 4,
-                        pointBackgroundColor: color,
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
+                        pointBackgroundColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? '#fff' : color) : color,
+                        pointBorderColor: isMobile() ? dataArr.map((v, i) => i === lastIdx ? color : '#fff') : '#fff',
+                        pointBorderWidth: isMobile() ? 3 : 2,
                         pointStyle: 'circle',
-                        borderWidth: 2
+                        borderWidth: isMobile() ? 3 : 2
                     });
                 });
             }
@@ -3823,12 +3853,21 @@ async function loadChart(home, away, market, league = '') {
                     if (!chartArea) return;
                     
                     const { left, right, top, bottom } = chartArea;
+                    const width = right - left;
                     const height = bottom - top;
                     
                     ctx.save();
                     
-                    // Subtle horizontal reference lines (25%, 75%)
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+                    // Premium dark background gradient (navy/anthracite)
+                    const bgGradient = ctx.createLinearGradient(0, top, 0, bottom);
+                    bgGradient.addColorStop(0, 'rgba(15, 23, 42, 0.95)');
+                    bgGradient.addColorStop(0.6, 'rgba(15, 23, 42, 0.85)');
+                    bgGradient.addColorStop(1, 'rgba(8, 12, 25, 0.98)');
+                    ctx.fillStyle = bgGradient;
+                    ctx.fillRect(left, top, width, height);
+                    
+                    // Very subtle horizontal reference lines (%70 more transparent)
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.012)';
                     ctx.lineWidth = 0.5;
                     ctx.setLineDash([]);
                     
@@ -3840,8 +3879,8 @@ async function loadChart(home, away, market, league = '') {
                         ctx.stroke();
                     });
                     
-                    // Middle reference line - dashed, slightly more visible
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+                    // Middle reference line - barely visible
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.035)';
                     ctx.lineWidth = 0.5;
                     ctx.setLineDash([4, 4]);
                     const midY = top + (height * 0.5);
@@ -3849,6 +3888,49 @@ async function loadChart(home, away, market, league = '') {
                     ctx.moveTo(left, midY);
                     ctx.lineTo(right, midY);
                     ctx.stroke();
+                    
+                    ctx.restore();
+                }
+            }, {
+                id: 'mobileLastPointGlow',
+                afterDatasetsDraw: function(chart) {
+                    const ctx = chart.ctx;
+                    const meta = chart.getDatasetMeta(0);
+                    if (!meta || !meta.data || meta.data.length === 0) return;
+                    
+                    const lastPoint = meta.data[meta.data.length - 1];
+                    if (!lastPoint) return;
+                    
+                    const x = lastPoint.x;
+                    const y = lastPoint.y;
+                    const ds = chart.data.datasets[0];
+                    let baseColor = '#3b82f6';
+                    
+                    if (ds.borderColor) {
+                        if (typeof ds.borderColor === 'string' && ds.borderColor.startsWith('#')) {
+                            baseColor = ds.borderColor;
+                        }
+                    }
+                    
+                    function hexToRgbaLocal(hex, alpha) {
+                        const r = parseInt(hex.slice(1, 3), 16);
+                        const g = parseInt(hex.slice(3, 5), 16);
+                        const b = parseInt(hex.slice(5, 7), 16);
+                        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                    }
+                    
+                    ctx.save();
+                    
+                    // Outer halo glow
+                    const glowGradient = ctx.createRadialGradient(x, y, 0, x, y, 16);
+                    glowGradient.addColorStop(0, hexToRgbaLocal(baseColor, 0.5));
+                    glowGradient.addColorStop(0.4, hexToRgbaLocal(baseColor, 0.2));
+                    glowGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 16, 0, Math.PI * 2);
+                    ctx.fillStyle = glowGradient;
+                    ctx.fill();
                     
                     ctx.restore();
                 }
