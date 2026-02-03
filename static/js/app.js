@@ -2132,6 +2132,51 @@ function parseVolume(match) {
 let previousOddsData = null;
 let modalOddsData = null;
 
+// Tarih filtresinden bağımsız - doğrudan matches dizisinden modal aç
+async function openMatchModalFromMatches(index) {
+    if (index >= 0 && index < matches.length) {
+        selectedMatch = matches[index];
+        selectedChartMarket = currentMarket;
+        previousOddsData = null;
+        modalOddsData = selectedMatch.odds || selectedMatch.details || null;
+        
+        document.getElementById('modalMatchTitle').textContent = 
+            `${selectedMatch.home_team} vs ${selectedMatch.away_team}`;
+        
+        const headerDt = toTurkeyTime(selectedMatch.date);
+        let headerDateText = selectedMatch.date || '';
+        if (headerDt && headerDt.isValid()) {
+            headerDateText = headerDt.format('DD.MM HH:mm');
+        }
+        document.getElementById('modalLeague').textContent = 
+            `${selectedMatch.league || ''} • ${headerDateText}`;
+        
+        updateMatchInfoCard();
+        
+        document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
+            t.classList.remove('active');
+            if (t.dataset.market === currentMarket) {
+                t.classList.add('active');
+            }
+        });
+        
+        showSmartMoneyLoading();
+        showChartLoading();
+        
+        document.getElementById('modalOverlay').classList.add('active');
+        
+        const home = selectedMatch.home_team;
+        const away = selectedMatch.away_team;
+        const league = selectedMatch.league || '';
+        
+        bulkHistoryCache = {};
+        bulkHistoryCacheKey = '';
+        
+        await initChartWithHistory();
+        await loadSmartMoneyData(home, away, league);
+    }
+}
+
 async function openMatchModal(index) {
     const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
     if (index >= 0 && index < dataSource.length) {
@@ -6936,11 +6981,11 @@ function goToMatchFromAlarm(homeTeam, awayTeam, alarmType, alarmMarket) {
         return;
     }
     
-    const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
+    // Tarih filtresinden bağımsız - tüm maçlarda ara (matches, filteredMatches değil)
     let foundIndex = -1;
     
-    for (let i = 0; i < dataSource.length; i++) {
-        const m = dataSource[i];
+    for (let i = 0; i < matches.length; i++) {
+        const m = matches[i];
         const mHome = (m.home_team || m.Home || '').toLowerCase().trim();
         const mAway = (m.away_team || m.Away || '').toLowerCase().trim();
         
@@ -6952,7 +6997,8 @@ function goToMatchFromAlarm(homeTeam, awayTeam, alarmType, alarmMarket) {
     }
     
     if (foundIndex >= 0) {
-        openMatchModal(foundIndex);
+        // matches dizisinden modal aç (filteredMatches değil)
+        openMatchModalFromMatches(foundIndex);
     } else {
         tryFindMatchInAllMarkets(homeLower, awayLower, homeTeam, awayTeam);
     }
@@ -6993,8 +7039,11 @@ async function tryFindMatchInAllMarkets(homeLower, awayLower, homeTeam, awayTeam
         }
     }
     
-    console.log('Mac bulunamadi:', homeTeam, 'vs', awayTeam);
-    showToast(`Maç tüm marketlerde bulunamadı. Alarm detayları kartta mevcut.`, 'info');
+    // Maç listede bulunamadı - direkt maç sayfasına yönlendir
+    console.log('[goToMatch] Listede bulunamadı, match detail sayfasına yönlendiriliyor:', homeTeam, 'vs', awayTeam);
+    const homeEncoded = encodeURIComponent(homeTeam.trim());
+    const awayEncoded = encodeURIComponent(awayTeam.trim());
+    window.location.href = `/match/${homeEncoded}/${awayEncoded}`;
 }
 
 async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, homeTeam, awayTeam) {
