@@ -2364,6 +2364,39 @@ function hideChartLoading() {
 let bulkHistoryCache = {};
 let bulkHistoryCacheKey = '';
 
+// Modal Data Cache - 30s TTL
+const MODAL_CACHE_TTL = 30000; // 30 seconds
+let modalDataCache = {}; // {cacheKey: {data, timestamp}}
+
+function getModalCacheKey(home, away, market) {
+    return `${home}|${away}|${market}`.toLowerCase();
+}
+
+function getModalCachedData(home, away, market) {
+    const key = getModalCacheKey(home, away, market);
+    const cached = modalDataCache[key];
+    if (cached && (Date.now() - cached.timestamp) < MODAL_CACHE_TTL) {
+        console.log('[ModalCache] HIT:', key);
+        return cached.data;
+    }
+    return null;
+}
+
+function setModalCachedData(home, away, market, data) {
+    const key = getModalCacheKey(home, away, market);
+    modalDataCache[key] = { data, timestamp: Date.now() };
+    console.log('[ModalCache] SET:', key);
+    
+    // Clean old entries (keep max 50)
+    const keys = Object.keys(modalDataCache);
+    if (keys.length > 50) {
+        const sortedKeys = keys.sort((a, b) => modalDataCache[a].timestamp - modalDataCache[b].timestamp);
+        for (let i = 0; i < keys.length - 50; i++) {
+            delete modalDataCache[sortedKeys[i]];
+        }
+    }
+}
+
 async function loadAllMarketsAtOnce(home, away, league = '') {
     const cacheKey = `${home}|${away}|${league}`;
     if (bulkHistoryCacheKey === cacheKey && Object.keys(bulkHistoryCache).length > 0) {
@@ -2396,19 +2429,31 @@ async function loadChartWithTrends(home, away, market, league = '') {
     try {
         let data = { history: [] };
         
-        const cacheKey = `${home}|${away}|${league}`;
-        if (bulkHistoryCacheKey === cacheKey && bulkHistoryCache[market]) {
-            data = bulkHistoryCache[market];
-            console.log('[Modal] Using bulk cache for', market, 'count:', data.history?.length);
-        } else {
-            try {
-                const response = await fetch(
-                    `/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}&league=${encodeURIComponent(league || '')}`
-                );
-                data = await response.json();
-                console.log('[Modal] Loaded history for', home, 'vs', away, 'league:', league, 'market:', market, 'count:', data.history?.length);
-            } catch (e) {
-                console.log('Using demo history data');
+        // 1. Check modal cache first (30s TTL)
+        const cachedData = getModalCachedData(home, away, market);
+        if (cachedData) {
+            data = cachedData;
+            console.log('[Modal] Using modal cache for', market, 'count:', data.history?.length);
+        }
+        // 2. Check bulk history cache
+        else {
+            const cacheKey = `${home}|${away}|${league}`;
+            if (bulkHistoryCacheKey === cacheKey && bulkHistoryCache[market]) {
+                data = bulkHistoryCache[market];
+                console.log('[Modal] Using bulk cache for', market, 'count:', data.history?.length);
+                setModalCachedData(home, away, market, data);
+            } else {
+                // 3. Fetch from API
+                try {
+                    const response = await fetch(
+                        `/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}&league=${encodeURIComponent(league || '')}`
+                    );
+                    data = await response.json();
+                    console.log('[Modal] Loaded history for', home, 'vs', away, 'league:', league, 'market:', market, 'count:', data.history?.length);
+                    setModalCachedData(home, away, market, data);
+                } catch (e) {
+                    console.log('Using demo history data');
+                }
             }
         }
         
