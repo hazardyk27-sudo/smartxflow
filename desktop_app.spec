@@ -31,6 +31,7 @@ a = Analysis(
     hiddenimports=[
         'flask',
         'flask.json',
+        'flask_compress',
         'jinja2',
         'werkzeug',
         'werkzeug.serving',
