@@ -4,5 +4,6 @@ pytz>=2023.3
 certifi>=2023.0.0
 httpx>=0.25.0
 flask>=3.0.0
+flask-compress>=1.14
 pywebview>=4.4.0
 pythonnet>=3.0.0
