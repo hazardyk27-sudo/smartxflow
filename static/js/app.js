@@ -6544,6 +6544,17 @@ function getFilteredAlarms() {
         const yesterdayStr = today.subtract(1, 'day').format('YYYY-MM-DD');
         const tomorrowStr = today.add(1, 'day').format('YYYY-MM-DD');
         
+        // Debug: İlk birkaç grubu logla
+        if (groups.length > 0) {
+            console.log('[DateFilter DEBUG] Sample groups:', groups.slice(0, 3).map(g => ({
+                home: g.home,
+                match_date: g.match_date,
+                fixture_date: g.fixture_date,
+                latestAlarm_match_date: g.latestAlarm?.match_date
+            })));
+            console.log('[DateFilter DEBUG] yesterdayStr:', yesterdayStr);
+        }
+        
         groups = groups.filter(g => {
             // Önce grup seviyesinde match_date kontrol et, sonra latestAlarm
             const matchDateStr = g.match_date || g.fixture_date || getMatchDateFromAlarm(g.latestAlarm);
