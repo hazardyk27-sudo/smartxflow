@@ -6311,6 +6311,7 @@ async function loadAllAlarms(forceRefresh = false) {
         groupedAlarmsData = groupAlarmsByMatch(allAlarmsData);
         
         updateAlarmCounts();
+        updateDateFilterCounts();
         alarmsDisplayCount = 30;
         
         const labelEl = document.getElementById('dateLabelDisplay');
@@ -6515,6 +6516,45 @@ function filterAlarmsByMatchDate(alarms) {
         }
         return true;
     });
+}
+
+function updateDateFilterCounts() {
+    const alarms = allAlarmsData || [];
+    
+    const today = dayjs().tz('Europe/Istanbul');
+    const todayStr = today.format('YYYY-MM-DD');
+    const yesterdayStr = today.subtract(1, 'day').format('YYYY-MM-DD');
+    const tomorrowStr = today.add(1, 'day').format('YYYY-MM-DD');
+    
+    let countAll = 0;
+    let countToday = 0;
+    let countYesterday = 0;
+    let countFuture = 0;
+    
+    alarms.forEach(alarm => {
+        const matchDateStr = getMatchDateFromAlarm(alarm);
+        if (!matchDateStr) return;
+        
+        if (matchDateStr === todayStr) {
+            countToday++;
+            countAll++;
+        } else if (matchDateStr === yesterdayStr) {
+            countYesterday++;
+        } else if (matchDateStr >= tomorrowStr) {
+            countFuture++;
+            countAll++;
+        }
+    });
+    
+    const elAll = document.getElementById('dateCountAll');
+    const elToday = document.getElementById('dateCountToday');
+    const elYesterday = document.getElementById('dateCountYesterday');
+    const elFuture = document.getElementById('dateCountFuture');
+    
+    if (elAll) elAll.textContent = countAll;
+    if (elToday) elToday.textContent = countToday;
+    if (elYesterday) elYesterday.textContent = countYesterday;
+    if (elFuture) elFuture.textContent = countFuture;
 }
 
 function parseAlarmDate(dateStr) {

@@ -4446,6 +4446,22 @@ td.volume,
     opacity: 0.85;
 }
 
+.date-count-badge {
+    font-size: 11px;
+    color: #8b949e;
+    background: #30363d;
+    padding: 2px 8px;
+    border-radius: 10px;
+    min-width: 24px;
+    text-align: center;
+    font-weight: 600;
+    margin-left: auto;
+}
+
+.alarm-filter-option:hover .date-count-badge {
+    background: #484f58;
+}
+
 .filter-dot-neutral {
     width: 7px;
     height: 7px;
