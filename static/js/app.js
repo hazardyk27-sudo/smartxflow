@@ -5734,26 +5734,25 @@ function formatMatchDateShort(dateStr) {
     return '';
 }
 
-// Dünün maçlarını filtrele - sadece bugün ve gelecek maçları göster
+// D-1 (dün) ve sonrası maçları filtrele - dün + bugün + gelecek
 // ÖNEMLİ: match_date/fixture_date baz alınır, created_at DEĞİL!
-function isMatchTodayOrFuture(alarm) {
+function isMatchYesterdayOrLater(alarm) {
     const matchDateStr = alarm.match_date || alarm.fixture_date || '';
     
-    // Türkiye saati için bugünün tarihini al
-    const now = new Date();
-    const trTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
-    const currentYear = trTime.getFullYear();
-    const currentMonth = trTime.getMonth();
-    const currentDay = trTime.getDate();
-    const todayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
+    // Türkiye saati için bugünün ve dünün tarihini al
+    const nowTR = dayjs().tz('Europe/Istanbul');
+    const yesterdayStr = nowTR.subtract(1, 'day').format('YYYY-MM-DD');
     
     // match_date yoksa, trigger_at tarihinden çıkar (MIM vs alarm tipleri için)
     if (!matchDateStr) {
         const triggerAt = alarm.trigger_at || alarm.event_time || alarm.created_at || '';
         if (triggerAt) {
-            const triggerDate = triggerAt.substring(0, 10); // YYYY-MM-DD kısmını al
-            if (triggerDate >= todayStr) {
-                return true;
+            // toTurkeyTime kullanarak timezone dönüşümü yap
+            const triggerTR = toTurkeyTime(triggerAt);
+            if (triggerTR && triggerTR.isValid()) {
+                const triggerDateStr = triggerTR.format('YYYY-MM-DD');
+                // D-1 ve sonrası: dün veya daha yeni
+                return triggerDateStr >= yesterdayStr;
             }
         }
         return false;
@@ -5763,24 +5762,34 @@ function isMatchTodayOrFuture(alarm) {
     const isoMatch = matchDateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (isoMatch) {
         const matchStr = isoMatch[0];
-        return matchStr >= todayStr;
+        // D-1 ve sonrası: dün veya daha yeni
+        return matchStr >= yesterdayStr;
     }
     
-    // Format 2: DD.MMM HH:MM:SS (örn: "20.Dec 17:00:00" veya "06.Dec00:00:00")
+    // Format 2: DD.MMM (örn: "20.Dec") - Yıl olmadan gelen format
+    // Bu format artık kullanılmıyor, Supabase'den YYYY-MM-DD geliyor
+    // Güvenlik için tutuyoruz ama dayjs ile parse ediyoruz
     const ddMmmMatch = matchDateStr.match(/^(\d{1,2})\.([A-Za-z]{3})/);
     if (ddMmmMatch) {
-        const dayStr = ddMmmMatch[1];
+        const dayNum = parseInt(ddMmmMatch[1]);
         const monthStr = ddMmmMatch[2];
         const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
                           'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
-        const matchMonth = monthMap[monthStr];
-        const matchDay = parseInt(dayStr);
+        const monthNum = monthMap[monthStr];
         
-        if (matchMonth !== undefined && !isNaN(matchDay)) {
-            if (matchMonth > currentMonth) return true;
-            if (matchMonth === currentMonth && matchDay >= currentDay) return true;
-            if (matchMonth < currentMonth && currentMonth >= 10 && matchMonth <= 2) return true;
-            return false;
+        if (monthNum !== undefined && !isNaN(dayNum)) {
+            // Yıl belirsiz - mevcut yılı kullan, geçmişe düşerse gelecek yıl
+            let year = nowTR.year();
+            let matchDate = dayjs().tz('Europe/Istanbul').year(year).month(monthNum).date(dayNum);
+            
+            // Eğer bu tarih bugünden 6+ ay gerideyse, gelecek yıl olabilir
+            if (nowTR.diff(matchDate, 'month') > 6) {
+                year++;
+                matchDate = dayjs().tz('Europe/Istanbul').year(year).month(monthNum).date(dayNum);
+            }
+            
+            const matchDateFormatted = matchDate.format('YYYY-MM-DD');
+            return matchDateFormatted >= yesterdayStr;
         }
     }
     
@@ -6198,14 +6207,14 @@ async function loadAllAlarms(forceRefresh = false) {
         const rawVolumeleader = data.volumeleader || [];
         const rawMim = data.mim || [];
         
-        // D-1'den itibaren tüm alarmları dahil et (filtreleme getFilteredAlarms'da yapılacak)
-        alarmsDataByType.sharp = rawSharp;
-        alarmsDataByType.bigmoney = rawBigmoney;
-        alarmsDataByType.volumeshock = rawVolumeshock;
-        alarmsDataByType.dropping = rawDropping;
-        alarmsDataByType.publicmove = rawPublicmove;
-        alarmsDataByType.volumeleader = rawVolumeleader;
-        alarmsDataByType.mim = rawMim;
+        // D-1 (dün) ve sonrası alarmları dahil et - D-2 ve eski alarmlar filtrelenir
+        alarmsDataByType.sharp = rawSharp.filter(isMatchYesterdayOrLater);
+        alarmsDataByType.bigmoney = rawBigmoney.filter(isMatchYesterdayOrLater);
+        alarmsDataByType.volumeshock = rawVolumeshock.filter(isMatchYesterdayOrLater);
+        alarmsDataByType.dropping = rawDropping.filter(isMatchYesterdayOrLater);
+        alarmsDataByType.publicmove = rawPublicmove.filter(isMatchYesterdayOrLater);
+        alarmsDataByType.volumeleader = rawVolumeleader.filter(isMatchYesterdayOrLater);
+        alarmsDataByType.mim = rawMim.filter(isMatchYesterdayOrLater);
         
         const sharpWithType = alarmsDataByType.sharp.map(a => ({ ...a, _type: 'sharp' }));
         const bigmoneyWithType = alarmsDataByType.bigmoney.map(a => ({ ...a, _type: 'bigmoney' }));
