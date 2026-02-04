@@ -6198,13 +6198,14 @@ async function loadAllAlarms(forceRefresh = false) {
         const rawVolumeleader = data.volumeleader || [];
         const rawMim = data.mim || [];
         
-        alarmsDataByType.sharp = rawSharp.filter(isMatchTodayOrFuture);
-        alarmsDataByType.bigmoney = rawBigmoney.filter(isMatchTodayOrFuture);
-        alarmsDataByType.volumeshock = rawVolumeshock.filter(isMatchTodayOrFuture);
-        alarmsDataByType.dropping = rawDropping.filter(isMatchTodayOrFuture);
-        alarmsDataByType.publicmove = rawPublicmove.filter(isMatchTodayOrFuture);
-        alarmsDataByType.volumeleader = rawVolumeleader.filter(isMatchTodayOrFuture);
-        alarmsDataByType.mim = rawMim.filter(isMatchTodayOrFuture);
+        // D-1'den itibaren tüm alarmları dahil et (filtreleme getFilteredAlarms'da yapılacak)
+        alarmsDataByType.sharp = rawSharp;
+        alarmsDataByType.bigmoney = rawBigmoney;
+        alarmsDataByType.volumeshock = rawVolumeshock;
+        alarmsDataByType.dropping = rawDropping;
+        alarmsDataByType.publicmove = rawPublicmove;
+        alarmsDataByType.volumeleader = rawVolumeleader;
+        alarmsDataByType.mim = rawMim;
         
         const sharpWithType = alarmsDataByType.sharp.map(a => ({ ...a, _type: 'sharp' }));
         const bigmoneyWithType = alarmsDataByType.bigmoney.map(a => ({ ...a, _type: 'bigmoney' }));
@@ -6543,17 +6544,6 @@ function getFilteredAlarms() {
         const todayStr = today.format('YYYY-MM-DD');
         const yesterdayStr = today.subtract(1, 'day').format('YYYY-MM-DD');
         const tomorrowStr = today.add(1, 'day').format('YYYY-MM-DD');
-        
-        // Debug: İlk birkaç grubu logla
-        if (groups.length > 0) {
-            console.log('[DateFilter DEBUG] Sample groups:', groups.slice(0, 3).map(g => ({
-                home: g.home,
-                match_date: g.match_date,
-                fixture_date: g.fixture_date,
-                latestAlarm_match_date: g.latestAlarm?.match_date
-            })));
-            console.log('[DateFilter DEBUG] yesterdayStr:', yesterdayStr);
-        }
         
         groups = groups.filter(g => {
             // Önce grup seviyesinde match_date kontrol et, sonra latestAlarm
