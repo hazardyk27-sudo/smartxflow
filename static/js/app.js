@@ -34,6 +34,39 @@ const MATCH_REFRESH_INTERVAL = 10 * 60 * 1000; // 10 dakika
 
 const APP_TIMEZONE = 'Europe/Istanbul';
 
+// Selection ve Market Türkçe çevirisi
+function translateSelection(sel, market) {
+    if (!sel) return '-';
+    const s = String(sel).trim();
+    const m = String(market || '').toUpperCase();
+    
+    // O/U market için
+    if (m.includes('OU') || m.includes('O/U') || m.includes('2.5')) {
+        if (s === 'O' || s === 'Over' || s.toLowerCase() === 'over') return 'Üst';
+        if (s === 'U' || s === 'Under' || s.toLowerCase() === 'under') return 'Alt';
+    }
+    // BTTS market için
+    if (m.includes('BTTS') || m.includes('KG')) {
+        if (s === 'Y' || s === 'Yes' || s.toLowerCase() === 'yes') return 'Evet';
+        if (s === 'N' || s === 'No' || s.toLowerCase() === 'no') return 'Hayır';
+    }
+    // Genel çeviri
+    if (s === 'Over' || s.toLowerCase() === 'over') return 'Üst';
+    if (s === 'Under' || s.toLowerCase() === 'under') return 'Alt';
+    if (s === 'Yes' || s.toLowerCase() === 'yes') return 'Evet';
+    if (s === 'No' || s.toLowerCase() === 'no') return 'Hayır';
+    return s;
+}
+
+function translateMarket(market) {
+    if (!market) return '';
+    const m = String(market).toUpperCase();
+    if (m === 'OU25' || m === 'O/U 2.5' || m === 'OU 2.5') return 'Ü/A 2.5';
+    if (m === 'BTTS') return 'KG';
+    if (m === '1X2') return '1X2';
+    return market;
+}
+
 // ============================================
 // CENTRALIZED ALARM CACHE SYSTEM
 // Single source of truth for all alarm data
@@ -6680,7 +6713,7 @@ function renderAlarmsList(filterType) {
         const awayEscaped = away.replace(/'/g, "\\'");
         const marketEscaped = market.replace(/'/g, "\\'");
         const matchTimeFormatted = formatMatchTime3(group.kickoff_utc || group.match_date);
-        const marketLabel2 = `${market} → ${selection}`;
+        const marketLabel2 = `${translateMarket(market)} → ${translateSelection(selection, market)}`;
         // Dropping alarmlar icin created_at (oranin dustugu an) oncelikli
         const triggerTimeSource = type === 'dropping' 
             ? (alarm.created_at || alarm.event_time || alarm.trigger_at)
@@ -7601,26 +7634,28 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const dropPct = latest.drop_pct || latest.odds_drop_pct || 0;
             const prevOdds = latest.previous_odds || 0;
             const currOdds = latest.current_odds || 0;
-            const selection = latest.selection || latest.side || '-';
+            const rawSelection = latest.selection || latest.side || '-';
             const market = latest.market || '';
+            const selection = translateSelection(rawSelection, market);
+            const marketTr = translateMarket(market);
             const selTotal = latest.total_selection || latest.selection_total || latest.volume || 0;
             const oddsPart = prevOdds > 0 && currOdds > 0 
                 ? `<span class="sm-dropping-main">${prevOdds.toFixed(2)} → ${currOdds.toFixed(2)}</span> | ` 
                 : '';
-            row2Left = `${selection} (${market})`;
+            row2Left = `${selection} (${marketTr})`;
             row2Right = `${oddsPart}Sharp: ${score.toFixed(0)} | ▼${dropPct.toFixed(1)}%`;
             row3Left = `<span class="sm-sharp-money-hero">£${Number(incomingMoney).toLocaleString('en-GB')}</span> <span class="sm-money-label">yeni para</span>`;
             row3Right = selTotal > 0 ? `<span class="sm-total-muted">Sonrası: £${Number(selTotal).toLocaleString('en-GB')}</span>` : '';
             row4 = `Bu seçenekte 10 dk içinde yüksek hacimli para + oran düşüşü tespit edildi.`;
         } else if (type === 'bigmoney') {
             const money = latest.incoming_money || latest.stake || 0;
-            const selection = latest.selection || latest.side || '-';
+            const rawSelection = latest.selection || latest.side || '-';
             const market = latest.market || '';
+            const selection = translateSelection(rawSelection, market);
+            const marketTr = translateMarket(market);
             const selectionTotal = latest.total_selection || latest.selection_total || latest.volume || latest.total_volume || 0;
             
-            // BigMoney için özel kart yapısı
-            const marketFormatted = market === '1X2' ? '1-X-2' : (market === 'OU25' ? 'A/Ü 2.5' : market);
-            row2Left = `${selection} (${marketFormatted})`;
+            row2Left = `${selection} (${marketTr})`;
             row2Right = '';
             row3Left = `<span class="sm-money-hero">£${Number(money).toLocaleString('en-GB')}</span> <span class="sm-money-label">gelen para</span>`;
             row3Right = selectionTotal > 0 ? `<span class="sm-total-muted">Olay sonrası: £${Number(selectionTotal).toLocaleString('en-GB')}</span>` : '';
@@ -7629,10 +7664,12 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const shockValue = latest.volume_shock_value || latest.volume_shock || latest.volume_shock_multiplier || 0;
             const incomingMoney = latest.incoming_money || 0;
             const avgLast10 = latest.avg_last_amounts || latest.average_amount || 0;
-            const selection = latest.selection || latest.side || '-';
+            const rawSelection = latest.selection || latest.side || '-';
             const market = latest.market || '';
+            const selection = translateSelection(rawSelection, market);
+            const marketTr = translateMarket(market);
             const selTotal = latest.total_selection || latest.selection_total || latest.volume || 0;
-            row2Left = `${selection} (${market})`;
+            row2Left = `${selection} (${marketTr})`;
             row2Right = '';
             row3Left = `<span class="sm-shock-badge">X${shockValue.toFixed(0)}</span> <span class="sm-shock-label">hacim şoku</span>`;
             row3Right = `<span class="sm-shock-money">£${Number(incomingMoney).toLocaleString('en-GB')}</span> <span class="sm-shock-money-label">yeni para</span>`;
@@ -7642,10 +7679,12 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const currOdds = (latest.current_odds || 0).toFixed(2);
             const dropPct = latest.drop_pct || 0;
             const level = latest.level || 'L1';
-            const selection = latest.selection || latest.side || '-';
+            const rawSelection = latest.selection || latest.side || '-';
             const market = latest.market || '';
+            const selection = translateSelection(rawSelection, market);
+            const marketTr = translateMarket(market);
             const levelTooltip = level === 'L1' ? 'Orta seviye düşüş (8-13%)' : (level === 'L2' ? 'Güçlü düşüş (13-20%)' : 'Çok güçlü düşüş (20%+)');
-            row2Left = `${selection} (${market})`;
+            row2Left = `${selection} (${marketTr})`;
             row2Right = `<span class="sm-level-badge ${level.toLowerCase()}" title="${levelTooltip}">${level}</span>`;
             row3Left = `<span class="sm-dropping-main">${openOdds} → ${currOdds}</span>`;
             row3Right = `<span class="sm-drop-pct-hero">▼${dropPct.toFixed(1)}%</span>`;
@@ -7654,21 +7693,26 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
             const prevShare = latest.previous_share || latest.old_share || 0;
             const currShare = latest.current_share || latest.new_share || 0;
             const publicPara = latest.incoming_money || latest.public_money || latest.volume || 0;
-            const selection = latest.selection || latest.side || '-';
+            const rawSelection = latest.selection || latest.side || '-';
             const market = latest.market || '';
-            row2Left = `${selection} (${market})`;
+            const selection = translateSelection(rawSelection, market);
+            const marketTr = translateMarket(market);
+            row2Left = `${selection} (${marketTr})`;
             row2Right = `Public: %${prevShare.toFixed(0)} → %${currShare.toFixed(0)}`;
             row3Left = publicPara > 0 ? `<span class="sm-money-hero">£${Number(publicPara).toLocaleString('en-GB')}</span> <span class="sm-money-label">public para</span>` : '';
             row3Right = '';
             row4 = `Public para akışı kısa sürede bu seçenekte yoğunlaştı.`;
         } else if (type === 'volumeleader') {
-            const oldLeader = latest.old_leader || latest.previous_leader || '-';
-            const newLeader = latest.new_leader || latest.selection || '-';
+            const rawOldLeader = latest.old_leader || latest.previous_leader || '-';
+            const rawNewLeader = latest.new_leader || latest.selection || '-';
             const totalVol = latest.total_volume || latest.volume || latest.total_selection || latest.selection_total || 0;
             const oldShare = latest.old_leader_share || 0;
             const newShare = latest.new_leader_share || 0;
             const market = latest.market || '';
-            row2Left = `${market}`;
+            const marketTr = translateMarket(market);
+            const oldLeader = translateSelection(rawOldLeader, market);
+            const newLeader = translateSelection(rawNewLeader, market);
+            row2Left = `${marketTr}`;
             row2Right = '';
             const shareText = (oldShare > 0 || newShare > 0) ? ` <span class="sm-leader-share-old">%${oldShare.toFixed(0)}</span> → <span class="sm-leader-share-new">%${newShare.toFixed(0)}</span>` : '';
             row3Left = `<span class="sm-leader-hero">${oldLeader} → <span class="sm-leader-new">${newLeader}</span></span>${shareText}`;
