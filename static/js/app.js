@@ -5734,6 +5734,37 @@ function formatMatchDateShort(dateStr) {
     return '';
 }
 
+// Alert Band için bugün ve gelecek alarmları filtrele (performans optimize)
+// Cache: Tek seferlik dayjs hesaplama yapıp string karşılaştırma kullan
+let _todayStrCache = null;
+let _todayCacheTime = 0;
+
+function isMatchTodayOrFuture(alarm) {
+    // Cache'i her 60 saniyede yenile
+    const now = Date.now();
+    if (!_todayStrCache || (now - _todayCacheTime) > 60000) {
+        _todayStrCache = dayjs().tz('Europe/Istanbul').format('YYYY-MM-DD');
+        _todayCacheTime = now;
+    }
+    
+    const matchDateStr = alarm.match_date || alarm.fixture_date || '';
+    
+    // Format 1: YYYY-MM-DD (Supabase'den gelen format)
+    if (matchDateStr && matchDateStr.length >= 10) {
+        const dateStr = matchDateStr.substring(0, 10);
+        return dateStr >= _todayStrCache;
+    }
+    
+    // match_date yoksa trigger_at'den çıkar
+    const triggerAt = alarm.trigger_at || alarm.event_time || '';
+    if (triggerAt && triggerAt.length >= 10) {
+        const dateStr = triggerAt.substring(0, 10);
+        return dateStr >= _todayStrCache;
+    }
+    
+    return false;
+}
+
 // D-1 (dün) ve sonrası maçları filtrele - dün + bugün + gelecek
 // ÖNEMLİ: match_date/fixture_date baz alınır, created_at DEĞİL!
 function isMatchYesterdayOrLater(alarm) {
