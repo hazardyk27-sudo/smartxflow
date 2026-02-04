@@ -6388,6 +6388,11 @@ function getMatchDateFromAlarm(alarm) {
     if (!matchDate) return null;
     
     try {
+        // Eğer sadece tarih formatındaysa (YYYY-MM-DD), doğrudan kullan
+        if (/^\d{4}-\d{2}-\d{2}$/.test(matchDate)) {
+            return matchDate;
+        }
+        // Timestamp ise timezone dönüşümü yap
         const dt = dayjs(matchDate).tz('Europe/Istanbul');
         return dt.format('YYYY-MM-DD');
     } catch(e) {
