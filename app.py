@@ -16,7 +16,15 @@ import time
 import queue
 from datetime import datetime, timedelta
 from flask import Flask, render_template, jsonify, request, Response
-from flask_compress import Compress
+
+# Conditional import for compression (not needed in desktop mode)
+if os.environ.get('SMARTX_DESKTOP') != '1':
+    try:
+        from flask_compress import Compress
+    except ImportError:
+        Compress = None
+else:
+    Compress = None
 
 # ============================================
 # SERVER-SIDE ALARM CACHE
@@ -229,7 +237,7 @@ app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 app.secret_key = os.environ.get('SESSION_SECRET', 'smartxflow-secret-key')
 
 # Gzip/Brotli compression - only for web mode (not desktop)
-if os.environ.get('SMARTX_DESKTOP') != '1':
+if Compress is not None:
     app.config['COMPRESS_MIMETYPES'] = ['text/html', 'text/css', 'text/javascript', 'application/json', 'application/javascript']
     app.config['COMPRESS_LEVEL'] = 6  # Compression level (1-9, 6 is balanced)
     app.config['COMPRESS_MIN_SIZE'] = 500  # Only compress responses > 500 bytes
