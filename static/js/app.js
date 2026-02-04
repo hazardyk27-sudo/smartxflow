@@ -6545,7 +6545,8 @@ function getFilteredAlarms() {
         const tomorrowStr = today.add(1, 'day').format('YYYY-MM-DD');
         
         groups = groups.filter(g => {
-            const matchDateStr = getMatchDateFromAlarm(g.latestAlarm);
+            // Önce grup seviyesinde match_date kontrol et, sonra latestAlarm
+            const matchDateStr = g.match_date || g.fixture_date || getMatchDateFromAlarm(g.latestAlarm);
             if (!matchDateStr) return currentAlarmDateFilter === 'all';
             
             if (currentAlarmDateFilter === 'all') {
