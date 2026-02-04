@@ -300,8 +300,115 @@ class LicenseAPI:
         import webbrowser
         webbrowser.open(url)
 
+def show_activation_dialog_tk(api_base_url, device_id, device_name):
+    """Tkinter ile lisans aktivasyon dialog'u - webview.start() çift çağrı sorununu çözer"""
+    import tkinter as tk
+    
+    result = {'success': False, 'data': None}
+    
+    root = tk.Tk()
+    root.title("SmartXFlow Aktivasyon")
+    root.geometry("420x320")
+    root.resizable(False, False)
+    root.configure(bg='#0d1117')
+    
+    # Center window
+    root.update_idletasks()
+    x = (root.winfo_screenwidth() - 420) // 2
+    y = (root.winfo_screenheight() - 320) // 2
+    root.geometry(f"420x320+{x}+{y}")
+    
+    # Title
+    title_label = tk.Label(root, text="SmartXFlow", font=("Segoe UI", 24, "bold"), 
+                           fg="#e6edf3", bg="#0d1117")
+    title_label.pack(pady=(30, 5))
+    
+    subtitle_label = tk.Label(root, text="PRO MONITOR", font=("Segoe UI", 10), 
+                              fg="#1e90ff", bg="#0d1117")
+    subtitle_label.pack(pady=(0, 25))
+    
+    # License key label
+    key_label = tk.Label(root, text="LİSANS ANAHTARI", font=("Segoe UI", 9), 
+                         fg="#8b949e", bg="#0d1117")
+    key_label.pack(anchor="w", padx=40)
+    
+    # License key entry
+    key_var = tk.StringVar()
+    key_entry = tk.Entry(root, textvariable=key_var, font=("Consolas", 14), 
+                         width=25, bg="#161b22", fg="#e6edf3", 
+                         insertbackground="#1e90ff", relief="flat", bd=0)
+    key_entry.pack(pady=(5, 15), ipady=10, padx=40)
+    key_entry.focus_set()
+    
+    # Status label
+    status_var = tk.StringVar()
+    status_label = tk.Label(root, textvariable=status_var, font=("Segoe UI", 10), 
+                            fg="#8b949e", bg="#0d1117")
+    status_label.pack(pady=(0, 10))
+    
+    def validate_and_close():
+        key = key_var.get().strip()
+        if not key or len(key) < 18:
+            status_var.set("Geçerli bir lisans anahtarı girin")
+            status_label.config(fg="#ef4444")
+            return
+        
+        status_var.set("Doğrulanıyor...")
+        status_label.config(fg="#1e90ff")
+        root.update()
+        
+        try:
+            validation = validate_license_online(key, device_id, device_name, api_base_url)
+            
+            if validation.get('valid'):
+                status_var.set("Lisans aktif! Uygulama açılıyor...")
+                status_label.config(fg="#22c55e")
+                root.update()
+                
+                save_license(
+                    key,
+                    validation.get('email', ''),
+                    validation.get('expires_at', ''),
+                    validation.get('days_left', 0)
+                )
+                start_heartbeat(key, device_id, api_base_url)
+                
+                result['success'] = True
+                result['data'] = validation
+                
+                root.after(1000, root.destroy)
+            else:
+                error_msg = validation.get('error', 'Lisans doğrulanamadı')
+                status_var.set(error_msg)
+                status_label.config(fg="#ef4444")
+        except Exception as e:
+            status_var.set(f"Bağlantı hatası: {str(e)[:30]}")
+            status_label.config(fg="#ef4444")
+    
+    # Activate button
+    activate_btn = tk.Button(root, text="AKTİVE ET", font=("Segoe UI", 11, "bold"),
+                             bg="#1e90ff", fg="white", relief="flat", cursor="hand2",
+                             command=validate_and_close, width=20, height=2)
+    activate_btn.pack(pady=(10, 20))
+    
+    # Enter key binding
+    key_entry.bind('<Return>', lambda e: validate_and_close())
+    
+    # Close handler
+    def on_close():
+        root.destroy()
+    
+    root.protocol("WM_DELETE_WINDOW", on_close)
+    root.mainloop()
+    
+    return result
+
 def show_activation_window(api_base_url, device_id, device_name):
-    """Lisans aktivasyon penceresi göster"""
+    """Lisans aktivasyon penceresi göster - TKinter versiyonu kullan"""
+    return show_activation_dialog_tk(api_base_url, device_id, device_name)
+
+def show_activation_window_webview(api_base_url, device_id, device_name):
+    """Lisans aktivasyon penceresi göster (eski webview versiyonu - kullanılmıyor)"""
     import webview
     
     api = LicenseAPI(api_base_url, device_id, device_name)
