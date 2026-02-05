@@ -984,64 +984,6 @@ def main():
     
     logging.info("Flask server started successfully!")
     
-    saved_license = load_saved_license()
-    license_valid = False
-    days_left = 0
-    
-    if saved_license and saved_license.get('key'):
-        logging.info("Validating saved license...")
-        result = validate_license_online(
-            saved_license['key'], 
-            device_id, 
-            device_name, 
-            api_base_url
-        )
-        
-        if result.get('valid'):
-            license_valid = True
-            days_left = result.get('days_left', 0)
-            logging.info(f"Saved license valid! Days left: {days_left}")
-            
-            save_license(
-                saved_license['key'],
-                result.get('email', saved_license.get('email', '')),
-                result.get('expires_at', ''),
-                days_left
-            )
-            start_heartbeat(saved_license['key'], device_id, api_base_url)
-        else:
-            logging.warning(f"Saved license invalid: {result.get('error')}")
-            if result.get('expired'):
-                show_error_dialog(
-                    "Lisans Süresi Doldu",
-                    "Lisans süreniz dolmuş.\n\n"
-                    "Yenilemek için Telegram: @smartxflow"
-                )
-            elif result.get('device_limit'):
-                show_error_dialog(
-                    "Cihaz Limiti",
-                    "Bu lisans başka cihazlarda aktif.\n\n"
-                    "Yardım için Telegram: @smartxflow"
-                )
-    
-    if not license_valid:
-        logging.info("Showing activation window...")
-        activation_result = show_activation_window(api_base_url, device_id, device_name)
-        
-        if not activation_result['success']:
-            logging.info("Activation cancelled or failed")
-            sys.exit(0)
-        
-        days_left = activation_result['data'].get('days_left', 0)
-        logging.info(f"Activation successful! Days left: {days_left}")
-    
-    if 0 < days_left <= 7:
-        show_info_dialog(
-            "Lisans Uyarısı",
-            f"Lisansınızın bitmesine {days_left} gün kaldı.\n\n"
-            "Yenilemek için Telegram: @smartxflow"
-        )
-    
     logging.info("Testing Supabase connection...")
     try:
         from services.supabase_client import SupabaseClient
