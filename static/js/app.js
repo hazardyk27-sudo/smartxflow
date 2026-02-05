@@ -6658,6 +6658,23 @@ function searchAlarms(query) {
     renderAlarmsList(currentAlarmFilter);
 }
 
+let _dateFilterCache = { todayStr: null, yesterdayStr: null, tomorrowStr: null, cacheTime: 0 };
+
+function getDateFilterStrings() {
+    const now = Date.now();
+    if (_dateFilterCache.todayStr && (now - _dateFilterCache.cacheTime) < 60000) {
+        return _dateFilterCache;
+    }
+    const today = dayjs().tz('Europe/Istanbul');
+    _dateFilterCache = {
+        todayStr: today.format('YYYY-MM-DD'),
+        yesterdayStr: today.subtract(1, 'day').format('YYYY-MM-DD'),
+        tomorrowStr: today.add(1, 'day').format('YYYY-MM-DD'),
+        cacheTime: now
+    };
+    return _dateFilterCache;
+}
+
 function getFilteredAlarms() {
     let groups = currentAlarmFilter === 'all' 
         ? [...groupedAlarmsData]
@@ -6665,10 +6682,7 @@ function getFilteredAlarms() {
     
     // Tarih filtrelemesi uygula
     if (currentAlarmDateFilter !== 'none') {
-        const today = dayjs().tz('Europe/Istanbul');
-        const todayStr = today.format('YYYY-MM-DD');
-        const yesterdayStr = today.subtract(1, 'day').format('YYYY-MM-DD');
-        const tomorrowStr = today.add(1, 'day').format('YYYY-MM-DD');
+        const { todayStr, yesterdayStr, tomorrowStr } = getDateFilterStrings();
         
         groups = groups.filter(g => {
             // Önce grup seviyesinde match_date kontrol et, sonra latestAlarm
@@ -6795,7 +6809,6 @@ function renderAlarmsList(filterType) {
         
         // Tum alarmlar icin trigger_at oncelikli (alarmın tetiklendigi an)
         const timeSource = alarm.trigger_at || alarm.event_time || alarm.created_at;
-        console.log(`[AlarmCard] ${type} ${home}: trigger_at=${alarm.trigger_at}, event_time=${alarm.event_time}, created_at=${alarm.created_at}, timeSource=${timeSource}`);
         const triggerTimeShort = formatTriggerTimeShort(timeSource);
         const triggerPill = group.triggerCount > 1 ? `<span class="trigger-pill">×${group.triggerCount}</span>` : '';
         const marketLabel = formatMarketChip(market, selection);
