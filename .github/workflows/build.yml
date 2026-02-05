@@ -60,7 +60,9 @@ jobs:
 
       - name: Build Desktop EXE
         run: |
-          pyinstaller --onefile --noconsole --windowed --name SmartXFlowDesktop `
+          pyinstaller --onefile --noconsole --windowed --name SmartXFlowDesktopV1.05 `
+            --icon "smartxflow.ico" `
+            --add-data "smartxflow.ico;." `
             --add-data "templates;templates" `
             --add-data "static;static" `
             --add-data "core;core" `
@@ -112,18 +114,18 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v1.01-build-${{ github.run_number }}
-          name: SmartXFlow Desktop v1.01 (Build ${{ github.run_number }})
+          tag_name: v1.05-build-${{ github.run_number }}
+          name: SmartXFlow Desktop v1.05 (Build ${{ github.run_number }})
           body: |
             🖥️ **SmartXFlow Desktop Uygulaması**
             
             Otomatik build - ${{ github.event.head_commit.message }}
             
             **İndirme:**
-            - `SmartXFlowDesktop.exe` - Ana uygulama
+            - `SmartXFlowDesktopV1.05.exe` - Ana uygulama
             - `BUILD_INFO.txt` - Build bilgileri
           files: |
-            dist/SmartXFlowDesktop.exe
+            dist/SmartXFlowDesktopV1.05.exe
             dist/BUILD_INFO.txt
           draft: false
           prerelease: false
