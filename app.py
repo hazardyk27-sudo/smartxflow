@@ -6471,7 +6471,7 @@ def validate_license():
         # Check device
         devices = license_select('license_devices', 'device_id', {'license_key': key}) or []
         device_ids = [d.get('device_id') for d in devices]
-        max_devices = license_data.get('max_devices', 2)
+        max_devices = license_data.get('max_devices', 1)
         
         if device_id in device_ids:
             # Device already registered - update last_seen
