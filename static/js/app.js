@@ -3040,6 +3040,7 @@ function updateMobileValueHeader(dataIndex) {
     }
     
     const timeLabel = chart.data.labels[idx] || '--:--';
+    const lastTimeLabel = chart.data.labels[chart.data.labels.length - 1] || '--:--';
     const value = ds.data[idx];
     
     // Detect market type - use selectedChartMarket in modal context
@@ -3211,7 +3212,7 @@ function updateMobileValueHeader(dataIndex) {
     if (bigValueEl) {
         mobileBigValueTween.setTarget(bigValueEl, bigValueText);
     }
-    if (changeEl) changeEl.textContent = 'Son değer • ' + timeLabel;
+    if (changeEl) changeEl.textContent = 'Son değer • ' + lastTimeLabel;
     
     if (isDropping) {
         // Dropping Odds: Para (yellow) + Değişim (green/red based on sign)
