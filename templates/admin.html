@@ -2599,6 +2599,33 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Lisans Düzenleme Modal -->
+            <div id="editLicenseModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;">
+                <div style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 24px; width: 450px; max-width: 90%;">
+                    <h3 style="color: #a371f7; margin-bottom: 20px;">✏️ Lisans Duzenle</h3>
+                    <input type="hidden" id="editLicenseKey">
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; color: #8b949e; font-size: 13px;">Email</label>
+                        <input type="email" id="editLicenseEmail" placeholder="ornek@email.com" style="width: 100%; padding: 10px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 14px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; color: #8b949e; font-size: 13px;">Telegram Kullanici Adi</label>
+                        <input type="text" id="editTelegramUsername" placeholder="@kullanici_adi" style="width: 100%; padding: 10px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 14px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #e6edf3; font-size: 14px;">
+                            <input type="checkbox" id="editTelegramMembership" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span>Telegram Uyeligi Var</span>
+                            <span style="color: #0088cc;">📢</span>
+                        </label>
+                    </div>
+                    <div class="btn-group" style="margin-top: 20px; justify-content: flex-end; display: flex; gap: 10px;">
+                        <button class="btn" onclick="closeEditModal()" style="background: #21262d; border: 1px solid #30363d; color: #e6edf3; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Iptal</button>
+                        <button class="btn btn-primary" onclick="confirmEditLicense()" style="background: #a371f7; border: none; color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Kaydet</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 
@@ -6665,6 +6692,16 @@
             renderLicenseTable(filtered);
         }
 
+        function escapeHtmlAttr(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         function renderLicenseTable(licenses) {
             const tbody = document.getElementById('licenseTableBody');
             
@@ -6711,6 +6748,8 @@
                         <td style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${lic.note || ''}">${lic.note || '-'}</td>
                         <td>
                             <div style="display: flex; gap: 5px;">
+                                <button onclick="copyLicenseKey('${lic.key}')" title="Key Kopyala" style="background: #30363d; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">📋</button>
+                                <button class="edit-license-btn" data-key="${escapeHtmlAttr(lic.key)}" data-email="${escapeHtmlAttr(lic.email)}" data-telegram="${escapeHtmlAttr(lic.telegram_username)}" data-membership="${lic.telegram_membership ? 'true' : 'false'}" title="Duzenle" style="background: #a371f7; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">✏️</button>
                                 <button onclick="openExtendModal('${lic.key}')" title="Sure Uzat" style="background: #238636; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">⏰</button>
                                 <button onclick="resetDevices('${lic.key}')" title="Cihazlari Sifirla" style="background: #58a6ff; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">🔄</button>
                                 <button onclick="deleteLicense('${lic.key}')" title="Sil" style="background: #f85149; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">🗑️</button>
@@ -6799,6 +6838,64 @@
                 }
             } catch (error) {
                 console.error('Delete license error:', error);
+                showToast('Baglanti hatasi!', 'error');
+            }
+        }
+
+        function copyLicenseKey(key) {
+            navigator.clipboard.writeText(key).then(() => {
+                showToast('Lisans anahtari kopyalandi!', 'success');
+            }).catch(() => {
+                showToast('Kopyalama basarisiz!', 'error');
+            });
+        }
+
+        function openEditModal(key, email, telegramUsername, telegramMembership) {
+            document.getElementById('editLicenseKey').value = key;
+            document.getElementById('editLicenseEmail').value = email || '';
+            document.getElementById('editTelegramUsername').value = telegramUsername || '';
+            document.getElementById('editTelegramMembership').checked = telegramMembership || false;
+            document.getElementById('editLicenseModal').style.display = 'flex';
+        }
+        
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.edit-license-btn');
+            if (btn) {
+                const key = btn.dataset.key;
+                const email = btn.dataset.email || '';
+                const telegram = btn.dataset.telegram || '';
+                const membership = btn.dataset.membership === 'true';
+                openEditModal(key, email, telegram, membership);
+            }
+        });
+
+        function closeEditModal() {
+            document.getElementById('editLicenseModal').style.display = 'none';
+        }
+
+        async function confirmEditLicense() {
+            const key = document.getElementById('editLicenseKey').value;
+            const email = document.getElementById('editLicenseEmail').value.trim();
+            const telegramUsername = document.getElementById('editTelegramUsername').value.trim();
+            const telegramMembership = document.getElementById('editTelegramMembership').checked;
+
+            try {
+                const response = await fetch('/api/licenses/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key, email, telegram_username: telegramUsername, telegram_membership: telegramMembership })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Lisans guncellendi!', 'success');
+                    closeEditModal();
+                    loadLicenses();
+                } else {
+                    showToast(data.error || 'Guncelleme basarisiz!', 'error');
+                }
+            } catch (error) {
+                console.error('Edit license error:', error);
                 showToast('Baglanti hatasi!', 'error');
             }
         }

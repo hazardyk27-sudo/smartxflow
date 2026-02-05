@@ -6380,6 +6380,40 @@ def extend_license():
         return jsonify({'success': False, 'error': str(e)})
 
 
+@app.route('/api/licenses/update', methods=['POST'])
+def update_license():
+    """Update license email, telegram username, and membership"""
+    try:
+        if not get_license_db():
+            return jsonify({'success': False, 'error': 'Supabase baglantisi yok'})
+        
+        data = request.get_json() or {}
+        key = data.get('key', '').strip()
+        email = data.get('email', '').strip()
+        telegram_username = data.get('telegram_username', '').strip()
+        telegram_membership = data.get('telegram_membership', False)
+        
+        if not key:
+            return jsonify({'success': False, 'error': 'Key gerekli'})
+        
+        update_data = {
+            'email': email or None,
+            'telegram_username': telegram_username or None,
+            'telegram_membership': telegram_membership
+        }
+        
+        result = license_update('licenses', update_data, {'key': key})
+        
+        if result:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Guncelleme basarisiz'})
+            
+    except Exception as e:
+        license_logging.error(f"Update license error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
 @app.route('/api/licenses/reset-devices', methods=['POST'])
 def reset_license_devices():
     """Reset all devices for a license"""
