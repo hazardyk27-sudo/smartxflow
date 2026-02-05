@@ -6,10 +6,13 @@ on:
     paths:
       - 'app.py'
       - 'desktop_app.py'
+      - 'desktop_app.spec'
+      - 'smartxflow.ico'
       - 'templates/**'
       - 'static/**'
       - 'core/**'
       - 'services/**'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
 
 jobs:
