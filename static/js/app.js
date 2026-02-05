@@ -8705,7 +8705,7 @@ function updateLicenseDaysBadge(days) {
     if (days >= 36500) {
         text.textContent = 'Lifetime';
     } else {
-        text.textContent = days + ' gun';
+        text.textContent = 'Kalan ' + days + ' gun';
         if (days <= 3) {
             badge.classList.add('danger');
         } else if (days <= 7) {
