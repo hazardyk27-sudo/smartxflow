@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-# SmartXFlow Desktop V1.01 - PyInstaller Spec
+# SmartXFlow Desktop V1.05 - PyInstaller Spec
 # pywebview + Flask backend
 
 import os
@@ -81,7 +81,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='SmartXFlowDesktopV1.01',
+    name='SmartXFlowDesktopV1.05',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
