@@ -15,7 +15,7 @@ on:
 
 jobs:
   build-desktop:
-    name: Build Desktop App V1.01
+    name: Build Desktop App V1.05
     runs-on: windows-latest
     
     steps:
@@ -38,8 +38,8 @@ jobs:
     - name: Upload Desktop App
       uses: actions/upload-artifact@v4
       with:
-        name: SmartXFlowDesktop-V1.01
-        path: dist/SmartXFlowDesktopV1.01.exe
+        name: SmartXFlowDesktop-V1.05
+        path: dist/SmartXFlowDesktopV1.05.exe
         retention-days: 30
 
   build-admin:
@@ -68,5 +68,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: SmartXFlowAdmin
-        path: scraper_standalone/dist/SmartXFlowAdminV1.25.exe
+        path: scraper_standalone/dist/SmartXFlowAdminV1.27.exe
         retention-days: 30
