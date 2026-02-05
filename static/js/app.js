@@ -3211,7 +3211,7 @@ function updateMobileValueHeader(dataIndex) {
     if (bigValueEl) {
         mobileBigValueTween.setTarget(bigValueEl, bigValueText);
     }
-    if (changeEl) changeEl.textContent = 'Son değer • ' + timeLabel;
+    if (changeEl) changeEl.textContent = timeLabel;
     
     if (isDropping) {
         // Dropping Odds: Para (yellow) + Değişim (green/red based on sign)
