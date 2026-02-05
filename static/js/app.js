@@ -8695,6 +8695,26 @@ function hideLicenseGate() {
     }
 }
 
+function updateLicenseDaysBadge(days) {
+    const badge = document.getElementById('licenseDaysBadge');
+    const text = document.getElementById('licenseDaysText');
+    if (!badge || !text) return;
+    
+    badge.classList.remove('warning', 'danger');
+    
+    if (days >= 36500) {
+        text.textContent = 'Lifetime';
+    } else {
+        text.textContent = days + ' gun';
+        if (days <= 3) {
+            badge.classList.add('danger');
+        } else if (days <= 7) {
+            badge.classList.add('warning');
+        }
+    }
+    badge.style.display = 'flex';
+}
+
 async function validateWebLicense() {
     const input = document.getElementById('licenseKeyInput');
     const errorDiv = document.getElementById('licenseError');
@@ -8748,6 +8768,9 @@ async function validateWebLicense() {
             }
             if (!daysRemaining || daysRemaining > 9000) daysRemaining = 36500; // Lifetime
             
+            localStorage.setItem('license_days_remaining', daysRemaining);
+            updateLicenseDaysBadge(daysRemaining);
+            
             successDiv.innerHTML = '<div style="font-size:24px;margin-bottom:8px;">✓</div>Lisans aktif! Kalan gun: ' + daysRemaining;
             successDiv.style.display = 'block';
             progressBar.style.display = 'none';
@@ -8782,6 +8805,11 @@ function initLicenseCheck() {
     } else {
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) logoutBtn.style.display = 'flex';
+        
+        const savedDays = localStorage.getItem('license_days_remaining');
+        if (savedDays) {
+            updateLicenseDaysBadge(parseInt(savedDays));
+        }
     }
 }
 
@@ -8789,6 +8817,7 @@ function logoutWebLicense() {
     if (confirm('Cikis yapmak istediginize emin misiniz?')) {
         localStorage.removeItem(WEB_LICENSE_KEY);
         localStorage.removeItem(WEB_LICENSE_VALID_KEY);
+        localStorage.removeItem('license_days_remaining');
         window.location.reload();
     }
 }
