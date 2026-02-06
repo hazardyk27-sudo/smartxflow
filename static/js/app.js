@@ -6397,8 +6397,25 @@ function groupAlarmsByMatch(alarms) {
 function updateAlarmCounts() {
     const badge = document.getElementById('alarmsBadge');
     const mobileBadge = document.getElementById('mobileAlarmBadge');
-    if (badge) badge.textContent = allAlarmsData.length;
-    if (mobileBadge) mobileBadge.textContent = allAlarmsData.length;
+    
+    const filteredGroups = groupedAlarmsData.filter(g => {
+        if (currentAlarmDateFilter === 'all') {
+            const matchDateStr = g.match_date || g.fixture_date || getMatchDateFromAlarm(g.latestAlarm);
+            if (!matchDateStr) return true;
+            const { todayStr } = getDateFilterStrings();
+            return matchDateStr >= todayStr;
+        }
+        return true;
+    });
+    
+    const totalCount = filteredGroups.length;
+    if (badge) badge.textContent = totalCount;
+    if (mobileBadge) mobileBadge.textContent = totalCount;
+    
+    const typeCounts = { sharp: 0, bigmoney: 0, volumeshock: 0, dropping: 0, publicmove: 0, volumeleader: 0, mim: 0 };
+    filteredGroups.forEach(g => {
+        if (typeCounts.hasOwnProperty(g.type)) typeCounts[g.type]++;
+    });
     
     const countAll = document.getElementById('countAll');
     const countSharp = document.getElementById('countSharp');
@@ -6409,14 +6426,14 @@ function updateAlarmCounts() {
     const countVolumeleader = document.getElementById('countVolumeleader');
     const countMim = document.getElementById('countMim');
     
-    if (countAll) countAll.textContent = allAlarmsData.length;
-    if (countSharp) countSharp.textContent = alarmsDataByType.sharp?.length || 0;
-    if (countBigmoney) countBigmoney.textContent = alarmsDataByType.bigmoney?.length || 0;
-    if (countVolumeshock) countVolumeshock.textContent = alarmsDataByType.volumeshock?.length || 0;
-    if (countDropping) countDropping.textContent = alarmsDataByType.dropping?.length || 0;
-    if (countPublicmove) countPublicmove.textContent = alarmsDataByType.publicmove?.length || 0;
-    if (countVolumeleader) countVolumeleader.textContent = alarmsDataByType.volumeleader?.length || 0;
-    if (countMim) countMim.textContent = alarmsDataByType.mim?.length || 0;
+    if (countAll) countAll.textContent = totalCount;
+    if (countSharp) countSharp.textContent = typeCounts.sharp;
+    if (countBigmoney) countBigmoney.textContent = typeCounts.bigmoney;
+    if (countVolumeshock) countVolumeshock.textContent = typeCounts.volumeshock;
+    if (countDropping) countDropping.textContent = typeCounts.dropping;
+    if (countPublicmove) countPublicmove.textContent = typeCounts.publicmove;
+    if (countVolumeleader) countVolumeleader.textContent = typeCounts.volumeleader;
+    if (countMim) countMim.textContent = typeCounts.mim;
 }
 
 let currentAlarmDateFilter = 'all'; // all, today, yesterday, future
