@@ -5632,7 +5632,7 @@ function highlightNewAlarm(alarm) {
     const home = alarm.home || alarm.home_team || '?';
     const away = alarm.away || alarm.away_team || '?';
     const rawSel = (alarm.selection || alarm.side || '').toUpperCase();
-    const selMap = {'U': 'A', 'O': 'Ü', 'Y': 'E', 'N': 'H', '1': '1', 'X': 'X', '2': '2'};
+    const selMap = {'U': 'Alt', 'O': 'Üst', 'Y': 'Evet', 'N': 'Hayır', '1': '1', 'X': 'X', '2': '2', 'UNDER': 'Alt', 'OVER': 'Üst', 'YES': 'Evet', 'NO': 'Hayır'};
     const selection = selMap[rawSel] || rawSel;
     const alarmType = alarm._type || 'sharp';
     
@@ -6090,7 +6090,7 @@ function renderAlertBand() {
         const home = alarm.home || alarm.home_team || '?';
         const away = alarm.away || alarm.away_team || '?';
         const rawSel = (alarm.selection || alarm.side || '').toUpperCase();
-        const selMap = {'U': 'A', 'O': 'Ü', 'Y': 'E', 'N': 'H', '1': '1', 'X': 'X', '2': '2'};
+        const selMap = {'U': 'Alt', 'O': 'Üst', 'Y': 'Evet', 'N': 'Hayır', '1': '1', 'X': 'X', '2': '2', 'UNDER': 'Alt', 'OVER': 'Üst', 'YES': 'Evet', 'NO': 'Hayır'};
         const selection = selMap[rawSel] || rawSel;
         
         // Minimal value format
