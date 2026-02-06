@@ -3429,6 +3429,49 @@ async function loadChart(home, away, market, league = '') {
         const labels = sortedKeys.map(k => formatTimeLabel(k));
         const historyData = sortedKeys.map(k => timeBlocks[k]);
         
+        if (isDropping && historyData.length > 0) {
+            const firstEntry = historyData[0];
+            let hasOpeningOdds = false;
+            let openingPoint = { ScrapedAt: '' };
+            
+            if (market.includes('1x2')) {
+                const op1 = parseFloat(firstEntry.Odds1_prev);
+                const opX = parseFloat(firstEntry.OddsX_prev);
+                const op2 = parseFloat(firstEntry.Odds2_prev);
+                if (!isNaN(op1) && op1 > 0) {
+                    hasOpeningOdds = true;
+                    openingPoint.Odds1 = op1; openingPoint['1'] = op1;
+                    openingPoint.OddsX = !isNaN(opX) ? opX : null; openingPoint['X'] = openingPoint.OddsX;
+                    openingPoint.Odds2 = !isNaN(op2) ? op2 : null; openingPoint['2'] = openingPoint.Odds2;
+                }
+            } else if (market.includes('ou25')) {
+                const opU = parseFloat(firstEntry.Under_prev || firstEntry.OddsUnder_prev);
+                const opO = parseFloat(firstEntry.Over_prev || firstEntry.OddsOver_prev);
+                if (!isNaN(opU) && opU > 0) {
+                    hasOpeningOdds = true;
+                    openingPoint.Under = opU; openingPoint.Over = !isNaN(opO) ? opO : null;
+                    openingPoint.OddsUnder = opU; openingPoint.OddsOver = openingPoint.Over;
+                }
+            } else if (market.includes('btts')) {
+                const opY = parseFloat(firstEntry.Yes_prev || firstEntry.OddsYes_prev);
+                const opN = parseFloat(firstEntry.No_prev || firstEntry.OddsNo_prev);
+                if (!isNaN(opY) && opY > 0) {
+                    hasOpeningOdds = true;
+                    openingPoint.Yes = opY; openingPoint.No = !isNaN(opN) ? opN : null;
+                    openingPoint.OddsYes = opY; openingPoint.OddsNo = openingPoint.No;
+                }
+            }
+            
+            if (hasOpeningOdds) {
+                const firstTs = sortedKeys[0];
+                const openingTs = firstTs - 600000;
+                labels.unshift(formatTimeLabel(openingTs));
+                historyData.unshift(openingPoint);
+                sortedKeys.unshift(openingTs);
+                console.log('[Chart] Added opening odds point:', openingPoint);
+            }
+        }
+        
         if (sortedKeys.length > 0) {
             const lastKey = sortedKeys[sortedKeys.length - 1];
             const lastLabel = formatTimeLabel(lastKey);
