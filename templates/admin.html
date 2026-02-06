@@ -611,6 +611,11 @@
                 <span class="nav-item-icon">📲</span>
                 <span>Telegram</span>
             </div>
+            <div class="nav-category">İçerik</div>
+            <div class="nav-item" onclick="showPage('content')" data-page="content">
+                <span class="nav-item-icon">📝</span>
+                <span>İçerik Yönetimi</span>
+            </div>
         </nav>
         <div class="sidebar-footer">
             <a href="/" class="back-home">
@@ -2629,6 +2634,37 @@
                 </div>
             </div>
         </div>
+        <div id="page-content" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title">İçerik Yönetimi</h2>
+                    <p class="page-subtitle">Analiz ve hareket tavsiyesi paylaşımları</p>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+                <button class="btn btn-primary" id="contentTabAnalysis" onclick="switchContentTab('analysis')" style="padding: 8px 16px;">Analizler</button>
+                <button class="btn" id="contentTabTip" onclick="switchContentTab('tip')" style="padding: 8px 16px; background: #21262d; border: 1px solid #30363d; color: #c9d1d9;">Hareket Tavsiyeleri</button>
+            </div>
+            
+            <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+                <h3 style="margin-bottom: 16px; color: #c9d1d9;" id="contentFormTitle">Yeni Analiz Ekle</h3>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <input type="text" id="contentTitle" placeholder="Başlık" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px;">
+                    <textarea id="contentText" placeholder="İçerik metni..." rows="5" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; resize: vertical;"></textarea>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; color: #8b949e; font-size: 13px;">Ekran Görüntüsü (opsiyonel)</label>
+                        <input type="file" id="contentImage" accept="image/*" style="color: #8b949e; font-size: 13px;">
+                    </div>
+                    <button class="btn btn-primary" onclick="submitContent()" style="align-self: flex-start; padding: 10px 24px;">Paylaş</button>
+                </div>
+                <div id="contentUploadStatus" style="margin-top: 10px; font-size: 13px;"></div>
+            </div>
+            
+            <div id="contentList" style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="text-align: center; color: #8b949e; padding: 40px;">Yükleniyor...</div>
+            </div>
+        </div>
     </main>
 
     <div class="toast" id="toast"></div>
@@ -3347,6 +3383,7 @@
             if (pageId === 'volumeleader') loadVolumeLeaderPage();
             if (pageId === 'mim') loadMimPage();
             if (pageId === 'telegram') loadTelegramPage();
+            if (pageId === 'content') loadContentPage();
             if (pageId === 'license') loadLicensePage();
         }
         
@@ -6988,6 +7025,113 @@
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(loadAnalyticsDashboard, 500);
         });
+
+        let currentContentTab = 'analysis';
+
+        function switchContentTab(tab) {
+            currentContentTab = tab;
+            document.getElementById('contentTabAnalysis').style.background = tab === 'analysis' ? '#238636' : '#21262d';
+            document.getElementById('contentTabAnalysis').style.color = tab === 'analysis' ? '#fff' : '#c9d1d9';
+            document.getElementById('contentTabAnalysis').style.border = tab === 'analysis' ? '1px solid #238636' : '1px solid #30363d';
+            document.getElementById('contentTabTip').style.background = tab === 'tip' ? '#238636' : '#21262d';
+            document.getElementById('contentTabTip').style.color = tab === 'tip' ? '#fff' : '#c9d1d9';
+            document.getElementById('contentTabTip').style.border = tab === 'tip' ? '1px solid #238636' : '1px solid #30363d';
+            document.getElementById('contentFormTitle').textContent = tab === 'analysis' ? 'Yeni Analiz Ekle' : 'Yeni Hareket Tavsiyesi Ekle';
+            loadContentList();
+        }
+
+        async function loadContentPage() {
+            switchContentTab('analysis');
+        }
+
+        async function loadContentList() {
+            const list = document.getElementById('contentList');
+            list.innerHTML = '<div style="text-align: center; color: #8b949e; padding: 40px;">Yükleniyor...</div>';
+            try {
+                const resp = await fetch(`/api/analyses?category=${currentContentTab}`);
+                const data = await resp.json();
+                if (!data || data.length === 0) {
+                    list.innerHTML = '<div style="text-align: center; color: #8b949e; padding: 40px;">Henüz içerik yok</div>';
+                    return;
+                }
+                list.innerHTML = data.map(item => `
+                    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="flex: 1;">
+                                <h4 style="color: #c9d1d9; margin-bottom: 8px;">${escapeHtml(item.title)}</h4>
+                                <p style="color: #8b949e; font-size: 13px; margin-bottom: 8px;">${escapeHtml(item.content).substring(0, 200)}${item.content.length > 200 ? '...' : ''}</p>
+                                <span style="color: #484f58; font-size: 12px;">${new Date(item.created_at).toLocaleString('tr-TR')}</span>
+                            </div>
+                            ${item.image_url ? `<img src="${item.image_url}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 6px; margin-left: 12px; border: 1px solid #30363d;">` : ''}
+                        </div>
+                        <div style="margin-top: 10px; text-align: right;">
+                            <button onclick="deleteContent(${item.id})" style="background: #da3633; border: none; color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Sil</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                list.innerHTML = '<div style="text-align: center; color: #f85149; padding: 40px;">Yükleme hatası</div>';
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function submitContent() {
+            const title = document.getElementById('contentTitle').value.trim();
+            const content = document.getElementById('contentText').value.trim();
+            const imageInput = document.getElementById('contentImage');
+            const status = document.getElementById('contentUploadStatus');
+
+            if (!title || !content) {
+                status.innerHTML = '<span style="color: #f85149;">Başlık ve içerik zorunludur</span>';
+                return;
+            }
+
+            status.innerHTML = '<span style="color: #58a6ff;">Yükleniyor...</span>';
+
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('content', content);
+            formData.append('category', currentContentTab);
+            if (imageInput.files[0]) {
+                formData.append('image', imageInput.files[0]);
+            }
+
+            try {
+                const resp = await fetch('/api/analyses', { method: 'POST', body: formData });
+                const data = await resp.json();
+                if (data.status === 'ok') {
+                    status.innerHTML = '<span style="color: #3fb950;">Başarıyla paylaşıldı!</span>';
+                    document.getElementById('contentTitle').value = '';
+                    document.getElementById('contentText').value = '';
+                    imageInput.value = '';
+                    setTimeout(() => { status.innerHTML = ''; }, 3000);
+                    loadContentList();
+                } else {
+                    status.innerHTML = `<span style="color: #f85149;">Hata: ${data.message}</span>`;
+                }
+            } catch (e) {
+                status.innerHTML = `<span style="color: #f85149;">Bağlantı hatası</span>`;
+            }
+        }
+
+        async function deleteContent(id) {
+            if (!confirm('Bu içeriği silmek istediğinize emin misiniz?')) return;
+            try {
+                const resp = await fetch(`/api/analyses/${id}`, { method: 'DELETE' });
+                const data = await resp.json();
+                if (data.status === 'ok') {
+                    loadContentList();
+                }
+            } catch (e) {
+                alert('Silme hatası');
+            }
+        }
     </script>
 </body>
 </html>

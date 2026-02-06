@@ -128,6 +128,35 @@
             margin: 0 auto;
             line-height: 1.7;
         }
+        .tab-btn {
+            padding: 10px 24px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+            background: #161b22;
+            color: #8b949e;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .tab-btn.active, .tab-btn:hover {
+            background: #238636;
+            color: #fff;
+            border-color: #238636;
+        }
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 24px;
+        }
+        @media (max-width: 768px) {
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .analysis-card:hover {
+            transform: translateY(-4px);
+            border-color: #58a6ff !important;
+        }
 
         .footer {
             padding: 40px 24px;
@@ -195,10 +224,13 @@
     </section>
 
     <section class="analysis-section">
-        <div class="empty-state">
-            <div class="empty-state-icon">📊</div>
-            <h3>Henüz analiz paylaşılmadı</h3>
-            <p>Yakında burada profesyonel analizler paylaşılacak. Piyasa değerlendirmeleri, sinyal analizleri ve daha fazlası için takipte kalın.</p>
+        <div style="display: flex; gap: 12px; margin-bottom: 32px; justify-content: center;">
+            <button class="tab-btn active" id="tabAnalysis" onclick="switchTab('analysis')">Analizler</button>
+            <button class="tab-btn" id="tabTip" onclick="switchTab('tip')">Hareket Tavsiyeleri</button>
+        </div>
+
+        <div id="contentGrid" class="analysis-grid">
+            <div class="empty-state" style="grid-column: 1/-1;">Yükleniyor...</div>
         </div>
     </section>
 
@@ -222,6 +254,51 @@
         function toggleMenu() {
             document.getElementById('mobileMenu').classList.toggle('open');
         }
+
+        let activeTab = 'analysis';
+
+        function switchTab(tab) {
+            activeTab = tab;
+            document.getElementById('tabAnalysis').className = tab === 'analysis' ? 'tab-btn active' : 'tab-btn';
+            document.getElementById('tabTip').className = tab === 'tip' ? 'tab-btn active' : 'tab-btn';
+            loadContent();
+        }
+
+        async function loadContent() {
+            const grid = document.getElementById('contentGrid');
+            grid.innerHTML = '<div class="empty-state" style="grid-column: 1/-1; padding: 60px 20px; text-align: center;"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div><p style="color: #8b949e;">Yükleniyor...</p></div>';
+            try {
+                const resp = await fetch(`/api/analyses?category=${activeTab}`);
+                const data = await resp.json();
+                if (!data || data.length === 0) {
+                    const emptyIcon = activeTab === 'analysis' ? '📊' : '💡';
+                    const emptyText = activeTab === 'analysis' ? 'Henüz analiz paylaşılmadı' : 'Henüz hareket tavsiyesi paylaşılmadı';
+                    grid.innerHTML = `<div class="empty-state" style="grid-column: 1/-1; padding: 60px 20px; text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">${emptyIcon}</div>
+                        <h3 style="color: #c9d1d9; margin-bottom: 8px;">${emptyText}</h3>
+                        <p style="color: #8b949e;">Yakında burada içerikler paylaşılacak.</p>
+                    </div>`;
+                    return;
+                }
+                grid.innerHTML = data.map(item => `
+                    <div class="analysis-card" style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; overflow: hidden; transition: transform 0.3s, border-color 0.3s;">
+                        ${item.image_url ? `<img src="${item.image_url}" style="width: 100%; height: 200px; object-fit: cover;" alt="${escapeAttr(item.title)}">` : '<div style="height: 4px; background: linear-gradient(90deg, #238636, #58a6ff);"></div>'}
+                        <div style="padding: 20px;">
+                            <h3 style="color: #c9d1d9; font-size: 18px; margin-bottom: 10px;">${escapeHtml(item.title)}</h3>
+                            <p style="color: #8b949e; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(item.content)}</p>
+                            <div style="margin-top: 16px; color: #484f58; font-size: 12px;">${new Date(item.created_at).toLocaleString('tr-TR')}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                grid.innerHTML = '<div class="empty-state" style="grid-column: 1/-1; text-align: center; padding: 60px;"><p style="color: #f85149;">İçerik yüklenirken hata oluştu</p></div>';
+            }
+        }
+
+        function escapeHtml(t) { if(!t)return''; const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+        function escapeAttr(t) { if(!t)return''; return t.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+        document.addEventListener('DOMContentLoaded', () => loadContent());
     </script>
 </body>
 </html>

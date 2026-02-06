@@ -1724,6 +1724,86 @@ class SupabaseClient:
         
         return result
 
+    def upload_to_storage(self, bucket: str, file_path: str, file_data: bytes, content_type: str = 'image/png') -> Optional[str]:
+        """Upload file to Supabase Storage and return public URL"""
+        if not self.is_available:
+            return None
+        try:
+            url = f"{self.url}/storage/v1/object/{bucket}/{file_path}"
+            headers = {
+                "apikey": self.key,
+                "Authorization": f"Bearer {self.key}",
+                "Content-Type": content_type
+            }
+            resp = httpx.post(url, content=file_data, headers=headers, timeout=30)
+            if resp.status_code in [200, 201]:
+                return f"{self.url}/storage/v1/object/public/{bucket}/{file_path}"
+            print(f"[Supabase] Storage upload failed: {resp.status_code} {resp.text[:200]}")
+            return None
+        except Exception as e:
+            print(f"[Supabase] Storage upload error: {e}")
+            return None
+
+    def get_analyses(self, category: str = None) -> List[Dict]:
+        """Get analyses from Supabase, optionally filtered by category"""
+        if not self.is_available:
+            return []
+        try:
+            url = f"{self._rest_url('analyses')}?order=created_at.desc"
+            if category:
+                url += f"&category=eq.{category}"
+            resp = httpx.get(url, headers=self._headers(), timeout=15)
+            if resp.status_code == 200:
+                return resp.json()
+            return []
+        except Exception as e:
+            print(f"[Supabase] get_analyses error: {e}")
+            return []
+
+    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis') -> Optional[Dict]:
+        """Create new analysis entry"""
+        if not self.is_available:
+            return None
+        try:
+            data = {"title": title, "content": content, "image_url": image_url, "category": category}
+            resp = httpx.post(self._rest_url('analyses'), json=data, headers=self._headers(), timeout=15)
+            if resp.status_code in [200, 201]:
+                result = resp.json()
+                return result[0] if isinstance(result, list) else result
+            print(f"[Supabase] create_analysis failed: {resp.status_code} {resp.text[:200]}")
+            return None
+        except Exception as e:
+            print(f"[Supabase] create_analysis error: {e}")
+            return None
+
+    def delete_analysis(self, analysis_id: int) -> bool:
+        """Delete analysis by id"""
+        if not self.is_available:
+            return False
+        try:
+            url = f"{self._rest_url('analyses')}?id=eq.{analysis_id}"
+            headers = self._headers()
+            headers["Prefer"] = "return=minimal"
+            resp = httpx.delete(url, headers=headers, timeout=15)
+            return resp.status_code in [200, 204]
+        except Exception as e:
+            print(f"[Supabase] delete_analysis error: {e}")
+            return False
+
+    def ensure_analyses_table(self):
+        """Check if analyses table exists"""
+        if not self.is_available:
+            return
+        try:
+            check_url = f"{self._rest_url('analyses')}?select=id&limit=1"
+            resp = httpx.get(check_url, headers=self._headers(), timeout=10)
+            if resp.status_code == 200:
+                print("[Supabase] analyses table exists")
+                return
+            print("[Supabase] analyses table needs to be created - please create it in Supabase dashboard")
+        except Exception as e:
+            print(f"[Supabase] Error checking analyses table: {e}")
+
 
 class LocalDatabase:
     """Fallback local SQLite database when Supabase is not available"""
@@ -1941,6 +2021,30 @@ class HybridDatabase:
         if self.supabase.is_available:
             return self.supabase.get_opening_odds_batch(market, match_hashes)
         return {}
+
+    def upload_to_storage(self, bucket: str, file_path: str, file_data: bytes, content_type: str = 'image/png') -> Optional[str]:
+        if self.supabase.is_available:
+            return self.supabase.upload_to_storage(bucket, file_path, file_data, content_type)
+        return None
+
+    def get_analyses(self, category: str = None) -> List[Dict]:
+        if self.supabase.is_available:
+            return self.supabase.get_analyses(category)
+        return []
+
+    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis') -> Optional[Dict]:
+        if self.supabase.is_available:
+            return self.supabase.create_analysis(title, content, image_url, category)
+        return None
+
+    def delete_analysis(self, analysis_id: int) -> bool:
+        if self.supabase.is_available:
+            return self.supabase.delete_analysis(analysis_id)
+        return False
+
+    def ensure_analyses_table(self):
+        if self.supabase.is_available:
+            self.supabase.ensure_analyses_table()
 
 
 _database = None

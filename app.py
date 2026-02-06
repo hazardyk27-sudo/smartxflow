@@ -245,6 +245,7 @@ if Compress is not None:
 
 current_mode = init_mode()
 db = get_database()
+db.ensure_analyses_table()
 
 if is_server_mode():
     from scraper.core import run_scraper, get_cookie_string
@@ -5716,6 +5717,55 @@ def scraper_console_page():
 def admin_panel():
     """Admin Panel"""
     return render_template('admin.html')
+
+
+@app.route('/api/analyses', methods=['GET'])
+def get_analyses():
+    """Get analyses list"""
+    category = request.args.get('category', None)
+    data = db.get_analyses(category)
+    return jsonify(data)
+
+@app.route('/api/analyses', methods=['POST'])
+def create_analysis():
+    """Create new analysis with optional image upload"""
+    title = request.form.get('title', '')
+    content = request.form.get('content', '')
+    category = request.form.get('category', 'analysis')
+    
+    if not title or not content:
+        return jsonify({'status': 'error', 'message': 'Başlık ve içerik zorunludur'}), 400
+    
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    MAX_FILE_SIZE = 5 * 1024 * 1024
+    
+    image_url = None
+    if 'image' in request.files:
+        file = request.files['image']
+        if file and file.filename:
+            import uuid
+            ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'png'
+            if ext not in ALLOWED_EXTENSIONS:
+                return jsonify({'status': 'error', 'message': 'Sadece resim dosyaları yüklenebilir (png, jpg, gif, webp)'}), 400
+            file_data = file.read()
+            if len(file_data) > MAX_FILE_SIZE:
+                return jsonify({'status': 'error', 'message': 'Dosya boyutu 5MB\'dan küçük olmalıdır'}), 400
+            file_path = f"analyses/{uuid.uuid4().hex}.{ext}"
+            content_type = file.content_type or 'image/png'
+            image_url = db.upload_to_storage('smartxflow', file_path, file_data, content_type)
+    
+    result = db.create_analysis(title, content, image_url, category)
+    if result:
+        return jsonify({'status': 'ok', 'data': result})
+    return jsonify({'status': 'error', 'message': 'Analiz oluşturulamadı'}), 500
+
+@app.route('/api/analyses/<int:analysis_id>', methods=['DELETE'])
+def delete_analysis_endpoint(analysis_id):
+    """Delete analysis"""
+    success = db.delete_analysis(analysis_id)
+    if success:
+        return jsonify({'status': 'ok'})
+    return jsonify({'status': 'error'}), 500
 
 
 # ============================================
