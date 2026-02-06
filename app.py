@@ -507,6 +507,21 @@ def start_server_scheduler():
 
 
 @app.route('/')
+def landing_page():
+    """Landing page - SmartXFlow tanıtımı"""
+    return render_template('landing.html')
+
+@app.route('/pricing')
+def pricing_page():
+    """Pricing page - Paket ve fiyatlar"""
+    return render_template('pricing.html')
+
+@app.route('/analysis')
+def analysis_page():
+    """Analysis page - Analiz paylaşımları"""
+    return render_template('analysis.html')
+
+@app.route('/app')
 def index():
     """Main dashboard page"""
     return render_template('index.html')

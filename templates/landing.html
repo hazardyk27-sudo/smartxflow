@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache">
+    <title>SmartXFlow - Akıllı Para & Oran Takip Sistemi</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+        a { text-decoration: none; color: inherit; }
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid #21262d;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-brand img {
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
+        }
+        .nav-brand span {
+            font-size: 20px;
+            font-weight: 700;
+            color: #e6edf3;
+            letter-spacing: -0.5px;
+        }
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-links a {
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #8b949e;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .nav-links a:hover { color: #e6edf3; background: rgba(255,255,255,0.05); }
+        .nav-links a.active { color: #58a6ff; }
+        .nav-links a.nav-cta {
+            background: #238636;
+            color: #fff;
+            font-weight: 600;
+            padding: 8px 20px;
+        }
+        .nav-links a.nav-cta:hover { background: #2ea043; }
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            cursor: pointer;
+            padding: 8px;
+            z-index: 1001;
+        }
+        .hamburger span {
+            display: block;
+            width: 24px;
+            height: 2px;
+            background: #c9d1d9;
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 64px;
+            left: 0;
+            right: 0;
+            background: rgba(13, 17, 23, 0.98);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #21262d;
+            padding: 16px 24px;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 999;
+        }
+        .mobile-menu.open { display: flex; }
+        .mobile-menu a {
+            padding: 12px 16px;
+            font-size: 15px;
+            font-weight: 500;
+            color: #8b949e;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .mobile-menu a:hover { color: #e6edf3; background: rgba(255,255,255,0.05); }
+        .mobile-menu a.active { color: #58a6ff; }
+        .mobile-menu a.nav-cta {
+            background: #238636;
+            color: #fff;
+            text-align: center;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .hero {
+            padding: 140px 24px 80px;
+            text-align: center;
+            background: radial-gradient(ellipse at 50% 0%, rgba(88,166,255,0.08) 0%, transparent 60%);
+            position: relative;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 64px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(88,166,255,0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 800;
+            color: #e6edf3;
+            letter-spacing: -1.5px;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .hero h1 .gradient-text {
+            background: linear-gradient(135deg, #58a6ff, #3fb950);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero p {
+            font-size: 18px;
+            color: #8b949e;
+            max-width: 600px;
+            margin: 0 auto 40px;
+            line-height: 1.7;
+        }
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #238636, #2ea043);
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s;
+            box-shadow: 0 4px 16px rgba(35,134,54,0.3);
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(35,134,54,0.4); }
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 32px;
+            background: transparent;
+            color: #c9d1d9;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 12px;
+            border: 1px solid #30363d;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+        .btn-secondary:hover { border-color: #58a6ff; color: #58a6ff; transform: translateY(-2px); }
+
+        .section { padding: 80px 24px; max-width: 1200px; margin: 0 auto; }
+        .section-title {
+            text-align: center;
+            font-size: 36px;
+            font-weight: 700;
+            color: #e6edf3;
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+        }
+        .section-subtitle {
+            text-align: center;
+            font-size: 16px;
+            color: #8b949e;
+            margin-bottom: 56px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .feature-card {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 16px;
+            padding: 32px 28px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #58a6ff, #3fb950);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .feature-card:hover {
+            border-color: #30363d;
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+        }
+        .feature-card:hover::before { opacity: 1; }
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .feature-icon.blue { background: rgba(88,166,255,0.1); }
+        .feature-icon.green { background: rgba(63,185,80,0.1); }
+        .feature-icon.red { background: rgba(248,81,73,0.1); }
+        .feature-icon.purple { background: rgba(139,92,246,0.1); }
+        .feature-icon.yellow { background: rgba(250,204,21,0.1); }
+        .feature-icon.cyan { background: rgba(56,189,248,0.1); }
+        .feature-card h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #e6edf3;
+            margin-bottom: 10px;
+        }
+        .feature-card p {
+            font-size: 14px;
+            color: #8b949e;
+            line-height: 1.6;
+        }
+
+        .stats-section {
+            padding: 60px 24px;
+            background: #161b22;
+            border-top: 1px solid #21262d;
+            border-bottom: 1px solid #21262d;
+        }
+        .stats-grid {
+            display: flex;
+            justify-content: center;
+            gap: 80px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .stat-item { text-align: center; }
+        .stat-number {
+            font-size: 48px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #58a6ff, #3fb950);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+        }
+        .stat-label {
+            font-size: 15px;
+            color: #8b949e;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        .cta-section {
+            padding: 100px 24px;
+            text-align: center;
+            background: radial-gradient(ellipse at 50% 100%, rgba(63,185,80,0.06) 0%, transparent 60%);
+        }
+        .cta-section h2 {
+            font-size: 36px;
+            font-weight: 700;
+            color: #e6edf3;
+            margin-bottom: 16px;
+        }
+        .cta-section p {
+            font-size: 16px;
+            color: #8b949e;
+            margin-bottom: 32px;
+        }
+
+        .footer {
+            padding: 40px 24px;
+            border-top: 1px solid #21262d;
+            text-align: center;
+        }
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .footer-brand img { width: 24px; height: 24px; }
+        .footer-brand span { font-size: 14px; font-weight: 600; color: #8b949e; }
+        .footer-links { display: flex; gap: 24px; }
+        .footer-links a { font-size: 13px; color: #8b949e; transition: color 0.2s; }
+        .footer-links a:hover { color: #58a6ff; }
+        .footer-copy { font-size: 12px; color: #484f58; width: 100%; text-align: center; margin-top: 16px; }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hamburger { display: flex; }
+            .hero { padding: 120px 20px 60px; }
+            .hero h1 { font-size: 32px; }
+            .hero p { font-size: 16px; }
+            .hero-buttons { flex-direction: column; align-items: center; }
+            .btn-primary, .btn-secondary { width: 100%; max-width: 300px; justify-content: center; }
+            .features-grid { grid-template-columns: 1fr; }
+            .stats-grid { flex-direction: column; gap: 32px; }
+            .stat-number { font-size: 36px; }
+            .section-title { font-size: 28px; }
+            .footer-content { flex-direction: column; text-align: center; }
+            .footer-links { flex-wrap: wrap; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-brand">
+            <img src="/static/images/smartxflow_logo.png" alt="SmartXFlow">
+            <span>SmartXFlow</span>
+        </a>
+        <div class="nav-links">
+            <a href="/" class="active">Ana Sayfa</a>
+            <a href="#features">Özellikler</a>
+            <a href="/pricing">Paketler</a>
+            <a href="/analysis">Analizler</a>
+            <a href="/app" class="nav-cta">Uygulamaya Git</a>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()">
+            <span></span><span></span><span></span>
+        </div>
+    </nav>
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="/" class="active">Ana Sayfa</a>
+        <a href="#features" onclick="toggleMenu()">Özellikler</a>
+        <a href="/pricing">Paketler</a>
+        <a href="/analysis">Analizler</a>
+        <a href="/app" class="nav-cta">Uygulamaya Git</a>
+    </div>
+
+    <section class="hero">
+        <h1><span class="gradient-text">Akıllı Para</span> & Oran Takip Sistemi</h1>
+        <p>Profesyonel bahis piyasası analiz aracı. Gerçek zamanlı oran değişimleri, hacim hareketleri ve akıllı para sinyallerini takip edin.</p>
+        <div class="hero-buttons">
+            <a href="/app" class="btn-primary">Uygulamayı Dene →</a>
+            <a href="/pricing" class="btn-secondary">Paketleri İncele</a>
+        </div>
+    </section>
+
+    <section class="section" id="features">
+        <h2 class="section-title">Özellikler</h2>
+        <p class="section-subtitle">Piyasayı profesyonel araçlarla analiz edin, akıllı para hareketlerini anında yakalayın.</p>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon blue">⚡</div>
+                <h3>Gerçek Zamanlı Takip</h3>
+                <p>10 dakikada bir otomatik veri güncelleme ile piyasayı canlı takip edin. Hiçbir hareketi kaçırmayın.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon green">💰</div>
+                <h3>Akıllı Para Sinyalleri</h3>
+                <p>Sharp money, insider ve big money alarmları ile profesyonel bahisçilerin hareketlerini tespit edin.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon red">📉</div>
+                <h3>Oran Düşüş Analizi</h3>
+                <p>Dropping odds seviyelendirme sistemi (L1-L3) ile anlamlı oran düşüşlerini kategorize edin.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon purple">🔊</div>
+                <h3>Hacim Şoku Tespiti</h3>
+                <p>Ani hacim artışlarını otomatik olarak tespit edin ve piyasa hareketlerinin önünde olun.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon yellow">📊</div>
+                <h3>Grafik Analiz</h3>
+                <p>Detaylı oran ve hacim grafikleri ile geçmiş verileri görselleştirin, trendleri keşfedin.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon cyan">🔔</div>
+                <h3>Telegram Bildirimleri</h3>
+                <p>Anlık alarm bildirimleri ile önemli sinyalleri Telegram üzerinden anında alın.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats-section">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number">7</div>
+                <div class="stat-label">Alarm Türü</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">6</div>
+                <div class="stat-label">Piyasa</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">24/7</div>
+                <div class="stat-label">Takip</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section">
+        <h2>Hemen Başlayın</h2>
+        <p>Akıllı para hareketlerini takip etmeye bugün başlayın.</p>
+        <a href="/app" class="btn-primary">Uygulamayı Aç →</a>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <img src="/static/images/smartxflow_logo.png" alt="SmartXFlow">
+                <span>SmartXFlow</span>
+            </div>
+            <div class="footer-links">
+                <a href="/">Ana Sayfa</a>
+                <a href="/pricing">Paketler</a>
+                <a href="/analysis">Analizler</a>
+                <a href="/app">Uygulama</a>
+            </div>
+            <div class="footer-copy">© 2025 SmartXFlow. Tüm hakları saklıdır.</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleMenu() {
+            document.getElementById('mobileMenu').classList.toggle('open');
+        }
+    </script>
+</body>
+</html>

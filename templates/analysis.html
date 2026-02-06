@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache">
+    <title>SmartXFlow - Analizler & Paylaşımlar</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        a { text-decoration: none; color: inherit; }
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid #21262d;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .nav-brand { display: flex; align-items: center; gap: 10px; }
+        .nav-brand img { width: 36px; height: 36px; object-fit: contain; }
+        .nav-brand span { font-size: 20px; font-weight: 700; color: #e6edf3; letter-spacing: -0.5px; }
+        .nav-links { display: flex; align-items: center; gap: 8px; }
+        .nav-links a {
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #8b949e;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .nav-links a:hover { color: #e6edf3; background: rgba(255,255,255,0.05); }
+        .nav-links a.active { color: #58a6ff; }
+        .nav-links a.nav-cta { background: #238636; color: #fff; font-weight: 600; padding: 8px 20px; }
+        .nav-links a.nav-cta:hover { background: #2ea043; }
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            cursor: pointer;
+            padding: 8px;
+            z-index: 1001;
+        }
+        .hamburger span { display: block; width: 24px; height: 2px; background: #c9d1d9; border-radius: 2px; transition: all 0.3s; }
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 64px;
+            left: 0;
+            right: 0;
+            background: rgba(13, 17, 23, 0.98);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #21262d;
+            padding: 16px 24px;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 999;
+        }
+        .mobile-menu.open { display: flex; }
+        .mobile-menu a { padding: 12px 16px; font-size: 15px; font-weight: 500; color: #8b949e; border-radius: 8px; transition: all 0.2s; }
+        .mobile-menu a:hover { color: #e6edf3; background: rgba(255,255,255,0.05); }
+        .mobile-menu a.active { color: #58a6ff; }
+        .mobile-menu a.nav-cta { background: #238636; color: #fff; text-align: center; font-weight: 600; margin-top: 8px; }
+
+        .page-header {
+            padding: 120px 24px 60px;
+            text-align: center;
+            background: radial-gradient(ellipse at 50% 0%, rgba(88,166,255,0.06) 0%, transparent 60%);
+        }
+        .page-header h1 {
+            font-size: 42px;
+            font-weight: 800;
+            color: #e6edf3;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+        }
+        .page-header p { font-size: 17px; color: #8b949e; max-width: 500px; margin: 0 auto; }
+
+        .analysis-section {
+            flex: 1;
+            padding: 0 24px 80px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 80px 24px;
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 16px;
+        }
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+            opacity: 0.6;
+        }
+        .empty-state h3 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #e6edf3;
+            margin-bottom: 12px;
+        }
+        .empty-state p {
+            font-size: 15px;
+            color: #8b949e;
+            max-width: 400px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+
+        .footer {
+            padding: 40px 24px;
+            border-top: 1px solid #21262d;
+            text-align: center;
+            margin-top: auto;
+        }
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .footer-brand { display: flex; align-items: center; gap: 8px; }
+        .footer-brand img { width: 24px; height: 24px; }
+        .footer-brand span { font-size: 14px; font-weight: 600; color: #8b949e; }
+        .footer-links { display: flex; gap: 24px; }
+        .footer-links a { font-size: 13px; color: #8b949e; transition: color 0.2s; }
+        .footer-links a:hover { color: #58a6ff; }
+        .footer-copy { font-size: 12px; color: #484f58; width: 100%; text-align: center; margin-top: 16px; }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hamburger { display: flex; }
+            .page-header h1 { font-size: 30px; }
+            .empty-state { padding: 60px 20px; }
+            .empty-state-icon { font-size: 48px; }
+            .empty-state h3 { font-size: 18px; }
+            .footer-content { flex-direction: column; text-align: center; }
+            .footer-links { flex-wrap: wrap; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-brand">
+            <img src="/static/images/smartxflow_logo.png" alt="SmartXFlow">
+            <span>SmartXFlow</span>
+        </a>
+        <div class="nav-links">
+            <a href="/">Ana Sayfa</a>
+            <a href="/#features">Özellikler</a>
+            <a href="/pricing">Paketler</a>
+            <a href="/analysis" class="active">Analizler</a>
+            <a href="/app" class="nav-cta">Uygulamaya Git</a>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()">
+            <span></span><span></span><span></span>
+        </div>
+    </nav>
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="/">Ana Sayfa</a>
+        <a href="/#features">Özellikler</a>
+        <a href="/pricing">Paketler</a>
+        <a href="/analysis" class="active">Analizler</a>
+        <a href="/app" class="nav-cta">Uygulamaya Git</a>
+    </div>
+
+    <section class="page-header">
+        <h1>Analizler & Paylaşımlar</h1>
+        <p>Profesyonel piyasa analizleri ve değerlendirmeler.</p>
+    </section>
+
+    <section class="analysis-section">
+        <div class="empty-state">
+            <div class="empty-state-icon">📊</div>
+            <h3>Henüz analiz paylaşılmadı</h3>
+            <p>Yakında burada profesyonel analizler paylaşılacak. Piyasa değerlendirmeleri, sinyal analizleri ve daha fazlası için takipte kalın.</p>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <img src="/static/images/smartxflow_logo.png" alt="SmartXFlow">
+                <span>SmartXFlow</span>
+            </div>
+            <div class="footer-links">
+                <a href="/">Ana Sayfa</a>
+                <a href="/pricing">Paketler</a>
+                <a href="/analysis">Analizler</a>
+                <a href="/app">Uygulama</a>
+            </div>
+            <div class="footer-copy">© 2025 SmartXFlow. Tüm hakları saklıdır.</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleMenu() {
+            document.getElementById('mobileMenu').classList.toggle('open');
+        }
+    </script>
+</body>
+</html>
