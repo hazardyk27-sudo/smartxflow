@@ -29,8 +29,13 @@
             backdrop-filter: blur(20px) saturate(1.4);
             -webkit-backdrop-filter: blur(20px) saturate(1.4);
             border-bottom: 1px solid rgba(255,255,255,0.06);
-            padding: 0 32px;
             height: 72px;
+        }
+        .navbar-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -39,7 +44,6 @@
             display: flex;
             align-items: center;
             gap: 4px;
-            margin-left: -8px;
         }
         .nav-brand img {
             width: 28px;
@@ -672,6 +676,7 @@
 </head>
 <body>
     <nav class="navbar">
+      <div class="navbar-inner">
         <a href="/" class="nav-brand">
             <span>Smart</span><img src="/static/images/smartxflow_logo.png" alt="X"><span>Flow</span>
         </a>
@@ -685,6 +690,7 @@
         <div class="hamburger" onclick="toggleMenu()">
             <span></span><span></span><span></span>
         </div>
+      </div>
     </nav>
     <div class="mobile-menu" id="mobileMenu">
         <a href="/" class="active">Ana Sayfa</a>
