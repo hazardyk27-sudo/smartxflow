@@ -406,12 +406,18 @@
         }
         .features-hero h2 {
             font-size: 42px;
-            font-weight: 800;
-            color: #e6edf3;
-            letter-spacing: -1.5px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.92);
+            letter-spacing: -0.02em;
+            line-height: 1.05;
             margin-bottom: 20px;
         }
-        .features-hero h2 span { color: #2BFF88; }
+        .features-hero h2 span {
+            background: linear-gradient(90deg, #2BFF88 0%, #7CFFD2 45%, #E6FFF4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
         .features-hero p {
             font-size: 17px;
             color: #6e7681;
