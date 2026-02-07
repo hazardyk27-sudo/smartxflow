@@ -1360,22 +1360,19 @@
             fetch('/api/alarms/all')
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
-                    var allAlarms = [];
-                    var types = ['sharp', 'bigmoney', 'volumeshock', 'dropping', 'publicmove', 'volumeleader', 'mim'];
-                    types.forEach(function(t) {
-                        if (data[t] && Array.isArray(data[t])) {
-                            data[t].forEach(function(a) {
-                                a._type = t;
-                                allAlarms.push(a);
-                            });
-                        }
-                    });
-                    allAlarms.sort(function(a, b) {
+                    var droppingAlarms = [];
+                    if (data.dropping && Array.isArray(data.dropping)) {
+                        data.dropping.forEach(function(a) {
+                            a._type = 'dropping';
+                            droppingAlarms.push(a);
+                        });
+                    }
+                    droppingAlarms.sort(function(a, b) {
                         var ta = a.trigger_at || a.event_time || a.created_at || '';
                         var tb = b.trigger_at || b.event_time || b.created_at || '';
                         return tb.localeCompare(ta);
                     });
-                    renderLandingBand(allAlarms);
+                    renderLandingBand(droppingAlarms.slice(0, 10));
                 })
                 .catch(function() {});
         }
