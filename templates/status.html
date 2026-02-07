@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache">
+    <meta http-equiv="refresh" content="60">
+    <title>SmartXFlow - Scraper Durumu</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+        a { text-decoration: none; color: inherit; }
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid #21262d;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #58a6ff;
+        }
+        .nav-brand img {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+        }
+        .nav-links {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+        .nav-links a {
+            color: #8b949e;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover, .nav-links a.active {
+            color: #58a6ff;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 100px 24px 40px;
+        }
+
+        .page-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #f0f6fc;
+            margin-bottom: 8px;
+        }
+        .page-subtitle {
+            color: #8b949e;
+            font-size: 0.95rem;
+            margin-bottom: 32px;
+        }
+
+        .status-card {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .status-card h2 {
+            font-size: 1.1rem;
+            color: #f0f6fc;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .status-online {
+            background: rgba(35, 134, 54, 0.15);
+            color: #3fb950;
+            border: 1px solid rgba(35, 134, 54, 0.3);
+        }
+        .status-offline {
+            background: rgba(218, 54, 51, 0.15);
+            color: #f85149;
+            border: 1px solid rgba(218, 54, 51, 0.3);
+        }
+        .status-warning {
+            background: rgba(210, 153, 34, 0.15);
+            color: #d29922;
+            border: 1px solid rgba(210, 153, 34, 0.3);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-online .status-dot { background: #3fb950; box-shadow: 0 0 6px #3fb950; }
+        .status-offline .status-dot { background: #f85149; box-shadow: 0 0 6px #f85149; }
+        .status-warning .status-dot { background: #d29922; box-shadow: 0 0 6px #d29922; }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 600px) {
+            .info-grid { grid-template-columns: 1fr; }
+        }
+        .info-item {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .info-label {
+            font-size: 0.8rem;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .info-value {
+            font-size: 1.15rem;
+            color: #f0f6fc;
+            font-weight: 600;
+        }
+        .info-value.small {
+            font-size: 0.95rem;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+        .history-table th {
+            text-align: left;
+            font-size: 0.78rem;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 10px 12px;
+            border-bottom: 1px solid #21262d;
+        }
+        .history-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #21262d;
+            font-size: 0.9rem;
+        }
+        .history-table tr:last-child td {
+            border-bottom: none;
+        }
+        .history-table tr:hover td {
+            background: rgba(88, 166, 255, 0.04);
+        }
+
+        .badge-success {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            background: rgba(35, 134, 54, 0.15);
+            color: #3fb950;
+        }
+
+        .refresh-note {
+            text-align: center;
+            color: #484f58;
+            font-size: 0.8rem;
+            margin-top: 32px;
+        }
+
+        .big-number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #58a6ff;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-brand">
+            <img src="/static/favicon-192.png" alt="SmartXFlow">
+            SmartXFlow
+        </a>
+        <div class="nav-links">
+            <a href="/">Ana Sayfa</a>
+            <a href="/app">Uygulama</a>
+            <a href="/status" class="active">Durum</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 class="page-title">Sistem Durumu</h1>
+        <p class="page-subtitle">Scraper ve veri toplama servisinin anlık durumu</p>
+
+        <div class="status-card">
+            <h2>
+                Scraper Durumu
+                <span id="mainStatus" class="status-indicator status-offline">
+                    <span class="status-dot"></span>
+                    <span id="mainStatusText">Kontrol ediliyor...</span>
+                </span>
+            </h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Son Scrape</div>
+                    <div class="info-value small" id="lastScrape">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Son Maç Sayısı</div>
+                    <div class="info-value" id="lastMatchCount">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Son Snapshot Sayısı</div>
+                    <div class="info-value" id="lastSnapshotCount">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Çalışma Aralığı</div>
+                    <div class="info-value">9 dakika</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-card">
+            <h2>Son 24 Saat Özeti</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Toplam Çalışma</div>
+                    <div class="info-value big-number" id="totalRuns">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Ortalama Maç</div>
+                    <div class="info-value big-number" id="avgMatches">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-card">
+            <h2>Son Çalışma Geçmişi</h2>
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Zaman (TR)</th>
+                        <th>Maç</th>
+                        <th>Snapshot</th>
+                        <th>Durum</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody">
+                    <tr><td colspan="4" style="text-align:center; color:#484f58;">Yükleniyor...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p class="refresh-note">Sayfa her 60 saniyede otomatik yenilenir</p>
+    </div>
+
+    <script>
+        function formatTurkeyTime(utcStr) {
+            if (!utcStr) return '-';
+            try {
+                const d = new Date(utcStr);
+                return d.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            } catch(e) {
+                return utcStr;
+            }
+        }
+
+        function timeSince(utcStr) {
+            if (!utcStr) return '';
+            const now = new Date();
+            const then = new Date(utcStr);
+            const diffMs = now - then;
+            const diffMin = Math.floor(diffMs / 60000);
+            if (diffMin < 1) return 'az önce';
+            if (diffMin < 60) return diffMin + ' dk önce';
+            const diffHour = Math.floor(diffMin / 60);
+            if (diffHour < 24) return diffHour + ' saat önce';
+            return Math.floor(diffHour / 24) + ' gün önce';
+        }
+
+        async function loadStatus() {
+            try {
+                const res = await fetch('/api/scraper-status');
+                const data = await res.json();
+
+                const statusEl = document.getElementById('mainStatus');
+                const statusText = document.getElementById('mainStatusText');
+
+                if (data.heartbeat && data.heartbeat.status) {
+                    const hb = data.heartbeat;
+                    const lastBeat = new Date(hb.last_heartbeat);
+                    const diffMin = (new Date() - lastBeat) / 60000;
+
+                    if (diffMin < 15) {
+                        statusEl.className = 'status-indicator status-online';
+                        statusText.textContent = 'Aktif';
+                    } else if (diffMin < 30) {
+                        statusEl.className = 'status-indicator status-warning';
+                        statusText.textContent = 'Gecikmiş (' + Math.floor(diffMin) + ' dk)';
+                    } else {
+                        statusEl.className = 'status-indicator status-offline';
+                        statusText.textContent = 'Çevrimdışı';
+                    }
+                } else if (data.signals && data.signals.length > 0) {
+                    const lastSignal = new Date(data.signals[0].created_at);
+                    const diffMin = (new Date() - lastSignal) / 60000;
+
+                    if (diffMin < 15) {
+                        statusEl.className = 'status-indicator status-online';
+                        statusText.textContent = 'Aktif';
+                    } else if (diffMin < 30) {
+                        statusEl.className = 'status-indicator status-warning';
+                        statusText.textContent = 'Gecikmiş (' + Math.floor(diffMin) + ' dk)';
+                    } else {
+                        statusEl.className = 'status-indicator status-offline';
+                        statusText.textContent = 'Çevrimdışı';
+                    }
+                }
+
+                if (data.signals && data.signals.length > 0) {
+                    const latest = data.signals[0];
+                    document.getElementById('lastScrape').textContent = formatTurkeyTime(latest.created_at) + ' (' + timeSince(latest.created_at) + ')';
+                    document.getElementById('lastMatchCount').textContent = latest.match_count || '-';
+                    document.getElementById('lastSnapshotCount').textContent = latest.snapshot_count || '-';
+
+                    document.getElementById('totalRuns').textContent = data.signals.length;
+
+                    let totalMatches = 0;
+                    data.signals.forEach(s => { totalMatches += (s.match_count || 0); });
+                    document.getElementById('avgMatches').textContent = Math.round(totalMatches / data.signals.length);
+
+                    const tbody = document.getElementById('historyBody');
+                    tbody.innerHTML = '';
+                    const showCount = Math.min(data.signals.length, 20);
+                    for (let i = 0; i < showCount; i++) {
+                        const s = data.signals[i];
+                        const tr = document.createElement('tr');
+                        tr.innerHTML =
+                            '<td>' + formatTurkeyTime(s.created_at) + '</td>' +
+                            '<td>' + (s.match_count || '-') + '</td>' +
+                            '<td>' + (s.snapshot_count || '-') + '</td>' +
+                            '<td><span class="badge-success">Basarili</span></td>';
+                        tbody.appendChild(tr);
+                    }
+                }
+            } catch(e) {
+                console.error('[Status] Error:', e);
+                document.getElementById('mainStatusText').textContent = 'Bağlantı hatası';
+            }
+        }
+
+        loadStatus();
+    </script>
+</body>
+</html>

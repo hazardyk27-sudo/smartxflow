@@ -526,6 +526,39 @@ def analysis_page():
     """Analysis page - Analiz paylaşımları"""
     return render_template('analysis.html')
 
+@app.route('/status')
+def status_page():
+    """Status page - Scraper durumu"""
+    return render_template('status.html')
+
+@app.route('/api/scraper-status')
+def api_scraper_status():
+    """Scraper durumu - son 24 saatteki sinyaller ve heartbeat"""
+    import requests as req
+    result = {"signals": [], "heartbeat": None}
+    try:
+        if not db.is_supabase_available:
+            return jsonify(result)
+
+        supa = db.supabase
+        headers = {
+            "apikey": supa.key,
+            "Authorization": f"Bearer {supa.key}"
+        }
+
+        cutoff = (datetime.utcnow() - timedelta(hours=24)).strftime('%Y-%m-%dT%H:%M:%S')
+        sig_url = f"{supa.url}/rest/v1/scraper_signal?order=created_at.desc&limit=160&created_at=gte.{cutoff}"
+        try:
+            r = req.get(sig_url, headers=headers, timeout=10)
+            if r.status_code == 200:
+                result["signals"] = r.json()
+        except Exception as e:
+            print(f"[ScraperStatus] Signal error: {e}")
+
+    except Exception as e:
+        print(f"[ScraperStatus] Error: {e}")
+    return jsonify(result)
+
 @app.route('/app')
 def index():
     """Main dashboard page"""
