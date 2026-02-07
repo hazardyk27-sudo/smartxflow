@@ -452,6 +452,8 @@
         .alarm-section {
             padding: 100px 24px;
             text-align: center;
+            max-width: 1280px;
+            margin: 0 auto;
         }
         .alarm-section h2 {
             font-size: 32px;
@@ -468,51 +470,118 @@
             margin-left: auto;
             margin-right: auto;
         }
-        .alarm-types {
-            display: flex;
-            justify-content: center;
-            gap: 16px;
-            flex-wrap: wrap;
-            max-width: 800px;
+        .alarm-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 22px;
+            max-width: 1080px;
             margin: 0 auto;
         }
-        .alarm-tag {
-            padding: 10px 22px;
-            border-radius: 100px;
-            font-size: 13px;
+        .alarm-card {
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 28px 26px;
+            text-align: left;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            min-height: 230px;
+        }
+        .alarm-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .alarm-card:hover::before { opacity: 1; }
+        .alarm-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+        }
+        .alarm-card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .alarm-card-icon svg {
+            width: 22px;
+            height: 22px;
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .alarm-card-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .alarm-card h3 {
+            font-size: 18px;
             font-weight: 600;
-            letter-spacing: 0.5px;
+            color: #e6edf3;
+            margin-bottom: 10px;
         }
-        .alarm-tag.tag-sharp {
-            background: rgba(43, 255, 136, 0.06);
-            border: 1px solid rgba(43, 255, 136, 0.12);
-            color: #2BFF88;
+        .alarm-card .alarm-desc {
+            font-size: 14px;
+            color: #8b949e;
+            line-height: 1.7;
+            margin-bottom: 14px;
         }
-        .alarm-tag.tag-buyukpara {
-            background: rgba(255, 166, 43, 0.06);
-            border: 1px solid rgba(255, 166, 43, 0.12);
-            color: #FFA62B;
+        .alarm-card .alarm-why {
+            font-size: 12px;
+            color: #3d444d;
+            font-style: italic;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            padding-top: 12px;
         }
-        .alarm-tag.tag-hacimsoku {
-            background: rgba(255, 214, 0, 0.06);
-            border: 1px solid rgba(255, 214, 0, 0.12);
-            color: #FFD600;
-        }
-        .alarm-tag.tag-orandususu {
-            background: rgba(248, 81, 73, 0.06);
-            border: 1px solid rgba(248, 81, 73, 0.12);
-            color: #f85149;
-        }
-        .alarm-tag.tag-liderdegisti {
-            background: rgba(0, 210, 211, 0.06);
-            border: 1px solid rgba(0, 210, 211, 0.12);
-            color: #00D2D3;
-        }
-        .alarm-tag.tag-mim {
-            background: rgba(36, 59, 126, 0.06);
-            border: 1px solid rgba(36, 59, 126, 0.20);
-            color: #5B7FD6;
-        }
+
+        .alarm-card.card-sharp .alarm-card-icon { background: rgba(43,255,136,0.06); }
+        .alarm-card.card-sharp .alarm-card-icon svg { stroke: #2BFF88; }
+        .alarm-card.card-sharp .alarm-card-label { color: #2BFF88; }
+        .alarm-card.card-sharp::before { background: linear-gradient(90deg, #2BFF88, transparent); }
+        .alarm-card.card-sharp:hover { border-color: rgba(43,255,136,0.15); box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 30px rgba(43,255,136,0.06); }
+
+        .alarm-card.card-bigmoney .alarm-card-icon { background: rgba(255,166,43,0.06); }
+        .alarm-card.card-bigmoney .alarm-card-icon svg { stroke: #FFA62B; }
+        .alarm-card.card-bigmoney .alarm-card-label { color: #FFA62B; }
+        .alarm-card.card-bigmoney::before { background: linear-gradient(90deg, #FFA62B, transparent); }
+        .alarm-card.card-bigmoney:hover { border-color: rgba(255,166,43,0.15); box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 30px rgba(255,166,43,0.06); }
+
+        .alarm-card.card-hacimsoku .alarm-card-icon { background: rgba(255,214,0,0.06); }
+        .alarm-card.card-hacimsoku .alarm-card-icon svg { stroke: #FFD600; }
+        .alarm-card.card-hacimsoku .alarm-card-label { color: #FFD600; }
+        .alarm-card.card-hacimsoku::before { background: linear-gradient(90deg, #FFD600, transparent); }
+        .alarm-card.card-hacimsoku:hover { border-color: rgba(255,214,0,0.15); box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 30px rgba(255,214,0,0.06); }
+
+        .alarm-card.card-orandususu .alarm-card-icon { background: rgba(248,81,73,0.06); }
+        .alarm-card.card-orandususu .alarm-card-icon svg { stroke: #f85149; }
+        .alarm-card.card-orandususu .alarm-card-label { color: #f85149; }
+        .alarm-card.card-orandususu::before { background: linear-gradient(90deg, #f85149, transparent); }
+        .alarm-card.card-orandususu:hover { border-color: rgba(248,81,73,0.15); box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 30px rgba(248,81,73,0.06); }
+
+        .alarm-card.card-liderdegisti .alarm-card-icon { background: rgba(0,210,211,0.06); }
+        .alarm-card.card-liderdegisti .alarm-card-icon svg { stroke: #00D2D3; }
+        .alarm-card.card-liderdegisti .alarm-card-label { color: #00D2D3; }
+        .alarm-card.card-liderdegisti::before { background: linear-gradient(90deg, #00D2D3, transparent); }
+        .alarm-card.card-liderdegisti:hover { border-color: rgba(0,210,211,0.15); box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 30px rgba(0,210,211,0.06); }
+
+        .alarm-card.card-mim .alarm-card-icon { background: rgba(91,127,214,0.06); }
+        .alarm-card.card-mim .alarm-card-icon svg { stroke: #5B7FD6; }
+        .alarm-card.card-mim .alarm-card-label { color: #5B7FD6; }
+        .alarm-card.card-mim::before { background: linear-gradient(90deg, #5B7FD6, transparent); }
+        .alarm-card.card-mim:hover { border-color: rgba(91,127,214,0.15); box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 30px rgba(91,127,214,0.06); }
 
         .howto-section {
             padding: 80px 24px;
@@ -679,6 +748,10 @@
         .footer-links a:hover { color: #2BFF88; }
         .footer-copy { font-size: 12px; color: #21262d; width: 100%; text-align: center; margin-top: 16px; }
 
+        @media (max-width: 1024px) and (min-width: 769px) {
+            .alarm-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
         @media (max-width: 768px) {
             .nav-links { display: none; }
             .hamburger { display: flex; }
@@ -702,8 +775,8 @@
             .features-hero h2 { font-size: 28px; }
             .features-grid { grid-template-columns: 1fr; }
             .not-grid { grid-template-columns: 1fr; }
-            .alarm-types { gap: 10px; }
-            .alarm-tag { font-size: 12px; padding: 8px 16px; }
+            .alarm-grid { grid-template-columns: 1fr; gap: 16px; }
+            .alarm-card { min-height: auto; padding: 24px 20px; }
             .stats-grid { flex-direction: column; gap: 32px; }
             .stat-number { font-size: 36px; }
             .section-title { font-size: 28px; }
@@ -883,13 +956,61 @@
     <section class="alarm-section">
         <h2>Alarm Sistemi</h2>
         <p class="alarm-sub">Piyasa hareket ettiğinde sistem seni uyarır. 6 farklı alarm türü, her biri farklı bir sinyali yakalar.</p>
-        <div class="alarm-types">
-            <span class="alarm-tag tag-sharp">SHARP</span>
-            <span class="alarm-tag tag-buyukpara">BIG MONEY</span>
-            <span class="alarm-tag tag-hacimsoku">HACIM SOKU</span>
-            <span class="alarm-tag tag-orandususu">ORAN DUSUSU</span>
-            <span class="alarm-tag tag-liderdegisti">LIDER DEGISTI</span>
-            <span class="alarm-tag tag-mim">MIM</span>
+        <div class="alarm-grid">
+            <div class="alarm-card card-sharp">
+                <div class="alarm-card-icon">
+                    <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                </div>
+                <div class="alarm-card-label">SHARP</div>
+                <h3>Sharp Nedir?</h3>
+                <p class="alarm-desc">Piyasada "akilli para" olarak gorulen tarafin harekete gectigi sinyaldir.</p>
+                <p class="alarm-why">Neden onemli? Sharp hareketler genellikle fiyati yonlendirir.</p>
+            </div>
+            <div class="alarm-card card-bigmoney">
+                <div class="alarm-card-icon">
+                    <svg viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <div class="alarm-card-label">BIG MONEY</div>
+                <h3>Big Money Nedir?</h3>
+                <p class="alarm-desc">Tek seferde veya kisa surede gelen olagan disi yuksek para girisini yakalar.</p>
+                <p class="alarm-why">Neden onemli? Buyuk para girisleri cogu zaman piyasayi zorlar.</p>
+            </div>
+            <div class="alarm-card card-hacimsoku">
+                <div class="alarm-card-icon">
+                    <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                </div>
+                <div class="alarm-card-label">HACIM SOKU</div>
+                <h3>Hacim Soku Nedir?</h3>
+                <p class="alarm-desc">Normal hacme gore aniden katlanan para akisi oldugunda tetiklenir.</p>
+                <p class="alarm-why">Neden onemli? Ani hacim artisi, siradisi bir ilgi veya bilgi akisi gostergesidir.</p>
+            </div>
+            <div class="alarm-card card-orandususu">
+                <div class="alarm-card-icon">
+                    <svg viewBox="0 0 24 24"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>
+                </div>
+                <div class="alarm-card-label">ORAN DUSUSU</div>
+                <h3>Oran Dususu Nedir?</h3>
+                <p class="alarm-desc">Kisa surede sert oran dususunu tespit eder (Dropping Odds).</p>
+                <p class="alarm-why">Neden onemli? Dusus, piyasanin beklentiyi yeniden fiyatladigini gosterir.</p>
+            </div>
+            <div class="alarm-card card-liderdegisti">
+                <div class="alarm-card-icon">
+                    <svg viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+                </div>
+                <div class="alarm-card-label">LIDER DEGISTI</div>
+                <h3>Lider Degisti Nedir?</h3>
+                <p class="alarm-desc">En cok para alan tarafin degistigi ani yakalar (market leader flip).</p>
+                <p class="alarm-why">Neden onemli? Para yon degistiriyorsa, algi veya bilgi degismis olabilir.</p>
+            </div>
+            <div class="alarm-card card-mim">
+                <div class="alarm-card-icon">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                </div>
+                <div class="alarm-card-label">MIM</div>
+                <h3>MIM Nedir?</h3>
+                <p class="alarm-desc">Market etkisi / momentum temelli karma sinyaldir; hareketin "etki gucunu" ozetler.</p>
+                <p class="alarm-why">Neden onemli? Tek bir metrik yerine, etkinin buyuklugunu tek ekranda gorusun.</p>
+            </div>
         </div>
     </section>
 
