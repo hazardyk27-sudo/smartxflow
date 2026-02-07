@@ -15,7 +15,7 @@ import threading
 import time
 import queue
 from datetime import datetime, timedelta
-from flask import Flask, render_template, jsonify, request, Response
+from flask import Flask, render_template, jsonify, request, Response, send_from_directory
 
 # Conditional import for compression (not needed in desktop mode)
 if os.environ.get('SMARTX_DESKTOP') != '1':
@@ -506,6 +506,10 @@ def start_server_scheduler():
     server_scheduler_thread = threading.Thread(target=scheduler_loop, daemon=True)
     server_scheduler_thread.start()
 
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory('static', 'favicon.svg', mimetype='image/svg+xml')
 
 @app.route('/')
 def landing_page():
