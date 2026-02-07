@@ -608,32 +608,40 @@
         .alarm-card.card-mim::before { background: linear-gradient(90deg, #5B7FD6, transparent); }
         .alarm-card.card-mim:hover { border-color: rgba(91,127,214,0.15); box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 30px rgba(91,127,214,0.06); }
 
-        .howto-section {
-            padding: 80px 24px;
-            max-width: 700px;
+        .duo-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            max-width: 1100px;
             margin: 0 auto;
+            padding: 80px 24px;
         }
-        .howto-section h2 {
-            font-size: 28px;
+        .duo-panel {
+            padding: 32px 28px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .duo-panel h2 {
+            font-size: 22px;
             font-weight: 700;
             color: #e6edf3;
-            text-align: center;
-            margin-bottom: 50px;
+            margin-bottom: 28px;
             letter-spacing: -0.5px;
         }
         .howto-steps {
             display: flex;
             flex-direction: column;
-            gap: 28px;
+            gap: 22px;
         }
         .howto-step {
             display: flex;
-            gap: 20px;
+            gap: 16px;
             align-items: flex-start;
         }
         .howto-num {
-            min-width: 36px;
-            height: 36px;
+            min-width: 34px;
+            height: 34px;
             border-radius: 10px;
             background: rgba(43, 255, 136, 0.08);
             color: #2BFF88;
@@ -642,9 +650,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
         }
         .howto-step h4 {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             color: #e6edf3;
             margin-bottom: 4px;
@@ -652,43 +661,32 @@
         .howto-step p {
             font-size: 13px;
             color: #6e7681;
-            line-height: 1.6;
+            line-height: 1.5;
         }
-
-        .not-section {
-            padding: 80px 24px;
-            text-align: center;
-            border-top: 1px solid rgba(255,255,255,0.04);
-        }
-        .not-section h2 {
-            font-size: 28px;
-            font-weight: 700;
-            color: #e6edf3;
-            margin-bottom: 40px;
-            letter-spacing: -0.5px;
-        }
-        .not-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
+        .not-list {
+            display: flex;
+            flex-direction: column;
             gap: 16px;
-            max-width: 800px;
-            margin: 0 auto;
         }
         .not-item {
-            padding: 24px 20px;
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            padding: 16px 18px;
             border-radius: 12px;
             background: rgba(255,255,255,0.02);
             border: 1px solid rgba(255,255,255,0.04);
         }
         .not-item .not-x {
-            font-size: 20px;
+            font-size: 18px;
             color: #f85149;
-            margin-bottom: 8px;
+            flex-shrink: 0;
+            line-height: 1;
         }
         .not-item p {
             font-size: 13px;
             color: #6e7681;
-            line-height: 1.6;
+            line-height: 1.5;
         }
 
         .statsBar {
@@ -810,7 +808,7 @@
             .features-hero { padding: 100px 20px 40px; }
             .features-hero h2 { font-size: 28px; }
             .features-grid { grid-template-columns: 1fr; }
-            .not-grid { grid-template-columns: 1fr; }
+            .duo-section { grid-template-columns: 1fr; }
             .alarm-grid { grid-template-columns: 1fr; gap: 16px; }
             .alarm-card { min-height: auto; padding: 24px 20px; }
             .statsBar { grid-template-columns: 1fr; padding: 14px 14px; }
@@ -1068,50 +1066,51 @@
         </div>
     </section>
 
-    <section class="howto-section">
-        <h2>Nasıl Kullanılır?</h2>
-        <div class="howto-steps">
-            <div class="howto-step">
-                <div class="howto-num">1</div>
-                <div>
-                    <h4>Platforma giriş yap</h4>
-                    <p>Hesabını oluştur ve panele eriş.</p>
+    <div class="duo-section" id="features-end">
+        <div class="duo-panel">
+            <h2>Nasıl Kullanılır?</h2>
+            <div class="howto-steps">
+                <div class="howto-step">
+                    <div class="howto-num">1</div>
+                    <div>
+                        <h4>Platforma giriş yap</h4>
+                        <p>Hesabını oluştur ve panele eriş.</p>
+                    </div>
                 </div>
-            </div>
-            <div class="howto-step">
-                <div class="howto-num">2</div>
-                <div>
-                    <h4>Alarmları takip et</h4>
-                    <p>Sistem otomatik çalışır. Sen sadece sinyalleri izle.</p>
+                <div class="howto-step">
+                    <div class="howto-num">2</div>
+                    <div>
+                        <h4>Alarmları takip et</h4>
+                        <p>Sistem otomatik çalışır. Sen sadece sinyalleri izle.</p>
+                    </div>
                 </div>
-            </div>
-            <div class="howto-step">
-                <div class="howto-num">3</div>
-                <div>
-                    <h4>Detaylara in</h4>
-                    <p>Maça tıkla, grafiklerle analiz et, kararını ver.</p>
+                <div class="howto-step">
+                    <div class="howto-num">3</div>
+                    <div>
+                        <h4>Detaylara in</h4>
+                        <p>Maça tıkla, grafiklerle analiz et, kararını ver.</p>
+                    </div>
                 </div>
             </div>
         </div>
-    </section>
-
-    <section class="not-section" id="features-end">
-        <h2>Biz Ne Değiliz?</h2>
-        <div class="not-grid">
-            <div class="not-item">
-                <div class="not-x">✕</div>
-                <p>Tahmin sitesi değiliz. Banko vermiyoruz.</p>
-            </div>
-            <div class="not-item">
-                <div class="not-x">✕</div>
-                <p>Yapay zeka ile skor tahmini yapmıyoruz.</p>
-            </div>
-            <div class="not-item">
-                <div class="not-x">✕</div>
-                <p>Garantili kazanç vaat etmiyoruz.</p>
+        <div class="duo-panel">
+            <h2>Biz Ne Değiliz?</h2>
+            <div class="not-list">
+                <div class="not-item">
+                    <div class="not-x">✕</div>
+                    <p>Tahmin sitesi değiliz. Banko vermiyoruz.</p>
+                </div>
+                <div class="not-item">
+                    <div class="not-x">✕</div>
+                    <p>Yapay zeka ile skor tahmini yapmıyoruz.</p>
+                </div>
+                <div class="not-item">
+                    <div class="not-x">✕</div>
+                    <p>Garantili kazanç vaat etmiyoruz.</p>
+                </div>
             </div>
         </div>
-    </section>
+    </div>
 
 
     <section class="cta-section">
