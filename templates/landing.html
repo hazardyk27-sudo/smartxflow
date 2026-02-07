@@ -11,10 +11,11 @@
         html { scroll-behavior: smooth; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0d1117;
+            background: #0E1117;
             color: #c9d1d9;
             line-height: 1.6;
             -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
         }
         a { text-decoration: none; color: inherit; }
 
@@ -24,10 +25,10 @@
             left: 0;
             right: 0;
             z-index: 1000;
-            background: rgba(13, 17, 23, 0.85);
+            background: rgba(14, 17, 23, 0.85);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid #21262d;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
             padding: 0 24px;
             height: 64px;
             display: flex;
@@ -59,19 +60,20 @@
             padding: 8px 16px;
             font-size: 14px;
             font-weight: 500;
-            color: #8b949e;
+            color: #6e7681;
             border-radius: 8px;
             transition: all 0.2s;
         }
-        .nav-links a:hover { color: #e6edf3; background: rgba(255,255,255,0.05); }
-        .nav-links a.active { color: #58a6ff; }
+        .nav-links a:hover { color: #e6edf3; background: rgba(255,255,255,0.04); }
+        .nav-links a.active { color: #e6edf3; }
         .nav-links a.nav-cta {
-            background: #238636;
-            color: #fff;
-            font-weight: 600;
+            background: #2BFF88;
+            color: #0E1117;
+            font-weight: 700;
             padding: 8px 20px;
+            border-radius: 24px;
         }
-        .nav-links a.nav-cta:hover { background: #2ea043; }
+        .nav-links a.nav-cta:hover { background: #24e078; }
         .hamburger {
             display: none;
             flex-direction: column;
@@ -94,9 +96,9 @@
             top: 64px;
             left: 0;
             right: 0;
-            background: rgba(13, 17, 23, 0.98);
+            background: rgba(14, 17, 23, 0.98);
             backdrop-filter: blur(12px);
-            border-bottom: 1px solid #21262d;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
             padding: 16px 24px;
             flex-direction: column;
             gap: 4px;
@@ -107,107 +109,207 @@
             padding: 12px 16px;
             font-size: 15px;
             font-weight: 500;
-            color: #8b949e;
+            color: #6e7681;
             border-radius: 8px;
             transition: all 0.2s;
         }
-        .mobile-menu a:hover { color: #e6edf3; background: rgba(255,255,255,0.05); }
-        .mobile-menu a.active { color: #58a6ff; }
+        .mobile-menu a:hover { color: #e6edf3; background: rgba(255,255,255,0.04); }
+        .mobile-menu a.active { color: #e6edf3; }
         .mobile-menu a.nav-cta {
-            background: #238636;
-            color: #fff;
+            background: #2BFF88;
+            color: #0E1117;
             text-align: center;
-            font-weight: 600;
+            font-weight: 700;
             margin-top: 8px;
+            border-radius: 24px;
         }
 
         .hero {
-            padding: 140px 24px 80px;
-            text-align: center;
-            background: radial-gradient(ellipse at 50% 0%, rgba(88,166,255,0.08) 0%, transparent 60%);
+            padding: 140px 24px 100px;
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
             position: relative;
         }
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 64px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(88,166,255,0.06) 0%, transparent 70%);
-            pointer-events: none;
+
+        .hero-text {
+            position: relative;
+            z-index: 2;
         }
-        .hero h1 {
-            font-size: 48px;
+        .hero-text h1 {
+            font-size: 56px;
             font-weight: 800;
             color: #e6edf3;
-            letter-spacing: -1.5px;
-            line-height: 1.1;
-            margin-bottom: 20px;
-            max-width: 700px;
-            margin-left: auto;
-            margin-right: auto;
+            letter-spacing: -2px;
+            line-height: 1.08;
+            margin-bottom: 24px;
         }
-        .hero h1 .gradient-text {
-            background: linear-gradient(135deg, #58a6ff, #3fb950);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .hero-text h1 .accent {
+            color: #2BFF88;
         }
-        .hero p {
+        .hero-text .subtitle {
             font-size: 18px;
-            color: #8b949e;
-            max-width: 600px;
-            margin: 0 auto 40px;
+            color: #6e7681;
             line-height: 1.7;
+            margin-bottom: 40px;
+            max-width: 440px;
+            font-weight: 400;
         }
-        .hero-buttons {
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .btn-primary {
+        .hero-cta {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 14px 32px;
-            background: linear-gradient(135deg, #238636, #2ea043);
-            color: #fff;
+            gap: 10px;
+            padding: 16px 36px;
+            background: #2BFF88;
+            color: #0E1117;
             font-size: 16px;
-            font-weight: 600;
-            border-radius: 12px;
+            font-weight: 700;
+            border-radius: 48px;
             border: none;
             cursor: pointer;
-            transition: all 0.25s;
-            box-shadow: 0 4px 16px rgba(35,134,54,0.3);
+            transition: all 0.3s;
+            letter-spacing: -0.3px;
         }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(35,134,54,0.4); }
-        .btn-secondary {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 14px 32px;
-            background: transparent;
-            color: #c9d1d9;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 12px;
-            border: 1px solid #30363d;
-            cursor: pointer;
-            transition: all 0.25s;
+        .hero-cta:hover {
+            background: #24e078;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(43, 255, 136, 0.2);
         }
-        .btn-secondary:hover { border-color: #58a6ff; color: #58a6ff; transform: translateY(-2px); }
         .hero-note {
-            margin-top: 24px;
-            font-size: 14px;
-            color: #484f58;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #3d444d;
             font-weight: 500;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
 
-        .section { padding: 80px 24px; max-width: 1200px; margin: 0 auto; }
+        .hero-visual {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .hero-visual::before {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(43, 255, 136, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .mockup-window {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 540px;
+            background: #161b22;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,0.03),
+                0 24px 80px rgba(0,0,0,0.5),
+                0 0 120px rgba(43, 255, 136, 0.04);
+        }
+        .mockup-titlebar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .mockup-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .mockup-dot.r { background: #3d444d; }
+        .mockup-dot.y { background: #484f58; }
+        .mockup-dot.g { background: #2BFF88; }
+        .mockup-titlebar span {
+            margin-left: auto;
+            font-size: 12px;
+            color: #3d444d;
+            font-weight: 500;
+        }
+        .mockup-body {
+            padding: 20px;
+        }
+        .mockup-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+        .mockup-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .mockup-badge.sharp { background: rgba(43, 255, 136, 0.15); color: #2BFF88; }
+        .mockup-badge.insider { background: rgba(43, 255, 136, 0.08); color: rgba(43, 255, 136, 0.6); }
+        .mockup-badge.bigmoney { background: rgba(43, 255, 136, 0.08); color: rgba(43, 255, 136, 0.6); }
+        .mockup-badge.dropping { background: rgba(43, 255, 136, 0.08); color: rgba(43, 255, 136, 0.6); }
+        .mockup-match {
+            flex: 1;
+            min-width: 0;
+        }
+        .mockup-teams {
+            font-size: 13px;
+            font-weight: 600;
+            color: #c9d1d9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .mockup-league {
+            font-size: 10px;
+            color: #3d444d;
+            margin-top: 2px;
+        }
+        .mockup-odds {
+            font-size: 14px;
+            font-weight: 700;
+            color: #2BFF88;
+            white-space: nowrap;
+        }
+        .mockup-chart {
+            margin-top: 12px;
+            padding: 16px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.03);
+            position: relative;
+            height: 100px;
+            overflow: hidden;
+        }
+        .mockup-chart-label {
+            font-size: 10px;
+            color: #3d444d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .mockup-chart svg {
+            width: 100%;
+            height: 60px;
+        }
+
+        .section { padding: 100px 24px; max-width: 1200px; margin: 0 auto; }
         .section-title {
             text-align: center;
             font-size: 36px;
@@ -219,9 +321,9 @@
         .section-subtitle {
             text-align: center;
             font-size: 16px;
-            color: #8b949e;
-            margin-bottom: 56px;
-            max-width: 600px;
+            color: #6e7681;
+            margin-bottom: 64px;
+            max-width: 520px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -232,69 +334,51 @@
             gap: 20px;
         }
         .feature-card {
-            background: #161b22;
-            border: 1px solid #21262d;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
             border-radius: 16px;
             padding: 32px 28px;
             transition: all 0.3s;
             position: relative;
             overflow: hidden;
         }
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #58a6ff, #3fb950);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
         .feature-card:hover {
-            border-color: #30363d;
+            border-color: rgba(43, 255, 136, 0.15);
             transform: translateY(-4px);
             box-shadow: 0 12px 40px rgba(0,0,0,0.3);
         }
-        .feature-card:hover::before { opacity: 1; }
         .feature-icon {
-            width: 48px;
-            height: 48px;
+            width: 44px;
+            height: 44px;
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 22px;
             margin-bottom: 20px;
+            background: rgba(43, 255, 136, 0.06);
         }
-        .feature-icon.blue { background: rgba(88,166,255,0.1); }
-        .feature-icon.green { background: rgba(63,185,80,0.1); }
-        .feature-icon.red { background: rgba(248,81,73,0.1); }
-        .feature-icon.purple { background: rgba(139,92,246,0.1); }
-        .feature-icon.yellow { background: rgba(250,204,21,0.1); }
-        .feature-icon.cyan { background: rgba(56,189,248,0.1); }
         .feature-card h3 {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 600;
             color: #e6edf3;
             margin-bottom: 10px;
         }
         .feature-card p {
             font-size: 14px;
-            color: #8b949e;
-            line-height: 1.6;
+            color: #6e7681;
+            line-height: 1.65;
         }
 
         .stats-section {
-            padding: 60px 24px;
-            background: #161b22;
-            border-top: 1px solid #21262d;
-            border-bottom: 1px solid #21262d;
+            padding: 80px 24px;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
         }
         .stats-grid {
             display: flex;
             justify-content: center;
-            gap: 80px;
+            gap: 100px;
             max-width: 800px;
             margin: 0 auto;
         }
@@ -302,39 +386,50 @@
         .stat-number {
             font-size: 48px;
             font-weight: 800;
-            background: linear-gradient(135deg, #58a6ff, #3fb950);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #2BFF88;
             line-height: 1.2;
         }
         .stat-label {
-            font-size: 15px;
-            color: #8b949e;
+            font-size: 14px;
+            color: #3d444d;
             margin-top: 8px;
             font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .cta-section {
-            padding: 100px 24px;
+            padding: 120px 24px;
             text-align: center;
-            background: radial-gradient(ellipse at 50% 100%, rgba(63,185,80,0.06) 0%, transparent 60%);
+            position: relative;
+        }
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(43, 255, 136, 0.05) 0%, transparent 70%);
+            pointer-events: none;
         }
         .cta-section h2 {
             font-size: 36px;
             font-weight: 700;
             color: #e6edf3;
             margin-bottom: 16px;
+            letter-spacing: -0.5px;
         }
         .cta-section p {
             font-size: 16px;
-            color: #8b949e;
-            margin-bottom: 32px;
+            color: #6e7681;
+            margin-bottom: 40px;
         }
 
         .footer {
             padding: 40px 24px;
-            border-top: 1px solid #21262d;
+            border-top: 1px solid rgba(255,255,255,0.04);
             text-align: center;
         }
         .footer-content {
@@ -352,20 +447,31 @@
             gap: 8px;
         }
         .footer-brand img { width: 24px; height: 24px; }
-        .footer-brand span { font-size: 14px; font-weight: 600; color: #8b949e; }
+        .footer-brand span { font-size: 14px; font-weight: 600; color: #3d444d; }
         .footer-links { display: flex; gap: 24px; }
-        .footer-links a { font-size: 13px; color: #8b949e; transition: color 0.2s; }
-        .footer-links a:hover { color: #58a6ff; }
-        .footer-copy { font-size: 12px; color: #484f58; width: 100%; text-align: center; margin-top: 16px; }
+        .footer-links a { font-size: 13px; color: #3d444d; transition: color 0.2s; }
+        .footer-links a:hover { color: #2BFF88; }
+        .footer-copy { font-size: 12px; color: #21262d; width: 100%; text-align: center; margin-top: 16px; }
 
         @media (max-width: 768px) {
             .nav-links { display: none; }
             .hamburger { display: flex; }
-            .hero { padding: 120px 20px 60px; }
-            .hero h1 { font-size: 32px; }
-            .hero p { font-size: 16px; }
-            .hero-buttons { flex-direction: column; align-items: center; }
-            .btn-primary, .btn-secondary { width: 100%; max-width: 300px; justify-content: center; }
+            .hero {
+                padding: 120px 20px 60px;
+                grid-template-columns: 1fr;
+                gap: 40px;
+                text-align: center;
+            }
+            .hero-text h1 { font-size: 36px; letter-spacing: -1px; }
+            .hero-text .subtitle {
+                font-size: 16px;
+                max-width: 100%;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .hero-note { text-align: center; }
+            .hero-visual { order: -1; }
+            .mockup-window { max-width: 100%; }
             .features-grid { grid-template-columns: 1fr; }
             .stats-grid { flex-direction: column; gap: 32px; }
             .stat-number { font-size: 36px; }
@@ -401,12 +507,73 @@
     </div>
 
     <section class="hero">
-        <h1><span class="gradient-text">Bahis Piyasasını Okuyanlar</span> İçin.</h1>
-        <p>Para akışı, oran düşüşleri ve akıllı alarmlar ile<br>piyasadaki hareketleri erkenden fark et.</p>
-        <div class="hero-buttons">
-            <a href="/app" class="btn-primary">🟢 Platformu Keşfet</a>
+        <div class="hero-text">
+            <h1><span class="accent">Bahis Piyasasını</span><br>Okuyanlar İçin.</h1>
+            <p class="subtitle">Para akışı, oran düşüşleri ve akıllı alarmlar ile piyasadaki hareketleri erkenden fark et.</p>
+            <a href="/app" class="hero-cta">Platformu Keşfet →</a>
+            <div class="hero-note">Profesyoneller için tasarlandı.</div>
         </div>
-        <div class="hero-note">Profesyoneller için tasarlandı.</div>
+        <div class="hero-visual">
+            <div class="mockup-window">
+                <div class="mockup-titlebar">
+                    <div class="mockup-dot r"></div>
+                    <div class="mockup-dot y"></div>
+                    <div class="mockup-dot g"></div>
+                    <span>SmartXFlow Monitor</span>
+                </div>
+                <div class="mockup-body">
+                    <div class="mockup-row">
+                        <div class="mockup-badge sharp">Sharp</div>
+                        <div class="mockup-match">
+                            <div class="mockup-teams">Man City vs Arsenal</div>
+                            <div class="mockup-league">Premier League</div>
+                        </div>
+                        <div class="mockup-odds">1.85 → 1.62</div>
+                    </div>
+                    <div class="mockup-row">
+                        <div class="mockup-badge insider">Insider</div>
+                        <div class="mockup-match">
+                            <div class="mockup-teams">Barcelona vs Real Madrid</div>
+                            <div class="mockup-league">La Liga</div>
+                        </div>
+                        <div class="mockup-odds">2.10 → 1.78</div>
+                    </div>
+                    <div class="mockup-row">
+                        <div class="mockup-badge bigmoney">BigMoney</div>
+                        <div class="mockup-match">
+                            <div class="mockup-teams">Bayern vs Dortmund</div>
+                            <div class="mockup-league">Bundesliga</div>
+                        </div>
+                        <div class="mockup-odds">1.55 → 1.40</div>
+                    </div>
+                    <div class="mockup-row">
+                        <div class="mockup-badge dropping">Dropping</div>
+                        <div class="mockup-match">
+                            <div class="mockup-teams">PSG vs Marseille</div>
+                            <div class="mockup-league">Ligue 1</div>
+                        </div>
+                        <div class="mockup-odds">1.92 → 1.65</div>
+                    </div>
+                    <div class="mockup-chart">
+                        <div class="mockup-chart-label">Oran Hareketi</div>
+                        <svg viewBox="0 0 460 60" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#2BFF88;stop-opacity:0.3"/>
+                                    <stop offset="100%" style="stop-color:#2BFF88;stop-opacity:1"/>
+                                </linearGradient>
+                                <linearGradient id="areaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#2BFF88;stop-opacity:0.12"/>
+                                    <stop offset="100%" style="stop-color:#2BFF88;stop-opacity:0"/>
+                                </linearGradient>
+                            </defs>
+                            <path d="M0,45 C30,42 60,48 100,38 C140,28 170,35 210,25 C250,15 280,22 320,12 C360,5 400,8 460,2" fill="none" stroke="url(#lineGrad)" stroke-width="2"/>
+                            <path d="M0,45 C30,42 60,48 100,38 C140,28 170,35 210,25 C250,15 280,22 320,12 C360,5 400,8 460,2 L460,60 L0,60 Z" fill="url(#areaGrad)"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
 
     <section class="section" id="features">
@@ -414,32 +581,32 @@
         <p class="section-subtitle">Piyasayı profesyonel araçlarla analiz edin, akıllı para hareketlerini anında yakalayın.</p>
         <div class="features-grid">
             <div class="feature-card">
-                <div class="feature-icon blue">⚡</div>
+                <div class="feature-icon">⚡</div>
                 <h3>Gerçek Zamanlı Takip</h3>
                 <p>10 dakikada bir otomatik veri güncelleme ile piyasayı canlı takip edin. Hiçbir hareketi kaçırmayın.</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon green">💰</div>
+                <div class="feature-icon">💰</div>
                 <h3>Akıllı Para Sinyalleri</h3>
                 <p>Sharp money, insider ve big money alarmları ile profesyonel bahisçilerin hareketlerini tespit edin.</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon red">📉</div>
+                <div class="feature-icon">📉</div>
                 <h3>Oran Düşüş Analizi</h3>
-                <p>Dropping odds seviyelendirme sistemi (L1-L3) ile anlamlı oran düşüşlerini kategorize edin.</p>
+                <p>Dropping odds seviyelendirme sistemi ile anlamlı oran düşüşlerini kategorize edin.</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon purple">🔊</div>
+                <div class="feature-icon">🔊</div>
                 <h3>Hacim Şoku Tespiti</h3>
                 <p>Ani hacim artışlarını otomatik olarak tespit edin ve piyasa hareketlerinin önünde olun.</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon yellow">📊</div>
+                <div class="feature-icon">📊</div>
                 <h3>Grafik Analiz</h3>
                 <p>Detaylı oran ve hacim grafikleri ile geçmiş verileri görselleştirin, trendleri keşfedin.</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon cyan">🔔</div>
+                <div class="feature-icon">🔔</div>
                 <h3>Telegram Bildirimleri</h3>
                 <p>Anlık alarm bildirimleri ile önemli sinyalleri Telegram üzerinden anında alın.</p>
             </div>
@@ -466,7 +633,7 @@
     <section class="cta-section">
         <h2>Hemen Başlayın</h2>
         <p>Akıllı para hareketlerini takip etmeye bugün başlayın.</p>
-        <a href="/app" class="btn-primary">Uygulamayı Aç →</a>
+        <a href="/app" class="hero-cta">Uygulamayı Aç →</a>
     </section>
 
     <footer class="footer">
