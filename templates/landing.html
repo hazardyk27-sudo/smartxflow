@@ -6,6 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache">
     <title>SmartXFlow - Akıllı Para & Oran Takip Sistemi</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="stylesheet" href="/static/css/alert_band.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
@@ -782,6 +783,16 @@
         .footer-links a:hover { color: #2BFF88; }
         .footer-copy { font-size: 12px; color: #21262d; width: 100%; text-align: center; margin-top: 16px; }
 
+        .landing-alert-band {
+            border-top: 1px solid rgba(43, 255, 136, 0.08);
+            border-bottom: 1px solid rgba(43, 255, 136, 0.08);
+            background: rgba(13, 17, 23, 0.85);
+        }
+        .landing-alert-band .ab-pill {
+            cursor: default;
+            pointer-events: none;
+        }
+
         @media (max-width: 1024px) and (min-width: 769px) {
             .alarm-grid { grid-template-columns: repeat(2, 1fr); }
         }
@@ -927,6 +938,14 @@
             </div>
         </div>
     </section>
+
+    <div class="alert-band landing-alert-band" id="landingAlertBand">
+        <div class="alert-band-track" id="landingAlertBandTrack">
+            <div class="alert-band-track-inner">
+                <span class="alert-band-empty">Alarm bekleniyor...</span>
+            </div>
+        </div>
+    </div>
 
     <section class="features-hero" id="features">
         <h2><span>Piyasa Hareketlerini</span> Okumak<br>Için Geliştirildi.</h2>
@@ -1170,6 +1189,126 @@
                 });
             }
         });
+    </script>
+    <script>
+    (function() {
+        var REFRESH_INTERVAL = 60000;
+
+        function getAlertInfo(alarm) {
+            var type = alarm._type;
+            if (type === 'sharp') return { label: 'SHARP MOVE', pillClass: 'sharp' };
+            if (type === 'bigmoney') {
+                var stake = alarm.stake || alarm.volume || 0;
+                if (stake >= 50000) return { label: 'HUGE MONEY', pillClass: 'hugemoney' };
+                return { label: 'BIG MONEY', pillClass: 'bigmoney' };
+            }
+            if (type === 'volumeshock') return { label: 'HACIM SOKU', pillClass: 'volumeshock' };
+            if (type === 'dropping') {
+                var level = alarm.level || 'L1';
+                if (level === 'L3') return { label: 'DÜŞÜŞ L3', pillClass: 'dropping-l3' };
+                if (level === 'L2') return { label: 'DÜŞÜŞ L2', pillClass: 'dropping-l2' };
+                return { label: 'DÜŞÜŞ L1', pillClass: 'dropping-l1' };
+            }
+            if (type === 'publicmove') return { label: 'PUBLIC MOVE', pillClass: 'publicmove' };
+            if (type === 'volumeleader') return { label: 'LIDER DEGISTI', pillClass: 'volumeleader' };
+            if (type === 'mim') {
+                var impact = alarm.impact || alarm.impact_score || alarm.money_impact || 0;
+                return { label: 'MIM ' + (impact * 100).toFixed(0) + '%', pillClass: 'mim' };
+            }
+            return { label: 'ALERT', pillClass: '' };
+        }
+
+        function formatValue(alarm) {
+            var type = alarm._type;
+            if (type === 'sharp') return (alarm.sharp_score || 0).toFixed(1);
+            if (type === 'volumeshock') return (alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0).toFixed(1) + 'x';
+            if (type === 'bigmoney') return '£' + Number(alarm.incoming_money || alarm.stake || 0).toLocaleString('en-GB');
+            if (type === 'dropping') return '▼ ' + (alarm.drop_pct || 0).toFixed(1) + '%';
+            if (type === 'publicmove') return (alarm.move_score || alarm.trap_score || alarm.sharp_score || 0).toFixed(0);
+            if (type === 'volumeleader') return '%' + (alarm.new_leader_share || 0).toFixed(0);
+            if (type === 'mim') {
+                var prevVol = alarm.prev_volume || alarm.previous_volume || 0;
+                var currVol = alarm.current_volume || alarm.curr_volume || alarm.total_volume || alarm.volume || 0;
+                var inc = currVol - prevVol;
+                return inc > 0 ? '+£' + Number(inc).toLocaleString('en-GB') : (alarm.impact || 0).toFixed(0) + '%';
+            }
+            return '';
+        }
+
+        function renderLandingBand(alarms) {
+            var track = document.getElementById('landingAlertBandTrack');
+            if (!track) return;
+            if (!alarms || alarms.length === 0) {
+                track.innerHTML = '<div class="alert-band-track-inner"><span class="alert-band-empty">Alarm bekleniyor...</span></div>';
+                return;
+            }
+            var top = alarms.slice(0, 10);
+            var isMobile = window.innerWidth <= 768;
+            var selMap = {'U':'Alt','O':'Üst','Y':'Evet','N':'Hayır','1':'1','X':'X','2':'2','UNDER':'Alt','OVER':'Üst','YES':'Evet','NO':'Hayır'};
+
+            var pills = top.map(function(alarm) {
+                var info = getAlertInfo(alarm);
+                var home = alarm.home || alarm.home_team || '?';
+                var away = alarm.away || alarm.away_team || '?';
+                var rawSel = (alarm.selection || alarm.side || '').toUpperCase();
+                var selection = selMap[rawSel] || rawSel;
+                var value = formatValue(alarm);
+                var matchDisplay = isMobile ? home : home + ' - ' + away;
+
+                if (alarm._type === 'volumeleader') {
+                    var oldL = alarm.old_leader || alarm.previous_leader || '?';
+                    var newL = alarm.new_leader || alarm.selection || '?';
+                    return '<div class="ab-pill ' + info.pillClass + '">' +
+                        '<span class="ab-dot dot-' + info.pillClass + '"></span>' +
+                        '<span class="ab-type">' + info.label + '</span>' +
+                        '<span class="ab-sep">—</span>' +
+                        '<span class="ab-match">' + matchDisplay + '</span>' +
+                        '<span class="ab-sep">—</span>' +
+                        '<span class="ab-leader-change">' + oldL + ' <span class="ab-arrow">▸</span> ' + newL + '</span>' +
+                    '</div>';
+                }
+
+                return '<div class="ab-pill ' + info.pillClass + '">' +
+                    '<span class="ab-dot dot-' + info.pillClass + '"></span>' +
+                    '<span class="ab-type">' + info.label + '</span>' +
+                    '<span class="ab-sep">—</span>' +
+                    '<span class="ab-match">' + matchDisplay + '</span>' +
+                    '<span class="ab-sep">—</span>' +
+                    '<span class="ab-sel">' + selection + '</span>' +
+                    '<span class="ab-val">' + value + '</span>' +
+                '</div>';
+            }).join('');
+
+            track.innerHTML = '<div class="alert-band-track-inner">' + pills + pills + '</div>';
+        }
+
+        function fetchLandingAlarms() {
+            fetch('/api/alarms/all')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var allAlarms = [];
+                    var types = ['sharp', 'bigmoney', 'volumeshock', 'dropping', 'publicmove', 'volumeleader', 'mim'];
+                    types.forEach(function(t) {
+                        if (data[t] && Array.isArray(data[t])) {
+                            data[t].forEach(function(a) {
+                                a._type = t;
+                                allAlarms.push(a);
+                            });
+                        }
+                    });
+                    allAlarms.sort(function(a, b) {
+                        var ta = a.trigger_at || a.event_time || a.created_at || '';
+                        var tb = b.trigger_at || b.event_time || b.created_at || '';
+                        return tb.localeCompare(ta);
+                    });
+                    renderLandingBand(allAlarms);
+                })
+                .catch(function() {});
+        }
+
+        fetchLandingAlarms();
+        setInterval(fetchLandingAlarms, REFRESH_INTERVAL);
+    })();
     </script>
 </body>
 </html>
