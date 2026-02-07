@@ -509,7 +509,7 @@ def start_server_scheduler():
 
 @app.route('/favicon.ico')
 def favicon():
-    return send_from_directory('static', 'favicon.svg', mimetype='image/svg+xml')
+    return send_from_directory('static', 'favicon.ico', mimetype='image/x-icon')
 
 @app.route('/')
 def landing_page():
