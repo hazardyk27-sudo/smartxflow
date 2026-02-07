@@ -238,10 +238,48 @@ def main():
         print(f"Son hata: {error}")
     print("=" * 60)
 
+def get_last_signal_time() -> Optional[datetime]:
+    """Supabase'den son scraper_signal zamanını al"""
+    try:
+        supabase_url = os.environ.get('SUPABASE_URL')
+        supabase_key = os.environ.get('SUPABASE_ANON_KEY')
+        if not supabase_url or not supabase_key:
+            return None
+        headers = {
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}"
+        }
+        url = f"{supabase_url}/rest/v1/scraper_signal?source=eq.replit&order=created_at.desc&limit=1&select=created_at"
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code == 200:
+            data = r.json()
+            if data:
+                ts = data[0]['created_at']
+                from datetime import datetime as dt
+                if ts.endswith('Z'):
+                    ts = ts[:-1] + '+00:00'
+                return dt.fromisoformat(ts)
+    except Exception as e:
+        print(f"[Loop] Son sinyal zamanı alınamadı: {e}")
+    return None
+
 def run_loop():
     """9 dakikada bir scrape döngüsü"""
     INTERVAL_MINUTES = 9
+    INTERVAL_SECONDS = INTERVAL_MINUTES * 60
     print(f"[Loop] Scraper {INTERVAL_MINUTES} dakikada bir çalışacak")
+    
+    last_signal = get_last_signal_time()
+    if last_signal:
+        now = datetime.now(timezone.utc)
+        elapsed = (now - last_signal).total_seconds()
+        remaining = INTERVAL_SECONDS - elapsed
+        if remaining > 30:
+            wait_min = remaining / 60
+            print(f"[Loop] Son scrape {elapsed/60:.1f} dk önce yapılmış, {wait_min:.1f} dk bekleniyor...")
+            time.sleep(remaining)
+        else:
+            print(f"[Loop] Son scrape {elapsed/60:.1f} dk önce, süre dolmuş - hemen çalışıyor")
     
     while True:
         try:
@@ -251,7 +289,7 @@ def run_loop():
             traceback.print_exc()
         
         print(f"\n[Loop] Sonraki çalışma {INTERVAL_MINUTES} dakika sonra...")
-        time.sleep(INTERVAL_MINUTES * 60)
+        time.sleep(INTERVAL_SECONDS)
 
 if __name__ == "__main__":
     run_loop()
