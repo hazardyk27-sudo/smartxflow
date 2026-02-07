@@ -696,26 +696,44 @@
             border-top: 1px solid rgba(255,255,255,0.04);
             border-bottom: 1px solid rgba(255,255,255,0.04);
         }
-        .stats-grid {
-            display: flex;
-            justify-content: center;
-            gap: 100px;
-            max-width: 800px;
+        .statsWrap {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+            max-width: 960px;
             margin: 0 auto;
         }
-        .stat-item { text-align: center; }
-        .stat-number {
-            font-size: 48px;
-            font-weight: 800;
-            color: #2BFF88;
-            line-height: 1.2;
+        .statCard {
+            padding: 22px 24px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: 160ms ease;
         }
-        .stat-label {
-            font-size: 14px;
-            color: #3d444d;
-            margin-top: 8px;
-            font-weight: 500;
-            letter-spacing: 1px;
+        .statCard:hover {
+            transform: translateY(-2px);
+            border-color: rgba(43,255,136,0.18);
+            box-shadow: 0 18px 50px rgba(0,0,0,0.35);
+        }
+        .statNum {
+            font-size: 56px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            color: #2BFF88;
+            line-height: 1;
+        }
+        .statTitle {
+            margin-top: 10px;
+            color: rgba(255,255,255,0.72);
+            font-weight: 600;
+            font-size: 15px;
+        }
+        .statSub {
+            margin-top: 6px;
+            color: rgba(255,255,255,0.45);
+            font-size: 13px;
         }
 
         .cta-section {
@@ -802,8 +820,8 @@
             .not-grid { grid-template-columns: 1fr; }
             .alarm-grid { grid-template-columns: 1fr; gap: 16px; }
             .alarm-card { min-height: auto; padding: 24px 20px; }
-            .stats-grid { flex-direction: column; gap: 32px; }
-            .stat-number { font-size: 36px; }
+            .statsWrap { grid-template-columns: 1fr; gap: 14px; }
+            .statNum { font-size: 40px; }
             .section-title { font-size: 28px; }
             .footer-content { flex-direction: column; text-align: center; }
             .footer-links { flex-wrap: wrap; justify-content: center; }
@@ -1085,18 +1103,21 @@
     </section>
 
     <section class="stats-section">
-        <div class="stats-grid">
-            <div class="stat-item">
-                <div class="stat-number">7</div>
-                <div class="stat-label">Alarm Türü</div>
+        <div class="statsWrap">
+            <div class="statCard">
+                <div class="statNum">7</div>
+                <div class="statTitle">Alarm Türü</div>
+                <div class="statSub">Sharp · Big Money · Dropping…</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-number">6</div>
-                <div class="stat-label">Piyasa</div>
+            <div class="statCard">
+                <div class="statNum">6</div>
+                <div class="statTitle">Market</div>
+                <div class="statSub">1X2 · O/U · BTTS…</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-number">24/7</div>
-                <div class="stat-label">Takip</div>
+            <div class="statCard">
+                <div class="statNum">24/7</div>
+                <div class="statTitle">Canlı Takip</div>
+                <div class="statSub">Anlık güncelleme ve alarm akışı</div>
             </div>
         </div>
     </section>
