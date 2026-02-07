@@ -184,21 +184,28 @@
         }
         .hero-text h1 {
             font-size: 56px;
-            font-weight: 800;
-            color: #e6edf3;
-            letter-spacing: -2px;
-            line-height: 1.08;
-            margin-bottom: 24px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.92);
+            letter-spacing: -0.02em;
+            line-height: 1.05;
+            margin-bottom: 12px;
         }
         .hero-text h1 .accent {
-            color: #2BFF88;
+            background: linear-gradient(90deg, #2BFF88 0%, #7CFFD2 45%, #E6FFF4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+        }
+        .hero-text h1 .accent-glow {
+            text-shadow: 0 0 20px rgba(43,255,136,0.18);
         }
         .hero-text .subtitle {
-            font-size: 18px;
-            color: #6e7681;
+            font-size: 16px;
+            color: rgba(255,255,255,0.68);
             line-height: 1.7;
             margin-bottom: 28px;
-            max-width: 440px;
+            max-width: 460px;
             font-weight: 400;
         }
         .hero-cta {
@@ -942,7 +949,7 @@
     <section class="hero">
         <div class="hero-text">
             <h1><span class="accent">Bahis Piyasasını</span><br>Okuyanlar İçin.</h1>
-            <p class="subtitle">Para akışı, oran düşüşleri ve akıllı alarmlar ile piyasadaki hareketleri erkenden fark et.</p>
+            <p class="subtitle">Para akışı, oran hareketleri ve akıllı alarmlar ile piyasanın yönünü erken oku.</p>
             <a href="#features" class="hero-cta">Platformu Keşfet →</a>
             <div class="hero-note">PROFESYONELLER ICIN TASARLANDI.</div>
         </div>
