@@ -1095,7 +1095,7 @@
         </div>
     </section>
 
-    <section class="not-section">
+    <section class="not-section" id="features-end">
         <h2>Biz Ne Değiliz?</h2>
         <div class="not-grid">
             <div class="not-item">
@@ -1147,10 +1147,12 @@
                 navbar.classList.remove('scrolled');
             }
 
-            var featuresSection = document.getElementById('features');
-            if (featuresSection) {
-                var rect = featuresSection.getBoundingClientRect();
-                var inFeatures = rect.top <= 120 && rect.bottom > 120;
+            var featuresStart = document.getElementById('features');
+            var featuresEnd = document.getElementById('features-end');
+            if (featuresStart && featuresEnd) {
+                var startRect = featuresStart.getBoundingClientRect();
+                var endRect = featuresEnd.getBoundingClientRect();
+                var inFeatures = startRect.top <= 120 && endRect.bottom > 120;
                 var desktopLinks = document.querySelectorAll('.nav-links > a:not(.nav-cta)');
                 var mobileLinks = document.querySelectorAll('.mobile-menu > a:not(.nav-cta)');
                 desktopLinks.forEach(function(link) {
