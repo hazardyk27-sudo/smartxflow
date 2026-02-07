@@ -184,12 +184,19 @@
             transform: translateY(-2px);
             box-shadow: 0 12px 40px rgba(43, 255, 136, 0.2);
         }
-        .hero-note {
-            margin-top: 20px;
+        .hero-trust {
+            margin-top: 16px;
             font-size: 13px;
-            color: #3d444d;
-            font-weight: 500;
-            letter-spacing: 1px;
+            color: #6e7681;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+        }
+        .hero-note {
+            margin-top: 24px;
+            font-size: 12px;
+            color: #2BFF88;
+            font-weight: 600;
+            letter-spacing: 3px;
         }
 
         .hero-visual {
@@ -657,6 +664,7 @@
                 margin-left: auto;
                 margin-right: auto;
             }
+            .hero-trust { text-align: center; }
             .hero-note { text-align: center; }
             .hero-visual { order: -1; }
             .mockup-window { max-width: 100%; }
@@ -703,8 +711,9 @@
     <section class="hero">
         <div class="hero-text">
             <h1><span class="accent">Bahis Piyasasını</span><br>Okuyanlar İçin.</h1>
-            <p class="subtitle">Para akışı, oran düşüşleri ve akıllı alarmlar ile piyasadaki hareketleri erkenden fark et.</p>
+            <p class="subtitle">Para akışı, oran hareketleri ve akıllı alarmlar ile piyasadaki değişimi erkenden fark et.</p>
             <a href="/app" class="hero-cta">Platformu Keşfet →</a>
+            <div class="hero-trust">Tahmin yok · Banko yok · Sadece veri</div>
             <div class="hero-note">PROFESYONELLER ICIN TASARLANDI.</div>
         </div>
         <div class="hero-visual">
@@ -943,6 +952,16 @@
         function toggleMenu() {
             document.getElementById('mobileMenu').classList.toggle('open');
         }
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 20) {
+                navbar.style.background = 'rgba(14, 17, 23, 0.92)';
+                navbar.style.boxShadow = '0 1px 12px rgba(0,0,0,0.3)';
+            } else {
+                navbar.style.background = 'rgba(14, 17, 23, 0.7)';
+                navbar.style.boxShadow = 'none';
+            }
+        });
     </script>
 </body>
 </html>
