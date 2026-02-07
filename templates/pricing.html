@@ -326,15 +326,23 @@
         @media (max-width: 1100px) {
             .pricing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
-        @media (max-width: 720px) {
-            .pricing-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
-            .pricing-card.featured { order: -1; }
-        }
         @media (max-width: 768px) {
             .nav-links { display: none; }
             .hamburger { display: flex; }
-            .page-header h1 { font-size: 30px; }
-            .faq-title { font-size: 26px; }
+            .page-header { padding: 100px 16px 40px; }
+            .page-header h1 { font-size: 28px; }
+            .page-header p { font-size: 15px; }
+            .pricing-section { padding: 0 16px 60px; }
+            .pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; gap: 16px; }
+            .pricing-card { min-height: auto; padding: 28px 20px; }
+            .pricing-card.featured { order: -1; }
+            .pricing-card h3 { font-size: 18px; }
+            .pricing-card .price { font-size: 38px; margin: 12px 0 4px; }
+            .pricing-card .features li { font-size: 13px; white-space: normal; }
+            .faq-section { padding: 60px 16px; }
+            .faq-title { font-size: 24px; }
+            .faq-question { padding: 16px 20px; font-size: 14px; }
+            .faq-answer-inner { padding: 0 20px 16px; font-size: 13px; }
             .footer-content { flex-direction: column; text-align: center; }
             .footer-links { flex-wrap: wrap; justify-content: center; }
         }
