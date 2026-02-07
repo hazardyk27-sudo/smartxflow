@@ -350,16 +350,40 @@
             margin-right: auto;
         }
 
+        .features-hero {
+            text-align: center;
+            padding: 140px 24px 60px;
+        }
+        .features-hero h2 {
+            font-size: 42px;
+            font-weight: 800;
+            color: #e6edf3;
+            letter-spacing: -1.5px;
+            margin-bottom: 20px;
+        }
+        .features-hero h2 span { color: #2BFF88; }
+        .features-hero p {
+            font-size: 17px;
+            color: #6e7681;
+            max-width: 460px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+        .features-hero p strong {
+            color: #8b949e;
+            font-weight: 500;
+        }
+
         .features-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 20px;
         }
         .feature-card {
-            background: rgba(255,255,255,0.02);
-            border: 1px solid rgba(255,255,255,0.04);
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(255,255,255,0.05);
             border-radius: 16px;
-            padding: 32px 28px;
+            padding: 36px 30px;
             transition: all 0.3s;
             position: relative;
             overflow: hidden;
@@ -370,26 +394,163 @@
             box-shadow: 0 12px 40px rgba(0,0,0,0.3);
         }
         .feature-icon {
-            width: 44px;
-            height: 44px;
+            width: 48px;
+            height: 48px;
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
-            margin-bottom: 20px;
+            margin-bottom: 22px;
             background: rgba(43, 255, 136, 0.06);
         }
+        .feature-icon svg {
+            width: 22px;
+            height: 22px;
+            stroke: #2BFF88;
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
         .feature-card h3 {
-            font-size: 17px;
+            font-size: 18px;
             font-weight: 600;
             color: #e6edf3;
             margin-bottom: 10px;
         }
-        .feature-card p {
+        .feature-card .feat-desc {
             font-size: 14px;
+            color: #8b949e;
+            line-height: 1.7;
+            margin-bottom: 14px;
+        }
+        .feature-card .feat-why {
+            font-size: 12px;
+            color: #3d444d;
+            font-style: italic;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            padding-top: 12px;
+        }
+
+        .alarm-section {
+            padding: 100px 24px;
+            text-align: center;
+        }
+        .alarm-section h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #e6edf3;
+            letter-spacing: -0.5px;
+            margin-bottom: 14px;
+        }
+        .alarm-section .alarm-sub {
+            font-size: 15px;
             color: #6e7681;
-            line-height: 1.65;
+            margin-bottom: 50px;
+            max-width: 480px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .alarm-types {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .alarm-tag {
+            padding: 10px 22px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            background: rgba(43, 255, 136, 0.06);
+            border: 1px solid rgba(43, 255, 136, 0.12);
+            color: #2BFF88;
+        }
+
+        .howto-section {
+            padding: 80px 24px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .howto-section h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #e6edf3;
+            text-align: center;
+            margin-bottom: 50px;
+            letter-spacing: -0.5px;
+        }
+        .howto-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+        .howto-step {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        .howto-num {
+            min-width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(43, 255, 136, 0.08);
+            color: #2BFF88;
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .howto-step h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #e6edf3;
+            margin-bottom: 4px;
+        }
+        .howto-step p {
+            font-size: 13px;
+            color: #6e7681;
+            line-height: 1.6;
+        }
+
+        .not-section {
+            padding: 80px 24px;
+            text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.04);
+        }
+        .not-section h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #e6edf3;
+            margin-bottom: 40px;
+            letter-spacing: -0.5px;
+        }
+        .not-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .not-item {
+            padding: 24px 20px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+        .not-item .not-x {
+            font-size: 20px;
+            color: #f85149;
+            margin-bottom: 8px;
+        }
+        .not-item p {
+            font-size: 13px;
+            color: #6e7681;
+            line-height: 1.6;
         }
 
         .stats-section {
@@ -493,7 +654,12 @@
             .hero-note { text-align: center; }
             .hero-visual { order: -1; }
             .mockup-window { max-width: 100%; }
+            .features-hero { padding: 100px 20px 40px; }
+            .features-hero h2 { font-size: 28px; }
             .features-grid { grid-template-columns: 1fr; }
+            .not-grid { grid-template-columns: 1fr; }
+            .alarm-types { gap: 10px; }
+            .alarm-tag { font-size: 12px; padding: 8px 16px; }
             .stats-grid { flex-direction: column; gap: 32px; }
             .stat-number { font-size: 36px; }
             .section-title { font-size: 28px; }
@@ -609,39 +775,121 @@
         </div>
     </section>
 
-    <section class="section" id="features">
-        <h2 class="section-title">Özellikler</h2>
-        <p class="section-subtitle">Piyasayı profesyonel araçlarla analiz edin, akıllı para hareketlerini anında yakalayın.</p>
+    <section class="features-hero" id="features">
+        <h2><span>Piyasa Hareketlerini</span> Okumak<br>Için Geliştirildi.</h2>
+        <p>Tahmin değil. Banko değil.<br><strong>Gerçek zamanlı veri, akıllı sinyaller.</strong></p>
+    </section>
+
+    <section class="section">
+        <h2 class="section-title">Çekirdek Özellikler</h2>
+        <p class="section-subtitle">Piyasayı okumanız için tasarlanmış profesyonel araçlar.</p>
         <div class="features-grid">
             <div class="feature-card">
-                <div class="feature-icon">⚡</div>
-                <h3>Gerçek Zamanlı Takip</h3>
-                <p>10 dakikada bir otomatik veri güncelleme ile piyasayı canlı takip edin. Hiçbir hareketi kaçırmayın.</p>
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <h3>Para Akışı Takibi</h3>
+                <p class="feat-desc">Maçlara giren olağan dışı parayı anında gör. Sessiz ama etkili hamleleri kaçırma.</p>
+                <p class="feat-why">Neden önemli? Büyük para genellikle sonucu belirler.</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon">💰</div>
-                <h3>Akıllı Para Sinyalleri</h3>
-                <p>Sharp money, insider ve big money alarmları ile profesyonel bahisçilerin hareketlerini tespit edin.</p>
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </div>
+                <h3>Oran Hareket Analizi</h3>
+                <p class="feat-desc">Oran neden düştü? Ne zaman değişti? Rastgele değil, iz bırakan hareketler.</p>
+                <p class="feat-why">Neden önemli? Her düşüşün arkasında bir neden var.</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon">📉</div>
-                <h3>Oran Düşüş Analizi</h3>
-                <p>Dropping odds seviyelendirme sistemi ile anlamlı oran düşüşlerini kategorize edin.</p>
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                </div>
+                <h3>Akıllı Alarmlar</h3>
+                <p class="feat-desc">Big Money, Dropping Odds, Momentum Spike. Piyasa hareket ettiğinde sen de fark et.</p>
+                <p class="feat-why">Neden önemli? Doğru anı yakalamak her şeyi değiştirir.</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon">🔊</div>
-                <h3>Hacim Şoku Tespiti</h3>
-                <p>Ani hacim artışlarını otomatik olarak tespit edin ve piyasa hareketlerinin önünde olun.</p>
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                </div>
+                <h3>Market Paylaşımı</h3>
+                <p class="feat-desc">Para hangi tarafa kayıyor? Kalabalık mı, azınlık mı oynuyor?</p>
+                <p class="feat-why">Neden önemli? Paranın aktığı yönü bilmek avantaj sağlar.</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon">📊</div>
-                <h3>Grafik Analiz</h3>
-                <p>Detaylı oran ve hacim grafikleri ile geçmiş verileri görselleştirin, trendleri keşfedin.</p>
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <h3>Zaman Çizelgesi</h3>
+                <p class="feat-desc">Her hareket dakikasıyla kayıt altında. Sonradan değil, anında gör.</p>
+                <p class="feat-why">Neden önemli? Zamanlama, verinin kendisi kadar kritik.</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon">🔔</div>
-                <h3>Telegram Bildirimleri</h3>
-                <p>Anlık alarm bildirimleri ile önemli sinyalleri Telegram üzerinden anında alın.</p>
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                </div>
+                <h3>Filtreleme & Odak</h3>
+                <p class="feat-desc">Gereksiz maç yok. Sadece gerçekten hareket olanlar.</p>
+                <p class="feat-why">Neden önemli? Gürültüyü eleyenler kazanır.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="alarm-section">
+        <h2>Alarm Sistemi</h2>
+        <p class="alarm-sub">Piyasa hareket ettiğinde sistem seni uyarır. 7 farklı alarm türü, her biri farklı bir sinyali yakalar.</p>
+        <div class="alarm-types">
+            <span class="alarm-tag">Sharp Money</span>
+            <span class="alarm-tag">Insider</span>
+            <span class="alarm-tag">Big Money</span>
+            <span class="alarm-tag">Volume Shock</span>
+            <span class="alarm-tag">Dropping Odds</span>
+            <span class="alarm-tag">Public Move</span>
+            <span class="alarm-tag">Volume Leader</span>
+        </div>
+    </section>
+
+    <section class="howto-section">
+        <h2>Nasıl Kullanılır?</h2>
+        <div class="howto-steps">
+            <div class="howto-step">
+                <div class="howto-num">1</div>
+                <div>
+                    <h4>Platforma giriş yap</h4>
+                    <p>Hesabını oluştur ve panele eriş.</p>
+                </div>
+            </div>
+            <div class="howto-step">
+                <div class="howto-num">2</div>
+                <div>
+                    <h4>Alarmları takip et</h4>
+                    <p>Sistem otomatik çalışır. Sen sadece sinyalleri izle.</p>
+                </div>
+            </div>
+            <div class="howto-step">
+                <div class="howto-num">3</div>
+                <div>
+                    <h4>Detaylara in</h4>
+                    <p>Maça tıkla, grafiklerle analiz et, kararını ver.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="not-section">
+        <h2>Biz Ne Değiliz?</h2>
+        <div class="not-grid">
+            <div class="not-item">
+                <div class="not-x">✕</div>
+                <p>Tahmin sitesi değiliz. Banko vermiyoruz.</p>
+            </div>
+            <div class="not-item">
+                <div class="not-x">✕</div>
+                <p>Yapay zeka ile skor tahmini yapmıyoruz.</p>
+            </div>
+            <div class="not-item">
+                <div class="not-x">✕</div>
+                <p>Garantili kazanç vaat etmiyoruz.</p>
             </div>
         </div>
     </section>
