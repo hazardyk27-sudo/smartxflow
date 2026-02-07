@@ -140,6 +140,44 @@
             max-width: 1280px;
             margin: 0 auto;
         }
+        .pricing-category {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .pricing-category:nth-child(2) {
+            margin-top: 60px;
+        }
+        .pricing-category h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #e6edf3;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+        .pricing-category .cat-badge {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .cat-badge--core {
+            background: rgba(88,166,255,0.12);
+            border: 1px solid rgba(88,166,255,0.25);
+            color: #58a6ff;
+        }
+        .cat-badge--pro {
+            background: rgba(163,113,247,0.12);
+            border: 1px solid rgba(163,113,247,0.25);
+            color: #a371f7;
+        }
+        .pricing-category p {
+            font-size: 14px;
+            color: #8b949e;
+        }
         .pricing-grid {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -224,6 +262,19 @@
         }
         .pricing-card .features li:last-child { border-bottom: none; }
         .pricing-card .features li::before { content: '✓'; color: #3fb950; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+        .pricing-card .features li.excluded { color: #484f58; }
+        .pricing-card .features li.excluded::before { content: '✕'; color: #f85149; }
+        .pricing-card .advantage-note {
+            margin-top: 14px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(43,255,136,0.06);
+            border: 1px solid rgba(43,255,136,0.12);
+            font-size: 12px;
+            font-weight: 600;
+            color: #3fb950;
+            text-align: center;
+        }
         .pricing-card .cta {
             margin-top: 18px;
         }
@@ -380,15 +431,90 @@
     </section>
 
     <section class="pricing-section">
+        <div class="pricing-category">
+            <div class="cat-badge cat-badge--core">CORE</div>
+            <h2>SmartXFlow CORE</h2>
+            <p>Sadece Yazılım</p>
+        </div>
         <div class="pricing-grid">
             <div class="pricing-card">
-                <h3>Başlangıç</h3>
+                <h3>CORE – 1 Ay</h3>
                 <div class="card-desc">Keşfetmek isteyenler için</div>
-                <div class="price">₺299<span>/ay</span></div>
+                <div class="price">₺XXX<span>/ay</span></div>
                 <div class="period">Aylık faturalandırma</div>
                 <ul class="features">
-                    <li>Temel alarm türleri (Sharp, Dropping)</li>
-                    <li>Web erişimi</li>
+                    <li>SmartXFlow web portal erişimi</li>
+                    <li>Canlı para akışı (Moneyway)</li>
+                    <li>Dropping Odds takibi</li>
+                    <li>Tüm alarm türleri</li>
+                    <li>Mobil + masaüstü kullanım</li>
+                    <li>Telegram bildirimleri</li>
+                    <li>1 cihaz</li>
+                    <li>E-posta destek</li>
+                    <li class="excluded">Özel maç analizi</li>
+                    <li class="excluded">Yorum / yönlendirme</li>
+                </ul>
+                <div class="cta"><a href="#" class="btn-buy btn-buy-outline">Satın Al</a></div>
+            </div>
+
+            <div class="pricing-card">
+                <h3>CORE – 3 Ay</h3>
+                <div class="card-desc">Düzenli takip edenler için</div>
+                <div class="price">₺XXX<span>/3 ay</span></div>
+                <div class="period">3 aylık faturalandırma</div>
+                <ul class="features">
+                    <li>SmartXFlow web portal erişimi</li>
+                    <li>Canlı para akışı (Moneyway)</li>
+                    <li>Dropping Odds takibi</li>
+                    <li>Tüm alarm türleri</li>
+                    <li>Mobil + masaüstü kullanım</li>
+                    <li>Telegram bildirimleri</li>
+                    <li>2 cihaz</li>
+                    <li>E-posta destek</li>
+                </ul>
+                <div class="advantage-note">3 ayda %X avantaj</div>
+                <div class="cta"><a href="#" class="btn-buy btn-buy-outline">Satın Al</a></div>
+            </div>
+
+            <div class="pricing-card">
+                <h3>CORE – Yıllık</h3>
+                <div class="card-desc">Uzun vadeli kullanıcılar için</div>
+                <div class="price">₺XXX<span>/yıl</span></div>
+                <div class="period">Yıllık faturalandırma</div>
+                <ul class="features">
+                    <li>SmartXFlow web portal erişimi</li>
+                    <li>Canlı para akışı (Moneyway)</li>
+                    <li>Dropping Odds takibi</li>
+                    <li>Tüm alarm türleri</li>
+                    <li>Mobil + masaüstü kullanım</li>
+                    <li>Telegram bildirimleri</li>
+                    <li>3 cihaz</li>
+                    <li>Öncelikli destek</li>
+                </ul>
+                <div class="advantage-note">Yıllık kullanımda en avantajlı fiyat</div>
+                <div class="cta"><a href="#" class="btn-buy btn-buy-outline">Satın Al</a></div>
+            </div>
+        </div>
+
+        <div class="pricing-category">
+            <div class="cat-badge cat-badge--pro">PRO ANALYSIS</div>
+            <h2>SmartXFlow PRO ANALYSIS</h2>
+            <p>Yazılım + Özel Maç Analizi</p>
+        </div>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3>PRO ANALYSIS – 1 Ay</h3>
+                <div class="card-desc">Veriyi yorumlayanlar için</div>
+                <div class="price">₺XXX<span>/ay</span></div>
+                <div class="period">Aylık faturalandırma</div>
+                <ul class="features">
+                    <li>SmartXFlow web portal erişimi</li>
+                    <li>Tüm alarmlar & bildirimler</li>
+                    <li>Canlı para + oran takibi</li>
+                    <li>Mobil + masaüstü kullanım</li>
+                    <li>Telegram bildirimleri</li>
+                    <li>Özel maç analizleri</li>
+                    <li>Maç bazlı risk & edge yorumu</li>
                     <li>1 cihaz</li>
                     <li>E-posta destek</li>
                 </ul>
@@ -396,81 +522,44 @@
             </div>
 
             <div class="pricing-card">
-                <h3>Standart</h3>
-                <div class="card-desc">Düzenli takip edenler için</div>
-                <div class="price">₺449<span>/ay</span></div>
-                <div class="period">Aylık faturalandırma</div>
+                <h3>PRO ANALYSIS – 3 Ay</h3>
+                <div class="card-desc">Ciddi analiz isteyenler için</div>
+                <div class="price">₺XXX<span>/3 ay</span></div>
+                <div class="period">3 aylık faturalandırma</div>
                 <ul class="features">
-                    <li>5 alarm türü</li>
-                    <li>Web + Desktop erişimi</li>
-                    <li>2 cihaz</li>
+                    <li>SmartXFlow web portal erişimi</li>
+                    <li>Tüm alarmlar & bildirimler</li>
+                    <li>Canlı para + oran takibi</li>
+                    <li>Mobil + masaüstü kullanım</li>
                     <li>Telegram bildirimleri</li>
-                    <li>E-posta destek</li>
+                    <li>Düzenli özel maç analizleri</li>
+                    <li>Fake move / risk filtreleme</li>
+                    <li>2 cihaz</li>
+                    <li>Öncelikli destek</li>
                 </ul>
+                <div class="advantage-note">3 ayda %X avantaj</div>
                 <div class="cta"><a href="#" class="btn-buy btn-buy-outline">Satın Al</a></div>
             </div>
 
             <div class="pricing-card featured">
                 <div class="popular-badge">En Popüler</div>
-                <h3>Profesyonel</h3>
-                <div class="card-desc">Ciddi analizciler için</div>
-                <div class="price">₺599<span>/ay</span></div>
-                <div class="period">Aylık faturalandırma</div>
+                <h3>PRO ANALYSIS – Yıllık</h3>
+                <div class="card-desc">Profesyonel kullanıcılar için</div>
+                <div class="price">₺XXX<span>/yıl</span></div>
+                <div class="period">Yıllık faturalandırma</div>
                 <ul class="features">
-                    <li>Tüm alarm türleri (7 tip)</li>
-                    <li>Web + Desktop erişimi</li>
+                    <li>SmartXFlow web portal erişimi</li>
+                    <li>Tüm alarm türleri (tam erişim)</li>
+                    <li>Canlı para & oran analizleri</li>
+                    <li>Mobil + masaüstü kullanım</li>
+                    <li>Telegram öncelikli bildirimler</li>
+                    <li>Seçili maçlara detaylı analiz</li>
+                    <li>Oynanabilirlik & risk değerlendirmesi</li>
                     <li>3 cihaz</li>
-                    <li>Telegram bildirimleri</li>
                     <li>Öncelikli destek</li>
                 </ul>
+                <div class="advantage-note">En kapsamlı & en avantajlı paket</div>
                 <div class="cta"><a href="#" class="btn-buy btn-buy-primary">Satın Al</a></div>
-            </div>
-
-            <div class="pricing-card">
-                <h3>Elite</h3>
-                <div class="card-desc">Profesyonel bahisçiler için</div>
-                <div class="price">₺799<span>/ay</span></div>
-                <div class="period">Aylık faturalandırma</div>
-                <ul class="features">
-                    <li>Tüm alarm türleri + gelişmiş filtreler</li>
-                    <li>Web + Desktop erişimi</li>
-                    <li>5 cihaz</li>
-                    <li>Telegram + özel bildirimler</li>
-                    <li>Öncelikli destek</li>
-                    <li>Erken erişim (yeni özellikler)</li>
-                </ul>
-                <div class="cta"><a href="#" class="btn-buy btn-buy-outline">Satın Al</a></div>
-            </div>
-
-            <div class="pricing-card">
-                <h3>Takım</h3>
-                <div class="card-desc">Gruplar ve ortaklıklar için</div>
-                <div class="price">₺899<span>/ay</span></div>
-                <div class="period">Aylık faturalandırma</div>
-                <ul class="features">
-                    <li>Tüm özellikler</li>
-                    <li>10 cihaz</li>
-                    <li>Takım yönetim paneli</li>
-                    <li>Paylaşımlı alarm listeleri</li>
-                    <li>Öncelikli destek</li>
-                </ul>
-                <div class="cta"><a href="#" class="btn-buy btn-buy-outline">Satın Al</a></div>
-            </div>
-
-            <div class="pricing-card">
-                <h3>Kurumsal</h3>
-                <div class="card-desc">Büyük ölçekli operasyonlar için</div>
-                <div class="price">₺999<span>/ay</span></div>
-                <div class="period">Aylık faturalandırma</div>
-                <ul class="features">
-                    <li>Tüm özellikler (sınırsız)</li>
-                    <li>Sınırsız cihaz</li>
-                    <li>API erişimi</li>
-                    <li>Özel raporlama</li>
-                    <li>Dedike hesap yöneticisi</li>
-                    <li>SLA garantisi</li>
-                </ul>
-                <div class="cta"><a href="#" class="btn-buy btn-buy-outline">Satın Al</a></div>
             </div>
         </div>
     </section>
@@ -483,7 +572,7 @@
                 <span class="arrow">▼</span>
             </div>
             <div class="faq-answer">
-                <div class="faq-answer-inner">Başlangıç paketinde 1, Standart'ta 2, Profesyonel'de 3, Elite'de 5, Takım paketinde 10, Kurumsal pakette ise sınırsız cihazda kullanabilirsiniz.</div>
+                <div class="faq-answer-inner">CORE 1 Ay paketinde 1, CORE 3 Ay'da 2, CORE Yıllık'ta 3 cihaz kullanabilirsiniz. PRO ANALYSIS paketlerinde de aynı cihaz dağılımı geçerlidir.</div>
             </div>
         </div>
         <div class="faq-item">
@@ -510,7 +599,7 @@
                 <span class="arrow">▼</span>
             </div>
             <div class="faq-answer">
-                <div class="faq-answer-inner">Standart ve üzeri paketlerde Telegram bot üzerinden anlık alarm bildirimleri alırsınız. Alarm türlerini ve eşik değerlerini kendiniz yapılandırabilirsiniz.</div>
+                <div class="faq-answer-inner">Tüm paketlerde Telegram bot üzerinden anlık alarm bildirimleri alırsınız. Alarm türlerini ve eşik değerlerini kendiniz yapılandırabilirsiniz.</div>
             </div>
         </div>
         <div class="faq-item">
