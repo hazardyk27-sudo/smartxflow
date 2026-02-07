@@ -42,9 +42,15 @@
             margin-left: -8px;
         }
         .nav-brand img {
-            height: 32px;
-            width: auto;
+            width: 40px;
+            height: 40px;
             object-fit: contain;
+        }
+        .nav-brand span {
+            font-size: 21px;
+            font-weight: 700;
+            color: #e6edf3;
+            letter-spacing: -0.5px;
         }
         .nav-links {
             display: flex;
@@ -623,8 +629,8 @@
             align-items: center;
             gap: 8px;
         }
-        .footer-brand img { height: 22px; width: auto; }
-        .footer-brand span { display: none; }
+        .footer-brand img { width: 24px; height: 24px; }
+        .footer-brand span { font-size: 14px; font-weight: 600; color: #3d444d; }
         .footer-links { display: flex; gap: 24px; }
         .footer-links a { font-size: 13px; color: #3d444d; transition: color 0.2s; }
         .footer-links a:hover { color: #2BFF88; }
@@ -667,6 +673,7 @@
     <nav class="navbar">
         <a href="/" class="nav-brand">
             <img src="/static/images/smartxflow_logo.png" alt="SmartXFlow">
+            <span>SmartXFlow</span>
         </a>
         <div class="nav-links">
             <a href="/" class="active">Ana Sayfa</a>
