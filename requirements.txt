@@ -18,3 +18,4 @@ Pillow
 playwright
 Pillow
 flask-compress
+gunicorn
