@@ -798,61 +798,75 @@
         .landing-alert-band .ab-pill {
             cursor: default;
             pointer-events: none;
-            background: rgba(255,80,80,0.10) !important;
-            border: 1px solid rgba(255,80,80,0.22) !important;
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border-radius: 999px !important;
-            padding: 6px 10px !important;
-            height: 34px !important;
-            gap: 10px !important;
-            color: rgba(255,255,255,0.88);
-            transition: background 0.2s, border-color 0.2s;
+            background: transparent !important;
+            border-color: transparent !important;
         }
         .landing-alert-band .ab-pill::before { display: none; }
-        .landing-alert-band .ab-pill:hover {
-            pointer-events: none;
+        .landing-alert-band .ab-pill.sharp,
+        .landing-alert-band .ab-pill.publicmove {
+            background: rgba(43,255,136,0.10) !important;
+            border: 1px solid rgba(43,255,136,0.22) !important;
         }
-        .landing-alert-band .ab-type {
-            background: rgba(255,80,80,0.16) !important;
-            border: 1px solid rgba(255,80,80,0.26) !important;
-            color: #FF6B6B !important;
-            font-weight: 700 !important;
-            font-size: 12px !important;
-            letter-spacing: 0.08em !important;
-            border-radius: 999px !important;
-            padding: 4px 8px !important;
-            line-height: 1 !important;
+        .landing-alert-band .ab-pill.volumeshock {
+            background: rgba(43,255,136,0.12) !important;
+            border: 1px solid rgba(43,255,136,0.25) !important;
         }
-        .landing-alert-band .ab-match {
-            color: rgba(255,255,255,0.90);
-            font-weight: 600;
-            font-size: 13px;
+        .landing-alert-band .ab-pill.bigmoney,
+        .landing-alert-band .ab-pill.hugemoney {
+            background: rgba(43,255,180,0.10) !important;
+            border: 1px solid rgba(43,255,180,0.22) !important;
         }
-        .landing-alert-band .ab-sel {
-            color: rgba(255,255,255,0.55);
-            font-weight: 500;
-            font-size: 12px;
+        .landing-alert-band .ab-pill.dropping-l1,
+        .landing-alert-band .ab-pill.dropping-l2,
+        .landing-alert-band .ab-pill.dropping-l3 {
+            background: rgba(255,80,80,0.10) !important;
+            border: 1px solid rgba(255,80,80,0.22) !important;
         }
+        .landing-alert-band .ab-pill.volumeleader {
+            background: rgba(43,255,200,0.08) !important;
+            border: 1px solid rgba(43,255,200,0.20) !important;
+        }
+        .landing-alert-band .ab-pill.mim {
+            background: rgba(91,127,214,0.10) !important;
+            border: 1px solid rgba(91,127,214,0.22) !important;
+        }
+        .landing-alert-band .ab-pill.sharp .ab-type,
+        .landing-alert-band .ab-pill.publicmove .ab-type { color: #2BFF88; }
+        .landing-alert-band .ab-pill.volumeshock .ab-type { color: #2BFF88; }
+        .landing-alert-band .ab-pill.bigmoney .ab-type,
+        .landing-alert-band .ab-pill.hugemoney .ab-type { color: #2BFFB4; }
+        .landing-alert-band .ab-pill.dropping-l1 .ab-type,
+        .landing-alert-band .ab-pill.dropping-l2 .ab-type,
+        .landing-alert-band .ab-pill.dropping-l3 .ab-type { color: #FF6B6B; }
+        .landing-alert-band .ab-pill.volumeleader .ab-type { color: #2BFFD4; }
+        .landing-alert-band .ab-pill.mim .ab-type { color: #8BA4E0; }
+        .landing-alert-band .ab-match { color: rgba(255,255,255,0.90); }
+        .landing-alert-band .ab-sel { color: rgba(255,255,255,0.45); }
         .landing-alert-band .ab-sep { color: rgba(255,255,255,0.15); }
         .landing-alert-band .ab-val {
-            background: rgba(0,0,0,0.45) !important;
-            border: 1px solid rgba(255,255,255,0.08) !important;
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-radius: 999px !important;
-            padding: 0 10px !important;
-            font-weight: 700 !important;
-            font-size: 13px !important;
-            color: #FF6B6B !important;
+            background: rgba(255,255,255,0.06) !important;
+            color: rgba(255,255,255,0.85) !important;
+            border: 1px solid rgba(255,255,255,0.10) !important;
             box-shadow: none !important;
-            height: 22px !important;
-            line-height: 22px !important;
+        }
+        .landing-alert-band .ab-pill.dropping-l1 .ab-val,
+        .landing-alert-band .ab-pill.dropping-l2 .ab-val,
+        .landing-alert-band .ab-pill.dropping-l3 .ab-val {
+            color: rgba(255,107,107,0.85) !important;
         }
         .landing-alert-band .ab-dot {
-            background-color: #FF6B6B !important;
             box-shadow: none;
         }
+        .landing-alert-band .dot-sharp,
+        .landing-alert-band .dot-publicmove { background-color: #2BFF88; }
+        .landing-alert-band .dot-volumeshock { background-color: #2BFF88; }
+        .landing-alert-band .dot-bigmoney,
+        .landing-alert-band .dot-hugemoney { background-color: #2BFFB4; }
+        .landing-alert-band .dot-dropping-l1,
+        .landing-alert-band .dot-dropping-l2,
+        .landing-alert-band .dot-dropping-l3 { background-color: #FF6B6B; }
+        .landing-alert-band .dot-volumeleader { background-color: #2BFFD4; }
+        .landing-alert-band .dot-mim { background-color: #8BA4E0; }
 
         @media (max-width: 1024px) and (min-width: 769px) {
             .alarm-grid { grid-template-columns: repeat(2, 1fr); }
