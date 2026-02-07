@@ -256,7 +256,7 @@
             text-overflow: ellipsis;
         }
         .pricing-card .features li:last-child { border-bottom: none; }
-        .pricing-card .features li::before { content: '✓'; color: #3fb950; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+        .pricing-card .features li::before { content: '✓'; color: #2BFF88; font-weight: 700; font-size: 13px; flex-shrink: 0; }
         .pricing-card .features li.excluded { color: #484f58; }
         .pricing-card .features li.excluded::before { content: '✕'; color: #f85149; }
         .pricing-card .advantage-note {
@@ -291,11 +291,12 @@
         }
         .btn-buy-outline:hover { border-color: #58a6ff; color: #58a6ff; }
         .btn-buy-primary {
-            background: linear-gradient(135deg, #238636, #2ea043);
-            color: #fff;
-            box-shadow: 0 4px 16px rgba(35,134,54,0.3);
+            background: #2BFF88;
+            color: #06110B;
+            font-weight: 700;
+            box-shadow: 0 4px 16px rgba(43,255,136,0.25);
         }
-        .btn-buy-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(35,134,54,0.4); }
+        .btn-buy-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(43,255,136,0.35); }
 
         .faq-section {
             padding: 80px 24px;
@@ -442,7 +443,8 @@
                 <div class="cta"><a href="#" class="btn-buy btn-buy-outline">Satın Al</a></div>
             </div>
 
-            <div class="pricing-card">
+            <div class="pricing-card featured">
+                <div class="popular-badge">En Popüler</div>
                 <h3>Lisans – 3 Ay</h3>
                 <div class="card-desc">Düzenli takip edenler için</div>
                 <div class="price">₺2.399,90<span>/3 ay</span></div>
@@ -455,7 +457,7 @@
                     <li>2 cihaz</li>
                 </ul>
                 <div class="advantage-note">3 ayda avantajlı fiyat</div>
-                <div class="cta"><a href="#" class="btn-buy btn-buy-outline">Satın Al</a></div>
+                <div class="cta"><a href="#" class="btn-buy btn-buy-primary">Satın Al</a></div>
             </div>
 
             <div class="pricing-card">
