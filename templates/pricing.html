@@ -24,12 +24,12 @@
             left: 0;
             right: 0;
             z-index: 1000;
-            background: rgba(13, 17, 23, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid #21262d;
-            padding: 0 24px;
-            height: 64px;
+            background: rgba(14, 17, 23, 0.7);
+            backdrop-filter: blur(20px) saturate(1.4);
+            -webkit-backdrop-filter: blur(20px) saturate(1.4);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 0 32px;
+            height: 72px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -37,10 +37,11 @@
         .nav-brand {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 11px;
+            margin-left: -8px;
         }
-        .nav-brand img { width: 36px; height: 36px; object-fit: contain; }
-        .nav-brand span { font-size: 20px; font-weight: 700; color: #e6edf3; letter-spacing: -0.5px; }
+        .nav-brand img { width: 40px; height: 40px; object-fit: contain; }
+        .nav-brand span { font-size: 21px; font-weight: 700; color: #e6edf3; letter-spacing: -0.5px; }
         .nav-links { display: flex; align-items: center; gap: 8px; }
         .nav-links a {
             padding: 8px 16px;
