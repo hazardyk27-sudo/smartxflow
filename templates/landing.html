@@ -1133,6 +1133,28 @@
             } else {
                 navbar.classList.remove('scrolled');
             }
+
+            var featuresSection = document.getElementById('features');
+            if (featuresSection) {
+                var rect = featuresSection.getBoundingClientRect();
+                var inFeatures = rect.top <= 120 && rect.bottom > 120;
+                var desktopLinks = document.querySelectorAll('.nav-links > a:not(.nav-cta)');
+                var mobileLinks = document.querySelectorAll('.mobile-menu > a:not(.nav-cta)');
+                desktopLinks.forEach(function(link) {
+                    if (link.getAttribute('href') === '#features') {
+                        if (inFeatures) link.classList.add('active'); else link.classList.remove('active');
+                    } else if (link.getAttribute('href') === '/') {
+                        if (inFeatures) link.classList.remove('active'); else link.classList.add('active');
+                    }
+                });
+                mobileLinks.forEach(function(link) {
+                    if (link.getAttribute('href') === '#features') {
+                        if (inFeatures) link.classList.add('active'); else link.classList.remove('active');
+                    } else if (link.getAttribute('href') === '/') {
+                        if (inFeatures) link.classList.remove('active'); else link.classList.add('active');
+                    }
+                });
+            }
         });
     </script>
 </body>
