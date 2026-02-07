@@ -789,15 +789,84 @@
             left: 0;
             right: 0;
             z-index: 999;
-            border-bottom: 1px solid rgba(43, 255, 136, 0.08);
-            background: rgba(10, 14, 20, 0.85);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
+            background: rgba(255,255,255,0.02);
+            border-top: 1px solid rgba(255,255,255,0.06);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
         }
         .landing-alert-band .ab-pill {
             cursor: default;
             pointer-events: none;
+            background: transparent !important;
+            border-color: transparent !important;
         }
+        .landing-alert-band .ab-pill::before { display: none; }
+        .landing-alert-band .ab-pill.sharp,
+        .landing-alert-band .ab-pill.publicmove {
+            background: rgba(43,255,136,0.10) !important;
+            border: 1px solid rgba(43,255,136,0.22) !important;
+        }
+        .landing-alert-band .ab-pill.volumeshock {
+            background: rgba(43,255,136,0.12) !important;
+            border: 1px solid rgba(43,255,136,0.25) !important;
+        }
+        .landing-alert-band .ab-pill.bigmoney,
+        .landing-alert-band .ab-pill.hugemoney {
+            background: rgba(43,255,180,0.10) !important;
+            border: 1px solid rgba(43,255,180,0.22) !important;
+        }
+        .landing-alert-band .ab-pill.dropping-l1,
+        .landing-alert-band .ab-pill.dropping-l2,
+        .landing-alert-band .ab-pill.dropping-l3 {
+            background: rgba(255,80,80,0.10) !important;
+            border: 1px solid rgba(255,80,80,0.22) !important;
+        }
+        .landing-alert-band .ab-pill.volumeleader {
+            background: rgba(43,255,200,0.08) !important;
+            border: 1px solid rgba(43,255,200,0.20) !important;
+        }
+        .landing-alert-band .ab-pill.mim {
+            background: rgba(91,127,214,0.10) !important;
+            border: 1px solid rgba(91,127,214,0.22) !important;
+        }
+        .landing-alert-band .ab-pill.sharp .ab-type,
+        .landing-alert-band .ab-pill.publicmove .ab-type { color: #2BFF88; }
+        .landing-alert-band .ab-pill.volumeshock .ab-type { color: #2BFF88; }
+        .landing-alert-band .ab-pill.bigmoney .ab-type,
+        .landing-alert-band .ab-pill.hugemoney .ab-type { color: #2BFFB4; }
+        .landing-alert-band .ab-pill.dropping-l1 .ab-type,
+        .landing-alert-band .ab-pill.dropping-l2 .ab-type,
+        .landing-alert-band .ab-pill.dropping-l3 .ab-type { color: #FF6B6B; }
+        .landing-alert-band .ab-pill.volumeleader .ab-type { color: #2BFFD4; }
+        .landing-alert-band .ab-pill.mim .ab-type { color: #8BA4E0; }
+        .landing-alert-band .ab-match { color: rgba(255,255,255,0.90); }
+        .landing-alert-band .ab-sel { color: rgba(255,255,255,0.45); }
+        .landing-alert-band .ab-sep { color: rgba(255,255,255,0.15); }
+        .landing-alert-band .ab-val {
+            background: rgba(255,255,255,0.06) !important;
+            color: rgba(255,255,255,0.85) !important;
+            border: 1px solid rgba(255,255,255,0.10) !important;
+            box-shadow: none !important;
+        }
+        .landing-alert-band .ab-pill.dropping-l1 .ab-val,
+        .landing-alert-band .ab-pill.dropping-l2 .ab-val,
+        .landing-alert-band .ab-pill.dropping-l3 .ab-val {
+            color: rgba(255,107,107,0.85) !important;
+        }
+        .landing-alert-band .ab-dot {
+            box-shadow: none;
+        }
+        .landing-alert-band .dot-sharp,
+        .landing-alert-band .dot-publicmove { background-color: #2BFF88; }
+        .landing-alert-band .dot-volumeshock { background-color: #2BFF88; }
+        .landing-alert-band .dot-bigmoney,
+        .landing-alert-band .dot-hugemoney { background-color: #2BFFB4; }
+        .landing-alert-band .dot-dropping-l1,
+        .landing-alert-band .dot-dropping-l2,
+        .landing-alert-band .dot-dropping-l3 { background-color: #FF6B6B; }
+        .landing-alert-band .dot-volumeleader { background-color: #2BFFD4; }
+        .landing-alert-band .dot-mim { background-color: #8BA4E0; }
 
         @media (max-width: 1024px) and (min-width: 769px) {
             .alarm-grid { grid-template-columns: repeat(2, 1fr); }
