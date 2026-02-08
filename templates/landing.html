@@ -210,6 +210,10 @@
             position: relative;
             z-index: 2;
         }
+        .hero-title-mobile { display: none; }
+        .subtitle-mobile { display: none; }
+        .hero-cta-mobile { display: none !important; }
+        .hero-mini-features { display: none; }
         .hero-text h1 {
             font-size: 60px;
             font-weight: 700;
@@ -1039,54 +1043,59 @@
             .hamburger { display: flex; }
             .navbar { height: 60px; }
 
+            .landing-alert-band { display: none !important; }
+
             .hero {
-                padding: 100px 16px 30px;
+                padding: 84px 20px 24px;
                 grid-template-columns: 1fr;
-                gap: 20px;
+                gap: 28px;
                 text-align: center;
                 max-width: 100%;
                 overflow: hidden;
             }
-            .hero-text h1 { font-size: 30px; letter-spacing: -1px; margin-bottom: 6px; line-height: 1.1; }
-            .hero-text .subtitle {
-                font-size: 13px;
-                max-width: 280px;
-                margin-left: auto;
-                margin-right: auto;
-                margin-bottom: 16px;
-                line-height: 1.4;
-                opacity: 0.7;
+            .hero-title-desktop { display: none; }
+            .subtitle-desktop { display: none; }
+            .hero-cta-desktop { display: none !important; }
+            .hero-title-mobile { display: block; font-size: 32px; letter-spacing: -1px; line-height: 1.1; margin-bottom: 8px; }
+            .subtitle-mobile { display: block; font-size: 14px; max-width: 300px; margin: 0 auto 20px; line-height: 1.4; opacity: 0.5; }
+            .hero-cta-mobile { display: inline-flex !important; }
+            .hero-cta-group { flex-direction: column; align-items: center; gap: 6px; width: 100%; }
+            .hero-cta { padding: 16px 24px; font-size: 15px; width: 100%; max-width: 320px; text-align: center; justify-content: center; font-weight: 600; }
+            .hero-cta-secondary { padding: 6px 12px; font-size: 12px; border: none; background: transparent; opacity: 0.45; font-weight: 400; }
+            .hero-cta-secondary:hover { background: transparent; opacity: 0.8; }
+            .hero-feature-strip { display: none; }
+            .hero-mini-features {
+                display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 20px;
             }
-            .hero-cta-group { flex-direction: column; align-items: center; gap: 8px; width: 100%; }
-            .hero-cta { padding: 14px 24px; font-size: 15px; width: 100%; max-width: 320px; text-align: center; justify-content: center; }
-            .hero-cta-secondary { padding: 8px 16px; font-size: 12px; border: none; background: transparent; opacity: 0.6; }
-            .hero-cta-secondary:hover { background: transparent; opacity: 1; }
-            .hero-feature-strip { display: flex; justify-content: center; margin-top: 12px; gap: 6px; }
-            .hero-feature-item { font-size: 10px; padding: 4px 10px; background: rgba(43, 255, 136, 0.03); border: 1px solid rgba(43, 255, 136, 0.06); }
-            .hero-feature-item svg { width: 11px; height: 11px; }
+            .hero-mini-feature {
+                display: flex; align-items: center; gap: 8px;
+                font-size: 12px; color: rgba(255,255,255,0.4); font-weight: 400;
+            }
             .hero-visual { justify-content: center; overflow: hidden; }
-            .hero-visual::before { display: block; width: 300px; height: 300px; opacity: 0.4; }
+            .hero-visual::before { display: none; }
             .hero-visual::after { display: none; }
             .mockup-window {
-                max-width: 100%; width: 88%; transform: none;
-                border-radius: 18px; margin: 0 auto;
-                border: 1px solid rgba(43, 255, 136, 0.08);
-                box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 8px 24px rgba(43, 255, 136, 0.04);
-                backdrop-filter: blur(8px);
-                -webkit-backdrop-filter: blur(8px);
-                background: rgba(13, 17, 23, 0.85);
+                max-width: 280px; width: 70%; transform: none;
+                border-radius: 14px; margin: 0 auto;
+                border: 1px solid rgba(43, 255, 136, 0.06);
+                box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                background: rgba(13, 17, 23, 0.5);
+                opacity: 0.5;
             }
-            .mockup-body { padding: 8px; }
-            .mockup-row { padding: 8px; gap: 6px; }
-            .mockup-badge { width: 54px; font-size: 7px; padding: 2px 0; }
-            .mockup-teams { font-size: 11px; }
-            .mockup-league { font-size: 9px; }
-            .mockup-odds { font-size: 11px; }
-            .mockup-volume { font-size: 9px; }
-            .mockup-volume.highlight { font-size: 11px; }
-            .mockup-titlebar { padding: 8px 12px; gap: 6px; }
-            .mockup-titlebar span { font-size: 10px; }
-            .mockup-chart { height: 60px; padding: 8px; }
+            .mockup-body { padding: 6px; }
+            .mockup-row { padding: 6px; gap: 4px; }
+            .mockup-badge { width: 40px; font-size: 6px; padding: 2px 0; }
+            .mockup-teams { font-size: 8px; }
+            .mockup-league { font-size: 7px; }
+            .mockup-odds { font-size: 8px; }
+            .mockup-volume { font-size: 7px; }
+            .mockup-volume.highlight { font-size: 8px; }
+            .mockup-titlebar { padding: 6px 10px; gap: 4px; }
+            .mockup-titlebar span { font-size: 8px; }
+            .mockup-chart { height: 30px; padding: 4px; }
+            .mockup-chart-label { font-size: 7px; }
 
             .features-hero { padding: 50px 16px 24px; }
             .features-hero h2 { font-size: 24px; line-height: 1.2; margin-bottom: 14px; }
@@ -1165,10 +1174,13 @@
 
     <section class="hero">
         <div class="hero-text">
-            <h1><span class="accent">Akıllı Para,</span><br>Oran Hareketi, Alarm.</h1>
-            <p class="subtitle">Piyasadaki para akışını, oran hareketlerini ve sıradışı sinyalleri tek ekranda izle. Erken fark et, doğru anı yakala.</p>
+            <h1 class="hero-title-desktop"><span class="accent">Akıllı Para,</span><br>Oran Hareketi, Alarm.</h1>
+            <h1 class="hero-title-mobile"><span class="accent">Piyasayı Okuyan</span><br>Sinyaller.</h1>
+            <p class="subtitle subtitle-desktop">Piyasadaki para akışını, oran hareketlerini ve sıradışı sinyalleri tek ekranda izle. Erken fark et, doğru anı yakala.</p>
+            <p class="subtitle subtitle-mobile">Para akışı + oran hareketi + akıllı alarmlar.</p>
             <div class="hero-cta-group">
-                <a href="#features" class="hero-cta">Platformu Keşfet <span class="icon">→</span></a>
+                <a href="/app" class="hero-cta hero-cta-mobile">Uygulamaya Gir <span class="icon">→</span></a>
+                <a href="#features" class="hero-cta hero-cta-desktop">Platformu Keşfet <span class="icon">→</span></a>
                 <a href="/pricing" class="hero-cta-secondary">Paketleri Gör</a>
             </div>
             <div class="hero-feature-strip">
@@ -1183,6 +1195,20 @@
                 <div class="hero-feature-item">
                     <svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                     Telegram bildirimleri
+                </div>
+            </div>
+            <div class="hero-mini-features">
+                <div class="hero-mini-feature">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#2BFF88" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    Canlı para akışı
+                </div>
+                <div class="hero-mini-feature">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#2BFF88" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    Oran düşüşleri
+                </div>
+                <div class="hero-mini-feature">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#2BFF88" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                    Telegram bildirim
                 </div>
             </div>
         </div>
