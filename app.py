@@ -535,7 +535,7 @@ def status_page():
 def api_scraper_status():
     """Scraper durumu - son 24 saatteki sinyaller ve heartbeat"""
     import requests as req
-    result = {"signals": [], "heartbeat": None}
+    result = {"signals": [], "heartbeat": None, "active_match_count": 0}
     try:
         if not db.is_supabase_available:
             return jsonify(result)
@@ -554,6 +554,18 @@ def api_scraper_status():
                 result["signals"] = r.json()
         except Exception as e:
             print(f"[ScraperStatus] Signal error: {e}")
+
+        today_str = datetime.utcnow().strftime('%Y-%m-%d')
+        try:
+            fix_url = f"{supa.url}/rest/v1/fixtures?select=match_id_hash&fixture_date=gte.{today_str}&limit=1"
+            fix_headers = {**headers, "Prefer": "count=exact"}
+            r = req.get(fix_url, headers=fix_headers, timeout=8)
+            if r.status_code in [200, 206]:
+                cr = r.headers.get('Content-Range', '')
+                if '/' in cr:
+                    result["active_match_count"] = int(cr.split('/')[1]) if cr.split('/')[1] != '*' else 0
+        except Exception:
+            pass
 
     except Exception as e:
         print(f"[ScraperStatus] Error: {e}")

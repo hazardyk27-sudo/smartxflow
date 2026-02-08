@@ -247,8 +247,8 @@
                     <div class="info-value small" id="lastScrape">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Son Maç Sayısı</div>
-                    <div class="info-value" id="lastMatchCount">-</div>
+                    <div class="info-label">Aktif Maç (Bugün+)</div>
+                    <div class="info-value" id="scraperActiveMatches">-</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Son Snapshot Sayısı</div>
@@ -269,8 +269,8 @@
                     <div class="info-value big-number" id="totalRuns">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Ortalama Maç</div>
-                    <div class="info-value big-number" id="avgMatches">-</div>
+                    <div class="info-label">Aktif Maç (Bugün+)</div>
+                    <div class="info-value big-number" id="scraperActiveMatches2">-</div>
                 </div>
             </div>
         </div>
@@ -460,14 +460,14 @@
                 if (data.signals && data.signals.length > 0) {
                     const latest = data.signals[0];
                     document.getElementById('lastScrape').textContent = formatTurkeyTime(latest.created_at) + ' (' + timeSince(latest.created_at) + ')';
-                    document.getElementById('lastMatchCount').textContent = latest.match_count || '-';
                     document.getElementById('lastSnapshotCount').textContent = latest.snapshot_count || '-';
 
                     document.getElementById('totalRuns').textContent = data.signals.length;
 
-                    let totalMatches = 0;
-                    data.signals.forEach(s => { totalMatches += (s.match_count || 0); });
-                    document.getElementById('avgMatches').textContent = Math.round(totalMatches / data.signals.length);
+                if (data.active_match_count !== undefined) {
+                    document.getElementById('scraperActiveMatches').textContent = data.active_match_count;
+                    document.getElementById('scraperActiveMatches2').textContent = data.active_match_count;
+                }
 
                     const tbody = document.getElementById('historyBody');
                     tbody.innerHTML = '';
