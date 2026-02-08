@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="/static/css/alert_band.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
+        html { scroll-behavior: smooth; overflow-x: hidden; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background:
@@ -908,34 +908,66 @@
         @media (max-width: 768px) {
             .nav-links { display: none; }
             .hamburger { display: flex; }
+
             .hero {
-                padding: 120px 20px 60px;
+                padding: 100px 16px 40px;
                 grid-template-columns: 1fr;
-                gap: 40px;
+                gap: 30px;
                 text-align: center;
             }
-            .hero-text h1 { font-size: 36px; letter-spacing: -1px; }
+            .hero-text h1 { font-size: 32px; letter-spacing: -1px; }
             .hero-text .subtitle {
-                font-size: 16px;
+                font-size: 15px;
                 max-width: 100%;
                 margin-left: auto;
                 margin-right: auto;
             }
-            .hero-note { text-align: center; }
-            .hero-visual { order: -1; }
+            .hero-note { text-align: center; font-size: 11px; }
+            .hero-visual { order: -1; justify-content: center; }
+            .hero-visual::before { width: 280px; height: 280px; }
             .mockup-window { max-width: 100%; }
-            .features-hero { padding: 100px 20px 40px; }
-            .features-hero h2 { font-size: 28px; }
-            .features-grid { grid-template-columns: 1fr; }
-            .duo-section { grid-template-columns: 1fr; }
-            .alarm-grid { grid-template-columns: 1fr; gap: 16px; }
-            .alarm-card { min-height: auto; padding: 24px 20px; }
+            .mockup-body { padding: 12px; }
+            .mockup-row { padding: 10px 10px; gap: 8px; }
+            .mockup-badge { width: 64px; font-size: 9px; }
+            .mockup-teams { font-size: 12px; }
+            .mockup-odds { font-size: 12px; }
+            .mockup-volume { font-size: 10px; }
+            .mockup-volume.highlight { font-size: 12px; }
+
+            .features-hero { padding: 60px 16px 30px; }
+            .features-hero h2 { font-size: 26px; }
+            .features-hero p { font-size: 15px; }
+
+            .section { padding: 60px 16px; }
+            .section-title { font-size: 26px; }
+            .section-subtitle { font-size: 14px; margin-bottom: 40px; }
+            .features-grid { grid-template-columns: 1fr; gap: 14px; }
+            .feature-card { padding: 24px 20px; }
+
+            .alarm-section { padding: 0 16px 60px; }
+            .alarm-section h2 { font-size: 26px; }
+            .alarm-section .alarm-sub { font-size: 14px; margin-bottom: 30px; }
+            .alarm-grid { grid-template-columns: 1fr; gap: 14px; }
+            .alarm-card { min-height: auto; padding: 22px 18px; }
+
             .statsBar { grid-template-columns: 1fr; padding: 14px 14px; }
             .statItem:not(:last-child) { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 14px; margin-bottom: 6px; }
             .statNum { font-size: 36px; }
-            .section-title { font-size: 28px; }
-            .footer-content { flex-direction: column; text-align: center; }
-            .footer-links { flex-wrap: wrap; justify-content: center; }
+
+            .duo-section { grid-template-columns: 1fr; padding: 40px 16px; gap: 16px; }
+            .duo-panel { padding: 24px 20px; }
+            .duo-panel h2 { font-size: 20px; margin-bottom: 20px; }
+
+            .cta-section { padding: 20px 16px 60px 16px; }
+            .cta-section h2 { font-size: 28px; }
+            .cta-section p { font-size: 14px; margin-bottom: 28px; }
+            .cta-section::before { width: 300px; height: 200px; }
+
+            .footer { padding: 30px 16px; }
+            .footer-content { flex-direction: column; text-align: center; gap: 12px; }
+            .footer-links { flex-wrap: wrap; justify-content: center; gap: 16px; }
+
+            .landing-alert-band { margin-top: 60px; }
         }
     </style>
 </head>
