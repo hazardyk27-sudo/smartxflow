@@ -19,10 +19,6 @@ author = "agent"
 task = "workflow.run"
 args = "SmartXFlow Web"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Alarm Engine"
-
 [[workflows.workflow]]
 name = "SmartXFlow Web"
 author = "agent"
@@ -34,17 +30,6 @@ waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
-
-[[workflows.workflow]]
-name = "Alarm Engine"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python alarm_engine.py"
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [userenv]
 
