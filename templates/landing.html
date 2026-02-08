@@ -849,32 +849,41 @@
         }
 
         .statsBar {
-            display: flex;
-            justify-content: center;
-            gap: 40px;
-            max-width: 800px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+            padding: 18px 18px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            max-width: 960px;
             margin: 0 auto;
         }
         .statItem {
-            display: flex;
-            align-items: baseline;
-            gap: 10px;
+            padding: 8px 18px;
+        }
+        .statItem:not(:last-child) {
+            border-right: 1px solid rgba(255,255,255,0.06);
         }
         .statNum {
-            font-size: 28px;
+            font-size: 46px;
             font-weight: 800;
-            letter-spacing: -0.5px;
+            letter-spacing: -0.8px;
             line-height: 1;
             color: #2BFF88;
-            font-variant-numeric: tabular-nums;
         }
         .statTitle {
-            font-size: 13px;
-            color: rgba(255,255,255,0.50);
-            font-weight: 500;
+            margin-top: 10px;
+            font-size: 12px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.60);
+            font-weight: 600;
         }
         .statSub {
-            display: none;
+            margin-top: 6px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.40);
         }
 
         .cta-section {
@@ -1009,8 +1018,10 @@
             .alarm-grid { grid-template-columns: 1fr; gap: 14px; max-width: 100%; }
             .alarm-card { min-height: auto; padding: 22px 18px; }
 
-            .statsBar { flex-direction: column; gap: 16px; align-items: center; }
-            .statNum { font-size: 22px; }
+            .statsBar { grid-template-columns: 1fr; padding: 14px; max-width: 100%; }
+            .statItem { padding: 8px 14px; }
+            .statItem:not(:last-child) { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 14px; margin-bottom: 6px; }
+            .statNum { font-size: 34px; }
 
             .duo-section { grid-template-columns: 1fr; padding: 40px 16px; gap: 16px; max-width: 100%; }
             .duo-panel { padding: 24px 18px; }
@@ -1170,18 +1181,17 @@
             <div class="statItem">
                 <div class="statNum">6</div>
                 <div class="statTitle">Alarm Türü</div>
+                <div class="statSub">Sharp · Big Money · Dropping…</div>
             </div>
             <div class="statItem">
                 <div class="statNum">6</div>
                 <div class="statTitle">Market</div>
+                <div class="statSub">1X2 · O/U · BTTS…</div>
             </div>
             <div class="statItem">
                 <div class="statNum">24/7</div>
                 <div class="statTitle">Canlı Takip</div>
-            </div>
-            <div class="statItem">
-                <div class="statNum">10dk</div>
-                <div class="statTitle">Güncelleme</div>
+                <div class="statSub">Anlık güncelleme ve alarm akışı</div>
             </div>
         </div>
     </section>
