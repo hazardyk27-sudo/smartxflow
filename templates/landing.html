@@ -215,6 +215,7 @@
         .subtitle-mobile { display: none; }
         .hero-cta-mobile { display: none !important; }
         .hero-mini-grid { display: none; }
+        .mobile-shortcut-nav { display: none; }
         .hero-text h1 {
             font-size: 60px;
             font-weight: 700;
@@ -644,6 +645,7 @@
             padding: 0px 24px 100px;
             text-align: center;
             max-width: 1280px;
+            scroll-margin-top: 80px;
             margin: 0 auto;
         }
         .alarm-section h2 {
@@ -1115,6 +1117,24 @@
             }
             .hero-visual { display: none; }
 
+            .mobile-shortcut-nav {
+                display: flex; justify-content: center; gap: 12px;
+                padding: 16px 24px 0;
+            }
+            .shortcut-btn {
+                display: flex; align-items: center; gap: 6px;
+                padding: 10px 20px; border-radius: 12px;
+                background: rgba(255,255,255,0.04);
+                border: 1px solid rgba(255,255,255,0.08);
+                color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 500;
+                text-decoration: none; transition: all 0.2s ease;
+            }
+            .shortcut-btn:hover {
+                background: rgba(43, 255, 136, 0.06);
+                border-color: rgba(43, 255, 136, 0.15);
+                color: rgba(43, 255, 136, 0.8);
+            }
+
             .features-hero { padding: 50px 16px 24px; }
             .features-hero h2 { font-size: 24px; line-height: 1.2; margin-bottom: 14px; }
             .features-hero p { font-size: 13px; }
@@ -1312,6 +1332,17 @@
         </div>
     </section>
 
+    <div class="mobile-shortcut-nav">
+        <a href="#features" class="shortcut-btn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Özellikler
+        </a>
+        <a href="#alarms" class="shortcut-btn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            Alarmlar
+        </a>
+    </div>
+
     <section class="features-hero" id="features">
         <h2><span>Piyasa Hareketlerini</span> Okumak<br>İçin Geliştirildi.</h2>
         <p>Tahmin değil. Banko değil.<br><strong>Gerçek zamanlı veri, akıllı sinyaller.</strong></p>
@@ -1389,7 +1420,7 @@
         </div>
     </section>
 
-    <section class="alarm-section">
+    <section class="alarm-section" id="alarms">
         <h2>Alarm Sistemi</h2>
         <p class="alarm-sub">Piyasa hareket ettiğinde sistem seni uyarır. 6 farklı alarm türü, her biri farklı bir sinyali yakalar.</p>
         <div class="alarm-grid">
