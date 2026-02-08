@@ -564,13 +564,13 @@
 
         <div class="duration-tabs">
             <button class="duration-tab" data-duration="1ay" onclick="switchDuration('1ay')">1 Ay</button>
-            <button class="duration-tab active" data-duration="3ay" onclick="switchDuration('3ay')">3 Ay</button>
+            <button class="duration-tab" data-duration="3ay" onclick="switchDuration('3ay')">3 Ay</button>
             <button class="duration-tab" data-duration="yillik" onclick="switchDuration('yillik')">Yıllık</button>
         </div>
 
         <div id="panel-core" class="pricing-panel active">
             <div class="pricing-grid">
-                <div class="pricing-card" data-duration="1ay">
+                <div class="pricing-card">
                     <span class="tier-badge tier-badge--core">CORE</span>
                     <h3>Lisans – 1 Ay</h3>
                     <div class="card-desc">Keşfetmek isteyenler için</div>
@@ -586,7 +586,7 @@
                     <div class="cta"><a href="#" class="btn-buy btn-buy-outline">Satın Al</a></div>
                 </div>
 
-                <div class="pricing-card featured" data-duration="3ay">
+                <div class="pricing-card featured">
                     <div class="popular-badge">En Popüler</div>
                     <span class="tier-badge tier-badge--core">CORE</span>
                     <h3>Lisans – 3 Ay</h3>
@@ -604,7 +604,7 @@
                     <div class="cta"><a href="#" class="btn-buy btn-buy-primary">Satın Al</a></div>
                 </div>
 
-                <div class="pricing-card" data-duration="yillik">
+                <div class="pricing-card">
                     <span class="tier-badge tier-badge--core">CORE</span>
                     <h3>Lisans – Yıllık</h3>
                     <div class="card-desc">Uzun vadeli kullanıcılar için</div>
@@ -625,7 +625,7 @@
 
         <div id="panel-pro" class="pricing-panel">
             <div class="pricing-grid">
-                <div class="pricing-card" data-duration="1ay">
+                <div class="pricing-card">
                     <span class="tier-badge tier-badge--pro">PRO ANALYSIS</span>
                     <h3>Pro – 1 Ay</h3>
                     <div class="card-desc">Analizle güçlü başlangıç</div>
@@ -644,7 +644,7 @@
                     <div class="cta"><a href="#" class="btn-buy btn-buy-outline">Satın Al</a></div>
                 </div>
 
-                <div class="pricing-card featured" data-duration="3ay">
+                <div class="pricing-card featured">
                     <div class="popular-badge">En Popüler</div>
                     <span class="tier-badge tier-badge--pro">PRO ANALYSIS</span>
                     <h3>Pro – 3 Ay</h3>
@@ -665,8 +665,7 @@
                     <div class="cta"><a href="#" class="btn-buy btn-buy-primary">Satın Al</a></div>
                 </div>
 
-                <div class="pricing-card featured" data-duration="yillik">
-                    <div class="popular-badge">En Avantajlı</div>
+                <div class="pricing-card">
                     <span class="tier-badge tier-badge--pro">PRO ANALYSIS</span>
                     <h3>Pro – Yıllık</h3>
                     <div class="card-desc">Maksimum avantaj paketi</div>
@@ -770,8 +769,9 @@
         function toggleFaq(el) {
             el.parentElement.classList.toggle('open');
         }
-        var currentDuration = '3ay';
+        var currentTab = 'core';
         function switchTab(tab) {
+            currentTab = tab;
             var tabs = document.querySelectorAll('.pricing-tab');
             tabs.forEach(function(t) {
                 t.className = 'pricing-tab';
@@ -786,32 +786,25 @@
                 p.classList.remove('active');
             });
             document.getElementById('panel-' + tab).classList.add('active');
-            applyDurationFilter();
+            updateDurationColors();
         }
         function switchDuration(dur) {
-            currentDuration = dur;
             document.querySelectorAll('.duration-tab').forEach(function(t) {
-                t.classList.remove('active');
+                t.className = 'duration-tab';
             });
-            document.querySelector('.duration-tab[data-duration="' + dur + '"]').classList.add('active');
-            applyDurationFilter();
+            var btn = document.querySelector('.duration-tab[data-duration="' + dur + '"]');
+            btn.classList.add(currentTab === 'core' ? 'active-core' : 'active-pro');
         }
-        function applyDurationFilter() {
-            var isMobile = window.innerWidth <= 768;
-            document.querySelectorAll('.pricing-card').forEach(function(card) {
-                var cardDur = card.getAttribute('data-duration');
-                if (isMobile) {
-                    card.style.display = (cardDur === currentDuration) ? 'flex' : 'none';
-                } else {
-                    card.style.display = 'flex';
+        function updateDurationColors() {
+            document.querySelectorAll('.duration-tab').forEach(function(t) {
+                if (t.classList.contains('active-core') || t.classList.contains('active-pro')) {
+                    t.classList.remove('active-core', 'active-pro');
+                    t.classList.add(currentTab === 'core' ? 'active-core' : 'active-pro');
                 }
             });
         }
         document.addEventListener('DOMContentLoaded', function() {
             switchDuration('3ay');
-        });
-        window.addEventListener('resize', function() {
-            applyDurationFilter();
         });
         window.addEventListener('scroll', function() {
             var navbar = document.querySelector('.navbar');
