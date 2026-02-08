@@ -64,9 +64,9 @@
             margin: 0 auto;
             padding: 0 48px;
             height: 100%;
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             align-items: center;
-            justify-content: space-between;
         }
         .nav-brand {
             display: flex;
@@ -91,6 +91,7 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            justify-self: end;
         }
         .nav-links a {
             padding: 10px 16px;
