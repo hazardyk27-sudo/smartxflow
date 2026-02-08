@@ -218,7 +218,7 @@
             line-height: 1.1;
             margin-bottom: 16px;
         }
-        .hero-text h1 .accent {
+        .accent {
             background: linear-gradient(90deg, #2BFF88 0%, #7CFFD2 45%, #E6FFF4 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -544,6 +544,10 @@
             max-width: 520px;
             margin-left: auto;
             margin-right: auto;
+        }
+
+        .mobile-hero {
+            display: none;
         }
 
         .features-hero {
@@ -1039,42 +1043,118 @@
             .hamburger { display: flex; }
             .navbar { height: 60px; }
 
-            .hero {
-                padding: 110px 16px 30px;
-                grid-template-columns: 1fr;
-                gap: 24px;
+            .hero { display: none; }
+
+            .mobile-hero {
+                display: block;
+                padding: 100px 20px 40px;
                 text-align: center;
-                max-width: 100%;
-                overflow: hidden;
             }
-            .hero-text h1 { font-size: 32px; letter-spacing: -1px; margin-bottom: 10px; }
-            .hero-text .subtitle {
+            .mobile-hero-inner {
+                max-width: 400px;
+                margin: 0 auto;
+            }
+            .mobile-hero h1 {
+                font-size: 30px;
+                font-weight: 800;
+                letter-spacing: -1px;
+                line-height: 1.1;
+                color: rgba(255,255,255,0.95);
+                margin-bottom: 10px;
+            }
+            .mobile-hero-sub {
                 font-size: 14px;
-                max-width: 100%;
-                margin-left: auto;
-                margin-right: auto;
-                margin-bottom: 20px;
+                color: rgba(255,255,255,0.55);
                 line-height: 1.5;
+                margin-bottom: 24px;
             }
-            .hero-cta-group { justify-content: center; gap: 10px; }
-            .hero-cta { padding: 12px 24px; font-size: 14px; }
-            .hero-cta-secondary { padding: 12px 20px; font-size: 14px; }
-            .hero-feature-strip { display: none; }
-            .hero-visual { justify-content: center; overflow: hidden; }
-            .hero-visual::before { display: none; }
-            .hero-visual::after { display: none; }
-            .mockup-window { max-width: 100%; width: 90%; transform: none; border-radius: 14px; margin: 0 auto; }
-            .mockup-body { padding: 8px; }
-            .mockup-row { padding: 8px; gap: 6px; }
-            .mockup-badge { width: 54px; font-size: 7px; padding: 2px 0; }
-            .mockup-teams { font-size: 11px; }
-            .mockup-league { font-size: 9px; }
-            .mockup-odds { font-size: 11px; }
-            .mockup-volume { font-size: 9px; }
-            .mockup-volume.highlight { font-size: 11px; }
-            .mockup-titlebar { padding: 8px 12px; gap: 6px; }
-            .mockup-titlebar span { font-size: 10px; }
-            .mockup-chart { height: 60px; padding: 8px; }
+            .signal-card {
+                background: rgba(255,255,255,0.04);
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 16px;
+                padding: 16px;
+                margin-bottom: 24px;
+                text-align: left;
+            }
+            .signal-card-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 12px;
+            }
+            .signal-badge {
+                background: linear-gradient(135deg, #2BFF88 0%, #1ecb6a 100%);
+                color: #0a0f0d;
+                font-size: 10px;
+                font-weight: 800;
+                padding: 4px 10px;
+                border-radius: 6px;
+                letter-spacing: 0.5px;
+            }
+            .signal-confidence {
+                font-size: 13px;
+                font-weight: 700;
+                color: #2BFF88;
+                background: rgba(43,255,136,0.1);
+                padding: 3px 10px;
+                border-radius: 8px;
+            }
+            .signal-card-body {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+            }
+            .signal-teams {
+                font-size: 15px;
+                font-weight: 700;
+                color: rgba(255,255,255,0.9);
+                margin-bottom: 2px;
+            }
+            .signal-league {
+                font-size: 11px;
+                color: rgba(255,255,255,0.4);
+            }
+            .signal-data {
+                text-align: right;
+                flex-shrink: 0;
+            }
+            .signal-odds {
+                font-size: 15px;
+                font-weight: 700;
+                color: #2BFF88;
+                margin-bottom: 2px;
+            }
+            .signal-money {
+                font-size: 12px;
+                color: rgba(255,255,255,0.5);
+            }
+            .mobile-hero-cta {
+                display: flex;
+                justify-content: center;
+                gap: 10px;
+                margin-bottom: 24px;
+            }
+            .mobile-hero-cta .hero-cta { padding: 12px 24px; font-size: 14px; }
+            .mobile-hero-cta .hero-cta-secondary { padding: 12px 20px; font-size: 14px; }
+            .mobile-hero-chips {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px;
+            }
+            .mobile-chip {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                font-size: 11px;
+                color: rgba(255,255,255,0.5);
+                background: rgba(255,255,255,0.04);
+                border: 1px solid rgba(255,255,255,0.06);
+                border-radius: 20px;
+                padding: 6px 12px;
+            }
+            .mobile-chip svg { stroke: #2BFF88; }
 
             .features-hero { padding: 50px 16px 24px; }
             .features-hero h2 { font-size: 24px; line-height: 1.2; margin-bottom: 14px; }
@@ -1150,6 +1230,47 @@
         <a href="/analysis">Analizler</a>
         <a href="/app" class="nav-cta">Uygulamaya Git</a>
     </div>
+
+    <section class="mobile-hero">
+        <div class="mobile-hero-inner">
+            <h1><span class="accent">Akıllı Sinyal,</span><br>Gerçek Veri.</h1>
+            <p class="mobile-hero-sub">Para akışı, oran hareketi ve sıradışı sinyalleri anında yakala.</p>
+            <div class="signal-card">
+                <div class="signal-card-header">
+                    <span class="signal-badge">SHARP</span>
+                    <span class="signal-confidence">%92</span>
+                </div>
+                <div class="signal-card-body">
+                    <div class="signal-match">
+                        <div class="signal-teams">Chelsea vs Man City</div>
+                        <div class="signal-league">Premier League</div>
+                    </div>
+                    <div class="signal-data">
+                        <div class="signal-odds">1.85 → 1.62</div>
+                        <div class="signal-money">£ 842K</div>
+                    </div>
+                </div>
+            </div>
+            <div class="mobile-hero-cta">
+                <a href="#features" class="hero-cta">Platformu Keşfet <span class="icon">→</span></a>
+                <a href="/pricing" class="hero-cta-secondary">Paketleri Gör</a>
+            </div>
+            <div class="mobile-hero-chips">
+                <span class="mobile-chip">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    Canlı Para Akışı
+                </span>
+                <span class="mobile-chip">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    Dropping Odds & Alarmlar
+                </span>
+                <span class="mobile-chip">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                    Telegram
+                </span>
+            </div>
+        </div>
+    </section>
 
     <section class="hero">
         <div class="hero-text">
