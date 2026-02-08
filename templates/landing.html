@@ -979,15 +979,20 @@
         /* === 16:9 LAPTOP: 1280-1919px === */
         @media (min-width: 1280px) and (max-width: 1919px) {
             .hero {
-                padding: 136px 48px 30px;
+                padding: 130px 48px 20px;
                 max-width: 1280px;
-                gap: 30px;
+                gap: 24px;
             }
-            .hero-text h1 { font-size: 56px; }
-            .hero-text .subtitle { font-size: 16px; }
-            .mockup-window { width: min(680px, 44vw); }
-            .features-hero { padding: 90px 24px 50px; }
-            .features-hero h2 { font-size: 40px; }
+            .hero-text h1 { font-size: 54px; margin-bottom: 12px; }
+            .hero-text .subtitle { font-size: 15px; margin-bottom: 24px; }
+            .hero-feature-strip { margin-top: 20px; }
+            .mockup-window { width: min(640px, 44vw); }
+            .features-hero { padding: 70px 24px 40px; }
+            .features-hero h2 { font-size: 38px; }
+            .section { padding: 70px 48px; }
+            .alarm-section { padding: 0 48px 60px; }
+            .duo-section { padding: 60px 48px; gap: 20px; }
+            .cta-section { padding: 20px 24px 80px; }
             .landing-alert-band { top: 80px; }
         }
 
@@ -1013,79 +1018,79 @@
         @media (max-width: 768px) {
             .nav-links { display: none; }
             .hamburger { display: flex; }
+            .navbar { height: 60px; }
 
             .hero {
-                padding: 100px 16px 40px;
+                padding: 110px 16px 30px;
                 grid-template-columns: 1fr;
-                gap: 30px;
+                gap: 24px;
                 text-align: center;
                 max-width: 100%;
                 overflow: hidden;
-                min-height: auto;
             }
-            .hero-text h1 { font-size: 30px; letter-spacing: -1px; }
+            .hero-text h1 { font-size: 32px; letter-spacing: -1px; margin-bottom: 10px; }
             .hero-text .subtitle {
-                font-size: 15px;
+                font-size: 14px;
                 max-width: 100%;
                 margin-left: auto;
                 margin-right: auto;
+                margin-bottom: 20px;
+                line-height: 1.5;
             }
-            .hero-cta-group { justify-content: center; }
-            .hero-feature-strip {
-                justify-content: center;
-                gap: 16px;
-                margin-top: 24px;
-            }
-            .hero-feature-item { font-size: 11px; padding: 6px 12px; }
+            .hero-cta-group { justify-content: center; gap: 10px; }
+            .hero-cta { padding: 12px 24px; font-size: 14px; }
+            .hero-cta-secondary { padding: 12px 20px; font-size: 14px; }
+            .hero-feature-strip { display: none; }
             .hero-visual { order: -1; justify-content: center; overflow: hidden; }
             .hero-visual::before { display: none; }
             .hero-visual::after { display: none; }
-            .mockup-window { max-width: 100%; width: 100%; transform: none; }
-            .mockup-body { padding: 10px; }
+            .mockup-window { max-width: 100%; width: 100%; transform: none; border-radius: 14px; }
+            .mockup-body { padding: 8px; }
             .mockup-row { padding: 8px; gap: 6px; }
-            .mockup-badge { width: 58px; font-size: 8px; padding: 2px 0; }
+            .mockup-badge { width: 54px; font-size: 7px; padding: 2px 0; }
             .mockup-teams { font-size: 11px; }
             .mockup-league { font-size: 9px; }
             .mockup-odds { font-size: 11px; }
             .mockup-volume { font-size: 9px; }
             .mockup-volume.highlight { font-size: 11px; }
-            .mockup-titlebar { padding: 10px 12px; gap: 6px; }
+            .mockup-titlebar { padding: 8px 12px; gap: 6px; }
             .mockup-titlebar span { font-size: 10px; }
-            .mockup-chart { height: 70px; padding: 10px; }
+            .mockup-chart { height: 60px; padding: 8px; }
 
-            .features-hero { padding: 60px 16px 30px; }
-            .features-hero h2 { font-size: 24px; line-height: 1.2; }
-            .features-hero p { font-size: 14px; }
+            .features-hero { padding: 50px 16px 24px; }
+            .features-hero h2 { font-size: 24px; line-height: 1.2; margin-bottom: 14px; }
+            .features-hero p { font-size: 13px; }
 
-            .section { padding: 60px 16px; max-width: 100%; }
-            .section-title { font-size: 24px; }
-            .section-subtitle { font-size: 14px; margin-bottom: 40px; }
-            .features-grid { grid-template-columns: 1fr; gap: 14px; }
-            .feature-card { padding: 24px 18px; }
+            .statsBar { grid-template-columns: repeat(3, 1fr); padding: 14px 10px; max-width: 100%; }
+            .statItem { padding: 6px 8px; text-align: center; }
+            .statItem:not(:last-child) { border-right: 1px solid rgba(255,255,255,0.06); border-bottom: none; padding-bottom: 6px; margin-bottom: 0; }
+            .statNum { font-size: 28px; }
+            .statSub { display: none; }
 
-            .alarm-section { padding: 0 16px 60px; max-width: 100%; }
-            .alarm-section h2 { font-size: 24px; }
-            .alarm-section .alarm-sub { font-size: 14px; margin-bottom: 30px; max-width: 100%; }
-            .alarm-grid { grid-template-columns: 1fr; gap: 14px; max-width: 100%; }
-            .alarm-card { min-height: auto; padding: 22px 18px; }
+            .section { padding: 50px 16px; max-width: 100%; }
+            .section-title { font-size: 22px; }
+            .section-subtitle { font-size: 13px; margin-bottom: 30px; }
+            .features-grid { grid-template-columns: 1fr; gap: 12px; }
+            .feature-card { padding: 20px 16px; }
 
-            .statsBar { grid-template-columns: 1fr; padding: 14px; max-width: 100%; }
-            .statItem { padding: 8px 14px; }
-            .statItem:not(:last-child) { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 14px; margin-bottom: 6px; }
-            .statNum { font-size: 34px; }
+            .alarm-section { padding: 0 16px 40px; max-width: 100%; }
+            .alarm-section h2 { font-size: 22px; }
+            .alarm-section .alarm-sub { font-size: 13px; margin-bottom: 24px; max-width: 100%; }
+            .alarm-grid { grid-template-columns: 1fr; gap: 12px; max-width: 100%; }
+            .alarm-card { min-height: auto; padding: 18px 16px; }
 
-            .duo-section { grid-template-columns: 1fr; padding: 40px 16px; gap: 16px; max-width: 100%; }
-            .duo-panel { padding: 24px 18px; }
-            .duo-panel h2 { font-size: 20px; margin-bottom: 20px; }
+            .duo-section { grid-template-columns: 1fr; padding: 30px 16px; gap: 14px; max-width: 100%; }
+            .duo-panel { padding: 20px 16px; }
+            .duo-panel h2 { font-size: 18px; margin-bottom: 16px; }
 
-            .cta-section { padding: 20px 16px 60px 16px; }
-            .cta-section h2 { font-size: 26px; }
-            .cta-section p { font-size: 14px; margin-bottom: 28px; }
+            .cta-section { padding: 16px 16px 50px 16px; }
+            .cta-section h2 { font-size: 24px; }
+            .cta-section p { font-size: 13px; margin-bottom: 24px; }
             .cta-section::before { width: 280px; height: 180px; }
 
-            .footer { padding: 30px 16px; }
-            .footer-content { flex-direction: column; text-align: center; gap: 12px; }
-            .footer-links { flex-wrap: wrap; justify-content: center; gap: 16px; }
+            .footer { padding: 24px 16px; }
+            .footer-content { flex-direction: column; text-align: center; gap: 10px; }
+            .footer-links { flex-wrap: wrap; justify-content: center; gap: 14px; }
 
             .landing-alert-band { top: 60px; }
 
