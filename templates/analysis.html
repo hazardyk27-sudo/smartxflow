@@ -316,6 +316,50 @@
             loadContent();
         }
 
+        function renderDemoCard(title, content, badge) {
+            return `<div class="analysis-card" style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; overflow: hidden; transition: transform 0.3s, border-color 0.3s; position: relative;">
+                <div style="height: 4px; background: linear-gradient(90deg, #238636, #58a6ff);"></div>
+                <span style="position: absolute; top: 12px; right: 12px; background: rgba(35,134,54,0.15); color: #3fb950; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(63,185,80,0.2);">${badge}</span>
+                <div style="padding: 20px;">
+                    <span style="display: inline-block; background: rgba(88,166,255,0.1); color: #58a6ff; font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; margin-bottom: 10px; border: 1px solid rgba(88,166,255,0.15);">Örnek</span>
+                    <h3 style="color: #c9d1d9; font-size: 18px; margin-bottom: 10px;">${title}</h3>
+                    <p style="color: #8b949e; font-size: 14px; line-height: 1.6;">${content}</p>
+                    <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #484f58; font-size: 12px;">Bugün</span>
+                        <span style="color: #484f58; font-size: 11px; font-style: italic;">Örnek içerik</span>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderDemoAnalysisCards() {
+            return renderDemoCard(
+                'Premier League - Chelsea vs Arsenal Ön Analiz',
+                'Maç öncesi para akışı Chelsea tarafına yoğunlaşıyor. Son 2 saatte £420K giriş tespit edildi. Sharp hareket + hacim şoku kombinasyonu dikkat çekici.',
+                'Sharp + Hacim Şoku'
+            ) + renderDemoCard(
+                'Bundesliga - Bayern vs Dortmund Oran Hareketi',
+                'Bayern galibiyetinde oran 1.85\'ten 1.62\'ye düştü. Dropping L2 seviyesinde alarm tetiklendi. Big Money girişi ile desteklenen hareket.',
+                'Dropping L2'
+            ) + renderDemoCard(
+                'Süper Lig - Hafta Sonu Genel Değerlendirme',
+                'Bu hafta Süper Lig\'de 3 maçta önemli para hareketleri tespit edildi. Galatasaray derbisinde yoğun hacim, Trabzonspor maçında lider değişimi.',
+                'Genel Analiz'
+            );
+        }
+
+        function renderDemoTipCards() {
+            return renderDemoCard(
+                'Erken Sinyal: Real Madrid vs Barcelona',
+                'Maç öncesi 6 saat kala sharp hareket başladı. Real Madrid galibiyetine yönelik ciddi para girişi var. Oran 2.10\'dan 1.85\'e geriledi. Erken pozisyon alanlar avantajlı konumda.',
+                'Sharp Hareket'
+            ) + renderDemoCard(
+                'Dikkat: Liverpool Maçında Hacim Anomalisi',
+                'Normal hacmin 3.2x üzerinde giriş tespit edildi. Alt/Üst marketinde yoğunlaşma mevcut. Üst yönünde ciddi para akışı, oran 1.95\'ten 1.72\'ye düştü.',
+                'Hacim Anomalisi'
+            );
+        }
+
         async function loadContent() {
             const grid = document.getElementById('contentGrid');
             grid.innerHTML = '<div class="empty-state" style="grid-column: 1/-1; padding: 60px 20px; text-align: center;"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div><p style="color: #8b949e;">Yükleniyor...</p></div>';
@@ -323,13 +367,11 @@
                 const resp = await fetch(`/api/analyses?category=${activeTab}`);
                 const data = await resp.json();
                 if (!data || data.length === 0) {
-                    const emptyIcon = activeTab === 'analysis' ? '📊' : '💡';
-                    const emptyText = activeTab === 'analysis' ? 'Henüz analiz paylaşılmadı' : 'Henüz hareket tavsiyesi paylaşılmadı';
-                    grid.innerHTML = `<div class="empty-state" style="grid-column: 1/-1; padding: 60px 20px; text-align: center;">
-                        <div style="font-size: 48px; margin-bottom: 16px;">${emptyIcon}</div>
-                        <h3 style="color: #c9d1d9; margin-bottom: 8px;">${emptyText}</h3>
-                        <p style="color: #8b949e;">Yakında burada içerikler paylaşılacak.</p>
-                    </div>`;
+                    if (activeTab === 'analysis') {
+                        grid.innerHTML = renderDemoAnalysisCards();
+                    } else {
+                        grid.innerHTML = renderDemoTipCards();
+                    }
                     return;
                 }
                 grid.innerHTML = data.map(item => `

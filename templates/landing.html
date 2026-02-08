@@ -749,11 +749,11 @@
         .alarm-card.card-hacimsoku::before { background: linear-gradient(90deg, #FFD600, transparent); }
         .alarm-card.card-hacimsoku:hover { border-color: rgba(255,214,0,0.15); box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 30px rgba(255,214,0,0.06); }
 
-        .alarm-card.card-orandususu .alarm-card-icon { background: rgba(248,81,73,0.06); }
-        .alarm-card.card-orandususu .alarm-card-icon svg { stroke: #f85149; }
-        .alarm-card.card-orandususu .alarm-card-label { color: #f85149; }
-        .alarm-card.card-orandususu::before { background: linear-gradient(90deg, #f85149, transparent); }
-        .alarm-card.card-orandususu:hover { border-color: rgba(248,81,73,0.15); box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 30px rgba(248,81,73,0.06); }
+        .alarm-card.card-orandususu .alarm-card-icon { background: rgba(255,160,80,0.06); }
+        .alarm-card.card-orandususu .alarm-card-icon svg { stroke: #FFA050; }
+        .alarm-card.card-orandususu .alarm-card-label { color: #FFA050; }
+        .alarm-card.card-orandususu::before { background: linear-gradient(90deg, #FFA050, transparent); }
+        .alarm-card.card-orandususu:hover { border-color: rgba(255,160,80,0.15); box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 30px rgba(255,160,80,0.06); }
 
         .alarm-card.card-liderdegisti .alarm-card-icon { background: rgba(0,210,211,0.06); }
         .alarm-card.card-liderdegisti .alarm-card-icon svg { stroke: #00D2D3; }
@@ -849,41 +849,32 @@
         }
 
         .statsBar {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0;
-            padding: 18px 18px;
-            border-radius: 18px;
-            background: rgba(255,255,255,0.02);
-            border: 1px solid rgba(255,255,255,0.06);
-            max-width: 960px;
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            max-width: 800px;
             margin: 0 auto;
         }
         .statItem {
-            padding: 8px 18px;
-        }
-        .statItem:not(:last-child) {
-            border-right: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
         }
         .statNum {
-            font-size: 46px;
+            font-size: 28px;
             font-weight: 800;
-            letter-spacing: -0.8px;
+            letter-spacing: -0.5px;
             line-height: 1;
             color: #2BFF88;
+            font-variant-numeric: tabular-nums;
         }
         .statTitle {
-            margin-top: 10px;
-            font-size: 12px;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            color: rgba(255,255,255,0.60);
-            font-weight: 600;
+            font-size: 13px;
+            color: rgba(255,255,255,0.50);
+            font-weight: 500;
         }
         .statSub {
-            margin-top: 6px;
-            font-size: 12px;
-            color: rgba(255,255,255,0.40);
+            display: none;
         }
 
         .cta-section {
@@ -940,6 +931,8 @@
         .footer-links a { font-size: 13px; color: #3d444d; transition: color 0.2s; }
         .footer-links a:hover { color: #2BFF88; }
         .footer-copy { font-size: 12px; color: #21262d; width: 100%; text-align: center; margin-top: 16px; }
+        .footer-brand { display: flex; align-items: center; gap: 3px; }
+        .footer-brand img { width: 18px; height: 18px; }
 
         .landing-alert-band {
             position: relative;
@@ -1097,10 +1090,8 @@
             .alarm-grid { grid-template-columns: 1fr; gap: 14px; max-width: 100%; }
             .alarm-card { min-height: auto; padding: 22px 18px; }
 
-            .statsBar { grid-template-columns: 1fr; padding: 14px; max-width: 100%; }
-            .statItem { padding: 8px 14px; }
-            .statItem:not(:last-child) { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 14px; margin-bottom: 6px; }
-            .statNum { font-size: 34px; }
+            .statsBar { flex-direction: column; gap: 16px; align-items: center; }
+            .statNum { font-size: 22px; }
 
             .duo-section { grid-template-columns: 1fr; padding: 40px 16px; gap: 16px; max-width: 100%; }
             .duo-panel { padding: 24px 18px; }
@@ -1119,6 +1110,7 @@
 
             .navbar-inner { padding: 0 16px; }
         }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
@@ -1142,7 +1134,7 @@
     <div class="alert-band landing-alert-band" id="landingAlertBand">
         <div class="alert-band-track" id="landingAlertBandTrack">
             <div class="alert-band-track-inner">
-                <span class="alert-band-empty">Alarm bekleniyor...</span>
+                <span class="alert-band-empty" style="display:flex;align-items:center;gap:8px;color:rgba(255,255,255,0.3);font-size:11px;letter-spacing:0.5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:rgba(43,255,136,0.4);animation:pulse 1.5s infinite;"></span> Canlı piyasa akışı yükleniyor</span>
             </div>
         </div>
     </div>
@@ -1156,8 +1148,8 @@
 
     <section class="hero">
         <div class="hero-text">
-            <h1><span class="accent">Bahis Piyasasını</span><br>Okuyanlar İçin.</h1>
-            <p class="subtitle">Para akışı ve oran hareketlerini tek ekranda gör. Sıradışı sinyalleri erken yakala.</p>
+            <h1><span class="accent">Akıllı Para,</span><br>Oran Hareketi, Alarm.</h1>
+            <p class="subtitle">Piyasadaki para akışını, oran hareketlerini ve sıradışı sinyalleri tek ekranda izle. Erken fark et, doğru anı yakala.</p>
             <div class="hero-cta-group">
                 <a href="#features" class="hero-cta">Platformu Keşfet <span class="icon">→</span></a>
                 <a href="/pricing" class="hero-cta-secondary">Paketleri Gör</a>
@@ -1165,7 +1157,7 @@
             <div class="hero-feature-strip">
                 <div class="hero-feature-item">
                     <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                    Canli para akisi
+                    Canlı para akışı
                 </div>
                 <div class="hero-feature-item">
                     <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
@@ -1212,7 +1204,7 @@
                         <div class="mockup-badge dropping">DROPPING</div>
                         <div class="mockup-match">
                             <div class="mockup-teams">Galatasaray vs Fenerbahce</div>
-                            <div class="mockup-league">Super Lig</div>
+                            <div class="mockup-league">Süper Lig</div>
                         </div>
                         <div class="mockup-data">
                             <div class="mockup-odds">1.92 → 1.65</div>
@@ -1259,17 +1251,18 @@
             <div class="statItem">
                 <div class="statNum">6</div>
                 <div class="statTitle">Alarm Türü</div>
-                <div class="statSub">Sharp · Big Money · Dropping…</div>
             </div>
             <div class="statItem">
                 <div class="statNum">6</div>
                 <div class="statTitle">Market</div>
-                <div class="statSub">1X2 · O/U · BTTS…</div>
             </div>
             <div class="statItem">
                 <div class="statNum">24/7</div>
                 <div class="statTitle">Canlı Takip</div>
-                <div class="statSub">Anlık güncelleme ve alarm akışı</div>
+            </div>
+            <div class="statItem">
+                <div class="statNum">10dk</div>
+                <div class="statTitle">Güncelleme</div>
             </div>
         </div>
     </section>
@@ -1339,8 +1332,8 @@
                 </div>
                 <div class="alarm-card-label">SHARP</div>
                 <h3>Sharp Nedir?</h3>
-                <p class="alarm-desc">Piyasada "akilli para" olarak gorulen tarafin harekete gectigi sinyaldir.</p>
-                <p class="alarm-why">Neden onemli? Sharp hareketler genellikle fiyati yonlendirir.</p>
+                <p class="alarm-desc">Piyasada "akıllı para" olarak görülen tarafın harekete geçtiği sinyaldir.</p>
+                <p class="alarm-why">Neden önemli? Sharp hareketler genellikle fiyatı yönlendirir.</p>
             </div>
             <div class="alarm-card card-bigmoney">
                 <div class="alarm-card-icon">
@@ -1348,35 +1341,35 @@
                 </div>
                 <div class="alarm-card-label">BIG MONEY</div>
                 <h3>Big Money Nedir?</h3>
-                <p class="alarm-desc">Tek seferde veya kisa surede gelen olagan disi yuksek para girisini yakalar.</p>
-                <p class="alarm-why">Neden onemli? Buyuk para girisleri cogu zaman piyasayi zorlar.</p>
+                <p class="alarm-desc">Tek seferde veya kısa sürede gelen olağan dışı yüksek para girişini yakalar.</p>
+                <p class="alarm-why">Neden önemli? Büyük para girişleri çoğu zaman piyasayı zorlar.</p>
             </div>
             <div class="alarm-card card-hacimsoku">
                 <div class="alarm-card-icon">
                     <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                 </div>
-                <div class="alarm-card-label">HACIM SOKU</div>
-                <h3>Hacim Soku Nedir?</h3>
-                <p class="alarm-desc">Normal hacme gore aniden katlanan para akisi oldugunda tetiklenir.</p>
-                <p class="alarm-why">Neden onemli? Ani hacim artisi, siradisi bir ilgi veya bilgi akisi gostergesidir.</p>
+                <div class="alarm-card-label">HACİM ŞOKU</div>
+                <h3>Hacim Şoku Nedir?</h3>
+                <p class="alarm-desc">Normal hacme göre aniden katlanan para akışı olduğunda tetiklenir.</p>
+                <p class="alarm-why">Neden önemli? Ani hacim artışı, sıradışı bir ilgi veya bilgi akışı göstergesidir.</p>
             </div>
             <div class="alarm-card card-orandususu">
                 <div class="alarm-card-icon">
                     <svg viewBox="0 0 24 24"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>
                 </div>
-                <div class="alarm-card-label">ORAN DUSUSU</div>
-                <h3>Oran Dususu Nedir?</h3>
-                <p class="alarm-desc">Kisa surede sert oran dususunu tespit eder (Dropping Odds).</p>
-                <p class="alarm-why">Neden onemli? Dusus, piyasanin beklentiyi yeniden fiyatladigini gosterir.</p>
+                <div class="alarm-card-label">ORAN DÜŞÜŞÜ</div>
+                <h3>Oran Düşüşü Nedir?</h3>
+                <p class="alarm-desc">Kısa sürede sert oran düşüşünü tespit eder (Dropping Odds).</p>
+                <p class="alarm-why">Neden önemli? Düşüş, piyasanın beklentiyi yeniden fiyatladığını gösterir.</p>
             </div>
             <div class="alarm-card card-liderdegisti">
                 <div class="alarm-card-icon">
                     <svg viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
                 </div>
-                <div class="alarm-card-label">LIDER DEGISTI</div>
-                <h3>Lider Degisti Nedir?</h3>
-                <p class="alarm-desc">En cok para alan tarafin degistigi ani yakalar (market leader flip).</p>
-                <p class="alarm-why">Neden onemli? Para yon degistiriyorsa, algi veya bilgi degismis olabilir.</p>
+                <div class="alarm-card-label">LİDER DEĞİŞTİ</div>
+                <h3>Lider Değişti Nedir?</h3>
+                <p class="alarm-desc">En çok para alan tarafın değiştiği anı yakalar (market leader flip).</p>
+                <p class="alarm-why">Neden önemli? Para yön değiştiriyorsa, algı veya bilgi değişmiş olabilir.</p>
             </div>
             <div class="alarm-card card-mim">
                 <div class="alarm-card-icon">
@@ -1384,8 +1377,8 @@
                 </div>
                 <div class="alarm-card-label">MIM</div>
                 <h3>MIM Nedir?</h3>
-                <p class="alarm-desc">Market etkisi / momentum temelli karma sinyaldir; hareketin "etki gucunu" ozetler.</p>
-                <p class="alarm-why">Neden onemli? Tek bir metrik yerine, etkinin buyuklugunu tek ekranda gorusun.</p>
+                <p class="alarm-desc">Market etkisi / momentum temelli karma sinyaldir; hareketin "etki gücünü" özetler.</p>
+                <p class="alarm-why">Neden önemli? Tek bir metrik yerine, etkinin büyüklüğünü tek ekranda görürsün.</p>
             </div>
         </div>
     </section>
@@ -1419,18 +1412,24 @@
         </div>
         <div class="duo-panel">
             <h2>Biz Ne Değiliz?</h2>
-            <div class="not-list">
-                <div class="not-item">
-                    <div class="not-x">✕</div>
-                    <p>Tahmin sitesi değiliz. Banko vermiyoruz.</p>
+            <div style="display:grid;grid-template-columns:1fr;gap:14px;">
+                <div style="display:flex;align-items:center;gap:14px;padding:18px 20px;border-radius:14px;background:rgba(248,81,73,0.04);border:1px solid rgba(248,81,73,0.10);">
+                    <div style="width:40px;height:40px;border-radius:10px;background:rgba(248,81,73,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </div>
+                    <p style="font-size:13px;color:rgba(255,255,255,0.65);line-height:1.4;margin:0;">Tahmin sitesi değiliz. Banko vermiyoruz.</p>
                 </div>
-                <div class="not-item">
-                    <div class="not-x">✕</div>
-                    <p>Yapay zeka ile skor tahmini yapmıyoruz.</p>
+                <div style="display:flex;align-items:center;gap:14px;padding:18px 20px;border-radius:14px;background:rgba(248,81,73,0.04);border:1px solid rgba(248,81,73,0.10);">
+                    <div style="width:40px;height:40px;border-radius:10px;background:rgba(248,81,73,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </div>
+                    <p style="font-size:13px;color:rgba(255,255,255,0.65);line-height:1.4;margin:0;">Yapay zeka ile skor tahmini yapmıyoruz.</p>
                 </div>
-                <div class="not-item">
-                    <div class="not-x">✕</div>
-                    <p>Garantili kazanç vaat etmiyoruz.</p>
+                <div style="display:flex;align-items:center;gap:14px;padding:18px 20px;border-radius:14px;background:rgba(248,81,73,0.04);border:1px solid rgba(248,81,73,0.10);">
+                    <div style="width:40px;height:40px;border-radius:10px;background:rgba(248,81,73,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </div>
+                    <p style="font-size:13px;color:rgba(255,255,255,0.65);line-height:1.4;margin:0;">Garantili kazanç vaat etmiyoruz.</p>
                 </div>
             </div>
         </div>
@@ -1544,7 +1543,7 @@
             var track = document.getElementById('landingAlertBandTrack');
             if (!track) return;
             if (!alarms || alarms.length === 0) {
-                track.innerHTML = '<div class="alert-band-track-inner"><span class="alert-band-empty">Alarm bekleniyor...</span></div>';
+                track.innerHTML = '<div class="alert-band-track-inner"><span class="alert-band-empty" style="display:flex;align-items:center;gap:8px;color:rgba(255,255,255,0.3);font-size:11px;letter-spacing:0.5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:rgba(43,255,136,0.4);animation:pulse 1.5s infinite;"></span> Canlı piyasa akışı yükleniyor</span></div>';
                 return;
             }
             var top = alarms.slice(0, 10);
