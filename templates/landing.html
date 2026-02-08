@@ -978,6 +978,10 @@
 
         /* === 16:9 LAPTOP: 1280-1919px === */
         @media (min-width: 1280px) and (max-width: 1919px) {
+            .navbar-inner {
+                max-width: 1280px;
+                padding: 0 48px;
+            }
             .hero {
                 padding: 130px 48px 0;
                 max-width: 1280px;
@@ -987,6 +991,7 @@
             .hero-text .subtitle { font-size: 15px; margin-bottom: 20px; }
             .hero-feature-strip { margin-top: 16px; gap: 10px; }
             .hero-feature-item { font-size: 12px; padding: 6px 14px; }
+            .hero-visual { justify-self: end; }
             .mockup-window { width: min(600px, 42vw); }
             .features-hero { padding: 50px 24px 30px; }
             .features-hero h2 { font-size: 36px; margin-bottom: 14px; }
