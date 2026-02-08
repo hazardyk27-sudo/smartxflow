@@ -314,7 +314,7 @@
                     <div class="info-value small" id="engineState">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Son Alarm Sayısı</div>
+                    <div class="info-label">Aktif Alarm (Bugün+)</div>
                     <div class="info-value" id="engineAlarmCount">-</div>
                 </div>
                 <div class="info-item">
@@ -519,7 +519,7 @@
                     };
                     document.getElementById('engineState').textContent = stateMap[hb.status] || hb.status || '-';
 
-                    document.getElementById('engineAlarmCount').textContent = hb.match_count || '0';
+                    document.getElementById('engineAlarmCount').textContent = (data.stats && data.stats.total_active_alarms !== undefined) ? data.stats.total_active_alarms : (hb.match_count || '0');
 
                     if (hb.status === 'error' || hb.status === 'ssl_error') {
                         statusEl.className = 'status-indicator status-offline';
@@ -537,6 +537,7 @@
                 } else {
                     statusEl.className = 'status-indicator status-offline';
                     statusText.textContent = 'Veri yok';
+                    document.getElementById('engineAlarmCount').textContent = (data.stats && data.stats.total_active_alarms !== undefined) ? data.stats.total_active_alarms : '-';
                 }
 
                 const pendingCount = (data.stats && data.stats.pending_count !== undefined) ? data.stats.pending_count : '-';
