@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { overflow-x: hidden; max-width: 100vw; }
         html { scroll-behavior: smooth; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -229,12 +230,17 @@
         @media (max-width: 768px) {
             .nav-links { display: none; }
             .hamburger { display: flex; }
-            .page-header h1 { font-size: 30px; }
-            .empty-state { padding: 60px 20px; }
+            .navbar-inner { padding: 0 16px; }
+            .page-header { padding: 100px 16px 40px; }
+            .page-header h1 { font-size: 28px; }
+            .page-header p { font-size: 14px; }
+            .analysis-grid { grid-template-columns: 1fr; gap: 16px; }
+            .empty-state { padding: 60px 16px; }
             .empty-state-icon { font-size: 48px; }
             .empty-state h3 { font-size: 18px; }
+            .footer { padding: 30px 16px; }
             .footer-content { flex-direction: column; text-align: center; }
-            .footer-links { flex-wrap: wrap; justify-content: center; }
+            .footer-links { flex-wrap: wrap; justify-content: center; gap: 16px; }
         }
     </style>
 </head>

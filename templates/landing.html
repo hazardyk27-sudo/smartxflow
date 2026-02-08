@@ -12,7 +12,8 @@
     <link rel="stylesheet" href="/static/css/alert_band.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html { scroll-behavior: smooth; overflow-x: hidden; }
+        html, body { overflow-x: hidden; max-width: 100vw; }
+        html { scroll-behavior: smooth; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background:
@@ -185,6 +186,7 @@
             gap: 60px;
             align-items: start;
             position: relative;
+            width: 100%;
         }
 
         .hero-text {
@@ -914,8 +916,10 @@
                 grid-template-columns: 1fr;
                 gap: 30px;
                 text-align: center;
+                max-width: 100%;
+                overflow: hidden;
             }
-            .hero-text h1 { font-size: 32px; letter-spacing: -1px; }
+            .hero-text h1 { font-size: 30px; letter-spacing: -1px; }
             .hero-text .subtitle {
                 font-size: 15px;
                 max-width: 100%;
@@ -923,51 +927,58 @@
                 margin-right: auto;
             }
             .hero-note { text-align: center; font-size: 11px; }
-            .hero-visual { order: -1; justify-content: center; }
-            .hero-visual::before { width: 280px; height: 280px; }
-            .mockup-window { max-width: 100%; }
-            .mockup-body { padding: 12px; }
-            .mockup-row { padding: 10px 10px; gap: 8px; }
-            .mockup-badge { width: 64px; font-size: 9px; }
-            .mockup-teams { font-size: 12px; }
-            .mockup-odds { font-size: 12px; }
-            .mockup-volume { font-size: 10px; }
-            .mockup-volume.highlight { font-size: 12px; }
+            .hero-visual { order: -1; justify-content: center; overflow: hidden; }
+            .hero-visual::before { display: none; }
+            .mockup-window { max-width: 100%; width: 100%; }
+            .mockup-body { padding: 10px; }
+            .mockup-row { padding: 8px; gap: 6px; }
+            .mockup-badge { width: 58px; font-size: 8px; padding: 2px 0; }
+            .mockup-teams { font-size: 11px; }
+            .mockup-league { font-size: 9px; }
+            .mockup-odds { font-size: 11px; }
+            .mockup-volume { font-size: 9px; }
+            .mockup-volume.highlight { font-size: 11px; }
+            .mockup-titlebar { padding: 10px 12px; gap: 6px; }
+            .mockup-titlebar span { font-size: 10px; }
+            .mockup-chart { height: 70px; padding: 10px; }
 
             .features-hero { padding: 60px 16px 30px; }
-            .features-hero h2 { font-size: 26px; }
-            .features-hero p { font-size: 15px; }
+            .features-hero h2 { font-size: 24px; line-height: 1.2; }
+            .features-hero p { font-size: 14px; }
 
-            .section { padding: 60px 16px; }
-            .section-title { font-size: 26px; }
+            .section { padding: 60px 16px; max-width: 100%; }
+            .section-title { font-size: 24px; }
             .section-subtitle { font-size: 14px; margin-bottom: 40px; }
             .features-grid { grid-template-columns: 1fr; gap: 14px; }
-            .feature-card { padding: 24px 20px; }
+            .feature-card { padding: 24px 18px; }
 
-            .alarm-section { padding: 0 16px 60px; }
-            .alarm-section h2 { font-size: 26px; }
-            .alarm-section .alarm-sub { font-size: 14px; margin-bottom: 30px; }
-            .alarm-grid { grid-template-columns: 1fr; gap: 14px; }
+            .alarm-section { padding: 0 16px 60px; max-width: 100%; }
+            .alarm-section h2 { font-size: 24px; }
+            .alarm-section .alarm-sub { font-size: 14px; margin-bottom: 30px; max-width: 100%; }
+            .alarm-grid { grid-template-columns: 1fr; gap: 14px; max-width: 100%; }
             .alarm-card { min-height: auto; padding: 22px 18px; }
 
-            .statsBar { grid-template-columns: 1fr; padding: 14px 14px; }
+            .statsBar { grid-template-columns: 1fr; padding: 14px; max-width: 100%; }
+            .statItem { padding: 8px 14px; }
             .statItem:not(:last-child) { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 14px; margin-bottom: 6px; }
-            .statNum { font-size: 36px; }
+            .statNum { font-size: 34px; }
 
-            .duo-section { grid-template-columns: 1fr; padding: 40px 16px; gap: 16px; }
-            .duo-panel { padding: 24px 20px; }
+            .duo-section { grid-template-columns: 1fr; padding: 40px 16px; gap: 16px; max-width: 100%; }
+            .duo-panel { padding: 24px 18px; }
             .duo-panel h2 { font-size: 20px; margin-bottom: 20px; }
 
             .cta-section { padding: 20px 16px 60px 16px; }
-            .cta-section h2 { font-size: 28px; }
+            .cta-section h2 { font-size: 26px; }
             .cta-section p { font-size: 14px; margin-bottom: 28px; }
-            .cta-section::before { width: 300px; height: 200px; }
+            .cta-section::before { width: 280px; height: 180px; }
 
             .footer { padding: 30px 16px; }
             .footer-content { flex-direction: column; text-align: center; gap: 12px; }
             .footer-links { flex-wrap: wrap; justify-content: center; gap: 16px; }
 
             .landing-alert-band { margin-top: 60px; }
+
+            .navbar-inner { padding: 0 16px; }
         }
     </style>
 </head>
