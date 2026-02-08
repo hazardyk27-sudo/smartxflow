@@ -955,10 +955,61 @@
             pointer-events: none;
         }
 
+        /* === FULL EKRAN: 1920px ve üzeri === */
+        @media (min-width: 1920px) {
+            .hero {
+                padding: 160px 64px 60px;
+                max-width: 1440px;
+                gap: 50px;
+            }
+            .hero-text h1 { font-size: 72px; }
+            .hero-text .subtitle { font-size: 19px; max-width: 600px; }
+            .mockup-window { width: min(780px, 42vw); }
+            .hero-feature-item { font-size: 14px; padding: 10px 20px; }
+            .features-hero { padding: 120px 24px 70px; }
+            .features-hero h2 { font-size: 48px; }
+            .statsBar { max-width: 1080px; }
+            .statNum { font-size: 52px; }
+            .section { padding: 100px 48px; }
+            .section-title { font-size: 38px; }
+            .alarm-section h2 { font-size: 38px; }
+            .landing-alert-band { top: 80px; }
+        }
+
+        /* === 16:9 LAPTOP: 1280-1919px === */
+        @media (min-width: 1280px) and (max-width: 1919px) {
+            .hero {
+                padding: 136px 48px 30px;
+                max-width: 1280px;
+                gap: 30px;
+            }
+            .hero-text h1 { font-size: 56px; }
+            .hero-text .subtitle { font-size: 16px; }
+            .mockup-window { width: min(680px, 44vw); }
+            .features-hero { padding: 90px 24px 50px; }
+            .features-hero h2 { font-size: 40px; }
+            .landing-alert-band { top: 80px; }
+        }
+
+        /* === TABLET: 769-1279px === */
+        @media (min-width: 769px) and (max-width: 1279px) {
+            .hero {
+                padding: 130px 32px 30px;
+                gap: 20px;
+            }
+            .hero-text h1 { font-size: 42px; }
+            .hero-text .subtitle { font-size: 15px; }
+            .mockup-window { width: min(500px, 48vw); }
+            .features-hero { padding: 80px 20px 40px; }
+            .features-hero h2 { font-size: 34px; }
+            .landing-alert-band { top: 80px; }
+        }
+
         @media (max-width: 1024px) and (min-width: 769px) {
             .alarm-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
+        /* === MOBİL: 768px ve altı === */
         @media (max-width: 768px) {
             .nav-links { display: none; }
             .hamburger { display: flex; }
