@@ -186,10 +186,10 @@
             display: flex;
             justify-content: center;
             gap: 0;
-            margin-bottom: 36px;
+            margin-bottom: 16px;
             background: rgba(255,255,255,0.04);
             border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 999px;
+            border-radius: 10px;
             padding: 4px;
             max-width: 420px;
             margin-left: auto;
@@ -198,7 +198,7 @@
         .pricing-tab {
             flex: 1;
             padding: 12px 28px;
-            border-radius: 999px;
+            border-radius: 8px;
             font-size: 14px;
             font-weight: 700;
             letter-spacing: 0.04em;
@@ -260,6 +260,41 @@
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 18px;
             align-items: stretch;
+        }
+        .duration-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 36px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 3px;
+            max-width: 320px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .duration-tab {
+            flex: 1;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-align: center;
+            border: none;
+            background: transparent;
+            color: rgba(255,255,255,0.4);
+            white-space: nowrap;
+        }
+        .duration-tab:hover {
+            color: rgba(255,255,255,0.65);
+        }
+        .duration-tab.active {
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.12);
         }
         .pricing-card {
             background: #161b22;
@@ -522,9 +557,15 @@
             </button>
         </div>
 
+        <div class="duration-tabs">
+            <button class="duration-tab" data-duration="1ay" onclick="switchDuration('1ay')">1 Ay</button>
+            <button class="duration-tab active" data-duration="3ay" onclick="switchDuration('3ay')">3 Ay</button>
+            <button class="duration-tab" data-duration="yillik" onclick="switchDuration('yillik')">Yıllık</button>
+        </div>
+
         <div id="panel-core" class="pricing-panel active">
             <div class="pricing-grid">
-                <div class="pricing-card">
+                <div class="pricing-card" data-duration="1ay">
                     <span class="tier-badge tier-badge--core">CORE</span>
                     <h3>Lisans – 1 Ay</h3>
                     <div class="card-desc">Keşfetmek isteyenler için</div>
@@ -540,7 +581,7 @@
                     <div class="cta"><a href="#" class="btn-buy btn-buy-outline">Satın Al</a></div>
                 </div>
 
-                <div class="pricing-card featured">
+                <div class="pricing-card featured" data-duration="3ay">
                     <div class="popular-badge">En Popüler</div>
                     <span class="tier-badge tier-badge--core">CORE</span>
                     <h3>Lisans – 3 Ay</h3>
@@ -558,7 +599,7 @@
                     <div class="cta"><a href="#" class="btn-buy btn-buy-primary">Satın Al</a></div>
                 </div>
 
-                <div class="pricing-card">
+                <div class="pricing-card" data-duration="yillik">
                     <span class="tier-badge tier-badge--core">CORE</span>
                     <h3>Lisans – Yıllık</h3>
                     <div class="card-desc">Uzun vadeli kullanıcılar için</div>
@@ -579,7 +620,7 @@
 
         <div id="panel-pro" class="pricing-panel">
             <div class="pricing-grid">
-                <div class="pricing-card">
+                <div class="pricing-card" data-duration="1ay">
                     <span class="tier-badge tier-badge--pro">PRO ANALYSIS</span>
                     <h3>Pro – 1 Ay</h3>
                     <div class="card-desc">Analizle güçlü başlangıç</div>
@@ -598,7 +639,7 @@
                     <div class="cta"><a href="#" class="btn-buy btn-buy-outline">Satın Al</a></div>
                 </div>
 
-                <div class="pricing-card featured">
+                <div class="pricing-card featured" data-duration="3ay">
                     <div class="popular-badge">En Popüler</div>
                     <span class="tier-badge tier-badge--pro">PRO ANALYSIS</span>
                     <h3>Pro – 3 Ay</h3>
@@ -619,7 +660,8 @@
                     <div class="cta"><a href="#" class="btn-buy btn-buy-primary">Satın Al</a></div>
                 </div>
 
-                <div class="pricing-card">
+                <div class="pricing-card featured" data-duration="yillik">
+                    <div class="popular-badge">En Avantajlı</div>
                     <span class="tier-badge tier-badge--pro">PRO ANALYSIS</span>
                     <h3>Pro – Yıllık</h3>
                     <div class="card-desc">Maksimum avantaj paketi</div>
@@ -723,6 +765,7 @@
         function toggleFaq(el) {
             el.parentElement.classList.toggle('open');
         }
+        var currentDuration = '3ay';
         function switchTab(tab) {
             var tabs = document.querySelectorAll('.pricing-tab');
             tabs.forEach(function(t) {
@@ -738,7 +781,33 @@
                 p.classList.remove('active');
             });
             document.getElementById('panel-' + tab).classList.add('active');
+            applyDurationFilter();
         }
+        function switchDuration(dur) {
+            currentDuration = dur;
+            document.querySelectorAll('.duration-tab').forEach(function(t) {
+                t.classList.remove('active');
+            });
+            document.querySelector('.duration-tab[data-duration="' + dur + '"]').classList.add('active');
+            applyDurationFilter();
+        }
+        function applyDurationFilter() {
+            var isMobile = window.innerWidth <= 768;
+            document.querySelectorAll('.pricing-card').forEach(function(card) {
+                var cardDur = card.getAttribute('data-duration');
+                if (isMobile) {
+                    card.style.display = (cardDur === currentDuration) ? 'flex' : 'none';
+                } else {
+                    card.style.display = 'flex';
+                }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            switchDuration('3ay');
+        });
+        window.addEventListener('resize', function() {
+            applyDurationFilter();
+        });
         window.addEventListener('scroll', function() {
             var navbar = document.querySelector('.navbar');
             if (window.scrollY > 40) {
