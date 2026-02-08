@@ -18,7 +18,7 @@ SmartXFlow Monitor is a professional betting odds tracking tool designed to scra
 - DEBUG DOSYASI
 - SUPABASE SECRET ADI - Her zaman SUPABASE_ANON_KEY kullan
 - WEB URL: https://ea61a90d-fbe5-4a43-993a-4a7ea861590b-00-el7p3v8o3jsj.janeway.replit.dev/
-- BREAKPOINT KURALI: Kullanıcı "16:9" dediğinde `@media (min-width: 1920px)` breakpoint'ini değiştir. Kullanıcı ayrıca belirtmedikçe diğer breakpoint'lere DOKUNMA.
+- BREAKPOINT KURALI: Kullanıcı "16:9" veya "full" veya "full size" dediğinde `@media (min-width: 1920px)` breakpoint'ini değiştir. Kullanıcı ayrıca belirtmedikçe diğer breakpoint'lere DOKUNMA.
 - ALARM CALC STATUS KURALI: Her alarm türü için AYRI CalcStatus elementi olmalı:
   - Sharp: `calcStatus`, `calcProgress` elementleri + `showCalcStatus()`, `hideCalcStatus()` fonksiyonları
   - Insider: `insiderCalcStatus`, `insiderCalcProgress` elementleri + `showInsiderCalcStatus()`, `hideInsiderCalcStatus()` fonksiyonları
