@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache">
     <meta http-equiv="refresh" content="60">
-    <title>SmartXFlow - Scraper Durumu</title>
+    <title>SmartXFlow - Sistem Durumu</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -231,7 +231,7 @@
 
     <div class="container">
         <h1 class="page-title">Sistem Durumu</h1>
-        <p class="page-subtitle">Scraper ve veri toplama servisinin anlık durumu</p>
+        <p class="page-subtitle">Scraper, Alarm Engine ve veri toplama servislerinin anlık durumu</p>
 
         <div class="status-card">
             <h2>
@@ -287,6 +287,61 @@
                     </tr>
                 </thead>
                 <tbody id="historyBody">
+                    <tr><td colspan="4" style="text-align:center; color:#484f58;">Yükleniyor...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="status-card" style="border-color: rgba(43,255,136,0.2);">
+            <h2>
+                Alarm Engine
+                <span id="engineStatus" class="status-indicator status-offline">
+                    <span class="status-dot"></span>
+                    <span id="engineStatusText">Kontrol ediliyor...</span>
+                </span>
+            </h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Son Heartbeat</div>
+                    <div class="info-value small" id="engineLastBeat">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Durum</div>
+                    <div class="info-value small" id="engineState">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Son Alarm Sayısı</div>
+                    <div class="info-value" id="engineAlarmCount">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Bekleyen Sinyal</div>
+                    <div class="info-value" id="enginePending">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-card" style="border-color: rgba(43,255,136,0.2);">
+            <h2>Alarm Engine - İşlenen Sinyaller (Son 24 Saat)</h2>
+            <div class="info-grid" style="margin-bottom:16px;">
+                <div class="info-item">
+                    <div class="info-label">Toplam İşlenen</div>
+                    <div class="info-value big-number" id="engineTotalProcessed" style="color:#2BFF88;">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Ortalama Maç/Sinyal</div>
+                    <div class="info-value big-number" id="engineAvgMatches" style="color:#2BFF88;">-</div>
+                </div>
+            </div>
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Sinyal Zamanı</th>
+                        <th>İşlenme Zamanı</th>
+                        <th>Maç</th>
+                        <th>Durum</th>
+                    </tr>
+                </thead>
+                <tbody id="engineHistoryBody">
                     <tr><td colspan="4" style="text-align:center; color:#484f58;">Yükleniyor...</td></tr>
                 </tbody>
             </table>
@@ -391,6 +446,88 @@
         }
 
         loadStatus();
+
+        async function loadEngineStatus() {
+            try {
+                const res = await fetch('/api/alarm-engine-status');
+                const data = await res.json();
+
+                const statusEl = document.getElementById('engineStatus');
+                const statusText = document.getElementById('engineStatusText');
+
+                if (data.heartbeat) {
+                    const hb = data.heartbeat;
+                    const lastBeat = new Date(hb.last_heartbeat);
+                    const diffMin = (new Date() - lastBeat) / 60000;
+
+                    document.getElementById('engineLastBeat').textContent = formatTurkeyTime(hb.last_heartbeat) + ' (' + timeSince(hb.last_heartbeat) + ')';
+
+                    const stateMap = {
+                        'idle': 'Beklemede',
+                        'calculating': 'Hesaplama yapiliyor...',
+                        'started': 'Baslatildi',
+                        'error': 'Hata',
+                        'ssl_error': 'SSL Hatasi',
+                        'stopped': 'Durduruldu'
+                    };
+                    document.getElementById('engineState').textContent = stateMap[hb.status] || hb.status || '-';
+
+                    document.getElementById('engineAlarmCount').textContent = hb.match_count || '0';
+
+                    if (hb.status === 'error' || hb.status === 'ssl_error') {
+                        statusEl.className = 'status-indicator status-offline';
+                        statusText.textContent = 'Hata';
+                    } else if (diffMin < 15) {
+                        statusEl.className = 'status-indicator status-online';
+                        statusText.textContent = 'Aktif';
+                    } else if (diffMin < 30) {
+                        statusEl.className = 'status-indicator status-warning';
+                        statusText.textContent = 'Gecikmis (' + Math.floor(diffMin) + ' dk)';
+                    } else {
+                        statusEl.className = 'status-indicator status-offline';
+                        statusText.textContent = 'Cevrimdisi';
+                    }
+                } else {
+                    statusEl.className = 'status-indicator status-offline';
+                    statusText.textContent = 'Veri yok';
+                }
+
+                const pendingCount = (data.stats && data.stats.pending_count !== undefined) ? data.stats.pending_count : '-';
+                document.getElementById('enginePending').textContent = pendingCount;
+
+                if (data.processed_signals && data.processed_signals.length > 0) {
+                    const sigs = data.processed_signals;
+                    document.getElementById('engineTotalProcessed').textContent = sigs.length;
+
+                    let totalMatches = 0;
+                    sigs.forEach(s => { totalMatches += (s.match_count || 0); });
+                    document.getElementById('engineAvgMatches').textContent = Math.round(totalMatches / sigs.length);
+
+                    const tbody = document.getElementById('engineHistoryBody');
+                    tbody.innerHTML = '';
+                    const showCount = Math.min(sigs.length, 20);
+                    for (let i = 0; i < showCount; i++) {
+                        const s = sigs[i];
+                        const tr = document.createElement('tr');
+                        tr.innerHTML =
+                            '<td>' + formatTurkeyTime(s.created_at) + '</td>' +
+                            '<td>' + formatTurkeyTime(s.processed_at) + '</td>' +
+                            '<td>' + (s.match_count || '-') + '</td>' +
+                            '<td><span class="badge-success" style="color:#2BFF88;background:rgba(43,255,136,0.15);">İşlendi</span></td>';
+                        tbody.appendChild(tr);
+                    }
+                } else {
+                    document.getElementById('engineTotalProcessed').textContent = '0';
+                    document.getElementById('engineAvgMatches').textContent = '-';
+                    document.getElementById('engineHistoryBody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#484f58;">İşlenmiş sinyal yok</td></tr>';
+                }
+            } catch(e) {
+                console.error('[EngineStatus] Error:', e);
+                document.getElementById('engineStatusText').textContent = 'Bağlantı hatası';
+            }
+        }
+
+        loadEngineStatus();
     </script>
 </body>
 </html>

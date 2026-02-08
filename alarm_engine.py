@@ -133,7 +133,6 @@ def process_signal(signal):
     except Exception as e:
         print(f"[Engine] Hesaplama hatasi: {e}")
         update_engine_heartbeat("error", error_msg=str(e)[:200])
-        mark_signal_processed(signal_id)
         return False
 
 

@@ -559,6 +559,52 @@ def api_scraper_status():
         print(f"[ScraperStatus] Error: {e}")
     return jsonify(result)
 
+@app.route('/api/alarm-engine-status')
+def api_alarm_engine_status():
+    """Alarm Engine durumu - heartbeat ve son işlenen sinyaller"""
+    import requests as req
+    result = {"heartbeat": None, "processed_signals": [], "stats": {}}
+    try:
+        if not db.is_supabase_available:
+            return jsonify(result)
+
+        supa = db.supabase
+        headers = {
+            "apikey": supa.key,
+            "Authorization": f"Bearer {supa.key}"
+        }
+
+        hb_url = f"{supa.url}/rest/v1/scraper_heartbeat?source=eq.alarm_engine&limit=1"
+        try:
+            r = req.get(hb_url, headers=headers, timeout=10)
+            if r.status_code == 200:
+                rows = r.json()
+                if rows:
+                    result["heartbeat"] = rows[0]
+        except Exception as e:
+            print(f"[AlarmEngineStatus] Heartbeat error: {e}")
+
+        cutoff = (datetime.utcnow() - timedelta(hours=24)).strftime('%Y-%m-%dT%H:%M:%S')
+        sig_url = f"{supa.url}/rest/v1/scraper_signal?processed=eq.true&order=processed_at.desc&limit=50&created_at=gte.{cutoff}"
+        try:
+            r = req.get(sig_url, headers=headers, timeout=10)
+            if r.status_code == 200:
+                result["processed_signals"] = r.json()
+        except Exception as e:
+            print(f"[AlarmEngineStatus] Signal error: {e}")
+
+        pending_url = f"{supa.url}/rest/v1/scraper_signal?processed=eq.false&select=id&limit=100"
+        try:
+            r = req.get(pending_url, headers=headers, timeout=10)
+            if r.status_code == 200:
+                result["stats"]["pending_count"] = len(r.json())
+        except Exception:
+            pass
+
+    except Exception as e:
+        print(f"[AlarmEngineStatus] Error: {e}")
+    return jsonify(result)
+
 @app.route('/app')
 def index():
     """Main dashboard page"""
