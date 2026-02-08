@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """
-SmartXFlow Alarm Engine - 24/7 Signal-Based Alarm Calculator
+SmartXFlow Alarm Engine v2.0 - 24/7 Signal-Based Alarm Calculator
 Scraper'dan gelen sinyalleri dinler ve alarm hesaplamalarını tetikler.
 Signal flow: Scraper -> scraper_signal (Supabase) -> Alarm Engine -> alarm tables
+
+Uses: scraper_standalone/alarm_calculator.py (AlarmCalculator class)
+This is the SAME alarm calculator used by the Admin Panel (PC-based).
 """
 
 import os
@@ -12,12 +15,8 @@ import requests
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(__file__))
-from alarm_calculator_new import (
-    run_all_calculations,
-    clear_error_flags,
-    get_error_status,
-    SETTINGS_CACHE
-)
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'scraper_standalone'))
+from alarm_calculator import AlarmCalculator
 
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY')
@@ -39,6 +38,20 @@ HEADERS_WRITE = {
     'Content-Type': 'application/json',
     'Prefer': 'return=minimal'
 }
+
+_calculator = None
+
+
+def get_calculator():
+    global _calculator
+    if _calculator is None:
+        key = SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY
+        _calculator = AlarmCalculator(
+            supabase_url=SUPABASE_URL,
+            supabase_key=key,
+            logger_callback=lambda msg: print(msg)
+        )
+    return _calculator
 
 
 def check_unprocessed_signals():
@@ -108,21 +121,11 @@ def process_signal(signal):
     print(f"Zaman: {signal.get('created_at', 'N/A')}")
     print("=" * 60)
 
-    SETTINGS_CACHE.clear()
-    clear_error_flags()
-
     update_engine_heartbeat("calculating")
 
     try:
-        alarms = run_all_calculations(write_to_db=True)
-
-        total_alarms = sum(len(v) for v in alarms.values()) if alarms else 0
-
-        error_status = get_error_status()
-        if error_status.get('ssl_error'):
-            print(f"[Engine] SSL hatasi algilandi - sinyal tekrar denenmek uzere birakildi")
-            update_engine_heartbeat("ssl_error", error_msg=error_status.get('ssl_error_message'))
-            return False
+        calc = get_calculator()
+        total_alarms = calc.run_all_calculations()
 
         mark_signal_processed(signal_id)
 
@@ -132,14 +135,16 @@ def process_signal(signal):
 
     except Exception as e:
         print(f"[Engine] Hesaplama hatasi: {e}")
+        import traceback
+        traceback.print_exc()
         update_engine_heartbeat("error", error_msg=str(e)[:200])
         return False
 
 
 def run_engine():
     print("=" * 60)
-    print("SMARTXFLOW ALARM ENGINE v1.0")
-    print("Signal-based alarm calculator")
+    print("SMARTXFLOW ALARM ENGINE v2.0")
+    print("Using: scraper_standalone/alarm_calculator.py (AlarmCalculator)")
     print(f"Poll interval: {POLL_INTERVAL}s")
     print(f"Supabase URL: {SUPABASE_URL[:30]}..." if SUPABASE_URL else "Supabase URL: NOT SET")
     print("=" * 60)
@@ -150,6 +155,9 @@ def run_engine():
 
     if not SUPABASE_SERVICE_KEY:
         print("[UYARI] SUPABASE_SERVICE_ROLE_KEY ayarlanmamis - yazma islemi basarisiz olabilir")
+
+    get_calculator()
+    print("[Engine] AlarmCalculator basariyla yuklendi")
 
     update_engine_heartbeat("started")
     print(f"\n[Engine] Baslatildi - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
