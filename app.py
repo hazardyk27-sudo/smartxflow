@@ -561,9 +561,16 @@ def api_scraper_status():
 
 @app.route('/api/alarm-engine-status')
 def api_alarm_engine_status():
-    """Alarm Engine durumu - heartbeat ve son işlenen sinyaller"""
+    """Alarm Engine v2.0 durumu - heartbeat, alarm istatistikleri ve son işlenen sinyaller"""
     import requests as req
-    result = {"heartbeat": None, "processed_signals": [], "stats": {}}
+    result = {
+        "heartbeat": None,
+        "processed_signals": [],
+        "stats": {},
+        "alarm_counts": {},
+        "engine_version": "v2.0",
+        "calculator": "scraper_standalone/alarm_calculator.py (AlarmCalculator)"
+    }
     try:
         if not db.is_supabase_available:
             return jsonify(result)
@@ -577,12 +584,43 @@ def api_alarm_engine_status():
         hb_url = f"{supa.url}/rest/v1/scraper_heartbeat?source=eq.alarm_engine&limit=1"
         try:
             r = req.get(hb_url, headers=headers, timeout=10)
-            if r.status_code == 200:
+            if r.status_code in [200, 206]:
                 rows = r.json()
                 if rows:
                     result["heartbeat"] = rows[0]
+            else:
+                print(f"[AlarmEngineStatus] Heartbeat HTTP {r.status_code}: table may not exist")
         except Exception as e:
             print(f"[AlarmEngineStatus] Heartbeat error: {e}")
+
+        alarm_tables = {
+            "sharp": "sharp_alarms",
+            "insider": "insider_alarms",
+            "bigmoney": "bigmoney_alarms",
+            "volumeshock": "volumeshock_alarms",
+            "dropping": "dropping_alarms",
+            "volumeleader": "volume_leader_alarms",
+            "mim": "mim_alarms"
+        }
+        total_alarms = 0
+        for alarm_type, table_name in alarm_tables.items():
+            try:
+                count_url = f"{supa.url}/rest/v1/{table_name}?select=id&limit=1"
+                count_headers = {**headers, "Prefer": "count=exact"}
+                r = req.get(count_url, headers=count_headers, timeout=8)
+                if r.status_code in [200, 206]:
+                    content_range = r.headers.get('Content-Range', '')
+                    if '/' in content_range:
+                        count = int(content_range.split('/')[1]) if content_range.split('/')[1] != '*' else 0
+                    else:
+                        count = len(r.json())
+                    result["alarm_counts"][alarm_type] = count
+                    total_alarms += count
+                else:
+                    result["alarm_counts"][alarm_type] = 0
+            except Exception:
+                result["alarm_counts"][alarm_type] = 0
+        result["stats"]["total_active_alarms"] = total_alarms
 
         cutoff = (datetime.utcnow() - timedelta(hours=24)).strftime('%Y-%m-%dT%H:%M:%S')
         sig_url = f"{supa.url}/rest/v1/scraper_signal?processed=eq.true&order=processed_at.desc&limit=50&created_at=gte.{cutoff}"

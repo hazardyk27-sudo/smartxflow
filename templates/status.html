@@ -300,6 +300,10 @@
                     <span id="engineStatusText">Kontrol ediliyor...</span>
                 </span>
             </h2>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+                <span id="engineVersion" style="font-size:0.78rem;color:#2BFF88;background:rgba(43,255,136,0.1);padding:3px 10px;border-radius:10px;font-weight:600;">-</span>
+                <span id="engineCalc" style="font-size:0.75rem;color:#8b949e;">-</span>
+            </div>
             <div class="info-grid">
                 <div class="info-item">
                     <div class="info-label">Son Heartbeat</div>
@@ -316,6 +320,46 @@
                 <div class="info-item">
                     <div class="info-label">Bekleyen Sinyal</div>
                     <div class="info-value" id="enginePending">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-card" style="border-color: rgba(43,255,136,0.2);">
+            <h2>Aktif Alarm İstatistikleri</h2>
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+                <div style="text-align:center;">
+                    <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;">Toplam Aktif</div>
+                    <div class="big-number" id="totalActiveAlarms" style="color:#2BFF88;">-</div>
+                </div>
+            </div>
+            <div class="info-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
+                <div class="info-item" style="text-align:center;">
+                    <div class="info-label">Sharp</div>
+                    <div class="info-value" id="alarmCountSharp" style="color:#58a6ff;">-</div>
+                </div>
+                <div class="info-item" style="text-align:center;">
+                    <div class="info-label">Insider</div>
+                    <div class="info-value" id="alarmCountInsider" style="color:#f0883e;">-</div>
+                </div>
+                <div class="info-item" style="text-align:center;">
+                    <div class="info-label">BigMoney</div>
+                    <div class="info-value" id="alarmCountBigmoney" style="color:#2BFF88;">-</div>
+                </div>
+                <div class="info-item" style="text-align:center;">
+                    <div class="info-label">VolumeShock</div>
+                    <div class="info-value" id="alarmCountVolumeshock" style="color:#bc8cff;">-</div>
+                </div>
+                <div class="info-item" style="text-align:center;">
+                    <div class="info-label">Dropping</div>
+                    <div class="info-value" id="alarmCountDropping" style="color:#f85149;">-</div>
+                </div>
+                <div class="info-item" style="text-align:center;">
+                    <div class="info-label">VolumeLeader</div>
+                    <div class="info-value" id="alarmCountVolumeleader" style="color:#d29922;">-</div>
+                </div>
+                <div class="info-item" style="text-align:center;">
+                    <div class="info-label">MIM</div>
+                    <div class="info-value" id="alarmCountMim" style="color:#39d353;">-</div>
                 </div>
             </div>
         </div>
@@ -455,6 +499,9 @@
                 const statusEl = document.getElementById('engineStatus');
                 const statusText = document.getElementById('engineStatusText');
 
+                document.getElementById('engineVersion').textContent = data.engine_version || '-';
+                document.getElementById('engineCalc').textContent = data.calculator || '-';
+
                 if (data.heartbeat) {
                     const hb = data.heartbeat;
                     const lastBeat = new Date(hb.last_heartbeat);
@@ -494,6 +541,20 @@
 
                 const pendingCount = (data.stats && data.stats.pending_count !== undefined) ? data.stats.pending_count : '-';
                 document.getElementById('enginePending').textContent = pendingCount;
+
+                if (data.alarm_counts) {
+                    const ac = data.alarm_counts;
+                    document.getElementById('alarmCountSharp').textContent = ac.sharp !== undefined ? ac.sharp : '-';
+                    document.getElementById('alarmCountInsider').textContent = ac.insider !== undefined ? ac.insider : '-';
+                    document.getElementById('alarmCountBigmoney').textContent = ac.bigmoney !== undefined ? ac.bigmoney : '-';
+                    document.getElementById('alarmCountVolumeshock').textContent = ac.volumeshock !== undefined ? ac.volumeshock : '-';
+                    document.getElementById('alarmCountDropping').textContent = ac.dropping !== undefined ? ac.dropping : '-';
+                    document.getElementById('alarmCountVolumeleader').textContent = ac.volumeleader !== undefined ? ac.volumeleader : '-';
+                    document.getElementById('alarmCountMim').textContent = ac.mim !== undefined ? ac.mim : '-';
+                }
+                if (data.stats && data.stats.total_active_alarms !== undefined) {
+                    document.getElementById('totalActiveAlarms').textContent = data.stats.total_active_alarms;
+                }
 
                 if (data.processed_signals && data.processed_signals.length > 0) {
                     const sigs = data.processed_signals;
