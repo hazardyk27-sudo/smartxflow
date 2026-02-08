@@ -372,8 +372,8 @@
                     <div class="info-value big-number" id="engineTotalProcessed" style="color:#2BFF88;">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Ortalama Maç/Sinyal</div>
-                    <div class="info-value big-number" id="engineAvgMatches" style="color:#2BFF88;">-</div>
+                    <div class="info-label">Aktif Maç (Bugün+)</div>
+                    <div class="info-value big-number" id="engineActiveMatches" style="color:#2BFF88;">-</div>
                 </div>
             </div>
             <table class="history-table">
@@ -543,6 +543,10 @@
                 const pendingCount = (data.stats && data.stats.pending_count !== undefined) ? data.stats.pending_count : '-';
                 document.getElementById('enginePending').textContent = pendingCount;
 
+                if (data.stats && data.stats.active_match_count !== undefined) {
+                    document.getElementById('engineActiveMatches').textContent = data.stats.active_match_count;
+                }
+
                 if (data.alarm_counts) {
                     const ac = data.alarm_counts;
                     document.getElementById('alarmCountSharp').textContent = ac.sharp !== undefined ? ac.sharp : '-';
@@ -561,10 +565,6 @@
                     const sigs = data.processed_signals;
                     document.getElementById('engineTotalProcessed').textContent = sigs.length;
 
-                    let totalMatches = 0;
-                    sigs.forEach(s => { totalMatches += (s.match_count || 0); });
-                    document.getElementById('engineAvgMatches').textContent = Math.round(totalMatches / sigs.length);
-
                     const tbody = document.getElementById('engineHistoryBody');
                     tbody.innerHTML = '';
                     const showCount = Math.min(sigs.length, 20);
@@ -580,7 +580,6 @@
                     }
                 } else {
                     document.getElementById('engineTotalProcessed').textContent = '0';
-                    document.getElementById('engineAvgMatches').textContent = '-';
                     document.getElementById('engineHistoryBody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#484f58;">İşlenmiş sinyal yok</td></tr>';
                 }
             } catch(e) {

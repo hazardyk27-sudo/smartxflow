@@ -623,6 +623,19 @@ def api_alarm_engine_status():
                 result["alarm_counts"][alarm_type] = 0
         result["stats"]["total_active_alarms"] = total_alarms
 
+        try:
+            fix_url = f"{supa.url}/rest/v1/fixtures?select=match_id_hash&fixture_date=gte.{today_str}&limit=1"
+            fix_headers = {**headers, "Prefer": "count=exact"}
+            r = req.get(fix_url, headers=fix_headers, timeout=8)
+            if r.status_code in [200, 206]:
+                cr = r.headers.get('Content-Range', '')
+                if '/' in cr:
+                    result["stats"]["active_match_count"] = int(cr.split('/')[1]) if cr.split('/')[1] != '*' else 0
+                else:
+                    result["stats"]["active_match_count"] = len(r.json())
+        except Exception:
+            pass
+
         cutoff = (datetime.utcnow() - timedelta(hours=24)).strftime('%Y-%m-%dT%H:%M:%S')
         sig_url = f"{supa.url}/rest/v1/scraper_signal?processed=eq.true&order=processed_at.desc&limit=50&created_at=gte.{cutoff}"
         try:
