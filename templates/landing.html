@@ -332,6 +332,7 @@
             display: flex;
             align-items: center;
             justify-content: flex-end;
+            justify-self: end;
             padding-top: 20px;
         }
         .hero-visual::before {
@@ -957,11 +958,16 @@
 
         /* === FULL EKRAN: 1920px ve üzeri === */
         @media (min-width: 1920px) {
+            .navbar-inner {
+                max-width: 1440px;
+                padding: 0 64px;
+            }
             .hero {
                 padding: 160px 64px 60px;
                 max-width: 1440px;
                 gap: 50px;
             }
+            .hero-visual { justify-self: end; }
             .hero-text h1 { font-size: 72px; }
             .hero-text .subtitle { font-size: 19px; max-width: 600px; }
             .mockup-window { width: min(780px, 42vw); }
