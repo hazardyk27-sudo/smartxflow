@@ -210,10 +210,11 @@
             position: relative;
             z-index: 2;
         }
+        .hero-pill-badge { display: none; }
         .hero-title-mobile { display: none; }
         .subtitle-mobile { display: none; }
         .hero-cta-mobile { display: none !important; }
-        .hero-mini-features { display: none; }
+        .hero-mini-grid { display: none; }
         .hero-text h1 {
             font-size: 60px;
             font-weight: 700;
@@ -1041,60 +1042,101 @@
         @media (max-width: 768px) {
             .nav-links { display: none; }
             .hamburger { display: flex; }
-            .navbar { height: 60px; }
+            .navbar {
+                height: 60px;
+                background: rgba(8, 12, 24, 0.85) !important;
+                backdrop-filter: blur(20px) saturate(1.3) !important;
+                -webkit-backdrop-filter: blur(20px) saturate(1.3) !important;
+                border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+            }
 
             .landing-alert-band { display: none !important; }
 
             .hero {
-                padding: 84px 20px 24px;
+                padding: 92px 24px 24px;
                 grid-template-columns: 1fr;
-                gap: 28px;
+                gap: 32px;
                 text-align: center;
                 max-width: 100%;
                 overflow: hidden;
             }
+            .hero-pill-badge {
+                display: inline-flex; align-items: center; gap: 6px;
+                font-size: 11px; font-weight: 500; color: rgba(43, 255, 136, 0.7);
+                background: rgba(43, 255, 136, 0.06);
+                border: 1px solid rgba(43, 255, 136, 0.10);
+                border-radius: 999px; padding: 5px 14px;
+                margin: 0 auto 16px; letter-spacing: 0.3px;
+            }
+            .hero-pill-dot {
+                width: 6px; height: 6px; border-radius: 50%;
+                background: #2BFF88; animation: pulse 1.5s infinite;
+            }
             .hero-title-desktop { display: none; }
             .subtitle-desktop { display: none; }
             .hero-cta-desktop { display: none !important; }
-            .hero-title-mobile { display: block; font-size: 32px; letter-spacing: -1px; line-height: 1.1; margin-bottom: 8px; }
-            .subtitle-mobile { display: block; font-size: 14px; max-width: 300px; margin: 0 auto 20px; line-height: 1.4; opacity: 0.5; }
-            .hero-cta-mobile { display: inline-flex !important; }
-            .hero-cta-group { flex-direction: column; align-items: center; gap: 6px; width: 100%; }
-            .hero-cta { padding: 16px 24px; font-size: 15px; width: 100%; max-width: 320px; text-align: center; justify-content: center; font-weight: 600; }
-            .hero-cta-secondary { padding: 6px 12px; font-size: 12px; border: none; background: transparent; opacity: 0.45; font-weight: 400; }
-            .hero-cta-secondary:hover { background: transparent; opacity: 0.8; }
-            .hero-feature-strip { display: none; }
-            .hero-mini-features {
-                display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 20px;
+            .hero-title-mobile {
+                display: block; font-size: 46px; letter-spacing: -1.5px;
+                line-height: 1.05; margin-bottom: 12px; font-weight: 700;
             }
-            .hero-mini-feature {
+            .subtitle-mobile {
+                display: block; font-size: 14px; max-width: 300px;
+                margin: 0 auto 24px; line-height: 1.4; opacity: 0.45;
+            }
+            .hero-cta-mobile { display: inline-flex !important; }
+            .hero-cta-group { flex-direction: column; align-items: center; gap: 8px; width: 100%; }
+            .hero-cta {
+                padding: 0 28px; font-size: 15px; width: 100%; max-width: 320px;
+                height: 54px; line-height: 54px;
+                text-align: center; justify-content: center; font-weight: 600;
+                border-radius: 16px;
+                background: linear-gradient(135deg, #2BFF88 0%, #1de070 100%);
+                border: 1px solid rgba(255,255,255,0.1);
+                box-shadow: 0 4px 20px rgba(43, 255, 136, 0.15), 0 1px 3px rgba(0,0,0,0.2);
+            }
+            .hero-cta:hover { box-shadow: 0 6px 28px rgba(43, 255, 136, 0.25); }
+            .hero-cta-secondary {
+                padding: 6px 12px; font-size: 12px;
+                border: none; background: transparent;
+                opacity: 0.4; font-weight: 400; color: rgba(255,255,255,0.6);
+            }
+            .hero-cta-secondary:hover { background: transparent; opacity: 0.7; }
+            .hero-feature-strip { display: none; }
+            .hero-mini-grid {
+                display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+                margin-top: 24px; max-width: 300px; margin-left: auto; margin-right: auto;
+            }
+            .hero-mini-card {
                 display: flex; align-items: center; gap: 8px;
-                font-size: 12px; color: rgba(255,255,255,0.4); font-weight: 400;
+                padding: 10px 12px; border-radius: 10px;
+                background: rgba(255,255,255,0.03);
+                border: 1px solid rgba(255,255,255,0.06);
+                font-size: 11px; color: rgba(255,255,255,0.45); font-weight: 400;
             }
             .hero-visual { justify-content: center; overflow: hidden; }
             .hero-visual::before { display: none; }
             .hero-visual::after { display: none; }
             .mockup-window {
-                max-width: 280px; width: 70%; transform: none;
-                border-radius: 14px; margin: 0 auto;
-                border: 1px solid rgba(43, 255, 136, 0.06);
-                box-shadow: 0 16px 48px rgba(0,0,0,0.3);
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
-                background: rgba(13, 17, 23, 0.5);
-                opacity: 0.5;
+                max-width: 320px; width: 85%; transform: none;
+                border-radius: 16px; margin: 0 auto;
+                border: 1px solid rgba(255,255,255,0.08);
+                box-shadow: 0 20px 60px rgba(0,0,0,0.35), 0 0 40px rgba(43, 255, 136, 0.03);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                background: rgba(13, 17, 23, 0.7);
+                opacity: 0.75;
             }
             .mockup-body { padding: 6px; }
             .mockup-row { padding: 6px; gap: 4px; }
-            .mockup-badge { width: 40px; font-size: 6px; padding: 2px 0; }
-            .mockup-teams { font-size: 8px; }
+            .mockup-badge { width: 42px; font-size: 6px; padding: 2px 0; }
+            .mockup-teams { font-size: 9px; }
             .mockup-league { font-size: 7px; }
-            .mockup-odds { font-size: 8px; }
+            .mockup-odds { font-size: 9px; }
             .mockup-volume { font-size: 7px; }
-            .mockup-volume.highlight { font-size: 8px; }
+            .mockup-volume.highlight { font-size: 9px; }
             .mockup-titlebar { padding: 6px 10px; gap: 4px; }
             .mockup-titlebar span { font-size: 8px; }
-            .mockup-chart { height: 30px; padding: 4px; }
+            .mockup-chart { height: 35px; padding: 4px; }
             .mockup-chart-label { font-size: 7px; }
 
             .features-hero { padding: 50px 16px 24px; }
@@ -1174,6 +1216,9 @@
 
     <section class="hero">
         <div class="hero-text">
+            <div class="hero-pill-badge">
+                <span class="hero-pill-dot"></span> Canlı Sinyaller
+            </div>
             <h1 class="hero-title-desktop"><span class="accent">Akıllı Para,</span><br>Oran Hareketi, Alarm.</h1>
             <h1 class="hero-title-mobile"><span class="accent">Piyasayı Okuyan</span><br>Sinyaller.</h1>
             <p class="subtitle subtitle-desktop">Piyasadaki para akışını, oran hareketlerini ve sıradışı sinyalleri tek ekranda izle. Erken fark et, doğru anı yakala.</p>
@@ -1197,18 +1242,22 @@
                     Telegram bildirimleri
                 </div>
             </div>
-            <div class="hero-mini-features">
-                <div class="hero-mini-feature">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#2BFF88" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                    Canlı para akışı
+            <div class="hero-mini-grid">
+                <div class="hero-mini-card">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2BFF88" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    <span>Canlı Para</span>
                 </div>
-                <div class="hero-mini-feature">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#2BFF88" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                    Oran düşüşleri
+                <div class="hero-mini-card">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2BFF88" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    <span>Oran Düşüşleri</span>
                 </div>
-                <div class="hero-mini-feature">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#2BFF88" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                    Telegram bildirim
+                <div class="hero-mini-card">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2BFF88" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <span>Alarmlar</span>
+                </div>
+                <div class="hero-mini-card">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2BFF88" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                    <span>Telegram</span>
                 </div>
             </div>
         </div>
