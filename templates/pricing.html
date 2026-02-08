@@ -186,8 +186,8 @@
             display: flex;
             justify-content: center;
             gap: 0;
-            margin-top: 20px;
-            margin-bottom: 48px;
+            margin-top: 32px;
+            margin-bottom: 0;
             background: rgba(255,255,255,0.04);
             border: 1px solid rgba(255,255,255,0.08);
             border-radius: 10px;
@@ -551,9 +551,6 @@
     <section class="page-header">
         <h1>Paketler & Fiyatlandırma</h1>
         <p>İhtiyacınıza uygun paketi seçin, hemen başlayın.</p>
-    </section>
-
-    <section class="pricing-section">
         <div class="pricing-tabs">
             <button class="pricing-tab active-core" data-tab="core" onclick="switchTab('core')">
                 CORE
@@ -564,6 +561,9 @@
                 <span class="pricing-tab-subtitle">Yazılım + Özel Analiz</span>
             </button>
         </div>
+    </section>
+
+    <section class="pricing-section">
 
         <div class="duration-tabs">
             <button class="duration-tab" data-duration="1ay" onclick="switchDuration('1ay')">1 Ay</button>
