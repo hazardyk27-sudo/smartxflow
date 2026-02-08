@@ -194,9 +194,9 @@
         }
 
         .hero {
-            padding: 20px 48px 0;
+            padding: 126px 48px 0;
             max-width: 1280px;
-            min-height: calc(100vh - 130px);
+            min-height: 100vh;
             margin: 0 auto;
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -204,6 +204,7 @@
             align-items: center;
             position: relative;
             width: 100%;
+            box-sizing: border-box;
         }
 
         .hero-text {
@@ -944,7 +945,8 @@
         .footer-brand img { width: 18px; height: 18px; }
 
         .landing-alert-band {
-            position: relative;
+            position: fixed;
+            top: 80px;
             left: 0;
             right: 0;
             z-index: 999;
@@ -1035,7 +1037,7 @@
             .footer-content { flex-direction: column; text-align: center; gap: 12px; }
             .footer-links { flex-wrap: wrap; justify-content: center; gap: 16px; }
 
-            .landing-alert-band { margin-top: 60px; }
+            .landing-alert-band { top: 60px; }
 
             .navbar-inner { padding: 0 16px; }
         }
