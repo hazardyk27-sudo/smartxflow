@@ -603,9 +603,10 @@ def api_alarm_engine_status():
             "mim": "mim_alarms"
         }
         total_alarms = 0
+        today_str = datetime.utcnow().strftime('%Y-%m-%d')
         for alarm_type, table_name in alarm_tables.items():
             try:
-                count_url = f"{supa.url}/rest/v1/{table_name}?select=id&limit=1"
+                count_url = f"{supa.url}/rest/v1/{table_name}?select=id&limit=1&match_date=gte.{today_str}"
                 count_headers = {**headers, "Prefer": "count=exact"}
                 r = req.get(count_url, headers=count_headers, timeout=8)
                 if r.status_code in [200, 206]:
