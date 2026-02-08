@@ -519,8 +519,6 @@
                     };
                     document.getElementById('engineState').textContent = stateMap[hb.status] || hb.status || '-';
 
-                    document.getElementById('engineAlarmCount').textContent = (data.stats && data.stats.total_active_alarms !== undefined) ? data.stats.total_active_alarms : (hb.match_count || '0');
-
                     if (hb.status === 'error' || hb.status === 'ssl_error') {
                         statusEl.className = 'status-indicator status-offline';
                         statusText.textContent = 'Hata';
@@ -534,11 +532,30 @@
                         statusEl.className = 'status-indicator status-offline';
                         statusText.textContent = 'Cevrimdisi';
                     }
+                } else if (data.processed_signals && data.processed_signals.length > 0) {
+                    const lastSig = data.processed_signals[0];
+                    const lastTime = new Date(lastSig.processed_at);
+                    const diffMin = (new Date() - lastTime) / 60000;
+
+                    document.getElementById('engineLastBeat').textContent = formatTurkeyTime(lastSig.processed_at) + ' (' + timeSince(lastSig.processed_at) + ')';
+                    document.getElementById('engineState').textContent = 'Beklemede';
+
+                    if (diffMin < 15) {
+                        statusEl.className = 'status-indicator status-online';
+                        statusText.textContent = 'Aktif';
+                    } else if (diffMin < 30) {
+                        statusEl.className = 'status-indicator status-warning';
+                        statusText.textContent = 'Gecikmis (' + Math.floor(diffMin) + ' dk)';
+                    } else {
+                        statusEl.className = 'status-indicator status-offline';
+                        statusText.textContent = 'Cevrimdisi';
+                    }
                 } else {
                     statusEl.className = 'status-indicator status-offline';
                     statusText.textContent = 'Veri yok';
-                    document.getElementById('engineAlarmCount').textContent = (data.stats && data.stats.total_active_alarms !== undefined) ? data.stats.total_active_alarms : '-';
                 }
+
+                document.getElementById('engineAlarmCount').textContent = (data.stats && data.stats.total_active_alarms !== undefined) ? data.stats.total_active_alarms : '-';
 
                 const pendingCount = (data.stats && data.stats.pending_count !== undefined) ? data.stats.pending_count : '-';
                 document.getElementById('enginePending').textContent = pendingCount;
