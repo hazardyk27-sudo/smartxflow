@@ -1040,30 +1040,42 @@
             .navbar { height: 60px; }
 
             .hero {
-                padding: 110px 16px 30px;
+                padding: 100px 16px 30px;
                 grid-template-columns: 1fr;
-                gap: 24px;
+                gap: 20px;
                 text-align: center;
                 max-width: 100%;
                 overflow: hidden;
             }
-            .hero-text h1 { font-size: 32px; letter-spacing: -1px; margin-bottom: 10px; }
+            .hero-text h1 { font-size: 30px; letter-spacing: -1px; margin-bottom: 6px; line-height: 1.1; }
             .hero-text .subtitle {
-                font-size: 14px;
-                max-width: 100%;
+                font-size: 13px;
+                max-width: 280px;
                 margin-left: auto;
                 margin-right: auto;
-                margin-bottom: 20px;
-                line-height: 1.5;
+                margin-bottom: 16px;
+                line-height: 1.4;
+                opacity: 0.7;
             }
-            .hero-cta-group { justify-content: center; gap: 10px; }
-            .hero-cta { padding: 12px 24px; font-size: 14px; }
-            .hero-cta-secondary { padding: 12px 20px; font-size: 14px; }
-            .hero-feature-strip { display: none; }
+            .hero-cta-group { flex-direction: column; align-items: center; gap: 8px; width: 100%; }
+            .hero-cta { padding: 14px 24px; font-size: 15px; width: 100%; max-width: 320px; text-align: center; justify-content: center; }
+            .hero-cta-secondary { padding: 8px 16px; font-size: 12px; border: none; background: transparent; opacity: 0.6; }
+            .hero-cta-secondary:hover { background: transparent; opacity: 1; }
+            .hero-feature-strip { display: flex; justify-content: center; margin-top: 12px; gap: 6px; }
+            .hero-feature-item { font-size: 10px; padding: 4px 10px; background: rgba(43, 255, 136, 0.03); border: 1px solid rgba(43, 255, 136, 0.06); }
+            .hero-feature-item svg { width: 11px; height: 11px; }
             .hero-visual { justify-content: center; overflow: hidden; }
-            .hero-visual::before { display: none; }
+            .hero-visual::before { display: block; width: 300px; height: 300px; opacity: 0.4; }
             .hero-visual::after { display: none; }
-            .mockup-window { max-width: 100%; width: 90%; transform: none; border-radius: 14px; margin: 0 auto; }
+            .mockup-window {
+                max-width: 100%; width: 88%; transform: none;
+                border-radius: 18px; margin: 0 auto;
+                border: 1px solid rgba(43, 255, 136, 0.08);
+                box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 8px 24px rgba(43, 255, 136, 0.04);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                background: rgba(13, 17, 23, 0.85);
+            }
             .mockup-body { padding: 8px; }
             .mockup-row { padding: 8px; gap: 6px; }
             .mockup-badge { width: 54px; font-size: 7px; padding: 2px 0; }
