@@ -215,7 +215,23 @@
         .subtitle-mobile { display: none; }
         .hero-cta-mobile { display: none !important; }
         .hero-mini-grid { display: none; }
-        .mobile-shortcut-nav { display: none; }
+        .mobile-shortcut-nav {
+            display: flex; justify-content: center; gap: 12px;
+            padding: 16px 0 0;
+        }
+        .shortcut-btn {
+            display: flex; align-items: center; gap: 6px;
+            padding: 10px 20px; border-radius: 12px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.55); font-size: 14px; font-weight: 500;
+            text-decoration: none; transition: all 0.2s ease;
+        }
+        .shortcut-btn:hover {
+            background: rgba(43, 255, 136, 0.06);
+            border-color: rgba(43, 255, 136, 0.15);
+            color: rgba(43, 255, 136, 0.8);
+        }
         .hero-text h1 {
             font-size: 60px;
             font-weight: 700;
@@ -1118,23 +1134,8 @@
             }
             .hero-visual { display: none; }
 
-            .mobile-shortcut-nav {
-                display: flex; justify-content: center; gap: 12px;
-                padding: 16px 24px 0;
-            }
-            .shortcut-btn {
-                display: flex; align-items: center; gap: 6px;
-                padding: 10px 20px; border-radius: 12px;
-                background: rgba(255,255,255,0.04);
-                border: 1px solid rgba(255,255,255,0.08);
-                color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 500;
-                text-decoration: none; transition: all 0.2s ease;
-            }
-            .shortcut-btn:hover {
-                background: rgba(43, 255, 136, 0.06);
-                border-color: rgba(43, 255, 136, 0.15);
-                color: rgba(43, 255, 136, 0.8);
-            }
+            .mobile-shortcut-nav { padding: 16px 24px 0; }
+            .shortcut-btn { font-size: 13px; }
 
             .features-hero { padding: 50px 16px 24px; }
             .features-hero h2 { font-size: 24px; line-height: 1.2; margin-bottom: 14px; }
