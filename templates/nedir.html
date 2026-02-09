@@ -137,55 +137,82 @@
             margin: 0 auto;
         }
 
-        .advantage-grid {
+        .why-section {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: start;
             margin-bottom: 80px;
         }
-        .advantage-card {
-            background: rgba(255,255,255,0.025);
-            border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 16px;
-            padding: 32px 24px;
-            transition: all 0.3s;
-            text-align: center;
+        .why-left h2 {
+            font-size: 36px;
+            font-weight: 800;
+            color: #e6edf3;
+            letter-spacing: -1px;
+            line-height: 1.15;
+            margin-bottom: 20px;
         }
-        .advantage-card:hover {
-            border-color: rgba(43, 255, 136, 0.15);
-            transform: translateY(-4px);
-            box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+        .why-left h2 span {
+            background: linear-gradient(90deg, #2BFF88 0%, #7CFFD2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-        .advantage-icon {
-            width: 52px;
-            height: 52px;
-            border-radius: 14px;
+        .why-left p {
+            font-size: 16px;
+            color: #8b949e;
+            line-height: 1.7;
+        }
+        .why-features {
+            display: flex;
+            flex-direction: column;
+        }
+        .why-feature {
+            display: flex;
+            align-items: flex-start;
+            gap: 18px;
+            padding: 22px 0;
+            transition: all 0.25s ease;
+        }
+        .why-feature:hover {
+            padding-left: 8px;
+        }
+        .why-feature:hover .why-f-icon {
+            box-shadow: 0 0 20px rgba(43,255,136,0.25);
+        }
+        .why-feature:not(:last-child) {
+            border-bottom: 1px solid rgba(0,255,170,0.15);
+        }
+        .why-f-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
             background: rgba(43,255,136,0.08);
-            border: 1px solid rgba(43,255,136,0.15);
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 20px;
+            flex-shrink: 0;
+            transition: box-shadow 0.25s ease;
         }
-        .advantage-icon svg {
-            width: 24px;
-            height: 24px;
+        .why-f-icon svg {
+            width: 20px;
+            height: 20px;
             stroke: #2BFF88;
             fill: none;
             stroke-width: 2;
             stroke-linecap: round;
             stroke-linejoin: round;
         }
-        .advantage-card h3 {
-            font-size: 18px;
+        .why-f-text h4 {
+            font-size: 16px;
             font-weight: 700;
             color: #e6edf3;
-            margin-bottom: 10px;
+            margin-bottom: 4px;
         }
-        .advantage-card p {
+        .why-f-text p {
             font-size: 14px;
             color: #8b949e;
-            line-height: 1.6;
+            line-height: 1.5;
         }
 
         .benefit-list {
@@ -310,7 +337,9 @@
             .page-hero .hero-desc { font-size: 15px; }
             .content-section { padding: 0 16px 50px; }
             .section-heading h2 { font-size: 24px; }
-            .advantage-grid { grid-template-columns: 1fr; gap: 12px; }
+            .why-section { grid-template-columns: 1fr; gap: 30px; }
+            .why-left h2 { font-size: 26px; }
+            .why-left { text-align: center; }
             .benefit-list { grid-template-columns: 1fr; gap: 10px; }
             .cta-box { padding: 40px 20px; }
             .cta-box h2 { font-size: 22px; }
@@ -358,37 +387,48 @@
     </section>
 
     <section class="content-section">
-        <div class="section-heading">
-            <h2>Neden SmartXFlow Kullanmalısınız?</h2>
-        </div>
-        <div class="advantage-grid">
-            <div class="advantage-card">
-                <div class="advantage-icon">
-                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                </div>
-                <h3>Piyasayı Daha Erken Görün</h3>
-                <p>Ani para girişleri ve hızlı oran değişimleri otomatik olarak tespit edilir, önemli hareketleri kaçırmazsınız.</p>
+        <div class="why-section">
+            <div class="why-left">
+                <h2>Neden<br><span>SmartXFlow?</span></h2>
+                <p>Piyasa hareketlerini erken görmek, veriye dayalı analiz yapmak ve akıllı sinyallerle karar sürecini hızlandırmak için geliştirildi.</p>
             </div>
-            <div class="advantage-card">
-                <div class="advantage-icon">
-                    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <div class="why-features">
+                <div class="why-feature">
+                    <div class="why-f-icon">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div class="why-f-text">
+                        <h4>Piyasayı Daha Erken Görün</h4>
+                        <p>Ani para girişleri ve hızlı oran değişimleri otomatik olarak tespit edilir, önemli hareketleri kaçırmazsınız.</p>
+                    </div>
                 </div>
-                <h3>Gerçek Veriye Dayalı Analiz</h3>
-                <p>Kararlarınızı tahminlere değil, gerçek zamanlı piyasa verilerine dayanarak alırsınız.</p>
-            </div>
-            <div class="advantage-card">
-                <div class="advantage-icon">
-                    <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <div class="why-feature">
+                    <div class="why-f-icon">
+                        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    </div>
+                    <div class="why-f-text">
+                        <h4>Gerçek Veriye Dayalı Analiz</h4>
+                        <p>Kararlarınızı tahminlere değil, gerçek zamanlı piyasa verilerine dayanarak alırsınız.</p>
+                    </div>
                 </div>
-                <h3>Akıllı Alarm Sistemi</h3>
-                <p>Sistem, dikkat edilmesi gereken piyasa hareketlerini otomatik olarak işaretler ve bildirimlerle size ulaştırır.</p>
-            </div>
-            <div class="advantage-card">
-                <div class="advantage-icon">
-                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                <div class="why-feature">
+                    <div class="why-f-icon">
+                        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    </div>
+                    <div class="why-f-text">
+                        <h4>Akıllı Alarm Sistemi</h4>
+                        <p>Sistem, dikkat edilmesi gereken piyasa hareketlerini otomatik olarak işaretler ve bildirimlerle size ulaştırır.</p>
+                    </div>
                 </div>
-                <h3>Tek Panelde Tüm Görünüm</h3>
-                <p>Farklı market verileri tek ekranda sunulur, analiz süreci hızlanır ve karmaşıklık ortadan kalkar.</p>
+                <div class="why-feature">
+                    <div class="why-f-icon">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                    </div>
+                    <div class="why-f-text">
+                        <h4>Tek Panelde Tüm Market Görünümü</h4>
+                        <p>Farklı market verileri tek ekranda sunulur, analiz süreci hızlanır ve karmaşıklık ortadan kalkar.</p>
+                    </div>
+                </div>
             </div>
         </div>
 
