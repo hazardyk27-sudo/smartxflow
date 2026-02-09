@@ -182,12 +182,14 @@
             font-size: 14px;
             color: #8b949e;
         }
+        .pricing-tabs-wrapper {
+            margin-top: 32px;
+            margin-bottom: 0;
+        }
         .pricing-tabs {
             display: flex;
             justify-content: center;
             gap: 0;
-            margin-top: 32px;
-            margin-bottom: 0;
             background: rgba(255,255,255,0.04);
             border: 1px solid rgba(255,255,255,0.08);
             border-radius: 10px;
@@ -205,7 +207,7 @@
             font-weight: 700;
             letter-spacing: 0.04em;
             cursor: pointer;
-            transition: color 0.22s ease;
+            transition: color 0.25s ease;
             text-align: center;
             border: none;
             background: transparent;
@@ -238,44 +240,74 @@
             bottom: 4px;
             left: 4px;
             width: calc(50% - 4px);
-            border-radius: 12px;
-            background: linear-gradient(135deg, #22ffb0, #00c27a);
-            box-shadow: 0 4px 20px rgba(0,255,170,0.25);
-            transition: transform 0.22s ease;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(0,255,170,0.9), rgba(0,210,140,0.9));
+            box-shadow: 0 0 24px rgba(0,255,170,0.18);
+            transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
             z-index: 1;
         }
         .pricing-tabs-slider.slide-right {
             transform: translateX(100%);
         }
+        .pricing-tabs-glow {
+            display: none;
+        }
         @media (min-width: 1024px) {
+            .pricing-tabs-wrapper {
+                margin-top: 44px;
+                margin-bottom: 8px;
+            }
             .pricing-tabs {
-                max-width: 560px;
-                border-radius: 16px;
+                max-width: 520px;
+                height: 64px;
+                border-radius: 20px;
                 padding: 6px;
-                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.06));
+                background: rgba(255,255,255,0.03);
+                backdrop-filter: blur(8px);
                 border: 1px solid rgba(255,255,255,0.08);
             }
             .pricing-tab {
-                padding: 16px 36px;
+                padding: 0 36px;
                 font-size: 15px;
-                letter-spacing: 0.06em;
-                border-radius: 12px;
+                font-weight: 500;
+                letter-spacing: 0.3px;
+                border-radius: 16px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
             }
             .pricing-tab:hover:not(.active-core):not(.active-pro) {
-                background: rgba(255,255,255,0.03);
+                background: rgba(255,255,255,0.08);
+            }
+            .pricing-tab.active-core,
+            .pricing-tab.active-pro {
+                font-weight: 600;
             }
             .pricing-tab-subtitle {
-                font-size: 11px;
-                letter-spacing: 0.04em;
-                margin-top: 4px;
+                font-size: 10px;
+                letter-spacing: 0.3px;
+                margin-top: 3px;
+                opacity: 0.65;
             }
             .pricing-tabs-slider {
                 top: 6px;
                 bottom: 6px;
                 left: 6px;
                 width: calc(50% - 6px);
-                border-radius: 12px;
+                border-radius: 16px;
             }
+            .pricing-tabs-glow {
+                display: block;
+                width: 280px;
+                height: 1px;
+                margin: 12px auto 0;
+                background: linear-gradient(90deg, transparent, rgba(0,255,170,0.12), transparent);
+            }
+        }
+        .pricing-tab.active-core .pricing-tab-subtitle,
+        .pricing-tab.active-pro .pricing-tab-subtitle {
+            color: rgba(2,20,15,0.55);
         }
         .pricing-panel { display: none; }
         .pricing-panel.active { display: block; }
@@ -547,7 +579,7 @@
             .page-header h1 { font-size: 26px; }
             .page-header p { font-size: 14px; }
             .pricing-section { padding: 0 16px 60px; }
-            .pricing-tabs { margin-bottom: 10px; margin-top: 20px; }
+            .pricing-tabs-wrapper { margin-top: 20px; margin-bottom: 10px; }
             .duration-tabs { display: flex; margin-bottom: 24px; margin-top: -10px; }
             .pricing-grid { grid-template-columns: 1fr; max-width: 100%; margin: 0 auto; gap: 16px; }
             .pricing-card { min-height: auto; padding: 24px 18px; }
@@ -596,16 +628,19 @@
     <section class="page-header">
         <h1>Paketler & Fiyatlandırma</h1>
         <p>İhtiyacınıza uygun paketi seçin, hemen başlayın.</p>
-        <div class="pricing-tabs">
-            <div class="pricing-tabs-slider" id="tabSlider"></div>
-            <button class="pricing-tab active-core" data-tab="core" onclick="switchTab('core')">
-                CORE
-                <span class="pricing-tab-subtitle">Sadece Yazılım</span>
-            </button>
-            <button class="pricing-tab" data-tab="pro" onclick="switchTab('pro')">
-                PRO ANALYSIS
-                <span class="pricing-tab-subtitle">Yazılım + Kılavuz</span>
-            </button>
+        <div class="pricing-tabs-wrapper">
+            <div class="pricing-tabs">
+                <div class="pricing-tabs-slider" id="tabSlider"></div>
+                <button class="pricing-tab active-core" data-tab="core" onclick="switchTab('core')">
+                    CORE
+                    <span class="pricing-tab-subtitle">Sadece Yazılım</span>
+                </button>
+                <button class="pricing-tab" data-tab="pro" onclick="switchTab('pro')">
+                    PRO ANALYSIS
+                    <span class="pricing-tab-subtitle">Yazılım + Kılavuz</span>
+                </button>
+            </div>
+            <div class="pricing-tabs-glow"></div>
         </div>
     </section>
 
