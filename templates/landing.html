@@ -969,11 +969,7 @@
         .footer-brand img { width: 18px; height: 18px; }
 
         .landing-alert-band {
-            position: fixed;
-            top: 80px;
-            left: 0;
-            right: 0;
-            z-index: 999;
+            position: static;
         }
         .landing-alert-band .ab-pill {
             cursor: default;
@@ -1016,7 +1012,7 @@
             .section { padding: 100px 48px; }
             .section-title { font-size: 38px; }
             .alarm-section h2 { font-size: 38px; }
-            .landing-alert-band { top: 80px; }
+
         }
 
         /* === 16:9 LAPTOP: 1280-1919px === */
@@ -1048,7 +1044,7 @@
             .duo-section { padding: 40px 48px; gap: 18px; }
             .cta-section { padding: 10px 24px 60px; }
             .cta-section h2 { font-size: 32px; }
-            .landing-alert-band { top: 80px; }
+
         }
 
         /* === TABLET: 769-1279px === */
@@ -1062,7 +1058,7 @@
             .mockup-window { width: min(500px, 48vw); }
             .features-hero { padding: 80px 20px 40px; }
             .features-hero h2 { font-size: 34px; }
-            .landing-alert-band { top: 80px; }
+
         }
 
         @media (max-width: 1024px) and (min-width: 769px) {
@@ -1184,7 +1180,6 @@
             .footer-content { flex-direction: column; text-align: center; gap: 10px; }
             .footer-links { flex-wrap: wrap; justify-content: center; gap: 14px; }
 
-            .landing-alert-band { top: 60px; }
 
             .navbar-inner { padding: 0 16px; }
         }

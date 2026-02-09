@@ -8586,19 +8586,9 @@ table.desktop-only {
         opacity: 0.8 !important;
     }
     
-    /* Mobile: Show "Son: 17:40" on right side - clean, no pill */
+    /* Mobile: Hide last update */
     .mobile-last-update {
-        display: inline-flex !important;
-        align-items: center !important;
-        font-size: 12px !important;
-        color: #6e7681 !important;
-        font-weight: 400 !important;
-        white-space: nowrap !important;
-    }
-    
-    .mobile-last-update #mobileLastUpdateTime {
-        color: #8b949e !important;
-        margin-left: 3px !important;
+        display: none !important;
     }
 
     /* ========== TAB BAR - Compact Pills ========== */
