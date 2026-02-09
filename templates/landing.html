@@ -978,7 +978,19 @@
         .landing-alert-band .ab-pill {
             cursor: default;
             pointer-events: none;
+            background: none;
+            border: none;
+            padding: 4px 6px;
+            gap: 6px;
         }
+        .landing-alert-band .ab-pill::before { display: none; }
+        .landing-alert-band .ab-pill .ab-val {
+            background: none;
+            border: none;
+            padding: 0;
+            margin-left: 2px;
+        }
+        .landing-alert-band .ab-dot { box-shadow: none; }
 
         /* === FULL EKRAN: 1920px ve üzeri === */
         @media (min-width: 1920px) {
