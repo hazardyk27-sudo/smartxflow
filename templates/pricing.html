@@ -195,6 +195,7 @@
             max-width: 420px;
             margin-left: auto;
             margin-right: auto;
+            position: relative;
         }
         .pricing-tab {
             flex: 1;
@@ -204,27 +205,24 @@
             font-weight: 700;
             letter-spacing: 0.04em;
             cursor: pointer;
-            transition: all 0.25s ease;
+            transition: color 0.22s ease;
             text-align: center;
             border: none;
             background: transparent;
             color: rgba(255,255,255,0.45);
             white-space: nowrap;
+            position: relative;
+            z-index: 2;
         }
         .pricing-tab:hover {
             color: rgba(255,255,255,0.7);
         }
-        .pricing-tab.active-core {
-            background: rgba(88,166,255,0.15);
-            color: #58a6ff;
-            box-shadow: 0 2px 12px rgba(88,166,255,0.18);
-            border: 1px solid rgba(88,166,255,0.3);
-        }
+        .pricing-tab.active-core,
         .pricing-tab.active-pro {
-            background: rgba(43,255,136,0.15);
-            color: #2BFF88;
-            box-shadow: 0 2px 12px rgba(43,255,136,0.18);
-            border: 1px solid rgba(43,255,136,0.3);
+            color: #02140f;
+            background: transparent;
+            border: none;
+            box-shadow: none;
         }
         .pricing-tab-subtitle {
             display: block;
@@ -233,6 +231,51 @@
             opacity: 0.7;
             margin-top: 2px;
             letter-spacing: 0.02em;
+        }
+        .pricing-tabs-slider {
+            position: absolute;
+            top: 4px;
+            bottom: 4px;
+            left: 4px;
+            width: calc(50% - 4px);
+            border-radius: 12px;
+            background: linear-gradient(135deg, #22ffb0, #00c27a);
+            box-shadow: 0 4px 20px rgba(0,255,170,0.25);
+            transition: transform 0.22s ease;
+            z-index: 1;
+        }
+        .pricing-tabs-slider.slide-right {
+            transform: translateX(100%);
+        }
+        @media (min-width: 1024px) {
+            .pricing-tabs {
+                max-width: 560px;
+                border-radius: 16px;
+                padding: 6px;
+                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.06));
+                border: 1px solid rgba(255,255,255,0.08);
+            }
+            .pricing-tab {
+                padding: 16px 36px;
+                font-size: 15px;
+                letter-spacing: 0.06em;
+                border-radius: 12px;
+            }
+            .pricing-tab:hover:not(.active-core):not(.active-pro) {
+                background: rgba(255,255,255,0.03);
+            }
+            .pricing-tab-subtitle {
+                font-size: 11px;
+                letter-spacing: 0.04em;
+                margin-top: 4px;
+            }
+            .pricing-tabs-slider {
+                top: 6px;
+                bottom: 6px;
+                left: 6px;
+                width: calc(50% - 6px);
+                border-radius: 12px;
+            }
         }
         .pricing-panel { display: none; }
         .pricing-panel.active { display: block; }
@@ -554,6 +597,7 @@
         <h1>Paketler & Fiyatlandırma</h1>
         <p>İhtiyacınıza uygun paketi seçin, hemen başlayın.</p>
         <div class="pricing-tabs">
+            <div class="pricing-tabs-slider" id="tabSlider"></div>
             <button class="pricing-tab active-core" data-tab="core" onclick="switchTab('core')">
                 CORE
                 <span class="pricing-tab-subtitle">Sadece Yazılım</span>
@@ -788,6 +832,14 @@
                 activeTab.classList.add('active-core');
             } else {
                 activeTab.classList.add('active-pro');
+            }
+            var slider = document.getElementById('tabSlider');
+            if (slider) {
+                if (tab === 'pro') {
+                    slider.classList.add('slide-right');
+                } else {
+                    slider.classList.remove('slide-right');
+                }
             }
             document.querySelectorAll('.pricing-panel').forEach(function(p) {
                 p.classList.remove('active');
