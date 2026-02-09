@@ -265,26 +265,72 @@
             line-height: 1.5;
         }
 
-        .cta-box {
-            text-align: center;
-            padding: 60px 40px;
-            border-radius: 20px;
-            background: rgba(43,255,136,0.03);
-            border: 1px solid rgba(43,255,136,0.10);
+        .cta-strip {
+            position: relative;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 40px;
+            padding: 40px 40px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.015);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0,255,170,0.12);
+            transition: box-shadow 0.3s ease;
+            overflow: hidden;
         }
-        .cta-box h2 {
-            font-size: 28px;
+        .cta-strip::before,
+        .cta-strip::after {
+            content: '';
+            position: absolute;
+            left: 10%;
+            right: 10%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0,255,170,0.15), transparent);
+        }
+        .cta-strip::before { top: 0; }
+        .cta-strip::after { bottom: 0; }
+        .cta-strip:hover {
+            box-shadow: 0 0 40px rgba(43,255,136,0.06);
+        }
+        .cta-strip-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            background: rgba(43,255,136,0.06);
+            border: 1px solid rgba(43,255,136,0.12);
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(43,255,136,0.7);
+            margin-bottom: 14px;
+            letter-spacing: 0.3px;
+        }
+        .cta-strip-badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #2BFF88;
+        }
+        .cta-strip-left h3 {
+            font-size: 22px;
             font-weight: 700;
             color: #e6edf3;
-            margin-bottom: 12px;
+            letter-spacing: -0.3px;
+            margin-bottom: 8px;
         }
-        .cta-box p {
-            font-size: 16px;
+        .cta-strip-left p {
+            font-size: 14px;
             color: #8b949e;
-            margin-bottom: 28px;
-            max-width: 460px;
-            margin-left: auto;
-            margin-right: auto;
+            line-height: 1.6;
+            max-width: 420px;
+        }
+        .cta-strip-right {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
         }
         .cta-btn {
             display: inline-flex;
@@ -300,11 +346,17 @@
             cursor: pointer;
             transition: all 0.2s;
             box-shadow: 0 8px 30px rgba(43,255,136,0.2);
+            white-space: nowrap;
         }
         .cta-btn:hover {
             background: #24e078;
             transform: translateY(-2px);
             box-shadow: 0 14px 40px rgba(43,255,136,0.25);
+        }
+        .cta-trust {
+            font-size: 11px;
+            color: rgba(255,255,255,0.30);
+            letter-spacing: 0.3px;
         }
 
         .footer {
@@ -341,8 +393,10 @@
             .why-left h2 { font-size: 26px; }
             .why-left { text-align: center; }
             .benefit-list { grid-template-columns: 1fr; gap: 10px; }
-            .cta-box { padding: 40px 20px; }
-            .cta-box h2 { font-size: 22px; }
+            .cta-strip { grid-template-columns: 1fr; gap: 24px; padding: 28px 20px; text-align: center; }
+            .cta-strip-left p { max-width: 100%; }
+            .cta-strip-badge { margin: 0 auto 14px; }
+            .cta-btn { width: 100%; justify-content: center; }
             .footer-content { flex-direction: column; text-align: center; gap: 10px; }
             .footer-links { flex-wrap: wrap; justify-content: center; gap: 14px; }
         }
@@ -478,9 +532,16 @@
             </div>
         </div>
 
-        <div class="cta-box">
-            <p>SmartXFlow, piyasayı daha net görmek ve veri temelli kararlar almak isteyen kullanıcılar için geliştirilmiş gerçek zamanlı analiz platformudur.</p>
-            <a href="/#features" class="cta-btn">Platformu Keşfet <span>→</span></a>
+        <div class="cta-strip">
+            <div class="cta-strip-left">
+                <div class="cta-strip-badge"><span class="dot"></span> Hızlı Başlangıç</div>
+                <h3>SmartXFlow ile piyasayı daha net gör.</h3>
+                <p>Gerçek zamanlı para akışı ve oran hareketlerini tek ekranda takip et. Önemli sinyalleri kaçırma.</p>
+            </div>
+            <div class="cta-strip-right">
+                <a href="/#features" class="cta-btn">Platformu Keşfet <span>→</span></a>
+                <span class="cta-trust">Web + Mobil uyumlu · Anında erişim</span>
+            </div>
         </div>
     </section>
 
