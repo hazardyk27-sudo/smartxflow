@@ -215,54 +215,61 @@
             line-height: 1.5;
         }
 
-        .benefit-list {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 80px;
+        .adv-flow {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            max-width: 600px;
+            margin: 0 auto 80px;
+            padding-left: 32px;
         }
-        .benefit-item {
+        .adv-flow::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 10px;
+            bottom: 10px;
+            width: 1px;
+            background: linear-gradient(180deg, transparent, rgba(0,255,170,0.18) 15%, rgba(0,255,170,0.18) 85%, transparent);
+        }
+        .adv-flow-item {
+            position: relative;
             display: flex;
             align-items: flex-start;
-            gap: 14px;
-            padding: 20px;
-            border-radius: 14px;
-            background: rgba(255,255,255,0.02);
-            border: 1px solid rgba(255,255,255,0.04);
-            transition: all 0.2s;
+            gap: 20px;
+            padding: 24px 0;
+            transition: all 0.25s ease;
         }
-        .benefit-item:hover {
-            border-color: rgba(43,255,136,0.10);
-            background: rgba(43,255,136,0.02);
+        .adv-flow-item:hover {
+            padding-left: 6px;
         }
-        .benefit-check {
-            width: 28px;
-            height: 28px;
-            border-radius: 8px;
-            background: rgba(43,255,136,0.10);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .adv-flow-item:hover .adv-flow-dot {
+            box-shadow: 0 0 16px rgba(43,255,136,0.35);
+            transform: scale(1.15);
+        }
+        .adv-flow-dot {
+            position: absolute;
+            left: -25px;
+            top: 28px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #2BFF88;
+            box-shadow: 0 0 10px rgba(43,255,136,0.2);
             flex-shrink: 0;
-            margin-top: 2px;
+            transition: all 0.25s ease;
         }
-        .benefit-check svg {
-            width: 16px;
-            height: 16px;
-            stroke: #2BFF88;
-            fill: none;
-            stroke-width: 2.5;
-        }
-        .benefit-text h4 {
-            font-size: 15px;
-            font-weight: 600;
+        .adv-flow-text h4 {
+            font-size: 16px;
+            font-weight: 700;
             color: #e6edf3;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
-        .benefit-text p {
-            font-size: 13px;
+        .adv-flow-text p {
+            font-size: 14px;
             color: #8b949e;
-            line-height: 1.5;
+            line-height: 1.6;
         }
 
         .cta-strip {
@@ -392,7 +399,10 @@
             .why-section { grid-template-columns: 1fr; gap: 30px; }
             .why-left h2 { font-size: 26px; }
             .why-left { text-align: center; }
-            .benefit-list { grid-template-columns: 1fr; gap: 10px; }
+            .adv-flow { padding-left: 28px; margin-bottom: 50px; }
+            .adv-flow-dot { left: -21px; }
+            .adv-flow-text h4 { font-size: 15px; }
+            .adv-flow-text p { font-size: 13px; }
             .cta-strip { grid-template-columns: 1fr; gap: 24px; padding: 28px 20px; text-align: center; }
             .cta-strip-left p { max-width: 100%; }
             .cta-strip-badge { margin: 0 auto 14px; }
@@ -489,45 +499,40 @@
         <div class="section-heading">
             <h2>SmartXFlow Size Nasıl Avantaj Sağlar?</h2>
         </div>
-        <div class="benefit-list">
-            <div class="benefit-item">
-                <div class="benefit-check">
-                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                </div>
-                <div class="benefit-text">
-                    <p>Piyasa hareketlerini erken fark etmenizi sağlar</p>
-                </div>
-            </div>
-            <div class="benefit-item">
-                <div class="benefit-check">
-                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                </div>
-                <div class="benefit-text">
-                    <p>Oran değişimlerini ve para akışını anlık takip etmenize yardımcı olur</p>
+        <div class="adv-flow">
+            <div class="adv-flow-item">
+                <span class="adv-flow-dot"></span>
+                <div class="adv-flow-text">
+                    <h4>Piyasa hareketlerini erken fark edin</h4>
+                    <p>Önemli para girişleri ve oran değişimleri anlık olarak tespit edilir.</p>
                 </div>
             </div>
-            <div class="benefit-item">
-                <div class="benefit-check">
-                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                </div>
-                <div class="benefit-text">
-                    <p>Olağan dışı piyasa sinyallerini otomatik olarak gösterir</p>
-                </div>
-            </div>
-            <div class="benefit-item">
-                <div class="benefit-check">
-                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                </div>
-                <div class="benefit-text">
-                    <p>Veri karmaşasını sade ve anlaşılır analizlere dönüştürür</p>
+            <div class="adv-flow-item">
+                <span class="adv-flow-dot"></span>
+                <div class="adv-flow-text">
+                    <h4>Gerçek zamanlı veri ile karar alın</h4>
+                    <p>Piyasa hareketlerini gecikmesiz takip ederek daha bilinçli analiz yapın.</p>
                 </div>
             </div>
-            <div class="benefit-item">
-                <div class="benefit-check">
-                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            <div class="adv-flow-item">
+                <span class="adv-flow-dot"></span>
+                <div class="adv-flow-text">
+                    <h4>Akıllı sinyallerle kritik anları yakalayın</h4>
+                    <p>Sistem, dikkat edilmesi gereken piyasa hareketlerini otomatik olarak işaretler.</p>
                 </div>
-                <div class="benefit-text">
-                    <p>Daha hızlı ve bilinçli kararlar almanıza destek olur</p>
+            </div>
+            <div class="adv-flow-item">
+                <span class="adv-flow-dot"></span>
+                <div class="adv-flow-text">
+                    <h4>Veri karmaşasını sade analizlere dönüştürün</h4>
+                    <p>Karmaşık market verileri tek panelde anlaşılır hale getirilir.</p>
+                </div>
+            </div>
+            <div class="adv-flow-item">
+                <span class="adv-flow-dot"></span>
+                <div class="adv-flow-text">
+                    <h4>Daha hızlı ve net karar süreci</h4>
+                    <p>Tüm piyasa görünümünü tek ekranda görerek analiz sürenizi hızlandırın.</p>
                 </div>
             </div>
         </div>
