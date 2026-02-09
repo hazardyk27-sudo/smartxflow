@@ -520,6 +520,11 @@ def landing_page():
     """Landing page - SmartXFlow tanıtımı"""
     return render_template('landing.html')
 
+@app.route('/nedir')
+def nedir_page():
+    """Nedir page - SmartXFlow nedir"""
+    return render_template('nedir.html')
+
 @app.route('/pricing')
 def pricing_page():
     """Pricing page - Paket ve fiyatlar"""
