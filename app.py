@@ -535,6 +535,64 @@ def analysis_page():
     """Analysis page - Analiz paylaşımları"""
     return render_template('analysis.html')
 
+@app.route('/terms')
+def terms_page():
+    content = """
+    <p>SmartXFlow platformunu kullanan tüm kullanıcılar aşağıdaki şartları kabul etmiş sayılır.</p>
+    <p>SmartXFlow, piyasa verilerini analiz eden ve kullanıcıya veri odaklı sinyaller sunan bir analiz platformudur. Platformda sunulan veriler, analizler ve içerikler yatırım veya bahis tavsiyesi niteliği taşımaz.</p>
+    <p>Kullanıcılar:</p>
+    <ul>
+        <li>Platformu yasal amaçlarla kullanmayı</li>
+        <li>Hesap bilgilerini korumayı</li>
+        <li>Platform verilerini izinsiz kopyalamamayı kabul eder</li>
+    </ul>
+    <p>SmartXFlow, hizmette yapılacak güncellemeler, değişiklikler ve teknik kesintiler nedeniyle oluşabilecek durumlardan sorumlu tutulamaz.</p>
+    """
+    return render_template('legal.html', title='Kullanım Şartları', content=content)
+
+@app.route('/privacy')
+def privacy_page():
+    content = """
+    <p>SmartXFlow kullanıcı gizliliğine önem verir.</p>
+    <p>Platform aşağıdaki verileri toplayabilir:</p>
+    <ul>
+        <li>E-posta adresi</li>
+        <li>Lisans anahtarı</li>
+        <li>Kullanım istatistikleri</li>
+    </ul>
+    <p>Bu veriler yalnızca:</p>
+    <ul>
+        <li>Hesap doğrulama</li>
+        <li>Lisans kontrolü</li>
+        <li>Sistem güvenliği</li>
+        <li>Hizmet geliştirme</li>
+    </ul>
+    <p>amaçlarıyla kullanılır ve üçüncü kişilerle paylaşılmaz.</p>
+    """
+    return render_template('legal.html', title='Gizlilik Politikası', content=content)
+
+@app.route('/cookies')
+def cookies_page():
+    content = """
+    <p>SmartXFlow, kullanıcı deneyimini iyileştirmek ve sistem performansını analiz etmek amacıyla çerezler kullanabilir.</p>
+    <p>Çerezler:</p>
+    <ul>
+        <li>Oturum yönetimi</li>
+        <li>Güvenlik</li>
+        <li>Analitik ölçüm</li>
+    </ul>
+    <p>amaçlarıyla kullanılmaktadır. Kullanıcılar tarayıcı ayarlarından çerezleri devre dışı bırakabilir.</p>
+    """
+    return render_template('legal.html', title='Çerez Politikası', content=content)
+
+@app.route('/disclaimer')
+def disclaimer_page():
+    content = """
+    <p>SmartXFlow, piyasa verilerini analiz eden bir veri platformudur. Platformda yer alan analizler, sinyaller ve içerikler yatırım veya bahis tavsiyesi niteliği taşımaz.</p>
+    <p>Kullanıcılar platform verilerini kendi sorumlulukları dahilinde değerlendirir. SmartXFlow, kullanıcıların aldığı finansal veya piyasa kararlarından sorumlu değildir.</p>
+    """
+    return render_template('legal.html', title='Sorumluluk Reddi', content=content)
+
 @app.route('/status')
 def status_page():
     """Status page - Scraper durumu"""
