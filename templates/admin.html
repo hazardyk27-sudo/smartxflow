@@ -547,10 +547,171 @@
         .detail-value.highlight {
             color: #3fb950;
         }
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            z-index: 1002;
+            background: #161b22;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            font-size: 20px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+        }
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 999;
+        }
+        .sidebar-overlay.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: flex;
+            }
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                z-index: 1001;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 16px;
+                padding-top: 60px;
+            }
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            .header-actions {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+            .header-actions .btn {
+                flex: 1;
+                min-width: 0;
+                text-align: center;
+                font-size: 12px;
+                padding: 8px 10px;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+            .stat-card {
+                padding: 12px;
+            }
+            .stat-value {
+                font-size: 22px;
+            }
+            .stat-label {
+                font-size: 11px;
+            }
+            .config-grid {
+                grid-template-columns: 1fr;
+            }
+            .info-card {
+                padding: 16px;
+            }
+            .info-row {
+                flex-direction: column;
+                gap: 4px;
+                padding: 8px 0;
+            }
+            .market-table {
+                display: block;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            .market-table th,
+            .market-table td {
+                padding: 8px 10px;
+                font-size: 12px;
+                white-space: nowrap;
+            }
+            .alarm-item {
+                padding: 10px 12px;
+            }
+            .alarm-match {
+                font-size: 13px;
+            }
+            .alarm-meta {
+                font-size: 11px;
+            }
+            .alarm-score {
+                font-size: 14px;
+                padding: 3px 8px;
+            }
+            .modal-content {
+                width: 95%;
+                max-height: 90vh;
+                border-radius: 10px;
+            }
+            .modal-body {
+                max-height: calc(90vh - 60px);
+                padding: 16px;
+            }
+            .modal-header {
+                padding: 12px 16px;
+            }
+            #editLicenseModal > div {
+                width: 95% !important;
+                max-width: 95% !important;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+            .date-filter-group {
+                flex-wrap: wrap;
+            }
+            .page-title {
+                font-size: 18px;
+            }
+            .page-subtitle {
+                font-size: 12px;
+            }
+            .toast {
+                left: 16px;
+                right: 16px;
+                bottom: 16px;
+            }
+            .detail-row {
+                flex-direction: column;
+                gap: 2px;
+            }
+            .vs-detail-row,
+            .detail-row-inline {
+                font-size: 11px;
+            }
+            .alarm-list {
+                max-height: 300px;
+            }
+            .sidebar-header h1 {
+                font-size: 22px;
+            }
+        }
     </style>
 </head>
 <body>
-    <aside class="sidebar">
+    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu()">☰</button>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeMobileMenu()"></div>
+    <aside class="sidebar" id="adminSidebar">
         <div class="sidebar-header">
             <h1>SmartXFlow</h1>
             <span>Admin Panel</span>
@@ -3388,7 +3549,26 @@
             }
         }
 
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('adminSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const btn = document.getElementById('mobileMenuBtn');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+            btn.textContent = sidebar.classList.contains('open') ? '✕' : '☰';
+        }
+
+        function closeMobileMenu() {
+            const sidebar = document.getElementById('adminSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const btn = document.getElementById('mobileMenuBtn');
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+            btn.textContent = '☰';
+        }
+
         function showPage(pageId) {
+            closeMobileMenu();
             document.querySelectorAll('.page-content').forEach(page => {
                 page.classList.remove('active');
             });
