@@ -257,13 +257,16 @@ else:
 
 @app.after_request
 def add_header(response):
-    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    response.headers['Surrogate-Control'] = 'no-store'
+    if request.path.startswith('/static/'):
+        response.headers['Cache-Control'] = 'public, max-age=3600'
+        response.headers.pop('Pragma', None)
+        response.headers.pop('Expires', None)
+    else:
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        response.headers['Surrogate-Control'] = 'no-store'
     response.headers['Vary'] = 'Accept-Encoding'
-    import time
-    response.headers['X-Version'] = str(int(time.time()))
     return response
 
 scrape_status = {
