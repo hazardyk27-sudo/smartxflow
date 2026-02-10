@@ -13,6 +13,7 @@ let chartTimeRange = '10min';
 let currentChartHistoryData = [];
 let chartViewMode = 'percent';
 let isClientMode = true;
+let _modalRequestId = 0;
 
 // Mobile chart controls
 let mobileSelectedLine = '1'; // Default: show only "1" line on mobile
@@ -588,8 +589,10 @@ function setupSearch() {
     }
 }
 
+const _matchesMarketCache = {};
+const _MATCHES_CACHE_TTL = 45000;
+
 async function loadMatches(appendMode = false) {
-    // Prevent duplicate requests - if already loading, wait for that one
     if (_loadMatchesLock) {
         if (_loadMatchesPending) {
             return _loadMatchesPending;
@@ -599,8 +602,24 @@ async function loadMatches(appendMode = false) {
     
     _loadMatchesLock = true;
     
-    // Capture market at request start to detect race conditions
     const requestMarket = currentMarket;
+    const cacheKey = `${requestMarket}|${dateFilterMode}`;
+    const cached = _matchesMarketCache[cacheKey];
+    if (!appendMode && cached && (Date.now() - cached.ts) < _MATCHES_CACHE_TTL) {
+        matches = cached.matches;
+        totalMatchCount = cached.total;
+        hasMoreMatches = false;
+        currentOffset = matches.length;
+        filteredMatches = applySorting(matches);
+        updateTableHeaders();
+        renderMatches(filteredMatches);
+        if (requestMarket.startsWith('dropping')) {
+            attachTrendTooltipListeners();
+        }
+        _loadMatchesLock = false;
+        console.log('[Matches] Cache HIT:', cacheKey);
+        return;
+    }
     
     const tbody = document.getElementById('matchesTableBody');
     const colspan = currentMarket.includes('1x2') ? 7 : 6;
@@ -617,7 +636,6 @@ async function loadMatches(appendMode = false) {
             </tr>
         `;
         
-        // Mobile: Show loading state
         const cardList = document.getElementById('matchCardList');
         if (cardList) {
             cardList.innerHTML = `
@@ -686,6 +704,8 @@ async function loadMatches(appendMode = false) {
                 totalMatchCount = matches.length;
                 hasMoreMatches = false;
             }
+            
+            _matchesMarketCache[cacheKey] = { matches: matches, total: totalMatchCount, ts: Date.now() };
             
             filteredMatches = applySorting(matches);
             renderMatches(filteredMatches);
@@ -2168,15 +2188,18 @@ let modalOddsData = null;
 // Tarih filtresinden bağımsız - doğrudan matches dizisinden modal aç
 async function openMatchModalFromMatches(index) {
     if (index >= 0 && index < matches.length) {
+        const reqId = ++_modalRequestId;
+        resetModalState();
+
         if (window.loadChartLibs) {
             await window.loadChartLibs();
             registerChartPlugins();
         }
+        if (reqId !== _modalRequestId) return;
+
         selectedMatch = matches[index];
         selectedChartMarket = currentMarket;
-        previousOddsData = null;
-        modalOddsData = selectedMatch.odds || selectedMatch.details || null;
-        
+
         document.getElementById('modalMatchTitle').textContent = 
             `${selectedMatch.home_team} vs ${selectedMatch.away_team}`;
         
@@ -2188,8 +2211,6 @@ async function openMatchModalFromMatches(index) {
         document.getElementById('modalLeague').textContent = 
             `${selectedMatch.league || ''} • ${headerDateText}`;
         
-        updateMatchInfoCard();
-        
         document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
             t.classList.remove('active');
             if (t.dataset.market === currentMarket) {
@@ -2197,32 +2218,33 @@ async function openMatchModalFromMatches(index) {
             }
         });
         
-        showSmartMoneyLoading();
-        showChartLoading();
-        
         document.getElementById('modalOverlay').classList.add('active');
         
         const home = selectedMatch.home_team;
         const away = selectedMatch.away_team;
         const league = selectedMatch.league || '';
         
-        bulkHistoryCache = {};
-        bulkHistoryCacheKey = '';
-        
-        await loadChartWithTrends(home, away, selectedChartMarket, league);
-        await renderMatchAlarmsSection(home, away);
+        await loadChartWithTrends(home, away, selectedChartMarket, league, reqId);
+        if (reqId !== _modalRequestId) return;
+        await renderMatchAlarmsSection(home, away, reqId);
     }
 }
 
 // API'den maç verisi çekip modal aç (listede olmayan maçlar için)
 async function openMatchModalFromAPI(homeTeam, awayTeam) {
+    const reqId = ++_modalRequestId;
+    resetModalState();
+
     if (window.loadChartLibs) {
         await window.loadChartLibs();
         registerChartPlugins();
     }
+    if (reqId !== _modalRequestId) return;
+
     try {
         const params = new URLSearchParams({ home: homeTeam, away: awayTeam });
         const response = await fetch(`/api/match/details?${params}`);
+        if (reqId !== _modalRequestId) return;
         
         if (!response.ok) {
             showToast('Maç bilgisi alınamadı', 'error');
@@ -2230,6 +2252,7 @@ async function openMatchModalFromAPI(homeTeam, awayTeam) {
         }
         
         const data = await response.json();
+        if (reqId !== _modalRequestId) return;
         
         if (!data || !data.success || !data.match) {
             showToast('Maç bulunamadı', 'error');
@@ -2238,7 +2261,6 @@ async function openMatchModalFromAPI(homeTeam, awayTeam) {
         
         const matchData = data.match;
         
-        // selectedMatch objesini oluştur
         selectedMatch = {
             home_team: matchData.home_team || homeTeam,
             away_team: matchData.away_team || awayTeam,
@@ -2252,8 +2274,6 @@ async function openMatchModalFromAPI(homeTeam, awayTeam) {
         };
         
         selectedChartMarket = currentMarket;
-        previousOddsData = null;
-        modalOddsData = selectedMatch.odds || selectedMatch.details || null;
         
         document.getElementById('modalMatchTitle').textContent = 
             `${selectedMatch.home_team} vs ${selectedMatch.away_team}`;
@@ -2266,8 +2286,6 @@ async function openMatchModalFromAPI(homeTeam, awayTeam) {
         document.getElementById('modalLeague').textContent = 
             `${selectedMatch.league || ''} • ${headerDateText}`;
         
-        updateMatchInfoCard();
-        
         document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
             t.classList.remove('active');
             if (t.dataset.market === currentMarket) {
@@ -2275,16 +2293,11 @@ async function openMatchModalFromAPI(homeTeam, awayTeam) {
             }
         });
         
-        showSmartMoneyLoading();
-        showChartLoading();
-        
         document.getElementById('modalOverlay').classList.add('active');
         
-        bulkHistoryCache = {};
-        bulkHistoryCacheKey = '';
-        
-        await loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league);
-        await renderMatchAlarmsSection(selectedMatch.home_team, selectedMatch.away_team);
+        await loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league, reqId);
+        if (reqId !== _modalRequestId) return;
+        await renderMatchAlarmsSection(selectedMatch.home_team, selectedMatch.away_team, reqId);
         
     } catch (error) {
         console.error('[openMatchModalFromAPI] Error:', error);
@@ -2295,14 +2308,17 @@ async function openMatchModalFromAPI(homeTeam, awayTeam) {
 async function openMatchModal(index) {
     const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
     if (index >= 0 && index < dataSource.length) {
+        const reqId = ++_modalRequestId;
+        resetModalState();
+
         if (window.loadChartLibs) {
             await window.loadChartLibs();
             registerChartPlugins();
         }
+        if (reqId !== _modalRequestId) return;
+
         selectedMatch = dataSource[index];
         selectedChartMarket = currentMarket;
-        previousOddsData = null;
-        modalOddsData = selectedMatch.odds || selectedMatch.details || null;
         
         document.getElementById('modalMatchTitle').textContent = 
             `${selectedMatch.home_team} vs ${selectedMatch.away_team}`;
@@ -2315,8 +2331,6 @@ async function openMatchModal(index) {
         document.getElementById('modalLeague').textContent = 
             `${selectedMatch.league || ''} • ${headerDateText}`;
         
-        updateMatchInfoCard();
-        
         document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
             t.classList.remove('active');
             if (t.dataset.market === currentMarket) {
@@ -2324,28 +2338,52 @@ async function openMatchModal(index) {
             }
         });
         
-        showSmartMoneyLoading();
-        showChartLoading();
-        
         document.getElementById('modalOverlay').classList.add('active');
         
         const home = selectedMatch.home_team;
         const away = selectedMatch.away_team;
         const league = selectedMatch.league || '';
         
-        bulkHistoryCache = {};
-        bulkHistoryCacheKey = '';
-        
         const alarmsPromise = fetchAlarmsBatch();
         const marketsPromise = loadAllMarketsAtOnce(home, away, league);
         
         await Promise.all([marketsPromise, alarmsPromise]);
+        if (reqId !== _modalRequestId) return;
         
         await Promise.all([
-            loadChartWithTrends(home, away, selectedChartMarket, league),
-            renderMatchAlarmsSection(home, away)
+            loadChartWithTrends(home, away, selectedChartMarket, league, reqId),
+            renderMatchAlarmsSection(home, away, reqId)
         ]);
     }
+}
+
+function resetModalState() {
+    if (chart) {
+        chart.destroy();
+        chart = null;
+    }
+    currentChartHistoryData = [];
+    modalOddsData = null;
+    previousOddsData = null;
+    bulkHistoryCache = {};
+    bulkHistoryCacheKey = '';
+
+    const card = document.getElementById('matchInfoCard');
+    if (card) card.innerHTML = '';
+
+    const grid = document.getElementById('smartMoneyGrid');
+    if (grid) { grid.innerHTML = ''; grid.style.display = 'none'; }
+    const empty = document.getElementById('smartMoneyEmpty');
+    if (empty) empty.style.display = 'none';
+
+    const canvas = document.getElementById('oddsChart');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    showSmartMoneyLoading();
+    showChartLoading();
 }
 
 function showSmartMoneyLoading() {
@@ -2436,17 +2474,15 @@ async function loadAllMarketsAtOnce(home, away, league = '') {
     }
 }
 
-async function loadChartWithTrends(home, away, market, league = '') {
+async function loadChartWithTrends(home, away, market, league = '', reqId) {
     try {
         let data = { history: [] };
         
-        // 1. Check modal cache first (30s TTL)
         const cachedData = getModalCachedData(home, away, market);
         if (cachedData) {
             data = cachedData;
             console.log('[Modal] Using modal cache for', market, 'count:', data.history?.length);
         }
-        // 2. Check bulk history cache
         else {
             const cacheKey = `${home}|${away}|${league}`;
             if (bulkHistoryCacheKey === cacheKey && bulkHistoryCache[market]) {
@@ -2454,11 +2490,11 @@ async function loadChartWithTrends(home, away, market, league = '') {
                 console.log('[Modal] Using bulk cache for', market, 'count:', data.history?.length);
                 setModalCachedData(home, away, market, data);
             } else {
-                // 3. Fetch from API
                 try {
                     const response = await fetch(
                         `/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}&league=${encodeURIComponent(league || '')}`
                     );
+                    if (reqId && reqId !== _modalRequestId) return;
                     data = await response.json();
                     console.log('[Modal] Loaded history for', home, 'vs', away, 'league:', league, 'market:', market, 'count:', data.history?.length);
                     setModalCachedData(home, away, market, data);
@@ -2468,9 +2504,10 @@ async function loadChartWithTrends(home, away, market, league = '') {
             }
         }
         
+        if (reqId && reqId !== _modalRequestId) return;
+        
         if (data.history && data.history.length >= 1) {
             modalOddsData = data.history[data.history.length - 1];
-            console.log('[Modal] Latest odds data:', modalOddsData);
         } else {
             modalOddsData = null;
         }
@@ -2487,6 +2524,7 @@ async function loadChartWithTrends(home, away, market, league = '') {
         hideChartLoading();
     } catch (e) {
         console.error('Error loading chart with trends:', e);
+        if (reqId && reqId !== _modalRequestId) return;
         loadChart(home, away, market, league);
         hideChartLoading();
     }
@@ -2494,6 +2532,7 @@ async function loadChartWithTrends(home, away, market, league = '') {
 
 function updateMatchInfoCard() {
     const card = document.getElementById('matchInfoCard');
+    if (!selectedMatch) { if (card) card.innerHTML = ''; return; }
     const baseData = selectedMatch.odds || selectedMatch.details || {};
     const d = modalOddsData || baseData;
     const p = previousOddsData || {};
@@ -3321,6 +3360,7 @@ document.addEventListener('click', function(e) {
 });
 
 function closeModal() {
+    ++_modalRequestId;
     document.getElementById('modalOverlay').classList.remove('active');
     switchMobileTab('chart');
     
@@ -3337,10 +3377,15 @@ function closeModal() {
     }
     
     if (chart) {
-        chart.options.plugins.tooltip.enabled = false;
-        chart.update('none');
-        chart.options.plugins.tooltip.enabled = true;
+        chart.destroy();
+        chart = null;
     }
+    selectedMatch = null;
+    modalOddsData = null;
+    previousOddsData = null;
+    bulkHistoryCache = {};
+    bulkHistoryCacheKey = '';
+    currentChartHistoryData = [];
 }
 
 function getBucketConfig() {
@@ -7644,7 +7689,7 @@ function formatSmartMoneyTime(dateStr) {
     return dt.format('DD MMM • HH:mm');
 }
 
-async function renderMatchAlarmsSection(homeTeam, awayTeam) {
+async function renderMatchAlarmsSection(homeTeam, awayTeam, reqId) {
     const section = document.getElementById('smartMoneySection');
     const grid = document.getElementById('smartMoneyGrid');
     const empty = document.getElementById('smartMoneyEmpty');
@@ -7656,6 +7701,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam) {
     }
     
     await loadAllAlarmsOnce(true);
+    if (reqId && reqId !== _modalRequestId) return;
     const matchAlarms = getMatchAlarms(homeTeam, awayTeam);
     
     hideSmartMoneyLoading();
