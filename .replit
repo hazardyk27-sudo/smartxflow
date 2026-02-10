@@ -23,6 +23,10 @@ args = "SmartXFlow Web"
 task = "workflow.run"
 args = "Alarm Engine"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Scraper Engine"
+
 [[workflows.workflow]]
 name = "SmartXFlow Web"
 author = "agent"
@@ -42,6 +46,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python alarm_engine.py"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "Scraper Engine"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python scheduled_scraper.py"
 
 [workflows.workflow.metadata]
 outputType = "console"

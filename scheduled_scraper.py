@@ -15,7 +15,15 @@ import traceback
 
 # standalone_scraper modülünü import et
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'scraper_standalone'))
+import standalone_scraper as ss_module
 from standalone_scraper import SupabaseWriter, run_scrape
+
+arbworld_cookie = os.environ.get('ARBWORLD_COOKIE', '')
+if arbworld_cookie:
+    ss_module.HEADERS['Cookie'] = arbworld_cookie
+    print(f"[Cookie] ARBWORLD_COOKIE enjekte edildi ({len(arbworld_cookie)} karakter)")
+else:
+    print("[Cookie] ARBWORLD_COOKIE bulunamadi - cookie'siz devam ediliyor")
 
 MAX_RETRIES = 3
 RETRY_DELAYS = [5, 10, 20]
