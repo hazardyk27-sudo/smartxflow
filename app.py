@@ -4797,7 +4797,33 @@ def get_match_snapshot(match_id):
             match_found = True
             match_metadata = rpc_metadata
     
-    if not match_found and ('metadata' in sections_to_include or 'alarms' in sections_to_include):
+    if not match_found:
+        try:
+            import httpx as _httpx
+            _client = get_supabase_client()
+            if _client and _client.is_available:
+                _fix_url = f"{_client._rest_url('fixtures')}?match_id_hash=eq.{match_id}&select=*&limit=1"
+                _fix_resp = _httpx.get(_fix_url, headers=_client._headers(), timeout=10)
+                if _fix_resp.status_code == 200:
+                    _fix_data = _fix_resp.json()
+                    if _fix_data:
+                        _f = _fix_data[0]
+                        match_found = True
+                        match_metadata = {
+                            'match_id': match_id,
+                            'internal_id': _f.get('internal_id'),
+                            'home': _f.get('home_team', ''),
+                            'away': _f.get('away_team', ''),
+                            'league': _f.get('league', ''),
+                            'kickoff_utc': _f.get('kickoff_utc', ''),
+                            'fixture_date': _f.get('fixture_date', ''),
+                            'source': 'fixture_table'
+                        }
+                        print(f"[MatchSnapshot] Fixture found: {match_metadata['home']} vs {match_metadata['away']}")
+        except Exception as e:
+            print(f"[MatchSnapshot] Fixture lookup error: {e}")
+    
+    if not match_found:
         for market_key in ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts', 
                           'dropping_1x2', 'dropping_ou25', 'dropping_btts']:
             if market_key in matches_cache.get('data', {}):
@@ -4908,16 +4934,65 @@ def get_match_snapshot(match_id):
             }
     
     if 'moneyway' in sections_to_include:
-        if rpc_data and isinstance(rpc_data, dict):
+        if rpc_data and isinstance(rpc_data, dict) and rpc_data.get('moneyway'):
             result['moneyway'] = rpc_data.get('moneyway', [])
         else:
-            result['moneyway'] = []
+            try:
+                import httpx as _httpx
+                client = get_supabase_client()
+                if client and client.is_available:
+                    url = f"{client._rest_url('moneyway_snapshots')}?match_id_hash=eq.{match_id}&select=market,selection,odds,volume,share,scraped_at_utc&order=scraped_at_utc.asc"
+                    resp = _httpx.get(url, headers=client._headers(), timeout=15)
+                    if resp.status_code == 200:
+                        result['moneyway'] = resp.json()
+                        print(f"[MatchSnapshot] Moneyway direct: {len(result['moneyway'])} rows for {match_id}")
+                    else:
+                        print(f"[MatchSnapshot] Moneyway direct error: HTTP {resp.status_code}")
+                        result['moneyway'] = []
+                else:
+                    result['moneyway'] = []
+            except Exception as e:
+                print(f"[MatchSnapshot] Moneyway direct error: {e}")
+                result['moneyway'] = []
     
     if 'dropping_odds' in sections_to_include:
-        if rpc_data and isinstance(rpc_data, dict):
+        if rpc_data and isinstance(rpc_data, dict) and rpc_data.get('dropping_odds'):
             result['dropping_odds'] = rpc_data.get('dropping_odds', [])
         else:
-            result['dropping_odds'] = []
+            try:
+                import httpx as _httpx
+                from urllib.parse import quote
+                client = get_supabase_client()
+                dropping_data = []
+                if client and client.is_available and match_metadata and match_metadata.get('home'):
+                    home = match_metadata.get('home', '')
+                    away = match_metadata.get('away', '')
+                    
+                    drop_tables = {
+                        'dropping_1x2_hist': '1X2',
+                        'dropping_ou25_hist': 'OU25',
+                        'dropping_btts_hist': 'BTTS',
+                    }
+                    
+                    for table_name, market in drop_tables.items():
+                        try:
+                            url = f"{client._rest_url(table_name)}?Home=eq.{quote(home)}&Away=eq.{quote(away)}&select=*&order=ScrapedAt.asc"
+                            dr_resp = _httpx.get(url, headers=client._headers(), timeout=15)
+                            if dr_resp.status_code == 200:
+                                rows = dr_resp.json()
+                                for row in rows:
+                                    row['market'] = market
+                                    row['scraped_at_utc'] = row.get('ScrapedAt', '')
+                                dropping_data.extend(rows)
+                        except Exception as te:
+                            print(f"[MatchSnapshot] Dropping {table_name} error: {te}")
+                    
+                    print(f"[MatchSnapshot] Dropping direct: {len(dropping_data)} rows for {match_id}")
+                
+                result['dropping_odds'] = dropping_data
+            except Exception as e:
+                print(f"[MatchSnapshot] Dropping direct error: {e}")
+                result['dropping_odds'] = []
     
     result['updated_at_utc'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
     
