@@ -876,7 +876,8 @@ def warm_matches_cache():
 def startup_warmup():
     """Pre-fill critical caches on server startup so first visitor gets fast response"""
     import time as _t
-    _t.sleep(2)
+    _t.sleep(0.5)
+    start = _t.time()
     print("[Startup Warmup] Starting cache pre-fill...")
     
     try:
@@ -884,13 +885,16 @@ def startup_warmup():
             with app.test_client() as client:
                 resp = client.get('/api/alarms/all?refresh=true')
                 if resp.status_code == 200:
-                    print("[Startup Warmup] Alarms cache filled")
-                else:
-                    print(f"[Startup Warmup] Alarms response: {resp.status_code}")
+                    print(f"[Startup Warmup] Alarms cache filled ({_t.time()-start:.1f}s)")
+                
+                t2 = _t.time()
+                resp2 = client.get('/api/matches?market=moneyway_1x2&bulk=1')
+                if resp2.status_code == 200:
+                    print(f"[Startup Warmup] Matches (moneyway_1x2) cache filled ({_t.time()-t2:.1f}s)")
     except Exception as e:
-        print(f"[Startup Warmup] Alarms error: {e}")
+        print(f"[Startup Warmup] Error: {e}")
     
-    print("[Startup Warmup] Complete!")
+    print(f"[Startup Warmup] Complete in {_t.time()-start:.1f}s")
 
 _warmup_thread = threading.Thread(target=startup_warmup, daemon=True)
 _warmup_thread.start()
