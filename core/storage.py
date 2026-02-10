@@ -152,27 +152,42 @@ class SupabaseStorage(StorageBackend):
         headers = list(data[0].keys())
         rows = [tuple(r.get(h, None) for h in headers) for r in data]
         return TableResult(headers=headers, rows=rows)
+    def _to_lower_keys(self, records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        return [{k.lower(): v for k, v in r.items()} for r in records]
     def replace_table(self, table_name: str, headers: List[str], records: List[Dict[str, Any]]) -> None:
         if not records:
             return
         filtered = [{h: r.get(h, None) for h in headers} for r in records]
-        on_conflict = None
-        if 'ID' in headers:
-            on_conflict = 'ID'
-        elif 'Date' in headers and 'Home' in headers and 'Away' in headers:
-            on_conflict = 'Home,Away,Date'
-        elif 'Home' in headers and 'Away' in headers:
-            on_conflict = 'Home,Away'
-        if on_conflict:
-            self.client.table(table_name).upsert(filtered, on_conflict=on_conflict).execute()
-        else:
-            self.client.table(table_name).upsert(filtered).execute()
+        is_hist = '_hist' in table_name
+        if not is_hist:
+            filtered = self._to_lower_keys(filtered)
+        try:
+            self.client.table(table_name).delete().neq('id', 0).execute()
+        except Exception:
+            pass
+        BATCH = 500
+        for i in range(0, len(filtered), BATCH):
+            batch = filtered[i:i+BATCH]
+            self.client.table(table_name).insert(batch).execute()
+    def _get_table_columns(self, table_name: str) -> List[str]:
+        try:
+            res = self.client.table(table_name).select('*').limit(1).execute()
+            if res.data:
+                return list(res.data[0].keys())
+        except Exception:
+            pass
+        return []
     def append_history(self, hist_table: str, headers: List[str], records: List[Dict[str, Any]], scraped_at: str) -> None:
         if not records:
             return
+        table_cols = self._get_table_columns(hist_table)
         rows = []
         for r in records:
-            d = {h: r.get(h, "") for h in headers}
+            d = {}
+            for h in headers:
+                if table_cols and h not in table_cols:
+                    continue
+                d[h] = r.get(h, "")
             d['ScrapedAt'] = scraped_at
             rows.append(d)
         self.client.table(hist_table).upsert(rows, on_conflict='Home,Away,ScrapedAt').execute()
