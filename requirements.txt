@@ -1,11 +1,13 @@
 flask==3.0.0
-httpx
+httpx==0.28.1
 httpcore
 anyio
 sniffio
 h11
 certifi
-supabase==2.3.4
+supabase==2.28.0
+gotrue==2.12.4
+websockets==15.0.1
 requests==2.31.0
 beautifulsoup4==4.12.3
 lxml==5.1.0
@@ -13,10 +15,7 @@ pytz
 pywebview==5.0.5
 matplotlib
 pandas
-pytz
 Pillow
 playwright
-Pillow
 flask-compress
 gunicorn
-flask-compress

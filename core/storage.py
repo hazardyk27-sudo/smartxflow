@@ -207,22 +207,13 @@ class SupabaseStorage(StorageBackend):
 
 def get_storage(db_path: str):
     """
-    Get storage backend (Supabase if available, otherwise SQLite).
+    Get storage backend - always uses SQLite for scraper data.
+    Supabase writing is handled separately via sync_to_supabase().
     
     Args:
         db_path: Path to SQLite database file
         
     Returns:
-        StorageBackend instance
+        SQLiteStorage instance
     """
-    if not _SUPABASE_AVAILABLE:
-        print("Warning: Supabase library not available, using SQLite backend")
-        return SQLiteStorage(db_path)
-    
-    try:
-        url, key = _get_supabase_credentials()
-        return SupabaseStorage(url, key)
-    except (ValueError, TypeError, Exception) as e:
-        print(f"Warning: {e}")
-        print("Falling back to SQLite storage")
-        return SQLiteStorage(db_path)
+    return SQLiteStorage(db_path)
