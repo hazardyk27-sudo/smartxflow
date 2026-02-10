@@ -27,6 +27,11 @@ else:
     Compress = None
 
 # ============================================
+# WARMUP SYNC - API endpoints wait for warmup before serving
+# ============================================
+_warmup_done = threading.Event()
+
+# ============================================
 # SERVER-SIDE ALARM CACHE
 # Reduces Supabase calls from ~2s to <50ms
 # ============================================
@@ -35,8 +40,11 @@ _server_alarm_cache_time = 0
 SERVER_ALARM_CACHE_TTL = 60  # 60 seconds cache - Supabase istek optimizasyonu
 
 def get_cached_alarms(force_refresh=False):
-    """Get alarms from server-side cache or refresh from Supabase"""
+    """Get alarms from server-side cache or refresh from Supabase. Waits for warmup if in progress."""
     global _server_alarm_cache, _server_alarm_cache_time
+    
+    if not _warmup_done.is_set():
+        _warmup_done.wait(timeout=5)
     
     now = time.time()
     
@@ -61,8 +69,11 @@ _server_matches_cache_time = {}  # {market: timestamp}
 SERVER_MATCHES_CACHE_TTL = 60  # 60 seconds cache - Supabase istek optimizasyonu
 
 def get_cached_matches(market, force_refresh=False):
-    """Get matches from server-side cache"""
+    """Get matches from server-side cache. Waits for warmup if in progress."""
     global _server_matches_cache, _server_matches_cache_time
+    
+    if not _warmup_done.is_set():
+        _warmup_done.wait(timeout=5)
     
     now = time.time()
     cache_time = _server_matches_cache_time.get(market, 0)
@@ -927,7 +938,10 @@ def _warmup_matches():
 
 def _warmup_licenses():
     """Fill license cache"""
-    if not get_license_db():
+    try:
+        if not get_license_db():
+            return 0
+    except NameError:
         return 0
     licenses = license_select('licenses', '*', None, 'created_at', True) or []
     devices = license_select('license_devices', 'license_key') or []
@@ -943,10 +957,10 @@ def _warmup_licenses():
     return len(licenses)
 
 def startup_warmup():
-    """Pre-fill all caches in parallel for fastest startup"""
+    """Pre-fill all caches in parallel for fastest startup.
+    API endpoints wait for _warmup_done event before serving, preventing duplicate Supabase requests."""
     import time as _t
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    _t.sleep(0.5)
     start = _t.time()
     print("[Startup Warmup] Starting parallel cache pre-fill...")
     
@@ -956,15 +970,18 @@ def startup_warmup():
         'Licenses': _warmup_licenses,
     }
     
-    with ThreadPoolExecutor(max_workers=3) as executor:
-        futures = {executor.submit(fn): name for name, fn in tasks.items()}
-        for future in as_completed(futures):
-            name = futures[future]
-            try:
-                count = future.result()
-                print(f"[Startup Warmup] {name} cache filled ({_t.time()-start:.1f}s)")
-            except Exception as e:
-                print(f"[Startup Warmup] {name} error: {e}")
+    try:
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {executor.submit(fn): name for name, fn in tasks.items()}
+            for future in as_completed(futures):
+                name = futures[future]
+                try:
+                    count = future.result()
+                    print(f"[Startup Warmup] {name} cache filled ({_t.time()-start:.1f}s)")
+                except Exception as e:
+                    print(f"[Startup Warmup] {name} error: {e}")
+    finally:
+        _warmup_done.set()
     
     print(f"[Startup Warmup] Complete in {_t.time()-start:.1f}s")
 
