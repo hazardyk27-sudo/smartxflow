@@ -870,10 +870,27 @@ def warm_matches_cache():
     
     print("[Cache Warming] Complete!")
 
-# Cache warming DISABLED - no longer needed with fixtures-first pagination
-# Server now fetches only 20 fixtures + their odds (~100 rows vs 10,000 rows)
-# cache_warming_thread = threading.Thread(target=warm_matches_cache, daemon=True)
-# cache_warming_thread.start()
+def startup_warmup():
+    """Pre-fill critical caches on server startup so first visitor gets fast response"""
+    import time as _t
+    _t.sleep(2)
+    print("[Startup Warmup] Starting cache pre-fill...")
+    
+    try:
+        with app.test_request_context():
+            with app.test_client() as client:
+                resp = client.get('/api/alarms/all?refresh=true')
+                if resp.status_code == 200:
+                    print("[Startup Warmup] Alarms cache filled")
+                else:
+                    print(f"[Startup Warmup] Alarms response: {resp.status_code}")
+    except Exception as e:
+        print(f"[Startup Warmup] Alarms error: {e}")
+    
+    print("[Startup Warmup] Complete!")
+
+_warmup_thread = threading.Thread(target=startup_warmup, daemon=True)
+_warmup_thread.start()
 
 @app.route('/api/matches')
 def get_matches():
