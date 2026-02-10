@@ -133,7 +133,7 @@ def resource_path(relative_path):
 template_dir = resource_path("templates")
 static_dir = resource_path("static")
 
-from core.settings import init_mode, is_server_mode, is_client_mode, get_scrape_interval_seconds, is_scraper_disabled
+from core.settings import init_mode, is_server_mode, is_client_mode
 from core.timezone import now_turkey, now_turkey_iso, now_turkey_formatted, format_turkey_time, format_time_only, TURKEY_TZ
 from services.supabase_client import (
     get_database, get_supabase_client,
@@ -263,14 +263,6 @@ current_mode = init_mode()
 db = get_database()
 db.ensure_analyses_table()
 
-if is_server_mode():
-    from scraper.core import run_scraper, get_cookie_string
-else:
-    def run_scraper(*args, **kwargs):
-        return {'status': 'disabled', 'message': 'Scraping disabled in client mode'}
-    def get_cookie_string():
-        return None
-
 @app.after_request
 def add_header(response):
     if request.path.startswith('/static/'):
@@ -285,20 +277,6 @@ def add_header(response):
     response.headers['Vary'] = 'Accept-Encoding'
     return response
 
-scrape_status = {
-    "running": False,
-    "auto_running": False,
-    "last_result": None,
-    "last_scrape_time": None,
-    "next_scrape_time": None,
-    "interval_minutes": 10,
-    "last_supabase_sync": None
-}
-
-auto_scrape_thread = None
-stop_auto_event = threading.Event()
-server_scheduler_thread = None
-server_scheduler_stop = threading.Event()
 cleanup_thread = None
 alarm_scheduler_thread = None
 last_cleanup_date = None
@@ -479,55 +457,9 @@ def start_alarm_scheduler():
 
 
 def start_server_scheduler():
-    """Start background scheduler for server mode - runs scraper periodically"""
-    global server_scheduler_thread, server_scheduler_stop, scrape_status
-    
-    if not is_server_mode():
-        return
-    
-    if is_scraper_disabled():
-        print("[Server Mode] Scraper disabled via DISABLE_SCRAPER env variable")
-        print("[Server Mode] Running as UI-only, data comes from Supabase (standalone scraper)")
-        scrape_status['auto_running'] = False
-        return
-    
-    server_scheduler_stop.clear()
-    interval_seconds = get_scrape_interval_seconds()
-    scrape_status['auto_running'] = True
-    scrape_status['interval_minutes'] = interval_seconds // 60
-    
-    def scheduler_loop():
-        global scrape_status
-        print(f"[Server Scheduler] Started - interval: {interval_seconds // 60} minutes")
-        
-        while not server_scheduler_stop.is_set():
-            if not scrape_status['running']:
-                scrape_status['running'] = True
-                try:
-                    print(f"[Server Scheduler] Running scrape at {now_turkey_iso()}")
-                    result = run_scraper()
-                    scrape_status['last_result'] = result
-                    scrape_status['last_scrape_time'] = now_turkey_iso()
-                    scrape_status['last_supabase_sync'] = now_turkey_iso()
-                    print(f"[Server Scheduler] Scrape completed")
-                except Exception as e:
-                    print(f"[Server Scheduler] Error: {e}")
-                    scrape_status['last_result'] = {'status': 'error', 'error': str(e)}
-                finally:
-                    scrape_status['running'] = False
-            
-            next_time = now_turkey() + timedelta(seconds=interval_seconds)
-            scrape_status['next_scrape_time'] = next_time.isoformat()
-            
-            for _ in range(interval_seconds):
-                if server_scheduler_stop.is_set():
-                    break
-                time.sleep(1)
-        
-        print("[Server Scheduler] Stopped")
-    
-    server_scheduler_thread = threading.Thread(target=scheduler_loop, daemon=True)
-    server_scheduler_thread.start()
+    """Legacy stub - scraping handled by Scraper Engine workflow"""
+    print("[Server Mode] Scraper Engine workflow handles data collection")
+    print("[Server Mode] Web app runs as UI-only")
 
 
 @app.route('/favicon.ico')
@@ -1593,166 +1525,35 @@ def get_match_history():
 
 @app.route('/api/scrape', methods=['POST'])
 def trigger_scrape():
-    """Trigger manual scrape - SERVER MODE ONLY"""
-    global scrape_status
-    
-    if is_client_mode():
-        return jsonify({
-            'status': 'disabled', 
-            'message': 'Scraping disabled in client mode. Data is fetched from Supabase.'
-        })
-    
-    if scrape_status['running']:
-        return jsonify({'status': 'error', 'message': 'Scrape already running'})
-    
-    scrape_status['running'] = True
-    
-    def do_scrape():
-        global scrape_status
-        try:
-            result = run_scraper()
-            scrape_status['last_result'] = result
-            scrape_status['last_scrape_time'] = now_turkey_iso()
-            scrape_status['last_supabase_sync'] = now_turkey_iso()
-        except Exception as e:
-            scrape_status['last_result'] = {'status': 'error', 'error': str(e)}
-        finally:
-            scrape_status['running'] = False
-    
-    thread = threading.Thread(target=do_scrape)
-    thread.daemon = True
-    thread.start()
-    
-    return jsonify({'status': 'ok', 'message': 'Scrape started'})
+    """Legacy endpoint - scraping handled by Scraper Engine workflow"""
+    return jsonify({
+        'status': 'disabled',
+        'message': 'Scraping handled by Scraper Engine workflow'
+    })
 
 
 @app.route('/api/scrape/auto', methods=['POST'])
 def toggle_auto_scrape():
-    """Toggle automatic scraping/polling
-    
-    SERVER MODE: Auto runs scraper periodically
-    CLIENT MODE: Auto polls Supabase for fresh data (no scraping)
-    """
-    global scrape_status, auto_scrape_thread, stop_auto_event
-    
-    data = request.get_json() or {}
-    action = data.get('action', 'toggle')
-    interval = int(data.get('interval', 5))
-    
-    if action == 'start' and not scrape_status['auto_running']:
-        scrape_status['auto_running'] = True
-        scrape_status['interval_minutes'] = interval
-        stop_auto_event.clear()
-        
-        if is_client_mode():
-            def client_poll_loop():
-                global scrape_status
-                poll_interval = interval * 60
-                print(f"[Client Auto] Started - polling Supabase every {interval} minutes")
-                
-                while not stop_auto_event.is_set():
-                    scrape_status['last_supabase_sync'] = now_turkey_iso()
-                    
-                    next_time = now_turkey() + timedelta(minutes=interval)
-                    scrape_status['next_scrape_time'] = next_time.isoformat()
-                    
-                    for _ in range(poll_interval):
-                        if stop_auto_event.is_set():
-                            break
-                        time.sleep(1)
-                
-                scrape_status['auto_running'] = False
-                scrape_status['next_scrape_time'] = None
-                print("[Client Auto] Stopped")
-            
-            auto_scrape_thread = threading.Thread(target=client_poll_loop, daemon=True)
-            auto_scrape_thread.start()
-            
-            return jsonify({
-                'status': 'ok', 
-                'auto_running': True, 
-                'interval_minutes': interval,
-                'mode': 'client_poll'
-            })
-        else:
-            def server_auto_loop():
-                global scrape_status
-                while not stop_auto_event.is_set():
-                    if not scrape_status['running']:
-                        scrape_status['running'] = True
-                        scrape_status['next_scrape_time'] = None
-                        try:
-                            result = run_scraper()
-                            scrape_status['last_result'] = result
-                            scrape_status['last_scrape_time'] = now_turkey_iso()
-                            scrape_status['last_supabase_sync'] = now_turkey_iso()
-                        except Exception as e:
-                            scrape_status['last_result'] = {'status': 'error', 'error': str(e)}
-                        finally:
-                            scrape_status['running'] = False
-                    
-                    next_time = now_turkey() + timedelta(minutes=scrape_status['interval_minutes'])
-                    scrape_status['next_scrape_time'] = next_time.isoformat()
-                    
-                    for _ in range(scrape_status['interval_minutes'] * 60):
-                        if stop_auto_event.is_set():
-                            break
-                        time.sleep(1)
-                
-                scrape_status['auto_running'] = False
-                scrape_status['next_scrape_time'] = None
-            
-            auto_scrape_thread = threading.Thread(target=server_auto_loop, daemon=True)
-            auto_scrape_thread.start()
-            
-            return jsonify({
-                'status': 'ok', 
-                'auto_running': True, 
-                'interval_minutes': interval,
-                'mode': 'server_scrape'
-            })
-    
-    elif action == 'stop':
-        stop_auto_event.set()
-        scrape_status['auto_running'] = False
-        scrape_status['next_scrape_time'] = None
-        return jsonify({'status': 'ok', 'auto_running': False})
-    
-    return jsonify({'status': 'ok', 'auto_running': scrape_status['auto_running']})
+    """Legacy endpoint - scraping handled by Scraper Engine workflow"""
+    return jsonify({
+        'status': 'disabled',
+        'message': 'Scraping handled by Scraper Engine workflow'
+    })
 
 
 @app.route('/api/interval', methods=['POST'])
 def update_interval():
-    """Update auto-scrape interval"""
-    global scrape_status
-    data = request.get_json() or {}
-    new_interval = int(data.get('interval', 5))
-    
-    if new_interval < 1:
-        new_interval = 1
-    if new_interval > 60:
-        new_interval = 60
-    
-    scrape_status['interval_minutes'] = new_interval
-    return jsonify({'status': 'ok', 'interval_minutes': new_interval})
-
-
-def get_turkey_time_str(iso_time: str) -> str:
-    """Convert ISO time to Turkey timezone HH:MM format"""
-    if not iso_time:
-        return "--:--"
-    try:
-        return format_time_only(iso_time)
-    except:
-        return "--:--"
+    """Legacy endpoint - scraping handled by Scraper Engine workflow"""
+    return jsonify({
+        'status': 'disabled',
+        'message': 'Scraping handled by Scraper Engine workflow'
+    })
 
 
 @app.route('/api/status')
 def get_status():
-    """Get current scrape status with mode information"""
+    """Get current status - scraping handled by Scraper Engine workflow"""
     mode = "server" if is_server_mode() else "client"
-    
-    last_time_tr = get_turkey_time_str(scrape_status['last_scrape_time'])
     
     last_data_update = db.get_last_data_update() if db.is_supabase_available else None
     last_data_update_tr = None
@@ -1764,18 +1565,18 @@ def get_status():
             last_data_update_tr = last_data_update
     
     return jsonify({
-        'running': scrape_status['running'],
-        'auto_running': scrape_status['auto_running'],
-        'last_result': scrape_status['last_result'],
-        'last_scrape_time': scrape_status['last_scrape_time'],
-        'last_scrape_time_tr': last_time_tr,
-        'last_supabase_sync': scrape_status['last_supabase_sync'],
-        'next_scrape_time': scrape_status['next_scrape_time'],
-        'interval_minutes': scrape_status['interval_minutes'],
-        'cookie_set': bool(get_cookie_string()) if is_server_mode() else False,
+        'running': False,
+        'auto_running': False,
+        'last_result': None,
+        'last_scrape_time': None,
+        'last_scrape_time_tr': '--:--',
+        'last_supabase_sync': None,
+        'next_scrape_time': None,
+        'interval_minutes': 9,
+        'cookie_set': False,
         'supabase_connected': db.is_supabase_available,
         'mode': mode,
-        'scraping_enabled': not is_server_mode(),
+        'scraping_enabled': False,
         'last_data_update': last_data_update,
         'last_data_update_tr': last_data_update_tr
     })
@@ -5671,31 +5472,17 @@ def scraper_console_status():
             except:
                 pass
         
-        # Server modunda scrape_status kullan
-        is_running = scrape_status.get('running', False)
-        is_auto = scrape_status.get('auto_running', False)
-        is_disabled = is_scraper_disabled()
-        
-        if is_disabled:
-            status_text = 'Devre Dışı (Standalone)'
-        elif is_running:
-            status_text = 'Veri çekiliyor...'
-        elif is_auto:
-            status_text = 'Çalışıyor'
-        else:
-            status_text = 'Durduruldu'
-        
         return jsonify({
             'status': 'ok',
-            'running': is_auto or is_running,
-            'is_scraping': is_running,
-            'is_disabled': is_disabled,
-            'interval_minutes': scrape_status.get('interval_minutes', 10),
-            'last_scrape': scrape_status.get('last_scrape_time'),
-            'next_scrape': scrape_status.get('next_scrape_time'),
+            'running': False,
+            'is_scraping': False,
+            'is_disabled': True,
+            'interval_minutes': 9,
+            'last_scrape': None,
+            'next_scrape': None,
             'last_rows': 0,
             'last_alarm_count': 0,
-            'status_text': status_text
+            'status_text': 'Scraper Engine workflow aktif'
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e), 'running': False})
@@ -5703,14 +5490,11 @@ def scraper_console_status():
 
 @app.route('/scraper/control', methods=['POST'])
 def scraper_control():
-    """Scraper başlat/durdur kontrolü - Desktop ve Server modları"""
-    global scrape_status, server_scheduler_thread, server_scheduler_stop
-    
+    """Scraper başlat/durdur kontrolü - Sadece Desktop (EXE) modu"""
     try:
         data = request.get_json() or {}
         action = data.get('action', '')
         
-        # EXE (Desktop) modunda scraper_admin fonksiyonlarını kullan
         if os.environ.get('SMARTX_DESKTOP') == '1':
             try:
                 import scraper_admin
@@ -5736,70 +5520,7 @@ def scraper_control():
             except Exception as e:
                 return jsonify({'status': 'error', 'message': f'Desktop kontrol hatası: {str(e)}'})
         
-        # Scraper devre dışıysa (Standalone mode)
-        if is_scraper_disabled():
-            return jsonify({'status': 'error', 'message': 'Scraper devre dışı (Standalone mode)'})
-        
-        # Server modunda
-        if action == 'start':
-            if scrape_status.get('auto_running'):
-                return jsonify({'status': 'ok', 'message': 'Zaten çalışıyor'})
-            
-            # Server scheduler'ı başlat
-            server_scheduler_stop.clear()
-            scrape_status['auto_running'] = True
-            scrape_status['interval_minutes'] = get_scrape_interval_seconds() // 60
-            
-            def scheduler_loop():
-                global scrape_status
-                interval_seconds = get_scrape_interval_seconds()
-                print(f"[Server Scheduler] Restarted - interval: {interval_seconds // 60} minutes")
-                
-                while not server_scheduler_stop.is_set():
-                    if not scrape_status['running']:
-                        scrape_status['running'] = True
-                        try:
-                            print(f"[Server Scheduler] Running scrape at {now_turkey_iso()}")
-                            result = run_scraper()
-                            scrape_status['last_result'] = result
-                            scrape_status['last_scrape_time'] = now_turkey_iso()
-                            scrape_status['last_supabase_sync'] = now_turkey_iso()
-                            print(f"[Server Scheduler] Scrape completed")
-                        except Exception as e:
-                            print(f"[Server Scheduler] Error: {e}")
-                            scrape_status['last_result'] = {'status': 'error', 'error': str(e)}
-                        finally:
-                            scrape_status['running'] = False
-                    
-                    next_time = now_turkey() + timedelta(seconds=interval_seconds)
-                    scrape_status['next_scrape_time'] = next_time.isoformat()
-                    
-                    for _ in range(interval_seconds):
-                        if server_scheduler_stop.is_set():
-                            break
-                        time.sleep(1)
-                
-                scrape_status['auto_running'] = False
-                scrape_status['next_scrape_time'] = None
-                print("[Server Scheduler] Stopped")
-            
-            server_scheduler_thread = threading.Thread(target=scheduler_loop, daemon=True)
-            server_scheduler_thread.start()
-            
-            return jsonify({'status': 'ok', 'message': 'Scraper başlatıldı', 'running': True})
-        
-        elif action == 'stop':
-            if not scrape_status.get('auto_running'):
-                return jsonify({'status': 'ok', 'message': 'Zaten durdurulmuş'})
-            
-            server_scheduler_stop.set()
-            scrape_status['auto_running'] = False
-            scrape_status['next_scrape_time'] = None
-            
-            return jsonify({'status': 'ok', 'message': 'Scraper durduruldu', 'running': False})
-        
-        else:
-            return jsonify({'status': 'error', 'message': 'Geçersiz action'})
+        return jsonify({'status': 'disabled', 'message': 'Scraping handled by Scraper Engine workflow'})
     
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
@@ -5828,11 +5549,7 @@ def scraper_interval():
             except Exception as e:
                 return jsonify({'status': 'error', 'message': f'Config güncellenemedi: {str(e)}'})
         
-        # Server modunda global değişkeni güncelle
-        global scrape_status
-        scrape_status['interval_minutes'] = new_interval
-        
-        return jsonify({'status': 'ok', 'message': f'Interval {new_interval} dakika olarak ayarlandı', 'interval': new_interval})
+        return jsonify({'status': 'disabled', 'message': 'Scraping handled by Scraper Engine workflow'})
     
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
