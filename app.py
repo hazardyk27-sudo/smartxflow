@@ -891,6 +891,11 @@ def startup_warmup():
                 resp2 = client.get('/api/matches?market=moneyway_1x2&bulk=1')
                 if resp2.status_code == 200:
                     print(f"[Startup Warmup] Matches (moneyway_1x2) cache filled ({_t.time()-t2:.1f}s)")
+                
+                t3 = _t.time()
+                resp3 = client.get('/api/licenses/list')
+                if resp3.status_code == 200:
+                    print(f"[Startup Warmup] Licenses cache filled ({_t.time()-t3:.1f}s)")
     except Exception as e:
         print(f"[Startup Warmup] Error: {e}")
     
