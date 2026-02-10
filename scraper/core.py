@@ -162,8 +162,8 @@ def run_scraper(
         
         duration = time.time() - start_time
         
-        if sync_supabase and supabase_stats["snapshots"] > 0:
-            write_scraper_signal(supabase_stats["matches"])
+        if total_rows > 0:
+            write_scraper_signal(total_rows)
         
         return {
             "status": "ok",
