@@ -155,36 +155,33 @@ class SupabaseStorage(StorageBackend):
     def replace_table(self, table_name: str, headers: List[str], records: List[Dict[str, Any]]) -> None:
         if not records:
             return
-        filtered = [{h: r.get(h, None) for h in headers} for r in records]
-        on_conflict = None
-        if 'ID' in headers:
-            on_conflict = 'ID'
-        elif 'Date' in headers and 'Home' in headers and 'Away' in headers:
-            on_conflict = 'Home,Away,Date'
-        elif 'Home' in headers and 'Away' in headers:
-            on_conflict = 'Home,Away'
-        if on_conflict:
-            self.client.table(table_name).upsert(filtered, on_conflict=on_conflict).execute()
-        else:
-            self.client.table(table_name).upsert(filtered).execute()
+        filtered = [{h.lower(): r.get(h, None) for h in headers} for r in records]
+        self.client.table(table_name).delete().neq('id', 0).execute()
+        batch_size = 500
+        for i in range(0, len(filtered), batch_size):
+            batch = filtered[i:i+batch_size]
+            self.client.table(table_name).insert(batch).execute()
     def append_history(self, hist_table: str, headers: List[str], records: List[Dict[str, Any]], scraped_at: str) -> None:
         if not records:
             return
         rows = []
         for r in records:
-            d = {h: r.get(h, "") for h in headers}
-            d['ScrapedAt'] = scraped_at
+            d = {h.lower(): r.get(h, "") for h in headers}
+            d['scraped_at'] = scraped_at
             rows.append(d)
-        self.client.table(hist_table).upsert(rows, on_conflict='Home,Away,ScrapedAt').execute()
+        batch_size = 500
+        for i in range(0, len(rows), batch_size):
+            batch = rows[i:i+batch_size]
+            self.client.table(hist_table).insert(batch).execute()
     def query_row(self, table_name: str, home: str, away: str) -> Optional[Dict[str, Any]]:
-        res = self.client.table(table_name).select('*').eq('Home', home).eq('Away', away).limit(1).execute()
+        res = self.client.table(table_name).select('*').eq('home', home).eq('away', away).limit(1).execute()
         data = res.data or []
         return data[0] if data else None
     def query_history(self, hist_table: str, home: str, away: str) -> List[Dict[str, Any]]:
-        res = self.client.table(hist_table).select('*').eq('Home', home).eq('Away', away).order('ScrapedAt', desc=False).execute()
+        res = self.client.table(hist_table).select('*').eq('home', home).eq('away', away).order('scraped_at', desc=False).execute()
         return res.data or []
     def lookup_hist_row_by_label(self, hist_table: str, home: str, away: str, date_label: str) -> Optional[Dict[str, Any]]:
-        res = self.client.table(hist_table).select('*').eq('Home', home).eq('Away', away).eq('Date', date_label).order('ScrapedAt', desc=True).limit(1).execute()
+        res = self.client.table(hist_table).select('*').eq('home', home).eq('away', away).eq('date', date_label).order('scraped_at', desc=True).limit(1).execute()
         data = res.data or []
         if data:
             return data[0]
@@ -198,7 +195,7 @@ class SupabaseStorage(StorageBackend):
                 continue
         if try_dt:
             prefix = try_dt.strftime('%Y-%m-%d %H:%M')
-            res2 = self.client.table(hist_table).select('*').eq('Home', home).eq('Away', away).like('ScrapedAt', f'{prefix}%').order('ScrapedAt', desc=True).limit(1).execute()
+            res2 = self.client.table(hist_table).select('*').eq('home', home).eq('away', away).like('scraped_at', f'{prefix}%').order('scraped_at', desc=True).limit(1).execute()
             data2 = res2.data or []
             if data2:
                 return data2[0]
@@ -207,13 +204,22 @@ class SupabaseStorage(StorageBackend):
 
 def get_storage(db_path: str):
     """
-    Get storage backend - always uses SQLite for scraper data.
-    Supabase writing is handled separately via sync_to_supabase().
+    Get storage backend (Supabase if available, otherwise SQLite).
     
     Args:
         db_path: Path to SQLite database file
         
     Returns:
-        SQLiteStorage instance
+        StorageBackend instance
     """
-    return SQLiteStorage(db_path)
+    if not _SUPABASE_AVAILABLE:
+        print("Warning: Supabase library not available, using SQLite backend")
+        return SQLiteStorage(db_path)
+    
+    try:
+        url, key = _get_supabase_credentials()
+        return SupabaseStorage(url, key)
+    except (ValueError, TypeError, Exception) as e:
+        print(f"Warning: {e}")
+        print("Falling back to SQLite storage")
+        return SQLiteStorage(db_path)
