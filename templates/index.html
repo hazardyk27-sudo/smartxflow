@@ -624,7 +624,7 @@
                         </svg>
                         Dünün Maçları
                     </button>
-                    <button class="btn btn-today desktop-only" onclick="window.location.href='/analysis'">
+                    <button class="btn btn-today desktop-only" onclick="openTrendsModal()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                         </svg>
@@ -934,6 +934,94 @@
             </div>
         </div>
     </div>
+
+    <!-- Trendler Modal -->
+    <div class="modal-overlay" id="trendsModalOverlay" onclick="closeTrendsModal()" style="display:none;">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width:700px;">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <h2>Trendler & Paylaşımlar</h2>
+                    <span class="modal-subtitle">Profesyonel piyasa analizleri</span>
+                </div>
+                <button class="modal-close" onclick="closeTrendsModal()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" style="padding:16px 20px 20px;">
+                <div style="display:flex;gap:8px;margin-bottom:20px;">
+                    <button class="btn btn-today" id="trendTabAnalysis" onclick="switchTrendTab('analysis')" style="background:rgba(43,255,136,0.15);border-color:rgba(43,255,136,0.3);color:#2BFF88;">Analizler</button>
+                    <button class="btn btn-today" id="trendTabMoves" onclick="switchTrendTab('moves')">Hareket Tavsiyeleri</button>
+                </div>
+                <div id="trendsContent" style="max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;">
+                    <div style="text-align:center;padding:40px;color:#484f58;">Yükleniyor...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        var currentTrendTab = 'analysis';
+        function openTrendsModal() {
+            document.getElementById('trendsModalOverlay').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            loadTrends('analysis');
+        }
+        function closeTrendsModal() {
+            document.getElementById('trendsModalOverlay').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+        function switchTrendTab(tab) {
+            currentTrendTab = tab;
+            var aBtn = document.getElementById('trendTabAnalysis');
+            var mBtn = document.getElementById('trendTabMoves');
+            if (tab === 'analysis') {
+                aBtn.style.background = 'rgba(43,255,136,0.15)';
+                aBtn.style.borderColor = 'rgba(43,255,136,0.3)';
+                aBtn.style.color = '#2BFF88';
+                mBtn.style.background = '';
+                mBtn.style.borderColor = '';
+                mBtn.style.color = '';
+            } else {
+                mBtn.style.background = 'rgba(43,255,136,0.15)';
+                mBtn.style.borderColor = 'rgba(43,255,136,0.3)';
+                mBtn.style.color = '#2BFF88';
+                aBtn.style.background = '';
+                aBtn.style.borderColor = '';
+                aBtn.style.color = '';
+            }
+            loadTrends(tab);
+        }
+        function loadTrends(category) {
+            var container = document.getElementById('trendsContent');
+            container.innerHTML = '<div style="text-align:center;padding:40px;color:#484f58;">Yükleniyor...</div>';
+            fetch('/api/analyses?category=' + category)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (!data || data.length === 0) {
+                        container.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#484f58;"><div style="font-size:32px;margin-bottom:12px;">📊</div><div style="font-size:14px;">Henüz içerik yok</div></div>';
+                        return;
+                    }
+                    var html = '';
+                    data.forEach(function(item) {
+                        var date = item.created_at ? new Date(item.created_at).toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'}) : '';
+                        html += '<div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px 20px;">';
+                        html += '<div style="font-size:15px;font-weight:600;color:#e6edf3;margin-bottom:8px;">' + (item.title || '') + '</div>';
+                        html += '<div style="font-size:13px;color:#8b949e;line-height:1.7;margin-bottom:10px;">' + (item.content || '') + '</div>';
+                        if (item.image_url) {
+                            html += '<div style="margin-bottom:10px;"><img src="' + item.image_url + '" style="max-width:100%;border-radius:8px;border:1px solid #30363d;" alt=""></div>';
+                        }
+                        html += '<div style="font-size:11px;color:#484f58;">' + date + '</div>';
+                        html += '</div>';
+                    });
+                    container.innerHTML = html;
+                })
+                .catch(function() {
+                    container.innerHTML = '<div style="text-align:center;padding:40px;color:#f85149;">Veriler yüklenemedi</div>';
+                });
+        }
+    </script>
 
     <script src="/static/js/app.js?v=1770237200"></script>
 </body>
