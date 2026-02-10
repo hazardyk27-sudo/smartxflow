@@ -5958,7 +5958,31 @@ def admin_logout():
 
 @app.route('/api/analyses', methods=['GET'])
 def get_analyses():
-    """Get analyses list"""
+    """Get analyses list - PRO only"""
+    license_key = request.headers.get('X-License-Key') or request.args.get('license_key')
+    if license_key:
+        lic = license_select('licenses', 'plan,status,expires_at', {'key': license_key})
+        if lic:
+            license_data = lic[0]
+            if license_data.get('status') == 'revoked':
+                return jsonify({'error': 'LICENSE_REVOKED', 'message': 'Bu lisans iptal edilmis.'}), 403
+            expires_at = license_data.get('expires_at')
+            if expires_at:
+                try:
+                    from datetime import datetime
+                    exp_date = datetime.fromisoformat(expires_at.replace('Z', '+00:00').replace('+00:00', ''))
+                    if exp_date < datetime.utcnow():
+                        return jsonify({'error': 'LICENSE_EXPIRED', 'message': 'Lisans suresi dolmus.'}), 403
+                except:
+                    pass
+            plan = license_data.get('plan') or 'core'
+            if plan != 'pro':
+                return jsonify({'error': 'PRO_REQUIRED', 'message': 'Bu ozellik PRO uyelikte aktif.'}), 403
+        else:
+            return jsonify({'error': 'INVALID_KEY'}), 401
+    else:
+        return jsonify({'error': 'PRO_REQUIRED', 'message': 'Bu ozellik PRO uyelikte aktif.'}), 403
+    
     category = request.args.get('category', None)
     data = db.get_analyses(category)
     return jsonify(data)
@@ -6503,6 +6527,9 @@ def create_license():
         duration_days = int(data.get('duration_days', 30))
         note = data.get('note', '').strip()
         max_devices = int(data.get('max_devices', 2))
+        plan = data.get('plan', 'core')
+        if plan not in ('core', 'pro'):
+            plan = 'core'
         telegram_membership = data.get('telegram_membership', False)
         telegram_username = data.get('telegram_username', '').strip() if data.get('telegram_username') else None
         
@@ -6527,7 +6554,7 @@ def create_license():
             expires_at = now + timedelta(days=duration_days)
         
         # Insert license
-        result = license_insert('licenses', {
+        insert_data = {
             'key': key,
             'email': email,
             'duration_days': duration_days,
@@ -6535,9 +6562,13 @@ def create_license():
             'status': 'active',
             'max_devices': max_devices,
             'note': note or None,
-            'telegram_membership': telegram_membership,
-            'telegram_username': telegram_username
-        })
+            'plan': plan
+        }
+        if telegram_membership:
+            insert_data['telegram_membership'] = telegram_membership
+        if telegram_username:
+            insert_data['telegram_username'] = telegram_username
+        result = license_insert('licenses', insert_data)
         
         if result:
             return jsonify({'success': True, 'key': key})
@@ -6703,6 +6734,8 @@ def update_license():
             'telegram_username': telegram_username or None,
             'telegram_membership': telegram_membership
         }
+        if 'plan' in data and data['plan'] in ('core', 'pro'):
+            update_data['plan'] = data['plan']
         
         result = license_update('licenses', update_data, {'key': key})
         
@@ -6819,7 +6852,8 @@ def validate_license():
                 'valid': True,
                 'days_left': days_left,
                 'expires_at': expires_at,
-                'email': license_data.get('email')
+                'email': license_data.get('email'),
+                'plan': license_data.get('plan') or 'core'
             })
         
         # Check if max devices reached
@@ -6842,7 +6876,8 @@ def validate_license():
             'days_left': days_left,
             'expires_at': expires_at,
             'email': license_data.get('email'),
-            'new_device': True
+            'new_device': True,
+            'plan': license_data.get('plan') or 'core'
         })
         
     except Exception as e:

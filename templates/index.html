@@ -967,6 +967,12 @@
     <script>
         var currentTrendTab = 'analysis';
         function openTrendsModal() {
+            if (window.userPlan !== 'pro') {
+                if (confirm('Bu ozellik PRO uyelikte aktif. PRO paketine yukseltmek ister misiniz?')) {
+                    window.location.href = '/pricing';
+                }
+                return;
+            }
             document.getElementById('trendsModalOverlay').style.display = 'flex';
             document.body.style.overflow = 'hidden';
             loadTrends('analysis');
@@ -999,7 +1005,9 @@
         function loadTrends(category) {
             var container = document.getElementById('trendsContent');
             container.innerHTML = '<div style="text-align:center;padding:40px;color:#484f58;">Yükleniyor...</div>';
-            fetch('/api/analyses?category=' + category)
+            fetch('/api/analyses?category=' + category, {
+                headers: window.userLicenseKey ? {'X-License-Key': window.userLicenseKey} : {}
+            })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (!data || data.length === 0) {

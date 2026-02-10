@@ -2472,18 +2472,12 @@
                             <label>Not (opsiyonel)</label>
                             <input type="text" id="licenseNote" placeholder="Ornek: VIP musteri" style="width: 100%;">
                         </div>
-                        <div class="form-group" style="grid-column: span 2;">
-                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                <input type="checkbox" id="telegramMembership" onchange="toggleTelegramInput()" style="width: 18px; height: 18px; accent-color: #0088cc;">
-                                <span style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="color: #0088cc;">📢</span> Telegram Grup Uyeligi Dahil
-                                </span>
-                            </label>
-                        </div>
-                        <div class="form-group" id="telegramUsernameGroup" style="display: none; grid-column: span 2;">
-                            <label>Telegram Kullanici Adi</label>
-                            <input type="text" id="telegramUsername" placeholder="@kullaniciadi" style="width: 100%;">
-                            <span class="form-hint">Gruba eklenecek Telegram kullanici adi</span>
+                        <div class="form-group">
+                            <label>Plan</label>
+                            <select id="licensePlan" style="padding: 8px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3;">
+                                <option value="core" selected>CORE (Sadece Yazilim)</option>
+                                <option value="pro">PRO (Yazilim + Trendler)</option>
+                            </select>
                         </div>
                     </div>
                     <div class="btn-group" style="margin-top: 20px;">
@@ -2615,6 +2609,13 @@
                     <div class="form-group" style="margin-bottom: 16px;">
                         <label style="display: block; margin-bottom: 6px; color: #8b949e; font-size: 13px;">Email</label>
                         <input type="email" id="editLicenseEmail" placeholder="ornek@email.com" style="width: 100%; padding: 10px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 14px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; color: #8b949e; font-size: 13px;">Plan</label>
+                        <select id="editLicensePlan" style="width: 100%; padding: 10px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 14px;">
+                            <option value="core">CORE</option>
+                            <option value="pro">PRO</option>
+                        </select>
                     </div>
                     <div class="form-group" style="margin-bottom: 16px;">
                         <label style="display: block; margin-bottom: 6px; color: #8b949e; font-size: 13px;">Telegram Kullanici Adi</label>
@@ -6627,16 +6628,10 @@
             const email = document.getElementById('licenseEmail').value.trim();
             const duration = parseInt(document.getElementById('licenseDuration').value);
             const note = document.getElementById('licenseNote').value.trim();
-            const telegramMembership = document.getElementById('telegramMembership').checked;
-            const telegramUsername = document.getElementById('telegramUsername').value.trim();
+            const plan = document.getElementById('licensePlan').value;
 
             if (!email) {
                 showToast('Email adresi gerekli!', 'error');
-                return;
-            }
-
-            if (telegramMembership && !telegramUsername) {
-                showToast('Telegram kullanici adi gerekli!', 'error');
                 return;
             }
 
@@ -6648,8 +6643,7 @@
                         email, 
                         duration_days: duration, 
                         note,
-                        telegram_membership: telegramMembership,
-                        telegram_username: telegramUsername || null
+                        plan
                     })
                 });
 
@@ -6659,9 +6653,7 @@
                     document.getElementById('generatedKeySection').style.display = 'block';
                     document.getElementById('licenseEmail').value = '';
                     document.getElementById('licenseNote').value = '';
-                    document.getElementById('telegramMembership').checked = false;
-                    document.getElementById('telegramUsername').value = '';
-                    document.getElementById('telegramUsernameGroup').style.display = 'none';
+                    document.getElementById('licensePlan').value = 'core';
                     showToast('Lisans olusturuldu!', 'success');
                     loadLicenses();
                     loadLicenseStats();
@@ -6774,11 +6766,14 @@
                 const deviceCount = lic.device_count || 0;
                 const telegramBadge = lic.telegram_membership ? 
                     `<span style="background: #0088cc; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 6px;" title="${lic.telegram_username || ''}">📢 ${lic.telegram_username || 'TG'}</span>` : '';
+                const planBadge = (lic.plan === 'pro') ? 
+                    '<span style="background: #238636; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 6px;">PRO</span>' :
+                    '<span style="background: #30363d; color: #8b949e; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 6px;">CORE</span>';
 
                 return `
                     <tr>
                         <td style="font-family: monospace; color: #58a6ff;">${lic.key}</td>
-                        <td>${lic.email || '-'}${telegramBadge}</td>
+                        <td>${lic.email || '-'}${telegramBadge}${planBadge}</td>
                         <td>${lic.duration_days === 0 ? '♾️ Sinirsiz' : lic.duration_days + ' gun'}</td>
                         <td>${expiresAt.toLocaleDateString('tr-TR')}</td>
                         <td>${daysLeftText}</td>
@@ -6788,7 +6783,7 @@
                         <td>
                             <div style="display: flex; gap: 5px;">
                                 <button onclick="copyLicenseKey('${lic.key}')" title="Key Kopyala" style="background: #30363d; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">📋</button>
-                                <button class="edit-license-btn" data-key="${escapeHtmlAttr(lic.key)}" data-email="${escapeHtmlAttr(lic.email)}" data-telegram="${escapeHtmlAttr(lic.telegram_username)}" data-membership="${lic.telegram_membership ? 'true' : 'false'}" title="Duzenle" style="background: #a371f7; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">✏️</button>
+                                <button class="edit-license-btn" data-key="${escapeHtmlAttr(lic.key)}" data-email="${escapeHtmlAttr(lic.email)}" data-telegram="${escapeHtmlAttr(lic.telegram_username)}" data-membership="${lic.telegram_membership ? 'true' : 'false'}" data-plan="${lic.plan || 'core'}" title="Duzenle" style="background: #a371f7; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">✏️</button>
                                 <button onclick="openExtendModal('${lic.key}')" title="Sure Uzat" style="background: #238636; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">⏰</button>
                                 <button onclick="resetDevices('${lic.key}')" title="Cihazlari Sifirla" style="background: #58a6ff; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">🔄</button>
                                 <button onclick="deleteLicense('${lic.key}')" title="Sil" style="background: #f85149; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">🗑️</button>
@@ -6889,11 +6884,12 @@
             });
         }
 
-        function openEditModal(key, email, telegramUsername, telegramMembership) {
+        function openEditModal(key, email, telegramUsername, telegramMembership, plan) {
             document.getElementById('editLicenseKey').value = key;
             document.getElementById('editLicenseEmail').value = email || '';
             document.getElementById('editTelegramUsername').value = telegramUsername || '';
             document.getElementById('editTelegramMembership').checked = telegramMembership || false;
+            document.getElementById('editLicensePlan').value = plan || 'core';
             document.getElementById('editLicenseModal').style.display = 'flex';
         }
         
@@ -6904,7 +6900,8 @@
                 const email = btn.dataset.email || '';
                 const telegram = btn.dataset.telegram || '';
                 const membership = btn.dataset.membership === 'true';
-                openEditModal(key, email, telegram, membership);
+                const plan = btn.dataset.plan || 'core';
+                openEditModal(key, email, telegram, membership, plan);
             }
         });
 
@@ -6917,12 +6914,13 @@
             const email = document.getElementById('editLicenseEmail').value.trim();
             const telegramUsername = document.getElementById('editTelegramUsername').value.trim();
             const telegramMembership = document.getElementById('editTelegramMembership').checked;
+            const plan = document.getElementById('editLicensePlan').value;
 
             try {
                 const response = await fetch('/api/licenses/update', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key, email, telegram_username: telegramUsername, telegram_membership: telegramMembership })
+                    body: JSON.stringify({ key, email, telegram_username: telegramUsername, telegram_membership: telegramMembership, plan })
                 });
 
                 const data = await response.json();
