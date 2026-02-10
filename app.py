@@ -15,7 +15,7 @@ import threading
 import time
 import queue
 from datetime import datetime, timedelta
-from flask import Flask, render_template, jsonify, request, Response, send_from_directory
+from flask import Flask, render_template, jsonify, request, Response, send_from_directory, session, redirect
 
 # Conditional import for compression (not needed in desktop mode)
 if os.environ.get('SMARTX_DESKTOP') != '1':
@@ -5929,8 +5929,31 @@ def scraper_console_page():
 
 @app.route('/admin')
 def admin_panel():
-    """Admin Panel"""
+    """Admin Panel - requires login"""
+    if not session.get('admin_authenticated'):
+        return redirect('/admin/login')
     return render_template('admin.html')
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    """Admin Login Page"""
+    if request.method == 'POST':
+        submitted_url = request.form.get('supabase_url', '').strip()
+        submitted_key = request.form.get('supabase_key', '').strip()
+        real_url = os.environ.get('SUPABASE_URL', '')
+        real_key = os.environ.get('SUPABASE_ANON_KEY', '')
+        if submitted_url == real_url and submitted_key == real_key and real_url and real_key:
+            session['admin_authenticated'] = True
+            return redirect('/admin')
+        else:
+            return render_template('admin_login.html', error='Geçersiz bilgiler. Lütfen tekrar deneyin.')
+    return render_template('admin_login.html', error=None)
+
+@app.route('/admin/logout')
+def admin_logout():
+    """Admin Logout"""
+    session.pop('admin_authenticated', None)
+    return redirect('/admin/login')
 
 
 @app.route('/api/analyses', methods=['GET'])
