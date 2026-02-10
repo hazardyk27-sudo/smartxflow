@@ -234,14 +234,35 @@ class SupabaseStorage(StorageBackend):
                         row[col] = low.get(col, '')
                 rows.append(row)
             if rows:
+                seen = set()
+                unique_rows = []
+                for row in rows:
+                    key = (row.get('match_id_hash', ''), row.get('scraped_at', ''))
+                    if key not in seen:
+                        seen.add(key)
+                        unique_rows.append(row)
+                rows = unique_rows
                 BATCH = 500
+                total_written = 0
+                failed_count = 0
                 for i in range(0, len(rows), BATCH):
                     batch = rows[i:i+BATCH]
                     try:
-                        self.client.table(history_table).upsert(batch, on_conflict='match_id_hash,scraped_at').execute()
-                    except Exception:
                         self.client.table(history_table).insert(batch).execute()
-                print(f"[Storage] {history_table}: {len(rows)} rows written")
+                        total_written += len(batch)
+                    except Exception as batch_err:
+                        print(f"[Storage] {history_table} batch insert error: {batch_err}")
+                        for single_row in batch:
+                            try:
+                                self.client.table(history_table).insert(single_row).execute()
+                                total_written += 1
+                            except Exception as row_err:
+                                failed_count += 1
+                                if failed_count <= 3:
+                                    print(f"[Storage] {history_table} row insert failed: {row_err} | hash={single_row.get('match_id_hash','')}")
+                if failed_count > 3:
+                    print(f"[Storage] {history_table}: ...and {failed_count - 3} more row failures")
+                print(f"[Storage] {history_table}: {total_written}/{len(rows)} rows written" + (f" ({failed_count} failed)" if failed_count else ""))
         except Exception as e:
             print(f"[Storage] {history_table} write error: {e}")
     def append_history(self, hist_table: str, headers: List[str], records: List[Dict[str, Any]], scraped_at: str) -> None:
