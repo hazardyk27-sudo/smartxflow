@@ -200,9 +200,19 @@ class SupabaseStorage(StorageBackend):
                 table_cols = self._HISTORY_SCHEMA.get(history_table, [])
             if not table_cols:
                 return
-            scraped_ts = scraped_at
-            if scraped_ts and '+' not in scraped_ts and 'Z' not in scraped_ts:
-                scraped_ts = scraped_ts + '+00:00'
+            try:
+                from datetime import timedelta
+                tr_tz = timezone(timedelta(hours=3))
+                if scraped_at and '+' not in scraped_at and 'Z' not in scraped_at:
+                    utc_dt = datetime.fromisoformat(scraped_at).replace(tzinfo=timezone.utc)
+                else:
+                    utc_dt = datetime.now(timezone.utc)
+                tr_dt = utc_dt.astimezone(tr_tz)
+                scraped_ts = tr_dt.strftime('%Y-%m-%dT%H:%M:%S+03:00')
+            except Exception:
+                scraped_ts = scraped_at
+                if scraped_ts and '+' not in scraped_ts and 'Z' not in scraped_ts:
+                    scraped_ts = scraped_ts + '+03:00'
             rows = []
             for r in records:
                 low = {k.lower(): v for k, v in r.items()}
