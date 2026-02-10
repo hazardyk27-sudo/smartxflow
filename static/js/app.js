@@ -3433,17 +3433,37 @@ async function loadChart(home, away, market, league = '') {
         
         const filteredHistory = filterHistoryByTimeRange(data.history);
         
+        const config = getBucketConfig();
+        const bucketMinutes = config.bucketMinutes;
         const timeBlocks = {};
+        const actualTimes = {};
         filteredHistory.forEach(h => {
             const ts = h.ScrapedAt || '';
             const dt = toTurkeyTime(ts);
             if (!dt || !dt.isValid()) return;
-            const key = dt.valueOf();
-            timeBlocks[key] = h;
+            if (bucketMinutes <= 10) {
+                const key = dt.valueOf();
+                timeBlocks[key] = h;
+                actualTimes[key] = dt.valueOf();
+            } else {
+                const epochMinutes = Math.floor(dt.valueOf() / 60000);
+                const roundedEpoch = Math.floor(epochMinutes / bucketMinutes) * bucketMinutes;
+                const bucketKey = roundedEpoch * 60000;
+                timeBlocks[bucketKey] = h;
+                actualTimes[bucketKey] = dt.valueOf();
+            }
         });
         
         const sortedKeys = Object.keys(timeBlocks).map(Number).sort((a, b) => a - b);
-        const labels = sortedKeys.map(k => formatTimeLabel(k));
+        const labelFormat = config.labelFormat;
+        const labels = sortedKeys.map(k => {
+            const realTime = actualTimes[k];
+            const dt = dayjs(realTime).tz(APP_TIMEZONE);
+            if (!dt || !dt.isValid()) return '';
+            if (labelFormat === 'date') return dt.format('DD.MM');
+            if (labelFormat === 'datetime') return dt.format('DD.MM • HH:mm');
+            return dt.format('HH:mm');
+        });
         const historyData = sortedKeys.map(k => timeBlocks[k]);
         
         if (isDropping && historyData.length > 0) {
