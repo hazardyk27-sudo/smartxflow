@@ -874,30 +874,84 @@ def warm_matches_cache():
     print("[Cache Warming] Complete!")
 
 def startup_warmup():
-    """Pre-fill critical caches on server startup so first visitor gets fast response"""
+    """Pre-fill critical caches on server startup so first visitor gets fast response.
+    Uses direct function calls instead of test_client to avoid gunicorn conflicts."""
     import time as _t
-    _t.sleep(0.5)
+    _t.sleep(1)
     start = _t.time()
     print("[Startup Warmup] Starting cache pre-fill...")
     
     try:
-        with app.test_request_context():
-            with app.test_client() as client:
-                resp = client.get('/api/alarms/all?refresh=true')
-                if resp.status_code == 200:
-                    print(f"[Startup Warmup] Alarms cache filled ({_t.time()-start:.1f}s)")
-                
-                t2 = _t.time()
-                resp2 = client.get('/api/matches?market=moneyway_1x2&bulk=1')
-                if resp2.status_code == 200:
-                    print(f"[Startup Warmup] Matches (moneyway_1x2) cache filled ({_t.time()-t2:.1f}s)")
-                
-                t3 = _t.time()
-                resp3 = client.get('/api/licenses/list')
-                if resp3.status_code == 200:
-                    print(f"[Startup Warmup] Licenses cache filled ({_t.time()-t3:.1f}s)")
+        alarm_fetchers = {
+            'sharp': get_sharp_alarms_from_supabase,
+            'bigmoney': get_bigmoney_alarms_from_supabase,
+            'volumeshock': get_volumeshock_alarms_from_supabase,
+            'dropping': get_dropping_alarms_from_supabase,
+            'volumeleader': get_volumeleader_alarms_from_supabase,
+            'mim': get_mim_alarms_from_supabase,
+        }
+        result = {}
+        for atype, fetch_func in alarm_fetchers.items():
+            try:
+                data = fetch_func()
+                result[atype] = data if data is not None else []
+            except:
+                result[atype] = []
+        if result:
+            set_alarm_cache(result)
+            print(f"[Startup Warmup] Alarms cache filled ({_t.time()-start:.1f}s)")
     except Exception as e:
-        print(f"[Startup Warmup] Error: {e}")
+        print(f"[Startup Warmup] Alarms error: {e}")
+    
+    try:
+        t2 = _t.time()
+        matches_data = db.get_all_matches_with_latest('moneyway_1x2', date_filter=None)
+        if matches_data:
+            from app import generate_match_id as _gen_id
+            enriched = []
+            for m in matches_data:
+                latest = m.get('latest', {})
+                odds = {}
+                if latest:
+                    odds = {
+                        'Odds1': latest.get('Odds1', latest.get('1', '-')),
+                        'OddsX': latest.get('OddsX', latest.get('X', '-')),
+                        'Odds2': latest.get('Odds2', latest.get('2', '-')),
+                        'Pct1': latest.get('Pct1', ''), 'Amt1': latest.get('Amt1', ''),
+                        'PctX': latest.get('PctX', ''), 'AmtX': latest.get('AmtX', ''),
+                        'Pct2': latest.get('Pct2', ''), 'Amt2': latest.get('Amt2', ''),
+                        'Volume': latest.get('Volume', '')
+                    }
+                home = m.get('home_team', '')
+                away = m.get('away_team', '')
+                league = m.get('league', '')
+                date = m.get('date', '')
+                enriched.append({
+                    'home_team': home, 'away_team': away, 'league': league, 'date': date,
+                    'match_id': _gen_id(home, away, league, date),
+                    'odds': odds, 'history_count': 1
+                })
+            set_matches_cache('moneyway_1x2', enriched)
+            print(f"[Startup Warmup] Matches cache filled: {len(enriched)} ({_t.time()-t2:.1f}s)")
+    except Exception as e:
+        print(f"[Startup Warmup] Matches error: {e}")
+    
+    try:
+        t3 = _t.time()
+        if get_license_db():
+            licenses = license_select('licenses', '*', None, 'created_at', True) or []
+            devices = license_select('license_devices', 'license_key') or []
+            device_counts = {}
+            for d in devices:
+                key = d.get('license_key')
+                device_counts[key] = device_counts.get(key, 0) + 1
+            for lic in licenses:
+                lic['device_count'] = device_counts.get(lic.get('key'), 0)
+            _license_cache['data'] = {'success': True, 'licenses': licenses}
+            _license_cache['ts'] = _t.time()
+            print(f"[Startup Warmup] Licenses cache filled ({_t.time()-t3:.1f}s)")
+    except Exception as e:
+        print(f"[Startup Warmup] Licenses error: {e}")
     
     print(f"[Startup Warmup] Complete in {_t.time()-start:.1f}s")
 
