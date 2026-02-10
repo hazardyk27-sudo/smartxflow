@@ -2618,6 +2618,31 @@
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; color: #8b949e; font-size: 13px;">Sure Ayarla</label>
+                        <div id="editAdjustSection" style="background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 12px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="color: #8b949e; font-size: 12px;">Mevcut Bitis:</span>
+                                <span id="editCurrentExpiry" style="color: #e6edf3; font-size: 13px; font-family: monospace;">-</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button onclick="adjustDaysBtn(-1)" type="button" style="background: #f85149; border: none; color: white; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold;">-</button>
+                                <input type="number" id="editAdjustDays" min="1" max="90" value="1" style="width: 60px; padding: 6px 8px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 14px; text-align: center;">
+                                <button onclick="adjustDaysBtn(1)" type="button" style="background: #238636; border: none; color: white; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold;">+</button>
+                                <span style="color: #8b949e; font-size: 12px;">gun</span>
+                            </div>
+                            <div id="editNewExpiry" style="margin-top: 8px; display: none;">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <span style="color: #8b949e; font-size: 12px;">Yeni Bitis:</span>
+                                    <span id="editNewExpiryDate" style="color: #58a6ff; font-size: 13px; font-family: monospace;">-</span>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+                                    <span style="color: #8b949e; font-size: 12px;">Degisim:</span>
+                                    <span id="editDaysChange" style="font-size: 13px; font-family: monospace;">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 16px;">
                         <label style="display: block; margin-bottom: 6px; color: #8b949e; font-size: 13px;">Telegram Kullanici Adi</label>
                         <input type="text" id="editTelegramUsername" placeholder="@kullanici_adi" style="width: 100%; padding: 10px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 14px;">
                     </div>
@@ -6783,7 +6808,7 @@
                         <td>
                             <div style="display: flex; gap: 5px;">
                                 <button onclick="copyLicenseKey('${lic.key}')" title="Key Kopyala" style="background: #30363d; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">📋</button>
-                                <button class="edit-license-btn" data-key="${escapeHtmlAttr(lic.key)}" data-email="${escapeHtmlAttr(lic.email)}" data-telegram="${escapeHtmlAttr(lic.telegram_username)}" data-membership="${lic.telegram_membership ? 'true' : 'false'}" data-plan="${lic.plan || 'core'}" title="Duzenle" style="background: #a371f7; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">✏️</button>
+                                <button class="edit-license-btn" data-key="${escapeHtmlAttr(lic.key)}" data-email="${escapeHtmlAttr(lic.email)}" data-telegram="${escapeHtmlAttr(lic.telegram_username)}" data-membership="${lic.telegram_membership ? 'true' : 'false'}" data-plan="${lic.plan || 'core'}" data-expires="${lic.expires_at || ''}" title="Duzenle" style="background: #a371f7; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">✏️</button>
                                 <button onclick="openExtendModal('${lic.key}')" title="Sure Uzat" style="background: #238636; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">⏰</button>
                                 <button onclick="resetDevices('${lic.key}')" title="Cihazlari Sifirla" style="background: #58a6ff; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">🔄</button>
                                 <button onclick="deleteLicense('${lic.key}')" title="Sil" style="background: #f85149; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">🗑️</button>
@@ -6884,13 +6909,63 @@
             });
         }
 
-        function openEditModal(key, email, telegramUsername, telegramMembership, plan) {
+        let editPendingDays = 0;
+        let editOriginalExpiry = null;
+
+        function openEditModal(key, email, telegramUsername, telegramMembership, plan, expiresAt) {
             document.getElementById('editLicenseKey').value = key;
             document.getElementById('editLicenseEmail').value = email || '';
             document.getElementById('editTelegramUsername').value = telegramUsername || '';
             document.getElementById('editTelegramMembership').checked = telegramMembership || false;
             document.getElementById('editLicensePlan').value = plan || 'core';
+            editPendingDays = 0;
+            editOriginalExpiry = expiresAt ? new Date(expiresAt) : null;
+            const daysInput = document.getElementById('editAdjustDays');
+            daysInput.value = 1;
+            document.getElementById('editNewExpiry').style.display = 'none';
+            const adjustSection = document.getElementById('editAdjustSection');
+            if (editOriginalExpiry && !isNaN(editOriginalExpiry.getTime())) {
+                document.getElementById('editCurrentExpiry').textContent = editOriginalExpiry.toLocaleDateString('tr-TR', {day: '2-digit', month: '2-digit', year: 'numeric'});
+                adjustSection.style.opacity = '1';
+                adjustSection.style.pointerEvents = 'auto';
+            } else {
+                document.getElementById('editCurrentExpiry').textContent = 'Tarih yok';
+                adjustSection.style.opacity = '0.4';
+                adjustSection.style.pointerEvents = 'none';
+            }
             document.getElementById('editLicenseModal').style.display = 'flex';
+        }
+
+        function adjustDaysBtn(direction) {
+            if (!editOriginalExpiry || isNaN(editOriginalExpiry.getTime())) return;
+            const input = document.getElementById('editAdjustDays');
+            let amount = parseInt(input.value) || 1;
+            if (amount < 1) amount = 1;
+            if (amount > 90) amount = 90;
+            editPendingDays += (direction * amount);
+            if (editPendingDays > 90) editPendingDays = 90;
+            if (editPendingDays < -90) editPendingDays = -90;
+            updateExpiryPreview();
+        }
+
+        function updateExpiryPreview() {
+            const container = document.getElementById('editNewExpiry');
+            const dateEl = document.getElementById('editNewExpiryDate');
+            const changeEl = document.getElementById('editDaysChange');
+            if (editPendingDays === 0 || !editOriginalExpiry) {
+                container.style.display = 'none';
+                return;
+            }
+            container.style.display = 'block';
+            const newDate = new Date(editOriginalExpiry.getTime() + (editPendingDays * 86400000));
+            dateEl.textContent = newDate.toLocaleDateString('tr-TR', {day: '2-digit', month: '2-digit', year: 'numeric'});
+            if (editPendingDays > 0) {
+                changeEl.textContent = '+' + editPendingDays + ' gun';
+                changeEl.style.color = '#3fb950';
+            } else {
+                changeEl.textContent = editPendingDays + ' gun';
+                changeEl.style.color = '#f85149';
+            }
         }
         
         document.addEventListener('click', function(e) {
@@ -6901,12 +6976,15 @@
                 const telegram = btn.dataset.telegram || '';
                 const membership = btn.dataset.membership === 'true';
                 const plan = btn.dataset.plan || 'core';
-                openEditModal(key, email, telegram, membership, plan);
+                const expires = btn.dataset.expires || '';
+                openEditModal(key, email, telegram, membership, plan, expires);
             }
         });
 
         function closeEditModal() {
             document.getElementById('editLicenseModal').style.display = 'none';
+            editPendingDays = 0;
+            editOriginalExpiry = null;
         }
 
         async function confirmEditLicense() {
@@ -6924,13 +7002,27 @@
                 });
 
                 const data = await response.json();
-                if (data.success) {
-                    showToast('Lisans guncellendi!', 'success');
-                    closeEditModal();
-                    loadLicenses();
-                } else {
+                if (!data.success) {
                     showToast(data.error || 'Guncelleme basarisiz!', 'error');
+                    return;
                 }
+
+                if (editPendingDays !== 0) {
+                    const extendRes = await fetch('/api/licenses/extend', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ key, days: editPendingDays })
+                    });
+                    const extendData = await extendRes.json();
+                    if (!extendData.success) {
+                        showToast(extendData.error || 'Sure ayarlama basarisiz!', 'error');
+                        return;
+                    }
+                }
+
+                showToast('Lisans guncellendi!', 'success');
+                closeEditModal();
+                loadLicenses();
             } catch (error) {
                 console.error('Edit license error:', error);
                 showToast('Baglanti hatasi!', 'error');

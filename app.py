@@ -6664,7 +6664,7 @@ def license_stats():
 
 @app.route('/api/licenses/extend', methods=['POST'])
 def extend_license():
-    """Extend license expiry date"""
+    """Extend or reduce license expiry date"""
     try:
         if not get_license_db():
             return jsonify({'success': False, 'error': 'Supabase baglantisi yok'})
@@ -6676,12 +6676,16 @@ def extend_license():
         if not key:
             return jsonify({'success': False, 'error': 'Key gerekli'})
         
-        # Get current license
+        if days == 0:
+            return jsonify({'success': True, 'message': 'Degisiklik yok'})
+        
+        if abs(days) > 90:
+            return jsonify({'success': False, 'error': 'Maksimum 90 gun eklenebilir/cikarilabilir'})
+        
         lic = license_select('licenses', 'expires_at', {'key': key})
         if not lic:
             return jsonify({'success': False, 'error': 'Lisans bulunamadi'})
         
-        # Calculate new expiry
         from datetime import datetime, timedelta
         current_expires = lic[0].get('expires_at')
         
@@ -6690,18 +6694,20 @@ def extend_license():
         except:
             exp_date = datetime.utcnow()
         
-        # If already expired, extend from now
         now = datetime.utcnow()
-        if exp_date < now:
+        if days > 0 and exp_date < now:
             exp_date = now
         
         new_expires = exp_date + timedelta(days=days)
         
-        # Update license
-        result = license_update('licenses', {
-            'expires_at': new_expires.isoformat(),
-            'status': 'active'
-        }, {'key': key})
+        if new_expires < now - timedelta(days=365):
+            return jsonify({'success': False, 'error': 'Bitis tarihi cok eskiye ayarlanamaz'})
+        
+        update_data = {'expires_at': new_expires.isoformat()}
+        if days > 0:
+            update_data['status'] = 'active'
+        
+        result = license_update('licenses', update_data, {'key': key})
         
         if result:
             return jsonify({'success': True, 'new_expires': new_expires.isoformat()})
