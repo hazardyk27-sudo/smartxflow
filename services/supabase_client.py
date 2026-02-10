@@ -1776,6 +1776,23 @@ class SupabaseClient:
             print(f"[Supabase] create_analysis error: {e}")
             return None
 
+    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None) -> bool:
+        """Update analysis by id"""
+        if not self.is_available:
+            return False
+        try:
+            url = f"{self._rest_url('analyses')}?id=eq.{analysis_id}"
+            headers = self._headers()
+            headers["Prefer"] = "return=minimal"
+            data = {"title": title, "content": content}
+            if image_url is not None:
+                data["image_url"] = image_url
+            resp = httpx.patch(url, json=data, headers=headers, timeout=15)
+            return resp.status_code in [200, 204]
+        except Exception as e:
+            print(f"[Supabase] update_analysis error: {e}")
+            return False
+
     def delete_analysis(self, analysis_id: int) -> bool:
         """Delete analysis by id"""
         if not self.is_available:
@@ -2036,6 +2053,11 @@ class HybridDatabase:
         if self.supabase.is_available:
             return self.supabase.create_analysis(title, content, image_url, category)
         return None
+
+    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None) -> bool:
+        if self.supabase.is_available:
+            return self.supabase.update_analysis(analysis_id, title, content, image_url)
+        return False
 
     def delete_analysis(self, analysis_id: int) -> bool:
         if self.supabase.is_available:

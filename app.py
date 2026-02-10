@@ -6026,6 +6026,24 @@ def create_analysis():
         return jsonify({'status': 'ok', 'data': result})
     return jsonify({'status': 'error', 'message': 'Analiz oluşturulamadı'}), 500
 
+@app.route('/api/analyses/<int:analysis_id>', methods=['PUT'])
+def update_analysis_endpoint(analysis_id):
+    """Update analysis"""
+    title = request.form.get('title', '')
+    content = request.form.get('content', '')
+    image_url = None
+    if 'image' in request.files:
+        file = request.files['image']
+        if file and file.filename:
+            ext = file.filename.rsplit('.', 1)[-1].lower()
+            if ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
+                file_path = f"analyses/{uuid.uuid4().hex}.{ext}"
+                image_url = db.upload_file(file_path, file.read(), file.content_type)
+    success = db.update_analysis(analysis_id, title, content, image_url)
+    if success:
+        return jsonify({'status': 'ok'})
+    return jsonify({'status': 'error'}), 500
+
 @app.route('/api/analyses/<int:analysis_id>', methods=['DELETE'])
 def delete_analysis_endpoint(analysis_id):
     """Delete analysis"""

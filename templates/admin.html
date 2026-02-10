@@ -2927,7 +2927,10 @@
                         <label style="display: block; margin-bottom: 6px; color: #8b949e; font-size: 13px;">Ekran Görüntüsü (opsiyonel)</label>
                         <input type="file" id="contentImage" accept="image/*" style="color: #8b949e; font-size: 13px;">
                     </div>
-                    <button class="btn btn-primary" onclick="submitContent()" style="align-self: flex-start; padding: 10px 24px;">Paylaş</button>
+                    <div style="display: flex; gap: 8px; align-self: flex-start;">
+                        <button class="btn btn-primary" id="contentSubmitBtn" onclick="submitContent()" style="padding: 10px 24px;">Paylaş</button>
+                        <button class="btn" id="contentCancelBtn" onclick="cancelEdit()" style="padding: 10px 24px; background: #21262d; border: 1px solid #30363d; color: #c9d1d9; display: none;">İptal</button>
+                    </div>
                 </div>
                 <div id="contentUploadStatus" style="margin-top: 10px; font-size: 13px;"></div>
             </div>
@@ -7522,7 +7525,8 @@
                             </div>
                             ${item.image_url ? `<img src="${item.image_url}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 6px; margin-left: 12px; border: 1px solid #30363d;">` : ''}
                         </div>
-                        <div style="margin-top: 10px; text-align: right;">
+                        <div style="margin-top: 10px; text-align: right; display: flex; gap: 8px; justify-content: flex-end;">
+                            <button onclick='editContent(${item.id}, ${JSON.stringify(escapeHtml(item.title))}, ${JSON.stringify(escapeHtml(item.content))})' style="background: #1f6feb; border: none; color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Düzenle</button>
                             <button onclick="deleteContent(${item.id})" style="background: #da3633; border: none; color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Sil</button>
                         </div>
                     </div>
@@ -7561,13 +7565,19 @@
             }
 
             try {
-                const resp = await fetch('/api/analyses', { method: 'POST', body: formData });
+                let url = '/api/analyses';
+                let method = 'POST';
+                if (editingContentId) {
+                    url = `/api/analyses/${editingContentId}`;
+                    method = 'PUT';
+                }
+                const resp = await fetch(url, { method, body: formData });
                 const data = await resp.json();
                 if (data.status === 'ok') {
-                    status.innerHTML = '<span style="color: #3fb950;">Başarıyla paylaşıldı!</span>';
-                    document.getElementById('contentTitle').value = '';
-                    document.getElementById('contentText').value = '';
-                    imageInput.value = '';
+                    status.innerHTML = editingContentId 
+                        ? '<span style="color: #3fb950;">Başarıyla güncellendi!</span>' 
+                        : '<span style="color: #3fb950;">Başarıyla paylaşıldı!</span>';
+                    cancelEdit();
                     setTimeout(() => { status.innerHTML = ''; }, 3000);
                     loadContentList();
                 } else {
@@ -7576,6 +7586,32 @@
             } catch (e) {
                 status.innerHTML = `<span style="color: #f85149;">Bağlantı hatası</span>`;
             }
+        }
+
+        let editingContentId = null;
+
+        function editContent(id, title, content) {
+            editingContentId = id;
+            document.getElementById('contentTitle').value = title;
+            document.getElementById('contentText').value = content;
+            document.getElementById('contentImage').value = '';
+            document.getElementById('contentFormTitle').textContent = 'Analizi Düzenle';
+            document.getElementById('contentSubmitBtn').textContent = 'Güncelle';
+            document.getElementById('contentCancelBtn').style.display = 'inline-block';
+            document.getElementById('contentUploadStatus').innerHTML = '';
+            document.getElementById('contentTitle').focus();
+        }
+
+        function cancelEdit() {
+            editingContentId = null;
+            document.getElementById('contentTitle').value = '';
+            document.getElementById('contentText').value = '';
+            document.getElementById('contentImage').value = '';
+            const tab = currentContentTab;
+            document.getElementById('contentFormTitle').textContent = tab === 'analysis' ? 'Yeni Analiz Ekle' : 'Yeni Hareket Tavsiyesi Ekle';
+            document.getElementById('contentSubmitBtn').textContent = 'Paylaş';
+            document.getElementById('contentCancelBtn').style.display = 'none';
+            document.getElementById('contentUploadStatus').innerHTML = '';
         }
 
         async function deleteContent(id) {
