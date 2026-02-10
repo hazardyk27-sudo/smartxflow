@@ -5958,7 +5958,13 @@ def admin_logout():
 
 @app.route('/api/analyses', methods=['GET'])
 def get_analyses():
-    """Get analyses list - PRO only"""
+    """Get analyses list - PRO only (admin bypass with referer check)"""
+    referer = request.headers.get('Referer', '')
+    is_admin = request.args.get('admin') == 'true' and '/admin' in referer
+    if is_admin:
+        category = request.args.get('category', None)
+        data = db.get_analyses(category)
+        return jsonify(data)
     license_key = request.headers.get('X-License-Key') or request.args.get('license_key')
     if license_key:
         lic = license_select('licenses', 'plan,status,expires_at', {'key': license_key})

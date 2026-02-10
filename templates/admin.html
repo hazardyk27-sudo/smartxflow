@@ -7506,7 +7506,7 @@
             const list = document.getElementById('contentList');
             list.innerHTML = '<div style="text-align: center; color: #8b949e; padding: 40px;">Yükleniyor...</div>';
             try {
-                const resp = await fetch(`/api/analyses?category=${currentContentTab}`);
+                const resp = await fetch(`/api/analyses?category=${currentContentTab}&admin=true`);
                 const data = await resp.json();
                 if (!data || data.length === 0) {
                     list.innerHTML = '<div style="text-align: center; color: #8b949e; padding: 40px;">Henüz içerik yok</div>';
