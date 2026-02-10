@@ -3,6 +3,7 @@ import sys
 from typing import List, Tuple, Optional, Dict, Any
 from dataclasses import dataclass
 import sqlite3
+from datetime import datetime, timezone
 
 _SUPABASE_AVAILABLE = False
 _supabase_client = None
@@ -177,6 +178,62 @@ class SupabaseStorage(StorageBackend):
         except Exception:
             pass
         return []
+    _HISTORY_SCHEMA = {
+        'moneyway_1x2_history': ['match_id_hash', 'home', 'away', 'league', 'date', 'odds1', 'oddsx', 'odds2', 'amt1', 'amtx', 'amt2', 'pct1', 'pctx', 'pct2', 'scraped_at'],
+        'moneyway_ou25_history': ['match_id_hash', 'home', 'away', 'league', 'date', 'odds_over', 'odds_under', 'amt_over', 'amt_under', 'pct_over', 'pct_under', 'scraped_at'],
+        'moneyway_btts_history': ['match_id_hash', 'home', 'away', 'league', 'date', 'odds_yes', 'odds_no', 'amt_yes', 'amt_no', 'pct_yes', 'pct_no', 'scraped_at'],
+        'dropping_1x2_history': ['match_id_hash', 'home', 'away', 'league', 'date', 'opening1', 'openingx', 'opening2', 'odds1', 'oddsx', 'odds2', 'drop1', 'dropx', 'drop2', 'amt1', 'amtx', 'amt2', 'scraped_at'],
+        'dropping_ou25_history': ['match_id_hash', 'home', 'away', 'league', 'date', 'opening_over', 'opening_under', 'odds_over', 'odds_under', 'drop_over', 'drop_under', 'amt_over', 'amt_under', 'scraped_at'],
+        'dropping_btts_history': ['match_id_hash', 'home', 'away', 'league', 'date', 'opening_yes', 'opening_no', 'odds_yes', 'odds_no', 'drop_yes', 'drop_no', 'amt_yes', 'amt_no', 'scraped_at'],
+    }
+    def _write_to_history_table(self, hist_table: str, headers: List[str], records: List[Dict[str, Any]], scraped_at: str) -> None:
+        history_table = hist_table.replace('_hist', '_history')
+        if history_table == hist_table:
+            return
+        try:
+            from core.hash_utils import make_match_id_hash
+        except ImportError:
+            return
+        try:
+            table_cols = self._get_table_columns(history_table)
+            if not table_cols:
+                table_cols = self._HISTORY_SCHEMA.get(history_table, [])
+            if not table_cols:
+                return
+            scraped_ts = scraped_at
+            if scraped_ts and '+' not in scraped_ts and 'Z' not in scraped_ts:
+                scraped_ts = scraped_ts + '+00:00'
+            rows = []
+            for r in records:
+                low = {k.lower(): v for k, v in r.items()}
+                home = low.get('home', '')
+                away = low.get('away', '')
+                league = low.get('league', '')
+                if not home or not away:
+                    continue
+                match_hash = make_match_id_hash(home, away, league)
+                row = {}
+                for col in table_cols:
+                    if col == 'id':
+                        continue
+                    elif col == 'match_id_hash':
+                        row[col] = match_hash
+                    elif col == 'scraped_at':
+                        row[col] = scraped_ts
+                    else:
+                        row[col] = low.get(col, '')
+                rows.append(row)
+            if rows:
+                BATCH = 500
+                for i in range(0, len(rows), BATCH):
+                    batch = rows[i:i+BATCH]
+                    try:
+                        self.client.table(history_table).upsert(batch, on_conflict='match_id_hash,scraped_at').execute()
+                    except Exception:
+                        self.client.table(history_table).insert(batch).execute()
+                print(f"[Storage] {history_table}: {len(rows)} rows written")
+        except Exception as e:
+            print(f"[Storage] {history_table} write error: {e}")
     def append_history(self, hist_table: str, headers: List[str], records: List[Dict[str, Any]], scraped_at: str) -> None:
         if not records:
             return
@@ -190,7 +247,11 @@ class SupabaseStorage(StorageBackend):
                 d[h] = r.get(h, "")
             d['ScrapedAt'] = scraped_at
             rows.append(d)
-        self.client.table(hist_table).upsert(rows, on_conflict='Home,Away,ScrapedAt').execute()
+        try:
+            self.client.table(hist_table).upsert(rows, on_conflict='Home,Away,ScrapedAt').execute()
+        except Exception as e:
+            print(f"[Storage] {hist_table} upsert error: {e}")
+        self._write_to_history_table(hist_table, headers, records, scraped_at)
     def query_row(self, table_name: str, home: str, away: str) -> Optional[Dict[str, Any]]:
         res = self.client.table(table_name).select('*').eq('Home', home).eq('Away', away).limit(1).execute()
         data = res.data or []
