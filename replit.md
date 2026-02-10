@@ -61,6 +61,12 @@ The system uses a hybrid architecture with Supabase as the single source of trut
     - Tab Visibility: Arka plandaki tab'lar auto-refresh yapmaz
     - Jitter: 0-60 saniye random delay (synchronized spike önleme)
     - Baseline: 75k istek/gün → Hedef: ~25-30k istek/gün (%60-80 azalma)
+- **Performance Optimization (2026-02-10):**
+    - **Startup Warmup:** Sunucu başladığında alarm cache'i otomatik dolduruluyor (publish sonrası ilk ziyaretçi hızlı yüklenir)
+    - **Static Asset Caching:** `/static/` dosyaları (JS, CSS, images) `Cache-Control: public, max-age=3600` ile tarayıcıda 1 saat önbelleğe alınıyor. HTML ve API yanıtları hala `no-cache`.
+    - **Gzip Compression:** Flask-Compress aktif, 382KB app.js → 73KB sıkıştırılmış
+    - **License Cache:** 30s TTL, create/update/delete sonrası otomatik temizlenir
+    - **KURAL:** `after_request` header'larında statik dosyalar (`/static/`) ile HTML/API yanıtlarını AYIR. Statik dosyalara `no-cache` ASLA ekleme.
 
 **Data Model (Supabase Tables):**
 - `fixtures`: Stores match metadata with a unique `match_id_hash`.
