@@ -6595,6 +6595,7 @@ def create_license():
         result = license_insert('licenses', insert_data)
         
         if result:
+            _license_cache['data'] = None
             return jsonify({'success': True, 'key': key})
         else:
             return jsonify({'success': False, 'error': 'Veritabani hatasi'})
@@ -6604,28 +6605,34 @@ def create_license():
         return jsonify({'success': False, 'error': str(e)})
 
 
+_license_cache = {'data': None, 'ts': 0, 'ttl': 30}
+
 @app.route('/api/licenses/list')
 def list_licenses():
-    """List all licenses with device counts"""
+    """List all licenses with device counts (cached 30s)"""
     try:
         if not get_license_db():
             return jsonify({'success': False, 'error': 'Supabase baglantisi yok'})
         
-        # Get all licenses
-        licenses = license_select('licenses', '*', None, 'created_at', True) or []
+        import time as _time
+        now = _time.time()
+        force = request.args.get('force') == '1'
+        if not force and _license_cache['data'] and (now - _license_cache['ts']) < _license_cache['ttl']:
+            return jsonify(_license_cache['data'])
         
-        # Get device counts
+        licenses = license_select('licenses', '*', None, 'created_at', True) or []
         devices = license_select('license_devices', 'license_key') or []
         device_counts = {}
         for d in devices:
             key = d.get('license_key')
             device_counts[key] = device_counts.get(key, 0) + 1
-        
-        # Add device count to each license
         for lic in licenses:
             lic['device_count'] = device_counts.get(lic.get('key'), 0)
         
-        return jsonify({'success': True, 'licenses': licenses})
+        result = {'success': True, 'licenses': licenses}
+        _license_cache['data'] = result
+        _license_cache['ts'] = now
+        return jsonify(result)
         
     except Exception as e:
         license_logging.error(f"List licenses error: {e}")
@@ -6770,6 +6777,7 @@ def update_license():
         result = license_update('licenses', update_data, {'key': key})
         
         if result:
+            _license_cache['data'] = None
             return jsonify({'success': True})
         else:
             return jsonify({'success': False, 'error': 'Guncelleme basarisiz'})
@@ -6815,9 +6823,8 @@ def delete_license():
         if not key:
             return jsonify({'success': False, 'error': 'Key gerekli'})
         
-        # Delete license (devices will be deleted via CASCADE)
         license_delete('licenses', {'key': key})
-        
+        _license_cache['data'] = None
         return jsonify({'success': True})
         
     except Exception as e:
