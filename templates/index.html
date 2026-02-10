@@ -5,12 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=190">
+    <link rel="stylesheet" href="/static/css/style.css?v=191">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/utc.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/timezone.js"></script>
@@ -18,6 +15,41 @@
     <script>
         dayjs.extend(dayjs_plugin_utc);
         dayjs.extend(dayjs_plugin_timezone);
+
+        window._chartLibsLoaded = false;
+        window._chartLibsLoading = false;
+        window.loadChartLibs = function() {
+            return new Promise(function(resolve) {
+                if (window._chartLibsLoaded) return resolve();
+                if (window._chartLibsLoading) {
+                    var check = setInterval(function() {
+                        if (window._chartLibsLoaded) { clearInterval(check); resolve(); }
+                    }, 50);
+                    return;
+                }
+                window._chartLibsLoading = true;
+                var scripts = [
+                    'https://cdn.jsdelivr.net/npm/chart.js',
+                    'https://cdn.jsdelivr.net/npm/hammerjs@2.0.8',
+                    'https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js',
+                    'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'
+                ];
+                var loaded = 0;
+                function loadNext() {
+                    if (loaded >= scripts.length) {
+                        window._chartLibsLoaded = true;
+                        resolve();
+                        return;
+                    }
+                    var s = document.createElement('script');
+                    s.src = scripts[loaded];
+                    s.onload = function() { loaded++; loadNext(); };
+                    s.onerror = function() { loaded++; loadNext(); };
+                    document.head.appendChild(s);
+                }
+                loadNext();
+            });
+        };
         dayjs.extend(dayjs_plugin_customParseFormat);
     </script>
 </head>

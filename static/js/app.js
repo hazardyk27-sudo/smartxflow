@@ -2168,6 +2168,10 @@ let modalOddsData = null;
 // Tarih filtresinden bağımsız - doğrudan matches dizisinden modal aç
 async function openMatchModalFromMatches(index) {
     if (index >= 0 && index < matches.length) {
+        if (window.loadChartLibs) {
+            await window.loadChartLibs();
+            registerChartPlugins();
+        }
         selectedMatch = matches[index];
         selectedChartMarket = currentMarket;
         previousOddsData = null;
@@ -2212,8 +2216,11 @@ async function openMatchModalFromMatches(index) {
 
 // API'den maç verisi çekip modal aç (listede olmayan maçlar için)
 async function openMatchModalFromAPI(homeTeam, awayTeam) {
+    if (window.loadChartLibs) {
+        await window.loadChartLibs();
+        registerChartPlugins();
+    }
     try {
-        // Match details API'sinden veri çek
         const params = new URLSearchParams({ home: homeTeam, away: awayTeam });
         const response = await fetch(`/api/match/details?${params}`);
         
@@ -2288,6 +2295,10 @@ async function openMatchModalFromAPI(homeTeam, awayTeam) {
 async function openMatchModal(index) {
     const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
     if (index >= 0 && index < dataSource.length) {
+        if (window.loadChartLibs) {
+            await window.loadChartLibs();
+            registerChartPlugins();
+        }
         selectedMatch = dataSource[index];
         selectedChartMarket = currentMarket;
         previousOddsData = null;
@@ -2941,10 +2952,15 @@ const mobileCrosshairPlugin = {
     }
 };
 
-// Register the plugins globally
+// Register the plugins globally (deferred until Chart.js is loaded)
+function registerChartPlugins() {
+    if (typeof Chart !== 'undefined') {
+        Chart.register(mobileBackgroundGridPlugin);
+        Chart.register(mobileCrosshairPlugin);
+    }
+}
 if (typeof Chart !== 'undefined') {
-    Chart.register(mobileBackgroundGridPlugin);
-    Chart.register(mobileCrosshairPlugin);
+    registerChartPlugins();
 }
 
 // Mobile Big Value Odometer Animation System (Rolling Digits)
