@@ -222,7 +222,7 @@ def get_storage(db_path: str):
     try:
         url, key = _get_supabase_credentials()
         return SupabaseStorage(url, key)
-    except ValueError as e:
+    except (ValueError, TypeError, Exception) as e:
         print(f"Warning: {e}")
         print("Falling back to SQLite storage")
         return SQLiteStorage(db_path)
