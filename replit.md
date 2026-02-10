@@ -62,11 +62,16 @@ The system uses a hybrid architecture with Supabase as the single source of trut
     - Jitter: 0-60 saniye random delay (synchronized spike önleme)
     - Baseline: 75k istek/gün → Hedef: ~25-30k istek/gün (%60-80 azalma)
 - **Performance Optimization (2026-02-10):**
-    - **Startup Warmup:** Sunucu başladığında alarm cache'i otomatik dolduruluyor (publish sonrası ilk ziyaretçi hızlı yüklenir)
+    - **Lazy Warmup:** Sunucu başlangıcında VERİ ÇEKİLMEZ. Her bölüm ilk ziyaretçide kendi cache'ini doldurur:
+      - `/app` veya alarm/matches API → `trigger_app_warmup()` → alarm + maç cache'i paralel doldurulur (~2s)
+      - `/admin` → `trigger_admin_warmup()` → lisans cache'i doldurulur (~0.4s)
+      - Landing page (`/`) → HİÇBİR warmup tetiklemez
+    - **Warmup Sync:** API endpoint'leri warmup sürerken `_app_warmup_done.wait()` ile bekler, duplicate Supabase isteği yapmaz
     - **Static Asset Caching:** `/static/` dosyaları (JS, CSS, images) `Cache-Control: public, max-age=3600` ile tarayıcıda 1 saat önbelleğe alınıyor. HTML ve API yanıtları hala `no-cache`.
     - **Gzip Compression:** Flask-Compress aktif, 382KB app.js → 73KB sıkıştırılmış
     - **License Cache:** 30s TTL, create/update/delete sonrası otomatik temizlenir
     - **KURAL:** `after_request` header'larında statik dosyalar (`/static/`) ile HTML/API yanıtlarını AYIR. Statik dosyalara `no-cache` ASLA ekleme.
+    - **KURAL:** Sunucu başlangıcında startup warmup YAPMA. Her bölüm lazy yüklenir.
 
 **Data Model (Supabase Tables):**
 - `fixtures`: Stores match metadata with a unique `match_id_hash`.

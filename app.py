@@ -27,9 +27,14 @@ else:
     Compress = None
 
 # ============================================
-# WARMUP SYNC - API endpoints wait for warmup before serving
+# LAZY WARMUP - Each section loads on first visit
 # ============================================
-_warmup_done = threading.Event()
+_app_warmup_done = threading.Event()
+_app_warmup_started = False
+_app_warmup_lock = threading.Lock()
+_admin_warmup_done = threading.Event()
+_admin_warmup_started = False
+_admin_warmup_lock = threading.Lock()
 
 # ============================================
 # SERVER-SIDE ALARM CACHE
@@ -40,11 +45,11 @@ _server_alarm_cache_time = 0
 SERVER_ALARM_CACHE_TTL = 60  # 60 seconds cache - Supabase istek optimizasyonu
 
 def get_cached_alarms(force_refresh=False):
-    """Get alarms from server-side cache or refresh from Supabase. Waits for warmup if in progress."""
+    """Get alarms from server-side cache or refresh from Supabase. Waits for app warmup if in progress."""
     global _server_alarm_cache, _server_alarm_cache_time
     
-    if not _warmup_done.is_set():
-        _warmup_done.wait(timeout=5)
+    if _app_warmup_started and not _app_warmup_done.is_set():
+        _app_warmup_done.wait(timeout=5)
     
     now = time.time()
     
@@ -69,11 +74,11 @@ _server_matches_cache_time = {}  # {market: timestamp}
 SERVER_MATCHES_CACHE_TTL = 60  # 60 seconds cache - Supabase istek optimizasyonu
 
 def get_cached_matches(market, force_refresh=False):
-    """Get matches from server-side cache. Waits for warmup if in progress."""
+    """Get matches from server-side cache. Waits for app warmup if in progress."""
     global _server_matches_cache, _server_matches_cache_time
     
-    if not _warmup_done.is_set():
-        _warmup_done.wait(timeout=5)
+    if _app_warmup_started and not _app_warmup_done.is_set():
+        _app_warmup_done.wait(timeout=5)
     
     now = time.time()
     cache_time = _server_matches_cache_time.get(market, 0)
@@ -752,7 +757,8 @@ def api_alarm_engine_status():
 
 @app.route('/app')
 def index():
-    """Main dashboard page"""
+    """Main dashboard page - triggers lazy warmup on first visit"""
+    trigger_app_warmup()
     return render_template('index.html')
 
 
@@ -933,7 +939,7 @@ def _warmup_matches():
             'match_id': generate_match_id(home, away, league, date),
             'odds': odds, 'history_count': 1
         })
-    set_matches_cache('moneyway_1x2', enriched)
+    set_matches_cache('moneyway_1x2_all', enriched)
     return len(enriched)
 
 def _warmup_licenses():
@@ -956,41 +962,70 @@ def _warmup_licenses():
     _license_cache['ts'] = _t.time()
     return len(licenses)
 
-def startup_warmup():
-    """Pre-fill all caches in parallel for fastest startup.
-    API endpoints wait for _warmup_done event before serving, preventing duplicate Supabase requests."""
+def _lazy_app_warmup():
+    """Lazy warmup for /app - fills alarm + matches cache on first visit"""
     import time as _t
     from concurrent.futures import ThreadPoolExecutor, as_completed
     start = _t.time()
-    print("[Startup Warmup] Starting parallel cache pre-fill...")
+    print("[App Warmup] Starting parallel cache pre-fill...")
     
     tasks = {
         'Alarms': _warmup_alarms,
         'Matches': _warmup_matches,
-        'Licenses': _warmup_licenses,
     }
     
     try:
-        with ThreadPoolExecutor(max_workers=3) as executor:
+        with ThreadPoolExecutor(max_workers=2) as executor:
             futures = {executor.submit(fn): name for name, fn in tasks.items()}
             for future in as_completed(futures):
                 name = futures[future]
                 try:
                     count = future.result()
-                    print(f"[Startup Warmup] {name} cache filled ({_t.time()-start:.1f}s)")
+                    print(f"[App Warmup] {name} cache filled ({_t.time()-start:.1f}s)")
                 except Exception as e:
-                    print(f"[Startup Warmup] {name} error: {e}")
+                    print(f"[App Warmup] {name} error: {e}")
     finally:
-        _warmup_done.set()
+        _app_warmup_done.set()
     
-    print(f"[Startup Warmup] Complete in {_t.time()-start:.1f}s")
+    print(f"[App Warmup] Complete in {_t.time()-start:.1f}s")
 
-_warmup_thread = threading.Thread(target=startup_warmup, daemon=True)
-_warmup_thread.start()
+def trigger_app_warmup():
+    """Trigger app warmup on first /app visit (thread-safe, runs only once)"""
+    global _app_warmup_started
+    with _app_warmup_lock:
+        if _app_warmup_started:
+            return
+        _app_warmup_started = True
+    threading.Thread(target=_lazy_app_warmup, daemon=True).start()
+
+def _lazy_admin_warmup():
+    """Lazy warmup for /admin - fills license cache on first visit"""
+    import time as _t
+    start = _t.time()
+    print("[Admin Warmup] Starting license cache pre-fill...")
+    try:
+        _warmup_licenses()
+        print(f"[Admin Warmup] Licenses cache filled ({_t.time()-start:.1f}s)")
+    except Exception as e:
+        print(f"[Admin Warmup] Error: {e}")
+    finally:
+        _admin_warmup_done.set()
+    print(f"[Admin Warmup] Complete in {_t.time()-start:.1f}s")
+
+def trigger_admin_warmup():
+    """Trigger admin warmup on first /admin visit (thread-safe, runs only once)"""
+    global _admin_warmup_started
+    with _admin_warmup_lock:
+        if _admin_warmup_started:
+            return
+        _admin_warmup_started = True
+    threading.Thread(target=_lazy_admin_warmup, daemon=True).start()
 
 @app.route('/api/matches')
 def get_matches():
     """Get matches from database with server-side caching
+    
+    Triggers lazy app warmup if not started yet.
     
     Params:
     - bulk=1: Returns ALL matches at once (uses server cache, instant on hit)
@@ -998,6 +1033,7 @@ def get_matches():
     
     Result: Cache hit = 0ms, Cache miss = ~2s (fetches all pages)
     """
+    trigger_app_warmup()
     import time as t
     start_time = t.time()
     
@@ -4802,12 +4838,14 @@ def get_all_alarms_batch():
     """
     Batch endpoint - Returns all 7 alarm types in a single request.
     Uses server-side cache to reduce response time from ~2s to <50ms.
+    Triggers lazy app warmup if not started yet.
     
     Query params:
     - types: comma-separated list of alarm types to include (default: all)
       Example: ?types=sharp,bigmoney,mim
     - refresh: set to 'true' to force cache refresh
     """
+    trigger_app_warmup()
     import time as t
     start_time = t.time()
     
@@ -6042,9 +6080,10 @@ def scraper_console_page():
 
 @app.route('/admin')
 def admin_panel():
-    """Admin Panel - requires login"""
+    """Admin Panel - requires login, triggers lazy warmup on first visit"""
     if not session.get('admin_authenticated'):
         return redirect('/admin/login')
+    trigger_admin_warmup()
     return render_template('admin.html')
 
 @app.route('/admin/login', methods=['GET', 'POST'])
