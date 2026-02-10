@@ -6,10 +6,14 @@ Now writes to both SQLite (local) and Supabase (cloud)
 
 import os
 import time
+import requests as http_requests
 from typing import Dict, Any, Optional, Callable
 
 from scraper.moneyway import scrape_all, DATASETS
 from services.supabase_client import get_database
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
 
 
 MARKET_KEY_MAP = {
@@ -80,6 +84,35 @@ def sync_to_supabase(scraped_data: Dict[str, Any], progress_callback: Optional[C
     }
 
 
+def write_scraper_signal(match_count: int) -> bool:
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        print("[Scraper] Supabase config eksik, sinyal yazılamadı")
+        return False
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/scraper_signal"
+        headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+        }
+        payload = {
+            "match_count": match_count,
+            "source": "replit",
+            "processed": False
+        }
+        r = http_requests.post(url, json=payload, headers=headers, timeout=10)
+        if r.status_code in (200, 201):
+            print(f"[Scraper] scraper_signal yazıldı (match_count={match_count})")
+            return True
+        else:
+            print(f"[Scraper] Signal yazma hatası: {r.status_code} - {r.text[:200]}")
+            return False
+    except Exception as e:
+        print(f"[Scraper] Signal yazma exception: {e}")
+        return False
+
+
 def run_scraper(
     output_dir: Optional[str] = None,
     progress_callback: Optional[Callable[[str, int, int], None]] = None,
@@ -128,6 +161,9 @@ def run_scraper(
                 progress_callback("Supabase sync complete", 1, 1)
         
         duration = time.time() - start_time
+        
+        if sync_supabase and supabase_stats["snapshots"] > 0:
+            write_scraper_signal(supabase_stats["matches"])
         
         return {
             "status": "ok",
