@@ -3436,8 +3436,9 @@ async function loadChart(home, away, market, league = '') {
         const timeBlocks = {};
         filteredHistory.forEach(h => {
             const ts = h.ScrapedAt || '';
-            const rounded = roundToBucket(ts);
-            const key = rounded.valueOf();
+            const dt = toTurkeyTime(ts);
+            if (!dt || !dt.isValid()) return;
+            const key = dt.valueOf();
             timeBlocks[key] = h;
         });
         
