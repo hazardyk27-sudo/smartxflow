@@ -7589,7 +7589,7 @@
                 const data = await response.json();
                 if (data.success) {
                     showToast('Fiyat kaydedildi', 'success');
-                    loadAnalytics();
+                    loadAnalyticsDashboard();
                 } else {
                     showToast(data.error || 'Fiyat kaydetme hatasi', 'error');
                 }
