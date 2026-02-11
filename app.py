@@ -6940,6 +6940,29 @@ def heartbeat():
         return jsonify({'success': False, 'error': str(e)})
 
 
+def _classify_subscription(duration_days, plan):
+    """Classify license by duration_days and plan into subscription category"""
+    plan = (plan or 'core').lower()
+    d = duration_days or 30
+    if d == 0:
+        return f'{plan}_lifetime'
+    elif d == 1:
+        return 'free_trial'
+    elif d == 3:
+        return 'free_trial'
+    elif d <= 7:
+        return 'free_trial'
+    elif d <= 14:
+        return 'free_trial'
+    elif d <= 30:
+        return f'{plan}_monthly'
+    elif d <= 90:
+        return f'{plan}_quarterly'
+    elif d <= 365:
+        return f'{plan}_yearly'
+    else:
+        return f'{plan}_lifetime'
+
 @app.route('/api/analytics/dashboard')
 def analytics_dashboard():
     """Admin dashboard analytics"""
@@ -6953,38 +6976,61 @@ def analytics_dashboard():
         week_ago = now - timedelta(days=7)
         five_min_ago = now - timedelta(minutes=5)
         
-        licenses = license_select('licenses', 'status,expires_at,duration_days,created_at') or []
+        licenses = license_select('licenses', 'status,expires_at,duration_days,created_at,plan') or []
         sessions = license_select('user_sessions', 'license_key,device_id,last_seen') or []
         devices = license_select('license_devices', 'license_key') or []
+        
+        price_map = _load_pricing()
         
         total_licenses = len(licenses)
         active_licenses = 0
         expired_licenses = 0
-        lifetime_count = 0
-        one_day_count = 0
-        three_day_count = 0
-        monthly_count = 0
         new_today = 0
         new_this_week = 0
         expiring_soon = 0
+        
+        sub_counts = {
+            'free_trial': 0,
+            'core_monthly': 0, 'core_quarterly': 0, 'core_yearly': 0, 'core_lifetime': 0,
+            'pro_monthly': 0, 'pro_quarterly': 0, 'pro_yearly': 0, 'pro_lifetime': 0
+        }
+        
+        total_revenue = 0
         
         for lic in licenses:
             status = lic.get('status', 'active')
             expires_at = lic.get('expires_at')
             duration = lic.get('duration_days', 30)
             created_at = lic.get('created_at', '')
+            plan = lic.get('plan', 'core')
             
-            if duration == 0:
-                lifetime_count += 1
-            elif duration == 1:
-                one_day_count += 1
-            elif duration == 3:
-                three_day_count += 1
-            else:
-                monthly_count += 1
+            sub_type = _classify_subscription(duration, plan)
+            if sub_type in sub_counts:
+                sub_counts[sub_type] += 1
             
             if status == 'revoked':
                 continue
+            
+            if sub_type != 'free_trial' and sub_type in price_map:
+                price_info = price_map[sub_type]
+                price_updated = price_info.get('updated_at', '')
+                lic_created = created_at
+                if price_updated and lic_created:
+                    try:
+                        p_str = price_updated.replace('Z', '+00:00')
+                        c_str = lic_created.replace('Z', '+00:00')
+                        if '+' not in p_str and 'T' in p_str:
+                            p_str += '+00:00'
+                        if '+' not in c_str and 'T' in c_str:
+                            c_str += '+00:00'
+                        p_date = datetime.fromisoformat(p_str).replace(tzinfo=None)
+                        c_date = datetime.fromisoformat(c_str).replace(tzinfo=None)
+                        if c_date >= p_date:
+                            total_revenue += price_info['price']
+                    except Exception as e:
+                        print(f'[Revenue] Date parse error: {e} (price_updated={price_updated}, created_at={lic_created})')
+                elif not price_updated:
+                    total_revenue += price_info['price']
             
             try:
                 exp_date = datetime.fromisoformat(expires_at.replace('Z', '+00:00').replace('+00:00', ''))
@@ -7018,8 +7064,6 @@ def analytics_dashboard():
         
         total_devices = len(devices)
         
-        estimated_monthly_revenue = (one_day_count * 5) + (three_day_count * 10) + (monthly_count * 25) + (lifetime_count * 100)
-        
         return jsonify({
             'success': True,
             'data': {
@@ -7028,22 +7072,72 @@ def analytics_dashboard():
                 'expired_licenses': expired_licenses,
                 'online_users': online_users,
                 'total_devices': total_devices,
-                'subscription_types': {
-                    'one_day': one_day_count,
-                    'three_day': three_day_count,
-                    'monthly': monthly_count,
-                    'lifetime': lifetime_count
-                },
+                'subscription_types': sub_counts,
                 'new_today': new_today,
                 'new_this_week': new_this_week,
                 'expiring_soon': expiring_soon,
-                'estimated_revenue': estimated_monthly_revenue,
+                'total_revenue': total_revenue,
+                'pricing': price_map,
                 'server_time': now.isoformat()
             }
         })
         
     except Exception as e:
         license_logging.error(f"Analytics dashboard error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+PRICING_FILE = os.path.join(os.path.dirname(__file__), 'pricing_config.json')
+
+def _load_pricing():
+    """Load pricing config from local JSON file"""
+    try:
+        if os.path.exists(PRICING_FILE):
+            with open(PRICING_FILE, 'r') as f:
+                data = json.load(f)
+                if data:
+                    return data
+    except Exception as e:
+        print(f'[Pricing] Load error: {e}')
+    return {}
+
+def _save_pricing_file(data):
+    """Save pricing config to local JSON file"""
+    with open(PRICING_FILE, 'w') as f:
+        json.dump(data, f, indent=2)
+
+@app.route('/api/pricing/get')
+def get_pricing():
+    """Get all pricing config"""
+    try:
+        return jsonify({'success': True, 'pricing': _load_pricing()})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/pricing/save', methods=['POST'])
+def save_pricing():
+    """Save pricing config"""
+    try:
+        data = request.get_json() or {}
+        plan_key = data.get('plan_key', '').strip()
+        price = float(data.get('price', 0))
+        
+        if not plan_key:
+            return jsonify({'success': False, 'error': 'plan_key gerekli'})
+        
+        from datetime import datetime
+        now = datetime.utcnow().isoformat()
+        
+        pricing = _load_pricing()
+        pricing[plan_key] = {
+            'price': price,
+            'updated_at': now
+        }
+        _save_pricing_file(pricing)
+        
+        return jsonify({'success': True})
+    except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
 
