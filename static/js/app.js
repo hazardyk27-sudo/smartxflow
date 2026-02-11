@@ -3635,7 +3635,7 @@ async function loadChart(home, away, market, league = '') {
                     ? ['AmtUnder', 'AmtOver'] 
                     : ['PctUnder', 'PctOver'];
                 dataKeys.forEach((key, idx) => {
-                    const label = ['Alt', 'Üst'][idx];
+                    const label = ['Under', 'Over'][idx];
                     const color = [colors['Under'], colors['Over']][idx];
                     const dataArr = historyData.map(h => parseMoneyValue(h[key]));
                     const lastIdx = dataArr.length - 1;
@@ -5143,7 +5143,8 @@ function exportChartCSV() {
 function toggleChartSeries(market, seriesKey, btn) {
     const stateKey = `${market}_${seriesKey}`;
     
-    chartVisibleSeries[stateKey] = !chartVisibleSeries[stateKey];
+    const wasVisible = chartVisibleSeries[stateKey] !== false;
+    chartVisibleSeries[stateKey] = !wasVisible;
     
     if (btn) {
         if (chartVisibleSeries[stateKey]) {
