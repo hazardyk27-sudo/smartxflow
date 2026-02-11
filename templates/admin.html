@@ -995,10 +995,6 @@
                                 <span style="color: #e6edf3; font-size: 12px; flex: 1;">Yillik</span>
                                 <input type="number" id="price_core_yearly" min="0" step="1" style="width: 80px; padding: 4px 8px; background: #0d1117; border: 1px solid #30363d; border-radius: 4px; color: #e6edf3; font-size: 12px; text-align: right;" onchange="savePricing('core_yearly', this.value)">
                             </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding-left: 8px; gap: 8px;">
-                                <span style="color: #e6edf3; font-size: 12px; flex: 1;">Lifetime</span>
-                                <input type="number" id="price_core_lifetime" min="0" step="1" style="width: 80px; padding: 4px 8px; background: #0d1117; border: 1px solid #30363d; border-radius: 4px; color: #e6edf3; font-size: 12px; text-align: right;" onchange="savePricing('core_lifetime', this.value)">
-                            </div>
                             <div style="padding: 4px 0; border-bottom: 1px solid #30363d;">
                                 <span style="color: #a371f7; font-size: 11px; font-weight: 600;">PRO</span>
                             </div>
@@ -1014,17 +1010,17 @@
                                 <span style="color: #e6edf3; font-size: 12px; flex: 1;">Yillik</span>
                                 <input type="number" id="price_pro_yearly" min="0" step="1" style="width: 80px; padding: 4px 8px; background: #0d1117; border: 1px solid #30363d; border-radius: 4px; color: #e6edf3; font-size: 12px; text-align: right;" onchange="savePricing('pro_yearly', this.value)">
                             </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding-left: 8px; gap: 8px;">
-                                <span style="color: #e6edf3; font-size: 12px; flex: 1;">Lifetime</span>
-                                <input type="number" id="price_pro_lifetime" min="0" step="1" style="width: 80px; padding: 4px 8px; background: #0d1117; border: 1px solid #30363d; border-radius: 4px; color: #e6edf3; font-size: 12px; text-align: right;" onchange="savePricing('pro_lifetime', this.value)">
-                            </div>
                         </div>
                     </div>
-                    
-                    <!-- Yeni Kayitlar + Gelir -->
+
+                    <!-- Bedava Uyelik + Gelir -->
                     <div style="background: #21262d; padding: 15px; border-radius: 8px;">
-                        <h4 style="color: #8b949e; font-size: 12px; text-transform: uppercase; margin-bottom: 12px;">Yeni Kayitlar & Gelir</h4>
+                        <h4 style="color: #8b949e; font-size: 12px; text-transform: uppercase; margin-bottom: 12px;">Kayitlar & Gelir</h4>
                         <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #8b949e; font-size: 12px;">Bedava Uyelik</span>
+                                <span id="analyticsFreeCount" style="color: #8b949e; font-weight: 600;">-</span>
+                            </div>
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="color: #e6edf3;">Bugun</span>
                                 <span id="analyticsNewToday" style="color: #3fb950; font-weight: 600;">-</span>
@@ -7551,6 +7547,8 @@
                         document.getElementById('analyticsProQuarterly').textContent = st.pro_quarterly || 0;
                         document.getElementById('analyticsProYearly').textContent = st.pro_yearly || 0;
                         document.getElementById('analyticsProLifetime').textContent = st.pro_lifetime || 0;
+                        var freeCount = (st.free_trial || 0) + (st.core_lifetime || 0) + (st.pro_lifetime || 0);
+                        document.getElementById('analyticsFreeCount').textContent = freeCount;
                     }
                     
                     document.getElementById('analyticsNewToday').textContent = d.new_today || 0;
@@ -7558,7 +7556,7 @@
                     document.getElementById('analyticsRevenue').textContent = (d.total_revenue || 0).toLocaleString() + ' TL';
                     
                     if (d.pricing) {
-                        const plans = ['core_monthly','core_quarterly','core_yearly','core_lifetime','pro_monthly','pro_quarterly','pro_yearly','pro_lifetime'];
+                        const plans = ['core_monthly','core_quarterly','core_yearly','pro_monthly','pro_quarterly','pro_yearly'];
                         plans.forEach(k => {
                             const el = document.getElementById('price_' + k);
                             if (el && d.pricing[k]) {
