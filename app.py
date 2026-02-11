@@ -7019,7 +7019,7 @@ def analytics_dashboard():
             lic_price = 0
             if sub_type != 'free_trial' and sub_type in price_map:
                 lic_price = price_map[sub_type].get('price', 0)
-                total_revenue += lic_price
+            total_revenue += lic_price
             
             try:
                 exp_date = datetime.fromisoformat(expires_at.replace('Z', '+00:00').replace('+00:00', ''))
@@ -7046,6 +7046,12 @@ def analytics_dashboard():
                     revenue_month += lic_price
             except:
                 pass
+        
+        free_count = int(price_map.get('free_count', {}).get('price', 0))
+        if free_count > 0:
+            best_price = price_map.get('pro_monthly', {}).get('price', 0) or price_map.get('core_monthly', {}).get('price', 0)
+            free_deduction = free_count * best_price
+            total_revenue = max(0, total_revenue - free_deduction)
         
         online_users = 0
         for sess in sessions:
