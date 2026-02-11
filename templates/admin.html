@@ -1011,9 +1011,9 @@
                                 <input type="number" id="price_pro_yearly" min="0" step="1" style="width: 80px; padding: 4px 8px; background: #0d1117; border: 1px solid #30363d; border-radius: 4px; color: #e6edf3; font-size: 12px; text-align: right;" onchange="savePricing('pro_yearly', this.value)">
                             </div>
                             <div style="padding: 8px 0 4px 0; border-top: 1px solid #30363d; margin-top: 4px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <span style="color: #8b949e; font-size: 12px;">Bedava Uyelik (0 TL)</span>
-                                    <span id="analyticsFreeCount" style="color: #8b949e; font-weight: 600;">-</span>
+                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                                    <span style="color: #8b949e; font-size: 12px; flex: 1;">Bedava Uyelik (0 TL)</span>
+                                    <input type="number" id="price_free_count" min="0" step="1" style="width: 80px; padding: 4px 8px; background: #0d1117; border: 1px solid #30363d; border-radius: 4px; color: #8b949e; font-size: 12px; text-align: right;" onchange="savePricing('free_count', this.value)">
                                 </div>
                             </div>
                         </div>
@@ -7549,8 +7549,10 @@
                         document.getElementById('analyticsProQuarterly').textContent = st.pro_quarterly || 0;
                         document.getElementById('analyticsProYearly').textContent = st.pro_yearly || 0;
                         document.getElementById('analyticsProLifetime').textContent = st.pro_lifetime || 0;
-                        var freeCount = (st.free_trial || 0) + (st.core_lifetime || 0) + (st.pro_lifetime || 0);
-                        document.getElementById('analyticsFreeCount').textContent = freeCount;
+                    }
+                    if (d.pricing && d.pricing.free_count) {
+                        var el = document.getElementById('price_free_count');
+                        if (el) el.value = d.pricing.free_count.price || 0;
                     }
                     
                     document.getElementById('analyticsNewToday').textContent = d.new_today || 0;
