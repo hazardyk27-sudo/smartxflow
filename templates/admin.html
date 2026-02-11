@@ -1019,7 +1019,7 @@
                         </div>
                     </div>
 
-                    <!-- Yeni Kayitlar + Gelir -->
+                    <!-- Kayitlar & Gelir -->
                     <div style="background: #21262d; padding: 15px; border-radius: 8px;">
                         <h4 style="color: #8b949e; font-size: 12px; text-transform: uppercase; margin-bottom: 12px;">Kayitlar & Gelir</h4>
                         <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -1031,7 +1031,15 @@
                                 <span style="color: #e6edf3;">Bu Hafta</span>
                                 <span id="analyticsNewWeek" style="color: #58a6ff; font-weight: 600;">-</span>
                             </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid #30363d;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #e6edf3;">Bu Ay</span>
+                                <span id="analyticsNewMonth" style="color: #a371f7; font-weight: 600;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding-top: 4px; border-top: 1px solid #30363d;">
+                                <span style="color: #e6edf3;">Toplam Kullanici</span>
+                                <span id="analyticsTotalUsers" style="color: #e6edf3; font-weight: 600;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding-top: 4px; border-top: 1px solid #30363d;">
                                 <span style="color: #e6edf3; font-weight: 600;">Toplam Gelir</span>
                                 <span id="analyticsRevenue" style="color: #fbbf24; font-weight: 700; font-size: 18px;">-</span>
                             </div>
@@ -7557,6 +7565,8 @@
                     
                     document.getElementById('analyticsNewToday').textContent = d.new_today || 0;
                     document.getElementById('analyticsNewWeek').textContent = d.new_this_week || 0;
+                    document.getElementById('analyticsNewMonth').textContent = d.new_this_month || 0;
+                    document.getElementById('analyticsTotalUsers').textContent = d.total_licenses || 0;
                     document.getElementById('analyticsRevenue').textContent = (d.total_revenue || 0).toLocaleString() + ' TL';
                     
                     if (d.pricing) {

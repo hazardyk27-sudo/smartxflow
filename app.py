@@ -6987,7 +6987,9 @@ def analytics_dashboard():
         expired_licenses = 0
         new_today = 0
         new_this_week = 0
+        new_this_month = 0
         expiring_soon = 0
+        month_ago = now - timedelta(days=30)
         
         sub_counts = {
             'free_trial': 0,
@@ -7013,24 +7015,7 @@ def analytics_dashboard():
             
             if sub_type != 'free_trial' and sub_type in price_map:
                 price_info = price_map[sub_type]
-                price_updated = price_info.get('updated_at', '')
-                lic_created = created_at
-                if price_updated and lic_created:
-                    try:
-                        p_str = price_updated.replace('Z', '+00:00')
-                        c_str = lic_created.replace('Z', '+00:00')
-                        if '+' not in p_str and 'T' in p_str:
-                            p_str += '+00:00'
-                        if '+' not in c_str and 'T' in c_str:
-                            c_str += '+00:00'
-                        p_date = datetime.fromisoformat(p_str).replace(tzinfo=None)
-                        c_date = datetime.fromisoformat(c_str).replace(tzinfo=None)
-                        if c_date >= p_date:
-                            total_revenue += price_info['price']
-                    except Exception as e:
-                        print(f'[Revenue] Date parse error: {e} (price_updated={price_updated}, created_at={lic_created})')
-                elif not price_updated:
-                    total_revenue += price_info['price']
+                total_revenue += price_info.get('price', 0)
             
             try:
                 exp_date = datetime.fromisoformat(expires_at.replace('Z', '+00:00').replace('+00:00', ''))
@@ -7050,6 +7035,8 @@ def analytics_dashboard():
                     new_today += 1
                 if created >= week_ago:
                     new_this_week += 1
+                if created >= month_ago:
+                    new_this_month += 1
             except:
                 pass
         
@@ -7075,6 +7062,7 @@ def analytics_dashboard():
                 'subscription_types': sub_counts,
                 'new_today': new_today,
                 'new_this_week': new_this_week,
+                'new_this_month': new_this_month,
                 'expiring_soon': expiring_soon,
                 'total_revenue': total_revenue,
                 'pricing': price_map,
