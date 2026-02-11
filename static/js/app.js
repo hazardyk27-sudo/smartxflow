@@ -3836,7 +3836,14 @@ async function loadChart(home, away, market, league = '') {
                                 const h = tooltipHistory[dataIndex];
                                 const titleLines = tooltipModel.title || [];
                                 
-                                let innerHtml = '<div class="chart-tooltip-title">' + titleLines.join(' — ') + '</div>';
+                                let tooltipTitle = titleLines.join(' — ');
+                                if (h && h.ScrapedAt) {
+                                    const dt = toTurkeyTime(h.ScrapedAt);
+                                    if (dt && dt.isValid()) {
+                                        tooltipTitle = dt.format('DD/MM • HH:mm');
+                                    }
+                                }
+                                let innerHtml = '<div class="chart-tooltip-title">' + tooltipTitle + '</div>';
                                 innerHtml += '<div class="chart-tooltip-body">';
                                 
                                 const processedLabels = new Set();
