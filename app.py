@@ -6819,12 +6819,24 @@ def validate_license():
             days_left = 9999
         
         # Check device
-        devices = license_select('license_devices', 'device_id', {'license_key': key}) or []
+        devices = license_select('license_devices', 'device_id,created_at', {'license_key': key}) or []
         device_ids = [d.get('device_id') for d in devices]
         max_devices = license_data.get('max_devices', 1)
         
         if device_id in device_ids:
-            # Device already registered - update last_seen
+            device_index = sorted(
+                range(len(devices)),
+                key=lambda i: devices[i].get('created_at', '')
+            )
+            allowed_ids = [devices[i].get('device_id') for i in device_index[:max_devices]]
+            
+            if device_id not in allowed_ids:
+                return jsonify({
+                    'valid': False,
+                    'error': f'Bu lisans {max_devices} cihazda aktif, bu cihaz limit disinda',
+                    'device_limit': True
+                })
+            
             license_update('license_devices', {
                 'last_seen': datetime.utcnow().isoformat()
             }, {'license_key': key, 'device_id': device_id})
