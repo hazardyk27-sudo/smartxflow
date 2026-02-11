@@ -2698,6 +2698,21 @@
                             </select>
                         </div>
                         <div class="form-group">
+                            <label>Max Cihaz Sayisi</label>
+                            <select id="licenseMaxDevices" style="padding: 8px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3;">
+                                <option value="1">1</option>
+                                <option value="2" selected>2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label>Not (opsiyonel)</label>
                             <input type="text" id="licenseNote" placeholder="Ornek: VIP musteri" style="width: 100%;">
                         </div>
@@ -2886,6 +2901,21 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; color: #8b949e; font-size: 13px;">Max Cihaz Sayisi</label>
+                        <select id="editMaxDevices" style="width: 100%; padding: 10px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 14px;">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                        </select>
                     </div>
                     <div class="form-group" style="margin-bottom: 16px;">
                         <label style="display: block; margin-bottom: 6px; color: #8b949e; font-size: 13px;">Telegram Kullanici Adi</label>
@@ -6921,6 +6951,7 @@
             const duration = parseInt(document.getElementById('licenseDuration').value);
             const note = document.getElementById('licenseNote').value.trim();
             const plan = document.getElementById('licensePlan').value;
+            const maxDevices = parseInt(document.getElementById('licenseMaxDevices').value);
 
             if (!email) {
                 showToast('Email adresi gerekli!', 'error');
@@ -6935,7 +6966,8 @@
                         email, 
                         duration_days: duration, 
                         note,
-                        plan
+                        plan,
+                        max_devices: maxDevices
                     })
                 });
 
@@ -7084,7 +7116,7 @@
                         <td>
                             <div style="display: flex; gap: 5px;">
                                 <button onclick="copyLicenseKey('${lic.key}')" title="Key Kopyala" style="background: #30363d; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">📋</button>
-                                <button class="edit-license-btn" data-key="${escapeHtmlAttr(lic.key)}" data-email="${escapeHtmlAttr(lic.email)}" data-telegram="${escapeHtmlAttr(lic.telegram_username)}" data-membership="${lic.telegram_membership ? 'true' : 'false'}" data-plan="${lic.plan || 'core'}" data-expires="${lic.expires_at || ''}" title="Duzenle" style="background: #a371f7; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">✏️</button>
+                                <button class="edit-license-btn" data-key="${escapeHtmlAttr(lic.key)}" data-email="${escapeHtmlAttr(lic.email)}" data-telegram="${escapeHtmlAttr(lic.telegram_username)}" data-membership="${lic.telegram_membership ? 'true' : 'false'}" data-plan="${lic.plan || 'core'}" data-expires="${lic.expires_at || ''}" data-maxdevices="${lic.max_devices || 2}" title="Duzenle" style="background: #a371f7; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">✏️</button>
                                 <button onclick="openExtendModal('${lic.key}')" title="Sure Uzat" style="background: #238636; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">⏰</button>
                                 <button onclick="resetDevices('${lic.key}')" title="Cihazlari Sifirla" style="background: #58a6ff; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">🔄</button>
                                 <button onclick="deleteLicense('${lic.key}')" title="Sil" style="background: #f85149; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">🗑️</button>
@@ -7162,7 +7194,7 @@
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <button onclick="copyLicenseKey('${lic.key}'); closeLicenseDetail();" style="background: #30363d; border: none; color: white; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 13px;">📋 Key Kopyala</button>
-                    <button class="edit-license-btn" data-key="${escapeHtmlAttr(lic.key)}" data-email="${escapeHtmlAttr(lic.email)}" data-telegram="${escapeHtmlAttr(lic.telegram_username)}" data-membership="${lic.telegram_membership ? 'true' : 'false'}" data-plan="${lic.plan || 'core'}" data-expires="${lic.expires_at || ''}" onclick="closeLicenseDetail();" style="background: #a371f7; border: none; color: white; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 13px;">✏️ Duzenle</button>
+                    <button class="edit-license-btn" data-key="${escapeHtmlAttr(lic.key)}" data-email="${escapeHtmlAttr(lic.email)}" data-telegram="${escapeHtmlAttr(lic.telegram_username)}" data-membership="${lic.telegram_membership ? 'true' : 'false'}" data-plan="${lic.plan || 'core'}" data-expires="${lic.expires_at || ''}" data-maxdevices="${lic.max_devices || 2}" onclick="closeLicenseDetail();" style="background: #a371f7; border: none; color: white; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 13px;">✏️ Duzenle</button>
                     <button onclick="closeLicenseDetail(); resetDevices('${lic.key}');" style="background: #58a6ff; border: none; color: white; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 13px;">🔄 Cihaz Sifirla</button>
                     <button onclick="closeLicenseDetail(); deleteLicense('${lic.key}');" style="background: #f85149; border: none; color: white; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 13px;">🗑️ Sil</button>
                 </div>
@@ -7283,12 +7315,13 @@
         let editPendingDays = 0;
         let editOriginalExpiry = null;
 
-        function openEditModal(key, email, telegramUsername, telegramMembership, plan, expiresAt) {
+        function openEditModal(key, email, telegramUsername, telegramMembership, plan, expiresAt, maxDevices) {
             document.getElementById('editLicenseKey').value = key;
             document.getElementById('editLicenseEmail').value = email || '';
             document.getElementById('editTelegramUsername').value = telegramUsername || '';
             document.getElementById('editTelegramMembership').checked = telegramMembership || false;
             document.getElementById('editLicensePlan').value = plan || 'core';
+            document.getElementById('editMaxDevices').value = maxDevices || 2;
             editPendingDays = 0;
             editOriginalExpiry = expiresAt ? new Date(expiresAt) : null;
             const daysInput = document.getElementById('editAdjustDays');
@@ -7348,7 +7381,8 @@
                 const membership = btn.dataset.membership === 'true';
                 const plan = btn.dataset.plan || 'core';
                 const expires = btn.dataset.expires || '';
-                openEditModal(key, email, telegram, membership, plan, expires);
+                const maxDevices = parseInt(btn.dataset.maxdevices) || 2;
+                openEditModal(key, email, telegram, membership, plan, expires, maxDevices);
             }
         });
 
@@ -7364,12 +7398,13 @@
             const telegramUsername = document.getElementById('editTelegramUsername').value.trim();
             const telegramMembership = document.getElementById('editTelegramMembership').checked;
             const plan = document.getElementById('editLicensePlan').value;
+            const maxDevices = parseInt(document.getElementById('editMaxDevices').value);
 
             try {
                 const response = await fetch('/api/licenses/update', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key, email, telegram_username: telegramUsername, telegram_membership: telegramMembership, plan })
+                    body: JSON.stringify({ key, email, telegram_username: telegramUsername, telegram_membership: telegramMembership, plan, max_devices: maxDevices })
                 });
 
                 const data = await response.json();

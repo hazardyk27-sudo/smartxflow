@@ -6717,6 +6717,10 @@ def update_license():
         }
         if 'plan' in data and data['plan'] in ('core', 'pro'):
             update_data['plan'] = data['plan']
+        if 'max_devices' in data:
+            md = int(data['max_devices'])
+            if 1 <= md <= 10:
+                update_data['max_devices'] = md
         
         result = license_update('licenses', update_data, {'key': key})
         
