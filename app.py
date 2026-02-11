@@ -6998,6 +6998,9 @@ def analytics_dashboard():
         }
         
         total_revenue = 0
+        revenue_today = 0
+        revenue_week = 0
+        revenue_month = 0
         
         for lic in licenses:
             status = lic.get('status', 'active')
@@ -7013,9 +7016,10 @@ def analytics_dashboard():
             if status == 'revoked':
                 continue
             
+            lic_price = 0
             if sub_type != 'free_trial' and sub_type in price_map:
-                price_info = price_map[sub_type]
-                total_revenue += price_info.get('price', 0)
+                lic_price = price_map[sub_type].get('price', 0)
+                total_revenue += lic_price
             
             try:
                 exp_date = datetime.fromisoformat(expires_at.replace('Z', '+00:00').replace('+00:00', ''))
@@ -7033,10 +7037,13 @@ def analytics_dashboard():
                 created = datetime.fromisoformat(created_at.replace('Z', '+00:00').replace('+00:00', ''))
                 if created.date() == today:
                     new_today += 1
+                    revenue_today += lic_price
                 if created >= week_ago:
                     new_this_week += 1
+                    revenue_week += lic_price
                 if created >= month_ago:
                     new_this_month += 1
+                    revenue_month += lic_price
             except:
                 pass
         
@@ -7065,6 +7072,9 @@ def analytics_dashboard():
                 'new_this_month': new_this_month,
                 'expiring_soon': expiring_soon,
                 'total_revenue': total_revenue,
+                'revenue_today': revenue_today,
+                'revenue_week': revenue_week,
+                'revenue_month': revenue_month,
                 'pricing': price_map,
                 'server_time': now.isoformat()
             }
