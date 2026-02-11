@@ -2798,12 +2798,18 @@
                             <label>Not (opsiyonel)</label>
                             <input type="text" id="licenseNote" placeholder="Ornek: VIP musteri" style="width: 100%;">
                         </div>
-                        <div class="form-group">
-                            <label>Plan</label>
-                            <select id="licensePlan" style="padding: 8px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3;">
-                                <option value="core" selected>CORE (Sadece Yazilim)</option>
-                                <option value="pro">PRO (Yazilim + Trendler)</option>
-                            </select>
+                        <div class="form-group" style="display: flex; gap: 12px; align-items: flex-end;">
+                            <div style="flex: 1;">
+                                <label>Plan</label>
+                                <select id="licensePlan" style="padding: 8px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; width: 100%;">
+                                    <option value="core" selected>CORE (Sadece Yazilim)</option>
+                                    <option value="pro">PRO (Yazilim + Trendler)</option>
+                                </select>
+                            </div>
+                            <label style="display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; white-space: nowrap;">
+                                <input type="checkbox" id="licenseFree" style="cursor: pointer;">
+                                <span style="color: #8b949e; font-size: 13px;">Bedava</span>
+                            </label>
                         </div>
                     </div>
                     <div class="btn-group" style="margin-top: 20px;">
@@ -7033,6 +7039,7 @@
             const duration = parseInt(document.getElementById('licenseDuration').value);
             const note = document.getElementById('licenseNote').value.trim();
             const plan = document.getElementById('licensePlan').value;
+            const isFree = document.getElementById('licenseFree').checked;
             const maxDevices = parseInt(document.getElementById('licenseMaxDevices').value);
 
             if (!email) {
@@ -7049,6 +7056,7 @@
                         duration_days: duration, 
                         note,
                         plan,
+                        is_free: isFree,
                         max_devices: maxDevices
                     })
                 });
@@ -7060,6 +7068,7 @@
                     document.getElementById('licenseEmail').value = '';
                     document.getElementById('licenseNote').value = '';
                     document.getElementById('licensePlan').value = 'core';
+                    document.getElementById('licenseFree').checked = false;
                     showToast('Lisans olusturuldu!', 'success');
                     loadLicenses();
                     loadLicenseStats();

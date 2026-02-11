@@ -6498,6 +6498,7 @@ def create_license():
         plan = data.get('plan', 'core')
         if plan not in ('core', 'pro'):
             plan = 'core'
+        is_free = bool(data.get('is_free', False))
         telegram_membership = data.get('telegram_membership', False)
         telegram_username = data.get('telegram_username', '').strip() if data.get('telegram_username') else None
         
@@ -6530,7 +6531,8 @@ def create_license():
             'status': 'active',
             'max_devices': max_devices,
             'note': note or None,
-            'plan': plan
+            'plan': plan,
+            'is_free': is_free
         }
         if telegram_membership:
             insert_data['telegram_membership'] = telegram_membership
@@ -7017,7 +7019,7 @@ def analytics_dashboard():
                 continue
             
             lic_price = 0
-            if sub_type != 'free_trial' and sub_type in price_map:
+            if not lic.get('is_free', False) and sub_type != 'free_trial' and sub_type in price_map:
                 lic_price = price_map[sub_type].get('price', 0)
             total_revenue += lic_price
             
