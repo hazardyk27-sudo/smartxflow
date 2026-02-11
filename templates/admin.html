@@ -7586,16 +7586,20 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ plan_key: planKey, price: price })
                 });
+                if (!response.ok) {
+                    showToast('Sunucu hatasi: ' + response.status, 'error');
+                    return;
+                }
                 const data = await response.json();
                 if (data.success) {
                     showToast('Fiyat kaydedildi', 'success');
-                    loadAnalyticsDashboard();
+                    try { loadAnalyticsDashboard(); } catch(e) { console.warn('Dashboard refresh failed:', e); }
                 } else {
                     showToast(data.error || 'Fiyat kaydetme hatasi', 'error');
                 }
             } catch (error) {
-                console.error('Save pricing error:', error);
-                showToast('Baglanti hatasi', 'error');
+                console.error('Save pricing error:', error.message || error);
+                showToast('Baglanti hatasi: ' + (error.message || 'Bilinmeyen hata'), 'error');
             }
         }
 
