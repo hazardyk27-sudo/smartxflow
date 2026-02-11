@@ -1010,17 +1010,19 @@
                                 <span style="color: #e6edf3; font-size: 12px; flex: 1;">Yillik</span>
                                 <input type="number" id="price_pro_yearly" min="0" step="1" style="width: 80px; padding: 4px 8px; background: #0d1117; border: 1px solid #30363d; border-radius: 4px; color: #e6edf3; font-size: 12px; text-align: right;" onchange="savePricing('pro_yearly', this.value)">
                             </div>
+                            <div style="padding: 8px 0 4px 0; border-top: 1px solid #30363d; margin-top: 4px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="color: #8b949e; font-size: 12px;">Bedava Uyelik (0 TL)</span>
+                                    <span id="analyticsFreeCount" style="color: #8b949e; font-weight: 600;">-</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Bedava Uyelik + Gelir -->
+                    <!-- Yeni Kayitlar + Gelir -->
                     <div style="background: #21262d; padding: 15px; border-radius: 8px;">
                         <h4 style="color: #8b949e; font-size: 12px; text-transform: uppercase; margin-bottom: 12px;">Kayitlar & Gelir</h4>
                         <div style="display: flex; flex-direction: column; gap: 8px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="color: #8b949e; font-size: 12px;">Bedava Uyelik</span>
-                                <span id="analyticsFreeCount" style="color: #8b949e; font-weight: 600;">-</span>
-                            </div>
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="color: #e6edf3;">Bugun</span>
                                 <span id="analyticsNewToday" style="color: #3fb950; font-weight: 600;">-</span>
