@@ -359,25 +359,25 @@ class SupabaseClient:
                 if not fixtures:
                     return []
                 
-                from urllib.parse import quote
                 odds_cache = {}
-                batch_size = 10
-                pairs = [(fix.get('home_team', ''), fix.get('away_team', '')) for fix in fixtures]
+                hashes = [fix.get('match_id_hash', '') for fix in fixtures if fix.get('match_id_hash')]
+                batch_size = 50
                 
-                for i in range(0, len(pairs), batch_size):
-                    batch_pairs = pairs[i:i+batch_size]
-                    or_filters = ','.join(
-                        f'and(home.eq.{quote(h)},away.eq.{quote(a)})'
-                        for h, a in batch_pairs
-                    )
-                    batch_url = f"{self._rest_url(history_table)}?select=*&or=({or_filters})&order=scraped_at.desc&limit=200"
+                for i in range(0, len(hashes), batch_size):
+                    batch_hashes = hashes[i:i+batch_size]
+                    hash_list = ','.join(batch_hashes)
+                    
+                    if not hash_list:
+                        continue
+                    
                     try:
-                        batch_resp = httpx.get(batch_url, headers=self._headers(), timeout=20)
+                        batch_url = f"{self._rest_url(history_table)}?match_id_hash=in.({hash_list})&order=scraped_at.desc&limit=1000"
+                        batch_resp = httpx.get(batch_url, headers=self._headers(), timeout=30)
                         if batch_resp.status_code == 200:
                             for row in batch_resp.json():
-                                key = f"{row.get('home', '')}|{row.get('away', '')}|{row.get('league', '')}"
-                                if key not in odds_cache or row.get('scraped_at', '') > odds_cache[key].get('scraped_at', ''):
-                                    odds_cache[key] = row
+                                h = row.get('match_id_hash', '')
+                                if h and h not in odds_cache:
+                                    odds_cache[h] = row
                     except Exception as e:
                         print(f"[Supabase] YESTERDAY batch error: {e}")
                 
@@ -387,10 +387,10 @@ class SupabaseClient:
                     home = fix.get('home_team', '')
                     away = fix.get('away_team', '')
                     league = fix.get('league', '')
-                    key = f"{home}|{away}|{league}"
+                    match_hash = fix.get('match_id_hash', '')
                     
-                    if key in odds_cache:
-                        row = odds_cache[key]
+                    if match_hash in odds_cache:
+                        row = odds_cache[match_hash]
                         latest = self._normalize_history_row(row, market)
                         with_odds += 1
                     else:
@@ -409,7 +409,7 @@ class SupabaseClient:
                         'away_team': away,
                         'league': league,
                         'date': kickoff_utc,
-                        'match_id_hash': fix.get('match_id_hash', ''),
+                        'match_id_hash': match_hash,
                         'latest': latest
                     })
                 
@@ -445,32 +445,29 @@ class SupabaseClient:
                 if not fixtures:
                     return []
                 
-                # Step 2: Batch fetch odds from history for ALL fixtures
+                # Step 2: Batch fetch odds from history using match_id_hash (reliable matching)
                 from urllib.parse import quote
                 odds_cache = {}
-                batch_size = 10
-                pairs = [(fix.get('home_team', ''), fix.get('away_team', '')) for fix in fixtures]
+                hashes = [fix.get('match_id_hash', '') for fix in fixtures if fix.get('match_id_hash')]
+                batch_size = 50
                 
-                for i in range(0, len(pairs), batch_size):
-                    batch_pairs = pairs[i:i+batch_size]
-                    or_filters = ','.join(
-                        f'and(home.eq.{quote(h, safe="")},away.eq.{quote(a, safe="")})'
-                        for h, a in batch_pairs if h and a
-                    )
+                for i in range(0, len(hashes), batch_size):
+                    batch_hashes = hashes[i:i+batch_size]
+                    hash_list = ','.join(batch_hashes)
                     
-                    if not or_filters:
+                    if not hash_list:
                         continue
                     
                     try:
-                        batch_url = f"{self._rest_url(history_table)}?or=({or_filters})&order=scraped_at.desc&limit=1000"
+                        batch_url = f"{self._rest_url(history_table)}?match_id_hash=in.({hash_list})&order=scraped_at.desc&limit=1000"
                         batch_resp = httpx.get(batch_url, headers=self._headers(), timeout=30)
                         
                         if batch_resp.status_code == 200:
                             rows = batch_resp.json()
                             for row in rows:
-                                cache_key = f"{row.get('home', '')}|{row.get('away', '')}|{row.get('league', '')}"
-                                if cache_key not in odds_cache:
-                                    odds_cache[cache_key] = row
+                                h = row.get('match_id_hash', '')
+                                if h and h not in odds_cache:
+                                    odds_cache[h] = row
                     except Exception as e:
                         print(f"[Supabase] TODAY batch {i//batch_size + 1} error: {e}")
                 
@@ -498,7 +495,7 @@ class SupabaseClient:
                         except:
                             pass
                     
-                    cache_key = f"{home}|{away}|{league}"
+                    match_hash = fix.get('match_id_hash', '')
                     latest_odds = {
                         'ScrapedAt': '',
                         'Volume': '',
@@ -507,8 +504,8 @@ class SupabaseClient:
                         'Odds2': '-'
                     }
                     
-                    if cache_key in odds_cache:
-                        row = odds_cache[cache_key]
+                    if match_hash in odds_cache:
+                        row = odds_cache[match_hash]
                         latest_odds = self._normalize_history_row(row, market)
                     
                     matches.append({
