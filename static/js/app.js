@@ -7099,7 +7099,13 @@ function renderAlarmsList(filterType) {
                 });
                 // Sadece önceki alarm varsa göster
                 if (uniqueHistory.length > 0) {
-                    const historyItems = uniqueHistory.slice().reverse().map(h => {
+                    const historyItems = uniqueHistory.slice()
+                        .sort((a, b) => {
+                            const tsA = a.trigger_at ? new Date(a.trigger_at).getTime() : 0;
+                            const tsB = b.trigger_at ? new Date(b.trigger_at).getTime() : 0;
+                            return tsB - tsA;
+                        })
+                        .map(h => {
                         const hTime = formatTriggerTimeFull(h.trigger_at);
                         const hMoney = Number(h.incoming_money || 0).toLocaleString('en-GB');
                         return `<div class="acd-history-item"><span class="acd-history-time">${hTime}</span><span class="acd-history-val">£${hMoney}</span></div>`;
