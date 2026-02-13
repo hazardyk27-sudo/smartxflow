@@ -2367,6 +2367,24 @@ def calculate_big_money_scores(config):
                     event_time = max_snapshot.get('scraped_at', '')
                     created_at = now_turkey().strftime('%d.%m.%Y %H:%M')
                     
+                    huge_indices = set()
+                    for j in range(len(big_money_snapshots) - 1):
+                        if big_money_snapshots[j+1]['index'] - big_money_snapshots[j]['index'] == 1:
+                            huge_indices.add(big_money_snapshots[j]['index'])
+                            huge_indices.add(big_money_snapshots[j+1]['index'])
+                    
+                    alarm_history = []
+                    for snap in big_money_snapshots:
+                        alarm_history.append({
+                            'incoming_money': snap['incoming'],
+                            'trigger_at': snap.get('scraped_at', ''),
+                            'selection_total': parse_volume(history[snap['index']].get(amount_key, '0')) if snap['index'] < len(history) else 0,
+                            'is_huge': snap['index'] in huge_indices
+                        })
+                    
+                    latest_snap = big_money_snapshots[-1]
+                    latest_trigger = latest_snap.get('scraped_at', event_time)
+                    
                     alarm = {
                         'home': home,
                         'away': away,
@@ -2381,7 +2399,9 @@ def calculate_big_money_scores(config):
                         'snapshot_count': len(big_money_snapshots),
                         'match_date': match_date_str,
                         'event_time': event_time,
-                        'created_at': created_at
+                        'trigger_at': latest_trigger,
+                        'created_at': created_at,
+                        'alarm_history': alarm_history
                     }
                     alarms.append(alarm)
                     

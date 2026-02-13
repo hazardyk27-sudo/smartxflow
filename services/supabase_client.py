@@ -2328,9 +2328,97 @@ def write_volumeleader_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
 
 
 def write_bigmoney_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
-    """Write BigMoney alarms to Supabase - ADMIN.EXE ALANLARI"""
-    mapped_alarms = []
+    """Write BigMoney alarms to Supabase - alarm_history merge destekli
+    
+    Mevcut Supabase'deki alarm_history ile yeni hesaplanan alarm_history'yi birleştirir.
+    Böylece Admin Panel veya hesaplama yeniden başlatıldığında eski tetiklenme kayıtları korunur.
+    """
+    import json as json_module
+    
+    client = get_supabase_client()
+    if not client or not client.is_available:
+        return False
+    
+    existing_map = {}
+    existing_ids_map = {}
+    try:
+        existing = fetch_alarms_from_supabase('bigmoney_alarms', limit=1000)
+        if existing:
+            for ex in existing:
+                key = f"{ex.get('home','')}|{ex.get('away','')}|{ex.get('market','')}|{ex.get('selection','')}"
+                hist = ex.get('alarm_history', [])
+                if isinstance(hist, str):
+                    try: hist = json_module.loads(hist)
+                    except: hist = []
+                if key not in existing_map:
+                    existing_map[key] = hist
+                    existing_ids_map[key] = [ex.get('id')]
+                else:
+                    existing_map[key].extend(hist)
+                    existing_ids_map[key].append(ex.get('id'))
+    except Exception as e:
+        print(f"[BigMoney] Error reading existing alarms for merge: {e}")
+    
+    grouped = {}
     for alarm in alarms:
+        key = f"{alarm.get('home','')}|{alarm.get('away','')}|{alarm.get('market','')}|{alarm.get('selection','')}"
+        if key not in grouped:
+            grouped[key] = alarm.copy()
+            new_hist = alarm.get('alarm_history', [])
+            if isinstance(new_hist, str):
+                try: new_hist = json_module.loads(new_hist)
+                except: new_hist = []
+            grouped[key]['_new_history'] = list(new_hist)
+        else:
+            new_hist = alarm.get('alarm_history', [])
+            if isinstance(new_hist, str):
+                try: new_hist = json_module.loads(new_hist)
+                except: new_hist = []
+            grouped[key]['_new_history'].extend(new_hist)
+    
+    def _to_utc_ms(ts_str):
+        if not ts_str:
+            return ts_str
+        try:
+            from datetime import datetime as dt_cls
+            return str(int(dt_cls.fromisoformat(ts_str).timestamp() * 1000))
+        except:
+            return ts_str
+    
+    mapped_alarms = []
+    affected_keys = set()
+    
+    for key, alarm in grouped.items():
+        new_history = alarm.pop('_new_history', [])
+        existing_history = existing_map.get(key, [])
+        affected_keys.add(key)
+        
+        all_history = existing_history + new_history
+        
+        seen = set()
+        merged = []
+        for h in all_history:
+            trigger = h.get('trigger_at', '')
+            money = round(float(h.get('incoming_money', 0)))
+            utc_key = _to_utc_ms(trigger)
+            dedup_key = f"{utc_key}|{money}"
+            if dedup_key not in seen:
+                seen.add(dedup_key)
+                merged.append(h)
+        
+        try:
+            from datetime import datetime as dt_cls
+            merged.sort(key=lambda h: dt_cls.fromisoformat(h.get('trigger_at', '1970-01-01T00:00:00+00:00')).timestamp())
+        except:
+            merged.sort(key=lambda h: h.get('trigger_at', ''))
+        
+        latest = merged[-1] if merged else {}
+        latest_money = latest.get('incoming_money', alarm.get('incoming_money', 0))
+        latest_trigger = latest.get('trigger_at', alarm.get('trigger_at', ''))
+        latest_total = latest.get('selection_total', alarm.get('selection_total', 0))
+        
+        any_huge = any(h.get('is_huge', False) for h in merged)
+        
         mapped = {
             'match_id': alarm.get('match_id', ''),
             'match_id_hash': alarm.get('match_id_hash', ''),
@@ -2339,17 +2427,38 @@ def write_bigmoney_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
             'league': alarm.get('league', ''),
             'market': alarm.get('market', ''),
             'selection': alarm.get('selection', ''),
-            'incoming_money': alarm.get('incoming_money', 0),
-            'selection_total': alarm.get('selection_total', 0),
-            'is_huge': alarm.get('is_huge', False),
+            'incoming_money': latest_money,
+            'total_selection': latest_total,
+            'selection_total': latest_total,
+            'is_huge': any_huge or alarm.get('is_huge', False),
             'huge_total': alarm.get('huge_total', 0),
             'alarm_type': alarm.get('alarm_type', 'BIG MONEY'),
             'match_date': alarm.get('match_date', ''),
-            'trigger_at': alarm.get('trigger_at', ''),
-            'created_at': alarm.get('created_at', '')
+            'trigger_at': latest_trigger,
+            'created_at': alarm.get('created_at', ''),
+            'alarm_history': json_module.dumps(merged, ensure_ascii=False)
         }
         mapped_alarms.append(mapped)
-    return write_alarms_to_supabase('bigmoney_alarms', mapped_alarms, on_conflict='home,away,market,selection,trigger_at')
+    
+    insert_ok = write_alarms_to_supabase('bigmoney_alarms', mapped_alarms)
+    
+    if insert_ok:
+        try:
+            ids_to_delete = []
+            for key in affected_keys:
+                if key in existing_ids_map:
+                    ids_to_delete.extend(existing_ids_map[key])
+            
+            if ids_to_delete:
+                id_filter = ','.join([str(i) for i in ids_to_delete if i])
+                if id_filter:
+                    url = f"{client._rest_url('bigmoney_alarms')}?id=in.({id_filter})"
+                    httpx.delete(url, headers=client._headers(), timeout=15)
+                    print(f"[BigMoney] Deleted {len(ids_to_delete)} old rows after successful merge insert")
+        except Exception as e:
+            print(f"[BigMoney] Error deleting old rows (data safe, may have duplicates): {e}")
+    
+    return insert_ok
 
 
 def write_dropping_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
