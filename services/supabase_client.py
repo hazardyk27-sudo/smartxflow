@@ -1596,6 +1596,11 @@ class SupabaseClient:
         """
         Delete D-2+ matches from all tables including fixtures and snapshots.
         cutoff_date format: YYYY-MM-DD (matches older than this date will be deleted)
+        
+        Mantık: Önce D-2+ fixture'ların match_id_hash listesini bul,
+        sonra SADECE bu hash'lere ait snapshot ve history kayıtlarını sil.
+        Böylece henüz oynanmamış maçların eski snapshot'ları korunur.
+        
         Returns count of deleted records per table.
         """
         if not self.is_available:
@@ -1603,74 +1608,102 @@ class SupabaseClient:
         
         deleted = {}
         
-        # 1. Fixtures tablosunu temizle (fixture_date < cutoff_date)
+        old_hashes = []
         try:
             headers = self._headers()
-            headers['Prefer'] = 'return=representation'
-            url = f"{self._rest_url('fixtures')}?fixture_date=lt.{cutoff_date}"
-            resp = httpx.delete(url, headers=headers, timeout=120)
-            
+            url = f"{self._rest_url('fixtures')}?fixture_date=lt.{cutoff_date}&select=match_id_hash"
+            resp = httpx.get(url, headers=headers, timeout=30)
             if resp.status_code == 200:
-                try:
-                    deleted_rows = resp.json()
-                    count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
-                    if count > 0:
-                        deleted['fixtures'] = count
-                        print(f"[Cleanup] Deleted {count} old fixtures")
-                except:
-                    pass
-            elif resp.status_code not in [204, 404]:
-                print(f"[Cleanup] Error deleting fixtures: {resp.status_code}")
+                rows = resp.json()
+                if isinstance(rows, list):
+                    old_hashes = [r['match_id_hash'] for r in rows if r.get('match_id_hash')]
+                    print(f"[Cleanup] Found {len(old_hashes)} D-2+ fixtures to clean up")
         except Exception as e:
-            print(f"[Cleanup] Exception for fixtures: {e}")
+            print(f"[Cleanup] Error fetching old fixture hashes: {e}")
         
-        # 2. Snapshot tabloları (scraped_at_utc < cutoff_date)
+        if not old_hashes:
+            print(f"[Cleanup] No D-2+ fixtures found, skipping cleanup")
+            return deleted
+        
+        batch_size = 50
+        
         snapshot_tables = ['moneyway_snapshots', 'dropping_odds_snapshots']
         for table in snapshot_tables:
-            try:
-                headers = self._headers()
-                headers['Prefer'] = 'return=representation'
-                url = f"{self._rest_url(table)}?scraped_at_utc=lt.{cutoff_date}T00:00:00"
-                resp = httpx.delete(url, headers=headers, timeout=120)
-                
-                if resp.status_code == 200:
-                    try:
-                        deleted_rows = resp.json()
-                        count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
-                        if count > 0:
-                            deleted[table] = count
-                            print(f"[Cleanup] Deleted {count} old records from {table}")
-                    except:
-                        pass
-                elif resp.status_code not in [204, 404]:
-                    print(f"[Cleanup] Error deleting from {table}: {resp.status_code}")
-            except Exception as e:
-                print(f"[Cleanup] Exception for {table}: {e}")
+            table_count = 0
+            for i in range(0, len(old_hashes), batch_size):
+                batch = old_hashes[i:i+batch_size]
+                hash_filter = ','.join(batch)
+                try:
+                    headers = self._headers()
+                    headers['Prefer'] = 'return=representation'
+                    url = f"{self._rest_url(table)}?match_id_hash=in.({hash_filter})"
+                    resp = httpx.delete(url, headers=headers, timeout=120)
+                    if resp.status_code == 200:
+                        try:
+                            deleted_rows = resp.json()
+                            count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
+                            table_count += count
+                        except:
+                            pass
+                    elif resp.status_code not in [204, 404]:
+                        print(f"[Cleanup] Error deleting from {table}: {resp.status_code}")
+                except Exception as e:
+                    print(f"[Cleanup] Exception for {table}: {e}")
+            if table_count > 0:
+                deleted[table] = table_count
+                print(f"[Cleanup] Deleted {table_count} old records from {table}")
         
-        # 3. History tabloları (scraped_at < cutoff_date)
         history_tables = ['moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history', 
                           'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history']
         
         for table in history_tables:
+            table_count = 0
+            for i in range(0, len(old_hashes), batch_size):
+                batch = old_hashes[i:i+batch_size]
+                hash_filter = ','.join(batch)
+                try:
+                    headers = self._headers()
+                    headers['Prefer'] = 'return=representation'
+                    url = f"{self._rest_url(table)}?match_id_hash=in.({hash_filter})"
+                    resp = httpx.delete(url, headers=headers, timeout=120)
+                    if resp.status_code == 200:
+                        try:
+                            deleted_rows = resp.json()
+                            count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
+                            table_count += count
+                        except:
+                            pass
+                    elif resp.status_code not in [204, 404]:
+                        print(f"[Cleanup] Error deleting from {table}: {resp.status_code}")
+                except Exception as e:
+                    print(f"[Cleanup] Exception for {table}: {e}")
+            if table_count > 0:
+                deleted[table] = table_count
+                print(f"[Cleanup] Deleted {table_count} old records from {table}")
+        
+        fixture_count = 0
+        for i in range(0, len(old_hashes), batch_size):
+            batch = old_hashes[i:i+batch_size]
+            hash_filter = ','.join(batch)
             try:
                 headers = self._headers()
                 headers['Prefer'] = 'return=representation'
-                url = f"{self._rest_url(table)}?scraped_at=lt.{cutoff_date}T00:00:00"
+                url = f"{self._rest_url('fixtures')}?match_id_hash=in.({hash_filter})"
                 resp = httpx.delete(url, headers=headers, timeout=120)
-                
                 if resp.status_code == 200:
                     try:
                         deleted_rows = resp.json()
                         count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
-                        if count > 0:
-                            deleted[table] = count
-                            print(f"[Cleanup] Deleted {count} old records from {table}")
+                        fixture_count += count
                     except:
                         pass
                 elif resp.status_code not in [204, 404]:
-                    print(f"[Cleanup] Error deleting from {table}: {resp.status_code}")
+                    print(f"[Cleanup] Error deleting fixtures: {resp.status_code}")
             except Exception as e:
-                print(f"[Cleanup] Exception for {table}: {e}")
+                print(f"[Cleanup] Exception for fixtures: {e}")
+        if fixture_count > 0:
+            deleted['fixtures'] = fixture_count
+            print(f"[Cleanup] Deleted {fixture_count} old fixtures")
         
         return deleted
     
