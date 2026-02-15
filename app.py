@@ -265,25 +265,39 @@ current_mode = init_mode()
 db = get_database()
 db.ensure_analyses_table()
 
+_validated_licenses = {}
+
 def license_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if os.environ.get('SMARTX_DESKTOP') == '1':
             return f(*args, **kwargs)
+        
         lic_valid = session.get('license_valid')
-        lic_expires = session.get('license_expires')
-        if not lic_valid:
-            return jsonify({'error': 'LICENSE_REQUIRED', 'message': 'Gecerli lisans gerekli'}), 403
-        if lic_expires:
-            try:
-                exp = datetime.fromisoformat(lic_expires.replace('Z', '+00:00').replace('+00:00', ''))
-                if exp < datetime.utcnow():
-                    session.pop('license_valid', None)
-                    session.pop('license_expires', None)
+        if lic_valid:
+            lic_expires = session.get('license_expires')
+            if lic_expires:
+                try:
+                    exp = datetime.fromisoformat(lic_expires.replace('Z', '+00:00').replace('+00:00', ''))
+                    if exp < datetime.utcnow():
+                        session.pop('license_valid', None)
+                        session.pop('license_expires', None)
+                        return jsonify({'error': 'LICENSE_EXPIRED', 'message': 'Lisans suresi dolmus'}), 403
+                except:
+                    pass
+            return f(*args, **kwargs)
+        
+        header_key = request.headers.get('X-License-Key', '').strip()
+        if header_key:
+            cached = _validated_licenses.get(header_key)
+            if cached:
+                exp_time = cached.get('expires')
+                if exp_time and exp_time < datetime.utcnow():
+                    _validated_licenses.pop(header_key, None)
                     return jsonify({'error': 'LICENSE_EXPIRED', 'message': 'Lisans suresi dolmus'}), 403
-            except:
-                pass
-        return f(*args, **kwargs)
+                return f(*args, **kwargs)
+        
+        return jsonify({'error': 'LICENSE_REQUIRED', 'message': 'Gecerli lisans gerekli'}), 403
     return decorated
 
 @app.after_request
@@ -6904,6 +6918,14 @@ def validate_license():
             session['license_plan'] = license_data.get('plan') or 'core'
             session.permanent = True
             
+            exp_dt = None
+            if expires_at:
+                try:
+                    exp_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00').replace('+00:00', ''))
+                except:
+                    pass
+            _validated_licenses[key] = {'expires': exp_dt, 'plan': license_data.get('plan') or 'core'}
+            
             return jsonify({
                 'valid': True,
                 'days_left': days_left,
@@ -6932,6 +6954,14 @@ def validate_license():
         session['license_expires'] = expires_at or ''
         session['license_plan'] = license_data.get('plan') or 'core'
         session.permanent = True
+        
+        exp_dt = None
+        if expires_at:
+            try:
+                exp_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00').replace('+00:00', ''))
+            except:
+                pass
+        _validated_licenses[key] = {'expires': exp_dt, 'plan': license_data.get('plan') or 'core'}
         
         return jsonify({
             'valid': True,

@@ -19,6 +19,24 @@ let _licenseReadyResolve;
 const _licenseReady = new Promise(r => { _licenseReadyResolve = r; });
 let _isLicensed = false;
 
+const _originalFetch = window.fetch;
+window.fetch = function(url, options = {}) {
+    const urlStr = typeof url === 'string' ? url : url.url || '';
+    if (urlStr.startsWith('/api/')) {
+        const savedKey = localStorage.getItem('smartxflow_web_license');
+        if (savedKey) {
+            options = options || {};
+            options.headers = options.headers || {};
+            if (options.headers instanceof Headers) {
+                options.headers.set('X-License-Key', savedKey);
+            } else {
+                options.headers['X-License-Key'] = savedKey;
+            }
+        }
+    }
+    return _originalFetch.call(window, url, options);
+};
+
 // Mobile chart controls
 let mobileSelectedLine = '1'; // Default: show only "1" line on mobile
 let mobileTimeRange = '1440'; // Default: 1 day (matches active button)
