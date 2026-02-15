@@ -2191,12 +2191,6 @@ async function openMatchModalFromMatches(index) {
         const reqId = ++_modalRequestId;
         resetModalState();
 
-        if (window.loadChartLibs) {
-            await window.loadChartLibs();
-            registerChartPlugins();
-        }
-        if (reqId !== _modalRequestId) return;
-
         selectedMatch = matches[index];
         selectedChartMarket = currentMarket;
 
@@ -2224,9 +2218,14 @@ async function openMatchModalFromMatches(index) {
         const away = selectedMatch.away_team;
         const league = selectedMatch.league || '';
         
-        await loadChartWithTrends(home, away, selectedChartMarket, league, reqId);
+        const chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(() => registerChartPlugins()) : Promise.resolve();
+        await chartLibsPromise;
         if (reqId !== _modalRequestId) return;
-        await renderMatchAlarmsSection(home, away, reqId);
+        
+        await Promise.all([
+            loadChartWithTrends(home, away, selectedChartMarket, league, reqId),
+            renderMatchAlarmsSection(home, away, reqId)
+        ]);
     }
 }
 
@@ -2235,15 +2234,27 @@ async function openMatchModalFromAPI(homeTeam, awayTeam) {
     const reqId = ++_modalRequestId;
     resetModalState();
 
-    if (window.loadChartLibs) {
-        await window.loadChartLibs();
-        registerChartPlugins();
-    }
-    if (reqId !== _modalRequestId) return;
+    document.getElementById('modalMatchTitle').textContent = 
+        `${homeTeam} vs ${awayTeam}`;
+    document.getElementById('modalLeague').textContent = 'Yükleniyor...';
+    
+    document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
+        t.classList.remove('active');
+        if (t.dataset.market === currentMarket) {
+            t.classList.add('active');
+        }
+    });
+    
+    document.getElementById('modalOverlay').classList.add('active');
+
+    const chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(() => registerChartPlugins()) : Promise.resolve();
 
     try {
         const params = new URLSearchParams({ home: homeTeam, away: awayTeam });
-        const response = await fetch(`/api/match/details?${params}`);
+        const [response] = await Promise.all([
+            fetch(`/api/match/details?${params}`),
+            chartLibsPromise
+        ]);
         if (reqId !== _modalRequestId) return;
         
         if (!response.ok) {
@@ -2286,18 +2297,10 @@ async function openMatchModalFromAPI(homeTeam, awayTeam) {
         document.getElementById('modalLeague').textContent = 
             `${selectedMatch.league || ''} • ${headerDateText}`;
         
-        document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
-            t.classList.remove('active');
-            if (t.dataset.market === currentMarket) {
-                t.classList.add('active');
-            }
-        });
-        
-        document.getElementById('modalOverlay').classList.add('active');
-        
-        await loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league, reqId);
-        if (reqId !== _modalRequestId) return;
-        await renderMatchAlarmsSection(selectedMatch.home_team, selectedMatch.away_team, reqId);
+        await Promise.all([
+            loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league, reqId),
+            renderMatchAlarmsSection(selectedMatch.home_team, selectedMatch.away_team, reqId)
+        ]);
         
     } catch (error) {
         console.error('[openMatchModalFromAPI] Error:', error);
@@ -2310,12 +2313,6 @@ async function openMatchModal(index) {
     if (index >= 0 && index < dataSource.length) {
         const reqId = ++_modalRequestId;
         resetModalState();
-
-        if (window.loadChartLibs) {
-            await window.loadChartLibs();
-            registerChartPlugins();
-        }
-        if (reqId !== _modalRequestId) return;
 
         selectedMatch = dataSource[index];
         selectedChartMarket = currentMarket;
@@ -2344,10 +2341,11 @@ async function openMatchModal(index) {
         const away = selectedMatch.away_team;
         const league = selectedMatch.league || '';
         
+        const chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(() => registerChartPlugins()) : Promise.resolve();
         const alarmsPromise = fetchAlarmsBatch();
         const marketsPromise = loadAllMarketsAtOnce(home, away, league);
         
-        await Promise.all([marketsPromise, alarmsPromise]);
+        await Promise.all([marketsPromise, alarmsPromise, chartLibsPromise]);
         if (reqId !== _modalRequestId) return;
         
         await Promise.all([
@@ -6393,7 +6391,11 @@ function openAlarmsSidebar() {
     document.body.style.overflow = 'hidden';
     const btn = document.getElementById('alarmsBtn');
     if (btn) btn.classList.add('active');
-    loadAllAlarms();
+    if (_alarmBatchCache && (Date.now() - _alarmCacheTime) < ALARM_CACHE_TTL) {
+        loadAllAlarms(false);
+    } else {
+        loadAllAlarms(true);
+    }
 }
 
 function closeAlarmsSidebar() {
