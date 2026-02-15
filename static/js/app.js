@@ -4799,37 +4799,42 @@ async function savePNGViaAPI(imageData, filename) {
     console.log('[PNG Export] Starting save, filename:', filename);
     console.log('[PNG Export] isEXE:', isEXEEnvironment());
     
-    try {
-        const response = await fetch('/api/export/png', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: imageData, filename: filename })
-        });
-        const result = await response.json();
-        console.log('[PNG Export] API response:', result);
-        
-        if (result.success) {
-            showExportNotification(`PNG kaydedildi: ${result.path}`);
-            return true;
-        } else {
-            console.warn('[PNG Export] API failed:', result.error);
+    if (isEXEEnvironment()) {
+        try {
+            const response = await fetch('/api/export/png', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData, filename: filename })
+            });
+            const result = await response.json();
+            console.log('[PNG Export] API response:', result);
+            
+            if (result.success) {
+                showExportNotification(`PNG kaydedildi: ${result.path}`);
+                return true;
+            } else {
+                console.warn('[PNG Export] API failed:', result.error);
+            }
+        } catch (err) {
+            console.error('[PNG Export] API error:', err);
         }
-    } catch (err) {
-        console.error('[PNG Export] API error:', err);
     }
     
-    console.log('[PNG Export] Falling back to browser download');
+    console.log('[PNG Export] Browser download');
     try {
+        const blob = await (await fetch(imageData)).blob();
+        const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.download = filename;
-        link.href = imageData;
+        link.href = blobUrl;
         link.style.display = 'none';
         document.body.appendChild(link);
         link.click();
         
         setTimeout(() => {
             document.body.removeChild(link);
-        }, 100);
+            URL.revokeObjectURL(blobUrl);
+        }, 200);
         
         showExportNotification('PNG indirildi');
         return true;
