@@ -2230,13 +2230,36 @@ async function openMatchModalFromMatches(index) {
 }
 
 // API'den maç verisi çekip modal aç (listede olmayan maçlar için)
-async function openMatchModalFromAPI(homeTeam, awayTeam) {
+async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
     const reqId = ++_modalRequestId;
     resetModalState();
 
+    league = league || '';
+    kickoff = kickoff || '';
+
+    selectedMatch = {
+        home_team: homeTeam,
+        away_team: awayTeam,
+        league: league,
+        date: kickoff,
+        match_id: '',
+        history: [],
+        history_count: 0,
+        odds: null,
+        details: null
+    };
+    selectedChartMarket = currentMarket;
+
     document.getElementById('modalMatchTitle').textContent = 
         `${homeTeam} vs ${awayTeam}`;
-    document.getElementById('modalLeague').textContent = 'Yükleniyor...';
+    
+    const headerDt = kickoff ? toTurkeyTime(kickoff) : null;
+    let headerDateText = '';
+    if (headerDt && headerDt.isValid()) {
+        headerDateText = headerDt.format('DD.MM HH:mm');
+    }
+    document.getElementById('modalLeague').textContent = 
+        league ? `${league}${headerDateText ? ' • ' + headerDateText : ''}` : (headerDateText || '');
     
     document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
         t.classList.remove('active');
@@ -2250,56 +2273,12 @@ async function openMatchModalFromAPI(homeTeam, awayTeam) {
     const chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(() => registerChartPlugins()) : Promise.resolve();
 
     try {
-        const params = new URLSearchParams({ home: homeTeam, away: awayTeam });
-        const [response] = await Promise.all([
-            fetch(`/api/match/details?${params}`),
-            chartLibsPromise
-        ]);
+        await chartLibsPromise;
         if (reqId !== _modalRequestId) return;
-        
-        if (!response.ok) {
-            showToast('Maç bilgisi alınamadı', 'error');
-            return;
-        }
-        
-        const data = await response.json();
-        if (reqId !== _modalRequestId) return;
-        
-        if (!data || !data.success || !data.match) {
-            showToast('Maç bulunamadı', 'error');
-            return;
-        }
-        
-        const matchData = data.match;
-        
-        selectedMatch = {
-            home_team: matchData.home_team || homeTeam,
-            away_team: matchData.away_team || awayTeam,
-            league: matchData.league || '',
-            date: matchData.date || '',
-            match_id: matchData.match_id || '',
-            history: matchData.history || [],
-            history_count: matchData.history_count || 0,
-            odds: matchData.odds || null,
-            details: matchData.details || null
-        };
-        
-        selectedChartMarket = currentMarket;
-        
-        document.getElementById('modalMatchTitle').textContent = 
-            `${selectedMatch.home_team} vs ${selectedMatch.away_team}`;
-        
-        const headerDt = toTurkeyTime(selectedMatch.date);
-        let headerDateText = selectedMatch.date || '';
-        if (headerDt && headerDt.isValid()) {
-            headerDateText = headerDt.format('DD.MM HH:mm');
-        }
-        document.getElementById('modalLeague').textContent = 
-            `${selectedMatch.league || ''} • ${headerDateText}`;
         
         await Promise.all([
-            loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league, reqId),
-            renderMatchAlarmsSection(selectedMatch.home_team, selectedMatch.away_team, reqId)
+            loadChartWithTrends(homeTeam, awayTeam, selectedChartMarket, league, reqId),
+            renderMatchAlarmsSection(homeTeam, awayTeam, reqId)
         ]);
         
     } catch (error) {
@@ -6213,6 +6192,8 @@ function renderAlertBand() {
         
         const alarmType = alarm._type || '';
         const alarmMarket = (alarm.market || '').replace(/'/g, "\\'");
+        const alarmLeague = (alarm.league || '').replace(/'/g, "\\'");
+        const alarmKickoff = (alarm.kickoff_utc || alarm.match_date || alarm.fixture_date || '').replace(/'/g, "\\'");
         
         // Mobil kontrolü - sadece ev sahibi takım göster
         const isMobile = window.innerWidth <= 768;
@@ -6223,7 +6204,7 @@ function renderAlertBand() {
             const oldLeader = alarm.old_leader || alarm.previous_leader || '?';
             const newLeader = alarm.new_leader || alarm.selection || '?';
             return `
-                <div class="ab-pill ${info.pillClass}" onclick="goToMatchPage('${matchKey}', '${alarmType}', '${alarmMarket}')" style="cursor: pointer;">
+                <div class="ab-pill ${info.pillClass}" onclick="goToMatchFromAlarm('${home.replace(/'/g, "\\'")}', '${away.replace(/'/g, "\\'")}', '${alarmType}', '${alarmMarket}', '${alarmLeague}', '${alarmKickoff}')" style="cursor: pointer;">
                     <span class="ab-dot dot-${info.pillClass}"></span>
                     <span class="ab-type">${info.label}</span>
                     <span class="ab-sep">—</span>
@@ -6235,7 +6216,7 @@ function renderAlertBand() {
         }
         
         return `
-            <div class="ab-pill ${info.pillClass}" onclick="goToMatchPage('${matchKey}', '${alarmType}', '${alarmMarket}')" style="cursor: pointer;">
+            <div class="ab-pill ${info.pillClass}" onclick="goToMatchFromAlarm('${home.replace(/'/g, "\\'")}', '${away.replace(/'/g, "\\'")}', '${alarmType}', '${alarmMarket}', '${alarmLeague}', '${alarmKickoff}')" style="cursor: pointer;">
                 <span class="ab-dot dot-${info.pillClass}"></span>
                 <span class="ab-type">${info.label}</span>
                 <span class="ab-sep">—</span>
@@ -7015,6 +6996,8 @@ function renderAlarmsList(filterType) {
         const homeEscaped = home.replace(/'/g, "\\'");
         const awayEscaped = away.replace(/'/g, "\\'");
         const marketEscaped = market.replace(/'/g, "\\'");
+        const leagueEscaped = (group.league || '').replace(/'/g, "\\'");
+        const kickoffEscaped = (group.kickoff_utc || group.match_date || '').replace(/'/g, "\\'");
         const matchTimeFormatted = formatMatchTime3(group.kickoff_utc || group.match_date);
         const marketLabel2 = `${translateMarket(market)} → ${translateSelection(selection, market)}`;
         // Dropping alarmlar icin created_at (oranin dustugu an) oncelikli
@@ -7302,7 +7285,7 @@ function renderAlarmsList(filterType) {
                             ${metricContent}
                             <div class="acd-history">${historyLine}</div>
                             ${historySection}
-                            <button class="acd-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}', '${type}', '${marketEscaped}')">Maç Sayfasını Aç</button>
+                            <button class="acd-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}', '${type}', '${marketEscaped}', '${leagueEscaped}', '${kickoffEscaped}')">Maç Sayfasını Aç</button>
                         </div>
                     </div>
                 </div>
@@ -7578,12 +7561,11 @@ function goToMatchPage(matchKey, alarmType, alarmMarket) {
     }
 }
 
-function goToMatchFromAlarm(homeTeam, awayTeam, alarmType, alarmMarket) {
+function goToMatchFromAlarm(homeTeam, awayTeam, alarmType, alarmMarket, league, kickoff) {
     openAlarmId = null;
     closeAlarmsSidebar();
     
-    // Direkt API'den maç bilgisi çekip modal aç - hiç kontrol yapma
-    openMatchModalFromAPI(homeTeam.trim(), awayTeam.trim());
+    openMatchModalFromAPI(homeTeam.trim(), awayTeam.trim(), (league || '').trim(), (kickoff || '').trim());
 }
 
 async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, homeTeam, awayTeam) {
