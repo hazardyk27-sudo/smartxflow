@@ -14,6 +14,7 @@ import json
 import threading
 import time
 import queue
+from functools import wraps
 from datetime import datetime, timedelta
 from flask import Flask, render_template, jsonify, request, Response, send_from_directory, session, redirect
 
@@ -251,6 +252,7 @@ def parse_created_at_for_sort(created_at_str):
 
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 app.secret_key = os.environ.get('SESSION_SECRET', 'smartxflow-secret-key')
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 
 # Gzip/Brotli compression - only for web mode (not desktop)
 if Compress is not None:
@@ -262,6 +264,27 @@ if Compress is not None:
 current_mode = init_mode()
 db = get_database()
 db.ensure_analyses_table()
+
+def license_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if os.environ.get('SMARTX_DESKTOP') == '1':
+            return f(*args, **kwargs)
+        lic_valid = session.get('license_valid')
+        lic_expires = session.get('license_expires')
+        if not lic_valid:
+            return jsonify({'error': 'LICENSE_REQUIRED', 'message': 'Gecerli lisans gerekli'}), 403
+        if lic_expires:
+            try:
+                exp = datetime.fromisoformat(lic_expires.replace('Z', '+00:00').replace('+00:00', ''))
+                if exp < datetime.utcnow():
+                    session.pop('license_valid', None)
+                    session.pop('license_expires', None)
+                    return jsonify({'error': 'LICENSE_EXPIRED', 'message': 'Lisans suresi dolmus'}), 403
+            except:
+                pass
+        return f(*args, **kwargs)
+    return decorated
 
 @app.after_request
 def add_header(response):
@@ -954,6 +977,7 @@ def trigger_admin_warmup():
     threading.Thread(target=_lazy_admin_warmup, daemon=True).start()
 
 @app.route('/api/matches')
+@license_required
 def get_matches():
     """Get matches from database with server-side caching
     
@@ -1333,6 +1357,7 @@ def get_matches():
 
 
 @app.route('/api/match/history/bulk')
+@license_required
 def get_match_history_bulk():
     """Get historical data for ALL markets of a single match in one request.
     This is faster than calling /api/match/history 6 times separately.
@@ -1440,6 +1465,7 @@ def get_match_history_bulk():
 
 
 @app.route('/api/match/history')
+@license_required
 def get_match_history():
     """Get historical data for a specific match"""
     home = request.args.get('home', '')
@@ -1679,6 +1705,7 @@ odds_trend_cache = {
 }
 
 @app.route('/api/odds-trend/<market>')
+@license_required
 def get_odds_trend(market):
     """Get odds trend data for DROP markets only (with cache).
     Returns sparkline data, percent change, and trend direction.
@@ -1726,6 +1753,7 @@ def get_odds_trend(market):
 
 
 @app.route('/api/match/details')
+@license_required
 def get_match_details():
     """Get match details by team names"""
     home = request.args.get('home', '')
@@ -4478,6 +4506,7 @@ def get_volume_leader_status():
 
 
 @app.route('/api/alarms/mim', methods=['GET'])
+@license_required
 def get_mim_alarms():
     """Get MIM (Market Impact Money) alarms - reads from Supabase"""
     supabase_alarms = get_mim_alarms_from_supabase()
@@ -4655,6 +4684,7 @@ def get_telegram_stats():
 
 
 @app.route('/api/alarms/all', methods=['GET'])
+@license_required
 def get_all_alarms_batch():
     """
     Batch endpoint - Returns all 7 alarm types in a single request.
@@ -4759,6 +4789,7 @@ def get_all_alarms_batch():
 
 
 @app.route('/api/match/<match_id>/snapshot', methods=['GET'])
+@license_required
 def get_match_snapshot(match_id):
     """
     Full Match Snapshot endpoint - Returns all data for a specific match.
@@ -6867,6 +6898,12 @@ def validate_license():
                 'last_seen': datetime.utcnow().isoformat()
             }, {'license_key': key, 'device_id': device_id})
             
+            session['license_valid'] = True
+            session['license_key'] = key
+            session['license_expires'] = expires_at or ''
+            session['license_plan'] = license_data.get('plan') or 'core'
+            session.permanent = True
+            
             return jsonify({
                 'valid': True,
                 'days_left': days_left,
@@ -6890,6 +6927,12 @@ def validate_license():
             'device_name': device_name or None
         })
         
+        session['license_valid'] = True
+        session['license_key'] = key
+        session['license_expires'] = expires_at or ''
+        session['license_plan'] = license_data.get('plan') or 'core'
+        session.permanent = True
+        
         return jsonify({
             'valid': True,
             'days_left': days_left,
@@ -6902,6 +6945,14 @@ def validate_license():
     except Exception as e:
         license_logging.error(f"Validate license error: {e}")
         return jsonify({'valid': False, 'error': str(e)})
+
+@app.route('/api/licenses/logout', methods=['POST'])
+def license_logout():
+    session.pop('license_valid', None)
+    session.pop('license_key', None)
+    session.pop('license_expires', None)
+    session.pop('license_plan', None)
+    return jsonify({'success': True})
 
 
 # ============================================

@@ -15,6 +15,10 @@ let chartViewMode = 'percent';
 let isClientMode = true;
 let _modalRequestId = 0;
 
+let _licenseReadyResolve;
+const _licenseReady = new Promise(r => { _licenseReadyResolve = r; });
+let _isLicensed = false;
+
 // Mobile chart controls
 let mobileSelectedLine = '1'; // Default: show only "1" line on mobile
 let mobileTimeRange = '1440'; // Default: 1 day (matches active button)
@@ -405,24 +409,25 @@ function escapeHtml(str) {
     })[c]);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Tüm Maçlar butonunu aktif yap (dateFilterMode = 'ALL' default)
+document.addEventListener('DOMContentLoaded', async () => {
     const allBtn = document.getElementById('allBtn');
     if (allBtn) allBtn.classList.add('active');
     
-    loadMatches();
     setupTabs();
     setupSearch();
     setupModalChartTabs();
+    
+    await _licenseReady;
+    if (!_isLicensed) return;
+    
+    loadMatches();
     checkStatus();
     window.statusInterval = window.setInterval(checkStatus, 60000);
     
     setTimeout(() => preloadDropMarkets(), 2000);
     
-    // 10 dakikalık otomatik maç yenileme
     setupAutoRefresh();
     
-    // Sekmeye geri dönüşte otomatik kontrol
     document.addEventListener('visibilitychange', handleVisibilityChange);
 });
 
@@ -6331,8 +6336,10 @@ function showAlertBandDetail(index) {
     document.body.appendChild(modal);
 }
 
-setInterval(loadAlertBand, 60000);
-document.addEventListener('DOMContentLoaded', () => {
+setInterval(() => { if (_isLicensed) loadAlertBand(); }, 60000);
+document.addEventListener('DOMContentLoaded', async () => {
+    await _licenseReady;
+    if (!_isLicensed) return;
     setTimeout(loadAlertBand, 500);
 });
 
@@ -8226,10 +8233,18 @@ function toggleSmartMoneySection() {
     }
 }
 
-// Update badge on page load
 document.addEventListener('DOMContentLoaded', async () => {
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+            e.preventDefault();
+            openAdminPanel();
+        }
+    });
+    
+    await _licenseReady;
+    if (!_isLicensed) return;
+    
     try {
-        // Use centralized cache system - single batch request
         await fetchAlarmsBatch();
         const counts = getCachedAlarmCounts();
         const badge = document.getElementById('tabAlarmBadge');
@@ -8237,14 +8252,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (e) {
         console.log('Badge guncelleme hatasi:', e);
     }
-    
-    // Keyboard shortcut: Ctrl+Shift+A for Admin Panel (hidden feature)
-    document.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.shiftKey && e.key === 'A') {
-            e.preventDefault();
-            openAdminPanel();
-        }
-    });
 });
 
 function openAdminPanel() {
@@ -8949,11 +8956,13 @@ async function validateWebLicense() {
     }
 }
 
-function initLicenseCheck() {
+async function initLicenseCheck() {
     if (!checkWebLicense()) {
         showLicenseGate();
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) logoutBtn.style.display = 'none';
+        _isLicensed = false;
+        _licenseReadyResolve();
     } else {
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) logoutBtn.style.display = 'flex';
@@ -8962,11 +8971,25 @@ function initLicenseCheck() {
         if (savedDays) {
             updateLicenseDaysBadge(parseInt(savedDays));
         }
+        
+        const savedKey = localStorage.getItem(WEB_LICENSE_KEY);
+        if (savedKey) {
+            try {
+                await fetch('/api/licenses/validate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: savedKey, device_id: 'web-browser', device_name: navigator.userAgent.substring(0, 50) })
+                });
+            } catch (e) {}
+        }
+        _isLicensed = true;
+        _licenseReadyResolve();
     }
 }
 
 function logoutWebLicense() {
     if (confirm('Cikis yapmak istediginize emin misiniz?')) {
+        fetch('/api/licenses/logout', { method: 'POST' }).catch(() => {});
         localStorage.removeItem(WEB_LICENSE_KEY);
         localStorage.removeItem(WEB_LICENSE_VALID_KEY);
         localStorage.removeItem('license_days_remaining');
@@ -8990,7 +9013,7 @@ function copyLicenseEmail() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(initLicenseCheck, 100);
+    initLicenseCheck();
 });
 
 document.getElementById('licenseKeyInput')?.addEventListener('keypress', function(e) {
