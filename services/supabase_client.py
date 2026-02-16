@@ -2248,6 +2248,12 @@ class HybridDatabase:
             return self.supabase.get_opening_odds_batch(market, match_hashes)
         return {}
 
+    def get_24h_odds_batch(self, market: str, match_hashes: List[str]) -> Dict[str, Dict]:
+        """Get 24h ago odds - delegates to Supabase"""
+        if self.supabase.is_available:
+            return self.supabase.get_24h_odds_batch(market, match_hashes)
+        return {}
+
     def upload_to_storage(self, bucket: str, file_path: str, file_data: bytes, content_type: str = 'image/png') -> Optional[str]:
         if self.supabase.is_available:
             return self.supabase.upload_to_storage(bucket, file_path, file_data, content_type)
