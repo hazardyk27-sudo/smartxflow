@@ -1294,6 +1294,131 @@ class SupabaseClient:
             print(f"[Opening] Error fetching opening odds: {e}")
             return {}
     
+    def get_24h_odds_batch(self, market: str, match_hashes: List[str]) -> Dict[str, Dict]:
+        """Get odds from ~24 hours ago for each match (for 'Son 24 saat' comparison).
+        
+        Strategy: Fetch snapshots from 20-28h ago window, pick closest to 24h.
+        If no snapshot in that window, fall back to oldest available snapshot.
+        
+        Returns: {match_id_hash: {Odds24h_field: value, ...}, ...}
+        """
+        if not self.is_available or not match_hashes:
+            return {}
+        
+        try:
+            import time as t_mod
+            from datetime import datetime, timedelta, timezone
+            start_time = t_mod.time()
+            
+            history_table = f"{market}_history"
+            
+            now_utc = datetime.now(timezone.utc)
+            window_start = (now_utc - timedelta(hours=28)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+            window_end = (now_utc - timedelta(hours=20)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+            target_time = now_utc - timedelta(hours=24)
+            
+            import concurrent.futures
+            batch_size = 100
+            
+            def fetch_24h_batch(batch_hashes):
+                hash_list = ','.join(batch_hashes)
+                url = (f"{self._rest_url(history_table)}"
+                       f"?match_id_hash=in.({hash_list})"
+                       f"&scraped_at=gte.{window_start}"
+                       f"&scraped_at=lte.{window_end}"
+                       f"&order=scraped_at.asc&limit=3000")
+                try:
+                    resp = httpx.get(url, headers=self._headers(), timeout=30)
+                    if resp.status_code == 200:
+                        return resp.json()
+                except Exception:
+                    pass
+                return []
+            
+            def fetch_oldest_batch(batch_hashes):
+                hash_list = ','.join(batch_hashes)
+                url = (f"{self._rest_url(history_table)}"
+                       f"?match_id_hash=in.({hash_list})"
+                       f"&order=scraped_at.asc&limit=2000")
+                try:
+                    resp = httpx.get(url, headers=self._headers(), timeout=30)
+                    if resp.status_code == 200:
+                        return resp.json()
+                except Exception:
+                    pass
+                return []
+            
+            batches = [match_hashes[i:i+batch_size] for i in range(0, len(match_hashes), batch_size)]
+            
+            all_window_rows = []
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                results = list(executor.map(fetch_24h_batch, batches))
+            for batch_result in results:
+                all_window_rows.extend(batch_result)
+            
+            best_by_hash = {}
+            for row in all_window_rows:
+                mh = row.get('match_id_hash', '')
+                if not mh:
+                    continue
+                scraped = row.get('scraped_at', '')
+                try:
+                    row_time = datetime.fromisoformat(scraped.replace('Z', '+00:00'))
+                    diff = abs((row_time - target_time).total_seconds())
+                except:
+                    diff = 999999
+                
+                if mh not in best_by_hash or diff < best_by_hash[mh][1]:
+                    best_by_hash[mh] = (row, diff)
+            
+            found_hashes = set(best_by_hash.keys())
+            missing = [h for h in match_hashes if h not in found_hashes]
+            
+            if missing:
+                missing_batches = [missing[i:i+batch_size] for i in range(0, len(missing), batch_size)]
+                all_oldest = []
+                with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                    results = list(executor.map(fetch_oldest_batch, missing_batches))
+                for batch_result in results:
+                    all_oldest.extend(batch_result)
+                
+                seen = set()
+                for row in all_oldest:
+                    mh = row.get('match_id_hash', '')
+                    if mh and mh not in seen:
+                        seen.add(mh)
+                        best_by_hash[mh] = (row, 999999)
+            
+            result = {}
+            for mh, (row, _) in best_by_hash.items():
+                odds_data = None
+                if '1x2' in market:
+                    odds_data = {
+                        'OpeningOdds1': row.get('odds1', '') or row.get('odds1_prev', ''),
+                        'OpeningOddsX': row.get('oddsx', '') or row.get('oddsx_prev', ''),
+                        'OpeningOdds2': row.get('odds2', '') or row.get('odds2_prev', '')
+                    }
+                elif 'ou25' in market:
+                    odds_data = {
+                        'OpeningOver': row.get('over', '') or row.get('over_prev', ''),
+                        'OpeningUnder': row.get('under', '') or row.get('under_prev', '')
+                    }
+                elif 'btts' in market:
+                    odds_data = {
+                        'OpeningYes': row.get('oddsyes', '') or row.get('yes', '') or row.get('oddsyes_prev', ''),
+                        'OpeningNo': row.get('oddsno', '') or row.get('no', '') or row.get('oddsno_prev', '')
+                    }
+                if odds_data:
+                    result[mh] = odds_data
+            
+            elapsed = t_mod.time() - start_time
+            print(f"[24hOdds] {len(result)}/{len(match_hashes)} matches in {elapsed:.1f}s")
+            return result
+            
+        except Exception as e:
+            print(f"[24hOdds] Error: {e}")
+            return {}
+    
     def _normalize_row(self, row: Dict, market: str) -> Dict[str, Any]:
         """Convert lowercase Supabase columns to expected format"""
         if market in ['moneyway_1x2', 'dropping_1x2']:
@@ -1459,8 +1584,8 @@ class SupabaseClient:
             return False
     
     def get_6h_odds_history(self, market: str) -> Dict[str, Dict[str, Any]]:
-        """Drop markets: İlk snapshot vs Son snapshot = Açılıştan bu yana değişim.
-        OPTIMIZED: Sadece unique maçları çek, her maç için 1 first + 1 last."""
+        """Drop markets: 24 saat önceki snapshot vs Son snapshot = Son 24 saat değişim.
+        OPTIMIZED: Her maç için 24h ago + last record."""
         if not self.is_available or not market.startswith('dropping'):
             return {}
         
@@ -1468,8 +1593,14 @@ class SupabaseClient:
         
         try:
             import time
+            from datetime import datetime, timedelta, timezone
             from concurrent.futures import ThreadPoolExecutor
             start_time = time.time()
+            
+            now_utc = datetime.now(timezone.utc)
+            window_start = (now_utc - timedelta(hours=28)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+            window_end = (now_utc - timedelta(hours=20)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+            target_time = now_utc - timedelta(hours=24)
             
             if market == 'dropping_1x2':
                 sels = ['odds1', 'oddsx', 'odds2']
@@ -1483,22 +1614,19 @@ class SupabaseClient:
             else:
                 return {}
             
-            def fetch_unique_matches(order_dir):
-                """Fetch unique matches with first/last record only"""
+            def fetch_unique_matches_last():
                 seen = set()
                 rows = []
                 offset = 0
                 max_unique = 600
-                
                 while len(rows) < max_unique:
-                    url = f"{self._rest_url(history_table)}?select={select_cols}&order=scraped_at.{order_dir}&offset={offset}&limit=1000"
+                    url = f"{self._rest_url(history_table)}?select={select_cols}&order=scraped_at.desc&offset={offset}&limit=1000"
                     resp = httpx.get(url, headers=self._headers(), timeout=15)
                     if resp.status_code != 200:
                         break
                     batch = resp.json()
                     if not batch:
                         break
-                    
                     for row in batch:
                         key = f"{row.get('home', '')}|{row.get('away', '')}"
                         if key not in seen:
@@ -1506,37 +1634,88 @@ class SupabaseClient:
                             rows.append(row)
                             if len(rows) >= max_unique:
                                 break
-                    
                     if len(batch) < 1000 or len(rows) >= max_unique:
                         break
                     offset += 1000
                     if offset > 10000:
                         break
-                
                 return rows
             
-            with ThreadPoolExecutor(max_workers=2) as executor:
-                future_first = executor.submit(fetch_unique_matches, 'asc')
-                future_last = executor.submit(fetch_unique_matches, 'desc')
-                first_rows = future_first.result()
-                last_rows = future_last.result()
+            def fetch_24h_window():
+                url = (f"{self._rest_url(history_table)}?select={select_cols}"
+                       f"&scraped_at=gte.{window_start}&scraped_at=lte.{window_end}"
+                       f"&order=scraped_at.asc&limit=5000")
+                resp = httpx.get(url, headers=self._headers(), timeout=15)
+                if resp.status_code == 200:
+                    return resp.json()
+                return []
             
-            match_first = {f"{r.get('home', '')}|{r.get('away', '')}": r for r in first_rows}
+            def fetch_oldest():
+                seen = set()
+                rows = []
+                offset = 0
+                while len(rows) < 600:
+                    url = f"{self._rest_url(history_table)}?select={select_cols}&order=scraped_at.asc&offset={offset}&limit=1000"
+                    resp = httpx.get(url, headers=self._headers(), timeout=15)
+                    if resp.status_code != 200:
+                        break
+                    batch = resp.json()
+                    if not batch:
+                        break
+                    for row in batch:
+                        key = f"{row.get('home', '')}|{row.get('away', '')}"
+                        if key not in seen:
+                            seen.add(key)
+                            rows.append(row)
+                    if len(batch) < 1000:
+                        break
+                    offset += 1000
+                    if offset > 10000:
+                        break
+                return rows
+            
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                future_last = executor.submit(fetch_unique_matches_last)
+                future_24h = executor.submit(fetch_24h_window)
+                future_oldest = executor.submit(fetch_oldest)
+                last_rows = future_last.result()
+                window_rows = future_24h.result()
+                oldest_rows = future_oldest.result()
+            
             match_last = {f"{r.get('home', '')}|{r.get('away', '')}": r for r in last_rows}
             
-            if not match_first and not match_last:
+            best_24h = {}
+            for row in window_rows:
+                key = f"{row.get('home', '')}|{row.get('away', '')}"
+                scraped = row.get('scraped_at', '')
+                try:
+                    row_time = datetime.fromisoformat(scraped.replace('Z', '+00:00'))
+                    diff = abs((row_time - target_time).total_seconds())
+                except:
+                    diff = 999999
+                if key not in best_24h or diff < best_24h[key][1]:
+                    best_24h[key] = (row, diff)
+            
+            match_oldest = {f"{r.get('home', '')}|{r.get('away', '')}": r for r in oldest_rows}
+            
+            if not match_last:
                 return {}
             
             result = {}
             for key in match_last.keys():
-                first_row = match_first.get(key, {})
-                last_row = match_last.get(key, {})
+                if key in best_24h:
+                    ref_row = best_24h[key][0]
+                elif key in match_oldest:
+                    ref_row = match_oldest[key]
+                else:
+                    ref_row = match_last[key]
                 
+                last_row = match_last[key]
                 home, away = key.split('|', 1) if '|' in key else (key, '')
                 
-                match_data = {'home': home, 'away': away, 'values': {}}
+                match_data = {'home': home, 'away': away, 'values': {}, 'first_scraped': ref_row.get('scraped_at', '')}
                 for sel in sels:
-                    old_val = self._parse_numeric(first_row.get(sel, ''))
+                    old_val = self._parse_numeric(ref_row.get(sel, ''))
                     new_val = self._parse_numeric(last_row.get(sel, ''))
                     if old_val is None: old_val = new_val
                     if new_val is None: new_val = old_val
@@ -1549,7 +1728,7 @@ class SupabaseClient:
                 result[key] = match_data
             
             elapsed = time.time() - start_time
-            print(f"[Drop] Got {len(result)} matches for {market} in {elapsed:.1f}s (optimized)")
+            print(f"[Drop] Got {len(result)} matches for {market} in {elapsed:.1f}s (24h comparison)")
             return result
             
         except Exception as e:

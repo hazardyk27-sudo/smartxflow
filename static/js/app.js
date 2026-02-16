@@ -676,10 +676,10 @@ async function loadMatches(appendMode = false) {
     
     _loadMatchesPending = (async () => {
         try {
-            // For DROPPING markets: DO NOT load oddsTrendCache - API data has true opening odds in PrevOdds
+            // For DROPPING markets: DO NOT load oddsTrendCache - API data has 24h ago odds in PrevOdds
             // For OTHER markets (moneyway): Load oddsTrendCache for charts, tooltips, and modal features
             if (requestMarket.startsWith('dropping')) {
-                // Clear cache - dropping uses API's PrevOdds directly (true opening odds from scraper)
+                // Clear cache - dropping uses API's PrevOdds directly (24h ago odds from backend)
                 oddsTrendCache = {};
             } else {
                 // Keep existing cache behavior for non-dropping markets
@@ -1309,9 +1309,9 @@ function renderMobileMoneywayBlock(label, oddsValue, pctValue) {
 function renderMobileOddsCard(match, idx, d, volume, dateStr) {
     let oddsBlocks = '';
     
-    // IMPORTANT: For Dropping Odds, use API data directly (PrevOdds = opening odds from arbworld.net)
-    // Do NOT use oddsTrendCache because it contains recent snapshots, not true opening odds
-    // PrevOdds fields from scraper are already the opening odds from the source website
+    // For Dropping Odds, use API data directly (PrevOdds = 24h ago odds from backend)
+    // Do NOT use oddsTrendCache because it contains recent snapshots
+    // PrevOdds fields are populated with 24h ago snapshot values
     if (currentMarket.includes('1x2')) {
         const trend1 = buildTrendDataFromMatch(d.Odds1 || d['1'], d.PrevOdds1 || d.Odds1_prev, d.Trend1, d.DropPct1);
         const trendX = buildTrendDataFromMatch(d.OddsX || d['X'], d.PrevOddsX || d.OddsX_prev, d.TrendX, d.DropPctX);
@@ -1521,13 +1521,13 @@ function getTableTrendArrow(current, previous) {
 // Build trend data object from match details (d object) instead of cache
 // This avoids team name mismatch issues between match list and trend cache
 // dropPct: Optional pre-calculated drop percentage from API (DropPct1, DropPctX, etc.)
-// openingOdds: Optional opening odds for calculating drop from opening (preferred over prevOdds)
+// openingOdds: Optional 24h ago odds for calculating change (preferred over prevOdds)
 function buildTrendDataFromMatch(currentOdds, prevOdds, trendText, dropPct, openingOdds) {
     const curr = parseFloat(String(currentOdds || '').replace(/[^0-9.]/g, ''));
     const prev = parseFloat(String(prevOdds || '').replace(/[^0-9.]/g, ''));
     const opening = parseFloat(String(openingOdds || '').replace(/[^0-9.]/g, ''));
     
-    // Determine base for comparison: Opening > Prev
+    // Determine base for comparison: 24h ago > Prev
     const baseOdds = (!isNaN(opening) && opening > 0) ? opening : prev;
     
     // If we have a pre-calculated drop percentage from API, use it directly
@@ -1567,8 +1567,8 @@ function buildTrendDataFromMatch(currentOdds, prevOdds, trendText, dropPct, open
     if (pctChange < -threshold) trend = 'down';
     else if (pctChange > threshold) trend = 'up';
     
-    // DO NOT override with trendText - our calculation from opening odds is more accurate
-    // trendText from arbworld represents snapshot-to-snapshot changes, not opening-to-current
+    // DO NOT override with trendText - our 24h calculation is more accurate
+    // trendText from arbworld represents snapshot-to-snapshot changes, not 24h-to-current
     
     return {
         trend: trend,
@@ -1760,7 +1760,7 @@ function getMaxTrendPct(match) {
     return maxPct;
 }
 
-// Get trend data from oddsTrendCache (Opening → Current, NOT Prev → Current)
+// Get trend data from oddsTrendCache (24h ago → Current)
 function getTrendFromCache(match, selectionKey) {
     const matchKey = `${match.home_team}|${match.away_team}`;
     const matchData = oddsTrendCache[matchKey];
@@ -3131,7 +3131,7 @@ function updateMobileValueHeader(dataIndex) {
         // For dropping odds, use Volume as stake
         if (isDropping) {
             stakeText = parseStake(h.Volume);
-            // Calculate change based on OPENING odds (ilk açılış oranı)
+            // Calculate change based on 24h ago odds (son 24 saat)
             let openingOdds = 0, currentOdds = 0;
             if (pick === '1') {
                 oddsText = h.Odds1 || h['1'] || '--';
@@ -5617,10 +5617,10 @@ function showTrendTooltip(event) {
         }
         
         tooltip.innerHTML = `
-            <div class="tooltip-title">AÇILIŞTAN BUGÜNE DEĞİŞİM</div>
+            <div class="tooltip-title">SON 24 SAAT DEĞİŞİM</div>
             <div class="tooltip-block">
                 <div class="tooltip-row">
-                    <span class="tooltip-label">Açılış oranı:</span>
+                    <span class="tooltip-label">24s önceki oran:</span>
                     <span class="tooltip-value">${data.old ? data.old.toFixed(2) : '-'}</span>
                 </div>
                 ${firstScrapedText ? `<div class="tooltip-date">(${firstScrapedText})</div>` : ''}
