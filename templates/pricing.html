@@ -390,7 +390,7 @@
         .promoNotice{
             width: min(920px, 94vw);
             margin: 20px auto 28px;
-            padding: 16px 20px;
+            padding: 16px 20px 16px 24px;
             border-radius: 14px;
             background: #161b22;
             border: 1px solid #21262d;
@@ -399,6 +399,41 @@
             justify-content:space-between;
             gap: 16px;
             position: relative;
+            overflow: hidden;
+        }
+        .promoNotice::before{
+            content:"";
+            position:absolute;
+            left: 0;
+            top: 10px;
+            bottom: 10px;
+            width: 2px;
+            border-radius: 999px;
+            background: rgba(60,255,170,.9);
+            box-shadow: 0 0 18px rgba(60,255,170,.25);
+            opacity: .9;
+        }
+        .promoNotice::after{
+            content:"";
+            position:absolute;
+            inset:-40% -30%;
+            background: linear-gradient(120deg,
+                rgba(255,255,255,0) 35%,
+                rgba(255,255,255,.08) 50%,
+                rgba(255,255,255,0) 65%
+            );
+            transform: translateX(-30%);
+            animation: promoSheen 5.5s ease-in-out infinite;
+            opacity: .35;
+            pointer-events:none;
+        }
+        @keyframes promoSheen{
+            0%   { transform: translateX(-35%) rotate(0deg); }
+            55%  { transform: translateX(35%) rotate(0deg); }
+            100% { transform: translateX(35%) rotate(0deg); }
+        }
+        @media (prefers-reduced-motion: reduce){
+            .promoNotice::after{ animation: none; }
         }
         .promoLeft{
             display:flex;
@@ -428,8 +463,23 @@
             text-overflow: ellipsis;
         }
         .promoText b{
-            color: rgba(60,255,170,.95);
-            text-shadow: 0 0 18px rgba(60,255,170,.18);
+            position: relative;
+            color: rgba(60,255,170,.98);
+            text-shadow: 0 0 18px rgba(60,255,170,.22);
+        }
+        .promoText b::after{
+            content:"";
+            position:absolute;
+            left:-10px; right:-10px;
+            top: 50%;
+            height: 22px;
+            transform: translateY(-50%);
+            background: radial-gradient(circle,
+                rgba(60,255,170,.22),
+                rgba(60,255,170,0) 70%
+            );
+            filter: blur(2px);
+            z-index:-1;
         }
         .cdGroup{
             display:flex;
@@ -438,9 +488,10 @@
             z-index: 1;
             flex-shrink: 0;
             background: rgba(255,255,255,.03);
-            border: 1px solid rgba(255,255,255,.07);
+            border: 1px solid rgba(60,255,170,.10);
             padding: 6px;
             border-radius: 16px;
+            box-shadow: 0 10px 35px rgba(0,0,0,.35);
         }
         .cdSeg{
             min-width: 48px;
