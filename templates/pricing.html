@@ -405,6 +405,36 @@
             letter-spacing: 0.03em;
         }
         .page-discount-banner span { color: #ff4444; font-size: 18px; }
+        .countdown {
+            margin-top: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #e6edf3;
+            letter-spacing: 0.04em;
+        }
+        .countdown .cd-unit {
+            display: inline-block;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 6px;
+            padding: 4px 8px;
+            margin: 0 2px;
+            min-width: 36px;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+        .countdown .cd-label {
+            font-size: 10px;
+            color: #8b949e;
+            display: block;
+            margin-top: 1px;
+            font-weight: 500;
+        }
+        .countdown .cd-sep {
+            color: #ff6b35;
+            font-weight: 800;
+            margin: 0 1px;
+        }
         .pricing-card .features {
             list-style: none;
             text-align: left;
@@ -614,7 +644,8 @@
 
     <section class="pricing-section">
         <div class="page-discount-banner">
-            🔥 1 Hafta Süreli Kampanya — Tüm paketlerde <span>%20 İNDİRİM</span>
+            🔥 Kampanya — Tüm paketlerde <span>%20 İNDİRİM</span>
+            <div class="countdown" id="campaignCountdown"></div>
         </div>
 
         <div class="duration-tabs">
@@ -893,6 +924,32 @@
                 }
             });
         }
+        var CAMPAIGN_START = new Date('2026-02-18T00:00:00+03:00').getTime();
+        var CAMPAIGN_END = CAMPAIGN_START + 7 * 24 * 60 * 60 * 1000;
+        function updateCountdown() {
+            var now = Date.now();
+            var diff = CAMPAIGN_END - now;
+            var el = document.getElementById('campaignCountdown');
+            if (!el) return;
+            if (diff <= 0) {
+                el.innerHTML = '<span style="color:#ff4444;">Kampanya sona erdi</span>';
+                return;
+            }
+            var d = Math.floor(diff / (1000 * 60 * 60 * 24));
+            var h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            var m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            var s = Math.floor((diff % (1000 * 60)) / 1000);
+            el.innerHTML =
+                '<span class="cd-unit">' + d + '<span class="cd-label">Gün</span></span>' +
+                '<span class="cd-sep">:</span>' +
+                '<span class="cd-unit">' + String(h).padStart(2,'0') + '<span class="cd-label">Saat</span></span>' +
+                '<span class="cd-sep">:</span>' +
+                '<span class="cd-unit">' + String(m).padStart(2,'0') + '<span class="cd-label">Dk</span></span>' +
+                '<span class="cd-sep">:</span>' +
+                '<span class="cd-unit">' + String(s).padStart(2,'0') + '<span class="cd-label">Sn</span></span>';
+        }
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
         document.addEventListener('DOMContentLoaded', function() {
             switchDuration('3ay');
         });
