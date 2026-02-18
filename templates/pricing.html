@@ -413,23 +413,23 @@
             font-weight: 700;
             padding: 5px 10px;
             border-radius: 6px;
-            color: #2BFF88;
-            background: rgba(43,255,136,0.08);
-            border: 1px solid rgba(43,255,136,0.18);
+            background: rgba(60,255,170,.12);
+            border: 1px solid rgba(60,255,170,.22);
+            color: rgba(60,255,170,.95);
             text-transform: uppercase;
             flex-shrink: 0;
         }
         .promoText{
-            color: #c9d1d9;
+            color: rgba(255,255,255,.82);
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         .promoText b{
-            color: #e6edf3;
-            font-weight: 700;
+            color: rgba(60,255,170,.95);
+            text-shadow: 0 0 18px rgba(60,255,170,.18);
         }
         .cdGroup{
             display:flex;
@@ -437,18 +437,22 @@
             gap: 6px;
             z-index: 1;
             flex-shrink: 0;
+            background: rgba(255,255,255,.03);
+            border: 1px solid rgba(255,255,255,.07);
+            padding: 6px;
+            border-radius: 16px;
         }
         .cdSeg{
             min-width: 48px;
-            padding: 8px 6px 6px;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid #21262d;
+            padding: 10px 12px 9px;
+            border-radius: 12px;
+            background: rgba(0,0,0,.18);
+            border: 1px solid rgba(255,255,255,.06);
             text-align:center;
         }
         .cdNum{
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 800;
             line-height: 1;
             color: #e6edf3;
@@ -457,10 +461,11 @@
         .cdNum.urgent{ color: #f85149; }
         .cdLab{
             margin-top: 4px;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 500;
-            letter-spacing: .3px;
-            color: #484f58;
+            letter-spacing: .6px;
+            opacity: .55;
+            color: #8b949e;
         }
         .cdSep{
             font-size: 16px;
