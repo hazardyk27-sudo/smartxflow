@@ -391,108 +391,118 @@
             0%, 100% { box-shadow: 0 0 0 0 rgba(255,107,53,0.15); }
             50% { box-shadow: 0 0 16px 2px rgba(255,107,53,0.18); }
         }
-        .promoBar{
-            position: relative;
-            width: min(820px, 92vw);
-            margin: 18px auto 10px;
-            padding: 18px 18px 16px;
+        .promoNotice{
+            width: min(920px, 94vw);
+            margin: 18px auto 14px;
+            padding: 12px 14px;
             border-radius: 18px;
-            background: rgba(255,255,255,.035);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 18px 50px rgba(0,0,0,.45);
+            background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
             border: 1px solid rgba(255,255,255,.08);
-            overflow: hidden;
-        }
-        .promoBar::before{
-            content:"";
-            position:absolute; inset:-1px;
-            border-radius: 18px;
-            padding:1px;
-            background: linear-gradient(135deg,
-                rgba(255,120,90,.55),
-                rgba(255,210,140,.18),
-                rgba(140,255,210,.10)
-            );
-            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
-            pointer-events:none;
-        }
-        .promoBar::after{
-            content:"";
-            position:absolute;
-            width: 520px; height: 220px;
-            left: -120px; top: -140px;
-            background: radial-gradient(circle,
-                rgba(255,130,90,.22),
-                rgba(255,130,90,0) 70%
-            );
-            pointer-events:none;
-        }
-        .promoTitle{
+            box-shadow: 0 18px 55px rgba(0,0,0,.45);
             display:flex;
             align-items:center;
-            justify-content:center;
-            gap:10px;
-            font-weight: 700;
-            letter-spacing: .2px;
-            font-size: 15px;
-            color: rgba(255,255,255,.86);
-            margin-bottom: 14px;
-            text-transform: none;
+            justify-content:space-between;
+            gap: 14px;
+            position: relative;
+            overflow: hidden;
         }
-        .promoIcon{ opacity:.9; transform: translateY(-.5px); }
-        .promoTitle .sep{ opacity:.35; }
-        .promoPct{
-            font-weight: 900;
+        .promoNotice::before{
+            content:"";
+            position:absolute;
+            inset:-2px;
+            background: radial-gradient(500px 140px at 15% 0%,
+                rgba(255,140,90,.22),
+                rgba(255,140,90,0) 65%);
+            pointer-events:none;
+        }
+        .promoNotice::after{
+            content:"";
+            position:absolute;
+            inset:-2px;
+            background: radial-gradient(420px 140px at 85% 30%,
+                rgba(60,255,170,.10),
+                rgba(60,255,170,0) 60%);
+            pointer-events:none;
+        }
+        .promoLeft{
+            display:flex;
+            align-items:center;
+            gap: 10px;
+            min-width: 0;
+        }
+        .promoPill{
+            font-size: 11px;
+            letter-spacing: .8px;
+            font-weight: 800;
+            padding: 6px 10px;
+            border-radius: 999px;
+            color: rgba(255,255,255,.9);
+            background: rgba(255,140,90,.14);
+            border: 1px solid rgba(255,140,90,.25);
+            text-transform: uppercase;
+        }
+        .promoText{
+            color: rgba(255,255,255,.86);
+            font-weight: 650;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .promoText b{
             color: rgba(255,140,90,.95);
             text-shadow: 0 0 18px rgba(255,140,90,.18);
         }
-        .promoWord{ opacity:.8; font-weight: 700; letter-spacing:.15px; }
-        .promoCountdown{
+        .cdGroup{
             display:flex;
             align-items:center;
-            justify-content:center;
-            gap:10px;
-        }
-        .tbox{
-            width: 64px;
-            padding: 10px 10px 8px;
+            gap: 8px;
+            padding: 8px 10px;
             border-radius: 14px;
-            background: rgba(255,255,255,.04);
-            border: 1px solid rgba(255,255,255,.10);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+            background: rgba(0,0,0,.22);
+            border: 1px solid rgba(255,255,255,.08);
         }
-        .tval{
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            font-size: 22px;
-            font-weight: 900;
+        .cdSeg{
+            min-width: 54px;
+            padding: 8px 10px 7px;
+            border-radius: 14px;
+            background: rgba(255,255,255,.035);
+            border: 1px solid rgba(255,255,255,.09);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
             text-align:center;
+        }
+        .cdNum{
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 20px;
+            font-weight: 900;
             line-height: 1;
             color: rgba(255,255,255,.92);
         }
-        .tval.urgent{ color: rgba(255,140,90,.95); }
-        .tlabel{
+        .cdNum.urgent{ color: rgba(255,140,90,.95); }
+        .cdLab{
             margin-top: 6px;
-            text-align:center;
-            font-size: 11px;
-            letter-spacing: .3px;
-            opacity: .65;
+            font-size: 10px;
+            letter-spacing: .5px;
+            color: rgba(255,255,255,.55);
         }
-        .tdot{
-            width: 6px;
-            height: 6px;
-            border-radius: 999px;
-            background: rgba(255,140,90,.95);
-            box-shadow: 0 0 16px rgba(255,140,90,.35);
+        .cdSep{
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 18px;
+            font-weight: 800;
+            color: rgba(255,140,90,.70);
+            text-shadow: 0 0 14px rgba(255,140,90,.20);
             opacity: .9;
+            transform: translateY(-4px);
         }
-        @media (max-width: 520px){
-            .promoBar{ padding: 16px 14px 14px; border-radius: 16px; }
-            .promoTitle{ font-size: 13px; gap:8px; }
-            .tbox{ width: 58px; border-radius: 13px; padding: 10px 8px 8px; }
-            .tval{ font-size: 20px; }
+        @media (max-width: 640px){
+            .promoNotice{
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            .promoText{ white-space: normal; }
+            .cdGroup{ width: 100%; justify-content: space-between; }
+            .cdSeg{ min-width: 0; flex: 1; }
+            .cdSep{ transform: translateY(-2px); }
         }
         .pricing-card .features {
             list-style: none;
@@ -702,23 +712,33 @@
     </section>
 
     <section class="pricing-section">
-        <div class="promoBar">
-            <div class="promoTitle">
-                <span class="promoIcon">🔥</span>
-                <span>Kampanya</span>
-                <span class="sep">—</span>
-                <span>Tüm paketlerde</span>
-                <span class="promoPct">%20</span>
-                <span class="promoWord">indirim</span>
+        <div class="promoNotice">
+            <div class="promoLeft">
+                <span class="promoPill">KAMPANYA</span>
+                <span class="promoText">Tüm paketlerde <b>%20</b> indirim</span>
             </div>
-            <div class="promoCountdown">
-                <div class="tbox"><div class="tval" id="cdDays">0</div><div class="tlabel">Gün</div></div>
-                <div class="tdot"></div>
-                <div class="tbox"><div class="tval" id="cdHours">00</div><div class="tlabel">Saat</div></div>
-                <div class="tdot"></div>
-                <div class="tbox"><div class="tval" id="cdMin">00</div><div class="tlabel">Dk</div></div>
-                <div class="tdot"></div>
-                <div class="tbox"><div class="tval" id="cdSec">00</div><div class="tlabel">Sn</div></div>
+            <div class="promoRight" aria-label="Kampanya geri sayım">
+                <div class="cdGroup">
+                    <div class="cdSeg">
+                        <div class="cdNum" id="cdDays">00</div>
+                        <div class="cdLab">Gün</div>
+                    </div>
+                    <span class="cdSep">:</span>
+                    <div class="cdSeg">
+                        <div class="cdNum" id="cdHours">00</div>
+                        <div class="cdLab">Saat</div>
+                    </div>
+                    <span class="cdSep">:</span>
+                    <div class="cdSeg">
+                        <div class="cdNum" id="cdMin">00</div>
+                        <div class="cdLab">Dk</div>
+                    </div>
+                    <span class="cdSep">:</span>
+                    <div class="cdSeg">
+                        <div class="cdNum" id="cdSec">00</div>
+                        <div class="cdLab">Sn</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1015,12 +1035,12 @@
             var h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             var m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             var s = Math.floor((diff % (1000 * 60)) / 1000);
-            elD.textContent = d;
+            elD.textContent = String(d).padStart(2, '0');
             elH.textContent = String(h).padStart(2, '0');
             elM.textContent = String(m).padStart(2, '0');
             elS.textContent = String(s).padStart(2, '0');
             var urgent = diff < 3600000;
-            [elD, elH, elM, elS].forEach(function(el) {
+            document.querySelectorAll('.cdNum').forEach(function(el) {
                 el.classList.toggle('urgent', urgent);
             });
         }
