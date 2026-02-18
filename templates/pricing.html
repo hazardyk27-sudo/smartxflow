@@ -8,7 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { overflow-x: hidden; max-width: 100vw; }
@@ -448,31 +448,18 @@
         }
         .promoLeft{
             display:flex;
-            flex-direction: column;
-            gap: 6px;
+            align-items: center;
             min-width: 0;
             z-index: 1;
         }
-        .promoPill{
-            font-size: 10px;
-            letter-spacing: .6px;
-            font-weight: 700;
-            padding: 5px 10px;
-            border-radius: 6px;
-            background: rgba(60,255,170,.12);
-            border: 1px solid rgba(60,255,170,.22);
-            color: rgba(60,255,170,.95);
-            text-transform: uppercase;
-            flex-shrink: 0;
-            align-self: flex-start;
-        }
         .promoText{
-            font-family: 'Playfair Display', serif;
+            font-family: 'Space Grotesk', sans-serif;
             color: rgba(255,255,255,.92);
-            font-size: 22px;
-            font-weight: 700;
-            line-height: 1.35;
+            font-size: 20px;
+            font-weight: 600;
+            line-height: 1.4;
             white-space: normal;
+            letter-spacing: -0.2px;
         }
         .promoText b{
             position: relative;
@@ -766,8 +753,7 @@
     <section class="pricing-section">
         <div class="promoNotice">
             <div class="promoLeft">
-                <span class="promoPill">KAMPANYA</span>
-                <span class="promoText">Açılışa Özel<br>Tüm Paketlerde <b>%20</b> İndirim</span>
+                <span class="promoText">Açılışa Özel — Tüm Paketlerde <b>%20</b> İndirim</span>
             </div>
             <div class="promoRight" aria-label="Kampanya geri sayım">
                 <div class="cdExpiry">25 Şubat'a kadar geçerli</div>
