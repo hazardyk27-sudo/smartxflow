@@ -7839,7 +7839,14 @@ def _send_payment_telegram(order_no, plan_name, price, full_name, email):
 @app.route('/api/payment-request', methods=['POST'])
 def payment_request():
     import re, time as _time
+    from datetime import datetime
+    import pytz
     try:
+        tr_tz = pytz.timezone('Europe/Istanbul')
+        tr_now = datetime.now(tr_tz)
+        if tr_now.hour < 10 or tr_now.hour >= 19:
+            return jsonify({'status': 'error', 'message': 'Satın alma işlemleri yalnızca 10:00 – 19:00 (Türkiye saati) arasında yapılabilir.'}), 403
+
         data = request.get_json()
         if not data:
             return jsonify({'status': 'error', 'message': 'Geçersiz istek.'}), 400

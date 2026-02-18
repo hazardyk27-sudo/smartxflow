@@ -1447,7 +1447,18 @@
             return 'SXF' + y + m + d + '-' + rand;
         }
 
+        function isSalesHours() {
+            var now = new Date();
+            var tr = new Date(now.toLocaleString('en-US', {timeZone: 'Europe/Istanbul'}));
+            var h = tr.getHours();
+            return h >= 10 && h < 19;
+        }
+
         function openPaymentModal(btn) {
+            if (!isSalesHours()) {
+                alert('Satın alma işlemleri yalnızca 10:00 – 19:00 (Türkiye saati) arasında yapılabilir. Lütfen bu saatler arasında tekrar deneyiniz.');
+                return;
+            }
             _payPlanId = btn.getAttribute('data-plan-id');
             var planName = btn.getAttribute('data-plan-name');
             var price = btn.getAttribute('data-price');
