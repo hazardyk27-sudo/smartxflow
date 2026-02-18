@@ -3035,6 +3035,9 @@
                 </div>
                 <button class="btn btn-primary" onclick="loadOrders()" style="padding: 8px 16px;">Yenile</button>
             </div>
+            <div style="margin-bottom: 12px;">
+                <input type="text" id="orderSearchInput" placeholder="Sipariş no, ad soyad veya e-posta ile ara..." oninput="filterOrders()" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; width: 100%; max-width: 400px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='rgba(60,255,170,0.5)'" onblur="this.style.borderColor='#30363d'">
+            </div>
             <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse; min-width: 800px;">
                     <thead>
@@ -3832,47 +3835,69 @@
             if (pageId === 'orders') loadOrders();
         }
         
+        var _allOrders = [];
+
+        function renderOrderRows(orders) {
+            const tbody = document.getElementById('ordersTableBody');
+            if (orders.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="padding: 32px; text-align: center; color: #8b949e;">Sonuç bulunamadı.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = orders.map(o => {
+                const d = o.created_at ? new Date(o.created_at) : null;
+                const dateStr = d ? d.toLocaleString('tr-TR', {timeZone:'Europe/Istanbul', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
+                const status = o.status || 'pending';
+                let statusBadge = '';
+                let actionBtns = '';
+                if (status === 'approved') {
+                    statusBadge = '<span style="background: rgba(43,255,136,0.15); color: #2BFF88; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;">✓ Onaylandı</span>';
+                    actionBtns = '<span style="color: #8b949e; font-size: 12px;">—</span>';
+                } else if (status === 'rejected') {
+                    statusBadge = '<span style="background: rgba(248,81,73,0.15); color: #f85149; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;">✗ Reddedildi</span>';
+                    actionBtns = '<span style="color: #8b949e; font-size: 12px;">—</span>';
+                } else {
+                    statusBadge = '<span style="background: rgba(210,153,34,0.15); color: #d29922; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;">⏳ Bekliyor</span>';
+                    actionBtns = `<div style="display: flex; gap: 6px; justify-content: center;">
+                        <button onclick="updateOrderStatus('${o.order_no}','approved')" style="background: rgba(43,255,136,0.15); border: 1px solid rgba(43,255,136,0.3); color: #2BFF88; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">✓ Onayla</button>
+                        <button onclick="updateOrderStatus('${o.order_no}','rejected')" style="background: rgba(248,81,73,0.15); border: 1px solid rgba(248,81,73,0.3); color: #f85149; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">✗ Reddet</button>
+                    </div>`;
+                }
+                return `<tr style="border-bottom: 1px solid #21262d;">
+                    <td style="padding: 10px 16px; color: #2BFF88; font-weight: 600; font-family: monospace; font-size: 13px;">${o.order_no || '-'}</td>
+                    <td style="padding: 10px 16px; color: #f0f6fc;">${o.full_name || '-'}</td>
+                    <td style="padding: 10px 16px; color: #8b949e;">${o.email || '-'}</td>
+                    <td style="padding: 10px 16px; color: #c9d1d9;">${o.plan_name || '-'}</td>
+                    <td style="padding: 10px 16px; color: #c9d1d9;">${o.price || '-'}</td>
+                    <td style="padding: 10px 16px; color: #8b949e; font-size: 12px;">${dateStr}</td>
+                    <td style="padding: 10px 16px;">${statusBadge}</td>
+                    <td style="padding: 10px 16px; text-align: center;">${actionBtns}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function filterOrders() {
+            const q = (document.getElementById('orderSearchInput').value || '').trim().toLowerCase();
+            if (!q) { renderOrderRows(_allOrders); return; }
+            const filtered = _allOrders.filter(o =>
+                (o.order_no || '').toLowerCase().includes(q) ||
+                (o.full_name || '').toLowerCase().includes(q) ||
+                (o.email || '').toLowerCase().includes(q)
+            );
+            renderOrderRows(filtered);
+        }
+
         async function loadOrders() {
             const tbody = document.getElementById('ordersTableBody');
             tbody.innerHTML = '<tr><td colspan="8" style="padding: 32px; text-align: center; color: #8b949e;">Yükleniyor...</td></tr>';
             try {
                 const res = await fetch('/api/admin/orders');
                 const data = await res.json();
-                const orders = data.orders || [];
-                if (orders.length === 0) {
+                _allOrders = data.orders || [];
+                if (_allOrders.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="8" style="padding: 32px; text-align: center; color: #8b949e;">Henüz sipariş yok.</td></tr>';
                     return;
                 }
-                tbody.innerHTML = orders.map(o => {
-                    const d = o.created_at ? new Date(o.created_at) : null;
-                    const dateStr = d ? d.toLocaleString('tr-TR', {timeZone:'Europe/Istanbul', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
-                    const status = o.status || 'pending';
-                    let statusBadge = '';
-                    let actionBtns = '';
-                    if (status === 'approved') {
-                        statusBadge = '<span style="background: rgba(43,255,136,0.15); color: #2BFF88; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;">✓ Onaylandı</span>';
-                        actionBtns = '<span style="color: #8b949e; font-size: 12px;">—</span>';
-                    } else if (status === 'rejected') {
-                        statusBadge = '<span style="background: rgba(248,81,73,0.15); color: #f85149; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;">✗ Reddedildi</span>';
-                        actionBtns = '<span style="color: #8b949e; font-size: 12px;">—</span>';
-                    } else {
-                        statusBadge = '<span style="background: rgba(210,153,34,0.15); color: #d29922; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;">⏳ Bekliyor</span>';
-                        actionBtns = `<div style="display: flex; gap: 6px; justify-content: center;">
-                            <button onclick="updateOrderStatus('${o.order_no}','approved')" style="background: rgba(43,255,136,0.15); border: 1px solid rgba(43,255,136,0.3); color: #2BFF88; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">✓ Onayla</button>
-                            <button onclick="updateOrderStatus('${o.order_no}','rejected')" style="background: rgba(248,81,73,0.15); border: 1px solid rgba(248,81,73,0.3); color: #f85149; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">✗ Reddet</button>
-                        </div>`;
-                    }
-                    return `<tr style="border-bottom: 1px solid #21262d;">
-                        <td style="padding: 10px 16px; color: #2BFF88; font-weight: 600; font-family: monospace; font-size: 13px;">${o.order_no || '-'}</td>
-                        <td style="padding: 10px 16px; color: #f0f6fc;">${o.full_name || '-'}</td>
-                        <td style="padding: 10px 16px; color: #8b949e;">${o.email || '-'}</td>
-                        <td style="padding: 10px 16px; color: #c9d1d9;">${o.plan_name || '-'}</td>
-                        <td style="padding: 10px 16px; color: #c9d1d9;">${o.price || '-'}</td>
-                        <td style="padding: 10px 16px; color: #8b949e; font-size: 12px;">${dateStr}</td>
-                        <td style="padding: 10px 16px;">${statusBadge}</td>
-                        <td style="padding: 10px 16px; text-align: center;">${actionBtns}</td>
-                    </tr>`;
-                }).join('');
+                filterOrders();
             } catch(e) {
                 tbody.innerHTML = '<tr><td colspan="8" style="padding: 32px; text-align: center; color: #f85149;">Siparişler yüklenemedi.</td></tr>';
             }
