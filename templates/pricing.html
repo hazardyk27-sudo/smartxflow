@@ -1366,6 +1366,16 @@
         });
     </script>
 
+    <div class="pay-modal-overlay" id="timeWarningOverlay" onclick="if(event.target===this)closeTimeWarning();" style="display:none;">
+        <div class="pay-modal" style="max-width: 440px; text-align: center; padding: 40px 32px;">
+            <button class="pay-modal-close" onclick="closeTimeWarning();">✕</button>
+            <div style="font-size: 48px; margin-bottom: 16px;">🕐</div>
+            <h3 style="color: #f0f6fc; font-size: 20px; font-weight: 700; margin-bottom: 16px; line-height: 1.4;">Satın Alma Saatleri</h3>
+            <p style="color: #c9d1d9; font-size: 15px; line-height: 1.7; margin-bottom: 24px;">Size anında hizmet verebilmek için satın alma işlemleri yalnızca <strong style="color: #3cffaa;">10:00 – 19:00</strong> (Türkiye saati) arasında yapılabilir. Lütfen bu saatler arasında tekrar deneyiniz.</p>
+            <button onclick="closeTimeWarning();" style="background: linear-gradient(135deg, #3cffaa, #00d68f); color: #0d1117; border: none; border-radius: 8px; padding: 12px 32px; font-size: 15px; font-weight: 700; cursor: pointer;">Tamam</button>
+        </div>
+    </div>
+
     <div class="pay-modal-overlay" id="payModalOverlay" onclick="if(event.target===this)closePaymentModal();">
         <div class="pay-modal">
             <button class="pay-modal-close" onclick="closePaymentModal();">✕</button>
@@ -1454,9 +1464,18 @@
             return h >= 10 && h < 19;
         }
 
+        function openTimeWarning() {
+            document.getElementById('timeWarningOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeTimeWarning() {
+            document.getElementById('timeWarningOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
         function openPaymentModal(btn) {
             if (!isSalesHours()) {
-                alert('Satın alma işlemleri yalnızca 10:00 – 19:00 (Türkiye saati) arasında yapılabilir. Lütfen bu saatler arasında tekrar deneyiniz.');
+                openTimeWarning();
                 return;
             }
             _payPlanId = btn.getAttribute('data-plan-id');
@@ -1583,7 +1602,7 @@
         }
 
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closePaymentModal();
+            if (e.key === 'Escape') { closePaymentModal(); closeTimeWarning(); }
         });
     </script>
 </body>
