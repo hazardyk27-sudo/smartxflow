@@ -7893,10 +7893,13 @@ def payment_request():
         except Exception as db_err:
             print(f"[Payment] Supabase insert failed (non-critical): {db_err}")
 
-        try:
-            _send_payment_telegram(order_no, plan_name, price, full_name, email)
-        except Exception as tg_err:
-            print(f"[Payment] Telegram notification failed (non-critical): {tg_err}")
+        import threading
+        def _tg_async():
+            try:
+                _send_payment_telegram(order_no, plan_name, price, full_name, email)
+            except Exception as tg_err:
+                print(f"[Payment] Telegram notification failed (non-critical): {tg_err}")
+        threading.Thread(target=_tg_async, daemon=True).start()
 
         return jsonify({'status': 'ok', 'message': 'Talep alındı.'})
     except Exception as e:
