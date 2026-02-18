@@ -7873,15 +7873,23 @@ def payment_request():
 
         try:
             sb = get_supabase_client()
-            sb.table('payment_requests').insert({
-                'plan_id': plan_id,
-                'plan_name': plan_name,
-                'price': price,
-                'payment_ref': payment_ref,
-                'order_no': order_no,
-                'full_name': full_name,
-                'email': email
-            }).execute()
+            if sb and sb.is_available:
+                import httpx as _httpx
+                url = f"{sb._rest_url('payment_requests')}"
+                resp = _httpx.post(url, headers=sb._headers(), json={
+                    'plan_id': plan_id,
+                    'plan_name': plan_name,
+                    'price': price,
+                    'payment_ref': payment_ref,
+                    'order_no': order_no,
+                    'full_name': full_name,
+                    'email': email,
+                    'status': 'pending'
+                }, timeout=10)
+                if resp.status_code in (200, 201):
+                    print(f"[Payment] Saved to Supabase: {order_no}")
+                else:
+                    print(f"[Payment] Supabase insert failed: {resp.status_code} {resp.text}")
         except Exception as db_err:
             print(f"[Payment] Supabase insert failed (non-critical): {db_err}")
 
@@ -7902,8 +7910,16 @@ def get_admin_orders():
         return jsonify({'error': 'Unauthorized'}), 401
     try:
         sb = get_supabase_client()
-        result = sb.table('payment_requests').select('*').order('created_at', desc=True).execute()
-        return jsonify({'orders': result.data if result.data else []})
+        if not sb or not sb.is_available:
+            return jsonify({'orders': [], 'error': 'Supabase not available'})
+        import httpx as _httpx
+        url = f"{sb._rest_url('payment_requests')}?select=*&order=created_at.desc"
+        resp = _httpx.get(url, headers=sb._headers(), timeout=10)
+        if resp.status_code == 200:
+            return jsonify({'orders': resp.json()})
+        else:
+            print(f"[Admin Orders] Supabase error: {resp.status_code} {resp.text}")
+            return jsonify({'orders': [], 'error': f'HTTP {resp.status_code}'})
     except Exception as e:
         print(f"[Admin Orders] Error: {e}")
         return jsonify({'orders': [], 'error': str(e)})
@@ -7920,9 +7936,18 @@ def update_order_status():
         if not order_no or status not in ('approved', 'rejected'):
             return jsonify({'success': False, 'error': 'Geçersiz parametre.'}), 400
         sb = get_supabase_client()
-        sb.table('payment_requests').update({'status': status}).eq('order_no', order_no).execute()
-        print(f"[Orders] Status updated: {order_no} -> {status}")
-        return jsonify({'success': True})
+        if not sb or not sb.is_available:
+            return jsonify({'success': False, 'error': 'Supabase not available'}), 500
+        import httpx as _httpx
+        from urllib.parse import quote
+        url = f"{sb._rest_url('payment_requests')}?order_no=eq.{quote(order_no)}"
+        resp = _httpx.patch(url, headers=sb._headers(), json={'status': status}, timeout=10)
+        if resp.status_code in (200, 204):
+            print(f"[Orders] Status updated: {order_no} -> {status}")
+            return jsonify({'success': True})
+        else:
+            print(f"[Orders] Status update failed: {resp.status_code} {resp.text}")
+            return jsonify({'success': False, 'error': f'HTTP {resp.status_code}'}), 500
     except Exception as e:
         print(f"[Orders] Status update error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
