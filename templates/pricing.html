@@ -657,6 +657,7 @@
             color: #f0f6fc;
             margin-bottom: 4px;
         }
+        .mobile-br { display: none; }
         .pay-modal-subtitle {
             font-size: 13px;
             color: #8b949e;
@@ -947,6 +948,7 @@
             .pricing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @media (max-width: 768px) {
+            .mobile-br { display: block; }
             .nav-links { display: none; }
             .hamburger { display: flex; }
             .navbar-inner { padding: 0 16px; }
@@ -1369,7 +1371,7 @@
             <button class="pay-modal-close" onclick="closePaymentModal();">✕</button>
             <div id="payFormSection">
                 <div class="pay-modal-title">Banka Havalesi ile Satın Al</div>
-                <div class="pay-modal-subtitle">Seçilen Paket: <strong id="payPlanLabel"></strong> • <strong id="payPriceLabel"></strong> • Sipariş No: <strong id="payOrderNo"></strong></div>
+                <div class="pay-modal-subtitle">Seçilen Paket: <strong id="payPlanLabel"></strong> • <strong id="payPriceLabel"></strong><br class="mobile-br"> Sipariş No: <strong id="payOrderNo"></strong></div>
 
                 <div class="pay-section-label">Banka Bilgileri</div>
                 <div class="pay-bank-box">
