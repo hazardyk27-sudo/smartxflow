@@ -7909,6 +7909,25 @@ def get_admin_orders():
         return jsonify({'orders': [], 'error': str(e)})
 
 
+@app.route('/api/admin/orders/update-status', methods=['POST'])
+def update_order_status():
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    try:
+        data = request.get_json()
+        order_no = (data.get('order_no') or '').strip()
+        status = (data.get('status') or '').strip()
+        if not order_no or status not in ('approved', 'rejected'):
+            return jsonify({'success': False, 'error': 'Geçersiz parametre.'}), 400
+        sb = get_supabase_client()
+        sb.table('payment_requests').update({'status': status}).eq('order_no', order_no).execute()
+        print(f"[Orders] Status updated: {order_no} -> {status}")
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"[Orders] Status update error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 def main():
     """Main entry point with error handling for EXE"""
     try:
