@@ -7818,10 +7818,11 @@ def payment_request():
         plan_name = (data.get('plan_name') or '').strip()
         price = (data.get('price') or '').strip()
         payment_ref = (data.get('payment_ref') or '').strip()
+        order_no = (data.get('order_no') or '').strip()
         full_name = (data.get('full_name') or '').strip()
         email = (data.get('email') or '').strip().lower()
 
-        if not all([plan_id, plan_name, price, payment_ref, full_name, email]):
+        if not all([plan_id, plan_name, price, full_name, email]):
             return jsonify({'status': 'error', 'message': 'Tüm alanları doldurunuz.'}), 400
 
         if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
@@ -7838,7 +7839,7 @@ def payment_request():
         for k in old_keys:
             del _payment_spam_cache[k]
 
-        print(f"[Payment] New request: {plan_name} | {price} | {full_name} | {email} | Ref: {payment_ref}")
+        print(f"[Payment] New request: {order_no} | {plan_name} | {price} | {full_name} | {email}")
 
         try:
             sb = get_supabase_client()
@@ -7847,6 +7848,7 @@ def payment_request():
                 'plan_name': plan_name,
                 'price': price,
                 'payment_ref': payment_ref,
+                'order_no': order_no,
                 'full_name': full_name,
                 'email': email
             }).execute()
@@ -7857,6 +7859,19 @@ def payment_request():
     except Exception as e:
         print(f"[Payment] Error: {e}")
         return jsonify({'status': 'error', 'message': 'Bir hata oluştu.'}), 500
+
+
+@app.route('/api/admin/orders', methods=['GET'])
+def get_admin_orders():
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    try:
+        sb = get_supabase_client()
+        result = sb.table('payment_requests').select('*').order('created_at', desc=True).execute()
+        return jsonify({'orders': result.data if result.data else []})
+    except Exception as e:
+        print(f"[Admin Orders] Error: {e}")
+        return jsonify({'orders': [], 'error': str(e)})
 
 
 def main():

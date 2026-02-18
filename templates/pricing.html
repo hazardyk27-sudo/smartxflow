@@ -1369,7 +1369,7 @@
             <button class="pay-modal-close" onclick="closePaymentModal();">✕</button>
             <div id="payFormSection">
                 <div class="pay-modal-title">Banka Havalesi ile Satın Al</div>
-                <div class="pay-modal-subtitle">Seçilen Paket: <strong id="payPlanLabel"></strong> • <strong id="payPriceLabel"></strong></div>
+                <div class="pay-modal-subtitle">Seçilen Paket: <strong id="payPlanLabel"></strong> • <strong id="payPriceLabel"></strong> • Sipariş No: <strong id="payOrderNo"></strong></div>
 
                 <div class="pay-section-label">Banka Bilgileri</div>
                 <div class="pay-bank-box">
@@ -1419,6 +1419,7 @@
     <script>
         var _payPlanId = '';
         var _payRef = '';
+        var _payOrderNo = '';
         var _lastSubmitKey = '';
         var _lastSubmitTime = 0;
 
@@ -1431,14 +1432,25 @@
             return code;
         }
 
+        function generateOrderNo() {
+            var now = new Date();
+            var y = String(now.getFullYear()).slice(2);
+            var m = String(now.getMonth() + 1).padStart(2, '0');
+            var d = String(now.getDate()).padStart(2, '0');
+            var rand = String(Math.floor(1000 + Math.random() * 9000));
+            return 'SXF' + y + m + d + '-' + rand;
+        }
+
         function openPaymentModal(btn) {
             _payPlanId = btn.getAttribute('data-plan-id');
             var planName = btn.getAttribute('data-plan-name');
             var price = btn.getAttribute('data-price');
             _payRef = generateRefCode();
+            _payOrderNo = generateOrderNo();
 
             document.getElementById('payPlanLabel').textContent = planName;
             document.getElementById('payPriceLabel').textContent = '₺' + price;
+            document.getElementById('payOrderNo').textContent = _payOrderNo;
             document.getElementById('payFormSection').style.display = '';
             document.getElementById('paySuccessSection').style.display = 'none';
             document.getElementById('payName').value = '';
@@ -1527,6 +1539,7 @@
                     plan_name: document.getElementById('payPlanLabel').textContent,
                     price: document.getElementById('payPriceLabel').textContent,
                     payment_ref: _payRef,
+                    order_no: _payOrderNo,
                     full_name: name,
                     email: email
                 })

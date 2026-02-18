@@ -840,6 +840,12 @@
                 <span class="nav-item-icon">📲</span>
                 <span>Telegram</span>
             </div>
+            <div class="nav-category">Satış</div>
+            <div class="nav-item" onclick="showPage('orders')" data-page="orders">
+                <span class="nav-item-icon">🧾</span>
+                <span>Siparişler</span>
+            </div>
+
             <div class="nav-category">İçerik</div>
             <div class="nav-item" onclick="showPage('content')" data-page="content">
                 <span class="nav-item-icon">📝</span>
@@ -3021,6 +3027,33 @@
                 </div>
             </div>
         </div>
+        <div id="page-orders" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title">Siparişler</h2>
+                    <p class="page-subtitle">Banka havalesi ödeme talepleri</p>
+                </div>
+                <button class="btn btn-primary" onclick="loadOrders()" style="padding: 8px 16px;">Yenile</button>
+            </div>
+            <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid #30363d;">
+                            <th style="text-align: left; padding: 12px 16px; color: #8b949e; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Sipariş No</th>
+                            <th style="text-align: left; padding: 12px 16px; color: #8b949e; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Ad Soyad</th>
+                            <th style="text-align: left; padding: 12px 16px; color: #8b949e; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">E-posta</th>
+                            <th style="text-align: left; padding: 12px 16px; color: #8b949e; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Paket</th>
+                            <th style="text-align: left; padding: 12px 16px; color: #8b949e; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Fiyat</th>
+                            <th style="text-align: left; padding: 12px 16px; color: #8b949e; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Tarih</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody">
+                        <tr><td colspan="6" style="padding: 32px; text-align: center; color: #8b949e;">Yükleniyor...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div id="page-content" class="page-content">
             <div class="page-header">
                 <div>
@@ -3794,8 +3827,37 @@
             if (pageId === 'telegram') loadTelegramPage();
             if (pageId === 'content') loadContentPage();
             if (pageId === 'license') loadLicensePage();
+            if (pageId === 'orders') loadOrders();
         }
         
+        async function loadOrders() {
+            const tbody = document.getElementById('ordersTableBody');
+            tbody.innerHTML = '<tr><td colspan="6" style="padding: 32px; text-align: center; color: #8b949e;">Yükleniyor...</td></tr>';
+            try {
+                const res = await fetch('/api/admin/orders');
+                const data = await res.json();
+                const orders = data.orders || [];
+                if (orders.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="padding: 32px; text-align: center; color: #8b949e;">Henüz sipariş yok.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = orders.map(o => {
+                    const d = o.created_at ? new Date(o.created_at) : null;
+                    const dateStr = d ? d.toLocaleString('tr-TR', {timeZone:'Europe/Istanbul', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
+                    return `<tr style="border-bottom: 1px solid #21262d;">
+                        <td style="padding: 10px 16px; color: #2BFF88; font-weight: 600; font-family: monospace; font-size: 13px;">${o.order_no || '-'}</td>
+                        <td style="padding: 10px 16px; color: #f0f6fc;">${o.full_name || '-'}</td>
+                        <td style="padding: 10px 16px; color: #8b949e;">${o.email || '-'}</td>
+                        <td style="padding: 10px 16px; color: #c9d1d9;">${o.plan_name || '-'}</td>
+                        <td style="padding: 10px 16px; color: #c9d1d9;">${o.price || '-'}</td>
+                        <td style="padding: 10px 16px; color: #8b949e; font-size: 12px;">${dateStr}</td>
+                    </tr>`;
+                }).join('');
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="6" style="padding: 32px; text-align: center; color: #f85149;">Siparişler yüklenemedi.</td></tr>';
+            }
+        }
+
         async function loadLicensePage() {
             await Promise.all([loadLicenses(), loadLicenseStats()]);
         }
