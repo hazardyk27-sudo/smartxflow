@@ -1388,15 +1388,7 @@
                             <button class="pay-copy-btn" onclick="copyToClipboard('payIban',this);">Kopyala</button>
                         </span>
                     </div>
-                    <div class="pay-bank-row">
-                        <span class="label">Açıklama</span>
-                        <span class="value ref-value">
-                            <span id="payRefCode"></span>
-                            <button class="pay-copy-btn" onclick="copyToClipboard('payRefCode',this);">Kopyala</button>
-                        </span>
-                    </div>
                 </div>
-                <div class="pay-ref-note">Havale açıklamasına yukarıdaki kodu aynen yazmanız gerekmektedir.</div>
 
                 <div class="pay-form">
                     <div class="pay-section-label" style="margin-top:20px;">Bilgileriniz</div>
@@ -1411,7 +1403,7 @@
                     </div>
                     <div class="pay-checkbox-group">
                         <input type="checkbox" id="payConfirm" onchange="validatePayForm();">
-                        <label for="payConfirm">Ödemeyi yaptım ve açıklama kısmına referans kodunu doğru girdim.</label>
+                        <label for="payConfirm">Ödemeyi yaptım.</label>
                     </div>
                     <button class="pay-submit-btn" id="paySubmitBtn" disabled onclick="submitPayment();">Ödeme Yaptım</button>
                 </div>
@@ -1447,8 +1439,6 @@
 
             document.getElementById('payPlanLabel').textContent = planName;
             document.getElementById('payPriceLabel').textContent = '₺' + price;
-            document.getElementById('payRefCode').textContent = _payRef;
-
             document.getElementById('payFormSection').style.display = '';
             document.getElementById('paySuccessSection').style.display = 'none';
             document.getElementById('payName').value = '';
