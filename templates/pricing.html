@@ -844,11 +844,29 @@
         @media (max-width: 768px) {
             .pay-modal {
                 max-height: 95vh;
-                padding: 24px 20px;
+                padding: 24px 16px;
                 border-radius: 16px;
                 margin: 8px;
             }
             .pay-modal-title { font-size: 18px; }
+            .pay-bank-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+                padding: 10px 0;
+            }
+            .pay-bank-row .value {
+                font-size: 13px;
+                flex-wrap: wrap;
+                gap: 6px;
+                width: 100%;
+            }
+            .pay-bank-row .value.ref-value {
+                font-size: 14px;
+            }
+            .pay-bank-box {
+                padding: 12px;
+            }
         }
         .faq-section {
             padding: 80px 24px;
