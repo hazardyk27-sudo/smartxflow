@@ -8993,11 +8993,20 @@ async function initLicenseCheck() {
         const savedKey = localStorage.getItem(WEB_LICENSE_KEY);
         if (savedKey) {
             try {
-                await fetch('/api/licenses/validate', {
+                const resp = await fetch('/api/licenses/validate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ key: savedKey, device_id: 'web-browser', device_name: navigator.userAgent.substring(0, 50) })
                 });
+                const data = await resp.json();
+                if (data.valid && data.days_left !== undefined) {
+                    localStorage.setItem('license_days_remaining', data.days_left);
+                    updateLicenseDaysBadge(data.days_left);
+                }
+                if (data.plan) {
+                    window.userPlan = data.plan;
+                    localStorage.setItem('license_plan', data.plan);
+                }
             } catch (e) {}
         }
         _isLicensed = true;
