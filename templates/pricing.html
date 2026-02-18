@@ -416,21 +416,29 @@
         .promoNotice::after{
             content:"";
             position:absolute;
-            inset:-40% -30%;
-            background: linear-gradient(120deg,
+            top: 0;
+            left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(
+                105deg,
+                rgba(255,255,255,0) 0%,
                 rgba(255,255,255,0) 35%,
-                rgba(255,255,255,.08) 50%,
-                rgba(255,255,255,0) 65%
+                rgba(60,255,170,.04) 42%,
+                rgba(255,255,255,.07) 50%,
+                rgba(60,255,170,.04) 58%,
+                rgba(255,255,255,0) 65%,
+                rgba(255,255,255,0) 100%
             );
-            transform: translateX(-30%);
-            animation: promoSheen 5.5s ease-in-out infinite;
-            opacity: .35;
+            animation: promoSheen 6s cubic-bezier(.4,0,.2,1) infinite;
             pointer-events:none;
         }
         @keyframes promoSheen{
-            0%   { transform: translateX(-35%) rotate(0deg); }
-            55%  { transform: translateX(35%) rotate(0deg); }
-            100% { transform: translateX(35%) rotate(0deg); }
+            0%   { left: -100%; opacity: 0; }
+            15%  { opacity: 1; }
+            70%  { left: 160%; opacity: 1; }
+            85%  { opacity: 0; }
+            100% { left: 160%; opacity: 0; }
         }
         @media (prefers-reduced-motion: reduce){
             .promoNotice::after{ animation: none; }
