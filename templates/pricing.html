@@ -1411,7 +1411,7 @@
             <div class="pay-success-msg" id="paySuccessSection">
                 <div class="pay-success-icon">✓</div>
                 <h3>Talebiniz Alındı</h3>
-                <p>Ödemeniz kontrol edildikten sonra kayıtlı e-posta adresinize en kısa zamanda dönüş yapılacaktır. Teşekkür ederiz.</p>
+                <p>Ödemeniz kontrol edildikten sonra kayıtlı e-posta (<strong id="successEmail" style="color: #2BFF88;"></strong>) adresinize en kısa zamanda dönüş yapılacaktır. Teşekkür ederiz.</p>
             </div>
         </div>
     </div>
@@ -1548,6 +1548,7 @@
                 if (data.status === 'ok') {
                     _lastSubmitKey = spamKey;
                     _lastSubmitTime = now;
+                    document.getElementById('successEmail').textContent = emailVal;
                     document.getElementById('payFormSection').style.display = 'none';
                     document.getElementById('paySuccessSection').style.display = 'block';
                 } else {
