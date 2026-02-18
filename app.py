@@ -7806,6 +7806,36 @@ def license_preview():
 
 _payment_spam_cache = {}
 
+def _send_payment_telegram(order_no, plan_name, price, full_name, email):
+    import requests as _req
+    bot_token = os.environ.get('PAYMENT_BOT_TOKEN')
+    chat_id = os.environ.get('PAYMENT_CHAT_ID')
+    if not bot_token or not chat_id:
+        print("[Payment TG] PAYMENT_BOT_TOKEN or PAYMENT_CHAT_ID not set, skipping.")
+        return
+    from datetime import datetime
+    import pytz
+    now_tr = datetime.now(pytz.timezone('Europe/Istanbul')).strftime('%d.%m.%Y %H:%M')
+    text = (
+        f"💰 <b>Yeni Ödeme Talebi</b>\n"
+        f"━━━━━━━━━━━━━━━━━━\n"
+        f"📋 <b>Sipariş No:</b> <code>{order_no}</code>\n"
+        f"📦 <b>Paket:</b> {plan_name}\n"
+        f"💵 <b>Tutar:</b> {price}\n"
+        f"━━━━━━━━━━━━━━━━━━\n"
+        f"👤 <b>Ad Soyad:</b> {full_name}\n"
+        f"📧 <b>E-posta:</b> {email}\n"
+        f"🕐 <b>Tarih:</b> {now_tr}\n"
+        f"━━━━━━━━━━━━━━━━━━\n"
+        f"⚡ SmartXFlow Ödeme Sistemi"
+    )
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    resp = _req.post(url, json={'chat_id': chat_id, 'text': text, 'parse_mode': 'HTML'}, timeout=10)
+    if resp.status_code == 200:
+        print(f"[Payment TG] Notification sent for {order_no}")
+    else:
+        print(f"[Payment TG] Failed: {resp.status_code} {resp.text}")
+
 @app.route('/api/payment-request', methods=['POST'])
 def payment_request():
     import re, time as _time
@@ -7854,6 +7884,11 @@ def payment_request():
             }).execute()
         except Exception as db_err:
             print(f"[Payment] Supabase insert failed (non-critical): {db_err}")
+
+        try:
+            _send_payment_telegram(order_no, plan_name, price, full_name, email)
+        except Exception as tg_err:
+            print(f"[Payment] Telegram notification failed (non-critical): {tg_err}")
 
         return jsonify({'status': 'ok', 'message': 'Talep alındı.'})
     except Exception as e:
