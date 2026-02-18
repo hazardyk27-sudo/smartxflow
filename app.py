@@ -7804,6 +7804,61 @@ def license_preview():
 </html>'''
 
 
+_payment_spam_cache = {}
+
+@app.route('/api/payment-request', methods=['POST'])
+def payment_request():
+    import re, time as _time
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'Geçersiz istek.'}), 400
+
+        plan_id = (data.get('plan_id') or '').strip()
+        plan_name = (data.get('plan_name') or '').strip()
+        price = (data.get('price') or '').strip()
+        payment_ref = (data.get('payment_ref') or '').strip()
+        full_name = (data.get('full_name') or '').strip()
+        email = (data.get('email') or '').strip().lower()
+
+        if not all([plan_id, plan_name, price, payment_ref, full_name, email]):
+            return jsonify({'status': 'error', 'message': 'Tüm alanları doldurunuz.'}), 400
+
+        if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
+            return jsonify({'status': 'error', 'message': 'Geçerli bir e-posta giriniz.'}), 400
+
+        spam_key = f"{email}|{payment_ref}"
+        now = _time.time()
+        if spam_key in _payment_spam_cache and (now - _payment_spam_cache[spam_key]) < 60:
+            return jsonify({'status': 'error', 'message': 'Bu talep zaten gönderildi. 1 dakika bekleyiniz.'}), 429
+
+        _payment_spam_cache[spam_key] = now
+
+        old_keys = [k for k, v in _payment_spam_cache.items() if (now - v) > 300]
+        for k in old_keys:
+            del _payment_spam_cache[k]
+
+        print(f"[Payment] New request: {plan_name} | {price} | {full_name} | {email} | Ref: {payment_ref}")
+
+        try:
+            sb = get_supabase_client()
+            sb.table('payment_requests').insert({
+                'plan_id': plan_id,
+                'plan_name': plan_name,
+                'price': price,
+                'payment_ref': payment_ref,
+                'full_name': full_name,
+                'email': email
+            }).execute()
+        except Exception as db_err:
+            print(f"[Payment] Supabase insert failed (non-critical): {db_err}")
+
+        return jsonify({'status': 'ok', 'message': 'Talep alındı.'})
+    except Exception as e:
+        print(f"[Payment] Error: {e}")
+        return jsonify({'status': 'error', 'message': 'Bir hata oluştu.'}), 500
+
+
 def main():
     """Main entry point with error handling for EXE"""
     try:

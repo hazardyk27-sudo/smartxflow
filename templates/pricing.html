@@ -605,6 +605,251 @@
         }
         .btn-buy-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(43,255,136,0.35); }
 
+        .pay-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(0,0,0,0.72);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        .pay-modal-overlay.active { display: flex; }
+        .pay-modal {
+            background: rgba(22,27,34,0.96);
+            border: 1px solid rgba(48,54,61,0.7);
+            border-radius: 20px;
+            max-width: 480px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(43,255,136,0.06);
+            padding: 32px 28px;
+            position: relative;
+        }
+        .pay-modal::-webkit-scrollbar { width: 4px; }
+        .pay-modal::-webkit-scrollbar-thumb { background: rgba(43,255,136,0.2); border-radius: 4px; }
+        .pay-modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(48,54,61,0.6);
+            border: 1px solid rgba(48,54,61,0.8);
+            color: #8b949e;
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        .pay-modal-close:hover { background: rgba(255,255,255,0.08); color: #fff; }
+        .pay-modal-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: #f0f6fc;
+            margin-bottom: 4px;
+        }
+        .pay-modal-subtitle {
+            font-size: 13px;
+            color: #8b949e;
+            margin-bottom: 24px;
+        }
+        .pay-modal-subtitle strong {
+            color: #2BFF88;
+            font-weight: 600;
+        }
+        .pay-section-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 10px;
+        }
+        .pay-bank-box {
+            background: rgba(33,38,45,0.7);
+            border: 1px solid rgba(48,54,61,0.6);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .pay-bank-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(48,54,61,0.4);
+        }
+        .pay-bank-row:last-child { border-bottom: none; }
+        .pay-bank-row .label {
+            font-size: 12px;
+            color: #8b949e;
+        }
+        .pay-bank-row .value {
+            font-size: 13px;
+            color: #f0f6fc;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .pay-bank-row .value.ref-value {
+            color: #2BFF88;
+            font-family: 'Space Grotesk', monospace;
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: 0.04em;
+        }
+        .pay-copy-btn {
+            background: rgba(43,255,136,0.08);
+            border: 1px solid rgba(43,255,136,0.15);
+            color: #2BFF88;
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .pay-copy-btn:hover { background: rgba(43,255,136,0.15); }
+        .pay-copy-btn.copied { background: rgba(43,255,136,0.2); }
+        .pay-ref-note {
+            font-size: 11px;
+            color: #f8514966;
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+        .pay-form { margin-top: 20px; }
+        .pay-input-group {
+            margin-bottom: 14px;
+        }
+        .pay-input-group label {
+            display: block;
+            font-size: 12px;
+            color: #8b949e;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        .pay-input-group input[type="text"],
+        .pay-input-group input[type="email"] {
+            width: 100%;
+            padding: 11px 14px;
+            background: rgba(33,38,45,0.8);
+            border: 1px solid rgba(48,54,61,0.7);
+            border-radius: 10px;
+            color: #f0f6fc;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+        .pay-input-group input:focus {
+            border-color: rgba(43,255,136,0.4);
+        }
+        .pay-input-group input.input-error {
+            border-color: #f85149;
+        }
+        .pay-input-error-msg {
+            font-size: 11px;
+            color: #f85149;
+            margin-top: 4px;
+            display: none;
+        }
+        .pay-checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin: 18px 0;
+        }
+        .pay-checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            min-width: 18px;
+            accent-color: #2BFF88;
+            margin-top: 1px;
+            cursor: pointer;
+        }
+        .pay-checkbox-group label {
+            font-size: 12px;
+            color: #c9d1d9;
+            line-height: 1.5;
+            cursor: pointer;
+        }
+        .pay-submit-btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: rgba(43,255,136,0.15);
+            border: 1px solid rgba(43,255,136,0.25);
+            color: #8b949e;
+            font-size: 15px;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: not-allowed;
+            transition: all 0.3s;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .pay-submit-btn.active {
+            background: #2BFF88;
+            color: #06110B;
+            cursor: pointer;
+            border-color: #2BFF88;
+            box-shadow: 0 4px 20px rgba(43,255,136,0.3);
+        }
+        .pay-submit-btn.active:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 28px rgba(43,255,136,0.4);
+        }
+        .pay-submit-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .pay-success-msg {
+            display: none;
+            text-align: center;
+            padding: 28px 16px;
+        }
+        .pay-success-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(43,255,136,0.1);
+            border: 2px solid rgba(43,255,136,0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 28px;
+        }
+        .pay-success-msg h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            color: #f0f6fc;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        .pay-success-msg p {
+            color: #8b949e;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        @media (max-width: 768px) {
+            .pay-modal {
+                max-height: 95vh;
+                padding: 24px 20px;
+                border-radius: 16px;
+                margin: 8px;
+            }
+            .pay-modal-title { font-size: 18px; }
+        }
         .faq-section {
             padding: 80px 24px;
             max-width: 800px;
@@ -805,7 +1050,7 @@
                         <li>Mobil + masaüstü kullanım</li>
                         <li>1 cihaz</li>
                     </ul>
-                    <div class="cta"><a href="#" class="btn-buy btn-buy-outline">Satın Al</a></div>
+                    <div class="cta"><a href="#" class="btn-buy btn-buy-outline" data-plan-id="core-1ay" data-plan-name="CORE – 1 Ay" data-price="959,90" onclick="openPaymentModal(this);return false;">Satın Al</a></div>
                 </div>
 
                 <div class="pricing-card featured" data-duration="3ay">
@@ -825,7 +1070,7 @@
                         <li>2 cihaz</li>
                     </ul>
                     <div class="advantage-note">3 ayda avantajlı fiyat</div>
-                    <div class="cta"><a href="#" class="btn-buy btn-buy-primary">Satın Al</a></div>
+                    <div class="cta"><a href="#" class="btn-buy btn-buy-primary" data-plan-id="core-3ay" data-plan-name="CORE – 3 Ay" data-price="1.919,90" onclick="openPaymentModal(this);return false;">Satın Al</a></div>
                 </div>
 
                 <div class="pricing-card" data-duration="yillik">
@@ -844,7 +1089,7 @@
                         <li>3 cihaz</li>
                     </ul>
                     <div class="advantage-note">Yıllık kullanımda en avantajlı fiyat</div>
-                    <div class="cta"><a href="#" class="btn-buy btn-buy-outline">Satın Al</a></div>
+                    <div class="cta"><a href="#" class="btn-buy btn-buy-outline" data-plan-id="core-yillik" data-plan-name="CORE – Yıllık" data-price="4.799,90" onclick="openPaymentModal(this);return false;">Satın Al</a></div>
                 </div>
             </div>
         </div>
@@ -870,7 +1115,7 @@
                         <li>Trendler sayfasına erişim</li>
                         <li>Öncelikli destek</li>
                     </ul>
-                    <div class="cta"><a href="#" class="btn-buy btn-buy-outline">Satın Al</a></div>
+                    <div class="cta"><a href="#" class="btn-buy btn-buy-outline" data-plan-id="pro-1ay" data-plan-name="PRO – 1 Ay" data-price="1.359,90" onclick="openPaymentModal(this);return false;">Satın Al</a></div>
                 </div>
 
                 <div class="pricing-card featured" data-duration="3ay">
@@ -894,7 +1139,7 @@
                         <li>Öncelikli destek</li>
                     </ul>
                     <div class="advantage-note">3 ayda avantajlı fiyat</div>
-                    <div class="cta"><a href="#" class="btn-buy btn-buy-primary">Satın Al</a></div>
+                    <div class="cta"><a href="#" class="btn-buy btn-buy-primary" data-plan-id="pro-3ay" data-plan-name="PRO – 3 Ay" data-price="2.719,90" onclick="openPaymentModal(this);return false;">Satın Al</a></div>
                 </div>
 
                 <div class="pricing-card" data-duration="yillik">
@@ -917,7 +1162,7 @@
                         <li>Öncelikli destek</li>
                     </ul>
                     <div class="advantage-note">Yıllık kullanımda en avantajlı fiyat</div>
-                    <div class="cta"><a href="#" class="btn-buy btn-buy-outline">Satın Al</a></div>
+                    <div class="cta"><a href="#" class="btn-buy btn-buy-outline" data-plan-id="pro-yillik" data-plan-name="PRO – Yıllık" data-price="5.599,90" onclick="openPaymentModal(this);return false;">Satın Al</a></div>
                 </div>
             </div>
         </div>
@@ -1097,6 +1342,208 @@
             } else {
                 navbar.classList.remove('scrolled');
             }
+        });
+    </script>
+
+    <div class="pay-modal-overlay" id="payModalOverlay" onclick="if(event.target===this)closePaymentModal();">
+        <div class="pay-modal">
+            <button class="pay-modal-close" onclick="closePaymentModal();">✕</button>
+            <div id="payFormSection">
+                <div class="pay-modal-title">Banka Havalesi ile Satın Al</div>
+                <div class="pay-modal-subtitle">Seçilen Paket: <strong id="payPlanLabel"></strong> • <strong id="payPriceLabel"></strong></div>
+
+                <div class="pay-section-label">Banka Bilgileri</div>
+                <div class="pay-bank-box">
+                    <div class="pay-bank-row">
+                        <span class="label">Banka</span>
+                        <span class="value">Ziraat Bankası</span>
+                    </div>
+                    <div class="pay-bank-row">
+                        <span class="label">Alıcı</span>
+                        <span class="value">SmartXFlow Yazılım</span>
+                    </div>
+                    <div class="pay-bank-row">
+                        <span class="label">IBAN</span>
+                        <span class="value">
+                            <span id="payIban">TR00 0000 0000 0000 0000 0000 00</span>
+                            <button class="pay-copy-btn" onclick="copyToClipboard('payIban',this);">Kopyala</button>
+                        </span>
+                    </div>
+                    <div class="pay-bank-row">
+                        <span class="label">Açıklama</span>
+                        <span class="value ref-value">
+                            <span id="payRefCode"></span>
+                            <button class="pay-copy-btn" onclick="copyToClipboard('payRefCode',this);">Kopyala</button>
+                        </span>
+                    </div>
+                </div>
+                <div class="pay-ref-note">Havale açıklamasına yukarıdaki kodu aynen yazmanız gerekmektedir.</div>
+
+                <div class="pay-form">
+                    <div class="pay-section-label" style="margin-top:20px;">Bilgileriniz</div>
+                    <div class="pay-input-group">
+                        <label for="payName">Ad Soyad</label>
+                        <input type="text" id="payName" placeholder="Ad Soyad" oninput="validatePayForm();">
+                    </div>
+                    <div class="pay-input-group">
+                        <label for="payEmail">E-posta</label>
+                        <input type="email" id="payEmail" placeholder="ornek@email.com" oninput="validatePayForm();">
+                        <div class="pay-input-error-msg" id="payEmailError">Geçerli bir e-posta adresi giriniz.</div>
+                    </div>
+                    <div class="pay-checkbox-group">
+                        <input type="checkbox" id="payConfirm" onchange="validatePayForm();">
+                        <label for="payConfirm">Ödemeyi yaptım ve açıklama kısmına referans kodunu doğru girdim.</label>
+                    </div>
+                    <button class="pay-submit-btn" id="paySubmitBtn" disabled onclick="submitPayment();">Ödeme Yaptım</button>
+                </div>
+            </div>
+            <div class="pay-success-msg" id="paySuccessSection">
+                <div class="pay-success-icon">✓</div>
+                <h3>Talebiniz Alındı</h3>
+                <p>Ödemeniz kontrol edildikten sonra kayıtlı e-posta adresinize dönüş yapılacaktır. Teşekkür ederiz.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var _payPlanId = '';
+        var _payRef = '';
+        var _lastSubmitKey = '';
+        var _lastSubmitTime = 0;
+
+        function generateRefCode() {
+            var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            var code = 'SXF-';
+            for (var i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        function openPaymentModal(btn) {
+            _payPlanId = btn.getAttribute('data-plan-id');
+            var planName = btn.getAttribute('data-plan-name');
+            var price = btn.getAttribute('data-price');
+            _payRef = generateRefCode();
+
+            document.getElementById('payPlanLabel').textContent = planName;
+            document.getElementById('payPriceLabel').textContent = '₺' + price;
+            document.getElementById('payRefCode').textContent = _payRef;
+
+            document.getElementById('payFormSection').style.display = '';
+            document.getElementById('paySuccessSection').style.display = 'none';
+            document.getElementById('payName').value = '';
+            document.getElementById('payEmail').value = '';
+            document.getElementById('payConfirm').checked = false;
+            document.getElementById('paySubmitBtn').disabled = true;
+            document.getElementById('paySubmitBtn').classList.remove('active');
+            document.getElementById('paySubmitBtn').textContent = 'Ödeme Yaptım';
+            document.getElementById('payEmailError').style.display = 'none';
+            document.getElementById('payEmail').classList.remove('input-error');
+
+            document.getElementById('payModalOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePaymentModal() {
+            document.getElementById('payModalOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function copyToClipboard(elId, btn) {
+            var text = document.getElementById(elId).textContent.replace(/\s+/g, '');
+            if (elId === 'payIban') text = document.getElementById(elId).textContent.trim();
+            navigator.clipboard.writeText(text).then(function() {
+                var orig = btn.textContent;
+                btn.textContent = 'Kopyalandı';
+                btn.classList.add('copied');
+                setTimeout(function() {
+                    btn.textContent = orig;
+                    btn.classList.remove('copied');
+                }, 1500);
+            });
+        }
+
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function validatePayForm() {
+            var name = document.getElementById('payName').value.trim();
+            var email = document.getElementById('payEmail').value.trim();
+            var checked = document.getElementById('payConfirm').checked;
+            var btn = document.getElementById('paySubmitBtn');
+            var emailErr = document.getElementById('payEmailError');
+            var emailInput = document.getElementById('payEmail');
+
+            if (email.length > 0 && !isValidEmail(email)) {
+                emailErr.style.display = 'block';
+                emailInput.classList.add('input-error');
+            } else {
+                emailErr.style.display = 'none';
+                emailInput.classList.remove('input-error');
+            }
+
+            var valid = name.length > 1 && isValidEmail(email) && checked;
+            btn.disabled = !valid;
+            if (valid) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+
+        function submitPayment() {
+            var btn = document.getElementById('paySubmitBtn');
+            if (btn.disabled) return;
+
+            var email = document.getElementById('payEmail').value.trim();
+            var name = document.getElementById('payName').value.trim();
+            var spamKey = email + '|' + _payRef;
+            var now = Date.now();
+
+            if (spamKey === _lastSubmitKey && (now - _lastSubmitTime) < 60000) {
+                alert('Bu talep zaten gönderildi. Lütfen 1 dakika bekleyiniz.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Gönderiliyor...';
+
+            fetch('/api/payment-request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    plan_id: _payPlanId,
+                    plan_name: document.getElementById('payPlanLabel').textContent,
+                    price: document.getElementById('payPriceLabel').textContent,
+                    payment_ref: _payRef,
+                    full_name: name,
+                    email: email
+                })
+            }).then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.status === 'ok') {
+                    _lastSubmitKey = spamKey;
+                    _lastSubmitTime = now;
+                    document.getElementById('payFormSection').style.display = 'none';
+                    document.getElementById('paySuccessSection').style.display = 'block';
+                } else {
+                    alert(data.message || 'Bir hata oluştu. Lütfen tekrar deneyiniz.');
+                    btn.disabled = false;
+                    btn.classList.add('active');
+                    btn.textContent = 'Ödeme Yaptım';
+                }
+            }).catch(function() {
+                alert('Bağlantı hatası. Lütfen tekrar deneyiniz.');
+                btn.disabled = false;
+                btn.classList.add('active');
+                btn.textContent = 'Ödeme Yaptım';
+            });
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closePaymentModal();
         });
     </script>
 </body>
