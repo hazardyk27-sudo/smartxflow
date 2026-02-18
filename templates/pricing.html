@@ -417,28 +417,31 @@
             content:"";
             position:absolute;
             top: 0;
-            left: -100%;
-            width: 60%;
+            left: -120%;
+            width: 80%;
             height: 100%;
             background: linear-gradient(
-                105deg,
+                100deg,
                 rgba(255,255,255,0) 0%,
-                rgba(255,255,255,0) 35%,
-                rgba(60,255,170,.04) 42%,
-                rgba(255,255,255,.07) 50%,
-                rgba(60,255,170,.04) 58%,
-                rgba(255,255,255,0) 65%,
+                rgba(255,255,255,0) 30%,
+                rgba(60,255,170,.03) 38%,
+                rgba(255,255,255,.045) 46%,
+                rgba(60,255,170,.06) 50%,
+                rgba(255,255,255,.045) 54%,
+                rgba(60,255,170,.03) 62%,
+                rgba(255,255,255,0) 70%,
                 rgba(255,255,255,0) 100%
             );
-            animation: promoSheen 6s cubic-bezier(.4,0,.2,1) infinite;
+            animation: promoSheen 8s ease-in-out infinite;
+            animation-delay: 1.5s;
             pointer-events:none;
         }
         @keyframes promoSheen{
-            0%   { left: -100%; opacity: 0; }
-            15%  { opacity: 1; }
-            70%  { left: 160%; opacity: 1; }
-            85%  { opacity: 0; }
-            100% { left: 160%; opacity: 0; }
+            0%   { left: -120%; opacity: 0; }
+            8%   { opacity: .6; }
+            50%  { left: 140%; opacity: .8; }
+            65%  { opacity: 0; }
+            100% { left: 140%; opacity: 0; }
         }
         @media (prefers-reduced-motion: reduce){
             .promoNotice::after{ animation: none; }
