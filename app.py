@@ -266,6 +266,33 @@ db = get_database()
 db.ensure_analyses_table()
 
 _validated_licenses = {}
+_LICENSE_CACHE_TTL = 300
+
+def _refresh_license_from_supabase(key):
+    try:
+        lic_data = license_select('licenses', 'expires_at,status', {'key': key})
+        if lic_data and len(lic_data) > 0:
+            lic = lic_data[0] if isinstance(lic_data, list) else lic_data
+            status = lic.get('status', '')
+            if status == 'revoked':
+                _validated_licenses.pop(key, None)
+                return 'LICENSE_REVOKED'
+            expires_at = lic.get('expires_at')
+            if expires_at:
+                exp_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00').replace('+00:00', ''))
+                if exp_dt < datetime.utcnow():
+                    _validated_licenses.pop(key, None)
+                    return 'LICENSE_EXPIRED'
+                _validated_licenses[key] = {
+                    'expires': exp_dt,
+                    'plan': _validated_licenses.get(key, {}).get('plan', 'core'),
+                    'cached_at': time.time()
+                }
+                return None
+        return 'LICENSE_REQUIRED'
+    except Exception as e:
+        print(f"[LicenseRefresh] Error: {e}")
+        return None
 
 def license_required(f):
     @wraps(f)
@@ -291,7 +318,13 @@ def license_required(f):
         if header_key:
             cached = _validated_licenses.get(header_key)
             if cached:
-                exp_time = cached.get('expires')
+                cached_at = cached.get('cached_at', 0)
+                if time.time() - cached_at > _LICENSE_CACHE_TTL:
+                    err = _refresh_license_from_supabase(header_key)
+                    if err:
+                        return jsonify({'error': err, 'message': 'Lisans suresi dolmus' if err == 'LICENSE_EXPIRED' else 'Lisans iptal edilmis' if err == 'LICENSE_REVOKED' else 'Gecerli lisans gerekli'}), 403
+                    cached = _validated_licenses.get(header_key)
+                exp_time = cached.get('expires') if cached else None
                 if exp_time and exp_time < datetime.utcnow():
                     _validated_licenses.pop(header_key, None)
                     return jsonify({'error': 'LICENSE_EXPIRED', 'message': 'Lisans suresi dolmus'}), 403
@@ -6922,7 +6955,7 @@ def validate_license():
                     exp_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00').replace('+00:00', ''))
                 except:
                     pass
-            _validated_licenses[key] = {'expires': exp_dt, 'plan': license_data.get('plan') or 'core'}
+            _validated_licenses[key] = {'expires': exp_dt, 'plan': license_data.get('plan') or 'core', 'cached_at': time.time()}
             
             return jsonify({
                 'valid': True,
@@ -6959,7 +6992,7 @@ def validate_license():
                 exp_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00').replace('+00:00', ''))
             except:
                 pass
-        _validated_licenses[key] = {'expires': exp_dt, 'plan': license_data.get('plan') or 'core'}
+        _validated_licenses[key] = {'expires': exp_dt, 'plan': license_data.get('plan') or 'core', 'cached_at': time.time()}
         
         return jsonify({
             'valid': True,
