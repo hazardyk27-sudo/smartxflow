@@ -7045,10 +7045,12 @@ def license_status():
         if not key:
             return jsonify({'valid': False, 'error': 'NO_KEY'}), 401
         
+        device_id = request.args.get('device_id', '') or request.headers.get('X-Device-Id', '')
+        
         if not get_license_db():
             return jsonify({'valid': False, 'error': 'DB_UNAVAILABLE'}), 500
         
-        lic = license_select('licenses', 'expires_at,status', {'key': key})
+        lic = license_select('licenses', 'expires_at,status,max_devices', {'key': key})
         if not lic:
             return jsonify({'valid': False, 'error': 'LICENSE_NOT_FOUND', 'days_left': 0}), 404
         
@@ -7071,6 +7073,19 @@ def license_status():
                     days_left = (exp_date - now).days
             except:
                 days_left = 0
+        
+        if device_id:
+            devices = license_select('license_devices', 'device_id,created_at', {'license_key': key}) or []
+            device_ids = [d.get('device_id') for d in devices]
+            max_devices = license_data.get('max_devices', 1)
+            
+            if device_id not in device_ids:
+                return jsonify({'valid': False, 'error': 'DEVICE_KICKED', 'days_left': days_left, 'message': 'Cihaz artik yetkili degil'})
+            
+            device_index = sorted(range(len(devices)), key=lambda i: devices[i].get('created_at', ''))
+            allowed_ids = [devices[j].get('device_id') for j in device_index[:max_devices]]
+            if device_id not in allowed_ids:
+                return jsonify({'valid': False, 'error': 'DEVICE_KICKED', 'days_left': days_left, 'message': 'Baska bir cihazdan giris yapildi'})
         
         return jsonify({'valid': True, 'days_left': days_left, 'expires_at': expires_at})
     except Exception as e:

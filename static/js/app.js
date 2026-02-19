@@ -19,6 +19,15 @@ let _licenseReadyResolve;
 const _licenseReady = new Promise(r => { _licenseReadyResolve = r; });
 let _isLicensed = false;
 
+function getWebDeviceId() {
+    let did = localStorage.getItem('smartxflow_device_id');
+    if (!did) {
+        did = 'web-' + crypto.randomUUID();
+        localStorage.setItem('smartxflow_device_id', did);
+    }
+    return did;
+}
+
 let _licenseExpiredShown = false;
 function showLicenseExpiredOverlay() {
     if (_licenseExpiredShown) return;
@@ -51,6 +60,48 @@ function showLicenseExpiredOverlay() {
     }
 }
 
+let _deviceKickedShown = false;
+function showDeviceKickedOverlay() {
+    if (_deviceKickedShown) return;
+    _deviceKickedShown = true;
+    const appContent = document.querySelector('.main-content') || document.querySelector('main') || document.getElementById('appContainer');
+    if (appContent) {
+        appContent.style.filter = 'blur(12px)';
+        appContent.style.pointerEvents = 'none';
+        appContent.style.userSelect = 'none';
+    }
+    const header = document.querySelector('.header') || document.querySelector('header') || document.querySelector('nav');
+    if (header) {
+        header.style.filter = 'blur(12px)';
+        header.style.pointerEvents = 'none';
+    }
+    let overlay = document.getElementById('deviceKickedOverlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+    } else {
+        overlay = document.createElement('div');
+        overlay.id = 'deviceKickedOverlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);';
+        overlay.innerHTML = '<div style="background:#161b22;border:1px solid #30363d;border-radius:16px;padding:48px 40px;max-width:440px;width:90%;text-align:center;">'
+            + '<div style="font-size:48px;margin-bottom:16px;">🔒</div>'
+            + '<h2 style="color:#f0f6fc;font-size:22px;font-weight:700;margin:0 0 12px;">Başka Bir Cihazdan Giriş Yapıldı</h2>'
+            + '<p style="color:#8b949e;font-size:15px;line-height:1.6;margin:0 0 28px;">Hesabınıza başka bir cihazdan giriş yapılmıştır. Aynı anda yalnızca izin verilen sayıda cihazda oturum açılabilir.</p>'
+            + '<button onclick="deviceKickedRelogin()" style="display:inline-block;background:linear-gradient(135deg,#2BFF88,#1ae070);color:#0d1117;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;border:none;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;">Tekrar Giriş Yap</button>'
+            + '</div>';
+        document.body.appendChild(overlay);
+    }
+}
+
+function deviceKickedRelogin() {
+    fetch('/api/licenses/logout', { method: 'POST' }).catch(() => {});
+    localStorage.removeItem('smartxflow_web_license');
+    localStorage.removeItem('smartxflow_web_license_valid');
+    localStorage.removeItem('license_days_remaining');
+    localStorage.removeItem('license_plan');
+    localStorage.removeItem('smartxflow_device_id');
+    window.location.reload();
+}
+
 let _licenseStatusInterval = null;
 function startLicenseStatusRefresh() {
     if (_licenseStatusInterval) return;
@@ -59,18 +110,20 @@ function startLicenseStatusRefresh() {
             const savedLicKey = localStorage.getItem('smartxflow_web_license');
             const statusHeaders = {};
             if (savedLicKey) statusHeaders['X-License-Key'] = savedLicKey;
-            const resp = await _originalFetch('/api/license/status', { headers: statusHeaders });
+            const webDid = getWebDeviceId();
+            const statusUrl = '/api/license/status?device_id=' + encodeURIComponent(webDid);
+            const resp = await _originalFetch(statusUrl, { headers: statusHeaders });
             if (!resp.ok) {
-                if (resp.status === 403 || resp.status === 404 || resp.status === 401) {
-                    try {
-                        const data = await resp.json();
-                        if (data.error === 'LICENSE_EXPIRED' || data.error === 'LICENSE_REVOKED' || data.error === 'LICENSE_NOT_FOUND') {
-                            showLicenseExpiredOverlay();
-                            updateLicenseDaysBadge(0);
-                            localStorage.setItem('license_days_remaining', '0');
-                        }
-                    } catch(e) {}
-                }
+                try {
+                    const data = await resp.json();
+                    if (data.error === 'DEVICE_KICKED') {
+                        showDeviceKickedOverlay();
+                    } else if (data.error === 'LICENSE_EXPIRED' || data.error === 'LICENSE_REVOKED' || data.error === 'LICENSE_NOT_FOUND') {
+                        showLicenseExpiredOverlay();
+                        updateLicenseDaysBadge(0);
+                        localStorage.setItem('license_days_remaining', '0');
+                    }
+                } catch(parseErr) {}
                 return;
             }
             const data = await resp.json();
@@ -78,9 +131,13 @@ function startLicenseStatusRefresh() {
                 localStorage.setItem('license_days_remaining', data.days_left);
                 updateLicenseDaysBadge(data.days_left);
             } else if (!data.valid) {
-                showLicenseExpiredOverlay();
-                updateLicenseDaysBadge(0);
-                localStorage.setItem('license_days_remaining', '0');
+                if (data.error === 'DEVICE_KICKED') {
+                    showDeviceKickedOverlay();
+                } else {
+                    showLicenseExpiredOverlay();
+                    updateLicenseDaysBadge(0);
+                    localStorage.setItem('license_days_remaining', '0');
+                }
             }
         } catch(e) {}
     }
@@ -9001,7 +9058,7 @@ async function validateWebLicense() {
         const res = await fetch('/api/licenses/validate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key: key, device_id: 'web-browser', device_name: navigator.userAgent.substring(0, 50) })
+            body: JSON.stringify({ key: key, device_id: getWebDeviceId(), device_name: navigator.userAgent.substring(0, 50) })
         });
         
         const data = await res.json();
@@ -9077,7 +9134,7 @@ async function initLicenseCheck() {
                 const resp = await fetch('/api/licenses/validate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key: savedKey, device_id: 'web-browser', device_name: navigator.userAgent.substring(0, 50) })
+                    body: JSON.stringify({ key: savedKey, device_id: getWebDeviceId(), device_name: navigator.userAgent.substring(0, 50) })
                 });
                 const data = await resp.json();
                 if (data.valid && data.days_left !== undefined) {
