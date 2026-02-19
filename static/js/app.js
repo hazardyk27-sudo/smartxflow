@@ -19,6 +19,27 @@ let _licenseReadyResolve;
 const _licenseReady = new Promise(r => { _licenseReadyResolve = r; });
 let _isLicensed = false;
 
+let _licenseExpiredShown = false;
+function showLicenseExpiredOverlay() {
+    if (_licenseExpiredShown) return;
+    _licenseExpiredShown = true;
+    let overlay = document.getElementById('licenseExpiredOverlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+    } else {
+        overlay = document.createElement('div');
+        overlay.id = 'licenseExpiredOverlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;';
+        overlay.innerHTML = '<div style="background:#161b22;border:1px solid #30363d;border-radius:16px;padding:48px 40px;max-width:440px;width:90%;text-align:center;">'
+            + '<div style="font-size:48px;margin-bottom:16px;">⏳</div>'
+            + '<h2 style="color:#f0f6fc;font-size:22px;font-weight:700;margin:0 0 12px;">Lisansınızın Süresi Doldu</h2>'
+            + '<p style="color:#8b949e;font-size:15px;line-height:1.6;margin:0 0 28px;">Lisans süreniz sona ermiştir. Uygulamayı kullanmaya devam etmek için paketinizi yenileyin.</p>'
+            + '<a href="/pricing" style="display:inline-block;background:linear-gradient(135deg,#2BFF88,#1ae070);color:#0d1117;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;text-decoration:none;transition:transform 0.2s,box-shadow 0.2s;">Paketleri İncele →</a>'
+            + '</div>';
+        document.body.appendChild(overlay);
+    }
+}
+
 const _originalFetch = window.fetch;
 window.fetch = function(url, options = {}) {
     const urlStr = typeof url === 'string' ? url : url.url || '';
@@ -34,7 +55,16 @@ window.fetch = function(url, options = {}) {
             }
         }
     }
-    return _originalFetch.call(window, url, options);
+    return _originalFetch.call(window, url, options).then(function(response) {
+        if (response.status === 403 && urlStr.startsWith('/api/')) {
+            response.clone().json().then(function(data) {
+                if (data && (data.error === 'LICENSE_EXPIRED' || data.error === 'LICENSE_REVOKED')) {
+                    showLicenseExpiredOverlay();
+                }
+            }).catch(function() {});
+        }
+        return response;
+    });
 };
 
 // Mobile chart controls
