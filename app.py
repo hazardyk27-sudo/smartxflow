@@ -6963,11 +6963,16 @@ def validate_license():
         if device_id in device_ids:
             if len(devices) > max_devices:
                 sorted_devs = sorted(devices, key=lambda d: (d.get('activated_at') or '', d.get('id', 0)))
-                allowed_ids = [d.get('device_id') for d in sorted_devs[:max_devices]]
+                allowed_ids = [d.get('device_id') for d in sorted_devs[-max_devices:]]
                 if device_id not in allowed_ids:
+                    try:
+                        license_delete('license_devices', {'license_key': key, 'device_id': device_id})
+                        print(f"[Validate] Over-limit cleanup: removed {device_id} for key={key[:8]}...")
+                    except Exception:
+                        pass
                     return jsonify({
                         'valid': False,
-                        'error': f'Bu lisans {max_devices} cihazda aktif, bu cihaz limit disinda',
+                        'error': 'Baska bir cihazdan giris yapildi, bu oturum sonlandirildi',
                         'device_limit': True
                     })
             
@@ -6997,15 +7002,17 @@ def validate_license():
                 'plan': license_data.get('plan') or 'core'
             })
         
-        # Check if max devices reached
         if len(device_ids) >= max_devices:
-            return jsonify({
-                'valid': False,
-                'error': f'Bu lisans {max_devices} cihazda aktif, limit asildi',
-                'device_limit': True
-            })
+            sorted_devs = sorted(devices, key=lambda d: (d.get('activated_at') or '', d.get('id', 0)))
+            devices_to_remove = sorted_devs[:len(devices) - max_devices + 1]
+            for old_dev in devices_to_remove:
+                old_did = old_dev.get('device_id')
+                try:
+                    license_delete('license_devices', {'license_key': key, 'device_id': old_did})
+                    print(f"[Validate] Kicked old device: {old_did} for key={key[:8]}...")
+                except Exception as del_err:
+                    print(f"[Validate] Failed to kick device {old_did}: {del_err}")
         
-        # Register new device
         license_insert('license_devices', {
             'license_key': key,
             'device_id': device_id,
@@ -7087,12 +7094,6 @@ def license_status():
             if device_id not in device_ids:
                 if len(devices) >= max_devices:
                     return jsonify({'valid': False, 'error': 'DEVICE_KICKED', 'days_left': days_left, 'message': 'Baska bir cihazdan giris yapildi'})
-            else:
-                if len(devices) > max_devices:
-                    sorted_devs = sorted(devices, key=lambda d: (d.get('activated_at') or '', d.get('id', 0)))
-                    allowed_ids = [d.get('device_id') for d in sorted_devs[:max_devices]]
-                    if device_id not in allowed_ids:
-                        return jsonify({'valid': False, 'error': 'DEVICE_KICKED', 'days_left': days_left, 'message': 'Baska bir cihazdan giris yapildi'})
         
         return jsonify({'valid': True, 'days_left': days_left, 'expires_at': expires_at})
     except Exception as e:
