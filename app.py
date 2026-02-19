@@ -7038,6 +7038,44 @@ def validate_license():
         license_logging.error(f"Validate license error: {e}")
         return jsonify({'valid': False, 'error': str(e)})
 
+@app.route('/api/license/status', methods=['GET'])
+def license_status():
+    try:
+        key = session.get('license_key') or request.headers.get('X-License-Key', '').strip()
+        if not key:
+            return jsonify({'valid': False, 'error': 'NO_KEY'}), 401
+        
+        if not get_license_db():
+            return jsonify({'valid': False, 'error': 'DB_UNAVAILABLE'}), 500
+        
+        lic = license_select('licenses', 'expires_at,status', {'key': key})
+        if not lic:
+            return jsonify({'valid': False, 'error': 'LICENSE_NOT_FOUND', 'days_left': 0}), 404
+        
+        license_data = lic[0]
+        
+        if license_data.get('status') == 'revoked':
+            return jsonify({'valid': False, 'error': 'LICENSE_REVOKED', 'days_left': 0})
+        
+        from datetime import datetime
+        now = datetime.utcnow()
+        expires_at = license_data.get('expires_at')
+        days_left = 9999
+        
+        if expires_at:
+            try:
+                exp_date = _parse_expires_naive(expires_at)
+                if exp_date:
+                    if exp_date < now:
+                        return jsonify({'valid': False, 'error': 'LICENSE_EXPIRED', 'days_left': 0, 'expires_at': expires_at})
+                    days_left = (exp_date - now).days
+            except:
+                days_left = 0
+        
+        return jsonify({'valid': True, 'days_left': days_left, 'expires_at': expires_at})
+    except Exception as e:
+        return jsonify({'valid': False, 'error': str(e)}), 500
+
 @app.route('/api/licenses/logout', methods=['POST'])
 def license_logout():
     session.pop('license_valid', None)
