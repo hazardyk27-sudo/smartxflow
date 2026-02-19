@@ -994,11 +994,11 @@
         <h1>Paketler & Fiyatlandırma</h1>
         <p>İhtiyacınıza uygun paketi seçin, hemen başlayın.</p>
         <div class="pricing-tabs">
-            <button class="pricing-tab active-core" data-tab="core" onclick="switchTab('core')">
+            <button class="pricing-tab" data-tab="core" onclick="switchTab('core')">
                 CORE
                 <span class="pricing-tab-subtitle">Sadece Yazılım</span>
             </button>
-            <button class="pricing-tab" data-tab="pro" onclick="switchTab('pro')">
+            <button class="pricing-tab active-pro" data-tab="pro" onclick="switchTab('pro')">
                 PRO
                 <span class="pricing-tab-subtitle">Yazılım + Kılavuz</span>
             </button>
@@ -1042,7 +1042,7 @@
             <button class="duration-tab" data-duration="yillik" onclick="switchDuration('yillik')">Yıllık</button>
         </div>
 
-        <div id="panel-core" class="pricing-panel active">
+        <div id="panel-core" class="pricing-panel">
             <div class="pricing-grid">
                 <div class="pricing-card" data-duration="1ay">
                     <div class="discount-badge">Açılışa özel <span class="discount-pct">%20</span> indirim</div>
@@ -1103,7 +1103,7 @@
             </div>
         </div>
 
-        <div id="panel-pro" class="pricing-panel">
+        <div id="panel-pro" class="pricing-panel active">
             <div class="pricing-grid">
                 <div class="pricing-card" data-duration="1ay">
                     <div class="discount-badge">Açılışa özel <span class="discount-pct">%20</span> indirim</div>
@@ -1278,7 +1278,7 @@
         function toggleFaq(el) {
             el.parentElement.classList.toggle('open');
         }
-        var currentTab = 'core';
+        var currentTab = 'pro';
         var currentDuration = '3ay';
         function switchTab(tab) {
             currentTab = tab;
