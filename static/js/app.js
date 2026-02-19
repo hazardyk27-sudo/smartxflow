@@ -98,7 +98,6 @@ function deviceKickedRelogin() {
     localStorage.removeItem('smartxflow_web_license_valid');
     localStorage.removeItem('license_days_remaining');
     localStorage.removeItem('license_plan');
-    localStorage.removeItem('smartxflow_device_id');
     window.location.reload();
 }
 
