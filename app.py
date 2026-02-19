@@ -302,16 +302,28 @@ def license_required(f):
         
         lic_valid = session.get('license_valid')
         if lic_valid:
-            lic_expires = session.get('license_expires')
-            if lic_expires:
-                try:
-                    exp = datetime.fromisoformat(lic_expires.replace('Z', '+00:00').replace('+00:00', ''))
-                    if exp < datetime.utcnow():
-                        session.pop('license_valid', None)
-                        session.pop('license_expires', None)
-                        return jsonify({'error': 'LICENSE_EXPIRED', 'message': 'Lisans suresi dolmus'}), 403
-                except:
-                    pass
+            session_key = session.get('license_key', '')
+            last_check = session.get('license_last_check', 0)
+            if session_key and (time.time() - last_check > _LICENSE_CACHE_TTL):
+                err = _refresh_license_from_supabase(session_key)
+                if err:
+                    session.pop('license_valid', None)
+                    session.pop('license_expires', None)
+                    session.pop('license_key', None)
+                    session.pop('license_last_check', None)
+                    return jsonify({'error': err, 'message': 'Lisans suresi dolmus' if err == 'LICENSE_EXPIRED' else 'Lisans iptal edilmis' if err == 'LICENSE_REVOKED' else 'Gecerli lisans gerekli'}), 403
+                session['license_last_check'] = time.time()
+            else:
+                lic_expires = session.get('license_expires')
+                if lic_expires:
+                    try:
+                        exp = datetime.fromisoformat(lic_expires.replace('Z', '+00:00').replace('+00:00', ''))
+                        if exp < datetime.utcnow():
+                            session.pop('license_valid', None)
+                            session.pop('license_expires', None)
+                            return jsonify({'error': 'LICENSE_EXPIRED', 'message': 'Lisans suresi dolmus'}), 403
+                    except:
+                        pass
             return f(*args, **kwargs)
         
         header_key = request.headers.get('X-License-Key', '').strip()
