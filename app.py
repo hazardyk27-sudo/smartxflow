@@ -268,31 +268,44 @@ db.ensure_analyses_table()
 _validated_licenses = {}
 _LICENSE_CACHE_TTL = 300
 
+def _parse_expires_naive(expires_at_str):
+    if not expires_at_str:
+        return None
+    import re
+    cleaned = re.sub(r'[+-]\d{2}(:\d{2})?$', '', expires_at_str.replace('Z', ''))
+    return datetime.fromisoformat(cleaned)
+
 def _refresh_license_from_supabase(key):
     try:
         lic_data = license_select('licenses', 'expires_at,status', {'key': key})
+        print(f"[LicenseRefresh] key={key[:8]}..., response={lic_data}")
         if lic_data and len(lic_data) > 0:
             lic = lic_data[0] if isinstance(lic_data, list) else lic_data
             status = lic.get('status', '')
             if status == 'revoked':
+                print(f"[LicenseRefresh] REVOKED: {key[:8]}...")
                 _validated_licenses.pop(key, None)
                 return 'LICENSE_REVOKED'
             expires_at = lic.get('expires_at')
             if expires_at:
-                exp_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00').replace('+00:00', ''))
-                if exp_dt < datetime.utcnow():
+                exp_dt = _parse_expires_naive(expires_at)
+                now = datetime.utcnow()
+                print(f"[LicenseRefresh] key={key[:8]}... expires={exp_dt} now={now} expired={exp_dt < now if exp_dt else 'parse_fail'}")
+                if exp_dt and exp_dt < now:
                     _validated_licenses.pop(key, None)
                     return 'LICENSE_EXPIRED'
-                _validated_licenses[key] = {
-                    'expires': exp_dt,
-                    'plan': _validated_licenses.get(key, {}).get('plan', 'core'),
-                    'cached_at': time.time()
-                }
-                return None
+                if exp_dt:
+                    _validated_licenses[key] = {
+                        'expires': exp_dt,
+                        'plan': _validated_licenses.get(key, {}).get('plan', 'core'),
+                        'cached_at': time.time()
+                    }
+                    return None
         return 'LICENSE_REQUIRED'
     except Exception as e:
-        print(f"[LicenseRefresh] Error: {e}")
-        return None
+        print(f"[LicenseRefresh] Error for {key[:8]}...: {e}")
+        _validated_licenses.pop(key, None)
+        return 'LICENSE_EXPIRED'
 
 def license_required(f):
     @wraps(f)
@@ -300,33 +313,45 @@ def license_required(f):
         if os.environ.get('SMARTX_DESKTOP') == '1':
             return f(*args, **kwargs)
         
+        header_key = request.headers.get('X-License-Key', '').strip()
+        
         lic_valid = session.get('license_valid')
         if lic_valid:
-            session_key = session.get('license_key', '')
+            session_key = session.get('license_key', '') or header_key
+            print(f"[LicenseCheck] SESSION path: key={session_key[:8] if session_key else 'NONE'}... last_check={session.get('license_last_check', 0)}")
             if not session_key:
+                print(f"[LicenseCheck] SESSION: no key found, clearing session")
                 session.pop('license_valid', None)
                 session.pop('license_expires', None)
                 return jsonify({'error': 'LICENSE_REQUIRED', 'message': 'Gecerli lisans gerekli'}), 403
             last_check = session.get('license_last_check', 0)
-            if time.time() - last_check > _LICENSE_CACHE_TTL:
+            age = time.time() - last_check
+            if age > _LICENSE_CACHE_TTL:
+                print(f"[LicenseCheck] SESSION: TTL expired (age={age:.0f}s), refreshing from Supabase...")
                 err = _refresh_license_from_supabase(session_key)
                 if err:
+                    print(f"[LicenseCheck] SESSION: refresh returned {err}, blocking user")
                     session.pop('license_valid', None)
                     session.pop('license_expires', None)
                     session.pop('license_key', None)
                     session.pop('license_last_check', None)
                     return jsonify({'error': err, 'message': 'Lisans suresi dolmus' if err == 'LICENSE_EXPIRED' else 'Lisans iptal edilmis' if err == 'LICENSE_REVOKED' else 'Gecerli lisans gerekli'}), 403
+                print(f"[LicenseCheck] SESSION: refresh OK, license still valid")
                 session['license_last_check'] = time.time()
+                session['license_key'] = session_key
             return f(*args, **kwargs)
         
-        header_key = request.headers.get('X-License-Key', '').strip()
         if header_key:
             cached = _validated_licenses.get(header_key)
+            print(f"[LicenseCheck] HEADER path: key={header_key[:8]}... cached={'YES' if cached else 'NO'}")
             if cached:
                 cached_at = cached.get('cached_at', 0)
-                if time.time() - cached_at > _LICENSE_CACHE_TTL:
+                age = time.time() - cached_at
+                if age > _LICENSE_CACHE_TTL:
+                    print(f"[LicenseCheck] HEADER: TTL expired (age={age:.0f}s), refreshing...")
                     err = _refresh_license_from_supabase(header_key)
                     if err:
+                        print(f"[LicenseCheck] HEADER: refresh returned {err}, blocking")
                         return jsonify({'error': err, 'message': 'Lisans suresi dolmus' if err == 'LICENSE_EXPIRED' else 'Lisans iptal edilmis' if err == 'LICENSE_REVOKED' else 'Gecerli lisans gerekli'}), 403
                     cached = _validated_licenses.get(header_key)
                 exp_time = cached.get('expires') if cached else None
@@ -335,6 +360,7 @@ def license_required(f):
                     return jsonify({'error': 'LICENSE_EXPIRED', 'message': 'Lisans suresi dolmus'}), 403
                 return f(*args, **kwargs)
         
+        print(f"[LicenseCheck] NO valid session, NO cached header key -> LICENSE_REQUIRED")
         return jsonify({'error': 'LICENSE_REQUIRED', 'message': 'Gecerli lisans gerekli'}), 403
     return decorated
 
