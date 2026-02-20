@@ -39,12 +39,12 @@ outputType = "webview"
 name = "Scraper Engine"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python scheduled_scraper.py"
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python scheduled_scraper.py & python alarm_engine.py & wait"
 
 [userenv]
 
