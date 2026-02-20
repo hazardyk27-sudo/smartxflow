@@ -720,7 +720,20 @@ def api_alarm_engine_status():
                 if rows:
                     result["heartbeat"] = rows[0]
             else:
-                print(f"[AlarmEngineStatus] Heartbeat HTTP {r.status_code}: table may not exist")
+                sig_url_hb = f"{supa.url}/rest/v1/scraper_signal?processed=eq.true&order=processed_at.desc&limit=1"
+                try:
+                    r2 = req.get(sig_url_hb, headers=headers, timeout=10)
+                    if r2.status_code == 200:
+                        sigs = r2.json()
+                        if sigs:
+                            result["heartbeat"] = {
+                                "source": "alarm_engine",
+                                "last_heartbeat": sigs[0].get("processed_at", sigs[0].get("created_at")),
+                                "status": "idle",
+                                "match_count": sigs[0].get("match_count", 0)
+                            }
+                except Exception:
+                    pass
         except Exception as e:
             print(f"[AlarmEngineStatus] Heartbeat error: {e}")
 
