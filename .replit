@@ -46,4 +46,4 @@ externalPort = 80
 
 [deployment]
 deploymentTarget = "vm"
-run = ["bash", "run_services.sh"]
+run = ["python", "app.py"]

@@ -21,8 +21,8 @@ let _isLicensed = false;
 
 function getWebDeviceId() {
     let did = localStorage.getItem('smartxflow_device_id');
-    if (!did) {
-        did = 'web-' + crypto.randomUUID();
+    if (!did || did.length > 16) {
+        did = 'w-' + crypto.randomUUID().replace(/-/g, '').substring(0, 14);
         localStorage.setItem('smartxflow_device_id', did);
     }
     return did;

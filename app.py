@@ -6918,7 +6918,7 @@ def validate_license():
         
         data = request.get_json() or {}
         key = data.get('key', '').strip()
-        device_id = data.get('device_id', '').strip()
+        device_id = data.get('device_id', '').strip()[:16]  # varchar(16) limit
         device_name = data.get('device_name', '')
         
         if not key or not device_id:
@@ -7053,7 +7053,7 @@ def license_status():
         if not key:
             return jsonify({'valid': False, 'error': 'NO_KEY'}), 401
         
-        device_id = request.args.get('device_id', '') or request.headers.get('X-Device-Id', '')
+        device_id = (request.args.get('device_id', '') or request.headers.get('X-Device-Id', ''))[:16]
         
         if not get_license_db():
             return jsonify({'valid': False, 'error': 'DB_UNAVAILABLE'}), 500
