@@ -214,7 +214,7 @@ def main():
         print(f"[Master] Başka bir scraper aktif: {reason}")
         print("[Master] Slave modunda, veri yazmıyorum")
         update_heartbeat(supabase_url, supabase_key, "standby", 0, reason)
-        return
+        return True
     
     print(f"[Master] Ben master oluyorum: {reason}")
     update_heartbeat(supabase_url, supabase_key, "starting", 0)
@@ -246,6 +246,8 @@ def main():
     if error:
         print(f"Son hata: {error}")
     print("=" * 60)
+    
+    return error is None
 
 def get_last_signal_time() -> Optional[datetime]:
     """Supabase'den son scraper_signal zamanını al"""
@@ -273,16 +275,23 @@ def get_last_signal_time() -> Optional[datetime]:
     return None
 
 def run_loop():
-    """9 dakikada bir scrape döngüsü"""
+    """9 dakikada bir scrape döngüsü + 10 dk watchdog"""
     INTERVAL_MINUTES = 9
     INTERVAL_SECONDS = INTERVAL_MINUTES * 60
+    WATCHDOG_MINUTES = 10
+    WATCHDOG_SECONDS = WATCHDOG_MINUTES * 60
     print(f"[Loop] Scraper {INTERVAL_MINUTES} dakikada bir çalışacak")
+    print(f"[Watchdog] {WATCHDOG_MINUTES} dk veri gelmezse Telegram uyarısı gönderilecek")
+    
+    last_successful_scrape = None
+    watchdog_alert_sent = False
     
     last_signal = get_last_signal_time()
     if last_signal:
         now = datetime.now(timezone.utc)
         elapsed = (now - last_signal).total_seconds()
         remaining = INTERVAL_SECONDS - elapsed
+        last_successful_scrape = last_signal
         if remaining > 30:
             wait_min = remaining / 60
             print(f"[Loop] Son scrape {elapsed/60:.1f} dk önce yapılmış, {wait_min:.1f} dk bekleniyor...")
@@ -291,11 +300,36 @@ def run_loop():
             print(f"[Loop] Son scrape {elapsed/60:.1f} dk önce, süre dolmuş - hemen çalışıyor")
     
     while True:
+        scrape_ok = False
         try:
-            main()
+            result = main()
+            scrape_ok = result if isinstance(result, bool) else True
+            if scrape_ok:
+                last_successful_scrape = datetime.now(timezone.utc)
+                if watchdog_alert_sent:
+                    send_telegram(f"<b>SCRAPER TEKRAR ÇALIŞIYOR</b>\nScraper normale döndü, veri akışı devam ediyor.", is_error=False)
+                    watchdog_alert_sent = False
         except Exception as e:
             print(f"[Loop] main() hatası: {e}")
             traceback.print_exc()
+        
+        if not scrape_ok or last_successful_scrape is None:
+            now = datetime.now(timezone.utc)
+            if last_successful_scrape is not None:
+                elapsed = (now - last_successful_scrape).total_seconds()
+            else:
+                elapsed = WATCHDOG_SECONDS + 1
+            
+            if elapsed >= WATCHDOG_SECONDS and not watchdog_alert_sent:
+                elapsed_min = elapsed / 60
+                send_telegram(
+                    f"<b>⚠️ SCRAPER UYARI</b>\n"
+                    f"Scraper <b>{elapsed_min:.0f} dakikadır</b> veri çekemiyor!\n"
+                    f"Son başarılı: {last_successful_scrape.strftime('%H:%M UTC') if last_successful_scrape else 'Hiç'}",
+                    is_error=True
+                )
+                watchdog_alert_sent = True
+                print(f"[Watchdog] Telegram uyarısı gönderildi ({elapsed_min:.0f} dk)")
         
         print(f"\n[Loop] Sonraki çalışma {INTERVAL_MINUTES} dakika sonra...")
         time.sleep(INTERVAL_SECONDS)
