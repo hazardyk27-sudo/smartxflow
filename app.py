@@ -8160,8 +8160,9 @@ def main():
             start_server_scheduler()
             start_cleanup_scheduler()
             start_alarm_scheduler()
-            if os.environ.get('REPL_DEPLOYMENT'):
+            if os.environ.get('REPLIT_DEPLOYMENT') or os.environ.get('REPL_DEPLOYMENT'):
                 import threading
+                print("[Init] Production detected, starting services in 5s...")
                 t = threading.Thread(target=_init_services_delayed, daemon=True)
                 t.start()
         
