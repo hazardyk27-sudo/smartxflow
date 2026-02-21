@@ -1,8 +1,4 @@
 desktop/
-desktop_app/
-scraper_standalone/
-desktop_app.py
-main.py
 *.spec
 build/
 dist/
@@ -11,4 +7,3 @@ __pycache__/
 .github/
 attached_assets/
 tests/
-README.md
