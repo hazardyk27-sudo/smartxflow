@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'scraper_standalone'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'desktop', 'scraper_standalone'))
 from alarm_calculator import AlarmCalculator
 
 SUPABASE_URL = os.environ.get('SUPABASE_URL')

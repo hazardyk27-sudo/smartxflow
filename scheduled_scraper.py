@@ -15,6 +15,7 @@ import traceback
 
 # standalone_scraper modülünü import et
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'scraper_standalone'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'desktop', 'scraper_standalone'))
 import standalone_scraper as ss_module
 from standalone_scraper import SupabaseWriter, run_scrape
 

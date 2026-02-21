@@ -12,6 +12,8 @@ Web-based betting odds monitoring and scraping platform built with Flask and Sup
 
 ## Running
 
+The application starts with a single command. In server mode (Replit), it automatically launches background workers for scraping and alarm processing.
+
 ```bash
 python app.py
 ```

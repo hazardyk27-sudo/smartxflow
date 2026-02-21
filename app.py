@@ -8101,8 +8101,45 @@ def update_order_status():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+def start_background_workers():
+    """Start scraper and alarm engine as background subprocesses for VM deployment"""
+    import subprocess
+    import signal
+    
+    workers = []
+    
+    scraper_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scheduled_scraper.py')
+    alarm_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'alarm_engine.py')
+    
+    if os.path.exists(scraper_path):
+        print("[Workers] Starting scheduled_scraper.py...")
+        p = subprocess.Popen([sys.executable, scraper_path])
+        workers.append(p)
+    
+    if os.path.exists(alarm_path):
+        print("[Workers] Starting alarm_engine.py...")
+        p = subprocess.Popen([sys.executable, alarm_path])
+        workers.append(p)
+    
+    original_sigterm = signal.getsignal(signal.SIGTERM)
+    
+    def cleanup_workers(signum, frame):
+        for p in workers:
+            try:
+                p.terminate()
+            except:
+                pass
+        if callable(original_sigterm):
+            original_sigterm(signum, frame)
+        sys.exit(0)
+    
+    signal.signal(signal.SIGTERM, cleanup_workers)
+    
+    return workers
+
+
 def main():
-    """Main entry point with error handling for EXE"""
+    """Main entry point - Flask web server"""
     try:
         mode_name = "CLIENT" if is_client_mode() else "SERVER"
         
@@ -8126,6 +8163,8 @@ def main():
             start_cleanup_scheduler()
             start_alarm_scheduler()
             host = '0.0.0.0'
+            if os.environ.get('REPL_DEPLOYMENT'):
+                start_background_workers()
         else:
             host = '127.0.0.1'
         
