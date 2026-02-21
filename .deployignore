@@ -1,4 +1,6 @@
+desktop/
 desktop_app.py
+main.py
 *.spec
 build/
 dist/
