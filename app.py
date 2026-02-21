@@ -8132,7 +8132,10 @@ def _init_services():
 
 
 def main():
-    """Main entry point - Flask web server"""
+    """Main entry point - Flask web server on 0.0.0.0:5000"""
+    host = '0.0.0.0'
+    port = 5000
+    
     try:
         mode_name = "CLIENT" if is_client_mode() else "SERVER"
         
@@ -8147,47 +8150,33 @@ def main():
         print(f"Static exist: {os.path.exists(static_dir)}")
         print("=" * 50)
         
-        if not db.is_supabase_available:
-            print("WARNING: Supabase not configured!")
-            print("Please set SUPABASE_URL and SUPABASE_KEY")
-        
         if is_server_mode():
             start_server_scheduler()
             start_cleanup_scheduler()
             start_alarm_scheduler()
-            host = '0.0.0.0'
             if os.environ.get('REPL_DEPLOYMENT'):
                 _init_services()
-        else:
-            host = '127.0.0.1'
         
-        port = 5000
-        is_desktop = os.environ.get('SMARTX_DESKTOP') == '1'
-        try:
-            print(f"Starting Flask on http://{host}:{port}...")
-            if is_client_mode() and not is_desktop:
+        if is_client_mode():
+            host = '127.0.0.1'
+            is_desktop = os.environ.get('SMARTX_DESKTOP') == '1'
+            if not is_desktop:
                 import webbrowser
                 webbrowser.open(f'http://127.0.0.1:{port}')
+        
+        print(f"Starting Flask on http://{host}:{port}...")
+        app.run(host=host, port=port, debug=False)
+    except OSError as e:
+        if "10048" in str(e) or "Address already in use" in str(e):
+            port = 5050
+            print(f"Port 5000 in use, trying http://{host}:{port}...")
             app.run(host=host, port=port, debug=False)
-        except OSError as e:
-            if "10048" in str(e) or "Address already in use" in str(e):
-                port = 5050
-                print(f"Port 5000 in use, trying http://{host}:{port}...")
-                if is_client_mode() and not is_desktop:
-                    import webbrowser
-                    webbrowser.open(f'http://127.0.0.1:{port}')
-                app.run(host=host, port=port, debug=False)
-            else:
-                raise
+        else:
+            raise
     except Exception as e:
         import traceback
-        print("=" * 50)
-        print("FATAL ERROR during startup:")
-        print(str(e))
-        print("=" * 50)
+        print("FATAL ERROR:", str(e))
         traceback.print_exc()
-        print("=" * 50)
-        input("Press ENTER to close...")
         sys.exit(1)
 
 
