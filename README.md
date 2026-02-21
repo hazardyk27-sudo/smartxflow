@@ -1,6 +1,6 @@
 # SmartXFlow – Odds & Volume Monitor
 
-Windows masaüstü uygulaması - Odds ve Volume verilerini izleme ve scraping için Python/tkinter tabanlı GUI uygulaması.
+Web-based betting odds monitoring and scraping platform built with Flask.
 
 ## Özellikler
 

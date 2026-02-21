@@ -1,4 +1,6 @@
 desktop/
+desktop_app/
+scraper_standalone/
 desktop_app.py
 main.py
 *.spec
@@ -9,3 +11,4 @@ __pycache__/
 .github/
 attached_assets/
 tests/
+README.md
