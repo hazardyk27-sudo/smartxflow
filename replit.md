@@ -10,7 +10,7 @@ SmartXFlow Monitor is a professional betting odds tracking tool designed to scra
 - KURALLARA UY
 - DESKTOP UI'A DOKUNMA - Kullanıcı söyleyene kadar sadece mobil (@media max-width: 768px) değişiklik yap
 - GITHUB KULLANICI ADI: hazardyk27-sudo
-- UYGULAMA = desktop_app.py
+- UYGULAMA = app.py (web), desktop/desktop_app.py (standalone)
 - SCRAPER'A DOKUNMA
 - SADECE "push et" DENDIGINDE
 - SADECE UYGULAMA DOSYALARI
@@ -28,7 +28,7 @@ SmartXFlow Monitor is a professional betting odds tracking tool designed to scra
 ### System Architecture
 
 **Core Architecture:**
-The system uses a hybrid architecture with Supabase as the single source of truth for alarms. A standalone PC-based Python application (`SmartXFlow Admin Panel v1.04`) scrapes data and calculates alarms, writing them directly to Supabase. A Flask web application (Replit-based) reads and displays alarms, with scraping disabled. A PyInstaller-built desktop application provides a native UI by embedding a local Flask backend within a pywebview window.
+The system uses a hybrid architecture with Supabase as the single source of truth for alarms. A standalone PC-based Python application (`SmartXFlow Admin Panel v1.04`) scrapes data and calculates alarms, writing them directly to Supabase. A Flask web application (Replit-based) reads and displays alarms, with scraping disabled. A separate standalone build provides a native Windows UI.
 
 **Technology Stack:**
 - **Language:** Python 3.11

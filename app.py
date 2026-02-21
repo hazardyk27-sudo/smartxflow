@@ -1712,7 +1712,7 @@ def get_markets():
 
 @app.route('/api/export/png', methods=['POST'])
 def export_png():
-    """Save PNG file for EXE/pywebview environment"""
+    """Save PNG file for export"""
     import base64
     import re
     import platform
@@ -6924,7 +6924,7 @@ def delete_license():
 
 @app.route('/api/licenses/validate', methods=['POST'])
 def validate_license():
-    """Validate license for desktop app activation"""
+    """Validate license for app activation"""
     try:
         if not get_license_db():
             return jsonify({'valid': False, 'error': 'Supabase baglantisi yok'})
@@ -7127,7 +7127,7 @@ def license_logout():
 
 @app.route('/api/heartbeat', methods=['POST'])
 def heartbeat():
-    """Desktop app heartbeat - tracks online users"""
+    """App heartbeat - tracks online users"""
     try:
         if not get_license_db():
             return jsonify({'success': False, 'error': 'DB not available'})
