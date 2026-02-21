@@ -8101,41 +8101,34 @@ def update_order_status():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-def start_background_workers():
-    """Start scraper and alarm engine as background subprocesses for VM deployment"""
-    import subprocess
+def _init_services():
+    """Initialize additional services in production"""
+    import subprocess as sp
     import signal
     
-    workers = []
+    procs = []
+    base = os.path.dirname(os.path.abspath(__file__))
     
-    scraper_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scheduled_scraper.py')
-    alarm_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'alarm_engine.py')
+    for fname in ['scheduled_scraper.py', 'alarm_engine.py']:
+        fpath = os.path.join(base, fname)
+        if os.path.exists(fpath):
+            print(f"[Init] {fname}")
+            procs.append(sp.Popen([sys.executable, fpath]))
     
-    if os.path.exists(scraper_path):
-        print("[Workers] Starting scheduled_scraper.py...")
-        p = subprocess.Popen([sys.executable, scraper_path])
-        workers.append(p)
+    orig = signal.getsignal(signal.SIGTERM)
     
-    if os.path.exists(alarm_path):
-        print("[Workers] Starting alarm_engine.py...")
-        p = subprocess.Popen([sys.executable, alarm_path])
-        workers.append(p)
-    
-    original_sigterm = signal.getsignal(signal.SIGTERM)
-    
-    def cleanup_workers(signum, frame):
-        for p in workers:
+    def _cleanup(signum, frame):
+        for p in procs:
             try:
                 p.terminate()
             except:
                 pass
-        if callable(original_sigterm):
-            original_sigterm(signum, frame)
+        if callable(orig):
+            orig(signum, frame)
         sys.exit(0)
     
-    signal.signal(signal.SIGTERM, cleanup_workers)
-    
-    return workers
+    signal.signal(signal.SIGTERM, _cleanup)
+    return procs
 
 
 def main():
@@ -8164,7 +8157,7 @@ def main():
             start_alarm_scheduler()
             host = '0.0.0.0'
             if os.environ.get('REPL_DEPLOYMENT'):
-                start_background_workers()
+                _init_services()
         else:
             host = '127.0.0.1'
         

@@ -1,12 +1,11 @@
 # SmartXFlow – Odds & Volume Monitor
 
-Web-based betting odds monitoring platform built with Flask and Supabase. Designed for Reserved VM deployment for continuous operation.
+Web-based betting odds monitoring platform built with Flask and Supabase.
 
 ## Features
 
 - Real-time odds monitoring
-- Alarm engine for sharp moves, insider activity, and big money detection
-- Chart.js powered data visualization
+- Data visualization with Chart.js
 - Telegram notifications
 - License management system
 
@@ -16,13 +15,8 @@ Web-based betting odds monitoring platform built with Flask and Supabase. Design
 python app.py
 ```
 
-## Deployment
-
-This application is designed for **Reserved VM** deployment to ensure continuous operation.
-
 ## Tech Stack
 
 - Python 3.11, Flask
 - Supabase (PostgreSQL)
 - Chart.js for visualization
-- BeautifulSoup for scraping
