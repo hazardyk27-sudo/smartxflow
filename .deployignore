@@ -1,0 +1,9 @@
+desktop_app.py
+*.spec
+build/
+dist/
+__pycache__/
+*.pyc
+.github/
+attached_assets/
+tests/
