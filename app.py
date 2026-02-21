@@ -8101,24 +8101,31 @@ def update_order_status():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-def _init_services():
-    """Initialize additional services in production"""
+_service_procs = []
+
+def _init_services_delayed():
+    """Initialize additional services after Flask starts (called from thread)"""
     import subprocess as sp
     import signal
+    global _service_procs
     
-    procs = []
+    time.sleep(5)
+    
     base = os.path.dirname(os.path.abspath(__file__))
     
     for fname in ['scheduled_scraper.py', 'alarm_engine.py']:
         fpath = os.path.join(base, fname)
         if os.path.exists(fpath):
-            print(f"[Init] {fname}")
-            procs.append(sp.Popen([sys.executable, fpath]))
+            try:
+                print(f"[Init] Starting {fname}")
+                _service_procs.append(sp.Popen([sys.executable, fpath]))
+            except Exception as e:
+                print(f"[Init] Failed to start {fname}: {e}")
     
     orig = signal.getsignal(signal.SIGTERM)
     
     def _cleanup(signum, frame):
-        for p in procs:
+        for p in _service_procs:
             try:
                 p.terminate()
             except:
@@ -8128,7 +8135,6 @@ def _init_services():
         sys.exit(0)
     
     signal.signal(signal.SIGTERM, _cleanup)
-    return procs
 
 
 def main():
@@ -8155,7 +8161,9 @@ def main():
             start_cleanup_scheduler()
             start_alarm_scheduler()
             if os.environ.get('REPL_DEPLOYMENT'):
-                _init_services()
+                import threading
+                t = threading.Thread(target=_init_services_delayed, daemon=True)
+                t.start()
         
         if is_client_mode():
             host = '127.0.0.1'
