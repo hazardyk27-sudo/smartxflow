@@ -8160,11 +8160,17 @@ def main():
             start_server_scheduler()
             start_cleanup_scheduler()
             start_alarm_scheduler()
-            if os.environ.get('REPLIT_DEPLOYMENT') or os.environ.get('REPL_DEPLOYMENT'):
+            replit_deploy = os.environ.get('REPLIT_DEPLOYMENT')
+            repl_deploy = os.environ.get('REPL_DEPLOYMENT')
+            repl_id = os.environ.get('REPL_ID')
+            print(f"[Init] ENV CHECK: REPLIT_DEPLOYMENT={replit_deploy}, REPL_DEPLOYMENT={repl_deploy}, REPL_ID={repl_id}")
+            if replit_deploy or repl_deploy or repl_id:
                 import threading
-                print("[Init] Production detected, starting services in 5s...")
+                print("[Init] Production/Replit detected, starting scraper+alarm in 5s...")
                 t = threading.Thread(target=_init_services_delayed, daemon=True)
                 t.start()
+            else:
+                print("[Init] Not on Replit, skipping auto-start of scraper/alarm")
         
         if is_client_mode():
             host = '127.0.0.1'
