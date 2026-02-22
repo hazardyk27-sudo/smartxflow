@@ -31,8 +31,8 @@ RETRY_DELAYS = [5, 10, 20]
 SCRAPER_SOURCE = "replit"
 
 def send_telegram(message: str, is_error: bool = False) -> bool:
-    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
-    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+    bot_token = os.environ.get('PAYMENT_BOT_TOKEN')
+    chat_id = os.environ.get('PAYMENT_CHAT_ID')
     
     if not bot_token or not chat_id:
         print("[Telegram] Token veya Chat ID eksik")
