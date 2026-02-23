@@ -8106,7 +8106,6 @@ _service_procs = []
 def _init_services_delayed():
     """Initialize additional services after Flask starts (called from thread)"""
     import subprocess as sp
-    import signal
     global _service_procs
     
     time.sleep(5)
@@ -8121,20 +8120,6 @@ def _init_services_delayed():
                 _service_procs.append(sp.Popen([sys.executable, fpath]))
             except Exception as e:
                 print(f"[Init] Failed to start {fname}: {e}")
-    
-    orig = signal.getsignal(signal.SIGTERM)
-    
-    def _cleanup(signum, frame):
-        for p in _service_procs:
-            try:
-                p.terminate()
-            except:
-                pass
-        if callable(orig):
-            orig(signum, frame)
-        sys.exit(0)
-    
-    signal.signal(signal.SIGTERM, _cleanup)
 
 
 def main():
@@ -8166,7 +8151,19 @@ def main():
             print(f"[Init] ENV CHECK: REPLIT_DEPLOYMENT={replit_deploy}, REPL_DEPLOYMENT={repl_deploy}, REPL_ID={repl_id}")
             if replit_deploy or repl_deploy or repl_id:
                 import threading
+                import signal as _sig
                 print("[Init] Production/Replit detected, starting scraper+alarm in 5s...")
+                _orig_sigterm = _sig.getsignal(_sig.SIGTERM)
+                def _cleanup(signum, frame):
+                    for p in _service_procs:
+                        try:
+                            p.terminate()
+                        except:
+                            pass
+                    if callable(_orig_sigterm):
+                        _orig_sigterm(signum, frame)
+                    sys.exit(0)
+                _sig.signal(_sig.SIGTERM, _cleanup)
                 t = threading.Thread(target=_init_services_delayed, daemon=True)
                 t.start()
             else:
