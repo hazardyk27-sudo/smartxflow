@@ -8101,25 +8101,128 @@ def update_order_status():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-_service_procs = []
+_service_procs = {}
+
+def _send_watchdog_telegram(message: str, is_error: bool = True) -> bool:
+    import requests as _req
+    bot_token = os.environ.get('PAYMENT_BOT_TOKEN')
+    chat_id = os.environ.get('PAYMENT_CHAT_ID')
+    if not bot_token or not chat_id:
+        print("[Watchdog] Telegram Token/ChatID eksik")
+        return False
+    try:
+        emoji = "\U0001f534" if is_error else "\U0001f7e2"
+        url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
+        data = {'chat_id': chat_id, 'text': f"{emoji} {message}", 'parse_mode': 'HTML'}
+        r = _req.post(url, data=data, timeout=10)
+        return r.status_code == 200
+    except Exception as e:
+        print(f"[Watchdog] Telegram hata: {e}")
+        return False
+
+def _get_last_scrape_time():
+    import requests as _req
+    supabase_url = os.environ.get('SUPABASE_URL')
+    supabase_key = os.environ.get('SUPABASE_ANON_KEY')
+    if not supabase_url or not supabase_key:
+        return None
+    try:
+        headers = {"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"}
+        url = f"{supabase_url}/rest/v1/scraper_signal?source=eq.replit&order=created_at.desc&limit=1&select=created_at"
+        r = _req.get(url, headers=headers, timeout=10)
+        if r.status_code == 200:
+            data = r.json()
+            if data:
+                from datetime import datetime as _dt
+                ts = data[0]['created_at']
+                if ts.endswith('Z'):
+                    ts = ts[:-1] + '+00:00'
+                return _dt.fromisoformat(ts)
+    except Exception as e:
+        print(f"[Watchdog] Son scrape zamanı alınamadı: {e}")
+    return None
+
+def _start_service(fname):
+    import subprocess as sp
+    base = os.path.dirname(os.path.abspath(__file__))
+    fpath = os.path.join(base, fname)
+    if os.path.exists(fpath):
+        try:
+            print(f"[Watchdog] Starting {fname}")
+            proc = sp.Popen([sys.executable, fpath])
+            _service_procs[fname] = proc
+            return proc
+        except Exception as e:
+            print(f"[Watchdog] Failed to start {fname}: {e}")
+    return None
 
 def _init_services_delayed():
-    """Initialize additional services after Flask starts (called from thread)"""
-    import subprocess as sp
+    """Initialize services after Flask starts, then run watchdog loop"""
     global _service_procs
     
     time.sleep(5)
     
-    base = os.path.dirname(os.path.abspath(__file__))
-    
     for fname in ['scheduled_scraper.py', 'alarm_engine.py']:
-        fpath = os.path.join(base, fname)
-        if os.path.exists(fpath):
-            try:
-                print(f"[Init] Starting {fname}")
-                _service_procs.append(sp.Popen([sys.executable, fpath]))
-            except Exception as e:
-                print(f"[Init] Failed to start {fname}: {e}")
+        _start_service(fname)
+    
+    WATCHDOG_INTERVAL = 60
+    WATCHDOG_THRESHOLD = 10 * 60
+    alert_sent = False
+    recovery_sent = False
+    
+    while True:
+        time.sleep(WATCHDOG_INTERVAL)
+        
+        for fname in list(_service_procs.keys()):
+            proc = _service_procs[fname]
+            if proc and proc.poll() is not None:
+                exit_code = proc.returncode
+                print(f"[Watchdog] {fname} CRASHED (exit={exit_code}), yeniden başlatılıyor...")
+                _send_watchdog_telegram(
+                    f"<b>\u26a0\ufe0f SÜREÇ ÇÖKTÜ</b>\n"
+                    f"<b>{fname}</b> durdu (exit={exit_code})\n"
+                    f"Otomatik yeniden başlatılıyor...",
+                    is_error=True
+                )
+                _start_service(fname)
+        
+        last_scrape = _get_last_scrape_time()
+        if last_scrape:
+            from datetime import datetime, timezone
+            elapsed = (datetime.now(timezone.utc) - last_scrape).total_seconds()
+            elapsed_min = elapsed / 60
+            
+            if elapsed >= WATCHDOG_THRESHOLD and not alert_sent:
+                _send_watchdog_telegram(
+                    f"<b>\u26a0\ufe0f SCRAPER UYARI</b>\n"
+                    f"Scraper <b>{elapsed_min:.0f} dakikadır</b> veri çekemiyor!\n"
+                    f"Son başarılı: {last_scrape.strftime('%H:%M UTC')}",
+                    is_error=True
+                )
+                alert_sent = True
+                recovery_sent = False
+                print(f"[Watchdog] ALERT: {elapsed_min:.0f} dk veri yok, Telegram gönderildi")
+            elif elapsed < WATCHDOG_THRESHOLD and alert_sent and not recovery_sent:
+                _send_watchdog_telegram(
+                    f"<b>SCRAPER TEKRAR ÇALIŞIYOR</b>\n"
+                    f"Veri akışı normale döndü.",
+                    is_error=False
+                )
+                alert_sent = False
+                recovery_sent = True
+                print(f"[Watchdog] RECOVERY: Scraper normale döndü, Telegram gönderildi")
+            elif elapsed < WATCHDOG_THRESHOLD:
+                alert_sent = False
+        else:
+            if not alert_sent:
+                _send_watchdog_telegram(
+                    f"<b>\u26a0\ufe0f SCRAPER UYARI</b>\n"
+                    f"Supabase'den son scrape zamanı alınamıyor!\n"
+                    f"Scraper çalışmıyor olabilir.",
+                    is_error=True
+                )
+                alert_sent = True
+                print("[Watchdog] ALERT: Son scrape zamanı alınamadı, Telegram gönderildi")
 
 
 def main():
@@ -8155,7 +8258,7 @@ def main():
                 print("[Init] Production/Replit detected, starting scraper+alarm in 5s...")
                 _orig_sigterm = _sig.getsignal(_sig.SIGTERM)
                 def _cleanup(signum, frame):
-                    for p in _service_procs:
+                    for p in _service_procs.values():
                         try:
                             p.terminate()
                         except:
