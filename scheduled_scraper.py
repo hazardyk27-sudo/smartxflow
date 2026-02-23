@@ -206,7 +206,7 @@ def main():
         error_msg = "SUPABASE_URL veya SUPABASE_ANON_KEY eksik!"
         print(f"[FATAL] {error_msg}")
         send_telegram(f"SCRAPER FATAL: {error_msg}", is_error=True)
-        sys.exit(1)
+        return False
     
     # Master/Slave kontrolü
     is_master, reason = check_master_status(supabase_url, supabase_key)
@@ -228,7 +228,7 @@ def main():
         print(f"[FATAL] {error_msg}")
         send_telegram(f"SCRAPER FATAL: {error_msg}", is_error=True)
         update_heartbeat(supabase_url, supabase_key, "error", 0, error_msg[:200])
-        sys.exit(1)
+        return False
     
     # Scrape with retry
     rows, error = run_with_retry(writer)

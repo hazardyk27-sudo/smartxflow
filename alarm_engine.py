@@ -152,7 +152,22 @@ def run_engine():
 
     if not SUPABASE_URL or not SUPABASE_ANON_KEY:
         print("[FATAL] SUPABASE_URL veya SUPABASE_ANON_KEY ayarlanmamis!")
-        sys.exit(1)
+        print("[Engine] 60s bekleyip tekrar kontrol edilecek...")
+        while True:
+            time.sleep(60)
+            url = os.environ.get('SUPABASE_URL')
+            key = os.environ.get('SUPABASE_ANON_KEY')
+            if url and key:
+                globals()['SUPABASE_URL'] = url
+                globals()['SUPABASE_ANON_KEY'] = key
+                globals()['HEADERS_READ'] = {"apikey": key, "Authorization": f"Bearer {key}"}
+                svc = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+                if svc:
+                    globals()['SUPABASE_SERVICE_KEY'] = svc
+                    globals()['HEADERS_WRITE'] = {"apikey": svc, "Authorization": f"Bearer {svc}", "Content-Type": "application/json", "Prefer": "return=minimal"}
+                print("[Engine] Supabase credentials bulundu, yeniden başlatılıyor")
+                return run_engine()
+            print("[Engine] Supabase credentials hala eksik, bekleniyor...")
 
     if not SUPABASE_SERVICE_KEY:
         print("[UYARI] SUPABASE_SERVICE_ROLE_KEY ayarlanmamis - yazma islemi basarisiz olabilir")

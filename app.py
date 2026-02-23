@@ -8167,24 +8167,62 @@ def _init_services_delayed():
     
     WATCHDOG_INTERVAL = 60
     WATCHDOG_THRESHOLD = 10 * 60
+    MAX_RAPID_CRASHES = 5
+    BACKOFF_BASE = 120
+    
     alert_sent = False
     recovery_sent = False
+    crash_counts = {}
+    crash_alert_sent = {}
+    next_restart_time = {}
     
     while True:
         time.sleep(WATCHDOG_INTERVAL)
         
+        now_ts = time.time()
         for fname in list(_service_procs.keys()):
             proc = _service_procs[fname]
             if proc and proc.poll() is not None:
+                if fname in next_restart_time:
+                    if now_ts < next_restart_time[fname]:
+                        continue
+                    else:
+                        next_restart_time.pop(fname)
+                        print(f"[Watchdog] {fname} backoff süresi doldu, yeniden başlatılıyor...")
+                        _start_service(fname)
+                        continue
+                
                 exit_code = proc.returncode
-                print(f"[Watchdog] {fname} CRASHED (exit={exit_code}), yeniden başlatılıyor...")
-                _send_watchdog_telegram(
-                    f"<b>\u26a0\ufe0f SÜREÇ ÇÖKTÜ</b>\n"
-                    f"<b>{fname}</b> durdu (exit={exit_code})\n"
-                    f"Otomatik yeniden başlatılıyor...",
-                    is_error=True
-                )
-                _start_service(fname)
+                crash_counts[fname] = crash_counts.get(fname, 0) + 1
+                count = crash_counts[fname]
+                print(f"[Watchdog] {fname} CRASHED (exit={exit_code}, crash #{count})")
+                
+                if count <= MAX_RAPID_CRASHES:
+                    if not crash_alert_sent.get(fname):
+                        _send_watchdog_telegram(
+                            f"<b>\u26a0\ufe0f S\u00dcRE\u00c7 \u00c7\u00d6KT\u00dc</b>\n"
+                            f"<b>{fname}</b> durdu (exit={exit_code})\n"
+                            f"Otomatik yeniden ba\u015flat\u0131l\u0131yor... (#{count})",
+                            is_error=True
+                        )
+                        crash_alert_sent[fname] = True
+                    _start_service(fname)
+                else:
+                    backoff = min(BACKOFF_BASE * (count - MAX_RAPID_CRASHES), 1800)
+                    next_restart_time[fname] = now_ts + backoff
+                    if count == MAX_RAPID_CRASHES + 1:
+                        _send_watchdog_telegram(
+                            f"<b>\u274c CRASH LOOP</b>\n"
+                            f"<b>{fname}</b> {count} kez \u00e7\u00f6kt\u00fc!\n"
+                            f"Yeniden ba\u015flatma {backoff}s sonra denenecek.",
+                            is_error=True
+                        )
+                    print(f"[Watchdog] {fname} crash loop ({count}x), {backoff}s sonra denenecek")
+            else:
+                if crash_counts.get(fname, 0) > 0:
+                    crash_counts[fname] = 0
+                    crash_alert_sent[fname] = False
+                    next_restart_time.pop(fname, None)
         
         last_scrape = _get_last_scrape_time()
         if last_scrape:
@@ -8195,34 +8233,34 @@ def _init_services_delayed():
             if elapsed >= WATCHDOG_THRESHOLD and not alert_sent:
                 _send_watchdog_telegram(
                     f"<b>\u26a0\ufe0f SCRAPER UYARI</b>\n"
-                    f"Scraper <b>{elapsed_min:.0f} dakikadır</b> veri çekemiyor!\n"
-                    f"Son başarılı: {last_scrape.strftime('%H:%M UTC')}",
+                    f"Scraper <b>{elapsed_min:.0f} dakikad\u0131r</b> veri \u00e7ekemiyor!\n"
+                    f"Son ba\u015far\u0131l\u0131: {last_scrape.strftime('%H:%M UTC')}",
                     is_error=True
                 )
                 alert_sent = True
                 recovery_sent = False
-                print(f"[Watchdog] ALERT: {elapsed_min:.0f} dk veri yok, Telegram gönderildi")
+                print(f"[Watchdog] ALERT: {elapsed_min:.0f} dk veri yok, Telegram g\u00f6nderildi")
             elif elapsed < WATCHDOG_THRESHOLD and alert_sent and not recovery_sent:
                 _send_watchdog_telegram(
-                    f"<b>SCRAPER TEKRAR ÇALIŞIYOR</b>\n"
-                    f"Veri akışı normale döndü.",
+                    f"<b>SCRAPER TEKRAR \u00c7ALI\u015eIYOR</b>\n"
+                    f"Veri ak\u0131\u015f\u0131 normale d\u00f6nd\u00fc.",
                     is_error=False
                 )
                 alert_sent = False
                 recovery_sent = True
-                print(f"[Watchdog] RECOVERY: Scraper normale döndü, Telegram gönderildi")
+                print(f"[Watchdog] RECOVERY: Scraper normale d\u00f6nd\u00fc, Telegram g\u00f6nderildi")
             elif elapsed < WATCHDOG_THRESHOLD:
                 alert_sent = False
         else:
             if not alert_sent:
                 _send_watchdog_telegram(
                     f"<b>\u26a0\ufe0f SCRAPER UYARI</b>\n"
-                    f"Supabase'den son scrape zamanı alınamıyor!\n"
-                    f"Scraper çalışmıyor olabilir.",
+                    f"Supabase'den son scrape zaman\u0131 al\u0131nam\u0131yor!\n"
+                    f"Scraper \u00e7al\u0131\u015fm\u0131yor olabilir.",
                     is_error=True
                 )
                 alert_sent = True
-                print("[Watchdog] ALERT: Son scrape zamanı alınamadı, Telegram gönderildi")
+                print("[Watchdog] ALERT: Son scrape zaman\u0131 al\u0131namad\u0131, Telegram g\u00f6nderildi")
 
 
 def main():
