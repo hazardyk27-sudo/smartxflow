@@ -8321,9 +8321,13 @@ def main():
         app.run(host=host, port=port, debug=False)
     except OSError as e:
         if "10048" in str(e) or "Address already in use" in str(e):
-            port = 5050
-            print(f"Port 5000 in use, trying http://{host}:{port}...")
-            app.run(host=host, port=port, debug=False)
+            print(f"[FATAL] Port {port} kullanımda! 15s bekleyip tekrar denenecek...")
+            time.sleep(15)
+            try:
+                app.run(host=host, port=port, debug=False)
+            except Exception as e2:
+                print(f"[FATAL] Port {port} hala kullanımda: {e2}")
+                sys.exit(1)
         else:
             raise
     except Exception as e:
