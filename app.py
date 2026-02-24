@@ -8330,7 +8330,13 @@ def main():
         import traceback
         print("FATAL ERROR:", str(e))
         traceback.print_exc()
-        sys.exit(1)
+        print("[Recovery] 10s sonra yeniden başlatılıyor...")
+        time.sleep(10)
+        try:
+            app.run(host=host, port=port, debug=False)
+        except Exception as e2:
+            print(f"[Recovery] İkinci deneme de başarısız: {e2}")
+            sys.exit(1)
 
 
 if __name__ == '__main__':
