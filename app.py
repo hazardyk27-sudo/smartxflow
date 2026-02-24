@@ -121,6 +121,25 @@ def set_history_cache(match_key, data):
     global _server_history_cache, _server_history_cache_time
     _server_history_cache[match_key] = data
     _server_history_cache_time[match_key] = time.time()
+
+def _purge_expired_caches():
+    """Remove expired entries from all server-side caches to prevent memory leaks"""
+    global _server_history_cache, _server_history_cache_time
+    global _server_matches_cache, _server_matches_cache_time
+    now = time.time()
+    purged = 0
+    expired_history = [k for k, t in _server_history_cache_time.items() if (now - t) > SERVER_HISTORY_CACHE_TTL * 2]
+    for k in expired_history:
+        _server_history_cache.pop(k, None)
+        _server_history_cache_time.pop(k, None)
+        purged += 1
+    expired_matches = [k for k, t in _server_matches_cache_time.items() if (now - t) > SERVER_MATCHES_CACHE_TTL * 2]
+    for k in expired_matches:
+        _server_matches_cache.pop(k, None)
+        _server_matches_cache_time.pop(k, None)
+        purged += 1
+    if purged > 0:
+        print(f"[Cache] Purged {purged} expired entries (history={len(_server_history_cache)}, matches={len(_server_matches_cache)})")
 # ============================================
 
 def resource_path(relative_path):
@@ -426,29 +445,24 @@ def start_cleanup_scheduler():
     global cleanup_thread
     
     def cleanup_loop():
-        # İlk başlatmada bir kez çalıştır
         cleanup_old_matches()
         
+        CACHE_PURGE_INTERVAL = 300
         while True:
-            # Şu anki Türkiye saatini al
             now = now_turkey()
-            
-            # Yarın saat 05:00'i hesapla
-            tomorrow_5am = now.replace(hour=5, minute=0, second=0, microsecond=0)
+            target_5am = now.replace(hour=5, minute=0, second=0, microsecond=0)
             if now.hour >= 5:
-                # Saat 5'i geçtiyse, yarın 05:00
-                tomorrow_5am = tomorrow_5am + timedelta(days=1)
+                target_5am = target_5am + timedelta(days=1)
             
-            # Beklenecek süre (saniye)
-            wait_seconds = (tomorrow_5am - now).total_seconds()
+            print(f"[Cleanup Scheduler] Next cleanup at 05:00 Turkey time, waiting {(target_5am - now).total_seconds()/3600:.1f} hours")
             
-            # En az 60 saniye bekle (rapid loop önleme)
-            wait_seconds = max(60, wait_seconds)
+            while now_turkey() < target_5am:
+                time.sleep(CACHE_PURGE_INTERVAL)
+                try:
+                    _purge_expired_caches()
+                except Exception as e:
+                    print(f"[Cache] Purge error: {e}")
             
-            print(f"[Cleanup Scheduler] Next cleanup at 05:00 Turkey time, waiting {wait_seconds/3600:.1f} hours")
-            time.sleep(wait_seconds)
-            
-            # Cleanup çalıştır
             cleanup_old_matches()
     
     cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
@@ -5677,7 +5691,7 @@ def scraper_console_status():
                 return jsonify({
                     'status': 'ok',
                     'running': state.get('running', False),
-                    'interval_minutes': state.get('interval_minutes', 10),
+                    'interval_minutes': state.get('interval_minutes', 9),
                     'last_scrape': state.get('last_scrape'),
                     'next_scrape': state.get('next_scrape'),
                     'last_rows': state.get('last_rows', 0),
@@ -5927,7 +5941,7 @@ def scraper_console_page():
         <h1>SmartXFlow Scraper Console</h1>
         <div class="status-badges">
             <span class="badge" id="statusBadge">Bağlanıyor...</span>
-            <span class="badge">Interval: <span id="intervalValue">10</span> dk</span>
+            <span class="badge">Interval: <span id="intervalValue">9</span> dk</span>
             <span class="badge">Son: <span id="lastRows">-</span> satır</span>
         </div>
     </div>
@@ -5988,7 +6002,7 @@ def scraper_console_page():
                         statusBadge.textContent = 'Durduruldu';
                         statusBadge.className = 'badge stopped';
                     }
-                    document.getElementById('intervalValue').textContent = data.interval_minutes || 10;
+                    document.getElementById('intervalValue').textContent = data.interval_minutes || 9;
                     document.getElementById('lastRows').textContent = data.last_rows || '-';
                 });
         }
@@ -8177,90 +8191,100 @@ def _init_services_delayed():
     next_restart_time = {}
     
     while True:
-        time.sleep(WATCHDOG_INTERVAL)
-        
-        now_ts = time.time()
-        for fname in list(_service_procs.keys()):
-            proc = _service_procs[fname]
-            if proc and proc.poll() is not None:
-                if fname in next_restart_time:
-                    if now_ts < next_restart_time[fname]:
-                        continue
-                    else:
-                        next_restart_time.pop(fname)
-                        print(f"[Watchdog] {fname} backoff süresi doldu, yeniden başlatılıyor...")
-                        _start_service(fname)
-                        continue
-                
-                exit_code = proc.returncode
-                crash_counts[fname] = crash_counts.get(fname, 0) + 1
-                count = crash_counts[fname]
-                print(f"[Watchdog] {fname} CRASHED (exit={exit_code}, crash #{count})")
-                
-                if count <= MAX_RAPID_CRASHES:
-                    if not crash_alert_sent.get(fname):
-                        _send_watchdog_telegram(
-                            f"<b>\u26a0\ufe0f S\u00dcRE\u00c7 \u00c7\u00d6KT\u00dc</b>\n"
-                            f"<b>{fname}</b> durdu (exit={exit_code})\n"
-                            f"Otomatik yeniden ba\u015flat\u0131l\u0131yor... (#{count})",
-                            is_error=True
-                        )
-                        crash_alert_sent[fname] = True
-                    _start_service(fname)
-                else:
-                    backoff = min(BACKOFF_BASE * (count - MAX_RAPID_CRASHES), 1800)
-                    next_restart_time[fname] = now_ts + backoff
-                    if count == MAX_RAPID_CRASHES + 1:
-                        _send_watchdog_telegram(
-                            f"<b>\u274c CRASH LOOP</b>\n"
-                            f"<b>{fname}</b> {count} kez \u00e7\u00f6kt\u00fc!\n"
-                            f"Yeniden ba\u015flatma {backoff}s sonra denenecek.",
-                            is_error=True
-                        )
-                    print(f"[Watchdog] {fname} crash loop ({count}x), {backoff}s sonra denenecek")
-            else:
-                if crash_counts.get(fname, 0) > 0:
-                    crash_counts[fname] = 0
-                    crash_alert_sent[fname] = False
-                    next_restart_time.pop(fname, None)
-        
-        last_scrape = _get_last_scrape_time()
-        if last_scrape:
-            from datetime import datetime, timezone
-            elapsed = (datetime.now(timezone.utc) - last_scrape).total_seconds()
-            elapsed_min = elapsed / 60
+        try:
+            time.sleep(WATCHDOG_INTERVAL)
             
-            if elapsed >= WATCHDOG_THRESHOLD and not alert_sent:
-                _send_watchdog_telegram(
-                    f"<b>\u26a0\ufe0f SCRAPER UYARI</b>\n"
-                    f"Scraper <b>{elapsed_min:.0f} dakikad\u0131r</b> veri \u00e7ekemiyor!\n"
-                    f"Son ba\u015far\u0131l\u0131: {last_scrape.strftime('%H:%M UTC')}",
-                    is_error=True
-                )
-                alert_sent = True
-                recovery_sent = False
-                print(f"[Watchdog] ALERT: {elapsed_min:.0f} dk veri yok, Telegram g\u00f6nderildi")
-            elif elapsed < WATCHDOG_THRESHOLD and alert_sent and not recovery_sent:
-                _send_watchdog_telegram(
-                    f"<b>SCRAPER TEKRAR \u00c7ALI\u015eIYOR</b>\n"
-                    f"Veri ak\u0131\u015f\u0131 normale d\u00f6nd\u00fc.",
-                    is_error=False
-                )
-                alert_sent = False
-                recovery_sent = True
-                print(f"[Watchdog] RECOVERY: Scraper normale d\u00f6nd\u00fc, Telegram g\u00f6nderildi")
-            elif elapsed < WATCHDOG_THRESHOLD:
-                alert_sent = False
-        else:
-            if not alert_sent:
-                _send_watchdog_telegram(
-                    f"<b>\u26a0\ufe0f SCRAPER UYARI</b>\n"
-                    f"Supabase'den son scrape zaman\u0131 al\u0131nam\u0131yor!\n"
-                    f"Scraper \u00e7al\u0131\u015fm\u0131yor olabilir.",
-                    is_error=True
-                )
-                alert_sent = True
-                print("[Watchdog] ALERT: Son scrape zaman\u0131 al\u0131namad\u0131, Telegram g\u00f6nderildi")
+            now_ts = time.time()
+            for fname in list(_service_procs.keys()):
+                proc = _service_procs[fname]
+                if proc and proc.poll() is not None:
+                    try:
+                        proc.wait(timeout=1)
+                    except:
+                        pass
+                    
+                    if fname in next_restart_time:
+                        if now_ts < next_restart_time[fname]:
+                            continue
+                        else:
+                            next_restart_time.pop(fname)
+                            print(f"[Watchdog] {fname} backoff süresi doldu, yeniden başlatılıyor...")
+                            _start_service(fname)
+                            continue
+                    
+                    exit_code = proc.returncode
+                    crash_counts[fname] = crash_counts.get(fname, 0) + 1
+                    count = crash_counts[fname]
+                    print(f"[Watchdog] {fname} CRASHED (exit={exit_code}, crash #{count})")
+                    
+                    if count <= MAX_RAPID_CRASHES:
+                        if not crash_alert_sent.get(fname):
+                            _send_watchdog_telegram(
+                                f"<b>\u26a0\ufe0f S\u00dcRE\u00c7 \u00c7\u00d6KT\u00dc</b>\n"
+                                f"<b>{fname}</b> durdu (exit={exit_code})\n"
+                                f"Otomatik yeniden ba\u015flat\u0131l\u0131yor... (#{count})",
+                                is_error=True
+                            )
+                            crash_alert_sent[fname] = True
+                        _start_service(fname)
+                    else:
+                        backoff = min(BACKOFF_BASE * (count - MAX_RAPID_CRASHES), 1800)
+                        next_restart_time[fname] = now_ts + backoff
+                        if count == MAX_RAPID_CRASHES + 1:
+                            _send_watchdog_telegram(
+                                f"<b>\u274c CRASH LOOP</b>\n"
+                                f"<b>{fname}</b> {count} kez \u00e7\u00f6kt\u00fc!\n"
+                                f"Yeniden ba\u015flatma {backoff}s sonra denenecek.",
+                                is_error=True
+                            )
+                        print(f"[Watchdog] {fname} crash loop ({count}x), {backoff}s sonra denenecek")
+                else:
+                    if crash_counts.get(fname, 0) > 0:
+                        crash_counts[fname] = 0
+                        crash_alert_sent[fname] = False
+                        next_restart_time.pop(fname, None)
+            
+            last_scrape = _get_last_scrape_time()
+            if last_scrape:
+                from datetime import datetime, timezone
+                elapsed = (datetime.now(timezone.utc) - last_scrape).total_seconds()
+                elapsed_min = elapsed / 60
+                
+                if elapsed >= WATCHDOG_THRESHOLD and not alert_sent:
+                    _send_watchdog_telegram(
+                        f"<b>\u26a0\ufe0f SCRAPER UYARI</b>\n"
+                        f"Scraper <b>{elapsed_min:.0f} dakikad\u0131r</b> veri \u00e7ekemiyor!\n"
+                        f"Son ba\u015far\u0131l\u0131: {last_scrape.strftime('%H:%M UTC')}",
+                        is_error=True
+                    )
+                    alert_sent = True
+                    recovery_sent = False
+                    print(f"[Watchdog] ALERT: {elapsed_min:.0f} dk veri yok, Telegram g\u00f6nderildi")
+                elif elapsed < WATCHDOG_THRESHOLD and alert_sent and not recovery_sent:
+                    _send_watchdog_telegram(
+                        f"<b>SCRAPER TEKRAR \u00c7ALI\u015eIYOR</b>\n"
+                        f"Veri ak\u0131\u015f\u0131 normale d\u00f6nd\u00fc.",
+                        is_error=False
+                    )
+                    alert_sent = False
+                    recovery_sent = True
+                    print(f"[Watchdog] RECOVERY: Scraper normale d\u00f6nd\u00fc, Telegram g\u00f6nderildi")
+                elif elapsed < WATCHDOG_THRESHOLD:
+                    alert_sent = False
+            else:
+                if not alert_sent:
+                    _send_watchdog_telegram(
+                        f"<b>\u26a0\ufe0f SCRAPER UYARI</b>\n"
+                        f"Supabase'den son scrape zaman\u0131 al\u0131nam\u0131yor!\n"
+                        f"Scraper \u00e7al\u0131\u015fm\u0131yor olabilir.",
+                        is_error=True
+                    )
+                    alert_sent = True
+                    print("[Watchdog] ALERT: Son scrape zaman\u0131 al\u0131namad\u0131, Telegram g\u00f6nderildi")
+        except Exception as e:
+            import traceback
+            print(f"[Watchdog] Beklenmeyen hata (döngü devam ediyor): {e}")
+            traceback.print_exc()
 
 
 def main():
@@ -8296,12 +8320,18 @@ def main():
                 print("[Init] Production/Replit detected, starting scraper+alarm in 5s...")
                 _orig_sigterm = _sig.getsignal(_sig.SIGTERM)
                 def _cleanup(signum, frame):
-                    for p in _service_procs.values():
+                    print("[Shutdown] SIGTERM received, cleaning up subprocesses...")
+                    for fname, p in _service_procs.items():
                         try:
                             p.terminate()
+                            try:
+                                p.wait(timeout=5)
+                            except:
+                                p.kill()
+                            print(f"[Shutdown] {fname} terminated")
                         except:
                             pass
-                    if callable(_orig_sigterm):
+                    if callable(_orig_sigterm) and _orig_sigterm not in (_sig.SIG_DFL, _sig.SIG_IGN):
                         _orig_sigterm(signum, frame)
                     sys.exit(0)
                 _sig.signal(_sig.SIGTERM, _cleanup)
