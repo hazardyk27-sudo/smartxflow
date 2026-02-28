@@ -309,3 +309,14 @@ HAVING MAX(s.scraped_at_utc) < NOW() - INTERVAL '30 minutes';
 2. Admin.exe: generate_match_id() fonksiyonunu normalize et
 3. RPC: get_full_match_snapshot(hash) fonksiyonu oluştur
 4. Web endpoint: RPC sonuçlarını response contract'a maple
+
+---
+
+### 6. Production Supervisor (run_production.py)
+
+**Amaç:** 7/24 kesintisiz çalışma garantisi
+- `run_production.py` → app.py'yi subprocess olarak yönetir
+- Ana process çökerse otomatik yeniden başlatır (exponential backoff)
+- Bellek limitini izler (450MB), aşılırsa güvenli restart
+- SIGTERM'i graceful handle eder
+- Deployment config: `python run_production.py` (VM mode)
