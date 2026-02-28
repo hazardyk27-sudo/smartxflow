@@ -345,10 +345,10 @@ h1, h2, h3, h4, h5, h6,
 
 .market-tabs {
     display: flex;
-    gap: 28px;
-    padding: 14px var(--space-xl);
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-xl);
     background: #161b22;
-    border-bottom: 1px solid rgba(48, 54, 61, 0.6);
+    border-bottom: 1px solid #30363d;
     overflow-x: auto;
 }
 
@@ -365,7 +365,7 @@ h1, h2, h3, h4, h5, h6,
     letter-spacing: 0.4px;
     cursor: pointer;
     border-radius: 0;
-    transition: all 0.2s ease;
+    transition: color 0.2s;
     white-space: nowrap;
     font-family: 'Inter', sans-serif;
     position: relative;
@@ -374,33 +374,32 @@ h1, h2, h3, h4, h5, h6,
 .tab::after {
     content: '';
     position: absolute;
-    bottom: 0;
-    left: 0;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
     width: 0;
     height: 2px;
-    background: linear-gradient(90deg, #00ffb3, #00c3ff);
-    border-radius: 2px;
-    transition: width 0.2s ease;
+    background: #4ade80;
+    transition: width 0.2s;
 }
 
 .tab:hover {
     background: transparent;
-    color: #ffffff;
+    color: #c9d1d9;
 }
 
 .tab.active {
     background: transparent;
-    color: #ffffff;
-    font-weight: 500;
+    color: #4ade80;
+    font-weight: 600;
 }
 
 .tab.active::after {
-    width: 100%;
-    box-shadow: 0 0 8px rgba(0, 255, 179, 0.3);
+    width: 70%;
 }
 
 .tab.active svg {
-    stroke: #00ffb3;
+    stroke: #4ade80;
 }
 
 .main-content {
@@ -8628,8 +8627,7 @@ table.desktop-only {
     }
     
     .tab.active {
-        background: rgba(0,255,179,0.12);
-        color: #00ffb3;
+        background: #238636;
     }
 
     /* ========== MAIN CONTENT ========== */
