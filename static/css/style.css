@@ -8627,7 +8627,8 @@ table.desktop-only {
     }
     
     .tab.active {
-        background: #238636;
+        background: rgba(0,255,179,0.12);
+        color: #00ffb3;
     }
 
     /* ========== MAIN CONTENT ========== */
