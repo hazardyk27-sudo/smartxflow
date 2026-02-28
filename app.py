@@ -385,7 +385,9 @@ def license_required(f):
 
 @app.after_request
 def add_header(response):
-    if request.path.startswith('/static/'):
+    if request.path.startswith('/static/') and request.path.endswith('.css'):
+        response.headers['Cache-Control'] = 'no-cache, must-revalidate'
+    elif request.path.startswith('/static/'):
         response.headers['Cache-Control'] = 'public, max-age=3600'
         response.headers.pop('Pragma', None)
         response.headers.pop('Expires', None)
