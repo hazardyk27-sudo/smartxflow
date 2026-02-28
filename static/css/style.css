@@ -8675,13 +8675,12 @@ table.desktop-only {
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
-        padding: 8px 10px;
-        background: rgba(22, 27, 34, 0.95);
+        padding: 8px 12px;
+        background: #1c2128;
         border-radius: 10px;
-        margin-top: 8px;
-        margin-bottom: 10px;
+        margin: 10px 0 14px 0;
         gap: 6px;
-        border: 1px solid rgba(48, 54, 61, 0.6);
+        border: 1px solid #30363d;
     }
     
     .mobile-filter-left {
@@ -8850,6 +8849,8 @@ table.desktop-only {
     .match-card-list {
         display: flex;
         flex-direction: column;
+        border-top: 1px solid #30363d;
+        padding-top: 2px;
     }
     
     .match-card {
