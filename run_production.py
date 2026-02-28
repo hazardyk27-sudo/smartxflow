@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
 SmartXFlow Production Supervisor
-- Runs app.py as a managed subprocess
-- Auto-restarts on crash with exponential backoff
-- Monitors memory usage and triggers GC when needed
-- HTTP health check detects frozen/hung processes
+- Uses gunicorn as production WSGI server
+- Auto-restarts workers on crash
+- Monitors memory usage
+- HTTP health check detects frozen processes
 - Handles SIGTERM gracefully
 - Ensures 7/24 uptime
 """
@@ -28,7 +28,7 @@ HEALTH_CHECK_URL = "http://127.0.0.1:5000/health"
 MIN_RESTART_DELAY = 2
 MAX_RESTART_DELAY = 60
 RESTART_DELAY_MULTIPLIER = 1.5
-STARTUP_GRACE_PERIOD = 30
+STARTUP_GRACE_PERIOD = 45
 
 child_proc = None
 shutting_down = False

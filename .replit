@@ -60,5 +60,5 @@ externalPort = 80
 
 [deployment]
 deploymentTarget = "vm"
-run = ["python", "run_production.py"]
+run = ["python", "app.py"]
 build = ["pip", "install", "-r", "requirements.txt"]

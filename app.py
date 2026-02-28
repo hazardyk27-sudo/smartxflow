@@ -8326,89 +8326,134 @@ def _init_services_delayed():
             traceback.print_exc()
 
 
-def main():
-    """Main entry point - Flask web server on 0.0.0.0:5000"""
+def _is_production():
+    return bool(os.environ.get('REPLIT_DEPLOYMENT') or os.environ.get('REPL_DEPLOYMENT'))
+
+
+def _initialize_server():
     host = '0.0.0.0'
     port = 5000
-    
-    try:
-        mode_name = "CLIENT" if is_client_mode() else "SERVER"
-        
-        print("=" * 50)
-        print("SmartXFlow Monitor")
-        print("=" * 50)
-        print(f"Mode: {mode_name}")
-        print(f"Supabase: {'Connected' if db.is_supabase_available else 'Not Connected'}")
-        print(f"Templates path: {template_dir}")
-        print(f"Static path: {static_dir}")
-        print(f"Templates exist: {os.path.exists(template_dir)}")
-        print(f"Static exist: {os.path.exists(static_dir)}")
-        print("=" * 50)
-        
-        if is_server_mode():
-            start_server_scheduler()
-            start_cleanup_scheduler()
-            start_alarm_scheduler()
-            replit_deploy = os.environ.get('REPLIT_DEPLOYMENT')
-            repl_deploy = os.environ.get('REPL_DEPLOYMENT')
-            repl_id = os.environ.get('REPL_ID')
-            print(f"[Init] ENV CHECK: REPLIT_DEPLOYMENT={replit_deploy}, REPL_DEPLOYMENT={repl_deploy}, REPL_ID={repl_id}")
-            if replit_deploy or repl_deploy or repl_id:
-                import threading
-                import signal as _sig
-                print("[Init] Production/Replit detected, starting scraper+alarm in 5s...")
-                _orig_sigterm = _sig.getsignal(_sig.SIGTERM)
-                def _cleanup(signum, frame):
-                    print("[Shutdown] SIGTERM received, cleaning up subprocesses...")
-                    for fname, p in _service_procs.items():
+    mode_name = "CLIENT" if is_client_mode() else "SERVER"
+
+    print("=" * 50, flush=True)
+    print("SmartXFlow Monitor", flush=True)
+    print("=" * 50, flush=True)
+    print(f"Mode: {mode_name}", flush=True)
+    print(f"Supabase: {'Connected' if db.is_supabase_available else 'Not Connected'}", flush=True)
+    print(f"Templates path: {template_dir}", flush=True)
+    print(f"Static path: {static_dir}", flush=True)
+    print(f"Templates exist: {os.path.exists(template_dir)}", flush=True)
+    print(f"Static exist: {os.path.exists(static_dir)}", flush=True)
+    print("=" * 50, flush=True)
+
+    if is_server_mode():
+        start_server_scheduler()
+        start_cleanup_scheduler()
+        start_alarm_scheduler()
+        replit_deploy = os.environ.get('REPLIT_DEPLOYMENT')
+        repl_deploy = os.environ.get('REPL_DEPLOYMENT')
+        repl_id = os.environ.get('REPL_ID')
+        print(f"[Init] ENV CHECK: REPLIT_DEPLOYMENT={replit_deploy}, REPL_DEPLOYMENT={repl_deploy}, REPL_ID={repl_id}", flush=True)
+        if replit_deploy or repl_deploy or repl_id:
+            import threading
+            import signal as _sig
+            print("[Init] Production/Replit detected, starting scraper+alarm in 5s...", flush=True)
+            _orig_sigterm = _sig.getsignal(_sig.SIGTERM)
+            def _cleanup(signum, frame):
+                print("[Shutdown] SIGTERM received, cleaning up subprocesses...", flush=True)
+                for fname, p in _service_procs.items():
+                    try:
+                        p.terminate()
                         try:
-                            p.terminate()
-                            try:
-                                p.wait(timeout=5)
-                            except:
-                                p.kill()
-                            print(f"[Shutdown] {fname} terminated")
+                            p.wait(timeout=5)
                         except:
-                            pass
-                    if callable(_orig_sigterm) and _orig_sigterm not in (_sig.SIG_DFL, _sig.SIG_IGN):
-                        _orig_sigterm(signum, frame)
-                    sys.exit(0)
-                _sig.signal(_sig.SIGTERM, _cleanup)
-                t = threading.Thread(target=_init_services_delayed, daemon=True)
-                t.start()
-            else:
-                print("[Init] Not on Replit, skipping auto-start of scraper/alarm")
-        
-        if is_client_mode():
-            host = '127.0.0.1'
-            is_desktop = os.environ.get('SMARTX_DESKTOP') == '1'
-            if not is_desktop:
-                import webbrowser
-                webbrowser.open(f'http://127.0.0.1:{port}')
-        
-        print(f"Starting Flask on http://{host}:{port}...")
-        app.run(host=host, port=port, debug=False)
+                            p.kill()
+                        print(f"[Shutdown] {fname} terminated", flush=True)
+                    except:
+                        pass
+                if callable(_orig_sigterm) and _orig_sigterm not in (_sig.SIG_DFL, _sig.SIG_IGN):
+                    _orig_sigterm(signum, frame)
+                sys.exit(0)
+            _sig.signal(_sig.SIGTERM, _cleanup)
+            t = threading.Thread(target=_init_services_delayed, daemon=True)
+            t.start()
+        else:
+            print("[Init] Not on Replit, skipping auto-start of scraper/alarm", flush=True)
+
+    if is_client_mode():
+        host = '127.0.0.1'
+        is_desktop = os.environ.get('SMARTX_DESKTOP') == '1'
+        if not is_desktop:
+            import webbrowser
+            webbrowser.open(f'http://127.0.0.1:{port}')
+
+    return host, port
+
+
+def main():
+    """Main entry point - Flask web server on 0.0.0.0:5000"""
+    try:
+        host, port = _initialize_server()
+
+        if _is_production():
+            print(f"[Production] Starting gunicorn on {host}:{port}...", flush=True)
+            try:
+                from gunicorn.app.base import BaseApplication
+
+                class SmartXFlowApp(BaseApplication):
+                    def __init__(self, flask_app, options=None):
+                        self.options = options or {}
+                        self.application = flask_app
+                        super().__init__()
+
+                    def load_config(self):
+                        for key, value in self.options.items():
+                            if key in self.cfg.settings and value is not None:
+                                self.cfg.set(key.lower(), value)
+
+                    def load(self):
+                        return self.application
+
+                options = {
+                    'bind': f'{host}:{port}',
+                    'workers': 2,
+                    'threads': 2,
+                    'timeout': 120,
+                    'max_requests': 1000,
+                    'max_requests_jitter': 50,
+                    'preload_app': True,
+                    'accesslog': '-',
+                    'errorlog': '-',
+                    'loglevel': 'info',
+                }
+                SmartXFlowApp(app, options).run()
+            except ImportError:
+                print("[Production] gunicorn not available, falling back to Flask dev server", flush=True)
+                app.run(host=host, port=port, debug=False)
+        else:
+            print(f"Starting Flask on http://{host}:{port}...", flush=True)
+            app.run(host=host, port=port, debug=False)
     except OSError as e:
         if "10048" in str(e) or "Address already in use" in str(e):
-            print(f"[FATAL] Port {port} kullanımda! 15s bekleyip tekrar denenecek...")
+            print(f"[FATAL] Port {port} kullanımda! 15s bekleyip tekrar denenecek...", flush=True)
             time.sleep(15)
             try:
                 app.run(host=host, port=port, debug=False)
             except Exception as e2:
-                print(f"[FATAL] Port {port} hala kullanımda: {e2}")
+                print(f"[FATAL] Port {port} hala kullanımda: {e2}", flush=True)
                 sys.exit(1)
         else:
             raise
     except Exception as e:
         import traceback
-        print("FATAL ERROR:", str(e))
+        print("FATAL ERROR:", str(e), flush=True)
         traceback.print_exc()
-        print("[Recovery] 10s sonra yeniden başlatılıyor...")
+        print("[Recovery] 10s sonra yeniden başlatılıyor...", flush=True)
         time.sleep(10)
         try:
             app.run(host=host, port=port, debug=False)
         except Exception as e2:
-            print(f"[Recovery] İkinci deneme de başarısız: {e2}")
+            print(f"[Recovery] İkinci deneme de başarısız: {e2}", flush=True)
             sys.exit(1)
 
 
