@@ -16,13 +16,15 @@ import time
 import signal
 import gc
 
+os.environ["PYTHONUNBUFFERED"] = "1"
+
 MAIN_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.py")
 MAX_MEMORY_MB = 450
 CHECK_INTERVAL = 30
 HEALTH_CHECK_INTERVAL = 90
 HEALTH_CHECK_TIMEOUT = 10
 HEALTH_CHECK_FAILURES_BEFORE_RESTART = 3
-HEALTH_CHECK_URL = "http://127.0.0.1:5000/scraper/status"
+HEALTH_CHECK_URL = "http://127.0.0.1:5000/health"
 MIN_RESTART_DELAY = 2
 MAX_RESTART_DELAY = 60
 RESTART_DELAY_MULTIPLIER = 1.5
@@ -30,6 +32,10 @@ STARTUP_GRACE_PERIOD = 30
 
 child_proc = None
 shutting_down = False
+
+
+def log(msg):
+    print(f"[Supervisor] {msg}", flush=True)
 
 
 def get_child_memory_mb(pid):
@@ -71,15 +77,15 @@ def check_http_health():
 def cleanup_handler(signum, frame):
     global shutting_down, child_proc
     shutting_down = True
-    print(f"[Supervisor] Signal {signum} received, shutting down gracefully...")
+    log(f"Signal {signum} received, shutting down gracefully...")
     if child_proc and child_proc.poll() is None:
         child_proc.terminate()
         try:
             child_proc.wait(timeout=15)
-            print("[Supervisor] App terminated gracefully")
+            log("App terminated gracefully")
         except subprocess.TimeoutExpired:
             child_proc.kill()
-            print("[Supervisor] App force-killed after timeout")
+            log("App force-killed after timeout")
     sys.exit(0)
 
 
@@ -102,28 +108,27 @@ def main():
     signal.signal(signal.SIGTERM, cleanup_handler)
     signal.signal(signal.SIGINT, cleanup_handler)
 
-    print("=" * 60)
-    print("SmartXFlow Production Supervisor")
-    print("=" * 60)
-    print(f"  Main script: {MAIN_SCRIPT}")
-    print(f"  Memory limit: {MAX_MEMORY_MB}MB")
-    print(f"  Health check: every {HEALTH_CHECK_INTERVAL}s")
-    print(f"  Auto-restart: ENABLED")
-    print("=" * 60)
+    print("=" * 60, flush=True)
+    log("SmartXFlow Production Supervisor STARTED")
+    print("=" * 60, flush=True)
+    log(f"Main script: {MAIN_SCRIPT}")
+    log(f"Memory limit: {MAX_MEMORY_MB}MB")
+    log(f"Health check: {HEALTH_CHECK_URL} every {HEALTH_CHECK_INTERVAL}s")
+    log(f"Auto-restart: ENABLED")
+    print("=" * 60, flush=True)
 
     restart_delay = MIN_RESTART_DELAY
     consecutive_crashes = 0
     last_successful_start = 0
 
     while not shutting_down:
-        print(f"[Supervisor] Starting app... (attempt after {consecutive_crashes} consecutive crashes)")
+        log(f"Starting app... (consecutive crashes: {consecutive_crashes})")
         last_successful_start = time.time()
 
         proc = run_app()
 
         health_fail_count = 0
         last_health_check = 0
-        check_count = 0
 
         while proc.poll() is None and not shutting_down:
             time.sleep(CHECK_INTERVAL)
@@ -131,7 +136,6 @@ def main():
             if proc.poll() is not None:
                 break
 
-            check_count += 1
             uptime = time.time() - last_successful_start
             if uptime > 300:
                 consecutive_crashes = 0
@@ -140,8 +144,7 @@ def main():
             try:
                 mem = get_total_tree_memory(proc.pid)
                 if mem > MAX_MEMORY_MB:
-                    print(f"[Supervisor] WARNING: Memory usage {mem:.0f}MB exceeds {MAX_MEMORY_MB}MB limit")
-                    print(f"[Supervisor] Restarting app to free memory...")
+                    log(f"WARNING: Memory {mem:.0f}MB > {MAX_MEMORY_MB}MB limit, restarting...")
                     proc.terminate()
                     try:
                         proc.wait(timeout=15)
@@ -160,9 +163,9 @@ def main():
                     health_fail_count = 0
                 else:
                     health_fail_count += 1
-                    print(f"[Supervisor] Health check FAILED ({health_fail_count}/{HEALTH_CHECK_FAILURES_BEFORE_RESTART})")
+                    log(f"Health check FAILED ({health_fail_count}/{HEALTH_CHECK_FAILURES_BEFORE_RESTART})")
                     if health_fail_count >= HEALTH_CHECK_FAILURES_BEFORE_RESTART:
-                        print(f"[Supervisor] App unresponsive after {health_fail_count} failed health checks, restarting...")
+                        log(f"App unresponsive after {health_fail_count} checks, restarting...")
                         proc.terminate()
                         try:
                             proc.wait(timeout=15)
@@ -178,7 +181,7 @@ def main():
         uptime = time.time() - last_successful_start
 
         if exit_code is not None:
-            print(f"[Supervisor] App exited with code {exit_code} after {uptime:.0f}s uptime")
+            log(f"App exited with code {exit_code} after {uptime:.0f}s uptime")
 
             if uptime < 30:
                 consecutive_crashes += 1
@@ -189,10 +192,10 @@ def main():
 
             gc.collect()
 
-            print(f"[Supervisor] Restarting in {restart_delay:.1f}s... (consecutive crashes: {consecutive_crashes})")
+            log(f"Restarting in {restart_delay:.1f}s... (consecutive crashes: {consecutive_crashes})")
             time.sleep(restart_delay)
 
-    print("[Supervisor] Supervisor shutting down")
+    log("Supervisor shutting down")
 
 
 if __name__ == "__main__":

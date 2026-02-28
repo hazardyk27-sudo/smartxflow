@@ -1713,6 +1713,11 @@ def update_interval():
     })
 
 
+@app.route('/health')
+def health_check():
+    return jsonify({'status': 'ok', 'timestamp': time.time()}), 200
+
+
 @app.route('/api/status')
 def get_status():
     """Get current status - scraping handled by Scraper Engine workflow"""
