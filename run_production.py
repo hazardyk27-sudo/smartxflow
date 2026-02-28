@@ -4,6 +4,7 @@ SmartXFlow Production Supervisor
 - Runs app.py as a managed subprocess
 - Auto-restarts on crash with exponential backoff
 - Monitors memory usage and triggers GC when needed
+- HTTP health check detects frozen/hung processes
 - Handles SIGTERM gracefully
 - Ensures 7/24 uptime
 """
@@ -17,24 +18,18 @@ import gc
 
 MAIN_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.py")
 MAX_MEMORY_MB = 450
-MEMORY_CHECK_INTERVAL = 30
+CHECK_INTERVAL = 30
+HEALTH_CHECK_INTERVAL = 90
+HEALTH_CHECK_TIMEOUT = 10
+HEALTH_CHECK_FAILURES_BEFORE_RESTART = 3
+HEALTH_CHECK_URL = "http://127.0.0.1:5000/scraper/status"
 MIN_RESTART_DELAY = 2
 MAX_RESTART_DELAY = 60
 RESTART_DELAY_MULTIPLIER = 1.5
+STARTUP_GRACE_PERIOD = 30
 
 child_proc = None
 shutting_down = False
-
-
-def get_memory_mb():
-    try:
-        with open(f"/proc/{os.getpid()}/status", "r") as f:
-            for line in f:
-                if line.startswith("VmRSS:"):
-                    return int(line.split()[1]) / 1024
-    except:
-        pass
-    return 0
 
 
 def get_child_memory_mb(pid):
@@ -61,6 +56,16 @@ def get_total_tree_memory(pid):
     except:
         pass
     return total
+
+
+def check_http_health():
+    try:
+        import urllib.request
+        req = urllib.request.Request(HEALTH_CHECK_URL)
+        resp = urllib.request.urlopen(req, timeout=HEALTH_CHECK_TIMEOUT)
+        return resp.status == 200
+    except:
+        return False
 
 
 def cleanup_handler(signum, frame):
@@ -102,6 +107,7 @@ def main():
     print("=" * 60)
     print(f"  Main script: {MAIN_SCRIPT}")
     print(f"  Memory limit: {MAX_MEMORY_MB}MB")
+    print(f"  Health check: every {HEALTH_CHECK_INTERVAL}s")
     print(f"  Auto-restart: ENABLED")
     print("=" * 60)
 
@@ -115,12 +121,17 @@ def main():
 
         proc = run_app()
 
+        health_fail_count = 0
+        last_health_check = 0
+        check_count = 0
+
         while proc.poll() is None and not shutting_down:
-            time.sleep(MEMORY_CHECK_INTERVAL)
+            time.sleep(CHECK_INTERVAL)
 
             if proc.poll() is not None:
                 break
 
+            check_count += 1
             uptime = time.time() - last_successful_start
             if uptime > 300:
                 consecutive_crashes = 0
@@ -139,8 +150,26 @@ def main():
                     gc.collect()
                     time.sleep(3)
                     break
-            except Exception as e:
+            except:
                 pass
+
+            now = time.time()
+            if uptime > STARTUP_GRACE_PERIOD and (now - last_health_check) >= HEALTH_CHECK_INTERVAL:
+                last_health_check = now
+                if check_http_health():
+                    health_fail_count = 0
+                else:
+                    health_fail_count += 1
+                    print(f"[Supervisor] Health check FAILED ({health_fail_count}/{HEALTH_CHECK_FAILURES_BEFORE_RESTART})")
+                    if health_fail_count >= HEALTH_CHECK_FAILURES_BEFORE_RESTART:
+                        print(f"[Supervisor] App unresponsive after {health_fail_count} failed health checks, restarting...")
+                        proc.terminate()
+                        try:
+                            proc.wait(timeout=15)
+                        except subprocess.TimeoutExpired:
+                            proc.kill()
+                        time.sleep(3)
+                        break
 
         if shutting_down:
             break

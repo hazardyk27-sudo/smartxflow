@@ -38,12 +38,17 @@ _admin_warmup_started = False
 _admin_warmup_lock = threading.Lock()
 
 # ============================================
+# SERVER-SIDE CACHE LOCK (thread safety)
+# ============================================
+_cache_lock = threading.Lock()
+
+# ============================================
 # SERVER-SIDE ALARM CACHE
 # Reduces Supabase calls from ~2s to <50ms
 # ============================================
 _server_alarm_cache = None
 _server_alarm_cache_time = 0
-SERVER_ALARM_CACHE_TTL = 60  # 60 seconds cache - Supabase istek optimizasyonu
+SERVER_ALARM_CACHE_TTL = 60
 
 def get_cached_alarms(force_refresh=False):
     """Get alarms from server-side cache or refresh from Supabase. Waits for app warmup if in progress."""
@@ -54,90 +59,97 @@ def get_cached_alarms(force_refresh=False):
     
     now = time.time()
     
-    if not force_refresh and _server_alarm_cache and (now - _server_alarm_cache_time) < SERVER_ALARM_CACHE_TTL:
-        return _server_alarm_cache, True  # data, from_cache
+    with _cache_lock:
+        if not force_refresh and _server_alarm_cache and (now - _server_alarm_cache_time) < SERVER_ALARM_CACHE_TTL:
+            return _server_alarm_cache, True
     
     return None, False
 
 def set_alarm_cache(data):
     """Update server-side alarm cache"""
     global _server_alarm_cache, _server_alarm_cache_time
-    _server_alarm_cache = data
-    _server_alarm_cache_time = time.time()
+    with _cache_lock:
+        _server_alarm_cache = data
+        _server_alarm_cache_time = time.time()
 # ============================================
 
 # ============================================
 # SERVER-SIDE MATCHES CACHE
 # Loads all matches instantly on cache hit
 # ============================================
-_server_matches_cache = {}  # {market: data}
-_server_matches_cache_time = {}  # {market: timestamp}
-SERVER_MATCHES_CACHE_TTL = 60  # 60 seconds cache - Supabase istek optimizasyonu
+_server_matches_cache = {}
+_server_matches_cache_time = {}
+SERVER_MATCHES_CACHE_TTL = 60
 
 def get_cached_matches(market, force_refresh=False):
     """Get matches from server-side cache. Waits for app warmup if in progress."""
-    global _server_matches_cache, _server_matches_cache_time
-    
     if _app_warmup_started and not _app_warmup_done.is_set():
         _app_warmup_done.wait(timeout=5)
     
     now = time.time()
-    cache_time = _server_matches_cache_time.get(market, 0)
     
-    if not force_refresh and market in _server_matches_cache and (now - cache_time) < SERVER_MATCHES_CACHE_TTL:
-        return _server_matches_cache[market], True
+    with _cache_lock:
+        cache_time = _server_matches_cache_time.get(market, 0)
+        if not force_refresh and market in _server_matches_cache and (now - cache_time) < SERVER_MATCHES_CACHE_TTL:
+            return _server_matches_cache[market], True
     
     return None, False
 
 def set_matches_cache(market, data):
     """Update server-side matches cache"""
-    global _server_matches_cache, _server_matches_cache_time
-    _server_matches_cache[market] = data
-    _server_matches_cache_time[market] = time.time()
+    with _cache_lock:
+        _server_matches_cache[market] = data
+        _server_matches_cache_time[market] = time.time()
 # ============================================
 
 # ============================================
 # SERVER-SIDE MATCH HISTORY CACHE
 # Modal 2. acilista anlik yukleme icin
 # ============================================
-_server_history_cache = {}  # {match_key: data}
-_server_history_cache_time = {}  # {match_key: timestamp}
-SERVER_HISTORY_CACHE_TTL = 60  # 60 seconds cache
+_server_history_cache = {}
+_server_history_cache_time = {}
+SERVER_HISTORY_CACHE_TTL = 60
+MAX_HISTORY_CACHE_SIZE = 500
 
 def get_cached_history(match_key, force_refresh=False):
     """Get match history from server-side cache"""
-    global _server_history_cache, _server_history_cache_time
-    
     now = time.time()
-    cache_time = _server_history_cache_time.get(match_key, 0)
     
-    if not force_refresh and match_key in _server_history_cache and (now - cache_time) < SERVER_HISTORY_CACHE_TTL:
-        return _server_history_cache[match_key], True
+    with _cache_lock:
+        cache_time = _server_history_cache_time.get(match_key, 0)
+        if not force_refresh and match_key in _server_history_cache and (now - cache_time) < SERVER_HISTORY_CACHE_TTL:
+            return _server_history_cache[match_key], True
     
     return None, False
 
 def set_history_cache(match_key, data):
     """Update server-side match history cache"""
-    global _server_history_cache, _server_history_cache_time
-    _server_history_cache[match_key] = data
-    _server_history_cache_time[match_key] = time.time()
+    with _cache_lock:
+        if len(_server_history_cache) >= MAX_HISTORY_CACHE_SIZE:
+            oldest_key = min(_server_history_cache_time, key=_server_history_cache_time.get)
+            _server_history_cache.pop(oldest_key, None)
+            _server_history_cache_time.pop(oldest_key, None)
+        _server_history_cache[match_key] = data
+        _server_history_cache_time[match_key] = time.time()
 
 def _purge_expired_caches():
     """Remove expired entries from all server-side caches to prevent memory leaks"""
-    global _server_history_cache, _server_history_cache_time
-    global _server_matches_cache, _server_matches_cache_time
+    import gc as _gc
     now = time.time()
     purged = 0
-    expired_history = [k for k, t in _server_history_cache_time.items() if (now - t) > SERVER_HISTORY_CACHE_TTL * 2]
-    for k in expired_history:
-        _server_history_cache.pop(k, None)
-        _server_history_cache_time.pop(k, None)
-        purged += 1
-    expired_matches = [k for k, t in _server_matches_cache_time.items() if (now - t) > SERVER_MATCHES_CACHE_TTL * 2]
-    for k in expired_matches:
-        _server_matches_cache.pop(k, None)
-        _server_matches_cache_time.pop(k, None)
-        purged += 1
+    with _cache_lock:
+        expired_history = [k for k, t in list(_server_history_cache_time.items()) if (now - t) > SERVER_HISTORY_CACHE_TTL * 2]
+        for k in expired_history:
+            _server_history_cache.pop(k, None)
+            _server_history_cache_time.pop(k, None)
+            purged += 1
+        expired_matches = [k for k, t in list(_server_matches_cache_time.items()) if (now - t) > SERVER_MATCHES_CACHE_TTL * 2]
+        for k in expired_matches:
+            _server_matches_cache.pop(k, None)
+            _server_matches_cache_time.pop(k, None)
+            purged += 1
+    _purge_license_cache()
+    _gc.collect()
     if purged > 0:
         print(f"[Cache] Purged {purged} expired entries (history={len(_server_history_cache)}, matches={len(_server_matches_cache)})")
 # ============================================
@@ -286,6 +298,20 @@ db.ensure_analyses_table()
 
 _validated_licenses = {}
 _LICENSE_CACHE_TTL = 300
+_LICENSE_MAX_ENTRIES = 100
+
+def _purge_license_cache():
+    """Remove expired or stale entries from license cache"""
+    now = time.time()
+    expired = [k for k, v in list(_validated_licenses.items()) if (now - v.get('cached_at', 0)) > _LICENSE_CACHE_TTL * 3]
+    for k in expired:
+        _validated_licenses.pop(k, None)
+    if len(_validated_licenses) > _LICENSE_MAX_ENTRIES:
+        sorted_keys = sorted(_validated_licenses.keys(), key=lambda k: _validated_licenses[k].get('cached_at', 0))
+        for k in sorted_keys[:len(_validated_licenses) - _LICENSE_MAX_ENTRIES]:
+            _validated_licenses.pop(k, None)
+    if expired:
+        print(f"[License Cache] Purged {len(expired)} expired licenses, {len(_validated_licenses)} remaining")
 
 def _parse_expires_naive(expires_at_str):
     if not expires_at_str:
@@ -447,25 +473,31 @@ def start_cleanup_scheduler():
     global cleanup_thread
     
     def cleanup_loop():
-        cleanup_old_matches()
-        
-        CACHE_PURGE_INTERVAL = 300
         while True:
-            now = now_turkey()
-            target_5am = now.replace(hour=5, minute=0, second=0, microsecond=0)
-            if now.hour >= 5:
-                target_5am = target_5am + timedelta(days=1)
-            
-            print(f"[Cleanup Scheduler] Next cleanup at 05:00 Turkey time, waiting {(target_5am - now).total_seconds()/3600:.1f} hours")
-            
-            while now_turkey() < target_5am:
-                time.sleep(CACHE_PURGE_INTERVAL)
-                try:
-                    _purge_expired_caches()
-                except Exception as e:
-                    print(f"[Cache] Purge error: {e}")
-            
-            cleanup_old_matches()
+            try:
+                cleanup_old_matches()
+                
+                CACHE_PURGE_INTERVAL = 300
+                now = now_turkey()
+                target_5am = now.replace(hour=5, minute=0, second=0, microsecond=0)
+                if now.hour >= 5:
+                    target_5am = target_5am + timedelta(days=1)
+                
+                print(f"[Cleanup Scheduler] Next cleanup at 05:00 Turkey time, waiting {(target_5am - now).total_seconds()/3600:.1f} hours")
+                
+                while now_turkey() < target_5am:
+                    time.sleep(CACHE_PURGE_INTERVAL)
+                    try:
+                        _purge_expired_caches()
+                    except Exception as e:
+                        print(f"[Cache] Purge error: {e}")
+                
+                cleanup_old_matches()
+            except Exception as e:
+                import traceback
+                print(f"[Cleanup Scheduler] CRITICAL ERROR (restarting loop): {e}")
+                traceback.print_exc()
+                time.sleep(60)
     
     cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
     cleanup_thread.start()
