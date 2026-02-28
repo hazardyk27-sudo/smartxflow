@@ -21,7 +21,17 @@ class SupabaseClient:
         self._last_data_update_cache = None
         self._last_data_update_cache_time = None
         self._cache_duration = 60
+        self._http_client = None
         self._load_credentials()
+
+    def _get_http_client(self):
+        if self._http_client is None or self._http_client.is_closed:
+            self._http_client = httpx.Client(
+                timeout=30,
+                limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+                http2=False,
+            )
+        return self._http_client
     
     def _load_credentials(self):
         try:
@@ -89,7 +99,7 @@ class SupabaseClient:
         
         try:
             url = f"{self._rest_url('matches')}?home_team=eq.{home_team}&away_team=eq.{away_team}&league=eq.{league}&match_date=eq.{match_date}&select=id"
-            resp = httpx.get(url, headers=self._headers(), timeout=10)
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=10)
             
             if resp.status_code == 200 and resp.json():
                 return resp.json()[0]['id']
@@ -100,7 +110,7 @@ class SupabaseClient:
                 "league": league,
                 "match_date": match_date
             }
-            resp = httpx.post(self._rest_url('matches'), headers=self._headers(), json=data, timeout=10)
+            resp = self._get_http_client().post(self._rest_url('matches'), headers=self._headers(), json=data, timeout=10)
             
             if resp.status_code in [200, 201] and resp.json():
                 return resp.json()[0]['id']
@@ -160,7 +170,7 @@ class SupabaseClient:
                     "trend_no": data.get('TrendNo', '')
                 })
             
-            resp = httpx.post(self._rest_url('odds_snapshots'), headers=self._headers(), json=snapshot, timeout=10)
+            resp = self._get_http_client().post(self._rest_url('odds_snapshots'), headers=self._headers(), json=snapshot, timeout=10)
             return resp.status_code in [200, 201]
         except Exception as e:
             print(f"Error save_snapshot: {e}")
@@ -172,7 +182,7 @@ class SupabaseClient:
         
         try:
             url = f"{self._rest_url('matches')}?select=*&order=created_at.desc&limit={limit}"
-            resp = httpx.get(url, headers=self._headers(), timeout=10)
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=10)
             if resp.status_code == 200:
                 rows = resp.json()
                 return [self._match_to_legacy(r) for r in rows]
@@ -212,7 +222,7 @@ class SupabaseClient:
                     league_enc = urllib.parse.quote(league, safe='')
                     base_url += f"&league=eq.{league_enc}"
                 url = f"{base_url}&order=scraped_at.asc&limit={page_size}&offset={offset}"
-                resp = httpx.get(url, headers=self._headers(), timeout=15)
+                resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
                 
                 if resp.status_code != 200:
                     break
@@ -347,7 +357,7 @@ class SupabaseClient:
                 yesterday_end_utc = yesterday_end_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
                 
                 fix_url = f"{self._rest_url('fixtures')}?select=*&kickoff_utc=gte.{quote(yesterday_start_utc)}&kickoff_utc=lt.{quote(yesterday_end_utc)}&order=kickoff_utc.desc&limit=500"
-                fix_resp = httpx.get(fix_url, headers=self._headers(), timeout=15)
+                fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=15)
                 
                 if fix_resp.status_code != 200:
                     print(f"[Supabase] YESTERDAY fixtures fetch error: {fix_resp.status_code}")
@@ -372,7 +382,7 @@ class SupabaseClient:
                     
                     try:
                         batch_url = f"{self._rest_url(history_table)}?match_id_hash=in.({hash_list})&order=scraped_at.desc&limit=1000"
-                        batch_resp = httpx.get(batch_url, headers=self._headers(), timeout=30)
+                        batch_resp = self._get_http_client().get(batch_url, headers=self._headers(), timeout=30)
                         if batch_resp.status_code == 200:
                             for row in batch_resp.json():
                                 h = row.get('match_id_hash', '')
@@ -433,7 +443,7 @@ class SupabaseClient:
                 today_end_utc = today_end_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
                 
                 fix_url = f"{self._rest_url('fixtures')}?select=*&kickoff_utc=gte.{quote(today_start_utc)}&kickoff_utc=lt.{quote(today_end_utc)}&order=kickoff_utc.desc&limit=1000"
-                fix_resp = httpx.get(fix_url, headers=self._headers(), timeout=15)
+                fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=15)
                 
                 if fix_resp.status_code != 200:
                     print(f"[Supabase] TODAY fixtures fetch error: {fix_resp.status_code}")
@@ -460,7 +470,7 @@ class SupabaseClient:
                     
                     try:
                         batch_url = f"{self._rest_url(history_table)}?match_id_hash=in.({hash_list})&order=scraped_at.desc&limit=1000"
-                        batch_resp = httpx.get(batch_url, headers=self._headers(), timeout=30)
+                        batch_resp = self._get_http_client().get(batch_url, headers=self._headers(), timeout=30)
                         
                         if batch_resp.status_code == 200:
                             rows = batch_resp.json()
@@ -540,7 +550,7 @@ class SupabaseClient:
                     headers = self._headers()
                     headers['Range'] = f'{offset}-{offset + batch_size - 1}'
                     history_url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc"
-                    resp = httpx.get(history_url, headers=headers, timeout=30)
+                    resp = self._get_http_client().get(history_url, headers=headers, timeout=30)
                     if resp.status_code in [200, 206]:
                         return resp.json()
                     return []
@@ -567,7 +577,7 @@ class SupabaseClient:
                 
                 # Step 2: Get fixtures metadata for kickoff times
                 fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,kickoff_utc,fixture_date&fixture_date=gte.{yesterday_str}"
-                fix_resp = httpx.get(fix_url, headers=self._headers(), timeout=10)
+                fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=10)
                 
                 fixtures_by_hash = {}
                 if fix_resp.status_code == 200:
@@ -626,7 +636,7 @@ class SupabaseClient:
                     # Batch fetch all fixture details at once
                     batch_fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{yesterday_str}"
                     try:
-                        batch_fix_resp = httpx.get(batch_fix_url, headers=self._headers(), timeout=10)
+                        batch_fix_resp = self._get_http_client().get(batch_fix_url, headers=self._headers(), timeout=10)
                         if batch_fix_resp.status_code == 200:
                             all_fixtures = {f.get('match_id_hash'): f for f in batch_fix_resp.json()}
                             
@@ -699,7 +709,7 @@ class SupabaseClient:
             
             # Step 1: Get ALL D-1+ fixtures (this is the source of truth)
             fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{yesterday_str}"
-            fix_resp = httpx.get(fix_url, headers=self._headers(), timeout=15)
+            fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=15)
             
             fixtures_list = []
             fixtures_by_hash = {}
@@ -720,36 +730,48 @@ class SupabaseClient:
             all_hashes = set(fixtures_by_hash.keys())
             odds_by_hash = {}
             
-            # Fetch latest history rows in parallel batches using Range header
-            history_rows = []
             batch_size = 1000
-            max_rows = 30000  # Increased to cover more matches (history table is very large)
+            max_rows = 15000
+            remaining_hashes = set(all_hashes)
             
             def fetch_history_range(offset):
                 headers = self._headers()
                 headers['Range'] = f'{offset}-{offset + batch_size - 1}'
                 url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc"
                 try:
-                    resp = httpx.get(url, headers=headers, timeout=30)
+                    resp = self._get_http_client().get(url, headers=headers, timeout=30)
                     if resp.status_code in [200, 206]:
                         return resp.json()
                 except Exception as e:
                     print(f"[Paginated] History range error: {e}")
                 return []
             
-            # Parallel fetch using Range headers (faster than IN query on unindexed table)
             offsets = list(range(0, max_rows, batch_size))
-            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-                results = list(executor.map(fetch_history_range, offsets))
+            _stop_fetch = False
             
-            for batch in results:
-                history_rows.extend(batch)
+            def fetch_history_range_safe(offset):
+                if _stop_fetch:
+                    return []
+                return fetch_history_range(offset)
             
-            # Filter to only fixture hashes and deduplicate (keep latest per hash)
-            for row in history_rows:
-                match_hash = row.get('match_id_hash', '')
-                if match_hash in all_hashes and match_hash not in odds_by_hash:
-                    odds_by_hash[match_hash] = row
+            with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+                futures = {executor.submit(fetch_history_range_safe, off): off for off in offsets}
+                for future in concurrent.futures.as_completed(futures):
+                    if not remaining_hashes:
+                        _stop_fetch = True
+                        for f in futures:
+                            f.cancel()
+                        break
+                    try:
+                        batch = future.result()
+                    except Exception:
+                        continue
+                    for row in batch:
+                        match_hash = row.get('match_id_hash', '')
+                        if match_hash in remaining_hashes:
+                            odds_by_hash[match_hash] = row
+                            remaining_hashes.discard(match_hash)
+                    del batch
             
             print(f"[Paginated] Got history for {len(odds_by_hash)} matches")
             
@@ -864,7 +886,7 @@ class SupabaseClient:
             yesterday_str = yesterday_date.strftime('%Y-%m-%d')
             
             url = f"{self._rest_url('fixtures')}?select=*&fixture_date=gte.{yesterday_str}&fixture_date=lte.{today_str}&order=kickoff_utc.desc&limit=1000"
-            resp = httpx.get(url, headers=self._headers(), timeout=15)
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
             
             if resp.status_code != 200:
                 print(f"[Supabase] Fixtures fetch error: {resp.status_code}")
@@ -912,7 +934,7 @@ class SupabaseClient:
                 
                 try:
                     batch_url = f"{self._rest_url(history_table)}?or=({or_filters})&order=scraped_at.desc&limit=1000"
-                    batch_resp = httpx.get(batch_url, headers=self._headers(), timeout=30)
+                    batch_resp = self._get_http_client().get(batch_url, headers=self._headers(), timeout=30)
                     
                     if batch_resp.status_code == 200:
                         rows = batch_resp.json()
@@ -991,7 +1013,7 @@ class SupabaseClient:
             today_str = today_date.strftime('%Y-%m-%d')
             
             url = f"{self._rest_url('fixtures')}?select=*&fixture_date=eq.{today_str}&order=kickoff_utc.desc&limit=1000"
-            resp = httpx.get(url, headers=self._headers(), timeout=15)
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
             
             if resp.status_code != 200:
                 print(f"[Supabase] TODAY Fixtures fetch error: {resp.status_code}")
@@ -1038,7 +1060,7 @@ class SupabaseClient:
                 
                 try:
                     batch_url = f"{self._rest_url(history_table)}?or=({or_filters})&order=scraped_at.desc&limit=1000"
-                    batch_resp = httpx.get(batch_url, headers=self._headers(), timeout=30)
+                    batch_resp = self._get_http_client().get(batch_url, headers=self._headers(), timeout=30)
                     
                     if batch_resp.status_code == 200:
                         rows = batch_resp.json()
@@ -1107,7 +1129,7 @@ class SupabaseClient:
         try:
             url = f"{self._rest_url(market)}?select=*&order=id.desc"
             print(f"[Supabase] Fetching from base: {url}")
-            resp = httpx.get(url, headers=self._headers(), timeout=15)
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
             
             if resp.status_code == 200:
                 rows = resp.json()
@@ -1237,7 +1259,7 @@ class SupabaseClient:
                 hash_list = ','.join(batch_hashes)
                 url = f"{self._rest_url(history_table)}?match_id_hash=in.({hash_list})&order=scraped_at.asc&limit=2000"
                 try:
-                    resp = httpx.get(url, headers=self._headers(), timeout=30)
+                    resp = self._get_http_client().get(url, headers=self._headers(), timeout=30)
                     if resp.status_code == 200:
                         return resp.json()
                 except Exception:
@@ -1328,7 +1350,7 @@ class SupabaseClient:
                        f"&scraped_at=lte.{window_end}"
                        f"&order=scraped_at.asc&limit=3000")
                 try:
-                    resp = httpx.get(url, headers=self._headers(), timeout=30)
+                    resp = self._get_http_client().get(url, headers=self._headers(), timeout=30)
                     if resp.status_code == 200:
                         return resp.json()
                 except Exception:
@@ -1341,7 +1363,7 @@ class SupabaseClient:
                        f"?match_id_hash=in.({hash_list})"
                        f"&order=scraped_at.asc&limit=2000")
                 try:
-                    resp = httpx.get(url, headers=self._headers(), timeout=30)
+                    resp = self._get_http_client().get(url, headers=self._headers(), timeout=30)
                     if resp.status_code == 200:
                         return resp.json()
                 except Exception:
@@ -1495,7 +1517,7 @@ class SupabaseClient:
         for table in history_tables:
             try:
                 url = f"{self._rest_url(table)}?select=scraped_at&order=scraped_at.desc&limit=1"
-                resp = httpx.get(url, headers=self._headers(), timeout=5)
+                resp = self._get_http_client().get(url, headers=self._headers(), timeout=5)
                 if resp.status_code == 200:
                     rows = resp.json()
                     if rows and rows[0].get('scraped_at'):
@@ -1516,7 +1538,7 @@ class SupabaseClient:
             return []
         try:
             url = f"{self._rest_url('alarm_settings')}?select=*"
-            resp = httpx.get(url, headers=self._headers(), timeout=10)
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=10)
             if resp.status_code == 200:
                 return resp.json()
             return []
@@ -1530,7 +1552,7 @@ class SupabaseClient:
             return None
         try:
             url = f"{self._rest_url('alarm_settings')}?alarm_type=eq.{alarm_type}&select=*"
-            resp = httpx.get(url, headers=self._headers(), timeout=10)
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=10)
             if resp.status_code == 200:
                 rows = resp.json()
                 return rows[0] if rows else None
@@ -1559,7 +1581,7 @@ class SupabaseClient:
             headers['Prefer'] = 'resolution=merge-duplicates,return=representation'
             
             url = f"{self._rest_url('alarm_settings')}?on_conflict=alarm_type"
-            resp = httpx.post(url, headers=headers, json=data, timeout=10)
+            resp = self._get_http_client().post(url, headers=headers, json=data, timeout=10)
             
             if resp.status_code in [200, 201]:
                 print(f"[CONFIG SAVE] {alarm_type}: Supabase'e kaydedildi (enabled={enabled})")
@@ -1621,7 +1643,7 @@ class SupabaseClient:
                 max_unique = 600
                 while len(rows) < max_unique:
                     url = f"{self._rest_url(history_table)}?select={select_cols}&order=scraped_at.desc&offset={offset}&limit=1000"
-                    resp = httpx.get(url, headers=self._headers(), timeout=15)
+                    resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
                     if resp.status_code != 200:
                         break
                     batch = resp.json()
@@ -1645,7 +1667,7 @@ class SupabaseClient:
                 url = (f"{self._rest_url(history_table)}?select={select_cols}"
                        f"&scraped_at=gte.{window_start}&scraped_at=lte.{window_end}"
                        f"&order=scraped_at.asc&limit=5000")
-                resp = httpx.get(url, headers=self._headers(), timeout=15)
+                resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
                 if resp.status_code == 200:
                     return resp.json()
                 return []
@@ -1656,7 +1678,7 @@ class SupabaseClient:
                 offset = 0
                 while len(rows) < 600:
                     url = f"{self._rest_url(history_table)}?select={select_cols}&order=scraped_at.asc&offset={offset}&limit=1000"
-                    resp = httpx.get(url, headers=self._headers(), timeout=15)
+                    resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
                     if resp.status_code != 200:
                         break
                     batch = resp.json()
@@ -1753,7 +1775,7 @@ class SupabaseClient:
             home_enc = quote(home, safe='')
             away_enc = quote(away, safe='')
             url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}&order=scraped_at.asc&limit=1000"
-            resp = httpx.get(url, headers=self._headers(), timeout=15)
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
             if resp.status_code == 200:
                 return resp.json()
             else:
@@ -1791,7 +1813,7 @@ class SupabaseClient:
         try:
             headers = self._headers()
             url = f"{self._rest_url('fixtures')}?fixture_date=lt.{cutoff_date}&select=match_id_hash"
-            resp = httpx.get(url, headers=headers, timeout=30)
+            resp = self._get_http_client().get(url, headers=headers, timeout=30)
             if resp.status_code == 200:
                 rows = resp.json()
                 if isinstance(rows, list):
@@ -1944,7 +1966,7 @@ class SupabaseClient:
                 "Authorization": f"Bearer {self.key}",
                 "Content-Type": content_type
             }
-            resp = httpx.post(url, content=file_data, headers=headers, timeout=30)
+            resp = self._get_http_client().post(url, content=file_data, headers=headers, timeout=30)
             if resp.status_code in [200, 201]:
                 return f"{self.url}/storage/v1/object/public/{bucket}/{file_path}"
             print(f"[Supabase] Storage upload failed: {resp.status_code} {resp.text[:200]}")
@@ -1961,7 +1983,7 @@ class SupabaseClient:
             url = f"{self._rest_url('analyses')}?order=created_at.desc"
             if category:
                 url += f"&category=eq.{category}"
-            resp = httpx.get(url, headers=self._headers(), timeout=15)
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
             if resp.status_code == 200:
                 return resp.json()
             return []
@@ -1975,7 +1997,7 @@ class SupabaseClient:
             return None
         try:
             data = {"title": title, "content": content, "image_url": image_url, "category": category}
-            resp = httpx.post(self._rest_url('analyses'), json=data, headers=self._headers(), timeout=15)
+            resp = self._get_http_client().post(self._rest_url('analyses'), json=data, headers=self._headers(), timeout=15)
             if resp.status_code in [200, 201]:
                 result = resp.json()
                 return result[0] if isinstance(result, list) else result
@@ -2022,7 +2044,7 @@ class SupabaseClient:
             return
         try:
             check_url = f"{self._rest_url('analyses')}?select=id&limit=1"
-            resp = httpx.get(check_url, headers=self._headers(), timeout=10)
+            resp = self._get_http_client().get(check_url, headers=self._headers(), timeout=10)
             if resp.status_code == 200:
                 print("[Supabase] analyses table exists")
                 return
@@ -2310,7 +2332,7 @@ def fetch_alarms_from_supabase(table_name: str, order_by: str = 'created_at', li
     
     try:
         url = f"{client._rest_url(table_name)}?select=*&order={order_by}.desc&limit={limit}"
-        resp = httpx.get(url, headers=client._headers(), timeout=15)
+        resp = client._get_http_client().get(url, headers=client._headers(), timeout=15)
         if resp.status_code == 200:
             return resp.json()  # Success - may be empty list []
         else:
@@ -2428,7 +2450,7 @@ def write_alarms_to_supabase(table_name: str, alarms: List[Dict[str, Any]], clea
             headers = client._headers()
             headers['Prefer'] = 'resolution=merge-duplicates,return=minimal'
             
-            resp = httpx.post(url, headers=headers, json=batch, timeout=30)
+            resp = client._get_http_client().post(url, headers=headers, json=batch, timeout=30)
             if resp.status_code not in [200, 201]:
                 print(f"[Supabase] Error writing batch to {table_name}: {resp.status_code} - {resp.text[:200]}")
                 return False

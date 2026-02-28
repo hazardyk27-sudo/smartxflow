@@ -315,8 +315,18 @@ HAVING MAX(s.scraped_at_utc) < NOW() - INTERVAL '30 minutes';
 ### 6. Production Supervisor (run_production.py)
 
 **Amaç:** 7/24 kesintisiz çalışma garantisi
-- `run_production.py` → app.py'yi subprocess olarak yönetir
+- `run_production.py` → app.py'yi subprocess olarak yönetir (watchdog)
 - Ana process çökerse otomatik yeniden başlatır (exponential backoff)
 - Bellek limitini izler (450MB), aşılırsa güvenli restart
+- HTTP health check (/health endpoint) izleme
 - SIGTERM'i graceful handle eder
 - Deployment config: `python run_production.py` (VM mode)
+
+### 7. Memory Leak Prevention (2026-02-28)
+
+**Çözülen Kök Nedenler:**
+- **Gunicorn worker cache cleanup:** `preload_app=True` ile master process'te başlayan cleanup thread, fork() sonrası worker'lara aktarılmıyordu. `post_worker_init` hook ile her worker kendi cleanup thread'ini başlatıyor.
+- **30K satır sorgu optimizasyonu:** `get_matches_paginated()` artık max 15K satır çekiyor, 3 paralel worker (5'ten düşürüldü), early-exit ile tüm fixture hash'leri bulununca durur.
+- **Matches cache limiti:** `_server_matches_cache` MAX_SIZE=20 ile sınırlandı.
+- **httpx connection pooling:** Tüm Supabase HTTP istekleri artık `httpx.Client()` session üzerinden yapılıyor (keep-alive, connection reuse).
+- **Supervisor watchdog:** Deployment `run_production.py` üzerinden çalışıyor, gunicorn master çökerse otomatik restart.

@@ -80,6 +80,7 @@ def set_alarm_cache(data):
 _server_matches_cache = {}
 _server_matches_cache_time = {}
 SERVER_MATCHES_CACHE_TTL = 60
+MAX_MATCHES_CACHE_SIZE = 20
 
 def get_cached_matches(market, force_refresh=False):
     """Get matches from server-side cache. Waits for app warmup if in progress."""
@@ -98,6 +99,10 @@ def get_cached_matches(market, force_refresh=False):
 def set_matches_cache(market, data):
     """Update server-side matches cache"""
     with _cache_lock:
+        if len(_server_matches_cache) >= MAX_MATCHES_CACHE_SIZE and market not in _server_matches_cache:
+            oldest_key = min(_server_matches_cache_time, key=_server_matches_cache_time.get)
+            _server_matches_cache.pop(oldest_key, None)
+            _server_matches_cache_time.pop(oldest_key, None)
         _server_matches_cache[market] = data
         _server_matches_cache_time[market] = time.time()
 # ============================================
@@ -468,9 +473,18 @@ def cleanup_old_matches():
     print(f"[Cleanup] Old matches cleanup completed for {today}")
 
 
+_cleanup_started_pids = set()
+
 def start_cleanup_scheduler():
     """Start daily cleanup scheduler for old matches - runs at 05:00 Turkey time"""
     global cleanup_thread
+    
+    pid = os.getpid()
+    if pid in _cleanup_started_pids:
+        print(f"[Cleanup Scheduler] Already running in PID {pid}, skipping", flush=True)
+        return
+    _cleanup_started_pids.add(pid)
+    print(f"[Cleanup Scheduler] Starting in PID {pid}", flush=True)
     
     def cleanup_loop():
         while True:
@@ -8414,6 +8428,10 @@ def main():
                     def load(self):
                         return self.application
 
+                def post_worker_init(worker):
+                    print(f"[Gunicorn] Worker {worker.pid} started, initializing cleanup scheduler...", flush=True)
+                    start_cleanup_scheduler()
+
                 options = {
                     'bind': f'{host}:{port}',
                     'workers': 2,
@@ -8425,6 +8443,7 @@ def main():
                     'accesslog': '-',
                     'errorlog': '-',
                     'loglevel': 'info',
+                    'post_worker_init': post_worker_init,
                 }
                 SmartXFlowApp(app, options).run()
             except ImportError:
