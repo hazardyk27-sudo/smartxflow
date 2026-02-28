@@ -8763,6 +8763,10 @@ table.desktop-only {
         color: #58D68D;
         background: rgba(46, 160, 67, 0.15);
     }
+
+    .trends-tab-bar {
+        display: none !important;
+    }
     
     /* Mobile Match Count */
     .mobile-match-count {

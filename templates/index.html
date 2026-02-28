@@ -702,7 +702,13 @@
                             <div class="day-filter-option" data-value="yesterday" onclick="selectDayOption('yesterday')">Dün</div>
                         </div>
                     </div>
-                    <button class="mobile-alarm-btn" onclick="openTrendsModal()">
+                    <button class="mobile-alarm-btn" onclick="openTrendsModal('moves')">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                        </svg>
+                        <span class="mobile-alarm-text">Hareketler</span>
+                    </button>
+                    <button class="mobile-alarm-btn" onclick="openTrendsModal('analysis')">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                         </svg>
@@ -1010,7 +1016,7 @@
                 </button>
             </div>
             <div class="modal-body" style="padding:16px 20px 20px;">
-                <div style="display:flex;gap:8px;margin-bottom:20px;">
+                <div class="trends-tab-bar" style="display:flex;gap:8px;margin-bottom:20px;">
                     <button class="btn btn-today" id="trendTabAnalysis" onclick="switchTrendTab('analysis')" style="background:rgba(43,255,136,0.15);border-color:rgba(43,255,136,0.3);color:#2BFF88;">Analizler</button>
                     <button class="btn btn-today" id="trendTabMoves" onclick="switchTrendTab('moves')">Hareket Tavsiyeleri</button>
                 </div>
@@ -1022,16 +1028,18 @@
     </div>
     <script>
         var currentTrendTab = 'analysis';
-        function openTrendsModal() {
+        function openTrendsModal(tab) {
             if (window.userPlan !== 'pro') {
                 if (confirm('Bu ozellik PRO uyelikte aktif. PRO paketine yukseltmek ister misiniz?')) {
                     window.location.href = '/pricing';
                 }
                 return;
             }
+            var t = tab || 'analysis';
             document.getElementById('trendsModalOverlay').style.display = 'flex';
             document.body.style.overflow = 'hidden';
-            loadTrends('analysis');
+            switchTrendTab(t);
+            loadTrends(t);
         }
         function closeTrendsModal() {
             document.getElementById('trendsModalOverlay').style.display = 'none';
