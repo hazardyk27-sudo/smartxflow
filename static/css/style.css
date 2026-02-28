@@ -359,13 +359,12 @@ h1, h2, h3, h4, h5, h6,
     padding: 10px 4px;
     background: transparent;
     border: none;
-    color: #8b9bb4;
-    font-size: 15px;
+    color: #6e7681;
+    font-size: 13px;
     font-weight: 500;
-    letter-spacing: 0.4px;
     cursor: pointer;
     border-radius: 0;
-    transition: color 0.2s;
+    transition: all 0.18s ease;
     white-space: nowrap;
     font-family: 'Inter', sans-serif;
     position: relative;
