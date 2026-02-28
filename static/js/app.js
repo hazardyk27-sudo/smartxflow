@@ -1584,22 +1584,38 @@ function updateMobileMarket() {
 // Mobile Day Filter Segmented Control
 let currentDayFilter = 'all';
 
+function toggleDayDropdown() {
+    var dd = document.getElementById('dayFilterDropdown');
+    if (dd) dd.classList.toggle('open');
+}
+
+function selectDayOption(filter) {
+    var dd = document.getElementById('dayFilterDropdown');
+    if (dd) dd.classList.remove('open');
+    setDayFilter(filter);
+}
+
+document.addEventListener('click', function(e) {
+    var dd = document.getElementById('dayFilterDropdown');
+    if (dd && !dd.contains(e.target)) {
+        dd.classList.remove('open');
+    }
+});
+
 function setDayFilter(filter) {
-    // Check if filter actually changed
     if (currentDayFilter === filter) {
-        return; // No change, skip reload
+        return;
     }
     
     currentDayFilter = filter;
     
-    // Update segmented control UI
-    document.querySelectorAll('.day-filter-segment .seg-btn').forEach(btn => {
-        btn.classList.remove('active');
+    var labels = {all: 'Tümü', today: 'Bugün', yesterday: 'Dün'};
+    var labelEl = document.getElementById('dayFilterLabel');
+    if (labelEl) labelEl.textContent = labels[filter] || 'Tümü';
+
+    document.querySelectorAll('.day-filter-option').forEach(function(opt) {
+        opt.classList.toggle('active', opt.getAttribute('data-value') === filter);
     });
-    
-    const btnId = filter === 'all' ? 'segAll' : (filter === 'today' ? 'segToday' : 'segYesterday');
-    const activeBtn = document.getElementById(btnId);
-    if (activeBtn) activeBtn.classList.add('active');
     
     // Sync with desktop buttons (skipLoad=true to prevent multiple loadMatches calls)
     const todayBtn = document.getElementById('todayBtn');

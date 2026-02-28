@@ -691,10 +691,16 @@
             <!-- Mobile: Filter Bar (below search) -->
             <div class="mobile-filter-bar mobile-only">
                 <div class="mobile-filter-left">
-                    <div class="day-filter-segment" id="dayFilterSegment">
-                        <button class="seg-btn active" id="segAll" onclick="setDayFilter('all')">Tümü</button>
-                        <button class="seg-btn" id="segToday" onclick="setDayFilter('today')">Bugün</button>
-                        <button class="seg-btn" id="segYesterday" onclick="setDayFilter('yesterday')">Dün</button>
+                    <div class="day-filter-dropdown" id="dayFilterDropdown">
+                        <button class="day-filter-toggle" id="dayFilterToggle" onclick="toggleDayDropdown()">
+                            <span id="dayFilterLabel">Tümü</span>
+                            <svg class="day-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div class="day-filter-options" id="dayFilterOptions">
+                            <div class="day-filter-option active" data-value="all" onclick="selectDayOption('all')">Tümü</div>
+                            <div class="day-filter-option" data-value="today" onclick="selectDayOption('today')">Bugün</div>
+                            <div class="day-filter-option" data-value="yesterday" onclick="selectDayOption('yesterday')">Dün</div>
+                        </div>
                     </div>
                     <button class="mobile-alarm-btn" onclick="openTrendsModal()">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -8693,35 +8693,75 @@ table.desktop-only {
         gap: 8px;
     }
     
-    /* Segmented Control - Compact */
-    .day-filter-segment {
-        display: flex;
-        background: rgba(33, 38, 45, 0.8);
-        border-radius: 6px;
-        padding: 2px;
-        gap: 2px;
+    /* Day Filter Dropdown */
+    .day-filter-dropdown {
+        position: relative;
     }
-    
-    .day-filter-segment .seg-btn {
+
+    .day-filter-toggle {
+        display: flex;
+        align-items: center;
+        gap: 4px;
         padding: 5px 10px;
-        background: transparent;
-        border: none;
-        border-radius: 5px;
+        background: rgba(46, 160, 67, 0.3);
+        border: 1px solid rgba(46, 160, 67, 0.3);
+        border-radius: 6px;
         font-size: 10px;
         font-weight: 600;
-        color: #8b949e;
-        cursor: pointer;
-        transition: all 0.15s;
-        font-family: 'Inter', sans-serif;
-    }
-    
-    .day-filter-segment .seg-btn.active {
-        background: rgba(46, 160, 67, 0.3);
         color: #58D68D;
+        cursor: pointer;
+        font-family: 'Inter', sans-serif;
+        transition: all 0.15s;
     }
-    
-    .day-filter-segment .seg-btn:not(.active):active {
-        background: rgba(255,255,255,0.05);
+
+    .day-filter-toggle:active {
+        background: rgba(46, 160, 67, 0.45);
+    }
+
+    .day-chevron {
+        transition: transform 0.2s;
+    }
+
+    .day-filter-dropdown.open .day-chevron {
+        transform: rotate(180deg);
+    }
+
+    .day-filter-options {
+        display: none;
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        min-width: 100px;
+        background: #1c2128;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 4px;
+        z-index: 100;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    .day-filter-dropdown.open .day-filter-options {
+        display: block;
+    }
+
+    .day-filter-option {
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #8b949e;
+        border-radius: 5px;
+        cursor: pointer;
+        font-family: 'Inter', sans-serif;
+        transition: all 0.1s;
+    }
+
+    .day-filter-option:active {
+        background: rgba(46, 160, 67, 0.2);
+    }
+
+    .day-filter-option.active {
+        color: #58D68D;
+        background: rgba(46, 160, 67, 0.15);
     }
     
     /* Mobile Match Count */
