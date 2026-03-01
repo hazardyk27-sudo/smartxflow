@@ -8432,19 +8432,26 @@ def main():
                     print(f"[Gunicorn] Worker {worker.pid} started, initializing cleanup scheduler...", flush=True)
                     start_cleanup_scheduler()
 
+                def worker_exit(server, worker):
+                    import os
+                    print(f"[Gunicorn] Worker {worker.pid} exiting, forcing immediate cleanup...", flush=True)
+                    os._exit(0)
+
                 options = {
                     'bind': f'{host}:{port}',
                     'workers': 2,
-                    'threads': 2,
+                    'threads': 4,
                     'timeout': 300,
-                    'graceful_timeout': 180,
-                    'max_requests': 1000,
-                    'max_requests_jitter': 50,
+                    'graceful_timeout': 120,
+                    'max_requests': 2000,
+                    'max_requests_jitter': 200,
                     'preload_app': True,
+                    'worker_class': 'gthread',
                     'accesslog': '-',
                     'errorlog': '-',
                     'loglevel': 'info',
                     'post_worker_init': post_worker_init,
+                    'worker_exit': worker_exit,
                 }
                 SmartXFlowApp(app, options).run()
             except ImportError:
