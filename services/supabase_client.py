@@ -27,7 +27,7 @@ class SupabaseClient:
     def _get_http_client(self):
         if self._http_client is None or self._http_client.is_closed:
             self._http_client = httpx.Client(
-                timeout=30,
+                timeout=httpx.Timeout(30, connect=10, pool=10),
                 limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
                 http2=False,
             )
