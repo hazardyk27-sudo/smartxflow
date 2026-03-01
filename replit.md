@@ -312,21 +312,19 @@ HAVING MAX(s.scraped_at_utc) < NOW() - INTERVAL '30 minutes';
 
 ---
 
-### 6. Production Supervisor (run_production.py)
+### 6. Process İzolasyonu (2026-03-01)
 
-**Amaç:** 7/24 kesintisiz çalışma garantisi
-- `run_production.py` → dev ortamında app.py'yi subprocess olarak yönetir (watchdog). Deployment'ta kullanılamaz (Replit subprocess port algılayamıyor)
-- Ana process çökerse otomatik yeniden başlatır (exponential backoff)
-- Bellek limitini izler (450MB), aşılırsa güvenli restart
-- HTTP health check (/health endpoint) izleme
-- SIGTERM'i graceful handle eder
-- Deployment config: `python app.py` (VM mode, gunicorn internal)
+**Mimari:** 3 bağımsız process — birinin çökmesi diğerlerini etkilemez
+- **app.py** → Sadece web sunucusu (gunicorn gthread worker). Scraper/alarm başlatmaz.
+- **run_services.sh** → Scraper + Alarm Engine supervisor. Çökerse 5s sonra otomatik restart.
+- **Deployment komutu:** `bash -c "python app.py & bash run_services.sh & wait"`
+- **Dev ortamında:** SmartXFlow Web workflow (app.py) + Scraper Engine workflow (scraper+alarm)
+- Gunicorn config: `gthread` worker, `worker_exit` hook ile `os._exit(0)`, timeout=300s, max_requests=2000
 
 ### 7. Memory Leak Prevention (2026-02-28)
 
 **Çözülen Kök Nedenler:**
-- **Gunicorn worker cache cleanup:** `preload_app=True` ile master process'te başlayan cleanup thread, fork() sonrası worker'lara aktarılmıyordu. `post_worker_init` hook ile her worker kendi cleanup thread'ini başlatıyor.
-- **30K satır sorgu optimizasyonu:** `get_matches_paginated()` artık max 15K satır çekiyor, 3 paralel worker (5'ten düşürüldü), early-exit ile tüm fixture hash'leri bulununca durur.
+- **Gunicorn worker cache cleanup:** `post_worker_init` hook ile her worker kendi cleanup thread'ini başlatıyor.
+- **30K satır sorgu optimizasyonu:** `get_matches_paginated()` artık max 15K satır çekiyor, 3 paralel worker, early-exit.
 - **Matches cache limiti:** `_server_matches_cache` MAX_SIZE=20 ile sınırlandı.
-- **httpx connection pooling:** Tüm Supabase HTTP istekleri artık `httpx.Client()` session üzerinden yapılıyor (keep-alive, connection reuse).
-- **Supervisor watchdog:** Deployment `run_production.py` üzerinden çalışıyor, gunicorn master çökerse otomatik restart.
+- **httpx connection pooling:** Tüm Supabase HTTP istekleri `httpx.Client()` session üzerinden (keep-alive).

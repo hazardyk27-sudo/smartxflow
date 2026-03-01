@@ -1,50 +1,49 @@
 #!/bin/bash
 
+SCRAPER_PID=""
+ALARM_PID=""
+
+cleanup() {
+    echo "[run_services] SIGTERM received, shutting down..."
+    [ -n "$SCRAPER_PID" ] && kill $SCRAPER_PID 2>/dev/null
+    [ -n "$ALARM_PID" ] && kill $ALARM_PID 2>/dev/null
+    wait 2>/dev/null
+    echo "[run_services] All services stopped."
+    exit 0
+}
+
+trap cleanup SIGTERM SIGINT
+
 start_scraper() {
-    python scheduled_scraper.py &
-    SCRAPER_PID=$!
-    echo "[Supervisor] Scraper started (PID: $SCRAPER_PID)"
+    while true; do
+        echo "[run_services] $(date '+%H:%M:%S') Starting scheduled_scraper.py..."
+        python scheduled_scraper.py
+        EXIT_CODE=$?
+        echo "[run_services] $(date '+%H:%M:%S') scheduled_scraper.py exited (code=$EXIT_CODE), restarting in 5s..."
+        sleep 5
+    done
 }
 
 start_alarm() {
-    python alarm_engine.py &
-    ALARM_PID=$!
-    echo "[Supervisor] Alarm Engine started (PID: $ALARM_PID)"
-}
-
-start_web() {
-    python app.py &
-    WEB_PID=$!
-    echo "[Supervisor] Web started (PID: $WEB_PID)"
+    while true; do
+        echo "[run_services] $(date '+%H:%M:%S') Starting alarm_engine.py..."
+        python alarm_engine.py
+        EXIT_CODE=$?
+        echo "[run_services] $(date '+%H:%M:%S') alarm_engine.py exited (code=$EXIT_CODE), restarting in 5s..."
+        sleep 5
+    done
 }
 
 echo "============================================"
-echo "SmartXFlow Service Supervisor"
-echo "$(date '+%Y-%m-%d %H:%M:%S')"
+echo "[run_services] SmartXFlow Services Supervisor"
+echo "[run_services] $(date '+%Y-%m-%d %H:%M:%S')"
+echo "[run_services] Scraper + Alarm Engine (auto-restart)"
 echo "============================================"
 
-start_scraper
-start_alarm
-start_web
+start_scraper &
+SCRAPER_PID=$!
 
-echo "[Supervisor] All services running"
-echo "[Supervisor] Monitoring every 10 seconds..."
+start_alarm &
+ALARM_PID=$!
 
-while true; do
-    sleep 10
-
-    if ! kill -0 $SCRAPER_PID 2>/dev/null; then
-        echo "[Supervisor] $(date '+%H:%M:%S') Scraper crashed! Restarting..."
-        start_scraper
-    fi
-
-    if ! kill -0 $ALARM_PID 2>/dev/null; then
-        echo "[Supervisor] $(date '+%H:%M:%S') Alarm Engine crashed! Restarting..."
-        start_alarm
-    fi
-
-    if ! kill -0 $WEB_PID 2>/dev/null; then
-        echo "[Supervisor] $(date '+%H:%M:%S') Web crashed! Restarting..."
-        start_web
-    fi
-done
+wait
