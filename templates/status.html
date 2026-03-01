@@ -348,10 +348,6 @@
                     <div class="info-value" id="alarmCountSharp" style="color:#58a6ff;">-</div>
                 </div>
                 <div class="info-item" style="text-align:center;">
-                    <div class="info-label">Insider</div>
-                    <div class="info-value" id="alarmCountInsider" style="color:#f0883e;">-</div>
-                </div>
-                <div class="info-item" style="text-align:center;">
                     <div class="info-label">BigMoney</div>
                     <div class="info-value" id="alarmCountBigmoney" style="color:#2BFF88;">-</div>
                 </div>
@@ -577,7 +573,6 @@
                 if (data.alarm_counts) {
                     const ac = data.alarm_counts;
                     document.getElementById('alarmCountSharp').textContent = ac.sharp !== undefined ? ac.sharp : '-';
-                    document.getElementById('alarmCountInsider').textContent = ac.insider !== undefined ? ac.insider : '-';
                     document.getElementById('alarmCountBigmoney').textContent = ac.bigmoney !== undefined ? ac.bigmoney : '-';
                     document.getElementById('alarmCountVolumeshock').textContent = ac.volumeshock !== undefined ? ac.volumeshock : '-';
                     document.getElementById('alarmCountDropping').textContent = ac.dropping !== undefined ? ac.dropping : '-';

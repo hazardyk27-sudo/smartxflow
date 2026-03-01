@@ -6,7 +6,6 @@
 :root {
     --ticker-sharp: #16A34A;
     --ticker-volumeshock: #FACC15;
-    --ticker-insider: #8B5CF6;
     --ticker-drop: #DC2626;
     --ticker-bigmoney: #F08A24;
     --ticker-hugemoney: #f97316;
@@ -72,11 +71,6 @@
     100% { box-shadow: none; }
 }
 
-@keyframes fadeInHighlight-insider {
-    0% { box-shadow: 0 0 12px rgba(139, 92, 246, 0.5); }
-    100% { box-shadow: none; }
-}
-
 @keyframes fadeInHighlight-drop {
     0% { box-shadow: 0 0 12px rgba(220, 38, 38, 0.5); }
     100% { box-shadow: none; }
@@ -107,11 +101,6 @@
 .dot-volumeshock {
     background-color: #FACC15;
     box-shadow: 0 0 6px rgba(250, 204, 21, 0.6);
-}
-
-.dot-insider {
-    background-color: #8B5CF6;
-    box-shadow: 0 0 6px rgba(139, 92, 246, 0.6);
 }
 
 .dot-drop {
@@ -183,17 +172,6 @@
 .ab-pill.volumeshock:hover {
     background: rgba(250, 204, 21, 0.2);
     border-color: rgba(250, 204, 21, 0.7);
-}
-
-/* Insider Move - Purple */
-.ab-pill.insider {
-    background: linear-gradient(90deg, rgba(139, 92, 246, 0.15), transparent);
-    border: 1px solid rgba(140, 60, 255, 0.42);
-}
-.ab-pill.insider.new { animation: fadeInHighlight-insider 1s ease-out; }
-.ab-pill.insider:hover {
-    background: rgba(139, 92, 246, 0.2);
-    border-color: rgba(140, 60, 255, 0.65);
 }
 
 /* Drop Alert - Risk Red */
@@ -332,7 +310,6 @@
 
 .ab-pill.sharp .ab-type { color: var(--ticker-sharp); }
 .ab-pill.volumeshock .ab-type { color: var(--ticker-volumeshock); }
-.ab-pill.insider .ab-type { color: var(--ticker-insider); }
 .ab-pill.drop .ab-type { color: var(--ticker-drop); }
 .ab-pill.bigmoney .ab-type { color: var(--ticker-bigmoney); }
 .ab-pill.hugemoney .ab-type { color: var(--ticker-hugemoney); }
@@ -387,10 +364,6 @@
     0% { box-shadow: 0 0 12px rgba(250, 204, 21, 0.5); }
     100% { box-shadow: none; }
 }
-@keyframes chipGlow-insider {
-    0% { box-shadow: 0 0 12px rgba(139, 92, 246, 0.5); }
-    100% { box-shadow: none; }
-}
 @keyframes chipGlow-drop {
     0% { box-shadow: 0 0 12px rgba(220, 38, 38, 0.5); }
     100% { box-shadow: none; }
@@ -432,13 +405,6 @@
     border: 1px solid rgba(250, 204, 21, 0.45);
 }
 .ab-pill.volumeshock.new .ab-val { animation: chipGlow-volumeshock 0.8s ease-out; }
-
-.ab-pill.insider .ab-val {
-    background: rgba(139, 92, 246, 0.18);
-    color: #A78BFA;
-    border: 1px solid rgba(139, 92, 246, 0.45);
-}
-.ab-pill.insider.new .ab-val { animation: chipGlow-insider 0.8s ease-out; }
 
 .ab-pill.drop .ab-val {
     background: rgba(220, 38, 38, 0.18);
@@ -575,15 +541,6 @@
     border-color: rgba(22, 163, 74, 0.6);
 }
 
-.alert-band-pill.insider {
-    background: linear-gradient(90deg, rgba(139, 92, 246, 0.15), transparent);
-    border-color: rgba(139, 92, 246, 0.35);
-}
-.alert-band-pill.insider:hover {
-    background: rgba(139, 92, 246, 0.2);
-    border-color: rgba(139, 92, 246, 0.6);
-}
-
 .alert-band-pill.bigmoney {
     background: linear-gradient(90deg, rgba(240, 138, 36, 0.15), transparent);
     border-color: rgba(240, 138, 36, 0.35);
@@ -619,7 +576,6 @@
 }
 
 .alert-band-dot.green { background: var(--ticker-sharp); }
-.alert-band-dot.purple { background: var(--ticker-insider); }
 .alert-band-dot.orange { background: var(--ticker-bigmoney); }
 .alert-band-dot.orange-red { background: var(--ticker-hugemoney); }
 .alert-band-dot.gold { background: var(--ticker-volumeshock); }
@@ -633,7 +589,6 @@
 }
 
 .alert-band-type.sharp { color: var(--ticker-sharp); }
-.alert-band-type.insider { color: var(--ticker-insider); }
 .alert-band-type.bigmoney { color: var(--ticker-bigmoney); }
 .alert-band-type.hugemoney { color: var(--ticker-hugemoney); }
 .alert-band-type.volumeshock { color: var(--ticker-volumeshock); }
@@ -665,10 +620,6 @@
 }
 
 .alert-band-value.negative,
-.alert-band-value.insider {
-    background: rgba(255, 0, 0, 0.2);
-    color: #ff0000;
-}
 
 .alert-band-time {
     font-size: 11px;
@@ -713,11 +664,6 @@
 .new-alarm-highlight .ab-pill.sharp.highlight-pill {
     box-shadow: 0 0 30px rgba(22, 163, 74, 0.7), 0 0 60px rgba(22, 163, 74, 0.4), 0 0 90px rgba(22, 163, 74, 0.2);
     border-color: rgba(22, 163, 74, 0.8);
-}
-
-.new-alarm-highlight .ab-pill.insider.highlight-pill {
-    box-shadow: 0 0 30px rgba(139, 92, 246, 0.7), 0 0 60px rgba(139, 92, 246, 0.4), 0 0 90px rgba(139, 92, 246, 0.2);
-    border-color: rgba(139, 92, 246, 0.8);
 }
 
 .new-alarm-highlight .ab-pill.bigmoney.highlight-pill {
@@ -778,11 +724,6 @@
     color: #4ADE80; 
     background: rgba(22, 163, 74, 0.2);
     text-shadow: 0 0 10px rgba(22, 163, 74, 0.8);
-}
-.new-alarm-label.insider { 
-    color: #A78BFA; 
-    background: rgba(139, 92, 246, 0.2);
-    text-shadow: 0 0 10px rgba(139, 92, 246, 0.8);
 }
 .new-alarm-label.bigmoney { 
     color: #FDBA74; 

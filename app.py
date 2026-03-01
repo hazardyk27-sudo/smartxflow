@@ -801,7 +801,6 @@ def api_alarm_engine_status():
 
         alarm_tables = {
             "sharp": "sharp_alarms",
-            "insider": "insider_alarms",
             "bigmoney": "bigmoney_alarms",
             "volumeshock": "volumeshock_alarms",
             "dropping": "dropping_alarms",

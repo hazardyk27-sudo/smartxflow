@@ -1,7 +1,7 @@
 """
 SmartXFlow Alarm Calculator Module v1.25
 Standalone alarm calculation for PC-based scraper
-Calculates: Sharp, Insider, BigMoney, VolumeShock, Dropping, VolumeLeader, MIM
+Calculates: Sharp, BigMoney, VolumeShock, Dropping, VolumeLeader, MIM
 OPTIMIZED: Batch fetch per market, in-memory calculations
 DEFAULT_SETTINGS: Fallback values for all alarm types when Supabase config missing
 PHASE 2: match_id_hash contract compliant (league|kickoff|home|away)
@@ -691,22 +691,6 @@ class AlarmCalculator:
         
         return "\n".join(lines)
     
-    def _format_insider_telegram(self, alarm: Dict, home: str, away: str, market: str, selection: str, timestamp: str) -> str:
-        """Format Insider alarm for Telegram"""
-        level = alarm.get('level', '')
-        delta = float(alarm.get('delta', 0) or alarm.get('money_in', 0) or 0)
-        
-        lines = [
-            f"[INSIDER] ({level}) - {market}-{selection}'de supeli hareket",
-            f"Zaman: {timestamp}",
-            "",
-            f"<b>{home}</b> vs <b>{away}</b>",
-            "",
-            f"> Para Girisi: GBP {delta:,.0f}",
-        ]
-        
-        return "\n".join(lines)
-    
     def _format_volumeleader_telegram(self, alarm: Dict, home: str, away: str, market: str, selection: str, timestamp: str) -> str:
         """Format VolumeLeader alarm for Telegram"""
         share = float(alarm.get('share', 0) or alarm.get('current_share', 0) or 0)
@@ -804,8 +788,6 @@ class AlarmCalculator:
                 text = self._format_dropping_telegram(alarm, home, away, market, selection, timestamp)
             elif normalized_type == 'SHARP':
                 text = self._format_sharp_telegram(alarm, home, away, market, selection, timestamp)
-            elif normalized_type == 'INSIDER':
-                text = self._format_insider_telegram(alarm, home, away, market, selection, timestamp)
             elif normalized_type == 'VOLUMELEADER':
                 text = self._format_volumeleader_telegram(alarm, home, away, market, selection, timestamp)
             elif normalized_type == 'MIM':
@@ -967,9 +949,6 @@ class AlarmCalculator:
         'volumeshock_alarms': ['id', 'match_id_hash', 'home', 'away', 'league', 'market', 
                               'selection', 'volume_shock_value', 'incoming_money',
                               'match_date', 'trigger_at', 'created_at', 'alarm_history'],
-        'insider_alarms': ['id', 'match_id_hash', 'home', 'away', 'league', 'market', 
-                          'selection', 'opening_odds', 'current_odds', 'drop_pct',
-                          'total_money', 'match_date', 'alarm_history', 'trigger_at', 'created_at'],
         'sharp_alarms': ['id', 'match_id_hash', 'home', 'away', 'league', 'market', 
                         'selection', 'sharp_score', 'amount_change', 'drop_pct', 
                         'share_diff', 'match_date', 'trigger_at', 'created_at',
@@ -1008,13 +987,6 @@ class AlarmCalculator:
         'bigmoney_alarms': {
             'stake': 'incoming_money',
             'volume': 'incoming_money',
-        },
-        'insider_alarms': {
-            'odds_drop_pct': 'drop_pct',
-            'oran_dusus_pct': 'drop_pct',
-            'incoming_money': 'total_money',
-            'stake': 'total_money',
-            'volume': 'total_money',
         },
         'volumeshock_alarms': {
             'volume_shock': 'volume_shock_value',
@@ -1305,7 +1277,7 @@ class AlarmCalculator:
         Admin Panel -> Supabase yazma fonksiyonu
         
         Args:
-            alarm_type: Alarm türü (sharp, insider, bigmoney, volumeshock, dropping, volumeleader, mim)
+            alarm_type: Alarm türü (sharp, bigmoney, volumeshock, dropping, volumeleader, mim)
             config: Config dict (tüm ayarlar)
             enabled: Alarm aktif mi
         
@@ -1589,7 +1561,6 @@ class AlarmCalculator:
         
         alarm_tables = [
             'sharp_alarms',
-            'insider_alarms',
             'bigmoney_alarms',
             'volumeshock_alarms',
             'dropping_alarms',
@@ -1680,9 +1651,7 @@ class AlarmCalculator:
                     log(f"Loaded {len(self.configs)} alarm settings from DB")
                     # Log each alarm type's key config values
                     for atype, cfg in self.configs.items():
-                        if atype == 'insider':
-                            log(f"  [DB] insider: oran_dusus={cfg.get('oran_dusus_esigi')}, hacim_sok={cfg.get('hacim_sok_esigi')}, max_para={cfg.get('max_para')}, max_odds={cfg.get('max_odds_esigi')}")
-                        elif atype == 'sharp':
+                        if atype == 'sharp':
                             log(f"  [DB] sharp: min_score={cfg.get('min_sharp_score')}, vol_mult={cfg.get('volume_multiplier')}")
                         elif atype == 'bigmoney':
                             log(f"  [DB] bigmoney: limit={cfg.get('big_money_limit')}")
@@ -1755,17 +1724,6 @@ class AlarmCalculator:
                 'odds_range_3_min_drop': 7,
                 'odds_range_4_min_drop': 15
             },
-            'insider': {
-                'enabled': True,
-                'max_para': 100,
-                'sure_dakika': 7,
-                'max_odds_esigi': 1.85,
-                'min_volume_1x2': 3000,
-                'hacim_sok_esigi': 0.1,
-                'min_volume_btts': 1000,
-                'min_volume_ou25': 1000,
-                'oran_dusus_esigi': 6
-            },
             'bigmoney': {
                 'enabled': True,
                 'big_money_limit': 1499
@@ -1824,7 +1782,8 @@ class AlarmCalculator:
         
         log(f"FETCH {market} (latest)...")
         
-        matches = self._get(market, 'select=*')
+        select_cols = 'match_id_hash,home,away,league,date,volume,odds1,oddsx,odds2,over,under,oddsyes,oddsno,amt1,amtx,amt2,amtover,amtunder,amtyes,amtno,share1,sharex,share2,shareover,shareunder,shareyes,shareno,scraped_at'
+        matches = self._get(market, f'select={select_cols}')
         if matches:
             log(f"  -> {len(matches)} matches from {market} table")
             self._matches_cache[market] = matches
@@ -1920,7 +1879,8 @@ class AlarmCalculator:
                 page_size = 1000
                 
                 while True:
-                    params = f"select=*&match_id_hash=in.({hash_list})&order=scraped_at.asc&limit={page_size}&offset={offset}"
+                    history_cols = 'match_id_hash,home,away,league,date,kickoff,kickoff_utc,scraped_at,scraped_at_utc,odds1,oddsx,odds2,over,under,oddsyes,oddsno,amt1,amtx,amt2,amtover,amtunder,amtyes,amtno,share1,sharex,share2,shareover,shareunder,shareyes,shareno,volume'
+                    params = f"select={history_cols}&match_id_hash=in.({hash_list})&order=scraped_at.asc&limit={page_size}&offset={offset}"
                     
                     batch = self._get(actual_table, params)
                     if not batch:
@@ -1941,7 +1901,8 @@ class AlarmCalculator:
             offset = 0
             page_size = 1000
             while True:
-                params = f"select=*&scraped_at=gte.{cutoff_iso}&order=scraped_at.asc&limit={page_size}&offset={offset}"
+                history_cols = 'match_id_hash,home,away,league,date,kickoff,kickoff_utc,scraped_at,scraped_at_utc,odds1,oddsx,odds2,over,under,oddsyes,oddsno,amt1,amtx,amt2,amtover,amtunder,amtyes,amtno,share1,sharex,share2,shareover,shareunder,shareyes,shareno,volume'
+                params = f"select={history_cols}&scraped_at=gte.{cutoff_iso}&order=scraped_at.asc&limit={page_size}&offset={offset}"
                 batch = self._get(actual_table, params)
                 if not batch:
                     break
@@ -2068,7 +2029,7 @@ class AlarmCalculator:
         total_alarms = 0
         alarm_counts = {}
         
-        log("1/7 BigMoney hesaplaniyor...")
+        log("1/6 BigMoney hesaplaniyor...")
         try:
             bigmoney_count = self.calculate_bigmoney_alarms() or 0
             alarm_counts['BigMoney'] = bigmoney_count
@@ -2080,7 +2041,7 @@ class AlarmCalculator:
             log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['BigMoney'] = 0
         
-        log("2/7 Sharp hesaplaniyor...")
+        log("2/6 Sharp hesaplaniyor...")
         try:
             sharp_count = self.calculate_sharp_alarms() or 0
             alarm_counts['Sharp'] = sharp_count
@@ -2092,19 +2053,7 @@ class AlarmCalculator:
             log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['Sharp'] = 0
         
-        log("3/7 Insider hesaplaniyor...")
-        try:
-            insider_count = self.calculate_insider_alarms() or 0
-            alarm_counts['Insider'] = insider_count
-            total_alarms += insider_count
-            log(f"  -> Insider: {insider_count} alarm")
-        except Exception as e:
-            import traceback
-            log(f"!!! Insider error: {e}")
-            log(f"Traceback: {traceback.format_exc()}")
-            alarm_counts['Insider'] = 0
-        
-        log("4/7 VolumeShock hesaplaniyor...")
+        log("3/6 VolumeShock hesaplaniyor...")
         try:
             volumeshock_count = self.calculate_volumeshock_alarms() or 0
             alarm_counts['VolumeShock'] = volumeshock_count
@@ -2116,7 +2065,7 @@ class AlarmCalculator:
             log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['VolumeShock'] = 0
         
-        log("5/7 Dropping hesaplaniyor...")
+        log("4/6 Dropping hesaplaniyor...")
         try:
             dropping_count = self.calculate_dropping_alarms() or 0
             alarm_counts['Dropping'] = dropping_count
@@ -2128,7 +2077,7 @@ class AlarmCalculator:
             log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['Dropping'] = 0
         
-        log("6/7 VolumeLeader hesaplaniyor...")
+        log("5/6 VolumeLeader hesaplaniyor...")
         try:
             volumeleader_count = self.calculate_volumeleader_alarms() or 0
             alarm_counts['VolumeLeader'] = volumeleader_count
@@ -2140,7 +2089,7 @@ class AlarmCalculator:
             log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['VolumeLeader'] = 0
         
-        log("7/7 MIM (Market Impact) hesaplaniyor...")
+        log("6/6 MIM (Market Impact) hesaplaniyor...")
         try:
             mim_count = self.calculate_mim_alarms() or 0
             alarm_counts['MIM'] = mim_count
@@ -2161,7 +2110,56 @@ class AlarmCalculator:
         self.last_alarm_count = total_alarms
         self.alarm_summary = alarm_counts
         
+        self._cleanup_expired_match_alarms()
+        
         return total_alarms
+    
+    def _cleanup_expired_match_alarms(self):
+        """Delete alarms for matches that ended more than 2 days ago (based on match_date)."""
+        try:
+            today = now_turkey().date()
+            cutoff = today - timedelta(days=2)
+            cutoff_str = cutoff.strftime('%Y-%m-%d')
+            
+            alarm_tables = [
+                'sharp_alarms',
+                'bigmoney_alarms',
+                'volumeshock_alarms',
+                'dropping_alarms',
+                'volume_leader_alarms',
+                'mim_alarms'
+            ]
+            
+            total_deleted = 0
+            tables_cleaned = 0
+            
+            for table in alarm_tables:
+                try:
+                    url = f"{self._rest_url(table)}?match_date=lt.{cutoff_str}"
+                    headers = self._headers()
+                    headers['Prefer'] = 'return=representation,count=exact'
+                    
+                    resp = httpx.delete(url, headers=headers, timeout=30)
+                    
+                    if resp.status_code in (200, 204):
+                        try:
+                            deleted_rows = resp.json() if resp.text else []
+                            count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
+                        except Exception:
+                            count = 0
+                        if count > 0:
+                            total_deleted += count
+                            tables_cleaned += 1
+                            log(f"  [Cleanup] {table}: {count} expired alarms deleted")
+                except Exception as e:
+                    log(f"  [Cleanup] {table} error: {e}")
+            
+            if total_deleted > 0:
+                log(f"[Cleanup] Removed {total_deleted} expired alarms from {tables_cleaned} tables (match_date < {cutoff_str})")
+            else:
+                log(f"[Cleanup] No expired alarms found (cutoff: {cutoff_str})")
+        except Exception as e:
+            log(f"[Cleanup] Expired match alarm cleanup failed: {e}")
     
     def _is_valid_match_date(self, date_str: str) -> bool:
         """Check if match is within valid date range (D-1 to D+7)
@@ -2454,285 +2452,6 @@ class AlarmCalculator:
             log(f"Sharp: {new_count} alarms upserted")
         else:
             log("Sharp: 0 alarm")
-        
-        return len(alarms)
-    
-    def calculate_insider_alarms(self) -> int:
-        """Calculate Insider Info alarms - GÖRSEL KURALLARINA GÖRE
-        
-        1. Acilis->Simdi Dusus: Oranlar acilistan >= %X dustu mu?
-        2. Düşüş Anını Bul: En büyük tek seferlik ORAN düşüşünün olduğu snapshot
-        3. Etraf Snapshotları: Düşüş anının etrafındaki N snapshot'a bak (N = sure_dakika)
-        4. Sessiz Hareket: Tüm N snapshot'ta HacimSok < Esik VE GelenPara < MaxPara
-        
-        RACE CONDITION FIX: Önce upsert, sonra eski alarmları temizle
-        """
-        
-        config = self.configs.get('insider')
-        if not config:
-            log("[Insider] CONFIG YOK - Supabase'de insider ayarlarını kaydedin!")
-            return 0
-        
-        required_keys = ['hacim_sok_esigi', 'oran_dusus_esigi', 'max_para', 'max_odds_esigi', 'sure_dakika']
-        missing_keys = [k for k in required_keys if config.get(k) is None]
-        if missing_keys:
-            log(f"[Insider] CONFIG EKSIK KEY'LER: {missing_keys} - Supabase'de tamamlayın!")
-            return 0
-        
-        hacim_sok_esigi = parse_float(config.get('hacim_sok_esigi'))
-        oran_dusus_esigi = parse_float(config.get('oran_dusus_esigi'))
-        max_para = parse_float(config.get('max_para'))
-        max_odds = parse_float(config.get('max_odds_esigi'))
-        if 'sure_dakika' not in config:
-            log(f"[Insider] UYARI: sure_dakika config'de yok! Default 7 kullanılıyor.")
-            n_snapshots = 7
-        else:
-            n_snapshots_raw = parse_float(config.get('sure_dakika'))
-            n_snapshots = int(n_snapshots_raw) if n_snapshots_raw > 0 else 7
-        
-        log(f"[Insider Config] HESAPLAMAYLA KULLANILAN DEĞERLER:")
-        log(f"  - hacim_sok_esigi: {hacim_sok_esigi}")
-        log(f"  - oran_dusus_esigi: {oran_dusus_esigi}%")
-        log(f"  - max_para: {max_para}")
-        log(f"  - max_odds_esigi: {max_odds}")
-        log(f"  - sure_dakika (N_snapshots): {n_snapshots}")
-        
-        alarms = []
-        markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
-        market_names = {'moneyway_1x2': '1X2', 'moneyway_ou25': 'O/U 2.5', 'moneyway_btts': 'BTTS'}
-        
-        for market in markets:
-            if '1x2' in market:
-                selections = ['1', 'X', '2']
-                odds_keys = ['odds1', 'oddsx', 'odds2']
-                amount_keys = ['amt1', 'amtx', 'amt2']
-            elif 'ou25' in market:
-                selections = ['Over', 'Under']
-                odds_keys = ['over', 'under']
-                amount_keys = ['amtover', 'amtunder']
-            else:
-                selections = ['Yes', 'No']
-                odds_keys = ['oddsyes', 'oddsno']
-                amount_keys = ['amtyes', 'amtno']
-            
-            history_table = f"{market}_history"
-            matches = self.get_matches_with_latest(market)
-            
-            for match in matches:
-                if not self._is_valid_match_date(match.get('date', '')):
-                    continue
-                
-                home = match.get('home', match.get('Home', ''))
-                away = match.get('away', match.get('Away', ''))
-                if not home or not away:
-                    continue
-                
-                # match_id_hash: Maçtan gelen değeri kullan, yoksa hesapla
-                date_str = match.get('date', '')
-                match_id_hash = match.get('match_id_hash') or generate_match_id_hash(home, away, match.get('league', ''), date_str)
-                history = self.get_match_history(match_id_hash, history_table, home, away, match.get('league', ''), date_str)
-                if len(history) < 3:
-                    log(f"  [Insider SKIP] {home} vs {away} | history < 3 ({len(history)} snapshots)")
-                    continue
-                
-                first = history[0]
-                latest = history[-1]
-                
-                for sel_idx, selection in enumerate(selections):
-                    odds_key = odds_keys[sel_idx]
-                    amount_key = amount_keys[sel_idx]
-                    
-                    opening_odds = parse_float(first.get(odds_key, 0))
-                    current_odds = parse_float(latest.get(odds_key, 0))
-                    
-                    if opening_odds <= 0 or current_odds <= 0:
-                        continue
-                    
-                    # Max odds kontrolü (son oran)
-                    if current_odds > max_odds:
-                        continue
-                    
-                    # KURAL 1: Acilis->Simdi drop kontrolu
-                    overall_drop_pct = ((opening_odds - current_odds) / opening_odds) * 100
-                    if overall_drop_pct < oran_dusus_esigi:
-                        # Açılıştan bugüne yeterli düşüş yok
-                        continue
-                    
-                    # KURAL 2: En büyük tek seferlik ORAN düşüşünün olduğu snapshot'ı bul
-                    max_odds_drop = 0
-                    drop_moment_index = -1
-                    
-                    for i in range(1, len(history)):
-                        curr_odds = parse_float(history[i].get(odds_key, 0))
-                        prev_odds = parse_float(history[i-1].get(odds_key, 0))
-                        
-                        if prev_odds > 0 and curr_odds > 0 and curr_odds < prev_odds:
-                            odds_drop = prev_odds - curr_odds
-                            if odds_drop > max_odds_drop:
-                                max_odds_drop = odds_drop
-                                drop_moment_index = i
-                    
-                    if drop_moment_index < 0:
-                        continue
-                    
-                    # KURAL 2: Düşüş anının etrafındaki N snapshot'a bak
-                    # Tam olarak n_snapshots kadar (history izin veriyorsa)
-                    history_len = len(history)
-                    
-                    # Merkez olarak drop_moment_index kullan
-                    half_before = n_snapshots // 2
-                    half_after = n_snapshots - half_before - 1
-                    
-                    start_idx = drop_moment_index - half_before
-                    end_idx = drop_moment_index + half_after + 1
-                    
-                    # Sınırları düzelt - eksik tarafı diğer taraftan telafi et
-                    if start_idx < 0:
-                        # Baştan taştı, sonu genişlet
-                        end_idx = min(history_len, end_idx + (-start_idx))
-                        start_idx = 0
-                    
-                    if end_idx > history_len:
-                        # Sondan taştı, başı geri al
-                        start_idx = max(0, start_idx - (end_idx - history_len))
-                        end_idx = history_len
-                    
-                    surrounding_snapshots = history[start_idx:end_idx]
-                    if len(surrounding_snapshots) < 2:
-                        continue
-                    
-                    # KURAL 4: Tüm N snapshot'ta HacimSok < Esik VE GelenPara < MaxPara
-                    all_quiet = True
-                    total_incoming = 0
-                    max_hacim_sok = 0
-                    surrounding_details = []
-                    
-                    # Tüm snapshot'ları kaydet (N adet)
-                    for i, snap in enumerate(surrounding_snapshots):
-                        curr_amt = parse_volume(snap.get(amount_key, 0))
-                        curr_odds = parse_float(snap.get(odds_key, 0))
-                        scraped_at = snap.get('scraped_at', '')
-                        
-                        # Önceki snapshot varsa incoming hesapla
-                        if i > 0:
-                            prev_amt = parse_volume(surrounding_snapshots[i-1].get(amount_key, 0))
-                            incoming = max(0, curr_amt - prev_amt)
-                            total_incoming += incoming
-                            
-                            # Hacim şoku hesapla: incoming / prev_amt
-                            hacim_sok = incoming / prev_amt if prev_amt > 0 else 0
-                            if hacim_sok > max_hacim_sok:
-                                max_hacim_sok = hacim_sok
-                            
-                            # HER snapshot'ta: HacimSok < Esik VE GelenPara < MaxPara olmalı
-                            if hacim_sok >= hacim_sok_esigi or incoming >= max_para:
-                                all_quiet = False
-                        else:
-                            incoming = 0
-                            hacim_sok = 0
-                        
-                        # Açılışa göre drop hesapla (her snapshot için)
-                        snap_drop_pct = ((opening_odds - curr_odds) / opening_odds * 100) if opening_odds > 0 and curr_odds > 0 else 0
-                        
-                        surrounding_details.append({
-                            'index': start_idx + i,
-                            'scraped_at': scraped_at,
-                            'odds': curr_odds,
-                            'drop_pct': round(snap_drop_pct, 2),
-                            'amount': curr_amt,
-                            'incoming': round(incoming, 0),
-                            'volume_shock': round(hacim_sok, 4),
-                            'is_drop_moment': (start_idx + i) == drop_moment_index
-                        })
-                    
-                    # Sessiz hareket değilse alarm yok
-                    if not all_quiet:
-                        continue
-                    
-                    # KURAL 5 (Recovery kontrolü): GERÇEK SON SNAPSHOT'ta açılışa göre drop hala >= eşik mi?
-                    # NOT: surrounding_details değil, history[-1] kullan - çünkü yeni snapshot'lar window dışında kalabilir
-                    true_latest = history[-1]
-                    true_latest_odds = parse_float(true_latest.get(odds_key, 0))
-                    
-                    # DEBUG: history durumunu logla
-                    log(f"  [DEBUG INSIDER] {home} vs {away} | {selection} | history_len={len(history)} | drop_idx={drop_moment_index} | window=[{start_idx}:{end_idx}] | history[-1]_odds={true_latest_odds:.2f} | scraped_at={true_latest.get('scraped_at', 'N/A')[:19]}")
-                    
-                    if true_latest_odds <= 0:
-                        continue
-                    
-                    # Açılışa göre GERÇEK son snapshot'taki drop
-                    true_latest_drop_pct = ((opening_odds - true_latest_odds) / opening_odds) * 100
-                    
-                    # Oran düzeldiyse (drop < eşik) alarm iptal
-                    if true_latest_drop_pct < oran_dusus_esigi:
-                        # Oran düzelmiş, alarm tetiklenmez - stale cleanup silecek
-                        log(f"  [INSIDER RECOVERY] {home} vs {away} | {selection} | Oran düzeldi: {true_latest_odds:.2f} (drop %{true_latest_drop_pct:.1f} < eşik %{oran_dusus_esigi})")
-                        continue
-                    
-                    # Güncel değerler - gerçek son snapshot'tan
-                    actual_current_odds = true_latest_odds
-                    actual_drop_pct = true_latest_drop_pct
-                    
-                    trigger_snap = history[drop_moment_index]
-                    trigger_at = trigger_snap.get('scraped_at', now_turkey_iso())
-                    match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
-                    
-                    alarm = {
-                        'match_id_hash': match_id,
-                        'home': home,
-                        'away': away,
-                        'league': match.get('league', ''),
-                        'market': market_names.get(market, market),
-                        'selection': selection,
-                        'odds_drop_pct': round(actual_drop_pct, 2),
-                        'max_odds_drop': round(max_odds_drop, 3),
-                        'incoming_money': total_incoming,
-                        'volume_shock': round(max_hacim_sok, 4),
-                        'opening_odds': opening_odds,
-                        'current_odds': actual_current_odds,
-                        'drop_moment_index': drop_moment_index,
-                        'drop_moment': trigger_at,
-                        'surrounding_snapshots': surrounding_details,
-                        'snapshot_count': len(surrounding_snapshots),
-                        'match_date': normalize_date_for_db(match.get('date', '')),
-                        'trigger_at': trigger_at,
-                        'created_at': now_turkey_iso(),
-                        'alarm_type': 'insider'
-                    }
-                    alarms.append(alarm)
-                    log(f"  [INSIDER] {home} vs {away} | {market_names.get(market, market)}-{selection} | Açılış: {opening_odds:.2f}->Şimdi: {actual_current_odds:.2f} (-%{actual_drop_pct:.1f}) | DüsusAnı: S{drop_moment_index} | Para: {total_incoming:,.0f}")
-        
-        if alarms:
-            new_count = self._upsert_alarms('insider_alarms', alarms, ['match_id_hash', 'market', 'selection'])
-            log(f"Insider: {new_count} alarms upserted")
-            
-            # RACE CONDITION FIX: Upsert'ten SONRA geçersiz alarmları temizle
-            valid_keys = set()
-            for a in alarms:
-                key = f"{a['home']}|{a['away']}|{a['market']}|{a['selection']}"
-                valid_keys.add(key)
-            
-            try:
-                existing = self._get('insider_alarms', 'select=id,home,away,market,selection') or []
-                stale_ids = []
-                for row in existing:
-                    key = f"{row.get('home', '')}|{row.get('away', '')}|{row.get('market', '')}|{row.get('selection', '')}"
-                    if key not in valid_keys:
-                        stale_ids.append(row.get('id'))
-                
-                if stale_ids:
-                    for stale_id in stale_ids:
-                        self._delete('insider_alarms', f'id=eq.{stale_id}')
-                    log(f"[Insider] Removed {len(stale_ids)} stale alarms")
-            except Exception as e:
-                log(f"[Insider] Stale alarm cleanup failed: {e}")
-        else:
-            # Hiç alarm yoksa tabloyu temizle
-            try:
-                self._delete('insider_alarms', 'id=gte.1')
-                log("Insider: 0 alarm - table cleared")
-            except Exception as e:
-                log(f"[Insider] Table clear failed: {e}")
         
         return len(alarms)
     
