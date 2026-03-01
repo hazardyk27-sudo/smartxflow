@@ -315,12 +315,12 @@ HAVING MAX(s.scraped_at_utc) < NOW() - INTERVAL '30 minutes';
 ### 6. Production Supervisor (run_production.py)
 
 **Amaç:** 7/24 kesintisiz çalışma garantisi
-- `run_production.py` → app.py'yi subprocess olarak yönetir (watchdog)
+- `run_production.py` → dev ortamında app.py'yi subprocess olarak yönetir (watchdog). Deployment'ta kullanılamaz (Replit subprocess port algılayamıyor)
 - Ana process çökerse otomatik yeniden başlatır (exponential backoff)
 - Bellek limitini izler (450MB), aşılırsa güvenli restart
 - HTTP health check (/health endpoint) izleme
 - SIGTERM'i graceful handle eder
-- Deployment config: `python run_production.py` (VM mode)
+- Deployment config: `python app.py` (VM mode, gunicorn internal)
 
 ### 7. Memory Leak Prevention (2026-02-28)
 
