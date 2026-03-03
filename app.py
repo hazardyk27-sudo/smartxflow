@@ -6059,7 +6059,7 @@ def scraper_console_page():
                 });
         }
         updateStatus();
-        setInterval(updateStatus, 5000);
+        setInterval(updateStatus, 20000);
         
         // SSE bağlantısı
         const evtSource = new EventSource('/scraper/stream');
@@ -6557,7 +6557,7 @@ def alarm_engine_console_page():
                 });
         }
         updateStatus();
-        setInterval(updateStatus, 3000);
+        setInterval(updateStatus, 20000);
         
         // SSE bağlantısı
         const evtSource = new EventSource('/alarm-engine/stream');
