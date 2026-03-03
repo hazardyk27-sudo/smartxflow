@@ -1731,12 +1731,12 @@
         }
 
         function fetchLandingAlarms() {
-            fetch('/api/alarms/all')
+            fetch('/api/dropping/alarms')
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     var droppingAlarms = [];
-                    if (data.dropping && Array.isArray(data.dropping)) {
-                        data.dropping.forEach(function(a) {
+                    if (Array.isArray(data)) {
+                        data.forEach(function(a) {
                             a._type = 'dropping';
                             droppingAlarms.push(a);
                         });
