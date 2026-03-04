@@ -321,7 +321,19 @@ HAVING MAX(s.scraped_at_utc) < NOW() - INTERVAL '30 minutes';
 - **Dev ortamında:** SmartXFlow Web workflow (app.py) + Scraper Engine workflow (scraper+alarm)
 - Gunicorn config: `gthread` worker, `worker_exit` hook ile `os._exit(0)`, timeout=300s, max_requests=2000
 
-### 7. Memory Leak Prevention (2026-02-28)
+### 7. Alarm Calculator Column Fix (2026-03-04)
+
+**Çözülen Kök Neden:** `alarm_calculator.py`'deki `select` sorguları tüm market tabloları için aynı 30 kolon listesi kullanıyordu. Tablolar farklı yapıdadır:
+- **Ana tablolar** (`moneyway_1x2`, `dropping_1x2` vb.): `match_id_hash` kolonu YOK (scraper'ın `replace_table` eklemez)
+- **History tabloları** (`moneyway_1x2_history` vb.): `kickoff`/`kickoff_utc` kolonu YOK (scraper'ın `append_history` eklemez)
+
+**Düzeltme:**
+- `MARKET_SELECT_COLS` dict: Her ana tablo için sadece mevcut kolonlar (match_id_hash hariç)
+- `MARKET_HISTORY_COLS` dict: Her history tablosu için sadece mevcut kolonlar (kickoff/kickoff_utc hariç)
+- `_get()` metoduna HTTP hata loglama eklendi (sessiz başarısızlık önleme)
+- Alarm hesaplamaları `match.get('match_id_hash') or generate_match_id_hash(...)` fallback kullanır
+
+### 8. Memory Leak Prevention (2026-02-28)
 
 **Çözülen Kök Nedenler:**
 - **Gunicorn worker cache cleanup:** `post_worker_init` hook ile her worker kendi cleanup thread'ini başlatıyor.

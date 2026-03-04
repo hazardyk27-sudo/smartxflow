@@ -924,17 +924,32 @@ class AlarmCalculator:
             log(f"[SCHEMA] Reload error: {e}")
             return False
     
+    MARKET_SELECT_COLS = {
+        'moneyway_1x2': 'home,away,league,date,volume,odds1,oddsx,odds2,amt1,amtx,amt2,pct1,pctx,pct2',
+        'moneyway_ou25': 'home,away,league,date,volume,over,under,amtover,amtunder,pctover,pctunder',
+        'moneyway_btts': 'home,away,league,date,volume,yes,no,amtyes,amtno,pctyes,pctno',
+        'dropping_1x2': 'home,away,league,date,volume,odds1,odds1_prev,oddsx,oddsx_prev,odds2,odds2_prev,trend1,trendx,trend2',
+        'dropping_ou25': 'home,away,league,date,volume,over,over_prev,under,under_prev,line,trendover,trendunder,pctunder,amtunder,pctover,amtover',
+        'dropping_btts': 'home,away,league,date,volume,oddsyes,oddsyes_prev,oddsno,oddsno_prev,trendyes,trendno,pctyes,amtyes,pctno,amtno',
+    }
+
+    MARKET_HISTORY_COLS = {
+        'moneyway_1x2_history': 'match_id_hash,home,away,league,date,scraped_at,volume,odds1,oddsx,odds2,amt1,amtx,amt2,pct1,pctx,pct2',
+        'moneyway_ou25_history': 'match_id_hash,home,away,league,date,scraped_at,volume,over,under,amtover,amtunder,pctover,pctunder',
+        'moneyway_btts_history': 'match_id_hash,home,away,league,date,scraped_at,volume,yes,no,amtyes,amtno,pctyes,pctno',
+        'dropping_1x2_history': 'match_id_hash,home,away,league,date,scraped_at,volume,odds1,odds1_prev,oddsx,oddsx_prev,odds2,odds2_prev,trend1,trendx,trend2',
+        'dropping_ou25_history': 'match_id_hash,home,away,league,date,scraped_at,volume,over,over_prev,under,under_prev,line,trendover,trendunder,pctunder,amtunder,pctover,amtover',
+        'dropping_btts_history': 'match_id_hash,home,away,league,date,scraped_at,volume,oddsyes,oddsyes_prev,oddsno,oddsno_prev,trendyes,trendno,pctyes,amtyes,pctno,amtno',
+    }
+
     def _get(self, table: str, params: str = "") -> List[Dict]:
         try:
             url = f"{self._rest_url(table)}?{params}" if params else self._rest_url(table)
-            if hasattr(httpx, 'get'):
-                resp = httpx.get(url, headers=self._headers(), timeout=30)
-                if resp.status_code == 200:
-                    return resp.json()
+            resp = httpx.get(url, headers=self._headers(), timeout=30)
+            if resp.status_code == 200:
+                return resp.json()
             else:
-                resp = httpx.get(url, headers=self._headers(), timeout=30)
-                if resp.status_code == 200:
-                    return resp.json()
+                log(f"GET {table}: HTTP {resp.status_code} - {resp.text[:200]}")
         except Exception as e:
             log(f"GET error {table}: {e}")
         return []
@@ -1782,7 +1797,7 @@ class AlarmCalculator:
         
         log(f"FETCH {market} (latest)...")
         
-        select_cols = 'match_id_hash,home,away,league,date,volume,odds1,oddsx,odds2,over,under,oddsyes,oddsno,amt1,amtx,amt2,amtover,amtunder,amtyes,amtno,share1,sharex,share2,shareover,shareunder,shareyes,shareno,scraped_at'
+        select_cols = self.MARKET_SELECT_COLS.get(market, '*')
         matches = self._get(market, f'select={select_cols}')
         if matches:
             log(f"  -> {len(matches)} matches from {market} table")
@@ -1879,7 +1894,7 @@ class AlarmCalculator:
                 page_size = 1000
                 
                 while True:
-                    history_cols = 'match_id_hash,home,away,league,date,kickoff,kickoff_utc,scraped_at,scraped_at_utc,odds1,oddsx,odds2,over,under,oddsyes,oddsno,amt1,amtx,amt2,amtover,amtunder,amtyes,amtno,share1,sharex,share2,shareover,shareunder,shareyes,shareno,volume'
+                    history_cols = self.MARKET_HISTORY_COLS.get(actual_table, '*')
                     params = f"select={history_cols}&match_id_hash=in.({hash_list})&order=scraped_at.asc&limit={page_size}&offset={offset}"
                     
                     batch = self._get(actual_table, params)
@@ -1901,7 +1916,7 @@ class AlarmCalculator:
             offset = 0
             page_size = 1000
             while True:
-                history_cols = 'match_id_hash,home,away,league,date,kickoff,kickoff_utc,scraped_at,scraped_at_utc,odds1,oddsx,odds2,over,under,oddsyes,oddsno,amt1,amtx,amt2,amtover,amtunder,amtyes,amtno,share1,sharex,share2,shareover,shareunder,shareyes,shareno,volume'
+                history_cols = self.MARKET_HISTORY_COLS.get(actual_table, '*')
                 params = f"select={history_cols}&scraped_at=gte.{cutoff_iso}&order=scraped_at.asc&limit={page_size}&offset={offset}"
                 batch = self._get(actual_table, params)
                 if not batch:
