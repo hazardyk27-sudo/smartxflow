@@ -2320,27 +2320,47 @@ def get_supabase_client():
     return get_database().supabase if get_database().is_supabase_available else None
 
 
+_alarm_last_good = {}
+
 def fetch_alarms_from_supabase(table_name: str, order_by: str = 'created_at', limit: int = 500) -> Optional[List[Dict[str, Any]]]:
     """Fetch alarms from a Supabase alarm table
     Returns:
         - List (empty or with data) on success
         - None on error (Supabase unavailable, network error, etc.)
     """
+    global _alarm_last_good
     client = get_supabase_client()
     if not client or not client.is_available:
-        return None  # Supabase unavailable, fallback to JSON
+        return None
     
     try:
         url = f"{client._rest_url(table_name)}?select=*&order={order_by}.desc&limit={limit}"
         resp = client._get_http_client().get(url, headers=client._headers(), timeout=15)
         if resp.status_code == 200:
-            return resp.json()  # Success - may be empty list []
+            data = resp.json()
+            if len(data) > 0:
+                _alarm_last_good[table_name] = data
+                return data
+            else:
+                cached = _alarm_last_good.get(table_name)
+                if cached and len(cached) > 0:
+                    import time
+                    time.sleep(0.5)
+                    resp2 = client._get_http_client().get(url, headers=client._headers(), timeout=15)
+                    if resp2.status_code == 200:
+                        data2 = resp2.json()
+                        if len(data2) > 0:
+                            _alarm_last_good[table_name] = data2
+                            return data2
+                    print(f"[Supabase] WARNING: {table_name} returned 0 rows (retry also empty), serving last known {len(cached)} alarms")
+                    return cached
+                return data
         else:
-            print(f"[Supabase] Error fetching {table_name}: {resp.status_code}")
-            return None  # Error, fallback to JSON
+            print(f"[Supabase] Error fetching {table_name}: {resp.status_code} - {resp.text[:200]}")
+            return None
     except Exception as e:
         print(f"[Supabase] Error fetching {table_name}: {e}")
-        return None  # Error, fallback to JSON
+        return None
 
 
 def get_sharp_alarms_from_supabase() -> List[Dict[str, Any]]:

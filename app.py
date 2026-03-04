@@ -4885,17 +4885,22 @@ def get_all_alarms_batch():
         types_to_fetch = [t.strip() for t in requested_types.split(',') if t.strip() in alarm_fetchers]
     
     # Fetch each alarm type
+    per_table_counts = []
     for alarm_type in types_to_fetch:
         fetch_func, fallback = alarm_fetchers[alarm_type]
         try:
             supabase_data = fetch_func()
             if supabase_data is not None:
                 result[alarm_type] = supabase_data
+                per_table_counts.append(f"{alarm_type}={len(supabase_data)}")
             else:
                 result[alarm_type] = fallback
+                per_table_counts.append(f"{alarm_type}=FALLBACK({len(fallback)})")
         except Exception as e:
             print(f"[Alarms/All] Error fetching {alarm_type}: {e}")
             result[alarm_type] = fallback
+            per_table_counts.append(f"{alarm_type}=ERR")
+    print(f"[Alarms/All] Per-table: {', '.join(per_table_counts)}")
     
     # Enrich alarms with kickoff time from fixtures table
     try:
