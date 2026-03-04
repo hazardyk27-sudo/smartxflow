@@ -8278,18 +8278,16 @@ def main():
                     start_cleanup_scheduler()
 
                 def worker_exit(server, worker):
-                    import os
-                    print(f"[Gunicorn] Worker {worker.pid} exiting, forcing immediate cleanup...", flush=True)
-                    os._exit(0)
+                    print(f"[Gunicorn] Worker {worker.pid} exiting gracefully...", flush=True)
 
                 options = {
                     'bind': f'{host}:{port}',
-                    'workers': 2,
+                    'workers': 3,
                     'threads': 4,
                     'timeout': 300,
-                    'graceful_timeout': 120,
-                    'max_requests': 2000,
-                    'max_requests_jitter': 200,
+                    'graceful_timeout': 30,
+                    'max_requests': 5000,
+                    'max_requests_jitter': 500,
                     'preload_app': True,
                     'worker_class': 'gthread',
                     'accesslog': '-',
