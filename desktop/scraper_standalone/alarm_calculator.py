@@ -1992,16 +1992,10 @@ class AlarmCalculator:
         log(f"[ALARM SYNC] Supabase URL: {self.url[:40]}...")
         log("=" * 50)
         
-        dropping_probe_0 = self._get('dropping_alarms', 'select=id&limit=1')
-        log(f"[PROBE] dropping_alarms AT_ENTRY: {len(dropping_probe_0)} rows visible")
-        
         # LIVE RELOAD: Refresh configs from Supabase before calculations
         log("Config yenileniyor...")
         self.refresh_configs()
         log(f"Loaded configs: {list(self.configs.keys())}")
-        
-        dropping_probe_1 = self._get('dropping_alarms', 'select=id&limit=1')
-        log(f"[PROBE] dropping_alarms AFTER_CONFIG: {len(dropping_probe_1)} rows visible")
         
         self._history_cache = {}
         self._matches_cache = {}
@@ -2022,9 +2016,6 @@ class AlarmCalculator:
         log("-" * 30)
         log(f"Cache stats: matches={len(self._matches_cache)}, history={len(self._history_cache)}")
         
-        dropping_probe_2 = self._get('dropping_alarms', 'select=id&limit=1')
-        log(f"[PROBE] dropping_alarms AFTER_PREFETCH: {len(dropping_probe_2)} rows visible")
-        
         total_alarms = 0
         alarm_counts = {}
         
@@ -2040,9 +2031,6 @@ class AlarmCalculator:
             log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['BigMoney'] = 0
         
-        dropping_probe = self._get('dropping_alarms', 'select=id&limit=1')
-        log(f"[PROBE] dropping_alarms AFTER BigMoney: {len(dropping_probe)} rows visible")
-        
         log("2/6 Sharp hesaplaniyor...")
         try:
             sharp_count = self.calculate_sharp_alarms() or 0
@@ -2055,9 +2043,6 @@ class AlarmCalculator:
             log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['Sharp'] = 0
         
-        dropping_probe = self._get('dropping_alarms', 'select=id&limit=1')
-        log(f"[PROBE] dropping_alarms AFTER Sharp: {len(dropping_probe)} rows visible")
-        
         log("3/6 VolumeShock hesaplaniyor...")
         try:
             volumeshock_count = self.calculate_volumeshock_alarms() or 0
@@ -2069,9 +2054,6 @@ class AlarmCalculator:
             log(f"!!! VolumeShock error: {e}")
             log(f"Traceback: {traceback.format_exc()}")
             alarm_counts['VolumeShock'] = 0
-        
-        dropping_probe = self._get('dropping_alarms', 'select=id&limit=1')
-        log(f"[PROBE] dropping_alarms AFTER VolumeShock: {len(dropping_probe)} rows visible")
         
         log("4/6 Dropping hesaplaniyor...")
         try:
