@@ -1184,10 +1184,13 @@ class AlarmCalculator:
             alarms = list(seen.values())
             log(f"[UPSERT] {table}: {len(alarms)} unique alarms after dedup")
             
-            # OPTIMIZED: Only fetch existing records for current batch using first key field filter
-            # Include alarm_history for BigMoney/VolumeShock refresh tracking
             refresh_tables = ['bigmoney_alarms', 'volumeshock_alarms']
-            extra_fields = ['incoming_money', 'volume_shock_value', 'alarm_history'] if table in refresh_tables else []
+            if table == 'bigmoney_alarms':
+                extra_fields = ['incoming_money', 'alarm_history']
+            elif table == 'volumeshock_alarms':
+                extra_fields = ['incoming_money', 'volume_shock_value', 'alarm_history']
+            else:
+                extra_fields = []
             select_fields = ','.join(key_fields + ['trigger_at', 'created_at'] + extra_fields)
             existing_data = {}
             
@@ -1539,6 +1542,7 @@ class AlarmCalculator:
     def cleanup_old_alarms(self, days_to_keep: int = 2) -> int:
         """
         D-2+ alarmları sil (bugün ve dün hariç tüm eski alarmlar)
+        match_date bazlı silme: Maç tarihi cutoff'tan eski olan alarmlar silinir
         - D (bugün): Korunur
         - D-1 (dün): Korunur  
         - D-2+ (öncesi): Silinir
@@ -1547,32 +1551,13 @@ class AlarmCalculator:
             days_to_keep: Kaç gün tutulacak (default: 2 = bugün + dün)
         
         Returns:
-            Silinen tablo sayısı
+            Silinen toplam alarm sayısı
         """
-        try:
-            from datetime import datetime, timedelta
-            import pytz
-        except ImportError:
-            from datetime import datetime, timedelta
-            pytz = None
-        
-        if pytz:
-            try:
-                tz = pytz.timezone('Europe/Istanbul')
-                now = datetime.now(tz)
-            except:
-                now = datetime.utcnow()
-        else:
-            now = datetime.utcnow()
-        
-        today = now.date()
+        today = now_turkey().date()
         cutoff_date = today - timedelta(days=days_to_keep)
-        cutoff_iso = cutoff_date.strftime('%Y-%m-%dT00:00:00')
+        cutoff_str = cutoff_date.strftime('%Y-%m-%d')
         
-        log(f"[Cleanup] Alarm D-2+ silme: {cutoff_date} öncesi silinecek (bugün={today})")
-        
-        from urllib.parse import quote
-        cutoff_encoded = quote(cutoff_iso, safe='')
+        log(f"[Cleanup] Alarm D-2+ silme: match_date < {cutoff_str} silinecek (bugün={today})")
         
         alarm_tables = [
             'sharp_alarms',
@@ -1587,7 +1572,7 @@ class AlarmCalculator:
         
         for table in alarm_tables:
             try:
-                url = f"{self._rest_url(table)}?created_at=lt.{cutoff_encoded}"
+                url = f"{self._rest_url(table)}?match_date=lt.{cutoff_str}"
                 headers = self._headers()
                 headers['Prefer'] = 'return=representation,count=exact'
                 
@@ -1595,17 +1580,7 @@ class AlarmCalculator:
                 
                 if resp.status_code in [200, 204]:
                     deleted_count = 0
-                    # Try Content-Range header first: "*/123" means 123 total affected
-                    content_range = resp.headers.get('Content-Range', '')
-                    if content_range and '/' in content_range:
-                        try:
-                            count_part = content_range.split('/')[-1]
-                            if count_part and count_part != '*':
-                                deleted_count = int(count_part)
-                        except:
-                            pass
-                    # Fallback: try JSON body
-                    if deleted_count == 0 and resp.content:
+                    if resp.content:
                         try:
                             deleted_data = resp.json()
                             if isinstance(deleted_data, list):
@@ -1613,10 +1588,8 @@ class AlarmCalculator:
                         except:
                             pass
                     if deleted_count > 0:
-                        log(f"  [Cleanup] {table}: {deleted_count} D-2+ kayıt silindi")
+                        log(f"  [Cleanup] {table}: {deleted_count} D-2+ kayıt silindi (match_date < {cutoff_str})")
                         total_deleted += deleted_count
-                    else:
-                        log(f"  [Cleanup] {table}: D-2+ kayıt yok veya zaten temiz")
                 elif resp.status_code == 404:
                     pass
                 else:
@@ -1625,7 +1598,9 @@ class AlarmCalculator:
                 log(f"  [Cleanup] {table}: Hata - {e}")
         
         if total_deleted > 0:
-            log(f"[Cleanup] Alarm temizleme tamamlandı - {total_deleted} tablo temizlendi")
+            log(f"[Cleanup] Alarm temizleme tamamlandı - {total_deleted} alarm silindi (match_date < {cutoff_str})")
+        else:
+            log(f"[Cleanup] D-2+ alarm yok (match_date < {cutoff_str})")
         
         return total_deleted
 
@@ -3115,35 +3090,40 @@ class AlarmCalculator:
             new_count = self._upsert_alarms('dropping_alarms', alarms, ['match_id_hash', 'market', 'selection'])
             log(f"Dropping: {new_count} alarms upserted")
             
-            # RACE CONDITION FIX: Upsert'ten SONRA geçersiz alarmları temizle
-            # Hesaplanan alarm key'lerini topla
+            # STALE CLEANUP: Sadece bugünün maçları için geçersiz dropping alarmlarını temizle
+            # Dünün (D-1) alarmlarına DOKUNMA — onlar _cleanup_expired_match_alarms ile silinir
             valid_keys = set()
             for a in alarms:
-                key = f"{a['home']}|{a['away']}|{a['market']}|{a['selection']}"
+                key = f"{a['match_id_hash']}|{a['market']}|{a['selection']}"
                 valid_keys.add(key)
             
-            # Mevcut alarmları çek ve geçersiz olanları sil
+            today_str = now_turkey().date().strftime('%Y-%m-%d')
             try:
-                existing = self._get('dropping_alarms', 'select=id,home,away,market,selection') or []
+                existing = self._get('dropping_alarms', f'select=id,match_id_hash,market,selection,match_date&match_date=gte.{today_str}') or []
                 stale_ids = []
                 for row in existing:
-                    key = f"{row.get('home', '')}|{row.get('away', '')}|{row.get('market', '')}|{row.get('selection', '')}"
+                    key = f"{row.get('match_id_hash', '')}|{row.get('market', '')}|{row.get('selection', '')}"
                     if key not in valid_keys:
                         stale_ids.append(row.get('id'))
                 
                 if stale_ids:
                     for stale_id in stale_ids:
                         self._delete('dropping_alarms', f'id=eq.{stale_id}')
-                    log(f"[Dropping] Removed {len(stale_ids)} stale alarms")
+                    log(f"[Dropping] Removed {len(stale_ids)} stale alarms (today+ only, D-1 preserved)")
             except Exception as e:
                 log(f"[Dropping] Stale alarm cleanup failed: {e}")
         else:
-            # Hiç alarm yoksa tabloyu temizle (tüm koşullar artık geçersiz)
+            today_str = now_turkey().date().strftime('%Y-%m-%d')
             try:
-                self._delete('dropping_alarms', 'id=gte.1')
-                log("Dropping: 0 alarm - table cleared")
+                existing_today = self._get('dropping_alarms', f'select=id&match_date=gte.{today_str}') or []
+                if existing_today:
+                    for row in existing_today:
+                        self._delete('dropping_alarms', f'id=eq.{row.get("id")}')
+                    log(f"[Dropping] 0 alarm - {len(existing_today)} stale today+ alarms cleared (D-1 preserved)")
+                else:
+                    log("Dropping: 0 alarm")
             except Exception as e:
-                log(f"[Dropping] Table clear failed: {e}")
+                log(f"[Dropping] Stale cleanup failed: {e}")
         
         return len(alarms)
     

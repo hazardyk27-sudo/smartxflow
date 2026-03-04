@@ -332,6 +332,8 @@ HAVING MAX(s.scraped_at_utc) < NOW() - INTERVAL '30 minutes';
 - `MARKET_HISTORY_COLS` dict: Her history tablosu için sadece mevcut kolonlar (kickoff/kickoff_utc hariç)
 - `_get()` metoduna HTTP hata loglama eklendi (sessiz başarısızlık önleme)
 - Alarm hesaplamaları `match.get('match_id_hash') or generate_match_id_hash(...)` fallback kullanır
+- `_upsert_alarms()` extra_fields: `bigmoney_alarms` için `volume_shock_value` kaldırıldı (bu kolon sadece `volumeshock_alarms` tablosunda var)
+- Dropping stale cleanup: Sadece bugün+ (D) alarmları temizlenir, D-1 korunur. 0 alarm durumunda tüm tablo silinmez.
 
 ### 8. Memory Leak Prevention (2026-02-28)
 
