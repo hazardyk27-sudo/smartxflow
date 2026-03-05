@@ -1022,10 +1022,7 @@
                 </button>
             </div>
             <div class="modal-body" style="padding:16px 20px 20px;">
-                <div class="trends-tab-bar desktop-only" style="display:flex;gap:8px;margin-bottom:20px;">
-                    <button class="btn btn-today" id="trendTabAnalysis" onclick="switchTrendTab('analysis')" style="background:rgba(43,255,136,0.15);border-color:rgba(43,255,136,0.3);color:#2BFF88;">Analizler</button>
-                    <button class="btn btn-today" id="trendTabMoves" onclick="switchTrendTab('moves')">Hareket Tavsiyeleri</button>
-                </div>
+                
                 <div id="trendsContent" style="max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;">
                     <div style="text-align:center;padding:40px;color:#484f58;">Yükleniyor...</div>
                 </div>
@@ -1062,23 +1059,6 @@
         }
         function switchTrendTab(tab) {
             currentTrendTab = tab;
-            var aBtn = document.getElementById('trendTabAnalysis');
-            var mBtn = document.getElementById('trendTabMoves');
-            if (tab === 'analysis') {
-                aBtn.style.background = 'rgba(43,255,136,0.15)';
-                aBtn.style.borderColor = 'rgba(43,255,136,0.3)';
-                aBtn.style.color = '#2BFF88';
-                mBtn.style.background = '';
-                mBtn.style.borderColor = '';
-                mBtn.style.color = '';
-            } else {
-                mBtn.style.background = 'rgba(43,255,136,0.15)';
-                mBtn.style.borderColor = 'rgba(43,255,136,0.3)';
-                mBtn.style.color = '#2BFF88';
-                aBtn.style.background = '';
-                aBtn.style.borderColor = '';
-                aBtn.style.color = '';
-            }
             loadTrends(tab);
         }
         function loadTrends(category) {
