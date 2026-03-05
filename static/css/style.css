@@ -10906,14 +10906,46 @@ table.desktop-only {
 
 @media (max-width: 768px) {
     .tutorial-tooltip {
-        left: 5% !important;
-        right: 5% !important;
+        left: 4% !important;
+        right: 4% !important;
         max-width: none;
-        width: 90% !important;
-        bottom: 24px !important;
+        width: 92% !important;
+        bottom: 16px !important;
         top: auto !important;
+        padding: 14px 16px 12px;
+        border-radius: 10px;
+    }
+    .tutorial-tooltip-title {
+        font-size: 13px;
+        margin-bottom: 4px;
+    }
+    .tutorial-tooltip-desc {
+        font-size: 12px;
+        line-height: 1.45;
+        margin-bottom: 10px;
+    }
+    .tutorial-step-counter {
+        font-size: 11px;
+    }
+    .tutorial-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+    .tutorial-btn-skip {
+        font-size: 11px;
+        padding: 3px 6px;
+    }
+    .tutorial-tooltip-footer {
+        gap: 6px;
+    }
+    .tutorial-tooltip-actions {
+        gap: 6px;
     }
     .tutorial-arrow {
         display: none;
+    }
+    .tutorial-highlight {
+        box-shadow: 0 0 0 3px rgba(74,222,128,0.4), 0 0 16px 2px rgba(74,222,128,0.15);
+        border-radius: 6px;
     }
 }
