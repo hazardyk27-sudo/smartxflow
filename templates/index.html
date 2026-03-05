@@ -1267,7 +1267,7 @@
                 selector: '.table-container',
                 title: 'Oran (Dropping Odds)',
                 desc: 'Oranların son 24 saatte ne kadar düştüğünü takip edin. Yüzde değişim ve düşüş seviyesi (L1, L2, L3) ile büyük oran hareketlerini yakalayın.',
-                pos: 'bottom',
+                pos: 'overlay',
                 onEnter: function() {
                     tutorialSavedMarket = typeof currentMarket !== 'undefined' ? currentMarket : 'moneyway_1x2';
                     var tab = document.querySelector('.market-tabs .tab[data-market="dropping_1x2"]');
@@ -1526,12 +1526,38 @@
                 return;
             }
 
+            if (preferredPos === 'overlay') {
+                var visTop = Math.max(rect.top, 0);
+                var visBottom = Math.min(rect.bottom, window.innerHeight);
+                var visMid = visTop + (visBottom - visTop) / 2;
+                var oTop = visMid - (ttRect.height / 2);
+                if (oTop < 12) oTop = 12;
+                if (oTop + ttRect.height > window.innerHeight - 12) oTop = window.innerHeight - ttRect.height - 12;
+                tutorialTooltipEl.style.top = oTop + 'px';
+                var oLeft = rect.left + (rect.width / 2) - (ttRect.width / 2);
+                if (oLeft < 12) oLeft = 12;
+                if (oLeft + ttRect.width > window.innerWidth - 12) oLeft = window.innerWidth - ttRect.width - 12;
+                tutorialTooltipEl.style.left = oLeft + 'px';
+                if (arrow) arrow.style.display = 'none';
+                return;
+            }
+
             if (preferredPos === 'bottom' || rect.top < ttRect.height + gap + 20) {
                 tutorialTooltipEl.style.top = (rect.bottom + gap) + 'px';
                 if (arrow) { arrow.className = 'tutorial-arrow tutorial-arrow-top'; }
             } else {
                 tutorialTooltipEl.style.top = (rect.top - ttRect.height - gap) + 'px';
                 if (arrow) { arrow.className = 'tutorial-arrow tutorial-arrow-bottom'; }
+            }
+
+            var calcTop = parseFloat(tutorialTooltipEl.style.top);
+            if (calcTop + ttRect.height > window.innerHeight - 12) {
+                tutorialTooltipEl.style.top = (window.innerHeight - ttRect.height - 12) + 'px';
+                if (arrow) arrow.style.display = 'none';
+            }
+            if (calcTop < 12) {
+                tutorialTooltipEl.style.top = '12px';
+                if (arrow) arrow.style.display = 'none';
             }
 
             var leftPos = rect.left + (rect.width / 2) - (ttRect.width / 2);
