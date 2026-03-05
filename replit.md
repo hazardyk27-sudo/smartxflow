@@ -62,17 +62,24 @@ The system uses a hybrid architecture with Supabase as the single source of trut
     - Tab Visibility: Arka plandaki tab'lar auto-refresh yapmaz
     - Jitter: 0-60 saniye random delay (synchronized spike önleme)
     - Baseline: 75k istek/gün → Hedef: ~25-30k istek/gün (%60-80 azalma)
-- **Performance Optimization (2026-02-10):**
+- **Performance Optimization (2026-02-10, updated 2026-03-05):**
     - **Lazy Warmup:** Sunucu başlangıcında VERİ ÇEKİLMEZ. Her bölüm ilk ziyaretçide kendi cache'ini doldurur:
       - `/app` veya alarm/matches API → `trigger_app_warmup()` → alarm + maç cache'i paralel doldurulur (~2s)
       - `/admin` → `trigger_admin_warmup()` → lisans cache'i doldurulur (~0.4s)
       - Landing page (`/`) → HİÇBİR warmup tetiklemez
     - **Warmup Sync:** API endpoint'leri warmup sürerken `_app_warmup_done.wait()` ile bekler, duplicate Supabase isteği yapmaz
     - **Static Asset Caching:** `/static/` dosyaları (JS, CSS, images) `Cache-Control: public, max-age=3600` ile tarayıcıda 1 saat önbelleğe alınıyor. HTML ve API yanıtları hala `no-cache`.
-    - **Gzip Compression:** Flask-Compress aktif, 382KB app.js → 73KB sıkıştırılmış
+    - **Gzip Compression:** Flask-Compress aktif
+    - **CSS/JS Minification:** Orijinal dosyalar `.src` uzantılı (style.css.src, app.js.src), minified versiyonları serve ediliyor. `python minify.py` komutu ile yeniden minify edilir. KOD DEĞİŞİKLİĞİ .src DOSYALARINDA YAPILIR, sonra minify çalıştırılır.
+      - style.css: 219KB → 152KB (minified) → 25KB (gzip)
+      - app.js: 386KB → 272KB (minified) → 56KB (gzip)
+    - **Smart Render:** Desktop'ta sadece tablo, mobilde sadece kartlar render edilir (çift DOM yazma kaldırıldı)
+    - **Parallel Preload:** Dropping markets (3 market) sıralı değil, Promise.all ile paralel yükleniyor (~8s → ~3s)
+    - **Admin Polling:** 3s/5s → 30s + Visibility API (tab arka planda iken durur)
     - **License Cache:** 30s TTL, create/update/delete sonrası otomatik temizlenir
     - **KURAL:** `after_request` header'larında statik dosyalar (`/static/`) ile HTML/API yanıtlarını AYIR. Statik dosyalara `no-cache` ASLA ekleme.
     - **KURAL:** Sunucu başlangıcında startup warmup YAPMA. Her bölüm lazy yüklenir.
+    - **KURAL:** CSS/JS düzenleme .src dosyalarında yapılır, `python minify.py` ile minify edilir.
 
 **Data Model (Supabase Tables):**
 - `fixtures`: Stores match metadata with a unique `match_id_hash`.

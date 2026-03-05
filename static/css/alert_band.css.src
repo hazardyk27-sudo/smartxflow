@@ -1,0 +1,852 @@
+/* =====================================================
+   ALERT BAND - Premium Bloomberg/TradingView Style
+   ===================================================== */
+
+/* Premium Color Variables */
+:root {
+    --ticker-sharp: #16A34A;
+    --ticker-volumeshock: #FACC15;
+    --ticker-drop: #DC2626;
+    --ticker-bigmoney: #F08A24;
+    --ticker-hugemoney: #f97316;
+}
+
+.alert-band {
+    display: flex;
+    align-items: center;
+    height: 46px;
+    background: #0D1117;
+    border-bottom: 1px solid #21262d;
+    padding: 0;
+    overflow: hidden;
+}
+
+/* Premium Scroll Gradient - TradingView Style */
+.alert-band-track {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+    padding: 0 14px;
+    mask-image: linear-gradient(to right,
+        transparent,
+        black 15%,
+        black 85%,
+        transparent
+    );
+    -webkit-mask-image: linear-gradient(to right,
+        transparent,
+        black 15%,
+        black 85%,
+        transparent
+    );
+}
+
+.alert-band-track-inner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: scroll-left 20s linear infinite;
+    white-space: nowrap;
+}
+
+.alert-band-track-inner:hover {
+    animation-play-state: paused;
+}
+
+@keyframes scroll-left {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* New Alarm Highlight Animation */
+@keyframes fadeInHighlight-sharp {
+    0% { box-shadow: 0 0 12px rgba(22, 163, 74, 0.5); }
+    100% { box-shadow: none; }
+}
+
+@keyframes fadeInHighlight-volumeshock {
+    0% { box-shadow: 0 0 12px rgba(250, 204, 21, 0.5); }
+    100% { box-shadow: none; }
+}
+
+@keyframes fadeInHighlight-drop {
+    0% { box-shadow: 0 0 12px rgba(220, 38, 38, 0.5); }
+    100% { box-shadow: none; }
+}
+
+@keyframes fadeInHighlight-bigmoney {
+    0% { box-shadow: 0 0 12px rgba(240, 138, 36, 0.5); }
+    100% { box-shadow: none; }
+}
+
+/* ========== COLORED DOT INDICATOR ========== */
+
+.ab-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-flex;
+    flex-shrink: 0;
+    margin-right: 4px;
+    box-shadow: 0 0 6px currentColor;
+}
+
+.dot-sharp {
+    background-color: #16A34A;
+    box-shadow: 0 0 6px rgba(22, 163, 74, 0.6);
+}
+
+.dot-volumeshock {
+    background-color: #FACC15;
+    box-shadow: 0 0 6px rgba(250, 204, 21, 0.6);
+}
+
+.dot-drop {
+    background-color: #DC2626;
+    box-shadow: 0 0 6px rgba(220, 38, 38, 0.6);
+}
+
+.dot-bigmoney {
+    background-color: #F08A24;
+    box-shadow: 0 0 6px rgba(240, 138, 36, 0.6);
+}
+
+.dot-hugemoney {
+    background-color: #f97316;
+    box-shadow: 0 0 6px rgba(249, 115, 22, 0.6);
+}
+
+/* ========== PREMIUM TICKER PILLS ========== */
+
+.ab-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+    padding: 4px 10px;
+    height: 28px;
+    border-radius: 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    position: relative;
+}
+
+/* Tüm pill içi elemanları dikey hizala */
+.ab-pill > * {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+}
+
+/* Ultra-soft inner shine overlay */
+.ab-pill::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.04), transparent 60%);
+    pointer-events: none;
+}
+
+/* Sharp Move - Premium Green */
+.ab-pill.sharp {
+    background: linear-gradient(90deg, rgba(22, 163, 74, 0.15), transparent);
+    border: 1px solid rgba(0, 255, 135, 0.40);
+}
+.ab-pill.sharp.new { animation: fadeInHighlight-sharp 1s ease-out; }
+.ab-pill.sharp:hover {
+    background: rgba(22, 163, 74, 0.2);
+    border-color: rgba(0, 255, 135, 0.65);
+}
+
+/* Hacim Şoku - Gold Yellow */
+.ab-pill.volumeshock {
+    background: linear-gradient(90deg, rgba(250, 204, 21, 0.15), transparent);
+    border: 1px solid rgba(250, 204, 21, 0.45);
+}
+.ab-pill.volumeshock.new { animation: fadeInHighlight-volumeshock 1s ease-out; }
+.ab-pill.volumeshock:hover {
+    background: rgba(250, 204, 21, 0.2);
+    border-color: rgba(250, 204, 21, 0.7);
+}
+
+/* Drop Alert - Risk Red */
+.ab-pill.drop {
+    background: linear-gradient(90deg, rgba(220, 38, 38, 0.15), transparent);
+    border: 1px solid rgba(220, 38, 38, 0.45);
+}
+.ab-pill.drop.new { animation: fadeInHighlight-drop 1s ease-out; }
+.ab-pill.drop:hover {
+    background: rgba(220, 38, 38, 0.2);
+    border-color: rgba(220, 38, 38, 0.7);
+}
+
+/* BigMoney - Orange */
+.ab-pill.bigmoney {
+    background: linear-gradient(90deg, rgba(240, 138, 36, 0.15), transparent);
+    border: 1px solid rgba(255, 145, 33, 0.45);
+}
+.ab-pill.bigmoney.new { animation: fadeInHighlight-bigmoney 1s ease-out; }
+.ab-pill.bigmoney:hover {
+    background: rgba(240, 138, 36, 0.2);
+    border-color: rgba(255, 145, 33, 0.7);
+}
+
+/* HugeMoney - Red Orange */
+.ab-pill.hugemoney {
+    background: linear-gradient(90deg, rgba(249, 115, 22, 0.15), transparent);
+    border: 1px solid rgba(249, 115, 22, 0.45);
+}
+.ab-pill.hugemoney:hover {
+    background: rgba(249, 115, 22, 0.2);
+    border-color: rgba(249, 115, 22, 0.7);
+}
+
+/* Dropping Alert L1 - Light Red */
+.ab-pill.dropping-l1 {
+    background: linear-gradient(90deg, rgba(248, 81, 73, 0.12), transparent);
+    border: 1px solid rgba(248, 81, 73, 0.35);
+}
+.ab-pill.dropping-l1:hover {
+    background: rgba(248, 81, 73, 0.18);
+    border-color: rgba(248, 81, 73, 0.55);
+}
+
+/* Dropping Alert L2 - Medium Red */
+.ab-pill.dropping-l2 {
+    background: linear-gradient(90deg, rgba(248, 81, 73, 0.18), transparent);
+    border: 1px solid rgba(248, 81, 73, 0.50);
+}
+.ab-pill.dropping-l2:hover {
+    background: rgba(248, 81, 73, 0.25);
+    border-color: rgba(248, 81, 73, 0.70);
+}
+
+/* Dropping Alert L3 - Critical Red */
+.ab-pill.dropping-l3 {
+    background: linear-gradient(90deg, rgba(248, 81, 73, 0.25), transparent);
+    border: 1px solid rgba(248, 81, 73, 0.65);
+}
+.ab-pill.dropping-l3:hover {
+    background: rgba(248, 81, 73, 0.32);
+    border-color: rgba(248, 81, 73, 0.85);
+}
+
+/* Public Move - Golden */
+.ab-pill.publicmove {
+    background: linear-gradient(90deg, rgba(255, 204, 0, 0.15), transparent);
+    border: 1px solid rgba(255, 215, 0, 0.45);
+}
+.ab-pill.publicmove:hover {
+    background: rgba(255, 204, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.7);
+}
+
+/* Dot indicators for new alarm types */
+.dot-dropping-l1,
+.dot-dropping-l2,
+.dot-dropping-l3 {
+    background-color: #f85149;
+    box-shadow: 0 0 6px rgba(248, 81, 73, 0.6);
+}
+
+.dot-publicmove {
+    background-color: #FFCC00;
+    box-shadow: 0 0 6px rgba(255, 204, 0, 0.6);
+}
+
+.dot-volumeleader {
+    background-color: #06b6d4;
+    box-shadow: 0 0 6px rgba(6, 182, 212, 0.6);
+}
+
+.dot-mim {
+    background-color: #3B82F6;
+    box-shadow: 0 0 6px rgba(59, 130, 246, 0.6);
+}
+
+/* Volume Leader Changed - Turkuaz/Cyan */
+.ab-pill.volumeleader {
+    background: linear-gradient(90deg, rgba(6, 182, 212, 0.15), transparent);
+    border: 1px solid rgba(6, 182, 212, 0.45);
+}
+.ab-pill.volumeleader:hover {
+    background: rgba(6, 182, 212, 0.2);
+    border-color: rgba(6, 182, 212, 0.7);
+}
+
+/* MIM - Mavi */
+.ab-pill.mim {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.15), transparent);
+    border: 1px solid rgba(59, 130, 246, 0.45);
+}
+.ab-pill.mim:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.7);
+}
+
+/* Separator - Compact trading style */
+.ab-sep {
+    color: #6E7681;
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.5;
+    margin: 0;
+}
+
+/* Alarm Type Label */
+.ab-type {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    line-height: 1;
+    margin-right: 0;
+}
+
+.ab-pill.sharp .ab-type { color: var(--ticker-sharp); }
+.ab-pill.volumeshock .ab-type { color: var(--ticker-volumeshock); }
+.ab-pill.drop .ab-type { color: var(--ticker-drop); }
+.ab-pill.bigmoney .ab-type { color: var(--ticker-bigmoney); }
+.ab-pill.hugemoney .ab-type { color: var(--ticker-hugemoney); }
+.ab-pill.dropping-l1 .ab-type,
+.ab-pill.dropping-l2 .ab-type,
+.ab-pill.dropping-l3 .ab-type { color: #f85149; }
+.ab-pill.publicmove .ab-type { color: #FFCC00; }
+.ab-pill.volumeleader .ab-type { color: #06b6d4; }
+.ab-pill.mim .ab-type { color: #3B82F6; }
+
+/* Volume Leader Change Arrow */
+.ab-leader-change {
+    font-size: 12px;
+    font-weight: 600;
+    color: #C9D1D9;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ab-arrow {
+    color: #06b6d4;
+    font-size: 14px;
+}
+
+/* Match Name - Truncate for long names */
+.ab-match {
+    font-size: 12px;
+    font-weight: 500;
+    color: #E6EDF3;
+    line-height: 1;
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Selection - Symmetric spacing */
+.ab-sel {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    color: #C9D1D9;
+}
+
+/* Value Chip Glow Animations */
+@keyframes chipGlow-sharp {
+    0% { box-shadow: 0 0 10px rgba(22, 163, 74, 0.35); }
+    100% { box-shadow: none; }
+}
+@keyframes chipGlow-volumeshock {
+    0% { box-shadow: 0 0 12px rgba(250, 204, 21, 0.5); }
+    100% { box-shadow: none; }
+}
+@keyframes chipGlow-drop {
+    0% { box-shadow: 0 0 12px rgba(220, 38, 38, 0.5); }
+    100% { box-shadow: none; }
+}
+@keyframes chipGlow-bigmoney {
+    0% { box-shadow: 0 0 12px rgba(240, 138, 36, 0.5); }
+    100% { box-shadow: none; }
+}
+
+/* Premium Value Chip - High Visibility */
+.ab-val {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 20px;
+    padding: 0 8px;
+    margin-left: 6px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.3px;
+    vertical-align: middle;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.ab-pill.sharp .ab-val {
+    background: rgba(22, 163, 74, 0.18);
+    color: #4ADE80;
+    border: 1px solid rgba(22, 163, 74, 0.45);
+}
+.ab-pill.sharp.new .ab-val { animation: chipGlow-sharp 0.8s ease-out; }
+
+.ab-pill.volumeshock .ab-val {
+    background: rgba(250, 204, 21, 0.18);
+    color: #FDE047;
+    border: 1px solid rgba(250, 204, 21, 0.45);
+}
+.ab-pill.volumeshock.new .ab-val { animation: chipGlow-volumeshock 0.8s ease-out; }
+
+.ab-pill.drop .ab-val {
+    background: rgba(220, 38, 38, 0.18);
+    color: #FCA5A5;
+    border: 1px solid rgba(220, 38, 38, 0.45);
+}
+.ab-pill.drop.new .ab-val { animation: chipGlow-drop 0.8s ease-out; }
+
+.ab-pill.bigmoney .ab-val {
+    background: rgba(240, 138, 36, 0.18);
+    border: 1px solid rgba(240, 138, 36, 0.45);
+    color: #FDBA74;
+}
+.ab-pill.bigmoney.new .ab-val { animation: chipGlow-bigmoney 0.8s ease-out; }
+
+.ab-pill.hugemoney .ab-val {
+    background: rgba(249, 115, 22, 0.18);
+    border: 1px solid rgba(249, 115, 22, 0.45);
+    color: #FB923C;
+}
+.ab-pill.hugemoney.new .ab-val { animation: chipGlow-bigmoney 0.8s ease-out; }
+
+/* ========== ALARMS BUTTON ========== */
+
+.btn-alarms {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 32px;
+    padding: 0 12px;
+    margin-right: 10px;
+    background: #0D1117;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 9999px;
+    color: #E5E7EB;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    flex-shrink: 0;
+}
+
+.btn-alarms svg {
+    width: 15px;
+    height: 15px;
+    color: #8B949E;
+    opacity: 0.7;
+    margin-right: 2px;
+    transition: all 0.2s ease;
+}
+
+.btn-alarms:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.btn-alarms:hover svg {
+    color: #16A34A;
+    opacity: 1;
+}
+
+.btn-alarms.active {
+    background: rgba(22, 163, 74, 0.08);
+    border-color: rgba(22, 163, 74, 0.35);
+    box-shadow: 0 0 8px rgba(22, 163, 74, 0.10);
+}
+
+.btn-alarms.active svg {
+    color: #16A34A;
+    opacity: 1;
+}
+
+/* Alarms Badge - Soft Premium Style */
+.alarms-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 18px;
+    padding: 1px 7px;
+    margin-left: 4px;
+    background: rgba(22, 163, 74, 0.18);
+    color: #16A34A;
+    border: 1px solid rgba(22, 163, 74, 0.4);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    border-radius: 9999px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.alarms-badge:empty,
+.alarms-badge[data-count="0"] {
+    display: none;
+}
+
+.alert-band-empty {
+    color: #6E7681;
+    font-size: 12px;
+    font-weight: 400;
+    padding: 0 16px;
+    font-style: italic;
+}
+
+/* Hidden state */
+.alert-band.hidden {
+    display: none;
+}
+
+/* ========== LEGACY SUPPORT ========== */
+
+.alert-band-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    height: 32px;
+    background: linear-gradient(90deg, rgba(22, 163, 74, 0.12), transparent);
+    border: 1px solid rgba(22, 163, 74, 0.35);
+    border-radius: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.alert-band-pill.sharp {
+    background: linear-gradient(90deg, rgba(22, 163, 74, 0.15), transparent);
+    border-color: rgba(22, 163, 74, 0.35);
+}
+.alert-band-pill.sharp:hover {
+    background: rgba(22, 163, 74, 0.2);
+    border-color: rgba(22, 163, 74, 0.6);
+}
+
+.alert-band-pill.bigmoney {
+    background: linear-gradient(90deg, rgba(240, 138, 36, 0.15), transparent);
+    border-color: rgba(240, 138, 36, 0.35);
+}
+.alert-band-pill.bigmoney:hover {
+    background: rgba(240, 138, 36, 0.2);
+    border-color: rgba(240, 138, 36, 0.6);
+}
+
+.alert-band-pill.hugemoney {
+    background: linear-gradient(90deg, rgba(249, 115, 22, 0.15), transparent);
+    border-color: rgba(249, 115, 22, 0.35);
+}
+.alert-band-pill.hugemoney:hover {
+    background: rgba(249, 115, 22, 0.2);
+    border-color: rgba(249, 115, 22, 0.6);
+}
+
+.alert-band-pill.volumeshock {
+    background: linear-gradient(90deg, rgba(250, 204, 21, 0.15), transparent);
+    border-color: rgba(250, 204, 21, 0.35);
+}
+.alert-band-pill.volumeshock:hover {
+    background: rgba(250, 204, 21, 0.2);
+    border-color: rgba(250, 204, 21, 0.6);
+}
+
+.alert-band-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.alert-band-dot.green { background: var(--ticker-sharp); }
+.alert-band-dot.orange { background: var(--ticker-bigmoney); }
+.alert-band-dot.orange-red { background: var(--ticker-hugemoney); }
+.alert-band-dot.gold { background: var(--ticker-volumeshock); }
+
+.alert-band-type {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.alert-band-type.sharp { color: var(--ticker-sharp); }
+.alert-band-type.bigmoney { color: var(--ticker-bigmoney); }
+.alert-band-type.hugemoney { color: var(--ticker-hugemoney); }
+.alert-band-type.volumeshock { color: var(--ticker-volumeshock); }
+
+.alert-band-match {
+    font-size: 12px;
+    font-weight: 500;
+    color: #E6EDF3;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.alert-band-selection {
+    font-size: 12px;
+    font-weight: 600;
+    color: #C9D1D9;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.alert-band-value {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(22, 163, 74, 0.25);
+    color: var(--ticker-sharp);
+}
+
+.alert-band-value.negative,
+
+.alert-band-time {
+    font-size: 11px;
+    font-weight: 400;
+    color: #6E7681;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ========== NEW ALARM HIGHLIGHT - CENTERED ========== */
+
+.alert-band-track.highlight-mode {
+    justify-content: center;
+    mask-image: none;
+    -webkit-mask-image: none;
+}
+
+.alert-band-track.highlight-mode .alert-band-track-inner {
+    animation: none !important;
+    transform: none !important;
+}
+
+.new-alarm-highlight {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: highlightFadeIn 0.5s ease-out;
+    width: 100%;
+    height: 100%;
+}
+
+@keyframes highlightFadeIn {
+    0% { opacity: 0; transform: scale(0.8); }
+    50% { transform: scale(1.05); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.new-alarm-highlight .highlight-pill {
+    transform: scale(1.1);
+    animation: pulseGlow 0.8s ease-in-out infinite;
+}
+
+.new-alarm-highlight .ab-pill.sharp.highlight-pill {
+    box-shadow: 0 0 30px rgba(22, 163, 74, 0.7), 0 0 60px rgba(22, 163, 74, 0.4), 0 0 90px rgba(22, 163, 74, 0.2);
+    border-color: rgba(22, 163, 74, 0.8);
+}
+
+.new-alarm-highlight .ab-pill.bigmoney.highlight-pill {
+    box-shadow: 0 0 30px rgba(240, 138, 36, 0.7), 0 0 60px rgba(240, 138, 36, 0.4), 0 0 90px rgba(240, 138, 36, 0.2);
+    border-color: rgba(240, 138, 36, 0.8);
+}
+
+.new-alarm-highlight .ab-pill.hugemoney.highlight-pill {
+    box-shadow: 0 0 30px rgba(249, 115, 22, 0.7), 0 0 60px rgba(249, 115, 22, 0.4), 0 0 90px rgba(249, 115, 22, 0.2);
+    border-color: rgba(249, 115, 22, 0.8);
+}
+
+.new-alarm-highlight .ab-pill.volumeshock.highlight-pill {
+    box-shadow: 0 0 30px rgba(250, 204, 21, 0.7), 0 0 60px rgba(250, 204, 21, 0.4), 0 0 90px rgba(250, 204, 21, 0.2);
+    border-color: rgba(250, 204, 21, 0.8);
+}
+
+.new-alarm-highlight .ab-pill.dropping-l1.highlight-pill,
+.new-alarm-highlight .ab-pill.dropping-l2.highlight-pill,
+.new-alarm-highlight .ab-pill.dropping-l3.highlight-pill,
+.new-alarm-highlight .ab-pill.drop.highlight-pill {
+    box-shadow: 0 0 30px rgba(248, 81, 73, 0.7), 0 0 60px rgba(248, 81, 73, 0.4), 0 0 90px rgba(248, 81, 73, 0.2);
+    border-color: rgba(248, 81, 73, 0.8);
+}
+
+.new-alarm-highlight .ab-pill.publicmove.highlight-pill {
+    box-shadow: 0 0 30px rgba(255, 204, 0, 0.7), 0 0 60px rgba(255, 204, 0, 0.4), 0 0 90px rgba(255, 204, 0, 0.2);
+    border-color: rgba(255, 204, 0, 0.8);
+}
+
+.new-alarm-highlight .ab-pill.volumeleader.highlight-pill {
+    box-shadow: 0 0 30px rgba(6, 182, 212, 0.7), 0 0 60px rgba(6, 182, 212, 0.4), 0 0 90px rgba(6, 182, 212, 0.2);
+    border-color: rgba(6, 182, 212, 0.8);
+}
+
+@keyframes pulseGlow {
+    0%, 100% { 
+        transform: scale(1.1); 
+        filter: brightness(1);
+    }
+    50% { 
+        transform: scale(1.15); 
+        filter: brightness(1.2);
+    }
+}
+
+.new-alarm-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 3px 12px;
+    border-radius: 4px;
+    animation: labelPulse 0.6s ease-in-out infinite, labelGlow 0.6s ease-in-out infinite;
+}
+
+.new-alarm-label.sharp { 
+    color: #4ADE80; 
+    background: rgba(22, 163, 74, 0.2);
+    text-shadow: 0 0 10px rgba(22, 163, 74, 0.8);
+}
+.new-alarm-label.bigmoney { 
+    color: #FDBA74; 
+    background: rgba(240, 138, 36, 0.2);
+    text-shadow: 0 0 10px rgba(240, 138, 36, 0.8);
+}
+.new-alarm-label.hugemoney { 
+    color: #FB923C; 
+    background: rgba(249, 115, 22, 0.2);
+    text-shadow: 0 0 10px rgba(249, 115, 22, 0.8);
+}
+.new-alarm-label.volumeshock { 
+    color: #FDE047; 
+    background: rgba(250, 204, 21, 0.2);
+    text-shadow: 0 0 10px rgba(250, 204, 21, 0.8);
+}
+.new-alarm-label.drop,
+.new-alarm-label.dropping-l1,
+.new-alarm-label.dropping-l2,
+.new-alarm-label.dropping-l3 { 
+    color: #FCA5A5; 
+    background: rgba(248, 81, 73, 0.2);
+    text-shadow: 0 0 10px rgba(248, 81, 73, 0.8);
+}
+.new-alarm-label.publicmove { 
+    color: #FFE066; 
+    background: rgba(255, 204, 0, 0.2);
+    text-shadow: 0 0 10px rgba(255, 204, 0, 0.8);
+}
+.new-alarm-label.volumeleader { 
+    color: #67E8F9; 
+    background: rgba(6, 182, 212, 0.2);
+    text-shadow: 0 0 10px rgba(6, 182, 212, 0.8);
+}
+
+@keyframes labelPulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+}
+
+@keyframes labelGlow {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.2); }
+}
+
+/* =====================================================
+   MOBILE ALERT BAND - Compact Premium
+   ===================================================== */
+
+@media (max-width: 768px) {
+    /* Hide alarm button from band on mobile - moved to filter bar */
+    .btn-alarms {
+        display: none !important;
+    }
+    
+    .alert-band {
+        height: 28px;
+        padding: 0;
+        position: relative;
+        z-index: 99;
+    }
+    
+    .alert-band-track {
+        padding: 0 10px;
+        gap: 6px;
+        width: 100%;
+    }
+    
+    .alert-band-track-inner {
+        gap: 6px;
+    }
+    
+    .ab-pill {
+        padding: 2px 6px;
+        height: 20px;
+        border-radius: 6px;
+        font-size: 9px;
+    }
+    
+    .ab-dot {
+        width: 5px;
+        height: 5px;
+        margin-right: 3px;
+    }
+    
+    .ab-match {
+        font-size: 9px;
+        max-width: 70px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .ab-value {
+        font-size: 8px;
+        padding: 1px 4px;
+    }
+    
+    .ab-time {
+        font-size: 7px;
+    }
+    
+    .alert-band-empty {
+        font-size: 9px;
+    }
+}
+
+@media (max-width: 480px) {
+    .alert-band {
+        height: 28px;
+    }
+    
+    .ab-pill {
+        padding: 2px 5px;
+        height: 20px;
+    }
+    
+    .ab-match {
+        max-width: 60px;
+        font-size: 9px;
+    }
+    
+    .ab-value {
+        font-size: 8px;
+        padding: 1px 3px;
+    }
+}
