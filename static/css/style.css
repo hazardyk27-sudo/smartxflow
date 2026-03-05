@@ -10786,6 +10786,15 @@ table.desktop-only {
     transition: box-shadow 0.3s ease;
 }
 
+.alarms-sidebar.tutorial-highlight {
+    position: fixed;
+    pointer-events: auto;
+}
+
+.table-container.tutorial-highlight {
+    position: relative;
+}
+
 .tutorial-tooltip {
     position: fixed;
     z-index: 10000;

@@ -1255,25 +1255,81 @@
                 });
         }
 
+        var tutorialSavedMarket = null;
+
         var tutorialStepsDesktop = [
             { selector: '#alertBand', title: 'Alarm Bandı', desc: 'Canlı alarm bandı — yeni tespit edilen sinyaller burada akar. Sharp, BigMoney ve Hacim Şoku alarmlarını anlık takip edin.', pos: 'bottom' },
             { selector: '.market-tabs.desktop-only', title: 'Piyasa Sekmeleri', desc: 'Moneyway ve Dropping Odds piyasaları arasında geçiş yapın. Her sekme farklı bir piyasa verisini gösterir.', pos: 'bottom' },
             { selector: '#todayBtn', title: 'Günün Maçları', desc: 'Sadece bugünkü maçları filtrelemek için bu butonu kullanın. Tekrar tıklayınca filtre kalkar.', pos: 'bottom' },
             { selector: 'th[data-sort="sel1"]', title: 'Oran Sütunları', desc: 'Anlık bahis oranları burada gösterilir. Her seçenek altındaki donut grafik, o tarafa giren paranın toplam hacme oranını yüzde olarak gösterir — paranın hangi yöne aktığını anlık takip edin.', pos: 'bottom' },
             { selector: 'th[data-sort="volume"]', title: 'Miktar Sütunu', desc: 'Maça giren toplam para miktarı. Yüksek hacimli maçlar daha güvenilir sinyal verir.', pos: 'bottom' },
-            { selector: '.tab[data-market="dropping_1x2"]', title: 'Oran (Dropping Odds)', desc: 'Oranların son 24 saatte ne kadar düştüğünü takip edin. Yüzde değişim ve düşüş seviyesi (L1, L2, L3) ile büyük oran hareketlerini yakalayın.', pos: 'bottom' },
-            { selector: '#alarmsBtn', title: 'Alarm Paneli', desc: 'Tüm alarm türlerini buradan görüntüleyin ve filtreleyin. Sharp, BigMoney, Hacim Şoku gibi kategorilere göre ayırın.', pos: 'bottom' },
+            {
+                selector: '.table-container',
+                title: 'Oran (Dropping Odds)',
+                desc: 'Oranların son 24 saatte ne kadar düştüğünü takip edin. Yüzde değişim ve düşüş seviyesi (L1, L2, L3) ile büyük oran hareketlerini yakalayın.',
+                pos: 'bottom',
+                onEnter: function() {
+                    tutorialSavedMarket = typeof currentMarket !== 'undefined' ? currentMarket : 'moneyway_1x2';
+                    var tab = document.querySelector('.market-tabs .tab[data-market="dropping_1x2"]');
+                    if (tab) tab.click();
+                },
+                onExit: function() {
+                    if (tutorialSavedMarket) {
+                        var tab = document.querySelector('.market-tabs .tab[data-market="' + tutorialSavedMarket + '"]');
+                        if (tab) tab.click();
+                        tutorialSavedMarket = null;
+                    }
+                }
+            },
+            {
+                selector: '#alarmsSidebar',
+                title: 'Alarm Paneli',
+                desc: 'Tüm alarm türlerini buradan görüntüleyin ve filtreleyin. Sharp, BigMoney, Hacim Şoku gibi kategorilere göre ayırın.',
+                pos: 'left',
+                onEnter: function() {
+                    if (typeof openAlarmsSidebar === 'function') openAlarmsSidebar();
+                },
+                onExit: function() {
+                    if (typeof closeAlarmsSidebar === 'function') closeAlarmsSidebar();
+                }
+            },
             { selector: '.btn.btn-today.desktop-only[onclick*="moves"]', title: 'Kılavuz', desc: 'Detaylı kullanım rehberi ve alarm açıklamalarını burada bulabilirsiniz. Her zaman danışabileceğiniz kaynak.', pos: 'bottom' },
             { selector: '.btn.btn-today.desktop-only[onclick*="analysis"]', title: 'Analizler', desc: 'Profesyonel analizlere buradan ulaşın. Maç öncesi değerlendirmeler ve piyasa yorumları burada paylaşılır (PRO üyelere özel).', pos: 'bottom' }
         ];
 
         var tutorialStepsMobile = [
             { selector: '#alertBand', title: 'Alarm Bandı', desc: 'Canlı alarm bandı — yeni sinyaller burada akar.', pos: 'top' },
-            { selector: '.mobile-tab-system', title: 'Piyasa Sekmeleri', desc: 'Moneyway ve Dropping Odds arasında geçiş yapın. Oran sekmesinde oranların son 24 saatte ne kadar düştüğünü görebilirsiniz.', pos: 'bottom' },
+            {
+                selector: '.mobile-tab-system',
+                title: 'Piyasa Sekmeleri',
+                desc: 'Moneyway ve Dropping Odds arasında geçiş yapın. Oran sekmesinde oranların son 24 saatte ne kadar düştüğünü görebilirsiniz.',
+                pos: 'bottom',
+                onEnter: function() {
+                    tutorialSavedMarket = typeof currentMarket !== 'undefined' ? currentMarket : 'moneyway_1x2';
+                    if (typeof setMobileGroup === 'function') setMobileGroup('dropping');
+                },
+                onExit: function() {
+                    if (tutorialSavedMarket && tutorialSavedMarket.startsWith('moneyway')) {
+                        if (typeof setMobileGroup === 'function') setMobileGroup('moneyway');
+                    }
+                    tutorialSavedMarket = null;
+                }
+            },
             { selector: '#dayFilterDropdown', title: 'Gün Filtresi', desc: 'Bugünkü veya dünkü maçları filtreleyin.', pos: 'bottom' },
             { selector: '.mobile-alarm-btn[onclick*="moves"]', title: 'Kılavuz', desc: 'Kullanım rehberi ve alarm açıklamaları.', pos: 'bottom' },
             { selector: '.mobile-alarm-btn[onclick*="analysis"]', title: 'Analizler', desc: 'Profesyonel maç analizleri ve piyasa yorumları (PRO üyelere özel).', pos: 'bottom' },
-            { selector: '.mobile-alarm-btn[onclick*="toggleAlarmsSidebar"]', title: 'Alarmlar', desc: 'Tüm alarm türlerini görüntüleyin ve filtreleyin.', pos: 'bottom' }
+            {
+                selector: '#alarmsSidebar',
+                title: 'Alarmlar',
+                desc: 'Tüm alarm türlerini görüntüleyin ve filtreleyin.',
+                pos: 'left',
+                onEnter: function() {
+                    if (typeof openAlarmsSidebar === 'function') openAlarmsSidebar();
+                },
+                onExit: function() {
+                    if (typeof closeAlarmsSidebar === 'function') closeAlarmsSidebar();
+                }
+            }
         ];
 
         var tutorialCurrentStep = 0;
@@ -1320,15 +1376,34 @@
             showTutorialStep(0);
         }
 
+        var tutorialPrevStepIndex = -1;
+
+        function isStepVisible(stepIndex) {
+            var steps = getTutorialSteps();
+            var s = steps[stepIndex];
+            if (s.onEnter) return true;
+            var el = document.querySelector(s.selector);
+            return el && el.offsetParent !== null;
+        }
+
         function findNextVisibleStep(startIndex, direction) {
             var steps = getTutorialSteps();
             var i = startIndex;
             while (i >= 0 && i < steps.length) {
-                var el = document.querySelector(steps[i].selector);
-                if (el && el.offsetParent !== null) return i;
+                if (isStepVisible(i)) return i;
                 i += direction;
             }
             return -1;
+        }
+
+        function exitPreviousStep() {
+            var steps = getTutorialSteps();
+            if (tutorialPrevStepIndex >= 0 && tutorialPrevStepIndex < steps.length) {
+                var prev = steps[tutorialPrevStepIndex];
+                if (prev.onExit) {
+                    try { prev.onExit(); } catch(e) {}
+                }
+            }
         }
 
         function showTutorialStep(index) {
@@ -1339,55 +1414,56 @@
             if (visibleIndex === -1) { endTutorial(); return; }
             index = visibleIndex;
 
-            tutorialCurrentStep = index;
-            var step = steps[index];
-
             if (tutorialPrevHighlight) {
                 tutorialPrevHighlight.classList.remove('tutorial-highlight');
                 tutorialPrevHighlight = null;
             }
 
-            var el = document.querySelector(step.selector);
-            if (el) {
-                el.classList.add('tutorial-highlight');
-                tutorialPrevHighlight = el;
-                el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (index !== tutorialPrevStepIndex) {
+                exitPreviousStep();
             }
 
-            var isLast = (findNextVisibleStep(index + 1, 1) === -1);
-            var isFirst = (findNextVisibleStep(index - 1, -1) === -1);
+            tutorialCurrentStep = index;
+            tutorialPrevStepIndex = index;
+            var step = steps[index];
 
-            var prevBtn = isFirst ? '' : '<button class="tutorial-btn tutorial-btn-prev" onclick="prevTutorialStep()">← Geri</button>';
-            var nextLabel = isLast ? 'Başla!' : 'İleri →';
-            var nextAction = isLast ? 'endTutorial()' : 'nextTutorialStep()';
+            if (step.onEnter) {
+                try { step.onEnter(); } catch(e) {}
+            }
 
-            var visibleCount = 0;
-            var currentVisible = 0;
-            for (var vi = 0; vi < steps.length; vi++) {
-                var ve = document.querySelector(steps[vi].selector);
-                if (ve && ve.offsetParent !== null) {
-                    visibleCount++;
-                    if (vi < index) currentVisible++;
+            setTimeout(function() {
+                var el = document.querySelector(step.selector);
+                if (el) {
+                    el.classList.add('tutorial-highlight');
+                    tutorialPrevHighlight = el;
+                    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
-            }
-            currentVisible++;
 
-            tutorialTooltipEl.innerHTML =
-                '<div class="tutorial-arrow" id="tutorialArrow"></div>' +
-                '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px;">' +
-                    '<div class="tutorial-tooltip-title">' + step.title + '</div>' +
-                    '<button class="tutorial-btn tutorial-btn-skip" onclick="endTutorial()">Atla</button>' +
-                '</div>' +
-                '<div class="tutorial-tooltip-desc">' + step.desc + '</div>' +
-                '<div class="tutorial-tooltip-footer">' +
-                    '<span class="tutorial-step-counter">' + currentVisible + ' / ' + visibleCount + '</span>' +
-                    '<div class="tutorial-tooltip-actions">' +
-                        prevBtn +
-                        '<button class="tutorial-btn tutorial-btn-next" onclick="' + nextAction + '">' + nextLabel + '</button>' +
+                var isLast = (findNextVisibleStep(index + 1, 1) === -1);
+                var isFirst = (findNextVisibleStep(index - 1, -1) === -1);
+
+                var prevBtn = isFirst ? '' : '<button class="tutorial-btn tutorial-btn-prev" onclick="prevTutorialStep()">← Geri</button>';
+                var nextLabel = isLast ? 'Başla!' : 'İleri →';
+                var nextAction = isLast ? 'endTutorial()' : 'nextTutorialStep()';
+
+                var stepCount = steps.length;
+                tutorialTooltipEl.innerHTML =
+                    '<div class="tutorial-arrow" id="tutorialArrow"></div>' +
+                    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px;">' +
+                        '<div class="tutorial-tooltip-title">' + step.title + '</div>' +
+                        '<button class="tutorial-btn tutorial-btn-skip" onclick="endTutorial()">Atla</button>' +
                     '</div>' +
-                '</div>';
+                    '<div class="tutorial-tooltip-desc">' + step.desc + '</div>' +
+                    '<div class="tutorial-tooltip-footer">' +
+                        '<span class="tutorial-step-counter">' + (index + 1) + ' / ' + stepCount + '</span>' +
+                        '<div class="tutorial-tooltip-actions">' +
+                            prevBtn +
+                            '<button class="tutorial-btn tutorial-btn-next" onclick="' + nextAction + '">' + nextLabel + '</button>' +
+                        '</div>' +
+                    '</div>';
 
-            setTimeout(function() { positionTooltip(el, step.pos); }, 80);
+                setTimeout(function() { positionTooltip(el, step.pos); }, 100);
+            }, 350);
         }
 
         function positionTooltip(targetEl, preferredPos) {
@@ -1416,6 +1492,16 @@
             var gap = 14;
 
             if (arrow) arrow.style.display = '';
+
+            if (preferredPos === 'left') {
+                var topPos = rect.top + (rect.height / 2) - (ttRect.height / 2);
+                if (topPos < 12) topPos = 12;
+                if (topPos + ttRect.height > window.innerHeight - 12) topPos = window.innerHeight - ttRect.height - 12;
+                tutorialTooltipEl.style.top = topPos + 'px';
+                tutorialTooltipEl.style.left = (rect.left - ttRect.width - gap) + 'px';
+                if (arrow) arrow.style.display = 'none';
+                return;
+            }
 
             if (preferredPos === 'bottom' || rect.top < ttRect.height + gap + 20) {
                 tutorialTooltipEl.style.top = (rect.bottom + gap) + 'px';
@@ -1447,6 +1533,8 @@
         }
 
         function endTutorial() {
+            exitPreviousStep();
+            tutorialPrevStepIndex = -1;
             tutorialActive = false;
             localStorage.setItem('sxf_tutorial_done', '1');
 
