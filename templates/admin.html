@@ -3069,13 +3069,31 @@
             
             <div style="display: flex; gap: 8px; margin-bottom: 24px;">
                 <button class="btn btn-primary" id="contentTabAnalysis" onclick="switchContentTab('analysis')" style="padding: 8px 16px;">Analizler</button>
-                <button class="btn" id="contentTabTip" onclick="switchContentTab('tip')" style="padding: 8px 16px; background: #21262d; border: 1px solid #30363d; color: #c9d1d9;">Hareket Tavsiyeleri</button>
+                <button class="btn" id="contentTabMoves" onclick="switchContentTab('moves')" style="padding: 8px 16px; background: #21262d; border: 1px solid #30363d; color: #c9d1d9;">Kılavuz</button>
             </div>
             
             <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
                 <h3 style="margin-bottom: 16px; color: #c9d1d9;" id="contentFormTitle">Yeni Analiz Ekle</h3>
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <input type="text" id="contentTitle" placeholder="Başlık" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px;">
+                <div id="contentFormFields" style="display: flex; flex-direction: column; gap: 12px;">
+                    <div id="movesFieldsGroup" style="display: none;">
+                        <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                            <div style="flex: 1;">
+                                <label style="display: block; margin-bottom: 6px; color: #8b949e; font-size: 12px;">Ana Başlık</label>
+                                <input type="text" id="contentMainTitle" placeholder="ör: BigMoney" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; width: 100%; box-sizing: border-box;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="display: block; margin-bottom: 6px; color: #8b949e; font-size: 12px;">Alt Başlık</label>
+                                <input type="text" id="contentSubTitle" placeholder="ör: Nasıl Çalışır" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; width: 100%; box-sizing: border-box;">
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 6px; padding: 8px 12px; background: #0d1117; border-radius: 6px; border: 1px solid #21262d;">
+                            <span style="color: #484f58; font-size: 12px;">Önizleme: </span>
+                            <span id="titlePreview" style="color: #58a6ff; font-size: 13px; font-weight: 500;">—</span>
+                        </div>
+                    </div>
+                    <div id="analysisFieldsGroup">
+                        <input type="text" id="contentTitle" placeholder="Başlık" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; width: 100%; box-sizing: border-box;">
+                    </div>
                     <textarea id="contentText" placeholder="İçerik metni..." rows="5" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; resize: vertical;"></textarea>
                     <div>
                         <label style="display: block; margin-bottom: 6px; color: #8b949e; font-size: 13px;">Ekran Görüntüsü (opsiyonel)</label>
@@ -7792,13 +7810,18 @@
 
         function switchContentTab(tab) {
             currentContentTab = tab;
-            document.getElementById('contentTabAnalysis').style.background = tab === 'analysis' ? '#238636' : '#21262d';
-            document.getElementById('contentTabAnalysis').style.color = tab === 'analysis' ? '#fff' : '#c9d1d9';
-            document.getElementById('contentTabAnalysis').style.border = tab === 'analysis' ? '1px solid #238636' : '1px solid #30363d';
-            document.getElementById('contentTabTip').style.background = tab === 'tip' ? '#238636' : '#21262d';
-            document.getElementById('contentTabTip').style.color = tab === 'tip' ? '#fff' : '#c9d1d9';
-            document.getElementById('contentTabTip').style.border = tab === 'tip' ? '1px solid #238636' : '1px solid #30363d';
-            document.getElementById('contentFormTitle').textContent = tab === 'analysis' ? 'Yeni Analiz Ekle' : 'Yeni Hareket Tavsiyesi Ekle';
+            const btnA = document.getElementById('contentTabAnalysis');
+            const btnM = document.getElementById('contentTabMoves');
+            btnA.style.background = tab === 'analysis' ? '#238636' : '#21262d';
+            btnA.style.color = tab === 'analysis' ? '#fff' : '#c9d1d9';
+            btnA.style.border = tab === 'analysis' ? '1px solid #238636' : '1px solid #30363d';
+            btnM.style.background = tab === 'moves' ? '#238636' : '#21262d';
+            btnM.style.color = tab === 'moves' ? '#fff' : '#c9d1d9';
+            btnM.style.border = tab === 'moves' ? '1px solid #238636' : '1px solid #30363d';
+            document.getElementById('movesFieldsGroup').style.display = tab === 'moves' ? 'block' : 'none';
+            document.getElementById('analysisFieldsGroup').style.display = tab === 'moves' ? 'none' : 'block';
+            document.getElementById('contentFormTitle').textContent = tab === 'analysis' ? 'Yeni Analiz Ekle' : 'Yeni Kılavuz İçeriği Ekle';
+            cancelEdit();
             loadContentList();
         }
 
@@ -7816,11 +7839,22 @@
                     list.innerHTML = '<div style="text-align: center; color: #8b949e; padding: 40px;">Henüz içerik yok</div>';
                     return;
                 }
-                list.innerHTML = data.map(item => `
+                list.innerHTML = data.map(item => {
+                    let titleHtml = '';
+                    if (currentContentTab === 'moves') {
+                        const parts = (item.title || '').split(' - ');
+                        const mainT = escapeHtml(parts[0]);
+                        const subT = parts.length > 1 ? escapeHtml(parts.slice(1).join(' - ')) : '';
+                        titleHtml = `<span style="color: #58a6ff; font-size: 12px; font-weight: 600;">${mainT}</span>`;
+                        if (subT) titleHtml += `<span style="color: #484f58; margin: 0 6px;">›</span><span style="color: #c9d1d9; font-size: 13px;">${subT}</span>`;
+                    } else {
+                        titleHtml = `<span style="color: #c9d1d9;">${escapeHtml(item.title)}</span>`;
+                    }
+                    return `
                     <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div style="flex: 1;">
-                                <h4 style="color: #c9d1d9; margin-bottom: 8px;">${escapeHtml(item.title)}</h4>
+                                <h4 style="margin-bottom: 8px;">${titleHtml}</h4>
                                 <p style="color: #8b949e; font-size: 13px; margin-bottom: 8px;">${escapeHtml(item.content).substring(0, 200)}${item.content.length > 200 ? '...' : ''}</p>
                                 <span style="color: #484f58; font-size: 12px;">${new Date(item.created_at).toLocaleString('tr-TR')}</span>
                             </div>
@@ -7831,7 +7865,7 @@
                             <button onclick="deleteContent(${item.id})" style="background: #da3633; border: none; color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Sil</button>
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
             } catch (e) {
                 list.innerHTML = '<div style="text-align: center; color: #f85149; padding: 40px;">Yükleme hatası</div>';
             }
@@ -7844,14 +7878,37 @@
             return div.innerHTML;
         }
 
+        function getComposedTitle() {
+            if (currentContentTab === 'moves') {
+                const main = document.getElementById('contentMainTitle').value.trim();
+                const sub = document.getElementById('contentSubTitle').value.trim();
+                if (!main) return '';
+                return sub ? main + ' - ' + sub : main;
+            }
+            return document.getElementById('contentTitle').value.trim();
+        }
+
+        function updateTitlePreview() {
+            const preview = document.getElementById('titlePreview');
+            if (!preview) return;
+            const composed = getComposedTitle();
+            preview.textContent = composed || '—';
+        }
+
+        document.addEventListener('input', function(e) {
+            if (e.target.id === 'contentMainTitle' || e.target.id === 'contentSubTitle') {
+                updateTitlePreview();
+            }
+        });
+
         async function submitContent() {
-            const title = document.getElementById('contentTitle').value.trim();
+            const title = getComposedTitle();
             const content = document.getElementById('contentText').value.trim();
             const imageInput = document.getElementById('contentImage');
             const status = document.getElementById('contentUploadStatus');
 
             if (!title || !content) {
-                status.innerHTML = '<span style="color: #f85149;">Başlık ve içerik zorunludur</span>';
+                status.innerHTML = '<span style="color: #f85149;">' + (currentContentTab === 'moves' ? 'Ana başlık ve içerik zorunludur' : 'Başlık ve içerik zorunludur') + '</span>';
                 return;
             }
 
@@ -7893,26 +7950,40 @@
 
         function editContent(id, title, content) {
             editingContentId = id;
-            document.getElementById('contentTitle').value = title;
+            if (currentContentTab === 'moves') {
+                const parts = title.split(' - ');
+                document.getElementById('contentMainTitle').value = parts[0] || '';
+                document.getElementById('contentSubTitle').value = parts.length > 1 ? parts.slice(1).join(' - ') : '';
+                updateTitlePreview();
+            } else {
+                document.getElementById('contentTitle').value = title;
+            }
             document.getElementById('contentText').value = content;
             document.getElementById('contentImage').value = '';
-            document.getElementById('contentFormTitle').textContent = 'Analizi Düzenle';
+            document.getElementById('contentFormTitle').textContent = currentContentTab === 'moves' ? 'Kılavuz İçeriği Düzenle' : 'Analizi Düzenle';
             document.getElementById('contentSubmitBtn').textContent = 'Güncelle';
             document.getElementById('contentCancelBtn').style.display = 'inline-block';
             document.getElementById('contentUploadStatus').innerHTML = '';
-            document.getElementById('contentTitle').focus();
+            if (currentContentTab === 'moves') {
+                document.getElementById('contentMainTitle').focus();
+            } else {
+                document.getElementById('contentTitle').focus();
+            }
         }
 
         function cancelEdit() {
             editingContentId = null;
             document.getElementById('contentTitle').value = '';
+            document.getElementById('contentMainTitle').value = '';
+            document.getElementById('contentSubTitle').value = '';
             document.getElementById('contentText').value = '';
             document.getElementById('contentImage').value = '';
             const tab = currentContentTab;
-            document.getElementById('contentFormTitle').textContent = tab === 'analysis' ? 'Yeni Analiz Ekle' : 'Yeni Hareket Tavsiyesi Ekle';
+            document.getElementById('contentFormTitle').textContent = tab === 'analysis' ? 'Yeni Analiz Ekle' : 'Yeni Kılavuz İçeriği Ekle';
             document.getElementById('contentSubmitBtn').textContent = 'Paylaş';
             document.getElementById('contentCancelBtn').style.display = 'none';
             document.getElementById('contentUploadStatus').innerHTML = '';
+            updateTitlePreview();
         }
 
         async function deleteContent(id) {
