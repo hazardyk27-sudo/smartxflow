@@ -3227,9 +3227,9 @@
                 };
             }
             
-            // Update status
             updateScraperStatus();
-            setInterval(updateScraperStatus, 5000);
+            if (window._scraperStatusInterval) clearInterval(window._scraperStatusInterval);
+            window._scraperStatusInterval = setInterval(updateScraperStatus, 30000);
         }
         
         function addScraperLog(text) {
@@ -3396,7 +3396,8 @@
             }
             
             updateAlarmEngineStatus();
-            setInterval(updateAlarmEngineStatus, 3000);
+            if (window._alarmEngineStatusInterval) clearInterval(window._alarmEngineStatusInterval);
+            window._alarmEngineStatusInterval = setInterval(updateAlarmEngineStatus, 30000);
         }
         
         function addAlarmEngineLog(text) {
@@ -7998,6 +7999,17 @@
                 alert('Silme hatası');
             }
         }
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (window._scraperStatusInterval) { clearInterval(window._scraperStatusInterval); window._scraperStatusInterval = null; }
+                if (window._alarmEngineStatusInterval) { clearInterval(window._alarmEngineStatusInterval); window._alarmEngineStatusInterval = null; }
+            } else {
+                updateScraperStatus();
+                updateAlarmEngineStatus();
+                if (!window._scraperStatusInterval) window._scraperStatusInterval = setInterval(updateScraperStatus, 30000);
+                if (!window._alarmEngineStatusInterval) window._alarmEngineStatusInterval = setInterval(updateAlarmEngineStatus, 30000);
+            }
+        });
     </script>
 </body>
 </html>
