@@ -5527,22 +5527,6 @@ async function preloadDropMarkets() {
         }
     }
     console.log('[Preload] Drop markets ready');
-
-    try {
-        const cacheKey = `dropping_1x2|${dateFilterMode}`;
-        if (!_matchesMarketCache[cacheKey]) {
-            const url = dateFilterMode === 'TODAY'
-                ? '/api/matches?market=dropping_1x2&date_filter=today&bulk=1'
-                : '/api/matches?market=dropping_1x2&bulk=1';
-            const resp = await fetch(url);
-            const data = await resp.json();
-            const mArr = data.matches || data;
-            _matchesMarketCache[cacheKey] = { matches: mArr, total: mArr.length, ts: Date.now() };
-            console.log(`[Preload] Cached dropping_1x2 matches: ${mArr.length}`);
-        }
-    } catch (e) {
-        console.warn('[Preload] Failed dropping_1x2 matches:', e.message);
-    }
 }
 
 async function loadOddsTrend(market) {
