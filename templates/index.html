@@ -1032,13 +1032,13 @@
     <script>
         var currentTrendTab = 'analysis';
         function openTrendsModal(tab) {
-            if (window.userPlan !== 'pro') {
-                if (confirm('Bu ozellik PRO uyelikte aktif. PRO paketine yukseltmek ister misiniz?')) {
+            var t = tab || 'analysis';
+            if (t === 'analysis' && window.userPlan !== 'pro') {
+                if (confirm('Analizler PRO uyelikte aktif. PRO paketine yukseltmek ister misiniz?')) {
                     window.location.href = '/pricing';
                 }
                 return;
             }
-            var t = tab || 'analysis';
             var titleEl = document.getElementById('trendsModalTitle');
             var subtitleEl = document.getElementById('trendsModalSubtitle');
             if (t === 'moves') {

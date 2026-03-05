@@ -6137,7 +6137,8 @@ def get_analyses():
                 except:
                     pass
             plan = license_data.get('plan') or 'core'
-            if plan != 'pro':
+            category = request.args.get('category', None)
+            if plan != 'pro' and category != 'moves':
                 return jsonify({'error': 'PRO_REQUIRED', 'message': 'Bu ozellik PRO uyelikte aktif.'}), 403
         else:
             return jsonify({'error': 'INVALID_KEY'}), 401
