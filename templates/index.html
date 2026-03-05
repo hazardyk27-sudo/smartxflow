@@ -676,9 +676,10 @@
                     </button>
                     <button class="btn btn-today desktop-only" onclick="openTrendsModal('moves')">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
                         </svg>
-                        Hareketler
+                        Kılavuz
                     </button>
                     <button class="btn btn-today desktop-only" onclick="openTrendsModal('analysis')">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -710,9 +711,10 @@
                     </div>
                     <button class="mobile-alarm-btn" onclick="openTrendsModal('moves')">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
                         </svg>
-                        <span class="mobile-alarm-text">Hareketler</span>
+                        <span class="mobile-alarm-text">Kılavuz</span>
                     </button>
                     <button class="mobile-alarm-btn" onclick="openTrendsModal('analysis')">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1008,10 +1010,10 @@
 
     <!-- Trendler Modal -->
     <div class="modal-overlay" id="trendsModalOverlay" onclick="closeTrendsModal()" style="display:none;">
-        <div class="modal-content" onclick="event.stopPropagation()" style="max-width:700px;">
+        <div class="modal-content trends-modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <div class="modal-title">
-                    <h2 id="trendsModalTitle">Trendler & Paylaşımlar</h2>
+                    <h2 id="trendsModalTitle">Kılavuz</h2>
                     <span class="modal-subtitle" id="trendsModalSubtitle">Profesyonel piyasa analizleri</span>
                 </div>
                 <button class="modal-close" onclick="closeTrendsModal()">
@@ -1021,16 +1023,25 @@
                     </svg>
                 </button>
             </div>
-            <div class="modal-body" style="padding:16px 20px 20px;">
-                
-                <div id="trendsContent" style="max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;">
-                    <div style="text-align:center;padding:40px;color:#484f58;">Yükleniyor...</div>
+            <div class="modal-body trends-modal-body">
+                <div class="trends-sidebar" id="trendsSidebar">
+                    <div style="text-align:center;padding:30px 10px;color:#484f58;font-size:13px;">Yükleniyor...</div>
+                </div>
+                <div class="trends-content-area" id="trendsContentArea">
+                    <div class="trends-placeholder">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#30363d" stroke-width="1.5">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                        </svg>
+                        <div>Sol menüden bir konu seçin</div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
     <script>
         var currentTrendTab = 'analysis';
+        var trendsDataCache = {};
         function openTrendsModal(tab) {
             var t = tab || 'analysis';
             if (t === 'analysis' && window.userPlan !== 'pro') {
@@ -1039,56 +1050,183 @@
                 }
                 return;
             }
+            currentTrendTab = t;
             var titleEl = document.getElementById('trendsModalTitle');
             var subtitleEl = document.getElementById('trendsModalSubtitle');
+            var contentArea = document.getElementById('trendsContentArea');
             if (t === 'moves') {
-                if (titleEl) titleEl.textContent = 'Hareket Tavsiyeleri';
-                if (subtitleEl) subtitleEl.textContent = 'Profesyonel hareket önerileri';
+                if (titleEl) titleEl.textContent = 'Kılavuz';
+                if (subtitleEl) subtitleEl.textContent = 'Alarm türleri ve kullanım rehberi';
             } else {
                 if (titleEl) titleEl.textContent = 'Analizler';
                 if (subtitleEl) subtitleEl.textContent = 'Profesyonel piyasa analizleri';
             }
+            if (t === 'moves') {
+                contentArea.innerHTML = '<div class="trends-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#30363d" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><div>Sol menüden bir konu seçin</div></div>';
+                document.querySelector('.trends-modal-body').classList.add('sidebar-mode');
+            } else {
+                document.querySelector('.trends-modal-body').classList.remove('sidebar-mode');
+            }
             document.getElementById('trendsModalOverlay').style.display = 'flex';
             document.body.style.overflow = 'hidden';
-            switchTrendTab(t);
             loadTrends(t);
         }
         function closeTrendsModal() {
             document.getElementById('trendsModalOverlay').style.display = 'none';
             document.body.style.overflow = '';
         }
-        function switchTrendTab(tab) {
-            currentTrendTab = tab;
-            loadTrends(tab);
+        function parseTrendsHierarchy(data) {
+            var groups = {};
+            var groupOrder = [];
+            data.forEach(function(item) {
+                var title = item.title || '';
+                var parts = title.split(' - ');
+                var mainTitle = parts[0].trim();
+                var subTitle = parts.length > 1 ? parts.slice(1).join(' - ').trim() : '';
+                if (!groups[mainTitle]) {
+                    groups[mainTitle] = [];
+                    groupOrder.push(mainTitle);
+                }
+                groups[mainTitle].push({
+                    subTitle: subTitle,
+                    content: item.content || '',
+                    image_url: item.image_url || '',
+                    created_at: item.created_at || ''
+                });
+            });
+            return { groups: groups, order: groupOrder };
+        }
+        function renderSidebar(hierarchy) {
+            var sidebar = document.getElementById('trendsSidebar');
+            if (hierarchy.order.length === 0) {
+                sidebar.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#484f58;font-size:13px;">Henüz içerik yok</div>';
+                return;
+            }
+            var html = '';
+            hierarchy.order.forEach(function(mainTitle, gi) {
+                var items = hierarchy.groups[mainTitle];
+                var hasSubItems = items.length > 1 || items[0].subTitle;
+                html += '<div class="sidebar-group" data-group="' + gi + '">';
+                html += '<div class="sidebar-main-title" onclick="toggleSidebarGroup(' + gi + ',' + (hasSubItems ? 'true' : 'false') + ')">';
+                html += '<span>' + mainTitle + '</span>';
+                if (hasSubItems) {
+                    html += '<svg class="sidebar-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';
+                }
+                html += '</div>';
+                if (hasSubItems) {
+                    html += '<div class="sidebar-sub-list" style="display:none;">';
+                    items.forEach(function(sub, si) {
+                        var label = sub.subTitle || 'Genel';
+                        html += '<div class="sidebar-sub-item" data-group="' + gi + '" data-sub="' + si + '" onclick="selectSubItem(' + gi + ',' + si + ')">' + label + '</div>';
+                    });
+                    html += '</div>';
+                }
+                html += '</div>';
+            });
+            sidebar.innerHTML = html;
+        }
+        function toggleSidebarGroup(gi, hasSubItems) {
+            var group = document.querySelector('.sidebar-group[data-group="' + gi + '"]');
+            if (!group) return;
+            if (hasSubItems) {
+                var subList = group.querySelector('.sidebar-sub-list');
+                var chevron = group.querySelector('.sidebar-chevron');
+                if (subList.style.display === 'none') {
+                    subList.style.display = 'block';
+                    if (chevron) chevron.classList.add('open');
+                } else {
+                    subList.style.display = 'none';
+                    if (chevron) chevron.classList.remove('open');
+                }
+            } else {
+                selectSubItem(gi, 0);
+            }
+        }
+        function selectSubItem(gi, si) {
+            document.querySelectorAll('.sidebar-sub-item.active, .sidebar-main-title.active').forEach(function(el) {
+                el.classList.remove('active');
+            });
+            var subEl = document.querySelector('.sidebar-sub-item[data-group="' + gi + '"][data-sub="' + si + '"]');
+            if (subEl) subEl.classList.add('active');
+            var hierarchy = trendsDataCache[currentTrendTab];
+            if (!hierarchy) return;
+            var mainTitle = hierarchy.order[gi];
+            var item = hierarchy.groups[mainTitle][si];
+            var contentArea = document.getElementById('trendsContentArea');
+            var html = '<div class="trends-article">';
+            html += '<h3 class="trends-article-title">' + mainTitle;
+            if (item.subTitle) html += ' <span class="trends-article-sep">—</span> ' + item.subTitle;
+            html += '</h3>';
+            if (item.image_url) {
+                html += '<div class="trends-article-image"><img src="' + item.image_url + '" alt=""></div>';
+            }
+            html += '<div class="trends-article-body">' + item.content + '</div>';
+            if (item.created_at) {
+                var date = new Date(item.created_at).toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'});
+                html += '<div class="trends-article-date">' + date + '</div>';
+            }
+            html += '</div>';
+            contentArea.innerHTML = html;
+        }
+        function renderAnalysisList(data) {
+            var sidebar = document.getElementById('trendsSidebar');
+            var contentArea = document.getElementById('trendsContentArea');
+            if (!data || data.length === 0) {
+                contentArea.innerHTML = '<div class="trends-placeholder"><div style="font-size:32px;margin-bottom:12px;">📊</div><div>Henüz içerik yok</div></div>';
+                sidebar.innerHTML = '';
+                return;
+            }
+            sidebar.innerHTML = '';
+            var html = '';
+            data.forEach(function(item) {
+                var date = item.created_at ? new Date(item.created_at).toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'}) : '';
+                html += '<div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px 20px;">';
+                html += '<div style="font-size:15px;font-weight:600;color:#e6edf3;margin-bottom:8px;">' + (item.title || '') + '</div>';
+                html += '<div style="font-size:13px;color:#8b949e;line-height:1.7;margin-bottom:10px;">' + (item.content || '') + '</div>';
+                if (item.image_url) {
+                    html += '<div style="margin-bottom:10px;"><img src="' + item.image_url + '" style="max-width:100%;border-radius:8px;border:1px solid #30363d;" alt=""></div>';
+                }
+                html += '<div style="font-size:11px;color:#484f58;">' + date + '</div>';
+                html += '</div>';
+            });
+            contentArea.innerHTML = '<div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto;max-height:100%;">' + html + '</div>';
         }
         function loadTrends(category) {
-            var container = document.getElementById('trendsContent');
-            container.innerHTML = '<div style="text-align:center;padding:40px;color:#484f58;">Yükleniyor...</div>';
+            var sidebar = document.getElementById('trendsSidebar');
+            var contentArea = document.getElementById('trendsContentArea');
+            if (category === 'moves') {
+                sidebar.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#484f58;font-size:13px;">Yükleniyor...</div>';
+            } else {
+                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#484f58;font-size:14px;">Yükleniyor...</div></div>';
+            }
             fetch('/api/analyses?category=' + category, {
                 headers: window.userLicenseKey ? {'X-License-Key': window.userLicenseKey} : {}
             })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
-                    if (!data || data.length === 0) {
-                        container.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#484f58;"><div style="font-size:32px;margin-bottom:12px;">📊</div><div style="font-size:14px;">Henüz içerik yok</div></div>';
-                        return;
-                    }
-                    var html = '';
-                    data.forEach(function(item) {
-                        var date = item.created_at ? new Date(item.created_at).toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'}) : '';
-                        html += '<div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px 20px;">';
-                        html += '<div style="font-size:15px;font-weight:600;color:#e6edf3;margin-bottom:8px;">' + (item.title || '') + '</div>';
-                        html += '<div style="font-size:13px;color:#8b949e;line-height:1.7;margin-bottom:10px;">' + (item.content || '') + '</div>';
-                        if (item.image_url) {
-                            html += '<div style="margin-bottom:10px;"><img src="' + item.image_url + '" style="max-width:100%;border-radius:8px;border:1px solid #30363d;" alt=""></div>';
+                    if (category === 'moves') {
+                        var hierarchy = parseTrendsHierarchy(data || []);
+                        trendsDataCache[category] = hierarchy;
+                        renderSidebar(hierarchy);
+                        if (hierarchy.order.length > 0) {
+                            var firstGroup = hierarchy.groups[hierarchy.order[0]];
+                            if (firstGroup.length > 1 || firstGroup[0].subTitle) {
+                                toggleSidebarGroup(0, true);
+                                selectSubItem(0, 0);
+                            } else {
+                                selectSubItem(0, 0);
+                            }
                         }
-                        html += '<div style="font-size:11px;color:#484f58;">' + date + '</div>';
-                        html += '</div>';
-                    });
-                    container.innerHTML = html;
+                    } else {
+                        renderAnalysisList(data);
+                    }
                 })
                 .catch(function() {
-                    container.innerHTML = '<div style="text-align:center;padding:40px;color:#f85149;">Veriler yüklenemedi</div>';
+                    if (category === 'moves') {
+                        sidebar.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#f85149;font-size:13px;">Yüklenemedi</div>';
+                    } else {
+                        contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';
+                    }
                 });
         }
     </script>
