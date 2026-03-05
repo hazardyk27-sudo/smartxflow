@@ -41,6 +41,7 @@ The system uses a hybrid architecture with Supabase as the single source of trut
 **Features & Specifications:**
 - **Data Collection:** Supports 6 markets (1X2, O/U 2.5, BTTS for Moneyway and Dropping Odds).
 - **Web UI:** Dark theme, Chart.js graphs, match detail modals.
+- **Onboarding Tutorial:** First-visit step-by-step tutorial overlay highlighting key UI elements (alarm band, market tabs, buttons, table columns). Desktop: 7 steps, Mobile: 5 steps. Uses `localStorage('sxf_tutorial_done')` to track completion. Restartable from Kılavuz modal header ("Öğreticiyi Göster" button). Handles resize, missing elements, overlay click-to-close.
 - **Alarm Grouping:** Alarms for the same match, type, and market/selection are grouped, showing the latest alarm and history.
 - **Timezone:** All backend/DB timestamps are UTC; frontend displays in `Europe/Istanbul`.
 - **Scrape Interval:** Fixed at 10 minutes.
