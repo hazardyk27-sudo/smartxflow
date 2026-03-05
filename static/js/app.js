@@ -4945,34 +4945,32 @@ function showExportNotification(message, isError = false) {
     setTimeout(() => notification.remove(), 4000);
 }
 
-async function savePNGViaAPI(imageData, filename) {
-    console.log('[PNG Export] Starting save, filename:', filename);
-    console.log('[PNG Export] isEXE:', isEXEEnvironment());
-    
+async function savePNGViaAPI(canvasOrDataUrl, filename) {
     if (isEXEEnvironment()) {
         try {
+            const imageData = (canvasOrDataUrl instanceof HTMLCanvasElement) ? canvasOrDataUrl.toDataURL('image/png') : canvasOrDataUrl;
             const response = await fetch('/api/export/png', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ image: imageData, filename: filename })
             });
             const result = await response.json();
-            console.log('[PNG Export] API response:', result);
-            
             if (result.success) {
                 showExportNotification(`PNG kaydedildi: ${result.path}`);
                 return true;
-            } else {
-                console.warn('[PNG Export] API failed:', result.error);
             }
         } catch (err) {
             console.error('[PNG Export] API error:', err);
         }
     }
     
-    console.log('[PNG Export] Browser download');
     try {
-        const blob = await (await fetch(imageData)).blob();
+        let blob;
+        if (canvasOrDataUrl instanceof HTMLCanvasElement) {
+            blob = await new Promise(resolve => canvasOrDataUrl.toBlob(resolve, 'image/png'));
+        } else {
+            blob = await (await fetch(canvasOrDataUrl)).blob();
+        }
         const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.download = filename;
@@ -4980,12 +4978,7 @@ async function savePNGViaAPI(imageData, filename) {
         link.style.display = 'none';
         document.body.appendChild(link);
         link.click();
-        
-        setTimeout(() => {
-            document.body.removeChild(link);
-            URL.revokeObjectURL(blobUrl);
-        }, 200);
-        
+        setTimeout(() => { document.body.removeChild(link); URL.revokeObjectURL(blobUrl); }, 200);
         showExportNotification('PNG indirildi');
         return true;
     } catch (downloadErr) {
@@ -4996,16 +4989,13 @@ async function savePNGViaAPI(imageData, filename) {
 }
 
 function exportChartPNG() {
-    console.log('[PNG Export] exportChartPNG called');
-    
     if (!selectedMatch) {
-        console.error('[PNG Export] No match selected');
         showExportNotification('Maç bulunamadı', true);
         return;
     }
     
     const exportBtn = document.querySelector('.chart-export-btn');
-    if (exportBtn) exportBtn.textContent = 'Exporting...';
+    if (exportBtn) exportBtn.textContent = '⏳';
     
     const resetButton = () => {
         if (exportBtn) {
@@ -5018,18 +5008,19 @@ function exportChartPNG() {
                 PNG
             `;
         }
+        removeExportOverlay();
     };
     
     const filename = generateExportFilename('png');
-    console.log('[PNG Export] Filename:', filename);
     
     const modalContent = document.querySelector('.modal-content');
     if (!modalContent) {
-        console.error('[PNG Export] Modal content not found');
         showExportNotification('Modal bulunamadı', true);
         resetButton();
         return;
     }
+    
+    showExportOverlay(modalContent);
     
     const closeBtn = document.querySelector('.modal-close');
     const exportBtns = document.querySelector('.chart-export-btns');
@@ -5074,47 +5065,56 @@ function exportChartPNG() {
     };
     
     if (typeof html2canvas === 'undefined') {
-        console.error('[PNG Export] html2canvas not loaded');
         restoreStyles();
         showExportNotification('PNG kütüphanesi yüklenemedi', true);
         resetButton();
         return;
     }
     
-    console.log('[PNG Export] html2canvas available, starting capture...');
-    
     if (chart) {
         chart.options.animation = false;
         chart.update('none');
     }
     
-    setTimeout(() => {
-        html2canvas(modalContent, {
-            backgroundColor: '#15202b',
-            scale: 2,
-            useCORS: true,
-            allowTaint: false,
-            logging: true,
-            onclone: function(clonedDoc) {
-                const clonedCanvas = clonedDoc.querySelector('#oddsChart');
-                if (clonedCanvas) {
-                    clonedCanvas.crossOrigin = 'anonymous';
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            html2canvas(modalContent, {
+                backgroundColor: '#15202b',
+                scale: window.devicePixelRatio || 1,
+                useCORS: true,
+                allowTaint: false,
+                logging: false,
+                imageTimeout: 5000,
+                onclone: function(clonedDoc) {
+                    const clonedCanvas = clonedDoc.querySelector('#oddsChart');
+                    if (clonedCanvas) clonedCanvas.crossOrigin = 'anonymous';
                 }
-            }
-        }).then(async canvas => {
-            console.log('[PNG Export] Canvas created, size:', canvas.width, 'x', canvas.height);
-            restoreStyles();
-            const imageData = canvas.toDataURL('image/png');
-            console.log('[PNG Export] Image data length:', imageData.length);
-            await savePNGViaAPI(imageData, filename);
-            resetButton();
-        }).catch(err => {
-            restoreStyles();
-            console.error('[PNG Export] html2canvas error:', err);
-            showExportNotification('PNG oluşturma hatası: ' + err.message, true);
-            resetButton();
-        });
-    }, 300);
+            }).then(async canvas => {
+                restoreStyles();
+                await savePNGViaAPI(canvas, filename);
+                resetButton();
+            }).catch(err => {
+                restoreStyles();
+                showExportNotification('PNG oluşturma hatası: ' + err.message, true);
+                resetButton();
+            });
+        }, 50);
+    });
+}
+
+function showExportOverlay(container) {
+    removeExportOverlay();
+    const overlay = document.createElement('div');
+    overlay.id = 'pngExportOverlay';
+    overlay.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(21,32,43,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;border-radius:12px;pointer-events:none;';
+    overlay.innerHTML = '<div style="color:#fff;font-size:14px;text-align:center;"><div style="margin-bottom:8px;font-size:24px;">⏳</div>PNG hazırlanıyor...</div>';
+    container.style.position = 'relative';
+    container.appendChild(overlay);
+}
+
+function removeExportOverlay() {
+    const existing = document.getElementById('pngExportOverlay');
+    if (existing) existing.remove();
 }
 
 function exportChartPNGFallback(filename, resetButton) {
@@ -5177,47 +5177,34 @@ function exportChartPNGFallback(filename, resetButton) {
         chart.update('none');
     }
     
-    setTimeout(() => {
-        html2canvas(modalContent, {
-            backgroundColor: '#161b22',
-            scale: 2,
-            logging: false,
-            useCORS: true,
-            allowTaint: false,
-            height: modalContent.scrollHeight,
-            windowHeight: modalContent.scrollHeight,
-            scrollY: 0,
-            scrollX: 0,
-            onclone: function(clonedDoc) {
-                const clonedCanvas = clonedDoc.querySelector('#oddsChart');
-                if (clonedCanvas) {
-                    clonedCanvas.crossOrigin = 'anonymous';
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            html2canvas(modalContent, {
+                backgroundColor: '#161b22',
+                scale: window.devicePixelRatio || 1,
+                logging: false,
+                useCORS: true,
+                allowTaint: false,
+                imageTimeout: 5000,
+                height: modalContent.scrollHeight,
+                windowHeight: modalContent.scrollHeight,
+                scrollY: 0,
+                scrollX: 0,
+                onclone: function(clonedDoc) {
+                    const clonedCanvas = clonedDoc.querySelector('#oddsChart');
+                    if (clonedCanvas) clonedCanvas.crossOrigin = 'anonymous';
                 }
-            }
-        }).then(async canvas => {
-            restoreStyles();
-            
-            const imageData = canvas.toDataURL('image/png', 1.0);
-            const saved = await savePNGViaAPI(imageData, filename);
-            
-            if (!saved) {
-                const link = document.createElement('a');
-                link.download = filename;
-                link.href = imageData;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                showExportNotification('PNG indirildi');
-            }
-            
-            resetButton();
-        }).catch(err => {
-            restoreStyles();
-            console.error('html2canvas error:', err);
-            showExportNotification('PNG oluşturma hatası', true);
-            resetButton();
-        });
-    }, 300);
+            }).then(async canvas => {
+                restoreStyles();
+                await savePNGViaAPI(canvas, filename);
+                resetButton();
+            }).catch(err => {
+                restoreStyles();
+                showExportNotification('PNG oluşturma hatası', true);
+                resetButton();
+            });
+        }, 50);
+    });
 }
 
 function exportChartCSV() {
