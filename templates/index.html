@@ -1074,6 +1074,8 @@
         function closeTrendsModal() {
             document.getElementById('trendsModalOverlay').style.display = 'none';
             document.body.style.overflow = '';
+            var body = document.querySelector('.trends-modal-body');
+            if (body) body.classList.remove('mobile-article-open');
         }
         function parseTrendsHierarchy(data) {
             var groups = {};
@@ -1142,6 +1144,9 @@
                 selectSubItem(gi, 0);
             }
         }
+        function isMobileView() {
+            return window.innerWidth <= 768;
+        }
         function selectSubItem(gi, si) {
             document.querySelectorAll('.sidebar-sub-item.active, .sidebar-main-title.active').forEach(function(el) {
                 el.classList.remove('active');
@@ -1153,7 +1158,15 @@
             var mainTitle = hierarchy.order[gi];
             var item = hierarchy.groups[mainTitle][si];
             var contentArea = document.getElementById('trendsContentArea');
-            var html = '<div class="trends-article">';
+            var html = '';
+            if (isMobileView()) {
+                html += '<div class="trends-mobile-back" onclick="mobileBackToList()">';
+                html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>';
+                html += '<span>Geri</span>';
+                html += '</div>';
+                html += '<div class="trends-mobile-content-wrap">';
+            }
+            html += '<div class="trends-article">';
             html += '<h3 class="trends-article-title">' + mainTitle;
             if (item.subTitle) html += ' <span class="trends-article-sep">—</span> ' + item.subTitle;
             html += '</h3>';
@@ -1166,7 +1179,16 @@
                 html += '<div class="trends-article-date">' + date + '</div>';
             }
             html += '</div>';
+            if (isMobileView()) {
+                html += '</div>';
+            }
             contentArea.innerHTML = html;
+            if (isMobileView()) {
+                document.querySelector('.trends-modal-body').classList.add('mobile-article-open');
+            }
+        }
+        function mobileBackToList() {
+            document.querySelector('.trends-modal-body').classList.remove('mobile-article-open');
         }
         function renderAnalysisList(data) {
             var sidebar = document.getElementById('trendsSidebar');
@@ -1208,7 +1230,7 @@
                         var hierarchy = parseTrendsHierarchy(data || []);
                         trendsDataCache[category] = hierarchy;
                         renderSidebar(hierarchy);
-                        if (hierarchy.order.length > 0) {
+                        if (hierarchy.order.length > 0 && !isMobileView()) {
                             var firstGroup = hierarchy.groups[hierarchy.order[0]];
                             if (firstGroup.length > 1 || firstGroup[0].subTitle) {
                                 toggleSidebarGroup(0, true);

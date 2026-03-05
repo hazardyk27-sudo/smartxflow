@@ -1140,22 +1140,91 @@ h1, h2, h3, h4, h5, h6,
 @media (max-width: 768px) {
     .trends-modal-content {
         max-width: 100%;
+        max-height: 90vh;
+        border-radius: 14px 14px 0 0;
+        margin-top: auto;
+    }
+    .trends-modal-body {
+        height: 70vh;
     }
     .trends-modal-body.sidebar-mode {
-        flex-direction: column;
+        flex-direction: row;
+        position: relative;
+        overflow: hidden;
     }
     .trends-sidebar {
         width: 100%;
-        min-width: unset;
-        max-height: 200px;
+        min-width: 100%;
+        max-height: none;
         border-right: none;
-        border-bottom: 1px solid #21262d;
+        border-bottom: none;
+        transition: transform 0.25s ease;
     }
     .trends-content-area {
-        padding: 16px;
+        width: 100%;
+        min-width: 100%;
+        padding: 0;
+        transition: transform 0.25s ease;
     }
-    .trends-modal-body {
-        height: 75vh;
+    .sidebar-mode .trends-sidebar,
+    .sidebar-mode .trends-content-area {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+    }
+    .sidebar-mode .trends-content-area {
+        left: 100%;
+    }
+    .sidebar-mode.mobile-article-open .trends-sidebar {
+        transform: translateX(-100%);
+    }
+    .sidebar-mode.mobile-article-open .trends-content-area {
+        transform: translateX(-100%);
+    }
+    .trends-mobile-back {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 16px;
+        color: #00ffb3;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        border-bottom: 1px solid #21262d;
+        background: #0d1117;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
+    .trends-mobile-back:active {
+        background: rgba(0,255,179,0.08);
+    }
+    .trends-mobile-content-wrap {
+        padding: 16px;
+        overflow-y: auto;
+        height: calc(100% - 46px);
+    }
+    .sidebar-main-title {
+        padding: 14px 18px;
+        font-size: 14px;
+    }
+    .sidebar-sub-item {
+        padding: 12px 18px 12px 36px;
+        font-size: 13px;
+    }
+    .trends-article-title {
+        font-size: 16px;
+    }
+    .trends-article-body {
+        font-size: 13px;
+        line-height: 1.7;
+    }
+}
+
+@media (min-width: 769px) {
+    .trends-mobile-back {
+        display: none;
     }
 }
 
