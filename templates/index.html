@@ -1431,7 +1431,9 @@
                 try { step.onEnter(); } catch(e) {}
             }
 
-            setTimeout(function() {
+            function renderStepUI() {
+                if (!tutorialActive) return;
+
                 var el = document.querySelector(step.selector);
                 if (el) {
                     el.classList.add('tutorial-highlight');
@@ -1463,7 +1465,28 @@
                     '</div>';
 
                 setTimeout(function() { positionTooltip(el, step.pos); }, 100);
-            }, 350);
+            }
+
+            if (step.onEnter) {
+                var pollCount = 0;
+                var maxPoll = 30;
+                function waitForReady() {
+                    if (!tutorialActive) return;
+                    pollCount++;
+                    var tbody = document.getElementById('matchesTableBody');
+                    var tableLoading = tbody && tbody.querySelector('.loading-row');
+                    var targetEl = document.querySelector(step.selector);
+                    var notReady = tableLoading || (!targetEl && pollCount < 5);
+                    if (notReady && pollCount < maxPoll) {
+                        setTimeout(waitForReady, 200);
+                        return;
+                    }
+                    renderStepUI();
+                }
+                setTimeout(waitForReady, 200);
+            } else {
+                setTimeout(renderStepUI, 350);
+            }
         }
 
         function positionTooltip(targetEl, preferredPos) {
