@@ -58,6 +58,10 @@ COOKIE_STRING = "FCNEC=%5B%5B%22AKsRol_FbFM4-_5I284lzPHjFMSw_YMHo0DSgfdxUcJQS95G
 localPort = 5000
 externalPort = 80
 
+[[ports]]
+localPort = 5904
+externalPort = 3000
+
 [deployment]
 deploymentTarget = "vm"
 run = ["bash", "-c", "python app.py & bash run_services.sh & wait"]
