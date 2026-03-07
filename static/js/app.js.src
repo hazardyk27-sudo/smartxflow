@@ -1105,7 +1105,7 @@ async function fetchAnalysisMatchHashes() {
 function getAnalysisStarHtml(matchId) {
     if (!matchId || !_analysisMatchHashes.length) return '';
     if (_analysisMatchHashes.indexOf(matchId) === -1) return '';
-    return '<span class="analysis-star" title="Bu maç ile ilgili analiz mevcut" onclick="event.stopPropagation(); openTrendsModal(\'analysis\');">⭐</span>';
+    return '<span class="analysis-star" title="Bu maç ile ilgili analiz mevcut" onclick="event.stopPropagation(); openTrendsModal(\'analysis\');">★</span>';
 }
 
 function renderMatches(data) {
