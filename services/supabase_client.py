@@ -1991,7 +1991,7 @@ class SupabaseClient:
             print(f"[Supabase] get_analyses error: {e}")
             return []
 
-    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None, odds: str = None, confidence: int = None) -> Optional[Dict]:
+    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None, odds: str = None, confidence: float = None) -> Optional[Dict]:
         """Create new analysis entry"""
         if not self.is_available:
             return None
@@ -2020,7 +2020,7 @@ class SupabaseClient:
             print(f"[Supabase] create_analysis error: {e}")
             return None
 
-    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None, odds: str = None, confidence: int = None) -> bool:
+    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None, odds: str = None, confidence: float = None) -> bool:
         """Update analysis by id"""
         if not self.is_available:
             return False
@@ -2312,12 +2312,12 @@ class HybridDatabase:
             return self.supabase.get_analyses(category)
         return []
 
-    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None, odds: str = None, confidence: int = None) -> Optional[Dict]:
+    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None, odds: str = None, confidence: float = None) -> Optional[Dict]:
         if self.supabase.is_available:
             return self.supabase.create_analysis(title, content, image_url, category, match_id_hash, odds, confidence)
         return None
 
-    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None, odds: str = None, confidence: int = None) -> bool:
+    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None, odds: str = None, confidence: float = None) -> bool:
         if self.supabase.is_available:
             return self.supabase.update_analysis(analysis_id, title, content, image_url, match_id_hash, odds, confidence)
         return False
