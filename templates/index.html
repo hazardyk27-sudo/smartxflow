@@ -1227,9 +1227,17 @@
             });
             contentArea.innerHTML = '<div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto;max-height:100%;">' + html + '</div>';
         }
+        var _trendsRawCache = {};
+        var _trendsRawCacheTs = {};
+        var _TRENDS_CACHE_TTL = 60000;
         function loadTrends(category) {
             var sidebar = document.getElementById('trendsSidebar');
             var contentArea = document.getElementById('trendsContentArea');
+            var now = Date.now();
+            if (_trendsRawCache[category] && (now - (_trendsRawCacheTs[category] || 0)) < _TRENDS_CACHE_TTL) {
+                _renderTrendsData(category, _trendsRawCache[category]);
+                return;
+            }
             if (category === 'moves') {
                 sidebar.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#484f58;font-size:13px;">Yükleniyor...</div>';
             } else {
@@ -1240,22 +1248,11 @@
             })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
-                    if (category === 'moves') {
-                        var hierarchy = parseTrendsHierarchy(data || []);
-                        trendsDataCache[category] = hierarchy;
-                        renderSidebar(hierarchy);
-                        if (hierarchy.order.length > 0 && !isMobileView()) {
-                            var firstGroup = hierarchy.groups[hierarchy.order[0]];
-                            if (firstGroup.length > 1 || firstGroup[0].subTitle) {
-                                toggleSidebarGroup(0, true);
-                                selectSubItem(0, 0);
-                            } else {
-                                selectSubItem(0, 0);
-                            }
-                        }
-                    } else {
-                        renderAnalysisList(data);
+                    if (data && !data.error) {
+                        _trendsRawCache[category] = data;
+                        _trendsRawCacheTs[category] = Date.now();
                     }
+                    _renderTrendsData(category, data);
                 })
                 .catch(function() {
                     if (category === 'moves') {
@@ -1264,6 +1261,24 @@
                         contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';
                     }
                 });
+        }
+        function _renderTrendsData(category, data) {
+            if (category === 'moves') {
+                var hierarchy = parseTrendsHierarchy(data || []);
+                trendsDataCache[category] = hierarchy;
+                renderSidebar(hierarchy);
+                if (hierarchy.order.length > 0 && !isMobileView()) {
+                    var firstGroup = hierarchy.groups[hierarchy.order[0]];
+                    if (firstGroup.length > 1 || firstGroup[0].subTitle) {
+                        toggleSidebarGroup(0, true);
+                        selectSubItem(0, 0);
+                    } else {
+                        selectSubItem(0, 0);
+                    }
+                }
+            } else {
+                renderAnalysisList(data);
+            }
         }
 
         var tutorialStepsDesktop = [

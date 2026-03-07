@@ -6111,9 +6111,13 @@ def admin_logout():
     return redirect('/admin/login')
 
 
+_analyses_cache = {'analysis': {'data': None, 'ts': 0}, 'moves': {'data': None, 'ts': 0}}
+_ANALYSES_CACHE_TTL = 60
+
 @app.route('/api/analyses', methods=['GET'])
 def get_analyses():
     """Get analyses list - PRO only (admin bypass with referer check)"""
+    import time as _time
     referer = request.headers.get('Referer', '')
     is_admin = request.args.get('admin') == 'true' and '/admin' in referer
     if is_admin:
@@ -6146,7 +6150,12 @@ def get_analyses():
         return jsonify({'error': 'PRO_REQUIRED', 'message': 'Bu ozellik PRO uyelikte aktif.'}), 403
     
     category = request.args.get('category', None)
+    cache_key = category or 'all'
+    now = _time.time()
+    if cache_key in _analyses_cache and _analyses_cache[cache_key]['data'] is not None and (now - _analyses_cache[cache_key]['ts']) < _ANALYSES_CACHE_TTL:
+        return jsonify(_analyses_cache[cache_key]['data'])
     data = db.get_analyses(category)
+    _analyses_cache[cache_key] = {'data': data, 'ts': now}
     return jsonify(data)
 
 @app.route('/api/admin/matches-for-dropdown')
@@ -6214,6 +6223,8 @@ def create_analysis():
     
     result = db.create_analysis(title, content, image_url, category, match_id_hash, odds, confidence)
     if result:
+        for k in _analyses_cache:
+            _analyses_cache[k] = {'data': None, 'ts': 0}
         return jsonify({'status': 'ok', 'data': result})
     return jsonify({'status': 'error', 'message': 'Analiz oluşturulamadı'}), 500
 
@@ -6241,6 +6252,8 @@ def update_analysis_endpoint(analysis_id):
             pass
     success = db.update_analysis(analysis_id, title, content, image_url, match_id_hash, odds, confidence)
     if success:
+        for k in _analyses_cache:
+            _analyses_cache[k] = {'data': None, 'ts': 0}
         return jsonify({'status': 'ok'})
     return jsonify({'status': 'error'}), 500
 
@@ -6260,6 +6273,8 @@ def delete_analysis_endpoint(analysis_id):
     """Delete analysis"""
     success = db.delete_analysis(analysis_id)
     if success:
+        for k in _analyses_cache:
+            _analyses_cache[k] = {'data': None, 'ts': 0}
         return jsonify({'status': 'ok'})
     return jsonify({'status': 'error'}), 500
 
