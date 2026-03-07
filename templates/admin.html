@@ -7862,7 +7862,8 @@
                     list.innerHTML = '<div style="text-align: center; color: #8b949e; padding: 40px;">Henüz içerik yok</div>';
                     return;
                 }
-                list.innerHTML = data.map(item => {
+                window._contentListData = data;
+                list.innerHTML = data.map((item, idx) => {
                     let titleHtml = '';
                     if (currentContentTab === 'moves') {
                         const parts = (item.title || '').split(' - ');
@@ -7885,7 +7886,7 @@
                             ${item.image_url ? `<img src="${item.image_url}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 6px; margin-left: 12px; border: 1px solid #30363d;">` : ''}
                         </div>
                         <div style="margin-top: 10px; text-align: right; display: flex; gap: 8px; justify-content: flex-end;">
-                            <button onclick='editContent(${item.id}, ${JSON.stringify(escapeHtml(item.title))}, ${JSON.stringify(escapeHtml(item.content))}, ${JSON.stringify(item.match_id_hash || "")}, ${JSON.stringify(item.odds || "")}, ${JSON.stringify(item.confidence || "")})' style="background: #1f6feb; border: none; color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Düzenle</button>
+                            <button onclick="editContentByIndex(${idx})" style="background: #1f6feb; border: none; color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Düzenle</button>
                             <button onclick="deleteContent(${item.id})" style="background: #da3633; border: none; color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Sil</button>
                         </div>
                     </div>
@@ -8073,6 +8074,12 @@
         }
 
         let editingContentId = null;
+
+        function editContentByIndex(idx) {
+            var item = window._contentListData && window._contentListData[idx];
+            if (!item) return;
+            editContent(item.id, item.title || '', item.content || '', item.match_id_hash || '', item.odds || '', item.confidence || '');
+        }
 
         function editContent(id, title, content, matchIdHash, odds, confidence) {
             editingContentId = id;
