@@ -2003,6 +2003,13 @@ class SupabaseClient:
             if resp.status_code in [200, 201]:
                 result = resp.json()
                 return result[0] if isinstance(result, list) else result
+            if resp.status_code == 400 and 'match_id_hash' in resp.text and match_id_hash:
+                print(f"[Supabase] create_analysis: match_id_hash column not found, retrying without it")
+                data.pop("match_id_hash", None)
+                resp = self._get_http_client().post(self._rest_url('analyses'), json=data, headers=self._headers(), timeout=15)
+                if resp.status_code in [200, 201]:
+                    result = resp.json()
+                    return result[0] if isinstance(result, list) else result
             print(f"[Supabase] create_analysis failed: {resp.status_code} {resp.text[:200]}")
             return None
         except Exception as e:
@@ -2023,7 +2030,14 @@ class SupabaseClient:
             if match_id_hash is not None:
                 data["match_id_hash"] = match_id_hash
             resp = httpx.patch(url, json=data, headers=headers, timeout=15)
-            return resp.status_code in [200, 204]
+            if resp.status_code in [200, 204]:
+                return True
+            if resp.status_code == 400 and 'match_id_hash' in resp.text and match_id_hash is not None:
+                print(f"[Supabase] update_analysis: match_id_hash column not found, retrying without it")
+                data.pop("match_id_hash", None)
+                resp = httpx.patch(url, json=data, headers=headers, timeout=15)
+                return resp.status_code in [200, 204]
+            return False
         except Exception as e:
             print(f"[Supabase] update_analysis error: {e}")
             return False
