@@ -14,6 +14,8 @@ let currentChartHistoryData = [];
 let chartViewMode = 'percent';
 let isClientMode = true;
 let _modalRequestId = 0;
+let _analysisMatchHashes = [];
+let _analysisHashesFetched = false;
 
 let _licenseReadyResolve;
 const _licenseReady = new Promise(r => { _licenseReadyResolve = r; });
@@ -572,6 +574,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await _licenseReady;
     if (!_isLicensed) return;
     
+    fetchAnalysisMatchHashes();
     loadMatches();
     checkStatus();
     window.statusInterval = window.setInterval(checkStatus, 60000);
@@ -1088,6 +1091,23 @@ function cleanPct(val) {
     return String(val).replace(/%/g, '').trim();
 }
 
+async function fetchAnalysisMatchHashes() {
+    try {
+        const resp = await fetch('/api/analyses/match-hashes');
+        if (resp.ok) {
+            const data = await resp.json();
+            _analysisMatchHashes = Array.isArray(data) ? data : (data.hashes || []);
+            _analysisHashesFetched = true;
+        }
+    } catch(e) {}
+}
+
+function getAnalysisStarHtml(matchId) {
+    if (!matchId || !_analysisMatchHashes.length) return '';
+    if (_analysisMatchHashes.indexOf(matchId) === -1) return '';
+    return '<span class="analysis-star" title="Bu maç ile ilgili analiz mevcut" onclick="event.stopPropagation(); openTrendsModal(\'analysis\');">⭐</span>';
+}
+
 function renderMatches(data) {
     console.log('[renderMatches] Called with', data?.length || 0, 'matches');
     const tbody = document.getElementById('matchesTableBody');
@@ -1131,6 +1151,7 @@ function renderMatches(data) {
     
     let html = displayData.map((match, idx) => {
         const d = match.details || match.odds || {};
+        const _star = getAnalysisStarHtml(match.match_id);
         
         if (currentMarket.includes('1x2')) {
             const trend1 = isDropping ? (getDirectTrendArrow(d.Trend1) || getTableTrendArrow(d.Odds1 || d['1'], d.Odds1_prev || d.PrevOdds1)) : '';
@@ -1146,7 +1167,7 @@ function renderMatches(data) {
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
                         <td class="mw-outcomes-cell" colspan="3">
                             <div class="mw-grid mw-grid-3">
                                 ${block1}
@@ -1172,7 +1193,7 @@ function renderMatches(data) {
                     <tr class="dropping-1x2-row" data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
                         <td class="drop-cell">${cell1}</td>
                         <td class="drop-cell">${cellX}</td>
                         <td class="drop-cell">${cell2}</td>
@@ -1192,7 +1213,7 @@ function renderMatches(data) {
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
                         <td class="mw-outcomes-cell" colspan="2">
                             <div class="mw-grid mw-grid-2">
                                 ${blockUnder}
@@ -1215,7 +1236,7 @@ function renderMatches(data) {
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
                         <td class="selection-cell"><div>${cellUnder}</div></td>
                         <td class="selection-cell"><div>${cellOver}</div></td>
                         <td class="volume-cell">${formatVolume(d.Volume)}</td>
@@ -1234,7 +1255,7 @@ function renderMatches(data) {
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
                         <td class="mw-outcomes-cell" colspan="2">
                             <div class="mw-grid mw-grid-2">
                                 ${blockYes}
@@ -1257,7 +1278,7 @@ function renderMatches(data) {
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
                         <td class="selection-cell"><div>${cellYes}</div></td>
                         <td class="selection-cell"><div>${cellNo}</div></td>
                         <td class="volume-cell">${formatVolume(d.Volume)}</td>
@@ -1326,6 +1347,7 @@ function renderMobileMatchCards(data) {
     const html = data.map((match, idx) => {
         const d = match.details || match.odds || {};
         const volume = formatVolumeCompact(d.Volume);
+        const _mStar = getAnalysisStarHtml(match.match_id);
         
         // Format date for mobile: "4 Oca 20:30"
         let dateStr = '';
@@ -1342,19 +1364,19 @@ function renderMobileMatchCards(data) {
         
         // Moneyway view: Show odds with percentage donut
         if (isMoneyway) {
-            return renderMobileMoneywayCard(match, idx, d, volume, dateStr);
+            return renderMobileMoneywayCard(match, idx, d, volume, dateStr, _mStar);
         }
         
         // Dropping view: Show odds with percentage changes
         if (isDropping) {
-            return renderMobileOddsCard(match, idx, d, volume, dateStr);
+            return renderMobileOddsCard(match, idx, d, volume, dateStr, _mStar);
         }
         
         // Default card
         return `
             <div class="match-card" data-index="${idx}" onclick="openMatchModal(${idx})">
                 <div class="match-card-left">
-                    <div class="match-card-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</div>
+                    <div class="match-card-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${_mStar}</div>
                     <div class="match-card-meta">
                         <span class="match-card-league">${match.league || '-'}</span>
                         <span class="match-card-separator">•</span>
@@ -1373,7 +1395,7 @@ function renderMobileMatchCards(data) {
 }
 
 // Mobile Moneyway Card - Shows odds with betting percentages
-function renderMobileMoneywayCard(match, idx, d, volume, dateStr) {
+function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
     let oddsBlocks = '';
     
     if (currentMarket.includes('1x2')) {
@@ -1404,7 +1426,7 @@ function renderMobileMoneywayCard(match, idx, d, volume, dateStr) {
     return `
         <div class="match-card odds-card moneyway-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
-                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${matchStatus}</div>
+                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
             <div class="odds-card-meta">
@@ -1440,7 +1462,7 @@ function renderMobileMoneywayBlock(label, oddsValue, pctValue) {
 }
 
 // Mobile Odds Card - Shows odds with percentage drop changes (for Dropping/Odds pages)
-function renderMobileOddsCard(match, idx, d, volume, dateStr) {
+function renderMobileOddsCard(match, idx, d, volume, dateStr, starHtml) {
     let oddsBlocks = '';
     
     // For Dropping Odds, use API data directly (PrevOdds = 24h ago odds from backend)
@@ -1480,7 +1502,7 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr) {
     return `
         <div class="match-card odds-card dropping-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
-                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${matchStatus}</div>
+                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
             <div class="odds-card-meta">

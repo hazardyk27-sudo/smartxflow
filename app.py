@@ -6149,12 +6149,39 @@ def get_analyses():
     data = db.get_analyses(category)
     return jsonify(data)
 
+@app.route('/api/admin/matches-for-dropdown')
+def admin_matches_for_dropdown():
+    """Return match list for admin analysis dropdown (admin session required)"""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    try:
+        matches_raw = db.get_all_matches_with_latest('moneyway_1x2')
+        result = []
+        for m in matches_raw:
+            home = m.get('home_team', '')
+            away = m.get('away_team', '')
+            league = m.get('league', '')
+            date = m.get('date', '')
+            match_hash = m.get('match_id_hash', generate_match_id(home, away, league, date))
+            result.append({
+                'home_team': home,
+                'away_team': away,
+                'league': league,
+                'date': date,
+                'match_id': match_hash
+            })
+        return jsonify({'matches': result, 'total': len(result)})
+    except Exception as e:
+        print(f"[Admin] matches-for-dropdown error: {e}")
+        return jsonify({'matches': [], 'total': 0})
+
 @app.route('/api/analyses', methods=['POST'])
 def create_analysis():
     """Create new analysis with optional image upload"""
     title = request.form.get('title', '')
     content = request.form.get('content', '')
     category = request.form.get('category', 'analysis')
+    match_id_hash = request.form.get('match_id_hash', None) or None
     
     if not title or not content:
         return jsonify({'status': 'error', 'message': 'Başlık ve içerik zorunludur'}), 400
@@ -6177,7 +6204,7 @@ def create_analysis():
             content_type = file.content_type or 'image/png'
             image_url = db.upload_to_storage('smartxflow', file_path, file_data, content_type)
     
-    result = db.create_analysis(title, content, image_url, category)
+    result = db.create_analysis(title, content, image_url, category, match_id_hash)
     if result:
         return jsonify({'status': 'ok', 'data': result})
     return jsonify({'status': 'error', 'message': 'Analiz oluşturulamadı'}), 500
@@ -6195,10 +6222,22 @@ def update_analysis_endpoint(analysis_id):
             if ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
                 file_path = f"analyses/{uuid.uuid4().hex}.{ext}"
                 image_url = db.upload_file(file_path, file.read(), file.content_type)
-    success = db.update_analysis(analysis_id, title, content, image_url)
+    match_id_hash = request.form.get('match_id_hash', None) or None
+    success = db.update_analysis(analysis_id, title, content, image_url, match_id_hash)
     if success:
         return jsonify({'status': 'ok'})
     return jsonify({'status': 'error'}), 500
+
+@app.route('/api/analyses/match-hashes')
+def get_analysis_match_hashes():
+    """Return list of match_id_hash values that have analyses"""
+    try:
+        analyses = db.get_analyses(category='analysis')
+        hashes = list(set(a.get('match_id_hash') for a in analyses if a.get('match_id_hash')))
+        return jsonify(hashes)
+    except Exception as e:
+        print(f"[API] match-hashes error: {e}")
+        return jsonify([])
 
 @app.route('/api/analyses/<int:analysis_id>', methods=['DELETE'])
 def delete_analysis_endpoint(analysis_id):

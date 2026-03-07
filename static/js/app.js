@@ -1,4 +1,4 @@
-let currentMarket='moneyway_1x2';let matches=[];let filteredMatches=[];let chart=null;let selectedMatch=null;let selectedChartMarket='moneyway_1x2';let autoScrapeRunning=false;let currentSortColumn='volume';let currentSortDirection='desc';let chartVisibleSeries={};let dateFilterMode='ALL';let chartTimeRange='10min';let currentChartHistoryData=[];let chartViewMode='percent';let isClientMode=true;let _modalRequestId=0;let _licenseReadyResolve;const _licenseReady=new Promise(r=>{_licenseReadyResolve=r;});let _isLicensed=false;function getWebDeviceId(){let did=localStorage.getItem('smartxflow_device_id');if(!did||did.length>16){did='w-'+crypto.randomUUID().replace(/-/g,'').substring(0,14);localStorage.setItem('smartxflow_device_id',did);}
+let currentMarket='moneyway_1x2';let matches=[];let filteredMatches=[];let chart=null;let selectedMatch=null;let selectedChartMarket='moneyway_1x2';let autoScrapeRunning=false;let currentSortColumn='volume';let currentSortDirection='desc';let chartVisibleSeries={};let dateFilterMode='ALL';let chartTimeRange='10min';let currentChartHistoryData=[];let chartViewMode='percent';let isClientMode=true;let _modalRequestId=0;let _analysisMatchHashes=[];let _analysisHashesFetched=false;let _licenseReadyResolve;const _licenseReady=new Promise(r=>{_licenseReadyResolve=r;});let _isLicensed=false;function getWebDeviceId(){let did=localStorage.getItem('smartxflow_device_id');if(!did||did.length>16){did='w-'+crypto.randomUUID().replace(/-/g,'').substring(0,14);localStorage.setItem('smartxflow_device_id',did);}
 return did;}
 let _licenseExpiredShown=false;function showLicenseExpiredOverlay(){if(_licenseExpiredShown)return;_licenseExpiredShown=true;const appContent=document.querySelector('.main-content')||document.querySelector('main')||document.getElementById('appContainer');if(appContent){appContent.style.filter='blur(12px)';appContent.style.pointerEvents='none';appContent.style.userSelect='none';}
 const header=document.querySelector('.top-bar')||document.querySelector('header')||document.querySelector('nav');if(header){header.style.filter='blur(12px)';header.style.pointerEvents='none';}
@@ -60,7 +60,7 @@ const kickoffRaw=alarm.kickoff_utc||alarm.kickoff||alarm.fixture_date;const trig
 const kickoffTime=toTurkeyTime(kickoffRaw);const triggerTime=toTurkeyTime(triggerAtRaw);if(!kickoffTime||!triggerTime||!kickoffTime.isValid()||!triggerTime.isValid()){return 0;}
 const diffHours=kickoffTime.diff(triggerTime,'hour',true);return diffHours>0?diffHours:0;}
 function escapeHtml(str){if(!str)return'';return String(str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
-document.addEventListener('DOMContentLoaded',async()=>{const allBtn=document.getElementById('allBtn');if(allBtn)allBtn.classList.add('active');setupTabs();setupSearch();setupModalChartTabs();await _licenseReady;if(!_isLicensed)return;loadMatches();checkStatus();window.statusInterval=window.setInterval(checkStatus,60000);setTimeout(()=>preloadDropMarkets(),2000);setupAutoRefresh();document.addEventListener('visibilitychange',handleVisibilityChange);});function updateLastRefreshDisplay(){const now=dayjs().tz(APP_TIMEZONE);_lastMatchRefreshTime=now;let refreshEl=document.getElementById('lastRefreshTime');if(!refreshEl){const statusArea=document.querySelector('.status-area');if(statusArea){refreshEl=document.createElement('span');refreshEl.id='lastRefreshTime';refreshEl.className='last-refresh-time';refreshEl.style.cssText='margin-left: 15px; color: #888; font-size: 12px;';statusArea.appendChild(refreshEl);}}
+document.addEventListener('DOMContentLoaded',async()=>{const allBtn=document.getElementById('allBtn');if(allBtn)allBtn.classList.add('active');setupTabs();setupSearch();setupModalChartTabs();await _licenseReady;if(!_isLicensed)return;fetchAnalysisMatchHashes();loadMatches();checkStatus();window.statusInterval=window.setInterval(checkStatus,60000);setTimeout(()=>preloadDropMarkets(),2000);setupAutoRefresh();document.addEventListener('visibilitychange',handleVisibilityChange);});function updateLastRefreshDisplay(){const now=dayjs().tz(APP_TIMEZONE);_lastMatchRefreshTime=now;let refreshEl=document.getElementById('lastRefreshTime');if(!refreshEl){const statusArea=document.querySelector('.status-area');if(statusArea){refreshEl=document.createElement('span');refreshEl.id='lastRefreshTime';refreshEl.className='last-refresh-time';refreshEl.style.cssText='margin-left: 15px; color: #888; font-size: 12px;';statusArea.appendChild(refreshEl);}}
 if(refreshEl){refreshEl.textContent=`Son güncelleme: ${now.format('HH:mm')} (TR)`;}}
 function getRefreshJitter(){return Math.floor(Math.random()*60000);}
 function setupAutoRefresh(){updateLastRefreshDisplay();const jitter=getRefreshJitter();const intervalWithJitter=MATCH_REFRESH_INTERVAL+jitter;_matchRefreshInterval=setInterval(async()=>{console.log('[AutoRefresh] 10 dakika doldu, maçlar yenileniyor...');await refreshMatchData();},intervalWithJitter);console.log(`[AutoRefresh] Kuruldu - ${Math.round(intervalWithJitter/1000)}s'de bir yenilenecek (jitter: ${Math.round(jitter/1000)}s)`);}
@@ -178,6 +178,8 @@ function renderMoneywayBlock(label,percent,odds,money){const donut=renderDonutSV
     `;}
 function formatPct(val){if(!val||val==='-')return'-';const cleaned=String(val).replace(/[%\s]/g,'');const num=parseFloat(cleaned);if(isNaN(num))return'-';return num.toFixed(1)+'%';}
 function cleanPct(val){if(!val||val==='-')return'';return String(val).replace(/%/g,'').trim();}
+async function fetchAnalysisMatchHashes(){try{const resp=await fetch('/api/analyses/match-hashes');if(resp.ok){const data=await resp.json();_analysisMatchHashes=Array.isArray(data)?data:(data.hashes||[]);_analysisHashesFetched=true;}}catch(e){}}
+function getAnalysisStarHtml(matchId){if(!matchId||!_analysisMatchHashes.length)return'';if(_analysisMatchHashes.indexOf(matchId)===-1)return'';return'<span class="analysis-star" title="Bu maç ile ilgili analiz mevcut" onclick="event.stopPropagation(); openTrendsModal(\'analysis\');">⭐</span>';}
 function renderMatches(data){console.log('[renderMatches] Called with',data?.length||0,'matches');const tbody=document.getElementById('matchesTableBody');const countEl=document.getElementById('matchCount');const mobileCountEl=document.getElementById('mobileMatchCount');if(countEl){countEl.textContent=data.length;}
 if(mobileCountEl){mobileCountEl.textContent=data.length;}
 if(data.length===0){const colspan=currentMarket.includes('1x2')?7:6;const emptyMessage=isClientMode?"Bu market için veri bulunamadı. Scraper'ın Supabase'e veri gönderdiğinden emin olun.":"No matches found for this market. Click 'Scrape Now' to fetch data.";tbody.innerHTML=`
@@ -193,11 +195,11 @@ if(data.length===0){const colspan=currentMarket.includes('1x2')?7:6;const emptyM
                 </td>
             </tr>
         `;return;}
-const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMarket.startsWith('moneyway');const displayData=data;const remainingCount=totalMatchCount-matches.length;const colspan=currentMarket.includes('1x2')?7:6;let html=displayData.map((match,idx)=>{const d=match.details||match.odds||{};if(currentMarket.includes('1x2')){const trend1=isDropping?(getDirectTrendArrow(d.Trend1)||getTableTrendArrow(d.Odds1||d['1'],d.Odds1_prev||d.PrevOdds1)):'';const trendX=isDropping?(getDirectTrendArrow(d.TrendX)||getTableTrendArrow(d.OddsX||d['X'],d.OddsX_prev||d.PrevOddsX)):'';const trend2=isDropping?(getDirectTrendArrow(d.Trend2)||getTableTrendArrow(d.Odds2||d['2'],d.Odds2_prev||d.PrevOdds2)):'';if(isMoneyway){const block1=renderMoneywayBlock('1',d.Pct1,d.Odds1||d['1'],d.Amt1);const blockX=renderMoneywayBlock('X',d.PctX,d.OddsX||d['X'],d.AmtX);const block2=renderMoneywayBlock('2',d.Pct2,d.Odds2||d['2'],d.Amt2);const matchStatus=getMatchStatus(match.date);return`
+const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMarket.startsWith('moneyway');const displayData=data;const remainingCount=totalMatchCount-matches.length;const colspan=currentMarket.includes('1x2')?7:6;let html=displayData.map((match,idx)=>{const d=match.details||match.odds||{};const _star=getAnalysisStarHtml(match.match_id);if(currentMarket.includes('1x2')){const trend1=isDropping?(getDirectTrendArrow(d.Trend1)||getTableTrendArrow(d.Odds1||d['1'],d.Odds1_prev||d.PrevOdds1)):'';const trendX=isDropping?(getDirectTrendArrow(d.TrendX)||getTableTrendArrow(d.OddsX||d['X'],d.OddsX_prev||d.PrevOddsX)):'';const trend2=isDropping?(getDirectTrendArrow(d.Trend2)||getTableTrendArrow(d.Odds2||d['2'],d.Odds2_prev||d.PrevOdds2)):'';if(isMoneyway){const block1=renderMoneywayBlock('1',d.Pct1,d.Odds1||d['1'],d.Amt1);const blockX=renderMoneywayBlock('X',d.PctX,d.OddsX||d['X'],d.AmtX);const block2=renderMoneywayBlock('2',d.Pct2,d.Odds2||d['2'],d.Amt2);const matchStatus=getMatchStatus(match.date);return`
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
                         <td class="mw-outcomes-cell" colspan="3">
                             <div class="mw-grid mw-grid-3">
                                 ${block1}
@@ -211,7 +213,7 @@ const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMa
                     <tr class="dropping-1x2-row" data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
                         <td class="drop-cell">${cell1}</td>
                         <td class="drop-cell">${cellX}</td>
                         <td class="drop-cell">${cell2}</td>
@@ -221,7 +223,7 @@ const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMa
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
                         <td class="mw-outcomes-cell" colspan="2">
                             <div class="mw-grid mw-grid-2">
                                 ${blockUnder}
@@ -234,7 +236,7 @@ const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMa
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
                         <td class="selection-cell"><div>${cellUnder}</div></td>
                         <td class="selection-cell"><div>${cellOver}</div></td>
                         <td class="volume-cell">${formatVolume(d.Volume)}</td>
@@ -243,7 +245,7 @@ const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMa
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
                         <td class="mw-outcomes-cell" colspan="2">
                             <div class="mw-grid mw-grid-2">
                                 ${blockYes}
@@ -256,7 +258,7 @@ const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMa
                     <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                         <td class="match-date">${formatDateTwoLine(match.date)}</td>
                         <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}</td>
+                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
                         <td class="selection-cell"><div>${cellYes}</div></td>
                         <td class="selection-cell"><div>${cellNo}</div></td>
                         <td class="volume-cell">${formatVolume(d.Volume)}</td>
@@ -287,13 +289,13 @@ function renderMobileMatchCards(data){const cardList=document.getElementById('ma
                 </div>
             </div>
         `;return;}
-const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMarket.startsWith('moneyway');const html=data.map((match,idx)=>{const d=match.details||match.odds||{};const volume=formatVolumeCompact(d.Volume);let dateStr='';try{const dt=dayjs(match.date).tz('Europe/Istanbul');const day=dt.format('D');const monthIdx=dt.month();const monthsTR=['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];const time=dt.format('HH:mm');dateStr=`${day} ${monthsTR[monthIdx]} ${time}`;}catch(e){dateStr=match.date||'';}
-if(isMoneyway){return renderMobileMoneywayCard(match,idx,d,volume,dateStr);}
-if(isDropping){return renderMobileOddsCard(match,idx,d,volume,dateStr);}
+const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMarket.startsWith('moneyway');const html=data.map((match,idx)=>{const d=match.details||match.odds||{};const volume=formatVolumeCompact(d.Volume);const _mStar=getAnalysisStarHtml(match.match_id);let dateStr='';try{const dt=dayjs(match.date).tz('Europe/Istanbul');const day=dt.format('D');const monthIdx=dt.month();const monthsTR=['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];const time=dt.format('HH:mm');dateStr=`${day} ${monthsTR[monthIdx]} ${time}`;}catch(e){dateStr=match.date||'';}
+if(isMoneyway){return renderMobileMoneywayCard(match,idx,d,volume,dateStr,_mStar);}
+if(isDropping){return renderMobileOddsCard(match,idx,d,volume,dateStr,_mStar);}
 return`
             <div class="match-card" data-index="${idx}" onclick="openMatchModal(${idx})">
                 <div class="match-card-left">
-                    <div class="match-card-teams">${match.home_team}<span class="vs">-</span>${match.away_team}</div>
+                    <div class="match-card-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${_mStar}</div>
                     <div class="match-card-meta">
                         <span class="match-card-league">${match.league || '-'}</span>
                         <span class="match-card-separator">•</span>
@@ -306,7 +308,7 @@ return`
                 </div>
             </div>
         `;}).join('');cardList.innerHTML=html;}
-function renderMobileMoneywayCard(match,idx,d,volume,dateStr){let oddsBlocks='';if(currentMarket.includes('1x2')){oddsBlocks=`
+function renderMobileMoneywayCard(match,idx,d,volume,dateStr,starHtml){let oddsBlocks='';if(currentMarket.includes('1x2')){oddsBlocks=`
             ${renderMobileMoneywayBlock('1', d.Odds1 || d['1'], d.Pct1)}
             ${renderMobileMoneywayBlock('X', d.OddsX || d['X'], d.PctX)}
             ${renderMobileMoneywayBlock('2', d.Odds2 || d['2'], d.Pct2)}
@@ -320,7 +322,7 @@ function renderMobileMoneywayCard(match,idx,d,volume,dateStr){let oddsBlocks='';
 const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);return`
         <div class="match-card odds-card moneyway-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
-                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${matchStatus}</div>
+                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
             <div class="odds-card-meta">
@@ -341,7 +343,7 @@ return`
             <div class="odds-block-pct mw-pct">${pct}</div>
         </div>
     `;}
-function renderMobileOddsCard(match,idx,d,volume,dateStr){let oddsBlocks='';if(currentMarket.includes('1x2')){const trend1=buildTrendDataFromMatch(d.Odds1||d['1'],d.PrevOdds1||d.Odds1_prev,d.Trend1,d.DropPct1);const trendX=buildTrendDataFromMatch(d.OddsX||d['X'],d.PrevOddsX||d.OddsX_prev,d.TrendX,d.DropPctX);const trend2=buildTrendDataFromMatch(d.Odds2||d['2'],d.PrevOdds2||d.Odds2_prev,d.Trend2,d.DropPct2);oddsBlocks=`
+function renderMobileOddsCard(match,idx,d,volume,dateStr,starHtml){let oddsBlocks='';if(currentMarket.includes('1x2')){const trend1=buildTrendDataFromMatch(d.Odds1||d['1'],d.PrevOdds1||d.Odds1_prev,d.Trend1,d.DropPct1);const trendX=buildTrendDataFromMatch(d.OddsX||d['X'],d.PrevOddsX||d.OddsX_prev,d.TrendX,d.DropPctX);const trend2=buildTrendDataFromMatch(d.Odds2||d['2'],d.PrevOdds2||d.Odds2_prev,d.Trend2,d.DropPct2);oddsBlocks=`
             ${renderMobileOddsBlock('1', d.Odds1 || d['1'], trend1)}
             ${renderMobileOddsBlock('X', d.OddsX || d['X'], trendX)}
             ${renderMobileOddsBlock('2', d.Odds2 || d['2'], trend2)}
@@ -355,7 +357,7 @@ function renderMobileOddsCard(match,idx,d,volume,dateStr){let oddsBlocks='';if(c
 const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);return`
         <div class="match-card odds-card dropping-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
-                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${matchStatus}</div>
+                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
             <div class="odds-card-meta">

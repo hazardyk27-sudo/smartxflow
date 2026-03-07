@@ -10949,3 +10949,26 @@ table.desktop-only {
         border-radius: 6px;
     }
 }
+
+.analysis-star {
+    display: inline-block;
+    font-size: 13px;
+    color: #FACC15;
+    margin-left: 6px;
+    cursor: pointer;
+    vertical-align: middle;
+    filter: drop-shadow(0 0 3px rgba(250, 204, 21, 0.4));
+    transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.analysis-star:hover {
+    transform: scale(1.25);
+    filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.6));
+}
+
+@media (max-width: 768px) {
+    .analysis-star {
+        font-size: 12px;
+        margin-left: 4px;
+    }
+}

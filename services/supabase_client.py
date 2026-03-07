@@ -1991,12 +1991,14 @@ class SupabaseClient:
             print(f"[Supabase] get_analyses error: {e}")
             return []
 
-    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis') -> Optional[Dict]:
+    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None) -> Optional[Dict]:
         """Create new analysis entry"""
         if not self.is_available:
             return None
         try:
             data = {"title": title, "content": content, "image_url": image_url, "category": category}
+            if match_id_hash:
+                data["match_id_hash"] = match_id_hash
             resp = self._get_http_client().post(self._rest_url('analyses'), json=data, headers=self._headers(), timeout=15)
             if resp.status_code in [200, 201]:
                 result = resp.json()
@@ -2007,7 +2009,7 @@ class SupabaseClient:
             print(f"[Supabase] create_analysis error: {e}")
             return None
 
-    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None) -> bool:
+    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None) -> bool:
         """Update analysis by id"""
         if not self.is_available:
             return False
@@ -2018,6 +2020,8 @@ class SupabaseClient:
             data = {"title": title, "content": content}
             if image_url is not None:
                 data["image_url"] = image_url
+            if match_id_hash is not None:
+                data["match_id_hash"] = match_id_hash
             resp = httpx.patch(url, json=data, headers=headers, timeout=15)
             return resp.status_code in [200, 204]
         except Exception as e:
@@ -2286,14 +2290,14 @@ class HybridDatabase:
             return self.supabase.get_analyses(category)
         return []
 
-    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis') -> Optional[Dict]:
+    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None) -> Optional[Dict]:
         if self.supabase.is_available:
-            return self.supabase.create_analysis(title, content, image_url, category)
+            return self.supabase.create_analysis(title, content, image_url, category, match_id_hash)
         return None
 
-    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None) -> bool:
+    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None) -> bool:
         if self.supabase.is_available:
-            return self.supabase.update_analysis(analysis_id, title, content, image_url)
+            return self.supabase.update_analysis(analysis_id, title, content, image_url, match_id_hash)
         return False
 
     def delete_analysis(self, analysis_id: int) -> bool:

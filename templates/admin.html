@@ -3092,7 +3092,18 @@
                         </div>
                     </div>
                     <div id="analysisFieldsGroup">
-                        <input type="text" id="contentTitle" placeholder="Başlık" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; width: 100%; box-sizing: border-box;">
+                        <input type="hidden" id="contentMatchIdHash" value="">
+                        <input type="hidden" id="contentTitle" value="">
+                        <div style="position: relative;">
+                            <input type="text" id="matchSearchInput" placeholder="Maç ara... (ör: Galatasaray, Premier League)" autocomplete="off" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; width: 100%; box-sizing: border-box;">
+                            <div id="matchDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 280px; overflow-y: auto; background: #161b22; border: 1px solid #30363d; border-top: none; border-radius: 0 0 6px 6px; z-index: 100;"></div>
+                        </div>
+                        <div id="selectedMatchDisplay" style="display: none; margin-top: 6px; padding: 8px 12px; background: #0d1117; border-radius: 6px; border: 1px solid #238636;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span id="selectedMatchText" style="color: #3fb950; font-size: 13px; font-weight: 500;"></span>
+                                <button type="button" onclick="clearMatchSelection()" style="background: none; border: none; color: #8b949e; cursor: pointer; font-size: 16px; padding: 0 4px;">&times;</button>
+                            </div>
+                        </div>
                     </div>
                     <textarea id="contentText" placeholder="İçerik metni..." rows="5" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; resize: vertical;"></textarea>
                     <div>
@@ -7862,7 +7873,7 @@
                             ${item.image_url ? `<img src="${item.image_url}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 6px; margin-left: 12px; border: 1px solid #30363d;">` : ''}
                         </div>
                         <div style="margin-top: 10px; text-align: right; display: flex; gap: 8px; justify-content: flex-end;">
-                            <button onclick='editContent(${item.id}, ${JSON.stringify(escapeHtml(item.title))}, ${JSON.stringify(escapeHtml(item.content))})' style="background: #1f6feb; border: none; color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Düzenle</button>
+                            <button onclick='editContent(${item.id}, ${JSON.stringify(escapeHtml(item.title))}, ${JSON.stringify(escapeHtml(item.content))}, ${JSON.stringify(item.match_id_hash || "")})' style="background: #1f6feb; border: none; color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Düzenle</button>
                             <button onclick="deleteContent(${item.id})" style="background: #da3633; border: none; color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Sil</button>
                         </div>
                     </div>
@@ -7878,6 +7889,93 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
+        let _matchListCache = [];
+        let _matchListLoaded = false;
+
+        async function loadMatchList() {
+            if (_matchListLoaded && _matchListCache.length > 0) return;
+            try {
+                const resp = await fetch('/api/admin/matches-for-dropdown');
+                const data = await resp.json();
+                if (data && data.matches) {
+                    _matchListCache = data.matches.map(m => ({
+                        home: m.home_team || '',
+                        away: m.away_team || '',
+                        league: m.league || '',
+                        date: m.date || '',
+                        hash: m.match_id || ''
+                    }));
+                    _matchListLoaded = true;
+                }
+            } catch (e) {
+                console.error('Match list load error:', e);
+                document.getElementById('matchSearchInput').placeholder = 'Maç listesi yüklenemedi — başlığı elle yazabilirsiniz';
+                document.getElementById('matchSearchInput').oninput = function() {
+                    document.getElementById('contentTitle').value = this.value.trim();
+                };
+            }
+        }
+
+        function renderMatchDropdown(filter) {
+            const dropdown = document.getElementById('matchDropdown');
+            if (!filter || filter.length < 2) {
+                dropdown.style.display = 'none';
+                return;
+            }
+            const q = filter.toLowerCase();
+            const filtered = _matchListCache.filter(m => {
+                const text = `${m.home} ${m.away} ${m.league} ${m.date}`.toLowerCase();
+                return text.includes(q);
+            }).slice(0, 30);
+
+            if (filtered.length === 0) {
+                dropdown.innerHTML = '<div style="padding: 10px 14px; color: #8b949e; font-size: 13px;">Sonuç bulunamadı</div>';
+                dropdown.style.display = 'block';
+                return;
+            }
+
+            dropdown.innerHTML = filtered.map(m => {
+                const label = `${m.home} vs ${m.away} — ${m.league} (${m.date})`;
+                return `<div class="match-dropdown-item" data-hash="${m.hash}" data-home="${escapeHtml(m.home)}" data-away="${escapeHtml(m.away)}" style="padding: 8px 14px; cursor: pointer; font-size: 13px; color: #c9d1d9; border-bottom: 1px solid #21262d; transition: background 0.15s;" onmouseover="this.style.background='#21262d'" onmouseout="this.style.background='transparent'" onclick="selectMatch(this)">${escapeHtml(label)}</div>`;
+            }).join('');
+            dropdown.style.display = 'block';
+        }
+
+        function selectMatch(el) {
+            const hash = el.dataset.hash;
+            const home = el.dataset.home;
+            const away = el.dataset.away;
+            document.getElementById('contentMatchIdHash').value = hash;
+            document.getElementById('contentTitle').value = home + ' - ' + away;
+            document.getElementById('matchSearchInput').value = '';
+            document.getElementById('matchDropdown').style.display = 'none';
+            document.getElementById('selectedMatchText').textContent = home + ' vs ' + away;
+            document.getElementById('selectedMatchDisplay').style.display = 'block';
+        }
+
+        function clearMatchSelection() {
+            document.getElementById('contentMatchIdHash').value = '';
+            document.getElementById('contentTitle').value = '';
+            document.getElementById('selectedMatchDisplay').style.display = 'none';
+            document.getElementById('selectedMatchText').textContent = '';
+            document.getElementById('matchSearchInput').value = '';
+        }
+
+        (function() {
+            const searchInput = document.getElementById('matchSearchInput');
+            let debounceTimer;
+            searchInput.addEventListener('focus', function() { loadMatchList(); });
+            searchInput.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => renderMatchDropdown(this.value.trim()), 200);
+            });
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('#matchSearchInput') && !e.target.closest('#matchDropdown')) {
+                    document.getElementById('matchDropdown').style.display = 'none';
+                }
+            });
+        })();
 
         function getComposedTitle() {
             if (currentContentTab === 'moves') {
@@ -7908,8 +8006,15 @@
             const imageInput = document.getElementById('contentImage');
             const status = document.getElementById('contentUploadStatus');
 
+            if (currentContentTab === 'analysis' && !title && !document.getElementById('contentMatchIdHash').value) {
+                const searchVal = document.getElementById('matchSearchInput').value.trim();
+                if (searchVal) {
+                    document.getElementById('contentTitle').value = searchVal;
+                    title = searchVal;
+                }
+            }
             if (!title || !content) {
-                status.innerHTML = '<span style="color: #f85149;">' + (currentContentTab === 'moves' ? 'Ana başlık ve içerik zorunludur' : 'Başlık ve içerik zorunludur') + '</span>';
+                status.innerHTML = '<span style="color: #f85149;">' + (currentContentTab === 'moves' ? 'Ana başlık ve içerik zorunludur' : 'Maç seçimi ve içerik zorunludur') + '</span>';
                 return;
             }
 
@@ -7919,6 +8024,10 @@
             formData.append('title', title);
             formData.append('content', content);
             formData.append('category', currentContentTab);
+            const matchHash = document.getElementById('contentMatchIdHash').value;
+            if (matchHash) {
+                formData.append('match_id_hash', matchHash);
+            }
             if (imageInput.files[0]) {
                 formData.append('image', imageInput.files[0]);
             }
@@ -7949,7 +8058,7 @@
 
         let editingContentId = null;
 
-        function editContent(id, title, content) {
+        function editContent(id, title, content, matchIdHash) {
             editingContentId = id;
             if (currentContentTab === 'moves') {
                 const parts = title.split(' - ');
@@ -7958,6 +8067,14 @@
                 updateTitlePreview();
             } else {
                 document.getElementById('contentTitle').value = title;
+                if (matchIdHash) {
+                    document.getElementById('contentMatchIdHash').value = matchIdHash;
+                    document.getElementById('selectedMatchText').textContent = title;
+                    document.getElementById('selectedMatchDisplay').style.display = 'block';
+                } else {
+                    clearMatchSelection();
+                    document.getElementById('contentTitle').value = title;
+                }
             }
             document.getElementById('contentText').value = content;
             document.getElementById('contentImage').value = '';
@@ -7968,7 +8085,7 @@
             if (currentContentTab === 'moves') {
                 document.getElementById('contentMainTitle').focus();
             } else {
-                document.getElementById('contentTitle').focus();
+                document.getElementById('matchSearchInput').focus();
             }
         }
 
@@ -7979,6 +8096,7 @@
             document.getElementById('contentSubTitle').value = '';
             document.getElementById('contentText').value = '';
             document.getElementById('contentImage').value = '';
+            clearMatchSelection();
             const tab = currentContentTab;
             document.getElementById('contentFormTitle').textContent = tab === 'analysis' ? 'Yeni Analiz Ekle' : 'Yeni Kılavuz İçeriği Ekle';
             document.getElementById('contentSubmitBtn').textContent = 'Paylaş';

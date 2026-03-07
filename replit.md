@@ -54,6 +54,13 @@ The system uses a hybrid architecture with Supabase as the single source of trut
     - Visual card notifications (Playwright HTML-to-PNG) matching web UI design
     - Three-tier fallback: Playwright → Pillow → Text
     - Message mode setting in Admin Panel (image/text)
+- **Analiz-Maç Bağlantısı (2026-03-07):**
+    - Admin panelinde analiz eklerken serbest başlık yerine bültendeki maçlardan dropdown ile seçim yapılır
+    - `analyses` tablosunda `match_id_hash` (varchar 12, nullable) kolonu ile maç eşleştirmesi
+    - Frontend'de analizi olan maçların yanında ⭐ yıldız göstergesi (hover: tooltip, tıklama: analiz modal)
+    - Endpoint: `GET /api/analyses/match-hashes` — analizi olan maçların hash listesi
+    - Endpoint: `GET /api/admin/matches-for-dropdown` — admin dropdown için maç listesi
+    - KOD DEĞİŞİKLİĞİ: `.src` dosyalarında yapılır, sonra `python minify.py`
 - **API Optimization:**
     - `/api/alarms/all`: Batch endpoint for 7 alarm types, with client-side caching (45s TTL).
     - `/api/match/<match_id>/snapshot`: Endpoint for all match-related data (alarms, metadata, moneyway, dropping_odds). Uses a 12-character MD5 `match_id`.
