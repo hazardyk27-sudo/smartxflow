@@ -6196,7 +6196,7 @@ def create_analysis():
     confidence = None
     if confidence_raw:
         try:
-            confidence = max(1, min(10, int(confidence_raw)))
+            confidence = round(max(1, min(10, float(confidence_raw))) * 2) / 2
         except (ValueError, TypeError):
             pass
     
@@ -6247,7 +6247,7 @@ def update_analysis_endpoint(analysis_id):
     confidence = None
     if confidence_raw:
         try:
-            confidence = max(1, min(10, int(confidence_raw)))
+            confidence = round(max(1, min(10, float(confidence_raw))) * 2) / 2
         except (ValueError, TypeError):
             pass
     success = db.update_analysis(analysis_id, title, content, image_url, match_id_hash, odds, confidence)
