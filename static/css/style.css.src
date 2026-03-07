@@ -10952,7 +10952,7 @@ table.desktop-only {
 
 .analysis-star {
     display: inline;
-    font-size: 12px;
+    font-size: 1em;
     color: #6e7681;
     margin-left: 5px;
     cursor: pointer;
