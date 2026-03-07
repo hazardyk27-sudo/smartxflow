@@ -6182,6 +6182,14 @@ def create_analysis():
     content = request.form.get('content', '')
     category = request.form.get('category', 'analysis')
     match_id_hash = request.form.get('match_id_hash', None) or None
+    odds = request.form.get('odds', None) or None
+    confidence_raw = request.form.get('confidence', None)
+    confidence = None
+    if confidence_raw:
+        try:
+            confidence = max(1, min(10, int(confidence_raw)))
+        except (ValueError, TypeError):
+            pass
     
     if not title or not content:
         return jsonify({'status': 'error', 'message': 'Başlık ve içerik zorunludur'}), 400
@@ -6204,7 +6212,7 @@ def create_analysis():
             content_type = file.content_type or 'image/png'
             image_url = db.upload_to_storage('smartxflow', file_path, file_data, content_type)
     
-    result = db.create_analysis(title, content, image_url, category, match_id_hash)
+    result = db.create_analysis(title, content, image_url, category, match_id_hash, odds, confidence)
     if result:
         return jsonify({'status': 'ok', 'data': result})
     return jsonify({'status': 'error', 'message': 'Analiz oluşturulamadı'}), 500
@@ -6223,7 +6231,15 @@ def update_analysis_endpoint(analysis_id):
                 file_path = f"analyses/{uuid.uuid4().hex}.{ext}"
                 image_url = db.upload_file(file_path, file.read(), file.content_type)
     match_id_hash = request.form.get('match_id_hash', None) or None
-    success = db.update_analysis(analysis_id, title, content, image_url, match_id_hash)
+    odds = request.form.get('odds', None) or None
+    confidence_raw = request.form.get('confidence', None)
+    confidence = None
+    if confidence_raw:
+        try:
+            confidence = max(1, min(10, int(confidence_raw)))
+        except (ValueError, TypeError):
+            pass
+    success = db.update_analysis(analysis_id, title, content, image_url, match_id_hash, odds, confidence)
     if success:
         return jsonify({'status': 'ok'})
     return jsonify({'status': 'error'}), 500

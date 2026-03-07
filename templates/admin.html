@@ -3106,6 +3106,16 @@
                         </div>
                     </div>
                     <textarea id="contentText" placeholder="İçerik metni..." rows="5" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; resize: vertical;"></textarea>
+                    <div id="analysisOddsGroup" style="display: flex; gap: 12px;">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 4px; color: #8b949e; font-size: 13px;">Oran</label>
+                            <input type="text" id="contentOdds" placeholder="ör: 1.85" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; width: 100%; box-sizing: border-box;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 4px; color: #8b949e; font-size: 13px;">Güven (1-10)</label>
+                            <input type="number" id="contentConfidence" min="1" max="10" placeholder="ör: 7" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; width: 100%; box-sizing: border-box;">
+                        </div>
+                    </div>
                     <div>
                         <label style="display: block; margin-bottom: 6px; color: #8b949e; font-size: 13px;">Ekran Görüntüsü (opsiyonel)</label>
                         <input type="file" id="contentImage" accept="image/*" style="color: #8b949e; font-size: 13px;">
@@ -7832,6 +7842,7 @@
             btnM.style.border = tab === 'moves' ? '1px solid #238636' : '1px solid #30363d';
             document.getElementById('movesFieldsGroup').style.display = tab === 'moves' ? 'block' : 'none';
             document.getElementById('analysisFieldsGroup').style.display = tab === 'moves' ? 'none' : 'block';
+            document.getElementById('analysisOddsGroup').style.display = tab === 'moves' ? 'none' : 'flex';
             document.getElementById('contentFormTitle').textContent = tab === 'analysis' ? 'Yeni Analiz Ekle' : 'Yeni Kılavuz İçeriği Ekle';
             cancelEdit();
             loadContentList();
@@ -7868,12 +7879,13 @@
                             <div style="flex: 1;">
                                 <h4 style="margin-bottom: 8px;">${titleHtml}</h4>
                                 <p style="color: #8b949e; font-size: 13px; margin-bottom: 8px;">${escapeHtml(item.content).substring(0, 200)}${item.content.length > 200 ? '...' : ''}</p>
+                                ${item.odds || item.confidence ? `<div style="display:flex;gap:8px;margin-bottom:6px;">${item.odds ? `<span style="color:#58a6ff;font-size:12px;font-weight:600;">Oran: ${escapeHtml(item.odds)}</span>` : ''}${item.confidence ? `<span style="color:#3fb950;font-size:12px;font-weight:600;">Güven: ${item.confidence}/10</span>` : ''}</div>` : ''}
                                 <span style="color: #484f58; font-size: 12px;">${new Date(item.created_at).toLocaleString('tr-TR')}</span>
                             </div>
                             ${item.image_url ? `<img src="${item.image_url}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 6px; margin-left: 12px; border: 1px solid #30363d;">` : ''}
                         </div>
                         <div style="margin-top: 10px; text-align: right; display: flex; gap: 8px; justify-content: flex-end;">
-                            <button onclick='editContent(${item.id}, ${JSON.stringify(escapeHtml(item.title))}, ${JSON.stringify(escapeHtml(item.content))}, ${JSON.stringify(item.match_id_hash || "")})' style="background: #1f6feb; border: none; color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Düzenle</button>
+                            <button onclick='editContent(${item.id}, ${JSON.stringify(escapeHtml(item.title))}, ${JSON.stringify(escapeHtml(item.content))}, ${JSON.stringify(item.match_id_hash || "")}, ${JSON.stringify(item.odds || "")}, ${JSON.stringify(item.confidence || "")})' style="background: #1f6feb; border: none; color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Düzenle</button>
                             <button onclick="deleteContent(${item.id})" style="background: #da3633; border: none; color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Sil</button>
                         </div>
                     </div>
@@ -8028,6 +8040,10 @@
             if (matchHash) {
                 formData.append('match_id_hash', matchHash);
             }
+            const oddsVal = document.getElementById('contentOdds').value.trim();
+            if (oddsVal) formData.append('odds', oddsVal);
+            const confVal = document.getElementById('contentConfidence').value;
+            if (confVal) formData.append('confidence', confVal);
             if (imageInput.files[0]) {
                 formData.append('image', imageInput.files[0]);
             }
@@ -8058,7 +8074,7 @@
 
         let editingContentId = null;
 
-        function editContent(id, title, content, matchIdHash) {
+        function editContent(id, title, content, matchIdHash, odds, confidence) {
             editingContentId = id;
             if (currentContentTab === 'moves') {
                 const parts = title.split(' - ');
@@ -8078,6 +8094,8 @@
             }
             document.getElementById('contentText').value = content;
             document.getElementById('contentImage').value = '';
+            document.getElementById('contentOdds').value = odds || '';
+            document.getElementById('contentConfidence').value = confidence || '';
             document.getElementById('contentFormTitle').textContent = currentContentTab === 'moves' ? 'Kılavuz İçeriği Düzenle' : 'Analizi Düzenle';
             document.getElementById('contentSubmitBtn').textContent = 'Güncelle';
             document.getElementById('contentCancelBtn').style.display = 'inline-block';
@@ -8096,6 +8114,8 @@
             document.getElementById('contentSubTitle').value = '';
             document.getElementById('contentText').value = '';
             document.getElementById('contentImage').value = '';
+            document.getElementById('contentOdds').value = '';
+            document.getElementById('contentConfidence').value = '';
             clearMatchSelection();
             const tab = currentContentTab;
             document.getElementById('contentFormTitle').textContent = tab === 'analysis' ? 'Yeni Analiz Ekle' : 'Yeni Kılavuz İçeriği Ekle';

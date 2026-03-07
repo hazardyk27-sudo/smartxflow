@@ -1991,7 +1991,7 @@ class SupabaseClient:
             print(f"[Supabase] get_analyses error: {e}")
             return []
 
-    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None) -> Optional[Dict]:
+    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None, odds: str = None, confidence: int = None) -> Optional[Dict]:
         """Create new analysis entry"""
         if not self.is_available:
             return None
@@ -1999,6 +1999,10 @@ class SupabaseClient:
             data = {"title": title, "content": content, "image_url": image_url, "category": category}
             if match_id_hash:
                 data["match_id_hash"] = match_id_hash
+            if odds:
+                data["odds"] = odds
+            if confidence is not None:
+                data["confidence"] = confidence
             resp = self._get_http_client().post(self._rest_url('analyses'), json=data, headers=self._headers(), timeout=15)
             if resp.status_code in [200, 201]:
                 result = resp.json()
@@ -2016,7 +2020,7 @@ class SupabaseClient:
             print(f"[Supabase] create_analysis error: {e}")
             return None
 
-    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None) -> bool:
+    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None, odds: str = None, confidence: int = None) -> bool:
         """Update analysis by id"""
         if not self.is_available:
             return False
@@ -2029,6 +2033,10 @@ class SupabaseClient:
                 data["image_url"] = image_url
             if match_id_hash is not None:
                 data["match_id_hash"] = match_id_hash
+            if odds is not None:
+                data["odds"] = odds
+            if confidence is not None:
+                data["confidence"] = confidence
             resp = httpx.patch(url, json=data, headers=headers, timeout=15)
             if resp.status_code in [200, 204]:
                 return True
