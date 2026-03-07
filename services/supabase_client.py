@@ -2312,14 +2312,14 @@ class HybridDatabase:
             return self.supabase.get_analyses(category)
         return []
 
-    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None) -> Optional[Dict]:
+    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None, odds: str = None, confidence: int = None) -> Optional[Dict]:
         if self.supabase.is_available:
-            return self.supabase.create_analysis(title, content, image_url, category, match_id_hash)
+            return self.supabase.create_analysis(title, content, image_url, category, match_id_hash, odds, confidence)
         return None
 
-    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None) -> bool:
+    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None, odds: str = None, confidence: int = None) -> bool:
         if self.supabase.is_available:
-            return self.supabase.update_analysis(analysis_id, title, content, image_url, match_id_hash)
+            return self.supabase.update_analysis(analysis_id, title, content, image_url, match_id_hash, odds, confidence)
         return False
 
     def delete_analysis(self, analysis_id: int) -> bool:
