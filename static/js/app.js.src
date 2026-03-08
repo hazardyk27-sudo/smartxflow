@@ -1803,12 +1803,21 @@ function applyMobileFilter() {
     updateTrendSortButtons();
     updateTableHeaders();
     
-    if (currentDayFilter === dateVal) {
-        filteredMatches = applySorting(matches);
-        renderMatches(filteredMatches);
-    } else {
-        setDayFilter(dateVal);
-    }
+    var modeMap = {all: 'ALL', today: 'TODAY', yesterday: 'YESTERDAY', future: 'FUTURE'};
+    dateFilterMode = modeMap[dateVal] || 'ALL';
+    currentDayFilter = dateVal;
+    
+    var todayBtn = document.getElementById('todayBtn');
+    var yesterdayBtn = document.getElementById('yesterdayBtn');
+    if (todayBtn) todayBtn.classList.toggle('active', dateVal === 'today');
+    if (yesterdayBtn) yesterdayBtn.classList.toggle('active', dateVal === 'yesterday');
+    
+    var labelEl = document.getElementById('dayFilterLabel');
+    var labels = {all: 'Tümü', today: 'Bugün', yesterday: 'Dün', future: 'Gelecek'};
+    if (labelEl) labelEl.textContent = labels[dateVal] || 'Tümü';
+    
+    delete _matchesMarketCache[currentMarket + '|' + dateFilterMode];
+    loadMatches();
 }
 
 const originalRenderMatches = renderMatches;
