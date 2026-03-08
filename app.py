@@ -419,7 +419,7 @@ def add_header(response):
     if request.path.startswith('/static/') and request.path.endswith('.css'):
         response.headers['Cache-Control'] = 'no-cache, must-revalidate'
     elif request.path.startswith('/static/'):
-        response.headers['Cache-Control'] = 'public, max-age=3600'
+        response.headers['Cache-Control'] = 'public, max-age=86400'
         response.headers.pop('Pragma', None)
         response.headers.pop('Expires', None)
     else:
@@ -428,6 +428,28 @@ def add_header(response):
         response.headers['Expires'] = '0'
         response.headers['Surrogate-Control'] = 'no-store'
     response.headers['Vary'] = 'Accept-Encoding'
+    if request.path.startswith('/static/') and request.path.endswith(('.js', '.css')):
+        import gzip as _gzip
+        import io as _io
+        accept_enc = request.headers.get('Accept-Encoding', '')
+        already_encoded = response.headers.get('Content-Encoding')
+        if 'gzip' in accept_enc and response.status_code == 200 and not already_encoded:
+            try:
+                if response.direct_passthrough:
+                    response.direct_passthrough = False
+                raw = response.get_data()
+                if len(raw) > 500:
+                    buf = _io.BytesIO()
+                    with _gzip.GzipFile(fileobj=buf, mode='wb', compresslevel=6) as gz:
+                        gz.write(raw)
+                    compressed = buf.getvalue()
+                    response.set_data(compressed)
+                    response.headers['Content-Encoding'] = 'gzip'
+                    response.headers['Content-Length'] = len(compressed)
+                    response.headers.pop('ETag', None)
+                    response.headers.pop('Last-Modified', None)
+            except Exception:
+                pass
     return response
 
 cleanup_thread = None
