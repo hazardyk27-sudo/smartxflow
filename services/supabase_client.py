@@ -1509,23 +1509,15 @@ class SupabaseClient:
             return self._last_data_update_cache
         
         latest_time = None
-        history_tables = [
-            'moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history',
-            'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history'
-        ]
-        
-        for table in history_tables:
-            try:
-                url = f"{self._rest_url(table)}?select=scraped_at&order=scraped_at.desc&limit=1"
-                resp = self._get_http_client().get(url, headers=self._headers(), timeout=5)
-                if resp.status_code == 200:
-                    rows = resp.json()
-                    if rows and rows[0].get('scraped_at'):
-                        ts = rows[0]['scraped_at']
-                        if latest_time is None or ts > latest_time:
-                            latest_time = ts
-            except Exception as e:
-                continue
+        try:
+            url = f"{self._rest_url('moneyway_1x2_history')}?select=scraped_at&order=scraped_at.desc&limit=1"
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=5)
+            if resp.status_code == 200:
+                rows = resp.json()
+                if rows and rows[0].get('scraped_at'):
+                    latest_time = rows[0]['scraped_at']
+        except Exception:
+            pass
         
         self._last_data_update_cache = latest_time
         self._last_data_update_cache_time = now

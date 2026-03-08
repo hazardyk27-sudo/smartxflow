@@ -6256,6 +6256,8 @@ def create_analysis():
         for k in _analyses_cache:
             _analyses_cache[k] = {'data': None, 'ts': 0}
         _invalidate_analysts_cache()
+        _match_hashes_cache['data'] = None
+        _match_hashes_cache['ts'] = 0
         return jsonify({'status': 'ok', 'data': result})
     return jsonify({'status': 'error', 'message': 'Analiz oluşturulamadı'}), 500
 
@@ -6293,6 +6295,8 @@ def update_analysis_endpoint(analysis_id):
         for k in _analyses_cache:
             _analyses_cache[k] = {'data': None, 'ts': 0}
         _invalidate_analysts_cache()
+        _match_hashes_cache['data'] = None
+        _match_hashes_cache['ts'] = 0
         return jsonify({'status': 'ok'})
     return jsonify({'status': 'error'}), 500
 
@@ -6316,12 +6320,21 @@ def update_analysis_result_endpoint(analysis_id):
         return jsonify({'status': 'ok'})
     return jsonify({'status': 'error'}), 500
 
+_match_hashes_cache = {'data': None, 'ts': 0}
+_MATCH_HASHES_CACHE_TTL = 120
+
 @app.route('/api/analyses/match-hashes')
 def get_analysis_match_hashes():
     """Return list of match_id_hash values that have analyses"""
+    import time as _time
+    now = _time.time()
+    if _match_hashes_cache['data'] is not None and (now - _match_hashes_cache['ts']) < _MATCH_HASHES_CACHE_TTL:
+        return jsonify(_match_hashes_cache['data'])
     try:
         analyses = db.get_analyses(category='analysis')
         hashes = list(set(a.get('match_id_hash') for a in analyses if a.get('match_id_hash')))
+        _match_hashes_cache['data'] = hashes
+        _match_hashes_cache['ts'] = now
         return jsonify(hashes)
     except Exception as e:
         print(f"[API] match-hashes error: {e}")
@@ -6335,6 +6348,8 @@ def delete_analysis_endpoint(analysis_id):
         for k in _analyses_cache:
             _analyses_cache[k] = {'data': None, 'ts': 0}
         _invalidate_analysts_cache()
+        _match_hashes_cache['data'] = None
+        _match_hashes_cache['ts'] = 0
         return jsonify({'status': 'ok'})
     return jsonify({'status': 'error'}), 500
 
