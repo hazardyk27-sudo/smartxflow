@@ -8723,12 +8723,12 @@ table.desktop-only {
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
-        padding: 8px 0;
-        background: transparent;
-        border-radius: 0;
-        margin: 5px 0 6px 0;
+        padding: 8px 12px;
+        background: #1c2128;
+        border-radius: 10px;
+        margin: 5px 0 14px 0;
         gap: 6px;
-        border: none;
+        border: 1px solid #30363d;
     }
     
     .mobile-filter-left {
