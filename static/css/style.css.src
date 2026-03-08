@@ -8514,7 +8514,7 @@ table.desktop-only {
         width: 100% !important;
         background: transparent !important;
         border-radius: 0 !important;
-        padding: 8px 16px 10px !important;
+        padding: 6px 8px !important;
         gap: 8px !important;
         border-bottom: 1px solid rgba(48, 54, 61, 0.3) !important;
     }
@@ -8673,7 +8673,7 @@ table.desktop-only {
 
     /* ========== MAIN CONTENT ========== */
     .main-content {
-        padding: 8px;
+        padding: 6px 8px;
         height: auto;
         min-height: calc(100vh - 150px);
         overflow-y: auto;
@@ -8687,9 +8687,9 @@ table.desktop-only {
     .toolbar {
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        margin-bottom: 8px;
-        padding: 0 4px;
+        gap: 6px;
+        margin-bottom: 6px;
+        padding: 0;
         position: relative;
     }
     
@@ -8724,10 +8724,10 @@ table.desktop-only {
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
-        padding: 8px 12px;
+        padding: 6px 10px;
         background: #1c2128;
         border-radius: 10px;
-        margin: 5px 0 14px 0;
+        margin: 0;
         gap: 6px;
         border: 1px solid #30363d;
     }
