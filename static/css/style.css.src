@@ -1741,12 +1741,12 @@ h1, h2, h3, h4, h5, h6,
     }
     
     .main-content {
-        padding: 3px 8px 6px;
+        padding: 8px 8px 6px;
     }
     
     .toolbar {
         flex-direction: column;
-        gap: 6px;
+        gap: 8px;
     }
     
     .search-box {
@@ -8514,9 +8514,9 @@ table.desktop-only {
         width: 100% !important;
         background: transparent !important;
         border-radius: 0 !important;
-        padding: 6px 8px 3px !important;
+        padding: 6px 8px 0 !important;
         gap: 8px !important;
-        border-bottom: 1px solid rgba(48, 54, 61, 0.3) !important;
+        border-bottom: none !important;
     }
     
     .mobile-tab-row.market-row .mobile-tab-btn {
@@ -8673,7 +8673,7 @@ table.desktop-only {
 
     /* ========== MAIN CONTENT ========== */
     .main-content {
-        padding: 3px 8px 6px;
+        padding: 8px 8px 6px;
         height: auto;
         min-height: calc(100vh - 150px);
         overflow-y: auto;
@@ -8687,8 +8687,8 @@ table.desktop-only {
     .toolbar {
         display: flex;
         flex-direction: column;
-        gap: 6px;
-        margin-bottom: 6px;
+        gap: 8px;
+        margin-bottom: 8px;
         padding: 0;
         position: relative;
     }
@@ -8697,7 +8697,7 @@ table.desktop-only {
         display: flex;
         flex-direction: column;
         width: 100%;
-        gap: 6px;
+        gap: 8px;
     }
     
     /* Search - Compact */
@@ -9349,7 +9349,7 @@ table.desktop-only {
     }
     
     .main-content {
-        padding: 3px 6px 6px;
+        padding: 8px 6px 6px;
         height: calc(100vh - 120px);
     }
     
