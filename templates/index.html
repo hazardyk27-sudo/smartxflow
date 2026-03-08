@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=1772998870">
+    <link rel="stylesheet" href="/static/css/style.css?v=1773000738">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <script defer src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/utc.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/timezone.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/customParseFormat.js"></script>
-    <script defer src="/static/js/app.js?v=1772998870"></script>
+    <script defer src="/static/js/app.js?v=1773000738"></script>
 </head>
 <body>
     <!-- License Gate - Birebir Desktop Aynisi -->
@@ -251,17 +251,14 @@
             <!-- Mobile: Filter Bar (below search) -->
             <div class="mobile-filter-bar mobile-only">
                 <div class="mobile-filter-left">
-                    <div class="day-filter-dropdown" id="dayFilterDropdown">
-                        <button class="day-filter-toggle" id="dayFilterToggle" onclick="toggleDayDropdown()">
-                            <span id="dayFilterLabel">Tümü</span>
-                            <svg class="day-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-                        </button>
-                        <div class="day-filter-options" id="dayFilterOptions">
-                            <div class="day-filter-option active" data-value="all" onclick="selectDayOption('all')">Tümü</div>
-                            <div class="day-filter-option" data-value="today" onclick="selectDayOption('today')">Bugün</div>
-                            <div class="day-filter-option" data-value="yesterday" onclick="selectDayOption('yesterday')">Dün</div>
-                        </div>
-                    </div>
+                    <button class="mobile-filter-btn" id="mobileFilterBtn" onclick="openMobileFilterModal()">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+                            <circle cx="8" cy="6" r="2" fill="currentColor"/><circle cx="16" cy="12" r="2" fill="currentColor"/><circle cx="10" cy="18" r="2" fill="currentColor"/>
+                        </svg>
+                        <span>Filtrele</span>
+                        <svg class="day-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
                     <button class="mobile-alarm-btn" onclick="openTrendsModal('moves')">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
@@ -1152,6 +1149,39 @@
         })();
     </script>
 
+    <div class="mf-overlay" id="mobileFilterOverlay" onclick="closeMobileFilterModal()" style="display:none;">
+        <div class="mf-modal" onclick="event.stopPropagation()">
+            <div class="mf-header">
+                <span class="mf-title">Filtrele & Sırala</span>
+                <button class="mf-close" onclick="closeMobileFilterModal()">&times;</button>
+            </div>
+            <div class="mf-section">
+                <div class="mf-label">Tarih</div>
+                <div class="mf-chips">
+                    <button class="mf-chip active" data-group="date" data-value="all" onclick="mfSelect(this)">Tümü</button>
+                    <button class="mf-chip" data-group="date" data-value="today" onclick="mfSelect(this)">Bugün</button>
+                    <button class="mf-chip" data-group="date" data-value="yesterday" onclick="mfSelect(this)">Dün</button>
+                    <button class="mf-chip" data-group="date" data-value="future" onclick="mfSelect(this)">Gelecek</button>
+                </div>
+            </div>
+            <div class="mf-section">
+                <div class="mf-label">Sırala</div>
+                <div class="mf-chips">
+                    <button class="mf-chip active" data-group="sort" data-value="date" onclick="mfSelect(this)">Tarihe göre</button>
+                    <button class="mf-chip" data-group="sort" data-value="volume" onclick="mfSelect(this)">Hacmine göre</button>
+                </div>
+            </div>
+            <div class="mf-section">
+                <div class="mf-label">Filtrele</div>
+                <div class="mf-chips mf-toggles">
+                    <button class="mf-chip mf-toggle" data-group="filter" data-value="hideEnded" onclick="mfToggle(this)">Biten maçları gizle</button>
+                    <button class="mf-chip mf-toggle" data-group="filter" data-value="hideLive" onclick="mfToggle(this)">Canlı maçları gizle</button>
+                    <button class="mf-chip mf-toggle" data-group="filter" data-value="onlyLive" onclick="mfToggle(this)">Sadece canlı maçlar</button>
+                </div>
+            </div>
+            <button class="mf-apply" onclick="applyMobileFilter()">Uygula</button>
+        </div>
+    </div>
 
 </body>
 </html>

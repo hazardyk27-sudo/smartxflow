@@ -8739,6 +8739,31 @@ table.desktop-only {
         width: 100%;
         justify-content: space-between;
     }
+
+    .mobile-filter-btn {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px 10px;
+        background: rgba(46, 160, 67, 0.3);
+        border: 1px solid rgba(46, 160, 67, 0.3);
+        border-radius: 6px;
+        color: #4ade80;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .mobile-filter-btn svg {
+        stroke: #4ade80;
+        flex-shrink: 0;
+    }
+
+    .mobile-filter-btn .day-chevron {
+        transition: transform 0.2s;
+    }
     
     .mobile-filter-right {
         display: flex;
@@ -8747,74 +8772,125 @@ table.desktop-only {
     }
     
     /* Day Filter Dropdown */
-    .day-filter-dropdown {
-        position: relative;
-    }
-
-    .day-filter-toggle {
+    .mf-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 9999;
         display: flex;
         align-items: center;
-        gap: 4px;
-        padding: 5px 10px;
-        background: rgba(46, 160, 67, 0.3);
-        border: 1px solid rgba(46, 160, 67, 0.3);
-        border-radius: 6px;
-        font-size: 10px;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .mf-modal {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 14px;
+        width: 100%;
+        max-width: 310px;
+        padding: 18px 16px 14px;
+        box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    }
+
+    .mf-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+    }
+
+    .mf-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #e6edf3;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .mf-close {
+        background: none;
+        border: none;
+        color: #8b949e;
+        font-size: 22px;
+        cursor: pointer;
+        padding: 0 4px;
+        line-height: 1;
+    }
+
+    .mf-section {
+        margin-bottom: 14px;
+    }
+
+    .mf-label {
+        font-size: 11px;
         font-weight: 600;
-        color: #58D68D;
+        color: #8b949e;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .mf-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .mf-chip {
+        padding: 7px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #8b949e;
+        background: #21262d;
+        border: 1px solid #30363d;
         cursor: pointer;
         font-family: 'Inter', sans-serif;
         transition: all 0.15s;
     }
 
-    .day-filter-toggle:active {
-        background: rgba(46, 160, 67, 0.45);
+    .mf-chip:active {
+        transform: scale(0.96);
     }
 
-    .day-chevron {
-        transition: transform 0.2s;
+    .mf-chip.active {
+        color: #fff;
+        background: rgba(46, 160, 67, 0.25);
+        border-color: rgba(46, 160, 67, 0.5);
     }
 
-    .day-filter-dropdown.open .day-chevron {
-        transform: rotate(180deg);
+    .mf-toggles {
+        flex-direction: column;
     }
 
-    .day-filter-options {
-        display: none;
-        position: absolute;
-        top: calc(100% + 4px);
-        left: 0;
-        min-width: 100px;
-        background: #1c2128;
-        border: 1px solid #30363d;
+    .mf-toggle {
+        width: 100%;
+        text-align: left;
+    }
+
+    .mf-apply {
+        width: 100%;
+        padding: 10px;
         border-radius: 8px;
-        padding: 4px;
-        z-index: 100;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    }
-
-    .day-filter-dropdown.open .day-filter-options {
-        display: block;
-    }
-
-    .day-filter-option {
-        padding: 8px 12px;
-        font-size: 12px;
-        font-weight: 500;
-        color: #8b949e;
-        border-radius: 5px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+        background: #238636;
+        border: 1px solid #2ea043;
         cursor: pointer;
         font-family: 'Inter', sans-serif;
-        transition: all 0.1s;
+        margin-top: 4px;
+        transition: background 0.15s;
     }
 
-    .day-filter-option:active {
-        background: rgba(46, 160, 67, 0.2);
+    .mf-apply:active {
+        background: #2ea043;
     }
 
-    .day-filter-option.active {
-        color: #58D68D;
-        background: rgba(46, 160, 67, 0.15);
+    .mobile-filter-btn.has-filter {
+        background: rgba(46, 160, 67, 0.5);
+        border-color: rgba(46, 160, 67, 0.6);
     }
 
     .trends-tab-bar {

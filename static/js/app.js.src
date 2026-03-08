@@ -65,6 +65,9 @@ let chartViewMode = 'percent';
 let isClientMode = true;
 let _modalRequestId = 0;
 let _analysisMatchHashes = [];
+let _mobileHideEnded = false;
+let _mobileHideLive = false;
+let _mobileOnlyLive = false;
 let _analysisHashesFetched = false;
 
 let _licenseReadyResolve;
@@ -1686,7 +1689,7 @@ function setDayFilter(filter) {
     
     currentDayFilter = filter;
     
-    var labels = {all: 'Tümü', today: 'Bugün', yesterday: 'Dün'};
+    var labels = {all: 'Tümü', today: 'Bugün', yesterday: 'Dün', future: 'Gelecek'};
     var labelEl = document.getElementById('dayFilterLabel');
     if (labelEl) labelEl.textContent = labels[filter] || 'Tümü';
 
@@ -1699,6 +1702,7 @@ function setDayFilter(filter) {
     const yesterdayBtn = document.getElementById('yesterdayBtn');
     
     if (filter === 'today') {
+        dateFilterMode = 'TODAY';
         if (todayBtn && !todayBtn.classList.contains('active')) {
             toggleTodayFilter(true);
         }
@@ -1706,14 +1710,23 @@ function setDayFilter(filter) {
             toggleYesterdayFilter(true);
         }
     } else if (filter === 'yesterday') {
+        dateFilterMode = 'YESTERDAY';
         if (yesterdayBtn && !yesterdayBtn.classList.contains('active')) {
             toggleYesterdayFilter(true);
         }
         if (todayBtn && todayBtn.classList.contains('active')) {
             toggleTodayFilter(true);
         }
+    } else if (filter === 'future') {
+        dateFilterMode = 'FUTURE';
+        if (todayBtn && todayBtn.classList.contains('active')) {
+            toggleTodayFilter(true);
+        }
+        if (yesterdayBtn && yesterdayBtn.classList.contains('active')) {
+            toggleYesterdayFilter(true);
+        }
     } else {
-        // All - turn off both filters
+        dateFilterMode = 'ALL';
         if (todayBtn && todayBtn.classList.contains('active')) {
             toggleTodayFilter(true);
         }
@@ -1724,6 +1737,96 @@ function setDayFilter(filter) {
     
     // Single loadMatches call at the end
     loadMatches();
+}
+
+function openMobileFilterModal() {
+    var overlay = document.getElementById('mobileFilterOverlay');
+    if (!overlay) return;
+    
+    document.querySelectorAll('.mf-chip[data-group="date"]').forEach(function(c) {
+        c.classList.toggle('active', c.getAttribute('data-value') === currentDayFilter);
+    });
+    
+    var sortVal = (currentSortColumn === 'volume') ? 'volume' : 'date';
+    document.querySelectorAll('.mf-chip[data-group="sort"]').forEach(function(c) {
+        c.classList.toggle('active', c.getAttribute('data-value') === sortVal);
+    });
+    
+    document.querySelectorAll('.mf-chip[data-group="filter"]').forEach(function(c) {
+        var v = c.getAttribute('data-value');
+        if (v === 'hideEnded') c.classList.toggle('active', _mobileHideEnded);
+        if (v === 'hideLive') c.classList.toggle('active', _mobileHideLive);
+        if (v === 'onlyLive') c.classList.toggle('active', _mobileOnlyLive);
+    });
+    
+    overlay.style.display = 'flex';
+}
+
+function closeMobileFilterModal() {
+    var overlay = document.getElementById('mobileFilterOverlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function mfSelect(el) {
+    var group = el.getAttribute('data-group');
+    el.closest('.mf-chips').querySelectorAll('.mf-chip[data-group="' + group + '"]').forEach(function(c) {
+        c.classList.remove('active');
+    });
+    el.classList.add('active');
+}
+
+function mfToggle(el) {
+    var val = el.getAttribute('data-value');
+    
+    if (val === 'onlyLive' && !el.classList.contains('active')) {
+        el.closest('.mf-chips').querySelectorAll('.mf-chip[data-value="hideLive"]').forEach(function(c) {
+            c.classList.remove('active');
+        });
+    }
+    if (val === 'hideLive' && !el.classList.contains('active')) {
+        el.closest('.mf-chips').querySelectorAll('.mf-chip[data-value="onlyLive"]').forEach(function(c) {
+            c.classList.remove('active');
+        });
+    }
+    
+    el.classList.toggle('active');
+}
+
+function applyMobileFilter() {
+    var dateChip = document.querySelector('.mf-chip[data-group="date"].active');
+    var sortChip = document.querySelector('.mf-chip[data-group="sort"].active');
+    
+    var dateVal = dateChip ? dateChip.getAttribute('data-value') : 'all';
+    var sortVal = sortChip ? sortChip.getAttribute('data-value') : 'date';
+    
+    _mobileHideEnded = !!document.querySelector('.mf-chip[data-value="hideEnded"].active');
+    _mobileHideLive = !!document.querySelector('.mf-chip[data-value="hideLive"].active');
+    _mobileOnlyLive = !!document.querySelector('.mf-chip[data-value="onlyLive"].active');
+    
+    var btn = document.getElementById('mobileFilterBtn');
+    if (btn) {
+        var hasFilter = (dateVal !== 'all') || _mobileHideEnded || _mobileHideLive || _mobileOnlyLive || (sortVal !== 'date');
+        btn.classList.toggle('has-filter', hasFilter);
+    }
+    
+    closeMobileFilterModal();
+    
+    if (sortVal === 'volume') {
+        currentSortColumn = 'volume';
+        currentSortDirection = 'desc';
+    } else {
+        currentSortColumn = 'date';
+        currentSortDirection = 'desc';
+    }
+    updateTrendSortButtons();
+    updateTableHeaders();
+    
+    if (currentDayFilter === dateVal) {
+        filteredMatches = applySorting(matches);
+        renderMatches(filteredMatches);
+    } else {
+        setDayFilter(dateVal);
+    }
 }
 
 const originalRenderMatches = renderMatches;
@@ -2051,6 +2154,14 @@ function applySorting(data) {
             return matchDateStr === todayStr;
         });
         console.log('[Filter] TODAY filtered count:', sortedData.length);
+    } else if (dateFilterMode === 'FUTURE') {
+        console.log('[Filter] FUTURE mode: >', todayStr);
+        sortedData = sortedData.filter(m => {
+            const dt = toTurkeyTime(m.date);
+            if (!dt || !dt.isValid()) return false;
+            return dt.isAfter(nowTR);
+        });
+        console.log('[Filter] FUTURE filtered count:', sortedData.length);
     } else {
         console.log('[Filter] ALL mode (today + future):', todayStr, '+');
         
@@ -2158,6 +2269,18 @@ function applySorting(data) {
     });
     if (beforeOddsFilter !== sortedData.length) {
         console.log('[Filter] Removed matches without valid odds:', beforeOddsFilter - sortedData.length);
+    }
+    
+    if (_mobileHideEnded || _mobileHideLive || _mobileOnlyLive) {
+        sortedData = sortedData.filter(m => {
+            const statusHtml = getMatchStatus(m.date);
+            const isLive = statusHtml.includes('CANLI');
+            const isEnded = statusHtml.includes('BİTTİ');
+            if (_mobileOnlyLive && !isLive) return false;
+            if (_mobileHideEnded && isEnded) return false;
+            if (_mobileHideLive && isLive) return false;
+            return true;
+        });
     }
     
     return sortedData.sort((a, b) => {
