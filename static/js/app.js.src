@@ -1752,7 +1752,7 @@ function openMobileFilterModal() {
         c.classList.toggle('active', c.getAttribute('data-value') === sortVal);
     });
     
-    document.querySelectorAll('.mf-chip[data-group="filter"]').forEach(function(c) {
+    document.querySelectorAll('.mf-sw[data-group="filter"]').forEach(function(c) {
         var v = c.getAttribute('data-value');
         if (v === 'hideEnded') c.classList.toggle('active', _mobileHideEnded);
         if (v === 'hideLive') c.classList.toggle('active', _mobileHideLive);
@@ -1777,16 +1777,15 @@ function mfSelect(el) {
 
 function mfToggle(el) {
     var val = el.getAttribute('data-value');
+    var list = el.closest('.mf-switch-list');
     
     if (val === 'onlyLive' && !el.classList.contains('active')) {
-        el.closest('.mf-chips').querySelectorAll('.mf-chip[data-value="hideLive"]').forEach(function(c) {
-            c.classList.remove('active');
-        });
+        var hl = list ? list.querySelector('.mf-sw[data-value="hideLive"]') : null;
+        if (hl) hl.classList.remove('active');
     }
     if (val === 'hideLive' && !el.classList.contains('active')) {
-        el.closest('.mf-chips').querySelectorAll('.mf-chip[data-value="onlyLive"]').forEach(function(c) {
-            c.classList.remove('active');
-        });
+        var ol = list ? list.querySelector('.mf-sw[data-value="onlyLive"]') : null;
+        if (ol) ol.classList.remove('active');
     }
     
     el.classList.toggle('active');
@@ -1799,9 +1798,9 @@ function applyMobileFilter() {
     var dateVal = dateChip ? dateChip.getAttribute('data-value') : 'all';
     var sortVal = sortChip ? sortChip.getAttribute('data-value') : 'date';
     
-    _mobileHideEnded = !!document.querySelector('.mf-chip[data-value="hideEnded"].active');
-    _mobileHideLive = !!document.querySelector('.mf-chip[data-value="hideLive"].active');
-    _mobileOnlyLive = !!document.querySelector('.mf-chip[data-value="onlyLive"].active');
+    _mobileHideEnded = !!document.querySelector('.mf-sw[data-value="hideEnded"].active');
+    _mobileHideLive = !!document.querySelector('.mf-sw[data-value="hideLive"].active');
+    _mobileOnlyLive = !!document.querySelector('.mf-sw[data-value="onlyLive"].active');
     
     var btn = document.getElementById('mobileFilterBtn');
     if (btn) {

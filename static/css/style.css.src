@@ -8772,83 +8772,100 @@ table.desktop-only {
         gap: 8px;
     }
     
-    /* Day Filter Dropdown */
+    /* Mobile Filter Modal — Premium */
     .mf-overlay {
         position: fixed;
         top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.55);
+        background: rgba(0, 0, 0, 0.6);
+        -webkit-backdrop-filter: blur(6px);
+        backdrop-filter: blur(6px);
         z-index: 9999;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 20px;
+        padding: 24px;
     }
 
     .mf-modal {
-        background: #161b22;
-        border: 1px solid #30363d;
-        border-radius: 14px;
+        background: linear-gradient(168deg, #141a22 0%, #0d1117 100%);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 16px;
         width: 100%;
-        max-width: 310px;
-        padding: 18px 16px 14px;
-        box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+        max-width: 320px;
+        padding: 20px 18px 16px;
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255,255,255,0.03) inset;
     }
 
     .mf-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 16px;
+        padding-bottom: 12px;
     }
 
     .mf-title {
-        font-size: 15px;
+        font-size: 16px;
         font-weight: 700;
-        color: #e6edf3;
+        color: #f0f6fc;
+        letter-spacing: -0.2px;
         font-family: 'Inter', sans-serif;
     }
 
     .mf-close {
-        background: none;
-        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        background: rgba(110, 118, 129, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 8px;
         color: #8b949e;
-        font-size: 22px;
         cursor: pointer;
-        padding: 0 4px;
-        line-height: 1;
+        transition: all 0.15s;
+    }
+
+    .mf-close:active {
+        background: rgba(110, 118, 129, 0.2);
+    }
+
+    .mf-divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.06);
+        margin-bottom: 16px;
     }
 
     .mf-section {
-        margin-bottom: 14px;
+        margin-bottom: 18px;
     }
 
     .mf-label {
-        font-size: 11px;
-        font-weight: 600;
-        color: #8b949e;
+        font-size: 10px;
+        font-weight: 700;
+        color: #6e7681;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 8px;
+        letter-spacing: 1px;
+        margin-bottom: 10px;
         font-family: 'Inter', sans-serif;
     }
 
     .mf-chips {
         display: flex;
         flex-wrap: wrap;
-        gap: 6px;
+        gap: 8px;
     }
 
     .mf-chip {
-        padding: 7px 12px;
+        padding: 8px 14px;
         border-radius: 8px;
         font-size: 12px;
         font-weight: 500;
         color: #8b949e;
-        background: #21262d;
-        border: 1px solid #30363d;
+        background: rgba(33, 38, 45, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.06);
         cursor: pointer;
         font-family: 'Inter', sans-serif;
-        transition: all 0.15s;
+        transition: all 0.2s ease;
     }
 
     .mf-chip:active {
@@ -8856,37 +8873,95 @@ table.desktop-only {
     }
 
     .mf-chip.active {
-        color: #fff;
-        background: rgba(46, 160, 67, 0.25);
-        border-color: rgba(46, 160, 67, 0.5);
+        color: #e6ffed;
+        background: linear-gradient(135deg, rgba(46, 160, 67, 0.3) 0%, rgba(35, 134, 54, 0.2) 100%);
+        border-color: rgba(46, 160, 67, 0.4);
+        box-shadow: 0 0 12px rgba(46, 160, 67, 0.15);
+        font-weight: 600;
     }
 
-    .mf-toggles {
+    /* Switch rows */
+    .mf-switch-list {
+        display: flex;
         flex-direction: column;
+        gap: 4px;
     }
 
-    .mf-toggle {
-        width: 100%;
-        text-align: left;
+    .mf-switch-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        background: rgba(33, 38, 45, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .mf-switch-row:active {
+        background: rgba(33, 38, 45, 0.7);
+    }
+
+    .mf-switch-text {
+        font-size: 13px;
+        font-weight: 500;
+        color: #c9d1d9;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .mf-sw {
+        position: relative;
+        width: 40px;
+        height: 22px;
+        background: rgba(110, 118, 129, 0.25);
+        border-radius: 11px;
+        flex-shrink: 0;
+        transition: background 0.2s ease;
+    }
+
+    .mf-sw-knob {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 16px;
+        height: 16px;
+        background: #6e7681;
+        border-radius: 50%;
+        transition: all 0.2s ease;
+    }
+
+    .mf-sw.active {
+        background: linear-gradient(135deg, rgba(46, 160, 67, 0.6) 0%, rgba(35, 134, 54, 0.5) 100%);
+        box-shadow: 0 0 10px rgba(46, 160, 67, 0.2);
+    }
+
+    .mf-sw.active .mf-sw-knob {
+        left: 21px;
+        background: #e6ffed;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
     }
 
     .mf-apply {
         width: 100%;
-        padding: 10px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 600;
+        padding: 13px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 700;
         color: #fff;
-        background: #238636;
-        border: 1px solid #2ea043;
+        background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+        border: none;
         cursor: pointer;
         font-family: 'Inter', sans-serif;
-        margin-top: 4px;
-        transition: background 0.15s;
+        margin-top: 6px;
+        transition: all 0.15s;
+        box-shadow: 0 4px 16px rgba(46, 160, 67, 0.2);
+        letter-spacing: 0.2px;
     }
 
     .mf-apply:active {
-        background: #2ea043;
+        background: linear-gradient(135deg, #2ea043 0%, #3fb950 100%);
+        transform: scale(0.98);
     }
 
     .mobile-filter-btn.has-filter {

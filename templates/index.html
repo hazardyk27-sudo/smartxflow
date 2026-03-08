@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=1773001112">
+    <link rel="stylesheet" href="/static/css/style.css?v=1773001243">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <script defer src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/utc.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/timezone.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/customParseFormat.js"></script>
-    <script defer src="/static/js/app.js?v=1773001112"></script>
+    <script defer src="/static/js/app.js?v=1773001243"></script>
 </head>
 <body>
     <!-- License Gate - Birebir Desktop Aynisi -->
@@ -1153,8 +1153,11 @@
         <div class="mf-modal" onclick="event.stopPropagation()">
             <div class="mf-header">
                 <span class="mf-title">Filtrele & Sırala</span>
-                <button class="mf-close" onclick="closeMobileFilterModal()">&times;</button>
+                <button class="mf-close" onclick="closeMobileFilterModal()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
             </div>
+            <div class="mf-divider"></div>
             <div class="mf-section">
                 <div class="mf-label">Tarih</div>
                 <div class="mf-chips">
@@ -1173,10 +1176,19 @@
             </div>
             <div class="mf-section">
                 <div class="mf-label">Filtrele</div>
-                <div class="mf-chips mf-toggles">
-                    <button class="mf-chip mf-toggle" data-group="filter" data-value="hideEnded" onclick="mfToggle(this)">Biten maçları gizle</button>
-                    <button class="mf-chip mf-toggle" data-group="filter" data-value="hideLive" onclick="mfToggle(this)">Canlı maçları gizle</button>
-                    <button class="mf-chip mf-toggle" data-group="filter" data-value="onlyLive" onclick="mfToggle(this)">Sadece canlı maçlar</button>
+                <div class="mf-switch-list">
+                    <div class="mf-switch-row" onclick="mfToggle(this.querySelector('.mf-sw'))" data-group="filter" data-value="hideEnded">
+                        <span class="mf-switch-text">Biten maçları gizle</span>
+                        <div class="mf-sw" data-group="filter" data-value="hideEnded"><div class="mf-sw-knob"></div></div>
+                    </div>
+                    <div class="mf-switch-row" onclick="mfToggle(this.querySelector('.mf-sw'))" data-group="filter" data-value="hideLive">
+                        <span class="mf-switch-text">Canlı maçları gizle</span>
+                        <div class="mf-sw" data-group="filter" data-value="hideLive"><div class="mf-sw-knob"></div></div>
+                    </div>
+                    <div class="mf-switch-row" onclick="mfToggle(this.querySelector('.mf-sw'))" data-group="filter" data-value="onlyLive">
+                        <span class="mf-switch-text">Sadece canlı maçlar</span>
+                        <div class="mf-sw" data-group="filter" data-value="onlyLive"><div class="mf-sw-knob"></div></div>
+                    </div>
                 </div>
             </div>
             <button class="mf-apply" onclick="applyMobileFilter()">Uygula</button>
