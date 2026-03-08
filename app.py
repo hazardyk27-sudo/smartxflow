@@ -6221,7 +6221,15 @@ def create_analysis():
             content_type = file.content_type or 'image/png'
             image_url = db.upload_to_storage('smartxflow', file_path, file_data, content_type)
     
-    result = db.create_analysis(title, content, image_url, category, match_id_hash, odds, confidence)
+    analyst_id_raw = request.form.get('analyst_id', None)
+    analyst_id = None
+    if analyst_id_raw:
+        try:
+            analyst_id = int(analyst_id_raw)
+        except (ValueError, TypeError):
+            pass
+
+    result = db.create_analysis(title, content, image_url, category, match_id_hash, odds, confidence, analyst_id)
     if result:
         for k in _analyses_cache:
             _analyses_cache[k] = {'data': None, 'ts': 0}
@@ -6250,7 +6258,33 @@ def update_analysis_endpoint(analysis_id):
             confidence = round(max(1, min(10, float(confidence_raw))) * 2) / 2
         except (ValueError, TypeError):
             pass
-    success = db.update_analysis(analysis_id, title, content, image_url, match_id_hash, odds, confidence)
+    analyst_id_raw = request.form.get('analyst_id', None)
+    analyst_id = None
+    if analyst_id_raw:
+        try:
+            analyst_id = int(analyst_id_raw)
+        except (ValueError, TypeError):
+            pass
+    success = db.update_analysis(analysis_id, title, content, image_url, match_id_hash, odds, confidence, analyst_id)
+    if success:
+        for k in _analyses_cache:
+            _analyses_cache[k] = {'data': None, 'ts': 0}
+        return jsonify({'status': 'ok'})
+    return jsonify({'status': 'error'}), 500
+
+@app.route('/api/analyses/<int:analysis_id>/result', methods=['PUT'])
+def update_analysis_result_endpoint(analysis_id):
+    """Update analysis result (won/lost/push/void)"""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    data = request.get_json(silent=True) or {}
+    result_val = data.get('result', '')
+    if result_val not in ('won', 'lost', 'push', 'void', ''):
+        return jsonify({'status': 'error', 'message': 'Geçersiz sonuç'}), 400
+    result_note = data.get('result_note', None)
+    if result_val == '':
+        result_val = None
+    success = db.update_analysis_result(analysis_id, result_val, result_note)
     if success:
         for k in _analyses_cache:
             _analyses_cache[k] = {'data': None, 'ts': 0}
@@ -6275,6 +6309,98 @@ def delete_analysis_endpoint(analysis_id):
     if success:
         for k in _analyses_cache:
             _analyses_cache[k] = {'data': None, 'ts': 0}
+        return jsonify({'status': 'ok'})
+    return jsonify({'status': 'error'}), 500
+
+@app.route('/api/analysts', methods=['GET'])
+def get_analysts_endpoint():
+    """Get all analysts with stats"""
+    active_only = request.args.get('active', 'false') == 'true'
+    analysts = db.get_analysts(active_only=active_only)
+    stats = db.get_analyst_stats()
+    for a in analysts:
+        aid = a.get('id')
+        s = stats.get(aid, {})
+        a['stats'] = {
+            'total': s.get('total', 0),
+            'won': s.get('won', 0),
+            'lost': s.get('lost', 0),
+            'push': s.get('push', 0),
+            'void': s.get('void', 0),
+            'pending': s.get('pending', 0),
+            'success_pct': s.get('success_pct', 0.0),
+            'avg_odds': s.get('avg_odds', 0.0)
+        }
+    return jsonify(analysts)
+
+@app.route('/api/analysts', methods=['POST'])
+def create_analyst_endpoint():
+    """Create new analyst (admin only)"""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    name = request.form.get('name', '').strip()
+    if not name:
+        return jsonify({'status': 'error', 'message': 'İsim zorunludur'}), 400
+    bio = request.form.get('bio', '').strip() or None
+    avatar_url = None
+    if 'avatar' in request.files:
+        file = request.files['avatar']
+        if file and file.filename:
+            import uuid
+            ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'png'
+            if ext in ('png', 'jpg', 'jpeg', 'gif', 'webp'):
+                file_data = file.read()
+                if len(file_data) <= 5 * 1024 * 1024:
+                    file_path = f"analysts/{uuid.uuid4().hex}.{ext}"
+                    content_type = file.content_type or 'image/png'
+                    avatar_url = db.upload_to_storage('smartxflow', file_path, file_data, content_type)
+    result = db.create_analyst(name, avatar_url, bio)
+    if result:
+        return jsonify({'status': 'ok', 'data': result})
+    return jsonify({'status': 'error', 'message': 'Analizci oluşturulamadı'}), 500
+
+@app.route('/api/analysts/<int:analyst_id>', methods=['PUT'])
+def update_analyst_endpoint(analyst_id):
+    """Update analyst (admin only)"""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    update_data = {}
+    name = request.form.get('name', '').strip()
+    if name:
+        update_data['name'] = name
+    bio = request.form.get('bio', None)
+    if bio is not None:
+        update_data['bio'] = bio.strip() or None
+    is_active = request.form.get('is_active', None)
+    if is_active is not None:
+        update_data['is_active'] = is_active == 'true'
+    if 'avatar' in request.files:
+        file = request.files['avatar']
+        if file and file.filename:
+            import uuid
+            ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'png'
+            if ext in ('png', 'jpg', 'jpeg', 'gif', 'webp'):
+                file_data = file.read()
+                if len(file_data) <= 5 * 1024 * 1024:
+                    file_path = f"analysts/{uuid.uuid4().hex}.{ext}"
+                    content_type = file.content_type or 'image/png'
+                    avatar_url = db.upload_to_storage('smartxflow', file_path, file_data, content_type)
+                    if avatar_url:
+                        update_data['avatar_url'] = avatar_url
+    if not update_data:
+        return jsonify({'status': 'error', 'message': 'Güncellenecek veri yok'}), 400
+    success = db.update_analyst(analyst_id, update_data)
+    if success:
+        return jsonify({'status': 'ok'})
+    return jsonify({'status': 'error'}), 500
+
+@app.route('/api/analysts/<int:analyst_id>', methods=['DELETE'])
+def delete_analyst_endpoint(analyst_id):
+    """Delete analyst (admin only)"""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    success = db.delete_analyst(analyst_id)
+    if success:
         return jsonify({'status': 'ok'})
     return jsonify({'status': 'error'}), 500
 

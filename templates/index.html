@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=1772892930">
+    <link rel="stylesheet" href="/static/css/style.css?v=1772974614">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
@@ -1202,6 +1202,11 @@
         function mobileBackToList() {
             document.querySelector('.trends-modal-body').classList.remove('mobile-article-open');
         }
+        var _analystsCache = null;
+        var _analystsCacheTs = 0;
+        var _selectedAnalystId = null;
+        var _fullAnalysisData = null;
+
         function renderAnalysisList(data) {
             var sidebar = document.getElementById('trendsSidebar');
             var contentArea = document.getElementById('trendsContentArea');
@@ -1211,11 +1216,59 @@
                 return;
             }
             sidebar.innerHTML = '';
+            _fullAnalysisData = data;
+            var cardsHtml = buildAnalystCards();
+            var filtered = _selectedAnalystId ? data.filter(function(item) { return item.analyst_id == _selectedAnalystId; }) : data;
+            var listHtml = buildAnalysisCards(filtered);
+            contentArea.innerHTML = cardsHtml + '<div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto;max-height:calc(100% - 90px);">' + listHtml + '</div>';
+        }
+
+        function buildAnalystCards() {
+            if (!_analystsCache || _analystsCache.length === 0) return '';
+            var html = '<div class="analyst-cards-strip">';
+            html += '<div class="analyst-card' + (!_selectedAnalystId ? ' active' : '') + '" onclick="filterByAnalyst(null)">';
+            html += '<div class="analyst-card-avatar-placeholder" style="font-size:14px;">All</div>';
+            html += '<div class="analyst-card-name">Tümü</div>';
+            html += '</div>';
+            _analystsCache.forEach(function(a) {
+                var isActive = _selectedAnalystId == a.id;
+                var s = a.stats || {};
+                var pctColor = s.success_pct >= 60 ? '#3fb950' : s.success_pct >= 40 ? '#d29922' : (s.total > 0 ? '#f85149' : '#484f58');
+                html += '<div class="analyst-card' + (isActive ? ' active' : '') + '" onclick="filterByAnalyst(' + a.id + ')">';
+                if (a.avatar_url) {
+                    html += '<img class="analyst-card-avatar" src="' + a.avatar_url + '" alt="">';
+                } else {
+                    html += '<div class="analyst-card-avatar-placeholder">' + (a.name || '?')[0].toUpperCase() + '</div>';
+                }
+                html += '<div class="analyst-card-name">' + (a.name || '') + '</div>';
+                html += '<div class="analyst-card-pct" style="color:' + pctColor + ';">%' + (s.success_pct || 0) + '</div>';
+                html += '<div class="analyst-card-meta">' + (s.total || 0) + ' analiz | ' + (s.avg_odds || '0') + ' ort.</div>';
+                html += '</div>';
+            });
+            html += '</div>';
+            return html;
+        }
+
+        function buildAnalysisCards(items) {
+            if (!items || items.length === 0) return '<div class="trends-placeholder"><div>Bu analizci için henüz analiz yok</div></div>';
             var html = '';
-            data.forEach(function(item) {
+            items.forEach(function(item) {
                 var date = item.created_at ? new Date(item.created_at).toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'}) : '';
                 html += '<div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px 20px;">';
-                html += '<div style="font-size:15px;font-weight:600;color:#e6edf3;margin-bottom:8px;">' + (item.title || '') + '</div>';
+                var analystName = '';
+                if (item.analyst_id && _analystsCache) {
+                    for (var i = 0; i < _analystsCache.length; i++) {
+                        if (_analystsCache[i].id == item.analyst_id) { analystName = _analystsCache[i].name; break; }
+                    }
+                }
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+                html += '<div style="font-size:15px;font-weight:600;color:#e6edf3;">' + (item.title || '') + '</div>';
+                if (item.result) {
+                    var rColors = {won:'#3fb950',lost:'#f85149',push:'#d29922','void':'#8b949e'};
+                    var rLabels = {won:'Tuttu',lost:'Tutmadı',push:'İade','void':'İptal'};
+                    html += '<span style="background:' + (rColors[item.result]||'#484f58') + ';color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">' + (rLabels[item.result]||item.result) + '</span>';
+                }
+                html += '</div>';
                 if (item.odds || item.confidence) {
                     html += '<div style="display:flex;gap:12px;margin-bottom:10px;">';
                     if (item.odds) {
@@ -1231,10 +1284,40 @@
                 if (item.image_url) {
                     html += '<div style="margin-bottom:10px;"><img src="' + item.image_url + '" style="max-width:100%;border-radius:8px;border:1px solid #30363d;" alt=""></div>';
                 }
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
                 html += '<div style="font-size:11px;color:#484f58;">' + date + '</div>';
+                if (analystName) {
+                    html += '<div style="font-size:11px;color:#58a6ff;">Analizci: ' + analystName + '</div>';
+                }
+                html += '</div>';
                 html += '</div>';
             });
-            contentArea.innerHTML = '<div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto;max-height:100%;">' + html + '</div>';
+            return html;
+        }
+
+        function filterByAnalyst(analystId) {
+            _selectedAnalystId = analystId;
+            if (_fullAnalysisData) {
+                renderAnalysisList(_fullAnalysisData);
+            }
+        }
+
+        function loadAnalysts(callback) {
+            var now = Date.now();
+            if (_analystsCache && (now - _analystsCacheTs) < 120000) {
+                if (callback) callback();
+                return;
+            }
+            fetch('/api/analysts?active=true')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (Array.isArray(data)) {
+                        _analystsCache = data;
+                        _analystsCacheTs = Date.now();
+                    }
+                    if (callback) callback();
+                })
+                .catch(function() { if (callback) callback(); });
         }
         var _trendsRawCache = {};
         var _trendsRawCacheTs = {};
@@ -1243,6 +1326,7 @@
             var sidebar = document.getElementById('trendsSidebar');
             var contentArea = document.getElementById('trendsContentArea');
             var now = Date.now();
+            if (category === 'analysis') loadAnalysts();
             if (_trendsRawCache[category] && (now - (_trendsRawCacheTs[category] || 0)) < _TRENDS_CACHE_TTL) {
                 _renderTrendsData(category, _trendsRawCache[category]);
                 return;
@@ -1286,7 +1370,11 @@
                     }
                 }
             } else {
-                renderAnalysisList(data);
+                if (!_analystsCache) {
+                    loadAnalysts(function() { renderAnalysisList(data); });
+                } else {
+                    renderAnalysisList(data);
+                }
             }
         }
 
@@ -1504,6 +1592,6 @@
         })();
     </script>
 
-    <script src="/static/js/app.js?v=1772969318"></script>
+    <script src="/static/js/app.js?v=1772974614"></script>
 </body>
 </html>

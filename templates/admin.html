@@ -847,6 +847,10 @@
             </div>
 
             <div class="nav-category">İçerik</div>
+            <div class="nav-item" onclick="showPage('analysts')" data-page="analysts">
+                <span class="nav-item-icon">👤</span>
+                <span>Analizciler</span>
+            </div>
             <div class="nav-item" onclick="showPage('content')" data-page="content">
                 <span class="nav-item-icon">📝</span>
                 <span>İçerik Yönetimi</span>
@@ -3059,6 +3063,40 @@
             </div>
         </div>
 
+        <div id="page-analysts" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title">Analizci Yönetimi</h2>
+                    <p class="page-subtitle">Analizci profilleri ve performans istatistikleri</p>
+                </div>
+            </div>
+            <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;margin-bottom:24px;">
+                <h3 style="margin-bottom:16px;color:#c9d1d9;" id="analystFormTitle">Yeni Analizci Ekle</h3>
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <div>
+                        <label style="display:block;margin-bottom:4px;color:#8b949e;font-size:13px;">İsim *</label>
+                        <input type="text" id="analystName" placeholder="Analizci adı" style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px 14px;color:#c9d1d9;font-size:14px;width:100%;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="display:block;margin-bottom:4px;color:#8b949e;font-size:13px;">Biyografi</label>
+                        <textarea id="analystBio" placeholder="Kısa biyografi..." rows="2" style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px 14px;color:#c9d1d9;font-size:14px;resize:vertical;width:100%;box-sizing:border-box;"></textarea>
+                    </div>
+                    <div>
+                        <label style="display:block;margin-bottom:4px;color:#8b949e;font-size:13px;">Profil Fotoğrafı</label>
+                        <input type="file" id="analystAvatar" accept="image/*" style="color:#8b949e;font-size:13px;">
+                    </div>
+                    <div style="display:flex;gap:8px;align-self:flex-start;">
+                        <button class="btn btn-primary" id="analystSubmitBtn" onclick="submitAnalyst()" style="padding:10px 24px;">Ekle</button>
+                        <button class="btn" id="analystCancelBtn" onclick="cancelAnalystEdit()" style="padding:10px 24px;background:#21262d;border:1px solid #30363d;color:#c9d1d9;display:none;">İptal</button>
+                    </div>
+                </div>
+                <div id="analystFormStatus" style="margin-top:10px;font-size:13px;"></div>
+            </div>
+            <div id="analystList" style="display:flex;flex-direction:column;gap:12px;">
+                <div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>
+            </div>
+        </div>
+
         <div id="page-content" class="page-content">
             <div class="page-header">
                 <div>
@@ -3106,6 +3144,12 @@
                         </div>
                     </div>
                     <textarea id="contentText" placeholder="İçerik metni..." rows="5" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; resize: vertical;"></textarea>
+                    <div id="analysisAnalystGroup">
+                        <label style="display: block; margin-bottom: 4px; color: #8b949e; font-size: 13px;">Analizci</label>
+                        <select id="contentAnalystId" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; width: 100%; box-sizing: border-box;">
+                            <option value="">Analizci seçin...</option>
+                        </select>
+                    </div>
                     <div id="analysisOddsGroup" style="display: flex; gap: 12px;">
                         <div style="flex: 1;">
                             <label style="display: block; margin-bottom: 4px; color: #8b949e; font-size: 13px;">Oran</label>
@@ -3870,6 +3914,7 @@
             if (pageId === 'volumeleader') loadVolumeLeaderPage();
             if (pageId === 'mim') loadMimPage();
             if (pageId === 'telegram') loadTelegramPage();
+            if (pageId === 'analysts') loadAnalystsPage();
             if (pageId === 'content') loadContentPage();
             if (pageId === 'license') loadLicensePage();
             if (pageId === 'orders') loadOrders();
@@ -7843,7 +7888,9 @@
             document.getElementById('movesFieldsGroup').style.display = tab === 'moves' ? 'block' : 'none';
             document.getElementById('analysisFieldsGroup').style.display = tab === 'moves' ? 'none' : 'block';
             document.getElementById('analysisOddsGroup').style.display = tab === 'moves' ? 'none' : 'flex';
+            document.getElementById('analysisAnalystGroup').style.display = tab === 'moves' ? 'none' : 'block';
             document.getElementById('contentFormTitle').textContent = tab === 'analysis' ? 'Yeni Analiz Ekle' : 'Yeni Kılavuz İçeriği Ekle';
+            if (tab === 'analysis') loadAnalystDropdown();
             cancelEdit();
             loadContentList();
         }
@@ -7855,6 +7902,7 @@
         async function loadContentList() {
             const list = document.getElementById('contentList');
             list.innerHTML = '<div style="text-align: center; color: #8b949e; padding: 40px;">Yükleniyor...</div>';
+            if (currentContentTab === 'analysis' && !_analystDropdownLoaded) await loadAnalystDropdown();
             try {
                 const resp = await fetch(`/api/analyses?category=${currentContentTab}&admin=true`);
                 const data = await resp.json();
@@ -7874,13 +7922,36 @@
                     } else {
                         titleHtml = `<span style="color: #c9d1d9;">${escapeHtml(item.title)}</span>`;
                     }
+                    let resultHtml = '';
+                    if (currentContentTab === 'analysis') {
+                        const rColors = {won:'#3fb950',lost:'#f85149',push:'#d29922',void:'#8b949e'};
+                        const rLabels = {won:'Tuttu',lost:'Tutmadı',push:'İade',void:'İptal'};
+                        const curResult = item.result || '';
+                        const rBadge = curResult ? `<span style="background:${rColors[curResult]||'#484f58'};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">${rLabels[curResult]||curResult}</span>` : '<span style="color:#484f58;font-size:11px;">Bekliyor</span>';
+                        resultHtml = `<div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+                            <span style="color:#8b949e;font-size:11px;">Sonuç:</span>${rBadge}
+                            <select onchange="updateResultQuick(${item.id},this.value)" style="background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:2px 6px;color:#c9d1d9;font-size:11px;cursor:pointer;">
+                                <option value="" ${!curResult?'selected':''}>-</option>
+                                <option value="won" ${curResult==='won'?'selected':''}>Tuttu</option>
+                                <option value="lost" ${curResult==='lost'?'selected':''}>Tutmadı</option>
+                                <option value="push" ${curResult==='push'?'selected':''}>İade</option>
+                                <option value="void" ${curResult==='void'?'selected':''}>İptal</option>
+                            </select>
+                        </div>`;
+                    }
+                    let analystBadge = '';
+                    if (currentContentTab === 'analysis' && item.analyst_id && window._analystMap) {
+                        const an = window._analystMap[item.analyst_id];
+                        if (an) analystBadge = `<span style="color:#58a6ff;font-size:11px;margin-left:8px;">Analizci: ${escapeHtml(an.name)}</span>`;
+                    }
                     return `
                     <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div style="flex: 1;">
-                                <h4 style="margin-bottom: 8px;">${titleHtml}</h4>
+                                <h4 style="margin-bottom: 8px;">${titleHtml}${analystBadge}</h4>
                                 <p style="color: #8b949e; font-size: 13px; margin-bottom: 8px;">${escapeHtml(item.content).substring(0, 200)}${item.content.length > 200 ? '...' : ''}</p>
                                 ${item.odds || item.confidence ? `<div style="display:flex;gap:8px;margin-bottom:6px;">${item.odds ? `<span style="color:#58a6ff;font-size:12px;font-weight:600;">Oran: ${escapeHtml(item.odds)}</span>` : ''}${item.confidence ? `<span style="color:#3fb950;font-size:12px;font-weight:600;">Güven: ${item.confidence}/10</span>` : ''}</div>` : ''}
+                                ${resultHtml}
                                 <span style="color: #484f58; font-size: 12px;">${new Date(item.created_at).toLocaleString('tr-TR')}</span>
                             </div>
                             ${item.image_url ? `<img src="${item.image_url}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 6px; margin-left: 12px; border: 1px solid #30363d;">` : ''}
@@ -8041,6 +8112,8 @@
             if (matchHash) {
                 formData.append('match_id_hash', matchHash);
             }
+            const analystId = document.getElementById('contentAnalystId').value;
+            if (analystId) formData.append('analyst_id', analystId);
             const oddsVal = document.getElementById('contentOdds').value.trim();
             if (oddsVal) formData.append('odds', oddsVal);
             const confVal = document.getElementById('contentConfidence').value;
@@ -8078,10 +8151,10 @@
         function editContentByIndex(idx) {
             var item = window._contentListData && window._contentListData[idx];
             if (!item) return;
-            editContent(item.id, item.title || '', item.content || '', item.match_id_hash || '', item.odds || '', item.confidence || '');
+            editContent(item.id, item.title || '', item.content || '', item.match_id_hash || '', item.odds || '', item.confidence || '', item.analyst_id || '');
         }
 
-        function editContent(id, title, content, matchIdHash, odds, confidence) {
+        function editContent(id, title, content, matchIdHash, odds, confidence, analystId) {
             editingContentId = id;
             if (currentContentTab === 'moves') {
                 const parts = title.split(' - ');
@@ -8103,6 +8176,7 @@
             document.getElementById('contentImage').value = '';
             document.getElementById('contentOdds').value = odds || '';
             document.getElementById('contentConfidence').value = confidence || '';
+            document.getElementById('contentAnalystId').value = analystId || '';
             document.getElementById('contentFormTitle').textContent = currentContentTab === 'moves' ? 'Kılavuz İçeriği Düzenle' : 'Analizi Düzenle';
             document.getElementById('contentSubmitBtn').textContent = 'Güncelle';
             document.getElementById('contentCancelBtn').style.display = 'inline-block';
@@ -8123,6 +8197,7 @@
             document.getElementById('contentImage').value = '';
             document.getElementById('contentOdds').value = '';
             document.getElementById('contentConfidence').value = '';
+            document.getElementById('contentAnalystId').value = '';
             clearMatchSelection();
             const tab = currentContentTab;
             document.getElementById('contentFormTitle').textContent = tab === 'analysis' ? 'Yeni Analiz Ekle' : 'Yeni Kılavuz İçeriği Ekle';
@@ -8144,6 +8219,188 @@
                 alert('Silme hatası');
             }
         }
+        window._analystMap = {};
+        let _analystDropdownLoaded = false;
+
+        async function loadAnalystDropdown() {
+            if (_analystDropdownLoaded) return;
+            try {
+                const resp = await fetch('/api/analysts?active=true');
+                const data = await resp.json();
+                const sel = document.getElementById('contentAnalystId');
+                sel.innerHTML = '<option value="">Analizci seçin...</option>';
+                if (Array.isArray(data)) {
+                    data.forEach(a => {
+                        window._analystMap[a.id] = a;
+                        sel.innerHTML += `<option value="${a.id}">${escapeHtml(a.name)}</option>`;
+                    });
+                }
+                _analystDropdownLoaded = true;
+            } catch(e) { console.error('Analyst dropdown error:', e); }
+        }
+
+        async function updateResultQuick(analysisId, result) {
+            try {
+                const resp = await fetch(`/api/analyses/${analysisId}/result`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({result: result})
+                });
+                const data = await resp.json();
+                if (data.status === 'ok') {
+                    loadContentList();
+                }
+            } catch(e) { console.error('Result update error:', e); }
+        }
+
+        let editingAnalystId = null;
+
+        async function loadAnalystsPage() {
+            loadAnalystList();
+        }
+
+        async function loadAnalystList() {
+            const list = document.getElementById('analystList');
+            list.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>';
+            try {
+                const resp = await fetch('/api/analysts');
+                const data = await resp.json();
+                if (!Array.isArray(data) || data.length === 0) {
+                    list.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Henüz analizci eklenmemiş</div>';
+                    return;
+                }
+                window._analystMap = {};
+                data.forEach(a => { window._analystMap[a.id] = a; });
+                list.innerHTML = data.map(a => {
+                    const s = a.stats || {};
+                    const pctColor = s.success_pct >= 60 ? '#3fb950' : s.success_pct >= 40 ? '#d29922' : '#f85149';
+                    const statusBadge = a.is_active 
+                        ? '<span style="color:#3fb950;font-size:11px;font-weight:600;">Aktif</span>'
+                        : '<span style="color:#f85149;font-size:11px;font-weight:600;">Pasif</span>';
+                    const avatarHtml = a.avatar_url 
+                        ? `<img src="${a.avatar_url}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid #30363d;">`
+                        : `<div style="width:48px;height:48px;border-radius:50%;background:#21262d;display:flex;align-items:center;justify-content:center;color:#8b949e;font-size:20px;font-weight:700;border:2px solid #30363d;">${(a.name||'?')[0].toUpperCase()}</div>`;
+                    return `
+                    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;">
+                        <div style="display:flex;gap:16px;align-items:center;">
+                            ${avatarHtml}
+                            <div style="flex:1;">
+                                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                                    <span style="color:#e6edf3;font-size:15px;font-weight:600;">${escapeHtml(a.name)}</span>
+                                    ${statusBadge}
+                                </div>
+                                ${a.bio ? `<div style="color:#8b949e;font-size:12px;margin-bottom:6px;">${escapeHtml(a.bio)}</div>` : ''}
+                                <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                                    <span style="color:${pctColor};font-size:13px;font-weight:600;">%${s.success_pct}</span>
+                                    <span style="color:#8b949e;font-size:12px;">Ort. Oran: ${s.avg_odds}</span>
+                                    <span style="color:#8b949e;font-size:12px;">Toplam: ${s.total}</span>
+                                    <span style="color:#3fb950;font-size:12px;">${s.won}W</span>
+                                    <span style="color:#f85149;font-size:12px;">${s.lost}L</span>
+                                    ${s.pending > 0 ? `<span style="color:#d29922;font-size:12px;">${s.pending} Bekliyor</span>` : ''}
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:6px;">
+                                <button onclick="editAnalyst(${a.id})" style="background:#1f6feb;border:none;color:white;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:12px;">Düzenle</button>
+                                <button onclick="toggleAnalystActive(${a.id},${!a.is_active})" style="background:${a.is_active?'#d29922':'#238636'};border:none;color:white;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:12px;">${a.is_active?'Pasif Yap':'Aktif Yap'}</button>
+                                <button onclick="deleteAnalyst(${a.id})" style="background:#da3633;border:none;color:white;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:12px;">Sil</button>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch(e) {
+                list.innerHTML = '<div style="text-align:center;color:#f85149;padding:40px;">Yükleme hatası</div>';
+            }
+        }
+
+        async function submitAnalyst() {
+            const name = document.getElementById('analystName').value.trim();
+            const bio = document.getElementById('analystBio').value.trim();
+            const avatarInput = document.getElementById('analystAvatar');
+            const status = document.getElementById('analystFormStatus');
+
+            if (!name) {
+                status.innerHTML = '<span style="color:#f85149;">İsim zorunludur</span>';
+                return;
+            }
+            status.innerHTML = '<span style="color:#58a6ff;">Kaydediliyor...</span>';
+
+            const formData = new FormData();
+            formData.append('name', name);
+            if (bio) formData.append('bio', bio);
+            if (avatarInput.files[0]) formData.append('avatar', avatarInput.files[0]);
+
+            try {
+                let url = '/api/analysts';
+                let method = 'POST';
+                if (editingAnalystId) {
+                    url = `/api/analysts/${editingAnalystId}`;
+                    method = 'PUT';
+                }
+                const resp = await fetch(url, {method, body: formData});
+                const data = await resp.json();
+                if (data.status === 'ok') {
+                    status.innerHTML = '<span style="color:#3fb950;">Başarılı!</span>';
+                    cancelAnalystEdit();
+                    _analystDropdownLoaded = false;
+                    loadAnalystList();
+                    setTimeout(() => { status.innerHTML = ''; }, 3000);
+                } else {
+                    status.innerHTML = `<span style="color:#f85149;">Hata: ${data.message || 'Bilinmeyen hata'}</span>`;
+                }
+            } catch(e) {
+                status.innerHTML = '<span style="color:#f85149;">Bağlantı hatası</span>';
+            }
+        }
+
+        function editAnalyst(id) {
+            const a = window._analystMap[id];
+            if (!a) return;
+            editingAnalystId = id;
+            document.getElementById('analystName').value = a.name || '';
+            document.getElementById('analystBio').value = a.bio || '';
+            document.getElementById('analystAvatar').value = '';
+            document.getElementById('analystFormTitle').textContent = 'Analizci Düzenle';
+            document.getElementById('analystSubmitBtn').textContent = 'Güncelle';
+            document.getElementById('analystCancelBtn').style.display = 'inline-block';
+            document.getElementById('analystName').focus();
+        }
+
+        function cancelAnalystEdit() {
+            editingAnalystId = null;
+            document.getElementById('analystName').value = '';
+            document.getElementById('analystBio').value = '';
+            document.getElementById('analystAvatar').value = '';
+            document.getElementById('analystFormTitle').textContent = 'Yeni Analizci Ekle';
+            document.getElementById('analystSubmitBtn').textContent = 'Ekle';
+            document.getElementById('analystCancelBtn').style.display = 'none';
+            document.getElementById('analystFormStatus').innerHTML = '';
+        }
+
+        async function toggleAnalystActive(id, newState) {
+            const formData = new FormData();
+            formData.append('is_active', newState.toString());
+            try {
+                const resp = await fetch(`/api/analysts/${id}`, {method:'PUT', body: formData});
+                const data = await resp.json();
+                if (data.status === 'ok') {
+                    _analystDropdownLoaded = false;
+                    loadAnalystList();
+                }
+            } catch(e) { console.error('Toggle analyst error:', e); }
+        }
+
+        async function deleteAnalyst(id) {
+            if (!confirm('Bu analizciyi silmek istediğinize emin misiniz? İlişkili analizler etkilenmez.')) return;
+            try {
+                const resp = await fetch(`/api/analysts/${id}`, {method:'DELETE'});
+                const data = await resp.json();
+                if (data.status === 'ok') {
+                    _analystDropdownLoaded = false;
+                    loadAnalystList();
+                }
+            } catch(e) { alert('Silme hatası'); }
+        }
+
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 if (window._scraperStatusInterval) { clearInterval(window._scraperStatusInterval); window._scraperStatusInterval = null; }

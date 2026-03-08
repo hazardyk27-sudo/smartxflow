@@ -1991,7 +1991,7 @@ class SupabaseClient:
             print(f"[Supabase] get_analyses error: {e}")
             return []
 
-    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None, odds: str = None, confidence: float = None) -> Optional[Dict]:
+    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None, odds: str = None, confidence: float = None, analyst_id: int = None) -> Optional[Dict]:
         """Create new analysis entry"""
         if not self.is_available:
             return None
@@ -2003,6 +2003,8 @@ class SupabaseClient:
                 data["odds"] = odds
             if confidence is not None:
                 data["confidence"] = confidence
+            if analyst_id is not None:
+                data["analyst_id"] = analyst_id
             resp = self._get_http_client().post(self._rest_url('analyses'), json=data, headers=self._headers(), timeout=15)
             if resp.status_code in [200, 201]:
                 result = resp.json()
@@ -2020,7 +2022,7 @@ class SupabaseClient:
             print(f"[Supabase] create_analysis error: {e}")
             return None
 
-    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None, odds: str = None, confidence: float = None) -> bool:
+    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None, odds: str = None, confidence: float = None, analyst_id: int = None) -> bool:
         """Update analysis by id"""
         if not self.is_available:
             return False
@@ -2037,6 +2039,8 @@ class SupabaseClient:
                 data["odds"] = odds
             if confidence is not None:
                 data["confidence"] = confidence
+            if analyst_id is not None:
+                data["analyst_id"] = analyst_id
             resp = httpx.patch(url, json=data, headers=headers, timeout=15)
             if resp.status_code in [200, 204]:
                 return True
@@ -2062,6 +2066,124 @@ class SupabaseClient:
             return resp.status_code in [200, 204]
         except Exception as e:
             print(f"[Supabase] delete_analysis error: {e}")
+            return False
+
+    def get_analysts(self, active_only: bool = False) -> List[Dict]:
+        if not self.is_available:
+            return []
+        try:
+            url = f"{self._rest_url('analysts')}?order=created_at.asc"
+            if active_only:
+                url += "&is_active=eq.true"
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
+            if resp.status_code == 200:
+                return resp.json()
+            return []
+        except Exception as e:
+            print(f"[Supabase] get_analysts error: {e}")
+            return []
+
+    def create_analyst(self, name: str, avatar_url: str = None, bio: str = None) -> Optional[Dict]:
+        if not self.is_available:
+            return None
+        try:
+            data = {"name": name}
+            if avatar_url:
+                data["avatar_url"] = avatar_url
+            if bio:
+                data["bio"] = bio
+            headers = self._headers()
+            headers["Prefer"] = "return=representation"
+            resp = self._get_http_client().post(self._rest_url('analysts'), json=data, headers=headers, timeout=15)
+            if resp.status_code in [200, 201]:
+                result = resp.json()
+                return result[0] if isinstance(result, list) else result
+            print(f"[Supabase] create_analyst failed: {resp.status_code} {resp.text[:200]}")
+            return None
+        except Exception as e:
+            print(f"[Supabase] create_analyst error: {e}")
+            return None
+
+    def update_analyst(self, analyst_id: int, data: Dict) -> bool:
+        if not self.is_available:
+            return False
+        try:
+            url = f"{self._rest_url('analysts')}?id=eq.{analyst_id}"
+            headers = self._headers()
+            headers["Prefer"] = "return=minimal"
+            resp = httpx.patch(url, json=data, headers=headers, timeout=15)
+            return resp.status_code in [200, 204]
+        except Exception as e:
+            print(f"[Supabase] update_analyst error: {e}")
+            return False
+
+    def delete_analyst(self, analyst_id: int) -> bool:
+        if not self.is_available:
+            return False
+        try:
+            url = f"{self._rest_url('analysts')}?id=eq.{analyst_id}"
+            headers = self._headers()
+            headers["Prefer"] = "return=minimal"
+            resp = httpx.delete(url, headers=headers, timeout=15)
+            return resp.status_code in [200, 204]
+        except Exception as e:
+            print(f"[Supabase] delete_analyst error: {e}")
+            return False
+
+    def get_analyst_stats(self) -> Dict[int, Dict]:
+        if not self.is_available:
+            return {}
+        try:
+            url = f"{self._rest_url('analyses')}?select=analyst_id,result,odds&analyst_id=not.is.null&category=eq.analysis"
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
+            if resp.status_code != 200:
+                return {}
+            rows = resp.json()
+            stats = {}
+            for row in rows:
+                aid = row.get('analyst_id')
+                if not aid:
+                    continue
+                if aid not in stats:
+                    stats[aid] = {'total': 0, 'won': 0, 'lost': 0, 'push': 0, 'void': 0, 'pending': 0, 'odds_sum': 0.0, 'odds_count': 0}
+                s = stats[aid]
+                s['total'] += 1
+                result = row.get('result')
+                if result in ('won', 'lost', 'push', 'void'):
+                    s[result] += 1
+                else:
+                    s['pending'] += 1
+                odds_str = row.get('odds')
+                if odds_str:
+                    try:
+                        odds_val = float(odds_str)
+                        s['odds_sum'] += odds_val
+                        s['odds_count'] += 1
+                    except (ValueError, TypeError):
+                        pass
+            for aid, s in stats.items():
+                decided = s['won'] + s['lost']
+                s['success_pct'] = round((s['won'] / decided) * 100, 1) if decided > 0 else 0.0
+                s['avg_odds'] = round(s['odds_sum'] / s['odds_count'], 2) if s['odds_count'] > 0 else 0.0
+            return stats
+        except Exception as e:
+            print(f"[Supabase] get_analyst_stats error: {e}")
+            return {}
+
+    def update_analysis_result(self, analysis_id: int, result: str, result_note: str = None) -> bool:
+        if not self.is_available:
+            return False
+        try:
+            url = f"{self._rest_url('analyses')}?id=eq.{analysis_id}"
+            headers = self._headers()
+            headers["Prefer"] = "return=minimal"
+            data = {"result": result}
+            if result_note is not None:
+                data["result_note"] = result_note
+            resp = httpx.patch(url, json=data, headers=headers, timeout=15)
+            return resp.status_code in [200, 204]
+        except Exception as e:
+            print(f"[Supabase] update_analysis_result error: {e}")
             return False
 
     def ensure_analyses_table(self):
@@ -2312,19 +2434,49 @@ class HybridDatabase:
             return self.supabase.get_analyses(category)
         return []
 
-    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None, odds: str = None, confidence: float = None) -> Optional[Dict]:
+    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None, odds: str = None, confidence: float = None, analyst_id: int = None) -> Optional[Dict]:
         if self.supabase.is_available:
-            return self.supabase.create_analysis(title, content, image_url, category, match_id_hash, odds, confidence)
+            return self.supabase.create_analysis(title, content, image_url, category, match_id_hash, odds, confidence, analyst_id)
         return None
 
-    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None, odds: str = None, confidence: float = None) -> bool:
+    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None, odds: str = None, confidence: float = None, analyst_id: int = None) -> bool:
         if self.supabase.is_available:
-            return self.supabase.update_analysis(analysis_id, title, content, image_url, match_id_hash, odds, confidence)
+            return self.supabase.update_analysis(analysis_id, title, content, image_url, match_id_hash, odds, confidence, analyst_id)
         return False
 
     def delete_analysis(self, analysis_id: int) -> bool:
         if self.supabase.is_available:
             return self.supabase.delete_analysis(analysis_id)
+        return False
+
+    def get_analysts(self, active_only: bool = False) -> List[Dict]:
+        if self.supabase.is_available:
+            return self.supabase.get_analysts(active_only)
+        return []
+
+    def create_analyst(self, name: str, avatar_url: str = None, bio: str = None) -> Optional[Dict]:
+        if self.supabase.is_available:
+            return self.supabase.create_analyst(name, avatar_url, bio)
+        return None
+
+    def update_analyst(self, analyst_id: int, data: Dict) -> bool:
+        if self.supabase.is_available:
+            return self.supabase.update_analyst(analyst_id, data)
+        return False
+
+    def delete_analyst(self, analyst_id: int) -> bool:
+        if self.supabase.is_available:
+            return self.supabase.delete_analyst(analyst_id)
+        return False
+
+    def get_analyst_stats(self) -> Dict[int, Dict]:
+        if self.supabase.is_available:
+            return self.supabase.get_analyst_stats()
+        return {}
+
+    def update_analysis_result(self, analysis_id: int, result: str, result_note: str = None) -> bool:
+        if self.supabase.is_available:
+            return self.supabase.update_analysis_result(analysis_id, result, result_note)
         return False
 
     def ensure_analyses_table(self):
