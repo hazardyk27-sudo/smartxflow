@@ -1763,5 +1763,9 @@
         setInterval(fetchLandingAlarms, REFRESH_INTERVAL);
     })();
     </script>
+    <div id="vw-debug" style="position:fixed;bottom:8px;right:8px;background:rgba(0,0,0,0.8);color:#2BFF88;padding:4px 10px;border-radius:6px;font-size:12px;z-index:99999;font-family:monospace;"></div>
+    <script>
+    (function(){var d=document.getElementById('vw-debug');function u(){d.textContent=window.innerWidth+'x'+window.innerHeight;}u();window.addEventListener('resize',u);})();
+    </script>
 </body>
 </html>
