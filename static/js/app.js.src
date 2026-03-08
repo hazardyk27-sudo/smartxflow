@@ -1697,42 +1697,25 @@ function setDayFilter(filter) {
         opt.classList.toggle('active', opt.getAttribute('data-value') === filter);
     });
     
-    // Sync with desktop buttons (skipLoad=true to prevent multiple loadMatches calls)
     const todayBtn = document.getElementById('todayBtn');
     const yesterdayBtn = document.getElementById('yesterdayBtn');
     
     if (filter === 'today') {
         dateFilterMode = 'TODAY';
-        if (todayBtn && !todayBtn.classList.contains('active')) {
-            toggleTodayFilter(true);
-        }
-        if (yesterdayBtn && yesterdayBtn.classList.contains('active')) {
-            toggleYesterdayFilter(true);
-        }
+        if (todayBtn) todayBtn.classList.add('active');
+        if (yesterdayBtn) yesterdayBtn.classList.remove('active');
     } else if (filter === 'yesterday') {
         dateFilterMode = 'YESTERDAY';
-        if (yesterdayBtn && !yesterdayBtn.classList.contains('active')) {
-            toggleYesterdayFilter(true);
-        }
-        if (todayBtn && todayBtn.classList.contains('active')) {
-            toggleTodayFilter(true);
-        }
+        if (yesterdayBtn) yesterdayBtn.classList.add('active');
+        if (todayBtn) todayBtn.classList.remove('active');
     } else if (filter === 'future') {
         dateFilterMode = 'FUTURE';
-        if (todayBtn && todayBtn.classList.contains('active')) {
-            toggleTodayFilter(true);
-        }
-        if (yesterdayBtn && yesterdayBtn.classList.contains('active')) {
-            toggleYesterdayFilter(true);
-        }
+        if (todayBtn) todayBtn.classList.remove('active');
+        if (yesterdayBtn) yesterdayBtn.classList.remove('active');
     } else {
         dateFilterMode = 'ALL';
-        if (todayBtn && todayBtn.classList.contains('active')) {
-            toggleTodayFilter(true);
-        }
-        if (yesterdayBtn && yesterdayBtn.classList.contains('active')) {
-            toggleYesterdayFilter(true);
-        }
+        if (todayBtn) todayBtn.classList.remove('active');
+        if (yesterdayBtn) yesterdayBtn.classList.remove('active');
     }
     
     // Single loadMatches call at the end
