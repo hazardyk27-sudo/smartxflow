@@ -1741,12 +1741,12 @@ h1, h2, h3, h4, h5, h6,
     }
     
     .main-content {
-        padding: 8px;
+        padding: 3px 8px 6px;
     }
     
     .toolbar {
         flex-direction: column;
-        gap: 12px;
+        gap: 6px;
     }
     
     .search-box {
@@ -9349,7 +9349,7 @@ table.desktop-only {
     }
     
     .main-content {
-        padding: 6px;
+        padding: 3px 6px 6px;
         height: calc(100vh - 120px);
     }
     
