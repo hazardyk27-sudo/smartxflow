@@ -8723,12 +8723,12 @@ table.desktop-only {
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
-        padding: 8px 12px;
-        background: #1c2128;
-        border-radius: 10px;
-        margin: 5px 0 14px 0;
+        padding: 8px 0;
+        background: transparent;
+        border-radius: 0;
+        margin: 5px 0 6px 0;
         gap: 6px;
-        border: 1px solid #30363d;
+        border: none;
     }
     
     .mobile-filter-left {
@@ -8743,21 +8743,22 @@ table.desktop-only {
     .mobile-filter-btn {
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 4px;
         padding: 5px 10px;
-        background: rgba(110, 118, 129, 0.12);
-        border: 1px solid #30363d;
+        background: rgba(33, 38, 45, 0.8);
+        border: none;
         border-radius: 6px;
         color: #8b949e;
         font-size: 11px;
-        font-weight: 600;
+        font-weight: 500;
         cursor: pointer;
         white-space: nowrap;
         flex-shrink: 0;
     }
 
     .mobile-filter-btn svg {
-        stroke: #8b949e;
+        stroke: #8B949E;
         flex-shrink: 0;
     }
 
@@ -8890,12 +8891,15 @@ table.desktop-only {
 
     .mobile-filter-btn.has-filter {
         color: #e6edf3;
-        background: rgba(110, 118, 129, 0.25);
-        border-color: #484f58;
+        background: rgba(33, 38, 45, 1);
     }
 
     .mobile-filter-btn.has-filter svg {
         stroke: #e6edf3;
+    }
+
+    .mobile-filter-btn:active {
+        background: rgba(46, 160, 67, 0.2);
     }
 
     .trends-tab-bar {
