@@ -8689,6 +8689,7 @@ table.desktop-only {
         flex-direction: column;
         gap: 8px;
         margin-bottom: 8px;
+        padding: 0 4px;
         position: relative;
     }
     
