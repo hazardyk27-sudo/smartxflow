@@ -8514,7 +8514,7 @@ table.desktop-only {
         width: 100% !important;
         background: transparent !important;
         border-radius: 0 !important;
-        padding: 6px 8px !important;
+        padding: 6px 8px 3px !important;
         gap: 8px !important;
         border-bottom: 1px solid rgba(48, 54, 61, 0.3) !important;
     }
@@ -8673,7 +8673,7 @@ table.desktop-only {
 
     /* ========== MAIN CONTENT ========== */
     .main-content {
-        padding: 6px 8px;
+        padding: 3px 8px 6px;
         height: auto;
         min-height: calc(100vh - 150px);
         overflow-y: auto;
