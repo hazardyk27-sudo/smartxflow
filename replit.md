@@ -88,6 +88,7 @@ The system uses a hybrid architecture with Supabase as the single source of trut
     - **KURAL:** Sunucu başlangıcında startup warmup YAPMA. Her bölüm lazy yüklenir.
     - **KURAL:** CSS/JS düzenleme .src dosyalarında yapılır, `python minify.py` ile minify edilir.
     - **Chart.js CDN Retry (2026-03-08):** CDN'den Chart.js yüklenemezse `_chartLibsLoaded` false kalır ve retry izni verilir. `loadChart()` fonksiyonu Chart tanımsızsa otomatik retry yapar. Bulk cache kontrolü ile çift fetch önlendi. `loadChartWithTrends` artık `loadChart`'ı await ile çağırıyor.
+    - **Modal Performance (2026-03-08):** Backend `get_match_history_bulk` 6 market'i ThreadPoolExecutor ile PARALEL çekiyor (sıralı ~3-6s → paralel ~1s). Frontend: chart pipeline (markets+chartlibs→render) ve alarm pipeline (fetch→render) bağımsız çalışıyor — alarm hazırsa hemen göster, chart hazırsa hemen çiz. Çift alarm fetch kaldırıldı. Pipeline error isolation eklendi.
 
 **Data Model (Supabase Tables):**
 - `fixtures`: Stores match metadata with a unique `match_id_hash`.

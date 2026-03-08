@@ -1528,17 +1528,14 @@ def get_match_history_bulk():
         return jsonify({'markets': cached_data})
     
     start_time = time.time()
-    print(f"[History/Bulk] Cache MISS for {home} vs {away}, fetching...")
+    print(f"[History/Bulk] Cache MISS for {home} vs {away}, fetching parallel...")
     
     all_markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts', 
                    'dropping_1x2', 'dropping_ou25', 'dropping_btts']
     
-    result = {}
-    for market in all_markets:
+    def _build_market_data(market):
         history = db.get_match_history(home, away, market, league)
-        
         chart_data = {'labels': [], 'datasets': []}
-        
         if history:
             for h in history:
                 timestamp = h.get('ScrapedAt', '')
@@ -1547,7 +1544,6 @@ def get_match_history_bulk():
                     chart_data['labels'].append(dt.strftime('%H:%M'))
                 except:
                     chart_data['labels'].append(timestamp[:16] if timestamp else '')
-            
             if market in ['moneyway_1x2', 'dropping_1x2']:
                 for idx, (key, color) in enumerate([('Odds1', '#4ade80'), ('OddsX', '#fbbf24'), ('Odds2', '#60a5fa')]):
                     alt_key = ['1', 'X', '2'][idx]
@@ -1600,14 +1596,18 @@ def get_match_history_bulk():
                         'tension': 0.1,
                         'fill': False
                     })
-        
-        result[market] = {
-            'history': history,
-            'chart_data': chart_data
-        }
+        return market, {'history': history, 'chart_data': chart_data}
+    
+    from concurrent.futures import ThreadPoolExecutor
+    result = {}
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        futures = {executor.submit(_build_market_data, m): m for m in all_markets}
+        for future in futures:
+            market_name, market_data = future.result()
+            result[market_name] = market_data
     
     elapsed = int((time.time() - start_time) * 1000)
-    print(f"[History/Bulk] Fetched {home} vs {away} in {elapsed}ms, caching...")
+    print(f"[History/Bulk] Fetched {home} vs {away} in {elapsed}ms (parallel), caching...")
     
     set_history_cache(cache_key, result)
     
