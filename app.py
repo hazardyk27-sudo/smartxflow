@@ -16,7 +16,7 @@ import time
 import queue
 from functools import wraps
 from datetime import datetime, timedelta
-from flask import Flask, render_template, jsonify, request, Response, send_from_directory, session, redirect
+from flask import Flask, render_template, jsonify, request, Response, send_from_directory, session, redirect, make_response
 
 # Conditional import for compression (not needed in desktop mode)
 if os.environ.get('SMARTX_DESKTOP') != '1':
@@ -654,7 +654,11 @@ def favicon():
 @app.route('/')
 def landing_page():
     """Landing page - SmartXFlow tanıtımı"""
-    return render_template('landing.html')
+    response = make_response(render_template('landing.html'))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route('/nedir')
 def nedir_page():
