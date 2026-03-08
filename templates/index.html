@@ -20,14 +20,15 @@
         window._chartLibsLoading = false;
         window.loadChartLibs = function() {
             return new Promise(function(resolve) {
-                if (window._chartLibsLoaded) return resolve();
-                if (window._chartLibsLoading) {
+                if (window._chartLibsLoaded && typeof Chart !== 'undefined') return resolve();
+                if (window._chartLibsLoading && !window._chartLibsRetry) {
                     var check = setInterval(function() {
                         if (window._chartLibsLoaded) { clearInterval(check); resolve(); }
                     }, 50);
                     return;
                 }
                 window._chartLibsLoading = true;
+                window._chartLibsRetry = false;
                 var scripts = [
                     'https://cdn.jsdelivr.net/npm/chart.js',
                     'https://cdn.jsdelivr.net/npm/hammerjs@2.0.8',
@@ -35,16 +36,24 @@
                     'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'
                 ];
                 var loaded = 0;
+                var failed = [];
                 function loadNext() {
                     if (loaded >= scripts.length) {
-                        window._chartLibsLoaded = true;
+                        if (typeof Chart !== 'undefined') {
+                            window._chartLibsLoaded = true;
+                        } else {
+                            console.error('[ChartLibs] Chart.js failed to load. Failed scripts:', failed);
+                            window._chartLibsLoaded = false;
+                            window._chartLibsLoading = false;
+                            window._chartLibsRetry = true;
+                        }
                         resolve();
                         return;
                     }
                     var s = document.createElement('script');
                     s.src = scripts[loaded];
                     s.onload = function() { loaded++; loadNext(); };
-                    s.onerror = function() { loaded++; loadNext(); };
+                    s.onerror = function() { failed.push(scripts[loaded]); loaded++; loadNext(); };
                     document.head.appendChild(s);
                 }
                 loadNext();
@@ -1495,6 +1504,6 @@
         })();
     </script>
 
-    <script src="/static/js/app.js?v=1772891931"></script>
+    <script src="/static/js/app.js?v=1772968773"></script>
 </body>
 </html>
