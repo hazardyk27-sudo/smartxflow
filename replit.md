@@ -87,6 +87,7 @@ The system uses a hybrid architecture with Supabase as the single source of trut
     - **KURAL:** `after_request` header'larında statik dosyalar (`/static/`) ile HTML/API yanıtlarını AYIR. Statik dosyalara `no-cache` ASLA ekleme.
     - **KURAL:** Sunucu başlangıcında startup warmup YAPMA. Her bölüm lazy yüklenir.
     - **KURAL:** CSS/JS düzenleme .src dosyalarında yapılır, `python minify.py` ile minify edilir.
+    - **Chart.js CDN Retry (2026-03-08):** CDN'den Chart.js yüklenemezse `_chartLibsLoaded` false kalır ve retry izni verilir. `loadChart()` fonksiyonu Chart tanımsızsa otomatik retry yapar. Bulk cache kontrolü ile çift fetch önlendi. `loadChartWithTrends` artık `loadChart`'ı await ile çağırıyor.
 
 **Data Model (Supabase Tables):**
 - `fixtures`: Stores match metadata with a unique `match_id_hash`.
