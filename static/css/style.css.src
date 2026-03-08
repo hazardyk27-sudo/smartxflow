@@ -9058,28 +9058,27 @@ table.desktop-only {
     .match-card-list {
         display: flex;
         flex-direction: column;
-        border-top: 1px solid #30363d;
-        padding-top: 2px;
+        gap: 6px;
+        padding-top: 4px;
     }
     
     .match-card {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 10px 12px;
-        background: #161b22;
-        border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+        padding: 11px 14px;
+        background: linear-gradient(180deg, #101925 0%, #0c131c 100%);
+        border: 1px solid rgba(255,255,255,0.04);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+        border-radius: 14px;
         cursor: pointer;
-        transition: background 0.15s;
+        transition: background 0.15s, box-shadow 0.15s;
         gap: 8px;
     }
     
-    .match-card:last-child {
-        border-bottom: none;
-    }
-    
     .match-card:active {
-        background: rgba(255, 255, 255, 0.05);
+        background: linear-gradient(180deg, #141e2c 0%, #0e1620 100%);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.35);
     }
     
     .match-card-left {
@@ -9087,13 +9086,14 @@ table.desktop-only {
         min-width: 0;
         display: flex;
         flex-direction: column;
-        gap: 2px;
+        gap: 3px;
     }
     
     .match-card-teams {
         font-size: 13px;
-        font-weight: 600;
-        color: #e6edf3;
+        font-weight: 650;
+        color: rgba(255,255,255,0.92);
+        letter-spacing: 0.2px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -9110,7 +9110,7 @@ table.desktop-only {
         align-items: center;
         gap: 6px;
         font-size: 11px;
-        color: #8b949e;
+        color: rgba(120,140,170,0.75);
     }
     
     .match-card-league {
@@ -9126,7 +9126,7 @@ table.desktop-only {
     
     .match-card-datetime {
         white-space: nowrap;
-        color: #6e7681;
+        color: rgba(110,118,129,0.8);
     }
     
     .match-card-right {
@@ -9138,8 +9138,8 @@ table.desktop-only {
     
     .match-card-volume {
         font-size: 12px;
-        font-weight: 600;
-        color: #22c55e;
+        font-weight: 700;
+        color: #39e58c;
         font-family: 'Inter', sans-serif;
     }
     
@@ -9152,8 +9152,8 @@ table.desktop-only {
     .match-card.odds-card {
         flex-direction: column;
         align-items: stretch;
-        gap: 8px;
-        padding: 12px;
+        gap: 10px;
+        padding: 14px;
     }
     
     .odds-card-header {
@@ -9165,8 +9165,9 @@ table.desktop-only {
     
     .odds-card-teams {
         font-size: 14px;
-        font-weight: 600;
-        color: #e6edf3;
+        font-weight: 650;
+        color: rgba(255,255,255,0.92);
+        letter-spacing: 0.2px;
         flex: 1;
         min-width: 0;
         white-space: nowrap;
@@ -9175,9 +9176,9 @@ table.desktop-only {
     }
     
     .odds-card-volume {
-        font-size: 12px;
-        font-weight: 600;
-        color: #22c55e;
+        font-size: 13px;
+        font-weight: 700;
+        color: #39e58c;
         white-space: nowrap;
         flex-shrink: 0;
     }
@@ -9187,7 +9188,7 @@ table.desktop-only {
         align-items: center;
         gap: 4px;
         font-size: 11px;
-        color: #8b949e;
+        color: rgba(120,140,170,0.75);
     }
     
     .odds-card-meta .meta-sep {
@@ -9197,7 +9198,7 @@ table.desktop-only {
     .odds-card-row {
         display: flex;
         gap: 6px;
-        margin-top: 4px;
+        margin-top: 2px;
     }
     
     .odds-card-row.three .odds-block {
@@ -9212,24 +9213,31 @@ table.desktop-only {
         display: flex;
         flex-direction: column;
         align-items: center;
-        background: rgba(33, 38, 45, 0.8);
-        border-radius: 6px;
-        padding: 8px 4px;
-        border: 1px solid rgba(48, 54, 61, 0.5);
+        background: rgba(22, 30, 42, 0.85);
+        border-radius: 10px;
+        padding: 10px 4px;
+        border: 1px solid rgba(255,255,255,0.04);
     }
     
     .odds-block-label {
         font-size: 10px;
-        font-weight: 500;
-        color: #8b949e;
-        margin-bottom: 2px;
+        font-weight: 600;
+        color: #57f0a0;
+        margin-bottom: 3px;
+        background: linear-gradient(135deg, #163829 0%, #1f7a46 100%);
+        box-shadow: 0 0 10px rgba(46, 229, 141, 0.12);
+        padding: 2px 10px;
+        border-radius: 4px;
+        letter-spacing: 0.3px;
     }
     
     .odds-block-value {
-        font-size: 15px;
-        font-weight: 700;
-        color: #e6edf3;
+        font-size: 16px;
+        font-weight: 650;
+        color: rgba(255,255,255,0.92);
+        letter-spacing: 0.2px;
         font-family: 'Inter', monospace;
+        margin-top: 4px;
     }
     
     .odds-block-pct {
@@ -9238,7 +9246,7 @@ table.desktop-only {
         gap: 2px;
         font-size: 10px;
         color: #6e7681;
-        margin-top: 2px;
+        margin-top: 3px;
     }
     
     .odds-block-pct.pct-up {
@@ -9253,10 +9261,11 @@ table.desktop-only {
         font-size: 9px;
     }
     
-    /* Moneyway percentage - blue color */
+    /* Moneyway percentage - premium style */
     .odds-block-pct.mw-pct {
         color: #3B82F6;
         font-weight: 600;
+        font-size: 11px;
     }
 
     /* ========== ALARMS SIDEBAR - Full Screen ========== */
