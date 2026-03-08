@@ -869,16 +869,43 @@
             var sidebar = document.getElementById('trendsSidebar');
             var contentArea = document.getElementById('trendsContentArea');
             var now = Date.now();
-            if (category === 'analysis') loadAnalysts();
-            if (_trendsRawCache[category] && (now - (_trendsRawCacheTs[category] || 0)) < _TRENDS_CACHE_TTL) {
-                _renderTrendsData(category, _trendsRawCache[category]);
+            if (category === 'analysis') {
+                var cachedData = (_trendsRawCache[category] && (now - (_trendsRawCacheTs[category] || 0)) < _TRENDS_CACHE_TTL) ? _trendsRawCache[category] : null;
+                var cachedAnalysts = (_analystsCache && (now - _analystsCacheTs) < 120000);
+                if (cachedData && cachedAnalysts) {
+                    renderAnalysisList(cachedData);
+                    return;
+                }
+                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#484f58;font-size:14px;">Yükleniyor...</div></div>';
+                var analystsPromise = cachedAnalysts ? Promise.resolve(null) : fetch('/api/analysts?active=true').then(function(r) { return r.json(); });
+                var dataPromise = cachedData ? Promise.resolve(cachedData) : fetch('/api/analyses?category=' + category, {
+                    headers: window.userLicenseKey ? {'X-License-Key': window.userLicenseKey} : {}
+                }).then(function(r) { return r.json(); });
+                Promise.all([analystsPromise, dataPromise]).then(function(results) {
+                    if (results[0] && Array.isArray(results[0])) {
+                        _analystsCache = results[0];
+                        _analystsCacheTs = Date.now();
+                    }
+                    var data = results[1];
+                    if (data && data.error) {
+                        contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">' + (data.message || 'Erişim reddedildi') + '</div></div>';
+                        return;
+                    }
+                    if (data && !data.error) {
+                        _trendsRawCache[category] = data;
+                        _trendsRawCacheTs[category] = Date.now();
+                    }
+                    renderAnalysisList(data || []);
+                }).catch(function() {
+                    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';
+                });
                 return;
             }
-            if (category === 'moves') {
-                sidebar.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#484f58;font-size:13px;">Yükleniyor...</div>';
-            } else {
-                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#484f58;font-size:14px;">Yükleniyor...</div></div>';
+            if (_trendsRawCache[category] && (now - (_trendsRawCacheTs[category] || 0)) < _TRENDS_CACHE_TTL) {
+                _renderMovesData(_trendsRawCache[category]);
+                return;
             }
+            sidebar.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#484f58;font-size:13px;">Yükleniyor...</div>';
             fetch('/api/analyses?category=' + category, {
                 headers: window.userLicenseKey ? {'X-License-Key': window.userLicenseKey} : {}
             })
@@ -888,35 +915,23 @@
                         _trendsRawCache[category] = data;
                         _trendsRawCacheTs[category] = Date.now();
                     }
-                    _renderTrendsData(category, data);
+                    _renderMovesData(data);
                 })
                 .catch(function() {
-                    if (category === 'moves') {
-                        sidebar.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#f85149;font-size:13px;">Yüklenemedi</div>';
-                    } else {
-                        contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';
-                    }
+                    sidebar.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#f85149;font-size:13px;">Yüklenemedi</div>';
                 });
         }
-        function _renderTrendsData(category, data) {
-            if (category === 'moves') {
-                var hierarchy = parseTrendsHierarchy(data || []);
-                trendsDataCache[category] = hierarchy;
-                renderSidebar(hierarchy);
-                if (hierarchy.order.length > 0 && !isMobileView()) {
-                    var firstGroup = hierarchy.groups[hierarchy.order[0]];
-                    if (firstGroup.length > 1 || firstGroup[0].subTitle) {
-                        toggleSidebarGroup(0, true);
-                        selectSubItem(0, 0);
-                    } else {
-                        selectSubItem(0, 0);
-                    }
-                }
-            } else {
-                if (!_analystsCache) {
-                    loadAnalysts(function() { renderAnalysisList(data); });
+        function _renderMovesData(data) {
+            var hierarchy = parseTrendsHierarchy(data || []);
+            trendsDataCache['moves'] = hierarchy;
+            renderSidebar(hierarchy);
+            if (hierarchy.order.length > 0 && !isMobileView()) {
+                var firstGroup = hierarchy.groups[hierarchy.order[0]];
+                if (firstGroup.length > 1 || firstGroup[0].subTitle) {
+                    toggleSidebarGroup(0, true);
+                    selectSubItem(0, 0);
                 } else {
-                    renderAnalysisList(data);
+                    selectSubItem(0, 0);
                 }
             }
         }

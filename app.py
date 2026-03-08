@@ -6255,6 +6255,7 @@ def create_analysis():
     if result:
         for k in _analyses_cache:
             _analyses_cache[k] = {'data': None, 'ts': 0}
+        _invalidate_analysts_cache()
         return jsonify({'status': 'ok', 'data': result})
     return jsonify({'status': 'error', 'message': 'Analiz oluşturulamadı'}), 500
 
@@ -6291,6 +6292,7 @@ def update_analysis_endpoint(analysis_id):
     if success:
         for k in _analyses_cache:
             _analyses_cache[k] = {'data': None, 'ts': 0}
+        _invalidate_analysts_cache()
         return jsonify({'status': 'ok'})
     return jsonify({'status': 'error'}), 500
 
@@ -6310,6 +6312,7 @@ def update_analysis_result_endpoint(analysis_id):
     if success:
         for k in _analyses_cache:
             _analyses_cache[k] = {'data': None, 'ts': 0}
+        _invalidate_analysts_cache()
         return jsonify({'status': 'ok'})
     return jsonify({'status': 'error'}), 500
 
@@ -6331,13 +6334,28 @@ def delete_analysis_endpoint(analysis_id):
     if success:
         for k in _analyses_cache:
             _analyses_cache[k] = {'data': None, 'ts': 0}
+        _invalidate_analysts_cache()
         return jsonify({'status': 'ok'})
     return jsonify({'status': 'error'}), 500
+
+_analysts_cache = {'data': None, 'ts': 0}
+_ANALYSTS_CACHE_TTL = 120
+
+def _invalidate_analysts_cache():
+    _analysts_cache['data'] = None
+    _analysts_cache['ts'] = 0
 
 @app.route('/api/analysts', methods=['GET'])
 def get_analysts_endpoint():
     """Get all analysts with stats"""
+    import time as _time
     active_only = request.args.get('active', 'false') == 'true'
+    cache_key_suffix = '_active' if active_only else '_all'
+    now = _time.time()
+    cached = _analysts_cache.get('data')
+    cached_suffix = _analysts_cache.get('suffix')
+    if cached is not None and cached_suffix == cache_key_suffix and (now - _analysts_cache['ts']) < _ANALYSTS_CACHE_TTL:
+        return jsonify(cached)
     analysts = db.get_analysts(active_only=active_only)
     stats = db.get_analyst_stats()
     for a in analysts:
@@ -6353,6 +6371,9 @@ def get_analysts_endpoint():
             'success_pct': s.get('success_pct', 0.0),
             'avg_odds': s.get('avg_odds', 0.0)
         }
+    _analysts_cache['data'] = analysts
+    _analysts_cache['suffix'] = cache_key_suffix
+    _analysts_cache['ts'] = now
     return jsonify(analysts)
 
 @app.route('/api/analysts', methods=['POST'])
@@ -6378,6 +6399,7 @@ def create_analyst_endpoint():
                     avatar_url = db.upload_to_storage('smartxflow', file_path, file_data, content_type)
     result = db.create_analyst(name, avatar_url, bio)
     if result:
+        _invalidate_analysts_cache()
         return jsonify({'status': 'ok', 'data': result})
     return jsonify({'status': 'error', 'message': 'Analizci oluşturulamadı'}), 500
 
@@ -6413,6 +6435,7 @@ def update_analyst_endpoint(analyst_id):
         return jsonify({'status': 'error', 'message': 'Güncellenecek veri yok'}), 400
     success = db.update_analyst(analyst_id, update_data)
     if success:
+        _invalidate_analysts_cache()
         return jsonify({'status': 'ok'})
     return jsonify({'status': 'error'}), 500
 
@@ -6423,6 +6446,7 @@ def delete_analyst_endpoint(analyst_id):
         return jsonify({'error': 'UNAUTHORIZED'}), 401
     success = db.delete_analyst(analyst_id)
     if success:
+        _invalidate_analysts_cache()
         return jsonify({'status': 'ok'})
     return jsonify({'status': 'error'}), 500
 
