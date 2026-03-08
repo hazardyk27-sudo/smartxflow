@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartXFlow - Betting Odds Monitor</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=1772979458">
+    <link rel="stylesheet" href="/static/css/style.css?v=1772998870">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <script defer src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/utc.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/timezone.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/customParseFormat.js"></script>
-    <script defer src="/static/js/app.js?v=1772979458"></script>
+    <script defer src="/static/js/app.js?v=1772998870"></script>
 </head>
 <body>
     <!-- License Gate - Birebir Desktop Aynisi -->
@@ -233,11 +233,12 @@
                         </svg>
                         Kılavuz
                     </button>
-                    <button class="btn btn-today desktop-only" onclick="openTrendsModal('analysis')">
+                    <button class="btn btn-today desktop-only" onclick="openTrendsModal('analysis')" style="position:relative;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                         </svg>
                         Analizler
+                        <span class="analysis-active-badge" style="display:none;">0</span>
                     </button>
                 </div>
                 
@@ -268,11 +269,12 @@
                         </svg>
                         <span class="mobile-alarm-text">Kılavuz</span>
                     </button>
-                    <button class="mobile-alarm-btn" onclick="openTrendsModal('analysis')">
+                    <button class="mobile-alarm-btn" onclick="openTrendsModal('analysis')" style="position:relative;">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                         </svg>
                         <span class="mobile-alarm-text">Analizler</span>
+                        <span class="analysis-active-badge" style="display:none;">0</span>
                     </button>
                     <button class="mobile-alarm-btn" onclick="toggleAlarmsSidebar()">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

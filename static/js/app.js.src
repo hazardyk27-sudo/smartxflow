@@ -1148,6 +1148,11 @@ async function fetchAnalysisMatchHashes() {
             const data = await resp.json();
             _analysisMatchHashes = Array.isArray(data) ? data : (data.hashes || []);
             _analysisHashesFetched = true;
+            const ac = (data && typeof data.active_count === 'number') ? data.active_count : 0;
+            document.querySelectorAll('.analysis-active-badge').forEach(el => {
+                el.textContent = ac;
+                el.style.display = ac > 0 ? '' : 'none';
+            });
         }
     } catch(e) {}
 }

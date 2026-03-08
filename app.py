@@ -6317,6 +6317,8 @@ def update_analysis_result_endpoint(analysis_id):
         for k in _analyses_cache:
             _analyses_cache[k] = {'data': None, 'ts': 0}
         _invalidate_analysts_cache()
+        _match_hashes_cache['data'] = None
+        _match_hashes_cache['ts'] = 0
         return jsonify({'status': 'ok'})
     return jsonify({'status': 'error'}), 500
 
@@ -6325,7 +6327,7 @@ _MATCH_HASHES_CACHE_TTL = 120
 
 @app.route('/api/analyses/match-hashes')
 def get_analysis_match_hashes():
-    """Return list of match_id_hash values that have analyses"""
+    """Return list of match_id_hash values that have analyses + active count"""
     import time as _time
     now = _time.time()
     if _match_hashes_cache['data'] is not None and (now - _match_hashes_cache['ts']) < _MATCH_HASHES_CACHE_TTL:
@@ -6333,12 +6335,14 @@ def get_analysis_match_hashes():
     try:
         analyses = db.get_analyses(category='analysis')
         hashes = list(set(a.get('match_id_hash') for a in analyses if a.get('match_id_hash')))
-        _match_hashes_cache['data'] = hashes
+        active_count = sum(1 for a in analyses if not a.get('result'))
+        result = {'hashes': hashes, 'active_count': active_count}
+        _match_hashes_cache['data'] = result
         _match_hashes_cache['ts'] = now
-        return jsonify(hashes)
+        return jsonify(result)
     except Exception as e:
         print(f"[API] match-hashes error: {e}")
-        return jsonify([])
+        return jsonify({'hashes': [], 'active_count': 0})
 
 @app.route('/api/analyses/<int:analysis_id>', methods=['DELETE'])
 def delete_analysis_endpoint(analysis_id):

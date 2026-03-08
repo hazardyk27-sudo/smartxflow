@@ -183,7 +183,7 @@ function renderMoneywayBlock(label,percent,odds,money){const donut=renderDonutSV
     `;}
 function formatPct(val){if(!val||val==='-')return'-';const cleaned=String(val).replace(/[%\s]/g,'');const num=parseFloat(cleaned);if(isNaN(num))return'-';return num.toFixed(1)+'%';}
 function cleanPct(val){if(!val||val==='-')return'';return String(val).replace(/%/g,'').trim();}
-async function fetchAnalysisMatchHashes(){try{const resp=await fetch('/api/analyses/match-hashes');if(resp.ok){const data=await resp.json();_analysisMatchHashes=Array.isArray(data)?data:(data.hashes||[]);_analysisHashesFetched=true;}}catch(e){}}
+async function fetchAnalysisMatchHashes(){try{const resp=await fetch('/api/analyses/match-hashes');if(resp.ok){const data=await resp.json();_analysisMatchHashes=Array.isArray(data)?data:(data.hashes||[]);_analysisHashesFetched=true;const ac=(data&&typeof data.active_count==='number')?data.active_count:0;document.querySelectorAll('.analysis-active-badge').forEach(el=>{el.textContent=ac;el.style.display=ac>0?'':'none';});}}catch(e){}}
 function getAnalysisStarHtml(matchId){if(!matchId||!_analysisMatchHashes.length)return'';if(_analysisMatchHashes.indexOf(matchId)===-1)return'';return'<span class="analysis-star" title="Bu maç ile ilgili analiz mevcut" onclick="event.stopPropagation(); openTrendsModal(\'analysis\');">★</span>';}
 function renderMatches(data){console.log('[renderMatches] Called with',data?.length||0,'matches');const tbody=document.getElementById('matchesTableBody');const countEl=document.getElementById('matchCount');const mobileCountEl=document.getElementById('mobileMatchCount');if(countEl){countEl.textContent=data.length;}
 if(mobileCountEl){mobileCountEl.textContent=data.length;}
