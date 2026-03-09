@@ -1199,8 +1199,11 @@ h1, h2, h3, h4, h5, h6,
     .trends-content-area {
         width: 100%;
         min-width: 100%;
-        padding: 0;
+        padding: 12px;
         transition: transform 0.25s ease;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
     }
     .sidebar-mode .trends-sidebar,
     .sidebar-mode .trends-content-area {
