@@ -373,50 +373,38 @@ function renderAnalystProfileView() {
         html += selDateLabel + '</div>';
         html += '<span style="font-size:10px;font-weight:600;color:#484f58;background:rgba(255,255,255,0.03);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.05);">' + selectedGroup.items.length + ' ANALİZ</span>';
         html += '</div>';
-        var bdgBase = 'border-radius:6px;padding:3px 9px;font-size:10px;font-weight:600;white-space:nowrap;';
         selectedGroup.items.forEach(function(item) {
             var date = item.created_at ? new Date(item.created_at).toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'}) : '';
-            var barColor = 'rgba(255,255,255,0.06)';
-            if (item.result === 'won') barColor = '#34d399';
-            else if (item.result === 'lost') barColor = '#f87171';
-            else if (item.result === 'push') barColor = '#fbbf24';
-            html += '<div style="background:#161b22;border:1px solid #30363d;border-radius:12px;margin-bottom:14px;overflow:hidden;">';
-            html += '<div style="display:flex;">';
-            html += '<div style="width:3px;flex-shrink:0;background:' + barColor + ';"></div>';
-            html += '<div style="flex:1;min-width:0;padding:14px 16px;">';
-            html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">';
-            html += '<div style="font-size:14px;font-weight:700;color:#e6edf3;letter-spacing:-0.2px;flex:1;min-width:0;">' + (item.title || '') + '</div>';
+            html += '<div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px 20px;margin-bottom:12px;">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+            html += '<div style="font-size:15px;font-weight:600;color:#e6edf3;">' + (item.title || '') + '</div>';
             if (item.result) {
                 var rColors = {won:'#34d399',lost:'#f87171',push:'#fbbf24','void':'#6e7681'};
-                var rBg = {won:'rgba(52,211,153,0.08)',lost:'rgba(248,113,113,0.08)',push:'rgba(251,191,36,0.08)','void':'rgba(110,118,129,0.08)'};
                 var rLabels = {won:'Kazandı',lost:'Kaybetti',push:'İade','void':'İptal'};
-                html += '<span style="' + bdgBase + 'background:' + (rBg[item.result]||'rgba(72,79,88,0.08)') + ';color:' + (rColors[item.result]||'#484f58') + ';margin-left:10px;flex-shrink:0;">' + (rLabels[item.result]||item.result) + '</span>';
+                html += '<span style="background:' + (rColors[item.result]||'#484f58') + '18;color:' + (rColors[item.result]||'#484f58') + ';border:1px solid ' + (rColors[item.result]||'#484f58') + '30;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;">' + (rLabels[item.result]||item.result) + '</span>';
             } else {
-                html += '<span style="' + bdgBase + 'background:rgba(88,166,255,0.06);color:#58a6ff;margin-left:10px;flex-shrink:0;">Beklemede</span>';
+                html += '<span style="background:rgba(88,166,255,0.06);color:#58a6ff;border:1px solid rgba(88,166,255,0.12);padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;">Beklemede</span>';
             }
             html += '</div>';
             if (item.preference || item.odds || item.confidence) {
-                html += '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">';
-                if (item.preference) html += '<span style="' + bdgBase + 'background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.1);color:#a78bfa;">🎯 ' + (item.preference||'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>';
-                if (item.odds) html += '<span style="' + bdgBase + 'background:rgba(88,166,255,0.04);border:1px solid rgba(88,166,255,0.08);color:#7dc4ff;">Oran: ' + item.odds + '</span>';
+                html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">';
+                if (item.preference) html += '<span style="background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(139,92,246,0.08));border:1px solid rgba(139,92,246,0.2);border-radius:8px;padding:5px 12px;font-size:13px;color:#a78bfa;font-weight:700;">🎯 ' + (item.preference||'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>';
+                if (item.odds) html += '<span style="background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.12);border-radius:8px;padding:4px 10px;font-size:13px;color:#93c5fd;font-weight:600;">Oran: ' + item.odds + '</span>';
                 if (item.confidence) {
                     var confColor = item.confidence >= 7 ? '#34d399' : item.confidence >= 4 ? '#fbbf24' : '#f87171';
-                    var confBg = item.confidence >= 7 ? 'rgba(52,211,153,0.04)' : item.confidence >= 4 ? 'rgba(251,191,36,0.04)' : 'rgba(248,113,113,0.04)';
-                    var confBdr = item.confidence >= 7 ? 'rgba(52,211,153,0.08)' : item.confidence >= 4 ? 'rgba(251,191,36,0.08)' : 'rgba(248,113,113,0.08)';
-                    html += '<span style="' + bdgBase + 'background:' + confBg + ';border:1px solid ' + confBdr + ';color:' + confColor + ';">Güven: ' + item.confidence + '/10</span>';
+                    html += '<span style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:4px 10px;font-size:13px;color:' + confColor + ';font-weight:600;">Güven: ' + item.confidence + '/10</span>';
                 }
                 html += '</div>';
             }
-            if (item.content) {
-                html += '<div style="border-top:1px solid rgba(255,255,255,0.05);padding-top:10px;margin-top:4px;">';
-                html += '<div style="font-size:12px;color:#9198a1;line-height:1.7;word-wrap:break-word;overflow-wrap:break-word;white-space:pre-line;">' + item.content + '</div>';
-                html += '</div>';
+            html += '<div style="font-size:13px;color:#8b949e;line-height:1.7;margin-bottom:10px;word-wrap:break-word;overflow-wrap:break-word;">' + (item.content || '') + '</div>';
+            if (item.image_url) {
+                html += '<div style="margin-bottom:10px;"><img src="' + item.image_url + '" style="max-width:100%;border-radius:8px;border:1px solid #30363d;" alt=""></div>';
             }
             if (item.result_note) {
-                html += '<div style="font-size:11px;color:#8b949e;line-height:1.5;margin-top:6px;padding:6px 10px;background:rgba(255,255,255,0.02);border-radius:6px;border-left:2px solid rgba(255,255,255,0.08);">' + item.result_note + '</div>';
+                html += '<div style="font-size:11px;color:#8b949e;line-height:1.5;margin-bottom:8px;padding:6px 10px;background:rgba(255,255,255,0.02);border-radius:6px;border-left:2px solid rgba(255,255,255,0.08);">' + item.result_note + '</div>';
             }
-            html += '<div style="font-size:10px;color:#484f58;margin-top:10px;">' + date + '</div>';
-            html += '</div></div></div>';
+            html += '<div style="font-size:11px;color:#484f58;">' + date + '</div>';
+            html += '</div>';
         });
     } else {
         html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#484f58;margin-top:8px;">Henüz analiz mevcut değil</div>';
