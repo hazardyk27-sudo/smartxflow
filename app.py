@@ -6518,10 +6518,6 @@ def get_analyst_analyses_endpoint(analyst_id):
     all_analyses = db.get_analyses('analysis')
     analyst_analyses = [a for a in all_analyses if a.get('analyst_id') == analyst_id]
     
-    for item in analyst_analyses:
-        item.pop('content', None)
-        item.pop('image_url', None)
-    
     tz = pytz.timezone('Europe/Istanbul')
     grouped = {}
     for item in analyst_analyses:
