@@ -238,7 +238,7 @@ let isAlarmsPageActive = false;
 let matchesDisplayCount = 20;
 let _allFilteredMatches = [];
 let _renderedCount = 0;
-const _RENDER_BATCH = 40;
+const _RENDER_BATCH = 20;
 let _scrollListenerAttached = false;
 let currentOffset = 0;
 let totalMatchCount = 0;
@@ -6763,7 +6763,7 @@ let alarmsDataByType = {
     mim: []
 };
 let alarmSearchQuery = '';
-let alarmsDisplayCount = 30;
+let alarmsDisplayCount = 10;
 let alarmsSidebarOpen = false;
 let openAlarmId = null;
 
@@ -6844,7 +6844,7 @@ async function loadAllAlarms(forceRefresh = false) {
         
         updateAlarmCounts();
         updateDateFilterCounts();
-        alarmsDisplayCount = 30;
+        alarmsDisplayCount = 10;
         
         const labelEl = document.getElementById('dateLabelDisplay');
         if (labelEl) {
@@ -7014,7 +7014,7 @@ function selectDateFilter(dateFilter) {
     if (dropdown) dropdown.classList.remove('open');
     if (options) options.style.display = 'none';
     
-    alarmsDisplayCount = 30;
+    alarmsDisplayCount = 10;
     renderAlarmsList(currentAlarmFilter);
 }
 
@@ -7192,7 +7192,7 @@ document.addEventListener('click', function(e) {
 
 function filterAlarms(type) {
     currentAlarmFilter = type;
-    alarmsDisplayCount = 30;
+    alarmsDisplayCount = 10;
     
     document.querySelectorAll('.alarm-pill').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.type === type);
@@ -7203,7 +7203,7 @@ function filterAlarms(type) {
 
 function searchAlarms(query) {
     alarmSearchQuery = query.toLowerCase().trim();
-    alarmsDisplayCount = 30;
+    alarmsDisplayCount = 10;
     renderAlarmsList(currentAlarmFilter);
 }
 
@@ -7749,7 +7749,7 @@ function formatMarketChip(market, selection) {
 }
 
 function loadMoreAlarms() {
-    alarmsDisplayCount += 30;
+    alarmsDisplayCount += 10;
     renderAlarmsList(currentAlarmFilter);
     
     const container = document.getElementById('alarmsList');
