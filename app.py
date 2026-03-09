@@ -6258,7 +6258,7 @@ def create_analysis():
         except (ValueError, TypeError):
             pass
 
-    result = db.create_analysis(title, content, image_url, category, match_id_hash, odds, confidence, analyst_id, preference)
+    result = db.create_analysis(title, content, image_url, category, match_id_hash, odds, confidence, analyst_id, preference=preference)
     if result:
         for k in _analyses_cache:
             _analyses_cache[k] = {'data': None, 'ts': 0}
@@ -6290,6 +6290,7 @@ def update_analysis_endpoint(analysis_id):
             confidence = round(max(1, min(10, float(confidence_raw))) * 2) / 2
         except (ValueError, TypeError):
             pass
+    preference = request.form.get('preference', None) or None
     analyst_id_raw = request.form.get('analyst_id', None)
     analyst_id = None
     if analyst_id_raw:
@@ -6297,7 +6298,7 @@ def update_analysis_endpoint(analysis_id):
             analyst_id = int(analyst_id_raw)
         except (ValueError, TypeError):
             pass
-    success = db.update_analysis(analysis_id, title, content, image_url, match_id_hash, odds, confidence, analyst_id)
+    success = db.update_analysis(analysis_id, title, content, image_url, match_id_hash, odds, confidence, analyst_id, preference=preference)
     if success:
         for k in _analyses_cache:
             _analyses_cache[k] = {'data': None, 'ts': 0}

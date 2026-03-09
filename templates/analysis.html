@@ -275,10 +275,10 @@
         function getResultBadge(result) {
             if (!result) return '<span class="analysis-result-badge badge-pending">Beklemede</span>';
             const map = {
-                'won': ['Tuttu', 'badge-won'],
-                'lost': ['Tutmadi', 'badge-lost'],
-                'push': ['Push', 'badge-push'],
-                'void': ['Void', 'badge-void']
+                'won': ['Kazandı', 'badge-won'],
+                'lost': ['Kaybetti', 'badge-lost'],
+                'push': ['İade', 'badge-push'],
+                'void': ['İptal', 'badge-void']
             };
             const [label, cls] = map[result] || ['Beklemede', 'badge-pending'];
             return `<span class="analysis-result-badge ${cls}">${label}</span>`;
@@ -412,6 +412,7 @@
                         const itemCount = g.items.length;
                         let itemsHtml = g.items.map(item => {
                             let metaHtml = '';
+                            if (item.preference) metaHtml += `<span class="meta-tag" style="background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.08));border-color:rgba(139,92,246,0.25);color:#a78bfa;font-weight:700;font-size:13px;">🎯 ${escapeHtml(item.preference)}</span>`;
                             if (item.odds) metaHtml += `<span class="meta-tag meta-odds">Oran: ${escapeHtml(item.odds)}</span>`;
                             if (item.confidence) metaHtml += `<span class="meta-tag meta-conf">Guven: ${item.confidence}/10</span>`;
                             return `

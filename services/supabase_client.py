@@ -1983,7 +1983,7 @@ class SupabaseClient:
             print(f"[Supabase] get_analyses error: {e}")
             return []
 
-    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None, odds: str = None, confidence: float = None, analyst_id: int = None) -> Optional[Dict]:
+    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None, odds: str = None, confidence: float = None, analyst_id: int = None, preference: str = None) -> Optional[Dict]:
         """Create new analysis entry"""
         if not self.is_available:
             return None
@@ -1997,10 +1997,19 @@ class SupabaseClient:
                 data["confidence"] = confidence
             if analyst_id is not None:
                 data["analyst_id"] = analyst_id
+            if preference:
+                data["preference"] = preference
             resp = self._get_http_client().post(self._rest_url('analyses'), json=data, headers=self._headers(), timeout=15)
             if resp.status_code in [200, 201]:
                 result = resp.json()
                 return result[0] if isinstance(result, list) else result
+            if resp.status_code == 400 and 'preference' in resp.text and preference:
+                print(f"[Supabase] create_analysis: preference column not found, retrying without it")
+                data.pop("preference", None)
+                resp = self._get_http_client().post(self._rest_url('analyses'), json=data, headers=self._headers(), timeout=15)
+                if resp.status_code in [200, 201]:
+                    result = resp.json()
+                    return result[0] if isinstance(result, list) else result
             if resp.status_code == 400 and 'match_id_hash' in resp.text and match_id_hash:
                 print(f"[Supabase] create_analysis: match_id_hash column not found, retrying without it")
                 data.pop("match_id_hash", None)
@@ -2014,7 +2023,7 @@ class SupabaseClient:
             print(f"[Supabase] create_analysis error: {e}")
             return None
 
-    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None, odds: str = None, confidence: float = None, analyst_id: int = None) -> bool:
+    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None, odds: str = None, confidence: float = None, analyst_id: int = None, preference: str = None) -> bool:
         """Update analysis by id"""
         if not self.is_available:
             return False
@@ -2033,9 +2042,17 @@ class SupabaseClient:
                 data["confidence"] = confidence
             if analyst_id is not None:
                 data["analyst_id"] = analyst_id
+            if preference is not None:
+                data["preference"] = preference
             resp = httpx.patch(url, json=data, headers=headers, timeout=15)
             if resp.status_code in [200, 204]:
                 return True
+            if resp.status_code == 400 and 'preference' in resp.text and preference is not None:
+                print(f"[Supabase] update_analysis: preference column not found, retrying without it")
+                data.pop("preference", None)
+                resp = httpx.patch(url, json=data, headers=headers, timeout=15)
+                if resp.status_code in [200, 204]:
+                    return True
             if resp.status_code == 400 and 'match_id_hash' in resp.text and match_id_hash is not None:
                 print(f"[Supabase] update_analysis: match_id_hash column not found, retrying without it")
                 data.pop("match_id_hash", None)
@@ -2426,14 +2443,14 @@ class HybridDatabase:
             return self.supabase.get_analyses(category)
         return []
 
-    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None, odds: str = None, confidence: float = None, analyst_id: int = None) -> Optional[Dict]:
+    def create_analysis(self, title: str, content: str, image_url: str = None, category: str = 'analysis', match_id_hash: str = None, odds: str = None, confidence: float = None, analyst_id: int = None, preference: str = None) -> Optional[Dict]:
         if self.supabase.is_available:
-            return self.supabase.create_analysis(title, content, image_url, category, match_id_hash, odds, confidence, analyst_id)
+            return self.supabase.create_analysis(title, content, image_url, category, match_id_hash, odds, confidence, analyst_id, preference)
         return None
 
-    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None, odds: str = None, confidence: float = None, analyst_id: int = None) -> bool:
+    def update_analysis(self, analysis_id: int, title: str, content: str, image_url: str = None, match_id_hash: str = None, odds: str = None, confidence: float = None, analyst_id: int = None, preference: str = None) -> bool:
         if self.supabase.is_available:
-            return self.supabase.update_analysis(analysis_id, title, content, image_url, match_id_hash, odds, confidence, analyst_id)
+            return self.supabase.update_analysis(analysis_id, title, content, image_url, match_id_hash, odds, confidence, analyst_id, preference)
         return False
 
     def delete_analysis(self, analysis_id: int) -> bool:
