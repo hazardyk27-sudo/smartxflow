@@ -2621,7 +2621,6 @@ async function openMatchModalFromMatches(index) {
         const league = selectedMatch.league || '';
         
         const chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(() => registerChartPlugins()) : Promise.resolve();
-        const alarmsPromise = fetchAlarmsBatch();
         const marketsPromise = loadAllMarketsAtOnce(home, away, league);
         
         const chartPipeline = Promise.all([marketsPromise, chartLibsPromise]).then(() => {
@@ -2629,10 +2628,7 @@ async function openMatchModalFromMatches(index) {
             return loadChartWithTrends(home, away, selectedChartMarket, league, reqId);
         }).catch(e => console.error('[Modal] Chart pipeline error:', e));
         
-        const alarmsPipeline = alarmsPromise.then(() => {
-            if (reqId !== _modalRequestId) return;
-            return renderMatchAlarmsSection(home, away, reqId);
-        }).catch(e => console.error('[Modal] Alarms pipeline error:', e));
+        const alarmsPipeline = renderMatchAlarmsSection(home, away, reqId);
         
         await Promise.all([chartPipeline, alarmsPipeline]);
     }
@@ -2680,7 +2676,6 @@ async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
     document.getElementById('modalOverlay').classList.add('active');
 
     const chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(() => registerChartPlugins()) : Promise.resolve();
-    const alarmsPromise = fetchAlarmsBatch();
     const marketsPromise = loadAllMarketsAtOnce(homeTeam, awayTeam, league);
 
     try {
@@ -2689,10 +2684,7 @@ async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
             return loadChartWithTrends(homeTeam, awayTeam, selectedChartMarket, league, reqId);
         }).catch(e => console.error('[Modal] Chart pipeline error:', e));
         
-        const alarmsPipeline = alarmsPromise.then(() => {
-            if (reqId !== _modalRequestId) return;
-            return renderMatchAlarmsSection(homeTeam, awayTeam, reqId);
-        }).catch(e => console.error('[Modal] Alarms pipeline error:', e));
+        const alarmsPipeline = renderMatchAlarmsSection(homeTeam, awayTeam, reqId);
         
         await Promise.all([chartPipeline, alarmsPipeline]);
         
@@ -2736,7 +2728,6 @@ async function openMatchModal(index) {
         const league = selectedMatch.league || '';
         
         const chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(() => registerChartPlugins()) : Promise.resolve();
-        const alarmsPromise = fetchAlarmsBatch();
         const marketsPromise = loadAllMarketsAtOnce(home, away, league);
         
         const chartPipeline = Promise.all([marketsPromise, chartLibsPromise]).then(() => {
@@ -2744,10 +2735,7 @@ async function openMatchModal(index) {
             return loadChartWithTrends(home, away, selectedChartMarket, league, reqId);
         }).catch(e => console.error('[Modal] Chart pipeline error:', e));
         
-        const alarmsPipeline = alarmsPromise.then(() => {
-            if (reqId !== _modalRequestId) return;
-            return renderMatchAlarmsSection(home, away, reqId);
-        }).catch(e => console.error('[Modal] Alarms pipeline error:', e));
+        const alarmsPipeline = renderMatchAlarmsSection(home, away, reqId);
         
         await Promise.all([chartPipeline, alarmsPipeline]);
     }
@@ -8127,7 +8115,9 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam, reqId) {
         return;
     }
     
-    await loadAllAlarmsOnce(false);
+    if (!cachedAllAlarms || cachedAllAlarms.length === 0) {
+        await loadAllAlarmsOnce(false);
+    }
     if (reqId && reqId !== _modalRequestId) return;
     const matchAlarms = getMatchAlarms(homeTeam, awayTeam);
     
