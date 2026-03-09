@@ -878,23 +878,23 @@
             html += '<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#6e7681;cursor:pointer;padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);margin-bottom:10px;transition:all 0.15s;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.12)\';this.style.color=\'#8b949e\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.color=\'#6e7681\'">';
             html += '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';
             html += 'Tüm Analizciler</div>';
-            html += '<div style="background:linear-gradient(180deg,rgba(25,32,44,0.7) 0%,rgba(20,26,36,0.7) 100%);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:18px 20px;margin-bottom:10px;display:flex;align-items:center;gap:18px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.03);">';
+            html += '<div style="background:rgba(22,27,34,0.6);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;">';
             if (a.avatar_url) {
-                html += '<div style="position:relative;flex-shrink:0;"><img src="' + a.avatar_url + '" style="width:50px;height:50px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.08);" alt=""><div style="position:absolute;bottom:1px;right:1px;width:10px;height:10px;background:#34d399;border-radius:50%;border:2px solid #161b22;"></div></div>';
+                html += '<div style="position:relative;flex-shrink:0;"><img src="' + a.avatar_url + '" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.08);" alt=""><div style="position:absolute;bottom:0;right:0;width:10px;height:10px;background:#34d399;border-radius:50%;border:2px solid #161b22;"></div></div>';
             } else {
-                html += '<div style="position:relative;flex-shrink:0;"><div style="width:50px;height:50px;border-radius:50%;background:radial-gradient(circle at 40% 38%,rgba(52,211,153,0.15),rgba(52,211,153,0.06));border:2px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;color:#34d399;">' + (a.name || '?')[0].toUpperCase() + '</div><div style="position:absolute;bottom:1px;right:1px;width:10px;height:10px;background:#34d399;border-radius:50%;border:2px solid #161b22;"></div></div>';
+                html += '<div style="position:relative;flex-shrink:0;"><div style="width:48px;height:48px;border-radius:50%;background:rgba(52,211,153,0.1);border:2px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#34d399;">' + (a.name || '?')[0].toUpperCase() + '</div><div style="position:absolute;bottom:0;right:0;width:10px;height:10px;background:#34d399;border-radius:50%;border:2px solid #161b22;"></div></div>';
             }
             html += '<div style="flex:1;min-width:0;">';
-            html += '<div style="font-size:17px;font-weight:700;color:#f0f6fc;margin-bottom:2px;">' + (a.name || '') + '</div>';
-            html += '<div style="font-size:9px;color:#484f58;text-transform:uppercase;letter-spacing:1.5px;font-weight:500;">Analist Profili</div>';
+            html += '<div style="font-size:16px;font-weight:700;color:#e6edf3;margin-bottom:1px;">' + (a.name || '') + '</div>';
+            html += '<div style="font-size:10px;color:#484f58;text-transform:uppercase;letter-spacing:1px;font-weight:500;">Analist Profili</div>';
             html += '</div>';
-            html += '<div style="display:flex;gap:6px;flex-wrap:nowrap;flex-shrink:0;">';
-            var statBase = 'border-radius:8px;padding:7px 11px;text-align:center;min-width:48px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.055);';
-            html += '<div style="' + statBase + '"><div style="font-size:14px;font-weight:700;color:' + pctColor + ';line-height:1;">%' + pct + '</div><div style="font-size:8px;color:#3d434a;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;">Başarı</div></div>';
-            html += '<div style="' + statBase + '"><div style="font-size:14px;font-weight:700;color:#c9d1d9;line-height:1;">' + (s.total || 0) + '</div><div style="font-size:8px;color:#3d434a;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;">Toplam</div></div>';
-            html += '<div style="' + statBase + '"><div style="font-size:14px;font-weight:700;color:#34d399;line-height:1;">' + (s.won || 0) + '</div><div style="font-size:8px;color:#3d434a;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;">Kazanan</div></div>';
-            html += '<div style="' + statBase + '"><div style="font-size:14px;font-weight:700;color:#f87171;line-height:1;">' + (s.lost || 0) + '</div><div style="font-size:8px;color:#3d434a;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;">Kaybeden</div></div>';
-            html += '<div style="' + statBase + '"><div style="font-size:14px;font-weight:700;color:#fbbf24;line-height:1;">' + avgOdds + '</div><div style="font-size:8px;color:#3d434a;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;">Ort. Oran</div></div>';
+            html += '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+            var statBase = 'border-radius:8px;padding:6px 10px;text-align:center;min-width:44px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);';
+            html += '<div style="' + statBase + '"><div style="font-size:14px;font-weight:700;color:' + pctColor + ';line-height:1;">%' + pct + '</div><div style="font-size:8px;color:#484f58;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Başarı</div></div>';
+            html += '<div style="' + statBase + '"><div style="font-size:14px;font-weight:700;color:#c9d1d9;line-height:1;">' + (s.total || 0) + '</div><div style="font-size:8px;color:#484f58;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Toplam</div></div>';
+            html += '<div style="' + statBase + '"><div style="font-size:14px;font-weight:700;color:#34d399;line-height:1;">' + (s.won || 0) + '</div><div style="font-size:8px;color:#484f58;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Kazanan</div></div>';
+            html += '<div style="' + statBase + '"><div style="font-size:14px;font-weight:700;color:#f87171;line-height:1;">' + (s.lost || 0) + '</div><div style="font-size:8px;color:#484f58;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Kaybeden</div></div>';
+            html += '<div style="' + statBase + '"><div style="font-size:14px;font-weight:700;color:#fbbf24;line-height:1;">' + avgOdds + '</div><div style="font-size:8px;color:#484f58;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Ort. Oran</div></div>';
             html += '</div></div>';
             html += '<div style="display:flex;align-items:center;gap:0;margin-bottom:10px;padding:0 2px;">';
             html += '<div style="flex:1;display:flex;overflow-x:auto;gap:1px;" id="analystDateStrip">';
@@ -958,37 +958,34 @@
                     if (item.result === 'won') resultBorderColor = 'rgba(52,211,153,0.25)';
                     else if (item.result === 'lost') resultBorderColor = 'rgba(248,113,113,0.25)';
                     else if (item.result === 'push') resultBorderColor = 'rgba(251,191,36,0.25)';
-                    var rColors = {won:'#34d399',lost:'#f87171',push:'#fbbf24','void':'#6e7681'};
-                    var rBg = {won:'rgba(52,211,153,0.1)',lost:'rgba(248,113,113,0.1)',push:'rgba(251,191,36,0.1)','void':'rgba(110,118,129,0.1)'};
-                    var rLabels = {won:'Kazandı',lost:'Kaybetti',push:'İade','void':'İptal'};
-                    var resultBadge = '';
-                    if (item.result) {
-                        resultBadge = '<span style="flex-shrink:0;background:' + (rBg[item.result]||'rgba(72,79,88,0.1)') + ';color:' + (rColors[item.result]||'#484f58') + ';padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;line-height:1;white-space:nowrap;">' + (rLabels[item.result]||item.result) + '</span>';
-                    } else {
-                        resultBadge = '<span style="flex-shrink:0;background:rgba(88,166,255,0.08);color:#58a6ff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;line-height:1;white-space:nowrap;">Beklemede</span>';
-                    }
-                    html += '<div style="background:rgba(22,27,34,0.6);border:1px solid rgba(255,255,255,0.06);border-left:3px solid ' + resultBorderColor + ';border-radius:10px;padding:14px 16px;margin-bottom:8px;">';
-                    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px;">';
-                    html += '<div style="font-size:14px;font-weight:700;color:#e6edf3;line-height:1.35;flex:1;min-width:0;">' + (item.title || '') + '</div>';
-                    html += resultBadge;
-                    html += '</div>';
-                    var hasBadges = item.preference || item.odds || item.confidence;
-                    if (hasBadges) {
-                        html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;">';
-                        if (item.preference) html += '<span style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.12);border-radius:6px;padding:4px 10px;font-size:11px;color:#a78bfa;font-weight:600;line-height:1;">🎯 ' + (item.preference||'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>';
-                        if (item.odds) html += '<span style="background:rgba(88,166,255,0.05);border:1px solid rgba(88,166,255,0.1);border-radius:6px;padding:4px 10px;font-size:11px;color:#93c5fd;font-weight:600;line-height:1;">Oran: ' + item.odds + '</span>';
+                    html += '<div style="background:rgba(22,27,34,0.6);border:1px solid rgba(255,255,255,0.06);border-left:3px solid ' + resultBorderColor + ';border-radius:10px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">';
+                    html += '<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:5px;">';
+                    html += '<div style="font-size:14px;font-weight:700;color:#e6edf3;">' + (item.title || '') + '</div>';
+                    if (item.preference || item.odds || item.confidence) {
+                        html += '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+                        if (item.preference) html += '<span style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.12);border-radius:6px;padding:3px 8px;font-size:11px;color:#a78bfa;font-weight:600;">🎯 ' + (item.preference||'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>';
+                        if (item.odds) html += '<span style="background:rgba(88,166,255,0.05);border:1px solid rgba(88,166,255,0.1);border-radius:6px;padding:3px 8px;font-size:11px;color:#93c5fd;font-weight:600;">Oran: ' + item.odds + '</span>';
                         if (item.confidence) {
                             var confColor = item.confidence >= 7 ? '#34d399' : item.confidence >= 4 ? '#fbbf24' : '#f87171';
                             var confBg = item.confidence >= 7 ? 'rgba(52,211,153,0.05)' : item.confidence >= 4 ? 'rgba(251,191,36,0.05)' : 'rgba(248,113,113,0.05)';
                             var confBdr = item.confidence >= 7 ? 'rgba(52,211,153,0.1)' : item.confidence >= 4 ? 'rgba(251,191,36,0.1)' : 'rgba(248,113,113,0.1)';
-                            html += '<span style="background:' + confBg + ';border:1px solid ' + confBdr + ';border-radius:6px;padding:4px 10px;font-size:11px;color:' + confColor + ';font-weight:600;line-height:1;">Güven: ' + item.confidence + '/10</span>';
+                            html += '<span style="background:' + confBg + ';border:1px solid ' + confBdr + ';border-radius:6px;padding:3px 8px;font-size:11px;color:' + confColor + ';font-weight:600;">Güven: ' + item.confidence + '/10</span>';
                         }
                         html += '</div>';
                     }
                     if (item.result_note) {
-                        html += '<div style="font-size:12px;color:#8b949e;line-height:1.5;margin-bottom:8px;">' + item.result_note + '</div>';
+                        html += '<div style="font-size:12px;color:#8b949e;line-height:1.6;">' + item.result_note + '</div>';
                     }
-                    html += '<div style="font-size:10px;color:#484f58;line-height:1;">' + date + '</div>';
+                    html += '<div style="font-size:10px;color:#484f58;">' + date + '</div>';
+                    html += '</div>';
+                    if (item.result) {
+                        var rColors = {won:'#34d399',lost:'#f87171',push:'#fbbf24','void':'#6e7681'};
+                        var rBg = {won:'rgba(52,211,153,0.1)',lost:'rgba(248,113,113,0.1)',push:'rgba(251,191,36,0.1)','void':'rgba(110,118,129,0.1)'};
+                        var rLabels = {won:'Kazandı',lost:'Kaybetti',push:'İade','void':'İptal'};
+                        html += '<span style="flex-shrink:0;background:' + (rBg[item.result]||'rgba(72,79,88,0.1)') + ';color:' + (rColors[item.result]||'#484f58') + ';padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;">' + (rLabels[item.result]||item.result) + '</span>';
+                    } else {
+                        html += '<span style="flex-shrink:0;background:rgba(88,166,255,0.08);color:#58a6ff;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;">Beklemede</span>';
+                    }
                     html += '</div>';
                 });
             } else {
