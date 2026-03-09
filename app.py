@@ -6249,6 +6249,7 @@ def create_analysis():
             content_type = file.content_type or 'image/png'
             image_url = db.upload_to_storage('smartxflow', file_path, file_data, content_type)
     
+    preference = request.form.get('preference', None) or None
     analyst_id_raw = request.form.get('analyst_id', None)
     analyst_id = None
     if analyst_id_raw:
@@ -6257,7 +6258,7 @@ def create_analysis():
         except (ValueError, TypeError):
             pass
 
-    result = db.create_analysis(title, content, image_url, category, match_id_hash, odds, confidence, analyst_id)
+    result = db.create_analysis(title, content, image_url, category, match_id_hash, odds, confidence, analyst_id, preference)
     if result:
         for k in _analyses_cache:
             _analyses_cache[k] = {'data': None, 'ts': 0}

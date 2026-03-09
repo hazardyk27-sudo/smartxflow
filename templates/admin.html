@@ -3150,6 +3150,10 @@
                             <option value="">Analizci seçin...</option>
                         </select>
                     </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; color: #8b949e; font-size: 13px;">Tercih</label>
+                        <input type="text" id="contentPreference" placeholder="ör: MS 1, Üst 2.5, KG Var" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; width: 100%; box-sizing: border-box;">
+                    </div>
                     <div id="analysisOddsGroup" style="display: flex; gap: 12px;">
                         <div style="flex: 1;">
                             <label style="display: block; margin-bottom: 4px; color: #8b949e; font-size: 13px;">Oran</label>
@@ -7925,15 +7929,17 @@
                     let resultHtml = '';
                     if (currentContentTab === 'analysis') {
                         const rColors = {won:'#3fb950',lost:'#f85149',push:'#d29922',void:'#8b949e'};
-                        const rLabels = {won:'Tuttu',lost:'Tutmadı',push:'İade',void:'İptal'};
+                        const rLabels = {won:'Kazandı',lost:'Kaybetti',push:'İade',void:'İptal'};
                         const curResult = item.result || '';
                         const rBadge = curResult ? `<span style="background:${rColors[curResult]||'#484f58'};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">${rLabels[curResult]||curResult}</span>` : '<span style="color:#484f58;font-size:11px;">Bekliyor</span>';
-                        resultHtml = `<div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+                        let prefBadge = '';
+                        if (item.preference) prefBadge = `<span style="background:#1f6feb22;color:#58a6ff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;border:1px solid #1f6feb;">Tercih: ${escapeHtml(item.preference)}</span>`;
+                        resultHtml = `${prefBadge ? `<div style="margin-top:6px;">${prefBadge}</div>` : ''}<div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
                             <span style="color:#8b949e;font-size:11px;">Sonuç:</span>${rBadge}
                             <select onchange="updateResultQuick(${item.id},this.value)" style="background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:2px 6px;color:#c9d1d9;font-size:11px;cursor:pointer;">
                                 <option value="" ${!curResult?'selected':''}>-</option>
-                                <option value="won" ${curResult==='won'?'selected':''}>Tuttu</option>
-                                <option value="lost" ${curResult==='lost'?'selected':''}>Tutmadı</option>
+                                <option value="won" ${curResult==='won'?'selected':''}>Kazandı</option>
+                                <option value="lost" ${curResult==='lost'?'selected':''}>Kaybetti</option>
                                 <option value="push" ${curResult==='push'?'selected':''}>İade</option>
                                 <option value="void" ${curResult==='void'?'selected':''}>İptal</option>
                             </select>
@@ -8114,6 +8120,8 @@
             }
             const analystId = document.getElementById('contentAnalystId').value;
             if (analystId) formData.append('analyst_id', analystId);
+            const prefVal = document.getElementById('contentPreference').value.trim();
+            if (prefVal) formData.append('preference', prefVal);
             const oddsVal = document.getElementById('contentOdds').value.trim();
             if (oddsVal) formData.append('odds', oddsVal);
             const confVal = document.getElementById('contentConfidence').value;
@@ -8151,10 +8159,10 @@
         function editContentByIndex(idx) {
             var item = window._contentListData && window._contentListData[idx];
             if (!item) return;
-            editContent(item.id, item.title || '', item.content || '', item.match_id_hash || '', item.odds || '', item.confidence || '', item.analyst_id || '');
+            editContent(item.id, item.title || '', item.content || '', item.match_id_hash || '', item.odds || '', item.confidence || '', item.analyst_id || '', item.preference || '');
         }
 
-        function editContent(id, title, content, matchIdHash, odds, confidence, analystId) {
+        function editContent(id, title, content, matchIdHash, odds, confidence, analystId, preference) {
             editingContentId = id;
             if (currentContentTab === 'moves') {
                 const parts = title.split(' - ');
@@ -8174,6 +8182,7 @@
             }
             document.getElementById('contentText').value = content;
             document.getElementById('contentImage').value = '';
+            document.getElementById('contentPreference').value = preference || '';
             document.getElementById('contentOdds').value = odds || '';
             document.getElementById('contentConfidence').value = confidence || '';
             document.getElementById('contentAnalystId').value = analystId || '';
@@ -8195,6 +8204,7 @@
             document.getElementById('contentSubTitle').value = '';
             document.getElementById('contentText').value = '';
             document.getElementById('contentImage').value = '';
+            document.getElementById('contentPreference').value = '';
             document.getElementById('contentOdds').value = '';
             document.getElementById('contentConfidence').value = '';
             document.getElementById('contentAnalystId').value = '';
