@@ -1807,11 +1807,11 @@ function applyMobileFilter() {
     _mobileHideLive = !!document.querySelector('.mf-sw[data-value="hideLive"].active');
     _mobileOnlyLive = !!document.querySelector('.mf-sw[data-value="onlyLive"].active');
     
+    var hasFilter = (dateVal !== 'all') || _mobileHideEnded || _mobileHideLive || _mobileOnlyLive || (sortVal !== 'date');
     var btn = document.getElementById('mobileFilterBtn');
-    if (btn) {
-        var hasFilter = (dateVal !== 'all') || _mobileHideEnded || _mobileHideLive || _mobileOnlyLive || (sortVal !== 'date');
-        btn.classList.toggle('has-filter', hasFilter);
-    }
+    if (btn) btn.classList.toggle('has-filter', hasFilter);
+    var dBtn = document.getElementById('desktopFilterBtn');
+    if (dBtn) dBtn.classList.toggle('has-filter', hasFilter);
     
     closeMobileFilterModal();
     
