@@ -48,7 +48,7 @@ _cache_lock = threading.Lock()
 # ============================================
 _server_alarm_cache = None
 _server_alarm_cache_time = 0
-SERVER_ALARM_CACHE_TTL = 60
+SERVER_ALARM_CACHE_TTL = 120
 
 def get_cached_alarms(force_refresh=False):
     """Get alarms from server-side cache or refresh from Supabase. Waits for app warmup if in progress."""
@@ -1194,18 +1194,18 @@ def get_matches():
         all_matches = []
         
         # For date_filter, use get_all_matches_with_latest (already returns all)
-        if date_filter:
+        if date_filter and date_filter not in ('today_future',):
             matches_with_latest = db.get_all_matches_with_latest(market, date_filter=date_filter)
             page_matches_list = [matches_with_latest]
         else:
-            # For ALL mode, paginate through all results
+            # For ALL / today_future mode, paginate through all results
             page_matches_list = []
             current_offset = 0
             page_limit = 100
             max_pages = 50
             
             for page in range(max_pages):
-                result = db.get_matches_paginated(market, limit=page_limit, offset=current_offset)
+                result = db.get_matches_paginated(market, limit=page_limit, offset=current_offset, today_only=(date_filter == 'today_future'))
                 page_matches = result.get('matches', [])
                 if not page_matches:
                     break

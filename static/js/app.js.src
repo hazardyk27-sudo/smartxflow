@@ -643,7 +643,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if (window.loadChartLibs) window.loadChartLibs().then(() => registerChartPlugins()).catch(() => {});
     
-    setTimeout(() => preloadDropMarkets(), 2000);
+    // Dropping preload deferred — loaded on tab switch
     
     setupAutoRefresh();
     
@@ -887,17 +887,15 @@ async function loadMatches(appendMode = false) {
                 oddsTrendCache = {};
             }
             
-            // Use BULK mode for ALL filter (no date_filter) - instant on cache hit
-            // Use requestMarket (captured at start) to ensure consistent request
             let apiUrl;
             if (dateFilterMode === 'ALL') {
-                apiUrl = `/api/matches?market=${requestMarket}&bulk=1`;
+                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today_future&bulk=1`;
             } else if (dateFilterMode === 'YESTERDAY') {
                 apiUrl = `/api/matches?market=${requestMarket}&date_filter=yesterday&bulk=1`;
             } else if (dateFilterMode === 'TODAY') {
                 apiUrl = `/api/matches?market=${requestMarket}&date_filter=today&bulk=1`;
             } else {
-                apiUrl = `/api/matches?market=${requestMarket}&bulk=1`;
+                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today_future&bulk=1`;
             }
             
             console.log('[Matches] Loading with bulk mode:', apiUrl);

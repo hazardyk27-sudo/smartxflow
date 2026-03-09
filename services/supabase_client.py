@@ -678,7 +678,7 @@ class SupabaseClient:
             print(f"[Supabase] EXCEPTION in get_all_matches_with_latest: {e}")
             return []
     
-    def get_matches_paginated(self, market: str, limit: int = 20, offset: int = 0) -> Dict[str, Any]:
+    def get_matches_paginated(self, market: str, limit: int = 20, offset: int = 0, today_only: bool = False) -> Dict[str, Any]:
         """FAST paginated match fetch - fixtures-first approach
         
         Returns: {matches: [...], total: N, has_more: bool}
@@ -704,11 +704,13 @@ class SupabaseClient:
             today_date = now_tr.date()
             yesterday_date = today_date - timedelta(days=1)
             yesterday_str = yesterday_date.strftime('%Y-%m-%d')
+            today_str = today_date.strftime('%Y-%m-%d')
             
             history_table = f"{market}_history"
             
-            # Step 1: Get ALL D-1+ fixtures (this is the source of truth)
-            fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{yesterday_str}"
+            # Step 1: Get fixtures (today+ or D-1+ depending on mode)
+            date_gte = today_str if today_only else yesterday_str
+            fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{date_gte}"
             fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=15)
             
             fixtures_list = []
@@ -720,7 +722,8 @@ class SupabaseClient:
                     if match_hash:
                         fixtures_by_hash[match_hash] = fix
             
-            print(f"[Paginated] Got {len(fixtures_by_hash)} D-1+ fixtures")
+            mode_label = "today+" if today_only else "D-1+"
+            print(f"[Paginated] Got {len(fixtures_by_hash)} {mode_label} fixtures")
             
             if not fixtures_by_hash:
                 return {'matches': [], 'total': 0, 'has_more': False}
@@ -2382,10 +2385,10 @@ class HybridDatabase:
                 return matches
         return self.local.get_all_matches_with_latest(market)
     
-    def get_matches_paginated(self, market: str, limit: int = 20, offset: int = 0) -> Dict[str, Any]:
+    def get_matches_paginated(self, market: str, limit: int = 20, offset: int = 0, today_only: bool = False) -> Dict[str, Any]:
         """FAST paginated match fetch - delegates to Supabase"""
         if self.supabase.is_available:
-            return self.supabase.get_matches_paginated(market, limit=limit, offset=offset)
+            return self.supabase.get_matches_paginated(market, limit=limit, offset=offset, today_only=today_only)
         # Fallback to local (no pagination - just return all)
         matches = self.local.get_all_matches_with_latest(market)
         return {
