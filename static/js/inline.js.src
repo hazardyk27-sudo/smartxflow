@@ -29,6 +29,8 @@ function openTrendsModal(tab) {
     }
     document.getElementById('trendsModalOverlay').style.display = 'flex';
     document.body.style.overflow = 'hidden';
+    var _ca = document.getElementById('trendsContentArea');
+    if (_ca) _ca.scrollTop = 0;
     loadTrends(t);
 }
 function closeTrendsModal() {
@@ -168,7 +170,8 @@ function renderAnalysisList(data) {
     var cardsHtml = buildAnalystCards();
     var filtered = _selectedAnalystId ? data.filter(function(item) { return item.analyst_id == _selectedAnalystId; }) : data;
     var listHtml = buildAnalysisCards(filtered);
-    contentArea.innerHTML = '<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">' + cardsHtml + '<div style="display:flex;flex-direction:column;gap:12px;">' + listHtml + '</div></div>';
+    contentArea.scrollTop = 0;
+    contentArea.innerHTML = '<div style="padding-bottom:20px;">' + cardsHtml + '<div style="display:flex;flex-direction:column;gap:12px;">' + listHtml + '</div></div>';
 }
 
 function buildAnalystCards() {
