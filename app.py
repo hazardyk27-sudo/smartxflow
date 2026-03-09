@@ -79,7 +79,7 @@ def set_alarm_cache(data):
 # ============================================
 _server_matches_cache = {}
 _server_matches_cache_time = {}
-SERVER_MATCHES_CACHE_TTL = 60
+SERVER_MATCHES_CACHE_TTL = 120
 MAX_MATCHES_CACHE_SIZE = 20
 
 def get_cached_matches(market, force_refresh=False):
@@ -1044,11 +1044,8 @@ def _warmup_alarms():
         set_alarm_cache(result)
     return len(result)
 
-def _warmup_matches():
-    """Fill matches cache"""
-    matches_data = db.get_all_matches_with_latest('moneyway_1x2', date_filter=None)
-    if not matches_data:
-        return 0
+def _build_enriched_matches(matches_data):
+    """Transform raw match list to frontend format"""
     enriched = []
     for m in matches_data:
         latest = m.get('latest', {})
@@ -1069,11 +1066,36 @@ def _warmup_matches():
         date = m.get('date', '')
         enriched.append({
             'home_team': home, 'away_team': away, 'league': league, 'date': date,
-            'match_id': generate_match_id(home, away, league, date),
+            'match_id': m.get('match_id_hash') or generate_match_id(home, away, league, date),
             'odds': odds, 'history_count': 1
         })
-    set_matches_cache('moneyway_1x2_all', enriched)
-    return len(enriched)
+    return enriched
+
+def _warmup_matches():
+    """Fill matches cache for both all and today_future keys"""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def fetch_all():
+        data = db.get_all_matches_with_latest('moneyway_1x2', date_filter=None)
+        return 'moneyway_1x2_all', data
+
+    def fetch_today():
+        result = db.get_matches_paginated('moneyway_1x2', limit=600, offset=0, today_only=True)
+        return 'moneyway_1x2_today_future', result.get('matches', [])
+
+    total = 0
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        futures = {ex.submit(fetch_all): 'all', ex.submit(fetch_today): 'today_future'}
+        for future in as_completed(futures):
+            try:
+                cache_key, raw = future.result()
+                if raw:
+                    enriched = _build_enriched_matches(raw)
+                    set_matches_cache(cache_key, enriched)
+                    total += len(enriched)
+            except Exception as e:
+                print(f"[Warmup] matches fetch error: {e}")
+    return total
 
 def _warmup_licenses():
     """Fill license cache"""

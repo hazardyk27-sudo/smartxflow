@@ -80,7 +80,7 @@ matchesDisplayCount=20;loadMatches();});});}
 function setupModalChartTabs(){document.querySelectorAll('#modalChartTabs .chart-tab').forEach(tab=>{tab.addEventListener('click',()=>{document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');selectedChartMarket=tab.dataset.market;if(typeof mobileBigValueTween!=='undefined'){mobileBigValueTween.reset();}
 if(selectedMatch){showChartLoading();loadChartWithTrends(selectedMatch.home_team,selectedMatch.away_team,selectedChartMarket,selectedMatch.league||'');}});});}
 function setupSearch(){const searchInput=document.getElementById('searchInput');if(searchInput){searchInput.addEventListener('input',(e)=>{const query=e.target.value.toLowerCase();filterMatches(query);});}}
-const _matchesMarketCache={};const _MATCHES_CACHE_TTL=45000;async function loadMatches(appendMode=false){if(_loadMatchesLock){if(_loadMatchesPending){return _loadMatchesPending;}
+const _matchesMarketCache={};const _MATCHES_CACHE_TTL=90000;async function loadMatches(appendMode=false){if(_loadMatchesLock){if(_loadMatchesPending){return _loadMatchesPending;}
 return;}
 _loadMatchesLock=true;const requestMarket=currentMarket;const cacheKey=`${requestMarket}|${dateFilterMode}`;const cached=_matchesMarketCache[cacheKey];if(!appendMode&&cached&&(Date.now()-cached.ts)<_MATCHES_CACHE_TTL){matches=cached.matches;totalMatchCount=cached.total;hasMoreMatches=false;currentOffset=matches.length;filteredMatches=applySorting(matches);updateTableHeaders();renderMatches(filteredMatches);if(requestMarket.startsWith('dropping')){attachTrendTooltipListeners();}
 _loadMatchesLock=false;console.log('[Matches] Cache HIT:',cacheKey);return;}
