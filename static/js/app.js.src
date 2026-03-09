@@ -901,7 +901,24 @@ async function loadMatches(appendMode = false) {
             console.log('[Matches] Loading with bulk mode:', apiUrl);
             const startTime = performance.now();
             
-            const response = await fetch(apiUrl);
+            const _fetchWithTimeout = (url, ms) => {
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), ms);
+                return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(tid));
+            };
+            
+            let response;
+            try {
+                response = await _fetchWithTimeout(apiUrl, 12000);
+            } catch (fetchErr) {
+                if (fetchErr.name === 'AbortError') {
+                    console.warn('[Matches] Fetch timeout (12s), retrying...');
+                    await new Promise(r => setTimeout(r, 1500));
+                    response = await _fetchWithTimeout(apiUrl, 20000);
+                } else {
+                    throw fetchErr;
+                }
+            }
             const result = await response.json();
             
             const elapsed = Math.round(performance.now() - startTime);
