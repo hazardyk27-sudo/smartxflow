@@ -17,34 +17,39 @@ window.loadChartLibs = function() {
         }
         window._chartLibsLoading = true;
         window._chartLibsRetry = false;
-        var scripts = [
-            'https://cdn.jsdelivr.net/npm/chart.js',
+        var coreScripts = [
+            'https://cdn.jsdelivr.net/npm/chart.js'
+        ];
+        var pluginScripts = [
             'https://cdn.jsdelivr.net/npm/hammerjs@2.0.8',
-            'https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js',
             'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'
         ];
-        var loaded = 0;
+        var zoomScript = 'https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js';
         var failed = [];
-        function loadNext() {
-            if (loaded >= scripts.length) {
-                if (typeof Chart !== 'undefined') {
-                    window._chartLibsLoaded = true;
-                } else {
-                    console.error('[ChartLibs] Chart.js failed to load. Failed scripts:', failed);
-                    window._chartLibsLoaded = false;
-                    window._chartLibsLoading = false;
-                    window._chartLibsRetry = true;
-                }
-                resolve();
-                return;
-            }
-            var s = document.createElement('script');
-            s.src = scripts[loaded];
-            s.onload = function() { loaded++; loadNext(); };
-            s.onerror = function() { failed.push(scripts[loaded]); loaded++; loadNext(); };
-            document.head.appendChild(s);
+        function loadScript(src) {
+            return new Promise(function(res) {
+                var s = document.createElement('script');
+                s.src = src;
+                s.onload = function() { res(true); };
+                s.onerror = function() { failed.push(src); res(false); };
+                document.head.appendChild(s);
+            });
         }
-        loadNext();
+        loadScript(coreScripts[0]).then(function() {
+            var parallel = pluginScripts.map(function(src) { return loadScript(src); });
+            parallel.push(loadScript(zoomScript));
+            return Promise.all(parallel);
+        }).then(function() {
+            if (typeof Chart !== 'undefined') {
+                window._chartLibsLoaded = true;
+            } else {
+                console.error('[ChartLibs] Chart.js failed to load. Failed scripts:', failed);
+                window._chartLibsLoaded = false;
+                window._chartLibsLoading = false;
+                window._chartLibsRetry = true;
+            }
+            resolve();
+        });
     });
 };
 
@@ -635,6 +640,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadMatches();
     checkStatus();
     window.statusInterval = window.setInterval(checkStatus, 60000);
+    
+    if (window.loadChartLibs) window.loadChartLibs().then(() => registerChartPlugins()).catch(() => {});
     
     setTimeout(() => preloadDropMarkets(), 2000);
     
