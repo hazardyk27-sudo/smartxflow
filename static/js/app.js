@@ -28,7 +28,7 @@ const data=await resp.json();if(data.valid&&data.days_left!==undefined){localSto
 checkLicenseStatus();_licenseStatusInterval=setInterval(checkLicenseStatus,5*60*1000);}
 const _originalFetch=window.fetch;window.fetch=function(url,options={}){const urlStr=typeof url==='string'?url:url.url||'';if(urlStr.startsWith('/api/')){const savedKey=localStorage.getItem('smartxflow_web_license');if(savedKey){options=options||{};options.headers=options.headers||{};if(options.headers instanceof Headers){options.headers.set('X-License-Key',savedKey);}else{options.headers['X-License-Key']=savedKey;}}}
 return _originalFetch.call(window,url,options).then(function(response){if(response.status===403&&urlStr.startsWith('/api/')){response.clone().json().then(function(data){if(data&&(data.error==='LICENSE_EXPIRED'||data.error==='LICENSE_REVOKED')){showLicenseExpiredOverlay();}}).catch(function(){});}
-return response;});};let mobileSelectedLine='1';let mobileTimeRange='1440';let isAlarmsPageActive=false;let matchesDisplayCount=20;let currentOffset=0;let totalMatchCount=0;let hasMoreMatches=false;let _loadMatchesLock=false;let _loadMatchesPending=null;let _lastMatchRefreshTime=null;let _matchRefreshInterval=null;const MATCH_REFRESH_INTERVAL=10*60*1000;const APP_TIMEZONE='Europe/Istanbul';function translateSelection(sel,market){if(!sel)return'-';const s=String(sel).trim();const m=String(market||'').toUpperCase();if(m.includes('OU')||m.includes('O/U')||m.includes('2.5')){if(s==='O'||s==='Over'||s.toLowerCase()==='over')return'Üst';if(s==='U'||s==='Under'||s.toLowerCase()==='under')return'Alt';}
+return response;});};let mobileSelectedLine='1';let mobileTimeRange='1440';let isAlarmsPageActive=false;let matchesDisplayCount=20;let _allFilteredMatches=[];let _renderedCount=0;const _RENDER_BATCH=20;let _scrollListenerAttached=false;let currentOffset=0;let totalMatchCount=0;let hasMoreMatches=false;let _loadMatchesLock=false;let _loadMatchesPending=null;let _lastMatchRefreshTime=null;let _matchRefreshInterval=null;const MATCH_REFRESH_INTERVAL=10*60*1000;const APP_TIMEZONE='Europe/Istanbul';function translateSelection(sel,market){if(!sel)return'-';const s=String(sel).trim();const m=String(market||'').toUpperCase();if(m.includes('OU')||m.includes('O/U')||m.includes('2.5')){if(s==='O'||s==='Over'||s.toLowerCase()==='over')return'Üst';if(s==='U'||s==='Under'||s.toLowerCase()==='under')return'Alt';}
 if(m.includes('BTTS')||m.includes('KG')){if(s==='Y'||s==='Yes'||s.toLowerCase()==='yes')return'Evet';if(s==='N'||s==='No'||s.toLowerCase()==='no')return'Hayır';}
 if(s==='Over'||s.toLowerCase()==='over')return'Üst';if(s==='Under'||s.toLowerCase()==='under')return'Alt';if(s==='Yes'||s.toLowerCase()==='yes')return'Evet';if(s==='No'||s.toLowerCase()==='no')return'Hayır';return s;}
 function translateMarket(market){if(!market)return'';const m=String(market).toUpperCase();if(m==='OU25'||m==='O/U 2.5'||m==='OU 2.5')return'Ü/A 2.5';if(m==='BTTS')return'KG';if(m==='1X2')return'1X2';return market;}
@@ -185,9 +185,98 @@ function formatPct(val){if(!val||val==='-')return'-';const cleaned=String(val).r
 function cleanPct(val){if(!val||val==='-')return'';return String(val).replace(/%/g,'').trim();}
 async function fetchAnalysisMatchHashes(){try{const resp=await fetch('/api/analyses/match-hashes');if(resp.ok){const data=await resp.json();_analysisMatchHashes=Array.isArray(data)?data:(data.hashes||[]);_analysisHashesFetched=true;const ac=(data&&typeof data.active_count==='number')?data.active_count:0;document.querySelectorAll('.analysis-active-badge').forEach(el=>{el.textContent=ac;el.style.display=ac>0?'':'none';});}}catch(e){}}
 function getAnalysisStarHtml(matchId){if(!matchId||!_analysisMatchHashes.length)return'';if(_analysisMatchHashes.indexOf(matchId)===-1)return'';return'<span class="analysis-star" title="Bu maç ile ilgili analiz mevcut" onclick="event.stopPropagation(); openTrendsModal(\'analysis\');">★</span>';}
-function renderMatches(data){console.log('[renderMatches] Called with',data?.length||0,'matches');const tbody=document.getElementById('matchesTableBody');const countEl=document.getElementById('matchCount');const mobileCountEl=document.getElementById('mobileMatchCount');if(countEl){countEl.textContent=data.length;}
-if(mobileCountEl){mobileCountEl.textContent=data.length;}
-if(data.length===0){const colspan=currentMarket.includes('1x2')?7:6;const emptyMessage=isClientMode?"Bu market için veri bulunamadı. Scraper'ın Supabase'e veri gönderdiğinden emin olun.":"No matches found for this market. Click 'Scrape Now' to fetch data.";tbody.innerHTML=`
+function _renderMatchRow(match,idx){const d=match.details||match.odds||{};const _star=getAnalysisStarHtml(match.match_id);const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMarket.startsWith('moneyway');if(currentMarket.includes('1x2')){if(isMoneyway){const block1=renderMoneywayBlock('1',d.Pct1,d.Odds1||d['1'],d.Amt1);const blockX=renderMoneywayBlock('X',d.PctX,d.OddsX||d['X'],d.AmtX);const block2=renderMoneywayBlock('2',d.Pct2,d.Odds2||d['2'],d.Amt2);const matchStatus=getMatchStatus(match.date);return`
+                <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                    <td class="match-date">${formatDateTwoLine(match.date)}</td>
+                    <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="mw-outcomes-cell" colspan="3">
+                        <div class="mw-grid mw-grid-3">
+                            ${block1}
+                            ${blockX}
+                            ${block2}
+                        </div>
+                    </td>
+                    <td class="volume-cell">${formatVolume(d.Volume)}</td>
+                </tr>
+            `;}else{const trend1Data=buildTrendDataFromMatch(d.Odds1||d['1'],d.PrevOdds1||d.Odds1_prev,d.Trend1);const trendXData=buildTrendDataFromMatch(d.OddsX||d['X'],d.PrevOddsX||d.OddsX_prev,d.TrendX);const trend2Data=buildTrendDataFromMatch(d.Odds2||d['2'],d.PrevOdds2||d.Odds2_prev,d.Trend2);const cell1=renderDrop1X2Cell('1',d.Odds1||d['1'],trend1Data);const cellX=renderDrop1X2Cell('X',d.OddsX||d['X'],trendXData);const cell2=renderDrop1X2Cell('2',d.Odds2||d['2'],trend2Data);const matchStatus=getMatchStatus(match.date);return`
+                <tr class="dropping-1x2-row" data-index="${idx}" onclick="openMatchModal(${idx})">
+                    <td class="match-date">${formatDateTwoLine(match.date)}</td>
+                    <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="drop-cell">${cell1}</td>
+                    <td class="drop-cell">${cellX}</td>
+                    <td class="drop-cell">${cell2}</td>
+                    <td class="volume-cell">${formatVolume(d.Volume)}</td>
+                </tr>
+            `;}}else if(currentMarket.includes('ou25')){if(isMoneyway){const blockUnder=renderMoneywayBlock('Alt',d.PctUnder,d.Under,d.AmtUnder);const blockOver=renderMoneywayBlock('Üst',d.PctOver,d.Over,d.AmtOver);const matchStatus=getMatchStatus(match.date);return`
+                <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                    <td class="match-date">${formatDateTwoLine(match.date)}</td>
+                    <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="mw-outcomes-cell" colspan="2">
+                        <div class="mw-grid mw-grid-2">
+                            ${blockUnder}
+                            ${blockOver}
+                        </div>
+                    </td>
+                    <td class="volume-cell">${formatVolume(d.Volume)}</td>
+                </tr>
+            `;}else{const trendUnderData=buildTrendDataFromMatch(d.Under,d.PrevUnder||d.Under_prev,d.TrendUnder);const trendOverData=buildTrendDataFromMatch(d.Over,d.PrevOver||d.Over_prev,d.TrendOver);const cellUnder=renderOddsWithTrend(d.Under,trendUnderData);const cellOver=renderOddsWithTrend(d.Over,trendOverData);const matchStatus=getMatchStatus(match.date);return`
+                <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                    <td class="match-date">${formatDateTwoLine(match.date)}</td>
+                    <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="selection-cell"><div>${cellUnder}</div></td>
+                    <td class="selection-cell"><div>${cellOver}</div></td>
+                    <td class="volume-cell">${formatVolume(d.Volume)}</td>
+                </tr>
+            `;}}else{if(isMoneyway){const blockYes=renderMoneywayBlock('Evet',d.PctYes,d.OddsYes||d.Yes,d.AmtYes);const blockNo=renderMoneywayBlock('Hayır',d.PctNo,d.OddsNo||d.No,d.AmtNo);const matchStatus=getMatchStatus(match.date);return`
+                <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                    <td class="match-date">${formatDateTwoLine(match.date)}</td>
+                    <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="mw-outcomes-cell" colspan="2">
+                        <div class="mw-grid mw-grid-2">
+                            ${blockYes}
+                            ${blockNo}
+                        </div>
+                    </td>
+                    <td class="volume-cell">${formatVolume(d.Volume)}</td>
+                </tr>
+            `;}else{const trendYesData=buildTrendDataFromMatch(d.OddsYes||d.Yes,d.PrevYes||d.OddsYes_prev||d.Yes_prev,d.TrendYes);const trendNoData=buildTrendDataFromMatch(d.OddsNo||d.No,d.PrevNo||d.OddsNo_prev||d.No_prev,d.TrendNo);const cellYes=renderOddsWithTrend(d.OddsYes||d.Yes,trendYesData);const cellNo=renderOddsWithTrend(d.OddsNo||d.No,trendNoData);const matchStatus=getMatchStatus(match.date);return`
+                <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                    <td class="match-date">${formatDateTwoLine(match.date)}</td>
+                    <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="selection-cell"><div>${cellYes}</div></td>
+                    <td class="selection-cell"><div>${cellNo}</div></td>
+                    <td class="volume-cell">${formatVolume(d.Volume)}</td>
+                </tr>
+            `;}}}
+function _renderMoreDesktop(){if(_renderedCount>=_allFilteredMatches.length)return;const tbody=document.getElementById('matchesTableBody');if(!tbody)return;const end=Math.min(_renderedCount+_RENDER_BATCH,_allFilteredMatches.length);let html='';for(let i=_renderedCount;i<end;i++){html+=_renderMatchRow(_allFilteredMatches[i],i);}
+tbody.insertAdjacentHTML('beforeend',html);_renderedCount=end;_updateRenderedCount();if(currentMarket.startsWith('dropping')){setTimeout(()=>attachTrendTooltipListeners(),50);}}
+function _renderMoreMobile(){if(_renderedCount>=_allFilteredMatches.length)return;const cardList=document.getElementById('matchCardList');if(!cardList)return;const end=Math.min(_renderedCount+_RENDER_BATCH,_allFilteredMatches.length);let html='';const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMarket.startsWith('moneyway');for(let i=_renderedCount;i<end;i++){const match=_allFilteredMatches[i];const d=match.details||match.odds||{};const volume=formatVolumeCompact(d.Volume);const _mStar=getAnalysisStarHtml(match.match_id);let dateStr='';try{const dt=dayjs(match.date).tz('Europe/Istanbul');const day=dt.format('D');const monthIdx=dt.month();const monthsTR=['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];const time=dt.format('HH:mm');dateStr=`${day} ${monthsTR[monthIdx]} ${time}`;}catch(e){dateStr=match.date||'';}
+if(isMoneyway){html+=renderMobileMoneywayCard(match,i,d,volume,dateStr,_mStar);}else if(isDropping){html+=renderMobileOddsCard(match,i,d,volume,dateStr,_mStar);}else{const matchStatus=getMatchStatus(match.date);html+=`
+                <div class="match-card" data-index="${i}" onclick="openMatchModal(${i})">
+                    <div class="match-card-left">
+                        <div class="match-card-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${_mStar}</div>
+                        <div class="match-card-meta">
+                            <span class="match-card-league">${match.league || '-'}</span>
+                            <span class="match-card-separator">•</span>
+                            <span class="match-card-datetime">${dateStr}</span>
+                        </div>
+                    </div>
+                    <div class="match-card-right">
+                        <span class="match-card-volume">${volume}</span>
+                        <span class="match-card-arrow">›</span>
+                    </div>
+                </div>
+            `;}}
+cardList.insertAdjacentHTML('beforeend',html);_renderedCount=end;_updateRenderedCount();}
+function _updateRenderedCount(){const countEl=document.getElementById('matchCount');const mobileCountEl=document.getElementById('mobileMatchCount');const total=_allFilteredMatches.length;const shown=Math.min(_renderedCount,total);const text=shown<total?`${shown} / ${total}`:`${total}`;if(countEl)countEl.textContent=text;if(mobileCountEl)mobileCountEl.textContent=text;}
+function _setupInfiniteScroll(){if(_scrollListenerAttached)return;_scrollListenerAttached=true;window.addEventListener('scroll',function(){if(_renderedCount>=_allFilteredMatches.length)return;const scrollY=window.scrollY||window.pageYOffset;const windowH=window.innerHeight;const docH=document.documentElement.scrollHeight;if(scrollY+windowH>=docH-300){const isMobile=window.innerWidth<=768;if(isMobile){_renderMoreMobile();}else{_renderMoreDesktop();}}},{passive:true});}
+function renderMatches(data){console.log('[renderMatches] Called with',data?.length||0,'matches');_allFilteredMatches=data;_renderedCount=0;const tbody=document.getElementById('matchesTableBody');const countEl=document.getElementById('matchCount');const mobileCountEl=document.getElementById('mobileMatchCount');if(data.length===0){const colspan=currentMarket.includes('1x2')?7:6;const emptyMessage=isClientMode?"Bu market için veri bulunamadı. Scraper'ın Supabase'e veri gönderdiğinden emin olun.":"No matches found for this market. Click 'Scrape Now' to fetch data.";tbody.innerHTML=`
             <tr class="loading-row">
                 <td colspan="${colspan}">
                     <div class="empty-state">
@@ -199,91 +288,11 @@ if(data.length===0){const colspan=currentMarket.includes('1x2')?7:6;const emptyM
                     </div>
                 </td>
             </tr>
-        `;return;}
-const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMarket.startsWith('moneyway');const displayData=data;const remainingCount=totalMatchCount-matches.length;const colspan=currentMarket.includes('1x2')?7:6;let html=displayData.map((match,idx)=>{const d=match.details||match.odds||{};const _star=getAnalysisStarHtml(match.match_id);if(currentMarket.includes('1x2')){const trend1=isDropping?(getDirectTrendArrow(d.Trend1)||getTableTrendArrow(d.Odds1||d['1'],d.Odds1_prev||d.PrevOdds1)):'';const trendX=isDropping?(getDirectTrendArrow(d.TrendX)||getTableTrendArrow(d.OddsX||d['X'],d.OddsX_prev||d.PrevOddsX)):'';const trend2=isDropping?(getDirectTrendArrow(d.Trend2)||getTableTrendArrow(d.Odds2||d['2'],d.Odds2_prev||d.PrevOdds2)):'';if(isMoneyway){const block1=renderMoneywayBlock('1',d.Pct1,d.Odds1||d['1'],d.Amt1);const blockX=renderMoneywayBlock('X',d.PctX,d.OddsX||d['X'],d.AmtX);const block2=renderMoneywayBlock('2',d.Pct2,d.Odds2||d['2'],d.Amt2);const matchStatus=getMatchStatus(match.date);return`
-                    <tr data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
-                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
-                        <td class="mw-outcomes-cell" colspan="3">
-                            <div class="mw-grid mw-grid-3">
-                                ${block1}
-                                ${blockX}
-                                ${block2}
-                            </div>
-                        </td>
-                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
-                    </tr>
-                `;}else{const trend1Data=buildTrendDataFromMatch(d.Odds1||d['1'],d.PrevOdds1||d.Odds1_prev,d.Trend1);const trendXData=buildTrendDataFromMatch(d.OddsX||d['X'],d.PrevOddsX||d.OddsX_prev,d.TrendX);const trend2Data=buildTrendDataFromMatch(d.Odds2||d['2'],d.PrevOdds2||d.Odds2_prev,d.Trend2);const cell1=renderDrop1X2Cell('1',d.Odds1||d['1'],trend1Data);const cellX=renderDrop1X2Cell('X',d.OddsX||d['X'],trendXData);const cell2=renderDrop1X2Cell('2',d.Odds2||d['2'],trend2Data);const matchStatus=getMatchStatus(match.date);return`
-                    <tr class="dropping-1x2-row" data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
-                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
-                        <td class="drop-cell">${cell1}</td>
-                        <td class="drop-cell">${cellX}</td>
-                        <td class="drop-cell">${cell2}</td>
-                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
-                    </tr>
-                `;}}else if(currentMarket.includes('ou25')){const trendUnder=isDropping?(getDirectTrendArrow(d.TrendUnder)||getTableTrendArrow(d.Under,d.Under_prev||d.PrevUnder)):'';const trendOver=isDropping?(getDirectTrendArrow(d.TrendOver)||getTableTrendArrow(d.Over,d.Over_prev||d.PrevOver)):'';if(isMoneyway){const blockUnder=renderMoneywayBlock('Alt',d.PctUnder,d.Under,d.AmtUnder);const blockOver=renderMoneywayBlock('Üst',d.PctOver,d.Over,d.AmtOver);const matchStatus=getMatchStatus(match.date);return`
-                    <tr data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
-                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
-                        <td class="mw-outcomes-cell" colspan="2">
-                            <div class="mw-grid mw-grid-2">
-                                ${blockUnder}
-                                ${blockOver}
-                            </div>
-                        </td>
-                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
-                    </tr>
-                `;}else{const trendUnderData=buildTrendDataFromMatch(d.Under,d.PrevUnder||d.Under_prev,d.TrendUnder);const trendOverData=buildTrendDataFromMatch(d.Over,d.PrevOver||d.Over_prev,d.TrendOver);const cellUnder=renderOddsWithTrend(d.Under,trendUnderData);const cellOver=renderOddsWithTrend(d.Over,trendOverData);const matchStatus=getMatchStatus(match.date);return`
-                    <tr data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
-                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
-                        <td class="selection-cell"><div>${cellUnder}</div></td>
-                        <td class="selection-cell"><div>${cellOver}</div></td>
-                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
-                    </tr>
-                `;}}else{const trendYes=isDropping?(getDirectTrendArrow(d.TrendYes)||getTableTrendArrow(d.OddsYes||d.Yes,d.Yes_prev||d.PrevYes)):'';const trendNo=isDropping?(getDirectTrendArrow(d.TrendNo)||getTableTrendArrow(d.OddsNo||d.No,d.No_prev||d.PrevNo)):'';if(isMoneyway){const blockYes=renderMoneywayBlock('Evet',d.PctYes,d.OddsYes||d.Yes,d.AmtYes);const blockNo=renderMoneywayBlock('Hayır',d.PctNo,d.OddsNo||d.No,d.AmtNo);const matchStatus=getMatchStatus(match.date);return`
-                    <tr data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
-                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
-                        <td class="mw-outcomes-cell" colspan="2">
-                            <div class="mw-grid mw-grid-2">
-                                ${blockYes}
-                                ${blockNo}
-                            </div>
-                        </td>
-                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
-                    </tr>
-                `;}else{const trendYesData=buildTrendDataFromMatch(d.OddsYes||d.Yes,d.PrevYes||d.OddsYes_prev||d.Yes_prev,d.TrendYes);const trendNoData=buildTrendDataFromMatch(d.OddsNo||d.No,d.PrevNo||d.OddsNo_prev||d.No_prev,d.TrendNo);const cellYes=renderOddsWithTrend(d.OddsYes||d.Yes,trendYesData);const cellNo=renderOddsWithTrend(d.OddsNo||d.No,trendNoData);const matchStatus=getMatchStatus(match.date);return`
-                    <tr data-index="${idx}" onclick="openMatchModal(${idx})">
-                        <td class="match-date">${formatDateTwoLine(match.date)}</td>
-                        <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                        <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
-                        <td class="selection-cell"><div>${cellYes}</div></td>
-                        <td class="selection-cell"><div>${cellNo}</div></td>
-                        <td class="volume-cell">${formatVolume(d.Volume)}</td>
-                    </tr>
-                `;}}}).join('');if(hasMoreMatches&&remainingCount>0){html+=`
-            <tr class="load-more-row">
-                <td colspan="${colspan}">
-                    <button class="load-more-btn" onclick="loadMoreMatches()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"/>
-                        </svg>
-                        Daha Fazla Yukle (${remainingCount} kaldi)
-                    </button>
-                </td>
-            </tr>
-        `;}
-tbody.innerHTML=html;if(currentMarket.startsWith('dropping')){setTimeout(()=>attachTrendTooltipListeners(),50);}}
+        `;if(countEl)countEl.textContent='0';if(mobileCountEl)mobileCountEl.textContent='0';return;}
+tbody.innerHTML='';const firstBatch=data.slice(0,_RENDER_BATCH);let html=firstBatch.map((match,idx)=>_renderMatchRow(match,idx)).join('');tbody.innerHTML=html;_renderedCount=firstBatch.length;_updateRenderedCount();_setupInfiniteScroll();if(currentMarket.startsWith('dropping')){setTimeout(()=>attachTrendTooltipListeners(),50);}}
 function loadMoreMatches(){if(hasMoreMatches&&!_loadMatchesLock){loadMatches(true);}}
 function isMobileView(){return window.innerWidth<=768;}
-function renderMobileMatchCards(data){const cardList=document.getElementById('matchCardList');if(!cardList)return;if(data.length===0){cardList.innerHTML=`
+function renderMobileMatchCards(data){const cardList=document.getElementById('matchCardList');if(!cardList)return;_allFilteredMatches=data;_renderedCount=0;if(data.length===0){cardList.innerHTML=`
             <div class="match-card" style="justify-content: center; padding: 40px 20px;">
                 <div style="text-align: center; color: #8b949e;">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.4; margin-bottom: 8px;">
@@ -293,26 +302,8 @@ function renderMobileMatchCards(data){const cardList=document.getElementById('ma
                     <p style="font-size: 12px;">Bu market için veri bulunamadı</p>
                 </div>
             </div>
-        `;return;}
-const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMarket.startsWith('moneyway');const html=data.map((match,idx)=>{const d=match.details||match.odds||{};const volume=formatVolumeCompact(d.Volume);const _mStar=getAnalysisStarHtml(match.match_id);let dateStr='';try{const dt=dayjs(match.date).tz('Europe/Istanbul');const day=dt.format('D');const monthIdx=dt.month();const monthsTR=['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];const time=dt.format('HH:mm');dateStr=`${day} ${monthsTR[monthIdx]} ${time}`;}catch(e){dateStr=match.date||'';}
-if(isMoneyway){return renderMobileMoneywayCard(match,idx,d,volume,dateStr,_mStar);}
-if(isDropping){return renderMobileOddsCard(match,idx,d,volume,dateStr,_mStar);}
-return`
-            <div class="match-card" data-index="${idx}" onclick="openMatchModal(${idx})">
-                <div class="match-card-left">
-                    <div class="match-card-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${_mStar}</div>
-                    <div class="match-card-meta">
-                        <span class="match-card-league">${match.league || '-'}</span>
-                        <span class="match-card-separator">•</span>
-                        <span class="match-card-datetime">${dateStr}</span>
-                    </div>
-                </div>
-                <div class="match-card-right">
-                    <span class="match-card-volume">${volume}</span>
-                    <span class="match-card-arrow">›</span>
-                </div>
-            </div>
-        `;}).join('');cardList.innerHTML=html;}
+        `;_updateRenderedCount();return;}
+cardList.innerHTML='';_renderMoreMobile();_setupInfiniteScroll();}
 function renderMobileMoneywayCard(match,idx,d,volume,dateStr,starHtml){let oddsBlocks='';if(currentMarket.includes('1x2')){oddsBlocks=`
             ${renderMobileMoneywayBlock('1', d.Odds1 || d['1'], d.Pct1)}
             ${renderMobileMoneywayBlock('X', d.OddsX || d['X'], d.PctX)}
@@ -400,8 +391,7 @@ el.classList.toggle('active');}
 function applyMobileFilter(){var dateChip=document.querySelector('.mf-chip[data-group="date"].active');var sortChip=document.querySelector('.mf-chip[data-group="sort"].active');var dateVal=dateChip?dateChip.getAttribute('data-value'):'all';var sortVal=sortChip?sortChip.getAttribute('data-value'):'date';_mobileHideEnded=!!document.querySelector('.mf-sw[data-value="hideEnded"].active');_mobileHideLive=!!document.querySelector('.mf-sw[data-value="hideLive"].active');_mobileOnlyLive=!!document.querySelector('.mf-sw[data-value="onlyLive"].active');var btn=document.getElementById('mobileFilterBtn');if(btn){var hasFilter=(dateVal!=='all')||_mobileHideEnded||_mobileHideLive||_mobileOnlyLive||(sortVal!=='date');btn.classList.toggle('has-filter',hasFilter);}
 closeMobileFilterModal();if(sortVal==='volume'){currentSortColumn='volume';currentSortDirection='desc';}else{currentSortColumn='date';currentSortDirection='desc';}
 updateTrendSortButtons();updateTableHeaders();var modeMap={all:'ALL',today:'TODAY',yesterday:'YESTERDAY',future:'FUTURE'};dateFilterMode=modeMap[dateVal]||'ALL';currentDayFilter=dateVal;var todayBtn=document.getElementById('todayBtn');var yesterdayBtn=document.getElementById('yesterdayBtn');if(todayBtn)todayBtn.classList.toggle('active',dateVal==='today');if(yesterdayBtn)yesterdayBtn.classList.toggle('active',dateVal==='yesterday');var labelEl=document.getElementById('dayFilterLabel');var labels={all:'Tümü',today:'Bugün',yesterday:'Dün',future:'Gelecek'};if(labelEl)labelEl.textContent=labels[dateVal]||'Tümü';delete _matchesMarketCache[currentMarket+'|'+dateFilterMode];loadMatches();}
-const originalRenderMatches=renderMatches;window.renderMatches=function(data){const isMobile=window.innerWidth<=768;if(isMobile){renderMobileMatchCards(data);const tbody=document.getElementById('matchesTableBody');if(tbody)tbody.innerHTML='';}else{originalRenderMatches.call(this,data);const cardList=document.getElementById('matchCardList');if(cardList)cardList.innerHTML='';}
-const countEl=document.getElementById('matchCount');const mobileCountEl=document.getElementById('mobileMatchCount');if(countEl)countEl.textContent=data.length;if(mobileCountEl)mobileCountEl.textContent=data.length;};function getTableTrendArrow(current,previous){if(!current||!previous)return'';const curr=parseFloat(String(current).replace(/[^0-9.]/g,''));const prev=parseFloat(String(previous).replace(/[^0-9.]/g,''));if(isNaN(curr)||isNaN(prev))return'';const diff=Math.abs(curr-prev);if(diff<0.001)return'';if(curr>prev)return'<span class="trend-up">↑</span>';if(curr<prev)return'<span class="trend-down">↓</span>';return'';}
+const originalRenderMatches=renderMatches;window.renderMatches=function(data){const isMobile=window.innerWidth<=768;if(isMobile){renderMobileMatchCards(data);const tbody=document.getElementById('matchesTableBody');if(tbody)tbody.innerHTML='';}else{originalRenderMatches.call(this,data);const cardList=document.getElementById('matchCardList');if(cardList)cardList.innerHTML='';}};function getTableTrendArrow(current,previous){if(!current||!previous)return'';const curr=parseFloat(String(current).replace(/[^0-9.]/g,''));const prev=parseFloat(String(previous).replace(/[^0-9.]/g,''));if(isNaN(curr)||isNaN(prev))return'';const diff=Math.abs(curr-prev);if(diff<0.001)return'';if(curr>prev)return'<span class="trend-up">↑</span>';if(curr<prev)return'<span class="trend-down">↓</span>';return'';}
 function buildTrendDataFromMatch(currentOdds,prevOdds,trendText,dropPct,openingOdds){const curr=parseFloat(String(currentOdds||'').replace(/[^0-9.]/g,''));const prev=parseFloat(String(prevOdds||'').replace(/[^0-9.]/g,''));const opening=parseFloat(String(openingOdds||'').replace(/[^0-9.]/g,''));const baseOdds=(!isNaN(opening)&&opening>0)?opening:prev;if(dropPct&&dropPct!==''){const pctVal=parseFloat(String(dropPct).replace(/[^0-9.-]/g,''));if(!isNaN(pctVal)){const trend=pctVal>0?'up':(pctVal<0?'down':'stable');return{trend:trend,pct_change:Math.abs(pctVal),old:baseOdds||null,new:curr||null,history:baseOdds&&curr?[baseOdds,curr]:[curr]};}}
 if(isNaN(curr)||isNaN(baseOdds)||baseOdds===0){if(trendText){const t=String(trendText).trim().toLowerCase();if(t==='down'||t.includes('↓')){return{trend:'down',pct_change:null,old:null,new:curr||null,history:[curr]};}else if(t==='up'||t.includes('↑')){return{trend:'up',pct_change:null,old:null,new:curr||null,history:[curr]};}}
 return null;}
