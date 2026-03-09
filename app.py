@@ -1143,6 +1143,19 @@ def _lazy_app_warmup():
         _app_warmup_done.set()
     
     print(f"[App Warmup] Complete in {_t.time()-start:.1f}s")
+    threading.Thread(target=_periodic_matches_warmup, daemon=True).start()
+
+def _periodic_matches_warmup():
+    """Keep matches cache always warm — refresh every 100s (TTL=120s)"""
+    import time as _t
+    print("[Cache Warmup] Periodic refresh started (every 100s)")
+    while True:
+        _t.sleep(100)
+        try:
+            _warmup_matches()
+            print("[Cache Warmup] Matches refreshed")
+        except Exception as e:
+            print(f"[Cache Warmup] Error: {e}")
 
 def trigger_app_warmup():
     """Trigger app warmup on first /app visit (thread-safe, runs only once)"""
