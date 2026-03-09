@@ -11382,9 +11382,9 @@ table.desktop-only {
 
 .analyst-cards-strip {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     overflow-x: auto;
-    padding: 0 0 10px 0;
+    padding: 0;
     margin-bottom: 14px;
     scrollbar-width: thin;
     scrollbar-color: #2a2f36 transparent;
@@ -11397,18 +11397,18 @@ table.desktop-only {
     border-radius: 4px;
 }
 .analyst-card {
-    flex-shrink: 0;
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    padding: 10px 14px;
+    padding: 10px 8px;
     background: #161b22;
     border: 1px solid #30363d;
     border-radius: 10px;
     cursor: pointer;
     transition: border-color 0.2s, background 0.2s;
-    min-width: 90px;
+    min-width: 0;
 }
 .analyst-card:hover {
     border-color: #58a6ff;

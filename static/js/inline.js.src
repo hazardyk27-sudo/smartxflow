@@ -166,7 +166,7 @@ function renderAnalysisList(data) {
     var cardsHtml = buildAnalystCards();
     var filtered = _selectedAnalystId ? data.filter(function(item) { return item.analyst_id == _selectedAnalystId; }) : data;
     var listHtml = buildAnalysisCards(filtered);
-    contentArea.innerHTML = cardsHtml + '<div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto;max-height:calc(100% - 90px);">' + listHtml + '</div>';
+    contentArea.innerHTML = '<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">' + cardsHtml + '<div style="display:flex;flex-direction:column;gap:12px;">' + listHtml + '</div></div>';
 }
 
 function buildAnalystCards() {
