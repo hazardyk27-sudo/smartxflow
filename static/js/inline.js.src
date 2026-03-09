@@ -380,9 +380,9 @@ function renderAnalystProfileView() {
             if (item.result === 'won') barColor = '#34d399';
             else if (item.result === 'lost') barColor = '#f87171';
             else if (item.result === 'push') barColor = '#fbbf24';
-            html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:0;margin-bottom:6px;display:flex;overflow:hidden;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.035)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.02)\'">';
+            html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:0;margin-bottom:12px;display:flex;overflow:hidden;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.035)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.02)\'">';
             html += '<div style="width:3px;flex-shrink:0;background:' + barColor + ';border-radius:3px 0 0 3px;"></div>';
-            html += '<div style="flex:1;min-width:0;padding:14px 16px;">';
+            html += '<div style="flex:1;min-width:0;padding:14px 16px;overflow:hidden;">';
             html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
             html += '<div style="font-size:14px;font-weight:700;color:#e6edf3;letter-spacing:-0.2px;">' + (item.title || '') + '</div>';
             if (item.result) {
@@ -407,7 +407,7 @@ function renderAnalystProfileView() {
                 html += '</div>';
             }
             if (item.content) {
-                html += '<div style="font-size:12px;color:#8b949e;line-height:1.6;margin-bottom:6px;">' + item.content + '</div>';
+                html += '<div style="font-size:12px;color:#8b949e;line-height:1.6;margin-top:8px;margin-bottom:8px;word-wrap:break-word;overflow-wrap:break-word;">' + item.content + '</div>';
             }
             if (item.result_note) {
                 html += '<div style="font-size:12px;color:#8b949e;line-height:1.5;margin-bottom:5px;">' + item.result_note + '</div>';
