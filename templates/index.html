@@ -875,37 +875,29 @@
             var TR_MONTHS_UPPER = ['OCAK','ŞUBAT','MART','NİSAN','MAYIS','HAZİRAN','TEMMUZ','AĞUSTOS','EYLÜL','EKİM','KASIM','ARALIK'];
             var TR_DAYS_FULL = ['PAZAR','PAZARTESİ','SALI','ÇARŞAMBA','PERŞEMBE','CUMA','CUMARTESİ'];
             var html = '';
-            html += '<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#6e7681;cursor:pointer;padding:7px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);margin-bottom:14px;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(52,211,153,0.3)\';this.style.color=\'#34d399\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.08)\';this.style.color=\'#6e7681\'">';
+            html += '<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#6e7681;cursor:pointer;padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);margin-bottom:10px;transition:all 0.15s;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.12)\';this.style.color=\'#8b949e\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.color=\'#6e7681\'">';
             html += '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';
             html += 'Tüm Analizciler</div>';
-            html += '<div style="background:linear-gradient(145deg,#1a2332 0%,#0f1923 50%,#0c1219 100%);border:1px solid rgba(52,211,153,0.08);border-radius:22px;padding:28px;margin-bottom:14px;box-shadow:0 8px 32px rgba(0,0,0,0.4),0 0 0 1px rgba(255,255,255,0.03) inset,0 1px 0 rgba(255,255,255,0.05) inset;position:relative;overflow:hidden;">';
-            html += '<div style="position:absolute;top:0;right:0;width:200px;height:200px;background:radial-gradient(circle,rgba(52,211,153,0.04) 0%,transparent 70%);pointer-events:none;"></div>';
-            html += '<div style="display:flex;align-items:center;gap:22px;position:relative;">';
+            html += '<div style="background:rgba(22,27,34,0.6);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;">';
             if (a.avatar_url) {
-                html += '<div style="position:relative;flex-shrink:0;"><div style="width:72px;height:72px;border-radius:50%;padding:3px;background:linear-gradient(135deg,rgba(52,211,153,0.4),rgba(6,78,59,0.6));box-shadow:0 0 24px rgba(52,211,153,0.15);"><img src="' + a.avatar_url + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;" alt=""></div><div style="position:absolute;bottom:0;right:0;width:18px;height:18px;background:linear-gradient(135deg,#059669,#34d399);border-radius:50%;border:2.5px solid #0f1923;box-shadow:0 0 8px rgba(52,211,153,0.4);"></div></div>';
+                html += '<div style="position:relative;flex-shrink:0;"><img src="' + a.avatar_url + '" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.08);" alt=""><div style="position:absolute;bottom:0;right:0;width:10px;height:10px;background:#34d399;border-radius:50%;border:2px solid #161b22;"></div></div>';
             } else {
-                html += '<div style="position:relative;flex-shrink:0;"><div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(145deg,#0a3d2a,#0d4f35,#064e3b);border:2.5px solid rgba(52,211,153,0.3);box-shadow:0 0 28px rgba(52,211,153,0.15),inset 0 0 20px rgba(52,211,153,0.05);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#4ade80;text-shadow:0 0 12px rgba(74,222,128,0.3);">' + (a.name || '?')[0].toUpperCase() + '</div><div style="position:absolute;bottom:0;right:0;width:18px;height:18px;background:linear-gradient(135deg,#059669,#34d399);border-radius:50%;border:2.5px solid #0f1923;box-shadow:0 0 8px rgba(52,211,153,0.4);"></div></div>';
+                html += '<div style="position:relative;flex-shrink:0;"><div style="width:48px;height:48px;border-radius:50%;background:rgba(52,211,153,0.1);border:2px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#34d399;">' + (a.name || '?')[0].toUpperCase() + '</div><div style="position:absolute;bottom:0;right:0;width:10px;height:10px;background:#34d399;border-radius:50%;border:2px solid #161b22;"></div></div>';
             }
             html += '<div style="flex:1;min-width:0;">';
-            html += '<div style="font-size:22px;font-weight:800;color:#f0f6fc;letter-spacing:-0.5px;margin-bottom:3px;text-shadow:0 1px 2px rgba(0,0,0,0.3);">' + (a.name || '') + '</div>';
-            html += '<div style="font-size:10px;color:#4ade80;text-transform:uppercase;letter-spacing:2px;font-weight:600;margin-bottom:16px;opacity:0.7;">Analist Profili</div>';
-            html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
-            var statBase = 'border-radius:10px;padding:8px 12px;text-align:center;min-width:50px;';
-            html += '<div style="' + statBase + 'background:linear-gradient(145deg,#1e2a3a,#161f2d);border:1px solid rgba(255,255,255,0.07);"><div style="font-size:16px;font-weight:800;color:' + pctColor + ';line-height:1;">%' + pct + '</div><div style="font-size:8px;color:#6e7681;text-transform:uppercase;letter-spacing:0.8px;margin-top:3px;font-weight:600;">BAŞARI</div></div>';
-            html += '<div style="' + statBase + 'background:linear-gradient(145deg,#1e2a3a,#161f2d);border:1px solid rgba(255,255,255,0.07);"><div style="font-size:16px;font-weight:800;color:#c9d1d9;line-height:1;">' + (s.total || 0) + '</div><div style="font-size:8px;color:#6e7681;text-transform:uppercase;letter-spacing:0.8px;margin-top:3px;font-weight:600;">TOPLAM</div></div>';
-            html += '<div style="' + statBase + 'background:linear-gradient(145deg,#1e2a3a,#161f2d);border:1px solid rgba(255,255,255,0.07);"><div style="font-size:16px;font-weight:800;color:#4ade80;line-height:1;">' + (s.won || 0) + '</div><div style="font-size:8px;color:#6e7681;text-transform:uppercase;letter-spacing:0.8px;margin-top:3px;font-weight:600;">KAZANAN</div></div>';
-            html += '<div style="' + statBase + 'background:linear-gradient(145deg,#1e2a3a,#161f2d);border:1px solid rgba(255,255,255,0.07);"><div style="font-size:16px;font-weight:800;color:#f87171;line-height:1;">' + (s.lost || 0) + '</div><div style="font-size:8px;color:#6e7681;text-transform:uppercase;letter-spacing:0.8px;margin-top:3px;font-weight:600;">KAYBEDEN</div></div>';
-            html += '<div style="' + statBase + 'background:linear-gradient(145deg,#1e2a3a,#161f2d);border:1px solid rgba(255,255,255,0.07);"><div style="font-size:16px;font-weight:800;color:#fbbf24;line-height:1;">' + avgOdds + '</div><div style="font-size:8px;color:#6e7681;text-transform:uppercase;letter-spacing:0.8px;margin-top:3px;font-weight:600;">ORT. ORAN</div></div>';
-            html += '</div></div></div></div>';
-            html += '<div style="border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:6px 4px;margin-bottom:14px;display:flex;align-items:center;gap:0;">';
-            html += '<div style="flex-shrink:0;padding:0 6px;display:flex;align-items:center;opacity:0.4;">';
-            html += '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6e7681" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>';
-            if (_analystSelectedDate) {
-                var sp = _analystSelectedDate.split('-');
-                html += '<text x="12" y="18" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="700" stroke="none">' + parseInt(sp[2]) + '</text>';
-            }
-            html += '</svg></div>';
-            html += '<div style="flex:1;display:flex;overflow-x:auto;gap:2px;" id="analystDateStrip">';
+            html += '<div style="font-size:16px;font-weight:700;color:#e6edf3;margin-bottom:1px;">' + (a.name || '') + '</div>';
+            html += '<div style="font-size:10px;color:#484f58;text-transform:uppercase;letter-spacing:1px;font-weight:500;">Analist Profili</div>';
+            html += '</div>';
+            html += '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+            var statBase = 'border-radius:8px;padding:6px 10px;text-align:center;min-width:44px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);';
+            html += '<div style="' + statBase + '"><div style="font-size:14px;font-weight:700;color:' + pctColor + ';line-height:1;">%' + pct + '</div><div style="font-size:8px;color:#484f58;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Başarı</div></div>';
+            html += '<div style="' + statBase + '"><div style="font-size:14px;font-weight:700;color:#c9d1d9;line-height:1;">' + (s.total || 0) + '</div><div style="font-size:8px;color:#484f58;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Toplam</div></div>';
+            html += '<div style="' + statBase + '"><div style="font-size:14px;font-weight:700;color:#34d399;line-height:1;">' + (s.won || 0) + '</div><div style="font-size:8px;color:#484f58;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Kazanan</div></div>';
+            html += '<div style="' + statBase + '"><div style="font-size:14px;font-weight:700;color:#f87171;line-height:1;">' + (s.lost || 0) + '</div><div style="font-size:8px;color:#484f58;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Kaybeden</div></div>';
+            html += '<div style="' + statBase + '"><div style="font-size:14px;font-weight:700;color:#fbbf24;line-height:1;">' + avgOdds + '</div><div style="font-size:8px;color:#484f58;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Ort. Oran</div></div>';
+            html += '</div></div>';
+            html += '<div style="display:flex;align-items:center;gap:0;margin-bottom:10px;padding:0 2px;">';
+            html += '<div style="flex:1;display:flex;overflow-x:auto;gap:1px;" id="analystDateStrip">';
             var today = new Date();
             var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
             var allDates = [];
@@ -937,16 +929,15 @@
                 var isSelected = dateKey === _analystSelectedDate;
                 var hasData = !!dateGroupMap[dateKey];
                 if (isSelected) {
-                    html += '<div onclick="selectAnalystDate(\'' + dateKey + '\')" style="flex:1;min-width:52px;text-align:center;cursor:pointer;padding:6px 3px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);transition:all 0.2s;">';
-                    html += '<div style="font-size:10px;color:#c9d1d9;font-weight:600;">' + dayShort + '</div>';
-                    html += '<div style="font-size:13px;color:#f0f6fc;font-weight:700;margin-top:1px;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
-                    html += '<div style="width:14px;height:2px;background:#c9d1d9;border-radius:1px;margin:3px auto 0;"></div>';
+                    html += '<div onclick="selectAnalystDate(\'' + dateKey + '\')" style="flex:1;min-width:48px;text-align:center;cursor:pointer;padding:5px 2px;border-radius:6px;background:rgba(255,255,255,0.06);border-bottom:2px solid #8b949e;transition:all 0.15s;">';
+                    html += '<div style="font-size:10px;color:#8b949e;font-weight:600;line-height:1;">' + dayShort + '</div>';
+                    html += '<div style="font-size:12px;color:#e6edf3;font-weight:700;margin-top:2px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
                 } else {
-                    html += '<div onclick="selectAnalystDate(\'' + dateKey + '\')" style="flex:1;min-width:52px;text-align:center;cursor:pointer;padding:6px 3px;border-radius:8px;background:transparent;border:1px solid transparent;transition:all 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.03)\'" onmouseout="this.style.background=\'transparent\'">';
-                    html += '<div style="font-size:10px;color:' + (isToday ? '#8b949e' : '#484f58') + ';font-weight:500;">' + dayShort + '</div>';
-                    html += '<div style="font-size:13px;color:' + (isToday ? '#c9d1d9' : '#6e7681') + ';font-weight:' + (isToday ? '600' : '500') + ';margin-top:1px;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
-                    if (hasData) html += '<div style="width:4px;height:4px;background:#4ade80;border-radius:50%;margin:3px auto 0;"></div>';
-                    else html += '<div style="height:7px;"></div>';
+                    html += '<div onclick="selectAnalystDate(\'' + dateKey + '\')" style="flex:1;min-width:48px;text-align:center;cursor:pointer;padding:5px 2px;border-radius:6px;border-bottom:2px solid transparent;transition:all 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.03)\'" onmouseout="this.style.background=\'transparent\'">';
+                    html += '<div style="font-size:10px;color:#484f58;font-weight:500;line-height:1;">' + dayShort + '</div>';
+                    html += '<div style="font-size:12px;color:' + (isToday ? '#8b949e' : '#6e7681') + ';font-weight:' + (isToday ? '600' : '500') + ';margin-top:2px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+                    if (hasData) html += '<div style="width:3px;height:3px;background:#34d399;border-radius:50%;margin:3px auto 0;"></div>';
+                    else html += '<div style="height:6px;"></div>';
                 }
                 html += '</div>';
             });
@@ -963,7 +954,7 @@
                 html += '</div>';
                 selectedGroup.items.forEach(function(item) {
                     var date = item.created_at ? new Date(item.created_at).toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'}) : '';
-                    html += '<div style="background:linear-gradient(145deg,#1a2332,#0f1923);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:20px 22px;margin-bottom:10px;box-shadow:0 4px 16px rgba(0,0,0,0.2);transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(52,211,153,0.15)\';this.style.boxShadow=\'0 6px 24px rgba(0,0,0,0.25)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.boxShadow=\'0 4px 16px rgba(0,0,0,0.2)\'">';
+                    html += '<div style="background:rgba(22,27,34,0.6);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px 16px;margin-bottom:8px;">';
                     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
                     html += '<div style="font-size:15px;font-weight:700;color:#f0f6fc;">' + (item.title || '') + '</div>';
                     if (item.result) {
@@ -995,12 +986,12 @@
                     html += '</div>';
                 });
             } else {
-                html += '<div style="background:linear-gradient(145deg,rgba(26,35,50,0.5),rgba(15,25,35,0.5));border:1px dashed rgba(255,255,255,0.06);border-radius:16px;padding:32px;text-align:center;font-size:13px;color:#484f58;font-style:italic;margin-top:4px;">Henüz analiz mevcut değil</div>';
+                html += '<div style="border:1px dashed rgba(255,255,255,0.06);border-radius:12px;padding:24px;text-align:center;font-size:13px;color:#484f58;margin-top:4px;">Henüz analiz mevcut değil</div>';
             }
             contentArea.innerHTML = '<div style="display:flex;flex-direction:column;overflow-y:auto;max-height:100%;">' + html + '</div>';
             var strip = document.getElementById('analystDateStrip');
             if (strip) {
-                var selectedEl = strip.querySelector('[style*="rgba(255,255,255,0.06)"]');
+                var selectedEl = strip.querySelector('[style*="border-bottom: 2px solid"]') || strip.querySelector('[style*="border-bottom:2px solid #8b949e"]');
                 if (selectedEl) selectedEl.scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'});
             }
         }
