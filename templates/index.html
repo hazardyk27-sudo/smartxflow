@@ -960,11 +960,13 @@
                 var bdgBase = 'border-radius:6px;padding:3px 9px;font-size:10px;font-weight:600;white-space:nowrap;';
                 selectedGroup.items.forEach(function(item) {
                     var date = item.created_at ? new Date(item.created_at).toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'}) : '';
-                    var resultBorderColor = 'rgba(255,255,255,0.05)';
-                    if (item.result === 'won') resultBorderColor = 'rgba(52,211,153,0.3)';
-                    else if (item.result === 'lost') resultBorderColor = 'rgba(248,113,113,0.3)';
-                    else if (item.result === 'push') resultBorderColor = 'rgba(251,191,36,0.3)';
-                    html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-left:3px solid ' + resultBorderColor + ';border-radius:10px;padding:14px 16px;margin-bottom:6px;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.035)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.02)\'">';
+                    var barColor = 'rgba(255,255,255,0.06)';
+                    if (item.result === 'won') barColor = '#34d399';
+                    else if (item.result === 'lost') barColor = '#f87171';
+                    else if (item.result === 'push') barColor = '#fbbf24';
+                    html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:0;margin-bottom:6px;display:flex;overflow:hidden;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.035)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.02)\'">';
+                    html += '<div style="width:3px;flex-shrink:0;background:' + barColor + ';border-radius:3px 0 0 3px;"></div>';
+                    html += '<div style="flex:1;min-width:0;padding:14px 16px;">';
                     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
                     html += '<div style="font-size:14px;font-weight:700;color:#e6edf3;letter-spacing:-0.2px;">' + (item.title || '') + '</div>';
                     if (item.result) {
@@ -992,7 +994,7 @@
                         html += '<div style="font-size:12px;color:#8b949e;line-height:1.5;margin-bottom:5px;">' + item.result_note + '</div>';
                     }
                     html += '<div style="font-size:10px;color:#484f58;">' + date + '</div>';
-                    html += '</div>';
+                    html += '</div></div>';
                 });
             } else {
                 html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#484f58;margin-top:8px;">Henüz analiz mevcut değil</div>';
