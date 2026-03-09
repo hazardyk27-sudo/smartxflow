@@ -878,7 +878,7 @@
             html += '<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#6e7681;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#6e7681\'">';
             html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';
             html += 'Tüm Analizciler</div>';
-            html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';
+            html += '<div class="ap-card" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';
             html += '<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">';
             if (a.avatar_url) {
                 html += '<div style="position:relative;flex-shrink:0;"><img src="' + a.avatar_url + '" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(255,255,255,0.08);" alt=""><div style="position:absolute;bottom:1px;right:1px;width:8px;height:8px;background:#34d399;border-radius:50%;border:1.5px solid #161b22;"></div></div>';
@@ -889,7 +889,7 @@
             html += '<div style="font-size:15px;font-weight:700;color:#e6edf3;letter-spacing:-0.2px;">' + (a.name || '') + '</div>';
             html += '<div style="font-size:10px;color:#484f58;letter-spacing:0.8px;font-weight:500;margin-top:2px;">ANALİST PROFİLİ</div>';
             html += '</div></div>';
-            html += '<div style="display:flex;gap:6px;">';
+            html += '<div class="ap-stats" style="display:flex;gap:6px;">';
             var statBox = 'border-radius:8px;padding:10px 0;text-align:center;flex:1;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);';
             var numStyle = 'font-size:17px;font-weight:800;letter-spacing:-0.5px;line-height:1;';
             var labelStyle = 'font-size:8px;color:#484f58;text-transform:uppercase;letter-spacing:0.8px;margin-top:5px;font-weight:600;';

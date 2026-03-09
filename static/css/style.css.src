@@ -11875,3 +11875,46 @@ table.desktop-only {
         height: 12px;
     }
 }
+
+@media (max-width: 480px) {
+    .ap-card {
+        padding: 12px 12px !important;
+    }
+    .ap-stats {
+        gap: 3px !important;
+    }
+    .ap-stats > div {
+        padding: 7px 2px !important;
+        border-radius: 6px !important;
+        min-width: 0 !important;
+    }
+    .ap-stats > div > div:first-child {
+        font-size: 13px !important;
+    }
+    .ap-stats > div > div:last-child {
+        font-size: 7px !important;
+        letter-spacing: 0.2px !important;
+        margin-top: 3px !important;
+    }
+    .analyst-card {
+        min-width: 70px !important;
+        padding: 6px 8px !important;
+        gap: 4px !important;
+    }
+    .analyst-card-avatar,
+    .analyst-card-avatar-placeholder {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 13px !important;
+    }
+    .analyst-card-name {
+        font-size: 11px !important;
+        max-width: 65px !important;
+    }
+    .analyst-card-pct {
+        font-size: 10px !important;
+    }
+    .analyst-card-meta {
+        font-size: 9px !important;
+    }
+}
