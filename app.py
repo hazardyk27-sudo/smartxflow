@@ -416,9 +416,7 @@ def license_required(f):
 
 @app.after_request
 def add_header(response):
-    if request.path.startswith('/static/') and request.path.endswith('.css'):
-        response.headers['Cache-Control'] = 'no-cache, must-revalidate'
-    elif request.path.startswith('/static/'):
+    if request.path.startswith('/static/'):
         response.headers['Cache-Control'] = 'public, max-age=86400'
         response.headers.pop('Pragma', None)
         response.headers.pop('Expires', None)
@@ -586,6 +584,8 @@ def run_alarm_calculations():
                 global dropping_alarms
                 dropping_alarms = new_dropping
                 save_dropping_alarms_to_file(dropping_alarms)
+                _dropping_alarms_cache['data'] = None
+                _dropping_alarms_cache['ts'] = 0
                 print(f"[Alarm Scheduler] Dropping: {len(dropping_alarms)} alarms")
         except Exception as e:
             print(f"[Alarm Scheduler] Dropping error: {e}")
@@ -2755,13 +2755,22 @@ def save_dropping_config_endpoint():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+_dropping_alarms_cache = {'data': None, 'ts': 0}
+_DROPPING_ALARMS_CACHE_TTL = 90
+
 @app.route('/api/dropping/alarms', methods=['GET'])
 def get_dropping_alarms():
     """Get all Dropping Alert alarms - reads from Supabase first, fallback to local JSON only on error"""
+    import time as _t
+    now = _t.time()
+    if _dropping_alarms_cache['data'] is not None and (now - _dropping_alarms_cache['ts']) < _DROPPING_ALARMS_CACHE_TTL:
+        return jsonify(_dropping_alarms_cache['data'])
     supabase_alarms = get_dropping_alarms_from_supabase()
-    if supabase_alarms is not None:  # Boş liste dahil Supabase verisini kullan
+    if supabase_alarms is not None:
+        _dropping_alarms_cache['data'] = supabase_alarms
+        _dropping_alarms_cache['ts'] = now
         return jsonify(supabase_alarms)
-    return jsonify(dropping_alarms)  # Sadece Supabase hatası durumunda JSON fallback
+    return jsonify(dropping_alarms)
 
 
 @app.route('/api/dropping/delete', methods=['POST'])
@@ -2772,6 +2781,8 @@ def delete_dropping_alarms():
         dropping_alarms = []
         save_dropping_alarms_to_file(dropping_alarms)
         delete_alarms_from_supabase('dropping_alarms')
+        _dropping_alarms_cache['data'] = None
+        _dropping_alarms_cache['ts'] = 0
         print("[Dropping] All alarms deleted")
         return jsonify({'success': True})
     except Exception as e:
@@ -2806,6 +2817,8 @@ def calculate_dropping_alarms_endpoint():
         dropping_calculating = True
         dropping_alarms = calculate_dropping_scores(dropping_config)
         save_dropping_alarms_to_file(dropping_alarms)
+        _dropping_alarms_cache['data'] = None
+        _dropping_alarms_cache['ts'] = 0
         dropping_calculating = False
         return jsonify({'success': True, 'count': len(dropping_alarms)})
     except Exception as e:

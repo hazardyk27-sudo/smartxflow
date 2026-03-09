@@ -7,6 +7,7 @@ pairs = [
     ('static/css/style.css.src', 'static/css/style.css'),
     ('static/css/alert_band.css.src', 'static/css/alert_band.css'),
     ('static/js/app.js.src', 'static/js/app.js'),
+    ('static/js/inline.js.src', 'static/js/inline.js'),
 ]
 
 for src, dest in pairs:

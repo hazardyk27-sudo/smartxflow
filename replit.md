@@ -86,7 +86,16 @@ The system uses a hybrid architecture with Supabase as the single source of trut
     - **License Cache:** 30s TTL, create/update/delete sonrası otomatik temizlenir
     - **KURAL:** `after_request` header'larında statik dosyalar (`/static/`) ile HTML/API yanıtlarını AYIR. Statik dosyalara `no-cache` ASLA ekleme.
     - **KURAL:** Sunucu başlangıcında startup warmup YAPMA. Her bölüm lazy yüklenir.
-    - **KURAL:** CSS/JS düzenleme .src dosyalarında yapılır, `python minify.py` ile minify edilir.
+    - **KURAL:** CSS/JS düzenleme .src dosyalarında yapılır, `python minify.py` ile minify edilir. minify.py inline.js.src dosyasını da kapsar.
+    - **Performance Optimization (2026-03-09):**
+      - Font loading: CSS @import kaldırıldı → HTML preconnect + link stylesheet (render-blocking ortadan kalktı)
+      - CSS cache: no-cache → max-age=86400 (cache-bust ?v= ile güncelleme)
+      - Inline JS: 47KB inline script → harici `static/js/inline.js` (defer, minified 34KB)
+      - Chart.js preload: CDN script'leri `<link rel="preload">` ile sayfa yüklenirken arka planda indiriliyor
+      - Dropping alarms cache: 90s TTL server-side cache eklendi (200ms → 3ms)
+      - Alert band interval: 60s → 120s
+      - Render batch: 20 → 40 (masaüstü scroll akıcılığı)
+      - Cache-bust version: v=1773073000
     - **Multi-Analyst System (2026-03-08):** `analysts` tablosu (id, name, avatar_url, bio, is_active) + `analyses` tablosuna `analyst_id`, `result` (won/lost/push/void), `result_note` kolonları eklendi. Backend: analyst CRUD API (`/api/analysts`), `GET/POST/PUT/DELETE` + otomatik başarı hesaplama (`get_analyst_stats()`). Admin: Analizci yönetim sayfası, analiz formunda analizci dropdown, analiz listesinde sonuç seçici (Tuttu/Tutmadı/İade/İptal). Frontend: Analizci profil kartları (analyst-cards-strip) analiz modalında üst kısımda yatay scroll, tıkla+filtrele. Cache: `_analystsCache` 120s TTL. CSS: `.analyst-card`, `.analyst-card-avatar`, `.analyst-card-pct` sınıfları `style.css.src`'de. Cache-bust: `v=1772998870`. Analizler butonu üzerinde kırmızı badge ile aktif analiz sayısı gösterilir (result=null olanlar). Badge `/api/analyses/match-hashes` endpoint'inden `active_count` ile beslenir.
     - **Mobile Filter Modal (2026-03-08):** Eski mobil "Tümü" dropdown kaldırıldı, yerine "Filtrele" butonu + modal eklendi. Modal 3 bölüm: Tarih (Tümü/Bugün/Dün/Gelecek), Sırala (Tarihe/Hacmine göre), Filtrele (Biten gizle/Canlı gizle/Sadece canlı). JS: `openMobileFilterModal()`, `closeMobileFilterModal()`, `mfSelect()`, `mfToggle()`, `applyMobileFilter()`. CSS: `.mf-overlay`, `.mf-modal`, `.mf-chip` sınıfları mobil @media içinde. `dateFilterMode` artık FUTURE modunu da destekler. `_mobileHideEnded`, `_mobileHideLive`, `_mobileOnlyLive` değişkenleri `applySorting` içinde uygulanır. Cache-bust: `v=1773000738`.
     - **Performance Optimization (2026-03-08):** Gzip compression for static JS/CSS files via `after_request` handler (app.js: 282KB→59KB, style.css: 165KB→28KB). Favicon optimized from 1.4MB→5KB. Day.js scripts deferred (`defer` attribute). License Gate inline CSS moved to `style.css.src`. Static file cache extended to 24h (`max-age=86400`).

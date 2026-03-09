@@ -238,7 +238,7 @@ let isAlarmsPageActive = false;
 let matchesDisplayCount = 20;
 let _allFilteredMatches = [];
 let _renderedCount = 0;
-const _RENDER_BATCH = 20;
+const _RENDER_BATCH = 40;
 let _scrollListenerAttached = false;
 let currentOffset = 0;
 let totalMatchCount = 0;
@@ -6739,7 +6739,7 @@ function showAlertBandDetail(index) {
     document.body.appendChild(modal);
 }
 
-setInterval(() => { if (_isLicensed) loadAlertBand(); }, 60000);
+setInterval(() => { if (_isLicensed) loadAlertBand(); }, 120000);
 document.addEventListener('DOMContentLoaded', async () => {
     await _licenseReady;
     if (!_isLicensed) return;
