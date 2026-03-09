@@ -6474,6 +6474,64 @@ def delete_analyst_endpoint(analyst_id):
     return jsonify({'status': 'error'}), 500
 
 
+@app.route('/api/analysts/<int:analyst_id>/analyses', methods=['GET'])
+def get_analyst_analyses_endpoint(analyst_id):
+    """Get analyst profile with analyses grouped by date"""
+    from datetime import datetime, timedelta
+    import pytz
+    
+    analysts = db.get_analysts(active_only=True)
+    analyst = next((a for a in analysts if a.get('id') == analyst_id), None)
+    if not analyst:
+        return jsonify({'error': 'Analizci bulunamadı'}), 404
+    
+    stats_map = db.get_analyst_stats()
+    s = stats_map.get(analyst_id, {})
+    analyst['stats'] = {
+        'total': s.get('total', 0),
+        'won': s.get('won', 0),
+        'lost': s.get('lost', 0),
+        'push': s.get('push', 0),
+        'void': s.get('void', 0),
+        'pending': s.get('pending', 0),
+        'success_pct': s.get('success_pct', 0.0),
+        'avg_odds': s.get('avg_odds', 0.0)
+    }
+    
+    all_analyses = db.get_analyses('analysis')
+    analyst_analyses = [a for a in all_analyses if a.get('analyst_id') == analyst_id]
+    
+    for item in analyst_analyses:
+        item.pop('content', None)
+        item.pop('image_url', None)
+    
+    tz = pytz.timezone('Europe/Istanbul')
+    grouped = {}
+    for item in analyst_analyses:
+        try:
+            dt = datetime.fromisoformat(item['created_at'].replace('Z', '+00:00'))
+            dt_tr = dt.astimezone(tz)
+            date_key = dt_tr.strftime('%Y-%m-%d')
+        except:
+            date_key = 'unknown'
+        if date_key not in grouped:
+            grouped[date_key] = []
+        grouped[date_key].append(item)
+    
+    sorted_dates = sorted(grouped.keys(), reverse=True)
+    date_groups = []
+    for dk in sorted_dates:
+        date_groups.append({
+            'date': dk,
+            'items': grouped[dk]
+        })
+    
+    return jsonify({
+        'analyst': analyst,
+        'date_groups': date_groups
+    })
+
+
 # ============================================
 # ALARM ENGINE CONSOLE - Live Log Streaming
 # ============================================

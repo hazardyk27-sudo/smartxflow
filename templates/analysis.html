@@ -4,17 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache">
-    <title>SmartXFlow - Trendler & Paylaşımlar</title>
+    <title>SmartXFlow - Analizciler</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { overflow-x: hidden; max-width: 100vw; }
         html { scroll-behavior: smooth; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #0d1117;
             color: #c9d1d9;
             line-height: 1.6;
@@ -26,213 +26,172 @@
         a { text-decoration: none; color: inherit; }
 
         .navbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
             background: rgba(10, 14, 20, 0.10);
             backdrop-filter: blur(18px) saturate(1.2);
             -webkit-backdrop-filter: blur(18px) saturate(1.2);
             border-bottom: 1px solid rgba(255,255,255,0.06);
-            height: 80px;
-            transition: background 0.3s, backdrop-filter 0.3s;
+            height: 72px;
+            transition: background 0.3s;
         }
         .navbar.scrolled {
             background: rgba(10, 14, 20, 0.25);
             backdrop-filter: blur(24px) saturate(1.4);
-            -webkit-backdrop-filter: blur(24px) saturate(1.4);
             box-shadow: 0 4px 30px rgba(0,0,0,0.3);
         }
         .navbar-inner {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 0 24px;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            max-width: 1200px; margin: 0 auto; padding: 0 24px;
+            height: 100%; display: flex; align-items: center; justify-content: space-between;
         }
-        .nav-brand {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .nav-brand img {
-            width: 32px;
-            height: 32px;
-            object-fit: contain;
-            margin: 0 2px;
-            filter: drop-shadow(0 0 10px rgba(43,255,136,0.22));
-        }
-        .nav-brand span { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 23px; font-weight: 600; color: #e6edf3; letter-spacing: 0.3px; }
-        .nav-links { display: flex; align-items: center; gap: 6px; }
-        .nav-links a {
-            padding: 10px 16px;
-            font-size: 14px;
-            font-weight: 500;
-            color: rgba(255,255,255,0.55);
-            border-radius: 999px;
-            transition: all 160ms ease;
-            letter-spacing: 0.2px;
-        }
+        .nav-brand { display: flex; align-items: center; gap: 4px; }
+        .nav-brand img { width: 28px; height: 28px; object-fit: contain; filter: drop-shadow(0 0 10px rgba(43,255,136,0.22)); }
+        .nav-brand span { font-size: 20px; font-weight: 600; color: #e6edf3; letter-spacing: 0.3px; }
+        .nav-links { display: flex; align-items: center; gap: 4px; }
+        .nav-links a { padding: 8px 14px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.5); border-radius: 999px; transition: all 160ms; }
         .nav-links a:hover { color: rgba(255,255,255,0.9); }
-        .nav-links a.active {
-            color: rgba(255,255,255,0.95);
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-        .nav-links a.nav-cta {
-            background: #2BFF88;
-            color: #06110B;
-            font-weight: 700;
-            margin-left: 6px;
-            padding: 10px 20px;
-            border-radius: 999px;
-            border: 1px solid rgba(255,255,255,0.12);
-            box-shadow: 0 10px 30px rgba(43,255,136,0.18);
-            transition: all 160ms ease;
-        }
-        .nav-links a.nav-cta:hover {
-            background: #24e078;
-            transform: translateY(-1px);
-            box-shadow: 0 16px 40px rgba(43,255,136,0.22);
-        }
-        .nav-links a.nav-cta:active { transform: translateY(0); }
-        .hamburger {
-            display: none;
-            flex-direction: column;
-            gap: 5px;
-            cursor: pointer;
-            padding: 8px;
-            z-index: 1001;
-        }
-        .hamburger span { display: block; width: 24px; height: 2px; background: #c9d1d9; border-radius: 2px; transition: all 0.3s; }
-        .mobile-menu {
-            display: none;
-            position: fixed;
-            top: 80px;
-            left: 0;
-            right: 0;
-            background: rgba(10, 14, 20, 0.98);
-            backdrop-filter: blur(20px) saturate(1.4);
-            -webkit-backdrop-filter: blur(20px) saturate(1.4);
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-            padding: 16px 24px;
-            flex-direction: column;
-            gap: 4px;
-            z-index: 999;
-        }
+        .nav-links a.active { color: rgba(255,255,255,0.95); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); }
+        .nav-links a.nav-cta { background: #2BFF88; color: #06110B; font-weight: 700; margin-left: 6px; padding: 8px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 8px 24px rgba(43,255,136,0.15); }
+        .nav-links a.nav-cta:hover { background: #24e078; transform: translateY(-1px); }
+        .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 8px; z-index: 1001; }
+        .hamburger span { display: block; width: 22px; height: 2px; background: #c9d1d9; border-radius: 2px; transition: all 0.3s; }
+        .mobile-menu { display: none; position: fixed; top: 72px; left: 0; right: 0; background: rgba(10,14,20,0.98); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 16px 24px; flex-direction: column; gap: 4px; z-index: 999; }
         .mobile-menu.open { display: flex; }
-        .mobile-menu a { padding: 12px 16px; font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.55); border-radius: 12px; transition: all 160ms ease; }
+        .mobile-menu a { padding: 12px 16px; font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.55); border-radius: 12px; }
         .mobile-menu a:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
         .mobile-menu a.active { color: rgba(255,255,255,0.95); background: rgba(255,255,255,0.06); }
         .mobile-menu a.nav-cta { background: #2BFF88; color: #06110B; text-align: center; font-weight: 700; margin-top: 8px; border-radius: 999px; }
 
-        .page-header {
-            padding: 120px 24px 60px;
-            text-align: center;
-            background: radial-gradient(ellipse at 50% 0%, rgba(88,166,255,0.06) 0%, transparent 60%);
-        }
-        .page-header h1 {
-            font-size: 42px;
-            font-weight: 800;
-            color: #e6edf3;
-            letter-spacing: -1px;
-            margin-bottom: 12px;
-        }
-        .page-header p { font-size: 17px; color: #8b949e; max-width: 500px; margin: 0 auto; }
+        .page-content { flex: 1; max-width: 900px; margin: 0 auto; width: 100%; padding: 96px 24px 80px; }
 
-        .analysis-section {
-            flex: 1;
-            padding: 0 24px 80px;
-            max-width: 1100px;
-            margin: 0 auto;
-            width: 100%;
+        .page-back { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #8b949e; cursor: pointer; margin-bottom: 24px; padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); transition: all 0.2s; }
+        .page-back:hover { color: #e6edf3; border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); }
+        .page-back svg { width: 14px; height: 14px; }
+
+        .page-title { font-size: 28px; font-weight: 800; color: #e6edf3; letter-spacing: -0.5px; margin-bottom: 6px; }
+        .page-subtitle { font-size: 14px; color: #8b949e; margin-bottom: 32px; }
+
+        .analyst-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+
+        .analyst-card {
+            background: #161b22; border: 1px solid #21262d; border-radius: 14px;
+            padding: 24px 20px; cursor: pointer; transition: all 0.25s ease;
+            display: flex; flex-direction: column; align-items: center; text-align: center;
         }
-        .empty-state {
-            text-align: center;
-            padding: 80px 24px;
-            background: #161b22;
-            border: 1px solid #21262d;
-            border-radius: 16px;
+        .analyst-card:hover { border-color: rgba(43,255,136,0.3); transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,0.3); }
+        .analyst-avatar {
+            width: 64px; height: 64px; border-radius: 50%; object-fit: cover;
+            border: 2px solid rgba(43,255,136,0.25); margin-bottom: 14px;
+            background: #21262d;
         }
-        .empty-state-icon {
-            font-size: 64px;
-            margin-bottom: 24px;
-            opacity: 0.6;
+        .analyst-avatar-placeholder {
+            width: 64px; height: 64px; border-radius: 50%; margin-bottom: 14px;
+            background: linear-gradient(135deg, rgba(43,255,136,0.15), rgba(88,166,255,0.15));
+            border: 2px solid rgba(43,255,136,0.2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: 700; color: #2BFF88;
         }
-        .empty-state h3 {
-            font-size: 22px;
-            font-weight: 700;
-            color: #e6edf3;
-            margin-bottom: 12px;
+        .analyst-name { font-size: 17px; font-weight: 700; color: #e6edf3; margin-bottom: 4px; }
+        .analyst-bio { font-size: 12px; color: #8b949e; margin-bottom: 14px; line-height: 1.5; max-width: 220px; }
+        .analyst-stats-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .analyst-stat { display: flex; flex-direction: column; align-items: center; }
+        .analyst-stat-value { font-size: 16px; font-weight: 700; color: #e6edf3; }
+        .analyst-stat-value.green { color: #3fb950; }
+        .analyst-stat-label { font-size: 10px; color: #6e7681; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+        .profile-header {
+            background: #161b22; border: 1px solid #21262d; border-radius: 16px;
+            padding: 32px; margin-bottom: 28px; display: flex; align-items: center; gap: 24px;
         }
-        .empty-state p {
-            font-size: 15px;
-            color: #8b949e;
-            max-width: 400px;
-            margin: 0 auto;
-            line-height: 1.7;
+        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid rgba(43,255,136,0.3); flex-shrink: 0; background: #21262d; }
+        .profile-avatar-placeholder { width: 80px; height: 80px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg, rgba(43,255,136,0.15), rgba(88,166,255,0.15)); border: 3px solid rgba(43,255,136,0.25); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: #2BFF88; }
+        .profile-info { flex: 1; }
+        .profile-name { font-size: 24px; font-weight: 800; color: #e6edf3; letter-spacing: -0.3px; margin-bottom: 4px; }
+        .profile-bio { font-size: 13px; color: #8b949e; line-height: 1.6; margin-bottom: 14px; }
+        .profile-stats { display: flex; gap: 20px; flex-wrap: wrap; }
+        .profile-stat-box {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px; padding: 10px 16px; text-align: center; min-width: 80px;
         }
-        .tab-btn {
-            padding: 10px 24px;
-            border-radius: 8px;
-            border: 1px solid #30363d;
-            background: #161b22;
-            color: #8b949e;
-            font-size: 15px;
-            cursor: pointer;
-            transition: all 0.3s;
+        .profile-stat-num { font-size: 18px; font-weight: 700; color: #e6edf3; }
+        .profile-stat-num.green { color: #3fb950; }
+        .profile-stat-num.amber { color: #d29922; }
+        .profile-stat-lbl { font-size: 10px; color: #6e7681; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+        .date-group { margin-bottom: 24px; }
+        .date-group-header {
+            font-size: 13px; font-weight: 700; color: #8b949e; text-transform: uppercase;
+            letter-spacing: 0.8px; padding: 8px 0; margin-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 8px;
         }
-        .tab-btn.active, .tab-btn:hover {
-            background: #238636;
-            color: #fff;
-            border-color: #238636;
+        .date-group-header svg { width: 14px; height: 14px; color: #6e7681; }
+        .date-group-count { font-size: 11px; font-weight: 500; color: #6e7681; background: rgba(255,255,255,0.04); padding: 2px 8px; border-radius: 10px; }
+
+        .analysis-item {
+            background: #161b22; border: 1px solid #21262d; border-radius: 12px;
+            padding: 18px 20px; margin-bottom: 10px; transition: border-color 0.2s;
         }
-        .analysis-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 24px;
+        .analysis-item:hover { border-color: rgba(255,255,255,0.1); }
+        .analysis-item-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+        .analysis-item-title { font-size: 15px; font-weight: 700; color: #e6edf3; }
+        .analysis-result-badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px; white-space: nowrap; flex-shrink: 0; }
+        .badge-won { background: rgba(63,185,80,0.15); color: #3fb950; border: 1px solid rgba(63,185,80,0.25); }
+        .badge-lost { background: rgba(248,81,73,0.15); color: #f85149; border: 1px solid rgba(248,81,73,0.25); }
+        .badge-push { background: rgba(210,153,34,0.15); color: #d29922; border: 1px solid rgba(210,153,34,0.25); }
+        .badge-void { background: rgba(139,148,158,0.15); color: #8b949e; border: 1px solid rgba(139,148,158,0.25); }
+        .badge-pending { background: rgba(88,166,255,0.1); color: #58a6ff; border: 1px solid rgba(88,166,255,0.2); }
+        .analysis-meta { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+        .meta-tag { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 6px; }
+        .meta-odds { background: rgba(43,255,136,0.1); color: #2BFF88; border: 1px solid rgba(43,255,136,0.2); }
+        .meta-conf { background: rgba(88,166,255,0.1); color: #58a6ff; border: 1px solid rgba(88,166,255,0.2); }
+        .analysis-content { font-size: 13px; color: #8b949e; line-height: 1.7; }
+        .analysis-time { font-size: 11px; color: #484f58; margin-top: 10px; }
+
+        .empty-day {
+            background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.06);
+            border-radius: 10px; padding: 20px; text-align: center;
+            font-size: 13px; color: #484f58; font-style: italic;
         }
-        @media (max-width: 768px) {
-            .analysis-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        .analysis-card:hover {
-            transform: translateY(-4px);
-            border-color: #58a6ff !important;
-        }
+
+        .loading-state { text-align: center; padding: 80px 24px; }
+        .loading-spinner-lg { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.06); border-top-color: #2BFF88; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .empty-state { text-align: center; padding: 80px 24px; background: #161b22; border: 1px solid #21262d; border-radius: 16px; }
+        .empty-state h3 { font-size: 20px; font-weight: 700; color: #e6edf3; margin-bottom: 8px; }
+        .empty-state p { font-size: 14px; color: #8b949e; }
 
         .footer { padding: 40px 24px; border-top: 1px solid rgba(255,255,255,0.04); text-align: center; margin-top: auto; }
         .footer-content { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 14px; }
         .footer-row { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; justify-content: center; }
         .footer-row-divider { width: 1px; height: 14px; background: rgba(255,255,255,0.08); }
-        .footer-row a { font-size: 13px; color: #484f58; transition: color 0.2s; text-decoration: none; }
+        .footer-row a { font-size: 13px; color: #484f58; transition: color 0.2s; }
         .footer-row a:hover { color: #2BFF88; }
         .footer-brand { display: flex; align-items: center; gap: 3px; }
         .footer-brand img { width: 18px; height: 18px; }
-        .footer-brand span { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; color: #3d444d; letter-spacing: 0.3px; }
-        .footer-contact { display: flex; gap: 16px; align-items: center; justify-content: center; }
-        .footer-contact a { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #484f58; transition: color 0.2s; text-decoration: none; }
-        .footer-contact a:hover { color: #2BFF88; }
-        .footer-contact svg { width: 16px; height: 16px; flex-shrink: 0; }
-        .footer-copy { font-size: 12px; color: #21262d; text-align: center; }
+        .footer-brand span { font-size: 13px; font-weight: 600; color: #3d444d; letter-spacing: 0.3px; }
+        .footer-copy { font-size: 12px; color: #21262d; }
 
         @media (max-width: 768px) {
             .nav-links { display: none; }
             .hamburger { display: flex; }
             .navbar-inner { padding: 0 16px; }
-            .page-header { padding: 100px 16px 40px; }
-            .page-header h1 { font-size: 28px; }
-            .page-header p { font-size: 14px; }
-            .analysis-grid { grid-template-columns: 1fr; gap: 16px; }
-            .empty-state { padding: 60px 16px; }
-            .empty-state-icon { font-size: 48px; }
-            .empty-state h3 { font-size: 18px; }
+            .page-content { padding: 88px 16px 60px; }
+            .page-title { font-size: 22px; }
+            .analyst-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+            .analyst-card { padding: 18px 14px; }
+            .analyst-avatar, .analyst-avatar-placeholder { width: 48px; height: 48px; font-size: 18px; }
+            .analyst-name { font-size: 14px; }
+            .analyst-bio { font-size: 11px; }
+            .analyst-stat-value { font-size: 14px; }
+            .profile-header { flex-direction: column; text-align: center; padding: 24px 18px; gap: 16px; }
+            .profile-stats { justify-content: center; }
+            .profile-name { font-size: 20px; }
+            .analysis-item { padding: 14px 16px; }
+            .analysis-item-title { font-size: 14px; }
             .footer { padding: 30px 16px; }
-            .footer-contact { flex-wrap: wrap; }
+        }
+        @media (max-width: 400px) {
+            .analyst-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -247,7 +206,7 @@
             <a href="/nedir">Nedir?</a>
             <a href="/#features">Özellikler</a>
             <a href="/pricing">Paketler</a>
-            <a href="/analysis" class="active">Trendler</a>
+            <a href="/analysis" class="active">Analizciler</a>
             <a href="/app" class="nav-cta">Uygulamaya Git</a>
         </div>
         <div class="hamburger" onclick="toggleMenu()">
@@ -260,25 +219,13 @@
         <a href="/nedir">Nedir?</a>
         <a href="/#features">Özellikler</a>
         <a href="/pricing">Paketler</a>
-        <a href="/analysis" class="active">Trendler</a>
+        <a href="/analysis" class="active">Analizciler</a>
         <a href="/app" class="nav-cta">Uygulamaya Git</a>
     </div>
 
-    <section class="page-header">
-        <h1>Trendler & Paylaşımlar</h1>
-        <p>Profesyonel piyasa analizleri ve değerlendirmeler.</p>
-    </section>
-
-    <section class="analysis-section">
-        <div style="display: flex; gap: 12px; margin-bottom: 32px; justify-content: center;">
-            <button class="tab-btn active" id="tabAnalysis" onclick="switchTab('analysis')">Analizler</button>
-            <button class="tab-btn" id="tabTip" onclick="switchTab('tip')">Hareket Tavsiyeleri</button>
-        </div>
-
-        <div id="contentGrid" class="analysis-grid">
-            <div class="empty-state" style="grid-column: 1/-1;">Yükleniyor...</div>
-        </div>
-    </section>
+    <div class="page-content">
+        <div id="mainView"></div>
+    </div>
 
     <footer class="footer">
         <div class="footer-content">
@@ -293,127 +240,240 @@
                 <a href="/app">Uygulama</a>
             </div>
             <div class="footer-row">
-                <a href="/terms" style="font-size:12px;color:#484f58;">Kullanım Şartları</a>
+                <a href="/terms" style="font-size:12px;color:#484f58;">Kullanim Sartlari</a>
                 <a href="/privacy" style="font-size:12px;color:#484f58;">Gizlilik</a>
-                <a href="/cookies" style="font-size:12px;color:#484f58;">Çerezler</a>
+                <a href="/cookies" style="font-size:12px;color:#484f58;">Cerezler</a>
                 <a href="/disclaimer" style="font-size:12px;color:#484f58;">Sorumluluk Reddi</a>
             </div>
-            <div class="footer-contact">
-                <a href="https://instagram.com/smartxflow" target="_blank" rel="noopener">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-                    smartxflow
-                </a>
-                <a href="https://t.me/smartxflow" target="_blank" rel="noopener">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12.056 0h-.112zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-                    @smartxflow
-                </a>
-                <a href="mailto:smartxflow29@gmail.com">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-                    smartxflow29@gmail.com
-                </a>
-            </div>
-            <div class="footer-copy">© 2025 SmartXFlow. Tüm hakları saklıdır.</div>
+            <div class="footer-copy">&copy; 2025 SmartXFlow. Tum haklari saklidir.</div>
         </div>
     </footer>
 
     <script>
-        function toggleMenu() {
-            document.getElementById('mobileMenu').classList.toggle('open');
-        }
-
-        let activeTab = 'analysis';
-
-        function switchTab(tab) {
-            activeTab = tab;
-            document.getElementById('tabAnalysis').className = tab === 'analysis' ? 'tab-btn active' : 'tab-btn';
-            document.getElementById('tabTip').className = tab === 'tip' ? 'tab-btn active' : 'tab-btn';
-            loadContent();
-        }
-
-        function renderDemoCard(title, content, badge) {
-            return `<div class="analysis-card" style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; overflow: hidden; transition: transform 0.3s, border-color 0.3s; position: relative;">
-                <div style="height: 4px; background: linear-gradient(90deg, #238636, #58a6ff);"></div>
-                <span style="position: absolute; top: 12px; right: 12px; background: rgba(35,134,54,0.15); color: #3fb950; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(63,185,80,0.2);">${badge}</span>
-                <div style="padding: 20px;">
-                    <span style="display: inline-block; background: rgba(88,166,255,0.1); color: #58a6ff; font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; margin-bottom: 10px; border: 1px solid rgba(88,166,255,0.15);">Örnek</span>
-                    <h3 style="color: #c9d1d9; font-size: 18px; margin-bottom: 10px;">${title}</h3>
-                    <p style="color: #8b949e; font-size: 14px; line-height: 1.6;">${content}</p>
-                    <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color: #484f58; font-size: 12px;">Bugün</span>
-                        <span style="color: #484f58; font-size: 11px; font-style: italic;">Örnek içerik</span>
-                    </div>
-                </div>
-            </div>`;
-        }
-
-        function renderDemoAnalysisCards() {
-            return renderDemoCard(
-                'Premier League - Chelsea vs Arsenal Ön Analiz',
-                'Maç öncesi para akışı Chelsea tarafına yoğunlaşıyor. Son 2 saatte £420K giriş tespit edildi. Sharp hareket + hacim şoku kombinasyonu dikkat çekici.',
-                'Sharp + Hacim Şoku'
-            ) + renderDemoCard(
-                'Bundesliga - Bayern vs Dortmund Oran Hareketi',
-                'Bayern galibiyetinde oran 1.85\'ten 1.62\'ye düştü. Dropping L2 seviyesinde alarm tetiklendi. Big Money girişi ile desteklenen hareket.',
-                'Dropping L2'
-            ) + renderDemoCard(
-                'Süper Lig - Hafta Sonu Genel Değerlendirme',
-                'Bu hafta Süper Lig\'de 3 maçta önemli para hareketleri tespit edildi. Galatasaray derbisinde yoğun hacim, Trabzonspor maçında lider değişimi.',
-                'Genel Analiz'
-            );
-        }
-
-        function renderDemoTipCards() {
-            return renderDemoCard(
-                'Erken Sinyal: Real Madrid vs Barcelona',
-                'Maç öncesi 6 saat kala sharp hareket başladı. Real Madrid galibiyetine yönelik ciddi para girişi var. Oran 2.10\'dan 1.85\'e geriledi. Erken pozisyon alanlar avantajlı konumda.',
-                'Sharp Hareket'
-            ) + renderDemoCard(
-                'Dikkat: Liverpool Maçında Hacim Anomalisi',
-                'Normal hacmin 3.2x üzerinde giriş tespit edildi. Alt/Üst marketinde yoğunlaşma mevcut. Üst yönünde ciddi para akışı, oran 1.95\'ten 1.72\'ye düştü.',
-                'Hacim Anomalisi'
-            );
-        }
-
-        async function loadContent() {
-            const grid = document.getElementById('contentGrid');
-            grid.innerHTML = '<div class="empty-state" style="grid-column: 1/-1; padding: 60px 20px; text-align: center;"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div><p style="color: #8b949e;">Yükleniyor...</p></div>';
-            try {
-                const resp = await fetch(`/api/analyses?category=${activeTab}`);
-                const data = await resp.json();
-                if (!data || data.length === 0) {
-                    if (activeTab === 'analysis') {
-                        grid.innerHTML = renderDemoAnalysisCards();
-                    } else {
-                        grid.innerHTML = renderDemoTipCards();
-                    }
-                    return;
-                }
-                grid.innerHTML = data.map(item => `
-                    <div class="analysis-card" style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; overflow: hidden; transition: transform 0.3s, border-color 0.3s;">
-                        ${item.image_url ? `<img src="${item.image_url}" style="width: 100%; height: 200px; object-fit: cover;" alt="${escapeAttr(item.title)}">` : '<div style="height: 4px; background: linear-gradient(90deg, #238636, #58a6ff);"></div>'}
-                        <div style="padding: 20px;">
-                            <h3 style="color: #c9d1d9; font-size: 18px; margin-bottom: 10px;">${escapeHtml(item.title)}</h3>
-                            <p style="color: #8b949e; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(item.content)}</p>
-                            <div style="margin-top: 16px; color: #484f58; font-size: 12px;">${new Date(item.created_at).toLocaleString('tr-TR')}</div>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (e) {
-                grid.innerHTML = '<div class="empty-state" style="grid-column: 1/-1; text-align: center; padding: 60px;"><p style="color: #f85149;">İçerik yüklenirken hata oluştu</p></div>';
-            }
-        }
+        function toggleMenu() { document.getElementById('mobileMenu').classList.toggle('open'); }
 
         function escapeHtml(t) { if(!t)return''; const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
-        function escapeAttr(t) { if(!t)return''; return t.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-        document.addEventListener('DOMContentLoaded', () => loadContent());
+        const TR_MONTHS = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik'];
+        const TR_DAYS = ['Pazar','Pazartesi','Sali','Carsamba','Persembe','Cuma','Cumartesi'];
+
+        function formatDateTR(dateStr) {
+            try {
+                const parts = dateStr.split('-');
+                const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+                return `${d.getDate()} ${TR_MONTHS[d.getMonth()]} ${d.getFullYear()}, ${TR_DAYS[d.getDay()]}`;
+            } catch(e) { return dateStr; }
+        }
+
+        function formatTimeTR(isoStr) {
+            try {
+                const d = new Date(isoStr);
+                return d.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            } catch(e) { return ''; }
+        }
+
+        function getResultBadge(result) {
+            if (!result) return '<span class="analysis-result-badge badge-pending">Beklemede</span>';
+            const map = {
+                'won': ['Tuttu', 'badge-won'],
+                'lost': ['Tutmadi', 'badge-lost'],
+                'push': ['Push', 'badge-push'],
+                'void': ['Void', 'badge-void']
+            };
+            const [label, cls] = map[result] || ['Beklemede', 'badge-pending'];
+            return `<span class="analysis-result-badge ${cls}">${label}</span>`;
+        }
+
+        function getAvatarHtml(analyst, size) {
+            const cls = size === 'lg' ? 'profile-avatar' : 'analyst-avatar';
+            const plcCls = size === 'lg' ? 'profile-avatar-placeholder' : 'analyst-avatar-placeholder';
+            if (analyst.avatar_url) {
+                return `<img class="${cls}" src="${analyst.avatar_url}" alt="${escapeHtml(analyst.name)}">`;
+            }
+            const initial = (analyst.name || '?').charAt(0).toUpperCase();
+            return `<div class="${plcCls}">${initial}</div>`;
+        }
+
+        async function loadAnalystList() {
+            const view = document.getElementById('mainView');
+            view.innerHTML = `
+                <h1 class="page-title">Analizciler</h1>
+                <p class="page-subtitle">Profesyonel piyasa analizcileri ve gecmis performanslari.</p>
+                <div class="loading-state"><div class="loading-spinner-lg"></div><p style="color:#8b949e;font-size:13px;">Yukleniyor...</p></div>
+            `;
+            try {
+                const resp = await fetch('/api/analysts?active=true');
+                const analysts = await resp.json();
+                if (!analysts || analysts.length === 0) {
+                    view.innerHTML = `
+                        <h1 class="page-title">Analizciler</h1>
+                        <p class="page-subtitle">Profesyonel piyasa analizcileri ve gecmis performanslari.</p>
+                        <div class="empty-state"><h3>Henuz analizci bulunmuyor</h3><p>Yakinda profesyonel analizcilerimiz burada yer alacak.</p></div>
+                    `;
+                    return;
+                }
+                let cards = analysts.map(a => {
+                    const s = a.stats || {};
+                    const pct = s.success_pct ? parseFloat(s.success_pct).toFixed(0) : '0';
+                    const avgOdds = s.avg_odds ? parseFloat(s.avg_odds).toFixed(2) : '-';
+                    return `
+                        <div class="analyst-card" onclick="loadAnalystDetail(${a.id})">
+                            ${getAvatarHtml(a, 'sm')}
+                            <div class="analyst-name">${escapeHtml(a.name)}</div>
+                            ${a.bio ? `<div class="analyst-bio">${escapeHtml(a.bio)}</div>` : ''}
+                            <div class="analyst-stats-row">
+                                <div class="analyst-stat">
+                                    <div class="analyst-stat-value green">%${pct}</div>
+                                    <div class="analyst-stat-label">Basari</div>
+                                </div>
+                                <div class="analyst-stat">
+                                    <div class="analyst-stat-value">${s.total || 0}</div>
+                                    <div class="analyst-stat-label">Analiz</div>
+                                </div>
+                                <div class="analyst-stat">
+                                    <div class="analyst-stat-value">${avgOdds}</div>
+                                    <div class="analyst-stat-label">Ort. Oran</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                view.innerHTML = `
+                    <h1 class="page-title">Analizciler</h1>
+                    <p class="page-subtitle">Profesyonel piyasa analizcileri ve gecmis performanslari.</p>
+                    <div class="analyst-grid">${cards}</div>
+                `;
+            } catch(e) {
+                view.innerHTML = `
+                    <h1 class="page-title">Analizciler</h1>
+                    <p class="page-subtitle">Profesyonel piyasa analizcileri ve gecmis performanslari.</p>
+                    <div class="empty-state"><h3>Bir hata olustu</h3><p>Lutfen sayfayi yenileyin.</p></div>
+                `;
+            }
+        }
+
+        async function loadAnalystDetail(id) {
+            const view = document.getElementById('mainView');
+            view.innerHTML = `<div class="loading-state"><div class="loading-spinner-lg"></div><p style="color:#8b949e;font-size:13px;">Yukleniyor...</p></div>`;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            history.pushState({ analystId: id }, '', `/analysis#analyst-${id}`);
+            try {
+                const resp = await fetch(`/api/analysts/${id}/analyses`);
+                if (!resp.ok) throw new Error('API error');
+                const data = await resp.json();
+                const a = data.analyst;
+                const groups = data.date_groups || [];
+                const s = a.stats || {};
+                const pct = s.success_pct ? parseFloat(s.success_pct).toFixed(0) : '0';
+                const avgOdds = s.avg_odds ? parseFloat(s.avg_odds).toFixed(2) : '-';
+
+                let profileHtml = `
+                    <div class="page-back" onclick="goBack()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                        Tum Analizciler
+                    </div>
+                    <div class="profile-header">
+                        ${getAvatarHtml(a, 'lg')}
+                        <div class="profile-info">
+                            <div class="profile-name">${escapeHtml(a.name)}</div>
+                            ${a.bio ? `<div class="profile-bio">${escapeHtml(a.bio)}</div>` : ''}
+                            <div class="profile-stats">
+                                <div class="profile-stat-box">
+                                    <div class="profile-stat-num green">%${pct}</div>
+                                    <div class="profile-stat-lbl">Basari</div>
+                                </div>
+                                <div class="profile-stat-box">
+                                    <div class="profile-stat-num">${s.total || 0}</div>
+                                    <div class="profile-stat-lbl">Toplam</div>
+                                </div>
+                                <div class="profile-stat-box">
+                                    <div class="profile-stat-num" style="color:#3fb950;">${s.won || 0}</div>
+                                    <div class="profile-stat-lbl">Kazanan</div>
+                                </div>
+                                <div class="profile-stat-box">
+                                    <div class="profile-stat-num" style="color:#f85149;">${s.lost || 0}</div>
+                                    <div class="profile-stat-lbl">Kaybeden</div>
+                                </div>
+                                <div class="profile-stat-box">
+                                    <div class="profile-stat-num amber">${avgOdds}</div>
+                                    <div class="profile-stat-lbl">Ort. Oran</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                let groupsHtml = '';
+                if (groups.length === 0) {
+                    groupsHtml = `<div class="empty-day">Henuz analiz mevcut degil</div>`;
+                } else {
+                    for (const g of groups) {
+                        const dateLabel = formatDateTR(g.date);
+                        const itemCount = g.items.length;
+                        let itemsHtml = g.items.map(item => {
+                            let metaHtml = '';
+                            if (item.odds) metaHtml += `<span class="meta-tag meta-odds">Oran: ${escapeHtml(item.odds)}</span>`;
+                            if (item.confidence) metaHtml += `<span class="meta-tag meta-conf">Guven: ${item.confidence}/10</span>`;
+                            return `
+                                <div class="analysis-item">
+                                    <div class="analysis-item-header">
+                                        <div class="analysis-item-title">${escapeHtml(item.title)}</div>
+                                        ${getResultBadge(item.result)}
+                                    </div>
+                                    ${metaHtml ? `<div class="analysis-meta">${metaHtml}</div>` : ''}
+                                    ${item.result_note ? `<div class="analysis-content">${escapeHtml(item.result_note)}</div>` : ''}
+                                    <div class="analysis-time">${formatTimeTR(item.created_at)}</div>
+                                </div>
+                            `;
+                        }).join('');
+                        groupsHtml += `
+                            <div class="date-group">
+                                <div class="date-group-header">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    ${dateLabel}
+                                    <span class="date-group-count">${itemCount} analiz</span>
+                                </div>
+                                ${itemsHtml}
+                            </div>
+                        `;
+                    }
+                }
+
+                view.innerHTML = profileHtml + groupsHtml;
+            } catch(e) {
+                view.innerHTML = `
+                    <div class="page-back" onclick="goBack()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                        Tum Analizciler
+                    </div>
+                    <div class="empty-state"><h3>Bir hata olustu</h3><p>Analizci bilgileri yuklenemedi.</p></div>
+                `;
+            }
+        }
+
+        function goBack() {
+            history.pushState(null, '', '/analysis');
+            loadAnalystList();
+        }
+
+        function handleRoute() {
+            const hash = window.location.hash;
+            const match = hash.match(/^#analyst-(\d+)$/);
+            if (match) {
+                loadAnalystDetail(parseInt(match[1]));
+            } else {
+                loadAnalystList();
+            }
+        }
+
+        window.addEventListener('popstate', handleRoute);
+
+        document.addEventListener('DOMContentLoaded', handleRoute);
+
         window.addEventListener('scroll', function() {
             var navbar = document.querySelector('.navbar');
-            if (window.scrollY > 40) {
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
-            }
+            if (window.scrollY > 40) navbar.classList.add('scrolled');
+            else navbar.classList.remove('scrolled');
         });
     </script>
 </body>
