@@ -1,8 +1,10 @@
 var currentTrendTab = 'analysis';
 var trendsDataCache = {};
+var _isPro = null;
 function openTrendsModal(tab) {
     var t = tab || 'analysis';
-    if (t === 'analysis' && window.userPlan !== 'pro') {
+    if (t === 'analysis' && _isPro === null) _isPro = (window.userPlan === 'pro');
+    if (t === 'analysis' && !_isPro) {
         if (confirm('Analizler PRO uyelikte aktif. PRO paketine yukseltmek ister misiniz?')) {
             window.location.href = '/pricing';
         }

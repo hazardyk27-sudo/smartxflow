@@ -9233,6 +9233,7 @@ function checkWebLicense() {
         if (validDate > new Date()) {
             window.userPlan = localStorage.getItem('license_plan') || 'core';
             window.userLicenseKey = savedKey;
+            if (typeof _isPro !== 'undefined') _isPro = (window.userPlan === 'pro');
             return true;
         }
     }
@@ -9325,6 +9326,7 @@ async function validateWebLicense() {
             window.userPlan = data.plan || 'core';
             window.userLicenseKey = key;
             localStorage.setItem('license_plan', window.userPlan);
+            if (typeof _isPro !== 'undefined') _isPro = (window.userPlan === 'pro');
             
             // Kalan gun hesapla - API days_left donuyor
             let daysRemaining = data.days_left || data.days_remaining;
@@ -9398,6 +9400,7 @@ async function initLicenseCheck() {
                 if (data.plan) {
                     window.userPlan = data.plan;
                     localStorage.setItem('license_plan', data.plan);
+                    if (typeof _isPro !== 'undefined') _isPro = (window.userPlan === 'pro');
                 }
             }).catch(() => {});
         }
