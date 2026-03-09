@@ -954,35 +954,38 @@
                 html += '</div>';
                 selectedGroup.items.forEach(function(item) {
                     var date = item.created_at ? new Date(item.created_at).toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'}) : '';
-                    html += '<div style="background:rgba(22,27,34,0.6);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px 16px;margin-bottom:8px;">';
-                    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
-                    html += '<div style="font-size:15px;font-weight:700;color:#f0f6fc;">' + (item.title || '') + '</div>';
+                    var resultBorderColor = 'rgba(255,255,255,0.06)';
+                    if (item.result === 'won') resultBorderColor = 'rgba(52,211,153,0.25)';
+                    else if (item.result === 'lost') resultBorderColor = 'rgba(248,113,113,0.25)';
+                    else if (item.result === 'push') resultBorderColor = 'rgba(251,191,36,0.25)';
+                    html += '<div style="background:rgba(22,27,34,0.6);border:1px solid rgba(255,255,255,0.06);border-left:3px solid ' + resultBorderColor + ';border-radius:10px;padding:12px 16px;margin-bottom:8px;">';
+                    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">';
+                    html += '<div style="font-size:14px;font-weight:700;color:#e6edf3;flex:1;min-width:0;">' + (item.title || '') + '</div>';
                     if (item.result) {
                         var rColors = {won:'#34d399',lost:'#f87171',push:'#fbbf24','void':'#6e7681'};
-                        var rBg = {won:'rgba(52,211,153,0.12)',lost:'rgba(248,113,113,0.12)',push:'rgba(251,191,36,0.12)','void':'rgba(110,118,129,0.12)'};
-                        var rBorder = {won:'rgba(52,211,153,0.2)',lost:'rgba(248,113,113,0.2)',push:'rgba(251,191,36,0.2)','void':'rgba(110,118,129,0.15)'};
+                        var rBg = {won:'rgba(52,211,153,0.1)',lost:'rgba(248,113,113,0.1)',push:'rgba(251,191,36,0.1)','void':'rgba(110,118,129,0.1)'};
                         var rLabels = {won:'Kazandı',lost:'Kaybetti',push:'İade','void':'İptal'};
-                        html += '<span style="background:' + (rBg[item.result]||'rgba(72,79,88,0.12)') + ';color:' + (rColors[item.result]||'#484f58') + ';border:1px solid ' + (rBorder[item.result]||'rgba(72,79,88,0.15)') + ';padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;">' + (rLabels[item.result]||item.result) + '</span>';
+                        html += '<span style="flex-shrink:0;margin-left:10px;background:' + (rBg[item.result]||'rgba(72,79,88,0.1)') + ';color:' + (rColors[item.result]||'#484f58') + ';padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;">' + (rLabels[item.result]||item.result) + '</span>';
                     } else {
-                        html += '<span style="background:rgba(88,166,255,0.08);color:#58a6ff;border:1px solid rgba(88,166,255,0.15);padding:3px 10px;border-radius:8px;font-size:11px;font-weight:600;">Beklemede</span>';
+                        html += '<span style="flex-shrink:0;margin-left:10px;background:rgba(88,166,255,0.08);color:#58a6ff;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;">Beklemede</span>';
                     }
                     html += '</div>';
                     if (item.preference || item.odds || item.confidence) {
-                        html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">';
-                        if (item.preference) html += '<span style="background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(139,92,246,0.08));border:1px solid rgba(139,92,246,0.2);border-radius:8px;padding:5px 12px;font-size:13px;color:#a78bfa;font-weight:700;letter-spacing:-0.2px;">🎯 ' + (item.preference||'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>';
-                        if (item.odds) html += '<span style="background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.12);border-radius:8px;padding:5px 12px;font-size:12px;color:#93c5fd;font-weight:600;">Oran: ' + item.odds + '</span>';
+                        html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">';
+                        if (item.preference) html += '<span style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.12);border-radius:6px;padding:3px 8px;font-size:11px;color:#a78bfa;font-weight:600;">🎯 ' + (item.preference||'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>';
+                        if (item.odds) html += '<span style="background:rgba(88,166,255,0.05);border:1px solid rgba(88,166,255,0.1);border-radius:6px;padding:3px 8px;font-size:11px;color:#93c5fd;font-weight:600;">Oran: ' + item.odds + '</span>';
                         if (item.confidence) {
                             var confColor = item.confidence >= 7 ? '#34d399' : item.confidence >= 4 ? '#fbbf24' : '#f87171';
-                            var confBg = item.confidence >= 7 ? 'rgba(52,211,153,0.06)' : item.confidence >= 4 ? 'rgba(251,191,36,0.06)' : 'rgba(248,113,113,0.06)';
-                            var confBdr = item.confidence >= 7 ? 'rgba(52,211,153,0.12)' : item.confidence >= 4 ? 'rgba(251,191,36,0.12)' : 'rgba(248,113,113,0.12)';
-                            html += '<span style="background:' + confBg + ';border:1px solid ' + confBdr + ';border-radius:8px;padding:5px 12px;font-size:12px;color:' + confColor + ';font-weight:600;">Güven: ' + item.confidence + '/10</span>';
+                            var confBg = item.confidence >= 7 ? 'rgba(52,211,153,0.05)' : item.confidence >= 4 ? 'rgba(251,191,36,0.05)' : 'rgba(248,113,113,0.05)';
+                            var confBdr = item.confidence >= 7 ? 'rgba(52,211,153,0.1)' : item.confidence >= 4 ? 'rgba(251,191,36,0.1)' : 'rgba(248,113,113,0.1)';
+                            html += '<span style="background:' + confBg + ';border:1px solid ' + confBdr + ';border-radius:6px;padding:3px 8px;font-size:11px;color:' + confColor + ';font-weight:600;">Güven: ' + item.confidence + '/10</span>';
                         }
                         html += '</div>';
                     }
                     if (item.result_note) {
-                        html += '<div style="font-size:13px;color:#8b949e;line-height:1.7;margin-bottom:10px;">' + item.result_note + '</div>';
+                        html += '<div style="font-size:12px;color:#8b949e;line-height:1.6;margin-bottom:6px;">' + item.result_note + '</div>';
                     }
-                    html += '<div style="font-size:10px;color:#484f58;letter-spacing:0.3px;">' + date + '</div>';
+                    html += '<div style="font-size:10px;color:#484f58;">' + date + '</div>';
                     html += '</div>';
                 });
             } else {
