@@ -1754,6 +1754,8 @@ def update_interval():
 
 @app.route('/health')
 def health_check():
+    if _app_warmup_started and not _app_warmup_done.is_set():
+        return jsonify({'status': 'warming_up', 'timestamp': time.time()}), 503
     return jsonify({'status': 'ok', 'timestamp': time.time()}), 200
 
 
@@ -8600,6 +8602,8 @@ def main():
                 def post_worker_init(worker):
                     print(f"[Gunicorn] Worker {worker.pid} started, initializing cleanup scheduler...", flush=True)
                     start_cleanup_scheduler()
+                    print(f"[Gunicorn] Worker {worker.pid} triggering eager warmup...", flush=True)
+                    trigger_app_warmup()
 
                 def worker_exit(server, worker):
                     print(f"[Gunicorn] Worker {worker.pid} exiting gracefully...", flush=True)
@@ -8626,6 +8630,7 @@ def main():
                 app.run(host=host, port=port, debug=False)
         else:
             print(f"Starting Flask on http://{host}:{port}...", flush=True)
+            trigger_app_warmup()
             app.run(host=host, port=port, debug=False)
     except OSError as e:
         if "10048" in str(e) or "Address already in use" in str(e):
