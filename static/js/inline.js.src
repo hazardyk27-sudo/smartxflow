@@ -323,7 +323,7 @@ function renderAnalystProfileView() {
     html += '<div style="font-size:14px;font-weight:700;color:#e6edf3;letter-spacing:-0.2px;">' + (a.name || '') + '</div>';
     html += '<div style="font-size:9px;color:#484f58;letter-spacing:0.8px;font-weight:500;margin-top:2px;">ANALİST PROFİLİ</div>';
     html += '</div>';
-    html += '<div style="flex:1;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;margin-left:6px;">';
+    html += '<div style="flex:1;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;margin-left:10px;">';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,' + pctColor + ',' + pctColor + 'aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">%' + pct + '</div><div style="' + labelStyle + '">Başarı</div></div>';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,#c9d1d9,#6e7681);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + (s.total || 0) + '</div><div style="' + labelStyle + '">Toplam</div></div>';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,#4ade80,#16a34a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + (s.won || 0) + '</div><div style="' + labelStyle + '">Kazanan</div></div>';
