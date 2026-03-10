@@ -11883,15 +11883,21 @@ table.desktop-only {
         padding: 10px 10px !important;
     }
     .ap-profile-row {
+        display: flex !important;
         flex-direction: column !important;
         align-items: flex-start !important;
         gap: 10px !important;
     }
     .ap-profile-info {
-        width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        flex-shrink: 0 !important;
     }
     .ap-profile-stats {
+        display: flex !important;
         width: 100% !important;
+        flex: none !important;
         margin-left: 0 !important;
         justify-content: flex-start !important;
         gap: 4px !important;
