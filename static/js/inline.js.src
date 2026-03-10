@@ -309,11 +309,11 @@ function renderAnalystProfileView() {
     var netColor1 = netVal > 0 ? '#4ade80' : (netVal < 0 ? '#f87171' : '#6e7681');
     var netColor2 = netVal > 0 ? '#16a34a' : (netVal < 0 ? '#dc2626' : '#484f58');
     var decided = (s.won || 0) + (s.lost || 0);
-    var statBox = 'border-radius:7px;padding:7px 20px;text-align:center;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);';
+    var statBox = 'border-radius:7px;padding:7px 12px;text-align:center;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);';
     var statBoxRel = statBox + 'position:relative;';
     var numStyle = 'font-size:17px;font-weight:800;letter-spacing:-0.4px;line-height:1;';
     var labelStyle = 'font-size:7px;color:#484f58;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;';
-    html += '<div style="display:flex;align-items:center;gap:14px;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;">';
     if (a.avatar_url) {
         html += '<div style="position:relative;flex-shrink:0;"><img src="' + a.avatar_url + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(255,255,255,0.08);" alt=""><div style="position:absolute;bottom:1px;right:1px;width:7px;height:7px;background:#34d399;border-radius:50%;border:1.5px solid #161b22;"></div></div>';
     } else {
@@ -323,7 +323,7 @@ function renderAnalystProfileView() {
     html += '<div style="font-size:14px;font-weight:700;color:#e6edf3;letter-spacing:-0.2px;">' + (a.name || '') + '</div>';
     html += '<div style="font-size:9px;color:#484f58;letter-spacing:0.8px;font-weight:500;margin-top:2px;">ANALİST PROFİLİ</div>';
     html += '</div>';
-    html += '<div style="flex:1;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;margin-left:10px;">';
+    html += '<div style="flex:1;display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end;margin-left:4px;">';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,' + pctColor + ',' + pctColor + 'aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">%' + pct + '</div><div style="' + labelStyle + '">Başarı</div></div>';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,#c9d1d9,#6e7681);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + (s.total || 0) + '</div><div style="' + labelStyle + '">Toplam</div></div>';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,#4ade80,#16a34a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + (s.won || 0) + '</div><div style="' + labelStyle + '">Kazanan</div></div>';
