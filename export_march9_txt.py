@@ -16,8 +16,8 @@ HEADERS = {
     "Content-Type": "application/json"
 }
 
-DATE_FROM = "2026-03-09T00:00:00"
-DATE_TO = "2026-03-10T00:00:00"
+DATE_FROM = "2026-03-10T00:00:00"
+DATE_TO = "2026-03-11T00:00:00"
 
 TABLES = {
     "moneyway_1x2": {
@@ -110,8 +110,8 @@ for m in matches.values():
         total_snapshots += len(m[mk])
 
 print("\nWriting text file...")
-with open("march9_all_data.txt", "w", encoding="utf-8") as out:
-    out.write("=== 9 MART 2026 - TUM MAC VERILERI ===\n")
+with open("march10_all_data.txt", "w", encoding="utf-8") as out:
+    out.write("=== 10 MART 2026 - TUM MAC VERILERI ===\n")
     out.write("Toplam Mac: " + str(len(matches)) + "\n")
     out.write("Toplam Snapshot: " + str(total_snapshots) + "\n")
     out.write("Pazarlar: " + ", ".join(market_keys) + "\n")
@@ -141,7 +141,7 @@ with open("march9_all_data.txt", "w", encoding="utf-8") as out:
 
         out.write("\n")
 
-size_mb = os.path.getsize("march9_all_data.txt") / (1024 * 1024)
-print("Done! march9_all_data.txt - " + "{:.1f}".format(size_mb) + " MB")
+size_mb = os.path.getsize("march10_all_data.txt") / (1024 * 1024)
+print("Done! march10_all_data.txt - " + "{:.1f}".format(size_mb) + " MB")
 print("Matches: " + str(len(matches)))
 print("Snapshots: " + str(total_snapshots))
