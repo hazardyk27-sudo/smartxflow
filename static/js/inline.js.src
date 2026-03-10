@@ -309,9 +309,9 @@ function renderAnalystProfileView() {
     var netColor1 = netVal > 0 ? '#4ade80' : (netVal < 0 ? '#f87171' : '#6e7681');
     var netColor2 = netVal > 0 ? '#16a34a' : (netVal < 0 ? '#dc2626' : '#484f58');
     var decided = (s.won || 0) + (s.lost || 0);
-    var statBox = 'border-radius:7px;padding:7px 14px;text-align:center;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);';
+    var statBox = 'border-radius:7px;padding:7px 20px;text-align:center;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);';
     var statBoxRel = statBox + 'position:relative;';
-    var numStyle = 'font-size:14px;font-weight:800;letter-spacing:-0.4px;line-height:1;';
+    var numStyle = 'font-size:17px;font-weight:800;letter-spacing:-0.4px;line-height:1;';
     var labelStyle = 'font-size:7px;color:#484f58;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;';
     html += '<div style="display:flex;align-items:center;gap:14px;">';
     if (a.avatar_url) {
