@@ -173,7 +173,7 @@
             const isMoneyway = market.startsWith('moneyway');
             const viewModeButtons = isMoneyway ? '<div class="chart-filter-group view-mode-filters"><button class="chart-view-btn ' + (chartViewMode==='percent'?'active':'') + '" onclick="setChartViewMode(\'percent\')">% Yuzde</button><button class="chart-view-btn ' + (chartViewMode==='money'?'active':'') + '" onclick="setChartViewMode(\'money\')">£ Para</button></div><div class="chart-filter-divider"></div>' : '';
             
-            container.innerHTML = viewModeButtons + '<div class="chart-filter-group series-filters">' + seriesButtons + '</div><div class="chart-filter-divider"></div><div class="chart-filter-group time-filters">' + timeButtons + '</div><div class="chart-filter-divider"></div><div class="chart-export-btns"><button class="chart-export-btn" onclick="exportChartPNG()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>PNG</button><button class="chart-export-btn" onclick="exportChartCSV()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>CSV</button></div>';
+            container.innerHTML = viewModeButtons + '<div class="chart-filter-group series-filters">' + seriesButtons + '</div><div class="chart-filter-divider"></div><div class="chart-filter-group time-filters">' + timeButtons + '</div><div class="chart-filter-divider"></div><div class="chart-export-btns"><button class="chart-export-btn" onclick="exportChartPNG()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>PNG</button><button class="chart-export-btn" onclick="exportChartCSV()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>CSV</button><button class="chart-export-btn" onclick="exportFullMatchCSV()" title="Tüm market ve alarm verilerini indir" style="background:rgba(52,211,153,0.08);border-color:rgba(52,211,153,0.15);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Full CSV</button></div>';
         }
 
         function toggleChartSeries(market, key, btn) {
@@ -355,6 +355,101 @@
             link.download = matchHome + '_vs_' + matchAway + '_' + currentMarket + '.csv';
             link.href = URL.createObjectURL(blob);
             link.click();
+        }
+
+        async function exportFullMatchCSV() {
+            var home = matchHome;
+            var away = matchAway;
+            var league = matchData ? (matchData.league || '') : '';
+            var mDate = matchData ? (matchData.date || '') : '';
+            var matchId = matchData ? (matchData.match_id || '') : '';
+            function csvVal(v) {
+                if (v === null || v === undefined || v === '') return '';
+                var s = String(v);
+                if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
+                return s;
+            }
+            var allMarkets = ['moneyway_1x2','moneyway_ou25','moneyway_btts','dropping_1x2','dropping_ou25','dropping_btts'];
+            var marketsHistory = {};
+            try {
+                var resp = await fetch('/api/match/history/bulk?home=' + encodeURIComponent(home) + '&away=' + encodeURIComponent(away) + '&league=' + encodeURIComponent(league));
+                if (!resp.ok) { alert('Veri yüklenemedi (HTTP ' + resp.status + '). Lütfen tekrar deneyin.'); return; }
+                var data = await resp.json();
+                marketsHistory = data.markets || {};
+            } catch(e) { console.error('[FullCSV] Bulk error:', e); alert('Veri yüklenirken hata oluştu.'); return; }
+            var totalSnap = 0;
+            Object.values(marketsHistory).forEach(function(m) { if (m && m.history) totalSnap += m.history.length; });
+            if (totalSnap === 0) { alert('Bu maç için henüz snapshot verisi bulunamadı.'); return; }
+            var alarmsData = {};
+            if (matchId) {
+                try {
+                    var resp2 = await fetch('/api/match/' + matchId + '/snapshot?include=alarms');
+                    if (resp2.ok) {
+                        var data2 = await resp2.json();
+                        alarmsData = data2.alarms || {};
+                    }
+                } catch(e) { console.error('[FullCSV] Alarms error:', e); }
+            }
+            var csv = '\uFEFF';
+            csv += '# SmartXFlow - Full Match Data Export\n';
+            csv += '# Match: ' + home + ' vs ' + away + '\n';
+            csv += '# League: ' + league + '\n';
+            csv += '# Match Date: ' + mDate + '\n';
+            csv += '# Match ID: ' + matchId + '\n';
+            csv += '# Export Date: ' + new Date().toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'}) + '\n';
+            csv += '#\n';
+            var marketDefs = [
+                {key:'moneyway_1x2',label:'Moneyway 1X2',cols:['ScrapedAt','Odds1','OddsX','Odds2','Pct1','PctX','Pct2','Amt1','AmtX','Amt2','Volume','Odds1_prev','OddsX_prev','Odds2_prev','Trend1','TrendX','Trend2','DropPct1','DropPctX','DropPct2']},
+                {key:'moneyway_ou25',label:'Moneyway O/U 2.5',cols:['ScrapedAt','Over','Under','PctOver','PctUnder','AmtOver','AmtUnder','Volume','Line','Over_prev','Under_prev','TrendOver','TrendUnder','DropPctOver','DropPctUnder']},
+                {key:'moneyway_btts',label:'Moneyway BTTS',cols:['ScrapedAt','OddsYes','OddsNo','PctYes','PctNo','AmtYes','AmtNo','Volume','OddsYes_prev','OddsNo_prev','TrendYes','TrendNo','DropPctYes','DropPctNo']},
+                {key:'dropping_1x2',label:'Dropping Odds 1X2',cols:['ScrapedAt','Odds1','OddsX','Odds2','Odds1_prev','OddsX_prev','Odds2_prev','Trend1','TrendX','Trend2','DropPct1','DropPctX','DropPct2','Volume']},
+                {key:'dropping_ou25',label:'Dropping Odds O/U 2.5',cols:['ScrapedAt','Over','Under','Over_prev','Under_prev','TrendOver','TrendUnder','DropPctOver','DropPctUnder','Volume','Line']},
+                {key:'dropping_btts',label:'Dropping Odds BTTS',cols:['ScrapedAt','OddsYes','OddsNo','OddsYes_prev','OddsNo_prev','TrendYes','TrendNo','DropPctYes','DropPctNo','Volume']}
+            ];
+            csv += '#\n# ===== SNAPSHOT DATA =====\n';
+            marketDefs.forEach(function(md) {
+                var mdata = marketsHistory[md.key];
+                var rows = mdata ? (mdata.history || []) : [];
+                csv += '#\n# --- ' + md.label + ' (' + rows.length + ' snapshots) ---\n';
+                if (rows.length > 0) {
+                    csv += md.cols.map(csvVal).join(',') + '\n';
+                    rows.forEach(function(row) {
+                        csv += md.cols.map(function(col) { return csvVal(row[col]); }).join(',') + '\n';
+                    });
+                }
+            });
+            csv += '#\n# ===== ALARM DATA =====\n';
+            var alarmTypes = ['sharp','bigmoney','volumeshock','dropping','volumeleader','mim'];
+            var hasAlarms = false;
+            alarmTypes.forEach(function(at) { if ((alarmsData[at]||[]).length > 0) hasAlarms = true; });
+            if (hasAlarms) {
+                csv += 'alarm_type,timestamp,market,side,odds,volume,details\n';
+                alarmTypes.forEach(function(at) {
+                    (alarmsData[at]||[]).forEach(function(a) {
+                        var ts = a.trigger_at || a.triggered_at || a.created_at || a.scraped_at || '';
+                        var market = a.market || '';
+                        var side = a.selection || a.side || '';
+                        var odds = a.odds || a.current_odds || '';
+                        var vol = a.volume || a.total_volume || a.amount || '';
+                        var details = '';
+                        if (at==='sharp') details='score='+(a.sharp_score||a.score||'');
+                        else if (at==='bigmoney') details='amount='+(a.incoming_amount||a.amount||'');
+                        else if (at==='volumeshock') details='shock='+(a.shock_multiplier||a.shock||'')+'x';
+                        else if (at==='dropping') details='drop='+(a.drop_pct||a.drop_percent||'')+'%';
+                        else if (at==='volumeleader') details='from='+(a.from_side||'')+',to='+(a.to_side||'')+',pct='+(a.to_pct||'');
+                        else if (at==='mim') details='impact='+(a.impact_score||a.impact||'');
+                        csv += [at,csvVal(ts),csvVal(market),csvVal(side),csvVal(odds),csvVal(vol),csvVal(details)].join(',')+'\n';
+                    });
+                });
+            } else {
+                csv += '# No alarm data available for this match\n';
+            }
+            var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = (home+'_vs_'+away).replace(/[^a-zA-Z0-9_\-]/g,'_') + '_full_data.csv';
+            link.click();
+            URL.revokeObjectURL(link.href);
         }
     </script>
 </body>

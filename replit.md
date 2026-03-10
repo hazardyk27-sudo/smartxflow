@@ -47,7 +47,7 @@ The system employs a hybrid architecture with Supabase serving as the single sou
 - **Prematch System:** Only prematch data is tracked; no data for in-play or past matches.
 - **Telegram Notifications:** Real-time alarm notifications via a Telegram bot with configurable per-alarm-type enable/disable, retrigger support, deduplication, and visual card notifications.
 - **Analysis-Match Linking:** Allows linking analyses to matches via a `match_id_hash`, displaying a star indicator for matches with analyses, and providing an analysis modal.
-- **API Optimization:** Includes batch endpoints for alarm types with client-side caching, and a comprehensive snapshot endpoint for all match-related data.
+- **API Optimization:** Includes batch endpoints for alarm types with client-side caching, a comprehensive snapshot endpoint for all match-related data, and a Full CSV export that downloads all 6 markets (Moneyway + Dropping for 1X2/OU25/BTTS), all snapshots, money/percentage/odds data, and alarm records in a single file.
 - **Supabase Request Optimization:** Implements server-side caching, prevents auto-refresh for background tabs, and uses jitter to prevent synchronized spikes.
 - **Performance Optimization:** Features lazy warmup for sections, static asset caching, Gzip compression, CSS/JS minification (via `.src` files and `minify.py`), smart rendering for different devices, parallel preloading of market data, and optimized polling for admin interfaces.
 - **Multi-Analyst System:** Supports multiple analysts with dedicated profiles, CRUD operations via API, automated success rate calculation (including ROI and Net Profit metrics using 1-unit flat stake model), and integration into the admin panel and frontend.
