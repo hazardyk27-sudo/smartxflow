@@ -6444,7 +6444,9 @@ def get_analysts_endpoint():
             'void': s.get('void', 0),
             'pending': s.get('pending', 0),
             'success_pct': s.get('success_pct', 0.0),
-            'avg_odds': s.get('avg_odds', 0.0)
+            'avg_odds': s.get('avg_odds', 0.0),
+            'roi_pct': s.get('roi_pct', 0.0),
+            'net_profit': s.get('net_profit', 0.0)
         }
     _analysts_cache['data'] = analysts
     _analysts_cache['suffix'] = cache_key_suffix
@@ -6547,7 +6549,9 @@ def get_analyst_analyses_endpoint(analyst_id):
         'void': s.get('void', 0),
         'pending': s.get('pending', 0),
         'success_pct': s.get('success_pct', 0.0),
-        'avg_odds': s.get('avg_odds', 0.0)
+        'avg_odds': s.get('avg_odds', 0.0),
+        'roi_pct': s.get('roi_pct', 0.0),
+        'net_profit': s.get('net_profit', 0.0)
     }
     
     all_analyses = db.get_analyses('analysis')

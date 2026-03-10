@@ -50,7 +50,7 @@ The system employs a hybrid architecture with Supabase serving as the single sou
 - **API Optimization:** Includes batch endpoints for alarm types with client-side caching, and a comprehensive snapshot endpoint for all match-related data.
 - **Supabase Request Optimization:** Implements server-side caching, prevents auto-refresh for background tabs, and uses jitter to prevent synchronized spikes.
 - **Performance Optimization:** Features lazy warmup for sections, static asset caching, Gzip compression, CSS/JS minification (via `.src` files and `minify.py`), smart rendering for different devices, parallel preloading of market data, and optimized polling for admin interfaces.
-- **Multi-Analyst System:** Supports multiple analysts with dedicated profiles, CRUD operations via API, automated success rate calculation, and integration into the admin panel and frontend.
+- **Multi-Analyst System:** Supports multiple analysts with dedicated profiles, CRUD operations via API, automated success rate calculation (including ROI and Net Profit metrics using 1-unit flat stake model), and integration into the admin panel and frontend.
 - **Mobile Filter Modal:** Replaces the old mobile dropdown with a dedicated filter modal for date, sorting, and filtering options.
 - **Process Isolation:** The system is designed with three independent processes (`app.py`, `run_services.sh` for Scraper/Alarm Engine supervisor), ensuring that the failure of one does not affect others.
 - **Data Model:** Uses `fixtures`, `moneyway_snapshots`, and `dropping_odds_snapshots` tables in Supabase.

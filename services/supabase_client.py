@@ -2157,7 +2157,7 @@ class SupabaseClient:
                 if not aid:
                     continue
                 if aid not in stats:
-                    stats[aid] = {'total': 0, 'won': 0, 'lost': 0, 'push': 0, 'void': 0, 'pending': 0, 'odds_sum': 0.0, 'odds_count': 0}
+                    stats[aid] = {'total': 0, 'won': 0, 'lost': 0, 'push': 0, 'void': 0, 'pending': 0, 'odds_sum': 0.0, 'odds_count': 0, 'won_odds_sum': 0.0}
                 s = stats[aid]
                 s['total'] += 1
                 result = row.get('result')
@@ -2171,12 +2171,21 @@ class SupabaseClient:
                         odds_val = float(odds_str)
                         s['odds_sum'] += odds_val
                         s['odds_count'] += 1
+                        if result == 'won':
+                            s['won_odds_sum'] += odds_val
                     except (ValueError, TypeError):
                         pass
             for aid, s in stats.items():
                 decided = s['won'] + s['lost']
                 s['success_pct'] = round((s['won'] / decided) * 100, 1) if decided > 0 else 0.0
                 s['avg_odds'] = round(s['odds_sum'] / s['odds_count'], 2) if s['odds_count'] > 0 else 0.0
+                if decided > 0:
+                    net_profit = s['won_odds_sum'] - decided
+                    s['net_profit'] = round(net_profit, 2)
+                    s['roi_pct'] = round((net_profit / decided) * 100, 1)
+                else:
+                    s['net_profit'] = 0.0
+                    s['roi_pct'] = 0.0
             return stats
         except Exception as e:
             print(f"[Supabase] get_analyst_stats error: {e}")
