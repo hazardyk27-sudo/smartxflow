@@ -394,7 +394,14 @@ def license_required(f):
         if header_key:
             cached = _validated_licenses.get(header_key)
             print(f"[LicenseCheck] HEADER path: key={header_key[:8]}... cached={'YES' if cached else 'NO'}")
-            if cached:
+            if not cached:
+                print(f"[LicenseCheck] HEADER: not cached, validating from Supabase...")
+                err = _refresh_license_from_supabase(header_key)
+                if err:
+                    print(f"[LicenseCheck] HEADER: validation returned {err}, blocking")
+                    return jsonify({'error': err, 'message': 'Lisans suresi dolmus' if err == 'LICENSE_EXPIRED' else 'Lisans iptal edilmis' if err == 'LICENSE_REVOKED' else 'Gecerli lisans gerekli'}), 403
+                cached = _validated_licenses.get(header_key)
+            else:
                 cached_at = cached.get('cached_at', 0)
                 age = time.time() - cached_at
                 if age > _LICENSE_CACHE_TTL:
@@ -404,7 +411,8 @@ def license_required(f):
                         print(f"[LicenseCheck] HEADER: refresh returned {err}, blocking")
                         return jsonify({'error': err, 'message': 'Lisans suresi dolmus' if err == 'LICENSE_EXPIRED' else 'Lisans iptal edilmis' if err == 'LICENSE_REVOKED' else 'Gecerli lisans gerekli'}), 403
                     cached = _validated_licenses.get(header_key)
-                exp_time = cached.get('expires') if cached else None
+            if cached:
+                exp_time = cached.get('expires')
                 if exp_time and exp_time < datetime.utcnow():
                     _validated_licenses.pop(header_key, None)
                     return jsonify({'error': 'LICENSE_EXPIRED', 'message': 'Lisans suresi dolmus'}), 403
