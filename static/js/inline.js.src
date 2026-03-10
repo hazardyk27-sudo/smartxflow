@@ -313,7 +313,7 @@ function renderAnalystProfileView() {
     var statBoxRel = statBox + 'position:relative;';
     var numStyle = 'font-size:17px;font-weight:800;letter-spacing:-0.4px;line-height:1;';
     var labelStyle = 'font-size:7px;color:#484f58;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;';
-    html += '<div style="display:flex;align-items:center;gap:5px;">';
+    html += '<div style="display:flex;align-items:center;gap:3px;">';
     if (a.avatar_url) {
         html += '<div style="position:relative;flex-shrink:0;"><img src="' + a.avatar_url + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(255,255,255,0.08);" alt=""><div style="position:absolute;bottom:1px;right:1px;width:7px;height:7px;background:#34d399;border-radius:50%;border:1.5px solid #161b22;"></div></div>';
     } else {
