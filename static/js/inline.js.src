@@ -314,15 +314,16 @@ function renderAnalystProfileView() {
     var numStyle = 'font-size:17px;font-weight:800;letter-spacing:-0.4px;line-height:1;';
     var labelStyle = 'font-size:7px;color:#484f58;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;';
     html += '<div class="ap-profile-row" style="display:flex;align-items:center;gap:3px;">';
+    html += '<div class="ap-profile-info" style="display:flex;align-items:center;gap:8px;flex-shrink:0;">';
     if (a.avatar_url) {
         html += '<div style="position:relative;flex-shrink:0;"><img src="' + a.avatar_url + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(255,255,255,0.08);" alt=""><div style="position:absolute;bottom:1px;right:1px;width:7px;height:7px;background:#34d399;border-radius:50%;border:1.5px solid #161b22;"></div></div>';
     } else {
         html += '<div style="position:relative;flex-shrink:0;"><div style="width:40px;height:40px;border-radius:50%;background:rgba(52,211,153,0.08);border:1.5px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#34d399;">' + (a.name || '?')[0].toUpperCase() + '</div><div style="position:absolute;bottom:1px;right:1px;width:7px;height:7px;background:#34d399;border-radius:50%;border:1.5px solid #161b22;"></div></div>';
     }
-    html += '<div style="flex-shrink:0;">';
+    html += '<div>';
     html += '<div style="font-size:14px;font-weight:700;color:#e6edf3;letter-spacing:-0.2px;">' + (a.name || '') + '</div>';
     html += '<div style="font-size:9px;color:#484f58;letter-spacing:0.8px;font-weight:500;margin-top:2px;">ANALİST PROFİLİ</div>';
-    html += '</div>';
+    html += '</div></div>';
     html += '<div class="ap-profile-stats" style="flex:1;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;margin-left:14px;">';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,' + pctColor + ',' + pctColor + 'aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">%' + pct + '</div><div style="' + labelStyle + '">Başarı</div></div>';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,#c9d1d9,#6e7681);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + (s.total || 0) + '</div><div style="' + labelStyle + '">Toplam</div></div>';
