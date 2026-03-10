@@ -5116,13 +5116,13 @@ function renderChartLegendFilters(datasets, market) {
                 </svg>
                 CSV
             </button>
-            <button class="chart-export-btn" onclick="exportFullMatchCSV()" title="Tüm market ve alarm verilerini indir" style="background:rgba(52,211,153,0.08);border-color:rgba(52,211,153,0.15);">
+            <button class="chart-export-btn" onclick="exportFullMatchTXT()" title="Tüm market ve alarm verilerini indir" style="background:rgba(52,211,153,0.08);border-color:rgba(52,211,153,0.15);">
                 <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="7 10 12 15 17 10"/>
                     <line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
-                Full CSV
+                Full TXT
             </button>
         </div>
     `;
@@ -5559,7 +5559,7 @@ function exportChartCSV() {
     URL.revokeObjectURL(link.href);
 }
 
-async function exportFullMatchCSV() {
+async function exportFullMatchTXT() {
     if (!selectedMatch) return;
     const home = selectedMatch.home_team;
     const away = selectedMatch.away_team;
@@ -5578,7 +5578,7 @@ async function exportFullMatchCSV() {
             const data = await resp.json();
             marketsData = data.markets || {};
         } catch (e) {
-            console.error('[FullCSV] Bulk fetch error:', e);
+            console.error('[FullTXT] Bulk fetch error:', e);
             alert('Veri yüklenirken hata oluştu. Lütfen tekrar deneyin.');
             return;
         }
@@ -5597,25 +5597,21 @@ async function exportFullMatchCSV() {
                 alarmsData = data.alarms || {};
             }
         } catch (e) {
-            console.error('[FullCSV] Alarms fetch error:', e);
+            console.error('[FullTXT] Alarms fetch error:', e);
         }
     }
 
-    function csvVal(v) {
-        if (v === null || v === undefined || v === '') return '';
-        var s = String(v);
-        if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
-        return s;
-    }
-
-    var csv = '\uFEFF';
-    csv += '# SmartXFlow - Full Match Data Export\n';
-    csv += '# Match: ' + home + ' vs ' + away + '\n';
-    csv += '# League: ' + league + '\n';
-    csv += '# Match Date: ' + matchDate + '\n';
-    csv += '# Match ID: ' + matchId + '\n';
-    csv += '# Export Date: ' + nowTurkey().format('DD.MM.YYYY HH:mm') + ' (TR)\n';
-    csv += '#\n';
+    var txt = '';
+    txt += '================================================================================\n';
+    txt += 'SmartXFlow - Full Match Data Export\n';
+    txt += '================================================================================\n';
+    txt += 'Mac: ' + home + ' vs ' + away + '\n';
+    txt += 'Lig: ' + league + '\n';
+    txt += 'Mac Tarihi: ' + matchDate + '\n';
+    txt += 'Mac ID: ' + matchId + '\n';
+    txt += 'Export Tarihi: ' + nowTurkey().format('DD.MM.YYYY HH:mm') + ' (TR)\n';
+    txt += 'Toplam Snapshot: ' + totalSnapshots + '\n';
+    txt += '================================================================================\n\n';
 
     var marketDefs = [
         {key: 'moneyway_1x2', label: 'Moneyway 1X2', cols: ['ScrapedAt','Odds1','OddsX','Odds2','Pct1','PctX','Pct2','Amt1','AmtX','Amt2','Volume','Odds1_prev','OddsX_prev','Odds2_prev','Trend1','TrendX','Trend2','DropPct1','DropPctX','DropPct2']},
@@ -5626,21 +5622,33 @@ async function exportFullMatchCSV() {
         {key: 'dropping_btts', label: 'Dropping Odds BTTS', cols: ['ScrapedAt','OddsYes','OddsNo','OddsYes_prev','OddsNo_prev','TrendYes','TrendNo','DropPctYes','DropPctNo','Volume']}
     ];
 
-    csv += '#\n# ===== SNAPSHOT DATA =====\n';
+    txt += '===== SNAPSHOT VERILERI =====\n\n';
 
     marketDefs.forEach(function(md) {
         var mdata = marketsData[md.key];
         var rows = mdata ? (mdata.history || []) : [];
-        csv += '#\n# --- ' + md.label + ' (' + rows.length + ' snapshots) ---\n';
+        txt += '--- ' + md.label + ' (' + rows.length + ' snapshot) ---\n';
         if (rows.length > 0) {
-            csv += md.cols.map(csvVal).join(',') + '\n';
             rows.forEach(function(row) {
-                csv += md.cols.map(function(col) { return csvVal(row[col]); }).join(',') + '\n';
+                var ts = row['ScrapedAt'] || '';
+                var parts = [];
+                md.cols.forEach(function(col) {
+                    if (col !== 'ScrapedAt') {
+                        var v = row[col];
+                        if (v !== null && v !== undefined && v !== '') {
+                            parts.push(col + '=' + v);
+                        }
+                    }
+                });
+                txt += '  ' + ts + ' | ' + parts.join(' | ') + '\n';
             });
+        } else {
+            txt += '  (veri yok)\n';
         }
+        txt += '\n';
     });
 
-    csv += '#\n# ===== ALARM DATA =====\n';
+    txt += '===== ALARM VERILERI =====\n\n';
     var alarmTypes = ['sharp','bigmoney','volumeshock','dropping','volumeleader','mim'];
     var hasAlarms = false;
     alarmTypes.forEach(function(atype) {
@@ -5649,9 +5657,10 @@ async function exportFullMatchCSV() {
     });
 
     if (hasAlarms) {
-        csv += 'alarm_type,timestamp,market,side,odds,volume,details\n';
         alarmTypes.forEach(function(atype) {
             var alarms = alarmsData[atype] || [];
+            if (alarms.length === 0) return;
+            txt += '--- ' + atype.toUpperCase() + ' (' + alarms.length + ' alarm) ---\n';
             alarms.forEach(function(a) {
                 var ts = a.trigger_at || a.triggered_at || a.created_at || a.scraped_at || '';
                 var market = a.market || '';
@@ -5663,20 +5672,21 @@ async function exportFullMatchCSV() {
                 else if (atype === 'bigmoney') details = 'amount=' + (a.incoming_amount || a.amount || '');
                 else if (atype === 'volumeshock') details = 'shock=' + (a.shock_multiplier || a.shock || '') + 'x';
                 else if (atype === 'dropping') details = 'drop=' + (a.drop_pct || a.drop_percent || '') + '%';
-                else if (atype === 'volumeleader') details = 'from=' + (a.from_side || '') + ',to=' + (a.to_side || '') + ',pct=' + (a.to_pct || '');
+                else if (atype === 'volumeleader') details = 'from=' + (a.from_side || '') + ' to=' + (a.to_side || '') + ' pct=' + (a.to_pct || '');
                 else if (atype === 'mim') details = 'impact=' + (a.impact_score || a.impact || '');
-                csv += [atype, csvVal(ts), csvVal(market), csvVal(side), csvVal(odds), csvVal(vol), csvVal(details)].join(',') + '\n';
+                txt += '  ' + ts + ' | market=' + market + ' | side=' + side + ' | odds=' + odds + ' | vol=' + vol + ' | ' + details + '\n';
             });
+            txt += '\n';
         });
     } else {
-        csv += '# No alarm data available for this match\n';
+        txt += '  Bu mac icin alarm verisi bulunamadi.\n';
     }
 
-    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var blob = new Blob([txt], { type: 'text/plain;charset=utf-8;' });
     var link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     var safeName = (home + '_vs_' + away).replace(/[^a-zA-Z0-9_\-]/g, '_');
-    link.download = safeName + '_full_data.csv';
+    link.download = safeName + '_full_data.txt';
     link.click();
     URL.revokeObjectURL(link.href);
 }
