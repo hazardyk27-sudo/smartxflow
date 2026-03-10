@@ -11903,17 +11903,28 @@ table.desktop-only {
         gap: 4px !important;
     }
     .ap-profile-stats > div {
-        padding: 8px 6px !important;
+        padding: 8px 4px !important;
         border-radius: 6px !important;
         text-align: center !important;
+        min-width: 0 !important;
+    }
+    .ap-profile-stats > div:nth-child(5),
+    .ap-profile-stats > div:nth-child(6),
+    .ap-profile-stats > div:nth-child(7) {
+        grid-column: span 1 !important;
+    }
+    .ap-profile-stats > div:nth-child(5) {
+        grid-column: 1 / 2 !important;
     }
     .ap-profile-stats > div > div:first-child {
         font-size: 14px !important;
+        white-space: nowrap !important;
     }
     .ap-profile-stats > div > div:last-child {
         font-size: 6.5px !important;
         letter-spacing: 0.2px !important;
         margin-top: 3px !important;
+        white-space: nowrap !important;
     }
     .analyst-card {
         min-width: 70px !important;
