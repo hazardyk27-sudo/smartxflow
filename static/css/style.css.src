@@ -11880,20 +11880,25 @@ table.desktop-only {
 
 @media (max-width: 480px) {
     .ap-card {
-        padding: 12px 12px !important;
+        padding: 10px 10px !important;
     }
-    .ap-stats {
+    .ap-profile-row {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    .ap-profile-stats {
+        margin-left: 0 !important;
+        justify-content: flex-start !important;
         gap: 3px !important;
     }
-    .ap-stats > div {
-        padding: 7px 2px !important;
+    .ap-profile-stats > div {
+        padding: 5px 10px !important;
         border-radius: 6px !important;
-        min-width: 0 !important;
     }
-    .ap-stats > div > div:first-child {
-        font-size: 13px !important;
+    .ap-profile-stats > div > div:first-child {
+        font-size: 14px !important;
     }
-    .ap-stats > div > div:last-child {
+    .ap-profile-stats > div > div:last-child {
         font-size: 7px !important;
         letter-spacing: 0.2px !important;
         margin-top: 3px !important;
