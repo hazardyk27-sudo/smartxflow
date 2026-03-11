@@ -276,12 +276,10 @@
 
             if(m.pattern_label) html += '<div class="sako-mc-pattern">' + esc(m.pattern_label) + '</div>';
 
-            var mOdds = fmtMatchOdds(m.opening_odds, m.closing_odds);
-            var mOu = fmtMatchOu(m.ou25_opening, m.ou25_closing);
-            html += '<div class="sako-mc-odds-row">';
-            html += '<span class="sako-mc-odds-item">1X2: ' + mOdds + '</span>';
-            html += '<span class="sako-mc-odds-item">2.5 KG: ' + mOu + '</span>';
-            html += '<span class="sako-mc-odds-item">Hacim: ' + fmtVol(m.total_volume) + '</span>';
+            html += '<div class="sako-mc-odds-grid">';
+            html += fmtOddsBlock('1X2', m.opening_odds, m.closing_odds, m.closing_amounts, ['home','draw','away'], ['1','X','2']);
+            html += fmtOddsBlock('2.5 KG', m.ou25_opening, m.ou25_closing, m.ou25_closing_amounts, ['over','under'], ['Üst','Alt']);
+            html += '<div class="sako-mc-odds-block"><div class="sako-mc-odds-block-title">Hacim</div><div class="sako-mc-odds-block-val">' + fmtVol(m.total_volume) + '</div></div>';
             html += '</div>';
 
             html += '<div class="sako-mc-detail" id="sakoDetail' + idx + '">';
@@ -353,6 +351,21 @@
             'P10_40plus': '40+ saat'
         };
         return phaseMap[p] || p;
+    }
+
+    function fmtOddsBlock(title, opening, closing, amounts, keys, labels){
+        var h = '<div class="sako-mc-odds-block"><div class="sako-mc-odds-block-title">' + title + '</div>';
+        h += '<table class="sako-mc-odds-table"><thead><tr><th></th><th>Açılış</th><th>Kapanış</th><th>Para</th></tr></thead><tbody>';
+        for(var i = 0; i < keys.length; i++){
+            var k = keys[i];
+            var lbl = labels[i];
+            var op = (opening && opening[k] != null) ? fmtOdds(opening[k]) : '—';
+            var cl = (closing && closing[k] != null) ? fmtOdds(closing[k]) : '—';
+            var am = (amounts && amounts[k] != null) ? fmtVol(amounts[k]) : '—';
+            h += '<tr><td class="sako-mc-odds-lbl">' + lbl + '</td><td>' + op + '</td><td>' + cl + '</td><td>' + am + '</td></tr>';
+        }
+        h += '</tbody></table></div>';
+        return h;
     }
 
     function fmtMatchOdds(opening, closing){

@@ -129,8 +129,10 @@ def explain_single_match(query_entry, match_result):
         "similarity_score": sim["total_score"],
         "opening_odds": c_1x2.get("opening_odds", {}),
         "closing_odds": c_1x2.get("closing_odds", {}),
+        "closing_amounts": c_1x2.get("closing_amounts", {}),
         "ou25_opening": c_ou25.get("opening_odds", {}),
         "ou25_closing": c_ou25.get("closing_odds", {}),
+        "ou25_closing_amounts": c_ou25.get("closing_amounts", {}),
         "total_volume": candidate.get("total_volume"),
         "top_3_similar_blocks": [
             {"block": b[0], "score": b[1], "label": BLOCK_LABELS.get(b[0], b[0])}

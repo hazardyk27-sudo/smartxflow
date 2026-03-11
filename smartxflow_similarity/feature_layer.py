@@ -528,12 +528,16 @@ def extract_market_features(snapshots, market_key, kickoff, total_volume):
     opening_nv = None
     closing_nv = None
 
+    closing_amounts = {}
+
     if snapshots:
         first = snapshots[0]
         last = snapshots[-1]
         for i, f in enumerate(odds_fields):
             opening_odds[sel_labels[i] if i < len(sel_labels) else f"sel_{i}"] = first.get(f)
             closing_odds[sel_labels[i] if i < len(sel_labels) else f"sel_{i}"] = last.get(f)
+        for i, f in enumerate(amt_fields):
+            closing_amounts[sel_labels[i] if i < len(sel_labels) else f"sel_{i}"] = last.get(f)
 
         first_ov = [first.get(f) for f in odds_fields]
         last_ov = [last.get(f) for f in odds_fields]
@@ -558,6 +562,7 @@ def extract_market_features(snapshots, market_key, kickoff, total_volume):
         "selection_labels": sel_labels,
         "opening_odds": opening_odds,
         "closing_odds": closing_odds,
+        "closing_amounts": closing_amounts,
         "opening_nv": opening_nv,
         "closing_nv": closing_nv,
         "phase_features": all_phase_features,

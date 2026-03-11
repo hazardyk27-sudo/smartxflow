@@ -46,6 +46,7 @@ def build_feature_entry(canonical_match, result=None):
         entry["markets"][market_key] = {
             "opening_odds": mf.get("opening_odds"),
             "closing_odds": mf.get("closing_odds"),
+            "closing_amounts": mf.get("closing_amounts"),
             "opening_nv": mf.get("opening_nv"),
             "closing_nv": mf.get("closing_nv"),
             "selection_labels": mf.get("selection_labels"),
