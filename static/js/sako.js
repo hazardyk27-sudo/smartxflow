@@ -267,7 +267,14 @@
 
             html += '<div class="sako-match-card">';
             html += '<div class="sako-mc-top">';
-            html += '<div><div class="sako-mc-name">' + esc(m.match_name) + '</div><div class="sako-mc-league">' + esc(m.league) + '</div></div>';
+            var mDateStr = '';
+            if(m.kickoff){
+                try {
+                    var md = new Date(m.kickoff);
+                    if(!isNaN(md.getTime())) mDateStr = ' — ' + md.toLocaleDateString('tr-TR', {day:'2-digit',month:'short',year:'numeric'});
+                } catch(e){}
+            }
+            html += '<div><div class="sako-mc-name">' + esc(m.match_name) + '</div><div class="sako-mc-league">' + esc(m.league) + mDateStr + '</div></div>';
             html += '<div class="sako-mc-score">';
             html += '<span class="sako-mc-result ' + resultCls + '">' + resultLabel + '</span>';
             html += '<div class="sako-mc-score-bar"><div class="sako-mc-score-fill" style="width:' + scorePct + '%"></div></div>';
