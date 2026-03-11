@@ -57,6 +57,30 @@ The system employs a hybrid architecture with Supabase serving as the single sou
 - **match_id_hash Contract:** A critical, immutable contract defines `match_id_hash` as a 12-character MD5 hash of a canonical string (`league|home|away`), with specific normalization rules. Kickoff/date is explicitly excluded from hash calculation.
 - **Endpoint Response Contract:** The `/api/match/<match_id_hash>/snapshot` endpoint has an immutable response structure, ensuring backward compatibility, allowing only the addition of new fields or nested objects.
 
+## SmartXFlow Market Behavior Similarity Engine
+
+**Module:** `smartxflow_similarity/`
+
+A market behavior similarity engine that finds historically similar matches by analyzing betting market patterns across phases. Not a prediction engine — provides explainable result distributions based on past matches with similar market behavior.
+
+**Architecture (6 files):**
+- `config.py` — All weights, thresholds, phase definitions, market weights, league tiers
+- `utils.py` — Number parsing, No Vig calculation, datetime handling
+- `parser_layer.py` — Supabase 6-table data ingestion, column aliases, canonical match objects
+- `feature_layer.py` — 10-phase system + 3 aggregate blocks, odds/volume/NV/money% features, 10 reaction classes, cross-market analysis, draw regime, context features
+- `similarity_layer.py` — Hard filter, block-based similarity (5 blocks), phase-weighted scoring
+- `engine_layer.py` — Result distribution, per-match explainability, pattern labeling
+- `feature_store.py` — JSONL-based feature vector storage
+- `run_similarity.py` — CLI runner
+
+**Key Design:**
+- 10 phases: P1 (0-1h) → P10 (40h+), weighted P1=0.16 → P10=0.05
+- 3 aggregate blocks: late (0-4h), mid (4-16h), early (16h+)
+- 10 reaction classes: ACCEPTED_MOVE, WEAK_ACCEPTANCE, FREEZE, TRUE_RLM, CROSS_PRESSURE, MARKET_CORRECTION, NOISE, ABSORBED_PRESSURE, LATE_REVERSAL, PHASE_SHIFT
+- Market weights: 1X2=0.50, OU=0.25, KG=0.25 (draw regime: 0.45/0.30/0.25)
+- 5 similarity blocks: Market Shape (0.20), Flow Shape (0.25), Price Reaction (0.25), Cross-Market/Draw (0.20), Context (0.10)
+- Tests: `smartxflow_similarity/tests/` (87 tests)
+
 ## External Dependencies
 - **arbworld.net:** Primary data source for betting odds.
 - **Supabase:** Cloud-based PostgreSQL database for all data storage.
