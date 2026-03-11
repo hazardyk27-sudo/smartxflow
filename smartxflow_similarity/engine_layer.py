@@ -6,11 +6,11 @@ from smartxflow_similarity.utils import safe_div
 
 
 BLOCK_LABELS = {
-    "market_shape": "Market Shape (odds profili, NV drift, favori yapısı)",
-    "flow_shape": "Flow Shape (hacim akışı, faz likiditesi, geç para)",
-    "price_reaction": "Price Reaction (oran tepkisi, freeze/RLM profili)",
-    "cross_market_draw": "Cross-Market & Draw (çapraz market uyumu, draw rejimi)",
-    "context": "Context (lig seviyesi, hacim, veri kalitesi)",
+    "market_shape": "Pazar Yapısı (odds profili, NV drift, favori yapısı)",
+    "flow_shape": "Akış Şekli (hacim akışı, faz likiditesi, geç para)",
+    "price_reaction": "Fiyat Tepkisi (oran tepkisi, freeze/RLM profili)",
+    "cross_market_draw": "Çapraz Market & Beraberlik (çapraz market uyumu, draw rejimi)",
+    "context": "Bağlam (lig seviyesi, hacim, veri kalitesi)",
 }
 
 PATTERN_TEMPLATES = {
