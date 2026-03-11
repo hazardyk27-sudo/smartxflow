@@ -91,11 +91,11 @@ CONTEXT_SUB_WEIGHTS = {
 }
 
 HARD_FILTER = {
-    "odds_band_tolerance":       0.40,
+    "odds_band_tolerance":       0.80,
     "league_tier_max_diff":      2,
     "volume_bucket_max_diff":    2,
     "min_data_quality":          0.30,
-    "market_duration_max_diff":  12,
+    "market_duration_max_diff":  60,
 }
 
 DRAW_REGIME = {

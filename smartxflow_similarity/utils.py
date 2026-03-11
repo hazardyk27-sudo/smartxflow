@@ -80,6 +80,16 @@ def parse_datetime(val):
             return datetime.strptime(s, fmt)
         except ValueError:
             continue
+    import re
+    m = re.match(r'^(\d{1,2})\.(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{2}:\d{2}:\d{2})$', s)
+    if m:
+        day, mon, time_str = m.groups()
+        now = datetime.now()
+        try:
+            dt = datetime.strptime(f"{day}.{mon}.{now.year} {time_str}", "%d.%b.%Y %H:%M:%S")
+            return dt
+        except ValueError:
+            pass
     return None
 
 
