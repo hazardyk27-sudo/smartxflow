@@ -290,6 +290,7 @@ def run_engine(query_entry, store_entries, top_n=None):
         "match_name": query_entry.get("match_name", ""),
         "league": query_entry.get("league", ""),
         "total_volume": query_entry.get("total_volume"),
+        "kickoff_time": query_entry.get("kickoff") or query_entry.get("kickoff_time"),
         "draw_regime": query_entry.get("draw_regime", {}),
         "active_market_weights": query_entry.get("active_market_weights", {}),
     }

@@ -160,10 +160,20 @@
             'balanced': 'Dengeli'
         };
 
+        var kickoffStr = '';
+        if(qs.kickoff_time){
+            try {
+                var d = new Date(qs.kickoff_time);
+                if(!isNaN(d.getTime())){
+                    kickoffStr = d.toLocaleDateString('tr-TR', {day:'2-digit',month:'short',year:'numeric'}) + ' ' + d.toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'});
+                }
+            } catch(e){}
+        }
+
         document.getElementById('sakoSummary').innerHTML =
             '<div class="sako-sum-header">' +
                 '<div><div class="sako-sum-name">' + esc(qs.match_name || '?') + '</div>' +
-                '<div class="sako-sum-league">' + esc(qs.league || '') + '</div></div>' +
+                '<div class="sako-sum-league">' + esc(qs.league || '') + (kickoffStr ? ' — ' + esc(kickoffStr) : '') + '</div></div>' +
                 drawBadge +
             '</div>' +
             '<div class="sako-sum-grid">' +

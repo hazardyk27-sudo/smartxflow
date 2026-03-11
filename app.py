@@ -6250,7 +6250,20 @@ def sako_run():
         if total_rows == 0:
             return jsonify({'error': 'Bu maç için veri bulunamadı'})
 
-        canonical = build_canonical_match(match_rows)
+        kickoff_time = None
+        try:
+            from urllib.parse import quote as _q
+            fix_url = f"{client._rest_url('fixtures')}?match_id_hash=eq.{_q(match_id_hash_param)}&select=kickoff_utc&limit=1"
+            fix_resp = client._get_http_client().get(fix_url, headers=client._headers(), timeout=10)
+            if fix_resp.status_code == 200:
+                fix_rows = fix_resp.json()
+                if fix_rows and fix_rows[0].get('kickoff_utc'):
+                    from smartxflow_similarity.utils import parse_datetime
+                    kickoff_time = parse_datetime(fix_rows[0]['kickoff_utc'])
+        except Exception:
+            pass
+
+        canonical = build_canonical_match(match_rows, kickoff_time=kickoff_time)
         query_entry = build_feature_entry(canonical)
 
         store_path = os.path.join(os.path.dirname(__file__), 'smartxflow_similarity', 'data', 'feature_store.jsonl')

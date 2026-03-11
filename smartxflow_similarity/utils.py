@@ -13,6 +13,14 @@ def parse_number(val):
         return None
     s = re.sub(r"[£€$¥₺]", "", s).strip()
     s = s.replace("\u00a0", "").replace(" ", "")
+    multiplier = 1.0
+    s_upper = s.upper()
+    if s_upper.endswith("M"):
+        multiplier = 1_000_000
+        s = s[:-1].strip()
+    elif s_upper.endswith("K"):
+        multiplier = 1_000
+        s = s[:-1].strip()
     if re.match(r"^-?\d{1,3}(,\d{3})*(\.\d+)?$", s):
         s = s.replace(",", "")
     elif re.match(r"^-?\d{1,3}(\.\d{3})*(,\d+)?$", s):
@@ -20,7 +28,7 @@ def parse_number(val):
     else:
         s = s.replace(",", ".")
     try:
-        return float(s)
+        return float(s) * multiplier
     except (ValueError, TypeError):
         return None
 
