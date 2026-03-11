@@ -447,7 +447,7 @@ def _is_finished(candidate):
     kickoff = candidate.get("kickoff")
     if not kickoff:
         return False
-    from datetime import datetime, timezone
+    from datetime import datetime, timezone, timedelta
     try:
         if isinstance(kickoff, str):
             kickoff = kickoff.replace("Z", "+00:00")
@@ -456,7 +456,7 @@ def _is_finished(candidate):
         if kickoff is None:
             return False
         now = datetime.now(timezone.utc)
-        return kickoff < now
+        return (now - kickoff) > timedelta(hours=3)
     except Exception:
         return False
 
