@@ -139,6 +139,26 @@ def explain_single_match(query_entry, match_result):
     }
 
 
+def _detect_selection_label(entry):
+    markets = entry.get("markets", {})
+    m1x2 = markets.get("moneyway_1x2") or markets.get("dropping_1x2") or {}
+    closing = m1x2.get("closing_odds") or m1x2.get("opening_odds") or {}
+    h = closing.get("home")
+    d = closing.get("draw")
+    a = closing.get("away")
+    if h is None or a is None:
+        return ""
+    match_name = entry.get("match_name", "")
+    parts = match_name.split(" vs ") if " vs " in match_name else ["Ev", "Deplasman"]
+    home_name = parts[0].strip() if len(parts) > 0 else "Ev"
+    away_name = parts[1].strip() if len(parts) > 1 else "Deplasman"
+    if h < a and (d is None or h < d):
+        return home_name
+    if a < h and (d is None or a < d):
+        return away_name
+    return ""
+
+
 def _determine_pattern_label(entry):
     markets = entry.get("markets", {})
     m1x2 = markets.get("moneyway_1x2") or markets.get("dropping_1x2") or {}
@@ -170,20 +190,23 @@ def _determine_pattern_label(entry):
             elif r == "ABSORBED_PRESSURE":
                 absorbed_count += 1
 
+    sel = _detect_selection_label(entry)
+    sel_tag = f" → {sel}" if sel else ""
+
     if is_draw:
         return PATTERN_TEMPLATES["draw_regime"]
     if has_lr:
-        return PATTERN_TEMPLATES["reverse_line_movement"]
+        return PATTERN_TEMPLATES["reverse_line_movement"] + sel_tag
     if dom_timing == "late_driven":
-        return PATTERN_TEMPLATES["late_money_favorite"]
+        return PATTERN_TEMPLATES["late_money_favorite"] + sel_tag
     if dom_timing == "early_driven":
-        return PATTERN_TEMPLATES["early_established"]
+        return PATTERN_TEMPLATES["early_established"] + sel_tag
     if total_reactions > 0 and freeze_count / max(total_reactions, 1) > 0.3:
-        return PATTERN_TEMPLATES["frozen_market"]
+        return PATTERN_TEMPLATES["frozen_market"] + sel_tag
     if total_reactions > 0 and absorbed_count / max(total_reactions, 1) > 0.3:
-        return PATTERN_TEMPLATES["absorbed_pressure"]
+        return PATTERN_TEMPLATES["absorbed_pressure"] + sel_tag
     if total_reactions > 0 and rlm_count / max(total_reactions, 1) > 0.2:
-        return PATTERN_TEMPLATES["reverse_line_movement"]
+        return PATTERN_TEMPLATES["reverse_line_movement"] + sel_tag
     if contradiction > 0.5:
         return PATTERN_TEMPLATES["cross_pressure"]
     return PATTERN_TEMPLATES["balanced_neutral"]
@@ -314,6 +337,7 @@ def run_engine(query_entry, store_entries, top_n=None):
             ts = m["timing_signature"]
             break
     query_summary["timing_signature"] = ts
+    query_summary["pattern_label"] = _determine_pattern_label(query_entry)
 
     return {
         "query_summary": query_summary,
