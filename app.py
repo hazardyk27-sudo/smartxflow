@@ -6165,6 +6165,203 @@ def scraper_console_page():
     return html
 
 
+# ============================================
+# ŞAKO - Market Behavior Similarity Engine
+# ============================================
+@app.route('/sako')
+@license_required
+def sako_page():
+    """Şako - Market Behavior Similarity Engine page"""
+    return render_template('sako.html')
+
+@app.route('/api/sako/matches')
+@license_required
+def sako_matches():
+    """Return list of matches available for similarity analysis"""
+    try:
+        from services.supabase_client import SupabaseClient
+        client = SupabaseClient()
+        all_matches = []
+        seen_hashes = set()
+        for table in ['moneyway_1x2_history', 'dropping_1x2_history']:
+            try:
+                offset = 0
+                while True:
+                    resp = client.client.table(table).select('match_id_hash,league,home,away').range(offset, offset + 999).execute()
+                    batch = resp.data or []
+                    for row in batch:
+                        h = row.get('match_id_hash', '')
+                        if h and h not in seen_hashes:
+                            seen_hashes.add(h)
+                            home = row.get('home', '')
+                            away = row.get('away', '')
+                            league = row.get('league', '')
+                            all_matches.append({
+                                'hash': h,
+                                'name': f"{home} vs {away}",
+                                'league': league,
+                            })
+                    if len(batch) < 1000:
+                        break
+                    offset += 1000
+            except Exception as e:
+                print(f"[Sako] Error reading {table}: {e}")
+        return jsonify({'matches': all_matches})
+    except Exception as e:
+        return jsonify({'error': str(e), 'matches': []})
+
+@app.route('/api/sako/run')
+@license_required
+def sako_run():
+    """Run similarity engine for a given match"""
+    match_id_hash_param = request.args.get('match_id_hash', '').strip()
+    if not match_id_hash_param:
+        return jsonify({'error': 'match_id_hash gerekli'}), 400
+
+    try:
+        from services.supabase_client import SupabaseClient
+        from smartxflow_similarity.parser_layer import build_canonical_match
+        from smartxflow_similarity.feature_store import build_feature_entry, load_store
+        from smartxflow_similarity.engine_layer import run_engine
+
+        client = SupabaseClient()
+        tables = [
+            'moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history',
+            'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history',
+        ]
+
+        match_rows = {}
+        for table in tables:
+            try:
+                rows = []
+                offset = 0
+                while True:
+                    resp = client.client.table(table).select('*').eq('match_id_hash', match_id_hash_param).range(offset, offset + 999).execute()
+                    batch = resp.data or []
+                    rows.extend(batch)
+                    if len(batch) < 1000:
+                        break
+                    offset += 1000
+                match_rows[table] = rows
+            except Exception as e:
+                print(f"[Sako] Error reading {table} for {match_id_hash_param}: {e}")
+                match_rows[table] = []
+
+        total_rows = sum(len(v) for v in match_rows.values())
+        if total_rows == 0:
+            return jsonify({'error': 'Bu maç için veri bulunamadı'})
+
+        canonical = build_canonical_match(match_rows)
+        query_entry = build_feature_entry(canonical)
+
+        store_path = os.path.join(os.path.dirname(__file__), 'smartxflow_similarity', 'data', 'feature_store.jsonl')
+        store_entries = load_store(store_path) if os.path.exists(store_path) else []
+
+        if not store_entries:
+            return jsonify({
+                'error': None,
+                'query_summary': {
+                    'match_name': query_entry.get('match_name', ''),
+                    'league': query_entry.get('league', ''),
+                    'total_volume': query_entry.get('total_volume'),
+                    'opening_odds': {},
+                    'closing_odds': {},
+                    'draw_regime': query_entry.get('draw_regime', {}),
+                    'timing_signature': {},
+                },
+                'similar_matches': [],
+                'result_distribution': {'simple': {'home': 0, 'draw': 0, 'away': 0, 'total': 0}, 'weighted': {'home': 0, 'draw': 0, 'away': 0}},
+                'overall_explainability': {'top_3_common_traits': [], 'top_2_risk_traits': [], 'main_pattern_label': 'Feature store boş — henüz geçmiş maç verisi yüklenmemiş', 'top_shared_patterns': [], 'top_mismatch_patterns': [], 'draw_risk': False, 'market_contradiction': False},
+                'candidates_checked': 0,
+                'matches_found': 0,
+            })
+
+        result = run_engine(query_entry, store_entries)
+        result['error'] = None
+        return jsonify(result)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Similarity hesaplama hatası: {str(e)}'}), 500
+
+@app.route('/api/sako/store/info')
+@license_required
+def sako_store_info():
+    """Get feature store info"""
+    try:
+        from smartxflow_similarity.feature_store import get_store_info
+        store_path = os.path.join(os.path.dirname(__file__), 'smartxflow_similarity', 'data', 'feature_store.jsonl')
+        info = get_store_info(store_path)
+        return jsonify(info)
+    except Exception as e:
+        return jsonify({'error': str(e), 'count': 0})
+
+@app.route('/api/sako/store/build', methods=['POST'])
+@license_required
+def sako_store_build():
+    """Build/rebuild feature store from all historical matches (admin only)"""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'Admin yetkisi gerekli'}), 403
+    try:
+        from services.supabase_client import SupabaseClient
+        from smartxflow_similarity.parser_layer import build_canonical_match, parse_snapshot_row
+        from smartxflow_similarity.feature_store import build_feature_entry, save_store
+        from smartxflow_similarity.utils import match_id_hash as compute_hash
+
+        client = SupabaseClient()
+        tables = [
+            'moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history',
+            'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history',
+        ]
+
+        all_rows_by_hash = {}
+        for table in tables:
+            try:
+                rows = []
+                offset = 0
+                while True:
+                    resp = client.client.table(table).select('*').range(offset, offset + 999).execute()
+                    batch = resp.data or []
+                    rows.extend(batch)
+                    if len(batch) < 1000:
+                        break
+                    offset += 1000
+                for row in rows:
+                    h = row.get('match_id_hash', '')
+                    if not h:
+                        parsed, _ = parse_snapshot_row(row, table)
+                        if parsed.get('league') and parsed.get('home') and parsed.get('away'):
+                            h = compute_hash(parsed['league'], parsed['home'], parsed['away'])
+                    if not h:
+                        continue
+                    if h not in all_rows_by_hash:
+                        all_rows_by_hash[h] = {t: [] for t in tables}
+                    all_rows_by_hash[h][table].append(row)
+            except Exception as e:
+                print(f"[Sako Store Build] Error reading {table}: {e}")
+
+        entries = []
+        for mid, table_rows in all_rows_by_hash.items():
+            try:
+                canonical = build_canonical_match(table_rows)
+                entry = build_feature_entry(canonical)
+                entries.append(entry)
+            except Exception as e:
+                print(f"[Sako Store Build] Error processing {mid}: {e}")
+
+        store_dir = os.path.join(os.path.dirname(__file__), 'smartxflow_similarity', 'data')
+        os.makedirs(store_dir, exist_ok=True)
+        store_path = os.path.join(store_dir, 'feature_store.jsonl')
+        save_store(entries, store_path)
+
+        return jsonify({'success': True, 'count': len(entries), 'path': store_path})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e), 'success': False}), 500
+
+
 @app.route('/admin')
 def admin_panel():
     """Admin Panel - requires login, triggers lazy warmup on first visit"""

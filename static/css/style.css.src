@@ -11790,6 +11790,26 @@ table.desktop-only {
 .license-device-icon {
     opacity: 0.6;
 }
+.sako-header-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 8px;
+    color: #8B5CF6;
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    margin-left: 8px;
+}
+.sako-header-btn:hover {
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.5);
+    color: #a78bfa;
+}
 .logout-btn {
     display: none;
     align-items: center;
