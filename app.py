@@ -6183,29 +6183,26 @@ def sako_matches():
         client = SupabaseClient()
         all_matches = []
         seen_hashes = set()
-        for table in ['moneyway_1x2_history', 'dropping_1x2_history']:
-            try:
-                offset = 0
-                while True:
-                    resp = client.client.table(table).select('match_id_hash,league,home,away').range(offset, offset + 999).execute()
-                    batch = resp.data or []
-                    for row in batch:
-                        h = row.get('match_id_hash', '')
-                        if h and h not in seen_hashes:
-                            seen_hashes.add(h)
-                            home = row.get('home', '')
-                            away = row.get('away', '')
-                            league = row.get('league', '')
-                            all_matches.append({
-                                'hash': h,
-                                'name': f"{home} vs {away}",
-                                'league': league,
-                            })
-                    if len(batch) < 1000:
-                        break
-                    offset += 1000
-            except Exception as e:
-                print(f"[Sako] Error reading {table}: {e}")
+        offset = 0
+        while True:
+            url = f"{client._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc&order=kickoff_utc.desc&offset={offset}&limit=1000"
+            resp = client._get_http_client().get(url, headers=client._headers(), timeout=15)
+            batch = resp.json() if resp.status_code == 200 else []
+            for row in batch:
+                h = row.get('match_id_hash', '')
+                if h and h not in seen_hashes:
+                    seen_hashes.add(h)
+                    home = row.get('home_team', '')
+                    away = row.get('away_team', '')
+                    league = row.get('league', '')
+                    all_matches.append({
+                        'hash': h,
+                        'name': f"{home} vs {away}",
+                        'league': league,
+                    })
+            if len(batch) < 1000:
+                break
+            offset += 1000
         return jsonify({'matches': all_matches})
     except Exception as e:
         return jsonify({'error': str(e), 'matches': []})
@@ -6236,8 +6233,10 @@ def sako_run():
                 rows = []
                 offset = 0
                 while True:
-                    resp = client.client.table(table).select('*').eq('match_id_hash', match_id_hash_param).range(offset, offset + 999).execute()
-                    batch = resp.data or []
+                    from urllib.parse import quote
+                    url = f"{client._rest_url(table)}?match_id_hash=eq.{quote(match_id_hash_param)}&select=*&order=scraped_at.desc&offset={offset}&limit=1000"
+                    resp = client._get_http_client().get(url, headers=client._headers(), timeout=15)
+                    batch = resp.json() if resp.status_code == 200 else []
                     rows.extend(batch)
                     if len(batch) < 1000:
                         break
@@ -6321,8 +6320,9 @@ def sako_store_build():
                 rows = []
                 offset = 0
                 while True:
-                    resp = client.client.table(table).select('*').range(offset, offset + 999).execute()
-                    batch = resp.data or []
+                    url = f"{client._rest_url(table)}?select=*&order=match_id_hash&offset={offset}&limit=1000"
+                    resp = client._get_http_client().get(url, headers=client._headers(), timeout=30)
+                    batch = resp.json() if resp.status_code == 200 else []
                     rows.extend(batch)
                     if len(batch) < 1000:
                         break
