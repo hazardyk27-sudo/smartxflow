@@ -332,7 +332,19 @@
 
     function shortPhase(p){
         if(!p) return '';
-        return p.replace('P10_40plus', 'P10').replace(/_\d+to\d+h/, '').replace('P', 'F');
+        var phaseMap = {
+            'P1_40plus': '40+ saat',
+            'P2_30to40h': '30-40 saat',
+            'P3_24to30h': '24-30 saat',
+            'P4_18to24h': '18-24 saat',
+            'P5_12to18h': '12-18 saat',
+            'P6_6to12h': '6-12 saat',
+            'P7_3to6h': '3-6 saat',
+            'P8_1to3h': '1-3 saat',
+            'P9_0to1h': 'Son 1 saat',
+            'P10_40plus': 'Canlı'
+        };
+        return phaseMap[p] || p;
     }
 
     function fmtOdds(v){
