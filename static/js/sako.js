@@ -137,20 +137,19 @@
             ? '<span class="sako-sum-draw-badge">Draw Regime Aktif (' + (dr.draw_regime_score || 0).toFixed(2) + ')</span>'
             : '';
 
+        var oddsOrder = ['home', '1', 'draw', 'x', 'away', '2'];
         var oddsStr = '';
-        var keys = Object.keys(opening);
-        if(keys.length){
+        if(Object.keys(opening).length){
             var parts = [];
-            keys.forEach(function(k){
-                parts.push(fmtOdds(opening[k]));
-            });
+            oddsOrder.forEach(function(k){ if(opening[k] != null) parts.push(fmtOdds(opening[k])); });
+            if(!parts.length) Object.keys(opening).forEach(function(k){ parts.push(fmtOdds(opening[k])); });
             oddsStr = parts.join(' / ');
         }
         var closingStr = '';
-        var ckeys = Object.keys(closing);
-        if(ckeys.length){
+        if(Object.keys(closing).length){
             var cp = [];
-            ckeys.forEach(function(k){ cp.push(fmtOdds(closing[k])); });
+            oddsOrder.forEach(function(k){ if(closing[k] != null) cp.push(fmtOdds(closing[k])); });
+            if(!cp.length) Object.keys(closing).forEach(function(k){ cp.push(fmtOdds(closing[k])); });
             closingStr = cp.join(' / ');
         }
 
