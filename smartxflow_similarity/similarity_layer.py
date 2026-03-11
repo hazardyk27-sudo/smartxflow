@@ -443,6 +443,24 @@ def compute_similarity(query_entry, candidate_entry):
     }
 
 
+def _is_finished(candidate):
+    kickoff = candidate.get("kickoff")
+    if not kickoff:
+        return False
+    from datetime import datetime, timezone
+    try:
+        if isinstance(kickoff, str):
+            kickoff = kickoff.replace("Z", "+00:00")
+            from smartxflow_similarity.utils import parse_datetime
+            kickoff = parse_datetime(kickoff)
+        if kickoff is None:
+            return False
+        now = datetime.now(timezone.utc)
+        return kickoff < now
+    except Exception:
+        return False
+
+
 def find_similar_matches(query_entry, store_entries, top_n=None):
     if top_n is None:
         top_n = TOP_SIMILAR_COUNT
@@ -452,6 +470,8 @@ def find_similar_matches(query_entry, store_entries, top_n=None):
 
     for candidate in store_entries:
         if candidate.get("match_id_hash") == query_hash:
+            continue
+        if not _is_finished(candidate):
             continue
         if not passes_hard_filter(query_entry, candidate):
             continue
