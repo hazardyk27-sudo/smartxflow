@@ -333,16 +333,16 @@
     function shortPhase(p){
         if(!p) return '';
         var phaseMap = {
-            'P1_40plus': '40+ saat',
-            'P2_30to40h': '30-40 saat',
-            'P3_24to30h': '24-30 saat',
-            'P4_18to24h': '18-24 saat',
-            'P5_12to18h': '12-18 saat',
-            'P6_6to12h': '6-12 saat',
-            'P7_3to6h': '3-6 saat',
-            'P8_1to3h': '1-3 saat',
-            'P9_0to1h': 'Son 1 saat',
-            'P10_40plus': 'Canlı'
+            'P1_0to1h': 'Son 1 saat',
+            'P2_1to2h': '1-2 saat',
+            'P3_2to4h': '2-4 saat',
+            'P4_4to8h': '4-8 saat',
+            'P5_8to12h': '8-12 saat',
+            'P6_12to16h': '12-16 saat',
+            'P7_16to20h': '16-20 saat',
+            'P8_20to30h': '20-30 saat',
+            'P9_30to40h': '30-40 saat',
+            'P10_40plus': '40+ saat'
         };
         return phaseMap[p] || p;
     }
