@@ -453,6 +453,22 @@
     font-style: italic;
 }
 
+.sako-mc-odds-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background: rgba(139,148,158,0.06);
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+}
+.sako-mc-odds-item {
+    color: #8B949E;
+    white-space: nowrap;
+}
+
 .sako-mc-detail {
     display: none;
     margin-top: 12px;

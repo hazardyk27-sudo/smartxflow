@@ -119,11 +119,19 @@ def explain_single_match(query_entry, match_result):
 
     pattern_label = _determine_pattern_label(candidate)
 
+    c_1x2 = c_markets.get("moneyway_1x2") or c_markets.get("dropping_1x2") or {}
+    c_ou25 = c_markets.get("moneyway_ou25") or c_markets.get("dropping_ou25") or {}
+
     return {
         "match_name": candidate.get("match_name", ""),
         "league": candidate.get("league", ""),
         "result": candidate.get("result"),
         "similarity_score": sim["total_score"],
+        "opening_odds": c_1x2.get("opening_odds", {}),
+        "closing_odds": c_1x2.get("closing_odds", {}),
+        "ou25_opening": c_ou25.get("opening_odds", {}),
+        "ou25_closing": c_ou25.get("closing_odds", {}),
+        "total_volume": candidate.get("total_volume"),
         "top_3_similar_blocks": [
             {"block": b[0], "score": b[1], "label": BLOCK_LABELS.get(b[0], b[0])}
             for b in top_3_similar

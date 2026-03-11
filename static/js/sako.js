@@ -276,6 +276,14 @@
 
             if(m.pattern_label) html += '<div class="sako-mc-pattern">' + esc(m.pattern_label) + '</div>';
 
+            var mOdds = fmtMatchOdds(m.opening_odds, m.closing_odds);
+            var mOu = fmtMatchOu(m.ou25_opening, m.ou25_closing);
+            html += '<div class="sako-mc-odds-row">';
+            html += '<span class="sako-mc-odds-item">1X2: ' + mOdds + '</span>';
+            html += '<span class="sako-mc-odds-item">2.5 KG: ' + mOu + '</span>';
+            html += '<span class="sako-mc-odds-item">Hacim: ' + fmtVol(m.total_volume) + '</span>';
+            html += '</div>';
+
             html += '<div class="sako-mc-detail" id="sakoDetail' + idx + '">';
 
             html += '<div class="sako-mc-blocks">';
@@ -345,6 +353,36 @@
             'P10_40plus': '40+ saat'
         };
         return phaseMap[p] || p;
+    }
+
+    function fmtMatchOdds(opening, closing){
+        if(!opening || !Object.keys(opening).length) return '—';
+        var oddsOrder = ['home', '1', 'draw', 'x', 'away', '2'];
+        var op = [], cl = [];
+        oddsOrder.forEach(function(k){ if(opening[k] != null) op.push(fmtOdds(opening[k])); });
+        if(!op.length) Object.keys(opening).forEach(function(k){ op.push(fmtOdds(opening[k])); });
+        if(closing && Object.keys(closing).length){
+            oddsOrder.forEach(function(k){ if(closing[k] != null) cl.push(fmtOdds(closing[k])); });
+            if(!cl.length) Object.keys(closing).forEach(function(k){ cl.push(fmtOdds(closing[k])); });
+        }
+        var s = op.join('/');
+        if(cl.length) s += ' → ' + cl.join('/');
+        return s;
+    }
+
+    function fmtMatchOu(opening, closing){
+        if(!opening || !Object.keys(opening).length) return '—';
+        var ouOrder = ['over', 'under'];
+        var op = [], cl = [];
+        ouOrder.forEach(function(k){ if(opening[k] != null) op.push(fmtOdds(opening[k])); });
+        if(!op.length) Object.keys(opening).forEach(function(k){ op.push(fmtOdds(opening[k])); });
+        if(closing && Object.keys(closing).length){
+            ouOrder.forEach(function(k){ if(closing[k] != null) cl.push(fmtOdds(closing[k])); });
+            if(!cl.length) Object.keys(closing).forEach(function(k){ cl.push(fmtOdds(closing[k])); });
+        }
+        var s = op.join('/');
+        if(cl.length) s += ' → ' + cl.join('/');
+        return s;
     }
 
     function fmtOdds(v){
