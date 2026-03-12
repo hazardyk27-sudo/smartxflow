@@ -53,7 +53,7 @@ def _clamp(v, lo=0.0, hi=1.0):
     return max(lo, min(hi, v))
 
 
-def _odds_diff_score(a, b, max_diff=0.20):
+def _odds_diff_score(a, b, max_diff=0.12):
     if a is None or b is None:
         return 0.0
     return max(0.0, 1.0 - (abs(a - b) / max_diff) ** 2)
@@ -265,13 +265,17 @@ def _get_primary_market_getter(market_filter):
     return None, None
 
 
-def _compute_single_market_money(q_entry, c_entry, get_market, sel_keys, is_1x2=False):
+def _compute_single_market_money(q_entry, c_entry, get_market, sel_keys, is_1x2=False, return_detail=False):
     q_m = get_market(q_entry)
     c_m = get_market(c_entry)
     if not q_m or not c_m:
+        if return_detail:
+            return 0.0, {"nv": 0.0, "amount": 0.0}
         return 0.0
 
     scores = []
+    nv_avg = 0.0
+    amt_combined = 0.0
 
     if is_1x2:
         q_role = _get_1x2_role_mapping(q_m)
@@ -285,7 +289,8 @@ def _compute_single_market_money(q_entry, c_entry, get_market, sel_keys, is_1x2=
             nv_scores = []
             for i in range(3):
                 nv_scores.append(_clamp(1.0 - abs(q_nv_norm[i] - c_nv_norm[i]) / 0.15))
-            scores.append(sum(nv_scores) / len(nv_scores))
+            nv_avg = sum(nv_scores) / len(nv_scores)
+            scores.append(nv_avg)
 
         q_amounts = q_m.get("closing_amounts") or {}
         c_amounts = c_m.get("closing_amounts") or {}
@@ -304,7 +309,8 @@ def _compute_single_market_money(q_entry, c_entry, get_market, sel_keys, is_1x2=
             if pct_scores:
                 pct_avg = sum(pct_scores) / len(pct_scores)
                 abs_avg = sum(abs_scores) / len(abs_scores) if abs_scores else 0.0
-                scores.append(pct_avg * 0.5 + abs_avg * 0.5)
+                amt_combined = pct_avg * 0.5 + abs_avg * 0.5
+                scores.append(amt_combined)
     else:
         q_nv = q_m.get("closing_nv")
         c_nv = c_m.get("closing_nv")
@@ -312,7 +318,8 @@ def _compute_single_market_money(q_entry, c_entry, get_market, sel_keys, is_1x2=
             nv_scores = []
             for i in range(len(q_nv)):
                 nv_scores.append(_clamp(1.0 - abs(q_nv[i] - c_nv[i]) / 0.15))
-            scores.append(sum(nv_scores) / len(nv_scores))
+            nv_avg = sum(nv_scores) / len(nv_scores)
+            scores.append(nv_avg)
 
         q_amounts = q_m.get("closing_amounts") or {}
         c_amounts = c_m.get("closing_amounts") or {}
@@ -329,11 +336,17 @@ def _compute_single_market_money(q_entry, c_entry, get_market, sel_keys, is_1x2=
             if pct_scores:
                 pct_avg = sum(pct_scores) / len(pct_scores)
                 abs_avg = sum(abs_scores) / len(abs_scores) if abs_scores else 0.0
-                scores.append(pct_avg * 0.5 + abs_avg * 0.5)
+                amt_combined = pct_avg * 0.5 + abs_avg * 0.5
+                scores.append(amt_combined)
 
     if not scores:
+        if return_detail:
+            return 0.0, {"nv": 0.0, "amount": 0.0}
         return 0.0
-    return round(sum(scores) / len(scores), 4)
+    total = round(sum(scores) / len(scores), 4)
+    if return_detail:
+        return total, {"nv": round(nv_avg, 4), "amount": round(amt_combined, 4)}
+    return total
 
 
 def passes_hard_filter(query, candidate, market_filter=None):
@@ -414,8 +427,9 @@ def compute_similarity(query, candidate, market_filter=None):
                 block_scores[drift_block_name] = 0.0
 
             is_1x2 = (market_filter == "1x2")
-            money_score = _compute_single_market_money(query, candidate, getter, sel_keys, is_1x2=is_1x2)
+            money_score, money_detail = _compute_single_market_money(query, candidate, getter, sel_keys, is_1x2=is_1x2, return_detail=True)
             block_scores["money_distribution"] = money_score
+            block_scores["money_distribution_detail"] = money_detail
 
             q_vol = query.get("total_volume") or 0
             c_vol = candidate.get("total_volume") or 0
@@ -423,9 +437,10 @@ def compute_similarity(query, candidate, market_filter=None):
             c_bucket = candidate.get("volume_bucket") or _get_volume_bucket(c_vol)
             vol_sim = _compute_volume_similarity(q_vol, c_vol, q_bucket, c_bucket)
             block_scores["total_volume"] = vol_sim
+            block_scores["total_volume_detail"] = {"q_vol": q_vol, "c_vol": c_vol}
 
-            total = (block_scores[block_name] * 0.30 +
-                     block_scores[drift_block_name] * 0.45 +
+            total = (block_scores[block_name] * 0.39 +
+                     block_scores[drift_block_name] * 0.36 +
                      block_scores["money_distribution"] * 0.15 +
                      block_scores["total_volume"] * 0.10)
 
@@ -479,6 +494,7 @@ def compute_similarity(query, candidate, market_filter=None):
     c_bucket = candidate.get("volume_bucket") or _get_volume_bucket(c_vol)
     vol_sim = _compute_volume_similarity(q_vol, c_vol, q_bucket, c_bucket)
     block_scores["total_volume"] = vol_sim
+    block_scores["total_volume_detail"] = {"q_vol": q_vol, "c_vol": c_vol}
 
     total = 0.0
     weight_sum = 0.0

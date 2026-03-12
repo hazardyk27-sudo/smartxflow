@@ -366,11 +366,22 @@
                         var detailKey = bk + '_detail';
                         if(m.block_scores[detailKey]){
                             var d = m.block_scores[detailKey];
-                            html += '<div class="s2-block-sub">';
-                            html += '<span class="s2-block-sub-item">Açılış <b>' + (d.opening * 100).toFixed(0) + '%</b></span>';
-                            html += '<span class="s2-block-sub-item">Kapanış <b>' + (d.closing * 100).toFixed(0) + '%</b></span>';
-                            html += '<span class="s2-block-sub-item s2-block-sub-drift">Drift <b>' + (d.drift * 100).toFixed(0) + '%</b></span>';
-                            html += '</div>';
+                            if(d.opening != null && d.closing != null && d.drift != null){
+                                html += '<div class="s2-block-sub">';
+                                html += '<span class="s2-block-sub-item">Açılış <b>' + (d.opening * 100).toFixed(0) + '%</b></span>';
+                                html += '<span class="s2-block-sub-item">Kapanış <b>' + (d.closing * 100).toFixed(0) + '%</b></span>';
+                                html += '<span class="s2-block-sub-item s2-block-sub-drift">Drift <b>' + (d.drift * 100).toFixed(0) + '%</b></span>';
+                                html += '</div>';
+                            } else if(d.nv != null && d.amount != null){
+                                html += '<div class="s2-block-sub">';
+                                html += '<span class="s2-block-sub-item">NV <b>' + (d.nv * 100).toFixed(0) + '%</b></span>';
+                                html += '<span class="s2-block-sub-item">Tutar <b>' + (d.amount * 100).toFixed(0) + '%</b></span>';
+                                html += '</div>';
+                            } else if(d.q_vol != null && d.c_vol != null){
+                                html += '<div class="s2-block-sub">';
+                                html += '<span class="s2-block-sub-item">' + fmtVol(d.q_vol) + ' vs ' + fmtVol(d.c_vol) + '</span>';
+                                html += '</div>';
+                            }
                         }
                     }
                 }
