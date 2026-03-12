@@ -87,25 +87,27 @@ def compute_result_distribution(similar_matches):
         if result_str in ("DRAW", "X", "D"):
             draw_count += 1
             w_draw += sim_score
+            weight_sum += sim_score
         else:
             fav_side = _get_favorite_side(candidate)
+            if fav_side is None:
+                total_with_result -= 1
+                continue
             if result_str in ("HOME", "1", "H"):
                 winner = "HOME"
             elif result_str in ("AWAY", "2", "A"):
                 winner = "AWAY"
             else:
+                total_with_result -= 1
                 continue
 
-            if fav_side is None:
-                pass
-            elif winner == fav_side:
+            if winner == fav_side:
                 fav_count += 1
                 w_fav += sim_score
             else:
                 sur_count += 1
                 w_sur += sim_score
-
-        weight_sum += sim_score
+            weight_sum += sim_score
 
     simple = {
         "favori": round(safe_div(fav_count, total_with_result) * 100, 1) if total_with_result > 0 else 0,
