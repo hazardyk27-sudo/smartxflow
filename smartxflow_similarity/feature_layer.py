@@ -531,7 +531,8 @@ def extract_market_features(snapshots, market_key, kickoff, total_volume):
     closing_amounts = {}
 
     if snapshots:
-        first = snapshots[0]
+        open_idx = min(9, len(snapshots) - 1)
+        first = snapshots[open_idx]
         last = snapshots[-1]
         for i, f in enumerate(odds_fields):
             opening_odds[sel_labels[i] if i < len(sel_labels) else f"sel_{i}"] = first.get(f)
