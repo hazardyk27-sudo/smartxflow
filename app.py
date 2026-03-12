@@ -6389,7 +6389,14 @@ def sako_run():
 @app.route('/sako2')
 @license_required
 def sako2_page():
-    return render_template('sako2.html')
+    import os
+    store_path = os.path.join(os.path.dirname(__file__), 'smartxflow_similarity', 'data', 'feature_store.jsonl')
+    try:
+        with open(store_path, 'r') as f:
+            store_count = sum(1 for _ in f)
+    except Exception:
+        store_count = 0
+    return render_template('sako2.html', store_count=store_count)
 
 @app.route('/api/sako2/run')
 @license_required

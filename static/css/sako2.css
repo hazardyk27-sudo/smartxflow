@@ -50,6 +50,12 @@
     color: #e6edf3;
     margin-bottom: 4px;
 }
+.sako-db-count {
+    font-size: 12px;
+    font-weight: 500;
+    color: #8b949e;
+    margin-left: 8px;
+}
 .sako-search-desc {
     font-size: 13px;
     color: #8B949E;
