@@ -85,6 +85,7 @@ def explain_single_match(query_entry, match_result):
         "league": candidate.get("league", ""),
         "kickoff": candidate.get("kickoff"),
         "result": candidate.get("result"),
+        "score": candidate.get("score"),
         "similarity_score": sim["total_score"],
         "opening_odds": c_1x2.get("opening_odds", {}),
         "closing_odds": c_1x2.get("closing_odds", {}),

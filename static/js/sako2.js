@@ -265,9 +265,10 @@
             var resultLabel = m.result || '?';
             if(m.result){
                 var r = m.result.toUpperCase();
-                if(r === 'HOME' || r === '1' || r === 'H'){ resultCls = 'home'; resultLabel = 'Ev'; }
-                else if(r === 'DRAW' || r === 'X' || r === 'D'){ resultCls = 'draw'; resultLabel = 'Beraberlik'; }
-                else if(r === 'AWAY' || r === '2' || r === 'A'){ resultCls = 'away'; resultLabel = 'Deplasman'; }
+                var scoreStr = m.score ? ' ' + m.score : '';
+                if(r === 'HOME' || r === '1' || r === 'H'){ resultCls = 'home'; resultLabel = 'Ev' + scoreStr; }
+                else if(r === 'DRAW' || r === 'X' || r === 'D'){ resultCls = 'draw'; resultLabel = 'Beraberlik' + scoreStr; }
+                else if(r === 'AWAY' || r === '2' || r === 'A'){ resultCls = 'away'; resultLabel = 'Deplasman' + scoreStr; }
             }
 
             var scorePct = Math.round((m.similarity_score || 0) * 100);
