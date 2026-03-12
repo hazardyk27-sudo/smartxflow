@@ -6297,6 +6297,98 @@ def sako_run():
         traceback.print_exc()
         return jsonify({'error': f'Similarity hesaplama hatası: {str(e)}'}), 500
 
+@app.route('/sako2')
+@license_required
+def sako2_page():
+    return render_template('sako2.html')
+
+@app.route('/api/sako2/run')
+@license_required
+def sako2_run():
+    match_id_hash_param = request.args.get('match_id_hash', '').strip()
+    if not match_id_hash_param:
+        return jsonify({'error': 'match_id_hash gerekli'}), 400
+
+    try:
+        from services.supabase_client import SupabaseClient
+        from smartxflow_similarity.parser_layer import build_canonical_match
+        from smartxflow_similarity.feature_store import build_feature_entry, load_store
+        from smartxflow_sako2.engine2 import run_engine as run_engine2
+
+        client = SupabaseClient()
+        tables = [
+            'moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history',
+            'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history',
+        ]
+
+        match_rows = {}
+        for table in tables:
+            try:
+                rows = []
+                offset = 0
+                while True:
+                    from urllib.parse import quote
+                    url = f"{client._rest_url(table)}?match_id_hash=eq.{quote(match_id_hash_param)}&select=*&order=scraped_at.desc&offset={offset}&limit=1000"
+                    resp = client._get_http_client().get(url, headers=client._headers(), timeout=15)
+                    batch = resp.json() if resp.status_code == 200 else []
+                    rows.extend(batch)
+                    if len(batch) < 1000:
+                        break
+                    offset += 1000
+                match_rows[table] = rows
+            except Exception as e:
+                print(f"[Sako2] Error reading {table} for {match_id_hash_param}: {e}")
+                match_rows[table] = []
+
+        total_rows = sum(len(v) for v in match_rows.values())
+        if total_rows == 0:
+            return jsonify({'error': 'Bu maç için veri bulunamadı'})
+
+        kickoff_time = None
+        try:
+            from urllib.parse import quote as _q
+            fix_url = f"{client._rest_url('fixtures')}?match_id_hash=eq.{_q(match_id_hash_param)}&select=kickoff_utc&limit=1"
+            fix_resp = client._get_http_client().get(fix_url, headers=client._headers(), timeout=10)
+            if fix_resp.status_code == 200:
+                fix_rows = fix_resp.json()
+                if fix_rows and fix_rows[0].get('kickoff_utc'):
+                    from smartxflow_similarity.utils import parse_datetime
+                    kickoff_time = parse_datetime(fix_rows[0]['kickoff_utc'])
+        except Exception:
+            pass
+
+        canonical = build_canonical_match(match_rows, kickoff_time=kickoff_time)
+        query_entry = build_feature_entry(canonical)
+
+        store_path = os.path.join(os.path.dirname(__file__), 'smartxflow_similarity', 'data', 'feature_store.jsonl')
+        store_entries = load_store(store_path) if os.path.exists(store_path) else []
+
+        if not store_entries:
+            return jsonify({
+                'error': None,
+                'query_summary': {
+                    'match_name': query_entry.get('match_name', ''),
+                    'league': query_entry.get('league', ''),
+                    'total_volume': query_entry.get('total_volume'),
+                    'opening_odds': {},
+                    'closing_odds': {},
+                },
+                'similar_matches': [],
+                'result_distribution': {'simple': {'home': 0, 'draw': 0, 'away': 0, 'total': 0}, 'weighted': {'home': 0, 'draw': 0, 'away': 0}},
+                'overall_explainability': {'top_3_common_traits': [], 'top_2_risk_traits': [], 'main_pattern_label': 'Feature store boş'},
+                'candidates_checked': 0,
+                'matches_found': 0,
+            })
+
+        result = run_engine2(query_entry, store_entries)
+        result['error'] = None
+        return jsonify(result)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Sako2 hesaplama hatası oluştu'}), 500
+
 @app.route('/api/sako/store/info')
 @license_required
 def sako_store_info():
