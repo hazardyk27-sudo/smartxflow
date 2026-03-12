@@ -166,6 +166,52 @@
     color: #6E7681;
 }
 
+.sako2-sum-markets {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 12px;
+}
+.sako2-market-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #21262d;
+}
+.sako2-market-row:last-child { border-bottom: none; }
+.sako2-market-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #3B82F6;
+    min-width: 50px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.sako2-market-data {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    flex: 1;
+}
+.sako2-market-cell {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+}
+.sako2-market-cell-label {
+    font-size: 10px;
+    color: #6E7681;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+.sako2-market-cell-val {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e6edf3;
+    font-family: 'JetBrains Mono', monospace;
+}
+
 .sako-section-title {
     display: flex;
     align-items: center;

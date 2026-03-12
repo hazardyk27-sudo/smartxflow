@@ -145,14 +145,27 @@
             } catch(e){}
         }
 
+        var ou25Opening = qs.ou25_opening || {};
+        var ou25Closing = qs.ou25_closing || {};
+        var bttsOpening = qs.btts_opening || {};
+        var bttsClosing = qs.btts_closing || {};
+
+        var ou25Str = fmtOddsLine(ou25Opening, ['over','under']);
+        var ou25CloseStr = fmtOddsLine(ou25Closing, ['over','under']);
+        var bttsStr = fmtOddsLine(bttsOpening, ['yes','no']);
+        var bttsCloseStr = fmtOddsLine(bttsClosing, ['yes','no']);
+
         document.getElementById('sako2Summary').innerHTML =
             '<div class="sako-sum-header">' +
                 '<div><div class="sako-sum-name">' + esc(qs.match_name || '?') + '</div>' +
                 '<div class="sako-sum-league">' + esc(qs.league || '') + (kickoffStr ? ' — ' + esc(kickoffStr) : '') + '</div></div>' +
             '</div>' +
+            '<div class="sako2-sum-markets">' +
+                marketRow('1X2', oddsStr, closingStr, fmtAmounts(qs.closing_amounts, ['home','draw','away'], ['1','X','2'])) +
+                marketRow('ÜA 2.5', ou25Str, ou25CloseStr, fmtAmounts(qs.ou25_closing_amounts, ['over','under'], ['Ü','A'])) +
+                marketRow('KG', bttsStr, bttsCloseStr, fmtAmounts(qs.btts_closing_amounts, ['yes','no'], ['E','H'])) +
+            '</div>' +
             '<div class="sako-sum-grid">' +
-                sumStat('Açılış 1X2', oddsStr || '—') +
-                sumStat('Kapanış 1X2', closingStr || '—') +
                 sumStat('Toplam Hacim', fmtVol(qs.total_volume)) +
             '</div>';
     }
@@ -163,6 +176,27 @@
         order.forEach(function(k){ if(odds[k] != null) parts.push(fmtOdds(odds[k])); });
         if(!parts.length) Object.keys(odds).forEach(function(k){ parts.push(fmtOdds(odds[k])); });
         return parts.join(' / ');
+    }
+
+    function marketRow(title, openStr, closeStr, amountsStr){
+        return '<div class="sako2-market-row">' +
+            '<div class="sako2-market-title">' + title + '</div>' +
+            '<div class="sako2-market-data">' +
+                '<div class="sako2-market-cell"><span class="sako2-market-cell-label">Açılış</span><span class="sako2-market-cell-val">' + (openStr || '—') + '</span></div>' +
+                '<div class="sako2-market-cell"><span class="sako2-market-cell-label">Kapanış</span><span class="sako2-market-cell-val">' + (closeStr || '—') + '</span></div>' +
+                '<div class="sako2-market-cell"><span class="sako2-market-cell-label">Para</span><span class="sako2-market-cell-val">' + (amountsStr || '—') + '</span></div>' +
+            '</div>' +
+        '</div>';
+    }
+
+    function fmtAmounts(amounts, keys, labels){
+        if(!amounts || !Object.keys(amounts).length) return '—';
+        var parts = [];
+        for(var i = 0; i < keys.length; i++){
+            var v = amounts[keys[i]];
+            if(v != null) parts.push(labels[i] + ' ' + fmtVol(v));
+        }
+        return parts.length ? parts.join('  ') : '—';
     }
 
     function sumStat(label, value){
@@ -250,7 +284,15 @@
 
             html += '<div class="sako-mc-info-row">';
             html += fmtOddsCompact('1X2', m.opening_odds, m.closing_odds, ['home','draw','away'], ['1','X','2']);
+            html += fmtAmountsCompact('1X2 ₺', m.closing_amounts, ['home','draw','away'], ['1','X','2']);
+            html += '</div>';
+            html += '<div class="sako-mc-info-row">';
             html += fmtOddsCompact('ÜA 2.5', m.ou25_opening, m.ou25_closing, ['over','under'], ['Ü','A']);
+            html += fmtAmountsCompact('ÜA ₺', m.ou25_closing_amounts, ['over','under'], ['Ü','A']);
+            html += fmtOddsCompact('KG', m.btts_opening, m.btts_closing, ['yes','no'], ['E','H']);
+            html += fmtAmountsCompact('KG ₺', m.btts_closing_amounts, ['yes','no'], ['E','H']);
+            html += '</div>';
+            html += '<div class="sako-mc-info-row">';
             html += '<div class="sako-mc-info-item"><span class="sako-mc-info-label">Hacim</span><span class="sako-mc-info-val">' + fmtVol(m.total_volume) + '</span></div>';
             html += '</div>';
 
@@ -303,6 +345,17 @@
             btn.textContent = 'Detay Gizle ▲';
         }
     };
+
+    function fmtAmountsCompact(title, amounts, keys, labels){
+        if(!amounts || !Object.keys(amounts).length) return '';
+        var parts = [];
+        for(var i = 0; i < keys.length; i++){
+            var v = amounts[keys[i]];
+            if(v != null) parts.push(labels[i] + ' ' + fmtVol(v));
+        }
+        if(!parts.length) return '';
+        return '<div class="sako-mc-info-item"><span class="sako-mc-info-label">' + title + '</span><span class="sako-mc-info-val">' + parts.join('  ') + '</span></div>';
+    }
 
     function fmtOddsCompact(title, opening, closing, keys, labels){
         if(!opening || !Object.keys(opening).length) return '<div class="sako-mc-info-item"><span class="sako-mc-info-label">' + title + '</span><span class="sako-mc-info-val">—</span></div>';

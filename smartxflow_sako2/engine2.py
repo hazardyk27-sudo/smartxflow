@@ -77,6 +77,7 @@ def explain_single_match(query_entry, match_result):
     c_markets = candidate.get("markets", {})
     c_1x2 = c_markets.get("moneyway_1x2") or c_markets.get("dropping_1x2") or {}
     c_ou25 = c_markets.get("moneyway_ou25") or c_markets.get("dropping_ou25") or {}
+    c_btts = c_markets.get("moneyway_btts") or c_markets.get("dropping_btts") or {}
 
     return {
         "match_name": candidate.get("match_name", ""),
@@ -90,6 +91,9 @@ def explain_single_match(query_entry, match_result):
         "ou25_opening": c_ou25.get("opening_odds", {}),
         "ou25_closing": c_ou25.get("closing_odds", {}),
         "ou25_closing_amounts": c_ou25.get("closing_amounts", {}),
+        "btts_opening": c_btts.get("opening_odds", {}),
+        "btts_closing": c_btts.get("closing_odds", {}),
+        "btts_closing_amounts": c_btts.get("closing_amounts", {}),
         "total_volume": candidate.get("total_volume"),
         "top_3_similar_blocks": [
             {"block": b[0], "score": b[1], "label": BLOCK_LABELS.get(b[0], b[0])}
@@ -170,17 +174,22 @@ def run_engine(query_entry, store_entries, top_n=None):
         "kickoff_time": query_entry.get("kickoff") or query_entry.get("kickoff_time"),
     }
 
-    opening_odds = {}
-    closing_odds = {}
-    for mk in ["moneyway_1x2", "dropping_1x2"]:
-        m = query_entry.get("markets", {}).get(mk)
-        if m:
-            opening_odds = m.get("opening_odds", {})
-            closing_odds = m.get("closing_odds", {})
-            break
+    markets = query_entry.get("markets", {})
 
-    query_summary["opening_odds"] = opening_odds
-    query_summary["closing_odds"] = closing_odds
+    q_1x2 = markets.get("moneyway_1x2") or markets.get("dropping_1x2") or {}
+    query_summary["opening_odds"] = q_1x2.get("opening_odds", {})
+    query_summary["closing_odds"] = q_1x2.get("closing_odds", {})
+    query_summary["closing_amounts"] = q_1x2.get("closing_amounts", {})
+
+    q_ou25 = markets.get("moneyway_ou25") or markets.get("dropping_ou25") or {}
+    query_summary["ou25_opening"] = q_ou25.get("opening_odds", {})
+    query_summary["ou25_closing"] = q_ou25.get("closing_odds", {})
+    query_summary["ou25_closing_amounts"] = q_ou25.get("closing_amounts", {})
+
+    q_btts = markets.get("moneyway_btts") or markets.get("dropping_btts") or {}
+    query_summary["btts_opening"] = q_btts.get("opening_odds", {})
+    query_summary["btts_closing"] = q_btts.get("closing_odds", {})
+    query_summary["btts_closing_amounts"] = q_btts.get("closing_amounts", {})
 
     return {
         "query_summary": query_summary,
