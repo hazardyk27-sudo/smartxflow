@@ -97,8 +97,7 @@ def compute_result_distribution(similar_matches):
                 continue
 
             if fav_side is None:
-                fav_count += 1
-                w_fav += sim_score
+                pass
             elif winner == fav_side:
                 fav_count += 1
                 w_fav += sim_score
