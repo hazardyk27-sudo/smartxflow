@@ -138,7 +138,7 @@
 
     function renderResults(data){
         renderSummary(data.query_summary, selectedMarket);
-        renderDistribution(data.result_distribution);
+        renderDistribution(data.result_distribution, data.ou25_distribution, data.btts_distribution);
         renderPattern(data.overall_explainability);
         renderMatches(data.similar_matches, selectedMarket);
         document.getElementById('sako2MatchCount').textContent = data.matches_found || 0;
@@ -209,26 +209,65 @@
         return sign + pct.toFixed(1) + '%';
     }
 
-    function renderDistribution(dist){
+    function renderDistribution(dist, ou25Dist, bttsDist){
         var simple = dist.simple || {};
         var weighted = dist.weighted || {};
-        document.getElementById('sako2Distribution').innerHTML =
-            '<div class="sako-dist-card">' +
-                '<div class="sako-dist-title">Simple (' + (simple.total || 0) + ' maç)</div>' +
-                distBar('Ev', simple.home || 0, 'home') +
+        var ou25s = (ou25Dist && ou25Dist.simple) || {};
+        var ou25w = (ou25Dist && ou25Dist.weighted) || {};
+        var bttss = (bttsDist && bttsDist.simple) || {};
+        var bttsw = (bttsDist && bttsDist.weighted) || {};
+        var html = '<div class="sako-dist-row">';
+        html += '<div class="sako-dist-card">' +
+                '<div class="sako-dist-title">SİMPLE (' + (simple.total || 0) + ' maç)</div>' +
+                distBar('Favori', simple.favori || 0, 'favori') +
                 distBar('Beraberlik', simple.draw || 0, 'draw') +
-                distBar('Deplasman', simple.away || 0, 'away') +
-            '</div>' +
-            '<div class="sako-dist-card">' +
-                '<div class="sako-dist-title">Weighted</div>' +
-                distBar('Ev', weighted.home || 0, 'home') +
-                distBar('Beraberlik', weighted.draw || 0, 'draw') +
-                distBar('Deplasman', weighted.away || 0, 'away') +
+                distBar('Sürpriz', simple.surpriz || 0, 'surpriz') +
             '</div>';
+        html += '<div class="sako-dist-card">' +
+                '<div class="sako-dist-title">WEİGHTED</div>' +
+                distBar('Favori', weighted.favori || 0, 'favori') +
+                distBar('Beraberlik', weighted.draw || 0, 'draw') +
+                distBar('Sürpriz', weighted.surpriz || 0, 'surpriz') +
+            '</div>';
+        html += '</div>';
+        if((ou25s.total || 0) > 0){
+            html += '<div class="sako-dist-row">';
+            html += '<div class="sako-dist-card">' +
+                    '<div class="sako-dist-title">ÜA 2.5 SİMPLE (' + (ou25s.total || 0) + ' maç)</div>' +
+                    distBar('Üst', ou25s.over || 0, 'over') +
+                    distBar('Alt', ou25s.under || 0, 'under') +
+                '</div>';
+            html += '<div class="sako-dist-card">' +
+                    '<div class="sako-dist-title">ÜA 2.5 WEİGHTED</div>' +
+                    distBar('Üst', ou25w.over || 0, 'over') +
+                    distBar('Alt', ou25w.under || 0, 'under') +
+                '</div>';
+            html += '</div>';
+        }
+        if((bttss.total || 0) > 0){
+            html += '<div class="sako-dist-row">';
+            html += '<div class="sako-dist-card">' +
+                    '<div class="sako-dist-title">KG SİMPLE (' + (bttss.total || 0) + ' maç)</div>' +
+                    distBar('Var', bttss.yes || 0, 'kgyes') +
+                    distBar('Yok', bttss.no || 0, 'kgno') +
+                '</div>';
+            html += '<div class="sako-dist-card">' +
+                    '<div class="sako-dist-title">KG WEİGHTED</div>' +
+                    distBar('Var', bttsw.yes || 0, 'kgyes') +
+                    distBar('Yok', bttsw.no || 0, 'kgno') +
+                '</div>';
+            html += '</div>';
+        }
+        document.getElementById('sako2Distribution').innerHTML = html;
     }
 
     function distBar(label, pct, cls){
-        var color = cls === 'home' ? '#22C55E' : cls === 'draw' ? '#FACC15' : '#EF4444';
+        var colorMap = {
+            'favori': '#22C55E', 'draw': '#FACC15', 'surpriz': '#EF4444',
+            'over': '#3B82F6', 'under': '#F97316',
+            'kgyes': '#8B5CF6', 'kgno': '#64748B'
+        };
+        var color = colorMap[cls] || '#94A3B8';
         return '<div class="sako-dist-bar-wrap">' +
             '<div class="sako-dist-label">' +
                 '<span class="sako-dist-label-name">' + label + '</span>' +

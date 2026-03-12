@@ -8,25 +8,57 @@ def _safe_div(a, b):
     return a / b
 
 
-def compute_result_distribution(similar_matches):
-    if not similar_matches:
-        return {
-            "simple": {"home": 0, "draw": 0, "away": 0, "total": 0},
-            "weighted": {"home": 0, "draw": 0, "away": 0},
-        }
+def _parse_score(score_str):
+    if not score_str or "-" not in str(score_str):
+        return None, None
+    parts = str(score_str).split("-")
+    try:
+        return int(parts[0]), int(parts[1])
+    except (ValueError, IndexError):
+        return None, None
 
-    home_count = 0
+
+def _get_favorite_side(candidate):
+    markets = candidate.get("markets", {})
+    m1x2 = markets.get("moneyway_1x2") or markets.get("dropping_1x2") or {}
+    closing = m1x2.get("closing_odds", {})
+    odds_1 = closing.get("1") or closing.get("home")
+    odds_2 = closing.get("2") or closing.get("away")
+    if odds_1 is None or odds_2 is None:
+        return None
+    try:
+        odds_1 = float(odds_1)
+        odds_2 = float(odds_2)
+    except (ValueError, TypeError):
+        return None
+    if odds_1 < odds_2:
+        return "HOME"
+    elif odds_2 < odds_1:
+        return "AWAY"
+    return None
+
+
+def compute_result_distribution(similar_matches):
+    empty = {
+        "simple": {"favori": 0, "draw": 0, "surpriz": 0, "total": 0},
+        "weighted": {"favori": 0, "draw": 0, "surpriz": 0},
+    }
+    if not similar_matches:
+        return empty
+
+    fav_count = 0
     draw_count = 0
-    away_count = 0
+    sur_count = 0
     total_with_result = 0
 
-    weighted_home = 0.0
-    weighted_draw = 0.0
-    weighted_away = 0.0
+    w_fav = 0.0
+    w_draw = 0.0
+    w_sur = 0.0
     weight_sum = 0.0
 
     for match in similar_matches:
-        result = match["candidate"].get("result")
+        candidate = match["candidate"]
+        result = candidate.get("result")
         sim_score = match["similarity"]["total_score"]
 
         if result is None:
@@ -35,33 +67,135 @@ def compute_result_distribution(similar_matches):
         result_str = str(result).strip().upper()
         total_with_result += 1
 
-        if result_str in ("HOME", "1", "H"):
-            home_count += 1
-            weighted_home += sim_score
-        elif result_str in ("DRAW", "X", "D"):
+        if result_str in ("DRAW", "X", "D"):
             draw_count += 1
-            weighted_draw += sim_score
-        elif result_str in ("AWAY", "2", "A"):
-            away_count += 1
-            weighted_away += sim_score
+            w_draw += sim_score
+        else:
+            fav_side = _get_favorite_side(candidate)
+            if result_str in ("HOME", "1", "H"):
+                winner = "HOME"
+            elif result_str in ("AWAY", "2", "A"):
+                winner = "AWAY"
+            else:
+                continue
+
+            if fav_side is None:
+                fav_count += 1
+                w_fav += sim_score
+            elif winner == fav_side:
+                fav_count += 1
+                w_fav += sim_score
+            else:
+                sur_count += 1
+                w_sur += sim_score
 
         weight_sum += sim_score
 
     simple = {
-        "home": round(_safe_div(home_count, total_with_result) * 100, 1) if total_with_result > 0 else 0,
+        "favori": round(_safe_div(fav_count, total_with_result) * 100, 1) if total_with_result > 0 else 0,
         "draw": round(_safe_div(draw_count, total_with_result) * 100, 1) if total_with_result > 0 else 0,
-        "away": round(_safe_div(away_count, total_with_result) * 100, 1) if total_with_result > 0 else 0,
+        "surpriz": round(_safe_div(sur_count, total_with_result) * 100, 1) if total_with_result > 0 else 0,
         "total": total_with_result,
     }
 
-    weighted = {"home": 0, "draw": 0, "away": 0}
+    weighted = {"favori": 0, "draw": 0, "surpriz": 0}
     if weight_sum > 0:
         weighted = {
-            "home": round(weighted_home / weight_sum * 100, 1),
-            "draw": round(weighted_draw / weight_sum * 100, 1),
-            "away": round(weighted_away / weight_sum * 100, 1),
+            "favori": round(w_fav / weight_sum * 100, 1),
+            "draw": round(w_draw / weight_sum * 100, 1),
+            "surpriz": round(w_sur / weight_sum * 100, 1),
         }
 
+    return {"simple": simple, "weighted": weighted}
+
+
+def compute_ou25_distribution(similar_matches):
+    empty = {
+        "simple": {"over": 0, "under": 0, "total": 0},
+        "weighted": {"over": 0, "under": 0},
+    }
+    if not similar_matches:
+        return empty
+
+    over_count = 0
+    under_count = 0
+    total = 0
+    w_over = 0.0
+    w_under = 0.0
+    weight_sum = 0.0
+
+    for match in similar_matches:
+        candidate = match["candidate"]
+        score = candidate.get("score")
+        hg, ag = _parse_score(score)
+        if hg is None:
+            continue
+        sim_score = match["similarity"]["total_score"]
+        total += 1
+        if (hg + ag) > 2:
+            over_count += 1
+            w_over += sim_score
+        else:
+            under_count += 1
+            w_under += sim_score
+        weight_sum += sim_score
+
+    simple = {
+        "over": round(_safe_div(over_count, total) * 100, 1) if total > 0 else 0,
+        "under": round(_safe_div(under_count, total) * 100, 1) if total > 0 else 0,
+        "total": total,
+    }
+    weighted = {"over": 0, "under": 0}
+    if weight_sum > 0:
+        weighted = {
+            "over": round(w_over / weight_sum * 100, 1),
+            "under": round(w_under / weight_sum * 100, 1),
+        }
+    return {"simple": simple, "weighted": weighted}
+
+
+def compute_btts_distribution(similar_matches):
+    empty = {
+        "simple": {"yes": 0, "no": 0, "total": 0},
+        "weighted": {"yes": 0, "no": 0},
+    }
+    if not similar_matches:
+        return empty
+
+    yes_count = 0
+    no_count = 0
+    total = 0
+    w_yes = 0.0
+    w_no = 0.0
+    weight_sum = 0.0
+
+    for match in similar_matches:
+        candidate = match["candidate"]
+        score = candidate.get("score")
+        hg, ag = _parse_score(score)
+        if hg is None:
+            continue
+        sim_score = match["similarity"]["total_score"]
+        total += 1
+        if hg > 0 and ag > 0:
+            yes_count += 1
+            w_yes += sim_score
+        else:
+            no_count += 1
+            w_no += sim_score
+        weight_sum += sim_score
+
+    simple = {
+        "yes": round(_safe_div(yes_count, total) * 100, 1) if total > 0 else 0,
+        "no": round(_safe_div(no_count, total) * 100, 1) if total > 0 else 0,
+        "total": total,
+    }
+    weighted = {"yes": 0, "no": 0}
+    if weight_sum > 0:
+        weighted = {
+            "yes": round(w_yes / weight_sum * 100, 1),
+            "no": round(w_no / weight_sum * 100, 1),
+        }
     return {"simple": simple, "weighted": weighted}
 
 
@@ -167,6 +301,8 @@ def run_engine(query_entry, store_entries, top_n=None, market_filter=None):
         explanations.append(exp)
 
     distribution = compute_result_distribution(similar_matches)
+    ou25_distribution = compute_ou25_distribution(similar_matches)
+    btts_distribution = compute_btts_distribution(similar_matches)
     overall = compute_overall_explainability(query_entry, explanations)
 
     query_summary = {
@@ -197,6 +333,8 @@ def run_engine(query_entry, store_entries, top_n=None, market_filter=None):
         "query_summary": query_summary,
         "similar_matches": explanations,
         "result_distribution": distribution,
+        "ou25_distribution": ou25_distribution,
+        "btts_distribution": btts_distribution,
         "overall_explainability": overall,
         "candidates_checked": len(store_entries),
         "matches_found": len(similar_matches),
