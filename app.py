@@ -460,6 +460,7 @@ def add_header(response):
 
 cleanup_thread = None
 alarm_scheduler_thread = None
+finished_archiver_thread = None
 last_cleanup_date = None
 last_alarm_calc_time = None
 
@@ -632,6 +633,79 @@ def start_cleanup_scheduler():
     
     cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
     cleanup_thread.start()
+
+
+def archive_finished_matches():
+    """Biten maçları (kickoff + 3 saat geçmiş) hemen feature store'a aktar."""
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return 0
+
+        from smartxflow_similarity.feature_store import load_store
+        store_path = os.path.join(os.path.dirname(__file__), 'smartxflow_similarity', 'data', 'feature_store.jsonl')
+        existing = load_store(store_path) if os.path.exists(store_path) else []
+        existing_hashes = {e.get("match_id_hash") for e in existing}
+
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=3)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        url = f"{supabase._rest_url('fixtures')}?select=match_id_hash,kickoff_utc&kickoff_utc=lt.{cutoff}&order=kickoff_utc.desc&limit=500"
+        resp = supabase._get_http_client().get(url, headers=supabase._headers(), timeout=15)
+        if resp.status_code != 200:
+            return 0
+
+        rows = resp.json()
+        if not isinstance(rows, list):
+            return 0
+
+        finished_hashes = [r['match_id_hash'] for r in rows if r.get('match_id_hash') and r['match_id_hash'] not in existing_hashes]
+        if not finished_hashes:
+            return 0
+
+        print(f"[FinishedArchiver] {len(finished_hashes)} biten maç feature store'a eklenecek")
+        added = _archive_to_feature_store(supabase, finished_hashes)
+
+        if added > 0:
+            try:
+                from smartxflow_similarity.result_fetcher import update_store_results
+                matched = update_store_results(store_path)
+                if matched > 0:
+                    print(f"[FinishedArchiver] {matched} maç sonucu eşleştirildi")
+            except Exception as e:
+                print(f"[FinishedArchiver] Sonuç eşleştirme hatası: {e}")
+
+        return added
+    except Exception as e:
+        print(f"[FinishedArchiver] Hata: {e}")
+        import traceback
+        traceback.print_exc()
+        return 0
+
+
+_finished_archiver_pids = set()
+
+def start_finished_archiver():
+    """30 dakikada bir biten maçları feature store'a aktaran scheduler"""
+    global finished_archiver_thread
+
+    pid = os.getpid()
+    if pid in _finished_archiver_pids:
+        return
+    _finished_archiver_pids.add(pid)
+    print(f"[FinishedArchiver] Scheduler başlatıldı (PID {pid}, 30 dk aralık)", flush=True)
+
+    def archiver_loop():
+        time.sleep(60)
+        while True:
+            try:
+                added = archive_finished_matches()
+                if added > 0:
+                    print(f"[FinishedArchiver] {added} maç eklendi")
+            except Exception as e:
+                print(f"[FinishedArchiver] Loop hatası: {e}")
+            time.sleep(1800)
+
+    finished_archiver_thread = threading.Thread(target=archiver_loop, daemon=True)
+    finished_archiver_thread.start()
 
 
 def run_alarm_calculations():
@@ -9041,6 +9115,7 @@ def _initialize_server():
         start_server_scheduler()
         start_cleanup_scheduler()
         start_alarm_scheduler()
+        start_finished_archiver()
         print("[Init] Web-only mode - scraper/alarm managed by run_services.sh", flush=True)
 
     if is_client_mode():
@@ -9078,8 +9153,9 @@ def main():
                         return self.application
 
                 def post_worker_init(worker):
-                    print(f"[Gunicorn] Worker {worker.pid} started, initializing cleanup scheduler...", flush=True)
+                    print(f"[Gunicorn] Worker {worker.pid} started, initializing schedulers...", flush=True)
                     start_cleanup_scheduler()
+                    start_finished_archiver()
                     print(f"[Gunicorn] Worker {worker.pid} triggering eager warmup...", flush=True)
                     trigger_app_warmup()
 
