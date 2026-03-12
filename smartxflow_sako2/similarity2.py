@@ -65,10 +65,16 @@ def _drift_pct(opening, closing):
     return (closing - opening) / opening
 
 
-def _drift_diff_score(drift_a, drift_b, max_diff=0.30):
+def _drift_diff_score(drift_a, drift_b, max_diff=0.10):
     if (drift_a > 0.005 and drift_b < -0.005) or (drift_a < -0.005 and drift_b > 0.005):
-        return _clamp((1.0 - abs(drift_a - drift_b) / max_diff) * 0.3)
-    return _clamp(1.0 - abs(drift_a - drift_b) / max_diff)
+        return _clamp((1.0 - (abs(drift_a - drift_b) / max_diff) ** 2) * 0.2)
+    a_flat = abs(drift_a) < 0.005
+    b_flat = abs(drift_b) < 0.005
+    if a_flat != b_flat:
+        moving = abs(drift_b) if a_flat else abs(drift_a)
+        if moving > 0.015:
+            return _clamp((1.0 - (abs(drift_a - drift_b) / max_diff) ** 2) * 0.5)
+    return _clamp(1.0 - (abs(drift_a - drift_b) / max_diff) ** 2)
 
 
 def _amount_ratio_score(q_val, c_val):
@@ -104,7 +110,7 @@ def _compute_odds_block(q_market, c_market, sel_keys):
 
         q_drift = _drift_pct(qo, qc)
         c_drift = _drift_pct(co, cc)
-        drift_scores.append(_drift_diff_score(q_drift, c_drift, max_diff=0.25))
+        drift_scores.append(_drift_diff_score(q_drift, c_drift))
 
     if not open_scores and not close_scores:
         return None
