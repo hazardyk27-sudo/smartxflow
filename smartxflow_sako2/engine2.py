@@ -70,7 +70,8 @@ def explain_single_match(query_entry, match_result):
     sim = match_result["similarity"]
     block_scores = sim.get("block_scores", {})
 
-    sorted_blocks = sorted(block_scores.items(), key=lambda x: x[1], reverse=True)
+    numeric_blocks = {k: v for k, v in block_scores.items() if not k.endswith("_detail")}
+    sorted_blocks = sorted(numeric_blocks.items(), key=lambda x: x[1], reverse=True)
     top_similar = sorted_blocks[:3]
     top_divergent = sorted_blocks[-2:] if len(sorted_blocks) >= 2 else sorted_blocks
 
