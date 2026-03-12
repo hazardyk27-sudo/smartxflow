@@ -735,6 +735,25 @@
     text-align: right;
 }
 
+.s2-block-sub {
+    display: flex;
+    gap: 12px;
+    padding: 2px 0 6px 12px;
+    margin-bottom: 4px;
+}
+.s2-block-sub-item {
+    font-size: 10px;
+    color: #6E7681;
+    font-family: 'JetBrains Mono', monospace;
+}
+.s2-block-sub-item b {
+    color: #C9D1D9;
+    font-weight: 700;
+}
+.s2-block-sub-drift b {
+    color: #FACC15;
+}
+
 .sako-mc-toggle {
     display: flex;
     justify-content: center;

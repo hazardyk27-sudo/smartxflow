@@ -314,6 +314,15 @@
                         html += '<div class="sako2-block-bar-track"><div class="sako2-block-bar-fill" style="width:' + bpct + '%"></div></div>';
                         html += '<span class="sako2-block-bar-val">' + bpct + '%</span>';
                         html += '</div>';
+                        var detailKey = bk + '_detail';
+                        if(m.block_scores[detailKey]){
+                            var d = m.block_scores[detailKey];
+                            html += '<div class="s2-block-sub">';
+                            html += '<span class="s2-block-sub-item">Açılış <b>' + (d.opening * 100).toFixed(0) + '%</b></span>';
+                            html += '<span class="s2-block-sub-item">Kapanış <b>' + (d.closing * 100).toFixed(0) + '%</b></span>';
+                            html += '<span class="s2-block-sub-item s2-block-sub-drift">Drift <b>' + (d.drift * 100).toFixed(0) + '%</b></span>';
+                            html += '</div>';
+                        }
                     }
                 }
                 html += '</div>';

@@ -113,7 +113,13 @@ def _compute_odds_block(q_market, c_market, sel_keys):
     avg_close = sum(close_scores) / len(close_scores) if close_scores else 0.0
     avg_drift = sum(drift_scores) / len(drift_scores) if drift_scores else 0.0
 
-    return round((avg_open * 0.20 + avg_close * 0.25 + avg_drift * 0.55), 4)
+    total = round((avg_open * 0.20 + avg_close * 0.25 + avg_drift * 0.55), 4)
+    return {
+        "score": total,
+        "opening": round(avg_open, 4),
+        "closing": round(avg_close, 4),
+        "drift": round(avg_drift, 4),
+    }
 
 
 def _get_1x2_role_mapping(market):
@@ -386,9 +392,13 @@ def compute_similarity(query, candidate, market_filter=None):
         if getter:
             q_m = getter(query)
             c_m = getter(candidate)
-            odds_score = _compute_odds_block(q_m, c_m, sel_keys)
+            odds_result = _compute_odds_block(q_m, c_m, sel_keys)
             block_name = "odds_" + market_filter
-            block_scores[block_name] = odds_score if odds_score is not None else 0.0
+            if odds_result is not None:
+                block_scores[block_name] = odds_result["score"]
+                block_scores[block_name + "_detail"] = odds_result
+            else:
+                block_scores[block_name] = 0.0
 
             is_1x2 = (market_filter == "1x2")
             money_score = _compute_single_market_money(query, candidate, getter, sel_keys, is_1x2=is_1x2)
@@ -414,25 +424,37 @@ def compute_similarity(query, candidate, market_filter=None):
 
     q_1x2 = _get_1x2_market(query)
     c_1x2 = _get_1x2_market(candidate)
-    odds_1x2 = _compute_odds_block(q_1x2, c_1x2, ["home", "draw", "away"])
-    block_scores["odds_1x2"] = odds_1x2 if odds_1x2 is not None else 0.0
+    odds_1x2_result = _compute_odds_block(q_1x2, c_1x2, ["home", "draw", "away"])
+    if odds_1x2_result is not None:
+        block_scores["odds_1x2"] = odds_1x2_result["score"]
+        block_scores["odds_1x2_detail"] = odds_1x2_result
+    else:
+        block_scores["odds_1x2"] = 0.0
 
     q_ou = _get_ou_market(query)
     c_ou = _get_ou_market(candidate)
-    odds_ou = _compute_odds_block(q_ou, c_ou, ["over", "under"])
-    block_scores["odds_ou"] = odds_ou if odds_ou is not None else 0.0
+    odds_ou_result = _compute_odds_block(q_ou, c_ou, ["over", "under"])
+    if odds_ou_result is not None:
+        block_scores["odds_ou"] = odds_ou_result["score"]
+        block_scores["odds_ou_detail"] = odds_ou_result
+    else:
+        block_scores["odds_ou"] = 0.0
 
     q_kg = _get_kg_market(query)
     c_kg = _get_kg_market(candidate)
-    odds_kg = _compute_odds_block(q_kg, c_kg, ["yes", "no"])
-    if odds_kg is None:
+    odds_kg_result = _compute_odds_block(q_kg, c_kg, ["yes", "no"])
+    if odds_kg_result is None:
         for key in ["moneyway_btts", "dropping_btts"]:
             qm = query.get("markets", {}).get(key)
             cm = candidate.get("markets", {}).get(key)
             if qm and cm and qm.get("opening_odds") and cm.get("opening_odds"):
-                odds_kg = _compute_odds_block(qm, cm, ["oddsyes", "oddsno"])
+                odds_kg_result = _compute_odds_block(qm, cm, ["oddsyes", "oddsno"])
                 break
-    block_scores["odds_kg"] = odds_kg if odds_kg is not None else 0.0
+    if odds_kg_result is not None:
+        block_scores["odds_kg"] = odds_kg_result["score"]
+        block_scores["odds_kg_detail"] = odds_kg_result
+    else:
+        block_scores["odds_kg"] = 0.0
 
     money_dist = _compute_money_distribution(query, candidate)
     block_scores["money_distribution"] = money_dist
@@ -447,6 +469,8 @@ def compute_similarity(query, candidate, market_filter=None):
     total = 0.0
     weight_sum = 0.0
     for block_name, score in block_scores.items():
+        if block_name.endswith("_detail"):
+            continue
         w = bw.get(block_name, 0)
         total += score * w
         weight_sum += w
