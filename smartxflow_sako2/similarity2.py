@@ -107,11 +107,75 @@ def _compute_odds_block(q_market, c_market, sel_keys):
     return round((avg_open * 0.30 + avg_close * 0.30 + avg_drift * 0.40), 4)
 
 
+def _get_1x2_role_mapping(market):
+    odds = market.get("closing_odds") or market.get("opening_odds") or {}
+    home_odds = odds.get("home")
+    away_odds = odds.get("away")
+    if home_odds is not None and away_odds is not None:
+        if home_odds <= away_odds:
+            return {"favorite": "home", "draw": "draw", "underdog": "away"}
+        else:
+            return {"favorite": "away", "draw": "draw", "underdog": "home"}
+    return {"favorite": "home", "draw": "draw", "underdog": "away"}
+
+
+def _normalize_1x2_by_role(values, role_map):
+    if not values:
+        return {}
+    return {
+        "favorite": values.get(role_map["favorite"]),
+        "draw": values.get(role_map["draw"]),
+        "underdog": values.get(role_map["underdog"]),
+    }
+
+
+def _normalize_1x2_nv_by_role(nv_list, role_map):
+    if not nv_list or len(nv_list) != 3:
+        return None
+    key_order = ["home", "draw", "away"]
+    idx = {k: i for i, k in enumerate(key_order)}
+    return [
+        nv_list[idx[role_map["favorite"]]],
+        nv_list[idx[role_map["draw"]]],
+        nv_list[idx[role_map["underdog"]]],
+    ]
+
+
 def _compute_money_distribution(q_entry, c_entry):
     scores = []
 
+    q_1x2 = _get_1x2_market(q_entry)
+    c_1x2 = _get_1x2_market(c_entry)
+    if q_1x2 and c_1x2:
+        q_role = _get_1x2_role_mapping(q_1x2)
+        c_role = _get_1x2_role_mapping(c_1x2)
+
+        q_nv = q_1x2.get("closing_nv")
+        c_nv = c_1x2.get("closing_nv")
+        q_nv_norm = _normalize_1x2_nv_by_role(q_nv, q_role)
+        c_nv_norm = _normalize_1x2_nv_by_role(c_nv, c_role)
+        if q_nv_norm and c_nv_norm:
+            nv_scores = []
+            for i in range(3):
+                nv_scores.append(_clamp(1.0 - abs(q_nv_norm[i] - c_nv_norm[i]) / 0.15))
+            scores.append(sum(nv_scores) / len(nv_scores))
+
+        q_amounts = q_1x2.get("closing_amounts") or {}
+        c_amounts = c_1x2.get("closing_amounts") or {}
+        if q_amounts and c_amounts:
+            q_norm = _normalize_1x2_by_role(q_amounts, q_role)
+            c_norm = _normalize_1x2_by_role(c_amounts, c_role)
+            q_total = sum(v for v in q_norm.values() if v is not None) or 1
+            c_total = sum(v for v in c_norm.values() if v is not None) or 1
+            pct_scores = []
+            for role_key in ["favorite", "draw", "underdog"]:
+                q_pct = (q_norm.get(role_key) or 0) / q_total
+                c_pct = (c_norm.get(role_key) or 0) / c_total
+                pct_scores.append(_clamp(1.0 - abs(q_pct - c_pct) / 0.20))
+            if pct_scores:
+                scores.append(sum(pct_scores) / len(pct_scores))
+
     for get_market, sel_keys in [
-        (_get_1x2_market, ["home", "draw", "away"]),
         (_get_ou_market, ["over", "under"]),
         (_get_kg_market, ["yes", "no"]),
     ]:
