@@ -1,6 +1,9 @@
 import re
 import json
 import os
+import time
+import urllib.request
+import urllib.parse
 
 
 ALIAS_MAP = {
@@ -356,4 +359,110 @@ def update_store_results(store_path, results_by_league=None):
             updated += 1
 
     save_store(entries, store_path)
+    return updated
+
+
+SPORTSDB_API = "https://www.thesportsdb.com/api/v1/json/3"
+SPORTSDB_SEASON = "2025-2026"
+
+
+def _sportsdb_search(home, away):
+    query = f"{home}_vs_{away}"
+    url = f"{SPORTSDB_API}/searchevents.php?e={urllib.parse.quote(query)}&s={SPORTSDB_SEASON}"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "SmartXFlow/1.0"})
+        resp = urllib.request.urlopen(req, timeout=10)
+        data = json.loads(resp.read())
+        return data.get("event") or []
+    except Exception:
+        return []
+
+
+def _match_sportsdb_event(store_home, store_away, kick_day, kick_month, events):
+    for ev in events:
+        ev_home = ev.get("strHomeTeam", "")
+        ev_away = ev.get("strAwayTeam", "")
+        ev_date = ev.get("dateEvent", "")
+        ev_home_score = ev.get("intHomeScore")
+        ev_away_score = ev.get("intAwayScore")
+
+        if ev_home_score is None or ev_away_score is None:
+            continue
+
+        ev_day = ev_date[8:10] if len(ev_date) >= 10 else ""
+        ev_month = ev_date[5:7] if len(ev_date) >= 7 else ""
+        if ev_day != kick_day or ev_month != kick_month:
+            continue
+
+        if _teams_match(store_home, ev_home) and _teams_match(store_away, ev_away):
+            hg, ag = int(ev_home_score), int(ev_away_score)
+            result = "HOME" if hg > ag else ("AWAY" if ag > hg else "DRAW")
+            return result, f"{hg}-{ag}"
+
+        if _teams_match(store_home, ev_away) and _teams_match(store_away, ev_home):
+            hg, ag = int(ev_home_score), int(ev_away_score)
+            result = "HOME" if ag > hg else ("AWAY" if hg > ag else "DRAW")
+            return result, f"{ag}-{hg}"
+
+    return None, None
+
+
+def fetch_results_from_api(store_path, max_queries=30):
+    from datetime import datetime, timezone
+    from smartxflow_similarity.feature_store import load_store, save_store
+
+    entries = load_store(store_path)
+    if not entries:
+        return 0
+
+    now_utc = datetime.now(timezone.utc).isoformat()
+
+    pending = []
+    for entry in entries:
+        if entry.get("result"):
+            continue
+        mn = entry.get("match_name", "")
+        if " vs " not in mn:
+            continue
+        kickoff = entry.get("kickoff", "")
+        if not kickoff or len(kickoff) < 10:
+            continue
+        if kickoff > now_utc:
+            continue
+        pending.append(entry)
+
+    if not pending:
+        return 0
+
+    pending = pending[:max_queries]
+    updated = 0
+
+    for entry in pending:
+        mn = entry["match_name"]
+        first_vs = mn.index(" vs ")
+        store_home = mn[:first_vs].strip()
+        store_away = mn[first_vs + 4:].strip()
+        kickoff = entry["kickoff"]
+        kick_day = kickoff[8:10]
+        kick_month = kickoff[5:7]
+
+        events = _sportsdb_search(store_home, store_away)
+        if not events:
+            events = _sportsdb_search(store_away, store_home)
+
+        result_val, score_val = _match_sportsdb_event(
+            store_home, store_away, kick_day, kick_month, events
+        )
+
+        if result_val:
+            entry["result"] = result_val
+            entry["score"] = score_val
+            updated += 1
+
+        time.sleep(1.5)
+
+    if updated > 0:
+        save_store(entries, store_path)
+        print(f"[ResultAPI] {updated}/{len(pending)} maç sonucu TheSportsDB'den çekildi")
+
     return updated

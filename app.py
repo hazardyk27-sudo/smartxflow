@@ -664,14 +664,17 @@ def archive_finished_matches():
         print(f"[FinishedArchiver] {len(finished_hashes)} biten maç feature store'a eklenecek")
         added = _archive_to_feature_store(supabase, finished_hashes)
 
-        if added > 0:
-            try:
-                from smartxflow_similarity.result_fetcher import update_store_results
+        try:
+            from smartxflow_similarity.result_fetcher import update_store_results, fetch_results_from_api
+            if added > 0:
                 matched = update_store_results(store_path)
                 if matched > 0:
-                    print(f"[FinishedArchiver] {matched} maç sonucu eşleştirildi")
-            except Exception as e:
-                print(f"[FinishedArchiver] Sonuç eşleştirme hatası: {e}")
+                    print(f"[FinishedArchiver] {matched} maç sonucu FlashScore cache'den eşleştirildi")
+            api_matched = fetch_results_from_api(store_path)
+            if api_matched > 0:
+                print(f"[FinishedArchiver] {api_matched} maç sonucu TheSportsDB API'den çekildi")
+        except Exception as e:
+            print(f"[FinishedArchiver] Sonuç eşleştirme hatası: {e}")
 
         return added
     except Exception as e:
