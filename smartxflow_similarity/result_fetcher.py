@@ -54,6 +54,108 @@ ALIAS_MAP = {
     'buriramutd': 'buriramunited', 'buriramunited': 'buriramunited',
 }
 
+LEAGUE_MAP = {
+    "English Premier League": ["English Premier League"],
+    "English Sky Bet Championship": ["English Sky Bet Championship"],
+    "English Sky Bet League 1": ["English Sky Bet League 1"],
+    "English Sky Bet League 2": ["English Sky Bet League 2"],
+    "English FA Cup": ["English FA Cup"],
+    "English National League": ["English National League"],
+    "Spanish La Liga": ["Spanish La Liga"],
+    "Spanish Segunda Division": ["Spanish La Liga 2"],
+    "German Bundesliga": ["German Bundesliga"],
+    "German Bundesliga 2": ["German 2. Bundesliga"],
+    "Italian Serie A": ["Italian Serie A"],
+    "Italian Serie B": ["Italian Serie B"],
+    "French Ligue 1": ["French Ligue 1"],
+    "French Ligue 2": ["French Ligue 2"],
+    "Turkish Super League": ["Turkish Super League"],
+    "Turkish 1 Lig": ["Turkish 1. Lig"],
+    "Dutch Eredivisie": ["Dutch Eredivisie"],
+    "Dutch Eerste Divisie": ["Dutch Eerste Divisie"],
+    "Portuguese Primeira Liga": ["Portuguese Liga"],
+    "Belgian Challenger Pro League": ["Belgian First Division A"],
+    "Scottish Premiership": ["Scottish Premiership"],
+    "Scottish Championship": ["Scottish Championship"],
+    "Argentinian Primera Division": ["Argentine Liga Profesional"],
+    "Brazilian Serie A": ["Brazilian Serie A"],
+    "Brazilian Gaucho Matches": ["Brazilian Gaucho"],
+    "Brazilian Mineiro Matches": ["Brazilian Mineiro"],
+    "Colombian Primera A": ["Colombian Primera A"],
+    "Mexican Liga MX": ["Mexican Liga MX"],
+    "US MLS": ["American MLS"],
+    "Peruvian Primera Division": ["Peruvian Primera Division"],
+    "Chilean Primera Division": ["Chilean Primera Division"],
+    "Greek Super League": ["Greek Super League"],
+    "Polish Ekstraklasa": ["Polish Ekstraklasa"],
+    "Romanian Liga I": ["Romanian Liga 1"],
+    "Danish Superliga": ["Danish Superliga"],
+    "Danish 1st Division": ["Danish 1st Division"],
+    "Hungarian NB II": ["Hungarian NB II"],
+    "Ukrainian Premier League": ["Ukrainian Premier League"],
+    "Australian A-League Men": ["Australian A-League"],
+    "Egyptian Premier": ["Egyptian Premier"],
+    "UAE Arabian Gulf League": ["UAE Arabian Gulf League"],
+    "Indian Super League": ["Indian Super League"],
+    "Indonesian Super League": ["Indonesian Super League"],
+    "Icelandic League Cup": ["Icelandic League Cup"],
+    "Irish Premier Division": ["Irish Premier Division"],
+    "Lithuanian A Lyga": ["Lithuanian A Lyga"],
+    "Swedish Cup": ["Swedish Cup"],
+    "Croatian Cup": ["Croatian First Football League"],
+    "Slovenian Premier League": ["Slovenian Premier League"],
+    "Czech U19": ["Czech First League"],
+    "UEFA Champions League": ["UEFA Champions League"],
+    "UEFA Europa League": ["UEFA Europa League"],
+    "UEFA Europa Conference League": ["UEFA Europa Conference League"],
+    "CONMEBOL Copa Libertadores": ["CONMEBOL Copa Libertadores"],
+    "CONCACAF Champions League": ["CONCACAF Champions League"],
+    "AFC Champions League": ["AFC Champions League Elite", "AFC Champions League"],
+    "AFC Champions League Two": ["AFC Champions League Two"],
+    "Bulgarian A League": ["Bulgarian First League"],
+    "Uruguayan Primera Division": ["Uruguayan Primera Division"],
+    "Venezuelan Primera Division": ["Venezuelan Primera Division"],
+    "Paraguayan Primera Division": ["Paraguayan Primera Division"],
+    "Norwegian Cup": ["Norwegian Cup"],
+    "Serbian Super League": ["Serbian Super Liga", "Serbian Super League"],
+    "Albanian Superliga": ["Albanian Superliga"],
+    "Russian Premier League": ["Russian Premier League"],
+    "Azerbaijan Premier League": ["Azerbaijan Premier League"],
+}
+
+
+def _normalize_league(name):
+    if not name:
+        return ""
+    return re.sub(r'[^a-z0-9]', '', name.lower().strip())
+
+
+def _leagues_match(store_league, flash_league):
+    if not store_league or not flash_league:
+        return False
+
+    sn = _normalize_league(store_league)
+    fn = _normalize_league(flash_league)
+
+    if sn == fn:
+        return True
+
+    if sn in fn or fn in sn:
+        return True
+
+    flash_targets = LEAGUE_MAP.get(store_league, [])
+    for target in flash_targets:
+        if _normalize_league(target) == fn:
+            return True
+
+    for store_key, flash_list in LEAGUE_MAP.items():
+        if _normalize_league(store_key) == sn:
+            for fl in flash_list:
+                if _normalize_league(fl) == fn:
+                    return True
+
+    return False
+
 
 def _normalize_team(name):
     if not name:
@@ -179,18 +281,25 @@ def save_cached_results(results_by_league, results_path=None):
         json.dump(results_by_league, f, ensure_ascii=False, indent=2)
 
 
+def _try_match_entry(store_home, store_away, kick_day, kick_month, matches_for_league):
+    for m in matches_for_league:
+        if m["date_day"] != kick_day or m["date_month"] != kick_month:
+            continue
+        if _teams_match(store_home, m["home"]) and _teams_match(store_away, m["away"]):
+            return m["result"], m["score"]
+        if _teams_match(store_home, m["away"]) and _teams_match(store_away, m["home"]):
+            rev = {"HOME": "AWAY", "AWAY": "HOME", "DRAW": "DRAW"}
+            return rev.get(m["result"], m["result"]), f"{m['away_goals']}-{m['home_goals']}"
+    return None, None
+
+
 def update_store_results(store_path, results_by_league=None):
     from smartxflow_similarity.feature_store import load_store, save_store
 
     if results_by_league is None:
         results_by_league = load_cached_results()
 
-    all_results = []
-    for league, matches in results_by_league.items():
-        for m in matches:
-            all_results.append(m)
-
-    if not all_results:
+    if not results_by_league:
         return 0
 
     entries = load_store(store_path)
@@ -219,19 +328,32 @@ def update_store_results(store_path, results_by_league=None):
         if not kick_day or not kick_month:
             continue
 
-        for m in all_results:
-            if m["date_day"] == kick_day and m["date_month"] == kick_month:
-                if _teams_match(store_home, m["home"]) and _teams_match(store_away, m["away"]):
-                    entry["result"] = m["result"]
-                    entry["score"] = m["score"]
-                    updated += 1
-                    break
-                elif _teams_match(store_home, m["away"]) and _teams_match(store_away, m["home"]):
-                    rev = {"HOME": "AWAY", "AWAY": "HOME", "DRAW": "DRAW"}
-                    entry["result"] = rev.get(m["result"], m["result"])
-                    entry["score"] = f"{m['away_goals']}-{m['home_goals']}"
-                    updated += 1
-                    break
+        store_league = entry.get("league", "")
+
+        result_val = None
+        score_val = None
+
+        for flash_league, matches in results_by_league.items():
+            if not _leagues_match(store_league, flash_league):
+                continue
+            result_val, score_val = _try_match_entry(
+                store_home, store_away, kick_day, kick_month, matches
+            )
+            if result_val:
+                break
+
+        if not result_val:
+            all_results = []
+            for matches in results_by_league.values():
+                all_results.extend(matches)
+            result_val, score_val = _try_match_entry(
+                store_home, store_away, kick_day, kick_month, all_results
+            )
+
+        if result_val:
+            entry["result"] = result_val
+            entry["score"] = score_val
+            updated += 1
 
     save_store(entries, store_path)
     return updated
