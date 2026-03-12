@@ -407,6 +407,19 @@ def _match_sportsdb_event(store_home, store_away, kick_day, kick_month, events):
     return None, None
 
 
+def _parse_kickoff_utc(kickoff_str):
+    from datetime import datetime, timezone
+    try:
+        if kickoff_str.endswith("Z"):
+            kickoff_str = kickoff_str[:-1] + "+00:00"
+        dt = datetime.fromisoformat(kickoff_str)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        return None
+
+
 def fetch_results_from_api(store_path, max_queries=30):
     from datetime import datetime, timezone
     from smartxflow_similarity.feature_store import load_store, save_store
@@ -415,7 +428,7 @@ def fetch_results_from_api(store_path, max_queries=30):
     if not entries:
         return 0
 
-    now_utc = datetime.now(timezone.utc).isoformat()
+    now_utc = datetime.now(timezone.utc)
 
     pending = []
     for entry in entries:
@@ -427,7 +440,8 @@ def fetch_results_from_api(store_path, max_queries=30):
         kickoff = entry.get("kickoff", "")
         if not kickoff or len(kickoff) < 10:
             continue
-        if kickoff > now_utc:
+        kick_dt = _parse_kickoff_utc(kickoff)
+        if kick_dt is None or kick_dt > now_utc:
             continue
         pending.append(entry)
 
@@ -436,6 +450,7 @@ def fetch_results_from_api(store_path, max_queries=30):
 
     pending = pending[:max_queries]
     updated = 0
+    cache_additions = []
 
     for entry in pending:
         mn = entry["match_name"]
@@ -458,11 +473,44 @@ def fetch_results_from_api(store_path, max_queries=30):
             entry["result"] = result_val
             entry["score"] = score_val
             updated += 1
+            hg, ag = score_val.split("-")
+            cache_additions.append({
+                "home": store_home,
+                "away": store_away,
+                "date_day": kick_day,
+                "date_month": kick_month,
+                "score": score_val,
+                "home_goals": int(hg),
+                "away_goals": int(ag),
+                "result": result_val,
+                "league": entry.get("league", "TheSportsDB"),
+            })
 
         time.sleep(1.5)
 
     if updated > 0:
         save_store(entries, store_path)
+        _update_flashscore_cache(cache_additions)
         print(f"[ResultAPI] {updated}/{len(pending)} maç sonucu TheSportsDB'den çekildi")
 
     return updated
+
+
+def _update_flashscore_cache(additions):
+    if not additions:
+        return
+    cache = load_cached_results()
+    for item in additions:
+        league = item.get("league", "TheSportsDB")
+        if league not in cache:
+            cache[league] = []
+        exists = False
+        for m in cache[league]:
+            if (m.get("home") == item["home"] and m.get("away") == item["away"]
+                    and m.get("date_day") == item["date_day"]
+                    and m.get("date_month") == item["date_month"]):
+                exists = True
+                break
+        if not exists:
+            cache[league].append(item)
+    save_cached_results(cache)
