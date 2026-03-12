@@ -314,7 +314,7 @@
 
             if(m.block_scores){
                 html += '<div class="sako2-block-bars">';
-                var blockLabels = {'odds_1x2':'1X2 Oranları','odds_ou':'ÜA 2.5 Oranları','odds_kg':'KG Oranları','money_distribution':'Para Dağılımı','total_volume':'Hacim'};
+                var blockLabels = {'odds_1x2':'1X2 Oranları','odds_1x2_drift':'1X2 Oran Değişimi','odds_ou':'ÜA 2.5 Oranları','odds_ou_drift':'ÜA 2.5 Oran Değişimi','odds_kg':'KG Oranları','odds_kg_drift':'KG Oran Değişimi','money_distribution':'Para Dağılımı','total_volume':'Hacim'};
                 for(var bk in blockLabels){
                     if(m.block_scores[bk] != null){
                         var bpct = (m.block_scores[bk] * 100).toFixed(0);

@@ -113,9 +113,12 @@ def _compute_odds_block(q_market, c_market, sel_keys):
     avg_close = sum(close_scores) / len(close_scores) if close_scores else 0.0
     avg_drift = sum(drift_scores) / len(drift_scores) if drift_scores else 0.0
 
+    odds_only = round((avg_open * 0.45 + avg_close * 0.55), 4)
     total = round((avg_open * 0.20 + avg_close * 0.25 + avg_drift * 0.55), 4)
     return {
         "score": total,
+        "odds_only": odds_only,
+        "drift_only": round(avg_drift, 4),
         "opening": round(avg_open, 4),
         "closing": round(avg_close, 4),
         "drift": round(avg_drift, 4),
@@ -395,11 +398,14 @@ def compute_similarity(query, candidate, market_filter=None):
             odds_result = _compute_odds_block(q_m, c_m, sel_keys)
             block_map = {"1x2": "odds_1x2", "ou25": "odds_ou", "kg": "odds_kg"}
             block_name = block_map.get(market_filter, "odds_" + market_filter)
+            drift_block_name = block_name + "_drift"
             if odds_result is not None:
-                block_scores[block_name] = odds_result["score"]
+                block_scores[block_name] = odds_result["odds_only"]
                 block_scores[block_name + "_detail"] = odds_result
+                block_scores[drift_block_name] = odds_result["drift_only"]
             else:
                 block_scores[block_name] = 0.0
+                block_scores[drift_block_name] = 0.0
 
             is_1x2 = (market_filter == "1x2")
             money_score = _compute_single_market_money(query, candidate, getter, sel_keys, is_1x2=is_1x2)
@@ -412,9 +418,10 @@ def compute_similarity(query, candidate, market_filter=None):
             vol_sim = _compute_volume_similarity(q_vol, c_vol, q_bucket, c_bucket)
             block_scores["total_volume"] = vol_sim
 
-            total = (block_scores[block_name] * 0.40 +
-                     block_scores["money_distribution"] * 0.35 +
-                     block_scores["total_volume"] * 0.25)
+            total = (block_scores[block_name] * 0.30 +
+                     block_scores[drift_block_name] * 0.30 +
+                     block_scores["money_distribution"] * 0.30 +
+                     block_scores["total_volume"] * 0.10)
 
             return {
                 "total_score": round(_clamp(total), 4),
