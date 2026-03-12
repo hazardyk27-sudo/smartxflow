@@ -53,10 +53,10 @@ def _clamp(v, lo=0.0, hi=1.0):
     return max(lo, min(hi, v))
 
 
-def _odds_diff_score(a, b, max_diff=2.0):
+def _odds_diff_score(a, b, max_diff=0.20):
     if a is None or b is None:
         return 0.0
-    return _clamp(1.0 - abs(a - b) / max_diff)
+    return max(0.0, 1.0 - (abs(a - b) / max_diff) ** 2)
 
 
 def _drift_pct(opening, closing):
@@ -98,9 +98,9 @@ def _compute_odds_block(q_market, c_market, sel_keys):
         cc = c_close.get(key)
 
         if qo is not None and co is not None:
-            open_scores.append(_odds_diff_score(qo, co, max_diff=1.5))
+            open_scores.append(_odds_diff_score(qo, co))
         if qc is not None and cc is not None:
-            close_scores.append(_odds_diff_score(qc, cc, max_diff=1.5))
+            close_scores.append(_odds_diff_score(qc, cc))
 
         q_drift = _drift_pct(qo, qc)
         c_drift = _drift_pct(co, cc)
