@@ -393,7 +393,8 @@ def compute_similarity(query, candidate, market_filter=None):
             q_m = getter(query)
             c_m = getter(candidate)
             odds_result = _compute_odds_block(q_m, c_m, sel_keys)
-            block_name = "odds_" + market_filter
+            block_map = {"1x2": "odds_1x2", "ou25": "odds_ou", "kg": "odds_kg"}
+            block_name = block_map.get(market_filter, "odds_" + market_filter)
             if odds_result is not None:
                 block_scores[block_name] = odds_result["score"]
                 block_scores[block_name + "_detail"] = odds_result

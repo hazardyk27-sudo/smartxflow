@@ -137,15 +137,15 @@
     }
 
     function renderResults(data){
-        renderSummary(data.query_summary);
+        renderSummary(data.query_summary, selectedMarket);
         renderDistribution(data.result_distribution);
         renderPattern(data.overall_explainability);
-        renderMatches(data.similar_matches);
+        renderMatches(data.similar_matches, selectedMarket);
         document.getElementById('sako2MatchCount').textContent = data.matches_found || 0;
         resultsEl.style.display = 'block';
     }
 
-    function renderSummary(qs){
+    function renderSummary(qs, mf){
         var kickoffStr = '';
         if(qs.kickoff_time){
             try {
@@ -156,6 +156,14 @@
             } catch(e){}
         }
 
+        var rows = '';
+        if(!mf || mf === 'all' || mf === '1x2')
+            rows += summaryMarketRow('1X2', qs.opening_odds, qs.closing_odds, qs.closing_amounts, ['home','draw','away'], ['1','X','2']);
+        if(!mf || mf === 'all' || mf === 'ou25')
+            rows += summaryMarketRow('ÜA 2.5', qs.ou25_opening, qs.ou25_closing, qs.ou25_closing_amounts, ['over','under'], ['Ü','A']);
+        if(!mf || mf === 'all' || mf === 'kg')
+            rows += summaryMarketRow('KG', qs.btts_opening, qs.btts_closing, qs.btts_closing_amounts, ['yes','no'], ['E','H']);
+
         document.getElementById('sako2Summary').innerHTML =
             '<div class="sako-sum-header">' +
                 '<div><div class="sako-sum-name">' + esc(qs.match_name || '?') + '</div>' +
@@ -164,9 +172,7 @@
             '</div>' +
             '<div class="s2-market-table">' +
                 '<div class="s2-mt-header"><span class="s2-mt-h-market">Market</span><span class="s2-mt-h-col">Açılış</span><span class="s2-mt-h-col">Kapanış</span><span class="s2-mt-h-col">Hareket</span><span class="s2-mt-h-col">Para</span></div>' +
-                summaryMarketRow('1X2', qs.opening_odds, qs.closing_odds, qs.closing_amounts, ['home','draw','away'], ['1','X','2']) +
-                summaryMarketRow('ÜA 2.5', qs.ou25_opening, qs.ou25_closing, qs.ou25_closing_amounts, ['over','under'], ['Ü','A']) +
-                summaryMarketRow('KG', qs.btts_opening, qs.btts_closing, qs.btts_closing_amounts, ['yes','no'], ['E','H']) +
+                rows +
             '</div>';
     }
 
@@ -252,7 +258,7 @@
         document.getElementById('sako2Pattern').innerHTML = html;
     }
 
-    function renderMatches(matches){
+    function renderMatches(matches, mf){
         var html = '';
         (matches || []).forEach(function(m, idx){
             var resultCls = 'unknown';
@@ -283,9 +289,12 @@
             html += '</div></div>';
 
             html += '<div class="s2-mc-markets">';
-            html += mcMarketRow('1X2', m.opening_odds, m.closing_odds, m.closing_amounts, ['home','draw','away'], ['1','X','2']);
-            html += mcMarketRow('ÜA', m.ou25_opening, m.ou25_closing, m.ou25_closing_amounts, ['over','under'], ['Ü','A']);
-            html += mcMarketRow('KG', m.btts_opening, m.btts_closing, m.btts_closing_amounts, ['yes','no'], ['E','H']);
+            if(!mf || mf === 'all' || mf === '1x2')
+                html += mcMarketRow('1X2', m.opening_odds, m.closing_odds, m.closing_amounts, ['home','draw','away'], ['1','X','2']);
+            if(!mf || mf === 'all' || mf === 'ou25')
+                html += mcMarketRow('ÜA', m.ou25_opening, m.ou25_closing, m.ou25_closing_amounts, ['over','under'], ['Ü','A']);
+            if(!mf || mf === 'all' || mf === 'kg')
+                html += mcMarketRow('KG', m.btts_opening, m.btts_closing, m.btts_closing_amounts, ['yes','no'], ['E','H']);
             html += '<div class="s2-mc-vol"><span class="s2-mc-vol-label">Hacim</span><span class="s2-mc-vol-val">' + fmtVol(m.total_volume) + '</span></div>';
             html += '</div>';
 
