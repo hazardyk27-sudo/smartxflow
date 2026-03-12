@@ -96,10 +96,19 @@ def get_store_info(filepath):
     if not entries:
         return {"count": 0, "last_updated": None}
     leagues = set()
+    with_result = 0
+    result_counts = {}
     for e in entries:
         leagues.add(e.get("league", ""))
+        r = e.get("result")
+        if r:
+            with_result += 1
+            result_counts[r] = result_counts.get(r, 0) + 1
     return {
         "count": len(entries),
         "leagues": sorted(leagues),
+        "with_result": with_result,
+        "without_result": len(entries) - with_result,
+        "result_distribution": result_counts,
         "last_updated": datetime.now().isoformat(),
     }

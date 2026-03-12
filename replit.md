@@ -77,10 +77,19 @@ A market behavior similarity engine that finds historically similar matches by a
 - `templates/sako.html` — Dark-theme page with search, summary card, distribution bars, pattern summary, similar matches
 - `static/css/sako.css` — Full dark theme styling (v=1773200000)
 - `static/js/sako.js` — Search/dropdown/API calls/render logic (v=1773200000)
-- Routes: `/sako` (page), `/api/sako/matches` (match list), `/api/sako/run` (similarity run), `/api/sako/store/info`, `/api/sako/store/build`
+- Routes: `/sako` (page), `/api/sako/matches` (match list), `/api/sako/run` (similarity run), `/api/sako/store/info`, `/api/sako/store/build`, `/api/sako/store/match-results`
 - All API routes use `@license_required` decorator
 - Header link in `templates/index.html` with `.sako-header-btn` CSS class
 - Feature store build endpoint: POST `/api/sako/store/build` — builds JSONL from all Supabase history
+- Match results endpoint: POST `/api/sako/store/match-results` — matches FlashScore results to feature store entries (admin only)
+
+**Match Results System:**
+- `smartxflow_similarity/result_fetcher.py` — FlashScore markdown parser + team alias map + feature store updater
+- `smartxflow_similarity/data/flashscore_results.json` — Cached FlashScore results (70+ leagues, 5000+ matches)
+- Results fetched via Replit webFetch (FlashScore markdown), parsed for team names and scores
+- Team matching uses normalized names + comprehensive alias map (PSG/Paris St-G, Man City/Manchester City, etc.)
+- Results auto-applied during daily cleanup; also available via admin API endpoint
+- Feature store entries get `result` (HOME/AWAY/DRAW) and `score` (e.g., "3-1") fields
 
 **Key Design:**
 - 10 phases: P1 (0-1h) → P10 (40h+), weighted P1=0.16 → P10=0.05

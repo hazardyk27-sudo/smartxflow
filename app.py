@@ -578,6 +578,15 @@ def cleanup_old_matches():
     except Exception as e:
         print(f"[Cleanup] Error: {e}")
     
+    try:
+        from smartxflow_similarity.result_fetcher import update_store_results
+        store_path = os.path.join(os.path.dirname(__file__), 'smartxflow_similarity', 'data', 'feature_store.jsonl')
+        matched = update_store_results(store_path)
+        if matched > 0:
+            print(f"[Cleanup] Updated {matched} feature store entries with match results")
+    except Exception as e:
+        print(f"[Cleanup] Result matching error (non-critical): {e}")
+
     print(f"[Cleanup] Old matches cleanup completed for {today}")
 
 
@@ -6481,6 +6490,27 @@ def sako_store_info():
         return jsonify(info)
     except Exception as e:
         return jsonify({'error': str(e), 'count': 0})
+
+@app.route('/api/sako/store/match-results', methods=['POST'])
+@license_required
+def sako_store_match_results():
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'Admin yetkisi gerekli'}), 403
+    try:
+        from smartxflow_similarity.result_fetcher import update_store_results
+        store_path = os.path.join(os.path.dirname(__file__), 'smartxflow_similarity', 'data', 'feature_store.jsonl')
+        matched = update_store_results(store_path)
+        from smartxflow_similarity.feature_store import get_store_info
+        info = get_store_info(store_path)
+        return jsonify({
+            'status': 'ok',
+            'matched': matched,
+            'store_info': info,
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/sako/store/build', methods=['POST'])
 @license_required
