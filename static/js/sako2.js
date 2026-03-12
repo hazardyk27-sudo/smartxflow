@@ -128,13 +128,6 @@
     }
 
     function renderSummary(qs){
-        var opening = qs.opening_odds || {};
-        var closing = qs.closing_odds || {};
-
-        var oddsOrder = ['home', '1', 'draw', 'x', 'away', '2'];
-        var oddsStr = fmtOddsLine(opening, oddsOrder);
-        var closingStr = fmtOddsLine(closing, oddsOrder);
-
         var kickoffStr = '';
         if(qs.kickoff_time){
             try {
@@ -145,62 +138,51 @@
             } catch(e){}
         }
 
-        var ou25Opening = qs.ou25_opening || {};
-        var ou25Closing = qs.ou25_closing || {};
-        var bttsOpening = qs.btts_opening || {};
-        var bttsClosing = qs.btts_closing || {};
-
-        var ou25Str = fmtOddsLine(ou25Opening, ['over','under']);
-        var ou25CloseStr = fmtOddsLine(ou25Closing, ['over','under']);
-        var bttsStr = fmtOddsLine(bttsOpening, ['yes','no']);
-        var bttsCloseStr = fmtOddsLine(bttsClosing, ['yes','no']);
-
         document.getElementById('sako2Summary').innerHTML =
             '<div class="sako-sum-header">' +
                 '<div><div class="sako-sum-name">' + esc(qs.match_name || '?') + '</div>' +
                 '<div class="sako-sum-league">' + esc(qs.league || '') + (kickoffStr ? ' — ' + esc(kickoffStr) : '') + '</div></div>' +
+                '<div class="s2-vol-badge"><span class="s2-vol-icon">V</span>' + fmtVol(qs.total_volume) + '</div>' +
             '</div>' +
-            '<div class="sako2-sum-markets">' +
-                marketRow('1X2', oddsStr, closingStr, fmtAmounts(qs.closing_amounts, ['home','draw','away'], ['1','X','2'])) +
-                marketRow('ÜA 2.5', ou25Str, ou25CloseStr, fmtAmounts(qs.ou25_closing_amounts, ['over','under'], ['Ü','A'])) +
-                marketRow('KG', bttsStr, bttsCloseStr, fmtAmounts(qs.btts_closing_amounts, ['yes','no'], ['E','H'])) +
-            '</div>' +
-            '<div class="sako-sum-grid">' +
-                sumStat('Toplam Hacim', fmtVol(qs.total_volume)) +
+            '<div class="s2-market-table">' +
+                '<div class="s2-mt-header"><span class="s2-mt-h-market">Market</span><span class="s2-mt-h-col">Açılış</span><span class="s2-mt-h-col">Kapanış</span><span class="s2-mt-h-col">Hareket</span><span class="s2-mt-h-col">Para</span></div>' +
+                summaryMarketRow('1X2', qs.opening_odds, qs.closing_odds, qs.closing_amounts, ['home','draw','away'], ['1','X','2']) +
+                summaryMarketRow('ÜA 2.5', qs.ou25_opening, qs.ou25_closing, qs.ou25_closing_amounts, ['over','under'], ['Ü','A']) +
+                summaryMarketRow('KG', qs.btts_opening, qs.btts_closing, qs.btts_closing_amounts, ['yes','no'], ['E','H']) +
             '</div>';
     }
 
-    function fmtOddsLine(odds, order){
-        if(!odds || !Object.keys(odds).length) return '';
-        var parts = [];
-        order.forEach(function(k){ if(odds[k] != null) parts.push(fmtOdds(odds[k])); });
-        if(!parts.length) Object.keys(odds).forEach(function(k){ parts.push(fmtOdds(odds[k])); });
-        return parts.join(' / ');
-    }
-
-    function marketRow(title, openStr, closeStr, amountsStr){
-        return '<div class="sako2-market-row">' +
-            '<div class="sako2-market-title">' + title + '</div>' +
-            '<div class="sako2-market-data">' +
-                '<div class="sako2-market-cell"><span class="sako2-market-cell-label">Açılış</span><span class="sako2-market-cell-val">' + (openStr || '—') + '</span></div>' +
-                '<div class="sako2-market-cell"><span class="sako2-market-cell-label">Kapanış</span><span class="sako2-market-cell-val">' + (closeStr || '—') + '</span></div>' +
-                '<div class="sako2-market-cell"><span class="sako2-market-cell-label">Para</span><span class="sako2-market-cell-val">' + (amountsStr || '—') + '</span></div>' +
-            '</div>' +
-        '</div>';
-    }
-
-    function fmtAmounts(amounts, keys, labels){
-        if(!amounts || !Object.keys(amounts).length) return '—';
-        var parts = [];
+    function summaryMarketRow(title, opening, closing, amounts, keys, labels){
+        opening = opening || {};
+        closing = closing || {};
+        amounts = amounts || {};
+        var cells = '';
         for(var i = 0; i < keys.length; i++){
-            var v = amounts[keys[i]];
-            if(v != null) parts.push(labels[i] + ' ' + fmtVol(v));
+            var k = keys[i];
+            var op = opening[k];
+            var cl = closing[k];
+            var amt = amounts[k];
+            var driftCls = '';
+            if(op != null && cl != null){
+                if(cl < op - 0.01) driftCls = 'down';
+                else if(cl > op + 0.01) driftCls = 'up';
+            }
+            cells += '<div class="s2-mt-sel">' +
+                '<span class="s2-mt-sel-label">' + labels[i] + '</span>' +
+                '<span class="s2-mt-sel-val">' + fmtOdds(op) + '</span>' +
+                '<span class="s2-mt-sel-val">' + fmtOdds(cl) + '</span>' +
+                '<span class="s2-mt-drift ' + driftCls + '">' + fmtDrift(op, cl) + '</span>' +
+                '<span class="s2-mt-sel-amt">' + (amt != null ? fmtVol(amt) : '—') + '</span>' +
+            '</div>';
         }
-        return parts.length ? parts.join('  ') : '—';
+        return '<div class="s2-mt-row"><div class="s2-mt-market">' + title + '</div><div class="s2-mt-sels">' + cells + '</div></div>';
     }
 
-    function sumStat(label, value){
-        return '<div class="sako-sum-stat"><div class="sako-sum-stat-label">' + label + '</div><div class="sako-sum-stat-value">' + value + '</div></div>';
+    function fmtDrift(op, cl){
+        if(op == null || cl == null || op === 0) return '—';
+        var pct = ((cl - op) / op * 100);
+        var sign = pct > 0 ? '+' : '';
+        return sign + pct.toFixed(1) + '%';
     }
 
     function renderDistribution(dist){
@@ -282,18 +264,11 @@
             html += '<span class="sako-mc-score-val">' + scorePct + '%</span>';
             html += '</div></div>';
 
-            html += '<div class="sako-mc-info-row">';
-            html += fmtOddsCompact('1X2', m.opening_odds, m.closing_odds, ['home','draw','away'], ['1','X','2']);
-            html += fmtAmountsCompact('1X2 ₺', m.closing_amounts, ['home','draw','away'], ['1','X','2']);
-            html += '</div>';
-            html += '<div class="sako-mc-info-row">';
-            html += fmtOddsCompact('ÜA 2.5', m.ou25_opening, m.ou25_closing, ['over','under'], ['Ü','A']);
-            html += fmtAmountsCompact('ÜA ₺', m.ou25_closing_amounts, ['over','under'], ['Ü','A']);
-            html += fmtOddsCompact('KG', m.btts_opening, m.btts_closing, ['yes','no'], ['E','H']);
-            html += fmtAmountsCompact('KG ₺', m.btts_closing_amounts, ['yes','no'], ['E','H']);
-            html += '</div>';
-            html += '<div class="sako-mc-info-row">';
-            html += '<div class="sako-mc-info-item"><span class="sako-mc-info-label">Hacim</span><span class="sako-mc-info-val">' + fmtVol(m.total_volume) + '</span></div>';
+            html += '<div class="s2-mc-markets">';
+            html += mcMarketRow('1X2', m.opening_odds, m.closing_odds, m.closing_amounts, ['home','draw','away'], ['1','X','2']);
+            html += mcMarketRow('ÜA', m.ou25_opening, m.ou25_closing, m.ou25_closing_amounts, ['over','under'], ['Ü','A']);
+            html += mcMarketRow('KG', m.btts_opening, m.btts_closing, m.btts_closing_amounts, ['yes','no'], ['E','H']);
+            html += '<div class="s2-mc-vol"><span class="s2-mc-vol-label">Hacim</span><span class="s2-mc-vol-val">' + fmtVol(m.total_volume) + '</span></div>';
             html += '</div>';
 
             html += '<div class="sako-mc-detail" id="sako2Detail' + idx + '">';
@@ -345,6 +320,33 @@
             btn.textContent = 'Detay Gizle ▲';
         }
     };
+
+    function mcMarketRow(title, opening, closing, amounts, keys, labels){
+        opening = opening || {};
+        closing = closing || {};
+        amounts = amounts || {};
+        var hasData = false;
+        var sels = '';
+        for(var i = 0; i < keys.length; i++){
+            var k = keys[i];
+            var op = opening[k];
+            var cl = closing[k];
+            var amt = amounts[k];
+            if(op != null || cl != null) hasData = true;
+            var driftCls = '';
+            if(op != null && cl != null){
+                if(cl < op - 0.01) driftCls = 'down';
+                else if(cl > op + 0.01) driftCls = 'up';
+            }
+            sels += '<div class="s2-mc-sel">' +
+                '<span class="s2-mc-sel-lbl">' + labels[i] + '</span>' +
+                '<span class="s2-mc-odds">' + fmtOdds(op) + '<span class="s2-mc-arrow ' + driftCls + '">' + (driftCls === 'down' ? '↓' : driftCls === 'up' ? '↑' : '→') + '</span>' + fmtOdds(cl) + '</span>' +
+                (amt != null ? '<span class="s2-mc-amt">' + fmtVol(amt) + '</span>' : '') +
+            '</div>';
+        }
+        if(!hasData) return '';
+        return '<div class="s2-mc-mrow"><span class="s2-mc-mrow-title">' + title + '</span><div class="s2-mc-mrow-sels">' + sels + '</div></div>';
+    }
 
     function fmtAmountsCompact(title, amounts, keys, labels){
         if(!amounts || !Object.keys(amounts).length) return '';
