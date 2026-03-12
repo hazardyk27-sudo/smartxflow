@@ -15,7 +15,7 @@ import threading
 import time
 import queue
 from functools import wraps
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, jsonify, request, Response, send_from_directory, session, redirect, make_response
 
 # Conditional import for compression (not needed in desktop mode)
