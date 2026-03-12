@@ -464,10 +464,78 @@ last_cleanup_date = None
 last_alarm_calc_time = None
 
 
+def _archive_to_feature_store(supabase, old_hashes):
+    """D-2+ maçları silmeden önce feature store'a ekle"""
+    if not old_hashes:
+        return 0
+
+    try:
+        from smartxflow_similarity.parser_layer import build_canonical_match, parse_snapshot_row
+        from smartxflow_similarity.feature_store import build_feature_entry, load_store, append_to_store
+        from smartxflow_similarity.utils import match_id_hash as compute_hash
+
+        store_path = os.path.join(os.path.dirname(__file__), 'smartxflow_similarity', 'data', 'feature_store.jsonl')
+        existing = load_store(store_path)
+        existing_hashes = {e.get("match_id_hash") for e in existing}
+
+        new_hashes = [h for h in old_hashes if h not in existing_hashes]
+        if not new_hashes:
+            print(f"[Cleanup→Store] All {len(old_hashes)} D-2+ matches already in store, skipping")
+            return 0
+
+        print(f"[Cleanup→Store] {len(new_hashes)} new matches to archive (of {len(old_hashes)} total)")
+
+        history_tables = [
+            'moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history',
+            'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history',
+        ]
+
+        batch_size = 50
+        all_rows_by_hash = {h: {t: [] for t in history_tables} for h in new_hashes}
+
+        for table in history_tables:
+            for i in range(0, len(new_hashes), batch_size):
+                batch = new_hashes[i:i+batch_size]
+                hash_filter = ','.join(batch)
+                try:
+                    url = f"{supabase._rest_url(table)}?match_id_hash=in.({hash_filter})&select=*"
+                    resp = supabase._get_http_client().get(url, headers=supabase._headers(), timeout=30)
+                    if resp.status_code == 200:
+                        rows = resp.json()
+                        for row in rows:
+                            h = row.get('match_id_hash', '')
+                            if h in all_rows_by_hash:
+                                all_rows_by_hash[h][table].append(row)
+                except Exception as e:
+                    print(f"[Cleanup→Store] Error reading {table}: {e}")
+
+        added = 0
+        for mid, table_rows in all_rows_by_hash.items():
+            has_data = any(len(rows) > 0 for rows in table_rows.values())
+            if not has_data:
+                continue
+            try:
+                canonical = build_canonical_match(table_rows)
+                entry = build_feature_entry(canonical)
+                if entry.get("data_quality_score", 0) and entry["data_quality_score"] >= 0.2:
+                    append_to_store(entry, store_path)
+                    added += 1
+            except Exception as e:
+                print(f"[Cleanup→Store] Error processing {mid}: {e}")
+
+        print(f"[Cleanup→Store] Archived {added} matches to feature store")
+        return added
+    except Exception as e:
+        print(f"[Cleanup→Store] Archive error: {e}")
+        import traceback
+        traceback.print_exc()
+        return 0
+
+
 def cleanup_old_matches():
     """
-    Delete matches older than yesterday (keep today and yesterday only).
-    D-2+ maçların history kayıtları silinir.
+    Archive D-2+ matches to feature store, then delete from Supabase.
+    D-2+ maçlar önce sako2 veritabanına eklenir, sonra silinir.
     Runs once per day on server startup or scheduler.
     """
     global last_cleanup_date
@@ -487,6 +555,18 @@ def cleanup_old_matches():
     try:
         supabase = get_supabase_client()
         if supabase and supabase.is_available:
+            headers = supabase._headers()
+            url = f"{supabase._rest_url('fixtures')}?fixture_date=lt.{cutoff_str}&select=match_id_hash"
+            resp = supabase._get_http_client().get(url, headers=headers, timeout=30)
+            old_hashes = []
+            if resp.status_code == 200:
+                rows = resp.json()
+                if isinstance(rows, list):
+                    old_hashes = [r['match_id_hash'] for r in rows if r.get('match_id_hash')]
+
+            if old_hashes:
+                _archive_to_feature_store(supabase, old_hashes)
+
             deleted = supabase.cleanup_old_matches(cutoff_str)
             total = sum(deleted.values())
             if total > 0:
