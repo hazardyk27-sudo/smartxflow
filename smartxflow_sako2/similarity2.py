@@ -167,6 +167,8 @@ def _normalize_1x2_nv_by_role(nv_list, role_map):
 
 def _compute_money_distribution(q_entry, c_entry):
     scores = []
+    all_nv_scores = []
+    all_amt_scores = []
 
     q_1x2 = _get_1x2_market(q_entry)
     c_1x2 = _get_1x2_market(c_entry)
@@ -182,7 +184,9 @@ def _compute_money_distribution(q_entry, c_entry):
             nv_scores = []
             for i in range(3):
                 nv_scores.append(_clamp(1.0 - abs(q_nv_norm[i] - c_nv_norm[i]) / 0.15))
-            scores.append(sum(nv_scores) / len(nv_scores))
+            nv_avg = sum(nv_scores) / len(nv_scores)
+            scores.append(nv_avg)
+            all_nv_scores.append(nv_avg)
 
         q_amounts = q_1x2.get("closing_amounts") or {}
         c_amounts = c_1x2.get("closing_amounts") or {}
@@ -201,7 +205,9 @@ def _compute_money_distribution(q_entry, c_entry):
             if pct_scores:
                 pct_avg = sum(pct_scores) / len(pct_scores)
                 abs_avg = sum(abs_scores) / len(abs_scores) if abs_scores else 0.0
-                scores.append(pct_avg * 0.5 + abs_avg * 0.5)
+                amt_combined = pct_avg * 0.5 + abs_avg * 0.5
+                scores.append(amt_combined)
+                all_amt_scores.append(amt_combined)
 
     for get_market, sel_keys in [
         (_get_ou_market, ["over", "under"]),
@@ -218,7 +224,9 @@ def _compute_money_distribution(q_entry, c_entry):
             nv_scores = []
             for i in range(len(q_nv)):
                 nv_scores.append(_clamp(1.0 - abs(q_nv[i] - c_nv[i]) / 0.15))
-            scores.append(sum(nv_scores) / len(nv_scores))
+            nv_avg = sum(nv_scores) / len(nv_scores)
+            scores.append(nv_avg)
+            all_nv_scores.append(nv_avg)
 
         q_amounts = q_m.get("closing_amounts") or {}
         c_amounts = c_m.get("closing_amounts") or {}
@@ -235,11 +243,16 @@ def _compute_money_distribution(q_entry, c_entry):
             if pct_scores:
                 pct_avg = sum(pct_scores) / len(pct_scores)
                 abs_avg = sum(abs_scores) / len(abs_scores) if abs_scores else 0.0
-                scores.append(pct_avg * 0.5 + abs_avg * 0.5)
+                amt_combined = pct_avg * 0.5 + abs_avg * 0.5
+                scores.append(amt_combined)
+                all_amt_scores.append(amt_combined)
 
     if not scores:
-        return 0.0
-    return round(sum(scores) / len(scores), 4)
+        return 0.0, {"nv": 0.0, "amount": 0.0}
+    total = round(sum(scores) / len(scores), 4)
+    nv_total = round(sum(all_nv_scores) / len(all_nv_scores), 4) if all_nv_scores else 0.0
+    amt_total = round(sum(all_amt_scores) / len(all_amt_scores), 4) if all_amt_scores else 0.0
+    return total, {"nv": nv_total, "amount": amt_total}
 
 
 def _compute_volume_similarity(q_vol, c_vol, q_bucket, c_bucket):
@@ -485,8 +498,9 @@ def compute_similarity(query, candidate, market_filter=None):
     else:
         block_scores["odds_kg"] = 0.0
 
-    money_dist = _compute_money_distribution(query, candidate)
+    money_dist, money_detail = _compute_money_distribution(query, candidate)
     block_scores["money_distribution"] = money_dist
+    block_scores["money_distribution_detail"] = money_detail
 
     q_vol = query.get("total_volume") or 0
     c_vol = candidate.get("total_volume") or 0
