@@ -7,6 +7,19 @@
     var loadingEl = document.getElementById('sako2Loading');
     var emptyEl = document.getElementById('sako2Empty');
     var debounceTimer = null;
+    var selectedMarket = 'all';
+    var lastSelectedHash = null;
+
+    document.querySelectorAll('.s2-mf-btn').forEach(function(btn){
+        btn.addEventListener('click', function(){
+            document.querySelectorAll('.s2-mf-btn').forEach(function(b){ b.classList.remove('active'); });
+            this.classList.add('active');
+            selectedMarket = this.getAttribute('data-market');
+            if(lastSelectedHash){
+                runSimilarity(lastSelectedHash);
+            }
+        });
+    });
 
     function getLicenseKey(){
         try { return localStorage.getItem('smartxflow_license_key') || ''; } catch(e){ return ''; }
@@ -94,11 +107,16 @@
     }
 
     function runSimilarity(hash){
+        lastSelectedHash = hash;
         emptyEl.style.display = 'none';
         resultsEl.style.display = 'none';
         loadingEl.style.display = 'block';
 
-        sako2Fetch('/api/sako2/run?match_id_hash=' + encodeURIComponent(hash))
+        var url = '/api/sako2/run?match_id_hash=' + encodeURIComponent(hash);
+        if(selectedMarket && selectedMarket !== 'all'){
+            url += '&market_filter=' + encodeURIComponent(selectedMarket);
+        }
+        sako2Fetch(url)
             .then(function(r){ return r.json(); })
             .then(function(data){
                 loadingEl.style.display = 'none';

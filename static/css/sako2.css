@@ -166,6 +166,33 @@
     color: #6E7681;
 }
 
+.s2-market-filter {
+    display: flex;
+    gap: 6px;
+    margin-top: 12px;
+}
+.s2-mf-btn {
+    padding: 7px 16px;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    background: rgba(139,148,158,0.06);
+    color: #8B949E;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+}
+.s2-mf-btn:hover {
+    border-color: #3B82F6;
+    color: #C9D1D9;
+}
+.s2-mf-btn.active {
+    background: rgba(59,130,246,0.15);
+    border-color: #3B82F6;
+    color: #3B82F6;
+}
+
 .s2-vol-badge {
     display: flex;
     align-items: center;

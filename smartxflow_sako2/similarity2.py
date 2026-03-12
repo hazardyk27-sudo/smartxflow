@@ -240,23 +240,122 @@ def _compute_volume_similarity(q_vol, c_vol, q_bucket, c_bucket):
     return round(ratio_score * 0.70 + bucket_score * 0.30, 4)
 
 
-def passes_hard_filter(query, candidate):
+def _get_primary_market_getter(market_filter):
+    if market_filter == "1x2":
+        return _get_1x2_market, ["home", "draw", "away"]
+    elif market_filter == "ou25":
+        return _get_ou_market, ["over", "under"]
+    elif market_filter == "kg":
+        return _get_kg_market, ["yes", "no"]
+    return None, None
+
+
+def _compute_single_market_money(q_entry, c_entry, get_market, sel_keys, is_1x2=False):
+    q_m = get_market(q_entry)
+    c_m = get_market(c_entry)
+    if not q_m or not c_m:
+        return 0.0
+
+    scores = []
+
+    if is_1x2:
+        q_role = _get_1x2_role_mapping(q_m)
+        c_role = _get_1x2_role_mapping(c_m)
+
+        q_nv = q_m.get("closing_nv")
+        c_nv = c_m.get("closing_nv")
+        q_nv_norm = _normalize_1x2_nv_by_role(q_nv, q_role)
+        c_nv_norm = _normalize_1x2_nv_by_role(c_nv, c_role)
+        if q_nv_norm and c_nv_norm:
+            nv_scores = []
+            for i in range(3):
+                nv_scores.append(_clamp(1.0 - abs(q_nv_norm[i] - c_nv_norm[i]) / 0.15))
+            scores.append(sum(nv_scores) / len(nv_scores))
+
+        q_amounts = q_m.get("closing_amounts") or {}
+        c_amounts = c_m.get("closing_amounts") or {}
+        if q_amounts and c_amounts:
+            q_norm = _normalize_1x2_by_role(q_amounts, q_role)
+            c_norm = _normalize_1x2_by_role(c_amounts, c_role)
+            q_total = sum(v for v in q_norm.values() if v is not None) or 1
+            c_total = sum(v for v in c_norm.values() if v is not None) or 1
+            pct_scores = []
+            abs_scores = []
+            for role_key in ["favorite", "draw", "underdog"]:
+                q_pct = (q_norm.get(role_key) or 0) / q_total
+                c_pct = (c_norm.get(role_key) or 0) / c_total
+                pct_scores.append(_clamp(1.0 - abs(q_pct - c_pct) / 0.20))
+                abs_scores.append(_amount_ratio_score(q_norm.get(role_key), c_norm.get(role_key)))
+            if pct_scores:
+                pct_avg = sum(pct_scores) / len(pct_scores)
+                abs_avg = sum(abs_scores) / len(abs_scores) if abs_scores else 0.0
+                scores.append(pct_avg * 0.5 + abs_avg * 0.5)
+    else:
+        q_nv = q_m.get("closing_nv")
+        c_nv = c_m.get("closing_nv")
+        if q_nv and c_nv and len(q_nv) == len(c_nv):
+            nv_scores = []
+            for i in range(len(q_nv)):
+                nv_scores.append(_clamp(1.0 - abs(q_nv[i] - c_nv[i]) / 0.15))
+            scores.append(sum(nv_scores) / len(nv_scores))
+
+        q_amounts = q_m.get("closing_amounts") or {}
+        c_amounts = c_m.get("closing_amounts") or {}
+        if q_amounts and c_amounts:
+            q_total = sum(v for v in q_amounts.values() if v is not None) or 1
+            c_total = sum(v for v in c_amounts.values() if v is not None) or 1
+            pct_scores = []
+            abs_scores = []
+            for key in sel_keys:
+                q_pct = (q_amounts.get(key) or 0) / q_total
+                c_pct = (c_amounts.get(key) or 0) / c_total
+                pct_scores.append(_clamp(1.0 - abs(q_pct - c_pct) / 0.20))
+                abs_scores.append(_amount_ratio_score(q_amounts.get(key), c_amounts.get(key)))
+            if pct_scores:
+                pct_avg = sum(pct_scores) / len(pct_scores)
+                abs_avg = sum(abs_scores) / len(abs_scores) if abs_scores else 0.0
+                scores.append(pct_avg * 0.5 + abs_avg * 0.5)
+
+    if not scores:
+        return 0.0
+    return round(sum(scores) / len(scores), 4)
+
+
+def passes_hard_filter(query, candidate, market_filter=None):
     hf = HARD_FILTER
 
-    q_m = _get_1x2_market(query)
-    c_m = _get_1x2_market(candidate)
-    if not q_m or not c_m:
-        return False
-    q_open = q_m.get("opening_odds") or {}
-    c_open = c_m.get("opening_odds") or {}
-    if not q_open or not c_open:
-        return False
-    for key in ["home", "draw", "away"]:
-        qv = q_open.get(key)
-        cv = c_open.get(key)
-        if qv is not None and cv is not None:
-            if abs(qv - cv) > hf["odds_1x2_max_diff"]:
+    if market_filter and market_filter != "all":
+        getter, sel_keys = _get_primary_market_getter(market_filter)
+        if getter:
+            q_m = getter(query)
+            c_m = getter(candidate)
+            if not q_m or not c_m:
                 return False
+            q_open = q_m.get("opening_odds") or {}
+            c_open = c_m.get("opening_odds") or {}
+            if not q_open or not c_open:
+                return False
+            for key in sel_keys:
+                qv = q_open.get(key)
+                cv = c_open.get(key)
+                if qv is not None and cv is not None:
+                    if abs(qv - cv) > hf["odds_1x2_max_diff"]:
+                        return False
+    else:
+        q_m = _get_1x2_market(query)
+        c_m = _get_1x2_market(candidate)
+        if not q_m or not c_m:
+            return False
+        q_open = q_m.get("opening_odds") or {}
+        c_open = c_m.get("opening_odds") or {}
+        if not q_open or not c_open:
+            return False
+        for key in ["home", "draw", "away"]:
+            qv = q_open.get(key)
+            cv = c_open.get(key)
+            if qv is not None and cv is not None:
+                if abs(qv - cv) > hf["odds_1x2_max_diff"]:
+                    return False
 
     q_vol = query.get("total_volume") or 0
     c_vol = candidate.get("total_volume") or 0
@@ -279,9 +378,39 @@ def passes_hard_filter(query, candidate):
     return True
 
 
-def compute_similarity(query, candidate):
-    bw = BLOCK_WEIGHTS
+def compute_similarity(query, candidate, market_filter=None):
     block_scores = {}
+
+    if market_filter and market_filter != "all":
+        getter, sel_keys = _get_primary_market_getter(market_filter)
+        if getter:
+            q_m = getter(query)
+            c_m = getter(candidate)
+            odds_score = _compute_odds_block(q_m, c_m, sel_keys)
+            block_name = "odds_" + market_filter
+            block_scores[block_name] = odds_score if odds_score is not None else 0.0
+
+            is_1x2 = (market_filter == "1x2")
+            money_score = _compute_single_market_money(query, candidate, getter, sel_keys, is_1x2=is_1x2)
+            block_scores["money_distribution"] = money_score
+
+            q_vol = query.get("total_volume") or 0
+            c_vol = candidate.get("total_volume") or 0
+            q_bucket = query.get("volume_bucket") or _get_volume_bucket(q_vol)
+            c_bucket = candidate.get("volume_bucket") or _get_volume_bucket(c_vol)
+            vol_sim = _compute_volume_similarity(q_vol, c_vol, q_bucket, c_bucket)
+            block_scores["total_volume"] = vol_sim
+
+            total = (block_scores[block_name] * 0.40 +
+                     block_scores["money_distribution"] * 0.35 +
+                     block_scores["total_volume"] * 0.25)
+
+            return {
+                "total_score": round(_clamp(total), 4),
+                "block_scores": block_scores,
+            }
+
+    bw = BLOCK_WEIGHTS
 
     q_1x2 = _get_1x2_market(query)
     c_1x2 = _get_1x2_market(candidate)
@@ -348,7 +477,7 @@ def _is_finished(candidate):
         return False
 
 
-def find_similar_matches(query_entry, store_entries, top_n=None):
+def find_similar_matches(query_entry, store_entries, top_n=None, market_filter=None):
     if top_n is None:
         top_n = TOP_SIMILAR_COUNT
 
@@ -360,9 +489,9 @@ def find_similar_matches(query_entry, store_entries, top_n=None):
             continue
         if not _is_finished(candidate):
             continue
-        if not passes_hard_filter(query_entry, candidate):
+        if not passes_hard_filter(query_entry, candidate, market_filter=market_filter):
             continue
-        sim = compute_similarity(query_entry, candidate)
+        sim = compute_similarity(query_entry, candidate, market_filter=market_filter)
         if sim["total_score"] > 0:
             results.append({
                 "candidate": candidate,

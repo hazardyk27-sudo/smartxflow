@@ -6380,7 +6380,8 @@ def sako2_run():
                 'matches_found': 0,
             })
 
-        result = run_engine2(query_entry, store_entries)
+        market_filter = request.args.get('market_filter', '').strip().lower() or None
+        result = run_engine2(query_entry, store_entries, market_filter=market_filter)
         result['error'] = None
         return jsonify(result)
 

@@ -153,11 +153,11 @@ def compute_overall_explainability(query_entry, explanations):
     }
 
 
-def run_engine(query_entry, store_entries, top_n=None):
+def run_engine(query_entry, store_entries, top_n=None, market_filter=None):
     if top_n is None:
         top_n = TOP_SIMILAR_COUNT
 
-    similar_matches = find_similar_matches(query_entry, store_entries, top_n)
+    similar_matches = find_similar_matches(query_entry, store_entries, top_n, market_filter=market_filter)
 
     explanations = []
     for match in similar_matches:

@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap"></noscript>
     <link rel="stylesheet" href="/static/css/style.css?v=1773116400">
-    <link rel="stylesheet" href="/static/css/sako2.css?v=1773300004">
+    <link rel="stylesheet" href="/static/css/sako2.css?v=1773300005">
 </head>
 <body class="sako-body">
     <header class="header">
@@ -47,6 +47,12 @@
                     <svg class="sako-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <input type="text" id="sako2SearchInput" class="sako-search-input" placeholder="Maç adı, lig veya takım ara..." autocomplete="off" spellcheck="false">
                     <button class="sako-search-clear" id="sako2SearchClear" onclick="clearSako2Search()">&times;</button>
+                </div>
+                <div class="s2-market-filter">
+                    <button class="s2-mf-btn active" data-market="all">Hepsi</button>
+                    <button class="s2-mf-btn" data-market="1x2">1X2</button>
+                    <button class="s2-mf-btn" data-market="ou25">ÜA 2.5</button>
+                    <button class="s2-mf-btn" data-market="kg">KG</button>
                 </div>
                 <div class="sako-dropdown" id="sako2Dropdown"></div>
             </div>
@@ -86,6 +92,6 @@
         </section>
     </main>
 
-    <script src="/static/js/sako2.js?v=1773300004"></script>
+    <script src="/static/js/sako2.js?v=1773300005"></script>
 </body>
 </html>
