@@ -66,7 +66,16 @@ def _drift_pct(opening, closing):
 
 
 def _drift_diff_score(drift_a, drift_b, max_diff=0.30):
+    if (drift_a > 0.005 and drift_b < -0.005) or (drift_a < -0.005 and drift_b > 0.005):
+        return _clamp((1.0 - abs(drift_a - drift_b) / max_diff) * 0.3)
     return _clamp(1.0 - abs(drift_a - drift_b) / max_diff)
+
+
+def _amount_ratio_score(q_val, c_val):
+    if q_val is None or c_val is None or q_val <= 0 or c_val <= 0:
+        return 0.0
+    ratio = max(q_val, c_val) / max(min(q_val, c_val), 1)
+    return _clamp(1.0 - (ratio - 1.0) / 4.0)
 
 
 def _compute_odds_block(q_market, c_market, sel_keys):
@@ -104,7 +113,7 @@ def _compute_odds_block(q_market, c_market, sel_keys):
     avg_close = sum(close_scores) / len(close_scores) if close_scores else 0.0
     avg_drift = sum(drift_scores) / len(drift_scores) if drift_scores else 0.0
 
-    return round((avg_open * 0.30 + avg_close * 0.30 + avg_drift * 0.40), 4)
+    return round((avg_open * 0.20 + avg_close * 0.25 + avg_drift * 0.55), 4)
 
 
 def _get_1x2_role_mapping(market):
@@ -168,12 +177,16 @@ def _compute_money_distribution(q_entry, c_entry):
             q_total = sum(v for v in q_norm.values() if v is not None) or 1
             c_total = sum(v for v in c_norm.values() if v is not None) or 1
             pct_scores = []
+            abs_scores = []
             for role_key in ["favorite", "draw", "underdog"]:
                 q_pct = (q_norm.get(role_key) or 0) / q_total
                 c_pct = (c_norm.get(role_key) or 0) / c_total
                 pct_scores.append(_clamp(1.0 - abs(q_pct - c_pct) / 0.20))
+                abs_scores.append(_amount_ratio_score(q_norm.get(role_key), c_norm.get(role_key)))
             if pct_scores:
-                scores.append(sum(pct_scores) / len(pct_scores))
+                pct_avg = sum(pct_scores) / len(pct_scores)
+                abs_avg = sum(abs_scores) / len(abs_scores) if abs_scores else 0.0
+                scores.append(pct_avg * 0.5 + abs_avg * 0.5)
 
     for get_market, sel_keys in [
         (_get_ou_market, ["over", "under"]),
@@ -198,12 +211,16 @@ def _compute_money_distribution(q_entry, c_entry):
             q_total = sum(v for v in q_amounts.values() if v is not None) or 1
             c_total = sum(v for v in c_amounts.values() if v is not None) or 1
             pct_scores = []
+            abs_scores = []
             for key in sel_keys:
                 q_pct = (q_amounts.get(key) or 0) / q_total
                 c_pct = (c_amounts.get(key) or 0) / c_total
                 pct_scores.append(_clamp(1.0 - abs(q_pct - c_pct) / 0.20))
+                abs_scores.append(_amount_ratio_score(q_amounts.get(key), c_amounts.get(key)))
             if pct_scores:
-                scores.append(sum(pct_scores) / len(pct_scores))
+                pct_avg = sum(pct_scores) / len(pct_scores)
+                abs_avg = sum(abs_scores) / len(abs_scores) if abs_scores else 0.0
+                scores.append(pct_avg * 0.5 + abs_avg * 0.5)
 
     if not scores:
         return 0.0
