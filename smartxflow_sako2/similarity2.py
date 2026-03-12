@@ -444,13 +444,13 @@ def compute_similarity(query, candidate, market_filter=None):
             block_scores["money_distribution"] = money_score
             block_scores["money_distribution_detail"] = money_detail
 
-            q_vol = query.get("total_volume") or 0
-            c_vol = candidate.get("total_volume") or 0
-            q_bucket = query.get("volume_bucket") or _get_volume_bucket(q_vol)
-            c_bucket = candidate.get("volume_bucket") or _get_volume_bucket(c_vol)
-            vol_sim = _compute_volume_similarity(q_vol, c_vol, q_bucket, c_bucket)
+            q_mkt_vol = sum(v for v in (q_m.get("closing_amounts") or {}).values() if v) if q_m else 0
+            c_mkt_vol = sum(v for v in (c_m.get("closing_amounts") or {}).values() if v) if c_m else 0
+            q_bucket = _get_volume_bucket(q_mkt_vol)
+            c_bucket = _get_volume_bucket(c_mkt_vol)
+            vol_sim = _compute_volume_similarity(q_mkt_vol, c_mkt_vol, q_bucket, c_bucket)
             block_scores["total_volume"] = vol_sim
-            block_scores["total_volume_detail"] = {"q_vol": q_vol, "c_vol": c_vol}
+            block_scores["total_volume_detail"] = {"q_vol": q_mkt_vol, "c_vol": c_mkt_vol}
 
             total = (block_scores[block_name] * 0.39 +
                      block_scores[drift_block_name] * 0.36 +
