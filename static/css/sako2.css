@@ -338,6 +338,15 @@
 }
 .s2-mc-arrow.down { color: #EF4444; }
 .s2-mc-arrow.up { color: #22C55E; }
+.s2-mc-drift-pct {
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: #6E7681;
+    min-width: 38px;
+}
+.s2-mc-drift-pct.down { color: #EF4444; }
+.s2-mc-drift-pct.up { color: #22C55E; }
 .s2-mc-amt {
     font-size: 10px;
     font-weight: 700;

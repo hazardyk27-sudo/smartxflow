@@ -338,9 +338,11 @@
                 if(cl < op - 0.01) driftCls = 'down';
                 else if(cl > op + 0.01) driftCls = 'up';
             }
+            var driftStr = fmtDrift(op, cl);
             sels += '<div class="s2-mc-sel">' +
                 '<span class="s2-mc-sel-lbl">' + labels[i] + '</span>' +
                 '<span class="s2-mc-odds">' + fmtOdds(op) + '<span class="s2-mc-arrow ' + driftCls + '">' + (driftCls === 'down' ? '↓' : driftCls === 'up' ? '↑' : '→') + '</span>' + fmtOdds(cl) + '</span>' +
+                '<span class="s2-mc-drift-pct ' + driftCls + '">' + driftStr + '</span>' +
                 (amt != null ? '<span class="s2-mc-amt">' + fmtVol(amt) + '</span>' : '') +
             '</div>';
         }
