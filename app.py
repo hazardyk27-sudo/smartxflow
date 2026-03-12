@@ -666,10 +666,9 @@ def archive_finished_matches():
 
         try:
             from smartxflow_similarity.result_fetcher import update_store_results, fetch_results_from_api
-            if added > 0:
-                matched = update_store_results(store_path)
-                if matched > 0:
-                    print(f"[FinishedArchiver] {matched} maç sonucu FlashScore cache'den eşleştirildi")
+            matched = update_store_results(store_path)
+            if matched > 0:
+                print(f"[FinishedArchiver] {matched} maç sonucu FlashScore cache'den eşleştirildi")
             api_matched = fetch_results_from_api(store_path)
             if api_matched > 0:
                 print(f"[FinishedArchiver] {api_matched} maç sonucu TheSportsDB API'den çekildi")
