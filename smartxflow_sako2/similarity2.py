@@ -445,7 +445,11 @@ def compute_similarity(query, candidate, market_filter=None):
             block_scores["money_distribution_detail"] = money_detail
 
             q_mkt_vol = sum(v for v in (q_m.get("closing_amounts") or {}).values() if v) if q_m else 0
+            if not q_mkt_vol:
+                q_mkt_vol = query.get("total_volume") or 0
             c_mkt_vol = sum(v for v in (c_m.get("closing_amounts") or {}).values() if v) if c_m else 0
+            if not c_mkt_vol:
+                c_mkt_vol = candidate.get("total_volume") or 0
             q_bucket = _get_volume_bucket(q_mkt_vol)
             c_bucket = _get_volume_bucket(c_mkt_vol)
             vol_sim = _compute_volume_similarity(q_mkt_vol, c_mkt_vol, q_bucket, c_bucket)
