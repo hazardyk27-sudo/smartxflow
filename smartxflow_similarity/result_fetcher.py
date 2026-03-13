@@ -566,6 +566,17 @@ def backfill_all_results(store_path):
     if os.path.exists(_BACKFILL_FLAG):
         return 0
 
+    from smartxflow_similarity.feature_store import load_store, save_store
+    entries = load_store(store_path)
+    cleared = 0
+    for entry in entries:
+        if not entry.get("result") and entry.get("_api_attempted"):
+            del entry["_api_attempted"]
+            cleared += 1
+    if cleared > 0:
+        save_store(entries, store_path)
+        print(f"[ResultAPI Backfill] {cleared} maçın _api_attempted bayrağı temizlendi")
+
     total_matched = 0
     total_queried = 0
     batch = 1
@@ -578,16 +589,12 @@ def backfill_all_results(store_path):
             break
         batch += 1
 
-    if not _sportsdb_rate_limited and total_queried > 0:
+    if _sportsdb_rate_limited:
+        print(f"[ResultAPI Backfill] Rate limit, sonraki çalışmada devam edecek ({total_matched} çekildi, {total_queried} sorgulandı)")
+    else:
         with open(_BACKFILL_FLAG, 'w') as f:
             f.write("done")
         print(f"[ResultAPI Backfill] Tamamlandı: {total_matched}/{total_queried} sonuç çekildi")
-    elif _sportsdb_rate_limited:
-        print(f"[ResultAPI Backfill] Rate limit, sonraki çalışmada devam edecek ({total_matched} çekildi, {total_queried} sorgulandı)")
-    elif total_queried == 0:
-        with open(_BACKFILL_FLAG, 'w') as f:
-            f.write("done")
-        print(f"[ResultAPI Backfill] Sorgulanacak maç kalmadı")
 
     return total_matched
 
