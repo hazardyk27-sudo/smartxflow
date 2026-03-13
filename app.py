@@ -672,7 +672,7 @@ def archive_finished_matches():
             backfill_total = backfill_all_results(store_path)
             if backfill_total > 0:
                 print(f"[FinishedArchiver] Backfill: {backfill_total} maç sonucu çekildi")
-            api_matched = fetch_results_from_api(store_path)
+            api_matched, _ = fetch_results_from_api(store_path)
             if api_matched > 0:
                 print(f"[FinishedArchiver] {api_matched} maç sonucu TheSportsDB API'den çekildi")
         except Exception as e:

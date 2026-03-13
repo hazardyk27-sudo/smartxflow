@@ -475,7 +475,7 @@ def _parse_kickoff_utc(kickoff_str):
         return None
 
 
-def fetch_results_from_api(store_path, max_queries=50):
+def fetch_results_from_api(store_path, max_queries=50, skip_attempted=False):
     global _sportsdb_rate_limited
     _sportsdb_rate_limited = False
     from datetime import datetime, timezone
@@ -483,13 +483,15 @@ def fetch_results_from_api(store_path, max_queries=50):
 
     entries = load_store(store_path)
     if not entries:
-        return 0
+        return 0, 0
 
     now_utc = datetime.now(timezone.utc)
 
     pending = []
     for entry in entries:
         if entry.get("result"):
+            continue
+        if skip_attempted and entry.get("_api_attempted"):
             continue
         mn = entry.get("match_name", "")
         if " vs " not in mn:
@@ -503,10 +505,11 @@ def fetch_results_from_api(store_path, max_queries=50):
         pending.append(entry)
 
     if not pending:
-        return 0
+        return 0, 0
 
     pending = pending[:max_queries]
     updated = 0
+    queried = 0
     cache_additions = []
 
     for entry in pending:
@@ -522,6 +525,9 @@ def fetch_results_from_api(store_path, max_queries=50):
 
         if _sportsdb_rate_limited:
             break
+
+        queried += 1
+        entry["_api_attempted"] = True
 
         result_val, score_val = _match_sportsdb_event(
             store_home, store_away, kick_day, kick_month, events
@@ -544,12 +550,13 @@ def fetch_results_from_api(store_path, max_queries=50):
                 "league": entry.get("league", "TheSportsDB"),
             })
 
-    if updated > 0:
+    if queried > 0:
         save_store(entries, store_path)
+    if updated > 0:
         _update_flashscore_cache(cache_additions)
-        print(f"[ResultAPI] {updated}/{len(pending)} maç sonucu TheSportsDB'den çekildi")
+        print(f"[ResultAPI] {updated}/{queried} maç sonucu TheSportsDB'den çekildi")
 
-    return updated
+    return updated, queried
 
 
 _BACKFILL_FLAG = os.path.join(os.path.dirname(__file__), 'data', '.backfill_done')
@@ -559,24 +566,30 @@ def backfill_all_results(store_path):
     if os.path.exists(_BACKFILL_FLAG):
         return 0
 
-    total = 0
+    total_matched = 0
+    total_queried = 0
     batch = 1
     while True:
-        matched = fetch_results_from_api(store_path, max_queries=50)
-        total += matched
-        print(f"[ResultAPI Backfill] Batch {batch}: {matched} eşleşti (toplam: {total})")
-        if matched == 0 or _sportsdb_rate_limited:
+        matched, queried = fetch_results_from_api(store_path, max_queries=50, skip_attempted=True)
+        total_matched += matched
+        total_queried += queried
+        print(f"[ResultAPI Backfill] Batch {batch}: {matched}/{queried} eşleşti (toplam: {total_matched})")
+        if queried == 0 or _sportsdb_rate_limited:
             break
         batch += 1
 
-    if not _sportsdb_rate_limited:
+    if not _sportsdb_rate_limited and total_queried > 0:
         with open(_BACKFILL_FLAG, 'w') as f:
             f.write("done")
-        print(f"[ResultAPI Backfill] Tamamlandı: {total} sonuç çekildi")
-    else:
-        print(f"[ResultAPI Backfill] Rate limit nedeniyle duraklatıldı, sonraki çalışmada devam edecek ({total} çekildi)")
+        print(f"[ResultAPI Backfill] Tamamlandı: {total_matched}/{total_queried} sonuç çekildi")
+    elif _sportsdb_rate_limited:
+        print(f"[ResultAPI Backfill] Rate limit, sonraki çalışmada devam edecek ({total_matched} çekildi, {total_queried} sorgulandı)")
+    elif total_queried == 0:
+        with open(_BACKFILL_FLAG, 'w') as f:
+            f.write("done")
+        print(f"[ResultAPI Backfill] Sorgulanacak maç kalmadı")
 
-    return total
+    return total_matched
 
 
 def _update_flashscore_cache(additions):
