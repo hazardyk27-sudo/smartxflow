@@ -15,7 +15,7 @@ ALIAS_MAP = {
     'manchesterutd': 'manchesterunited', 'manunited': 'manchesterunited',
     'newcastleutd': 'newcastle', 'newcastleunited': 'newcastle',
     'tottenham': 'tottenham', 'spurs': 'tottenham',
-    'intermilan': 'inter', 'internazionale': 'inter',
+    'intermilan': 'inter', 'internazionale': 'inter', 'intermiami': 'intermiami',
     'acmilan': 'milan',
     'bayernmunich': 'bayernmunchen', 'bayernmunchen': 'bayernmunchen', 'bayern': 'bayernmunchen',
     'bayerleverkusen': 'leverkusen', 'leverkusen': 'leverkusen',
@@ -29,6 +29,7 @@ ALIAS_MAP = {
     'qpr': 'qpr', 'queensparkrangers': 'qpr',
     'oxfordutd': 'oxford', 'oxfordunited': 'oxford',
     'nottmforest': 'nottinghamforest', 'nottinghamforest': 'nottinghamforest', 'nottmfores': 'nottinghamforest',
+    'nottingham': 'nottinghamforest',
     'wolverhampton': 'wolves', 'wolves': 'wolves',
     'crystalpala': 'crystalpalace', 'crystalpalace': 'crystalpalace',
     'bournemouth': 'bournemouth', 'afcbournemouth': 'bournemouth',
@@ -56,6 +57,56 @@ ALIAS_MAP = {
     'leedsunite': 'leedsunited', 'leedsunited': 'leedsunited', 'leeds': 'leedsunited',
     'bristolcit': 'bristolcity', 'bristolcity': 'bristolcity',
     'buriramutd': 'buriramunited', 'buriramunited': 'buriramunited',
+    'caindepend': 'independiente', 'independiente': 'independiente',
+    'uniondesa': 'uniondesantafe', 'unionsanta': 'uniondesantafe', 'uniondesantafe': 'uniondesantafe',
+    'sepalmeira': 'palmeiras', 'palmeiras': 'palmeiras',
+    'vascodaga': 'vascodagama', 'vascodagama': 'vascodagama',
+    'cerrolargo': 'cerrolargo',
+    'csdmunicip': 'municipal', 'municipal': 'municipal',
+    'deportivom': 'deportivomalacateco', 'deportivomalacateco': 'deportivomalacateco',
+    'stuttgarte': 'stuttgart', 'stuttgart': 'stuttgart',
+    'panathinai': 'panathinaikos', 'panathinaikos': 'panathinaikos',
+    'midtjyllan': 'midtjylland', 'midtjylland': 'midtjylland',
+    'nottmfores': 'nottinghamforest',
+    'cdtepatitl': 'tepatitlan', 'tepatitlan': 'tepatitlan',
+    'minerosdez': 'mineros', 'mineros': 'mineros',
+    'tampicomad': 'tampicomadero', 'tampicomadero': 'tampicomadero',
+    'deportivos': 'deportivosaprissa', 'deportivosaprissa': 'deportivosaprissa',
+    'csheredian': 'herediano', 'herediano': 'herediano',
+    'sportingsa': 'sportingsanjose', 'sportingsanjose': 'sportingsanjose',
+    'municipalp': 'municipalperezzeledón', 'municipalperezzeledón': 'municipalperezzeledón',
+    'sportivosa': 'sportivosan', 'sportivosan': 'sportivosan',
+    'atltucuman': 'atleticotucuman', 'atleticotucuman': 'atleticotucuman',
+    'aeklaranca': 'aeklarnaca', 'aeklarnaca': 'aeklarnaca',
+    'rsbberkane': 'berkane', 'berkane': 'berkane',
+    'dhjeljadid': 'dhjeljadida', 'dhjeljadida': 'dhjeljadida',
+    'rayovallec': 'rayovallecano', 'rayovallecano': 'rayovallecano',
+    'rakowczest': 'rakowczestochowa', 'rakowczestochowa': 'rakowczestochowa',
+    'spartaprag': 'spartapraha', 'spartapraha': 'spartapraha', 'spartaprague': 'spartapraha',
+    'azalkmaar': 'azalkmaar', 'alkmaar': 'azalkmaar',
+    'lechpoznan': 'lechpoznan',
+    'nkcelje': 'celje', 'celje': 'celje',
+    'aekathens': 'aekathens',
+    'corumbeled': 'corumbelediyespor', 'corumbelediyespor': 'corumbelediyespor',
+    'samsunspor': 'samsunspor',
+    'estudiant': 'estudianteslaplata', 'estudianteslaplata': 'estudianteslaplata',
+    'estudiantes': 'estudianteslaplata',
+    'bocajunior': 'bocajuniors', 'bocajuniors': 'bocajuniors',
+    'sanlorenzo': 'sanlorenzo',
+    'nashvilles': 'nashvillesc', 'nashvillesc': 'nashvillesc',
+    'fortalezae': 'fortaleza', 'fortaleza': 'fortaleza',
+    'cearascfo': 'ceara', 'ceara': 'ceara',
+    'ecvitoria': 'vitoria', 'vitoria': 'vitoria',
+    'puertomon': 'puertomontts', 'puertomontts': 'puertomontts',
+    'deportesr': 'deportesrecoleta', 'deportesrecoleta': 'deportesrecoleta',
+    'deportesc': 'deportescopiapo', 'deportescopiapo': 'deportescopiapo',
+    'deportest': 'deportestemuco', 'deportestemuco': 'deportestemuco',
+    'newellsold': 'newellsoldboys', 'newellsoldboys': 'newellsoldboys',
+    'lokomotivp': 'lokplovdiv', 'lokplovdiv': 'lokplovdiv', 'lokomotivplovdiv': 'lokplovdiv',
+    'pfclevski': 'levskisofia', 'levskisofia': 'levskisofia', 'levski': 'levskisofia',
+    'abuqairse': 'abuqairsemad',
+    'eldaklyeh': 'eldakhleya',
+    'doradosdes': 'doradosdesinaloa', 'doradosdesinaloa': 'doradosdesinaloa', 'dorados': 'doradosdesinaloa',
 }
 
 LEAGUE_MAP = {
@@ -116,15 +167,51 @@ LEAGUE_MAP = {
     "CONCACAF Champions League": ["CONCACAF Champions League"],
     "AFC Champions League": ["AFC Champions League Elite", "AFC Champions League"],
     "AFC Champions League Two": ["AFC Champions League Two"],
-    "Bulgarian A League": ["Bulgarian First League"],
+    "Bulgarian A League": ["Bulgarian First League", "Bulgarian First Professional League"],
     "Uruguayan Primera Division": ["Uruguayan Primera Division"],
     "Venezuelan Primera Division": ["Venezuelan Primera Division"],
-    "Paraguayan Primera Division": ["Paraguayan Primera Division"],
-    "Norwegian Cup": ["Norwegian Cup"],
+    "Paraguayan Primera Division": ["Paraguayan Primera Division", "Paraguayan Division Profesional"],
+    "Norwegian Cup": ["Norwegian Cup", "Norwegian NM Cup"],
     "Serbian Super League": ["Serbian Super Liga", "Serbian Super League"],
-    "Albanian Superliga": ["Albanian Superliga"],
+    "Serbian First League": ["Serbian Prva Liga", "Serbian First League"],
+    "Albanian Superliga": ["Albanian Superliga", "Albanian Super League"],
     "Russian Premier League": ["Russian Premier League"],
-    "Azerbaijan Premier League": ["Azerbaijan Premier League"],
+    "Azerbaijan Premier League": ["Azerbaijan Premier League", "Azerbaijan Premyer Liqa"],
+    "Brazilian Cup": ["Brazilian Cup", "Brazilian Copa do Brasil"],
+    "Brazilian Paulista Serie A1": ["Brazilian Paulista A1", "Brazilian Paulistao"],
+    "Brazilian Cearense Matches": ["Brazilian Cearense", "Brazilian Campeonato Cearense"],
+    "Brazilian Gaucho Matches": ["Brazilian Gaucho", "Brazilian Campeonato Gaucho"],
+    "Brazilian Mineiro Matches": ["Brazilian Mineiro", "Brazilian Campeonato Mineiro"],
+    "French Premiere Ligue": ["French Ligue 1", "French Premiere Ligue"],
+    "Turkish 2 Lig": ["Turkish 2. Lig", "Turkish TFF 2. Lig"],
+    "Turkish Ladies Super Lig": ["Turkish Super Lig Women", "Turkish Ladies Super Lig"],
+    "UAE U23": ["UAE U21 League", "UAE U23"],
+    "Costa Rican Primera Division": ["Costa Rican Primera Division"],
+    "Costa Rican Liga de Ascenso": ["Costa Rican Liga de Ascenso"],
+    "Saudi Professional League": ["Saudi Professional League", "Saudi Pro League"],
+    "Qatari Stars League": ["Qatari Stars League", "Qatar Stars League"],
+    "Mexican Liga de Ascenso": ["Mexican Liga de Expansion MX", "Mexican Liga de Ascenso"],
+    "Mexican Liga MX Femenil": ["Mexican Liga MX Women", "Mexican Liga MX Femenil"],
+    "Colombian Primera B": ["Colombian Primera B"],
+    "Chilean Primera B": ["Chilean Primera B"],
+    "Omani Professional League": ["Omani Professional League"],
+    "Moroccan Botola Pro 1": ["Moroccan Botola Pro", "Moroccan Botola Pro 1"],
+    "Republic of North Macedonian Soccer": ["North Macedonian First League", "North Macedonian 1. MFL"],
+    "Armenian Premier League": ["Armenian Premier League"],
+    "Singapore Premier League": ["Singapore Premier League"],
+    "US United Soccer League": ["USL Championship", "US United Soccer League"],
+    "Jamaican Premier League": ["Jamaican Premier League"],
+    "Guatemalan Liga Nacional": ["Guatemalan Liga Nacional"],
+    "Italian Serie C": ["Italian Serie C", "Italian Serie C A", "Italian Serie C B", "Italian Serie C C"],
+    "Polish I Liga": ["Polish I Liga", "Polish Fortuna 1. Liga"],
+    "Montenegrin 1st League": ["Montenegrin First League", "Montenegrin 1. CFL"],
+    "Bosnian Cup": ["Bosnian Premier League", "Bosnian Cup"],
+    "AFC Ladies Asian Cup": ["AFC Women's Asian Cup", "AFC Ladies Asian Cup"],
+    "English Premier League 2 - Div 1": ["English Premier League 2", "English PL2 Division 1"],
+    "English U21 Pro Development League": ["English Professional Development League", "English U21 Pro Development League"],
+    "Portuguese U23": ["Portuguese Liga Revelacao U23", "Portuguese U23"],
+    "Georgian Umaglesi Liga": ["Georgian Erovnuli Liga", "Georgian Umaglesi Liga"],
+    "Peruvian Primera Division": ["Peruvian Primera Division", "Peruvian Liga 1"],
 }
 
 
@@ -199,7 +286,28 @@ def _teams_match(store_name, flash_name):
             return True
     if len(sn) >= 5 and len(fn) >= 5 and sn[:5] == fn[:5]:
         return True
+    sn_stripped = _strip_prefixes(sn)
+    fn_stripped = _strip_prefixes(fn)
+    if sn_stripped and fn_stripped and len(sn_stripped) >= 4 and len(fn_stripped) >= 4:
+        if sn_stripped in fn_stripped or fn_stripped in sn_stripped:
+            return True
+        if sn_stripped[:5] == fn_stripped[:5]:
+            return True
+    is_truncated = len(store_name.strip()) <= 11
+    if is_truncated and len(sn) >= 6 and len(fn) >= 6:
+        if fn.startswith(sn) or rs == rf:
+            return True
+        if fn_stripped.startswith(sn_stripped) and len(sn_stripped) >= 5:
+            return True
     return False
+
+
+def _strip_prefixes(normed):
+    for prefix in sorted(_TEAM_PREFIXES, key=len, reverse=True):
+        clean = prefix.replace('.', '').lower()
+        if normed.startswith(clean) and len(normed) > len(clean):
+            return normed[len(clean):]
+    return normed
 
 
 def parse_flashscore_markdown(md_text):
