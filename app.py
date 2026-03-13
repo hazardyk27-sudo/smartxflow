@@ -357,6 +357,11 @@ def _refresh_license_from_supabase(key):
         _validated_licenses.pop(key, None)
         return 'LICENSE_EXPIRED'
 
+def _license_block(error, message, status=403):
+    if not request.path.startswith('/api/') and 'text/html' in request.headers.get('Accept', ''):
+        return redirect(f'/app?next={request.path}')
+    return jsonify({'error': error, 'message': message}), status
+
 def license_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -373,7 +378,7 @@ def license_required(f):
                 print(f"[LicenseCheck] SESSION: no key found, clearing session")
                 session.pop('license_valid', None)
                 session.pop('license_expires', None)
-                return jsonify({'error': 'LICENSE_REQUIRED', 'message': 'Gecerli lisans gerekli'}), 403
+                return _license_block('LICENSE_REQUIRED', 'Gecerli lisans gerekli')
             last_check = session.get('license_last_check', 0)
             age = time.time() - last_check
             if age > _LICENSE_CACHE_TTL:
@@ -385,7 +390,7 @@ def license_required(f):
                     session.pop('license_expires', None)
                     session.pop('license_key', None)
                     session.pop('license_last_check', None)
-                    return jsonify({'error': err, 'message': 'Lisans suresi dolmus' if err == 'LICENSE_EXPIRED' else 'Lisans iptal edilmis' if err == 'LICENSE_REVOKED' else 'Gecerli lisans gerekli'}), 403
+                    return _license_block(err, 'Lisans suresi dolmus' if err == 'LICENSE_EXPIRED' else 'Lisans iptal edilmis' if err == 'LICENSE_REVOKED' else 'Gecerli lisans gerekli')
                 print(f"[LicenseCheck] SESSION: refresh OK, license still valid")
                 session['license_last_check'] = time.time()
                 session['license_key'] = session_key
@@ -419,7 +424,7 @@ def license_required(f):
                 return f(*args, **kwargs)
         
         print(f"[LicenseCheck] NO valid session, NO cached header key -> LICENSE_REQUIRED")
-        return jsonify({'error': 'LICENSE_REQUIRED', 'message': 'Gecerli lisans gerekli'}), 403
+        return _license_block('LICENSE_REQUIRED', 'Gecerli lisans gerekli')
     return decorated
 
 @app.after_request
