@@ -4,6 +4,7 @@ import os
 import time
 import urllib.request
 import urllib.parse
+import urllib.error
 
 
 ALIAS_MAP = {
@@ -163,7 +164,10 @@ def _leagues_match(store_league, flash_league):
 def _normalize_team(name):
     if not name:
         return ""
-    n = name.lower().strip()
+    import unicodedata
+    n = unicodedata.normalize('NFKD', name)
+    n = ''.join(c for c in n if not unicodedata.combining(c))
+    n = n.lower().strip()
     n = re.sub(r'\([a-z]{2,4}\)', '', n)
     return re.sub(r'[^a-z0-9]', '', n)
 
@@ -365,17 +369,68 @@ def update_store_results(store_path, results_by_league=None):
 SPORTSDB_API = "https://www.thesportsdb.com/api/v1/json/3"
 SPORTSDB_SEASON = "2025-2026"
 
+_TEAM_PREFIXES = {
+    "fc", "fk", "cd", "ca", "sc", "pfc", "cf", "nk", "sd", "sv", "tsv", "ssv",
+    "as", "us", "ss", "ac", "al", "cs", "rc", "rcd", "ud", "uc", "ec", "se",
+    "afc", "bsc", "vfb", "vfl", "bv", "if", "ik", "gd", "gk",
+}
+
+
+def _extract_search_name(team_name):
+    words = team_name.strip().split()
+    meaningful = [w for w in words if w.lower().rstrip(".") not in _TEAM_PREFIXES and len(w) > 1]
+    if meaningful:
+        return " ".join(meaningful)
+    return team_name.strip()
+
+
+_sportsdb_rate_limited = False
+
 
 def _sportsdb_search(home, away):
+    global _sportsdb_rate_limited
+    if _sportsdb_rate_limited:
+        return []
     query = f"{home}_vs_{away}"
     url = f"{SPORTSDB_API}/searchevents.php?e={urllib.parse.quote(query)}&s={SPORTSDB_SEASON}"
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "SmartXFlow/1.0"})
         resp = urllib.request.urlopen(req, timeout=10)
         data = json.loads(resp.read())
+        time.sleep(2)
         return data.get("event") or []
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            print(f"[ResultAPI] 429 rate limit, bu batch durduruldu")
+            _sportsdb_rate_limited = True
+            return []
+        return []
     except Exception:
         return []
+
+
+def _multi_search(home, away):
+    clean_h = _extract_search_name(home)
+    clean_a = _extract_search_name(away)
+
+    queries_to_try = [(home, away)]
+    if clean_h != home or clean_a != away:
+        queries_to_try.append((clean_h, clean_a))
+    queries_to_try.append((away, home))
+    if clean_h != home or clean_a != away:
+        queries_to_try.append((clean_a, clean_h))
+
+    seen = set()
+    for h, a in queries_to_try:
+        key = (h, a)
+        if key in seen:
+            continue
+        seen.add(key)
+        events = _sportsdb_search(h, a)
+        if events:
+            return events
+
+    return []
 
 
 def _match_sportsdb_event(store_home, store_away, kick_day, kick_month, events):
@@ -420,7 +475,9 @@ def _parse_kickoff_utc(kickoff_str):
         return None
 
 
-def fetch_results_from_api(store_path, max_queries=30):
+def fetch_results_from_api(store_path, max_queries=10):
+    global _sportsdb_rate_limited
+    _sportsdb_rate_limited = False
     from datetime import datetime, timezone
     from smartxflow_similarity.feature_store import load_store, save_store
 
@@ -461,9 +518,10 @@ def fetch_results_from_api(store_path, max_queries=30):
         kick_day = kickoff[8:10]
         kick_month = kickoff[5:7]
 
-        events = _sportsdb_search(store_home, store_away)
-        if not events:
-            events = _sportsdb_search(store_away, store_home)
+        events = _multi_search(store_home, store_away)
+
+        if _sportsdb_rate_limited:
+            break
 
         result_val, score_val = _match_sportsdb_event(
             store_home, store_away, kick_day, kick_month, events
@@ -485,8 +543,6 @@ def fetch_results_from_api(store_path, max_queries=30):
                 "result": result_val,
                 "league": entry.get("league", "TheSportsDB"),
             })
-
-        time.sleep(1.5)
 
     if updated > 0:
         save_store(entries, store_path)
