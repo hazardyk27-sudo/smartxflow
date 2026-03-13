@@ -9507,7 +9507,13 @@ async function validateWebLicense() {
             
             setTimeout(() => {
                 hideLicenseGate();
-                window.location.reload();
+                const _np = new URLSearchParams(window.location.search);
+                const _next = _np.get('next');
+                if (_next && _next.startsWith('/')) {
+                    window.location.href = _next;
+                } else {
+                    window.location.reload();
+                }
             }, 1500);
         } else {
             errorDiv.textContent = data.error || 'Gecersiz lisans anahtari';
