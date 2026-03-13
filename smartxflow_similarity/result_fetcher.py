@@ -475,7 +475,7 @@ def _parse_kickoff_utc(kickoff_str):
         return None
 
 
-def fetch_results_from_api(store_path, max_queries=10):
+def fetch_results_from_api(store_path, max_queries=50):
     global _sportsdb_rate_limited
     _sportsdb_rate_limited = False
     from datetime import datetime, timezone
@@ -550,6 +550,33 @@ def fetch_results_from_api(store_path, max_queries=10):
         print(f"[ResultAPI] {updated}/{len(pending)} maç sonucu TheSportsDB'den çekildi")
 
     return updated
+
+
+_BACKFILL_FLAG = os.path.join(os.path.dirname(__file__), 'data', '.backfill_done')
+
+
+def backfill_all_results(store_path):
+    if os.path.exists(_BACKFILL_FLAG):
+        return 0
+
+    total = 0
+    batch = 1
+    while True:
+        matched = fetch_results_from_api(store_path, max_queries=50)
+        total += matched
+        print(f"[ResultAPI Backfill] Batch {batch}: {matched} eşleşti (toplam: {total})")
+        if matched == 0 or _sportsdb_rate_limited:
+            break
+        batch += 1
+
+    if not _sportsdb_rate_limited:
+        with open(_BACKFILL_FLAG, 'w') as f:
+            f.write("done")
+        print(f"[ResultAPI Backfill] Tamamlandı: {total} sonuç çekildi")
+    else:
+        print(f"[ResultAPI Backfill] Rate limit nedeniyle duraklatıldı, sonraki çalışmada devam edecek ({total} çekildi)")
+
+    return total
 
 
 def _update_flashscore_cache(additions):

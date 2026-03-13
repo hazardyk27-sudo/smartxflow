@@ -665,10 +665,13 @@ def archive_finished_matches():
         added = _archive_to_feature_store(supabase, finished_hashes)
 
         try:
-            from smartxflow_similarity.result_fetcher import update_store_results, fetch_results_from_api
+            from smartxflow_similarity.result_fetcher import update_store_results, fetch_results_from_api, backfill_all_results
             matched = update_store_results(store_path)
             if matched > 0:
                 print(f"[FinishedArchiver] {matched} maç sonucu FlashScore cache'den eşleştirildi")
+            backfill_total = backfill_all_results(store_path)
+            if backfill_total > 0:
+                print(f"[FinishedArchiver] Backfill: {backfill_total} maç sonucu çekildi")
             api_matched = fetch_results_from_api(store_path)
             if api_matched > 0:
                 print(f"[FinishedArchiver] {api_matched} maç sonucu TheSportsDB API'den çekildi")
