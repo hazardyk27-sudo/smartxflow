@@ -70,7 +70,7 @@ A market behavior similarity engine that finds historically similar matches by a
 - `feature_layer.py` — 10-phase system + 3 aggregate blocks, odds/volume/NV/money% features, 10 reaction classes, cross-market analysis, draw regime, context features
 - `similarity_layer.py` — Hard filter, block-based similarity (5 blocks), phase-weighted scoring
 - `engine_layer.py` — Result distribution, per-match explainability, pattern labeling
-- `feature_store.py` — JSONL-based feature vector storage
+- `feature_store.py` — JSONL-based feature vector storage with raw snapshot history + alarm data per entry
 - `run_similarity.py` — CLI runner
 
 **Web UI (Şako Page):**

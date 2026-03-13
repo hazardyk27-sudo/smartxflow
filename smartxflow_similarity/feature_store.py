@@ -15,7 +15,45 @@ def _serialize_datetime(obj):
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
-def build_feature_entry(canonical_match, result=None):
+def _compact_snapshot(row, table_name):
+    keep = {
+        'scraped_at', 'ScrapedAt',
+        'odds1', 'oddsx', 'odds2', 'pct1', 'pctx', 'pct2', 'amt1', 'amtx', 'amt2',
+        'over', 'under', 'pctover', 'pctunder', 'amtover', 'amtunder',
+        'oddsyes', 'oddsno', 'pctyes', 'pctno', 'amtyes', 'amtno',
+        'volume', 'line',
+        'odds1_prev', 'oddsx_prev', 'odds2_prev',
+        'over_prev', 'under_prev', 'oddsyes_prev', 'oddsno_prev',
+        'trend1', 'trendx', 'trend2', 'trendover', 'trendunder', 'trendyes', 'trendno',
+        'droppct1', 'droppctx', 'droppct2', 'droppctover', 'droppctunder', 'droppctyes', 'droppctno',
+    }
+    out = {}
+    for k, v in row.items():
+        if k.lower() in {x.lower() for x in keep} and v is not None and v != '':
+            out[k] = v
+    return out
+
+
+def _compact_alarm(alarm):
+    skip = {'id', 'created_at', 'updated_at'}
+    out = {}
+    for k, v in alarm.items():
+        if k.lower() not in skip and v is not None and v != '':
+            out[k] = v
+    return out
+
+
+_TABLE_TO_MARKET = {
+    'moneyway_1x2_history': 'moneyway_1x2',
+    'moneyway_ou25_history': 'moneyway_ou25',
+    'moneyway_btts_history': 'moneyway_btts',
+    'dropping_1x2_history': 'dropping_1x2',
+    'dropping_ou25_history': 'dropping_ou25',
+    'dropping_btts_history': 'dropping_btts',
+}
+
+
+def build_feature_entry(canonical_match, result=None, raw_snapshots=None, alarms=None):
     features = extract_all_features(canonical_match)
     meta = features.get("meta", {})
 
@@ -62,6 +100,22 @@ def build_feature_entry(canonical_match, result=None):
             "block_features": mf.get("block_features"),
             "phase_reactions": mf.get("phase_reactions"),
         }
+
+    if raw_snapshots:
+        for table_name, rows in raw_snapshots.items():
+            market_key = _TABLE_TO_MARKET.get(table_name, table_name)
+            if market_key not in entry["markets"]:
+                entry["markets"][market_key] = {}
+            sorted_rows = sorted(rows, key=lambda r: r.get('scraped_at', r.get('ScrapedAt', '')))
+            entry["markets"][market_key]["raw_history"] = [_compact_snapshot(r, table_name) for r in sorted_rows]
+
+    if alarms:
+        compacted = {}
+        for alarm_type, alarm_list in alarms.items():
+            if alarm_list:
+                compacted[alarm_type] = [_compact_alarm(a) for a in alarm_list]
+        if compacted:
+            entry["alarms"] = compacted
 
     return entry
 

@@ -515,6 +515,15 @@ def _archive_to_feature_store(supabase, old_hashes):
                 except Exception as e:
                     print(f"[Cleanup→Store] Error reading {table}: {e}")
 
+        alarm_tables_map = {
+            "sharp": "sharp_alarms",
+            "bigmoney": "bigmoney_alarms",
+            "volumeshock": "volumeshock_alarms",
+            "dropping": "dropping_alarms",
+            "volumeleader": "volume_leader_alarms",
+            "mim": "mim_alarms"
+        }
+
         added = 0
         for mid, table_rows in all_rows_by_hash.items():
             has_data = any(len(rows) > 0 for rows in table_rows.values())
@@ -522,7 +531,18 @@ def _archive_to_feature_store(supabase, old_hashes):
                 continue
             try:
                 canonical = build_canonical_match(table_rows)
-                entry = build_feature_entry(canonical)
+                match_alarms = {}
+                for atype, atable in alarm_tables_map.items():
+                    try:
+                        url = f"{supabase._rest_url(atable)}?match_id_hash=eq.{mid}&select=*"
+                        resp = supabase._get_http_client().get(url, headers=supabase._headers(), timeout=10)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            if data:
+                                match_alarms[atype] = data
+                    except Exception:
+                        pass
+                entry = build_feature_entry(canonical, raw_snapshots=table_rows, alarms=match_alarms)
                 if entry.get("data_quality_score", 0) and entry["data_quality_score"] >= 0.2:
                     append_to_store(entry, store_path)
                     added += 1
@@ -6648,11 +6668,44 @@ def sako_store_build():
             except Exception as e:
                 print(f"[Sako Store Build] Error reading {table}: {e}")
 
+        alarm_tables_map = {
+            "sharp": "sharp_alarms",
+            "bigmoney": "bigmoney_alarms",
+            "volumeshock": "volumeshock_alarms",
+            "dropping": "dropping_alarms",
+            "volumeleader": "volume_leader_alarms",
+            "mim": "mim_alarms"
+        }
+        all_alarms_by_hash = {}
+        for atype, atable in alarm_tables_map.items():
+            try:
+                rows = []
+                offset = 0
+                while True:
+                    url = f"{client._rest_url(atable)}?select=*&order=match_id_hash&offset={offset}&limit=1000"
+                    resp = client._get_http_client().get(url, headers=client._headers(), timeout=30)
+                    batch = resp.json() if resp.status_code == 200 else []
+                    rows.extend(batch)
+                    if len(batch) < 1000:
+                        break
+                    offset += 1000
+                for alarm in rows:
+                    h = alarm.get('match_id_hash', '')
+                    if h:
+                        if h not in all_alarms_by_hash:
+                            all_alarms_by_hash[h] = {}
+                        if atype not in all_alarms_by_hash[h]:
+                            all_alarms_by_hash[h][atype] = []
+                        all_alarms_by_hash[h][atype].append(alarm)
+            except Exception as e:
+                print(f"[Sako Store Build] Error reading alarms {atable}: {e}")
+
         entries = []
         for mid, table_rows in all_rows_by_hash.items():
             try:
                 canonical = build_canonical_match(table_rows)
-                entry = build_feature_entry(canonical)
+                match_alarms = all_alarms_by_hash.get(mid, {})
+                entry = build_feature_entry(canonical, raw_snapshots=table_rows, alarms=match_alarms)
                 entries.append(entry)
             except Exception as e:
                 print(f"[Sako Store Build] Error processing {mid}: {e}")
