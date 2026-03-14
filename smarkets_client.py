@@ -53,7 +53,7 @@ def find_top_football_events(limit=3):
             vol_data = _get(f"/markets/{mid}/volumes/")
             total_vol = 0
             for v in vol_data.get("volumes", []):
-                total_vol = v.get("volume", 0) / 100.0
+                total_vol += v.get("volume", 0) / 100.0
             events_with_volume.append({
                 "event_id": eid,
                 "name": ev.get("name", ""),
@@ -76,7 +76,7 @@ def get_market_data(market_id):
 
     total_volume = 0
     for v in vol_data.get("volumes", []):
-        total_volume = v.get("volume", 0) / 100.0
+        total_volume += v.get("volume", 0) / 100.0
 
     contract_map = {}
     for c in contracts.get("contracts", []):
