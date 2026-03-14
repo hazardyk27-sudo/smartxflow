@@ -6490,6 +6490,23 @@ def sako_run():
         traceback.print_exc()
         return jsonify({'error': f'Similarity hesaplama hatası: {str(e)}'}), 500
 
+@app.route('/smarkets')
+@license_required
+def smarkets_page():
+    return render_template('smarkets.html')
+
+@app.route('/api/smarkets/data')
+@license_required
+def api_smarkets_data():
+    try:
+        from smarkets_client import fetch_all_data
+        data = fetch_all_data(limit=3)
+        return jsonify(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e), "events": []}), 500
+
 @app.route('/sako2')
 @license_required
 def sako2_page():
