@@ -188,7 +188,7 @@ def fetch_all_data(limit=3):
                         per_sel_matched[sid] = round(volume_increase * ratio, 2)
 
                 delta = {
-                    "volume_increase": volume_increase,
+                    "volume_increase": round(volume_increase, 2),
                     "elapsed_min": round(elapsed_min, 1),
                     "flow_per_min": round(volume_increase / elapsed_min, 2) if elapsed_min > 0 else 0,
                     "total_bid_drop": round(total_bid_drop, 2),
