@@ -555,6 +555,7 @@ def _archive_to_feature_store(supabase, old_hashes):
 
                 if not result_val:
                     skipped_no_result += 1
+                    continue
 
                 match_alarms = {}
                 for atype, atable in alarm_tables_map.items():
@@ -873,6 +874,7 @@ def start_finished_archiver():
 
     def archiver_loop():
         time.sleep(60)
+        cycle = 0
         while True:
             try:
                 added = archive_finished_matches()
@@ -880,6 +882,16 @@ def start_finished_archiver():
                     print(f"[FinishedArchiver] {added} maç eklendi")
             except Exception as e:
                 print(f"[FinishedArchiver] Loop hatası: {e}")
+            cycle += 1
+            if cycle % 3 == 0:
+                try:
+                    from smartxflow_similarity.result_fetcher import update_store_results
+                    store_path = os.path.join(os.path.dirname(__file__), 'smartxflow_similarity', 'data', 'feature_store.jsonl')
+                    matched = update_store_results(store_path)
+                    if matched > 0:
+                        print(f"[FinishedArchiver] Backfill: {matched} kayda sonuç eklendi")
+                except Exception as e:
+                    print(f"[FinishedArchiver] Backfill hatası: {e}")
             time.sleep(1200)
 
     finished_archiver_thread = threading.Thread(target=archiver_loop, daemon=True)
