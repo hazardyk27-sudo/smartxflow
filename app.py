@@ -524,13 +524,38 @@ def _archive_to_feature_store(supabase, old_hashes):
             "mim": "mim_alarms"
         }
 
+        try:
+            from smartxflow_similarity.result_fetcher import fetch_result_for_match, load_cached_results
+            results_cache = load_cached_results()
+        except Exception:
+            results_cache = {}
+
         added = 0
+        skipped_no_result = 0
         for mid, table_rows in all_rows_by_hash.items():
             has_data = any(len(rows) > 0 for rows in table_rows.values())
             if not has_data:
                 continue
             try:
                 canonical = build_canonical_match(table_rows)
+                meta = canonical.get("meta", {})
+                match_name = f"{meta.get('home', '?')} vs {meta.get('away', '?')}"
+                league = meta.get("league", "")
+                kickoff = meta.get("kickoff", "")
+                if kickoff and hasattr(kickoff, 'isoformat'):
+                    kickoff = kickoff.isoformat()
+
+                result_val, score_val = None, None
+                try:
+                    result_val, score_val = fetch_result_for_match(
+                        match_name, league, str(kickoff) if kickoff else "", results_cache
+                    )
+                except Exception:
+                    pass
+
+                if not result_val:
+                    skipped_no_result += 1
+
                 match_alarms = {}
                 for atype, atable in alarm_tables_map.items():
                     try:
@@ -542,7 +567,12 @@ def _archive_to_feature_store(supabase, old_hashes):
                                 match_alarms[atype] = data
                     except Exception:
                         pass
-                entry = build_feature_entry(canonical, raw_snapshots=table_rows, alarms=match_alarms)
+                entry = build_feature_entry(
+                    canonical, result=result_val,
+                    raw_snapshots=table_rows, alarms=match_alarms
+                )
+                if score_val:
+                    entry["score"] = score_val
                 if entry.get("data_quality_score", 0) and entry["data_quality_score"] >= 0.2:
                     append_to_store(entry, store_path)
                     added += 1
@@ -660,20 +690,32 @@ def start_cleanup_scheduler():
     cleanup_thread.start()
 
 
+_archiver_retry_counts = {}
+_ARCHIVER_MAX_RETRIES = 8
+
 def archive_finished_matches():
-    """Biten maçları (kickoff + 3 saat geçmiş) hemen feature store'a aktar."""
+    """Biten maçları (kickoff + 3 saat geçmiş) sonuç-öncelikli olarak feature store'a aktar."""
+    global _archiver_retry_counts
     try:
         supabase = get_supabase_client()
         if not supabase or not supabase.is_available:
             return 0
 
-        from smartxflow_similarity.feature_store import load_store
+        from smartxflow_similarity.feature_store import (
+            load_store, append_to_store, build_feature_entry
+        )
+        from smartxflow_similarity.parser_layer import build_canonical_match
+        from smartxflow_similarity.result_fetcher import (
+            fetch_result_for_match, load_cached_results, update_store_results,
+            fetch_results_from_api
+        )
+
         store_path = os.path.join(os.path.dirname(__file__), 'smartxflow_similarity', 'data', 'feature_store.jsonl')
         existing = load_store(store_path) if os.path.exists(store_path) else []
         existing_hashes = {e.get("match_id_hash") for e in existing}
 
         cutoff = (datetime.now(timezone.utc) - timedelta(hours=3)).strftime('%Y-%m-%dT%H:%M:%SZ')
-        url = f"{supabase._rest_url('fixtures')}?select=match_id_hash,kickoff_utc&kickoff_utc=lt.{cutoff}&order=kickoff_utc.desc&limit=500"
+        url = f"{supabase._rest_url('fixtures')}?select=match_id_hash,kickoff_utc,home_team,away_team,league&kickoff_utc=lt.{cutoff}&order=kickoff_utc.desc&limit=500"
         resp = supabase._get_http_client().get(url, headers=supabase._headers(), timeout=15)
         if resp.status_code != 200:
             return 0
@@ -682,26 +724,132 @@ def archive_finished_matches():
         if not isinstance(rows, list):
             return 0
 
-        finished_hashes = [r['match_id_hash'] for r in rows if r.get('match_id_hash') and r['match_id_hash'] not in existing_hashes]
-        if not finished_hashes:
+        finished = [r for r in rows if r.get('match_id_hash') and r['match_id_hash'] not in existing_hashes]
+        if not finished:
             return 0
 
-        print(f"[FinishedArchiver] {len(finished_hashes)} biten maç feature store'a eklenecek")
-        added = _archive_to_feature_store(supabase, finished_hashes)
+        results_cache = load_cached_results()
+
+        history_tables = [
+            'moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history',
+            'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history',
+        ]
+
+        alarm_tables_map = {
+            "sharp": "sharp_alarms",
+            "bigmoney": "bigmoney_alarms",
+            "volumeshock": "volumeshock_alarms",
+            "dropping": "dropping_alarms",
+            "volumeleader": "volume_leader_alarms",
+            "mim": "mim_alarms"
+        }
+
+        added = 0
+        skipped_no_result = 0
+        skipped_no_data = 0
+        skipped_max_retry = 0
+        result_found = 0
+
+        for fix_row in finished:
+            mid = fix_row['match_id_hash']
+            home = fix_row.get('home_team', '?')
+            away = fix_row.get('away_team', '?')
+            league = fix_row.get('league', '')
+            kickoff = fix_row.get('kickoff_utc', '')
+
+            retry_info = _archiver_retry_counts.get(mid, {"count": 0, "ts": time.time()})
+            retry_count = retry_info["count"] if isinstance(retry_info, dict) else retry_info
+            if retry_count >= _ARCHIVER_MAX_RETRIES:
+                skipped_max_retry += 1
+                continue
+
+            table_rows = {t: [] for t in history_tables}
+            for table in history_tables:
+                try:
+                    turl = f"{supabase._rest_url(table)}?match_id_hash=eq.{mid}&select=id&limit=1"
+                    tresp = supabase._get_http_client().get(turl, headers=supabase._headers(), timeout=10)
+                    if tresp.status_code == 200 and tresp.json():
+                        table_rows[table] = True
+                except Exception:
+                    pass
+
+            has_data = any(v for v in table_rows.values())
+            if not has_data:
+                skipped_no_data += 1
+                continue
+
+            match_name = f"{home} vs {away}"
+            result_val, score_val = fetch_result_for_match(
+                match_name, league, kickoff, results_cache
+            )
+
+            if not result_val:
+                _archiver_retry_counts[mid] = {"count": retry_count + 1, "ts": time.time()}
+                skipped_no_result += 1
+                continue
+
+            result_found += 1
+
+            table_rows = {t: [] for t in history_tables}
+            for table in history_tables:
+                try:
+                    turl = f"{supabase._rest_url(table)}?match_id_hash=eq.{mid}&select=*"
+                    tresp = supabase._get_http_client().get(turl, headers=supabase._headers(), timeout=15)
+                    if tresp.status_code == 200:
+                        table_rows[table] = tresp.json()
+                except Exception:
+                    pass
+
+            has_data = any(len(r) > 0 for r in table_rows.values())
+            if not has_data:
+                skipped_no_data += 1
+                continue
+
+            try:
+                canonical = build_canonical_match(table_rows)
+                match_alarms = {}
+                for atype, atable in alarm_tables_map.items():
+                    try:
+                        aurl = f"{supabase._rest_url(atable)}?match_id_hash=eq.{mid}&select=*"
+                        aresp = supabase._get_http_client().get(aurl, headers=supabase._headers(), timeout=10)
+                        if aresp.status_code == 200:
+                            adata = aresp.json()
+                            if adata:
+                                match_alarms[atype] = adata
+                    except Exception:
+                        pass
+
+                entry = build_feature_entry(
+                    canonical, result=result_val,
+                    raw_snapshots=table_rows, alarms=match_alarms
+                )
+                entry["score"] = score_val
+
+                if entry.get("data_quality_score", 0) and entry["data_quality_score"] >= 0.2:
+                    append_to_store(entry, store_path)
+                    existing_hashes.add(mid)
+                    _archiver_retry_counts.pop(mid, None)
+                    added += 1
+            except Exception as e:
+                print(f"[FinishedArchiver] Kayıt hatası {mid}: {e}")
 
         try:
-            from smartxflow_similarity.result_fetcher import update_store_results, fetch_results_from_api, backfill_all_results
             matched = update_store_results(store_path)
             if matched > 0:
-                print(f"[FinishedArchiver] {matched} maç sonucu FlashScore cache'den eşleştirildi")
-            backfill_total = backfill_all_results(store_path)
-            if backfill_total > 0:
-                print(f"[FinishedArchiver] Backfill: {backfill_total} maç sonucu çekildi")
-            api_matched, _ = fetch_results_from_api(store_path)
-            if api_matched > 0:
-                print(f"[FinishedArchiver] {api_matched} maç sonucu TheSportsDB API'den çekildi")
+                print(f"[FinishedArchiver] FlashScore cache'den {matched} ek sonuç eşleştirildi")
         except Exception as e:
-            print(f"[FinishedArchiver] Sonuç eşleştirme hatası: {e}")
+            print(f"[FinishedArchiver] Ek sonuç eşleştirme hatası: {e}")
+
+        stale_cutoff = time.time() - 86400
+        stale_keys = [k for k, v in _archiver_retry_counts.items()
+                      if isinstance(v, dict) and v.get("ts", 0) < stale_cutoff]
+        for k in stale_keys:
+            del _archiver_retry_counts[k]
+
+        print(f"[FinishedArchiver] Kontrol: {len(finished)} biten maç | "
+              f"Sonuç bulundu: {result_found} | Kaydedildi: {added} | "
+              f"Sonuç yok (tekrar denecek): {skipped_no_result} | "
+              f"Veri yok: {skipped_no_data} | Max deneme aşıldı: {skipped_max_retry}")
 
         return added
     except Exception as e:
@@ -714,14 +862,14 @@ def archive_finished_matches():
 _finished_archiver_pids = set()
 
 def start_finished_archiver():
-    """30 dakikada bir biten maçları feature store'a aktaran scheduler"""
+    """20 dakikada bir biten maçları feature store'a aktaran scheduler"""
     global finished_archiver_thread
 
     pid = os.getpid()
     if pid in _finished_archiver_pids:
         return
     _finished_archiver_pids.add(pid)
-    print(f"[FinishedArchiver] Scheduler başlatıldı (PID {pid}, 30 dk aralık)", flush=True)
+    print(f"[FinishedArchiver] Scheduler başlatıldı (PID {pid}, 20 dk aralık)", flush=True)
 
     def archiver_loop():
         time.sleep(60)
@@ -732,7 +880,7 @@ def start_finished_archiver():
                     print(f"[FinishedArchiver] {added} maç eklendi")
             except Exception as e:
                 print(f"[FinishedArchiver] Loop hatası: {e}")
-            time.sleep(1800)
+            time.sleep(1200)
 
     finished_archiver_thread = threading.Thread(target=archiver_loop, daemon=True)
     finished_archiver_thread.start()

@@ -9,31 +9,32 @@ import urllib.error
 
 ALIAS_MAP = {
     'atleticoma': 'atleticomadrid', 'atlmadrid': 'atleticomadrid', 'atleticodemadrid': 'atleticomadrid',
+    'atleticmad': 'atleticomadrid', 'atlmad': 'atleticomadrid', 'atleticom': 'atleticomadrid',
     'parisstg': 'psg', 'parissaintgermain': 'psg', 'parissg': 'psg',
-    'mancity': 'manchestercity', 'manchestercity': 'manchestercity',
+    'mancity': 'manchestercity', 'manchestercity': 'manchestercity', 'manchcity': 'manchestercity',
     'manutd': 'manchesterunited', 'manchesterunited': 'manchesterunited',
-    'manchesterutd': 'manchesterunited', 'manunited': 'manchesterunited',
-    'newcastleutd': 'newcastle', 'newcastleunited': 'newcastle',
-    'tottenham': 'tottenham', 'spurs': 'tottenham',
+    'manchesterutd': 'manchesterunited', 'manunited': 'manchesterunited', 'manchutd': 'manchesterunited',
+    'newcastleutd': 'newcastle', 'newcastleunited': 'newcastle', 'newcastleu': 'newcastle',
+    'tottenham': 'tottenham', 'spurs': 'tottenham', 'tottenhamh': 'tottenham',
     'intermilan': 'inter', 'internazionale': 'inter', 'intermiami': 'intermiami',
     'acmilan': 'milan',
     'bayernmunich': 'bayernmunchen', 'bayernmunchen': 'bayernmunchen', 'bayern': 'bayernmunchen',
-    'bayerleverkusen': 'leverkusen', 'leverkusen': 'leverkusen',
-    'borussiadortmund': 'dortmund', 'dortmund': 'dortmund',
-    'sportingcp': 'sportingcp', 'sportinglisbon': 'sportingcp',
+    'bayerleverkusen': 'leverkusen', 'leverkusen': 'leverkusen', 'bayerlever': 'leverkusen',
+    'borussiadortmund': 'dortmund', 'dortmund': 'dortmund', 'borussiado': 'dortmund',
+    'sportingcp': 'sportingcp', 'sportinglisbon': 'sportingcp', 'sportingli': 'sportingcp',
     'bodoglimt': 'bodoglimt', 'bodogli': 'bodoglimt',
     'sheffieldutd': 'sheffieldunited', 'sheffieldunited': 'sheffieldunited', 'sheffutd': 'sheffieldunited',
     'sheffieldwed': 'sheffieldwednesday', 'sheffieldwednesday': 'sheffieldwednesday',
     'westhamutd': 'westham', 'westhamunited': 'westham', 'westham': 'westham',
-    'westbrom': 'westbrom', 'westbromwich': 'westbrom',
+    'westbrom': 'westbrom', 'westbromwich': 'westbrom', 'westbromwi': 'westbrom',
     'qpr': 'qpr', 'queensparkrangers': 'qpr',
-    'oxfordutd': 'oxford', 'oxfordunited': 'oxford',
+    'oxfordutd': 'oxford', 'oxfordunited': 'oxford', 'oxfordunit': 'oxford',
     'nottmforest': 'nottinghamforest', 'nottinghamforest': 'nottinghamforest', 'nottmfores': 'nottinghamforest',
     'nottingham': 'nottinghamforest',
-    'wolverhampton': 'wolves', 'wolves': 'wolves',
+    'wolverhampton': 'wolves', 'wolves': 'wolves', 'wolverhamp': 'wolves',
     'crystalpala': 'crystalpalace', 'crystalpalace': 'crystalpalace',
     'bournemouth': 'bournemouth', 'afcbournemouth': 'bournemouth',
-    'brighton': 'brighton', 'brightonhove': 'brighton',
+    'brighton': 'brighton', 'brightonhove': 'brighton', 'brightonho': 'brighton',
     'galatasaray': 'galatasaray', 'fenerbahce': 'fenerbahce', 'besiktas': 'besiktas',
     'deportivop': 'pereira', 'deportivopereira': 'pereira', 'pereira': 'pereira',
     'americade': 'americadecali', 'americadecali': 'americadecali',
@@ -41,7 +42,7 @@ ALIAS_MAP = {
     'atleticona': 'atleticonacional', 'atleticonacional': 'atleticonacional', 'atlnacional': 'atleticonacional',
     'sportingcr': 'sportingcristal', 'sportingcristal': 'sportingcristal',
     'carabobofc': 'carabobo', 'carabobo': 'carabobo',
-    'universidaddechile': 'udechile', 'universidad': 'udechile',
+    'universidaddechile': 'udechile', 'universidad': 'udechile', 'universida': 'udechile',
     'univdecon': 'uconcepcion', 'universidadconcepcion': 'uconcepcion',
     'elgeish': 'elgaish', 'elgaish': 'elgaish',
     'alahlycai': 'alahly', 'alahlycairo': 'alahly', 'alahly': 'alahly',
@@ -67,7 +68,6 @@ ALIAS_MAP = {
     'stuttgarte': 'stuttgart', 'stuttgart': 'stuttgart',
     'panathinai': 'panathinaikos', 'panathinaikos': 'panathinaikos',
     'midtjyllan': 'midtjylland', 'midtjylland': 'midtjylland',
-    'nottmfores': 'nottinghamforest',
     'cdtepatitl': 'tepatitlan', 'tepatitlan': 'tepatitlan',
     'minerosdez': 'mineros', 'mineros': 'mineros',
     'tampicomad': 'tampicomadero', 'tampicomadero': 'tampicomadero',
@@ -107,19 +107,61 @@ ALIAS_MAP = {
     'abuqairse': 'abuqairsemad',
     'eldaklyeh': 'eldakhleya',
     'doradosdes': 'doradosdesinaloa', 'doradosdesinaloa': 'doradosdesinaloa', 'dorados': 'doradosdesinaloa',
+    'realsocied': 'realsociedad', 'realsociedad': 'realsociedad',
+    'holsteink': 'holsteinkiel', 'holsteinkiel': 'holsteinkiel', 'holsteinki': 'holsteinkiel',
+    'pecztwolle': 'peczwolle', 'peczwolle': 'peczwolle',
+    'fcgroninge': 'fcgroningen', 'fcgroningen': 'fcgroningen', 'groningen': 'fcgroningen',
+    'fortunasit': 'fortunasittard', 'fortunasittard': 'fortunasittard',
+    'fcvolendam': 'volendam', 'volendam': 'volendam',
+    'dynamodres': 'dynamodresden', 'dynamodresden': 'dynamodresden',
+    'preussenmü': 'preussenmunster', 'preussenmunster': 'preussenmunster', 'preussenmu': 'preussenmunster',
+    'houstondyn': 'houstondynamo', 'houstondynamo': 'houstondynamo',
+    'portlandti': 'portlandtimbers', 'portlandtimbers': 'portlandtimbers',
+    'necnijmege': 'necnijmegen', 'necnijmegen': 'necnijmegen',
+    'caplatense': 'platense', 'platense': 'platense', 'cdplatense': 'platense',
+    'velezsarsf': 'velezsarsfield', 'velezsarsfield': 'velezsarsfield',
+    'deportivor': 'deportivorivadavia', 'clubsporti': 'clubsportivo',
+    'cerroport': 'cerroporteno', 'cerroporteno': 'cerroporteno',
+    'novorizont': 'novorizontino', 'novorizontino': 'novorizontino',
+    'cearascfo': 'ceara', 'fortalezae': 'fortaleza',
+    'palestino': 'palestino', 'cobresal': 'cobresal',
+    'puertomon': 'puertomontts', 'deportesre': 'deportesrecoleta',
+    'rubionu': 'rubionu', 'club2dem': 'club2demayo',
+    'cdluisang': 'cdluisangelfirpo', 'cdaguila': 'cdaguila',
+    'olimpia': 'olimpia',
+    'colombussc': 'columbusc', 'columbuscrew': 'columbusc',
+    'chababatla': 'chabab', 'jeunessemar': 'jeunesse',
+    'dhjeljadi': 'dhjeljadida',
+    'alaves': 'alaves', 'deportivoalaves': 'alaves',
+    'rennais': 'rennes', 'staderennais': 'rennes', 'rennes': 'rennes',
+    'lille': 'lille', 'losc': 'lille', 'losclille': 'lille',
+    'nurnberg': 'nurnberg', 'fcnurnberg': 'nurnberg', '1fcnurnberg': 'nurnberg',
+    'etoilecaro': 'etoilecarouge', 'etoilecarouge': 'etoilecarouge',
+    'bellinzona': 'bellinzona',
+    'varsdarskop': 'vardar', 'vardar': 'vardar', 'vardarskop': 'vardar',
+    'fksileks': 'sileks', 'sileks': 'sileks',
+    'fkgraficar': 'graficar', 'graficar': 'graficar',
+    'fkdubocica': 'dubocica', 'dubocica': 'dubocica',
+    'pfclevski': 'levskisofia', 'pfcle': 'levskisofia',
+    'lokomotivp': 'lokplovdiv',
+    'abha': 'abha', 'aljubail': 'aljubail',
+    'nezafc': 'nezafc', 'cdpioneros': 'cdpioneros',
+    'alshabab': 'alshabab', 'kazmasc': 'kazmasc',
 }
 
 LEAGUE_MAP = {
     "English Premier League": ["English Premier League"],
-    "English Sky Bet Championship": ["English Sky Bet Championship"],
-    "English Sky Bet League 1": ["English Sky Bet League 1"],
-    "English Sky Bet League 2": ["English Sky Bet League 2"],
+    "English Sky Bet Championship": ["English Sky Bet Championship", "English League Championship"],
+    "English Sky Bet League 1": ["English Sky Bet League 1", "English League 1"],
+    "English Sky Bet League 2": ["English Sky Bet League 2", "English League 2"],
     "English FA Cup": ["English FA Cup"],
     "English National League": ["English National League"],
+    "English National League North": ["English National League North"],
+    "English National League South": ["English National League South"],
     "Spanish La Liga": ["Spanish La Liga"],
     "Spanish Segunda Division": ["Spanish La Liga 2"],
     "German Bundesliga": ["German Bundesliga"],
-    "German Bundesliga 2": ["German 2. Bundesliga"],
+    "German Bundesliga 2": ["German 2. Bundesliga", "German Bundesliga 2"],
     "Italian Serie A": ["Italian Serie A"],
     "Italian Serie B": ["Italian Serie B"],
     "French Ligue 1": ["French Ligue 1"],
@@ -129,21 +171,34 @@ LEAGUE_MAP = {
     "Dutch Eredivisie": ["Dutch Eredivisie"],
     "Dutch Eerste Divisie": ["Dutch Eerste Divisie"],
     "Portuguese Primeira Liga": ["Portuguese Liga"],
-    "Belgian Challenger Pro League": ["Belgian First Division A"],
+    "Belgian Challenger Pro League": ["Belgian First Division A", "Belgian Challenger Pro League"],
     "Scottish Premiership": ["Scottish Premiership"],
     "Scottish Championship": ["Scottish Championship"],
-    "Argentinian Primera Division": ["Argentine Liga Profesional"],
+    "Argentinian Primera Division": ["Argentine Liga Profesional", "Argentinian Primera Division"],
+    "Argentinian Primera Nacional": ["Argentinian Primera Nacional", "Argentine Primera Nacional"],
     "Brazilian Serie A": ["Brazilian Serie A"],
+    "Brazilian Serie B": ["Brazilian Serie B"],
+    "Brazilian Cup": ["Brazilian Cup", "Brazilian Copa do Brasil"],
     "Brazilian Gaucho Matches": ["Brazilian Gaucho"],
     "Brazilian Mineiro Matches": ["Brazilian Mineiro"],
+    "Brazilian Cearense Matches": ["Brazilian Cearense", "Brazilian Campeonato Cearense"],
+    "Brazilian Paulista Serie A1": ["Brazilian Paulista A1", "Brazilian Paulistao", "Brazilian Paulista Serie A1"],
     "Colombian Primera A": ["Colombian Primera A"],
+    "Colombian Primera B": ["Colombian Primera B"],
     "Mexican Liga MX": ["Mexican Liga MX"],
-    "US MLS": ["American MLS"],
-    "Peruvian Primera Division": ["Peruvian Primera Division"],
+    "Mexican Liga de Ascenso": ["Mexican Liga de Expansion MX", "Mexican Liga de Ascenso"],
+    "Mexican Liga MX Femenil": ["Mexican Liga MX Women", "Mexican Liga MX Femenil"],
+    "Mexican Liga Premier": ["Mexican Liga Premier"],
+    "US MLS": ["American MLS", "US MLS"],
+    "US United Soccer League": ["USL Championship", "US United Soccer League"],
+    "Peruvian Primera Division": ["Peruvian Primera Division", "Peruvian Liga 1"],
     "Chilean Primera Division": ["Chilean Primera Division"],
+    "Chilean Primera B": ["Chilean Primera B"],
     "Greek Super League": ["Greek Super League"],
     "Polish Ekstraklasa": ["Polish Ekstraklasa"],
+    "Polish I Liga": ["Polish I Liga", "Polish Fortuna 1. Liga"],
     "Romanian Liga I": ["Romanian Liga 1"],
+    "Romanian Liga II": ["Romanian Liga II", "Romanian Liga 2"],
     "Danish Superliga": ["Danish Superliga"],
     "Danish 1st Division": ["Danish 1st Division"],
     "Hungarian NB II": ["Hungarian NB II"],
@@ -151,13 +206,14 @@ LEAGUE_MAP = {
     "Australian A-League Men": ["Australian A-League"],
     "Egyptian Premier": ["Egyptian Premier"],
     "UAE Arabian Gulf League": ["UAE Arabian Gulf League"],
+    "UAE U23": ["UAE U21 League", "UAE U23"],
     "Indian Super League": ["Indian Super League"],
     "Indonesian Super League": ["Indonesian Super League"],
     "Icelandic League Cup": ["Icelandic League Cup"],
     "Irish Premier Division": ["Irish Premier Division"],
     "Lithuanian A Lyga": ["Lithuanian A Lyga"],
     "Swedish Cup": ["Swedish Cup"],
-    "Croatian Cup": ["Croatian First Football League"],
+    "Croatian Cup": ["Croatian First Football League", "Croatian Cup"],
     "Slovenian Premier League": ["Slovenian Premier League"],
     "Czech U19": ["Czech First League"],
     "UEFA Champions League": ["UEFA Champions League"],
@@ -167,7 +223,7 @@ LEAGUE_MAP = {
     "CONCACAF Champions League": ["CONCACAF Champions League"],
     "AFC Champions League": ["AFC Champions League Elite", "AFC Champions League"],
     "AFC Champions League Two": ["AFC Champions League Two"],
-    "Bulgarian A League": ["Bulgarian First League", "Bulgarian First Professional League"],
+    "Bulgarian A League": ["Bulgarian First League", "Bulgarian First Professional League", "Bulgarian A League"],
     "Uruguayan Primera Division": ["Uruguayan Primera Division"],
     "Venezuelan Primera Division": ["Venezuelan Primera Division"],
     "Paraguayan Primera Division": ["Paraguayan Primera Division", "Paraguayan Division Profesional"],
@@ -177,33 +233,20 @@ LEAGUE_MAP = {
     "Albanian Superliga": ["Albanian Superliga", "Albanian Super League"],
     "Russian Premier League": ["Russian Premier League"],
     "Azerbaijan Premier League": ["Azerbaijan Premier League", "Azerbaijan Premyer Liqa"],
-    "Brazilian Cup": ["Brazilian Cup", "Brazilian Copa do Brasil"],
-    "Brazilian Paulista Serie A1": ["Brazilian Paulista A1", "Brazilian Paulistao"],
-    "Brazilian Cearense Matches": ["Brazilian Cearense", "Brazilian Campeonato Cearense"],
-    "Brazilian Gaucho Matches": ["Brazilian Gaucho", "Brazilian Campeonato Gaucho"],
-    "Brazilian Mineiro Matches": ["Brazilian Mineiro", "Brazilian Campeonato Mineiro"],
     "French Premiere Ligue": ["French Ligue 1", "French Premiere Ligue"],
     "Turkish 2 Lig": ["Turkish 2. Lig", "Turkish TFF 2. Lig"],
     "Turkish Ladies Super Lig": ["Turkish Super Lig Women", "Turkish Ladies Super Lig"],
-    "UAE U23": ["UAE U21 League", "UAE U23"],
     "Costa Rican Primera Division": ["Costa Rican Primera Division"],
     "Costa Rican Liga de Ascenso": ["Costa Rican Liga de Ascenso"],
     "Saudi Professional League": ["Saudi Professional League", "Saudi Pro League"],
+    "Saudi 1st Division": ["Saudi 1st Division", "Saudi First Division League"],
     "Qatari Stars League": ["Qatari Stars League", "Qatar Stars League"],
-    "Mexican Liga de Ascenso": ["Mexican Liga de Expansion MX", "Mexican Liga de Ascenso"],
-    "Mexican Liga MX Femenil": ["Mexican Liga MX Women", "Mexican Liga MX Femenil"],
-    "Colombian Primera B": ["Colombian Primera B"],
-    "Chilean Primera B": ["Chilean Primera B"],
-    "Omani Professional League": ["Omani Professional League"],
-    "Moroccan Botola Pro 1": ["Moroccan Botola Pro", "Moroccan Botola Pro 1"],
     "Republic of North Macedonian Soccer": ["North Macedonian First League", "North Macedonian 1. MFL"],
     "Armenian Premier League": ["Armenian Premier League"],
     "Singapore Premier League": ["Singapore Premier League"],
-    "US United Soccer League": ["USL Championship", "US United Soccer League"],
     "Jamaican Premier League": ["Jamaican Premier League"],
     "Guatemalan Liga Nacional": ["Guatemalan Liga Nacional"],
     "Italian Serie C": ["Italian Serie C", "Italian Serie C A", "Italian Serie C B", "Italian Serie C C"],
-    "Polish I Liga": ["Polish I Liga", "Polish Fortuna 1. Liga"],
     "Montenegrin 1st League": ["Montenegrin First League", "Montenegrin 1. CFL"],
     "Bosnian Cup": ["Bosnian Premier League", "Bosnian Cup"],
     "AFC Ladies Asian Cup": ["AFC Women's Asian Cup", "AFC Ladies Asian Cup"],
@@ -211,7 +254,18 @@ LEAGUE_MAP = {
     "English U21 Pro Development League": ["English Professional Development League", "English U21 Pro Development League"],
     "Portuguese U23": ["Portuguese Liga Revelacao U23", "Portuguese U23"],
     "Georgian Umaglesi Liga": ["Georgian Erovnuli Liga", "Georgian Umaglesi Liga"],
-    "Peruvian Primera Division": ["Peruvian Primera Division", "Peruvian Liga 1"],
+    "Salvadoran Primera Division": ["Salvadoran Primera Division"],
+    "Kuwaiti Premier League": ["Kuwaiti Premier League"],
+    "Ethiopian Premier League": ["Ethiopian Premier League"],
+    "Ugandan Premier League": ["Ugandan Premier League"],
+    "Moroccan Botola Pro 1": ["Moroccan Botola Pro", "Moroccan Botola Pro 1"],
+    "Japanese J. League 2/3 100 Year Vision": ["Japanese J2 League", "Japanese J3 League"],
+    "Japanese J1 League": ["Japanese J1 League"],
+    "South Korean K League 1": ["South Korean K League 1", "Korean K-League 1"],
+    "Swiss Super League": ["Swiss Super League"],
+    "Swiss Challenge League": ["Swiss Challenge League"],
+    "Austrian Bundesliga": ["Austrian Bundesliga"],
+    "Czech First League": ["Czech First League"],
 }
 
 
@@ -268,6 +322,21 @@ def _resolve_alias(normed):
     return normed
 
 
+_TEAM_PREFIXES = {
+    "fc", "fk", "cd", "ca", "sc", "pfc", "cf", "nk", "sd", "sv", "tsv", "ssv",
+    "as", "us", "ss", "ac", "al", "cs", "rc", "rcd", "ud", "uc", "ec", "se",
+    "afc", "bsc", "vfb", "vfl", "bv", "if", "ik", "gd", "gk",
+}
+
+
+def _strip_prefixes(normed):
+    for prefix in sorted(_TEAM_PREFIXES, key=len, reverse=True):
+        clean = prefix.replace('.', '').lower()
+        if normed.startswith(clean) and len(normed) > len(clean):
+            return normed[len(clean):]
+    return normed
+
+
 def _teams_match(store_name, flash_name):
     sn = _normalize_team(store_name)
     fn = _normalize_team(flash_name)
@@ -291,23 +360,20 @@ def _teams_match(store_name, flash_name):
     if sn_stripped and fn_stripped and len(sn_stripped) >= 4 and len(fn_stripped) >= 4:
         if sn_stripped in fn_stripped or fn_stripped in sn_stripped:
             return True
-        if sn_stripped[:5] == fn_stripped[:5]:
+        if len(sn_stripped) >= 5 and len(fn_stripped) >= 5 and sn_stripped[:5] == fn_stripped[:5]:
             return True
     is_truncated = len(store_name.strip()) <= 11
     if is_truncated and len(sn) >= 6 and len(fn) >= 6:
         if fn.startswith(sn) or rs == rf:
             return True
-        if fn_stripped.startswith(sn_stripped) and len(sn_stripped) >= 5:
+        if sn_stripped and fn_stripped and fn_stripped.startswith(sn_stripped) and len(sn_stripped) >= 5:
+            return True
+    rs_stripped = _strip_prefixes(rs)
+    rf_stripped = _strip_prefixes(rf)
+    if rs_stripped and rf_stripped and len(rs_stripped) >= 4 and len(rf_stripped) >= 4:
+        if rs_stripped in rf_stripped or rf_stripped in rs_stripped:
             return True
     return False
-
-
-def _strip_prefixes(normed):
-    for prefix in sorted(_TEAM_PREFIXES, key=len, reverse=True):
-        clean = prefix.replace('.', '').lower()
-        if normed.startswith(clean) and len(normed) > len(clean):
-            return normed[len(clean):]
-    return normed
 
 
 def parse_flashscore_markdown(md_text):
@@ -477,12 +543,6 @@ def update_store_results(store_path, results_by_league=None):
 SPORTSDB_API = "https://www.thesportsdb.com/api/v1/json/3"
 SPORTSDB_SEASON = "2025-2026"
 
-_TEAM_PREFIXES = {
-    "fc", "fk", "cd", "ca", "sc", "pfc", "cf", "nk", "sd", "sv", "tsv", "ssv",
-    "as", "us", "ss", "ac", "al", "cs", "rc", "rcd", "ud", "uc", "ec", "se",
-    "afc", "bsc", "vfb", "vfl", "bv", "if", "ik", "gd", "gk",
-}
-
 
 def _extract_search_name(team_name):
     words = team_name.strip().split()
@@ -493,11 +553,28 @@ def _extract_search_name(team_name):
 
 
 _sportsdb_rate_limited = False
+_sportsdb_daily_count = 0
+_sportsdb_daily_reset = 0
+_SPORTSDB_DAILY_LIMIT = 80
+
+
+def _check_daily_limit():
+    global _sportsdb_daily_count, _sportsdb_daily_reset, _sportsdb_rate_limited
+    import time as _time
+    now = _time.time()
+    if now - _sportsdb_daily_reset > 3600:
+        _sportsdb_daily_count = 0
+        _sportsdb_daily_reset = now
+        _sportsdb_rate_limited = False
+    return _sportsdb_daily_count < _SPORTSDB_DAILY_LIMIT
 
 
 def _sportsdb_search(home, away):
-    global _sportsdb_rate_limited
+    global _sportsdb_rate_limited, _sportsdb_daily_count
     if _sportsdb_rate_limited:
+        return []
+    if not _check_daily_limit():
+        _sportsdb_rate_limited = True
         return []
     query = f"{home}_vs_{away}"
     url = f"{SPORTSDB_API}/searchevents.php?e={urllib.parse.quote(query)}&s={SPORTSDB_SEASON}"
@@ -505,12 +582,14 @@ def _sportsdb_search(home, away):
         req = urllib.request.Request(url, headers={"User-Agent": "SmartXFlow/1.0"})
         resp = urllib.request.urlopen(req, timeout=10)
         data = json.loads(resp.read())
-        time.sleep(2)
+        _sportsdb_daily_count += 1
+        time.sleep(4)
         return data.get("event") or []
     except urllib.error.HTTPError as e:
         if e.code == 429:
             print(f"[ResultAPI] 429 rate limit, bu batch durduruldu")
             _sportsdb_rate_limited = True
+            time.sleep(10)
             return []
         return []
     except Exception:
@@ -521,15 +600,12 @@ def _multi_search(home, away):
     clean_h = _extract_search_name(home)
     clean_a = _extract_search_name(away)
 
-    queries_to_try = [(home, away)]
-    if clean_h != home or clean_a != away:
-        queries_to_try.append((clean_h, clean_a))
-    queries_to_try.append((away, home))
-    if clean_h != home or clean_a != away:
-        queries_to_try.append((clean_a, clean_h))
+    queries_to_try = [(clean_h, clean_a)]
+    if (home, away) != (clean_h, clean_a):
+        queries_to_try.insert(0, (home, away))
 
     seen = set()
-    for h, a in queries_to_try:
+    for h, a in queries_to_try[:2]:
         key = (h, a)
         if key in seen:
             continue
@@ -581,6 +657,66 @@ def _parse_kickoff_utc(kickoff_str):
         return dt
     except Exception:
         return None
+
+
+def fetch_result_for_match(match_name, league, kickoff, results_cache=None):
+    if " vs " not in match_name:
+        return None, None
+
+    first_vs = match_name.index(" vs ")
+    store_home = match_name[:first_vs].strip()
+    store_away = match_name[first_vs + 4:].strip()
+
+    if not kickoff or len(kickoff) < 10:
+        return None, None
+    kick_day = kickoff[8:10]
+    kick_month = kickoff[5:7]
+
+    if results_cache is None:
+        results_cache = load_cached_results()
+
+    for flash_league, matches in results_cache.items():
+        if not _leagues_match(league, flash_league):
+            continue
+        result_val, score_val = _try_match_entry(
+            store_home, store_away, kick_day, kick_month, matches
+        )
+        if result_val:
+            return result_val, score_val
+
+    all_results = []
+    for matches in results_cache.values():
+        all_results.extend(matches)
+    result_val, score_val = _try_match_entry(
+        store_home, store_away, kick_day, kick_month, all_results
+    )
+    if result_val:
+        return result_val, score_val
+
+    if _sportsdb_rate_limited or not _check_daily_limit():
+        return None, None
+
+    events = _multi_search(store_home, store_away)
+    if events:
+        result_val, score_val = _match_sportsdb_event(
+            store_home, store_away, kick_day, kick_month, events
+        )
+        if result_val:
+            hg, ag = score_val.split("-")
+            _update_flashscore_cache([{
+                "home": store_home,
+                "away": store_away,
+                "date_day": kick_day,
+                "date_month": kick_month,
+                "score": score_val,
+                "home_goals": int(hg),
+                "away_goals": int(ag),
+                "result": result_val,
+                "league": league or "TheSportsDB",
+            }])
+            return result_val, score_val
+
+    return None, None
 
 
 def fetch_results_from_api(store_path, max_queries=50, skip_attempted=False):
@@ -705,6 +841,86 @@ def backfill_all_results(store_path):
         print(f"[ResultAPI Backfill] Tamamlandı: {total_matched}/{total_queried} sonuç çekildi")
 
     return total_matched
+
+
+def backfill_raw_history(store_path, supabase):
+    from smartxflow_similarity.feature_store import load_store, save_store, _compact_snapshot, _TABLE_TO_MARKET
+
+    entries = load_store(store_path)
+    if not entries:
+        return 0
+
+    history_tables = [
+        'moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history',
+        'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history',
+    ]
+
+    needs_raw = []
+    for entry in entries:
+        has_raw = any('raw_history' in mv for mv in entry.get('markets', {}).values() if isinstance(mv, dict))
+        if not has_raw:
+            needs_raw.append(entry)
+
+    if not needs_raw:
+        return 0
+
+    print(f"[Backfill] {len(needs_raw)} entries need raw_history")
+
+    hashes = [e.get("match_id_hash") for e in needs_raw if e.get("match_id_hash")]
+    if not hashes:
+        return 0
+
+    batch_size = 50
+    all_rows = {h: {t: [] for t in history_tables} for h in hashes}
+
+    for table in history_tables:
+        for i in range(0, len(hashes), batch_size):
+            batch = hashes[i:i+batch_size]
+            hash_filter = ','.join(batch)
+            try:
+                url = f"{supabase._rest_url(table)}?match_id_hash=in.({hash_filter})&select=*"
+                resp = supabase._get_http_client().get(url, headers=supabase._headers(), timeout=30)
+                if resp.status_code == 200:
+                    rows = resp.json()
+                    for row in rows:
+                        h = row.get('match_id_hash', '')
+                        if h in all_rows:
+                            all_rows[h][table].append(row)
+            except Exception as e:
+                print(f"[Backfill] Error reading {table}: {e}")
+
+    updated = 0
+    for entry in entries:
+        mid = entry.get("match_id_hash")
+        if mid not in all_rows:
+            continue
+        has_raw = any('raw_history' in mv for mv in entry.get('markets', {}).values() if isinstance(mv, dict))
+        if has_raw:
+            continue
+
+        table_rows = all_rows[mid]
+        has_data = any(len(rows) > 0 for rows in table_rows.values())
+        if not has_data:
+            continue
+
+        for table_name, rows in table_rows.items():
+            if not rows:
+                continue
+            market_key = _TABLE_TO_MARKET.get(table_name, table_name)
+            if market_key not in entry.get("markets", {}):
+                if "markets" not in entry:
+                    entry["markets"] = {}
+                entry["markets"][market_key] = {}
+            sorted_rows = sorted(rows, key=lambda r: r.get('scraped_at', r.get('ScrapedAt', '')))
+            entry["markets"][market_key]["raw_history"] = [_compact_snapshot(r, table_name) for r in sorted_rows]
+
+        updated += 1
+
+    if updated > 0:
+        save_store(entries, store_path)
+        print(f"[Backfill] Updated {updated} entries with raw_history")
+
+    return updated
 
 
 def _update_flashscore_cache(additions):
