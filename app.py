@@ -473,7 +473,7 @@ last_alarm_calc_time = None
 def _archive_to_feature_store(supabase, old_hashes):
     """D-2+ maçları silmeden önce feature store'a ekle"""
     if not old_hashes:
-        return 0
+        return 0, 0, set()
 
     try:
         from smartxflow_similarity.parser_layer import build_canonical_match, parse_snapshot_row
@@ -487,7 +487,7 @@ def _archive_to_feature_store(supabase, old_hashes):
         new_hashes = [h for h in old_hashes if h not in existing_hashes]
         if not new_hashes:
             print(f"[Cleanup→Store] All {len(old_hashes)} D-2+ matches already in store, skipping")
-            return 0
+            return 0, 0
 
         print(f"[Cleanup→Store] {len(new_hashes)} new matches to archive (of {len(old_hashes)} total)")
 
@@ -532,6 +532,7 @@ def _archive_to_feature_store(supabase, old_hashes):
 
         added = 0
         skipped_no_result = 0
+        unresolved_hashes = set()
         for mid, table_rows in all_rows_by_hash.items():
             has_data = any(len(rows) > 0 for rows in table_rows.values())
             if not has_data:
@@ -555,6 +556,7 @@ def _archive_to_feature_store(supabase, old_hashes):
 
                 if not result_val:
                     skipped_no_result += 1
+                    unresolved_hashes.add(mid)
                     continue
 
                 match_alarms = {}
@@ -580,13 +582,13 @@ def _archive_to_feature_store(supabase, old_hashes):
             except Exception as e:
                 print(f"[Cleanup→Store] Error processing {mid}: {e}")
 
-        print(f"[Cleanup→Store] Archived {added} matches to feature store")
-        return added
+        print(f"[Cleanup→Store] Archived {added} matches to feature store (skipped {skipped_no_result} no-result)")
+        return added, skipped_no_result, unresolved_hashes
     except Exception as e:
         print(f"[Cleanup→Store] Archive error: {e}")
         import traceback
         traceback.print_exc()
-        return 0
+        return 0, 0, set()
 
 
 def cleanup_old_matches():
@@ -622,7 +624,9 @@ def cleanup_old_matches():
                     old_hashes = [r['match_id_hash'] for r in rows if r.get('match_id_hash')]
 
             if old_hashes:
-                _archive_to_feature_store(supabase, old_hashes)
+                archived, skipped_noresult = _archive_to_feature_store(supabase, old_hashes)
+                if skipped_noresult > 0:
+                    print(f"[Cleanup] {skipped_noresult} maç sonuçsuz, silinmeyecek (sonraki gün tekrar denenecek)")
 
             deleted = supabase.cleanup_old_matches(cutoff_str)
             total = sum(deleted.values())
