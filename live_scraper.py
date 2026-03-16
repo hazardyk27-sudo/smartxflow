@@ -59,6 +59,8 @@ MAX_RETRIES = 3
 RETRY_DELAYS = [3, 6, 12]
 SCRAPER_SOURCE = "replit-live"
 
+_kickoff_cache = {}
+
 
 def get_turkey_now() -> str:
     if TURKEY_TZ:
@@ -355,6 +357,8 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                 for row in rows:
                     h = row["match_id_hash"]
                     if h not in all_fixtures:
+                        if h not in _kickoff_cache:
+                            _kickoff_cache[h] = now_utc
                         all_fixtures[h] = {
                             "match_id_hash": h,
                             "home_team": row["home"][:100],
@@ -363,7 +367,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                             "score": "",
                             "minute": _parse_minute(row["date_text"]),
                             "status": "live",
-                            "kickoff_utc": now_utc,
+                            "kickoff_utc": _kickoff_cache[h],
                             "fixture_date": today_str,
                             "updated_at": now_utc,
                         }
@@ -392,6 +396,8 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                 for row in rows:
                     h = row["match_id_hash"]
                     if h not in all_fixtures:
+                        if h not in _kickoff_cache:
+                            _kickoff_cache[h] = now_utc
                         all_fixtures[h] = {
                             "match_id_hash": h,
                             "home_team": row["home"][:100],
@@ -400,7 +406,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                             "score": "",
                             "minute": _parse_minute(row["date_text"]),
                             "status": "live",
-                            "kickoff_utc": now_utc,
+                            "kickoff_utc": _kickoff_cache[h],
                             "fixture_date": today_str,
                             "updated_at": now_utc,
                         }
@@ -440,6 +446,10 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
             log(f"  [SNAPSHOTS] {len(all_snapshots)} snapshot yazıldı")
         else:
             log(f"  [HATA] Snapshots yazılamadı!")
+
+    stale_keys = [k for k in _kickoff_cache if k not in all_fixtures]
+    for k in stale_keys:
+        del _kickoff_cache[k]
 
     log(f"Canlı scrape tamamlandı - {len(all_fixtures)} maç, {len(all_snapshots)} snapshot")
     return len(all_fixtures)

@@ -1853,6 +1853,7 @@ def get_live_matches():
                 'league': f.get('league', ''),
                 'score': score,
                 'minute': f.get('minute', ''),
+                'kickoff_utc': f.get('kickoff_utc', ''),
                 'status': f.get('status', 'live'),
                 'updated_at': f.get('updated_at', ''),
                 'odds': {},
@@ -1934,6 +1935,15 @@ def get_live_match_history():
 
         all_snaps = snap_resp.json()
 
+        kickoff_utc = fixture.get('kickoff_utc', '') if fixture else ''
+        kickoff_dt = None
+        if kickoff_utc:
+            try:
+                ko = kickoff_utc.replace('Z', '+00:00')
+                kickoff_dt = datetime.fromisoformat(ko)
+            except Exception:
+                kickoff_dt = None
+
         periods = {}
         for s in all_snaps:
             ts = s.get('snapshot_at', '')
@@ -1942,9 +1952,19 @@ def get_live_match_history():
             key = ts
 
             if key not in periods:
+                match_min = ''
+                if kickoff_dt and ts:
+                    try:
+                        snap_ts = ts.replace('Z', '+00:00')
+                        snap_dt = datetime.fromisoformat(snap_ts)
+                        diff_sec = (snap_dt - kickoff_dt).total_seconds()
+                        match_min = max(0, int(diff_sec // 60))
+                    except Exception:
+                        match_min = ''
+
                 periods[key] = {
                     'snapshot_at': ts,
-                    'minute': fixture.get('minute', '') if fixture else '',
+                    'minute': match_min,
                     'score': fixture.get('score', '') if fixture else '',
                     '1x2': {},
                     'ou': {},
@@ -1974,7 +1994,7 @@ def get_live_match_history():
 
         result = sorted(periods.values(), key=lambda x: x['snapshot_at'])
 
-        return jsonify({'snapshots': result, 'total': len(result)}), 200
+        return jsonify({'snapshots': result, 'total': len(result), 'kickoff_utc': kickoff_utc}), 200
 
     except Exception as e:
         print(f"[API] /api/live/match/history hata: {e}")

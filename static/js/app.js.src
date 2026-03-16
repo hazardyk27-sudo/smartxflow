@@ -9780,6 +9780,7 @@ function renderLiveMatches(matches) {
     for (var i = 0; i < matches.length; i++) {
         var m = matches[i];
         var o = m.odds || {};
+        var matchMin = _calcLiveMatchMin(m);
         var onclickAttr = 'onclick="openLiveDetail(\'' + m.match_id_hash + '\',\'' + escLiveHtml(m.home_team) + '\',\'' + escLiveHtml(m.away_team) + '\')"';
         if (is1x2) {
             var vol = _liveCalcVol1x2(m);
@@ -9787,7 +9788,7 @@ function renderLiveMatches(matches) {
             var bX = _liveMwBlock('X', o['X']);
             var b2 = _liveMwBlock('2', o['2']);
             rowsHtml += '<tr ' + onclickAttr + '>' +
-                '<td class="live-min-cell"><span class="live-min-badge">' + escLiveHtml(m.minute) + '</span>' +
+                '<td class="live-min-cell"><span class="live-min-badge">' + matchMin + '</span>' +
                 (m.score ? '<span class="live-score-badge">' + escLiveHtml(m.score) + '</span>' : '') + '</td>' +
                 '<td class="match-league" title="' + escLiveHtml(m.league) + '">' + escLiveHtml(m.league) + '</td>' +
                 '<td class="match-teams">' + escLiveHtml(m.home_team) + '<span class="vs">-</span>' + escLiveHtml(m.away_team) + '</td>' +
@@ -9800,7 +9801,7 @@ function renderLiveMatches(matches) {
             var bU = _liveMwBlock('Alt', ou['U']);
             var bO = _liveMwBlock('Ust', ou['O']);
             rowsHtml += '<tr ' + onclickAttr + '>' +
-                '<td class="live-min-cell"><span class="live-min-badge">' + escLiveHtml(m.minute) + '</span>' +
+                '<td class="live-min-cell"><span class="live-min-badge">' + matchMin + '</span>' +
                 (m.score ? '<span class="live-score-badge">' + escLiveHtml(m.score) + '</span>' : '') + '</td>' +
                 '<td class="match-league" title="' + escLiveHtml(m.league) + '">' + escLiveHtml(m.league) + '</td>' +
                 '<td class="match-teams">' + escLiveHtml(m.home_team) + '<span class="vs">-</span>' + escLiveHtml(m.away_team) + '</td>' +
@@ -9811,6 +9812,16 @@ function renderLiveMatches(matches) {
     }
     tbody.innerHTML = rowsHtml;
     cardList.innerHTML = cardsHtml;
+}
+
+function _calcLiveMatchMin(m) {
+    if (!m.kickoff_utc) return escLiveHtml(m.minute || '');
+    try {
+        var ko = new Date(m.kickoff_utc);
+        var now = new Date();
+        var diff = Math.max(0, Math.floor((now - ko) / 60000));
+        return diff + "'";
+    } catch (e) { return escLiveHtml(m.minute || ''); }
 }
 
 function _liveMwBlock(label, d) {
@@ -9842,7 +9853,7 @@ function _liveMobileCard(m, marketOrLine, onclickAttr) {
     html += '<div class="odds-card-volume">' + formatLiveVol(vol) + '</div>';
     html += '</div>';
     html += '<div class="odds-card-meta"><span>' + escLiveHtml(m.league) + '</span><span class="meta-sep">\u2022</span>';
-    html += '<span class="live-min-badge" style="font-size:11px;">' + escLiveHtml(m.minute) + '</span>';
+    html += '<span class="live-min-badge" style="font-size:11px;">' + _calcLiveMatchMin(m) + '</span>';
     if (m.score) html += '<span class="meta-sep">\u2022</span><span style="color:#f59e0b;font-weight:600;">' + escLiveHtml(m.score) + '</span>';
     html += '</div>';
     if (is1x2) {
@@ -9939,7 +9950,7 @@ function renderLiveDetail(snapshots, market) {
     var is1x2 = (market === '1x2');
     var ouLine = is1x2 ? '' : market.replace('ou', '');
     var html = '<div class="live-detail-table-wrap"><table class="live-period-table"><thead><tr>';
-    html += '<th>#</th><th>Zaman</th>';
+    html += '<th>#</th><th>Dakika</th>';
     if (is1x2) {
         html += '<th>1</th><th>X</th><th>2</th>';
     } else {
@@ -9950,14 +9961,14 @@ function renderLiveDetail(snapshots, market) {
     var prevVol = 0;
     for (var i = 0; i < snapshots.length; i++) {
         var s = snapshots[i];
-        var ts = s.snapshot_at || '';
-        var timeStr = '';
-        if (ts) {
-            try { var d = new Date(ts); timeStr = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); } catch (e) {}
+        var minVal = s.minute;
+        var minStr = '';
+        if (minVal !== '' && minVal !== null && minVal !== undefined) {
+            minStr = minVal + "'";
         }
         html += '<tr>';
         html += '<td class="period-num">' + (i + 1) + '</td>';
-        html += '<td class="period-time">' + timeStr + '</td>';
+        html += '<td class="period-time">' + minStr + '</td>';
         var vol = 0;
         if (is1x2) {
             var o = s['1x2'] || {};
