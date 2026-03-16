@@ -9644,6 +9644,10 @@ function switchFromLive() {
     if (liveToolbar) liveToolbar.style.display = 'none';
     var marketRow = document.querySelector('.mobile-tab-row.market-row');
     if (marketRow) marketRow.style.display = '';
+    var thead = document.querySelector('.matches-table thead');
+    if (thead && !thead.querySelector('tr')) {
+        thead.innerHTML = '<tr></tr>';
+    }
     updateTableHeaders();
     filteredMatches = applySorting(matches);
     renderMatches(filteredMatches);
@@ -9762,7 +9766,7 @@ function renderLiveMatches(matches) {
         '</div>';
     if (!matches || matches.length === 0) {
         if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;">' + emptyHtml + '</td></tr>';
-        if (thead) thead.innerHTML = '';
+        if (thead) thead.innerHTML = '<tr><th colspan="7" style="text-align:center;">Canli mac bulunamadi</th></tr>';
         if (cardList) cardList.innerHTML = emptyHtml;
         var mc = document.getElementById('matchCount');
         if (mc) mc.textContent = '0';
