@@ -203,10 +203,9 @@ def _parse_kickoff_utc(date_str: str, fallback_utc: str) -> str:
         return fallback_utc
 
 
-FLASHSCORE_URL = "https://www.flashscore.com/x/feed/f_1_0_3_en_1"
-FLASHSCORE_HEADERS = {
+SOFASCORE_URL = "https://api.sofascore.com/api/v1/sport/football/events/live"
+SOFASCORE_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "X-Fsign": "SW9D1eZo",
 }
 
 
@@ -223,51 +222,87 @@ def _normalize_team(name: str) -> str:
     return s
 
 
-def _fetch_flashscore_live() -> Dict[str, Dict]:
+def _calc_sofascore_minute(event: Dict) -> str:
+    status = event.get('status', {})
+    desc = status.get('description', '')
+    code = status.get('code', 0)
+    if code == 31 or desc == 'Halftime':
+        return 'HT'
+    if code == 100 or desc == 'Ended':
+        return 'FT'
+    if code == 120 or desc == 'AP':
+        return 'PEN'
+    stype = status.get('type', '')
+    if stype == 'notstarted':
+        return ''
+    time_info = event.get('time', {})
+    period_start = time_info.get('currentPeriodStartTimestamp', 0)
+    initial = time_info.get('initial', 0)
+    now_ts = int(time.time())
+    if period_start > 0:
+        elapsed_secs = max(0, now_ts - period_start)
+        base_min = initial // 60
+        current_min = base_min + elapsed_secs // 60
+        if code == 6 and current_min > 45:
+            return f"45+{current_min - 45}'"
+        if code == 7 and current_min > 90:
+            return f"90+{current_min - 90}'"
+        return f"{current_min}'"
+    start_ts = event.get('startTimestamp', 0)
+    if start_ts > 0 and start_ts <= now_ts:
+        elapsed = (now_ts - start_ts) // 60
+        if code == 7 or desc == '2nd half':
+            adj = max(0, elapsed - 15)
+            if adj > 90:
+                return f"90+{adj - 90}'"
+            return f"{adj}'"
+        if code == 6 or desc == '1st half':
+            if elapsed > 45:
+                return f"45+{elapsed - 45}'"
+            return f"{elapsed}'"
+        if elapsed <= 47:
+            return f"{elapsed}'"
+        return ''
+    return ''
+
+
+def _fetch_sofascore_live() -> Dict[str, Dict]:
     try:
-        resp = requests.get(FLASHSCORE_URL, headers=FLASHSCORE_HEADERS, timeout=15, verify=SSL_VERIFY)
+        resp = requests.get(SOFASCORE_URL, headers=SOFASCORE_HEADERS, timeout=15)
         if resp.status_code != 200:
-            log(f"  [Flashscore] HTTP {resp.status_code}")
+            log(f"  [Sofascore] HTTP {resp.status_code}")
             return {}
-        text = resp.text
-        matches_raw = text.split('~AA÷')
+        data = resp.json()
+        events = data.get('events', [])
+        if not isinstance(events, list):
+            log(f"  [Sofascore] events beklenen list degil: {type(events)}")
+            return {}
         result = {}
-        for m_raw in matches_raw:
-            fields = {}
-            for pair in m_raw.split('¬'):
-                if '÷' in pair:
-                    k, v = pair.split('÷', 1)
-                    fields[k] = v
-            status = fields.get('AB', '')
-            if status not in ('2', '6', '7', '8', '9'):
-                continue
-            home = fields.get('FH', '') or fields.get('CX', '')
-            away = fields.get('FK', '') or fields.get('AF', '')
+        for ev in events:
+            home = ev.get('homeTeam', {}).get('name', '')
+            away = ev.get('awayTeam', {}).get('name', '')
             if not home or not away:
                 continue
-            home_score = fields.get('GRA', '')
-            away_score = fields.get('GRB', '')
-            minute_val = fields.get('AC', '')
-            if status == '6':
-                minute_str = 'HT'
-            elif status == '9':
-                minute_str = 'FT'
-            elif minute_val:
-                minute_str = minute_val
-            else:
-                minute_str = ''
-            score_str = f"{home_score}-{away_score}" if home_score != '' and away_score != '' else ''
+            h_score = ev.get('homeScore', {}).get('current', '')
+            a_score = ev.get('awayScore', {}).get('current', '')
+            score_str = f"{h_score}-{a_score}" if h_score != '' and a_score != '' else ''
+            minute_str = _calc_sofascore_minute(ev)
+            start_ts = ev.get('startTimestamp', 0)
+            kickoff_utc = ''
+            if start_ts:
+                kickoff_utc = datetime.fromtimestamp(start_ts, tz=timezone.utc).strftime('%Y-%m-%dT%H:%M:%S+00:00')
             key = _normalize_team(home) + '|' + _normalize_team(away)
             result[key] = {
                 'score': score_str,
                 'minute': minute_str,
                 'home': home,
                 'away': away,
+                'kickoff_utc': kickoff_utc,
             }
-        log(f"  [Flashscore] {len(result)} canlı maç bulundu")
+        log(f"  [Sofascore] {len(result)} canlı maç bulundu")
         return result
     except Exception as e:
-        log(f"  [Flashscore] Hata: {e}")
+        log(f"  [Sofascore] Hata: {e}")
         return {}
 
 
@@ -283,17 +318,17 @@ def _team_match_score(arb: str, fs: str) -> float:
     return difflib.SequenceMatcher(None, arb, fs).ratio()
 
 
-def enrich_with_flashscore(all_fixtures: Dict[str, Dict]) -> int:
+def enrich_with_sofascore(all_fixtures: Dict[str, Dict]) -> int:
     if not all_fixtures:
         return 0
-    fs_data = _fetch_flashscore_live()
-    if not fs_data:
+    ss_data = _fetch_sofascore_live()
+    if not ss_data:
         return 0
     enriched = 0
-    fs_entries = []
-    for fk, fv in fs_data.items():
-        parts = fk.split('|')
-        fs_entries.append((parts[0], parts[1] if len(parts) > 1 else '', fk))
+    ss_entries = []
+    for sk, sv in ss_data.items():
+        parts = sk.split('|')
+        ss_entries.append((parts[0], parts[1] if len(parts) > 1 else '', sk))
     for h, fix in all_fixtures.items():
         arb_home = _normalize_team(fix.get('home_team', ''))
         arb_away = _normalize_team(fix.get('away_team', ''))
@@ -301,23 +336,25 @@ def enrich_with_flashscore(all_fixtures: Dict[str, Dict]) -> int:
             continue
         best_combined = 0.0
         best_key = None
-        for fs_h, fs_a, fs_full_key in fs_entries:
-            h_score = _team_match_score(arb_home, fs_h)
+        for ss_h, ss_a, ss_full_key in ss_entries:
+            h_score = _team_match_score(arb_home, ss_h)
             if h_score < 0.55:
                 continue
-            a_score = _team_match_score(arb_away, fs_a)
+            a_score = _team_match_score(arb_away, ss_a)
             if a_score < 0.55:
                 continue
             combined = (h_score + a_score) / 2
             if combined > best_combined:
                 best_combined = combined
-                best_key = fs_full_key
+                best_key = ss_full_key
         if best_key and best_combined >= 0.70:
-            fsd = fs_data[best_key]
-            fix['score'] = fsd['score']
-            fix['minute'] = fsd['minute']
+            ssd = ss_data[best_key]
+            fix['score'] = ssd['score']
+            fix['minute'] = ssd['minute']
+            if ssd.get('kickoff_utc'):
+                fix['kickoff_utc'] = ssd['kickoff_utc']
             enriched += 1
-    log(f"  [Flashscore] {enriched}/{len(all_fixtures)} maç eşleşti")
+    log(f"  [Sofascore] {enriched}/{len(all_fixtures)} maç eşleşti")
     return enriched
 
 
@@ -594,7 +631,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
             traceback.print_exc()
 
     if all_fixtures:
-        enrich_with_flashscore(all_fixtures)
+        enrich_with_sofascore(all_fixtures)
         fixtures_list = list(all_fixtures.values())
         if writer.upsert_live_fixtures(fixtures_list):
             log(f"  [FIXTURES] {len(fixtures_list)} canlı maç yazıldı")
