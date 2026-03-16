@@ -9878,8 +9878,7 @@ function _calcLiveMatchMin(m) {
             var ko = new Date(m.kickoff_utc);
             if (!isNaN(ko.getTime())) {
                 var diff = Math.floor((Date.now() - ko.getTime()) / 60000);
-                if (diff > 95) return 'MS';
-                if (diff >= 0) return diff + "'";
+                if (diff >= 0 && diff <= 130) return diff + "'";
             }
         }
         return '';
@@ -9896,7 +9895,6 @@ function _calcLiveMatchMin(m) {
     }
     if (/^\d{1,3}'?$/.test(rawMin)) {
         var n = parseInt(rawMin, 10);
-        if (n > 95) return 'MS';
         if (n >= 0 && n <= 130) {
             return n + "'";
         }
