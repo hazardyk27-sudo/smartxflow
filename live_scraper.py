@@ -385,32 +385,47 @@ def enrich_with_sofascore(all_fixtures: Dict[str, Dict]) -> int:
     return enriched
 
 
+def _fetch_sofascore_finished_events() -> Dict[str, str]:
+    """Sofascore'dan bugün (ve dün gece yarısı) biten tüm maçların skorlarını al."""
+    ss_finished = {}
+    now_utc = datetime.now(timezone.utc)
+    dates = [now_utc.strftime('%Y-%m-%d')]
+    yesterday = (now_utc - timedelta(hours=6)).strftime('%Y-%m-%d')
+    if yesterday != dates[0]:
+        dates.append(yesterday)
+    for d in dates:
+        try:
+            resp = requests.get(
+                f"https://api.sofascore.com/api/v1/sport/football/scheduled-events/{d}",
+                headers=SOFASCORE_HEADERS, timeout=15
+            )
+            if resp.status_code != 200:
+                continue
+            for ev in resp.json().get('events', []):
+                st = ev.get('status', {})
+                if st.get('type') != 'finished':
+                    continue
+                home = ev.get('homeTeam', {}).get('name', '')
+                away = ev.get('awayTeam', {}).get('name', '')
+                hs = ev.get('homeScore', {}).get('current', '')
+                aws = ev.get('awayScore', {}).get('current', '')
+                if home and away and hs != '' and aws != '':
+                    key = _normalize_team(home) + '|' + _normalize_team(away)
+                    ss_finished[key] = f"{hs}-{aws}"
+        except Exception:
+            pass
+    return ss_finished
+
+
 def _fetch_final_scores(writer, stale_hashes: List[str]) -> Dict[str, str]:
-    """Sofascore scheduled events'ten biten maçların son skorlarını al."""
+    """Stale maçların Sofascore'dan son skorlarını al."""
     try:
         fixtures = writer.get_fixtures_by_hashes(stale_hashes)
         if not fixtures:
             return {}
-        today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
-        resp = requests.get(
-            f"https://api.sofascore.com/api/v1/sport/football/scheduled-events/{today}",
-            headers=SOFASCORE_HEADERS, timeout=15
-        )
-        if resp.status_code != 200:
+        ss_finished = _fetch_sofascore_finished_events()
+        if not ss_finished:
             return {}
-        events = resp.json().get('events', [])
-        ss_finished = {}
-        for ev in events:
-            st = ev.get('status', {})
-            if st.get('type') != 'finished':
-                continue
-            home = ev.get('homeTeam', {}).get('name', '')
-            away = ev.get('awayTeam', {}).get('name', '')
-            hs = ev.get('homeScore', {}).get('current', '')
-            aws = ev.get('awayScore', {}).get('current', '')
-            if home and away and hs != '' and aws != '':
-                key = _normalize_team(home) + '|' + _normalize_team(away)
-                ss_finished[key] = f"{hs}-{aws}"
         final_scores = {}
         for fix in fixtures:
             h = fix['match_id_hash']
@@ -574,15 +589,23 @@ class LiveSupabaseWriter:
         if not fixtures:
             return True
         try:
+            for fix in list(fixtures):
+                for field in ['score', 'minute']:
+                    if not fix.get(field):
+                        fix.pop(field, None)
+            groups = {}
+            for fix in fixtures:
+                key = tuple(sorted(fix.keys()))
+                groups.setdefault(key, []).append(fix)
             headers = self._headers()
             headers["Prefer"] = "resolution=merge-duplicates"
             url = f"{self._rest_url('live_fixtures')}?on_conflict=match_id_hash"
-            resp = requests.post(url, headers=headers, json=fixtures, timeout=30, verify=SSL_VERIFY)
-            if resp.status_code in [200, 201, 204]:
-                return True
-            else:
-                log(f"[Fixtures UPSERT] HTTP {resp.status_code}: {resp.text[:200]}")
-                return False
+            for key_set, batch in groups.items():
+                resp = requests.post(url, headers=headers, json=batch, timeout=30, verify=SSL_VERIFY)
+                if resp.status_code not in [200, 201, 204]:
+                    log(f"[Fixtures UPSERT] HTTP {resp.status_code}: {resp.text[:200]}")
+                    return False
+            return True
         except Exception as e:
             log(f"[Fixtures UPSERT] Hata: {e}")
             return False
@@ -614,6 +637,17 @@ class LiveSupabaseWriter:
         except Exception as e:
             log(f"[GET live hashes] Hata: {e}")
             return []
+
+    def get_ft_fixture_hashes(self) -> set:
+        try:
+            headers = self._headers()
+            url = f"{self._rest_url('live_fixtures')}?status=eq.ft&select=match_id_hash"
+            resp = requests.get(url, headers=headers, timeout=15, verify=SSL_VERIFY)
+            if resp.status_code == 200:
+                return set(r['match_id_hash'] for r in resp.json())
+            return set()
+        except Exception:
+            return set()
 
     def get_fixtures_by_hashes(self, hashes: List[str]) -> List[Dict]:
         if not hashes:
@@ -781,16 +815,21 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
 
     if all_fixtures:
         enrich_with_sofascore(all_fixtures)
-        fixtures_list = list(all_fixtures.values())
-        for fix in fixtures_list:
-            if not fix.get('score'):
-                fix.pop('score', None)
-            if not fix.get('minute'):
-                fix.pop('minute', None)
-        if writer.upsert_live_fixtures(fixtures_list):
-            log(f"  [FIXTURES] {len(fixtures_list)} canlı maç yazıldı")
-        else:
-            log(f"  [HATA] Fixtures yazılamadı!")
+        already_ft = writer.get_ft_fixture_hashes()
+        ft_skipped = 0
+        fixtures_list = []
+        for h, fix in all_fixtures.items():
+            if h in already_ft and fix.get('status') != 'ft':
+                ft_skipped += 1
+                continue
+            fixtures_list.append(fix)
+        if ft_skipped:
+            log(f"  [SKIP] {ft_skipped} zaten FT olan maç atlandı")
+        if fixtures_list:
+            if writer.upsert_live_fixtures(fixtures_list):
+                log(f"  [FIXTURES] {len(fixtures_list)} canlı maç yazıldı")
+            else:
+                log(f"  [HATA] Fixtures yazılamadı!")
 
     if all_snapshots:
         if writer.insert_live_snapshots(all_snapshots):
