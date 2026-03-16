@@ -385,6 +385,57 @@ def enrich_with_sofascore(all_fixtures: Dict[str, Dict]) -> int:
     return enriched
 
 
+def _fetch_final_scores(writer, stale_hashes: List[str]) -> Dict[str, str]:
+    """Sofascore scheduled events'ten biten maçların son skorlarını al."""
+    try:
+        fixtures = writer.get_fixtures_by_hashes(stale_hashes)
+        if not fixtures:
+            return {}
+        today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+        resp = requests.get(
+            f"https://api.sofascore.com/api/v1/sport/football/scheduled-events/{today}",
+            headers=SOFASCORE_HEADERS, timeout=15
+        )
+        if resp.status_code != 200:
+            return {}
+        events = resp.json().get('events', [])
+        ss_finished = {}
+        for ev in events:
+            st = ev.get('status', {})
+            if st.get('type') != 'finished':
+                continue
+            home = ev.get('homeTeam', {}).get('name', '')
+            away = ev.get('awayTeam', {}).get('name', '')
+            hs = ev.get('homeScore', {}).get('current', '')
+            aws = ev.get('awayScore', {}).get('current', '')
+            if home and away and hs != '' and aws != '':
+                key = _normalize_team(home) + '|' + _normalize_team(away)
+                ss_finished[key] = f"{hs}-{aws}"
+        final_scores = {}
+        for fix in fixtures:
+            h = fix['match_id_hash']
+            arb_home = _normalize_team(fix.get('home_team', ''))
+            arb_away = _normalize_team(fix.get('away_team', ''))
+            best_score = ''
+            best_combined = 0.0
+            for ss_key, score in ss_finished.items():
+                ss_h, ss_a = ss_key.split('|', 1)
+                h_s = _team_match_score(arb_home, ss_h)
+                a_s = _team_match_score(arb_away, ss_a)
+                if h_s < 0.55 or a_s < 0.55:
+                    continue
+                comb = (h_s + a_s) / 2
+                if comb > best_combined:
+                    best_combined = comb
+                    best_score = score
+            if best_combined >= 0.70 and best_score:
+                final_scores[h] = best_score
+        return final_scores
+    except Exception as e:
+        log(f"  [Final Scores] Hata: {e}")
+        return {}
+
+
 def fetch_table(url: str, session: requests.Session) -> BeautifulSoup:
     resp = session.get(url, headers=HEADERS, timeout=30, verify=SSL_VERIFY)
     resp.raise_for_status()
@@ -564,9 +615,25 @@ class LiveSupabaseWriter:
             log(f"[GET live hashes] Hata: {e}")
             return []
 
-    def mark_fixtures_finished(self, hashes: List[str]) -> int:
+    def get_fixtures_by_hashes(self, hashes: List[str]) -> List[Dict]:
+        if not hashes:
+            return []
+        try:
+            headers = self._headers()
+            hash_list = ','.join(hashes[:100])
+            url = f"{self._rest_url('live_fixtures')}?match_id_hash=in.({hash_list})&select=match_id_hash,home_team,away_team,score"
+            resp = requests.get(url, headers=headers, timeout=15, verify=SSL_VERIFY)
+            if resp.status_code == 200:
+                return resp.json()
+            return []
+        except Exception:
+            return []
+
+    def mark_fixtures_finished(self, hashes: List[str], final_scores: Dict[str, str] = None) -> int:
         if not hashes:
             return 0
+        if final_scores is None:
+            final_scores = {}
         now_utc = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S+00:00')
         marked = 0
         headers = self._headers()
@@ -574,6 +641,8 @@ class LiveSupabaseWriter:
             try:
                 url = f"{self._rest_url('live_fixtures')}?match_id_hash=eq.{h}"
                 patch = {"status": "ft", "minute": "FT", "updated_at": now_utc}
+                if h in final_scores and final_scores[h]:
+                    patch["score"] = final_scores[h]
                 resp = requests.patch(url, headers=headers, json=patch, timeout=10, verify=SSL_VERIFY)
                 if resp.status_code in [200, 204]:
                     marked += 1
@@ -737,8 +806,10 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
     current_hashes = set(all_fixtures.keys())
     stale_hashes = [h for h in existing_live if h not in current_hashes]
     if stale_hashes:
-        marked = writer.mark_fixtures_finished(stale_hashes)
-        log(f"  [MS] {marked}/{len(stale_hashes)} biten maç FT olarak işaretlendi")
+        final_scores = _fetch_final_scores(writer, stale_hashes)
+        marked = writer.mark_fixtures_finished(stale_hashes, final_scores)
+        score_count = sum(1 for s in final_scores.values() if s)
+        log(f"  [MS] {marked}/{len(stale_hashes)} biten maç FT olarak işaretlendi ({score_count} skor güncellendi)")
 
     log(f"Canlı scrape tamamlandı - {len(all_fixtures)} maç, {len(all_snapshots)} snapshot")
     return len(all_fixtures)
