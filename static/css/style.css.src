@@ -12250,6 +12250,10 @@ table.desktop-only {
     margin-top: 2px;
     font-size: 10px;
 }
+.period-dual .dual-sub.vol-diff {
+    color: var(--mw-text-muted);
+    font-size: 9px;
+}
 .period-dk-skor {
     vertical-align: middle;
 }
