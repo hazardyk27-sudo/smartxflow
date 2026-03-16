@@ -146,10 +146,16 @@ def _parse_odds(s: str) -> Optional[float]:
 
 
 def _parse_minute(date_str: str) -> str:
+    """Parse minute/time from tdate column. Format: '16.Mar14:31:49' or '16.Mar HT' etc."""
+    if not date_str:
+        return ""
     m = re.search(r'(\d{1,2}):(\d{2}):(\d{2})$', date_str)
     if m:
-        return date_str
-    return date_str
+        return f"{m.group(1)}:{m.group(2)}:{m.group(3)}"
+    for marker in ['HT', 'FT', '1H', '2H', 'ET', 'PEN']:
+        if marker in date_str.upper():
+            return marker
+    return date_str.strip()
 
 
 def fetch_table(url: str, session: requests.Session) -> BeautifulSoup:
@@ -355,7 +361,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                             "away_team": row["away"][:100],
                             "league": row["league"][:150],
                             "score": "",
-                            "minute": row["date_text"],
+                            "minute": _parse_minute(row["date_text"]),
                             "status": "live",
                             "kickoff_utc": now_utc,
                             "fixture_date": today_str,
@@ -392,7 +398,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                             "away_team": row["away"][:100],
                             "league": row["league"][:150],
                             "score": "",
-                            "minute": row["date_text"],
+                            "minute": _parse_minute(row["date_text"]),
                             "status": "live",
                             "kickoff_utc": now_utc,
                             "fixture_date": today_str,
@@ -439,6 +445,48 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
     return len(all_fixtures)
 
 
+def check_live_master_status(supabase_url: str, supabase_key: str) -> tuple:
+    """Check if another live scraper instance is active (master/slave arbitration)."""
+    try:
+        url = f"{supabase_url}/rest/v1/scraper_heartbeat?select=*"
+        headers = {
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}"
+        }
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code != 200:
+            return True, "api_error_fallback"
+
+        rows = r.json()
+        if not rows:
+            return True, "no_master"
+
+        now = datetime.now(timezone.utc)
+
+        for row in rows:
+            if row.get("source") == SCRAPER_SOURCE:
+                continue
+            if row.get("source") != "replit-live":
+                continue
+            beat_str = row.get("last_beat", "")
+            if not beat_str:
+                continue
+            try:
+                beat_time = datetime.fromisoformat(beat_str.replace("Z", "+00:00"))
+                if beat_time.tzinfo is None:
+                    beat_time = beat_time.replace(tzinfo=timezone.utc)
+                diff_minutes = (now - beat_time).total_seconds() / 60
+                if diff_minutes < 5 and row.get("status") == "active":
+                    return False, f"{row.get('source')} is master ({diff_minutes:.1f} min ago)"
+            except:
+                continue
+
+        return True, "i_am_master"
+    except Exception as e:
+        log(f"[Master Check] Hata: {e}, devam ediyorum")
+        return True, "error_fallback"
+
+
 def main():
     log("=" * 50)
     log("SmartXFlow Live Scraper")
@@ -454,6 +502,14 @@ def main():
         send_telegram(f"LIVE SCRAPER FATAL: {error_msg}", is_error=True)
         return False
 
+    is_master, reason = check_live_master_status(supabase_url, supabase_key)
+    if not is_master:
+        log(f"[Master] Başka bir live scraper aktif: {reason}")
+        log("[Master] Slave modunda, veri yazmıyorum")
+        update_heartbeat(supabase_url, supabase_key, "standby", 0, reason)
+        return True
+
+    log(f"[Master] Ben master oluyorum: {reason}")
     update_heartbeat(supabase_url, supabase_key, "starting", 0)
 
     try:

@@ -1827,21 +1827,58 @@ def get_live_matches():
         snap_resp = supabase._get_http_client().get(snap_url, headers=headers, timeout=15)
         snaps = snap_resp.json() if snap_resp.status_code == 200 else []
 
-        latest_snaps = {}
+        latest_1x2 = {}
+        ou_by_match = {}
         for s in snaps:
-            key = f"{s['match_id_hash']}_{s['market']}_{s['selection']}"
-            if key not in latest_snaps:
-                latest_snaps[key] = s
+            h = s['match_id_hash']
+            market = s.get('market', '')
+            sel = s.get('selection', '')
+            if market == '1X2':
+                key = f"{h}_1X2_{sel}"
+                if key not in latest_1x2:
+                    latest_1x2[key] = s
+            elif market == 'OU':
+                if h not in ou_by_match:
+                    ou_by_match[h] = []
+                ou_by_match[h].append(s)
+
+        def _select_ou_line(score_str, ou_snaps):
+            """Dynamic O/U line: total goals 0->1.5, 1->2.5, 2->3.5, 3->4.5"""
+            target_line = "1.5"
+            if score_str:
+                import re as _re
+                m = _re.search(r'(\d+)\s*[-:]\s*(\d+)', score_str)
+                if m:
+                    total = int(m.group(1)) + int(m.group(2))
+                    target_line = str(total + 1.5) if total <= 3 else "4.5"
+
+            by_line = {}
+            for s in ou_snaps:
+                line = s.get('ou_line', '')
+                if line not in by_line:
+                    by_line[line] = {}
+                sel = s.get('selection', '')
+                if sel not in by_line[line] or s.get('snapshot_at', '') > by_line[line][sel].get('snapshot_at', ''):
+                    by_line[line][sel] = s
+
+            if target_line in by_line:
+                return by_line[target_line]
+
+            available = sorted(by_line.keys(), key=lambda x: float(x) if x.replace('.','').isdigit() else 999)
+            if available:
+                return by_line[available[0]]
+            return {}
 
         matches = []
         for f in fixtures:
             h = f['match_id_hash']
+            score = f.get('score', '')
             match_data = {
                 'match_id_hash': h,
                 'home_team': f.get('home_team', ''),
                 'away_team': f.get('away_team', ''),
                 'league': f.get('league', ''),
-                'score': f.get('score', ''),
+                'score': score,
                 'minute': f.get('minute', ''),
                 'status': f.get('status', 'live'),
                 'updated_at': f.get('updated_at', ''),
@@ -1851,7 +1888,7 @@ def get_live_matches():
 
             for sel in ['1', 'X', '2']:
                 key = f"{h}_1X2_{sel}"
-                s = latest_snaps.get(key)
+                s = latest_1x2.get(key)
                 if s:
                     match_data['odds'][sel] = {
                         'odds': s.get('odds'),
@@ -1859,16 +1896,17 @@ def get_live_matches():
                         'volume': s.get('volume'),
                     }
 
-            for sel in ['U', 'O']:
-                key = f"{h}_OU_{sel}"
-                s = latest_snaps.get(key)
-                if s:
-                    match_data['ou'][sel] = {
-                        'odds': s.get('odds'),
-                        'share': s.get('share'),
-                        'volume': s.get('volume'),
-                        'line': s.get('ou_line'),
-                    }
+            if h in ou_by_match:
+                selected_ou = _select_ou_line(score, ou_by_match[h])
+                for sel in ['U', 'O']:
+                    s = selected_ou.get(sel)
+                    if s:
+                        match_data['ou'][sel] = {
+                            'odds': s.get('odds'),
+                            'share': s.get('share'),
+                            'volume': s.get('volume'),
+                            'line': s.get('ou_line'),
+                        }
 
             matches.append(match_data)
 
@@ -1893,6 +1931,15 @@ def get_live_match_history():
             return jsonify({'snapshots': [], 'error': 'Supabase bağlantısı yok'}), 200
 
         headers = supabase._headers()
+
+        fix_url = f"{supabase._rest_url('live_fixtures')}?match_id_hash=eq.{match_hash}&limit=1"
+        fix_resp = supabase._get_http_client().get(fix_url, headers=headers, timeout=10)
+        fixture = None
+        if fix_resp.status_code == 200:
+            fix_data = fix_resp.json()
+            if fix_data:
+                fixture = fix_data[0]
+
         snap_url = (
             f"{supabase._rest_url('live_snapshots')}"
             f"?match_id_hash=eq.{match_hash}"
@@ -1914,8 +1961,11 @@ def get_live_match_history():
             if key not in periods:
                 periods[key] = {
                     'snapshot_at': ts,
+                    'minute': fixture.get('minute', '') if fixture else '',
+                    'score': fixture.get('score', '') if fixture else '',
                     '1x2': {},
                     'ou': {},
+                    'ou_lines': {},
                     'ou_line': None,
                 }
 
@@ -1926,13 +1976,33 @@ def get_live_match_history():
                     'volume': s.get('volume'),
                 }
             elif market == 'OU':
-                periods[key]['ou'][sel] = {
+                line = s.get('ou_line', '')
+                if line not in periods[key]['ou_lines']:
+                    periods[key]['ou_lines'][line] = {}
+                periods[key]['ou_lines'][line][sel] = {
                     'odds': s.get('odds'),
                     'share': s.get('share'),
                     'volume': s.get('volume'),
                 }
-                if s.get('ou_line'):
-                    periods[key]['ou_line'] = s.get('ou_line')
+
+        score_str = fixture.get('score', '') if fixture else ''
+        import re as _re
+        target_line = "1.5"
+        if score_str:
+            m = _re.search(r'(\d+)\s*[-:]\s*(\d+)', score_str)
+            if m:
+                total = int(m.group(1)) + int(m.group(2))
+                target_line = str(total + 1.5) if total <= 3 else "4.5"
+
+        for p in periods.values():
+            ou_lines = p.pop('ou_lines', {})
+            if target_line in ou_lines:
+                p['ou'] = ou_lines[target_line]
+                p['ou_line'] = target_line
+            elif ou_lines:
+                available = sorted(ou_lines.keys(), key=lambda x: float(x) if x.replace('.','').isdigit() else 999)
+                p['ou'] = ou_lines[available[0]]
+                p['ou_line'] = available[0]
 
         result = sorted(periods.values(), key=lambda x: x['snapshot_at'])
 
