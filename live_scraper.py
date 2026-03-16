@@ -713,6 +713,11 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
     if all_fixtures:
         enrich_with_sofascore(all_fixtures)
         fixtures_list = list(all_fixtures.values())
+        for fix in fixtures_list:
+            if not fix.get('score'):
+                fix.pop('score', None)
+            if not fix.get('minute'):
+                fix.pop('minute', None)
         if writer.upsert_live_fixtures(fixtures_list):
             log(f"  [FIXTURES] {len(fixtures_list)} canlı maç yazıldı")
         else:
