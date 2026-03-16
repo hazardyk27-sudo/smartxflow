@@ -464,9 +464,10 @@ def check_live_master_status(supabase_url: str, supabase_key: str) -> tuple:
         now = datetime.now(timezone.utc)
 
         for row in rows:
-            if row.get("source") == SCRAPER_SOURCE:
+            src = row.get("source", "")
+            if src == SCRAPER_SOURCE:
                 continue
-            if row.get("source") != "replit-live":
+            if not src.endswith("-live"):
                 continue
             beat_str = row.get("last_heartbeat", "")
             if not beat_str:
@@ -477,7 +478,7 @@ def check_live_master_status(supabase_url: str, supabase_key: str) -> tuple:
                     beat_time = beat_time.replace(tzinfo=timezone.utc)
                 diff_minutes = (now - beat_time).total_seconds() / 60
                 if diff_minutes < 5 and row.get("status") == "active":
-                    return False, f"{row.get('source')} is master ({diff_minutes:.1f} min ago)"
+                    return False, f"{src} is master ({diff_minutes:.1f} min ago)"
             except:
                 continue
 
