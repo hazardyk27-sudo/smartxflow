@@ -9804,7 +9804,20 @@ function renderLiveMatches(matches) {
             '<th class="col-volume">HACİM</th>' +
             '</tr>';
     }
-    var sorted = matches.slice();
+    var filtered = matches.filter(function(m) {
+        if (is1x2) return _liveCalcVol1x2(m) > 0;
+        return _liveCalcVolOU(_liveGetOu(m, ouLine)) > 0;
+    });
+    if (filtered.length === 0) {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;">' + emptyHtml + '</td></tr>';
+        if (cardList) cardList.innerHTML = emptyHtml;
+        var mc0 = document.getElementById('matchCount');
+        if (mc0) mc0.textContent = '0';
+        var lmc0 = document.getElementById('liveMatchCount');
+        if (lmc0) lmc0.textContent = '0';
+        return;
+    }
+    var sorted = filtered.slice();
     sorted.sort(function(a, b) {
         var va = is1x2 ? _liveCalcVol1x2(a) : _liveCalcVolOU(_liveGetOu(a, ouLine));
         var vb = is1x2 ? _liveCalcVol1x2(b) : _liveCalcVolOU(_liveGetOu(b, ouLine));
@@ -9852,16 +9865,25 @@ function renderLiveMatches(matches) {
     if (cardList) cardList.innerHTML = cardsHtml;
     var mc = document.getElementById('matchCount');
     if (mc) mc.textContent = sorted.length;
+    var lmc = document.getElementById('liveMatchCount');
+    if (lmc) lmc.textContent = sorted.length;
 }
 
 function _calcLiveMatchMin(m) {
-    if (!m.kickoff_utc) return escLiveHtml(m.minute || '');
+    var rawMin = (m.minute || '').trim();
+    var markers = ['HT', 'FT', '1H', '2H', 'ET', 'PEN'];
+    for (var k = 0; k < markers.length; k++) {
+        if (rawMin.toUpperCase() === markers[k]) return markers[k];
+    }
+    if (!m.kickoff_utc) return escLiveHtml(rawMin);
     try {
         var ko = new Date(m.kickoff_utc);
+        if (isNaN(ko.getTime())) return escLiveHtml(rawMin);
         var now = new Date();
         var diff = Math.max(0, Math.floor((now - ko) / 60000));
+        if (diff > 130) return escLiveHtml(rawMin);
         return diff + "'";
-    } catch (e) { return escLiveHtml(m.minute || ''); }
+    } catch (e) { return escLiveHtml(rawMin); }
 }
 
 function _liveMwBlock(label, d) {

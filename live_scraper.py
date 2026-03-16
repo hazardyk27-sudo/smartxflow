@@ -151,13 +151,45 @@ def _parse_minute(date_str: str) -> str:
     """Parse minute/time from tdate column. Format: '16.Mar14:31:49' or '16.Mar HT' etc."""
     if not date_str:
         return ""
-    m = re.search(r'(\d{1,2}):(\d{2}):(\d{2})$', date_str)
-    if m:
-        return f"{m.group(1)}:{m.group(2)}:{m.group(3)}"
     for marker in ['HT', 'FT', '1H', '2H', 'ET', 'PEN']:
         if marker in date_str.upper():
             return marker
+    m = re.search(r'(\d{1,2}):(\d{2}):(\d{2})$', date_str)
+    if m:
+        return f"{m.group(1)}:{m.group(2)}:{m.group(3)}"
     return date_str.strip()
+
+
+MONTH_MAP = {
+    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+    'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+}
+
+
+def _parse_kickoff_utc(date_str: str, fallback_utc: str) -> str:
+    """Parse kickoff UTC from tdate column. Format: '16.Mar14:31:49' → ISO UTC."""
+    if not date_str:
+        return fallback_utc
+    m = re.match(r'(\d{1,2})\.(\w{3})\s*(\d{1,2}):(\d{2}):(\d{2})', date_str.strip())
+    if not m:
+        return fallback_utc
+    try:
+        day = int(m.group(1))
+        mon_str = m.group(2).lower()
+        hour = int(m.group(3))
+        minute = int(m.group(4))
+        sec = int(m.group(5))
+        month = MONTH_MAP.get(mon_str)
+        if not month:
+            return fallback_utc
+        now = datetime.now(timezone.utc)
+        year = now.year
+        ko = datetime(year, month, day, hour, minute, sec, tzinfo=timezone.utc)
+        if ko > now:
+            ko = ko.replace(year=year - 1)
+        return ko.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+    except Exception:
+        return fallback_utc
 
 
 def fetch_table(url: str, session: requests.Session) -> BeautifulSoup:
@@ -357,8 +389,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                 for row in rows:
                     h = row["match_id_hash"]
                     if h not in all_fixtures:
-                        if h not in _kickoff_cache:
-                            _kickoff_cache[h] = now_utc
+                        ko_utc = _parse_kickoff_utc(row["date_text"], now_utc)
                         all_fixtures[h] = {
                             "match_id_hash": h,
                             "home_team": row["home"][:100],
@@ -367,7 +398,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                             "score": "",
                             "minute": _parse_minute(row["date_text"]),
                             "status": "live",
-                            "kickoff_utc": _kickoff_cache[h],
+                            "kickoff_utc": ko_utc,
                             "fixture_date": today_str,
                             "updated_at": now_utc,
                         }
@@ -396,8 +427,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                 for row in rows:
                     h = row["match_id_hash"]
                     if h not in all_fixtures:
-                        if h not in _kickoff_cache:
-                            _kickoff_cache[h] = now_utc
+                        ko_utc = _parse_kickoff_utc(row["date_text"], now_utc)
                         all_fixtures[h] = {
                             "match_id_hash": h,
                             "home_team": row["home"][:100],
@@ -406,7 +436,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                             "score": "",
                             "minute": _parse_minute(row["date_text"]),
                             "status": "live",
-                            "kickoff_utc": _kickoff_cache[h],
+                            "kickoff_utc": ko_utc,
                             "fixture_date": today_str,
                             "updated_at": now_utc,
                         }
