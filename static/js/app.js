@@ -75,7 +75,7 @@ function handleVisibilityChange(){if(document.visibilityState==='visible'){if(!_
 if(_lastMatchRefreshTime){const now=dayjs().tz(APP_TIMEZONE);const diffMs=now.diff(_lastMatchRefreshTime);if(diffMs>MATCH_REFRESH_INTERVAL){console.log('[AutoRefresh] Sekmeye dönüldü, veri eski - yenileniyor...');refreshMatchData();}else{console.log('[AutoRefresh] Sekmeye dönüldü, veri güncel');}}}else if(document.visibilityState==='hidden'){if(_matchRefreshInterval){clearInterval(_matchRefreshInterval);_matchRefreshInterval=null;console.log('[AutoRefresh] Tab arka planda - interval durduruldu');}}}
 function setupTabs(){document.querySelectorAll('.market-tabs .tab').forEach(tab=>{tab.addEventListener('click',()=>{const market=tab.dataset.market;if(market==='alarms'){return;}
 if(market==='live'){return;}
-if(isAlarmsPageActive){hideAlarmsPage();}
+if(_liveMode)switchFromLive();if(isAlarmsPageActive){hideAlarmsPage();}
 document.querySelectorAll('.market-tabs .tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');currentMarket=market;const isDropMarket=currentMarket.startsWith('dropping_');showTrendSortButtons(isDropMarket);if(!isDropMarket&&(currentSortColumn==='trend_down'||currentSortColumn==='trend_up')){currentSortColumn='volume';currentSortDirection='desc';}
 matchesDisplayCount=20;loadMatches();});});}
 function setupModalChartTabs(){document.querySelectorAll('#modalChartTabs .chart-tab').forEach(tab=>{tab.addEventListener('click',()=>{document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');selectedChartMarket=tab.dataset.market;if(typeof mobileBigValueTween!=='undefined'){mobileBigValueTween.reset();}

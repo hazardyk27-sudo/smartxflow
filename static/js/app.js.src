@@ -767,6 +767,8 @@ function setupTabs() {
                 return;
             }
             
+            if (_liveMode) switchFromLive();
+            
             if (isAlarmsPageActive) {
                 hideAlarmsPage();
             }
