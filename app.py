@@ -1842,33 +1842,6 @@ def get_live_matches():
                     ou_by_match[h] = []
                 ou_by_match[h].append(s)
 
-        def _select_ou_line(score_str, ou_snaps):
-            """Dynamic O/U line: total goals 0->1.5, 1->2.5, 2->3.5, 3->4.5"""
-            target_line = "1.5"
-            if score_str:
-                import re as _re
-                m = _re.search(r'(\d+)\s*[-:]\s*(\d+)', score_str)
-                if m:
-                    total = int(m.group(1)) + int(m.group(2))
-                    target_line = str(total + 1.5)
-
-            by_line = {}
-            for s in ou_snaps:
-                line = s.get('ou_line', '')
-                if line not in by_line:
-                    by_line[line] = {}
-                sel = s.get('selection', '')
-                if sel not in by_line[line] or s.get('snapshot_at', '') > by_line[line][sel].get('snapshot_at', ''):
-                    by_line[line][sel] = s
-
-            if target_line in by_line:
-                return by_line[target_line]
-
-            available = sorted(by_line.keys(), key=lambda x: float(x) if x.replace('.','').isdigit() else 999)
-            if available:
-                return by_line[available[0]]
-            return {}
-
         matches = []
         for f in fixtures:
             h = f['match_id_hash']

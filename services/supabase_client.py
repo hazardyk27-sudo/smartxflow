@@ -1818,8 +1818,7 @@ class SupabaseClient:
             print(f"[Cleanup] Error fetching old fixture hashes: {e}")
         
         if not old_hashes:
-            print(f"[Cleanup] No D-2+ fixtures found, skipping cleanup")
-            return deleted
+            print(f"[Cleanup] No D-2+ prematch fixtures found")
         
         batch_size = 50
         

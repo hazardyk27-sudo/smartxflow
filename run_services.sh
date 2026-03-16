@@ -2,11 +2,13 @@
 
 SCRAPER_PID=""
 ALARM_PID=""
+LIVE_PID=""
 
 cleanup() {
     echo "[run_services] SIGTERM received, shutting down..."
     [ -n "$SCRAPER_PID" ] && kill $SCRAPER_PID 2>/dev/null
     [ -n "$ALARM_PID" ] && kill $ALARM_PID 2>/dev/null
+    [ -n "$LIVE_PID" ] && kill $LIVE_PID 2>/dev/null
     wait 2>/dev/null
     echo "[run_services] All services stopped."
     exit 0
@@ -34,10 +36,20 @@ start_alarm() {
     done
 }
 
+start_live() {
+    while true; do
+        echo "[run_services] $(date '+%H:%M:%S') Starting live_scraper.py..."
+        python live_scraper.py
+        EXIT_CODE=$?
+        echo "[run_services] $(date '+%H:%M:%S') live_scraper.py exited (code=$EXIT_CODE), restarting in 5s..."
+        sleep 5
+    done
+}
+
 echo "============================================"
 echo "[run_services] SmartXFlow Services Supervisor"
 echo "[run_services] $(date '+%Y-%m-%d %H:%M:%S')"
-echo "[run_services] Scraper + Alarm Engine (auto-restart)"
+echo "[run_services] Scraper + Alarm Engine + Live Scraper (auto-restart)"
 echo "============================================"
 
 start_scraper &
@@ -45,5 +57,8 @@ SCRAPER_PID=$!
 
 start_alarm &
 ALARM_PID=$!
+
+start_live &
+LIVE_PID=$!
 
 wait
