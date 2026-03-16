@@ -9832,9 +9832,10 @@ function renderLiveMatches(matches) {
         var matchMin = _calcLiveMatchMin(m);
         var scoreStr = m.score ? escLiveHtml(m.score) : '';
         var onclickAttr = 'onclick="openLiveDetail(\'' + m.match_id_hash + '\',\'' + escLiveHtml(m.home_team) + '\',\'' + escLiveHtml(m.away_team) + '\')"';
+        var showScore = (matchMin === 'MS') ? (scoreStr || '-') : scoreStr;
         var minCell = '<td class="match-date">' +
             '<div class="date-line live-min-badge">' + escLiveHtml(matchMin) + '</div>' +
-            (scoreStr ? '<div class="time-line live-score-badge">' + scoreStr + '</div>' : '') +
+            (showScore ? '<div class="time-line live-score-badge">' + showScore + '</div>' : '') +
             '</td>';
         if (is1x2) {
             var vol = _liveCalcVol1x2(m);
@@ -9923,8 +9924,10 @@ function _liveMobileCard(m, marketOrLine, onclickAttr) {
     html += '<div class="odds-card-volume">' + formatLiveVol(vol) + '</div>';
     html += '</div>';
     html += '<div class="odds-card-meta"><span>' + escLiveHtml(m.league) + '</span><span class="meta-sep">\u2022</span>';
-    html += '<span class="live-min-badge" style="font-size:11px;">' + _calcLiveMatchMin(m) + '</span>';
-    if (m.score) html += '<span class="meta-sep">\u2022</span><span style="color:#f59e0b;font-weight:600;">' + escLiveHtml(m.score) + '</span>';
+    var cardMin = _calcLiveMatchMin(m);
+    html += '<span class="live-min-badge" style="font-size:11px;">' + cardMin + '</span>';
+    var cardScore = m.score ? escLiveHtml(m.score) : (cardMin === 'MS' ? '-' : '');
+    if (cardScore) html += '<span class="meta-sep">\u2022</span><span style="color:#f59e0b;font-weight:600;">' + cardScore + '</span>';
     html += '</div>';
     if (is1x2) {
         var o = m.odds || {};
