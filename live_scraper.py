@@ -53,9 +53,9 @@ LIVE_URLS = {
     "live-ou": "https://arbworld.net/en/moneyway/football-over-under-multiple-live",
 }
 
-INTERVAL_MINUTES = 3
+INTERVAL_MINUTES = 1
 INTERVAL_SECONDS = INTERVAL_MINUTES * 60
-WATCHDOG_MINUTES = 7
+WATCHDOG_MINUTES = 5
 WATCHDOG_SECONDS = WATCHDOG_MINUTES * 60
 MAX_RETRIES = 3
 RETRY_DELAYS = [3, 6, 12]
@@ -373,8 +373,11 @@ def enrich_with_sofascore(all_fixtures: Dict[str, Dict]) -> int:
             ssd = ss_data[best_key]
             if ssd['score']:
                 fix['score'] = ssd['score']
-            if ssd['minute']:
-                fix['minute'] = ssd['minute']
+            ss_min = ssd['minute']
+            if ss_min:
+                fix['minute'] = ss_min
+            if ss_min == 'FT':
+                fix['status'] = 'ft'
             if ssd.get('kickoff_utc'):
                 fix['kickoff_utc'] = ssd['kickoff_utc']
             enriched += 1
@@ -549,6 +552,35 @@ class LiveSupabaseWriter:
             log(f"[Snapshots INSERT] Hata: {e}")
             return False
 
+    def get_live_fixture_hashes(self) -> List[str]:
+        try:
+            headers = self._headers()
+            url = f"{self._rest_url('live_fixtures')}?status=eq.live&select=match_id_hash"
+            resp = requests.get(url, headers=headers, timeout=15, verify=SSL_VERIFY)
+            if resp.status_code == 200:
+                return [r['match_id_hash'] for r in resp.json()]
+            return []
+        except Exception as e:
+            log(f"[GET live hashes] Hata: {e}")
+            return []
+
+    def mark_fixtures_finished(self, hashes: List[str]) -> int:
+        if not hashes:
+            return 0
+        now_utc = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        marked = 0
+        headers = self._headers()
+        for h in hashes:
+            try:
+                url = f"{self._rest_url('live_fixtures')}?match_id_hash=eq.{h}"
+                patch = {"status": "ft", "minute": "FT", "updated_at": now_utc}
+                resp = requests.patch(url, headers=headers, json=patch, timeout=10, verify=SSL_VERIFY)
+                if resp.status_code in [200, 204]:
+                    marked += 1
+            except Exception:
+                pass
+        return marked
+
 
 def update_heartbeat(supabase_url: str, supabase_key: str, status: str, match_count: int = 0, error_msg: Optional[str] = None) -> bool:
     try:
@@ -695,6 +727,13 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
     stale_keys = [k for k in _kickoff_cache if k not in all_fixtures]
     for k in stale_keys:
         del _kickoff_cache[k]
+
+    existing_live = writer.get_live_fixture_hashes()
+    current_hashes = set(all_fixtures.keys())
+    stale_hashes = [h for h in existing_live if h not in current_hashes]
+    if stale_hashes:
+        marked = writer.mark_fixtures_finished(stale_hashes)
+        log(f"  [MS] {marked}/{len(stale_hashes)} biten maç FT olarak işaretlendi")
 
     log(f"Canlı scrape tamamlandı - {len(all_fixtures)} maç, {len(all_snapshots)} snapshot")
     return len(all_fixtures)
