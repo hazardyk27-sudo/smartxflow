@@ -10023,30 +10023,24 @@ function renderLiveDetail(snapshots, market) {
     var is1x2 = (market === '1x2');
     var ouLine = is1x2 ? '' : market.replace('ou', '');
     var sels = is1x2 ? ['1', 'X', '2'] : ['U', 'O'];
-    var selLabels = is1x2 ? ['1', 'X', '2'] : ['Alt ' + escLiveHtml(ouLine), 'Ust ' + escLiveHtml(ouLine)];
+    var selLabels = is1x2 ? ['1', 'X', '2'] : [escLiveHtml(ouLine) + ' ALT', escLiveHtml(ouLine) + ' \u00dcST'];
 
-    // --- Header ---
     var html = '<div class="live-detail-table-wrap"><table class="live-period-table">';
     html += '<thead>';
-    // Row 1: group headers
     html += '<tr class="lpt-group-row">';
     html += '<th colspan="2"></th>';
     for (var g = 0; g < sels.length; g++) {
-        html += '<th colspan="4" class="lpt-group-th">' + selLabels[g] + '</th>';
+        html += '<th colspan="3" class="lpt-group-th">' + selLabels[g] + '</th>';
     }
-    html += '<th></th>';
     html += '</tr>';
-    // Row 2: column headers
-    html += '<tr>';
-    html += '<th>Time</th><th>Score</th>';
+    html += '<tr class="lpt-sub-row">';
+    html += '<th>DK</th><th>SKOR</th>';
     for (var h = 0; h < sels.length; h++) {
-        html += '<th>Odd</th><th>Odd +/-</th><th>Volume</th><th>% of total</th>';
+        html += '<th>ORAN</th><th>Gelen Para</th><th>Y\u00fczde</th>';
     }
-    html += '<th>Toplam Hacim</th>';
     html += '</tr>';
     html += '</thead><tbody>';
 
-    // --- Rows ---
     var totals = {};
     sels.forEach(function(sel) { totals[sel] = 0; });
 
@@ -10057,7 +10051,6 @@ function renderLiveDetail(snapshots, market) {
         var minVal = s.minute;
         var minStr = (minVal !== '' && minVal !== null && minVal !== undefined) ? minVal + "'" : '-';
         var scoreStr = s.score || '-';
-        var rowVol = 0;
 
         html += '<tr>';
         html += '<td class="period-time">' + escLiveHtml(minStr) + '</td>';
@@ -10072,15 +10065,12 @@ function renderLiveDetail(snapshots, market) {
             var odds = (sd.odds !== undefined && sd.odds !== null) ? parseFloat(sd.odds) : null;
             var pct = sd.share || 0;
             var vol = sd.volume || 0;
-            rowVol += vol;
             totals[sel] += vol;
 
             var oddsStr = odds !== null ? odds.toFixed(2) : '-';
             var pctStr = pct ? pct.toFixed(0) + '%' : '-';
-            var hi = pct >= 50;
 
-            // Odds +/-
-            var deltaHtml = '<span class="period-delta-neutral">-</span>';
+            var deltaHtml = '';
             if (prevDataGroup && odds !== null) {
                 var prevOdds = (prevDataGroup[sel] || {}).odds;
                 if (prevOdds !== undefined && prevOdds !== null) {
@@ -10088,31 +10078,27 @@ function renderLiveDetail(snapshots, market) {
                     if (Math.abs(delta) >= 0.005) {
                         var dSign = delta > 0 ? '+' : '';
                         var dCls = delta > 0 ? 'period-delta-up' : 'period-delta-down';
-                        deltaHtml = '<span class="' + dCls + '">' + dSign + delta.toFixed(2) + '</span>';
+                        deltaHtml = ' <span class="' + dCls + '">' + dSign + delta.toFixed(2) + '</span>';
                     }
                 }
             }
 
-            html += '<td class="period-odds">' + oddsStr + '</td>';
-            html += '<td>' + deltaHtml + '</td>';
+            var hi = pct >= 50;
+
+            html += '<td class="period-odds">' + oddsStr + deltaHtml + '</td>';
             html += '<td class="period-vol">' + (vol ? formatLiveVol(vol) : '-') + '</td>';
             html += '<td class="period-pct ' + (hi ? 'pct-high' : 'pct-low') + '">' + pctStr + '</td>';
         }
 
-        html += '<td class="period-vol-total">' + formatLiveVol(rowVol) + '</td>';
         html += '</tr>';
     }
 
-    // --- Totals row ---
     html += '<tr class="lpt-totals-row">';
     html += '<td colspan="2" class="lpt-totals-label">Toplam</td>';
-    var grandTotal = 0;
     for (var k = 0; k < sels.length; k++) {
-        grandTotal += totals[sels[k]];
-        html += '<td colspan="3"></td>';
+        html += '<td colspan="2"></td>';
         html += '<td class="period-vol lpt-total-vol">' + formatLiveVol(totals[sels[k]]) + '</td>';
     }
-    html += '<td class="period-vol-total lpt-grand-total">' + formatLiveVol(grandTotal) + '</td>';
     html += '</tr>';
 
     html += '</tbody></table></div>';
