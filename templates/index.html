@@ -9,14 +9,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap"></noscript>
-    <link rel="stylesheet" href="/static/css/style.css?v=1773679000">
+    <link rel="stylesheet" href="/static/css/style.css?v=1773680000">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <script defer src="/static/js/vendor/dayjs.min.js"></script>
     <script defer src="/static/js/vendor/dayjs-utc.js"></script>
     <script defer src="/static/js/vendor/dayjs-timezone.js"></script>
     <script defer src="/static/js/vendor/dayjs-customParseFormat.js"></script>
-    <script defer src="/static/js/app.js?v=1773679000"></script>
-    <script defer src="/static/js/ui.js?v=1773679000"></script>
+    <script defer src="/static/js/app.js?v=1773680000"></script>
+    <script defer src="/static/js/ui.js?v=1773680000"></script>
 </head>
 <body>
     <!-- License Gate - Birebir Desktop Aynisi -->
@@ -245,6 +245,24 @@
                 </div>
             </div>
             
+            <div class="live-toolbar" id="liveToolbar" style="display:none;">
+                <div class="live-toolbar-left">
+                    <span class="live-dot"></span>
+                    <span class="live-title">Canli Maclar</span>
+                    <span class="live-count" id="liveMatchCount">0</span>
+                </div>
+                <div class="live-market-tabs" id="liveMarketTabs">
+                    <button class="live-market-btn active" data-lmarket="1x2" onclick="setLiveMarket('1x2')">1X2</button>
+                    <button class="live-market-btn" data-lmarket="ou1.5" onclick="setLiveMarket('ou1.5')">1.5</button>
+                    <button class="live-market-btn" data-lmarket="ou2.5" onclick="setLiveMarket('ou2.5')">2.5</button>
+                    <button class="live-market-btn" data-lmarket="ou3.5" onclick="setLiveMarket('ou3.5')">3.5</button>
+                    <button class="live-market-btn" data-lmarket="ou4.5" onclick="setLiveMarket('ou4.5')">4.5</button>
+                </div>
+                <div class="live-toolbar-right">
+                    <span class="live-update-time" id="liveUpdateTime">--:--</span>
+                </div>
+            </div>
+
             <!-- Mobile: Filter Bar (below search) -->
             <div class="mobile-filter-bar mobile-only">
                 <div class="mobile-filter-left">
@@ -317,41 +335,6 @@
                 </table>
             </div>
 
-            <div class="live-container" id="liveContainer" style="display:none;">
-                <div class="live-header">
-                    <div class="live-header-left">
-                        <span class="live-dot"></span>
-                        <span class="live-title">Canli Maclar</span>
-                        <span class="live-count" id="liveMatchCount">0</span>
-                    </div>
-                    <div class="live-market-tabs" id="liveMarketTabs">
-                        <button class="live-market-btn active" data-lmarket="1x2" onclick="setLiveMarket('1x2')">1X2</button>
-                        <button class="live-market-btn" data-lmarket="ou1.5" onclick="setLiveMarket('ou1.5')">1.5</button>
-                        <button class="live-market-btn" data-lmarket="ou2.5" onclick="setLiveMarket('ou2.5')">2.5</button>
-                        <button class="live-market-btn" data-lmarket="ou3.5" onclick="setLiveMarket('ou3.5')">3.5</button>
-                        <button class="live-market-btn" data-lmarket="ou4.5" onclick="setLiveMarket('ou4.5')">4.5</button>
-                    </div>
-                    <div class="live-header-right">
-                        <span class="live-update-time" id="liveUpdateTime">--:--</span>
-                    </div>
-                </div>
-                <div class="live-match-cards mobile-only" id="liveCardList"></div>
-                <table class="matches-table live-table desktop-only" id="liveTable">
-                    <colgroup id="liveTableColgroup">
-                        <col class="col-date">
-                        <col class="col-league">
-                        <col class="col-match">
-                        <col class="col-selection">
-                        <col class="col-selection">
-                        <col class="col-selection">
-                        <col class="col-volume">
-                    </colgroup>
-                    <thead id="liveTableHead"></thead>
-                    <tbody id="liveTableBody">
-                        <tr><td colspan="7"><div class="loading-spinner"></div> Canli veriler yukleniyor...</td></tr>
-                    </tbody>
-                </table>
-            </div>
 
             <div class="live-detail-modal" id="liveDetailModal" style="display:none;">
                 <div class="live-detail-overlay" onclick="closeLiveDetail()"></div>

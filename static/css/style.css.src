@@ -11979,31 +11979,25 @@ table.desktop-only {
     border-color: #ef4444 !important;
 }
 
-/* ========== CANLI SAYFA - Moneyway 1X2 ile Aynı İskelet ========== */
-/* Container: table-container ile aynı görsel çerçeve */
-.live-container {
-    background: #161b22;
-    border-radius: 8px;
-    border: 1px solid #30363d;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-}
-/* Toolbar: sekme/header alanı */
-.live-header {
-    display: flex;
+/* ========== CANLI SAYFA - Moneyway 1X2 ile Birebir Aynı ========== */
+.live-toolbar {
+    display: none;
     align-items: center;
     justify-content: space-between;
+    margin-bottom: 16px;
+    flex-shrink: 0;
     padding: 8px 16px;
     background: var(--color-bg-tertiary);
-    border-bottom: 1px solid var(--color-border);
-    flex-wrap: wrap;
-    gap: 8px;
-    flex-shrink: 0;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    gap: 12px;
 }
-.live-header-left {
+.live-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.live-toolbar-right {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -12024,6 +12018,7 @@ table.desktop-only {
 .live-update-time {
     font-size: 11px;
     color: var(--color-text-secondary);
+    font-family: 'JetBrains Mono', monospace;
 }
 .live-market-tabs {
     display: flex;
@@ -12059,10 +12054,6 @@ table.desktop-only {
     color: var(--color-text-secondary);
     font-size: 13px;
 }
-/* The live table IS a matches-table - no separate overrides needed */
-.live-table {
-    table-layout: fixed;
-}
 /* Live-only: minute column content — reuses match-date/.date-line/.time-line */
 .live-min-badge {
     color: #ef4444 !important;
@@ -12073,13 +12064,6 @@ table.desktop-only {
     color: #f59e0b !important;
     font-size: 11px !important;
     font-weight: 600 !important;
-}
-.live-match-cards {
-    padding: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    overflow-y: auto;
 }
 .live-dot {
     width: 8px;
@@ -12406,7 +12390,7 @@ table.desktop-only {
 }
 
 @media (max-width: 768px) {
-    .live-header {
+    .live-toolbar {
         flex-direction: column;
         align-items: flex-start;
     }

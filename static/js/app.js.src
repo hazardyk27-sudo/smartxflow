@@ -9627,10 +9627,12 @@ function switchToLive() {
     if (liveTab) liveTab.classList.add('active');
     var mobileLive = document.querySelector('.mobile-live-btn');
     if (mobileLive) mobileLive.classList.add('active');
-    document.querySelector('.table-container').style.display = 'none';
-    var mobileCards = document.getElementById('matchCardList');
-    if (mobileCards) mobileCards.style.display = 'none';
-    document.getElementById('liveContainer').style.display = 'block';
+    var toolbar = document.querySelector('.toolbar');
+    if (toolbar) toolbar.style.display = 'none';
+    var mobileFilterBar = document.querySelector('.mobile-filter-bar');
+    if (mobileFilterBar) mobileFilterBar.style.display = 'none';
+    var liveToolbar = document.getElementById('liveToolbar');
+    if (liveToolbar) liveToolbar.style.display = 'flex';
     var marketRow = document.querySelector('.mobile-tab-row.market-row');
     if (marketRow) marketRow.style.display = 'none';
     loadLiveMatches();
@@ -9641,12 +9643,17 @@ function switchToLive() {
 function switchFromLive() {
     _liveMode = false;
     if (_liveInterval) { clearInterval(_liveInterval); _liveInterval = null; }
-    document.getElementById('liveContainer').style.display = 'none';
-    document.querySelector('.table-container').style.display = '';
-    var mobileCards = document.getElementById('matchCardList');
-    if (mobileCards) mobileCards.style.display = '';
+    var liveToolbar = document.getElementById('liveToolbar');
+    if (liveToolbar) liveToolbar.style.display = 'none';
+    var toolbar = document.querySelector('.toolbar');
+    if (toolbar) toolbar.style.display = '';
+    var mobileFilterBar = document.querySelector('.mobile-filter-bar');
+    if (mobileFilterBar) mobileFilterBar.style.display = '';
     var marketRow = document.querySelector('.mobile-tab-row.market-row');
     if (marketRow) marketRow.style.display = '';
+    updateTableHeaders();
+    filteredMatches = applySorting(matches);
+    renderMatches(filteredMatches);
 }
 
 if (typeof window.setTab === 'function') {
@@ -9750,30 +9757,32 @@ function _liveCalcVolOU(ou) {
 }
 
 function renderLiveMatches(matches) {
-    var tbody = document.getElementById('liveTableBody');
-    var thead = document.getElementById('liveTableHead');
-    var colgroup = document.getElementById('liveTableColgroup');
-    var table = document.getElementById('liveTable');
-    var cardList = document.getElementById('liveCardList');
+    var table = document.querySelector('.matches-table');
+    var tbody = document.getElementById('matchesTableBody');
+    var thead = table ? table.querySelector('thead') : null;
+    var colgroup = table ? table.querySelector('colgroup') : null;
+    var cardList = document.getElementById('matchCardList');
     var emptyHtml = '<div class="live-empty">' +
         '<div class="live-empty-icon">\u26BD</div>' +
         '<div class="live-empty-text">Su an canli mac bulunamadi</div>' +
         '<div class="live-empty-sub">Canli maclar basladiginda burada gorunecek</div>' +
         '</div>';
     if (!matches || matches.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;">' + emptyHtml + '</td></tr>';
-        thead.innerHTML = '';
-        cardList.innerHTML = emptyHtml;
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;">' + emptyHtml + '</td></tr>';
+        if (thead) thead.innerHTML = '';
+        if (cardList) cardList.innerHTML = emptyHtml;
+        var mc = document.getElementById('matchCount');
+        if (mc) mc.textContent = '0';
         return;
     }
     var is1x2 = (_liveMarket === '1x2');
     var ouLine = is1x2 ? '' : _liveMarket.replace('ou', '');
     if (is1x2) {
-        table.setAttribute('data-selection-count', '3');
+        if (table) table.setAttribute('data-selection-count', '3');
         if (colgroup) colgroup.innerHTML =
             '<col class="col-date"><col class="col-league"><col class="col-match">' +
             '<col class="col-selection"><col class="col-selection"><col class="col-selection"><col class="col-volume">';
-        thead.innerHTML = '<tr>' +
+        if (thead) thead.innerHTML = '<tr>' +
             '<th class="col-date">DK</th>' +
             '<th class="col-league">LİG</th>' +
             '<th class="col-match">MAÇ</th>' +
@@ -9783,23 +9792,29 @@ function renderLiveMatches(matches) {
             '<th class="col-volume">HACİM</th>' +
             '</tr>';
     } else {
-        table.setAttribute('data-selection-count', '2');
+        if (table) table.setAttribute('data-selection-count', '2');
         if (colgroup) colgroup.innerHTML =
             '<col class="col-date"><col class="col-league"><col class="col-match">' +
             '<col class="col-selection"><col class="col-selection"><col class="col-volume">';
-        thead.innerHTML = '<tr>' +
+        if (thead) thead.innerHTML = '<tr>' +
             '<th class="col-date">DK</th>' +
             '<th class="col-league">LİG</th>' +
             '<th class="col-match">MAÇ</th>' +
-            '<th class="col-selection">A/U ' + escLiveHtml(ouLine) + '</th>' +
-            '<th class="col-selection"></th>' +
+            '<th class="col-selection">ALT ' + escLiveHtml(ouLine) + '</th>' +
+            '<th class="col-selection">ÜST ' + escLiveHtml(ouLine) + '</th>' +
             '<th class="col-volume">HACİM</th>' +
             '</tr>';
     }
+    var sorted = matches.slice();
+    sorted.sort(function(a, b) {
+        var va = is1x2 ? _liveCalcVol1x2(a) : _liveCalcVolOU(_liveGetOu(a, ouLine));
+        var vb = is1x2 ? _liveCalcVol1x2(b) : _liveCalcVolOU(_liveGetOu(b, ouLine));
+        return vb - va;
+    });
     var rowsHtml = '';
     var cardsHtml = '';
-    for (var i = 0; i < matches.length; i++) {
-        var m = matches[i];
+    for (var i = 0; i < sorted.length; i++) {
+        var m = sorted[i];
         var o = m.odds || {};
         var matchMin = _calcLiveMatchMin(m);
         var scoreStr = m.score ? escLiveHtml(m.score) : '';
@@ -9834,8 +9849,10 @@ function renderLiveMatches(matches) {
             cardsHtml += _liveMobileCard(m, ouLine, onclickAttr);
         }
     }
-    tbody.innerHTML = rowsHtml;
-    cardList.innerHTML = cardsHtml;
+    if (tbody) tbody.innerHTML = rowsHtml;
+    if (cardList) cardList.innerHTML = cardsHtml;
+    var mc = document.getElementById('matchCount');
+    if (mc) mc.textContent = sorted.length;
 }
 
 function _calcLiveMatchMin(m) {
