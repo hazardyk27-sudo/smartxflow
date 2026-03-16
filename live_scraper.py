@@ -156,6 +156,9 @@ def _parse_minute(date_str: str) -> str:
     for marker in ['HT', 'FT', '1H', '2H', 'ET', 'PEN']:
         if marker in date_str.upper():
             return marker
+    stoppage = re.search(r"(\d{1,3})\+(\d{1,2})'?", date_str)
+    if stoppage:
+        return f"{stoppage.group(1)}+{stoppage.group(2)}"
     m = re.search(r"(\d{1,3})'", date_str)
     if m:
         return m.group(1)
@@ -172,6 +175,15 @@ def _parse_kickoff_utc(date_str: str, fallback_utc: str) -> str:
     """Parse kickoff UTC from tdate column. Format: '16.Mar14:31:49' → ISO UTC."""
     if not date_str:
         return fallback_utc
+    stoppage = re.match(r"(\d{1,3})\+(\d{1,2})'?", date_str.strip())
+    if stoppage:
+        try:
+            total_mins = int(stoppage.group(1)) + int(stoppage.group(2))
+            now = datetime.now(timezone.utc)
+            ko = now - timedelta(minutes=total_mins)
+            return ko.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        except Exception:
+            pass
     min_match = re.search(r"(\d{1,3})'", date_str)
     if min_match:
         try:
@@ -536,6 +548,9 @@ def update_heartbeat(supabase_url: str, supabase_key: str, status: str, match_co
 
 
 def run_live_scrape(writer: LiveSupabaseWriter) -> int:
+    """Arbworld'den odds çeker, Sofascore'dan skor/dakika ekler.
+    NOT: Arbworld live HTML'de skor sütunu (td.tscore) YOKTUR — 15 TD incelendi,
+    skor verisi sadece Sofascore API üzerinden elde edilir."""
     log("CANLI SCRAPE BAŞLIYOR...")
     session = requests.Session()
     now_utc = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S+00:00')
