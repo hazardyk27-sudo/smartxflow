@@ -698,7 +698,7 @@ function setupAutoRefresh() {
 
 // Maç verilerini yenile (tek fonksiyon)
 async function refreshMatchData() {
-    // Zaten yükleme varsa bekle
+    if (_liveMode) return;
     if (_loadMatchesLock) {
         console.log('[AutoRefresh] Zaten yükleme var, atlanıyor');
         return;
@@ -821,6 +821,7 @@ const _matchesMarketCache = {};
 const _MATCHES_CACHE_TTL = 90000;
 
 async function loadMatches(appendMode = false) {
+    if (_liveMode) return;
     if (_loadMatchesLock) {
         if (_loadMatchesPending) {
             return _loadMatchesPending;
@@ -9858,17 +9859,8 @@ function _calcLiveMatchMin(m) {
 }
 
 function _liveMwBlock(label, d) {
-    if (!d) return '<div class="mw-outcome-block"><div class="mw-info-stack"><div class="mw-odds">-</div></div><div class="mw-donut">' + _liveDonut(0, 52) + '</div></div>';
-    var pct = d.share || 0;
-    var odds = d.odds ? d.odds.toFixed(2) : '-';
-    var money = d.volume ? formatLiveVol(d.volume) : '';
-    return '<div class="mw-outcome-block">' +
-        '<div class="mw-info-stack">' +
-        '<div class="mw-odds">' + odds + '</div>' +
-        (money ? '<div class="mw-money">' + money + '</div>' : '') +
-        '</div>' +
-        '<div class="mw-donut">' + _liveDonut(pct, 52) + '</div>' +
-        '</div>';
+    if (!d) return renderMoneywayBlock(label, 0, '-', '');
+    return renderMoneywayBlock(label, d.share || 0, d.odds || '-', d.volume || '');
 }
 
 function _liveMobileCard(m, marketOrLine, onclickAttr) {
