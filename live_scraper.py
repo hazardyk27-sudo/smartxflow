@@ -361,8 +361,10 @@ def enrich_with_sofascore(all_fixtures: Dict[str, Dict]) -> int:
                 best_key = ss_full_key
         if best_key and best_combined >= 0.70:
             ssd = ss_data[best_key]
-            fix['score'] = ssd['score']
-            fix['minute'] = ssd['minute']
+            if ssd['score']:
+                fix['score'] = ssd['score']
+            if ssd['minute']:
+                fix['minute'] = ssd['minute']
             if ssd.get('kickoff_utc'):
                 fix['kickoff_utc'] = ssd['kickoff_utc']
             enriched += 1
@@ -382,6 +384,21 @@ def fetch_table(url: str, session: requests.Session) -> BeautifulSoup:
     return table
 
 
+def _extract_score_from_row(tr) -> str:
+    """Arbworld live HTML'den skor çekmeyi dener.
+    NOT: Arbworld live sayfasında skor sütunu (td.tscore) YOKTUR.
+    15 TD analiz edildi: tclose, tflag, tleague, tdate, thome, odds_col_small(x3),
+    odds_col(x3), taway, tvol, tbet, hidden_date. Skor bilgisi Sofascore ile elde edilir."""
+    score_td = tr.select_one("td.tscore")
+    if score_td:
+        return _text(score_td)
+    for cls in ['score', 'result', 'live-score']:
+        td = tr.select_one(f"td.{cls}")
+        if td:
+            return _text(td)
+    return ""
+
+
 def extract_live_1x2(table: BeautifulSoup) -> List[Dict[str, Any]]:
     rows = []
     for tr in table.select("tbody tr"):
@@ -393,6 +410,7 @@ def extract_live_1x2(table: BeautifulSoup) -> List[Dict[str, Any]]:
         away = _text(tr.select_one("td.taway"))
         volume_text = _text(tr.select_one("td.tvol"))
         volume = _parse_volume(volume_text)
+        score = _extract_score_from_row(tr)
 
         odds_small = [td.get_text(strip=True) for td in tr.select("td.odds_col_small")][:3]
         while len(odds_small) < 3:
@@ -411,6 +429,7 @@ def extract_live_1x2(table: BeautifulSoup) -> List[Dict[str, Any]]:
             "date_text": date_text,
             "home": home,
             "away": away,
+            "score": score,
             "volume": volume,
             "volume_text": volume_text,
             "odds1": _parse_odds(odds_small[0]),
@@ -437,6 +456,7 @@ def extract_live_ou(table: BeautifulSoup) -> List[Dict[str, Any]]:
         away = _text(tr.select_one("td.taway"))
         volume_text = _text(tr.select_one("td.tvol"))
         volume = _parse_volume(volume_text)
+        score = _extract_score_from_row(tr)
 
         small = [td.get_text(strip=True) for td in tr.select("td.odds_col_small")]
         under_odds = _parse_odds(small[0]) if len(small) > 0 else None
@@ -455,6 +475,7 @@ def extract_live_ou(table: BeautifulSoup) -> List[Dict[str, Any]]:
             "date_text": date_text,
             "home": home,
             "away": away,
+            "score": score,
             "volume": volume,
             "volume_text": volume_text,
             "line": line,
@@ -571,12 +592,13 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                     h = row["match_id_hash"]
                     if h not in all_fixtures:
                         ko_utc = _parse_kickoff_utc(row["date_text"], now_utc)
+                        html_score = row.get("score", "")
                         all_fixtures[h] = {
                             "match_id_hash": h,
                             "home_team": row["home"][:100],
                             "away_team": row["away"][:100],
                             "league": row["league"][:150],
-                            "score": "",
+                            "score": html_score,
                             "minute": _parse_minute(row["date_text"]),
                             "status": "live",
                             "kickoff_utc": ko_utc,
@@ -609,12 +631,13 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                     h = row["match_id_hash"]
                     if h not in all_fixtures:
                         ko_utc = _parse_kickoff_utc(row["date_text"], now_utc)
+                        html_score = row.get("score", "")
                         all_fixtures[h] = {
                             "match_id_hash": h,
                             "home_team": row["home"][:100],
                             "away_team": row["away"][:100],
                             "league": row["league"][:150],
-                            "score": "",
+                            "score": html_score,
                             "minute": _parse_minute(row["date_text"]),
                             "status": "live",
                             "kickoff_utc": ko_utc,
