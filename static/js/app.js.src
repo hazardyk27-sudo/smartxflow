@@ -9872,7 +9872,16 @@ function renderLiveMatches(matches) {
 
 function _calcLiveMatchMin(m) {
     var rawMin = (m.minute || '').trim();
-    if (!rawMin) return '';
+    if (!rawMin) {
+        if (m.kickoff_utc) {
+            var ko = new Date(m.kickoff_utc);
+            if (!isNaN(ko.getTime())) {
+                var diff = Math.floor((Date.now() - ko.getTime()) / 60000);
+                if (diff >= 0 && diff <= 130) return diff + "'";
+            }
+        }
+        return '';
+    }
     var markers = ['HT', 'FT', '1H', '2H', 'ET', 'PEN'];
     for (var k = 0; k < markers.length; k++) {
         if (rawMin.toUpperCase() === markers[k]) return markers[k];
