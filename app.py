@@ -1883,7 +1883,7 @@ def get_live_matches():
                 'status': f.get('status', 'live'),
                 'updated_at': f.get('updated_at', ''),
                 'odds': {},
-                'ou': {},
+                'ou_lines': {},
             }
 
             for sel in ['1', 'X', '2']:
@@ -1897,16 +1897,26 @@ def get_live_matches():
                     }
 
             if h in ou_by_match:
-                selected_ou = _select_ou_line(score, ou_by_match[h])
-                for sel in ['U', 'O']:
-                    s = selected_ou.get(sel)
-                    if s:
-                        match_data['ou'][sel] = {
-                            'odds': s.get('odds'),
-                            'share': s.get('share'),
-                            'volume': s.get('volume'),
-                            'line': s.get('ou_line'),
-                        }
+                by_line = {}
+                for s in ou_by_match[h]:
+                    line = s.get('ou_line', '')
+                    sel = s.get('selection', '')
+                    if line not in by_line:
+                        by_line[line] = {}
+                    if sel not in by_line[line] or s.get('snapshot_at', '') > by_line[line][sel].get('snapshot_at', ''):
+                        by_line[line][sel] = s
+                for line, sels in by_line.items():
+                    line_data = {}
+                    for sel in ['U', 'O']:
+                        sd = sels.get(sel)
+                        if sd:
+                            line_data[sel] = {
+                                'odds': sd.get('odds'),
+                                'share': sd.get('share'),
+                                'volume': sd.get('volume'),
+                            }
+                    if line_data:
+                        match_data['ou_lines'][line] = line_data
 
             matches.append(match_data)
 
@@ -1985,24 +1995,9 @@ def get_live_match_history():
                     'volume': s.get('volume'),
                 }
 
-        score_str = fixture.get('score', '') if fixture else ''
-        import re as _re
-        target_line = "1.5"
-        if score_str:
-            m = _re.search(r'(\d+)\s*[-:]\s*(\d+)', score_str)
-            if m:
-                total = int(m.group(1)) + int(m.group(2))
-                target_line = str(total + 1.5)
-
         for p in periods.values():
-            ou_lines = p.pop('ou_lines', {})
-            if target_line in ou_lines:
-                p['ou'] = ou_lines[target_line]
-                p['ou_line'] = target_line
-            elif ou_lines:
-                available = sorted(ou_lines.keys(), key=lambda x: float(x) if x.replace('.','').isdigit() else 999)
-                p['ou'] = ou_lines[available[0]]
-                p['ou_line'] = available[0]
+            p.pop('ou_line', None)
+            p.pop('ou', None)
 
         result = sorted(periods.values(), key=lambda x: x['snapshot_at'])
 

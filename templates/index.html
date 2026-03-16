@@ -324,16 +324,24 @@
                         <span class="live-title">Canli Maclar</span>
                         <span class="live-count" id="liveMatchCount">0</span>
                     </div>
+                    <div class="live-market-tabs" id="liveMarketTabs">
+                        <button class="live-market-btn active" data-lmarket="1x2" onclick="setLiveMarket('1x2')">1X2</button>
+                        <button class="live-market-btn" data-lmarket="ou1.5" onclick="setLiveMarket('ou1.5')">1.5</button>
+                        <button class="live-market-btn" data-lmarket="ou2.5" onclick="setLiveMarket('ou2.5')">2.5</button>
+                        <button class="live-market-btn" data-lmarket="ou3.5" onclick="setLiveMarket('ou3.5')">3.5</button>
+                        <button class="live-market-btn" data-lmarket="ou4.5" onclick="setLiveMarket('ou4.5')">4.5</button>
+                    </div>
                     <div class="live-header-right">
                         <span class="live-update-time" id="liveUpdateTime">--:--</span>
                     </div>
                 </div>
-                <div class="live-match-list" id="liveMatchList">
-                    <div class="live-loading">
-                        <div class="loading-spinner"></div>
-                        Canli veriler yukleniyor...
-                    </div>
-                </div>
+                <div class="live-match-cards mobile-only" id="liveCardList"></div>
+                <table class="live-table desktop-only" id="liveTable">
+                    <thead id="liveTableHead"></thead>
+                    <tbody id="liveTableBody">
+                        <tr><td colspan="7"><div class="loading-spinner"></div> Canli veriler yukleniyor...</td></tr>
+                    </tbody>
+                </table>
             </div>
 
             <div class="live-detail-modal" id="liveDetailModal" style="display:none;">
@@ -341,6 +349,7 @@
                 <div class="live-detail-content">
                     <div class="live-detail-header">
                         <div class="live-detail-match" id="liveDetailTitle">-- vs --</div>
+                        <div class="live-detail-tabs" id="liveDetailTabs"></div>
                         <button class="live-detail-close" onclick="closeLiveDetail()">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"/>
