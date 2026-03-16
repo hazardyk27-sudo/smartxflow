@@ -832,6 +832,14 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                 log(f"  [HATA] Fixtures yazılamadı!")
 
     if all_snapshots:
+        for snap in all_snapshots:
+            fix = all_fixtures.get(snap['match_id_hash'])
+            if fix:
+                snap['score'] = fix.get('score', '')
+                snap['minute'] = str(fix.get('minute', ''))
+            else:
+                snap['score'] = ''
+                snap['minute'] = ''
         if writer.insert_live_snapshots(all_snapshots):
             log(f"  [SNAPSHOTS] {len(all_snapshots)} snapshot yazıldı")
         else:

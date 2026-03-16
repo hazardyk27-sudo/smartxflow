@@ -1952,20 +1952,25 @@ def get_live_match_history():
             key = ts
 
             if key not in periods:
-                match_min = ''
-                if kickoff_dt and ts:
+                snap_minute = s.get('minute', '')
+                snap_score = s.get('score', '')
+
+                if not snap_minute and kickoff_dt and ts:
                     try:
                         snap_ts = ts.replace('Z', '+00:00')
                         snap_dt = datetime.fromisoformat(snap_ts)
                         diff_sec = (snap_dt - kickoff_dt).total_seconds()
-                        match_min = max(0, int(diff_sec // 60))
+                        snap_minute = str(max(0, int(diff_sec // 60)))
                     except Exception:
-                        match_min = ''
+                        snap_minute = ''
+
+                if not snap_score and fixture:
+                    snap_score = fixture.get('score', '')
 
                 periods[key] = {
                     'snapshot_at': ts,
-                    'minute': match_min,
-                    'score': fixture.get('score', '') if fixture else '',
+                    'minute': snap_minute,
+                    'score': snap_score,
                     '1x2': {},
                     'ou': {},
                     'ou_lines': {},
