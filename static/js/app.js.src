@@ -763,6 +763,10 @@ function setupTabs() {
                 return;
             }
             
+            if (market === 'live') {
+                return;
+            }
+            
             if (isAlarmsPageActive) {
                 hideAlarmsPage();
             }
@@ -9606,3 +9610,212 @@ document.addEventListener('DOMContentLoaded', function() {
 document.getElementById('licenseKeyInput')?.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') validateWebLicense();
 });
+
+// ── Canlı (Live) Tab ──────────────────────────────────────
+var _liveMode = false;
+var _liveInterval = null;
+var _liveData = [];
+
+function switchToLive() {
+    _liveMode = true;
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.mobile-tab-btn').forEach(function(t) { t.classList.remove('active'); });
+    var liveTab = document.querySelector('.tab-live');
+    if (liveTab) liveTab.classList.add('active');
+    var mobileLive = document.querySelector('.mobile-live-btn');
+    if (mobileLive) mobileLive.classList.add('active');
+    document.querySelector('.table-container').style.display = 'none';
+    var mobileCards = document.getElementById('matchCardList');
+    if (mobileCards) mobileCards.style.display = 'none';
+    document.getElementById('liveContainer').style.display = 'block';
+    var marketRow = document.querySelector('.mobile-tab-row.market-row');
+    if (marketRow) marketRow.style.display = 'none';
+    loadLiveMatches();
+    if (_liveInterval) clearInterval(_liveInterval);
+    _liveInterval = setInterval(loadLiveMatches, 30000);
+}
+
+function switchFromLive() {
+    _liveMode = false;
+    if (_liveInterval) { clearInterval(_liveInterval); _liveInterval = null; }
+    document.getElementById('liveContainer').style.display = 'none';
+    document.querySelector('.table-container').style.display = '';
+    var mobileCards = document.getElementById('matchCardList');
+    if (mobileCards) mobileCards.style.display = '';
+    var marketRow = document.querySelector('.mobile-tab-row.market-row');
+    if (marketRow) marketRow.style.display = '';
+}
+
+if (typeof window.setTab === 'function') {
+    var _realSetTab = window.setTab;
+    window.setTab = function(market) {
+        if (_liveMode) switchFromLive();
+        _realSetTab(market);
+    };
+}
+
+if (typeof window.setMobileGroup === 'function') {
+    var _realSetMobileGroup = window.setMobileGroup;
+    window.setMobileGroup = function(group) {
+        if (group === 'live') { switchToLive(); return; }
+        if (_liveMode) switchFromLive();
+        _realSetMobileGroup(group);
+    };
+}
+
+document.addEventListener('click', function(e) {
+    var tab = e.target.closest('.tab[data-market]');
+    if (tab && tab.dataset.market !== 'live' && _liveMode) {
+        switchFromLive();
+    }
+});
+
+async function loadLiveMatches() {
+    try {
+        var resp = await fetch('/api/live/matches');
+        var data = await resp.json();
+        _liveData = data.matches || [];
+        renderLiveMatches(_liveData);
+        document.getElementById('liveMatchCount').textContent = _liveData.length;
+        var now = new Date();
+        document.getElementById('liveUpdateTime').textContent =
+            String(now.getHours()).padStart(2, '0') + ':' +
+            String(now.getMinutes()).padStart(2, '0') + ':' +
+            String(now.getSeconds()).padStart(2, '0');
+    } catch (e) {
+        console.error('Live matches error:', e);
+    }
+}
+
+function formatLiveVol(v) {
+    if (!v && v !== 0) return '-';
+    if (v >= 1000000) return '\u00A3 ' + (v / 1000000).toFixed(1) + 'M';
+    if (v >= 1000) return '\u00A3 ' + (v / 1000).toFixed(0) + 'K';
+    return '\u00A3 ' + Math.round(v);
+}
+
+function escLiveHtml(s) {
+    if (!s) return '';
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function renderLiveMatches(matches) {
+    var list = document.getElementById('liveMatchList');
+    if (!matches || matches.length === 0) {
+        list.innerHTML = '<div class="live-empty">' +
+            '<div class="live-empty-icon">\u26BD</div>' +
+            '<div class="live-empty-text">Su an canli mac bulunamadi</div>' +
+            '<div class="live-empty-sub">Canli maclar basladiginda burada gorunecek</div>' +
+            '</div>';
+        return;
+    }
+    var html = '';
+    for (var i = 0; i < matches.length; i++) {
+        var m = matches[i];
+        var o = m.odds || {};
+        var ou = m.ou || {};
+        var totalVol = 0;
+        if (o['1']) totalVol += o['1'].volume || 0;
+        if (o['X']) totalVol += o['X'].volume || 0;
+        if (o['2']) totalVol += o['2'].volume || 0;
+        var ouLine = ou['U'] ? ou['U'].line || '' : '';
+        html += '<div class="live-match-card" onclick="openLiveDetail(\'' +
+            m.match_id_hash + '\',\'' + escLiveHtml(m.home_team) + '\',\'' + escLiveHtml(m.away_team) + '\')">';
+        html += '<div class="live-match-info">';
+        html += '<div class="live-match-league">' + escLiveHtml(m.league) + '</div>';
+        html += '<div class="live-match-teams">' + escLiveHtml(m.home_team) + ' - ' + escLiveHtml(m.away_team) + '</div>';
+        html += '<div style="display:flex;align-items:center;gap:8px;">';
+        html += '<span class="live-match-minute">' + escLiveHtml(m.minute) + '</span>';
+        if (totalVol > 0) html += '<span class="live-match-vol">' + formatLiveVol(totalVol) + '</span>';
+        html += '</div>';
+        if (ouLine) {
+            html += '<div class="live-ou-info">';
+            html += '<span class="live-ou-line">' + escLiveHtml(ouLine) + '</span>';
+            if (ou['U'] && ou['U'].odds) html += '<span class="live-ou-odds">A: ' + ou['U'].odds.toFixed(2) + '</span>';
+            if (ou['O'] && ou['O'].odds) html += '<span class="live-ou-odds">U: ' + ou['O'].odds.toFixed(2) + '</span>';
+            html += '</div>';
+        }
+        html += '</div>';
+        html += '<div class="live-match-odds">';
+        ['1', 'X', '2'].forEach(function(sel) {
+            var d = o[sel] || {};
+            html += '<div class="live-odd-cell">';
+            html += '<div class="live-odd-label">' + sel + '</div>';
+            html += '<div class="live-odd-val">' + (d.odds ? d.odds.toFixed(2) : '-') + '</div>';
+            html += '<div class="live-odd-pct">' + (d.share ? d.share.toFixed(1) + '%' : '-') + '</div>';
+            html += '</div>';
+        });
+        html += '</div>';
+        html += '</div>';
+    }
+    list.innerHTML = html;
+}
+
+async function openLiveDetail(hash, home, away) {
+    document.getElementById('liveDetailModal').style.display = 'flex';
+    document.getElementById('liveDetailTitle').textContent = (home || '--') + ' vs ' + (away || '--');
+    document.getElementById('liveDetailBody').innerHTML =
+        '<div class="live-loading"><div class="loading-spinner"></div>Periyot verileri yukleniyor...</div>';
+    try {
+        var resp = await fetch('/api/live/match/history?hash=' + encodeURIComponent(hash));
+        var data = await resp.json();
+        renderLiveDetail(data.snapshots || []);
+    } catch (e) {
+        document.getElementById('liveDetailBody').innerHTML = '<div class="live-loading">Veri yuklenemedi</div>';
+    }
+}
+
+function closeLiveDetail() {
+    document.getElementById('liveDetailModal').style.display = 'none';
+}
+
+function renderLiveDetail(snapshots) {
+    var body = document.getElementById('liveDetailBody');
+    if (!snapshots || snapshots.length === 0) {
+        body.innerHTML = '<div class="live-loading">Henuz periyot verisi yok</div>';
+        return;
+    }
+    var html = '<table class="live-period-table"><thead><tr>';
+    html += '<th>#</th><th>Zaman</th>';
+    html += '<th>1</th><th>X</th><th>2</th>';
+    html += '<th>Hacim</th><th>Degisim</th>';
+    html += '<th>O/U</th><th>Alt</th><th>Ust</th>';
+    html += '</tr></thead><tbody>';
+    var prevVol = 0;
+    for (var i = 0; i < snapshots.length; i++) {
+        var s = snapshots[i];
+        var o = s['1x2'] || {};
+        var ou = s['ou'] || {};
+        var vol = 0;
+        if (o['1']) vol += o['1'].volume || 0;
+        if (o['X']) vol += o['X'].volume || 0;
+        if (o['2']) vol += o['2'].volume || 0;
+        var volChange = i > 0 ? (vol - prevVol) : 0;
+        var ts = s.snapshot_at || '';
+        var timeStr = '';
+        if (ts) {
+            try { var d = new Date(ts); timeStr = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); } catch (e) {}
+        }
+        html += '<tr>';
+        html += '<td class="period-num">' + (i + 1) + '</td>';
+        html += '<td class="period-time">' + timeStr + '</td>';
+        html += '<td>' + (o['1'] && o['1'].odds ? o['1'].odds.toFixed(2) : '-') + '</td>';
+        html += '<td>' + (o['X'] && o['X'].odds ? o['X'].odds.toFixed(2) : '-') + '</td>';
+        html += '<td>' + (o['2'] && o['2'].odds ? o['2'].odds.toFixed(2) : '-') + '</td>';
+        html += '<td>' + formatLiveVol(vol) + '</td>';
+        if (i === 0) {
+            html += '<td>-</td>';
+        } else {
+            var cls = volChange >= 0 ? 'period-vol-up' : 'period-vol-down';
+            var sign = volChange >= 0 ? '+' : '';
+            html += '<td class="period-vol-change ' + cls + '">' + sign + formatLiveVol(Math.abs(volChange)) + '</td>';
+        }
+        html += '<td>' + (s.ou_line ? '<span class="live-ou-line">' + escLiveHtml(s.ou_line) + '</span>' : '-') + '</td>';
+        html += '<td>' + (ou['U'] && ou['U'].odds ? ou['U'].odds.toFixed(2) : '-') + '</td>';
+        html += '<td>' + (ou['O'] && ou['O'].odds ? ou['O'].odds.toFixed(2) : '-') + '</td>';
+        html += '</tr>';
+        prevVol = vol;
+    }
+    html += '</tbody></table>';
+    body.innerHTML = html;
+}

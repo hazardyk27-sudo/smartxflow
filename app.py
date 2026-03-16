@@ -1798,6 +1798,151 @@ def update_interval():
     })
 
 
+@app.route('/api/live/matches')
+@license_required
+def get_live_matches():
+    """Canlı maç listesi - live_fixtures + son snapshot verisi"""
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return jsonify({'matches': [], 'error': 'Supabase bağlantısı yok'}), 200
+
+        headers = supabase._headers()
+
+        fix_url = f"{supabase._rest_url('live_fixtures')}?order=updated_at.desc&limit=200"
+        fix_resp = supabase._get_http_client().get(fix_url, headers=headers, timeout=15)
+        if fix_resp.status_code != 200:
+            return jsonify({'matches': [], 'error': f'Fixtures HTTP {fix_resp.status_code}'}), 200
+        fixtures = fix_resp.json()
+        if not fixtures:
+            return jsonify({'matches': [], 'total': 0}), 200
+
+        hashes = [f['match_id_hash'] for f in fixtures]
+
+        snap_url = (
+            f"{supabase._rest_url('live_snapshots')}"
+            f"?match_id_hash=in.({','.join(hashes)})"
+            f"&order=snapshot_at.desc&limit=2000"
+        )
+        snap_resp = supabase._get_http_client().get(snap_url, headers=headers, timeout=15)
+        snaps = snap_resp.json() if snap_resp.status_code == 200 else []
+
+        latest_snaps = {}
+        for s in snaps:
+            key = f"{s['match_id_hash']}_{s['market']}_{s['selection']}"
+            if key not in latest_snaps:
+                latest_snaps[key] = s
+
+        matches = []
+        for f in fixtures:
+            h = f['match_id_hash']
+            match_data = {
+                'match_id_hash': h,
+                'home_team': f.get('home_team', ''),
+                'away_team': f.get('away_team', ''),
+                'league': f.get('league', ''),
+                'score': f.get('score', ''),
+                'minute': f.get('minute', ''),
+                'status': f.get('status', 'live'),
+                'updated_at': f.get('updated_at', ''),
+                'odds': {},
+                'ou': {},
+            }
+
+            for sel in ['1', 'X', '2']:
+                key = f"{h}_1X2_{sel}"
+                s = latest_snaps.get(key)
+                if s:
+                    match_data['odds'][sel] = {
+                        'odds': s.get('odds'),
+                        'share': s.get('share'),
+                        'volume': s.get('volume'),
+                    }
+
+            for sel in ['U', 'O']:
+                key = f"{h}_OU_{sel}"
+                s = latest_snaps.get(key)
+                if s:
+                    match_data['ou'][sel] = {
+                        'odds': s.get('odds'),
+                        'share': s.get('share'),
+                        'volume': s.get('volume'),
+                        'line': s.get('ou_line'),
+                    }
+
+            matches.append(match_data)
+
+        return jsonify({'matches': matches, 'total': len(matches)}), 200
+
+    except Exception as e:
+        print(f"[API] /api/live/matches hata: {e}")
+        return jsonify({'matches': [], 'error': str(e)}), 200
+
+
+@app.route('/api/live/match/history')
+@license_required
+def get_live_match_history():
+    """Tek maçın 3dk periyot snapshot geçmişi"""
+    match_hash = request.args.get('hash', '')
+    if not match_hash:
+        return jsonify({'error': 'hash parametresi gerekli'}), 400
+
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return jsonify({'snapshots': [], 'error': 'Supabase bağlantısı yok'}), 200
+
+        headers = supabase._headers()
+        snap_url = (
+            f"{supabase._rest_url('live_snapshots')}"
+            f"?match_id_hash=eq.{match_hash}"
+            f"&order=snapshot_at.asc&limit=5000"
+        )
+        snap_resp = supabase._get_http_client().get(snap_url, headers=headers, timeout=15)
+        if snap_resp.status_code != 200:
+            return jsonify({'snapshots': [], 'error': f'HTTP {snap_resp.status_code}'}), 200
+
+        all_snaps = snap_resp.json()
+
+        periods = {}
+        for s in all_snaps:
+            ts = s.get('snapshot_at', '')
+            market = s.get('market', '')
+            sel = s.get('selection', '')
+            key = ts
+
+            if key not in periods:
+                periods[key] = {
+                    'snapshot_at': ts,
+                    '1x2': {},
+                    'ou': {},
+                    'ou_line': None,
+                }
+
+            if market == '1X2':
+                periods[key]['1x2'][sel] = {
+                    'odds': s.get('odds'),
+                    'share': s.get('share'),
+                    'volume': s.get('volume'),
+                }
+            elif market == 'OU':
+                periods[key]['ou'][sel] = {
+                    'odds': s.get('odds'),
+                    'share': s.get('share'),
+                    'volume': s.get('volume'),
+                }
+                if s.get('ou_line'):
+                    periods[key]['ou_line'] = s.get('ou_line')
+
+        result = sorted(periods.values(), key=lambda x: x['snapshot_at'])
+
+        return jsonify({'snapshots': result, 'total': len(result)}), 200
+
+    except Exception as e:
+        print(f"[API] /api/live/match/history hata: {e}")
+        return jsonify({'snapshots': [], 'error': str(e)}), 200
+
+
 @app.route('/health')
 def health_check():
     if _app_warmup_started and not _app_warmup_done.is_set():

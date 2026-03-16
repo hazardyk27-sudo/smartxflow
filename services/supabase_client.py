@@ -1823,6 +1823,19 @@ class SupabaseClient:
         
         batch_size = 50
         
+        live_old_hashes = []
+        try:
+            headers_lf = self._headers()
+            lf_url = f"{self._rest_url('live_fixtures')}?updated_at=lt.{cutoff_date}&select=match_id_hash"
+            lf_resp = self._get_http_client().get(lf_url, headers=headers_lf, timeout=30)
+            if lf_resp.status_code == 200:
+                lf_rows = lf_resp.json()
+                if isinstance(lf_rows, list):
+                    live_old_hashes = [r['match_id_hash'] for r in lf_rows if r.get('match_id_hash')]
+                    print(f"[Cleanup] Found {len(live_old_hashes)} D-2+ live fixtures")
+        except Exception as e:
+            print(f"[Cleanup] Error fetching old live fixture hashes: {e}")
+
         snapshot_tables = ['moneyway_snapshots', 'dropping_odds_snapshots']
         for table in snapshot_tables:
             table_count = 0
@@ -1849,6 +1862,31 @@ class SupabaseClient:
                 deleted[table] = table_count
                 print(f"[Cleanup] Deleted {table_count} old records from {table}")
         
+        if live_old_hashes:
+            table_count = 0
+            for i in range(0, len(live_old_hashes), batch_size):
+                batch = live_old_hashes[i:i+batch_size]
+                hash_filter = ','.join(batch)
+                try:
+                    headers = self._headers()
+                    headers['Prefer'] = 'return=representation'
+                    url = f"{self._rest_url('live_snapshots')}?match_id_hash=in.({hash_filter})"
+                    resp = httpx.delete(url, headers=headers, timeout=120)
+                    if resp.status_code == 200:
+                        try:
+                            deleted_rows = resp.json()
+                            count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
+                            table_count += count
+                        except:
+                            pass
+                    elif resp.status_code not in [204, 404]:
+                        print(f"[Cleanup] Error deleting from live_snapshots: {resp.status_code}")
+                except Exception as e:
+                    print(f"[Cleanup] Exception for live_snapshots: {e}")
+            if table_count > 0:
+                deleted['live_snapshots'] = table_count
+                print(f"[Cleanup] Deleted {table_count} old records from live_snapshots")
+
         history_tables = ['moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history', 
                           'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history']
         
@@ -1877,29 +1915,56 @@ class SupabaseClient:
                 deleted[table] = table_count
                 print(f"[Cleanup] Deleted {table_count} old records from {table}")
         
-        fixture_count = 0
-        for i in range(0, len(old_hashes), batch_size):
-            batch = old_hashes[i:i+batch_size]
-            hash_filter = ','.join(batch)
+        for fix_table in ['fixtures', 'live_fixtures']:
+            fix_count = 0
+            date_col = 'fixture_date'
             try:
-                headers = self._headers()
-                headers['Prefer'] = 'return=representation'
-                url = f"{self._rest_url('fixtures')}?match_id_hash=in.({hash_filter})"
-                resp = httpx.delete(url, headers=headers, timeout=120)
-                if resp.status_code == 200:
-                    try:
-                        deleted_rows = resp.json()
-                        count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
-                        fixture_count += count
-                    except:
-                        pass
-                elif resp.status_code not in [204, 404]:
-                    print(f"[Cleanup] Error deleting fixtures: {resp.status_code}")
-            except Exception as e:
-                print(f"[Cleanup] Exception for fixtures: {e}")
-        if fixture_count > 0:
-            deleted['fixtures'] = fixture_count
-            print(f"[Cleanup] Deleted {fixture_count} old fixtures")
+                headers_check = self._headers()
+                check_url = f"{self._rest_url(fix_table)}?{date_col}=lt.{cutoff_date}&select=match_id_hash&limit=1"
+                check_resp = self._get_http_client().get(check_url, headers=headers_check, timeout=15)
+                if check_resp.status_code == 404:
+                    continue
+            except:
+                continue
+
+            fix_hashes = old_hashes if fix_table == 'fixtures' else []
+            if fix_table == 'live_fixtures':
+                try:
+                    headers_lf = self._headers()
+                    lf_url = f"{self._rest_url('live_fixtures')}?fixture_date=lt.{cutoff_date}&select=match_id_hash"
+                    lf_resp = self._get_http_client().get(lf_url, headers=headers_lf, timeout=30)
+                    if lf_resp.status_code == 200:
+                        lf_rows = lf_resp.json()
+                        if isinstance(lf_rows, list):
+                            fix_hashes = [r['match_id_hash'] for r in lf_rows if r.get('match_id_hash')]
+                except Exception as e:
+                    print(f"[Cleanup] Error fetching live fixture hashes: {e}")
+
+            if not fix_hashes:
+                continue
+
+            for i in range(0, len(fix_hashes), batch_size):
+                batch = fix_hashes[i:i+batch_size]
+                hash_filter = ','.join(batch)
+                try:
+                    headers = self._headers()
+                    headers['Prefer'] = 'return=representation'
+                    url = f"{self._rest_url(fix_table)}?match_id_hash=in.({hash_filter})"
+                    resp = httpx.delete(url, headers=headers, timeout=120)
+                    if resp.status_code == 200:
+                        try:
+                            deleted_rows = resp.json()
+                            count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
+                            fix_count += count
+                        except:
+                            pass
+                    elif resp.status_code not in [204, 404]:
+                        print(f"[Cleanup] Error deleting {fix_table}: {resp.status_code}")
+                except Exception as e:
+                    print(f"[Cleanup] Exception for {fix_table}: {e}")
+            if fix_count > 0:
+                deleted[fix_table] = fix_count
+                print(f"[Cleanup] Deleted {fix_count} old records from {fix_table}")
         
         return deleted
     

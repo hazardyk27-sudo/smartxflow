@@ -185,6 +185,10 @@
             </svg>
             Oran KG
         </button>
+        <button class="tab tab-live" data-market="live" onclick="switchToLive()">
+            <span class="live-dot"></span>
+            Canli
+        </button>
     </nav>
     
     <!-- Mobile: 2-row tab system -->
@@ -192,6 +196,7 @@
         <div class="mobile-tab-row group-row">
             <button class="mobile-tab-btn active" data-group="moneyway" onclick="setMobileGroup('moneyway')">Moneyway</button>
             <button class="mobile-tab-btn" data-group="dropping" onclick="setMobileGroup('dropping')">Oran</button>
+            <button class="mobile-tab-btn mobile-live-btn" data-group="live" onclick="switchToLive()"><span class="live-dot"></span> Canli</button>
         </div>
         <div class="mobile-tab-row market-row">
             <button class="mobile-tab-btn active" data-market-type="1x2" onclick="setMobileMarket('1x2')">1X2</button>
@@ -311,6 +316,47 @@
                     </tbody>
                 </table>
             </div>
+
+            <div class="live-container" id="liveContainer" style="display:none;">
+                <div class="live-header">
+                    <div class="live-header-left">
+                        <span class="live-dot"></span>
+                        <span class="live-title">Canli Maclar</span>
+                        <span class="live-count" id="liveMatchCount">0</span>
+                    </div>
+                    <div class="live-header-right">
+                        <span class="live-update-time" id="liveUpdateTime">--:--</span>
+                    </div>
+                </div>
+                <div class="live-match-list" id="liveMatchList">
+                    <div class="live-loading">
+                        <div class="loading-spinner"></div>
+                        Canli veriler yukleniyor...
+                    </div>
+                </div>
+            </div>
+
+            <div class="live-detail-modal" id="liveDetailModal" style="display:none;">
+                <div class="live-detail-overlay" onclick="closeLiveDetail()"></div>
+                <div class="live-detail-content">
+                    <div class="live-detail-header">
+                        <div class="live-detail-match" id="liveDetailTitle">-- vs --</div>
+                        <button class="live-detail-close" onclick="closeLiveDetail()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="live-detail-body" id="liveDetailBody">
+                        <div class="live-loading">
+                            <div class="loading-spinner"></div>
+                            Periyot verileri yukleniyor...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </section>
 
     </main>

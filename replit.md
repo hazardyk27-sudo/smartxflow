@@ -53,7 +53,8 @@ The system employs a hybrid architecture with Supabase serving as the single sou
 - **Multi-Analyst System:** Supports multiple analysts with dedicated profiles, CRUD operations via API, automated success rate calculation (including ROI and Net Profit metrics using 1-unit flat stake model), and integration into the admin panel and frontend.
 - **Mobile Filter Modal:** Replaces the old mobile dropdown with a dedicated filter modal for date, sorting, and filtering options.
 - **Process Isolation:** The system is designed with three independent processes (`app.py`, `run_services.sh` for Scraper/Alarm Engine supervisor), ensuring that the failure of one does not affect others.
-- **Data Model:** Uses `fixtures`, `moneyway_snapshots`, and `dropping_odds_snapshots` tables in Supabase.
+- **Live (Canlı) System:** A separate `live_scraper.py` runs every 3 minutes, scraping 1X2 Live and O/U Multiple Live data from Arbworld. Data stored in `live_fixtures` and `live_snapshots` Supabase tables. The "Canlı" tab in the UI (desktop + mobile) shows live matches with odds, O/U line, volume, and a detail modal with period-by-period snapshot history. Auto-refreshes every 30 seconds. Source key: `replit-live`. D-2 cleanup applies to live tables.
+- **Data Model:** Uses `fixtures`, `moneyway_snapshots`, `dropping_odds_snapshots`, `live_fixtures`, and `live_snapshots` tables in Supabase.
 - **match_id_hash Contract:** A critical, immutable contract defines `match_id_hash` as a 12-character MD5 hash of a canonical string (`league|home|away`), with specific normalization rules. Kickoff/date is explicitly excluded from hash calculation.
 - **Endpoint Response Contract:** The `/api/match/<match_id_hash>/snapshot` endpoint has an immutable response structure, ensuring backward compatibility, allowing only the addition of new fields or nested objects.
 
