@@ -12259,7 +12259,7 @@ table.desktop-only {
     position: sticky;
     top: 0;
     background: var(--mw-header-bg);
-    padding: 10px 14px;
+    padding: 7px 10px;
     text-align: center;
     color: var(--mw-text-muted);
     font-weight: 600;
@@ -12269,8 +12269,24 @@ table.desktop-only {
     border-bottom: 1px solid rgba(255,255,255,0.06);
     white-space: nowrap;
 }
+.live-period-table thead tr.lpt-group-row th {
+    top: 0;
+    z-index: 2;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--mw-text-odds);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.live-period-table thead tr:not(.lpt-group-row) th {
+    top: 30px;
+}
+.lpt-group-th {
+    border-left: 1px solid rgba(255,255,255,0.06);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    text-align: center !important;
+}
 .live-period-table tbody td {
-    padding: 10px 14px;
+    padding: 7px 10px;
     text-align: center;
     color: var(--mw-text-odds);
     border-bottom: 1px solid rgba(255,255,255,0.04);
@@ -12280,20 +12296,15 @@ table.desktop-only {
 .live-period-table tbody tr:hover td {
     background: rgba(255,255,255,0.04);
 }
-.period-num {
-    color: var(--mw-text-muted);
-    font-weight: 600;
+.period-score {
+    color: #f59e0b;
+    font-weight: 700;
+    font-size: 12px;
 }
 .period-time {
-    color: var(--mw-text-money);
-    font-size: 11px;
+    color: #ef4444;
+    font-size: 12px;
     font-weight: 700;
-}
-.period-odds-cell {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
 }
 .period-odds {
     font-size: 13px;
@@ -12301,32 +12312,62 @@ table.desktop-only {
     color: var(--mw-text-odds);
 }
 .period-pct {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
-    padding: 1px 6px;
-    border-radius: 3px;
 }
 .period-pct.pct-high {
     color: var(--mw-text-money);
-    background: rgba(34, 197, 94, 0.1);
 }
 .period-pct.pct-low {
     color: var(--mw-text-muted);
 }
 .period-vol {
-    font-size: 11px;
+    font-size: 12px;
+    color: var(--mw-text-odds);
+    font-weight: 500;
+}
+.period-vol-total {
+    font-size: 12px;
+    font-weight: 700;
     color: var(--mw-text-money);
-    font-weight: 600;
+    border-left: 1px solid rgba(255,255,255,0.06);
 }
-.period-vol-change {
-    font-size: 11px;
-    font-weight: 600;
-}
-.period-vol-up {
+.period-delta-up {
     color: var(--mw-text-money);
+    font-weight: 700;
+    font-size: 11px;
 }
-.period-vol-down {
+.period-delta-down {
     color: #ef4444;
+    font-weight: 700;
+    font-size: 11px;
+}
+.period-delta-neutral {
+    color: var(--mw-text-muted);
+    font-size: 11px;
+}
+.lpt-totals-row td {
+    background: var(--mw-header-bg) !important;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    font-weight: 700;
+}
+.lpt-totals-label {
+    color: var(--mw-text-muted) !important;
+    text-align: left !important;
+    padding-left: 14px !important;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+}
+.lpt-total-vol {
+    color: var(--mw-text-money) !important;
+    font-weight: 700 !important;
+}
+.lpt-grand-total {
+    color: var(--mw-text-money) !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    border-left: 1px solid rgba(255,255,255,0.06);
 }
 .live-empty {
     text-align: center;
