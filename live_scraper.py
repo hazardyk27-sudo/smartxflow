@@ -12,6 +12,8 @@ import re
 import hashlib
 import requests
 import traceback
+import difflib
+import unicodedata
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from bs4 import BeautifulSoup
@@ -154,10 +156,10 @@ def _parse_minute(date_str: str) -> str:
     for marker in ['HT', 'FT', '1H', '2H', 'ET', 'PEN']:
         if marker in date_str.upper():
             return marker
-    m = re.search(r'(\d{1,2}):(\d{2}):(\d{2})$', date_str)
+    m = re.search(r"(\d{1,3})'", date_str)
     if m:
-        return f"{m.group(1)}:{m.group(2)}:{m.group(3)}"
-    return date_str.strip()
+        return m.group(1)
+    return ""
 
 
 MONTH_MAP = {
@@ -190,6 +192,124 @@ def _parse_kickoff_utc(date_str: str, fallback_utc: str) -> str:
         return ko.strftime('%Y-%m-%dT%H:%M:%S+00:00')
     except Exception:
         return fallback_utc
+
+
+FLASHSCORE_URL = "https://www.flashscore.com/x/feed/f_1_0_3_en_1"
+FLASHSCORE_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "X-Fsign": "SW9D1eZo",
+}
+
+
+def _normalize_team(name: str) -> str:
+    if not name:
+        return ""
+    s = unicodedata.normalize('NFKD', name)
+    s = s.encode('ascii', 'ignore').decode('ascii')
+    s = re.sub(r'[^a-z0-9 ]', '', s.lower())
+    s = re.sub(r'\s+', ' ', s).strip()
+    for suffix in [' fc', ' sc', ' fk', ' sk', ' cf', ' ac', ' as', ' bc']:
+        if s.endswith(suffix):
+            s = s[:-len(suffix)].strip()
+    return s
+
+
+def _fetch_flashscore_live() -> Dict[str, Dict]:
+    try:
+        resp = requests.get(FLASHSCORE_URL, headers=FLASHSCORE_HEADERS, timeout=15, verify=SSL_VERIFY)
+        if resp.status_code != 200:
+            log(f"  [Flashscore] HTTP {resp.status_code}")
+            return {}
+        text = resp.text
+        matches_raw = text.split('~AA÷')
+        result = {}
+        for m_raw in matches_raw:
+            fields = {}
+            for pair in m_raw.split('¬'):
+                if '÷' in pair:
+                    k, v = pair.split('÷', 1)
+                    fields[k] = v
+            status = fields.get('AB', '')
+            if status not in ('2', '6', '7', '8', '9'):
+                continue
+            home = fields.get('FH', '') or fields.get('CX', '')
+            away = fields.get('FK', '') or fields.get('AF', '')
+            if not home or not away:
+                continue
+            home_score = fields.get('GRA', '')
+            away_score = fields.get('GRB', '')
+            minute_val = fields.get('AC', '')
+            if status == '6':
+                minute_str = 'HT'
+            elif status == '9':
+                minute_str = 'FT'
+            elif minute_val:
+                minute_str = minute_val
+            else:
+                minute_str = ''
+            score_str = f"{home_score}-{away_score}" if home_score != '' and away_score != '' else ''
+            key = _normalize_team(home) + '|' + _normalize_team(away)
+            result[key] = {
+                'score': score_str,
+                'minute': minute_str,
+                'home': home,
+                'away': away,
+            }
+        log(f"  [Flashscore] {len(result)} canlı maç bulundu")
+        return result
+    except Exception as e:
+        log(f"  [Flashscore] Hata: {e}")
+        return {}
+
+
+def _team_match_score(arb: str, fs: str) -> float:
+    if not arb or not fs:
+        return 0.0
+    if arb == fs:
+        return 1.0
+    if fs.startswith(arb) or arb.startswith(fs):
+        shorter = min(len(arb), len(fs))
+        if shorter >= 4:
+            return 0.90
+    return difflib.SequenceMatcher(None, arb, fs).ratio()
+
+
+def enrich_with_flashscore(all_fixtures: Dict[str, Dict]) -> int:
+    if not all_fixtures:
+        return 0
+    fs_data = _fetch_flashscore_live()
+    if not fs_data:
+        return 0
+    enriched = 0
+    fs_entries = []
+    for fk, fv in fs_data.items():
+        parts = fk.split('|')
+        fs_entries.append((parts[0], parts[1] if len(parts) > 1 else '', fk))
+    for h, fix in all_fixtures.items():
+        arb_home = _normalize_team(fix.get('home_team', ''))
+        arb_away = _normalize_team(fix.get('away_team', ''))
+        if not arb_home or not arb_away:
+            continue
+        best_combined = 0.0
+        best_key = None
+        for fs_h, fs_a, fs_full_key in fs_entries:
+            h_score = _team_match_score(arb_home, fs_h)
+            if h_score < 0.55:
+                continue
+            a_score = _team_match_score(arb_away, fs_a)
+            if a_score < 0.55:
+                continue
+            combined = (h_score + a_score) / 2
+            if combined > best_combined:
+                best_combined = combined
+                best_key = fs_full_key
+        if best_key and best_combined >= 0.70:
+            fsd = fs_data[best_key]
+            fix['score'] = fsd['score']
+            fix['minute'] = fsd['minute']
+            enriched += 1
+    log(f"  [Flashscore] {enriched}/{len(all_fixtures)} maç eşleşti")
+    return enriched
 
 
 def fetch_table(url: str, session: requests.Session) -> BeautifulSoup:
@@ -465,6 +585,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
             traceback.print_exc()
 
     if all_fixtures:
+        enrich_with_flashscore(all_fixtures)
         fixtures_list = list(all_fixtures.values())
         if writer.upsert_live_fixtures(fixtures_list):
             log(f"  [FIXTURES] {len(fixtures_list)} canlı maç yazıldı")
