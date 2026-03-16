@@ -175,6 +175,16 @@ def _parse_kickoff_utc(date_str: str, fallback_utc: str) -> str:
     """Parse kickoff UTC from tdate column. Format: '16.Mar14:31:49' → ISO UTC."""
     if not date_str:
         return fallback_utc
+    upper = date_str.strip().upper()
+    status_offsets = {'HT': 47, 'FT': 95, '1H': 25, '2H': 70, 'ET': 110, 'PEN': 120}
+    for marker, offset_min in status_offsets.items():
+        if marker in upper:
+            try:
+                now = datetime.now(timezone.utc)
+                ko = now - timedelta(minutes=offset_min)
+                return ko.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+            except Exception:
+                break
     stoppage = re.match(r"(\d{1,3})\+(\d{1,2})'?", date_str.strip())
     if stoppage:
         try:
