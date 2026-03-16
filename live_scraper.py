@@ -14,7 +14,7 @@ import requests
 import traceback
 import difflib
 import unicodedata
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 from bs4 import BeautifulSoup
 
@@ -172,6 +172,15 @@ def _parse_kickoff_utc(date_str: str, fallback_utc: str) -> str:
     """Parse kickoff UTC from tdate column. Format: '16.Mar14:31:49' → ISO UTC."""
     if not date_str:
         return fallback_utc
+    min_match = re.search(r"(\d{1,3})'", date_str)
+    if min_match:
+        try:
+            mins = int(min_match.group(1))
+            now = datetime.now(timezone.utc)
+            ko = now - timedelta(minutes=mins)
+            return ko.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        except Exception:
+            pass
     m = re.match(r'(\d{1,2})\.(\w{3})\s*(\d{1,2}):(\d{2}):(\d{2})', date_str.strip())
     if not m:
         return fallback_utc
