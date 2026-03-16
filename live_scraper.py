@@ -468,7 +468,7 @@ def check_live_master_status(supabase_url: str, supabase_key: str) -> tuple:
                 continue
             if row.get("source") != "replit-live":
                 continue
-            beat_str = row.get("last_beat", "")
+            beat_str = row.get("last_heartbeat", "")
             if not beat_str:
                 continue
             try:
@@ -527,7 +527,7 @@ def main():
         try:
             log(f"[Deneme] {attempt + 1}/{MAX_RETRIES}")
             match_count = run_live_scrape(writer)
-            if match_count > 0:
+            if match_count >= 0:
                 update_heartbeat(supabase_url, supabase_key, "active", match_count)
                 return True
         except Exception as e:

@@ -9726,6 +9726,7 @@ function renderLiveMatches(matches) {
         html += '<div class="live-match-teams">' + escLiveHtml(m.home_team) + ' - ' + escLiveHtml(m.away_team) + '</div>';
         html += '<div style="display:flex;align-items:center;gap:8px;">';
         html += '<span class="live-match-minute">' + escLiveHtml(m.minute) + '</span>';
+        if (m.score) html += '<span class="live-match-minute" style="color:#f59e0b;">' + escLiveHtml(m.score) + '</span>';
         if (totalVol > 0) html += '<span class="live-match-vol">' + formatLiveVol(totalVol) + '</span>';
         html += '</div>';
         if (ouLine) {

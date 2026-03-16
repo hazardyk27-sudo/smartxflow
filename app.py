@@ -1850,7 +1850,7 @@ def get_live_matches():
                 m = _re.search(r'(\d+)\s*[-:]\s*(\d+)', score_str)
                 if m:
                     total = int(m.group(1)) + int(m.group(2))
-                    target_line = str(total + 1.5) if total <= 3 else "4.5"
+                    target_line = str(total + 1.5)
 
             by_line = {}
             for s in ou_snaps:
@@ -1992,7 +1992,7 @@ def get_live_match_history():
             m = _re.search(r'(\d+)\s*[-:]\s*(\d+)', score_str)
             if m:
                 total = int(m.group(1)) + int(m.group(2))
-                target_line = str(total + 1.5) if total <= 3 else "4.5"
+                target_line = str(total + 1.5)
 
         for p in periods.values():
             ou_lines = p.pop('ou_lines', {})
