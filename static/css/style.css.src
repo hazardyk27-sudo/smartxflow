@@ -11979,20 +11979,29 @@ table.desktop-only {
     border-color: #ef4444 !important;
 }
 
-/* ========== CANLI SAYFA - Moneyway Temasıyla Aynı ========== */
+/* ========== CANLI SAYFA - Moneyway 1X2 ile Aynı İskelet ========== */
+/* Container: table-container ile aynı görsel çerçeve */
 .live-container {
-    padding: 0;
-    background: var(--mw-bg);
+    background: #161b22;
+    border-radius: 8px;
+    border: 1px solid #30363d;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
 }
+/* Toolbar: sekme/header alanı */
 .live-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 16px;
-    background: var(--mw-header-bg);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 8px 16px;
+    background: var(--color-bg-tertiary);
+    border-bottom: 1px solid var(--color-border);
     flex-wrap: wrap;
     gap: 8px;
+    flex-shrink: 0;
 }
 .live-header-left {
     display: flex;
@@ -12000,9 +12009,9 @@ table.desktop-only {
     gap: 8px;
 }
 .live-title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    color: var(--mw-text-white);
+    color: var(--color-text-primary);
 }
 .live-count {
     background: rgba(239, 68, 68, 0.15);
@@ -12014,7 +12023,7 @@ table.desktop-only {
 }
 .live-update-time {
     font-size: 11px;
-    color: var(--mw-text-muted);
+    color: var(--color-text-secondary);
 }
 .live-market-tabs {
     display: flex;
@@ -12023,23 +12032,23 @@ table.desktop-only {
 }
 .live-market-btn {
     background: transparent;
-    border: 1px solid rgba(255,255,255,0.1);
-    color: var(--mw-text-muted);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
     font-size: 11px;
     font-weight: 600;
-    padding: 4px 12px;
+    padding: 3px 10px;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.15s;
 }
 .live-market-btn:hover {
-    border-color: rgba(255,255,255,0.2);
-    color: var(--mw-text-odds);
+    border-color: #8b949e;
+    color: var(--color-text-primary);
 }
 .live-market-btn.active {
-    background: rgba(34, 197, 94, 0.15);
-    border-color: rgba(34, 197, 94, 0.4);
-    color: var(--mw-text-money);
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.35);
+    color: #22c55e;
 }
 .live-loading {
     display: flex;
@@ -12047,100 +12056,30 @@ table.desktop-only {
     justify-content: center;
     gap: 10px;
     padding: 40px;
-    color: var(--mw-text-muted);
+    color: var(--color-text-secondary);
     font-size: 13px;
-    background: var(--mw-bg);
 }
+/* The live table IS a matches-table - no separate overrides needed */
 .live-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--mw-bg);
+    table-layout: fixed;
 }
-.live-table thead th {
-    padding: 10px 12px;
-    text-align: left;
-    color: var(--mw-text-muted);
-    font-weight: 600;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background: var(--mw-header-bg);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    white-space: nowrap;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-}
-.live-table tbody tr {
-    cursor: pointer;
-    transition: background 0.15s;
-    background: var(--mw-row-bg);
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-}
-.live-table tbody tr:hover {
-    background: rgba(255,255,255,0.04);
-}
-.live-table tbody td {
-    padding: 8px 12px;
-    color: var(--mw-text-odds);
-    font-size: 13px;
-    vertical-align: middle;
-}
-.live-table .match-league {
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 12px;
-    color: var(--mw-text-muted);
-}
-.live-table .match-teams {
-    font-weight: 600;
-    color: var(--mw-text-white);
-    white-space: nowrap;
-    font-size: 14px;
-}
-.live-table .match-teams .vs {
-    color: var(--mw-text-muted);
-    font-weight: 400;
-    margin: 0 4px;
-}
-.live-table .volume-cell {
-    text-align: right;
-    font-size: 13px;
-    color: var(--mw-text-money) !important;
-    font-weight: 600;
-    white-space: nowrap;
-}
-.col-live-min {
-    width: 70px;
-}
-.live-min-cell {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-}
+/* Live-only: minute column content — reuses match-date/.date-line/.time-line */
 .live-min-badge {
-    font-size: 11px;
-    font-weight: 700;
-    color: #ef4444;
-    background: rgba(239, 68, 68, 0.1);
-    padding: 2px 8px;
-    border-radius: 4px;
-    white-space: nowrap;
+    color: #ef4444 !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
 }
 .live-score-badge {
-    font-size: 10px;
-    font-weight: 700;
-    color: #f59e0b;
+    color: #f59e0b !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
 }
 .live-match-cards {
     padding: 8px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    background: var(--mw-bg);
+    overflow-y: auto;
 }
 .live-dot {
     width: 8px;
