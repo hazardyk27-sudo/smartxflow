@@ -9627,10 +9627,6 @@ function switchToLive() {
     if (liveTab) liveTab.classList.add('active');
     var mobileLive = document.querySelector('.mobile-live-btn');
     if (mobileLive) mobileLive.classList.add('active');
-    var toolbar = document.querySelector('.toolbar');
-    if (toolbar) toolbar.style.display = 'none';
-    var mobileFilterBar = document.querySelector('.mobile-filter-bar');
-    if (mobileFilterBar) mobileFilterBar.style.display = 'none';
     var liveToolbar = document.getElementById('liveToolbar');
     if (liveToolbar) liveToolbar.style.display = 'flex';
     var marketRow = document.querySelector('.mobile-tab-row.market-row');
@@ -9645,10 +9641,6 @@ function switchFromLive() {
     if (_liveInterval) { clearInterval(_liveInterval); _liveInterval = null; }
     var liveToolbar = document.getElementById('liveToolbar');
     if (liveToolbar) liveToolbar.style.display = 'none';
-    var toolbar = document.querySelector('.toolbar');
-    if (toolbar) toolbar.style.display = '';
-    var mobileFilterBar = document.querySelector('.mobile-filter-bar');
-    if (mobileFilterBar) mobileFilterBar.style.display = '';
     var marketRow = document.querySelector('.mobile-tab-row.market-row');
     if (marketRow) marketRow.style.display = '';
     updateTableHeaders();
