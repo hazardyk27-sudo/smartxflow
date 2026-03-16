@@ -9799,8 +9799,8 @@ function renderLiveMatches(matches) {
             '<th class="col-date">DK</th>' +
             '<th class="col-league">LİG</th>' +
             '<th class="col-match">MAÇ</th>' +
-            '<th class="col-selection">ALT ' + escLiveHtml(ouLine) + '</th>' +
-            '<th class="col-selection">ÜST ' + escLiveHtml(ouLine) + '</th>' +
+            '<th class="col-selection">ALT</th>' +
+            '<th class="col-selection">ÜST</th>' +
             '<th class="col-volume">HACİM</th>' +
             '</tr>';
     }

@@ -12065,17 +12065,6 @@ table.desktop-only {
     font-size: 11px !important;
     font-weight: 600 !important;
 }
-.live-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #ef4444;
-    animation: livePulse 1.5s ease-in-out infinite;
-}
-@keyframes livePulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-}
 .live-detail-modal {
     position: fixed;
     top: 0;
