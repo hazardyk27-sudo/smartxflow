@@ -12215,21 +12215,62 @@ table.desktop-only {
     font-size: 12px;
     font-weight: 700;
 }
+.lpt-dual-th {
+    vertical-align: middle;
+}
+.lpt-dual-th .lpt-th-main {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--mw-text-odds);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.lpt-dual-th .lpt-th-sub {
+    display: block;
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--mw-text-muted);
+    text-transform: none;
+    letter-spacing: 0;
+    margin-top: 2px;
+}
+.live-period-table thead tr.lpt-col-row th {
+    top: 36px;
+    z-index: 1;
+}
+.period-dual {
+    vertical-align: middle;
+}
+.period-dual .dual-main {
+    display: block;
+}
+.period-dual .dual-sub {
+    display: block;
+    margin-top: 2px;
+    font-size: 10px;
+}
+.period-dk-skor {
+    vertical-align: middle;
+}
+.period-dk-skor .dk-val {
+    display: block;
+    color: #ef4444;
+    font-size: 12px;
+    font-weight: 700;
+}
+.period-dk-skor .skor-val {
+    display: block;
+    color: #f59e0b;
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 1px;
+}
 .period-odds {
     font-size: 13px;
     font-weight: 700;
     color: var(--mw-text-odds);
     white-space: nowrap;
-}
-.period-odds .period-delta-up,
-.period-odds .period-delta-down {
-    font-size: 10px;
-    font-weight: 600;
-    margin-left: 3px;
-}
-.live-period-table thead tr.lpt-sub-row th {
-    top: 30px;
-    z-index: 1;
 }
 .period-pct {
     font-size: 11px;
