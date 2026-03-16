@@ -1701,8 +1701,7 @@ minCell+'<td class="match-league" title="'+escLiveHtml(m.league)+'">'+escLiveHtm
 if(tbody)tbody.innerHTML=rowsHtml;if(cardList)cardList.innerHTML=cardsHtml;var mc=document.getElementById('matchCount');if(mc)mc.textContent=sorted.length;var lmc=document.getElementById('liveMatchCount');if(lmc)lmc.textContent=sorted.length;}
 function _calcLiveMatchMin(m){var rawMin=(m.minute||'').trim();if(!rawMin)return'';var markers=['HT','FT','1H','2H','ET','PEN'];for(var k=0;k<markers.length;k++){if(rawMin.toUpperCase()===markers[k])return markers[k];}
 var stoppage=rawMin.match(/^(\d{1,3})\+(\d{1,2})'?$/);if(stoppage){return stoppage[1]+'+'+stoppage[2]+"'";}
-if(/^\d{1,3}'?$/.test(rawMin)){var n=parseInt(rawMin,10);if(n>=0&&n<=130){if(m.updated_at){var upd=new Date(m.updated_at);if(!isNaN(upd.getTime())){var elapsed=Math.floor((Date.now()-upd.getTime())/60000);if(elapsed>0&&elapsed<10){n=Math.min(n+elapsed,130);}}}
-return n+"'";}}
+if(/^\d{1,3}'?$/.test(rawMin)){var n=parseInt(rawMin,10);if(n>=0&&n<=130){return n+"'";}}
 if(/\d{1,2}:\d{2}/.test(rawMin))return'';return escLiveHtml(rawMin);}
 function _liveMwBlock(label,d){if(!d)return renderMoneywayBlock(label,0,'-','');return renderMoneywayBlock(label,d.share||0,d.odds||'-',d.volume||'');}
 function _liveMobileCard(m,marketOrLine,onclickAttr){var is1x2=(marketOrLine==='1x2');var html='<div class="match-card odds-card moneyway-card" '+onclickAttr+'>';html+='<div class="odds-card-header">';html+='<div class="odds-card-teams">'+escLiveHtml(m.home_team)+' \u2013 '+escLiveHtml(m.away_team)+'</div>';var vol=0;if(is1x2){vol=_liveCalcVol1x2(m);}else{var ou=_liveGetOu(m,marketOrLine);vol=_liveCalcVolOU(ou);}
