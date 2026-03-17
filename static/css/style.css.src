@@ -10083,12 +10083,12 @@ table.desktop-only {
    Header → Summary → [Tabs: Chart|Events|Details] → Active Tab Content
    ===================================================== */
 
-/* DESKTOP: Accordion header gizle, tüm body görünür */
+/* DESKTOP: Tab bar ve mobil kontroller gizle, tüm içerik görünür */
 @media (min-width: 769px) {
-    .accordion-header {
+    .mobile-tab-bar {
         display: none !important;
     }
-    .accordion-body {
+    .mobile-tab-content {
         display: block !important;
     }
     .mobile-chart-controls {
@@ -10302,54 +10302,42 @@ table.desktop-only {
         color: #4ade80 !important;
     }
     
-    /* === 3. ACCORDION SECTIONS === */
-    .modal-accordion-section {
-        border-top: 1px solid #21262d !important;
-    }
-
-    .accordion-header {
+    /* === 3. MOBILE TAB BAR === */
+    .mobile-tab-bar {
         display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        padding: 12px 16px !important;
-        cursor: pointer !important;
-        user-select: none !important;
-        -webkit-user-select: none !important;
-        background: #0d1117 !important;
+        gap: 0 !important;
+        padding: 0 16px !important;
+        margin: 8px 0 !important;
+        background: transparent !important;
+        border-bottom: 1px solid #21262d !important;
     }
-
-    .accordion-header:active {
-        background: #161b22 !important;
-    }
-
-    .accordion-header-left {
-        display: flex !important;
-        align-items: center !important;
-        gap: 8px !important;
-    }
-
-    .accordion-icon {
-        font-size: 16px !important;
-    }
-
-    .accordion-title {
-        font-size: 14px !important;
-        font-weight: 600 !important;
-        color: #e6edf3 !important;
-    }
-
-    .accordion-chevron {
-        font-size: 10px !important;
+    
+    .mobile-tab-bar .mob-tab {
+        flex: 1 !important;
+        padding: 10px 0 !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
         color: #6e7681 !important;
-        transition: transform 0.2s ease !important;
+        background: transparent !important;
+        border: none !important;
+        border-bottom: 2px solid transparent !important;
+        text-align: center !important;
+        cursor: pointer !important;
+        transition: all 0.2s !important;
     }
-
-    .accordion-header-live {
-        background: linear-gradient(90deg, rgba(239,68,68,0.08), transparent) !important;
+    
+    .mobile-tab-bar .mob-tab.active {
+        color: #4ade80 !important;
+        border-bottom-color: #4ade80 !important;
     }
-
-    .accordion-header-live .accordion-title {
-        color: #ef4444 !important;
+    
+    /* === 4. TAB CONTENT - Sadece aktif görünür === */
+    .mobile-tab-content {
+        display: none !important;
+    }
+    
+    .mobile-tab-content.active {
+        display: block !important;
     }
     
     /* === 5. CHART TAB İÇERİĞİ === */
@@ -12077,12 +12065,57 @@ table.desktop-only {
     font-size: 11px !important;
     font-weight: 600 !important;
 }
-.live-detail-tabs-wrap {
+.live-detail-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.live-detail-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.75);
+}
+.live-detail-content {
+    position: relative;
+    background: var(--mw-bg);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    width: 95%;
+    max-width: 850px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.live-detail-header {
+    display: flex;
+    align-items: center;
+    padding: 14px 20px;
+    background: var(--mw-header-bg);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.live-detail-match {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--mw-text-white);
+    flex-shrink: 0;
+}
+.live-detail-tabs {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 10px 12px 6px;
-    flex-wrap: wrap;
+    flex: 1;
 }
 .live-dtab {
     background: transparent;
@@ -12103,6 +12136,21 @@ table.desktop-only {
     background: rgba(34, 197, 94, 0.15);
     border-color: rgba(34, 197, 94, 0.4);
     color: var(--mw-text-money);
+}
+.live-detail-close {
+    background: none;
+    border: none;
+    color: var(--mw-text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.15s;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+.live-detail-close:hover {
+    background: rgba(255,255,255,0.06);
+    color: var(--mw-text-white);
 }
 .live-detail-body {
     overflow-y: auto;
@@ -12391,6 +12439,20 @@ table.desktop-only {
     .live-market-tabs {
         width: 100%;
         overflow-x: auto;
+    }
+    .live-detail-content {
+        width: 95%;
+        max-height: 85vh;
+    }
+    .live-detail-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .live-detail-close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
     }
     .live-period-table {
         font-size: 11px;
