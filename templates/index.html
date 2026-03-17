@@ -15,7 +15,7 @@
     <script defer src="/static/js/vendor/dayjs-utc.js"></script>
     <script defer src="/static/js/vendor/dayjs-timezone.js"></script>
     <script defer src="/static/js/vendor/dayjs-customParseFormat.js"></script>
-    <script defer src="/static/js/app.js?v=1773764500"></script>
+    <script defer src="/static/js/app.js?v=1773764700"></script>
     <script defer src="/static/js/ui.js?v=1773704900"></script>
 </head>
 <body>
@@ -237,6 +237,13 @@
                         Analizler
                         <span class="analysis-active-badge" style="display:none;">0</span>
                     </button>
+                    <div class="live-market-tabs desktop-only" id="liveMarketTabs" style="display:none;">
+                        <button class="live-market-btn active" data-lmarket="1x2" onclick="setLiveMarket('1x2')">1X2</button>
+                        <button class="live-market-btn" data-lmarket="ou1.5" onclick="setLiveMarket('ou1.5')">1.5</button>
+                        <button class="live-market-btn" data-lmarket="ou2.5" onclick="setLiveMarket('ou2.5')">2.5</button>
+                        <button class="live-market-btn" data-lmarket="ou3.5" onclick="setLiveMarket('ou3.5')">3.5</button>
+                        <button class="live-market-btn" data-lmarket="ou4.5" onclick="setLiveMarket('ou4.5')">4.5</button>
+                    </div>
                 </div>
                 
                 <!-- Desktop: Match count -->
@@ -248,13 +255,6 @@
             <div class="live-toolbar" id="liveToolbar" style="display:none;">
                 <div class="live-toolbar-left">
                     <span class="live-dot"></span>
-                </div>
-                <div class="live-market-tabs" id="liveMarketTabs">
-                    <button class="live-market-btn active" data-lmarket="1x2" onclick="setLiveMarket('1x2')">1X2</button>
-                    <button class="live-market-btn" data-lmarket="ou1.5" onclick="setLiveMarket('ou1.5')">1.5</button>
-                    <button class="live-market-btn" data-lmarket="ou2.5" onclick="setLiveMarket('ou2.5')">2.5</button>
-                    <button class="live-market-btn" data-lmarket="ou3.5" onclick="setLiveMarket('ou3.5')">3.5</button>
-                    <button class="live-market-btn" data-lmarket="ou4.5" onclick="setLiveMarket('ou4.5')">4.5</button>
                 </div>
                 <div class="live-toolbar-right">
                     <span class="live-update-time" id="liveUpdateTime">--:--</span>

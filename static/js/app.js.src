@@ -9659,6 +9659,8 @@ function switchToLive() {
     if (mcLabel) mcLabel.textContent = 'Canli Maclar ';
     var mcSuffix = document.getElementById('matchCountSuffix');
     if (mcSuffix) mcSuffix.textContent = '';
+    var lmt = document.getElementById('liveMarketTabs');
+    if (lmt) lmt.style.display = 'flex';
     var marketRow = document.querySelector('.mobile-tab-row.market-row');
     if (marketRow) marketRow.style.display = 'none';
     var tbody = document.getElementById('matchesTableBody');
@@ -9679,6 +9681,8 @@ function switchFromLive() {
     if (mcLabel) mcLabel.textContent = '';
     var mcSuffix = document.getElementById('matchCountSuffix');
     if (mcSuffix) mcSuffix.textContent = ' Mac\u0327';
+    var lmt = document.getElementById('liveMarketTabs');
+    if (lmt) lmt.style.display = 'none';
     var marketRow = document.querySelector('.mobile-tab-row.market-row');
     if (marketRow) marketRow.style.display = '';
     var thead = document.querySelector('.matches-table thead');
