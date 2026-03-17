@@ -9654,6 +9654,10 @@ function switchToLive() {
     if (liveToolbar) liveToolbar.style.display = 'flex';
     var marketRow = document.querySelector('.mobile-tab-row.market-row');
     if (marketRow) marketRow.style.display = 'none';
+    var tbody = document.getElementById('matchesTableBody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;"><div class="loading-spinner"></div> Canli maclar yukleniyor...</td></tr>';
+    var cardList = document.getElementById('matchCardList');
+    if (cardList) cardList.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loading-spinner"></div> Canli maclar yukleniyor...</div>';
     loadLiveMatches();
     if (_liveInterval) clearInterval(_liveInterval);
     _liveInterval = setInterval(loadLiveMatches, 30000);
