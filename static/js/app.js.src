@@ -10160,15 +10160,6 @@ function renderLiveDetail(snapshots, market) {
         html += '</tr>';
     }
 
-    html += '<tr class="lpt-totals-row">';
-    html += '<td class="lpt-totals-label">Toplam</td>';
-    for (var k = 0; k < sels.length; k++) {
-        html += '<td></td>';
-        html += '<td class="period-vol lpt-total-vol">' + formatLiveVol(totals[sels[k]]) + '</td>';
-        html += '<td></td>';
-    }
-    html += '</tr>';
-
     html += '</tbody></table></div>';
     body.innerHTML = html;
 }

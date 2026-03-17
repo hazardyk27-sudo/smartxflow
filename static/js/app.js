@@ -1730,5 +1730,4 @@ var prevVol=0;if(prevDataGroup){prevVol=(prevDataGroup[sel]||{}).volume||0;}
 var volDiff=vol-prevVol;var volDiffStr='-';if(i>0&&volDiff!==0){volDiffStr=formatLiveVol(volDiff);}
 var hi=pct>=50;html+='<td class="period-dual"><span class="dual-main period-odds">'+oddsStr+'</span><span class="dual-sub">'+deltaHtml+'</span></td>';html+='<td class="period-dual"><span class="dual-main period-vol">'+(vol?formatLiveVol(vol):'-')+'</span><span class="dual-sub vol-diff">'+volDiffStr+'</span></td>';html+='<td class="period-dual"><span class="dual-main period-pct '+(hi?'pct-high':'pct-low')+'">'+pctStr+'</span><span class="dual-sub">'+pctDeltaHtml+'</span></td>';}
 html+='</tr>';}
-html+='<tr class="lpt-totals-row">';html+='<td class="lpt-totals-label">Toplam</td>';for(var k=0;k<sels.length;k++){html+='<td></td>';html+='<td class="period-vol lpt-total-vol">'+formatLiveVol(totals[sels[k]])+'</td>';html+='<td></td>';}
-html+='</tr>';html+='</tbody></table></div>';body.innerHTML=html;}
+html+='</tbody></table></div>';body.innerHTML=html;}
