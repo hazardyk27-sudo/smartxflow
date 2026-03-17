@@ -12076,27 +12076,34 @@ table.desktop-only {
     margin-left: 6px;
 }
 .live-market-btn {
-    background: transparent;
-    border: 1px solid var(--color-border);
-    color: var(--color-text-secondary);
-    font-size: 11px;
-    font-weight: 600;
-    min-width: 40px;
-    padding: 5px 0;
-    border-radius: 6px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #7f8ea3;
+    font-size: 13px;
+    font-weight: 500;
+    height: 38px;
+    min-width: 42px;
+    padding: 0 14px;
+    border-radius: 10px;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all 0.2s ease;
     text-align: center;
-    line-height: 1;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.2px;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 .live-market-btn:hover {
-    border-color: #8b949e;
-    color: var(--color-text-primary);
+    border-color: #22c55e;
+    background: rgba(255,255,255,0.06);
+    color: #c9d1d9;
 }
 .live-market-btn.active {
-    background: rgba(34, 197, 94, 0.1);
-    border-color: rgba(34, 197, 94, 0.35);
-    color: #22c55e;
+    background: rgba(0,255,179,0.12);
+    border-color: rgba(0,255,179,0.25);
+    color: #00ffb3;
 }
 .live-loading {
     display: flex;
