@@ -12198,6 +12198,16 @@ table.desktop-only {
     gap: 4px;
     flex: 1;
 }
+.modal-live-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 8px 0 12px;
+    flex-wrap: wrap;
+}
+.modal-live-body {
+    max-height: 60vh;
+    overflow-y: auto;
+}
 .live-dtab {
     background: transparent;
     border: 1px solid rgba(255,255,255,0.1);

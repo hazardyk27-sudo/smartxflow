@@ -9,13 +9,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap"></noscript>
-    <link rel="stylesheet" href="/static/css/style.css?v=1773767500">
+    <link rel="stylesheet" href="/static/css/style.css?v=1773769900">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <script defer src="/static/js/vendor/dayjs.min.js"></script>
     <script defer src="/static/js/vendor/dayjs-utc.js"></script>
     <script defer src="/static/js/vendor/dayjs-timezone.js"></script>
     <script defer src="/static/js/vendor/dayjs-customParseFormat.js"></script>
-    <script defer src="/static/js/app.js?v=1773767300"></script>
+    <script defer src="/static/js/app.js?v=1773769900"></script>
     <script defer src="/static/js/ui.js?v=1773704900"></script>
 </head>
 <body>
@@ -481,6 +481,7 @@
                 <div class="mobile-tab-bar" id="mobileTabBar">
                     <button class="mob-tab active" data-tab="chart" onclick="switchMobileTab('chart')">Grafik</button>
                     <button class="mob-tab" data-tab="events" onclick="switchMobileTab('events')">Alarmlar</button>
+                    <button class="mob-tab" data-tab="live" onclick="switchMobileTab('live')" id="modalLiveTab" style="display:none;">Canl&#305;</button>
                 </div>
                 
                 <div class="mobile-tab-content active" id="mobileTabChart">
@@ -574,6 +575,13 @@
                         <div class="smart-money-empty" id="smartMoneyEmpty" style="display:none;">
                             Bu maç için alarm hareketi yok.
                         </div>
+                    </div>
+                </div>
+                
+                <div class="mobile-tab-content" id="mobileTabLive">
+                    <div class="modal-live-tabs" id="modalLiveMarketTabs"></div>
+                    <div class="modal-live-body" id="modalLiveBody">
+                        <div class="live-loading"><div class="loading-spinner"></div> Canl&#305; veriler y&uuml;kleniyor...</div>
                     </div>
                 </div>
                 

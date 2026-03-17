@@ -1901,6 +1901,134 @@ def get_live_matches():
         return jsonify({'matches': [], 'error': str(e)}), 200
 
 
+@app.route('/api/live/match/history-by-teams')
+@license_required
+def get_live_match_history_by_teams():
+    """Takım isimlerine göre live snapshot geçmişi (prematch modal için)"""
+    home = request.args.get('home', '').strip()
+    away = request.args.get('away', '').strip()
+    if not home or not away:
+        return jsonify({'snapshots': [], 'error': 'home ve away parametreleri gerekli'}), 200
+
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return jsonify({'snapshots': [], 'has_live': False}), 200
+
+        headers = supabase._headers()
+
+        import urllib.parse
+        home_enc = urllib.parse.quote(home[:100])
+        away_enc = urllib.parse.quote(away[:100])
+        fix_url = (
+            f"{supabase._rest_url('live_fixtures')}"
+            f"?home_team=eq.{home_enc}&away_team=eq.{away_enc}"
+            f"&order=updated_at.desc&limit=1"
+        )
+        fix_resp = supabase._get_http_client().get(fix_url, headers=headers, timeout=10)
+        if fix_resp.status_code != 200 or not fix_resp.json():
+            return jsonify({'snapshots': [], 'has_live': False}), 200
+
+        fixture = fix_resp.json()[0]
+        match_hash = fixture.get('match_id_hash', '')
+        if not match_hash:
+            return jsonify({'snapshots': [], 'has_live': False}), 200
+
+        return _get_live_history_by_hash(supabase, headers, match_hash, fixture)
+
+    except Exception as e:
+        print(f"[API] /api/live/match/history-by-teams hata: {e}")
+        return jsonify({'snapshots': [], 'has_live': False, 'error': str(e)}), 200
+
+
+def _get_live_history_by_hash(supabase, headers, match_hash, fixture=None):
+    """Ortak live history verisi döndüren yardımcı fonksiyon."""
+    if not fixture:
+        fix_url = f"{supabase._rest_url('live_fixtures')}?match_id_hash=eq.{match_hash}&limit=1"
+        fix_resp = supabase._get_http_client().get(fix_url, headers=headers, timeout=10)
+        if fix_resp.status_code == 200 and fix_resp.json():
+            fixture = fix_resp.json()[0]
+
+    snap_url = (
+        f"{supabase._rest_url('live_snapshots')}"
+        f"?match_id_hash=eq.{match_hash}"
+        f"&order=snapshot_at.asc&limit=5000"
+    )
+    snap_resp = supabase._get_http_client().get(snap_url, headers=headers, timeout=15)
+    if snap_resp.status_code != 200:
+        return jsonify({'snapshots': [], 'has_live': False, 'error': f'HTTP {snap_resp.status_code}'}), 200
+
+    all_snaps = snap_resp.json()
+    if not all_snaps:
+        return jsonify({'snapshots': [], 'has_live': False}), 200
+
+    kickoff_utc = fixture.get('kickoff_utc', '') if fixture else ''
+    kickoff_dt = None
+    if kickoff_utc:
+        try:
+            ko = kickoff_utc.replace('Z', '+00:00')
+            kickoff_dt = datetime.fromisoformat(ko)
+        except Exception:
+            kickoff_dt = None
+
+    periods = {}
+    for s in all_snaps:
+        ts = s.get('snapshot_at', '')
+        market = s.get('market', '')
+        sel = s.get('selection', '')
+        key = ts
+
+        if key not in periods:
+            snap_minute = s.get('minute', '')
+            snap_score = s.get('score', '')
+
+            if not snap_minute and kickoff_dt and ts:
+                try:
+                    snap_ts = ts.replace('Z', '+00:00')
+                    snap_dt = datetime.fromisoformat(snap_ts)
+                    diff_sec = (snap_dt - kickoff_dt).total_seconds()
+                    snap_minute = str(max(0, int(diff_sec // 60)))
+                except Exception:
+                    snap_minute = ''
+
+            if not snap_score and fixture:
+                snap_score = fixture.get('score', '')
+
+            periods[key] = {
+                'snapshot_at': ts,
+                'minute': snap_minute,
+                'score': snap_score,
+                '1x2': {},
+                'ou': {},
+                'ou_lines': {},
+                'ou_line': None,
+            }
+
+        if market == '1X2':
+            periods[key]['1x2'][sel] = {
+                'odds': s.get('odds'),
+                'share': s.get('share'),
+                'volume': s.get('volume'),
+            }
+        elif market == 'OU':
+            line = s.get('ou_line', '')
+            if line not in periods[key]['ou_lines']:
+                periods[key]['ou_lines'][line] = {}
+            periods[key]['ou_lines'][line][sel] = {
+                'odds': s.get('odds'),
+                'share': s.get('share'),
+                'volume': s.get('volume'),
+            }
+
+    for p in periods.values():
+        p.pop('ou_line', None)
+        p.pop('ou', None)
+
+    result = sorted(periods.values(), key=lambda x: x['snapshot_at'])
+
+    return jsonify({'snapshots': result, 'total': len(result), 'kickoff_utc': kickoff_utc, 'has_live': True}), 200
+
+
 @app.route('/api/live/match/history')
 @license_required
 def get_live_match_history():
@@ -1915,91 +2043,7 @@ def get_live_match_history():
             return jsonify({'snapshots': [], 'error': 'Supabase bağlantısı yok'}), 200
 
         headers = supabase._headers()
-
-        fix_url = f"{supabase._rest_url('live_fixtures')}?match_id_hash=eq.{match_hash}&limit=1"
-        fix_resp = supabase._get_http_client().get(fix_url, headers=headers, timeout=10)
-        fixture = None
-        if fix_resp.status_code == 200:
-            fix_data = fix_resp.json()
-            if fix_data:
-                fixture = fix_data[0]
-
-        snap_url = (
-            f"{supabase._rest_url('live_snapshots')}"
-            f"?match_id_hash=eq.{match_hash}"
-            f"&order=snapshot_at.asc&limit=5000"
-        )
-        snap_resp = supabase._get_http_client().get(snap_url, headers=headers, timeout=15)
-        if snap_resp.status_code != 200:
-            return jsonify({'snapshots': [], 'error': f'HTTP {snap_resp.status_code}'}), 200
-
-        all_snaps = snap_resp.json()
-
-        kickoff_utc = fixture.get('kickoff_utc', '') if fixture else ''
-        kickoff_dt = None
-        if kickoff_utc:
-            try:
-                ko = kickoff_utc.replace('Z', '+00:00')
-                kickoff_dt = datetime.fromisoformat(ko)
-            except Exception:
-                kickoff_dt = None
-
-        periods = {}
-        for s in all_snaps:
-            ts = s.get('snapshot_at', '')
-            market = s.get('market', '')
-            sel = s.get('selection', '')
-            key = ts
-
-            if key not in periods:
-                snap_minute = s.get('minute', '')
-                snap_score = s.get('score', '')
-
-                if not snap_minute and kickoff_dt and ts:
-                    try:
-                        snap_ts = ts.replace('Z', '+00:00')
-                        snap_dt = datetime.fromisoformat(snap_ts)
-                        diff_sec = (snap_dt - kickoff_dt).total_seconds()
-                        snap_minute = str(max(0, int(diff_sec // 60)))
-                    except Exception:
-                        snap_minute = ''
-
-                if not snap_score and fixture:
-                    snap_score = fixture.get('score', '')
-
-                periods[key] = {
-                    'snapshot_at': ts,
-                    'minute': snap_minute,
-                    'score': snap_score,
-                    '1x2': {},
-                    'ou': {},
-                    'ou_lines': {},
-                    'ou_line': None,
-                }
-
-            if market == '1X2':
-                periods[key]['1x2'][sel] = {
-                    'odds': s.get('odds'),
-                    'share': s.get('share'),
-                    'volume': s.get('volume'),
-                }
-            elif market == 'OU':
-                line = s.get('ou_line', '')
-                if line not in periods[key]['ou_lines']:
-                    periods[key]['ou_lines'][line] = {}
-                periods[key]['ou_lines'][line][sel] = {
-                    'odds': s.get('odds'),
-                    'share': s.get('share'),
-                    'volume': s.get('volume'),
-                }
-
-        for p in periods.values():
-            p.pop('ou_line', None)
-            p.pop('ou', None)
-
-        result = sorted(periods.values(), key=lambda x: x['snapshot_at'])
-
-        return jsonify({'snapshots': result, 'total': len(result), 'kickoff_utc': kickoff_utc}), 200
+        return _get_live_history_by_hash(supabase, headers, match_hash)
 
     except Exception as e:
         print(f"[API] /api/live/match/history hata: {e}")
