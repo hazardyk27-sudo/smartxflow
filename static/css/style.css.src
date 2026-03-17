@@ -12033,6 +12033,9 @@ table.desktop-only {
     border-color: #ef4444 !important;
     color: #ffffff !important;
 }
+.tab-live.active::after {
+    background: #ef4444 !important;
+}
 .mobile-live-btn {
     color: #00ffb3 !important;
     border-color: rgba(0, 255, 179, 0.3) !important;
