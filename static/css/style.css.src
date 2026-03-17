@@ -12370,16 +12370,17 @@ table.desktop-only {
 .period-pct {
     font-size: 13px;
     font-weight: 600;
+    color: rgba(235,242,255,0.85);
 }
 .period-pct.pct-high {
-    color: var(--mw-text-money);
+    color: rgba(235,242,255,0.85);
 }
 .period-pct.pct-low {
     color: rgba(156,163,175,0.5);
 }
 .period-vol {
     font-size: 14px;
-    color: rgba(235,242,255,0.85);
+    color: var(--mw-text-money);
     font-weight: 600;
 }
 .period-vol-total {
