@@ -1423,6 +1423,7 @@ function _setupInfiniteScroll() {
 }
 
 function renderMatches(data) {
+    if (typeof _liveMode !== 'undefined' && _liveMode) return;
     console.log('[renderMatches] Called with', data?.length || 0, 'matches');
     _allFilteredMatches = data;
     _renderedCount = 0;
@@ -1480,6 +1481,7 @@ function isMobileView() {
 }
 
 function renderMobileMatchCards(data) {
+    if (typeof _liveMode !== 'undefined' && _liveMode) return;
     const cardList = document.getElementById('matchCardList');
     if (!cardList) return;
     
