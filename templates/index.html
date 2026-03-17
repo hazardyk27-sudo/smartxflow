@@ -9,13 +9,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap"></noscript>
-    <link rel="stylesheet" href="/static/css/style.css?v=1773764100">
+    <link rel="stylesheet" href="/static/css/style.css?v=1773764500">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <script defer src="/static/js/vendor/dayjs.min.js"></script>
     <script defer src="/static/js/vendor/dayjs-utc.js"></script>
     <script defer src="/static/js/vendor/dayjs-timezone.js"></script>
     <script defer src="/static/js/vendor/dayjs-customParseFormat.js"></script>
-    <script defer src="/static/js/app.js?v=1773764100"></script>
+    <script defer src="/static/js/app.js?v=1773764500"></script>
     <script defer src="/static/js/ui.js?v=1773704900"></script>
 </head>
 <body>
@@ -241,15 +241,13 @@
                 
                 <!-- Desktop: Match count -->
                 <div class="match-count desktop-only">
-                    <span id="matchCount">0</span> Maç
+                    <span id="matchCountLabel"></span><span id="matchCount">0</span><span id="matchCountSuffix"> Maç</span>
                 </div>
             </div>
             
             <div class="live-toolbar" id="liveToolbar" style="display:none;">
                 <div class="live-toolbar-left">
                     <span class="live-dot"></span>
-                    <span class="live-title">Canli Maclar</span>
-                    <span class="live-count" id="liveMatchCount">0</span>
                 </div>
                 <div class="live-market-tabs" id="liveMarketTabs">
                     <button class="live-market-btn active" data-lmarket="1x2" onclick="setLiveMarket('1x2')">1X2</button>

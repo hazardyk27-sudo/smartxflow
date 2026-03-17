@@ -9655,6 +9655,10 @@ function switchToLive() {
     if (mobileLive) mobileLive.classList.add('active');
     var liveToolbar = document.getElementById('liveToolbar');
     if (liveToolbar) liveToolbar.style.display = 'flex';
+    var mcLabel = document.getElementById('matchCountLabel');
+    if (mcLabel) mcLabel.textContent = 'Canli Maclar ';
+    var mcSuffix = document.getElementById('matchCountSuffix');
+    if (mcSuffix) mcSuffix.textContent = '';
     var marketRow = document.querySelector('.mobile-tab-row.market-row');
     if (marketRow) marketRow.style.display = 'none';
     var tbody = document.getElementById('matchesTableBody');
@@ -9671,6 +9675,10 @@ function switchFromLive() {
     if (_liveInterval) { clearInterval(_liveInterval); _liveInterval = null; }
     var liveToolbar = document.getElementById('liveToolbar');
     if (liveToolbar) liveToolbar.style.display = 'none';
+    var mcLabel = document.getElementById('matchCountLabel');
+    if (mcLabel) mcLabel.textContent = '';
+    var mcSuffix = document.getElementById('matchCountSuffix');
+    if (mcSuffix) mcSuffix.textContent = ' Mac\u0327';
     var marketRow = document.querySelector('.mobile-tab-row.market-row');
     if (marketRow) marketRow.style.display = '';
     var thead = document.querySelector('.matches-table thead');
@@ -9798,8 +9806,6 @@ function renderLiveMatches(matches) {
         if (cardList) cardList.innerHTML = emptyHtml;
         var mc = document.getElementById('matchCount');
         if (mc) mc.textContent = '0';
-        var lmc0 = document.getElementById('liveMatchCount');
-        if (lmc0) lmc0.textContent = '0';
         return;
     }
     var is1x2 = (_liveMarket === '1x2');
@@ -9841,8 +9847,6 @@ function renderLiveMatches(matches) {
         if (cardList) cardList.innerHTML = emptyHtml;
         var mc0 = document.getElementById('matchCount');
         if (mc0) mc0.textContent = '0';
-        var lmc0 = document.getElementById('liveMatchCount');
-        if (lmc0) lmc0.textContent = '0';
         return;
     }
     var sorted = filtered.slice();
@@ -9894,8 +9898,6 @@ function renderLiveMatches(matches) {
     if (cardList) cardList.innerHTML = cardsHtml;
     var mc = document.getElementById('matchCount');
     if (mc) mc.textContent = sorted.length;
-    var lmc = document.getElementById('liveMatchCount');
-    if (lmc) lmc.textContent = sorted.length;
 }
 
 function _calcLiveMatchMin(m) {
