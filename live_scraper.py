@@ -14,6 +14,7 @@ import requests
 import traceback
 import difflib
 import unicodedata
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 from bs4 import BeautifulSoup
@@ -325,12 +326,23 @@ def _team_match_score(arb: str, fs: str) -> float:
     return difflib.SequenceMatcher(None, arb, fs).ratio()
 
 
+def _apply_sofascore_results(all_fixtures: Dict[str, Dict], ss_data: Dict[str, Dict]) -> int:
+    """Önceden çekilmiş Sofascore verisiyle fixture'ları zenginleştirir."""
+    if not all_fixtures or not ss_data:
+        return 0
+    return _enrich_fixtures_with_ss(all_fixtures, ss_data)
+
+
 def enrich_with_sofascore(all_fixtures: Dict[str, Dict]) -> int:
     if not all_fixtures:
         return 0
     ss_data = _fetch_sofascore_live()
     if not ss_data:
         return 0
+    return _enrich_fixtures_with_ss(all_fixtures, ss_data)
+
+
+def _enrich_fixtures_with_ss(all_fixtures: Dict[str, Dict], ss_data: Dict[str, Dict]) -> int:
     enriched = 0
     ss_entries = []
     for sk, sv in ss_data.items():
@@ -698,8 +710,26 @@ def update_heartbeat(supabase_url: str, supabase_key: str, status: str, match_co
         return False
 
 
+def _fetch_arbworld_data(session: requests.Session) -> dict:
+    """Arbworld 1X2 ve OU verilerini çeker (thread içinde çalışır)."""
+    result = {"tables": {}, "errors": []}
+    for dataset_key, url in LIVE_URLS.items():
+        try:
+            table = fetch_table(url, session)
+            result["tables"][dataset_key] = table
+        except Exception as e:
+            result["errors"].append((dataset_key, e))
+    return result
+
+
+def _fetch_sofascore_data() -> Dict[str, Dict]:
+    """Sofascore canlı verilerini çeker (thread içinde çalışır)."""
+    return _fetch_sofascore_live()
+
+
 def run_live_scrape(writer: LiveSupabaseWriter) -> int:
     """Arbworld'den odds çeker, Sofascore'dan skor/dakika ekler.
+    Arbworld ve Sofascore paralel olarak çekilir.
     NOT: Arbworld live HTML'de skor sütunu (td.tscore) YOKTUR — 15 TD incelendi,
     skor verisi sadece Sofascore API üzerinden elde edilir."""
     log("CANLI SCRAPE BAŞLIYOR...")
@@ -711,11 +741,19 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
     all_snapshots = []
     total_matches = 0
 
-    for dataset_key, url in LIVE_URLS.items():
-        try:
-            log(f"  {dataset_key} çekiliyor...")
-            table = fetch_table(url, session)
+    log("  Arbworld + Sofascore paralel çekiliyor...")
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        arb_future = executor.submit(_fetch_arbworld_data, session)
+        sofa_future = executor.submit(_fetch_sofascore_data)
+        arb_result = arb_future.result(timeout=60)
+        sofa_result = sofa_future.result(timeout=60)
 
+    for dataset_key, err in arb_result.get("errors", []):
+        log(f"  [HATA] {dataset_key}: {err}")
+        traceback.print_exc()
+
+    for dataset_key, table in arb_result.get("tables", {}).items():
+        try:
             if dataset_key == "live-1x2":
                 rows = extract_live_1x2(table)
                 for row in rows:
@@ -799,7 +837,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
             traceback.print_exc()
 
     if all_fixtures:
-        enrich_with_sofascore(all_fixtures)
+        _apply_sofascore_results(all_fixtures, sofa_result)
         already_ft = writer.get_ft_fixture_hashes()
         ft_skipped = 0
         fixtures_list = []
