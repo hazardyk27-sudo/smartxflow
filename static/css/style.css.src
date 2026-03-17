@@ -12006,26 +12006,26 @@ table.desktop-only {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #ef4444;
+    background: #00ffb3;
     animation: live-pulse 1.5s ease-in-out infinite;
     margin-right: 4px;
     vertical-align: middle;
 }
 @keyframes live-pulse {
-    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
-    50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 255, 179, 0.6); }
+    50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(0, 255, 179, 0); }
 }
 .tab-live.active {
-    border-color: #ef4444 !important;
-    color: #ef4444 !important;
+    border-color: #00ffb3 !important;
+    color: #00ffb3 !important;
 }
 .mobile-live-btn {
-    color: #ef4444 !important;
-    border-color: rgba(239, 68, 68, 0.3) !important;
+    color: #00ffb3 !important;
+    border-color: rgba(0, 255, 179, 0.3) !important;
 }
 .mobile-live-btn.active {
-    background: rgba(239, 68, 68, 0.15) !important;
-    border-color: #ef4444 !important;
+    background: rgba(0, 255, 179, 0.15) !important;
+    border-color: #00ffb3 !important;
 }
 
 /* ========== CANLI SAYFA - Moneyway 1X2 ile Birebir Aynı ========== */
