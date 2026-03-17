@@ -9653,14 +9653,14 @@ function switchToLive() {
     if (liveTab) liveTab.classList.add('active');
     var mobileLive = document.querySelector('.mobile-live-btn');
     if (mobileLive) mobileLive.classList.add('active');
-    var liveToolbar = document.getElementById('liveToolbar');
-    if (liveToolbar) liveToolbar.style.display = 'flex';
     var mcLabel = document.getElementById('matchCountLabel');
     if (mcLabel) mcLabel.textContent = 'Canli Maclar ';
     var mcSuffix = document.getElementById('matchCountSuffix');
     if (mcSuffix) mcSuffix.textContent = '';
     var lmt = document.getElementById('liveMarketTabs');
     if (lmt) lmt.style.display = 'flex';
+    var lut = document.getElementById('liveUpdateTime');
+    if (lut) lut.style.display = '';
     var marketRow = document.querySelector('.mobile-tab-row.market-row');
     if (marketRow) marketRow.style.display = 'none';
     var tbody = document.getElementById('matchesTableBody');
@@ -9675,14 +9675,14 @@ function switchToLive() {
 function switchFromLive() {
     _liveMode = false;
     if (_liveInterval) { clearInterval(_liveInterval); _liveInterval = null; }
-    var liveToolbar = document.getElementById('liveToolbar');
-    if (liveToolbar) liveToolbar.style.display = 'none';
     var mcLabel = document.getElementById('matchCountLabel');
     if (mcLabel) mcLabel.textContent = '';
     var mcSuffix = document.getElementById('matchCountSuffix');
     if (mcSuffix) mcSuffix.textContent = ' Mac\u0327';
     var lmt = document.getElementById('liveMarketTabs');
     if (lmt) lmt.style.display = 'none';
+    var lut = document.getElementById('liveUpdateTime');
+    if (lut) lut.style.display = 'none';
     var marketRow = document.querySelector('.mobile-tab-row.market-row');
     if (marketRow) marketRow.style.display = '';
     var thead = document.querySelector('.matches-table thead');

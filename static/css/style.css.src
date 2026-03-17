@@ -12068,6 +12068,8 @@ table.desktop-only {
     font-size: 11px;
     color: var(--color-text-secondary);
     font-family: 'JetBrains Mono', monospace;
+    margin-left: 8px;
+    opacity: 0.6;
 }
 .live-market-tabs {
     display: flex;
