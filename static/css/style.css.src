@@ -1678,6 +1678,8 @@ h1, h2, h3, h4, h5, h6,
     justify-content: center;
     height: 34px;
     padding: 6px 14px;
+    white-space: nowrap;
+    flex-shrink: 0;
     background: linear-gradient(180deg, #11141a, #0c0f13);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 14px;
