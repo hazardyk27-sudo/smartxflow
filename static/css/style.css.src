@@ -10106,7 +10106,24 @@ table.desktop-only {
     }
     #desktopChartBody .chart-legend-filters {
         flex-wrap: nowrap !important;
-        overflow-x: auto;
+        gap: 6px;
+    }
+    #desktopChartBody .chart-filter-group {
+        gap: 5px;
+    }
+    #desktopChartBody .chart-filter-divider {
+        margin: 0 4px;
+    }
+    #desktopChartBody .chart-legend-btn,
+    #desktopChartBody .chart-view-btn,
+    #desktopChartBody .chart-time-btn {
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+    #desktopChartBody .chart-export-btn {
+        padding: 5px 8px;
+        font-size: 11px;
+        gap: 4px;
     }
     .desktop-chart-header {
         display: flex !important;
