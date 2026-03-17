@@ -2792,6 +2792,14 @@ function resetModalState() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
+    document.getElementById('mobileTabLiveBtn').style.display = 'none';
+    _liveDetailData = null;
+    _liveDetailHash = null;
+    var liveBody = document.getElementById('liveDetailBody');
+    if (liveBody) liveBody.innerHTML = '';
+    var liveTabs = document.getElementById('liveDetailTabs');
+    if (liveTabs) liveTabs.innerHTML = '';
+
     showSmartMoneyLoading();
     showChartLoading();
 }
@@ -3243,9 +3251,6 @@ function switchMobileTab(tabName) {
         if (grid && grid.innerHTML === '') {
             renderMatchAlarmsSection(selectedMatch.home_team, selectedMatch.away_team, _modalRequestId);
         }
-    }
-    if (tabName === 'live' && _liveDetailHash && _liveDetailData === null) {
-        openLiveDetail(_liveDetailHash, selectedMatch ? selectedMatch.home_team : '', selectedMatch ? selectedMatch.away_team : '');
     }
 }
 
