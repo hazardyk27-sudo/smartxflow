@@ -10149,8 +10149,7 @@ function renderLiveDetail(snapshots, market) {
             var pctDeltaHtml = '<span class="period-delta-neutral">\u00b7</span>';
             if (i > 0 && Math.abs(pctDelta) > 0) {
                 var pdSign = pctDelta > 0 ? '+' : '';
-                var pdCls = pctDelta > 0 ? 'period-delta-up' : 'period-delta-down';
-                pctDeltaHtml = '<span class="' + pdCls + '">' + pdSign + pctDelta.toFixed(0) + '%</span>';
+                pctDeltaHtml = '<span class="pct-delta">' + pdSign + pctDelta.toFixed(0) + '%</span>';
             }
 
             var prevVol = 0;
