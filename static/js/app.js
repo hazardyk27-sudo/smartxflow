@@ -1727,7 +1727,7 @@ var scoreStr=s.score||'-';html+='<tr>';html+='<td class="period-dk-skor"><span c
 var prevPct=0;if(prevDataGroup){prevPct=(prevDataGroup[sel]||{}).share||0;}
 var pctDelta=pct-prevPct;var pctDeltaHtml='<span class="period-delta-neutral">\u00b7</span>';if(i>0&&Math.abs(pctDelta)>0){var pdSign=pctDelta>0?'+':'';var pdCls=pctDelta>0?'period-delta-up':'period-delta-down';pctDeltaHtml='<span class="'+pdCls+'">'+pdSign+pctDelta.toFixed(0)+'%</span>';}
 var prevVol=0;if(prevDataGroup){prevVol=(prevDataGroup[sel]||{}).volume||0;}
-var volDiff=vol-prevVol;var volDiffStr='\u00b7';if(i>0&&volDiff!==0){volDiffStr=formatLiveVol(volDiff);}
-var hi=pct>=50;var divCls=j>0?' lpt-sel-divider':'';html+='<td class="period-dual'+divCls+'"><span class="dual-main period-odds">'+oddsStr+'</span><span class="dual-sub">'+deltaHtml+'</span></td>';html+='<td class="period-dual"><span class="dual-main period-vol">'+(vol?formatLiveVol(vol):'\u00b7')+'</span><span class="dual-sub vol-diff">'+volDiffStr+'</span></td>';html+='<td class="period-dual"><span class="dual-main period-pct '+(hi?'pct-high':'pct-low')+'">'+pctStr+'</span><span class="dual-sub">'+pctDeltaHtml+'</span></td>';}
+var volDiff=vol-prevVol;var volDiffStr='\u00b7';var volDiffHasVal=false;if(i>0&&volDiff!==0){volDiffStr=formatLiveVol(volDiff);volDiffHasVal=true;}
+var hi=pct>=50;var divCls=j>0?' lpt-sel-divider':'';html+='<td class="period-dual'+divCls+'"><span class="dual-main period-odds">'+oddsStr+'</span><span class="dual-sub">'+deltaHtml+'</span></td>';html+='<td class="period-dual"><span class="dual-main period-vol">'+(vol?formatLiveVol(vol):'\u00b7')+'</span><span class="dual-sub vol-diff'+(volDiffHasVal?' has-val':'')+'">'+volDiffStr+'</span></td>';html+='<td class="period-dual"><span class="dual-main period-pct '+(hi?'pct-high':'pct-low')+'">'+pctStr+'</span><span class="dual-sub">'+pctDeltaHtml+'</span></td>';}
 html+='</tr>';}
 html+='</tbody></table></div>';body.innerHTML=html;}

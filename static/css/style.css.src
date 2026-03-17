@@ -12333,8 +12333,13 @@ table.desktop-only {
     opacity: 1;
 }
 .period-dual .dual-sub.vol-diff {
-    color: rgba(156,163,175,0.5);
+    color: rgba(156,163,175,0.2);
     font-size: 10px;
+}
+.period-dual .dual-sub.vol-diff.has-val {
+    color: rgba(200,210,225,0.7);
+    font-weight: 500;
+    font-size: 11px;
 }
 .period-dk-skor {
     vertical-align: middle;
