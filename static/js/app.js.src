@@ -3225,6 +3225,28 @@ function switchMobileTab(tabName) {
     });
     const targetTab = document.getElementById('mobileTab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
     if (targetTab) targetTab.classList.add('active');
+
+    if (tabName === 'chart' && selectedMatch && !modalOddsData) {
+        var home = selectedMatch.home_team;
+        var away = selectedMatch.away_team;
+        var league = selectedMatch.league || '';
+        var reqId = _modalRequestId;
+        var chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(function() { registerChartPlugins(); }) : Promise.resolve();
+        var marketsPromise = loadAllMarketsAtOnce(home, away, league);
+        Promise.all([marketsPromise, chartLibsPromise]).then(function() {
+            if (reqId !== _modalRequestId) return;
+            return loadChartWithTrends(home, away, selectedChartMarket || currentMarket, league, reqId);
+        }).catch(function(e) { console.error('[Modal] Chart pipeline error:', e); });
+    }
+    if (tabName === 'events' && selectedMatch) {
+        var grid = document.getElementById('smartMoneyGrid');
+        if (grid && grid.innerHTML === '') {
+            renderMatchAlarmsSection(selectedMatch.home_team, selectedMatch.away_team, _modalRequestId);
+        }
+    }
+    if (tabName === 'live' && _liveDetailHash && _liveDetailData === null) {
+        openLiveDetail(_liveDetailHash, selectedMatch ? selectedMatch.home_team : '', selectedMatch ? selectedMatch.away_team : '');
+    }
 }
 
 // === MOBILE CHART CONTROLS ===
@@ -9976,6 +9998,19 @@ async function openLiveDetail(hash, home, away) {
     resetModalState();
     _liveDetailHash = hash;
 
+    selectedMatch = {
+        home_team: home || '--',
+        away_team: away || '--',
+        league: '',
+        date: '',
+        match_id: hash,
+        history: [],
+        history_count: 0,
+        odds: null,
+        details: null
+    };
+    selectedChartMarket = currentMarket;
+
     document.getElementById('modalMatchTitle').textContent = (home || '--') + ' vs ' + (away || '--');
     document.getElementById('modalLeague').textContent = 'Canl\u0131 Ma\u00e7';
 
@@ -9988,17 +10023,30 @@ async function openLiveDetail(hash, home, away) {
     document.getElementById('modalOverlay').classList.add('active');
 
     _liveDetailMarket = _liveMarket;
-    try {
-        var resp = await fetch('/api/live/match/history?hash=' + encodeURIComponent(hash));
-        var data = await resp.json();
+
+    var livePromise = fetch('/api/live/match/history?hash=' + encodeURIComponent(hash))
+        .then(function(resp) { return resp.json(); })
+        .then(function(data) {
+            if (reqId !== _modalRequestId) return;
+            _liveDetailData = data.snapshots || [];
+            _buildDetailTabs(_liveDetailData);
+            renderLiveDetail(_liveDetailData, _liveDetailMarket);
+        })
+        .catch(function(e) {
+            if (reqId !== _modalRequestId) return;
+            document.getElementById('liveDetailBody').innerHTML = '<div class="live-loading">Veri yuklenemedi</div>';
+        });
+
+    var chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(function() { registerChartPlugins(); }) : Promise.resolve();
+    var marketsPromise = loadAllMarketsAtOnce(home, away, '');
+    var chartPipeline = Promise.all([marketsPromise, chartLibsPromise]).then(function() {
         if (reqId !== _modalRequestId) return;
-        _liveDetailData = data.snapshots || [];
-        _buildDetailTabs(_liveDetailData);
-        renderLiveDetail(_liveDetailData, _liveDetailMarket);
-    } catch (e) {
-        if (reqId !== _modalRequestId) return;
-        document.getElementById('liveDetailBody').innerHTML = '<div class="live-loading">Veri yuklenemedi</div>';
-    }
+        return loadChartWithTrends(home, away, selectedChartMarket, '', reqId);
+    }).catch(function(e) { console.error('[Modal] Chart pipeline error:', e); });
+
+    var alarmsPipeline = renderMatchAlarmsSection(home, away, reqId);
+
+    await Promise.all([livePromise, chartPipeline, alarmsPipeline]);
 }
 
 function _buildDetailTabs(snapshots) {
@@ -10030,10 +10078,6 @@ function setLiveDetailMarket(market) {
         }
     });
     if (_liveDetailData) renderLiveDetail(_liveDetailData, market);
-}
-
-function closeLiveDetail() {
-    closeModal();
 }
 
 function renderLiveDetail(snapshots, market) {
