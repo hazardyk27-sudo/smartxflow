@@ -608,9 +608,12 @@ h1, h2, h3, h4, h5, h6,
     white-space: nowrap;
 }
 .match-count .mc-num {
-    color: #ef4444;
+    color: #3fb950;
     font-weight: 700;
     font-size: 13px;
+}
+.match-count.mc-live .mc-num {
+    color: #ef4444;
 }
 .match-count .mc-label {
     color: #8b95a5;
@@ -12027,8 +12030,8 @@ table.desktop-only {
     50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
 }
 .tab-live.active {
-    border-color: #00ffb3 !important;
-    color: #00ffb3 !important;
+    border-color: #ef4444 !important;
+    color: #ffffff !important;
 }
 .mobile-live-btn {
     color: #00ffb3 !important;
