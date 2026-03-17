@@ -12118,14 +12118,14 @@ table.desktop-only {
 }
 /* Live-only: minute column content — reuses match-date/.date-line/.time-line */
 .live-min-badge {
-    color: #ef4444 !important;
+    color: #00ffb3 !important;
     font-size: 13px !important;
     font-weight: 700 !important;
 }
 .live-score-badge {
-    color: #f59e0b !important;
+    color: rgba(219,234,254,0.55) !important;
     font-size: 11px !important;
-    font-weight: 600 !important;
+    font-weight: 500 !important;
 }
 .live-detail-modal {
     position: fixed;
