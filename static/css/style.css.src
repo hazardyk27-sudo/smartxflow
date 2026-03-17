@@ -608,7 +608,7 @@ h1, h2, h3, h4, h5, h6,
     white-space: nowrap;
 }
 .match-count .mc-num {
-    color: #ffffff;
+    color: #ef4444;
     font-weight: 700;
     font-size: 13px;
 }
@@ -12017,14 +12017,14 @@ table.desktop-only {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #00ffb3;
+    background: #ef4444;
     animation: live-pulse 1.5s ease-in-out infinite;
     margin-right: 4px;
     vertical-align: middle;
 }
 @keyframes live-pulse {
-    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 255, 179, 0.6); }
-    50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(0, 255, 179, 0); }
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+    50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
 }
 .tab-live.active {
     border-color: #00ffb3 !important;
@@ -12129,7 +12129,7 @@ table.desktop-only {
 }
 /* Live-only: minute column content — reuses match-date/.date-line/.time-line */
 .live-min-badge {
-    color: #00ffb3 !important;
+    color: #ef4444 !important;
     font-size: 13px !important;
     font-weight: 700 !important;
 }
@@ -12359,7 +12359,7 @@ table.desktop-only {
 }
 .period-dk-skor .dk-val {
     display: block;
-    color: #00ffb3;
+    color: #ef4444;
     font-size: 14px;
     font-weight: 700;
     line-height: 1.2;
