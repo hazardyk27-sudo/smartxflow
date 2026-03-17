@@ -10098,7 +10098,9 @@ table.desktop-only {
         border: 1px solid #30363d;
         border-radius: 8px;
         margin-bottom: 16px;
-        overflow: hidden;
+    }
+    #desktopChartBody {
+        padding: 0 16px 16px;
     }
     .desktop-chart-header {
         display: flex !important;
