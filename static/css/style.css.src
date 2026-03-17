@@ -593,18 +593,32 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .match-count {
-    background: rgba(255,255,255,0.04);
-    padding: 8px 16px;
-    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%);
+    padding: 9px 20px;
+    border-radius: 22px;
     font-size: 13px;
     color: #7f8ea3;
     font-weight: 500;
     letter-spacing: 0.3px;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.03);
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+    line-height: 1;
+    white-space: nowrap;
 }
-
-.match-count span {
-    color: #3fb950;
+.match-count .mc-num {
+    color: #00ffb3;
     font-weight: 700;
+    font-size: 14px;
+    letter-spacing: -0.3px;
+}
+.match-count .mc-label {
+    color: rgba(156,163,175,0.75);
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.2px;
 }
 
 .table-container {
