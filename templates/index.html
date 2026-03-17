@@ -9,14 +9,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap"></noscript>
-    <link rel="stylesheet" href="/static/css/style.css?v=1773704900">
+    <link rel="stylesheet" href="/static/css/style.css?v=1773705590">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <script defer src="/static/js/vendor/dayjs.min.js"></script>
     <script defer src="/static/js/vendor/dayjs-utc.js"></script>
     <script defer src="/static/js/vendor/dayjs-timezone.js"></script>
     <script defer src="/static/js/vendor/dayjs-customParseFormat.js"></script>
-    <script defer src="/static/js/app.js?v=1773704900"></script>
-    <script defer src="/static/js/ui.js?v=1773704900"></script>
+    <script defer src="/static/js/app.js?v=1773705590"></script>
+    <script defer src="/static/js/ui.js?v=1773705590"></script>
 </head>
 <body>
     <!-- License Gate - Birebir Desktop Aynisi -->
@@ -336,27 +336,6 @@
             </div>
 
 
-            <div class="live-detail-modal" id="liveDetailModal" style="display:none;">
-                <div class="live-detail-overlay" onclick="closeLiveDetail()"></div>
-                <div class="live-detail-content">
-                    <div class="live-detail-header">
-                        <div class="live-detail-match" id="liveDetailTitle">-- vs --</div>
-                        <div class="live-detail-tabs" id="liveDetailTabs"></div>
-                        <button class="live-detail-close" onclick="closeLiveDetail()">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="18" y1="6" x2="6" y2="18"/>
-                                <line x1="6" y1="6" x2="18" y2="18"/>
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="live-detail-body" id="liveDetailBody">
-                        <div class="live-loading">
-                            <div class="loading-spinner"></div>
-                            Periyot verileri yukleniyor...
-                        </div>
-                    </div>
-                </div>
-            </div>
 
         </section>
 
@@ -491,6 +470,7 @@
                 <div class="mobile-tab-bar" id="mobileTabBar">
                     <button class="mob-tab active" data-tab="chart" onclick="switchMobileTab('chart')">Grafik</button>
                     <button class="mob-tab" data-tab="events" onclick="switchMobileTab('events')">Alarmlar</button>
+                    <button class="mob-tab" data-tab="live" id="mobileTabLiveBtn" onclick="switchMobileTab('live')" style="display:none;">Canl&#305;</button>
                 </div>
                 
                 <div class="mobile-tab-content active" id="mobileTabChart">
@@ -573,6 +553,13 @@
                         <div class="smart-money-empty" id="smartMoneyEmpty" style="display:none;">
                             Bu maç için alarm hareketi yok.
                         </div>
+                    </div>
+                </div>
+                
+                <div class="mobile-tab-content" id="mobileTabLive">
+                    <div class="live-detail-tabs-wrap" id="liveDetailTabs"></div>
+                    <div class="live-detail-body" id="liveDetailBody">
+                        <div class="live-loading">Canl&#305; veri bekleniyor...</div>
                     </div>
                 </div>
                 

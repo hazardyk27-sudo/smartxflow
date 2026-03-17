@@ -12065,57 +12065,12 @@ table.desktop-only {
     font-size: 11px !important;
     font-weight: 600 !important;
 }
-.live-detail-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.live-detail-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.75);
-}
-.live-detail-content {
-    position: relative;
-    background: var(--mw-bg);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    width: 95%;
-    max-width: 850px;
-    max-height: 80vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-.live-detail-header {
-    display: flex;
-    align-items: center;
-    padding: 14px 20px;
-    background: var(--mw-header-bg);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    gap: 12px;
-    flex-wrap: wrap;
-}
-.live-detail-match {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--mw-text-white);
-    flex-shrink: 0;
-}
-.live-detail-tabs {
+.live-detail-tabs-wrap {
     display: flex;
     align-items: center;
     gap: 4px;
-    flex: 1;
+    padding: 10px 12px 6px;
+    flex-wrap: wrap;
 }
 .live-dtab {
     background: transparent;
@@ -12136,21 +12091,6 @@ table.desktop-only {
     background: rgba(34, 197, 94, 0.15);
     border-color: rgba(34, 197, 94, 0.4);
     color: var(--mw-text-money);
-}
-.live-detail-close {
-    background: none;
-    border: none;
-    color: var(--mw-text-muted);
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 6px;
-    transition: all 0.15s;
-    margin-left: auto;
-    flex-shrink: 0;
-}
-.live-detail-close:hover {
-    background: rgba(255,255,255,0.06);
-    color: var(--mw-text-white);
 }
 .live-detail-body {
     overflow-y: auto;
@@ -12439,20 +12379,6 @@ table.desktop-only {
     .live-market-tabs {
         width: 100%;
         overflow-x: auto;
-    }
-    .live-detail-content {
-        width: 95%;
-        max-height: 85vh;
-    }
-    .live-detail-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-    }
-    .live-detail-close {
-        position: absolute;
-        top: 10px;
-        right: 10px;
     }
     .live-period-table {
         font-size: 11px;

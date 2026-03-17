@@ -3772,6 +3772,15 @@ document.addEventListener('click', function(e) {
 function closeModal() {
     ++_modalRequestId;
     document.getElementById('modalOverlay').classList.remove('active');
+
+    document.getElementById('mobileTabLiveBtn').style.display = 'none';
+    _liveDetailData = null;
+    _liveDetailHash = null;
+    var liveBody = document.getElementById('liveDetailBody');
+    if (liveBody) liveBody.innerHTML = '';
+    var liveTabs = document.getElementById('liveDetailTabs');
+    if (liveTabs) liveTabs.innerHTML = '';
+
     switchMobileTab('chart');
     
     const chartTooltip = document.getElementById('chartjs-tooltip');
@@ -9621,6 +9630,7 @@ var _liveData = [];
 var _liveMarket = '1x2';
 var _liveDetailData = null;
 var _liveDetailMarket = '1x2';
+var _liveDetailHash = null;
 
 function switchToLive() {
     _liveMode = true;
@@ -9962,18 +9972,31 @@ function _liveMobileBlock(label, d) {
 }
 
 async function openLiveDetail(hash, home, away) {
-    document.getElementById('liveDetailModal').style.display = 'flex';
-    document.getElementById('liveDetailTitle').textContent = (home || '--') + ' vs ' + (away || '--');
+    var reqId = ++_modalRequestId;
+    resetModalState();
+    _liveDetailHash = hash;
+
+    document.getElementById('modalMatchTitle').textContent = (home || '--') + ' vs ' + (away || '--');
+    document.getElementById('modalLeague').textContent = 'Canl\u0131 Ma\u00e7';
+
+    document.getElementById('mobileTabLiveBtn').style.display = '';
+    switchMobileTab('live');
+
     document.getElementById('liveDetailBody').innerHTML =
         '<div class="live-loading"><div class="loading-spinner"></div>Periyot verileri yukleniyor...</div>';
+
+    document.getElementById('modalOverlay').classList.add('active');
+
     _liveDetailMarket = _liveMarket;
     try {
         var resp = await fetch('/api/live/match/history?hash=' + encodeURIComponent(hash));
         var data = await resp.json();
+        if (reqId !== _modalRequestId) return;
         _liveDetailData = data.snapshots || [];
         _buildDetailTabs(_liveDetailData);
         renderLiveDetail(_liveDetailData, _liveDetailMarket);
     } catch (e) {
+        if (reqId !== _modalRequestId) return;
         document.getElementById('liveDetailBody').innerHTML = '<div class="live-loading">Veri yuklenemedi</div>';
     }
 }
@@ -10010,8 +10033,7 @@ function setLiveDetailMarket(market) {
 }
 
 function closeLiveDetail() {
-    document.getElementById('liveDetailModal').style.display = 'none';
-    _liveDetailData = null;
+    closeModal();
 }
 
 function renderLiveDetail(snapshots, market) {
