@@ -1877,6 +1877,7 @@ function applyMobileFilter() {
 
 const originalRenderMatches = renderMatches;
 window.renderMatches = function(data) {
+    if (_liveMode) return;
     const isMobile = window.innerWidth <= 768;
     if (isMobile) {
         renderMobileMatchCards(data);
