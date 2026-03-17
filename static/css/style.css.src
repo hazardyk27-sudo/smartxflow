@@ -9442,10 +9442,10 @@ table.desktop-only {
         display: flex;
         flex-direction: column;
         align-items: center;
-        background: rgba(33, 38, 45, 0.8);
-        border-radius: 6px;
-        padding: 8px 4px;
-        border: 1px solid rgba(48, 54, 61, 0.5);
+        background: rgba(45, 52, 62, 0.9);
+        border-radius: 8px;
+        padding: 10px 4px;
+        border: 1px solid rgba(68, 76, 86, 0.7);
     }
     
     .odds-block-label {
