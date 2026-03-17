@@ -12072,7 +12072,8 @@ table.desktop-only {
 .live-market-tabs {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
+    margin-left: 6px;
 }
 .live-market-btn {
     background: transparent;
@@ -12080,10 +12081,13 @@ table.desktop-only {
     color: var(--color-text-secondary);
     font-size: 11px;
     font-weight: 600;
-    padding: 3px 10px;
+    min-width: 40px;
+    padding: 5px 0;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.15s;
+    text-align: center;
+    line-height: 1;
 }
 .live-market-btn:hover {
     border-color: #8b949e;
