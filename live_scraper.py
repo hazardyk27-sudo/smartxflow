@@ -270,21 +270,6 @@ def _calc_sofascore_minute(event: Dict) -> str:
         if code == 7 and current_min > 90:
             return f"90+{current_min - 90}'"
         return f"{current_min}'"
-    start_ts = event.get('startTimestamp', 0)
-    if start_ts > 0 and start_ts <= now_ts:
-        elapsed = (now_ts - start_ts) // 60
-        if code == 7 or desc == '2nd half':
-            adj = max(0, elapsed - 15)
-            if adj > 90:
-                return f"90+{adj - 90}'"
-            return f"{adj}'"
-        if code == 6 or desc == '1st half':
-            if elapsed > 45:
-                return f"45+{elapsed - 45}'"
-            return f"{elapsed}'"
-        if elapsed <= 47:
-            return f"{elapsed}'"
-        return ''
     return ''
 
 
@@ -744,7 +729,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                             "away_team": row["away"][:100],
                             "league": row["league"][:150],
                             "score": html_score,
-                            "minute": _parse_minute(row["date_text"]),
+                            "minute": "",
                             "status": "live",
                             "kickoff_utc": ko_utc,
                             "fixture_date": today_str,
@@ -783,7 +768,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                             "away_team": row["away"][:100],
                             "league": row["league"][:150],
                             "score": html_score,
-                            "minute": _parse_minute(row["date_text"]),
+                            "minute": "",
                             "status": "live",
                             "kickoff_utc": ko_utc,
                             "fixture_date": today_str,
