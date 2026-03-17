@@ -6376,6 +6376,7 @@ def scraper_console_page():
     return html
 
 
+@app.route('/admin')
 def admin_panel():
     """Admin Panel - requires login, triggers lazy warmup on first visit"""
     if not session.get('admin_authenticated'):
