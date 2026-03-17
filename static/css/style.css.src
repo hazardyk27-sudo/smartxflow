@@ -10083,10 +10083,34 @@ table.desktop-only {
    Header → Summary → [Tabs: Chart|Events|Details] → Active Tab Content
    ===================================================== */
 
+/* Desktop chart header - sadece desktop'ta görünür */
+.desktop-chart-header {
+    display: none;
+}
+
 /* DESKTOP: Tab bar ve mobil kontroller gizle, tüm içerik görünür */
 @media (min-width: 769px) {
     .mobile-tab-bar {
         display: none !important;
+    }
+    #mobileTabChart {
+        background: #14191F;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        overflow: hidden;
+    }
+    .desktop-chart-header {
+        display: flex !important;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 14px 18px;
+        background: #161b22;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .desktop-chart-header:hover {
+        background: #1c2128;
     }
     .mobile-tab-content {
         display: block !important;

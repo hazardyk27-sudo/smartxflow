@@ -3773,6 +3773,11 @@ function closeModal() {
     ++_modalRequestId;
     document.getElementById('modalOverlay').classList.remove('active');
     switchMobileTab('chart');
+    desktopChartSectionOpen = true;
+    const chartBody = document.getElementById('desktopChartBody');
+    if (chartBody) chartBody.style.display = '';
+    const chartChevron = document.getElementById('desktopChartChevron');
+    if (chartChevron) chartChevron.textContent = '▼';
     
     const chartTooltip = document.getElementById('chartjs-tooltip');
     if (chartTooltip) {
@@ -8208,6 +8213,7 @@ async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, home
 
 let cachedAllAlarms = null;
 let smartMoneySectionOpen = true;
+let desktopChartSectionOpen = true;
 
 async function loadAllAlarmsOnce(forceRefresh = false) {
     // Use centralized cache system
@@ -8803,6 +8809,20 @@ function toggleSmartMoneySection() {
         chevron.textContent = '▲';
         grid.style.display = 'none';
         empty.style.display = 'none';
+    }
+}
+
+function toggleDesktopChartSection() {
+    const body = document.getElementById('desktopChartBody');
+    const chevron = document.getElementById('desktopChartChevron');
+    if (!body || !chevron) return;
+    desktopChartSectionOpen = !desktopChartSectionOpen;
+    if (desktopChartSectionOpen) {
+        chevron.textContent = '▼';
+        body.style.display = '';
+    } else {
+        chevron.textContent = '▲';
+        body.style.display = 'none';
     }
 }
 
