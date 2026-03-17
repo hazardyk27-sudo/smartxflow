@@ -10102,6 +10102,10 @@ table.desktop-only {
     #desktopChartBody {
         padding: 0 16px 16px;
     }
+    #desktopChartBody .chart-legend-filters {
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+    }
     .desktop-chart-header {
         display: flex !important;
         justify-content: space-between;
