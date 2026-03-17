@@ -12135,30 +12135,32 @@ table.desktop-only {
 }
 .live-detail-content {
     position: relative;
-    background: var(--mw-bg);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
+    background: #0c1018;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
     width: 95%;
-    max-width: 850px;
+    max-width: 880px;
     max-height: 80vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
 }
 .live-detail-header {
     display: flex;
     align-items: center;
-    padding: 14px 20px;
-    background: var(--mw-header-bg);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    gap: 12px;
+    padding: 16px 24px;
+    background: #080d14;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    gap: 14px;
     flex-wrap: wrap;
 }
 .live-detail-match {
     font-size: 15px;
     font-weight: 700;
-    color: var(--mw-text-white);
+    color: rgba(219,234,254,0.95);
     flex-shrink: 0;
+    letter-spacing: -0.2px;
 }
 .live-detail-tabs {
     display: flex;
@@ -12203,175 +12205,198 @@ table.desktop-only {
 }
 .live-detail-body {
     overflow-y: auto;
-    padding: 0;
+    padding: 12px;
     flex: 1;
-    background: var(--mw-bg);
+    background: #0c1018;
+}
+.live-detail-body::-webkit-scrollbar {
+    width: 4px;
+}
+.live-detail-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+.live-detail-body::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
 }
 .live-detail-table-wrap {
     overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+.live-detail-table-wrap::-webkit-scrollbar {
+    height: 4px;
+}
+.live-detail-table-wrap::-webkit-scrollbar-track {
+    background: transparent;
+}
+.live-detail-table-wrap::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.12);
+    border-radius: 4px;
 }
 .live-period-table {
     width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-    background: var(--mw-bg);
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+    background: #0c1018;
 }
 .live-period-table thead th {
     position: sticky;
     top: 0;
-    background: var(--mw-header-bg);
-    padding: 7px 10px;
+    background: #080d14;
+    padding: 10px 14px;
     text-align: center;
-    color: var(--mw-text-muted);
-    font-weight: 600;
-    font-size: 10px;
+    color: rgba(156,163,175,0.7);
+    font-weight: 500;
+    font-size: 9px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    letter-spacing: 0.8px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
     white-space: nowrap;
 }
 .live-period-table thead tr.lpt-group-row th {
     top: 0;
     z-index: 2;
     font-size: 11px;
-    font-weight: 700;
-    color: var(--mw-text-odds);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-weight: 600;
+    color: rgba(219,234,254,0.85);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding: 12px 14px 8px;
+    letter-spacing: 0.5px;
 }
 .lpt-group-th {
-    border-left: 1px solid rgba(255,255,255,0.06);
-    border-right: 1px solid rgba(255,255,255,0.06);
+    border-left: 1px solid rgba(255,255,255,0.04);
     text-align: center !important;
 }
 .live-period-table tbody td {
-    padding: 7px 10px;
+    padding: 12px 14px;
     text-align: center;
     color: var(--mw-text-odds);
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.03);
     white-space: nowrap;
-    background: var(--mw-row-bg);
+    background: #0c1018;
+    transition: background 0.15s ease;
 }
 .live-period-table tbody tr:hover td {
-    background: rgba(255,255,255,0.04);
-}
-.period-score {
-    color: #f59e0b;
-    font-weight: 700;
-    font-size: 12px;
-}
-.period-time {
-    color: #ef4444;
-    font-size: 12px;
-    font-weight: 700;
+    background: rgba(255,255,255,0.025);
 }
 .lpt-dual-th {
     vertical-align: middle;
 }
 .lpt-dual-th .lpt-th-main {
     display: block;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--mw-text-odds);
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(219,234,254,0.65);
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.6px;
 }
 .lpt-dual-th .lpt-th-sub {
     display: block;
-    font-size: 9px;
-    font-weight: 500;
-    color: var(--mw-text-muted);
+    font-size: 8px;
+    font-weight: 400;
+    color: rgba(156,163,175,0.45);
     text-transform: none;
     letter-spacing: 0;
-    margin-top: 2px;
+    margin-top: 3px;
 }
 .live-period-table thead tr.lpt-col-row th {
-    top: 36px;
+    top: 38px;
     z-index: 1;
+    padding: 6px 14px 10px;
 }
 .period-dual {
     vertical-align: middle;
 }
 .period-dual .dual-main {
     display: block;
+    line-height: 1.3;
 }
 .period-dual .dual-sub {
     display: block;
-    margin-top: 2px;
-    font-size: 10px;
+    margin-top: 4px;
+    font-size: 9px;
+    opacity: 0.65;
 }
 .period-dual .dual-sub.vol-diff {
     color: var(--mw-text-muted);
     font-size: 9px;
+    opacity: 0.5;
 }
 .period-dk-skor {
     vertical-align: middle;
+    min-width: 52px;
+    border-right: 1px solid rgba(255,255,255,0.04);
 }
 .period-dk-skor .dk-val {
     display: block;
-    color: #ef4444;
-    font-size: 12px;
+    color: #00ffb3;
+    font-size: 13px;
     font-weight: 700;
+    line-height: 1.2;
 }
 .period-dk-skor .skor-val {
     display: block;
-    color: #f59e0b;
+    color: rgba(219,234,254,0.55);
     font-size: 11px;
-    font-weight: 700;
-    margin-top: 1px;
+    font-weight: 500;
+    margin-top: 3px;
 }
 .period-odds {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
-    color: var(--mw-text-odds);
+    color: rgba(219,234,254,0.95);
     white-space: nowrap;
+    letter-spacing: -0.2px;
 }
 .period-pct {
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 500;
 }
 .period-pct.pct-high {
     color: var(--mw-text-money);
 }
 .period-pct.pct-low {
-    color: var(--mw-text-muted);
+    color: rgba(156,163,175,0.45);
 }
 .period-vol {
-    font-size: 12px;
-    color: var(--mw-text-odds);
+    font-size: 13px;
+    color: rgba(219,234,254,0.75);
     font-weight: 500;
 }
 .period-vol-total {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--mw-text-money);
-    border-left: 1px solid rgba(255,255,255,0.06);
 }
 .period-delta-up {
     color: var(--mw-text-money);
-    font-weight: 700;
-    font-size: 11px;
+    font-weight: 600;
+    font-size: 9px;
 }
 .period-delta-down {
     color: #ef4444;
-    font-weight: 700;
-    font-size: 11px;
+    font-weight: 600;
+    font-size: 9px;
 }
 .period-delta-neutral {
-    color: var(--mw-text-muted);
-    font-size: 11px;
+    color: rgba(156,163,175,0.3);
+    font-size: 9px;
 }
 .lpt-totals-row td {
-    background: var(--mw-header-bg) !important;
-    border-top: 1px solid rgba(255,255,255,0.1);
+    background: #080d14 !important;
+    border-top: 1px solid rgba(255,255,255,0.06);
     font-weight: 700;
+    padding: 14px 14px !important;
 }
 .lpt-totals-label {
-    color: var(--mw-text-muted) !important;
+    color: rgba(156,163,175,0.5) !important;
     text-align: left !important;
     padding-left: 14px !important;
     text-transform: uppercase;
-    font-size: 10px;
-    letter-spacing: 0.5px;
+    font-size: 9px;
+    letter-spacing: 0.8px;
 }
 .lpt-total-vol {
     color: var(--mw-text-money) !important;
@@ -12380,8 +12405,10 @@ table.desktop-only {
 .lpt-grand-total {
     color: var(--mw-text-money) !important;
     font-weight: 700 !important;
-    font-size: 13px !important;
-    border-left: 1px solid rgba(255,255,255,0.06);
+    font-size: 14px !important;
+}
+.lpt-sel-divider {
+    border-left: 1px solid rgba(255,255,255,0.04);
 }
 .live-empty {
     text-align: center;

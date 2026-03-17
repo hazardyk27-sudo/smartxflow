@@ -10122,7 +10122,7 @@ function renderLiveDetail(snapshots, market) {
             var oddsStr = odds !== null ? odds.toFixed(2) : '-';
             var pctStr = pct ? pct.toFixed(0) + '%' : '-';
 
-            var deltaHtml = '<span class="period-delta-neutral">-</span>';
+            var deltaHtml = '<span class="period-delta-neutral">\u00b7</span>';
             if (prevDataGroup && odds !== null) {
                 var prevOdds = (prevDataGroup[sel] || {}).odds;
                 if (prevOdds !== undefined && prevOdds !== null) {
@@ -10140,7 +10140,7 @@ function renderLiveDetail(snapshots, market) {
                 prevPct = (prevDataGroup[sel] || {}).share || 0;
             }
             var pctDelta = pct - prevPct;
-            var pctDeltaHtml = '<span class="period-delta-neutral">-</span>';
+            var pctDeltaHtml = '<span class="period-delta-neutral">\u00b7</span>';
             if (i > 0 && Math.abs(pctDelta) > 0) {
                 var pdSign = pctDelta > 0 ? '+' : '';
                 var pdCls = pctDelta > 0 ? 'period-delta-up' : 'period-delta-down';
@@ -10152,15 +10152,16 @@ function renderLiveDetail(snapshots, market) {
                 prevVol = (prevDataGroup[sel] || {}).volume || 0;
             }
             var volDiff = vol - prevVol;
-            var volDiffStr = '-';
+            var volDiffStr = '\u00b7';
             if (i > 0 && volDiff !== 0) {
                 volDiffStr = formatLiveVol(volDiff);
             }
 
             var hi = pct >= 50;
+            var divCls = j > 0 ? ' lpt-sel-divider' : '';
 
-            html += '<td class="period-dual"><span class="dual-main period-odds">' + oddsStr + '</span><span class="dual-sub">' + deltaHtml + '</span></td>';
-            html += '<td class="period-dual"><span class="dual-main period-vol">' + (vol ? formatLiveVol(vol) : '-') + '</span><span class="dual-sub vol-diff">' + volDiffStr + '</span></td>';
+            html += '<td class="period-dual' + divCls + '"><span class="dual-main period-odds">' + oddsStr + '</span><span class="dual-sub">' + deltaHtml + '</span></td>';
+            html += '<td class="period-dual"><span class="dual-main period-vol">' + (vol ? formatLiveVol(vol) : '\u00b7') + '</span><span class="dual-sub vol-diff">' + volDiffStr + '</span></td>';
             html += '<td class="period-dual"><span class="dual-main period-pct ' + (hi ? 'pct-high' : 'pct-low') + '">' + pctStr + '</span><span class="dual-sub">' + pctDeltaHtml + '</span></td>';
         }
 
