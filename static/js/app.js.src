@@ -10034,12 +10034,32 @@ function closeLiveDetail() {
     _liveDetailData = null;
 }
 
+function _minuteToNum(m) {
+    if (m === null || m === undefined || m === '') return -1;
+    var s = String(m).replace(/'/g, '').trim();
+    if (s === 'HT') return 45.5;
+    if (s === 'FT') return 120;
+    if (s === 'ET') return 105;
+    if (s === 'PEN') return 115;
+    var stop = s.match(/^(\d+)\+(\d+)$/);
+    if (stop) return parseInt(stop[1]) + parseInt(stop[2]) * 0.01;
+    var n = parseInt(s);
+    return isNaN(n) ? -1 : n;
+}
+
 function renderLiveDetail(snapshots, market) {
     var body = document.getElementById('liveDetailBody');
     if (!snapshots || snapshots.length === 0) {
         body.innerHTML = '<div class="live-loading">Henuz periyot verisi yok</div>';
         return;
     }
+
+    snapshots = snapshots.slice().sort(function(a, b) {
+        var am = _minuteToNum(a.minute), bm = _minuteToNum(b.minute);
+        if (am !== bm) return am - bm;
+        return (a.snapshot_at || '') < (b.snapshot_at || '') ? -1 : 1;
+    });
+
     var is1x2 = (market === '1x2');
     var ouLine = is1x2 ? '' : market.replace('ou', '');
     var sels = is1x2 ? ['1', 'X', '2'] : ['U', 'O'];
@@ -10071,7 +10091,11 @@ function renderLiveDetail(snapshots, market) {
         var prevS = i > 0 ? snapshots[i - 1] : null;
 
         var minVal = s.minute;
-        var minStr = (minVal !== '' && minVal !== null && minVal !== undefined) ? minVal + "'" : '-';
+        var minStr = '-';
+        if (minVal !== '' && minVal !== null && minVal !== undefined) {
+            var mv = String(minVal);
+            minStr = mv.endsWith("'") ? mv : mv + "'";
+        }
         var scoreStr = s.score || '-';
 
         html += '<tr>';
