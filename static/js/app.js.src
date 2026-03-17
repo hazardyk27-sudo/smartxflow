@@ -2614,6 +2614,20 @@ let previousOddsData = null;
 let modalOddsData = null;
 
 // Tarih filtresinden bağımsız - doğrudan matches dizisinden modal aç
+function _setupNormalModalAccordion(home, away) {
+    setAccordionState('chart', true);
+    setAccordionState('alarms', true);
+
+    var liveHash = _findLiveHash(home, away);
+    if (liveHash) {
+        _liveDetailHash = liveHash;
+        document.getElementById('accordionLive').style.display = '';
+        setAccordionState('live', false);
+    } else {
+        document.getElementById('accordionLive').style.display = 'none';
+    }
+}
+
 async function openMatchModalFromMatches(index) {
     if (index >= 0 && index < matches.length) {
         const reqId = ++_modalRequestId;
@@ -2639,12 +2653,16 @@ async function openMatchModalFromMatches(index) {
                 t.classList.add('active');
             }
         });
-        
-        document.getElementById('modalOverlay').classList.add('active');
-        
+
         const home = selectedMatch.home_team;
         const away = selectedMatch.away_team;
         const league = selectedMatch.league || '';
+
+        _setupNormalModalAccordion(home, away);
+        _accordionChartLoaded = true;
+        _accordionAlarmsLoaded = true;
+        
+        document.getElementById('modalOverlay').classList.add('active');
         
         const chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(() => registerChartPlugins()) : Promise.resolve();
         const marketsPromise = loadAllMarketsAtOnce(home, away, league);
@@ -2660,7 +2678,6 @@ async function openMatchModalFromMatches(index) {
     }
 }
 
-// API'den maç verisi çekip modal aç (listede olmayan maçlar için)
 async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
     const reqId = ++_modalRequestId;
     resetModalState();
@@ -2698,6 +2715,10 @@ async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
             t.classList.add('active');
         }
     });
+
+    _setupNormalModalAccordion(homeTeam, awayTeam);
+    _accordionChartLoaded = true;
+    _accordionAlarmsLoaded = true;
     
     document.getElementById('modalOverlay').classList.add('active');
 
@@ -2746,12 +2767,16 @@ async function openMatchModal(index) {
                 t.classList.add('active');
             }
         });
-        
-        document.getElementById('modalOverlay').classList.add('active');
-        
+
         const home = selectedMatch.home_team;
         const away = selectedMatch.away_team;
         const league = selectedMatch.league || '';
+
+        _setupNormalModalAccordion(home, away);
+        _accordionChartLoaded = true;
+        _accordionAlarmsLoaded = true;
+        
+        document.getElementById('modalOverlay').classList.add('active');
         
         const chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(() => registerChartPlugins()) : Promise.resolve();
         const marketsPromise = loadAllMarketsAtOnce(home, away, league);
@@ -2777,6 +2802,8 @@ function resetModalState() {
     previousOddsData = null;
     bulkHistoryCache = {};
     bulkHistoryCacheKey = '';
+    _accordionChartLoaded = false;
+    _accordionAlarmsLoaded = false;
 
     const card = document.getElementById('matchInfoCard');
     if (card) card.innerHTML = '';
@@ -2792,13 +2819,14 @@ function resetModalState() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
-    document.getElementById('mobileTabLiveBtn').style.display = 'none';
     _liveDetailData = null;
     _liveDetailHash = null;
     var liveBody = document.getElementById('liveDetailBody');
     if (liveBody) liveBody.innerHTML = '';
     var liveTabs = document.getElementById('liveDetailTabs');
     if (liveTabs) liveTabs.innerHTML = '';
+    var liveSection = document.getElementById('accordionLive');
+    if (liveSection) liveSection.style.display = 'none';
 
     showSmartMoneyLoading();
     showChartLoading();
@@ -3223,22 +3251,38 @@ function getTrendArrow(current, previous) {
     return '';
 }
 
-function switchMobileTab(tabName) {
-    document.querySelectorAll('.mobile-tab-bar .mob-tab').forEach(t => {
-        t.classList.remove('active');
-        if (t.dataset.tab === tabName) t.classList.add('active');
-    });
-    document.querySelectorAll('.mobile-tab-content').forEach(c => {
-        c.classList.remove('active');
-    });
-    const targetTab = document.getElementById('mobileTab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
-    if (targetTab) targetTab.classList.add('active');
+var _accordionState = { chart: true, alarms: true, live: false };
+var _accordionChartLoaded = false;
+var _accordionAlarmsLoaded = false;
 
-    if (tabName === 'chart' && selectedMatch && !modalOddsData) {
-        var home = selectedMatch.home_team;
-        var away = selectedMatch.away_team;
-        var league = selectedMatch.league || '';
-        var reqId = _modalRequestId;
+function setAccordionState(section, open) {
+    _accordionState[section] = open;
+    var bodyId, chevronId;
+    if (section === 'chart') { bodyId = 'accordionChartBody'; chevronId = 'accordionChartChevron'; }
+    else if (section === 'alarms') { bodyId = 'accordionAlarmsBody'; chevronId = 'accordionAlarmsChevron'; }
+    else if (section === 'live') { bodyId = 'accordionLiveBody'; chevronId = 'accordionLiveChevron'; }
+    else return;
+    var body = document.getElementById(bodyId);
+    var chevron = document.getElementById(chevronId);
+    if (body) body.style.display = open ? '' : 'none';
+    if (chevron) chevron.textContent = open ? '\u25BC' : '\u25B2';
+
+    if (open) _lazyLoadAccordion(section);
+}
+
+function toggleAccordion(section) {
+    setAccordionState(section, !_accordionState[section]);
+}
+
+function _lazyLoadAccordion(section) {
+    if (!selectedMatch) return;
+    var home = selectedMatch.home_team;
+    var away = selectedMatch.away_team;
+    var league = selectedMatch.league || '';
+    var reqId = _modalRequestId;
+
+    if (section === 'chart' && !_accordionChartLoaded) {
+        _accordionChartLoaded = true;
         var chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(function() { registerChartPlugins(); }) : Promise.resolve();
         var marketsPromise = loadAllMarketsAtOnce(home, away, league);
         Promise.all([marketsPromise, chartLibsPromise]).then(function() {
@@ -3246,12 +3290,48 @@ function switchMobileTab(tabName) {
             return loadChartWithTrends(home, away, selectedChartMarket || currentMarket, league, reqId);
         }).catch(function(e) { console.error('[Modal] Chart pipeline error:', e); });
     }
-    if (tabName === 'events' && selectedMatch) {
-        var grid = document.getElementById('smartMoneyGrid');
-        if (grid && grid.innerHTML === '') {
-            renderMatchAlarmsSection(selectedMatch.home_team, selectedMatch.away_team, _modalRequestId);
+    if (section === 'alarms' && !_accordionAlarmsLoaded) {
+        _accordionAlarmsLoaded = true;
+        renderMatchAlarmsSection(home, away, reqId);
+    }
+    if (section === 'live' && _liveDetailHash && !_liveDetailData) {
+        _liveDetailMarket = _liveMarket;
+        document.getElementById('liveDetailBody').innerHTML =
+            '<div class="live-loading"><div class="loading-spinner"></div>Periyot verileri yukleniyor...</div>';
+        fetch('/api/live/match/history?hash=' + encodeURIComponent(_liveDetailHash))
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+                if (reqId !== _modalRequestId) return;
+                _liveDetailData = data.snapshots || [];
+                _buildDetailTabs(_liveDetailData);
+                renderLiveDetail(_liveDetailData, _liveDetailMarket);
+            })
+            .catch(function(e) {
+                if (reqId !== _modalRequestId) return;
+                document.getElementById('liveDetailBody').innerHTML = '<div class="live-loading">Veri yuklenemedi</div>';
+            });
+    }
+}
+
+function _findLiveHash(home, away) {
+    if (!_liveData || _liveData.length === 0) return null;
+    var h = (home || '').toLowerCase().trim();
+    var a = (away || '').toLowerCase().trim();
+    for (var i = 0; i < _liveData.length; i++) {
+        var m = _liveData[i];
+        var mh = (m.home_team || '').toLowerCase().trim();
+        var ma = (m.away_team || '').toLowerCase().trim();
+        if (mh === h && ma === a) return m.match_id_hash;
+        if (h.indexOf(mh) !== -1 || mh.indexOf(h) !== -1) {
+            if (a.indexOf(ma) !== -1 || ma.indexOf(a) !== -1) {
+                return m.match_id_hash;
+            }
         }
     }
+    return null;
+}
+
+function switchMobileTab(tabName) {
 }
 
 // === MOBILE CHART CONTROLS ===
@@ -3800,15 +3880,20 @@ function closeModal() {
     ++_modalRequestId;
     document.getElementById('modalOverlay').classList.remove('active');
 
-    document.getElementById('mobileTabLiveBtn').style.display = 'none';
     _liveDetailData = null;
     _liveDetailHash = null;
+    _accordionChartLoaded = false;
+    _accordionAlarmsLoaded = false;
     var liveBody = document.getElementById('liveDetailBody');
     if (liveBody) liveBody.innerHTML = '';
     var liveTabs = document.getElementById('liveDetailTabs');
     if (liveTabs) liveTabs.innerHTML = '';
+    var liveSection = document.getElementById('accordionLive');
+    if (liveSection) liveSection.style.display = 'none';
 
-    switchMobileTab('chart');
+    setAccordionState('chart', true);
+    setAccordionState('alarms', true);
+    setAccordionState('live', false);
     
     const chartTooltip = document.getElementById('chartjs-tooltip');
     if (chartTooltip) {
@@ -8307,10 +8392,9 @@ function formatSmartMoneyTime(dateStr) {
 }
 
 async function renderMatchAlarmsSection(homeTeam, awayTeam, reqId) {
-    const section = document.getElementById('smartMoneySection');
+    const section = document.getElementById('accordionAlarms');
     const grid = document.getElementById('smartMoneyGrid');
     const empty = document.getElementById('smartMoneyEmpty');
-    const chevron = document.getElementById('smartMoneyChevron');
     
     if (!section) {
         hideSmartMoneyLoading();
@@ -8325,8 +8409,6 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam, reqId) {
     
     hideSmartMoneyLoading();
     
-    smartMoneySectionOpen = true;
-    chevron.textContent = '▼';
     grid.style.display = 'grid';
     
     if (matchAlarms.length === 0) {
@@ -10019,8 +10101,10 @@ async function openLiveDetail(hash, home, away) {
     document.getElementById('modalMatchTitle').textContent = (home || '--') + ' vs ' + (away || '--');
     document.getElementById('modalLeague').textContent = 'Canl\u0131 Ma\u00e7';
 
-    document.getElementById('mobileTabLiveBtn').style.display = '';
-    switchMobileTab('live');
+    document.getElementById('accordionLive').style.display = '';
+    setAccordionState('live', true);
+    setAccordionState('chart', false);
+    setAccordionState('alarms', false);
 
     document.getElementById('liveDetailBody').innerHTML =
         '<div class="live-loading"><div class="loading-spinner"></div>Periyot verileri yukleniyor...</div>';
@@ -10042,16 +10126,7 @@ async function openLiveDetail(hash, home, away) {
             document.getElementById('liveDetailBody').innerHTML = '<div class="live-loading">Veri yuklenemedi</div>';
         });
 
-    var chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(function() { registerChartPlugins(); }) : Promise.resolve();
-    var marketsPromise = loadAllMarketsAtOnce(home, away, '');
-    var chartPipeline = Promise.all([marketsPromise, chartLibsPromise]).then(function() {
-        if (reqId !== _modalRequestId) return;
-        return loadChartWithTrends(home, away, selectedChartMarket, '', reqId);
-    }).catch(function(e) { console.error('[Modal] Chart pipeline error:', e); });
-
-    var alarmsPipeline = renderMatchAlarmsSection(home, away, reqId);
-
-    await Promise.all([livePromise, chartPipeline, alarmsPipeline]);
+    await livePromise;
 }
 
 function _buildDetailTabs(snapshots) {
