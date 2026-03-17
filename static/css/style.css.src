@@ -12307,9 +12307,9 @@ table.desktop-only {
 }
 .lpt-dual-th .lpt-th-sub {
     display: block;
-    font-size: 8px;
+    font-size: 9px;
     font-weight: 400;
-    color: rgba(156,163,175,0.45);
+    color: rgba(156,163,175,0.55);
     text-transform: none;
     letter-spacing: 0;
     margin-top: 3px;
@@ -12324,18 +12324,17 @@ table.desktop-only {
 }
 .period-dual .dual-main {
     display: block;
-    line-height: 1.3;
+    line-height: 1.2;
 }
 .period-dual .dual-sub {
     display: block;
-    margin-top: 4px;
-    font-size: 9px;
-    opacity: 0.65;
+    margin-top: 5px;
+    font-size: 10px;
+    opacity: 1;
 }
 .period-dual .dual-sub.vol-diff {
-    color: var(--mw-text-muted);
-    font-size: 9px;
-    opacity: 0.5;
+    color: rgba(156,163,175,0.5);
+    font-size: 10px;
 }
 .period-dk-skor {
     vertical-align: middle;
@@ -12345,57 +12344,57 @@ table.desktop-only {
 .period-dk-skor .dk-val {
     display: block;
     color: #00ffb3;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     line-height: 1.2;
 }
 .period-dk-skor .skor-val {
     display: block;
-    color: rgba(219,234,254,0.55);
+    color: rgba(219,234,254,0.5);
     font-size: 11px;
     font-weight: 500;
-    margin-top: 3px;
+    margin-top: 4px;
 }
 .period-odds {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
-    color: rgba(219,234,254,0.95);
+    color: rgba(235,242,255,0.95);
     white-space: nowrap;
-    letter-spacing: -0.2px;
+    letter-spacing: -0.3px;
 }
 .period-pct {
-    font-size: 12px;
-    font-weight: 500;
+    font-size: 13px;
+    font-weight: 600;
 }
 .period-pct.pct-high {
     color: var(--mw-text-money);
 }
 .period-pct.pct-low {
-    color: rgba(156,163,175,0.45);
+    color: rgba(156,163,175,0.5);
 }
 .period-vol {
-    font-size: 13px;
-    color: rgba(219,234,254,0.75);
-    font-weight: 500;
+    font-size: 14px;
+    color: rgba(235,242,255,0.85);
+    font-weight: 600;
 }
 .period-vol-total {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--mw-text-money);
 }
 .period-delta-up {
     color: var(--mw-text-money);
-    font-weight: 600;
-    font-size: 9px;
+    font-weight: 500;
+    font-size: 10px;
 }
 .period-delta-down {
     color: #ef4444;
-    font-weight: 600;
-    font-size: 9px;
+    font-weight: 500;
+    font-size: 10px;
 }
 .period-delta-neutral {
-    color: rgba(156,163,175,0.3);
-    font-size: 9px;
+    color: rgba(156,163,175,0.2);
+    font-size: 10px;
 }
 .lpt-totals-row td {
     background: #080d14 !important;
