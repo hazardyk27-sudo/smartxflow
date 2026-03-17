@@ -1809,7 +1809,7 @@ def get_live_matches():
 
         headers = supabase._headers()
 
-        fix_url = f"{supabase._rest_url('live_fixtures')}?order=updated_at.desc&limit=200"
+        fix_url = f"{supabase._rest_url('live_fixtures')}?status=eq.live&order=updated_at.desc&limit=200"
         fix_resp = supabase._get_http_client().get(fix_url, headers=headers, timeout=15)
         if fix_resp.status_code != 200:
             return jsonify({'matches': [], 'error': f'Fixtures HTTP {fix_resp.status_code}'}), 200
