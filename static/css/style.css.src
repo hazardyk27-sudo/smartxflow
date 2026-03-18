@@ -12232,6 +12232,11 @@ table.desktop-only {
     border-collapse: collapse;
     border-spacing: 0;
 }
+.modal-live-body .live-detail-table-wrap {
+    max-height: 480px;
+    overflow-y: auto;
+    position: relative;
+}
 .modal-live-body .live-period-table thead th {
     padding: 0;
     background: #161b22;
@@ -12239,6 +12244,14 @@ table.desktop-only {
     text-align: center;
     vertical-align: middle;
     white-space: nowrap;
+    position: sticky;
+    z-index: 2;
+}
+.modal-live-body .live-period-table thead tr.lpt-group-row th {
+    top: 0;
+}
+.modal-live-body .live-period-table thead tr.lpt-col-row th {
+    top: 36px;
 }
 .modal-live-body .live-period-table thead tr.lpt-group-row th {
     font-size: 14px;
@@ -12350,6 +12363,9 @@ table.desktop-only {
     padding: 8px 8px;
     border-right: 2px solid #30363d;
     background: #161b22;
+    position: sticky;
+    top: 0;
+    z-index: 3;
 }
 .modal-live-body .lpt-dkskor-th .lpt-th-main {
     display: block;
