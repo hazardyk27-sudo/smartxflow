@@ -17,7 +17,7 @@ import unicodedata
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
-from bs4 import BeautifulSoup
+
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'scraper_standalone'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'desktop', 'scraper_standalone'))
@@ -33,26 +33,6 @@ try:
     TURKEY_TZ = pytz.timezone('Europe/Istanbul')
 except ImportError:
     TURKEY_TZ = None
-
-HEADERS = {
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Connection": "keep-alive",
-}
-
-arbworld_cookie = os.environ.get('ARBWORLD_COOKIE', '')
-if arbworld_cookie:
-    HEADERS['Cookie'] = arbworld_cookie
-    print(f"[Live Cookie] ARBWORLD_COOKIE enjekte edildi ({len(arbworld_cookie)} karakter)")
-else:
-    print("[Live Cookie] ARBWORLD_COOKIE bulunamadi - cookie'siz devam ediliyor")
-
-LIVE_URLS = {
-    "live-1x2": "https://arbworld.net/en/moneyway/football-1-x-2-live",
-    "live-ou": "https://arbworld.net/en/moneyway/football-over-under-multiple-live",
-}
 
 BETWATCH_GETMONEY_URL = "https://www.betwatch.fr/football/getMoney"
 BETWATCH_GETMAIN_URL = "https://www.betwatch.fr/football/getMain"
@@ -114,124 +94,6 @@ def make_live_match_hash(home: str, away: str, league: str) -> str:
     l = normalize_field(league)
     canonical = f"{l}|{h}|{a}"
     return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
-
-
-def _text(node) -> str:
-    return node.get_text(strip=True) if node else ""
-
-
-def _parse_pct_amt(td) -> tuple:
-    joined = " ".join(list(td.stripped_strings))
-    m_pct = re.search(r"(\d+(?:\.\d+)?)\s*%", joined)
-    pct = float(m_pct.group(1)) if m_pct else 0.0
-    m_amt = re.search(r"£\s*([\d\s\.]+\s*[MKmk]?)", joined)
-    amt_str = m_amt.group(1).strip() if m_amt else ""
-    amt = _parse_volume(f"£ {amt_str}") if amt_str else 0.0
-    return pct, amt
-
-
-def _parse_volume(vol_str: str) -> float:
-    if not vol_str:
-        return 0.0
-    vol_str = vol_str.replace('£', '').replace(',', '').strip()
-    vol_str = re.sub(r'\s+', '', vol_str)
-    multiplier = 1.0
-    if vol_str.upper().endswith('M'):
-        multiplier = 1000000
-        vol_str = vol_str[:-1]
-    elif vol_str.upper().endswith('K'):
-        multiplier = 1000
-        vol_str = vol_str[:-1]
-    try:
-        return float(vol_str.strip()) * multiplier
-    except:
-        return 0.0
-
-
-def _parse_odds(s: str) -> Optional[float]:
-    if not s:
-        return None
-    s = s.strip()
-    try:
-        return float(s)
-    except:
-        return None
-
-
-def _parse_minute(date_str: str) -> str:
-    """Parse minute/time from tdate column. Format: '16.Mar14:31:49' or '16.Mar HT' etc."""
-    if not date_str:
-        return ""
-    for marker in ['HT', 'FT', '1H', '2H', 'ET', 'PEN']:
-        if marker in date_str.upper():
-            return marker
-    stoppage = re.search(r"(\d{1,3})\+(\d{1,2})'?", date_str)
-    if stoppage:
-        return f"{stoppage.group(1)}+{stoppage.group(2)}"
-    m = re.search(r"(\d{1,3})'", date_str)
-    if m:
-        return m.group(1)
-    return ""
-
-
-MONTH_MAP = {
-    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
-    'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
-}
-
-
-def _parse_kickoff_utc(date_str: str, fallback_utc: str) -> str:
-    """Parse kickoff UTC from tdate column. Format: '16.Mar14:31:49' → ISO UTC."""
-    if not date_str:
-        return fallback_utc
-    upper = date_str.strip().upper()
-    status_offsets = {'HT': 47, 'FT': 95, '1H': 25, '2H': 70, 'ET': 110, 'PEN': 120}
-    for marker, offset_min in status_offsets.items():
-        if marker in upper:
-            try:
-                now = datetime.now(timezone.utc)
-                ko = now - timedelta(minutes=offset_min)
-                return ko.strftime('%Y-%m-%dT%H:%M:%S+00:00')
-            except Exception:
-                break
-    stoppage = re.match(r"(\d{1,3})\+(\d{1,2})'?", date_str.strip())
-    if stoppage:
-        try:
-            total_mins = int(stoppage.group(1)) + int(stoppage.group(2))
-            now = datetime.now(timezone.utc)
-            ko = now - timedelta(minutes=total_mins)
-            return ko.strftime('%Y-%m-%dT%H:%M:%S+00:00')
-        except Exception:
-            pass
-    min_match = re.search(r"(\d{1,3})'", date_str)
-    if min_match:
-        try:
-            mins = int(min_match.group(1))
-            now = datetime.now(timezone.utc)
-            ko = now - timedelta(minutes=mins)
-            return ko.strftime('%Y-%m-%dT%H:%M:%S+00:00')
-        except Exception:
-            pass
-    m = re.match(r'(\d{1,2})\.(\w{3})\s*(\d{1,2}):(\d{2}):(\d{2})', date_str.strip())
-    if not m:
-        return fallback_utc
-    try:
-        day = int(m.group(1))
-        mon_str = m.group(2).lower()
-        hour = int(m.group(3))
-        minute = int(m.group(4))
-        sec = int(m.group(5))
-        month = MONTH_MAP.get(mon_str)
-        if not month:
-            return fallback_utc
-        now = datetime.now(timezone.utc)
-        year = now.year
-        ko = datetime(year, month, day, hour, minute, sec, tzinfo=timezone.utc)
-        if ko > now:
-            ko = ko.replace(year=year - 1)
-        return ko.strftime('%Y-%m-%dT%H:%M:%S+00:00')
-    except Exception:
-        return fallback_utc
 
 
 SOFASCORE_URL = "https://api.sofascore.com/api/v1/sport/football/events/live"
@@ -479,123 +341,6 @@ def _fetch_final_scores(writer, stale_hashes: List[str]) -> Dict[str, str]:
         return {}
 
 
-def fetch_table(url: str, session: requests.Session) -> BeautifulSoup:
-    resp = session.get(url, headers=HEADERS, timeout=30, verify=SSL_VERIFY)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
-    table = soup.select_one("table#matches.table_matches")
-    if not table:
-        table = soup.find("table", id="matches") or soup.find("table", class_="table_matches")
-    if not table:
-        raise RuntimeError(f"Tablo bulunamadi: {url}")
-    return table
-
-
-def _extract_score_from_row(tr) -> str:
-    """Arbworld live HTML'den skor çekmeyi dener.
-    NOT: Arbworld live sayfasında skor sütunu (td.tscore) YOKTUR.
-    15 TD analiz edildi: tclose, tflag, tleague, tdate, thome, odds_col_small(x3),
-    odds_col(x3), taway, tvol, tbet, hidden_date. Skor bilgisi Sofascore ile elde edilir."""
-    score_td = tr.select_one("td.tscore")
-    if score_td:
-        return _text(score_td)
-    for cls in ['score', 'result', 'live-score']:
-        td = tr.select_one(f"td.{cls}")
-        if td:
-            return _text(td)
-    return ""
-
-
-def extract_live_1x2(table: BeautifulSoup) -> List[Dict[str, Any]]:
-    rows = []
-    for tr in table.select("tbody tr"):
-        league = _text(tr.select_one("td.tleague"))
-        if not league:
-            continue
-        date_text = _text(tr.select_one("td.tdate"))
-        home = _text(tr.select_one("td.thome"))
-        away = _text(tr.select_one("td.taway"))
-        volume_text = _text(tr.select_one("td.tvol"))
-        volume = _parse_volume(volume_text)
-        score = _extract_score_from_row(tr)
-
-        odds_small = [td.get_text(strip=True) for td in tr.select("td.odds_col_small")][:3]
-        while len(odds_small) < 3:
-            odds_small.append("")
-
-        pct_cells = tr.select("td.odds_col")[:3]
-        pct_amt_values = [_parse_pct_amt(td) for td in pct_cells]
-        while len(pct_amt_values) < 3:
-            pct_amt_values.append((0.0, 0.0))
-
-        match_hash = make_live_match_hash(home, away, league)
-
-        rows.append({
-            "match_id_hash": match_hash,
-            "league": league,
-            "date_text": date_text,
-            "home": home,
-            "away": away,
-            "score": score,
-            "volume": volume,
-            "volume_text": volume_text,
-            "odds1": _parse_odds(odds_small[0]),
-            "oddsx": _parse_odds(odds_small[1]),
-            "odds2": _parse_odds(odds_small[2]),
-            "pct1": pct_amt_values[0][0],
-            "amt1": pct_amt_values[0][1],
-            "pctx": pct_amt_values[1][0],
-            "amtx": pct_amt_values[1][1],
-            "pct2": pct_amt_values[2][0],
-            "amt2": pct_amt_values[2][1],
-        })
-    return rows
-
-
-def extract_live_ou(table: BeautifulSoup) -> List[Dict[str, Any]]:
-    rows = []
-    for tr in table.select("tbody tr"):
-        league = _text(tr.select_one("td.tleague"))
-        if not league:
-            continue
-        date_text = _text(tr.select_one("td.tdate"))
-        home = _text(tr.select_one("td.thome"))
-        away = _text(tr.select_one("td.taway"))
-        volume_text = _text(tr.select_one("td.tvol"))
-        volume = _parse_volume(volume_text)
-        score = _extract_score_from_row(tr)
-
-        small = [td.get_text(strip=True) for td in tr.select("td.odds_col_small")]
-        under_odds = _parse_odds(small[0]) if len(small) > 0 else None
-        line = small[1] if len(small) > 1 else ""
-        over_odds = _parse_odds(small[2]) if len(small) > 2 else None
-
-        pct_cells = tr.select("td.odds_col")
-        pct_under, amt_under = _parse_pct_amt(pct_cells[0]) if len(pct_cells) > 0 else (0.0, 0.0)
-        pct_over, amt_over = _parse_pct_amt(pct_cells[1]) if len(pct_cells) > 1 else (0.0, 0.0)
-
-        match_hash = make_live_match_hash(home, away, league)
-
-        rows.append({
-            "match_id_hash": match_hash,
-            "league": league,
-            "date_text": date_text,
-            "home": home,
-            "away": away,
-            "score": score,
-            "volume": volume,
-            "volume_text": volume_text,
-            "line": line,
-            "under_odds": under_odds,
-            "over_odds": over_odds,
-            "pct_under": pct_under,
-            "amt_under": amt_under,
-            "pct_over": pct_over,
-            "amt_over": amt_over,
-        })
-    return rows
-
-
 class LiveSupabaseWriter:
     def __init__(self, url: str, key: str):
         self.url = url.rstrip('/')
@@ -739,18 +484,6 @@ def update_heartbeat(supabase_url: str, supabase_key: str, status: str, match_co
     except Exception as e:
         log(f"[Heartbeat] Hata: {e}")
         return False
-
-
-def _fetch_arbworld_data(session: requests.Session) -> dict:
-    """Arbworld 1X2 ve OU verilerini çeker (thread içinde çalışır). ARTIK KULLANILMIYOR - Betwatch'a geçildi."""
-    result = {"tables": {}, "errors": []}
-    for dataset_key, url in LIVE_URLS.items():
-        try:
-            table = fetch_table(url, session)
-            result["tables"][dataset_key] = table
-        except Exception as e:
-            result["errors"].append((dataset_key, e))
-    return result
 
 
 def _fetch_sofascore_data() -> Dict[str, Dict]:
