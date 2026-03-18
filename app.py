@@ -1991,8 +1991,7 @@ def _get_live_history_by_hash(supabase, headers, match_hash, fixture=None):
                 except Exception:
                     snap_minute = ''
 
-            if not snap_score and fixture:
-                snap_score = fixture.get('score', '')
+            
 
             periods[key] = {
                 'snapshot_at': ts,
