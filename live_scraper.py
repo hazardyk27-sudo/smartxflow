@@ -36,11 +36,14 @@ except ImportError:
 
 BETWATCH_GETMONEY_URL = "https://www.betwatch.fr/football/getMoney"
 BETWATCH_GETMAIN_URL = "https://www.betwatch.fr/football/getMain"
+BETWATCH_COOKIE = os.environ.get("BETWATCH_COOKIE", "")
 BETWATCH_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Referer": "https://www.betwatch.fr/money",
     "Content-Type": "application/json",
 }
+if BETWATCH_COOKIE:
+    BETWATCH_HEADERS["Cookie"] = BETWATCH_COOKIE
 
 INTERVAL_MINUTES = 1
 INTERVAL_SECONDS = INTERVAL_MINUTES * 60
