@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 SmartXFlow Live Scraper
-Canlı maç verilerini 3 dakikada bir Arbworld'den çeker.
-1X2 Live + Over/Under Multiple Live
+Canlı maç verilerini Betwatch.fr'den çeker (Betfair exchange oranları + para).
+Skor/dakika Sofascore'dan gelir.
 Prematch scraper'dan bağımsız çalışır.
 """
 import os
@@ -52,6 +52,14 @@ else:
 LIVE_URLS = {
     "live-1x2": "https://arbworld.net/en/moneyway/football-1-x-2-live",
     "live-ou": "https://arbworld.net/en/moneyway/football-over-under-multiple-live",
+}
+
+BETWATCH_GETMONEY_URL = "https://www.betwatch.fr/football/getMoney"
+BETWATCH_GETMAIN_URL = "https://www.betwatch.fr/football/getMain"
+BETWATCH_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Referer": "https://www.betwatch.fr/money",
+    "Content-Type": "application/json",
 }
 
 INTERVAL_MINUTES = 1
@@ -734,7 +742,7 @@ def update_heartbeat(supabase_url: str, supabase_key: str, status: str, match_co
 
 
 def _fetch_arbworld_data(session: requests.Session) -> dict:
-    """Arbworld 1X2 ve OU verilerini çeker (thread içinde çalışır)."""
+    """Arbworld 1X2 ve OU verilerini çeker (thread içinde çalışır). ARTIK KULLANILMIYOR - Betwatch'a geçildi."""
     result = {"tables": {}, "errors": []}
     for dataset_key, url in LIVE_URLS.items():
         try:
@@ -750,116 +758,252 @@ def _fetch_sofascore_data() -> Dict[str, Dict]:
     return _fetch_sofascore_live()
 
 
+def _fetch_betwatch_money() -> list:
+    """Betwatch getMoney: Betfair exchange oranları + seçenek bazında para (canlı)."""
+    try:
+        today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+        params = {
+            "live_only": "true",
+            "prematch_only": "false",
+            "finished_only": "false",
+            "favorite_only": "false",
+            "utc": "3",
+            "step": "1",
+            "date": today,
+            "order_by_time": "false",
+            "not_countries": "[]",
+            "not_leagues": "[]",
+        }
+        resp = requests.get(BETWATCH_GETMONEY_URL, params=params,
+                            headers=BETWATCH_HEADERS, timeout=30, verify=SSL_VERIFY)
+        if resp.status_code != 200:
+            log(f"  [Betwatch Money] HTTP {resp.status_code}")
+            return []
+        data = resp.json()
+        entries = data.get('data', [])
+        log(f"  [Betwatch Money] {len(entries)} market entry çekildi")
+        return entries
+    except Exception as e:
+        log(f"  [Betwatch Money] Hata: {e}")
+        return []
+
+
+def _fetch_betwatch_main() -> list:
+    """Betwatch getMain: tüm canlı maçların 1X2 oranları (backup)."""
+    try:
+        today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+        params = {
+            "live_only": "true",
+            "prematch_only": "false",
+            "finished_only": "false",
+            "favorite_only": "false",
+            "utc": "3",
+            "step": "1",
+            "date": today,
+            "order_by_time": "false",
+            "not_countries": "[]",
+            "not_leagues": "[]",
+        }
+        resp = requests.get(BETWATCH_GETMAIN_URL, params=params,
+                            headers=BETWATCH_HEADERS, timeout=30, verify=SSL_VERIFY)
+        if resp.status_code != 200:
+            log(f"  [Betwatch Main] HTTP {resp.status_code}")
+            return []
+        data = resp.json()
+        entries = data.get('data', [])
+        log(f"  [Betwatch Main] {len(entries)} canlı maç çekildi")
+        return entries
+    except Exception as e:
+        log(f"  [Betwatch Main] Hata: {e}")
+        return []
+
+
+def _fetch_betwatch_data() -> dict:
+    """Betwatch getMoney + getMain paralel çeker."""
+    result = {"money": [], "main": [], "errors": [], "fetch_ok": False}
+    try:
+        with ThreadPoolExecutor(max_workers=2) as ex:
+            money_f = ex.submit(_fetch_betwatch_money)
+            main_f = ex.submit(_fetch_betwatch_main)
+            result["money"] = money_f.result(timeout=45)
+            result["main"] = main_f.result(timeout=45)
+        if result["main"] or result["money"]:
+            result["fetch_ok"] = True
+    except Exception as e:
+        result["errors"].append(str(e))
+    return result
+
+
+def _process_betwatch_data(bw_result: dict, now_utc: str, today_str: str) -> tuple:
+    """Betwatch verilerini fixtures + snapshots'a dönüştürür.
+    getMain → tüm maçların fixture + 1X2 oranları (para bilgisi yok)
+    getMoney → para/volume bilgisi + tüm marketler (1X2 + OU)
+    """
+    all_fixtures = {}
+    all_snapshots = []
+    match_count_1x2 = 0
+    match_count_ou = 0
+    seen_1x2_events = set()
+
+    main_entries = bw_result.get("main", [])
+    for entry in main_entries:
+        home = entry.get('htn', '')
+        away = entry.get('atn', '')
+        league = entry.get('ln', '')
+        event_id = entry.get('e', 0)
+        if not home or not away:
+            continue
+        h = make_live_match_hash(home, away, league)
+        ko_utc = entry.get('ce', now_utc)
+        if ko_utc and ko_utc.endswith('Z'):
+            ko_utc = ko_utc.replace('Z', '+00:00')
+        all_fixtures[h] = {
+            "match_id_hash": h,
+            "home_team": home[:100],
+            "away_team": away[:100],
+            "league": league[:150],
+            "score": "",
+            "minute": "",
+            "status": "live",
+            "kickoff_utc": ko_utc,
+            "fixture_date": today_str,
+            "updated_at": now_utc,
+        }
+        sels = entry.get('i', [])
+        if len(sels) >= 3:
+            odds1 = sels[0][1] if len(sels[0]) > 1 else None
+            oddsx = sels[1][1] if len(sels[1]) > 1 else None
+            odds2 = sels[2][1] if len(sels[2]) > 1 else None
+            for sel, odds in [('1', odds1), ('X', oddsx), ('2', odds2)]:
+                all_snapshots.append({
+                    "match_id_hash": h,
+                    "snapshot_at": now_utc,
+                    "market": "1X2",
+                    "selection": sel,
+                    "odds": odds,
+                    "share": 0.0,
+                    "volume": 0.0,
+                    "ou_line": None,
+                })
+            seen_1x2_events.add(event_id)
+            match_count_1x2 += 1
+
+    money_entries = bw_result.get("money", [])
+    money_by_event_market = {}
+    for entry in money_entries:
+        event_id = entry.get('e', 0)
+        market_name = entry.get('n', '')
+        money_by_event_market[(event_id, market_name)] = entry
+
+    for (event_id, market_name), entry in money_by_event_market.items():
+        home = entry.get('htn', '')
+        away = entry.get('atn', '')
+        league = entry.get('ln', '')
+        if not home or not away:
+            continue
+        h = make_live_match_hash(home, away, league)
+        if h not in all_fixtures:
+            ko_utc = entry.get('ce', now_utc)
+            if ko_utc and ko_utc.endswith('Z'):
+                ko_utc = ko_utc.replace('Z', '+00:00')
+            all_fixtures[h] = {
+                "match_id_hash": h,
+                "home_team": home[:100],
+                "away_team": away[:100],
+                "league": league[:150],
+                "score": "",
+                "minute": "",
+                "status": "live",
+                "kickoff_utc": ko_utc,
+                "fixture_date": today_str,
+                "updated_at": now_utc,
+            }
+        sels = entry.get('i', [])
+        total_volume = entry.get('v', 0) or 0
+
+        if market_name == "Match Odds":
+            if event_id in seen_1x2_events:
+                snap_map = {}
+                for snap in all_snapshots:
+                    if snap['match_id_hash'] == h and snap['market'] == '1X2':
+                        snap_map[snap['selection']] = snap
+                for sel_data in sels:
+                    if len(sel_data) < 4:
+                        continue
+                    sel_name = sel_data[0]
+                    sel_money = sel_data[1] or 0
+                    back_odds = sel_data[2]
+                    share = (sel_money / total_volume * 100) if total_volume > 0 else 0
+                    if sel_name in snap_map:
+                        snap_map[sel_name]['odds'] = back_odds
+                        snap_map[sel_name]['share'] = round(share, 1)
+                        snap_map[sel_name]['volume'] = sel_money
+            else:
+                for sel_data in sels:
+                    if len(sel_data) < 4:
+                        continue
+                    sel_name = sel_data[0]
+                    sel_money = sel_data[1] or 0
+                    back_odds = sel_data[2]
+                    share = (sel_money / total_volume * 100) if total_volume > 0 else 0
+                    all_snapshots.append({
+                        "match_id_hash": h,
+                        "snapshot_at": now_utc,
+                        "market": "1X2",
+                        "selection": sel_name,
+                        "odds": back_odds,
+                        "share": round(share, 1),
+                        "volume": sel_money,
+                        "ou_line": None,
+                    })
+                seen_1x2_events.add(event_id)
+                match_count_1x2 += 1
+
+        elif market_name.startswith("Over/Under"):
+            line_match = re.search(r'([\d.]+)', market_name.replace("Over/Under", ""))
+            line = line_match.group(1) if line_match else ""
+            match_count_ou += 1
+            for sel_data in sels:
+                if len(sel_data) < 4:
+                    continue
+                sel_name = sel_data[0]
+                sel_money = sel_data[1] or 0
+                back_odds = sel_data[2]
+                sel_code = "U" if sel_name == "Under" else "O"
+                share = (sel_money / total_volume * 100) if total_volume > 0 else 0
+                all_snapshots.append({
+                    "match_id_hash": h,
+                    "snapshot_at": now_utc,
+                    "market": "OU",
+                    "selection": sel_code,
+                    "odds": back_odds,
+                    "share": round(share, 1),
+                    "volume": sel_money,
+                    "ou_line": line,
+                })
+
+    log(f"  [Betwatch] 1X2: {match_count_1x2} maç, OU: {match_count_ou} market")
+    return all_fixtures, all_snapshots, match_count_1x2 + match_count_ou
+
+
 def run_live_scrape(writer: LiveSupabaseWriter) -> int:
-    """Arbworld'den odds çeker, Sofascore'dan skor/dakika ekler.
-    Arbworld ve Sofascore paralel olarak çekilir.
-    NOT: Arbworld live HTML'de skor sütunu (td.tscore) YOKTUR — 15 TD incelendi,
-    skor verisi sadece Sofascore API üzerinden elde edilir."""
+    """Betwatch'dan oranları + para bilgisini çeker, Sofascore'dan skor/dakika ekler.
+    Betwatch ve Sofascore paralel olarak çekilir."""
     log("CANLI SCRAPE BAŞLIYOR...")
-    session = requests.Session()
     now_utc = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S+00:00')
     today_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
 
-    all_fixtures = {}
-    all_snapshots = []
-    total_matches = 0
-
-    log("  Arbworld + Sofascore paralel çekiliyor...")
+    log("  Betwatch + Sofascore paralel çekiliyor...")
     with ThreadPoolExecutor(max_workers=2) as executor:
-        arb_future = executor.submit(_fetch_arbworld_data, session)
+        bw_future = executor.submit(_fetch_betwatch_data)
         sofa_future = executor.submit(_fetch_sofascore_data)
-        arb_result = arb_future.result(timeout=60)
+        bw_result = bw_future.result(timeout=60)
         sofa_result = sofa_future.result(timeout=60)
 
-    for dataset_key, err in arb_result.get("errors", []):
-        log(f"  [HATA] {dataset_key}: {err}")
-        traceback.print_exc()
+    for err in bw_result.get("errors", []):
+        log(f"  [HATA] Betwatch: {err}")
 
-    for dataset_key, table in arb_result.get("tables", {}).items():
-        try:
-            if dataset_key == "live-1x2":
-                rows = extract_live_1x2(table)
-                for row in rows:
-                    h = row["match_id_hash"]
-                    if h not in all_fixtures:
-                        ko_utc = _parse_kickoff_utc(row["date_text"], now_utc)
-                        html_score = row.get("score", "")
-                        arb_minute = _parse_minute(row.get("date_text", ""))
-                        all_fixtures[h] = {
-                            "match_id_hash": h,
-                            "home_team": row["home"][:100],
-                            "away_team": row["away"][:100],
-                            "league": row["league"][:150],
-                            "score": html_score,
-                            "minute": arb_minute,
-                            "status": "live",
-                            "kickoff_utc": ko_utc,
-                            "fixture_date": today_str,
-                            "updated_at": now_utc,
-                        }
-
-                    for sel, odds, share, vol in [
-                        ('1', row["odds1"], row["pct1"], row["amt1"]),
-                        ('X', row["oddsx"], row["pctx"], row["amtx"]),
-                        ('2', row["odds2"], row["pct2"], row["amt2"]),
-                    ]:
-                        all_snapshots.append({
-                            "match_id_hash": h,
-                            "snapshot_at": now_utc,
-                            "market": "1X2",
-                            "selection": sel,
-                            "odds": odds,
-                            "share": share,
-                            "volume": vol,
-                            "ou_line": None,
-                        })
-
-                log(f"  [OK] live-1x2: {len(rows)} maç")
-                total_matches += len(rows)
-
-            elif dataset_key == "live-ou":
-                rows = extract_live_ou(table)
-                for row in rows:
-                    h = row["match_id_hash"]
-                    if h not in all_fixtures:
-                        ko_utc = _parse_kickoff_utc(row["date_text"], now_utc)
-                        html_score = row.get("score", "")
-                        arb_minute = _parse_minute(row.get("date_text", ""))
-                        all_fixtures[h] = {
-                            "match_id_hash": h,
-                            "home_team": row["home"][:100],
-                            "away_team": row["away"][:100],
-                            "league": row["league"][:150],
-                            "score": html_score,
-                            "minute": arb_minute,
-                            "status": "live",
-                            "kickoff_utc": ko_utc,
-                            "fixture_date": today_str,
-                            "updated_at": now_utc,
-                        }
-
-                    line = row.get("line", "")
-                    for sel, odds, share, vol in [
-                        ('U', row["under_odds"], row["pct_under"], row["amt_under"]),
-                        ('O', row["over_odds"], row["pct_over"], row["amt_over"]),
-                    ]:
-                        all_snapshots.append({
-                            "match_id_hash": h,
-                            "snapshot_at": now_utc,
-                            "market": "OU",
-                            "selection": sel,
-                            "odds": odds,
-                            "share": share,
-                            "volume": vol,
-                            "ou_line": line,
-                        })
-
-                log(f"  [OK] live-ou: {len(rows)} maç")
-                total_matches += len(rows)
-
-        except Exception as e:
-            log(f"  [HATA] {dataset_key}: {e}")
-            traceback.print_exc()
+    all_fixtures, all_snapshots, total_matches = _process_betwatch_data(bw_result, now_utc, today_str)
 
     if all_fixtures:
         _apply_sofascore_results(all_fixtures, sofa_result)
@@ -900,7 +1044,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                 odds_by_match[h]['oddsX'] = snap.get('odds', '')
             elif snap.get('market') == '1X2' and snap.get('selection') == '2':
                 odds_by_match[h]['odds2'] = snap.get('odds', '')
-        log(f"  [DEBUG] Arbworld vs Sofascore karşılaştırma:")
+        log(f"  [DEBUG] Betwatch vs Sofascore karşılaştırma:")
         for h, fix in all_fixtures.items():
             o = odds_by_match.get(h, {})
             o1 = o.get('odds1', '-')
@@ -917,14 +1061,17 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
     for k in stale_keys:
         del _kickoff_cache[k]
 
-    existing_live = writer.get_live_fixture_hashes()
-    current_hashes = set(all_fixtures.keys())
-    stale_hashes = [h for h in existing_live if h not in current_hashes]
-    if stale_hashes:
-        final_scores = _fetch_final_scores(writer, stale_hashes)
-        marked = writer.mark_fixtures_finished(stale_hashes, final_scores)
-        score_count = sum(1 for s in final_scores.values() if s)
-        log(f"  [MS] {marked}/{len(stale_hashes)} biten maç FT olarak işaretlendi ({score_count} skor güncellendi)")
+    if bw_result.get("fetch_ok"):
+        existing_live = writer.get_live_fixture_hashes()
+        current_hashes = set(all_fixtures.keys())
+        stale_hashes = [h for h in existing_live if h not in current_hashes]
+        if stale_hashes:
+            final_scores = _fetch_final_scores(writer, stale_hashes)
+            marked = writer.mark_fixtures_finished(stale_hashes, final_scores)
+            score_count = sum(1 for s in final_scores.values() if s)
+            log(f"  [MS] {marked}/{len(stale_hashes)} biten maç FT olarak işaretlendi ({score_count} skor güncellendi)")
+    else:
+        log("  [UYARI] Betwatch verisi alınamadı, FT işaretleme atlanıyor")
 
     log(f"Canlı scrape tamamlandı - {len(all_fixtures)} maç, {len(all_snapshots)} snapshot")
     return len(all_fixtures)
