@@ -888,6 +888,26 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
             else:
                 snap['score'] = ''
                 snap['minute'] = ''
+
+        odds_by_match = {}
+        for snap in all_snapshots:
+            h = snap['match_id_hash']
+            if h not in odds_by_match:
+                odds_by_match[h] = {}
+            if snap.get('market') == '1X2' and snap.get('selection') == '1':
+                odds_by_match[h]['odds1'] = snap.get('odds', '')
+            elif snap.get('market') == '1X2' and snap.get('selection') == 'X':
+                odds_by_match[h]['oddsX'] = snap.get('odds', '')
+            elif snap.get('market') == '1X2' and snap.get('selection') == '2':
+                odds_by_match[h]['odds2'] = snap.get('odds', '')
+        log(f"  [DEBUG] Arbworld vs Sofascore karşılaştırma:")
+        for h, fix in all_fixtures.items():
+            o = odds_by_match.get(h, {})
+            o1 = o.get('odds1', '-')
+            oX = o.get('oddsX', '-')
+            o2 = o.get('odds2', '-')
+            log(f"    {fix.get('home_team','')[:15]:15s} vs {fix.get('away_team','')[:15]:15s} | dk={fix.get('minute','?'):5s} skor={fix.get('score','?'):5s} | 1={o1} X={oX} 2={o2}")
+
         if writer.insert_live_snapshots(all_snapshots):
             log(f"  [SNAPSHOTS] {len(all_snapshots)} snapshot yazıldı")
         else:
