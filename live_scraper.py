@@ -342,6 +342,24 @@ def enrich_with_sofascore(all_fixtures: Dict[str, Dict]) -> int:
     return _enrich_fixtures_with_ss(all_fixtures, ss_data)
 
 
+def _minute_to_num(m: str) -> int:
+    if not m:
+        return -1
+    s = str(m).strip().upper().replace("'", "")
+    if s == 'HT':
+        return 45
+    if s == 'FT':
+        return 90
+    if s in ('ET', 'PEN'):
+        return 105
+    plus = re.match(r'^(\d+)\+(\d+)$', s)
+    if plus:
+        return int(plus.group(1)) + int(plus.group(2))
+    if s.isdigit():
+        return int(s)
+    return -1
+
+
 def _enrich_fixtures_with_ss(all_fixtures: Dict[str, Dict], ss_data: Dict[str, Dict]) -> int:
     enriched = 0
     ss_entries = []
@@ -368,6 +386,11 @@ def _enrich_fixtures_with_ss(all_fixtures: Dict[str, Dict], ss_data: Dict[str, D
                 best_key = ss_full_key
         if best_key and best_combined >= 0.70:
             ssd = ss_data[best_key]
+            arb_min_num = _minute_to_num(fix.get('minute', ''))
+            ss_min_num = _minute_to_num(ssd.get('minute', ''))
+            if arb_min_num >= 0 and ss_min_num >= 0 and abs(arb_min_num - ss_min_num) > 15:
+                log(f"  [Sofascore SKIP] {fix.get('home_team','')} vs {fix.get('away_team','')} | dk farkı: arb={arb_min_num} ss={ss_min_num}")
+                continue
             if ssd['score']:
                 fix['score'] = ssd['score']
             ss_min = ssd['minute']
@@ -761,13 +784,14 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                     if h not in all_fixtures:
                         ko_utc = _parse_kickoff_utc(row["date_text"], now_utc)
                         html_score = row.get("score", "")
+                        arb_minute = _parse_minute(row.get("date_text", ""))
                         all_fixtures[h] = {
                             "match_id_hash": h,
                             "home_team": row["home"][:100],
                             "away_team": row["away"][:100],
                             "league": row["league"][:150],
                             "score": html_score,
-                            "minute": "",
+                            "minute": arb_minute,
                             "status": "live",
                             "kickoff_utc": ko_utc,
                             "fixture_date": today_str,
@@ -800,13 +824,14 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                     if h not in all_fixtures:
                         ko_utc = _parse_kickoff_utc(row["date_text"], now_utc)
                         html_score = row.get("score", "")
+                        arb_minute = _parse_minute(row.get("date_text", ""))
                         all_fixtures[h] = {
                             "match_id_hash": h,
                             "home_team": row["home"][:100],
                             "away_team": row["away"][:100],
                             "league": row["league"][:150],
                             "score": html_score,
-                            "minute": "",
+                            "minute": arb_minute,
                             "status": "live",
                             "kickoff_utc": ko_utc,
                             "fixture_date": today_str,
