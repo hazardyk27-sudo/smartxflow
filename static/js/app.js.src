@@ -10144,9 +10144,9 @@ function renderLiveDetail(snapshots, market) {
             totals[sel] += vol;
 
             var oddsStr = odds !== null ? odds.toFixed(2) : '-';
-            var pctStr = pct ? pct.toFixed(0) + '%' : '-';
+            var pctStr = pct ? pct.toFixed(1) + '%' : '-';
 
-            var deltaHtml = '<span class="period-delta-neutral">\u00b7</span>';
+            var deltaHtml = '<span class="period-delta-neutral">-</span>';
             if (prevDataGroup && odds !== null) {
                 var prevOdds = (prevDataGroup[sel] || {}).odds;
                 if (prevOdds !== undefined && prevOdds !== null) {
@@ -10164,10 +10164,10 @@ function renderLiveDetail(snapshots, market) {
                 prevPct = (prevDataGroup[sel] || {}).share || 0;
             }
             var pctDelta = pct - prevPct;
-            var pctDeltaHtml = '<span class="period-delta-neutral">\u00b7</span>';
-            if (prevS && Math.abs(pctDelta) > 0) {
+            var pctDeltaHtml = '<span class="period-delta-neutral">-</span>';
+            if (prevS && Math.abs(pctDelta) >= 0.05) {
                 var pdSign = pctDelta > 0 ? '+' : '';
-                pctDeltaHtml = '<span class="pct-delta">' + pdSign + pctDelta.toFixed(0) + '%</span>';
+                pctDeltaHtml = '<span class="pct-delta">' + pdSign + pctDelta.toFixed(1) + '%</span>';
             }
 
             var prevVol = 0;
@@ -10175,7 +10175,7 @@ function renderLiveDetail(snapshots, market) {
                 prevVol = (prevDataGroup[sel] || {}).volume || 0;
             }
             var volDiff = vol - prevVol;
-            var volDiffStr = '\u00b7';
+            var volDiffStr = '-';
             var volDiffHasVal = false;
             if (prevS && volDiff !== 0) {
                 volDiffStr = formatLiveVol(volDiff);
@@ -10186,7 +10186,7 @@ function renderLiveDetail(snapshots, market) {
             var divCls = j > 0 ? ' lpt-sel-divider' : '';
 
             html += '<td class="period-dual' + divCls + '"><span class="dual-main period-odds">' + oddsStr + '</span><span class="dual-sub">' + deltaHtml + '</span></td>';
-            html += '<td class="period-dual"><span class="dual-main period-vol">' + (vol ? formatLiveVol(vol) : '\u00b7') + '</span><span class="dual-sub vol-diff' + (volDiffHasVal ? ' has-val' : '') + '">' + volDiffStr + '</span></td>';
+            html += '<td class="period-dual"><span class="dual-main period-vol">' + (vol ? formatLiveVol(vol) : '-') + '</span><span class="dual-sub vol-diff' + (volDiffHasVal ? ' has-val' : '') + '">' + volDiffStr + '</span></td>';
             html += '<td class="period-dual"><span class="dual-main period-pct ' + (hi ? 'pct-high' : 'pct-low') + '">' + pctStr + '</span><span class="dual-sub">' + pctDeltaHtml + '</span></td>';
         }
 
@@ -10316,9 +10316,9 @@ function renderModalLiveDetail(snapshots, market) {
             var vol = sd.volume || 0;
 
             var oddsStr = odds !== null ? odds.toFixed(2) : '-';
-            var pctStr = pct ? pct.toFixed(0) + '%' : '-';
+            var pctStr = pct ? pct.toFixed(1) + '%' : '-';
 
-            var deltaHtml = '<span class="period-delta-neutral">\u00b7</span>';
+            var deltaHtml = '<span class="period-delta-neutral">-</span>';
             if (prevDataGroup && odds !== null) {
                 var prevOdds = (prevDataGroup[sel] || {}).odds;
                 if (prevOdds !== undefined && prevOdds !== null) {
@@ -10336,10 +10336,10 @@ function renderModalLiveDetail(snapshots, market) {
                 prevPct = (prevDataGroup[sel] || {}).share || 0;
             }
             var pctDelta = pct - prevPct;
-            var pctDeltaHtml = '<span class="period-delta-neutral">\u00b7</span>';
-            if (prevS && Math.abs(pctDelta) > 0) {
+            var pctDeltaHtml = '<span class="period-delta-neutral">-</span>';
+            if (prevS && Math.abs(pctDelta) >= 0.05) {
                 var pdSign = pctDelta > 0 ? '+' : '';
-                pctDeltaHtml = '<span class="pct-delta">' + pdSign + pctDelta.toFixed(0) + '%</span>';
+                pctDeltaHtml = '<span class="pct-delta">' + pdSign + pctDelta.toFixed(1) + '%</span>';
             }
 
             var prevVol = 0;
@@ -10347,7 +10347,7 @@ function renderModalLiveDetail(snapshots, market) {
                 prevVol = (prevDataGroup[sel] || {}).volume || 0;
             }
             var volDiff = vol - prevVol;
-            var volDiffStr = '\u00b7';
+            var volDiffStr = '-';
             var volDiffHasVal = false;
             if (prevS && volDiff !== 0) {
                 volDiffStr = formatLiveVol(volDiff);
@@ -10358,7 +10358,7 @@ function renderModalLiveDetail(snapshots, market) {
             var divCls = j > 0 ? ' lpt-sel-divider' : '';
 
             html += '<td class="period-dual' + divCls + '"><span class="dual-main period-odds">' + oddsStr + '</span><span class="dual-sub">' + deltaHtml + '</span></td>';
-            html += '<td class="period-dual"><span class="dual-main period-vol">' + (vol ? formatLiveVol(vol) : '\u00b7') + '</span><span class="dual-sub vol-diff' + (volDiffHasVal ? ' has-val' : '') + '">' + volDiffStr + '</span></td>';
+            html += '<td class="period-dual"><span class="dual-main period-vol">' + (vol ? formatLiveVol(vol) : '-') + '</span><span class="dual-sub vol-diff' + (volDiffHasVal ? ' has-val' : '') + '">' + volDiffStr + '</span></td>';
             html += '<td class="period-dual"><span class="dual-main period-pct ' + (hi ? 'pct-high' : 'pct-low') + '">' + pctStr + '</span><span class="dual-sub">' + pctDeltaHtml + '</span></td>';
         }
 
