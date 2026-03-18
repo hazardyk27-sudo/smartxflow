@@ -12198,40 +12198,63 @@ table.desktop-only {
     gap: 4px;
     flex: 1;
 }
+.modal-live-section {
+    margin-bottom: 0;
+}
+.modal-live-section .smart-money-icon {
+    color: #ef4444;
+    font-size: 10px;
+}
 .modal-live-tabs {
     display: flex;
     gap: 6px;
-    padding: 8px 12px 12px;
+    padding: 10px 14px 12px;
     flex-wrap: wrap;
+    background: #14191F;
+    border-bottom: 1px solid #30363d;
 }
 .modal-live-body {
     max-height: 60vh;
     overflow-y: auto;
+    background: #14191F;
+    padding: 0;
 }
 .modal-live-body .live-detail-table-wrap {
-    border-radius: 8px;
+    border-radius: 0;
+    border: none;
 }
 .modal-live-body .live-period-table {
     font-size: 12px;
+    background: #14191F;
 }
 .modal-live-body .live-period-table thead th {
-    padding: 6px 6px;
+    padding: 6px 8px;
     font-size: 8px;
     letter-spacing: 0.4px;
+    background: #161b22;
+    border-bottom-color: #30363d;
 }
 .modal-live-body .live-period-table thead tr.lpt-group-row th {
     font-size: 10px;
-    padding: 8px 6px 5px;
+    padding: 8px 8px 5px;
+    background: #161b22;
 }
 .modal-live-body .live-period-table thead tr.lpt-col-row th {
-    padding: 4px 6px 6px;
+    padding: 4px 8px 6px;
+    background: #161b22;
 }
 .modal-live-body .live-period-table tbody td {
-    padding: 8px 6px;
+    padding: 8px 8px;
+    background: #14191F;
+    border-bottom-color: #30363d;
+}
+.modal-live-body .live-period-table tbody tr:hover td {
+    background: #1c2128;
 }
 .modal-live-body .period-dk-skor {
-    min-width: 44px;
-    padding: 8px 8px;
+    min-width: 48px;
+    padding: 8px 10px;
+    border-right-color: #30363d;
 }
 .modal-live-body .period-dk-skor .dk-val {
     font-size: 12px;
@@ -12241,13 +12264,13 @@ table.desktop-only {
     margin-top: 2px;
 }
 .modal-live-body .period-odds {
-    font-size: 13px;
+    font-size: 14px;
 }
 .modal-live-body .period-vol {
     font-size: 12px;
 }
 .modal-live-body .period-pct {
-    font-size: 11px;
+    font-size: 12px;
 }
 .modal-live-body .period-dual .dual-sub {
     margin-top: 3px;
@@ -12262,6 +12285,12 @@ table.desktop-only {
 .modal-live-body .lpt-dual-th .lpt-th-sub {
     font-size: 8px;
     margin-top: 2px;
+}
+.modal-live-body .lpt-group-th {
+    border-left-color: #30363d;
+}
+.modal-live-body .lpt-sel-divider {
+    border-left-color: #30363d;
 }
 .live-dtab {
     background: transparent;
