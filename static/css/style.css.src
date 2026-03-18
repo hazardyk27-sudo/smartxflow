@@ -12228,60 +12228,49 @@ table.desktop-only {
 .modal-live-body .live-period-table {
     font-size: 12px;
     background: #14191F;
-    table-layout: fixed;
-    min-width: 720px;
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
 }
 .modal-live-body .live-period-table thead th {
-    padding: 6px 4px;
+    padding: 0;
     font-size: 8px;
     letter-spacing: 0.3px;
     background: #161b22;
     border-bottom: 1px solid #30363d;
     text-align: center;
+    vertical-align: middle;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 .modal-live-body .live-period-table thead tr.lpt-group-row th {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
-    padding: 8px 4px 5px;
+    padding: 10px 6px 6px;
     background: #161b22;
     color: rgba(219,234,254,0.9);
-    letter-spacing: 1px;
+    letter-spacing: 1.2px;
+    border-bottom: 1px solid rgba(48,54,61,0.5);
 }
 .modal-live-body .live-period-table thead tr.lpt-col-row th {
-    padding: 4px 4px 7px;
+    padding: 5px 4px 8px;
     background: #161b22;
+    border-bottom: 1px solid #30363d;
 }
 .modal-live-body .live-period-table tbody td {
-    padding: 7px 4px;
+    padding: 8px 6px;
     background: #14191F;
-    border-bottom: 1px solid rgba(48,54,61,0.6);
+    border-bottom: 1px solid rgba(48,54,61,0.5);
     text-align: center;
     vertical-align: middle;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 .modal-live-body .live-period-table tbody tr:hover td {
     background: #1c2128;
 }
-.modal-live-body .live-period-table colgroup .col-dk {
-    width: 50px;
-}
-.modal-live-body .live-period-table colgroup .col-odds {
-    width: 70px;
-}
-.modal-live-body .live-period-table colgroup .col-vol {
-    width: 68px;
-}
-.modal-live-body .live-period-table colgroup .col-pct {
-    width: 48px;
-}
 .modal-live-body .period-dk-skor {
-    min-width: 44px;
-    width: 50px;
-    padding: 7px 6px;
+    width: 56px;
+    min-width: 56px;
+    max-width: 56px;
+    padding: 8px 6px;
     border-right: 1px solid #30363d;
     text-align: center;
 }
@@ -12297,7 +12286,7 @@ table.desktop-only {
 .modal-live-body .period-dual {
     text-align: center;
     vertical-align: middle;
-    padding: 7px 3px;
+    padding: 8px 4px;
 }
 .modal-live-body .period-dual .dual-main {
     display: block;
@@ -12306,12 +12295,12 @@ table.desktop-only {
 }
 .modal-live-body .period-dual .dual-sub {
     display: block;
-    margin-top: 2px;
+    margin-top: 3px;
     font-size: 10px;
     white-space: nowrap;
 }
 .modal-live-body .period-odds {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
 }
 .modal-live-body .period-vol {
@@ -12328,18 +12317,26 @@ table.desktop-only {
 .modal-live-body .lpt-dual-th {
     text-align: center;
     vertical-align: middle;
-    padding: 4px 3px;
+    padding: 5px 4px 8px;
 }
 .modal-live-body .lpt-dual-th .lpt-th-main {
-    font-size: 8px;
+    display: block;
+    font-size: 9px;
     font-weight: 700;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
     color: rgba(219,234,254,0.7);
+    text-transform: uppercase;
+    line-height: 1;
 }
 .modal-live-body .lpt-dual-th .lpt-th-sub {
-    font-size: 7px;
-    margin-top: 1px;
+    display: block;
+    font-size: 8px;
+    font-weight: 400;
+    margin-top: 3px;
     color: rgba(156,163,175,0.5);
+    text-transform: none;
+    letter-spacing: 0;
+    line-height: 1;
 }
 .modal-live-body .lpt-group-th {
     border-left: 1px solid #30363d;

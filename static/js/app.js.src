@@ -10269,11 +10269,6 @@ function renderModalLiveDetail(snapshots, market) {
 
     var colsPerSel = 3;
     var html = '<div class="live-detail-table-wrap"><table class="live-period-table">';
-    html += '<colgroup><col class="col-dk">';
-    for (var cg = 0; cg < sels.length; cg++) {
-        html += '<col class="col-odds"><col class="col-vol"><col class="col-pct">';
-    }
-    html += '</colgroup>';
     html += '<thead>';
     html += '<tr class="lpt-group-row">';
     html += '<th rowspan="2" class="lpt-dual-th"><span class="lpt-th-main">DK</span><span class="lpt-th-sub">SKOR</span></th>';
