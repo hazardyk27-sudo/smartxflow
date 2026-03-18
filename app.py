@@ -1679,9 +1679,13 @@ def get_match_history_bulk():
             result[market_name] = market_data
     
     elapsed = int((time.time() - start_time) * 1000)
-    print(f"[History/Bulk] Fetched {home} vs {away} in {elapsed}ms (parallel), caching...")
     
-    set_history_cache(cache_key, result)
+    total_history = sum(len(v.get('history') or []) for v in result.values())
+    if total_history > 0:
+        print(f"[History/Bulk] Fetched {home} vs {away} in {elapsed}ms (parallel), {total_history} rows, caching...")
+        set_history_cache(cache_key, result)
+    else:
+        print(f"[History/Bulk] Fetched {home} vs {away} in {elapsed}ms but 0 rows - NOT caching (possible error)")
     
     return jsonify({'markets': result})
 

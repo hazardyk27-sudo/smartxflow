@@ -33,6 +33,14 @@ class SupabaseClient:
             )
         return self._http_client
     
+    def _reset_http_client(self):
+        try:
+            if self._http_client and not self._http_client.is_closed:
+                self._http_client.close()
+        except:
+            pass
+        self._http_client = None
+    
     def _load_credentials(self):
         try:
             from services import embedded_credentials
@@ -205,43 +213,51 @@ class SupabaseClient:
         if not self.is_available:
             return []
         
-        try:
-            import urllib.parse
-            history_table = f"{market}_history"
-            home_enc = urllib.parse.quote(home_team, safe='')
-            away_enc = urllib.parse.quote(away_team, safe='')
-            
-            all_rows = []
-            offset = 0
-            page_size = 1000
-            max_pages = 10
-            
-            for page in range(max_pages):
-                base_url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}"
-                if league:
-                    league_enc = urllib.parse.quote(league, safe='')
-                    base_url += f"&league=eq.{league_enc}"
-                url = f"{base_url}&order=scraped_at.asc&limit={page_size}&offset={offset}"
-                resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            try:
+                import urllib.parse
+                history_table = f"{market}_history"
+                home_enc = urllib.parse.quote(home_team, safe='')
+                away_enc = urllib.parse.quote(away_team, safe='')
                 
-                if resp.status_code != 200:
-                    break
+                all_rows = []
+                offset = 0
+                page_size = 1000
+                max_pages = 10
                 
-                rows = resp.json()
-                if not rows:
-                    break
+                for page in range(max_pages):
+                    base_url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}"
+                    if league:
+                        league_enc = urllib.parse.quote(league, safe='')
+                        base_url += f"&league=eq.{league_enc}"
+                    url = f"{base_url}&order=scraped_at.asc&limit={page_size}&offset={offset}"
+                    resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
+                    
+                    if resp.status_code != 200:
+                        break
+                    
+                    rows = resp.json()
+                    if not rows:
+                        break
+                    
+                    all_rows.extend(rows)
+                    
+                    if len(rows) < page_size:
+                        break
+                    
+                    offset += page_size
                 
-                all_rows.extend(rows)
-                
-                if len(rows) < page_size:
-                    break
-                
-                offset += page_size
-            
-            return [self._history_row_to_legacy(r, market) for r in all_rows]
-        except Exception as e:
-            print(f"Error get_match_history from {market}_history: {e}")
-            return []
+                return [self._history_row_to_legacy(r, market) for r in all_rows]
+            except Exception as e:
+                if attempt < max_retries:
+                    import time as _time
+                    _time.sleep(0.5)
+                    self._reset_http_client()
+                    print(f"[Retry {attempt+1}/{max_retries}] get_match_history {market}_history: {e}")
+                else:
+                    print(f"Error get_match_history from {market}_history (after {max_retries} retries): {e}")
+                    return []
     
     def _history_row_to_legacy(self, row: Dict, market: str) -> Dict[str, Any]:
         result = {
