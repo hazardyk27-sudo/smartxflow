@@ -10100,14 +10100,14 @@ function renderLiveDetail(snapshots, market) {
     var html = '<div class="live-detail-table-wrap"><table class="live-period-table">';
     html += '<thead>';
     html += '<tr class="lpt-group-row">';
-    html += '<th rowspan="2" class="lpt-dual-th"><span class="lpt-th-main">DK</span><span class="lpt-th-sub">SKOR</span></th>';
+    html += '<th rowspan="2" class="lpt-dkskor-th"><span class="lpt-th-main">DK</span><span class="lpt-th-sub">SKOR</span></th>';
     for (var g = 0; g < sels.length; g++) {
         html += '<th colspan="' + colsPerSel + '" class="lpt-group-th">' + selLabels[g] + '</th>';
     }
     html += '</tr>';
     html += '<tr class="lpt-col-row">';
     for (var h = 0; h < sels.length; h++) {
-        html += '<th class="lpt-dual-th"><span class="lpt-th-main">ORAN</span><span class="lpt-th-sub">Oran de\u011fi\u015fim</span></th>';
+        html += '<th class="lpt-dual-th' + (h > 0 ? ' lpt-sel-divider' : '') + '"><span class="lpt-th-main">ORAN</span><span class="lpt-th-sub">Oran de\u011fi\u015fim</span></th>';
         html += '<th class="lpt-dual-th"><span class="lpt-th-main">VOLUME</span><span class="lpt-th-sub">Gelen para</span></th>';
         html += '<th class="lpt-dual-th"><span class="lpt-th-main">Y\u00dcZDE</span><span class="lpt-th-sub">%de\u011fi\u015fimi</span></th>';
     }
@@ -10271,14 +10271,14 @@ function renderModalLiveDetail(snapshots, market) {
     var html = '<div class="live-detail-table-wrap"><table class="live-period-table">';
     html += '<thead>';
     html += '<tr class="lpt-group-row">';
-    html += '<th rowspan="2" class="lpt-dual-th"><span class="lpt-th-main">DK</span><span class="lpt-th-sub">SKOR</span></th>';
+    html += '<th rowspan="2" class="lpt-dkskor-th"><span class="lpt-th-main">DK</span><span class="lpt-th-sub">SKOR</span></th>';
     for (var g = 0; g < sels.length; g++) {
         html += '<th colspan="' + colsPerSel + '" class="lpt-group-th">' + selLabels[g] + '</th>';
     }
     html += '</tr>';
     html += '<tr class="lpt-col-row">';
     for (var h = 0; h < sels.length; h++) {
-        html += '<th class="lpt-dual-th"><span class="lpt-th-main">ORAN</span><span class="lpt-th-sub">Oran de\u011fi\u015fim</span></th>';
+        html += '<th class="lpt-dual-th' + (h > 0 ? ' lpt-sel-divider' : '') + '"><span class="lpt-th-main">ORAN</span><span class="lpt-th-sub">Oran de\u011fi\u015fim</span></th>';
         html += '<th class="lpt-dual-th"><span class="lpt-th-main">VOLUME</span><span class="lpt-th-sub">Gelen para</span></th>';
         html += '<th class="lpt-dual-th"><span class="lpt-th-main">Y\u00dcZDE</span><span class="lpt-th-sub">%de\u011fi\u015fimi</span></th>';
     }
