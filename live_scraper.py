@@ -193,6 +193,16 @@ def _team_match_score(arb: str, fs: str) -> float:
         shorter = min(len(arb), len(fs))
         if shorter >= 4:
             return 0.90
+    shorter = min(len(arb), len(fs))
+    if shorter >= 4:
+        if arb in fs or fs in arb:
+            return 0.85
+        arb_words = arb.split()
+        fs_words = fs.split()
+        if len(arb_words) == 1 and arb_words[0] in fs_words:
+            return 0.85
+        if len(fs_words) == 1 and fs_words[0] in arb_words:
+            return 0.85
     return difflib.SequenceMatcher(None, arb, fs).ratio()
 
 
