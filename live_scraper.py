@@ -40,10 +40,12 @@ BETWATCH_COOKIE = os.environ.get("BETWATCH_COOKIE", "")
 BETWATCH_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Referer": "https://www.betwatch.fr/money",
-    "Content-Type": "application/json",
 }
 if BETWATCH_COOKIE:
     BETWATCH_HEADERS["Cookie"] = BETWATCH_COOKIE
+    print(f"[Betwatch] Cookie enjekte edildi ({len(BETWATCH_COOKIE)} karakter)", flush=True)
+else:
+    print("[Betwatch] UYARI: BETWATCH_COOKIE env bulunamadı!", flush=True)
 
 INTERVAL_MINUTES = 1
 INTERVAL_SECONDS = INTERVAL_MINUTES * 60
@@ -504,10 +506,16 @@ def _fetch_sofascore_data() -> Dict[str, Dict]:
     return _fetch_sofascore_live()
 
 
+def _get_betwatch_date() -> str:
+    """Betwatch utc=3 parametresi kullandığı için tarihi UTC+3 olarak hesapla."""
+    utc3_now = datetime.now(timezone.utc) + timedelta(hours=3)
+    return utc3_now.strftime('%Y-%m-%d')
+
+
 def _fetch_betwatch_money() -> list:
     """Betwatch getMoney: Betfair exchange oranları + seçenek bazında para (canlı)."""
     try:
-        today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+        today = _get_betwatch_date()
         params = {
             "live_only": "true",
             "prematch_only": "false",
@@ -517,8 +525,8 @@ def _fetch_betwatch_money() -> list:
             "step": "1",
             "date": today,
             "order_by_time": "false",
-            "not_countries": "[]",
-            "not_leagues": "[]",
+            "not_countries": "",
+            "not_leagues": "",
         }
         resp = requests.get(BETWATCH_GETMONEY_URL, params=params,
                             headers=BETWATCH_HEADERS, timeout=30, verify=SSL_VERIFY)
@@ -537,7 +545,7 @@ def _fetch_betwatch_money() -> list:
 def _fetch_betwatch_main() -> list:
     """Betwatch getMain: tüm canlı maçların 1X2 oranları (backup)."""
     try:
-        today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+        today = _get_betwatch_date()
         params = {
             "live_only": "true",
             "prematch_only": "false",
@@ -547,8 +555,8 @@ def _fetch_betwatch_main() -> list:
             "step": "1",
             "date": today,
             "order_by_time": "false",
-            "not_countries": "[]",
-            "not_leagues": "[]",
+            "not_countries": "",
+            "not_leagues": "",
         }
         resp = requests.get(BETWATCH_GETMAIN_URL, params=params,
                             headers=BETWATCH_HEADERS, timeout=30, verify=SSL_VERIFY)
