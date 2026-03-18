@@ -1982,21 +1982,12 @@ def _get_live_history_by_hash(supabase, headers, match_hash, fixture=None):
         sel = s.get('selection', '')
         key = ts
 
+        snap_minute = s.get('minute', '')
+        snap_score = s.get('score', '')
+        if not snap_minute:
+            continue
+
         if key not in periods:
-            snap_minute = s.get('minute', '')
-            snap_score = s.get('score', '')
-
-            if not snap_minute and kickoff_dt and ts:
-                try:
-                    snap_ts = ts.replace('Z', '+00:00')
-                    snap_dt = datetime.fromisoformat(snap_ts)
-                    diff_sec = (snap_dt - kickoff_dt).total_seconds()
-                    snap_minute = str(max(0, int(diff_sec // 60)))
-                except Exception:
-                    snap_minute = ''
-
-            
-
             periods[key] = {
                 'snapshot_at': ts,
                 'minute': snap_minute,

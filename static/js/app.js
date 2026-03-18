@@ -1683,7 +1683,7 @@ if(typeof window.setTab==='function'){var _realSetTab=window.setTab;window.setTa
 if(typeof window.setMobileGroup==='function'){var _realSetMobileGroup=window.setMobileGroup;window.setMobileGroup=function(group){if(group==='live'){switchToLive();return;}
 if(_liveMode)switchFromLive();_realSetMobileGroup(group);};}
 document.addEventListener('click',function(e){var tab=e.target.closest('.tab[data-market]');if(tab&&tab.dataset.market!=='live'&&_liveMode){switchFromLive();}});function setLiveMarket(market){_liveMarket=market;document.querySelectorAll('.live-market-btn').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-lmarket')===market);});renderLiveMatches(_liveData);}
-async function loadLiveMatches(){try{var resp=await fetch('/api/live/matches');var data=await resp.json();_liveData=data.matches||[];renderLiveMatches(_liveData);var now=new Date();document.getElementById('liveUpdateTime').textContent=String(now.getHours()).padStart(2,'0')+':'+
+async function loadLiveMatches(){try{var resp=await fetch('/api/live/matches');var data=await resp.json();_liveData=data.matches||[];renderLiveMatches(_liveData);var now=new Date();var lut=document.getElementById('liveUpdateTime');if(lut)lut.textContent=String(now.getHours()).padStart(2,'0')+':'+
 String(now.getMinutes()).padStart(2,'0')+':'+
 String(now.getSeconds()).padStart(2,'0');}catch(e){console.error('Live matches error:',e&&e.message?e.message:e);}}
 function formatLiveVol(v){if(!v&&v!==0)return'-';if(v>=1000000)return'\u00A3'+(v/1000000).toFixed(1)+'M';if(v>=1000)return'\u00A3'+(v/1000).toFixed(0)+'K';return'\u00A3'+Math.round(v);}
