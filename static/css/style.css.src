@@ -12201,12 +12201,67 @@ table.desktop-only {
 .modal-live-tabs {
     display: flex;
     gap: 6px;
-    padding: 8px 0 12px;
+    padding: 8px 12px 12px;
     flex-wrap: wrap;
 }
 .modal-live-body {
     max-height: 60vh;
     overflow-y: auto;
+}
+.modal-live-body .live-detail-table-wrap {
+    border-radius: 8px;
+}
+.modal-live-body .live-period-table {
+    font-size: 12px;
+}
+.modal-live-body .live-period-table thead th {
+    padding: 6px 6px;
+    font-size: 8px;
+    letter-spacing: 0.4px;
+}
+.modal-live-body .live-period-table thead tr.lpt-group-row th {
+    font-size: 10px;
+    padding: 8px 6px 5px;
+}
+.modal-live-body .live-period-table thead tr.lpt-col-row th {
+    padding: 4px 6px 6px;
+}
+.modal-live-body .live-period-table tbody td {
+    padding: 8px 6px;
+}
+.modal-live-body .period-dk-skor {
+    min-width: 44px;
+    padding: 8px 8px;
+}
+.modal-live-body .period-dk-skor .dk-val {
+    font-size: 12px;
+}
+.modal-live-body .period-dk-skor .skor-val {
+    font-size: 10px;
+    margin-top: 2px;
+}
+.modal-live-body .period-odds {
+    font-size: 13px;
+}
+.modal-live-body .period-vol {
+    font-size: 12px;
+}
+.modal-live-body .period-pct {
+    font-size: 11px;
+}
+.modal-live-body .period-dual .dual-sub {
+    margin-top: 3px;
+    font-size: 9px;
+}
+.modal-live-body .period-dual .dual-sub.vol-diff.has-val {
+    font-size: 10px;
+}
+.modal-live-body .lpt-dual-th .lpt-th-main {
+    font-size: 9px;
+}
+.modal-live-body .lpt-dual-th .lpt-th-sub {
+    font-size: 8px;
+    margin-top: 2px;
 }
 .live-dtab {
     background: transparent;
