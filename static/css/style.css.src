@@ -12216,81 +12216,136 @@ table.desktop-only {
 .modal-live-body {
     max-height: 60vh;
     overflow-y: auto;
+    overflow-x: auto;
     background: #14191F;
     padding: 0;
 }
 .modal-live-body .live-detail-table-wrap {
     border-radius: 0;
     border: none;
+    overflow-x: auto;
 }
 .modal-live-body .live-period-table {
     font-size: 12px;
     background: #14191F;
+    table-layout: fixed;
+    min-width: 720px;
 }
 .modal-live-body .live-period-table thead th {
-    padding: 6px 8px;
+    padding: 6px 4px;
     font-size: 8px;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.3px;
     background: #161b22;
-    border-bottom-color: #30363d;
+    border-bottom: 1px solid #30363d;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .modal-live-body .live-period-table thead tr.lpt-group-row th {
-    font-size: 10px;
-    padding: 8px 8px 5px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 8px 4px 5px;
     background: #161b22;
+    color: rgba(219,234,254,0.9);
+    letter-spacing: 1px;
 }
 .modal-live-body .live-period-table thead tr.lpt-col-row th {
-    padding: 4px 8px 6px;
+    padding: 4px 4px 7px;
     background: #161b22;
 }
 .modal-live-body .live-period-table tbody td {
-    padding: 8px 8px;
+    padding: 7px 4px;
     background: #14191F;
-    border-bottom-color: #30363d;
+    border-bottom: 1px solid rgba(48,54,61,0.6);
+    text-align: center;
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .modal-live-body .live-period-table tbody tr:hover td {
     background: #1c2128;
 }
+.modal-live-body .live-period-table colgroup .col-dk {
+    width: 50px;
+}
+.modal-live-body .live-period-table colgroup .col-odds {
+    width: 70px;
+}
+.modal-live-body .live-period-table colgroup .col-vol {
+    width: 68px;
+}
+.modal-live-body .live-period-table colgroup .col-pct {
+    width: 48px;
+}
 .modal-live-body .period-dk-skor {
-    min-width: 48px;
-    padding: 8px 10px;
-    border-right-color: #30363d;
+    min-width: 44px;
+    width: 50px;
+    padding: 7px 6px;
+    border-right: 1px solid #30363d;
+    text-align: center;
 }
 .modal-live-body .period-dk-skor .dk-val {
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 700;
 }
 .modal-live-body .period-dk-skor .skor-val {
     font-size: 10px;
     margin-top: 2px;
+    color: rgba(219,234,254,0.5);
+}
+.modal-live-body .period-dual {
+    text-align: center;
+    vertical-align: middle;
+    padding: 7px 3px;
+}
+.modal-live-body .period-dual .dual-main {
+    display: block;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+.modal-live-body .period-dual .dual-sub {
+    display: block;
+    margin-top: 2px;
+    font-size: 10px;
+    white-space: nowrap;
 }
 .modal-live-body .period-odds {
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 700;
 }
 .modal-live-body .period-vol {
     font-size: 12px;
+    font-weight: 600;
 }
 .modal-live-body .period-pct {
     font-size: 12px;
-}
-.modal-live-body .period-dual .dual-sub {
-    margin-top: 3px;
-    font-size: 9px;
+    font-weight: 600;
 }
 .modal-live-body .period-dual .dual-sub.vol-diff.has-val {
     font-size: 10px;
 }
+.modal-live-body .lpt-dual-th {
+    text-align: center;
+    vertical-align: middle;
+    padding: 4px 3px;
+}
 .modal-live-body .lpt-dual-th .lpt-th-main {
-    font-size: 9px;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: rgba(219,234,254,0.7);
 }
 .modal-live-body .lpt-dual-th .lpt-th-sub {
-    font-size: 8px;
-    margin-top: 2px;
+    font-size: 7px;
+    margin-top: 1px;
+    color: rgba(156,163,175,0.5);
 }
 .modal-live-body .lpt-group-th {
-    border-left-color: #30363d;
+    border-left: 1px solid #30363d;
 }
 .modal-live-body .lpt-sel-divider {
-    border-left-color: #30363d;
+    border-left: 1px solid #30363d;
 }
 .live-dtab {
     background: transparent;
