@@ -1922,16 +1922,32 @@ def get_live_match_history_by_teams():
         headers = supabase._headers()
 
         import urllib.parse
-        home_enc = urllib.parse.quote(home[:100])
-        away_enc = urllib.parse.quote(away[:100])
+        home_short = home[:100].rstrip('.')
+        away_short = away[:100].rstrip('.')
+        if len(home_short) < 3 or len(away_short) < 3:
+            return jsonify({'snapshots': [], 'has_live': False}), 200
+        for ch in ['%', '_', '*']:
+            home_short = home_short.replace(ch, '')
+            away_short = away_short.replace(ch, '')
+        if len(home_short) < 3 or len(away_short) < 3:
+            return jsonify({'snapshots': [], 'has_live': False}), 200
+        home_enc = urllib.parse.quote(home_short)
+        away_enc = urllib.parse.quote(away_short)
         fix_url = (
             f"{supabase._rest_url('live_fixtures')}"
-            f"?home_team=eq.{home_enc}&away_team=eq.{away_enc}"
+            f"?home_team=ilike.{home_enc}*&away_team=ilike.{away_enc}*"
             f"&order=updated_at.desc&limit=1"
         )
         fix_resp = supabase._get_http_client().get(fix_url, headers=headers, timeout=10)
         if fix_resp.status_code != 200 or not fix_resp.json():
-            return jsonify({'snapshots': [], 'has_live': False}), 200
+            fix_url2 = (
+                f"{supabase._rest_url('live_fixtures')}"
+                f"?home_team=eq.{urllib.parse.quote(home[:100])}&away_team=eq.{urllib.parse.quote(away[:100])}"
+                f"&order=updated_at.desc&limit=1"
+            )
+            fix_resp = supabase._get_http_client().get(fix_url2, headers=headers, timeout=10)
+            if fix_resp.status_code != 200 or not fix_resp.json():
+                return jsonify({'snapshots': [], 'has_live': False}), 200
 
         fixture = fix_resp.json()[0]
         match_hash = fixture.get('match_id_hash', '')
