@@ -9929,9 +9929,10 @@ function renderLiveMatches(matches, goalHashes) {
         if (/^HT$/i.test(matchMin) || /^MS$/i.test(matchMin)) minExtra = ' is-ht';
         else if (/\d+\+/.test(matchMin)) minExtra = ' is-extra';
         var minCell = '<td class="match-date">' +
+            '<div class="dk-cell-inner">' +
             '<div class="date-line live-min-badge' + minExtra + '">' + escLiveHtml(matchMin) + '</div>' +
             scoreHtml +
-            '</td>';
+            '</div></td>';
         if (is1x2) {
             var vol = _liveCalcVol1x2(m);
             var b1 = _liveMwBlock('1', o['1']);
