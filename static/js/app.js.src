@@ -9925,8 +9925,11 @@ function renderLiveMatches(matches, goalHashes) {
                 scoreHtml = '<div class="time-line live-score-badge">' + showScore + '</div>';
             }
         }
+        var minExtra = '';
+        if (/^HT$/i.test(matchMin) || /^MS$/i.test(matchMin)) minExtra = ' is-ht';
+        else if (/\d+\+/.test(matchMin)) minExtra = ' is-extra';
         var minCell = '<td class="match-date">' +
-            '<div class="date-line live-min-badge">' + escLiveHtml(matchMin) + '</div>' +
+            '<div class="date-line live-min-badge' + minExtra + '">' + escLiveHtml(matchMin) + '</div>' +
             scoreHtml +
             '</td>';
         if (is1x2) {
@@ -9934,7 +9937,7 @@ function renderLiveMatches(matches, goalHashes) {
             var b1 = _liveMwBlock('1', o['1']);
             var bX = _liveMwBlock('X', o['X']);
             var b2 = _liveMwBlock('2', o['2']);
-            rowsHtml += '<tr ' + onclickAttr + '>' +
+            rowsHtml += '<tr class="live-row" ' + onclickAttr + '>' +
                 minCell +
                 '<td class="match-league" title="' + escLiveHtml(m.league) + '">' + escLiveHtml(m.league) + '</td>' +
                 '<td class="match-teams">' + escLiveHtml(m.home_team) + '<span class="vs">-</span>' + escLiveHtml(m.away_team) + '</td>' +
@@ -9946,7 +9949,7 @@ function renderLiveMatches(matches, goalHashes) {
             var volOU = _liveCalcVolOU(ou);
             var bU = _liveMwBlock('Alt', ou['U']);
             var bO = _liveMwBlock('Ust', ou['O']);
-            rowsHtml += '<tr ' + onclickAttr + '>' +
+            rowsHtml += '<tr class="live-row" ' + onclickAttr + '>' +
                 minCell +
                 '<td class="match-league" title="' + escLiveHtml(m.league) + '">' + escLiveHtml(m.league) + '</td>' +
                 '<td class="match-teams">' + escLiveHtml(m.home_team) + '<span class="vs">-</span>' + escLiveHtml(m.away_team) + '</td>' +
@@ -10005,9 +10008,9 @@ function _liveMwBlock(label, d) {
     return renderMoneywayBlock(label, d.share || 0, d.odds || '-', d.volume || '');
 }
 
-function _liveMobileCard(m, marketOrLine, onclickAttr, isGoal) {
+function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
     var is1x2 = (marketOrLine === '1x2');
-    var cardCls = 'match-card odds-card moneyway-card' + (isGoal ? ' goal-flash-card' : '');
+    var cardCls = 'match-card odds-card moneyway-card' + (goalSide ? ' goal-flash-card' : '');
     var html = '<div class="' + cardCls + '" ' + onclickAttr + '>';
     html += '<div class="odds-card-header">';
     html += '<div class="odds-card-teams">' + escLiveHtml(m.home_team) + ' \u2013 ' + escLiveHtml(m.away_team) + '</div>';
@@ -10024,7 +10027,16 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, isGoal) {
     var cardMin = _calcLiveMatchMin(m);
     html += '<span class="live-min-badge" style="font-size:11px;">' + cardMin + '</span>';
     var cardScore = m.score ? escLiveHtml(m.score) : (cardMin === 'MS' ? '-' : '');
-    if (cardScore) html += '<span class="meta-sep">\u2022</span><span style="color:#f59e0b;font-weight:600;">' + cardScore + '</span>';
+    if (cardScore) {
+        var csp = cardScore.split('-');
+        if (csp.length === 2 && goalSide) {
+            var chCls = goalSide === 'home' || goalSide === 'both' ? ' goal-pop' : '';
+            var caCls = goalSide === 'away' || goalSide === 'both' ? ' goal-pop' : '';
+            html += '<span class="meta-sep">\u2022</span><span class="score-h' + chCls + '" style="font-weight:600;">' + csp[0].trim() + '</span><span class="score-sep" style="font-weight:600;">-</span><span class="score-a' + caCls + '" style="font-weight:600;">' + csp[1].trim() + '</span>';
+        } else {
+            html += '<span class="meta-sep">\u2022</span><span style="color:#f59e0b;font-weight:600;">' + cardScore + '</span>';
+        }
+    }
     html += '</div>';
     if (is1x2) {
         var o = m.odds || {};
