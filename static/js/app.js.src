@@ -9752,6 +9752,7 @@ async function loadLiveMatches() {
         var data = await resp.json();
         _liveData = data.matches || [];
         var _goalHashes = {};
+        var _prevCount = Object.keys(_prevLiveScores).length;
         for (var gi = 0; gi < _liveData.length; gi++) {
             var gm = _liveData[gi];
             var gh = gm.match_id_hash;
@@ -9767,9 +9768,11 @@ async function loadLiveMatches() {
                 if (newH > oldH && newA === oldA) side = 'home';
                 else if (newA > oldA && newH === oldH) side = 'away';
                 _goalHashes[gh] = side;
+                console.log('[GOL] ' + gm.home_team + ' vs ' + gm.away_team + ': ' + _prevLiveScores[gh] + ' → ' + gs + ' (' + side + ')');
             }
             if (gh && gs) _prevLiveScores[gh] = gs;
         }
+        if (_prevCount === 0) console.log('[GOL] İlk yükleme - ' + Object.keys(_prevLiveScores).length + ' maç kaydedildi');
         renderLiveMatches(_liveData, _goalHashes);
         var now = new Date();
         var lut = document.getElementById('liveUpdateTime');
