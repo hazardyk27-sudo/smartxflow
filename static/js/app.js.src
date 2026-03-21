@@ -9662,6 +9662,7 @@ var _modalLiveData = null;
 var _modalLiveMarket = '1x2';
 var _liveDetailData = null;
 var _liveDetailMarket = '1x2';
+var _prevLiveScores = {};
 
 function switchToLive() {
     _liveMode = true;
@@ -9749,7 +9750,17 @@ async function loadLiveMatches() {
         var resp = await fetch('/api/live/matches');
         var data = await resp.json();
         _liveData = data.matches || [];
-        renderLiveMatches(_liveData);
+        var _goalHashes = {};
+        for (var gi = 0; gi < _liveData.length; gi++) {
+            var gm = _liveData[gi];
+            var gh = gm.match_id_hash;
+            var gs = gm.score || '';
+            if (gh && gs && _prevLiveScores[gh] && _prevLiveScores[gh] !== gs) {
+                _goalHashes[gh] = true;
+            }
+            if (gh && gs) _prevLiveScores[gh] = gs;
+        }
+        renderLiveMatches(_liveData, _goalHashes);
         var now = new Date();
         var lut = document.getElementById('liveUpdateTime');
         if (lut) lut.textContent =
@@ -9812,7 +9823,8 @@ function _liveCalcVolOU(ou) {
     return v;
 }
 
-function renderLiveMatches(matches) {
+function renderLiveMatches(matches, goalHashes) {
+    if (!goalHashes) goalHashes = {};
     var table = document.querySelector('.matches-table');
     var tbody = document.getElementById('matchesTableBody');
     var thead = table ? table.querySelector('thead') : null;
@@ -9887,9 +9899,11 @@ function renderLiveMatches(matches) {
         var scoreStr = m.score ? escLiveHtml(m.score) : '';
         var onclickAttr = 'onclick="openLiveDetail(\'' + m.match_id_hash + '\',\'' + escLiveHtml(m.home_team) + '\',\'' + escLiveHtml(m.away_team) + '\')"';
         var showScore = (matchMin === 'MS') ? (scoreStr || '-') : scoreStr;
+        var isGoal = !!(m.match_id_hash && goalHashes[m.match_id_hash]);
+        var scoreCls = 'time-line live-score-badge' + (isGoal ? ' goal-flash' : '');
         var minCell = '<td class="match-date">' +
             '<div class="date-line live-min-badge">' + escLiveHtml(matchMin) + '</div>' +
-            (showScore ? '<div class="time-line live-score-badge">' + showScore + '</div>' : '') +
+            (showScore ? '<div class="' + scoreCls + '">' + showScore + '</div>' : '') +
             '</td>';
         if (is1x2) {
             var vol = _liveCalcVol1x2(m);
@@ -9902,7 +9916,7 @@ function renderLiveMatches(matches) {
                 '<td class="match-teams">' + escLiveHtml(m.home_team) + '<span class="vs">-</span>' + escLiveHtml(m.away_team) + '</td>' +
                 '<td class="mw-outcomes-cell" colspan="3"><div class="mw-grid mw-grid-3">' + b1 + bX + b2 + '</div></td>' +
                 '<td class="volume-cell">' + formatLiveVol(vol) + '</td></tr>';
-            cardsHtml += _liveMobileCard(m, '1x2', onclickAttr);
+            cardsHtml += _liveMobileCard(m, '1x2', onclickAttr, isGoal);
         } else {
             var ou = _liveGetOu(m, ouLine);
             var volOU = _liveCalcVolOU(ou);
@@ -9914,7 +9928,7 @@ function renderLiveMatches(matches) {
                 '<td class="match-teams">' + escLiveHtml(m.home_team) + '<span class="vs">-</span>' + escLiveHtml(m.away_team) + '</td>' +
                 '<td class="mw-outcomes-cell" colspan="2"><div class="mw-grid mw-grid-2">' + bU + bO + '</div></td>' +
                 '<td class="volume-cell">' + formatLiveVol(volOU) + '</td></tr>';
-            cardsHtml += _liveMobileCard(m, ouLine, onclickAttr);
+            cardsHtml += _liveMobileCard(m, ouLine, onclickAttr, isGoal);
         }
     }
     if (tbody) tbody.innerHTML = rowsHtml;
@@ -9961,9 +9975,10 @@ function _liveMwBlock(label, d) {
     return renderMoneywayBlock(label, d.share || 0, d.odds || '-', d.volume || '');
 }
 
-function _liveMobileCard(m, marketOrLine, onclickAttr) {
+function _liveMobileCard(m, marketOrLine, onclickAttr, isGoal) {
     var is1x2 = (marketOrLine === '1x2');
-    var html = '<div class="match-card odds-card moneyway-card" ' + onclickAttr + '>';
+    var cardCls = 'match-card odds-card moneyway-card' + (isGoal ? ' goal-flash-card' : '');
+    var html = '<div class="' + cardCls + '" ' + onclickAttr + '>';
     html += '<div class="odds-card-header">';
     html += '<div class="odds-card-teams">' + escLiveHtml(m.home_team) + ' \u2013 ' + escLiveHtml(m.away_team) + '</div>';
     var vol = 0;
