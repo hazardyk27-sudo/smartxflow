@@ -9694,6 +9694,7 @@ function switchToLive() {
 function switchFromLive() {
     _liveMode = false;
     if (_liveInterval) { clearInterval(_liveInterval); _liveInterval = null; }
+    _prevLiveScores = {};
     var mcLabel = document.getElementById('matchCountLabel');
     if (mcLabel) mcLabel.textContent = '';
     var mcSuffix = document.getElementById('matchCountSuffix');
@@ -9933,6 +9934,12 @@ function renderLiveMatches(matches, goalHashes) {
     }
     if (tbody) tbody.innerHTML = rowsHtml;
     if (cardList) cardList.innerHTML = cardsHtml;
+    document.querySelectorAll('.goal-flash').forEach(function(el) {
+        el.addEventListener('animationend', function() { el.classList.remove('goal-flash'); }, { once: true });
+    });
+    document.querySelectorAll('.goal-flash-card').forEach(function(el) {
+        el.addEventListener('animationend', function() { el.classList.remove('goal-flash-card'); }, { once: true });
+    });
     var mc = document.getElementById('matchCount');
     if (mc) mc.textContent = sorted.length;
 }
