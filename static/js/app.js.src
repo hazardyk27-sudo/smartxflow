@@ -9931,11 +9931,10 @@ function renderLiveMatches(matches, goalHashes) {
         var minExtra = '';
         if (/^HT$/i.test(matchMin) || /^MS$/i.test(matchMin)) minExtra = ' is-ht';
         else if (/\d+\+/.test(matchMin)) minExtra = ' is-extra';
-        var goalBadgeHtml = goalSide ? '<div class="goal-badge">GOL!</div>' : '';
+        var minDisplay = goalSide ? 'GOL!' : escLiveHtml(matchMin);
         var minCell = '<td class="match-date">' +
             '<div class="dk-cell-inner">' +
-            goalBadgeHtml +
-            '<div class="date-line live-min-badge' + minExtra + '">' + escLiveHtml(matchMin) + '</div>' +
+            '<div class="date-line live-min-badge' + minExtra + '"' + (goalSide ? ' data-real-min="' + escLiveHtml(matchMin) + '"' : '') + '>' + minDisplay + '</div>' +
             scoreHtml +
             '</div></td>';
         if (is1x2) {
@@ -9972,8 +9971,14 @@ function renderLiveMatches(matches, goalHashes) {
     document.querySelectorAll('.goal-flash-card').forEach(function(el) {
         el.addEventListener('animationend', function() { el.classList.remove('goal-flash-card'); }, { once: true });
     });
-    document.querySelectorAll('.goal-badge').forEach(function(el) {
-        el.addEventListener('animationend', function() { el.remove(); }, { once: true });
+    document.querySelectorAll('.live-min-badge[data-real-min]').forEach(function(el) {
+        var realMin = el.getAttribute('data-real-min');
+        setTimeout(function() {
+            if (el.parentNode) {
+                el.textContent = realMin;
+                el.removeAttribute('data-real-min');
+            }
+        }, 7000);
     });
     var mc = document.getElementById('matchCount');
     if (mc) mc.textContent = sorted.length;
@@ -10034,10 +10039,8 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
     html += '</div>';
     html += '<div class="odds-card-meta"><span>' + escLiveHtml(m.league) + '</span><span class="meta-sep">\u2022</span>';
     var cardMin = _calcLiveMatchMin(m);
-    if (goalSide) {
-        html += '<span class="goal-badge">GOL!</span> ';
-    }
-    html += '<span class="live-min-badge" style="font-size:11px;">' + cardMin + '</span>';
+    var cardMinDisplay = goalSide ? 'GOL!' : cardMin;
+    html += '<span class="live-min-badge" style="font-size:11px;"' + (goalSide ? ' data-real-min="' + cardMin + '"' : '') + '>' + cardMinDisplay + '</span>';
     var cardScore = m.score ? escLiveHtml(m.score) : (cardMin === 'MS' ? '-' : '');
     if (cardScore) {
         var csp = cardScore.split('-');
