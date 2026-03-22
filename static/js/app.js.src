@@ -9978,7 +9978,7 @@ function renderLiveMatches(matches, goalHashes) {
                 el.textContent = realMin;
                 el.removeAttribute('data-real-min');
             }
-        }, 7000);
+        }, 15000);
     });
     var mc = document.getElementById('matchCount');
     if (mc) mc.textContent = sorted.length;
