@@ -12190,7 +12190,7 @@ table.desktop-only {
 
 
 
-/* Goal pop animation — per-score digit */
+/* Goal pop animation — per-score digit (legacy, small glow on score in normal view) */
 @keyframes goalPop {
     0%   { color: #ffffff; text-shadow: 0 0 16px rgba(255,255,255,0.95), 0 0 32px rgba(255,255,255,0.5); transform: scale(1.5); }
     15%  { color: #ffffff; text-shadow: 0 0 12px rgba(255,255,255,0.8), 0 0 24px rgba(255,255,255,0.35); transform: scale(1.4); }
@@ -12200,7 +12200,48 @@ table.desktop-only {
 }
 .goal-pop {
     display: inline-block;
-    animation: goalPop 15s cubic-bezier(0.22,1,0.36,1) forwards !important;
+    animation: goalPop 6s cubic-bezier(0.22,1,0.36,1) forwards !important;
+}
+
+/* === GOAL TAKEOVER — dk-cell-inner full takeover === */
+.dk-cell-inner.goal-takeover {
+    overflow: hidden;
+}
+.dk-cell-inner.goal-takeover .date-line,
+.dk-cell-inner.goal-takeover .time-line {
+    display: none !important;
+}
+.goal-takeover-text {
+    font-size: 16px;
+    font-weight: 800;
+    color: #ffffff;
+    text-shadow: 0 0 18px rgba(255,255,255,0.9), 0 0 36px rgba(255,255,255,0.4);
+    letter-spacing: 2px;
+    line-height: 1;
+    text-align: center;
+    padding: 6px 0;
+}
+.goal-takeover-score {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 0 14px rgba(255,255,255,0.7), 0 0 28px rgba(255,255,255,0.3);
+    text-align: center;
+    line-height: 1;
+    padding: 4px 0;
+    overflow: hidden;
+}
+.goal-takeover-score .score-digit {
+    display: inline-block;
+    position: relative;
+}
+@keyframes scoreSlideUp {
+    0%   { transform: translateY(100%); opacity: 0; }
+    20%  { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+.goal-takeover-score .score-digit.slide-up {
+    animation: scoreSlideUp 1s cubic-bezier(0.22,1,0.36,1) forwards;
 }
 
 

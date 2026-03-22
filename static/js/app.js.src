@@ -9767,7 +9767,7 @@ async function loadLiveMatches() {
                 var side = 'both';
                 if (newH > oldH && newA === oldA) side = 'home';
                 else if (newA > oldA && newH === oldH) side = 'away';
-                _goalHashes[gh] = side;
+                _goalHashes[gh] = { side: side, oldScore: _prevLiveScores[gh] };
                 console.log('[GOL] ' + gm.home_team + ' vs ' + gm.away_team + ': ' + _prevLiveScores[gh] + ' → ' + gs + ' (' + side + ')');
             }
             if (gh && gs) _prevLiveScores[gh] = gs;
@@ -9912,7 +9912,9 @@ function renderLiveMatches(matches, goalHashes) {
         var scoreStr = m.score ? escLiveHtml(m.score) : '';
         var onclickAttr = 'onclick="openLiveDetail(\'' + m.match_id_hash + '\',\'' + escLiveHtml(m.home_team) + '\',\'' + escLiveHtml(m.away_team) + '\')"';
         var showScore = (matchMin === 'MS') ? (scoreStr || '-') : scoreStr;
-        var goalSide = m.match_id_hash ? goalHashes[m.match_id_hash] : null;
+        var goalInfo = m.match_id_hash ? goalHashes[m.match_id_hash] : null;
+        var goalSide = goalInfo ? goalInfo.side : null;
+        var goalOldScore = goalInfo ? goalInfo.oldScore : '';
         var scoreHtml = '';
         if (showScore) {
             var sp = showScore.split('-');
@@ -9931,10 +9933,13 @@ function renderLiveMatches(matches, goalHashes) {
         var minExtra = '';
         if (/^HT$/i.test(matchMin) || /^MS$/i.test(matchMin)) minExtra = ' is-ht';
         else if (/\d+\+/.test(matchMin)) minExtra = ' is-extra';
-        var minDisplay = goalSide ? 'GOL!' : escLiveHtml(matchMin);
+        var goalData = '';
+        if (goalSide) {
+            goalData = ' data-goal-side="' + goalSide + '" data-old-score="' + escLiveHtml(goalOldScore) + '" data-new-score="' + escLiveHtml(showScore) + '" data-real-min="' + escLiveHtml(matchMin) + '"';
+        }
         var minCell = '<td class="match-date">' +
-            '<div class="dk-cell-inner">' +
-            '<div class="date-line live-min-badge' + minExtra + '"' + (goalSide ? ' data-real-min="' + escLiveHtml(matchMin) + '"' : '') + '>' + minDisplay + '</div>' +
+            '<div class="dk-cell-inner"' + goalData + '>' +
+            '<div class="date-line live-min-badge' + minExtra + '">' + escLiveHtml(matchMin) + '</div>' +
             scoreHtml +
             '</div></td>';
         if (is1x2) {
@@ -9971,17 +9976,59 @@ function renderLiveMatches(matches, goalHashes) {
     document.querySelectorAll('.goal-flash-card').forEach(function(el) {
         el.addEventListener('animationend', function() { el.classList.remove('goal-flash-card'); }, { once: true });
     });
-    document.querySelectorAll('.live-min-badge[data-real-min]').forEach(function(el) {
-        var realMin = el.getAttribute('data-real-min');
+    document.querySelectorAll('.dk-cell-inner[data-goal-side]').forEach(function(cell) {
+        _startGoalTakeover(cell);
+    });
+    document.querySelectorAll('.live-min-badge[data-goal-min]').forEach(function(el) {
+        var realMin = el.getAttribute('data-goal-min');
         setTimeout(function() {
             if (el.parentNode) {
                 el.textContent = realMin;
-                el.removeAttribute('data-real-min');
+                el.removeAttribute('data-goal-min');
             }
-        }, 15000);
+        }, 12000);
     });
     var mc = document.getElementById('matchCount');
     if (mc) mc.textContent = sorted.length;
+}
+
+function _startGoalTakeover(cell) {
+    var goalSide = cell.getAttribute('data-goal-side');
+    var oldScore = cell.getAttribute('data-old-score') || '0-0';
+    var newScore = cell.getAttribute('data-new-score') || '0-0';
+    var realMin = cell.getAttribute('data-real-min') || '';
+    cell.classList.add('goal-takeover');
+    var golEl = document.createElement('div');
+    golEl.className = 'goal-takeover-text';
+    golEl.textContent = 'GOL!';
+    cell.appendChild(golEl);
+    setTimeout(function() {
+        if (!cell.parentNode) return;
+        if (golEl.parentNode) golEl.remove();
+        var oldParts = oldScore.split('-');
+        var newParts = newScore.split('-');
+        var oh = oldParts.length === 2 ? oldParts[0].trim() : '0';
+        var oa = oldParts.length === 2 ? oldParts[1].trim() : '0';
+        var nh = newParts.length === 2 ? newParts[0].trim() : '0';
+        var na = newParts.length === 2 ? newParts[1].trim() : '0';
+        var scoreEl = document.createElement('div');
+        scoreEl.className = 'goal-takeover-score';
+        var hClass = (oh !== nh) ? ' slide-up' : '';
+        var aClass = (oa !== na) ? ' slide-up' : '';
+        scoreEl.innerHTML = '<span class="score-digit' + hClass + '">' + nh + '</span>' +
+            '<span style="margin:0 2px;">-</span>' +
+            '<span class="score-digit' + aClass + '">' + na + '</span>';
+        cell.appendChild(scoreEl);
+        setTimeout(function() {
+            if (!cell.parentNode) return;
+            cell.classList.remove('goal-takeover');
+            if (scoreEl.parentNode) scoreEl.remove();
+            cell.removeAttribute('data-goal-side');
+            cell.removeAttribute('data-old-score');
+            cell.removeAttribute('data-new-score');
+            cell.removeAttribute('data-real-min');
+        }, 6000);
+    }, 6000);
 }
 
 function _calcLiveMatchMin(m) {
@@ -10039,8 +10086,7 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
     html += '</div>';
     html += '<div class="odds-card-meta"><span>' + escLiveHtml(m.league) + '</span><span class="meta-sep">\u2022</span>';
     var cardMin = _calcLiveMatchMin(m);
-    var cardMinDisplay = goalSide ? 'GOL!' : cardMin;
-    html += '<span class="live-min-badge" style="font-size:11px;"' + (goalSide ? ' data-real-min="' + cardMin + '"' : '') + '>' + cardMinDisplay + '</span>';
+    html += '<span class="live-min-badge" style="font-size:11px;"' + (goalSide ? ' data-goal-min="' + cardMin + '"' : '') + '>' + (goalSide ? 'GOL!' : cardMin) + '</span>';
     var cardScore = m.score ? escLiveHtml(m.score) : (cardMin === 'MS' ? '-' : '');
     if (cardScore) {
         var csp = cardScore.split('-');
