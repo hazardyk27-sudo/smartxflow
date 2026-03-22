@@ -9931,8 +9931,10 @@ function renderLiveMatches(matches, goalHashes) {
         var minExtra = '';
         if (/^HT$/i.test(matchMin) || /^MS$/i.test(matchMin)) minExtra = ' is-ht';
         else if (/\d+\+/.test(matchMin)) minExtra = ' is-extra';
+        var goalBadgeHtml = goalSide ? '<div class="goal-badge">GOL!</div>' : '';
         var minCell = '<td class="match-date">' +
             '<div class="dk-cell-inner">' +
+            goalBadgeHtml +
             '<div class="date-line live-min-badge' + minExtra + '">' + escLiveHtml(matchMin) + '</div>' +
             scoreHtml +
             '</div></td>';
@@ -9969,6 +9971,9 @@ function renderLiveMatches(matches, goalHashes) {
     });
     document.querySelectorAll('.goal-flash-card').forEach(function(el) {
         el.addEventListener('animationend', function() { el.classList.remove('goal-flash-card'); }, { once: true });
+    });
+    document.querySelectorAll('.goal-badge').forEach(function(el) {
+        el.addEventListener('animationend', function() { el.remove(); }, { once: true });
     });
     var mc = document.getElementById('matchCount');
     if (mc) mc.textContent = sorted.length;
@@ -10029,6 +10034,9 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
     html += '</div>';
     html += '<div class="odds-card-meta"><span>' + escLiveHtml(m.league) + '</span><span class="meta-sep">\u2022</span>';
     var cardMin = _calcLiveMatchMin(m);
+    if (goalSide) {
+        html += '<span class="goal-badge">GOL!</span> ';
+    }
     html += '<span class="live-min-badge" style="font-size:11px;">' + cardMin + '</span>';
     var cardScore = m.score ? escLiveHtml(m.score) : (cardMin === 'MS' ? '-' : '');
     if (cardScore) {
