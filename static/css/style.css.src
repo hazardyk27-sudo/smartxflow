@@ -8960,42 +8960,9 @@ table.desktop-only {
         height: auto;
     }
 
-    /* ========== TOOLBAR - Compact Layout ========== */
+    /* ========== TOOLBAR - Hidden on mobile (controls in mob-ctrl) ========== */
     .toolbar {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-bottom: 8px;
-        padding: 0;
-        position: relative;
-    }
-    
-    .toolbar-left {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-        gap: 8px;
-    }
-    
-    /* Search - Premium dark */
-    .search-box {
-        width: 100%;
-        height: 34px;
-        padding: 0 10px;
-        border-radius: 8px;
-        gap: 6px;
-        background: rgba(22, 27, 34, 0.6) !important;
-        border: 1px solid rgba(255,255,255,0.06) !important;
-    }
-    
-    .search-box svg {
-        width: 13px;
-        height: 13px;
-        opacity: 0.5;
-    }
-    
-    .search-box input {
-        font-size: 13px;
+        display: none !important;
     }
 
     /* ========== MOBILE DROPDOWN CONTROLS ========== */
@@ -9020,9 +8987,10 @@ table.desktop-only {
         align-items: center !important;
         justify-content: space-between !important;
         width: 100% !important;
-        padding: 8px 12px !important;
+        height: 34px !important;
+        padding: 0 12px !important;
         background: rgba(22, 27, 34, 0.8) !important;
-        border: 1px solid rgba(255,255,255,0.08) !important;
+        border: 1px solid rgba(255,255,255,0.06) !important;
         border-radius: 8px !important;
         color: #e6edf3 !important;
         font-size: 13px !important;
@@ -9100,9 +9068,65 @@ table.desktop-only {
         background: rgba(74, 222, 128, 0.06) !important;
     }
 
+    /* ========== MOBILE ACTION ROW (2nd row) ========== */
+    .mob-action-row {
+        display: flex !important;
+        gap: 6px !important;
+        align-items: stretch !important;
+        margin-top: 6px !important;
+    }
+    
+    .mob-act-btn {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 5px !important;
+        height: 34px !important;
+        padding: 0 10px !important;
+        background: rgba(22, 27, 34, 0.8) !important;
+        border: 1px solid rgba(255,255,255,0.06) !important;
+        border-radius: 8px !important;
+        color: #8b949e !important;
+        font-size: 11px !important;
+        font-weight: 500 !important;
+        cursor: pointer !important;
+        white-space: nowrap !important;
+        transition: all 0.15s !important;
+        min-height: auto !important;
+        min-width: auto !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .mob-act-btn:active {
+        background: rgba(46, 160, 67, 0.15) !important;
+        border-color: rgba(74, 222, 128, 0.2) !important;
+    }
+    
+    .mob-act-btn svg {
+        flex-shrink: 0 !important;
+        opacity: 0.7 !important;
+    }
+    
+    .mob-act-wide {
+        flex: 1 !important;
+    }
+    
+    .mob-act-badge {
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        color: #4ade80 !important;
+        min-width: 12px !important;
+        text-align: center !important;
+    }
+    
+    .mob-act-btn.has-filter {
+        border-color: rgba(74, 222, 128, 0.25) !important;
+        color: #4ade80 !important;
+    }
+
     /* ========== MOBILE SEARCH EXPANDABLE ========== */
     .mob-search-wrap {
-        padding: 0 8px 6px !important;
+        padding: 6px 0 0 !important;
     }
     
     .mob-search-box {
@@ -9159,7 +9183,7 @@ table.desktop-only {
     .mob-search-close:active {
         background: rgba(255,255,255,0.06) !important;
     }
-    
+
     /* Hide desktop search on mobile */
     .search-box-desktop {
         display: none !important;

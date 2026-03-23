@@ -9,13 +9,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap"></noscript>
-    <link rel="stylesheet" href="/static/css/style.css?v=1774309561">
+    <link rel="stylesheet" href="/static/css/style.css?v=1774309861">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <script defer src="/static/js/vendor/dayjs.min.js"></script>
     <script defer src="/static/js/vendor/dayjs-utc.js"></script>
     <script defer src="/static/js/vendor/dayjs-timezone.js"></script>
     <script defer src="/static/js/vendor/dayjs-customParseFormat.js"></script>
-    <script defer src="/static/js/app.js?v=1774309561"></script>
+    <script defer src="/static/js/app.js?v=1774309861"></script>
     <script defer src="/static/js/ui.js?v=1773704900"></script>
 </head>
 <body>
@@ -228,6 +228,58 @@
                 </div>
             </div>
         </div>
+        <div class="mob-ctrl-row mob-action-row">
+            <button class="mob-act-btn" id="mobSearchBtn" onclick="openMobSearch()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            </button>
+            <button class="mob-act-btn mob-act-wide" id="mobileFilterBtn" onclick="openMobileFilterModal()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+                    <circle cx="8" cy="6" r="2" fill="currentColor"/><circle cx="16" cy="12" r="2" fill="currentColor"/><circle cx="10" cy="18" r="2" fill="currentColor"/>
+                </svg>
+                <span>Filtrele</span>
+            </button>
+            <button class="mob-act-btn mob-act-wide" onclick="toggleAlarmsSidebar()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                <span>Alarmlar</span>
+                <span class="mob-act-badge" id="mobileAlarmBadge">0</span>
+            </button>
+            <div class="mobile-overflow-wrap">
+                <button class="mob-act-btn" onclick="toggleMobileOverflow(event)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                    </svg>
+                </button>
+                <div class="mobile-overflow-menu" id="mobileOverflowMenu">
+                    <button onclick="openTrendsModal('moves'); closeMobileOverflow();">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                        </svg>
+                        Kılavuz
+                    </button>
+                    <button onclick="openTrendsModal('analysis'); closeMobileOverflow();" style="position:relative;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                        Analizler
+                        <span class="analysis-active-badge" style="display:none;">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="mob-search-wrap" id="mobSearchWrap" style="display:none;">
+            <div class="mob-search-box">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input type="text" id="mobSearchInput" placeholder="Takım veya Lig ara..." oninput="document.getElementById('searchInput').value=this.value; document.getElementById('searchInput').dispatchEvent(new Event('input'));">
+                <button class="mob-search-close" onclick="closeMobSearch()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+        </div>
     </div>
 
     <main class="main-content">
@@ -277,65 +329,6 @@
                 </div>
             </div>
             
-
-            <!-- Mobile: Search expandable -->
-            <div class="mob-search-wrap mobile-only" id="mobSearchWrap" style="display:none;">
-                <div class="mob-search-box">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                    <input type="text" id="mobSearchInput" placeholder="Takım veya Lig ara..." oninput="document.getElementById('searchInput').value=this.value; document.getElementById('searchInput').dispatchEvent(new Event('input'));">
-                    <button class="mob-search-close" onclick="closeMobSearch()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Mobile: Filter Bar (below search) -->
-            <div class="mobile-filter-bar mobile-only">
-                <div class="mobile-filter-left">
-                    <button class="mobile-alarm-btn" id="mobSearchBtn" onclick="openMobSearch()">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                    </button>
-                    <button class="mobile-filter-btn" id="mobileFilterBtn" onclick="openMobileFilterModal()">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
-                            <circle cx="8" cy="6" r="2" fill="currentColor"/><circle cx="16" cy="12" r="2" fill="currentColor"/><circle cx="10" cy="18" r="2" fill="currentColor"/>
-                        </svg>
-                        <span>Filtrele</span>
-                        <svg class="day-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-                    </button>
-                    <button class="mobile-alarm-btn" onclick="toggleAlarmsSidebar()">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                        </svg>
-                        <span class="mobile-alarm-text">Alarmlar</span>
-                        <span class="mobile-alarm-badge" id="mobileAlarmBadge">0</span>
-                    </button>
-                    <div class="mobile-overflow-wrap">
-                        <button class="mobile-overflow-btn" onclick="toggleMobileOverflow(event)">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
-                            </svg>
-                        </button>
-                        <div class="mobile-overflow-menu" id="mobileOverflowMenu">
-                            <button onclick="openTrendsModal('moves'); closeMobileOverflow();">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                                </svg>
-                                Kılavuz
-                            </button>
-                            <button onclick="openTrendsModal('analysis'); closeMobileOverflow();" style="position:relative;">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                                </svg>
-                                Analizler
-                                <span class="analysis-active-badge" style="display:none;">0</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <div class="table-container">
                 <!-- Mobile: Match Card List -->
