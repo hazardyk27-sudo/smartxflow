@@ -12878,27 +12878,91 @@ table.desktop-only {
     }
 }
 
+/* === Mobile Live Detail Card Layout === */
+.mlive-mobile-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 0;
+    overflow-x: hidden;
+}
+.mlive-row {
+    background: #14191f;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    padding: 8px 10px;
+}
+.mlive-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+.mlive-dk {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ef4444;
+    min-width: 36px;
+}
+.mlive-skor {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(203,213,225,0.7);
+}
+.mlive-sels {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+}
+.mlive-sel {
+    flex: 1;
+    background: rgba(255,255,255,0.03);
+    border-radius: 6px;
+    padding: 6px 6px;
+    text-align: center;
+    min-width: 0;
+}
+.mlive-sel-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(203,213,225,0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
+}
+.mlive-sel-odds {
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(203,213,225,0.90);
+    white-space: nowrap;
+}
+.mlive-sel-odds .period-delta-up {
+    font-size: 10px;
+    color: #22c55e;
+}
+.mlive-sel-odds .period-delta-down {
+    font-size: 10px;
+    color: #ef4444;
+}
+.mlive-sel-meta {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    font-size: 10px;
+    margin-top: 2px;
+    color: rgba(203,213,225,0.5);
+}
+.mlive-sel-meta .pct-high {
+    color: #22c55e;
+    font-weight: 600;
+}
+.mlive-sel-meta .pct-low {
+    color: rgba(203,213,225,0.45);
+}
+.mlive-sel-vol {
+    color: rgba(203,213,225,0.4);
+}
+
 @media (max-width: 768px) {
-    .modal-live-body .live-detail-table-wrap {
-        overflow-x: hidden;
-        width: 100%;
-    }
-    .modal-live-body .live-period-table {
-        font-size: 11px;
-        table-layout: fixed;
-        width: 100%;
-    }
-    .modal-live-body .live-period-table thead th,
-    .modal-live-body .live-period-table tbody td {
-        padding: 5px 3px;
-        font-size: 10px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .modal-live-body .period-dk-skor {
-        width: 48px;
-        min-width: 48px;
-    }
     .modal-live-body {
         overflow-x: hidden;
     }
