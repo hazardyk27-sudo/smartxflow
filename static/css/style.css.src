@@ -12904,50 +12904,54 @@ table.desktop-only {
     overflow-x: hidden;
 }
 .mlive-period {
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    padding: 12px 10px 10px;
+    padding: 14px 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.035);
+}
+.mlive-period + .mlive-period {
+    margin-top: 2px;
 }
 .mlive-status {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     margin-bottom: 10px;
 }
 .mlive-min {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
-    color: #ef4444;
-    background: rgba(239,68,68,0.08);
-    padding: 2px 7px;
+    color: #ff6b6b;
+    background: rgba(255,107,107,0.1);
+    border: 1px solid rgba(255,107,107,0.12);
+    padding: 3px 8px;
     border-radius: 6px;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.2px;
 }
 .mlive-score {
     font-size: 13px;
     font-weight: 600;
-    color: rgba(203,213,225,0.55);
-    letter-spacing: 0.5px;
+    color: rgba(203,213,225,0.45);
+    letter-spacing: 1px;
 }
 .mlive-cards {
     display: flex;
-    gap: 6px;
+    gap: 7px;
     width: 100%;
 }
 .mlive-card {
     flex: 1;
     min-width: 0;
-    background: linear-gradient(160deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.012) 100%);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 10px;
-    padding: 8px 8px 7px;
+    background: linear-gradient(170deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%);
+    border: 1px solid rgba(255,255,255,0.055);
+    border-radius: 14px;
+    padding: 10px 10px 8px;
 }
 .mlive-card-lbl {
-    font-size: 9px;
-    font-weight: 700;
-    color: rgba(203,213,225,0.3);
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(203,213,225,0.35);
     text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 5px;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
     text-align: center;
 }
 .mc-line {
@@ -12955,43 +12959,44 @@ table.desktop-only {
     align-items: baseline;
     justify-content: space-between;
     white-space: nowrap;
-    padding: 0 2px;
+    padding: 0 1px;
+}
+.mc-odds {
+    margin-bottom: 6px;
 }
 .mc-odds .mc-v {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
-    color: #f0f4f8;
-    letter-spacing: -0.3px;
+    color: #f1f5f9;
+    letter-spacing: -0.5px;
 }
 .mc-pct {
-    margin-top: 3px;
-    padding-top: 3px;
-    border-top: 1px solid rgba(255,255,255,0.03);
+    padding-top: 5px;
+    border-top: 1px solid rgba(255,255,255,0.04);
 }
 .mc-pct .mc-v {
     font-size: 11px;
     font-weight: 500;
-    color: rgba(120,200,175,0.65);
+    color: rgba(148,196,180,0.6);
 }
 .mc-vol {
-    margin-top: 1px;
+    margin-top: 2px;
 }
 .mc-vol .mc-v {
     font-size: 10px;
-    color: rgba(203,213,225,0.28);
+    color: rgba(203,213,225,0.25);
     font-weight: 500;
 }
 .mc-d {
-    font-size: 10px;
     font-weight: 600;
 }
 .mc-d.ch-up {
-    color: #4ade80;
+    color: rgba(74,222,128,0.85);
 }
 .mc-d.ch-down {
-    color: #f87171;
+    color: rgba(248,113,113,0.85);
 }
-.mc-odds .mc-d { font-size: 11px; font-weight: 700; }
+.mc-odds .mc-d { font-size: 12px; }
 .mc-pct .mc-d { font-size: 10px; }
 .mc-vol .mc-d { font-size: 9px; }
 
