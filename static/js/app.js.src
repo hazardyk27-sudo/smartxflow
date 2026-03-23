@@ -10180,16 +10180,20 @@ async function openLiveDetail(hash, home, away) {
 
 async function _openLiveInMainModal(hash, home, away) {
     var match = null;
-    if (typeof allMatches !== 'undefined' && allMatches.length > 0) {
-        for (var i = 0; i < allMatches.length; i++) {
-            var mh = allMatches[i].home_team || '';
-            var ma = allMatches[i].away_team || '';
-            if (mh === home && ma === away) { match = allMatches[i]; break; }
+    var matchIdx = -1;
+    var dataSource = (typeof filteredMatches !== 'undefined' && filteredMatches.length > 0) ? filteredMatches : ((typeof matches !== 'undefined') ? matches : []);
+    var homeLow = (home || '').toLowerCase().trim();
+    var awayLow = (away || '').toLowerCase().trim();
+    for (var i = 0; i < dataSource.length; i++) {
+        var mh = (dataSource[i].home_team || '').toLowerCase().trim();
+        var ma = (dataSource[i].away_team || '').toLowerCase().trim();
+        if (mh === homeLow && ma === awayLow) { match = dataSource[i]; matchIdx = i; break; }
+        if ((mh.includes(homeLow) || homeLow.includes(mh)) && (ma.includes(awayLow) || awayLow.includes(ma))) {
+            if (!match) { match = dataSource[i]; matchIdx = i; }
         }
     }
-    if (match) {
-        var idx = allMatches.indexOf(match);
-        await openMatchModal(idx);
+    if (match && matchIdx >= 0) {
+        await openMatchModal(matchIdx);
     } else {
         await openMatchModalFromAPI(home, away, '', '');
     }
