@@ -12261,24 +12261,28 @@ table.desktop-only {
 }
 /* Live DK column — mini status card */
 .live-min-badge {
-    color: #ef4444 !important;
-    font-size: 14px !important;
+    color: #e6edf3 !important;
+    font-size: 17px !important;
     font-weight: 600 !important;
     letter-spacing: 0.3px;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
 }
 .live-min-badge.is-ht {
     display: inline-block;
-    background: rgba(239,68,68,0.12);
-    border: 1px solid rgba(239,68,68,0.25);
-    border-radius: 6px;
-    padding: 1px 7px;
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.8px;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0;
+    padding: 0 !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #e6edf3 !important;
+    letter-spacing: 0.3px;
     text-transform: uppercase;
 }
 .live-min-badge.is-extra {
-    color: #f59e0b !important;
+    color: #e6edf3 !important;
 }
 
 .live-score-badge {
