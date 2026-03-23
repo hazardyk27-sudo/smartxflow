@@ -12112,15 +12112,16 @@ table.desktop-only {
     margin-left: 6px;
 }
 .live-market-btn {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.06);
-    color: rgba(203,213,225,0.5);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: rgba(203,213,225,0.4);
     font-size: 12px;
     font-weight: 600;
-    height: 32px;
-    min-width: 40px;
-    padding: 0 12px;
-    border-radius: 8px;
+    height: 30px;
+    min-width: 36px;
+    padding: 0 10px;
+    border-radius: 0;
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: center;
@@ -12132,14 +12133,12 @@ table.desktop-only {
     justify-content: center;
 }
 .live-market-btn:hover {
-    border-color: rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.05);
-    color: rgba(203,213,225,0.8);
+    color: rgba(203,213,225,0.7);
 }
 .live-market-btn.active {
     background: transparent;
-    border-color: rgba(34,197,94,0.3);
-    color: #5ecc7e;
+    border-bottom: 2px solid rgba(203,213,225,0.7);
+    color: rgba(203,213,225,0.9);
 }
 .live-loading {
     display: flex;
@@ -13048,9 +13047,16 @@ table.desktop-only {
         border-bottom: 1px solid rgba(255,255,255,0.04) !important;
     }
     .modal-live-section .live-market-btn {
-        height: 30px !important;
+        height: 28px !important;
         font-size: 11px !important;
-        padding: 0 10px !important;
-        border-radius: 7px !important;
+        padding: 0 8px !important;
+        border-radius: 0 !important;
+        border: none !important;
+        border-bottom: 2px solid transparent !important;
+        background: transparent !important;
+    }
+    .modal-live-section .live-market-btn.active {
+        border-bottom: 2px solid rgba(203,213,225,0.7) !important;
+        color: rgba(203,213,225,0.9) !important;
     }
 }
