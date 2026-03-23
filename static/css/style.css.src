@@ -10217,7 +10217,7 @@ table.desktop-only {
     
     /* === 2. SUMMARY CARD === */
     .match-info-card {
-        background: #161b22 !important;
+        background: transparent !important;
         border: none !important;
         border-radius: 10px !important;
         padding: 12px !important;
