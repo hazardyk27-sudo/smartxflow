@@ -13028,4 +13028,29 @@ table.desktop-only {
     .modal-live-body .live-detail-table-wrap::-webkit-scrollbar {
         display: none;
     }
+    .modal-live-section .smart-money-header {
+        padding: 8px 12px 6px 12px !important;
+        margin-bottom: 0 !important;
+        border-bottom: none !important;
+    }
+    .modal-live-section .smart-money-icon {
+        font-size: 7px !important;
+        opacity: 0.6 !important;
+    }
+    .modal-live-section .smart-money-title {
+        font-size: 10px !important;
+        letter-spacing: 1.5px !important;
+        color: rgba(203,213,225,0.35) !important;
+        font-weight: 600 !important;
+    }
+    .modal-live-section .modal-live-tabs {
+        padding: 2px 12px 8px !important;
+        border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+    }
+    .modal-live-section .live-market-btn {
+        height: 30px !important;
+        font-size: 11px !important;
+        padding: 0 10px !important;
+        border-radius: 7px !important;
+    }
 }
