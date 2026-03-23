@@ -12937,16 +12937,16 @@ table.desktop-only {
     background: rgba(255,255,255,0.025);
     border: 1px solid rgba(255,255,255,0.05);
     border-radius: 10px;
-    padding: 7px 7px 6px;
+    padding: 6px 6px 5px;
     overflow: hidden;
 }
 .mlive-card-lbl {
     font-size: 9px;
     font-weight: 600;
-    color: rgba(203,213,225,0.32);
+    color: rgba(203,213,225,0.3);
     text-transform: uppercase;
-    letter-spacing: 0.6px;
-    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
     text-align: center;
 }
 .mc-line {
@@ -12954,41 +12954,44 @@ table.desktop-only {
     align-items: baseline;
     justify-content: space-between;
     white-space: nowrap;
-    line-height: 1.3;
+    height: 18px;
 }
 .mc-odds {
-    margin-bottom: 4px;
+    height: 22px;
+    margin-bottom: 2px;
 }
 .mc-odds .mc-v {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     color: #e8edf2;
 }
 .mc-pct {
-    padding-top: 4px;
+    padding-top: 3px;
     border-top: 1px solid rgba(255,255,255,0.04);
+    height: 16px;
 }
 .mc-pct .mc-v {
     font-size: 10px;
     font-weight: 500;
-    color: rgba(160,200,190,0.55);
+    color: rgba(203,213,225,0.5);
 }
 .mc-vol {
-    margin-top: 1px;
+    margin-top: 0;
+    height: 14px;
 }
 .mc-vol .mc-v {
     font-size: 9px;
-    color: rgba(203,213,225,0.22);
+    color: rgba(203,213,225,0.28);
     font-weight: 500;
 }
 .mc-d {
     font-weight: 600;
 }
 .mc-d.ch-up {
-    color: rgba(74,222,128,0.8);
+    color: #5ecc7e;
 }
 .mc-d.ch-down {
-    color: rgba(248,113,113,0.8);
+    color: #e96060;
 }
 .mc-odds .mc-d { font-size: 10px; }
 .mc-pct .mc-d { font-size: 9px; }
