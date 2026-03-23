@@ -1592,6 +1592,10 @@ def get_match_history_bulk():
     if not home or not away:
         return jsonify({'error': 'Missing home or away parameter', 'markets': {}})
     
+    resolved_home = home
+    resolved_away = away
+    resolved_league = league
+    
     cache_key = f"{home.lower().strip()}|{away.lower().strip()}|{league.lower().strip()}"
     
     cached_data, from_cache = get_cached_history(cache_key)
@@ -1602,11 +1606,37 @@ def get_match_history_bulk():
     start_time = time.time()
     print(f"[History/Bulk] Cache MISS for {home} vs {away}, fetching parallel...")
     
+    test_history = db.get_match_history(home, away, 'moneyway_1x2', league)
+    if not test_history:
+        try:
+            import urllib.parse
+            home_like = urllib.parse.quote(home[:8] if len(home) > 8 else home, safe='')
+            away_like = urllib.parse.quote(away[:8] if len(away) > 8 else away, safe='')
+            fix_url = f"{db.supabase._rest_url('fixtures')}?select=home_team,away_team,league&home_team=ilike.*{home_like}*&away_team=ilike.*{away_like}*&limit=1"
+            fix_resp = db.supabase._get_http_client().get(fix_url, headers=db.supabase._headers(), timeout=10)
+            if fix_resp.status_code == 200:
+                fix_rows = fix_resp.json()
+                if fix_rows:
+                    resolved_home = fix_rows[0].get('home_team', home)
+                    resolved_away = fix_rows[0].get('away_team', away)
+                    if not league and fix_rows[0].get('league'):
+                        resolved_league = fix_rows[0]['league']
+                    print(f"[History/Bulk] Fuzzy resolved: {home} vs {away} -> {resolved_home} vs {resolved_away} (league: {resolved_league})")
+                    cache_key = f"{resolved_home.lower().strip()}|{resolved_away.lower().strip()}|{resolved_league.lower().strip()}"
+                    cached_data2, from_cache2 = get_cached_history(cache_key)
+                    if from_cache2:
+                        print(f"[History/Bulk] Cache HIT after fuzzy for {resolved_home} vs {resolved_away} - 0ms")
+                        return jsonify({'markets': cached_data2})
+                else:
+                    print(f"[History/Bulk] No fuzzy match found in fixtures for {home} vs {away}")
+        except Exception as e:
+            print(f"[History/Bulk] Fuzzy lookup error: {e}")
+    
     all_markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts', 
                    'dropping_1x2', 'dropping_ou25', 'dropping_btts']
     
     def _build_market_data(market):
-        history = db.get_match_history(home, away, market, league)
+        history = db.get_match_history(resolved_home, resolved_away, market, resolved_league)
         chart_data = {'labels': [], 'datasets': []}
         if history:
             for h in history:
