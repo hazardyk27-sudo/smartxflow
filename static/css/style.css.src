@@ -12348,14 +12348,14 @@ table.desktop-only {
     gap: 6px;
     padding: 4px 14px 10px;
     flex-wrap: wrap;
-    background: #14191F;
+    background: transparent;
     border-bottom: 1px solid rgba(255,255,255,0.04);
 }
 .modal-live-body {
     max-height: 60vh;
     overflow-y: auto;
     overflow-x: auto;
-    background: #14191F;
+    background: transparent;
     padding: 0;
 }
 .modal-live-body .live-detail-table-wrap {
@@ -12365,7 +12365,7 @@ table.desktop-only {
 }
 .modal-live-body .live-period-table {
     font-size: 12px;
-    background: #14191F;
+    background: transparent;
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
