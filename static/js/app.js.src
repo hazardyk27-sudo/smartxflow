@@ -10367,6 +10367,38 @@ async function _checkModalLiveData(home, away, reqId) {
             if (liveTab) liveTab.style.display = '';
             _buildModalLiveTabs(_modalLiveData);
             renderModalLiveDetail(_modalLiveData, _modalLiveMarket);
+
+            if (!modalOddsData) {
+                var sorted = data.snapshots.slice().sort(function(a, b) {
+                    return (a.snapshot_at || '') > (b.snapshot_at || '') ? 1 : -1;
+                });
+                var latest = sorted[sorted.length - 1];
+                var prev = sorted.length >= 2 ? sorted[sorted.length - 2] : null;
+                var d1x2 = latest['1x2'] || {};
+                var s1 = d1x2['1'] || {};
+                var sX = d1x2['X'] || {};
+                var s2 = d1x2['2'] || {};
+                var vol1 = s1.volume || 0;
+                var volX = sX.volume || 0;
+                var vol2 = s2.volume || 0;
+                var totalVol = vol1 + volX + vol2;
+                modalOddsData = {
+                    Odds1: s1.odds, OddsX: sX.odds, Odds2: s2.odds,
+                    Amt1: vol1, AmtX: volX, Amt2: vol2,
+                    Pct1: s1.share || 0, PctX: sX.share || 0, Pct2: s2.share || 0,
+                    Volume: totalVol
+                };
+                if (prev) {
+                    var p1x2 = prev['1x2'] || {};
+                    previousOddsData = {
+                        Odds1: (p1x2['1'] || {}).odds, OddsX: (p1x2['X'] || {}).odds, Odds2: (p1x2['2'] || {}).odds
+                    };
+                }
+                if (selectedMatch && !selectedMatch.odds) {
+                    selectedMatch.odds = modalOddsData;
+                }
+                updateMatchInfoCard();
+            }
         }
     } catch (e) {
         console.error('[Modal] Live data check error:', e);
