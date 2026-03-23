@@ -8967,8 +8967,11 @@ table.desktop-only {
 
     /* ========== MOBILE DROPDOWN CONTROLS ========== */
     .mob-ctrl {
-        padding: 8px 12px 4px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 8px 12px 6px !important;
         background: transparent !important;
+        gap: 0 !important;
     }
     
     .mob-ctrl-row {
