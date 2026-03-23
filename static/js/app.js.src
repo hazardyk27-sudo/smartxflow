@@ -10594,8 +10594,8 @@ function _renderModalLiveMobile(body, snapshots, market) {
             html += '<div class="mlive-card">';
             html += '<div class="mlive-card-lbl">' + selLabels[j] + '</div>';
             html += '<div class="mc-line mc-odds"><span class="mc-v">' + oddsStr + '</span>' + oddsDelta + '</div>';
-            html += '<div class="mc-line mc-pct"><span class="mc-v">' + pctStr + '</span>' + pctDeltaHtml + '</div>';
             html += '<div class="mc-line mc-vol"><span class="mc-v">' + (vol ? formatLiveVol(vol) : '-') + '</span>' + volDeltaHtml + '</div>';
+            html += '<div class="mc-line mc-pct"><span class="mc-v">' + pctStr + '</span>' + pctDeltaHtml + '</div>';
             html += '</div>';
         }
 

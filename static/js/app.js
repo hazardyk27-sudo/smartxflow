@@ -1766,6 +1766,6 @@ var prevPct=0;if(prevDataGroup){prevPct=(prevDataGroup[sel]||{}).share||0;}
 var pctDelta=pct-prevPct;var pctDeltaHtml='';if(prevS&&Math.abs(pctDelta)>=0.05){var pdSign=pctDelta>0?'+':'';var pCls=pctDelta>0?'ch-up':'ch-down';pctDeltaHtml='<span class="mc-d '+pCls+'">'+pdSign+pctDelta.toFixed(1)+'%</span>';}
 var prevVol=0;if(prevDataGroup){prevVol=(prevDataGroup[sel]||{}).volume||0;}
 var volDiff=vol-prevVol;var volDeltaHtml='';if(prevS&&volDiff!==0){var vCls=volDiff>0?'ch-up':'ch-down';volDeltaHtml='<span class="mc-d '+vCls+'">'+formatLiveVol(volDiff)+'</span>';}
-html+='<div class="mlive-card">';html+='<div class="mlive-card-lbl">'+selLabels[j]+'</div>';html+='<div class="mc-line mc-odds"><span class="mc-v">'+oddsStr+'</span>'+oddsDelta+'</div>';html+='<div class="mc-line mc-pct"><span class="mc-v">'+pctStr+'</span>'+pctDeltaHtml+'</div>';html+='<div class="mc-line mc-vol"><span class="mc-v">'+(vol?formatLiveVol(vol):'-')+'</span>'+volDeltaHtml+'</div>';html+='</div>';}
+html+='<div class="mlive-card">';html+='<div class="mlive-card-lbl">'+selLabels[j]+'</div>';html+='<div class="mc-line mc-odds"><span class="mc-v">'+oddsStr+'</span>'+oddsDelta+'</div>';html+='<div class="mc-line mc-vol"><span class="mc-v">'+(vol?formatLiveVol(vol):'-')+'</span>'+volDeltaHtml+'</div>';html+='<div class="mc-line mc-pct"><span class="mc-v">'+pctStr+'</span>'+pctDeltaHtml+'</div>';html+='</div>';}
 html+='</div></div>';}
 html+='</div>';body.innerHTML=html;}

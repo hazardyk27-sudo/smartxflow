@@ -12976,24 +12976,24 @@ table.desktop-only {
     font-weight: 700;
     color: #eef2f7;
 }
-.mc-pct {
+.mc-vol {
     padding-top: 4px;
     border-top: 1px solid rgba(255,255,255,0.05);
     min-height: 15px;
 }
-.mc-pct .mc-v {
+.mc-vol .mc-v {
     font-size: 10px;
+    color: rgba(203,213,225,0.4);
     font-weight: 500;
-    color: rgba(203,213,225,0.5);
 }
-.mc-vol {
+.mc-pct {
     margin-top: 1px;
     min-height: 14px;
 }
-.mc-vol .mc-v {
+.mc-pct .mc-v {
     font-size: 9px;
-    color: rgba(203,213,225,0.25);
     font-weight: 500;
+    color: rgba(203,213,225,0.3);
 }
 .mc-d {
     font-weight: 600;
