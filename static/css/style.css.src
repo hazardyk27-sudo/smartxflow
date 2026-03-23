@@ -9639,14 +9639,18 @@ table.desktop-only {
     }
     
     .modal-header {
-        padding: 14px 16px;
+        padding: 10px 14px;
         position: sticky;
         top: 0;
         z-index: 10;
     }
     
     .modal-title h2 {
-        font-size: 15px;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: calc(100vw - 80px);
     }
     
     .modal-subtitle {
@@ -12891,94 +12895,98 @@ table.desktop-only {
     }
 }
 
-/* === Mobile Live Detail Card Layout === */
-.mlive-mobile-wrap {
+/* === Mobile Live Detail — Clean Card Layout === */
+.mlive-wrap {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 4px 0;
+    gap: 0;
+    padding: 0;
     overflow-x: hidden;
 }
-.mlive-row {
-    background: #14191f;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    padding: 8px 10px;
+.mlive-period {
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding: 10px 8px 8px;
 }
-.mlive-header {
+.mlive-status {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
-}
-.mlive-dk {
-    font-size: 15px;
-    font-weight: 700;
-    color: #ef4444;
-    min-width: 36px;
-}
-.mlive-skor {
-    font-size: 13px;
-    font-weight: 600;
-    color: rgba(203,213,225,0.7);
-}
-.mlive-sels {
-    display: flex;
-    gap: 6px;
-    width: 100%;
-}
-.mlive-sel {
-    flex: 1;
-    background: rgba(255,255,255,0.03);
-    border-radius: 6px;
-    padding: 6px 6px;
-    text-align: center;
-    min-width: 0;
-}
-.mlive-sel-label {
-    font-size: 10px;
-    font-weight: 600;
-    color: rgba(203,213,225,0.5);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 3px;
-}
-.mlive-sel-row {
-    display: flex;
-    justify-content: space-between;
     align-items: baseline;
-    line-height: 1.4;
+    gap: 8px;
+    margin-bottom: 8px;
 }
-.mlive-odds-row .mlive-val {
+.mlive-min {
     font-size: 14px;
     font-weight: 700;
-    color: rgba(203,213,225,0.90);
-}
-.mlive-sel-row .mlive-val {
-    font-size: 11px;
-    color: rgba(203,213,225,0.55);
-}
-.mlive-sel-row .mlive-val.pct-high {
-    color: #22c55e;
-    font-weight: 600;
-    font-size: 11px;
-}
-.mlive-sel-row .mlive-val.pct-low {
-    color: rgba(203,213,225,0.45);
-    font-size: 11px;
-}
-.mlive-sel-row .mlive-val.mlive-vol-val {
-    color: rgba(203,213,225,0.4);
-    font-size: 10px;
-}
-.mlive-delta {
-    font-size: 10px;
-    margin-left: 4px;
-}
-.mlive-delta .period-delta-up {
-    color: #22c55e;
-}
-.mlive-delta .period-delta-down {
     color: #ef4444;
+}
+.mlive-score {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(203,213,225,0.6);
+}
+.mlive-cards {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+.mlive-card {
+    flex: 1;
+    min-width: 0;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 12px;
+    padding: 10px 8px;
+    text-align: center;
+}
+.mlive-card-lbl {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(203,213,225,0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+}
+.mlive-card-odds {
+    font-size: 18px;
+    font-weight: 600;
+    color: #e6edf3;
+    line-height: 1.1;
+}
+.mlive-card-pct {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(130,200,180,0.75);
+    margin-top: 4px;
+    line-height: 1.2;
+}
+.mlive-card-vol {
+    font-size: 12px;
+    color: rgba(203,213,225,0.35);
+    margin-top: 2px;
+    line-height: 1.2;
+}
+.mlive-card-changes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 3px;
+    margin-top: 6px;
+}
+.mlive-pill {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 5px;
+    border-radius: 4px;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+.mlive-pill.ch-up {
+    background: rgba(34,197,94,0.12);
+    color: #4ade80;
+}
+.mlive-pill.ch-down {
+    background: rgba(239,68,68,0.12);
+    color: #f87171;
 }
 
 @media (max-width: 768px) {

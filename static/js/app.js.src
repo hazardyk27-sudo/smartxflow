@@ -10533,7 +10533,7 @@ function _renderModalLiveMobile(body, snapshots, market) {
     var sels = is1x2 ? ['1', 'X', '2'] : ['U', 'O'];
     var selLabels = is1x2 ? ['1', 'X', '2'] : ['Alt ' + ouLine, '\u00dcst ' + ouLine];
 
-    var html = '<div class="mlive-mobile-wrap">';
+    var html = '<div class="mlive-wrap">';
 
     for (var i = 0; i < snapshots.length; i++) {
         var s = snapshots[i];
@@ -10548,9 +10548,9 @@ function _renderModalLiveMobile(body, snapshots, market) {
         var dataGroup = is1x2 ? (s['1x2'] || {}) : ((s.ou_lines || {})[ouLine] || {});
         var prevDataGroup = prevS ? (is1x2 ? (prevS['1x2'] || {}) : ((prevS.ou_lines || {})[ouLine] || {})) : null;
 
-        html += '<div class="mlive-row">';
-        html += '<div class="mlive-header"><span class="mlive-dk">' + escLiveHtml(minStr) + '</span><span class="mlive-skor">' + escLiveHtml(scoreStr) + '</span></div>';
-        html += '<div class="mlive-sels">';
+        html += '<div class="mlive-period">';
+        html += '<div class="mlive-status"><span class="mlive-min">' + escLiveHtml(minStr) + '</span><span class="mlive-score">' + escLiveHtml(scoreStr) + '</span></div>';
+        html += '<div class="mlive-cards">';
 
         for (var j = 0; j < sels.length; j++) {
             var sel = sels[j];
@@ -10560,45 +10560,43 @@ function _renderModalLiveMobile(body, snapshots, market) {
             var vol = sd.volume || 0;
             var oddsStr = odds !== null ? odds.toFixed(2) : '-';
             var pctStr = pct ? pct.toFixed(1) + '%' : '-';
-            var hi = pct >= 50;
 
-            var deltaHtml = '';
+            var changes = [];
             if (prevDataGroup && odds !== null) {
                 var prevOdds = (prevDataGroup[sel] || {}).odds;
                 if (prevOdds !== undefined && prevOdds !== null) {
                     var delta = odds - parseFloat(prevOdds);
                     if (Math.abs(delta) >= 0.005) {
                         var dSign = delta > 0 ? '+' : '';
-                        var dCls = delta > 0 ? 'period-delta-up' : 'period-delta-down';
-                        deltaHtml = '<span class="' + dCls + '">' + dSign + delta.toFixed(2) + '</span>';
+                        var dCls = delta > 0 ? 'ch-up' : 'ch-down';
+                        changes.push('<span class="mlive-pill ' + dCls + '">Odds ' + dSign + delta.toFixed(2) + '</span>');
                     }
                 }
             }
-
-            var prevPct = 0;
-            if (prevDataGroup) { prevPct = (prevDataGroup[sel] || {}).share || 0; }
-            var pctDelta = pct - prevPct;
-            var pctDeltaStr = '';
-            if (prevS && Math.abs(pctDelta) >= 0.05) {
-                var pdSign = pctDelta > 0 ? '+' : '';
-                var pdCls = pctDelta > 0 ? 'period-delta-up' : 'period-delta-down';
-                pctDeltaStr = '<span class="' + pdCls + '">' + pdSign + pctDelta.toFixed(1) + '%</span>';
-            }
-
             var prevVol = 0;
             if (prevDataGroup) { prevVol = (prevDataGroup[sel] || {}).volume || 0; }
             var volDiff = vol - prevVol;
-            var volDiffStr = '';
             if (prevS && volDiff !== 0) {
-                var vdCls = volDiff > 0 ? 'period-delta-up' : 'period-delta-down';
-                volDiffStr = '<span class="' + vdCls + '">' + formatLiveVol(volDiff) + '</span>';
+                var vCls = volDiff > 0 ? 'ch-up' : 'ch-down';
+                changes.push('<span class="mlive-pill ' + vCls + '">Money ' + formatLiveVol(volDiff) + '</span>');
+            }
+            var prevPct = 0;
+            if (prevDataGroup) { prevPct = (prevDataGroup[sel] || {}).share || 0; }
+            var pctDelta = pct - prevPct;
+            if (prevS && Math.abs(pctDelta) >= 0.05) {
+                var pdSign = pctDelta > 0 ? '+' : '';
+                var pCls = pctDelta > 0 ? 'ch-up' : 'ch-down';
+                changes.push('<span class="mlive-pill ' + pCls + '">Share ' + pdSign + pctDelta.toFixed(1) + '%</span>');
             }
 
-            html += '<div class="mlive-sel">';
-            html += '<div class="mlive-sel-label">' + selLabels[j] + '</div>';
-            html += '<div class="mlive-sel-row mlive-odds-row"><span class="mlive-val">' + oddsStr + '</span>' + (deltaHtml ? '<span class="mlive-delta">' + deltaHtml + '</span>' : '') + '</div>';
-            html += '<div class="mlive-sel-row"><span class="mlive-val ' + (hi ? 'pct-high' : 'pct-low') + '">' + pctStr + '</span>' + (pctDeltaStr ? '<span class="mlive-delta">' + pctDeltaStr + '</span>' : '') + '</div>';
-            html += '<div class="mlive-sel-row"><span class="mlive-val mlive-vol-val">' + (vol ? formatLiveVol(vol) : '-') + '</span>' + (volDiffStr ? '<span class="mlive-delta">' + volDiffStr + '</span>' : '') + '</div>';
+            html += '<div class="mlive-card">';
+            html += '<div class="mlive-card-lbl">' + selLabels[j] + '</div>';
+            html += '<div class="mlive-card-odds">' + oddsStr + '</div>';
+            html += '<div class="mlive-card-pct">' + pctStr + '</div>';
+            html += '<div class="mlive-card-vol">' + (vol ? formatLiveVol(vol) : '-') + '</div>';
+            if (changes.length > 0) {
+                html += '<div class="mlive-card-changes">' + changes.join('') + '</div>';
+            }
             html += '</div>';
         }
 
