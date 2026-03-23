@@ -12942,37 +12942,43 @@ table.desktop-only {
     letter-spacing: 0.5px;
     margin-bottom: 3px;
 }
-.mlive-sel-odds {
+.mlive-sel-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    line-height: 1.4;
+}
+.mlive-odds-row .mlive-val {
     font-size: 14px;
     font-weight: 700;
     color: rgba(203,213,225,0.90);
-    white-space: nowrap;
 }
-.mlive-sel-odds .period-delta-up {
-    font-size: 10px;
-    color: #22c55e;
+.mlive-sel-row .mlive-val {
+    font-size: 11px;
+    color: rgba(203,213,225,0.55);
 }
-.mlive-sel-odds .period-delta-down {
-    font-size: 10px;
-    color: #ef4444;
-}
-.mlive-sel-meta {
-    display: flex;
-    justify-content: center;
-    gap: 6px;
-    font-size: 10px;
-    margin-top: 2px;
-    color: rgba(203,213,225,0.5);
-}
-.mlive-sel-meta .pct-high {
+.mlive-sel-row .mlive-val.pct-high {
     color: #22c55e;
     font-weight: 600;
+    font-size: 11px;
 }
-.mlive-sel-meta .pct-low {
+.mlive-sel-row .mlive-val.pct-low {
     color: rgba(203,213,225,0.45);
+    font-size: 11px;
 }
-.mlive-sel-vol {
+.mlive-sel-row .mlive-val.mlive-vol-val {
     color: rgba(203,213,225,0.4);
+    font-size: 10px;
+}
+.mlive-delta {
+    font-size: 10px;
+    margin-left: 4px;
+}
+.mlive-delta .period-delta-up {
+    color: #22c55e;
+}
+.mlive-delta .period-delta-down {
+    color: #ef4444;
 }
 
 @media (max-width: 768px) {

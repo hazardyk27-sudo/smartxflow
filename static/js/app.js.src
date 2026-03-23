@@ -10575,31 +10575,30 @@ function _renderModalLiveMobile(body, snapshots, market) {
                 }
             }
 
-            html += '<div class="mlive-sel">';
-            html += '<div class="mlive-sel-label">' + selLabels[j] + '</div>';
-            html += '<div class="mlive-sel-odds">' + oddsStr + (deltaHtml ? ' ' + deltaHtml : '') + '</div>';
             var prevPct = 0;
             if (prevDataGroup) { prevPct = (prevDataGroup[sel] || {}).share || 0; }
             var pctDelta = pct - prevPct;
-            var pctDeltaHtml = '';
+            var pctDeltaStr = '';
             if (prevS && Math.abs(pctDelta) >= 0.05) {
                 var pdSign = pctDelta > 0 ? '+' : '';
                 var pdCls = pctDelta > 0 ? 'period-delta-up' : 'period-delta-down';
-                pctDeltaHtml = ' <span class="' + pdCls + '">' + pdSign + pctDelta.toFixed(1) + '%</span>';
+                pctDeltaStr = '<span class="' + pdCls + '">' + pdSign + pctDelta.toFixed(1) + '%</span>';
             }
 
             var prevVol = 0;
             if (prevDataGroup) { prevVol = (prevDataGroup[sel] || {}).volume || 0; }
             var volDiff = vol - prevVol;
-            var volDiffHtml = '';
+            var volDiffStr = '';
             if (prevS && volDiff !== 0) {
                 var vdCls = volDiff > 0 ? 'period-delta-up' : 'period-delta-down';
-                volDiffHtml = ' <span class="' + vdCls + '">' + formatLiveVol(volDiff) + '</span>';
+                volDiffStr = '<span class="' + vdCls + '">' + formatLiveVol(volDiff) + '</span>';
             }
 
-            html += '<div class="mlive-sel-meta"><span class="' + (hi ? 'pct-high' : 'pct-low') + '">' + pctStr + '</span>' + pctDeltaHtml;
-            if (vol) html += '<span class="mlive-sel-vol">' + formatLiveVol(vol) + '</span>' + volDiffHtml;
-            html += '</div>';
+            html += '<div class="mlive-sel">';
+            html += '<div class="mlive-sel-label">' + selLabels[j] + '</div>';
+            html += '<div class="mlive-sel-row mlive-odds-row"><span class="mlive-val">' + oddsStr + '</span>' + (deltaHtml ? '<span class="mlive-delta">' + deltaHtml + '</span>' : '') + '</div>';
+            html += '<div class="mlive-sel-row"><span class="mlive-val ' + (hi ? 'pct-high' : 'pct-low') + '">' + pctStr + '</span>' + (pctDeltaStr ? '<span class="mlive-delta">' + pctDeltaStr + '</span>' : '') + '</div>';
+            html += '<div class="mlive-sel-row"><span class="mlive-val mlive-vol-val">' + (vol ? formatLiveVol(vol) : '-') + '</span>' + (volDiffStr ? '<span class="mlive-delta">' + volDiffStr + '</span>' : '') + '</div>';
             html += '</div>';
         }
 
