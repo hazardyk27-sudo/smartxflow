@@ -12041,8 +12041,21 @@ table.desktop-only {
     border-color: transparent !important;
 }
 .mobile-live-btn.active {
-    background: rgba(0, 255, 179, 0.15) !important;
-    border-color: #00ffb3 !important;
+    color: #e6edf3 !important;
+    font-weight: 600 !important;
+    background: transparent !important;
+    border-color: transparent !important;
+}
+.mobile-live-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) scaleX(1);
+    width: 60%;
+    height: 2px;
+    background: #4ade80;
+    border-radius: 1px;
 }
 
 /* ========== CANLI SAYFA - Moneyway 1X2 ile Birebir Aynı ========== */
