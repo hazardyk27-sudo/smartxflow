@@ -12965,8 +12965,19 @@ table.desktop-only {
 @media (max-width: 768px) {
     .modal-live-body {
         overflow-x: hidden;
+        overflow-y: visible;
+        max-height: none;
+    }
+    .modal-live-body .live-detail-table-wrap {
+        overflow-x: hidden;
+        overflow-y: visible;
+        max-height: none;
     }
     #mobileTabLive {
         overflow-x: hidden;
+    }
+    .modal-live-body::-webkit-scrollbar,
+    .modal-live-body .live-detail-table-wrap::-webkit-scrollbar {
+        display: none;
     }
 }
