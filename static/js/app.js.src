@@ -10561,7 +10561,7 @@ function _renderModalLiveMobile(body, snapshots, market) {
             var oddsStr = odds !== null ? odds.toFixed(2) : '-';
             var pctStr = pct ? pct.toFixed(1) + '%' : '-';
 
-            var changes = [];
+            var oddsDelta = '';
             if (prevDataGroup && odds !== null) {
                 var prevOdds = (prevDataGroup[sel] || {}).odds;
                 if (prevOdds !== undefined && prevOdds !== null) {
@@ -10569,34 +10569,33 @@ function _renderModalLiveMobile(body, snapshots, market) {
                     if (Math.abs(delta) >= 0.005) {
                         var dSign = delta > 0 ? '+' : '';
                         var dCls = delta > 0 ? 'ch-up' : 'ch-down';
-                        changes.push('<span class="mlive-pill ' + dCls + '">Odds ' + dSign + delta.toFixed(2) + '</span>');
+                        oddsDelta = '<span class="mc-d ' + dCls + '">' + dSign + delta.toFixed(2) + '</span>';
                     }
                 }
-            }
-            var prevVol = 0;
-            if (prevDataGroup) { prevVol = (prevDataGroup[sel] || {}).volume || 0; }
-            var volDiff = vol - prevVol;
-            if (prevS && volDiff !== 0) {
-                var vCls = volDiff > 0 ? 'ch-up' : 'ch-down';
-                changes.push('<span class="mlive-pill ' + vCls + '">Money ' + formatLiveVol(volDiff) + '</span>');
             }
             var prevPct = 0;
             if (prevDataGroup) { prevPct = (prevDataGroup[sel] || {}).share || 0; }
             var pctDelta = pct - prevPct;
+            var pctDeltaHtml = '';
             if (prevS && Math.abs(pctDelta) >= 0.05) {
                 var pdSign = pctDelta > 0 ? '+' : '';
                 var pCls = pctDelta > 0 ? 'ch-up' : 'ch-down';
-                changes.push('<span class="mlive-pill ' + pCls + '">Share ' + pdSign + pctDelta.toFixed(1) + '%</span>');
+                pctDeltaHtml = '<span class="mc-d ' + pCls + '">' + pdSign + pctDelta.toFixed(1) + '%</span>';
+            }
+            var prevVol = 0;
+            if (prevDataGroup) { prevVol = (prevDataGroup[sel] || {}).volume || 0; }
+            var volDiff = vol - prevVol;
+            var volDeltaHtml = '';
+            if (prevS && volDiff !== 0) {
+                var vCls = volDiff > 0 ? 'ch-up' : 'ch-down';
+                volDeltaHtml = '<span class="mc-d ' + vCls + '">' + formatLiveVol(volDiff) + '</span>';
             }
 
             html += '<div class="mlive-card">';
             html += '<div class="mlive-card-lbl">' + selLabels[j] + '</div>';
-            html += '<div class="mlive-card-odds">' + oddsStr + '</div>';
-            html += '<div class="mlive-card-pct">' + pctStr + '</div>';
-            html += '<div class="mlive-card-vol">' + (vol ? formatLiveVol(vol) : '-') + '</div>';
-            if (changes.length > 0) {
-                html += '<div class="mlive-card-changes">' + changes.join('') + '</div>';
-            }
+            html += '<div class="mc-line mc-odds"><span class="mc-v">' + oddsStr + '</span>' + oddsDelta + '</div>';
+            html += '<div class="mc-line mc-pct"><span class="mc-v">' + pctStr + '</span>' + pctDeltaHtml + '</div>';
+            html += '<div class="mc-line mc-vol"><span class="mc-v">' + (vol ? formatLiveVol(vol) : '-') + '</span>' + volDeltaHtml + '</div>';
             html += '</div>';
         }
 
