@@ -3889,6 +3889,32 @@ async function loadChart(home, away, market, league = '') {
             data.history = [];
         }
         
+        if (data.history.length === 0) {
+            if (chart) { chart.destroy(); chart = null; }
+            var chartEl = document.getElementById('oddsChart');
+            if (chartEl) {
+                var wrap = chartEl.closest('.chart-container') || chartEl.parentElement;
+                if (wrap) {
+                    var emptyMsg = wrap.querySelector('.chart-empty-msg');
+                    if (!emptyMsg) {
+                        emptyMsg = document.createElement('div');
+                        emptyMsg.className = 'chart-empty-msg';
+                        emptyMsg.style.cssText = 'text-align:center;padding:40px 20px;color:rgba(203,213,225,0.4);font-size:13px;';
+                        emptyMsg.textContent = 'Bu maç için grafik verisi bulunamadı';
+                        wrap.appendChild(emptyMsg);
+                    }
+                }
+            }
+            hideChartLoading();
+            return;
+        }
+        
+        var chartWrap = document.getElementById('oddsChart');
+        if (chartWrap) {
+            var emptyEl = (chartWrap.closest('.chart-container') || chartWrap.parentElement);
+            if (emptyEl) { var em = emptyEl.querySelector('.chart-empty-msg'); if (em) em.remove(); }
+        }
+        
         if (chart) {
             chart.destroy();
         }
