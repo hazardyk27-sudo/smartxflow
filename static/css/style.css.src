@@ -12037,8 +12037,8 @@ table.desktop-only {
     background: #ef4444 !important;
 }
 .mobile-live-btn {
-    color: #00ffb3 !important;
-    border-color: rgba(0, 255, 179, 0.3) !important;
+    color: rgba(203,213,225,0.65) !important;
+    border-color: transparent !important;
 }
 .mobile-live-btn.active {
     background: rgba(0, 255, 179, 0.15) !important;
@@ -12875,5 +12875,34 @@ table.desktop-only {
     .live-period-table thead th,
     .live-period-table tbody td {
         padding: 6px 6px;
+    }
+}
+
+@media (max-width: 768px) {
+    .modal-live-body .live-detail-table-wrap {
+        overflow-x: hidden;
+        width: 100%;
+    }
+    .modal-live-body .live-period-table {
+        font-size: 11px;
+        table-layout: fixed;
+        width: 100%;
+    }
+    .modal-live-body .live-period-table thead th,
+    .modal-live-body .live-period-table tbody td {
+        padding: 5px 3px;
+        font-size: 10px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .modal-live-body .period-dk-skor {
+        width: 48px;
+        min-width: 48px;
+    }
+    .modal-live-body {
+        overflow-x: hidden;
+    }
+    #mobileTabLive {
+        overflow-x: hidden;
     }
 }

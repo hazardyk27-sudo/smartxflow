@@ -10132,6 +10132,10 @@ function _liveMobileBlock(label, d) {
 }
 
 async function openLiveDetail(hash, home, away) {
+    if (window.innerWidth <= 768) {
+        _openLiveInMainModal(hash, home, away);
+        return;
+    }
     document.getElementById('liveDetailModal').style.display = 'flex';
     document.getElementById('liveDetailTitle').textContent = (home || '--') + ' vs ' + (away || '--');
     document.getElementById('liveDetailBody').innerHTML =
@@ -10146,6 +10150,41 @@ async function openLiveDetail(hash, home, away) {
     } catch (e) {
         document.getElementById('liveDetailBody').innerHTML = '<div class="live-loading">Veri yuklenemedi</div>';
     }
+}
+
+async function _openLiveInMainModal(hash, home, away) {
+    var match = null;
+    if (typeof allMatches !== 'undefined' && allMatches.length > 0) {
+        for (var i = 0; i < allMatches.length; i++) {
+            var mh = allMatches[i].home_team || '';
+            var ma = allMatches[i].away_team || '';
+            if (mh === home && ma === away) { match = allMatches[i]; break; }
+        }
+    }
+    if (match) {
+        var idx = allMatches.indexOf(match);
+        await openMatchModal(idx);
+    } else {
+        await openMatchModalFromAPI(home, away, '', '');
+    }
+    setTimeout(function() {
+        var liveTab = document.getElementById('modalLiveTab');
+        if (liveTab && liveTab.style.display !== 'none') {
+            switchMobileTab('live');
+        } else {
+            var waitCount = 0;
+            var waitInt = setInterval(function() {
+                waitCount++;
+                var lt = document.getElementById('modalLiveTab');
+                if (lt && lt.style.display !== 'none') {
+                    clearInterval(waitInt);
+                    switchMobileTab('live');
+                } else if (waitCount > 20) {
+                    clearInterval(waitInt);
+                }
+            }, 300);
+        }
+    }, 200);
 }
 
 function _buildDetailTabs(snapshots) {
