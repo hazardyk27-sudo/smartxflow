@@ -12114,32 +12114,32 @@ table.desktop-only {
 .live-market-btn {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.06);
-    color: #7f8ea3;
-    font-size: 13px;
-    font-weight: 500;
-    height: 38px;
-    min-width: 42px;
-    padding: 0 14px;
-    border-radius: 10px;
+    color: rgba(203,213,225,0.5);
+    font-size: 12px;
+    font-weight: 600;
+    height: 32px;
+    min-width: 40px;
+    padding: 0 12px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: center;
     font-family: 'Inter', sans-serif;
-    letter-spacing: 0.2px;
+    letter-spacing: 0.3px;
     box-sizing: border-box;
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
 .live-market-btn:hover {
-    border-color: #22c55e;
-    background: rgba(255,255,255,0.06);
-    color: #c9d1d9;
+    border-color: rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    color: rgba(203,213,225,0.8);
 }
 .live-market-btn.active {
-    background: rgba(0,255,179,0.12);
-    border-color: rgba(0,255,179,0.25);
-    color: #00ffb3;
+    background: rgba(34,197,94,0.1);
+    border-color: rgba(34,197,94,0.2);
+    color: #5ecc7e;
 }
 .live-loading {
     display: flex;
@@ -12328,17 +12328,28 @@ table.desktop-only {
 .modal-live-section {
     margin-bottom: 0;
 }
+.modal-live-section .smart-money-header {
+    padding: 10px 14px 8px;
+}
 .modal-live-section .smart-money-icon {
     color: #ef4444;
-    font-size: 10px;
+    font-size: 7px;
+    opacity: 0.7;
+}
+.modal-live-section .smart-money-title {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(203,213,225,0.4);
+    font-weight: 600;
 }
 .modal-live-tabs {
     display: flex;
     gap: 6px;
-    padding: 10px 14px 12px;
+    padding: 4px 14px 10px;
     flex-wrap: wrap;
     background: #14191F;
-    border-bottom: 1px solid #30363d;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
 }
 .modal-live-body {
     max-height: 60vh;
@@ -12934,19 +12945,19 @@ table.desktop-only {
 .mlive-card {
     flex: 1;
     min-width: 0;
-    background: rgba(255,255,255,0.025);
-    border: 1px solid rgba(255,255,255,0.05);
-    border-radius: 10px;
-    padding: 6px 6px 5px;
+    background: linear-gradient(175deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 8px 8px 6px;
     overflow: hidden;
 }
 .mlive-card-lbl {
-    font-size: 9px;
-    font-weight: 600;
-    color: rgba(203,213,225,0.3);
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(203,213,225,0.4);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 3px;
+    letter-spacing: 0.8px;
+    margin-bottom: 4px;
     text-align: center;
 }
 .mc-line {
@@ -12954,21 +12965,22 @@ table.desktop-only {
     align-items: baseline;
     justify-content: space-between;
     white-space: nowrap;
-    height: 18px;
+    min-height: 16px;
+    padding: 0 1px;
 }
 .mc-odds {
-    height: 22px;
-    margin-bottom: 2px;
+    min-height: 20px;
+    margin-bottom: 4px;
 }
 .mc-odds .mc-v {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
-    color: #e8edf2;
+    color: #eef2f7;
 }
 .mc-pct {
-    padding-top: 3px;
-    border-top: 1px solid rgba(255,255,255,0.04);
-    height: 16px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    min-height: 15px;
 }
 .mc-pct .mc-v {
     font-size: 10px;
@@ -12976,16 +12988,17 @@ table.desktop-only {
     color: rgba(203,213,225,0.5);
 }
 .mc-vol {
-    margin-top: 0;
-    height: 14px;
+    margin-top: 1px;
+    min-height: 14px;
 }
 .mc-vol .mc-v {
     font-size: 9px;
-    color: rgba(203,213,225,0.28);
+    color: rgba(203,213,225,0.25);
     font-weight: 500;
 }
 .mc-d {
     font-weight: 600;
+    text-align: right;
 }
 .mc-d.ch-up {
     color: #5ecc7e;
@@ -12995,7 +13008,7 @@ table.desktop-only {
 }
 .mc-odds .mc-d { font-size: 10px; }
 .mc-pct .mc-d { font-size: 9px; }
-.mc-vol .mc-d { font-size: 8px; }
+.mc-vol .mc-d { font-size: 9px; }
 
 @media (max-width: 768px) {
     .modal-live-body {
