@@ -9,13 +9,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap"></noscript>
-    <link rel="stylesheet" href="/static/css/style.css?v=1774309233">
+    <link rel="stylesheet" href="/static/css/style.css?v=1774309561">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <script defer src="/static/js/vendor/dayjs.min.js"></script>
     <script defer src="/static/js/vendor/dayjs-utc.js"></script>
     <script defer src="/static/js/vendor/dayjs-timezone.js"></script>
     <script defer src="/static/js/vendor/dayjs-customParseFormat.js"></script>
-    <script defer src="/static/js/app.js?v=1774309233"></script>
+    <script defer src="/static/js/app.js?v=1774309561"></script>
     <script defer src="/static/js/ui.js?v=1773704900"></script>
 </head>
 <body>
@@ -188,8 +188,8 @@
         </button>
     </nav>
     
-    <!-- Mobile: 2-row tab system -->
-    <div class="mobile-tab-system mobile-only">
+    <!-- Mobile: 2-row tab system (hidden, kept for desktop/JS compat) -->
+    <div class="mobile-tab-system mobile-only" style="display:none !important;">
         <div class="mobile-tab-row group-row">
             <button class="mobile-tab-btn active" data-group="moneyway" onclick="setMobileGroup('moneyway')">Moneyway</button>
             <button class="mobile-tab-btn" data-group="dropping" onclick="setMobileGroup('dropping')">Oran</button>
@@ -202,11 +202,39 @@
         </div>
     </div>
 
+    <!-- Mobile: Premium Dropdown Controls -->
+    <div class="mob-ctrl mobile-only">
+        <div class="mob-ctrl-row">
+            <div class="mob-dd" id="mobCatWrap">
+                <button class="mob-dd-btn" id="mobCatBtn" onclick="toggleMobDD('cat')">
+                    <span class="mob-dd-val" id="mobCatVal">Moneyway</span>
+                    <svg class="mob-dd-chev" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="mob-dd-menu" id="mobCatMenu">
+                    <button class="mob-dd-opt active" data-cat="moneyway" onclick="selectMobCat('moneyway')">Moneyway</button>
+                    <button class="mob-dd-opt" data-cat="dropping" onclick="selectMobCat('dropping')">Oran</button>
+                    <button class="mob-dd-opt" data-cat="live" onclick="selectMobCat('live')"><span class="live-dot"></span> Canlı</button>
+                </div>
+            </div>
+            <div class="mob-dd" id="mobMktWrap">
+                <button class="mob-dd-btn" id="mobMktBtn" onclick="toggleMobDD('mkt')">
+                    <span class="mob-dd-val" id="mobMktVal">1X2</span>
+                    <svg class="mob-dd-chev" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="mob-dd-menu" id="mobMktMenu">
+                    <button class="mob-dd-opt active" data-mkt="1x2" onclick="selectMobMkt('1x2')">1X2</button>
+                    <button class="mob-dd-opt" data-mkt="ou25" onclick="selectMobMkt('ou25')">2.5</button>
+                    <button class="mob-dd-opt" data-mkt="btts" onclick="selectMobMkt('btts')">KG</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <main class="main-content">
         <section class="matches-section">
             <div class="toolbar">
                 <div class="toolbar-left">
-                    <div class="search-box">
+                    <div class="search-box search-box-desktop">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="11" cy="11" r="8"/>
                             <path d="M21 21l-4.35-4.35"/>
@@ -250,9 +278,23 @@
             </div>
             
 
+            <!-- Mobile: Search expandable -->
+            <div class="mob-search-wrap mobile-only" id="mobSearchWrap" style="display:none;">
+                <div class="mob-search-box">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <input type="text" id="mobSearchInput" placeholder="Takım veya Lig ara..." oninput="document.getElementById('searchInput').value=this.value; document.getElementById('searchInput').dispatchEvent(new Event('input'));">
+                    <button class="mob-search-close" onclick="closeMobSearch()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+            </div>
+
             <!-- Mobile: Filter Bar (below search) -->
             <div class="mobile-filter-bar mobile-only">
                 <div class="mobile-filter-left">
+                    <button class="mobile-alarm-btn" id="mobSearchBtn" onclick="openMobSearch()">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    </button>
                     <button class="mobile-filter-btn" id="mobileFilterBtn" onclick="openMobileFilterModal()">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
