@@ -13005,6 +13005,13 @@ table.desktop-only {
 .mc-d.ch-down {
     color: #e96060;
 }
+.mc-dash {
+    background: linear-gradient(90deg, #3a3f47, #555b63);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
 .mc-odds .mc-d { font-size: 10px; }
 .mc-pct .mc-d { font-size: 9px; }
 .mc-vol .mc-d { font-size: 9px; }

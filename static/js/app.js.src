@@ -10682,11 +10682,12 @@ function _renderModalLiveMobile(body, snapshots, market) {
                 volDeltaHtml = '<span class="mc-d ' + vCls + '">' + formatLiveVol(volDiff) + '</span>';
             }
 
+            var gd = '<span class="mc-dash">-</span>';
             html += '<div class="mlive-card">';
             html += '<div class="mlive-card-lbl">' + selLabels[j] + '</div>';
-            html += '<div class="mc-line mc-odds"><span class="mc-v">' + oddsStr + '</span>' + oddsDelta + '</div>';
-            html += '<div class="mc-line mc-vol"><span class="mc-v">' + (vol ? formatLiveVol(vol) : '-') + '</span>' + volDeltaHtml + '</div>';
-            html += '<div class="mc-line mc-pct"><span class="mc-v">' + pctStr + '</span>' + pctDeltaHtml + '</div>';
+            html += '<div class="mc-line mc-odds"><span class="mc-v">' + (odds !== null ? oddsStr : gd) + '</span>' + (oddsDelta || gd) + '</div>';
+            html += '<div class="mc-line mc-vol"><span class="mc-v">' + (vol ? formatLiveVol(vol) : gd) + '</span>' + (volDeltaHtml || gd) + '</div>';
+            html += '<div class="mc-line mc-pct"><span class="mc-v">' + (pct ? pctStr : gd) + '</span>' + (pctDeltaHtml || gd) + '</div>';
             html += '</div>';
         }
 
