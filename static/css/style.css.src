@@ -12137,8 +12137,8 @@ table.desktop-only {
     color: rgba(203,213,225,0.8);
 }
 .live-market-btn.active {
-    background: rgba(34,197,94,0.1);
-    border-color: rgba(34,197,94,0.2);
+    background: transparent;
+    border-color: rgba(34,197,94,0.3);
     color: #5ecc7e;
 }
 .live-loading {
