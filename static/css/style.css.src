@@ -8701,6 +8701,8 @@ table.desktop-only {
     
     /* ========== MOBILE 2-ROW TAB SYSTEM - Modern Minimal ========== */
     .mobile-tab-system {
+        background: rgba(22, 27, 34, 0.6) !important;
+        border-bottom: 1px solid rgba(255,255,255,0.04) !important;
         display: flex !important;
         flex-direction: column;
         gap: 0;
@@ -8724,10 +8726,10 @@ table.desktop-only {
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 12px 8px;
-        font-size: 13px;
+        padding: 10px 6px;
+        font-size: 12px;
         font-weight: 500;
-        letter-spacing: 0.3px;
+        letter-spacing: 0.2px;
         color: #484f58;
         background: transparent;
         border: none;
@@ -8771,8 +8773,8 @@ table.desktop-only {
         width: 100% !important;
         background: transparent !important;
         border-radius: 0 !important;
-        padding: 6px 8px 0 !important;
-        gap: 8px !important;
+        padding: 4px 8px 6px !important;
+        gap: 6px !important;
         border-bottom: none !important;
     }
     
@@ -8782,7 +8784,7 @@ table.desktop-only {
         align-items: center !important;
         justify-content: center !important;
         gap: 0 !important;
-        padding: 7px 8px !important;
+        padding: 5px 8px !important;
         font-size: 11px !important;
         font-weight: 500 !important;
         letter-spacing: 0.2px !important;
@@ -8827,71 +8829,89 @@ table.desktop-only {
     .header {
         display: flex !important;
         flex-wrap: nowrap !important;
-        height: 60px !important;
-        padding: 8px 12px !important;
-        gap: 8px !important;
+        height: 44px !important;
+        padding: 6px 12px !important;
+        gap: 6px !important;
         align-items: center !important;
         position: relative !important;
         z-index: 100 !important;
         justify-content: space-between !important;
+        background: #0d1117 !important;
+        border-bottom: 1px solid rgba(255,255,255,0.04) !important;
     }
     
     .header-left {
         flex: 1 1 auto !important;
         min-width: 0 !important;
         display: flex !important;
-        align-items: flex-start !important;
+        align-items: center !important;
     }
     
     .header-right {
         display: flex !important;
         align-items: center !important;
-        gap: 0 !important;
+        gap: 8px !important;
         flex: 0 0 auto !important;
     }
     
-    /* Hide desktop elements on mobile */
     .header-right .status-indicator,
     .header-right .refresh-btn,
     .header-right .last-update-info {
         display: none !important;
     }
     
-    /* Logo container: column layout with slogan below */
     .logo-container {
         display: flex !important;
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 2px !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 0 !important;
     }
     
     .app-logo {
         display: flex !important;
         align-items: center !important;
-        gap: 4px !important;
+        gap: 3px !important;
     }
     
     .logo-smart, .logo-flow {
-        font-size: 18px !important;
+        font-size: 15px !important;
         font-weight: 600 !important;
     }
     
     .logo-icon {
-        width: 20px !important;
-        height: 20px !important;
+        width: 16px !important;
+        height: 16px !important;
     }
     
-    /* Show slogan below logo */
     .logo-subtitle {
-        display: block !important;
-        font-size: 10px !important;
-        color: #8b949e !important;
-        opacity: 0.8 !important;
+        display: none !important;
     }
     
-    /* Mobile: Hide last update */
     .mobile-last-update {
         display: none !important;
+    }
+    
+    .license-days-badge {
+        font-size: 10px !important;
+        padding: 3px 8px !important;
+        gap: 4px !important;
+        opacity: 0.7 !important;
+    }
+    
+    .license-days-badge svg {
+        width: 10px !important;
+        height: 10px !important;
+    }
+    
+    .logout-btn {
+        padding: 4px 8px !important;
+        font-size: 10px !important;
+        gap: 3px !important;
+    }
+    
+    .logout-btn svg {
+        width: 12px !important;
+        height: 12px !important;
     }
 
     /* ========== TAB BAR - Compact Pills ========== */
@@ -8957,18 +8977,21 @@ table.desktop-only {
         gap: 8px;
     }
     
-    /* Search - Compact */
+    /* Search - Premium dark */
     .search-box {
         width: 100%;
-        height: 36px;
+        height: 34px;
         padding: 0 10px;
         border-radius: 8px;
         gap: 6px;
+        background: rgba(22, 27, 34, 0.6) !important;
+        border: 1px solid rgba(255,255,255,0.06) !important;
     }
     
     .search-box svg {
-        width: 14px;
-        height: 14px;
+        width: 13px;
+        height: 13px;
+        opacity: 0.5;
     }
     
     .search-box input {
@@ -8979,14 +9002,14 @@ table.desktop-only {
     .mobile-filter-bar {
         display: flex !important;
         flex-direction: row;
-        justify-content: space-between;
+        justify-content: flex-start;
         align-items: center;
-        padding: 6px 10px;
-        background: #1c2128;
-        border-radius: 10px;
-        margin: 0 0 8px 0;
+        padding: 0 4px;
+        background: transparent !important;
+        border-radius: 0 !important;
+        margin: 0 0 6px 0;
         gap: 6px;
-        border: 1px solid #30363d;
+        border: none !important;
     }
     
     .mobile-filter-left {
@@ -8995,7 +9018,7 @@ table.desktop-only {
         gap: 6px;
         flex-wrap: nowrap;
         width: 100%;
-        justify-content: space-between;
+        justify-content: flex-start;
     }
 
     .mobile-filter-btn {
@@ -9004,8 +9027,8 @@ table.desktop-only {
         justify-content: center;
         gap: 4px;
         padding: 5px 10px;
-        background: rgba(33, 38, 45, 0.8);
-        border: none;
+        background: rgba(48, 54, 61, 0.3);
+        border: 1px solid rgba(255,255,255,0.06);
         border-radius: 6px;
         color: #8b949e;
         font-size: 11px;
@@ -9028,6 +9051,71 @@ table.desktop-only {
         display: flex;
         align-items: center;
         gap: 8px;
+    }
+    
+    /* ========== MOBILE OVERFLOW MENU ========== */
+    .mobile-overflow-wrap {
+        position: relative;
+        flex-shrink: 0;
+    }
+    
+    .mobile-overflow-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 28px;
+        background: rgba(48, 54, 61, 0.3);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 6px;
+        color: #8b949e;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    
+    .mobile-overflow-btn:active {
+        background: rgba(48, 54, 61, 0.6);
+    }
+    
+    .mobile-overflow-menu {
+        display: none;
+        position: absolute;
+        top: calc(100% + 4px);
+        right: 0;
+        background: #1c2128;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 8px;
+        padding: 4px;
+        z-index: 200;
+        min-width: 140px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    
+    .mobile-overflow-menu.show {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .mobile-overflow-menu button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: transparent;
+        border: none;
+        border-radius: 6px;
+        color: #c9d1d9;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+        width: 100%;
+        text-align: left;
+    }
+    
+    .mobile-overflow-menu button:active {
+        background: rgba(255,255,255,0.06);
     }
     
     /* Mobile Filter Modal — Premium */
@@ -9740,6 +9828,17 @@ table.desktop-only {
     button, .btn, .tab, .sel-btn {
         min-height: 44px;
         min-width: 44px;
+    }
+    
+    .mobile-overflow-btn,
+    .mobile-overflow-menu button,
+    .mobile-filter-btn,
+    .mobile-alarm-btn,
+    .mobile-tab-btn,
+    .logout-btn,
+    .license-days-badge {
+        min-height: auto !important;
+        min-width: auto !important;
     }
     
     /* Better tap feedback */
@@ -12935,12 +13034,12 @@ table.desktop-only {
     margin-bottom: 8px;
 }
 .mlive-min {
-    font-size: 11px;
-    font-weight: 700;
-    color: #ff6b6b;
-    background: rgba(255,107,107,0.08);
-    padding: 2px 6px;
-    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #e6edf3;
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
 }
 .mlive-score {
     font-size: 12px;

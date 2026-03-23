@@ -7019,6 +7019,22 @@ let alarmsDisplayCount = 10;
 let alarmsSidebarOpen = false;
 let openAlarmId = null;
 
+function toggleMobileOverflow(e) {
+    if (e) e.stopPropagation();
+    var menu = document.getElementById('mobileOverflowMenu');
+    if (!menu) return;
+    menu.classList.toggle('show');
+    if (menu.classList.contains('show')) {
+        setTimeout(function() {
+            document.addEventListener('click', closeMobileOverflow, { once: true });
+        }, 10);
+    }
+}
+function closeMobileOverflow() {
+    var menu = document.getElementById('mobileOverflowMenu');
+    if (menu) menu.classList.remove('show');
+}
+
 function toggleAlarmsSidebar() {
     if (alarmsSidebarOpen) {
         closeAlarmsSidebar();
