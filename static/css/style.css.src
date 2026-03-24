@@ -9789,10 +9789,10 @@ table.desktop-only {
     }
     
     .ob-trend {
-        font-size: 15px;
-        font-weight: 700;
+        font-size: 9px;
+        font-weight: 600;
         font-family: 'Inter', monospace;
-        letter-spacing: -0.3px;
+        letter-spacing: -0.2px;
         margin-left: 3px;
         line-height: 1;
     }
