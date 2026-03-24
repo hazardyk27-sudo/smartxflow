@@ -192,11 +192,11 @@ function formatPct(val){if(!val||val==='-')return'-';const cleaned=String(val).r
 function cleanPct(val){if(!val||val==='-')return'';return String(val).replace(/%/g,'').trim();}
 async function fetchAnalysisMatchHashes(){try{const resp=await fetch('/api/analyses/match-hashes');if(resp.ok){const data=await resp.json();_analysisMatchHashes=Array.isArray(data)?data:(data.hashes||[]);_analysisHashesFetched=true;const ac=(data&&typeof data.active_count==='number')?data.active_count:0;document.querySelectorAll('.analysis-active-badge').forEach(el=>{el.textContent=ac;el.style.display=ac>0?'':'none';});}}catch(e){}}
 function getAnalysisStarHtml(matchId){if(!matchId||!_analysisMatchHashes.length)return'';if(_analysisMatchHashes.indexOf(matchId)===-1)return'';return'<span class="analysis-star" title="Bu maç ile ilgili analiz mevcut" onclick="event.stopPropagation(); openTrendsModal(\'analysis\');">★</span>';}
-function _renderMatchRow(match,idx){const d=match.details||match.odds||{};const _star=getAnalysisStarHtml(match.match_id);const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMarket.startsWith('moneyway');if(currentMarket.includes('1x2')){if(isMoneyway){const block1=renderMoneywayBlock('1',d.Pct1,d.Odds1||d['1'],d.Amt1);const blockX=renderMoneywayBlock('X',d.PctX,d.OddsX||d['X'],d.AmtX);const block2=renderMoneywayBlock('2',d.Pct2,d.Odds2||d['2'],d.Amt2);const matchStatus=getMatchStatus(match.date);return`
+function _renderMatchRow(match,idx){const d=match.details||match.odds||{};const _star=getAnalysisStarHtml(match.match_id);const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMarket.startsWith('moneyway');if(currentMarket.includes('1x2')){if(isMoneyway){const block1=renderMoneywayBlock('1',d.Pct1,d.Odds1||d['1'],d.Amt1);const blockX=renderMoneywayBlock('X',d.PctX,d.OddsX||d['X'],d.AmtX);const block2=renderMoneywayBlock('2',d.Pct2,d.Odds2||d['2'],d.Amt2);const matchStatus=getMatchStatus(match.date);const deskCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team);return`
                 <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                     <td class="match-date">${formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${deskCapsule || matchStatus}${_star}</td>
                     <td class="mw-outcomes-cell" colspan="3">
                         <div class="mw-grid mw-grid-3">
                             ${block1}
@@ -206,21 +206,21 @@ function _renderMatchRow(match,idx){const d=match.details||match.odds||{};const 
                     </td>
                     <td class="volume-cell">${formatVolume(d.Volume)}</td>
                 </tr>
-            `;}else{const trend1Data=buildTrendDataFromMatch(d.Odds1||d['1'],d.PrevOdds1||d.Odds1_prev,d.Trend1);const trendXData=buildTrendDataFromMatch(d.OddsX||d['X'],d.PrevOddsX||d.OddsX_prev,d.TrendX);const trend2Data=buildTrendDataFromMatch(d.Odds2||d['2'],d.PrevOdds2||d.Odds2_prev,d.Trend2);const cell1=renderDrop1X2Cell('1',d.Odds1||d['1'],trend1Data);const cellX=renderDrop1X2Cell('X',d.OddsX||d['X'],trendXData);const cell2=renderDrop1X2Cell('2',d.Odds2||d['2'],trend2Data);const matchStatus=getMatchStatus(match.date);return`
+            `;}else{const trend1Data=buildTrendDataFromMatch(d.Odds1||d['1'],d.PrevOdds1||d.Odds1_prev,d.Trend1);const trendXData=buildTrendDataFromMatch(d.OddsX||d['X'],d.PrevOddsX||d.OddsX_prev,d.TrendX);const trend2Data=buildTrendDataFromMatch(d.Odds2||d['2'],d.PrevOdds2||d.Odds2_prev,d.Trend2);const cell1=renderDrop1X2Cell('1',d.Odds1||d['1'],trend1Data);const cellX=renderDrop1X2Cell('X',d.OddsX||d['X'],trendXData);const cell2=renderDrop1X2Cell('2',d.Odds2||d['2'],trend2Data);const matchStatus=getMatchStatus(match.date);const deskCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team);return`
                 <tr class="dropping-1x2-row" data-index="${idx}" onclick="openMatchModal(${idx})">
                     <td class="match-date">${formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${deskCapsule || matchStatus}${_star}</td>
                     <td class="drop-cell">${cell1}</td>
                     <td class="drop-cell">${cellX}</td>
                     <td class="drop-cell">${cell2}</td>
                     <td class="volume-cell">${formatVolume(d.Volume)}</td>
                 </tr>
-            `;}}else if(currentMarket.includes('ou25')){if(isMoneyway){const blockUnder=renderMoneywayBlock('Alt',d.PctUnder,d.Under,d.AmtUnder);const blockOver=renderMoneywayBlock('Üst',d.PctOver,d.Over,d.AmtOver);const matchStatus=getMatchStatus(match.date);return`
+            `;}}else if(currentMarket.includes('ou25')){if(isMoneyway){const blockUnder=renderMoneywayBlock('Alt',d.PctUnder,d.Under,d.AmtUnder);const blockOver=renderMoneywayBlock('Üst',d.PctOver,d.Over,d.AmtOver);const matchStatus=getMatchStatus(match.date);const deskCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team);return`
                 <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                     <td class="match-date">${formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${deskCapsule || matchStatus}${_star}</td>
                     <td class="mw-outcomes-cell" colspan="2">
                         <div class="mw-grid mw-grid-2">
                             ${blockUnder}
@@ -229,20 +229,20 @@ function _renderMatchRow(match,idx){const d=match.details||match.odds||{};const 
                     </td>
                     <td class="volume-cell">${formatVolume(d.Volume)}</td>
                 </tr>
-            `;}else{const trendUnderData=buildTrendDataFromMatch(d.Under,d.PrevUnder||d.Under_prev,d.TrendUnder);const trendOverData=buildTrendDataFromMatch(d.Over,d.PrevOver||d.Over_prev,d.TrendOver);const cellUnder=renderOddsWithTrend(d.Under,trendUnderData);const cellOver=renderOddsWithTrend(d.Over,trendOverData);const matchStatus=getMatchStatus(match.date);return`
+            `;}else{const trendUnderData=buildTrendDataFromMatch(d.Under,d.PrevUnder||d.Under_prev,d.TrendUnder);const trendOverData=buildTrendDataFromMatch(d.Over,d.PrevOver||d.Over_prev,d.TrendOver);const cellUnder=renderOddsWithTrend(d.Under,trendUnderData);const cellOver=renderOddsWithTrend(d.Over,trendOverData);const matchStatus=getMatchStatus(match.date);const deskCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team);return`
                 <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                     <td class="match-date">${formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${deskCapsule || matchStatus}${_star}</td>
                     <td class="selection-cell"><div>${cellUnder}</div></td>
                     <td class="selection-cell"><div>${cellOver}</div></td>
                     <td class="volume-cell">${formatVolume(d.Volume)}</td>
                 </tr>
-            `;}}else{if(isMoneyway){const blockYes=renderMoneywayBlock('Evet',d.PctYes,d.OddsYes||d.Yes,d.AmtYes);const blockNo=renderMoneywayBlock('Hayır',d.PctNo,d.OddsNo||d.No,d.AmtNo);const matchStatus=getMatchStatus(match.date);return`
+            `;}}else{if(isMoneyway){const blockYes=renderMoneywayBlock('Evet',d.PctYes,d.OddsYes||d.Yes,d.AmtYes);const blockNo=renderMoneywayBlock('Hayır',d.PctNo,d.OddsNo||d.No,d.AmtNo);const matchStatus=getMatchStatus(match.date);const deskCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team);return`
                 <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                     <td class="match-date">${formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${deskCapsule || matchStatus}${_star}</td>
                     <td class="mw-outcomes-cell" colspan="2">
                         <div class="mw-grid mw-grid-2">
                             ${blockYes}
@@ -251,11 +251,11 @@ function _renderMatchRow(match,idx){const d=match.details||match.odds||{};const 
                     </td>
                     <td class="volume-cell">${formatVolume(d.Volume)}</td>
                 </tr>
-            `;}else{const trendYesData=buildTrendDataFromMatch(d.OddsYes||d.Yes,d.PrevYes||d.OddsYes_prev||d.Yes_prev,d.TrendYes);const trendNoData=buildTrendDataFromMatch(d.OddsNo||d.No,d.PrevNo||d.OddsNo_prev||d.No_prev,d.TrendNo);const cellYes=renderOddsWithTrend(d.OddsYes||d.Yes,trendYesData);const cellNo=renderOddsWithTrend(d.OddsNo||d.No,trendNoData);const matchStatus=getMatchStatus(match.date);return`
+            `;}else{const trendYesData=buildTrendDataFromMatch(d.OddsYes||d.Yes,d.PrevYes||d.OddsYes_prev||d.Yes_prev,d.TrendYes);const trendNoData=buildTrendDataFromMatch(d.OddsNo||d.No,d.PrevNo||d.OddsNo_prev||d.No_prev,d.TrendNo);const cellYes=renderOddsWithTrend(d.OddsYes||d.Yes,trendYesData);const cellNo=renderOddsWithTrend(d.OddsNo||d.No,trendNoData);const matchStatus=getMatchStatus(match.date);const deskCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team);return`
                 <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                     <td class="match-date">${formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${deskCapsule || matchStatus}${_star}</td>
                     <td class="selection-cell"><div>${cellYes}</div></td>
                     <td class="selection-cell"><div>${cellNo}</div></td>
                     <td class="volume-cell">${formatVolume(d.Volume)}</td>
@@ -1714,9 +1714,11 @@ var filtered=matches.filter(function(m){if(is1x2)return _liveCalcVol1x2(m)>0;ret
 var sorted=filtered.slice();sorted.sort(function(a,b){var va=is1x2?_liveCalcVol1x2(a):_liveCalcVolOU(_liveGetOu(a,ouLine));var vb=is1x2?_liveCalcVol1x2(b):_liveCalcVolOU(_liveGetOu(b,ouLine));return vb-va;});var rowsHtml='';var cardsHtml='';for(var i=0;i<sorted.length;i++){var m=sorted[i];var o=m.odds||{};var matchMin=_calcLiveMatchMin(m);var scoreStr=m.score?escLiveHtml(m.score):'';var onclickAttr='onclick="openLiveDetail(\''+m.match_id_hash+'\',\''+escLiveHtml(m.home_team)+'\',\''+escLiveHtml(m.away_team)+'\')"';var showScore=(matchMin==='MS')?(scoreStr||'-'):scoreStr;var goalInfo=m.match_id_hash?goalHashes[m.match_id_hash]:null;var goalSide=goalInfo?goalInfo.side:null;var goalOldScore=goalInfo?goalInfo.oldScore:'';var scoreHtml='';if(showScore){var sp=showScore.split('-');if(sp.length===2){var hCls=goalSide==='home'||goalSide==='both'?' goal-pop':'';var aCls=goalSide==='away'||goalSide==='both'?' goal-pop':'';scoreHtml='<div class="time-line live-score-badge">'+'<span class="score-h'+hCls+'">'+sp[0].trim()+'</span>'+'<span class="score-sep">-</span>'+'<span class="score-a'+aCls+'">'+sp[1].trim()+'</span>'+'</div>';}else{scoreHtml='<div class="time-line live-score-badge">'+showScore+'</div>';}}
 var minExtra='';if(/^HT$/i.test(matchMin)||/^MS$/i.test(matchMin))minExtra=' is-ht';else if(/\d+\+/.test(matchMin))minExtra=' is-extra';var goalData='';if(goalSide){goalData=' data-goal-side="'+goalSide+'" data-old-score="'+escLiveHtml(goalOldScore)+'" data-new-score="'+escLiveHtml(showScore)+'" data-real-min="'+escLiveHtml(matchMin)+'"';}
 var minCell='<td class="match-date">'+'<div class="dk-cell-inner"'+goalData+'>'+'<div class="date-line live-min-badge'+minExtra+'" style="color:#e5484d;">'+escLiveHtml(matchMin)+'</div>'+
-scoreHtml+'</div></td>';if(is1x2){var vol=_liveCalcVol1x2(m);var b1=_liveMwBlock('1',o['1']);var bX=_liveMwBlock('X',o['X']);var b2=_liveMwBlock('2',o['2']);rowsHtml+='<tr class="live-row" '+onclickAttr+'>'+
-minCell+'<td class="match-league" title="'+escLiveHtml(m.league)+'">'+escLiveHtml(m.league)+'</td>'+'<td class="match-teams">'+escLiveHtml(m.home_team)+'<span class="vs">-</span>'+escLiveHtml(m.away_team)+'</td>'+'<td class="mw-outcomes-cell" colspan="3"><div class="mw-grid mw-grid-3">'+b1+bX+b2+'</div></td>'+'<td class="volume-cell">'+formatLiveVol(vol)+'</td></tr>';cardsHtml+=_liveMobileCard(m,'1x2',onclickAttr,goalSide);}else{var ou=_liveGetOu(m,ouLine);var volOU=_liveCalcVolOU(ou);var bU=_liveMwBlock('Alt',ou['U']);var bO=_liveMwBlock('Ust',ou['O']);rowsHtml+='<tr class="live-row" '+onclickAttr+'>'+
-minCell+'<td class="match-league" title="'+escLiveHtml(m.league)+'">'+escLiveHtml(m.league)+'</td>'+'<td class="match-teams">'+escLiveHtml(m.home_team)+'<span class="vs">-</span>'+escLiveHtml(m.away_team)+'</td>'+'<td class="mw-outcomes-cell" colspan="2"><div class="mw-grid mw-grid-2">'+bU+bO+'</div></td>'+'<td class="volume-cell">'+formatLiveVol(volOU)+'</td></tr>';cardsHtml+=_liveMobileCard(m,ouLine,onclickAttr,goalSide);}}
+scoreHtml+'</div></td>';if(is1x2){var vol=_liveCalcVol1x2(m);var b1=_liveMwBlock('1',o['1']);var bX=_liveMwBlock('X',o['X']);var b2=_liveMwBlock('2',o['2']);var deskLiveCap='<div class="live-capsule">'+'<span class="lc-dot"></span>'+'<span class="lc-min">'+escLiveHtml(matchMin)+'</span>'+
+(showScore?'<span class="lc-divider"></span><span class="lc-score-val">'+escLiveHtml(showScore)+'</span>':'')+'</div>';rowsHtml+='<tr class="live-row" '+onclickAttr+'>'+
+minCell+'<td class="match-league" title="'+escLiveHtml(m.league)+'">'+escLiveHtml(m.league)+'</td>'+'<td class="match-teams">'+escLiveHtml(m.home_team)+'<span class="vs">-</span>'+escLiveHtml(m.away_team)+deskLiveCap+'</td>'+'<td class="mw-outcomes-cell" colspan="3"><div class="mw-grid mw-grid-3">'+b1+bX+b2+'</div></td>'+'<td class="volume-cell">'+formatLiveVol(vol)+'</td></tr>';cardsHtml+=_liveMobileCard(m,'1x2',onclickAttr,goalSide);}else{var ou=_liveGetOu(m,ouLine);var volOU=_liveCalcVolOU(ou);var bU=_liveMwBlock('Alt',ou['U']);var bO=_liveMwBlock('Ust',ou['O']);var deskLiveCapOU='<div class="live-capsule">'+'<span class="lc-dot"></span>'+'<span class="lc-min">'+escLiveHtml(matchMin)+'</span>'+
+(showScore?'<span class="lc-divider"></span><span class="lc-score-val">'+escLiveHtml(showScore)+'</span>':'')+'</div>';rowsHtml+='<tr class="live-row" '+onclickAttr+'>'+
+minCell+'<td class="match-league" title="'+escLiveHtml(m.league)+'">'+escLiveHtml(m.league)+'</td>'+'<td class="match-teams">'+escLiveHtml(m.home_team)+'<span class="vs">-</span>'+escLiveHtml(m.away_team)+deskLiveCapOU+'</td>'+'<td class="mw-outcomes-cell" colspan="2"><div class="mw-grid mw-grid-2">'+bU+bO+'</div></td>'+'<td class="volume-cell">'+formatLiveVol(volOU)+'</td></tr>';cardsHtml+=_liveMobileCard(m,ouLine,onclickAttr,goalSide);}}
 if(tbody)tbody.innerHTML=rowsHtml;if(cardList)cardList.innerHTML=cardsHtml;document.querySelectorAll('.goal-pop').forEach(function(el){el.addEventListener('animationend',function(){el.classList.remove('goal-pop');},{once:true});});document.querySelectorAll('.goal-flash-card').forEach(function(el){el.addEventListener('animationend',function(){el.classList.remove('goal-flash-card');},{once:true});});document.querySelectorAll('.dk-cell-inner[data-goal-side]').forEach(function(cell){_startGoalTakeover(cell);});document.querySelectorAll('.live-min-badge[data-goal-min]').forEach(function(el){var realMin=el.getAttribute('data-goal-min');setTimeout(function(){if(el.parentNode){el.textContent=realMin;el.removeAttribute('data-goal-min');}},12000);});var mc=document.getElementById('matchCount');if(mc)mc.textContent=sorted.length;}
 function _startGoalTakeover(cell){var goalSide=cell.getAttribute('data-goal-side');var oldScore=cell.getAttribute('data-old-score')||'0-0';var newScore=cell.getAttribute('data-new-score')||'0-0';var realMin=cell.getAttribute('data-real-min')||'';cell.classList.add('goal-takeover');var golEl=document.createElement('div');golEl.className='goal-takeover-text';golEl.textContent='GOL!';cell.appendChild(golEl);setTimeout(function(){if(!cell.parentNode)return;if(golEl.parentNode)golEl.remove();var oldParts=oldScore.split('-');var newParts=newScore.split('-');var oh=oldParts.length===2?oldParts[0].trim():'0';var oa=oldParts.length===2?oldParts[1].trim():'0';var nh=newParts.length===2?newParts[0].trim():'0';var na=newParts.length===2?newParts[1].trim():'0';var scoreEl=document.createElement('div');scoreEl.className='goal-takeover-score';var hClass=(oh!==nh)?' slide-up':'';var aClass=(oa!==na)?' slide-up':'';scoreEl.innerHTML='<span class="score-digit'+hClass+'">'+nh+'</span>'+'<span style="margin:0 2px;">-</span>'+'<span class="score-digit'+aClass+'">'+na+'</span>';cell.appendChild(scoreEl);setTimeout(function(){if(!cell.parentNode)return;cell.classList.remove('goal-takeover');if(scoreEl.parentNode)scoreEl.remove();cell.removeAttribute('data-goal-side');cell.removeAttribute('data-old-score');cell.removeAttribute('data-new-score');cell.removeAttribute('data-real-min');},6000);},6000);}
 function _calcLiveMatchMin(m){if(m.status==='ft')return'MS';var rawMin=(m.minute||'').trim();if(!rawMin){if(m.kickoff_utc){var ko=new Date(m.kickoff_utc);if(!isNaN(ko.getTime())){var diff=Math.floor((Date.now()-ko.getTime())/60000);if(diff>=0&&diff<=130)return diff+"'";}}

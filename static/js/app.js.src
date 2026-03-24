@@ -1272,11 +1272,12 @@ function _renderMatchRow(match, idx) {
             const blockX = renderMoneywayBlock('X', d.PctX, d.OddsX || d['X'], d.AmtX);
             const block2 = renderMoneywayBlock('2', d.Pct2, d.Odds2 || d['2'], d.Amt2);
             const matchStatus = getMatchStatus(match.date);
+            const deskCapsule = getMatchLiveCapsule(match.date, match.home_team, match.away_team);
             return `
                 <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                     <td class="match-date">${formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${deskCapsule || matchStatus}${_star}</td>
                     <td class="mw-outcomes-cell" colspan="3">
                         <div class="mw-grid mw-grid-3">
                             ${block1}
@@ -1295,11 +1296,12 @@ function _renderMatchRow(match, idx) {
             const cellX = renderDrop1X2Cell('X', d.OddsX || d['X'], trendXData);
             const cell2 = renderDrop1X2Cell('2', d.Odds2 || d['2'], trend2Data);
             const matchStatus = getMatchStatus(match.date);
+            const deskCapsule = getMatchLiveCapsule(match.date, match.home_team, match.away_team);
             return `
                 <tr class="dropping-1x2-row" data-index="${idx}" onclick="openMatchModal(${idx})">
                     <td class="match-date">${formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${deskCapsule || matchStatus}${_star}</td>
                     <td class="drop-cell">${cell1}</td>
                     <td class="drop-cell">${cellX}</td>
                     <td class="drop-cell">${cell2}</td>
@@ -1312,11 +1314,12 @@ function _renderMatchRow(match, idx) {
             const blockUnder = renderMoneywayBlock('Alt', d.PctUnder, d.Under, d.AmtUnder);
             const blockOver = renderMoneywayBlock('Üst', d.PctOver, d.Over, d.AmtOver);
             const matchStatus = getMatchStatus(match.date);
+            const deskCapsule = getMatchLiveCapsule(match.date, match.home_team, match.away_team);
             return `
                 <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                     <td class="match-date">${formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${deskCapsule || matchStatus}${_star}</td>
                     <td class="mw-outcomes-cell" colspan="2">
                         <div class="mw-grid mw-grid-2">
                             ${blockUnder}
@@ -1332,11 +1335,12 @@ function _renderMatchRow(match, idx) {
             const cellUnder = renderOddsWithTrend(d.Under, trendUnderData);
             const cellOver = renderOddsWithTrend(d.Over, trendOverData);
             const matchStatus = getMatchStatus(match.date);
+            const deskCapsule = getMatchLiveCapsule(match.date, match.home_team, match.away_team);
             return `
                 <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                     <td class="match-date">${formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${deskCapsule || matchStatus}${_star}</td>
                     <td class="selection-cell"><div>${cellUnder}</div></td>
                     <td class="selection-cell"><div>${cellOver}</div></td>
                     <td class="volume-cell">${formatVolume(d.Volume)}</td>
@@ -1348,11 +1352,12 @@ function _renderMatchRow(match, idx) {
             const blockYes = renderMoneywayBlock('Evet', d.PctYes, d.OddsYes || d.Yes, d.AmtYes);
             const blockNo = renderMoneywayBlock('Hayır', d.PctNo, d.OddsNo || d.No, d.AmtNo);
             const matchStatus = getMatchStatus(match.date);
+            const deskCapsule = getMatchLiveCapsule(match.date, match.home_team, match.away_team);
             return `
                 <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                     <td class="match-date">${formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${deskCapsule || matchStatus}${_star}</td>
                     <td class="mw-outcomes-cell" colspan="2">
                         <div class="mw-grid mw-grid-2">
                             ${blockYes}
@@ -1368,11 +1373,12 @@ function _renderMatchRow(match, idx) {
             const cellYes = renderOddsWithTrend(d.OddsYes || d.Yes, trendYesData);
             const cellNo = renderOddsWithTrend(d.OddsNo || d.No, trendNoData);
             const matchStatus = getMatchStatus(match.date);
+            const deskCapsule = getMatchLiveCapsule(match.date, match.home_team, match.away_team);
             return `
                 <tr data-index="${idx}" onclick="openMatchModal(${idx})">
                     <td class="match-date">${formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
-                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${matchStatus}${_star}</td>
+                    <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${deskCapsule || matchStatus}${_star}</td>
                     <td class="selection-cell"><div>${cellYes}</div></td>
                     <td class="selection-cell"><div>${cellNo}</div></td>
                     <td class="volume-cell">${formatVolume(d.Volume)}</td>
@@ -10181,10 +10187,15 @@ function renderLiveMatches(matches, goalHashes) {
             var b1 = _liveMwBlock('1', o['1']);
             var bX = _liveMwBlock('X', o['X']);
             var b2 = _liveMwBlock('2', o['2']);
+            var deskLiveCap = '<div class="live-capsule">' +
+                '<span class="lc-dot"></span>' +
+                '<span class="lc-min">' + escLiveHtml(matchMin) + '</span>' +
+                (showScore ? '<span class="lc-divider"></span><span class="lc-score-val">' + escLiveHtml(showScore) + '</span>' : '') +
+                '</div>';
             rowsHtml += '<tr class="live-row" ' + onclickAttr + '>' +
                 minCell +
                 '<td class="match-league" title="' + escLiveHtml(m.league) + '">' + escLiveHtml(m.league) + '</td>' +
-                '<td class="match-teams">' + escLiveHtml(m.home_team) + '<span class="vs">-</span>' + escLiveHtml(m.away_team) + '</td>' +
+                '<td class="match-teams">' + escLiveHtml(m.home_team) + '<span class="vs">-</span>' + escLiveHtml(m.away_team) + deskLiveCap + '</td>' +
                 '<td class="mw-outcomes-cell" colspan="3"><div class="mw-grid mw-grid-3">' + b1 + bX + b2 + '</div></td>' +
                 '<td class="volume-cell">' + formatLiveVol(vol) + '</td></tr>';
             cardsHtml += _liveMobileCard(m, '1x2', onclickAttr, goalSide);
@@ -10193,10 +10204,15 @@ function renderLiveMatches(matches, goalHashes) {
             var volOU = _liveCalcVolOU(ou);
             var bU = _liveMwBlock('Alt', ou['U']);
             var bO = _liveMwBlock('Ust', ou['O']);
+            var deskLiveCapOU = '<div class="live-capsule">' +
+                '<span class="lc-dot"></span>' +
+                '<span class="lc-min">' + escLiveHtml(matchMin) + '</span>' +
+                (showScore ? '<span class="lc-divider"></span><span class="lc-score-val">' + escLiveHtml(showScore) + '</span>' : '') +
+                '</div>';
             rowsHtml += '<tr class="live-row" ' + onclickAttr + '>' +
                 minCell +
                 '<td class="match-league" title="' + escLiveHtml(m.league) + '">' + escLiveHtml(m.league) + '</td>' +
-                '<td class="match-teams">' + escLiveHtml(m.home_team) + '<span class="vs">-</span>' + escLiveHtml(m.away_team) + '</td>' +
+                '<td class="match-teams">' + escLiveHtml(m.home_team) + '<span class="vs">-</span>' + escLiveHtml(m.away_team) + deskLiveCapOU + '</td>' +
                 '<td class="mw-outcomes-cell" colspan="2"><div class="mw-grid mw-grid-2">' + bU + bO + '</div></td>' +
                 '<td class="volume-cell">' + formatLiveVol(volOU) + '</td></tr>';
             cardsHtml += _liveMobileCard(m, ouLine, onclickAttr, goalSide);
