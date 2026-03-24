@@ -9068,7 +9068,7 @@ table.desktop-only {
     /* --- Action Row (Toolbar Controls) --- */
     .mob-action-row {
         display: flex !important;
-        gap: 3px !important;
+        gap: 2px !important;
         align-items: center !important;
         margin-top: 2px !important;
         height: 32px !important;
@@ -9078,7 +9078,7 @@ table.desktop-only {
         display: flex !important;
         align-items: center !important;
         gap: 6px !important;
-        flex: 3 !important;
+        flex: 4 !important;
         height: 32px !important;
         padding: 0 10px !important;
         background: #1e2125 !important;
