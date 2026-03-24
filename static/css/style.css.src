@@ -9746,9 +9746,8 @@ table.desktop-only {
     .ob-data-row {
         display: flex;
         align-items: baseline;
-        justify-content: center;
-        gap: 5px;
         width: 100%;
+        padding: 0 2px;
     }
     
     .ob-odds {
@@ -9757,22 +9756,24 @@ table.desktop-only {
         color: #e0e4e8;
         font-family: 'Inter', monospace;
         letter-spacing: -0.3px;
+        margin-right: 4px;
     }
     
     .ob-money {
         font-size: 9px;
-        font-weight: 400;
-        color: #4a5058;
+        font-weight: 500;
+        color: #3daa6a;
         font-family: 'Inter', monospace;
-        letter-spacing: -0.3px;
+        letter-spacing: -0.2px;
     }
     
     .ob-pct {
-        font-size: 9.5px;
-        font-weight: 600;
-        color: #4ade80;
+        font-size: 9px;
+        font-weight: 500;
+        color: #5c636b;
         font-family: 'Inter', monospace;
         letter-spacing: -0.2px;
+        margin-left: auto;
     }
     
     .odds-block-value {
