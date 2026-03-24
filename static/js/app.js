@@ -55,8 +55,11 @@ const parsed=dayjs(str);if(parsed.isValid()){return parsed.tz(APP_TIMEZONE,true)
 return dayjs(str).tz(APP_TIMEZONE,true);}catch(e){return dayjs().tz(APP_TIMEZONE);}}
 function nowTurkey(){return dayjs().tz(APP_TIMEZONE);}
 function getMatchStatus(dateStr){if(!dateStr)return'';const matchTime=toTurkeyTime(dateStr);if(!matchTime||!matchTime.isValid())return'';const now=nowTurkey();const diffMinutes=now.diff(matchTime,'minute');if(diffMinutes<0){return'';}else if(diffMinutes<=113){return'<span class="match-status live">CANLI</span>';}else{return'<span class="match-status ended">BİTTİ</span>';}}
-function getMatchLiveCapsule(dateStr){if(!dateStr)return'';const matchTime=toTurkeyTime(dateStr);if(!matchTime||!matchTime.isValid())return'';const now=nowTurkey();const diffMinutes=now.diff(matchTime,'minute');if(diffMinutes<0||diffMinutes>113)return'';var minStr='';if(diffMinutes<=45){minStr=diffMinutes+"'";}else if(diffMinutes<=60){minStr='HT';}else if(diffMinutes<=105){minStr=(diffMinutes-15)+"'";}else{minStr="90+'";}
-return'<div class="live-capsule live-capsule-sm">'+'<span class="lc-dot"></span>'+'<span class="lc-min">'+minStr+'</span>'+'</div>';}
+function _findLiveMatch(homeTeam,awayTeam){if(!_liveData||!_liveData.length)return null;var h=(homeTeam||'').toLowerCase().trim();var a=(awayTeam||'').toLowerCase().trim();for(var i=0;i<_liveData.length;i++){var lm=_liveData[i];var lh=(lm.home_team||'').toLowerCase().trim();var la=(lm.away_team||'').toLowerCase().trim();if(lh===h&&la===a)return lm;if(h.length>3&&lh.includes(h))return lm;if(a.length>3&&la.includes(a))return lm;if(lh.length>3&&h.includes(lh))return lm;}
+return null;}
+function getMatchLiveCapsule(dateStr,homeTeam,awayTeam){if(!dateStr)return'';const matchTime=toTurkeyTime(dateStr);if(!matchTime||!matchTime.isValid())return'';const now=nowTurkey();const diffMinutes=now.diff(matchTime,'minute');if(diffMinutes<0||diffMinutes>113)return'';var lm=_findLiveMatch(homeTeam,awayTeam);var minStr='';var scoreHtml='';if(lm){var rawMin=(lm.minute||'').trim();minStr=rawMin||diffMinutes+"'";var sc=lm.score||'';if(sc){var parts=sc.split('-');var sh=(parts[0]||'').trim();var sa=(parts[1]||'').trim();scoreHtml='<span class="lc-divider"></span>'+'<span class="lc-score-val"><span class="lc-score-h">'+sh+'</span>'+'<span class="lc-score-sep">-</span>'+'<span class="lc-score-a">'+sa+'</span></span>';}}else{if(diffMinutes<=45){minStr=diffMinutes+"'";}else if(diffMinutes<=60){minStr='HT';}else if(diffMinutes<=105){minStr=(diffMinutes-15)+"'";}else{minStr="90+'";}}
+return'<div class="live-capsule live-capsule-sm">'+'<span class="lc-dot"></span>'+'<span class="lc-min">'+minStr+'</span>'+
+scoreHtml+'</div>';}
 function formatTurkeyTime(value,format='HH:mm'){const dt=toTurkeyTime(value);return dt?dt.format(format):'';}
 function formatTurkeyDateTime(value,format='DD.MM HH:mm'){const dt=toTurkeyTime(value);return dt?dt.format(format):'';}
 function isTodayTurkey(value){const dt=toTurkeyTime(value);if(!dt)return false;return dt.format('YYYY-MM-DD')===nowTurkey().format('YYYY-MM-DD');}
@@ -319,7 +322,7 @@ function renderMobileMoneywayCard(match,idx,d,volume,dateStr,starHtml){let oddsB
             ${renderMobileMoneywayBlock('Evet', d.OddsYes || d.Yes, d.PctYes, tv)}
             ${renderMobileMoneywayBlock('Hayır', d.OddsNo || d.No, d.PctNo, tv)}
         `;}
-const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);const liveCapsule=getMatchLiveCapsule(match.date);return`
+const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);const liveCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team);return`
         <div class="match-card odds-card moneyway-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
                 <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
@@ -355,7 +358,7 @@ function renderMobileOddsCard(match,idx,d,volume,dateStr,starHtml){let oddsBlock
             ${renderMobileOddsBlock('Evet', d.OddsYes || d.Yes, trendYes)}
             ${renderMobileOddsBlock('Hayır', d.OddsNo || d.No, trendNo)}
         `;}
-const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);const liveCapsule=getMatchLiveCapsule(match.date);return`
+const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);const liveCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team);return`
         <div class="match-card odds-card dropping-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
                 <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>

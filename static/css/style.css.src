@@ -9844,6 +9844,17 @@ table.desktop-only {
         font-size: 10px;
     }
     
+    .live-capsule-sm .lc-divider {
+        height: 10px;
+    }
+    
+    .live-capsule-sm .lc-score-val,
+    .live-capsule-sm .lc-score-h,
+    .live-capsule-sm .lc-score-a,
+    .live-capsule-sm .lc-score-sep {
+        font-size: 10px;
+    }
+    
     .odds-card-row {
         display: flex;
         gap: 5px;
