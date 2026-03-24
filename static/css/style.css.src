@@ -9763,20 +9763,21 @@ table.desktop-only {
     .live-capsule {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 4px;
         background: rgba(229, 72, 77, 0.08);
         border: 1px solid rgba(229, 72, 77, 0.18);
-        border-radius: 5px;
-        padding: 3px 9px 3px 7px;
-        margin-left: auto;
+        border-radius: 4px;
+        padding: 1px 6px 1px 5px;
+        margin-left: 6px;
         flex-shrink: 0;
-        height: 22px;
+        height: 18px;
         box-sizing: border-box;
+        vertical-align: middle;
     }
     
     .lc-dot {
-        width: 6px;
-        height: 6px;
+        width: 5px;
+        height: 5px;
         border-radius: 50%;
         background: #e5484d;
         animation: lc-pulse 1.5s ease-in-out infinite;
@@ -9789,7 +9790,7 @@ table.desktop-only {
     }
     
     .lc-min {
-        font-size: 13px;
+        font-size: 11px;
         font-weight: 700;
         color: #e5484d;
         letter-spacing: 0.2px;
@@ -9798,7 +9799,7 @@ table.desktop-only {
     
     .lc-divider {
         width: 1px;
-        height: 12px;
+        height: 10px;
         background: rgba(255,255,255,0.12);
         flex-shrink: 0;
     }
@@ -9806,7 +9807,7 @@ table.desktop-only {
     .lc-score-val,
     .lc-score-h,
     .lc-score-a {
-        font-size: 13px;
+        font-size: 11px;
         font-weight: 700;
         color: #e0e4e8;
         letter-spacing: 0.3px;
@@ -9814,7 +9815,7 @@ table.desktop-only {
     }
     
     .lc-score-sep {
-        font-size: 12px;
+        font-size: 10px;
         font-weight: 500;
         color: #5c636b;
         margin: 0 1px;
@@ -9824,35 +9825,6 @@ table.desktop-only {
     .lc-score-h.goal-pop,
     .lc-score-a.goal-pop {
         color: #4ade80;
-    }
-    
-    .live-capsule-sm {
-        padding: 1px 6px 1px 4px;
-        height: 18px;
-        gap: 4px;
-        margin-left: 6px;
-        border-radius: 4px;
-        vertical-align: middle;
-    }
-    
-    .live-capsule-sm .lc-dot {
-        width: 5px;
-        height: 5px;
-    }
-    
-    .live-capsule-sm .lc-min {
-        font-size: 10px;
-    }
-    
-    .live-capsule-sm .lc-divider {
-        height: 10px;
-    }
-    
-    .live-capsule-sm .lc-score-val,
-    .live-capsule-sm .lc-score-h,
-    .live-capsule-sm .lc-score-a,
-    .live-capsule-sm .lc-score-sep {
-        font-size: 10px;
     }
     
     .odds-card-row {
