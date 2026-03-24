@@ -8950,9 +8950,9 @@ table.desktop-only {
 
     /* ========== MAIN CONTENT ========== */
     .main-content {
-        padding: 8px 4px 6px;
+        padding: 112px 4px 6px;
         height: auto;
-        min-height: calc(100vh - 150px);
+        min-height: 100vh;
         overflow-y: auto;
     }
     
@@ -8972,8 +8972,10 @@ table.desktop-only {
         padding: 6px 4px 4px !important;
         background: #141719 !important;
         gap: 3px !important;
-        position: sticky !important;
+        position: fixed !important;
         top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
         z-index: 100 !important;
     }
     
@@ -10085,8 +10087,9 @@ table.desktop-only {
     }
     
     .main-content {
-        padding: 8px 4px 6px;
-        height: calc(100vh - 120px);
+        padding: 112px 4px 6px;
+        height: auto;
+        min-height: 100vh;
     }
     
     .search-box {
