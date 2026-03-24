@@ -1592,42 +1592,39 @@ function buildCardInsight(d, market) {
     return '<div class="odds-card-insight">' + parts.join('') + '</div>';
 }
 
+function _calcBlockMoney(pctNum, totalVol) {
+    if (!totalVol) return '';
+    var rawVol = String(totalVol).replace(/[£€$,\s]/g, '');
+    var mult = 1;
+    if (rawVol.toUpperCase().includes('M')) { mult = 1000000; rawVol = rawVol.replace(/M/gi, ''); }
+    else if (rawVol.toUpperCase().includes('K')) { mult = 1000; rawVol = rawVol.replace(/K/gi, ''); }
+    var totalNum = parseFloat(rawVol) * mult;
+    if (isNaN(totalNum) || totalNum <= 0) return '';
+    var bm = totalNum * pctNum / 100;
+    return bm >= 1000000 ? '£' + (bm/1000000).toFixed(1) + 'M' : bm >= 1000 ? '£' + (bm/1000).toFixed(1) + 'k' : '£' + Math.round(bm);
+}
+
 function renderMobileMoneywayBlock(label, oddsValue, pctValue, totalVol) {
     const odds = formatOdds(oddsValue);
-    let pct = '';
-    let moneyHtml = '';
+    var pct = '';
+    var moneyStr = '';
     
     if (pctValue !== null && pctValue !== undefined) {
-        const pctNum = parseFloat(String(pctValue).replace('%', ''));
+        var pctNum = parseFloat(String(pctValue).replace('%', ''));
         if (!isNaN(pctNum)) {
             pct = pctNum.toFixed(0) + '%';
-            if (totalVol) {
-                var rawVol = String(totalVol).replace(/[£€$,\s]/g, '');
-                var mult = 1;
-                if (rawVol.toUpperCase().includes('M')) { mult = 1000000; rawVol = rawVol.replace(/M/gi, ''); }
-                else if (rawVol.toUpperCase().includes('K')) { mult = 1000; rawVol = rawVol.replace(/K/gi, ''); }
-                var totalNum = parseFloat(rawVol) * mult;
-                if (!isNaN(totalNum) && totalNum > 0) {
-                    var blockMoney = totalNum * pctNum / 100;
-                    var moneyStr = blockMoney >= 1000000 ? '£' + (blockMoney/1000000).toFixed(1) + 'M' : blockMoney >= 1000 ? '£' + (blockMoney/1000).toFixed(1) + 'k' : '£' + Math.round(blockMoney);
-                    moneyHtml = '<span class="ob-money">' + moneyStr + '</span>';
-                }
-            }
+            moneyStr = _calcBlockMoney(pctNum, totalVol);
         }
     }
     
-    var bottomRow = '';
-    if (moneyHtml || pct) {
-        bottomRow = '<div class="odds-block-bottom">' + moneyHtml + (pct ? '<span class="ob-pct">' + pct + '</span>' : '') + '</div>';
-    }
-    
-    return `
-        <div class="odds-block mw-block">
-            <div class="odds-block-label">${label}</div>
-            <div class="odds-block-value">${odds}</div>
-            ${bottomRow}
-        </div>
-    `;
+    return '<div class="odds-block mw-block">' +
+        '<div class="odds-block-label">' + label + '</div>' +
+        '<div class="ob-data-row">' +
+            '<span class="ob-odds">' + odds + '</span>' +
+            (moneyStr ? '<span class="ob-money">' + moneyStr + '</span>' : '') +
+            (pct ? '<span class="ob-pct">' + pct + '</span>' : '') +
+        '</div>' +
+    '</div>';
 }
 
 // Mobile Odds Card - Shows odds with percentage drop changes (for Dropping/Odds pages)
@@ -10301,27 +10298,25 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
 function _liveMobileBlock(label, d, totalVol) {
     var odds = (d && d.odds) ? d.odds.toFixed(2) : '-';
     var pct = '';
-    var moneyHtml = '';
+    var moneyStr = '';
     if (d && d.share !== null && d.share !== undefined) {
         var pn = parseFloat(String(d.share));
         if (!isNaN(pn)) {
             pct = pn.toFixed(0) + '%';
             if (totalVol && totalVol > 0) {
                 var bm = totalVol * pn / 100;
-                var ms = bm >= 1000000 ? '£' + (bm/1000000).toFixed(1) + 'M' : bm >= 1000 ? '£' + (bm/1000).toFixed(1) + 'k' : '£' + Math.round(bm);
-                moneyHtml = '<span class="ob-money">' + ms + '</span>';
+                moneyStr = bm >= 1000000 ? '£' + (bm/1000000).toFixed(1) + 'M' : bm >= 1000 ? '£' + (bm/1000).toFixed(1) + 'k' : '£' + Math.round(bm);
             }
         }
     }
-    var bottom = '';
-    if (moneyHtml || pct) {
-        bottom = '<div class="odds-block-bottom">' + moneyHtml + (pct ? '<span class="ob-pct">' + pct + '</span>' : '') + '</div>';
-    }
     return '<div class="odds-block mw-block">' +
         '<div class="odds-block-label">' + label + '</div>' +
-        '<div class="odds-block-value">' + odds + '</div>' +
-        bottom +
-        '</div>';
+        '<div class="ob-data-row">' +
+            '<span class="ob-odds">' + odds + '</span>' +
+            (moneyStr ? '<span class="ob-money">' + moneyStr + '</span>' : '') +
+            (pct ? '<span class="ob-pct">' + pct + '</span>' : '') +
+        '</div>' +
+    '</div>';
 }
 
 async function openLiveDetail(hash, home, away) {
