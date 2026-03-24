@@ -9781,11 +9781,12 @@ table.desktop-only {
         display: flex;
         align-items: baseline;
         justify-content: center;
-        gap: 4px;
+        gap: 3px;
         width: 100%;
         line-height: 1;
-        padding: 0 6px;
+        padding: 0 4px;
         box-sizing: border-box;
+        overflow: hidden;
     }
     
     .ob-odds {
@@ -9795,24 +9796,32 @@ table.desktop-only {
         font-family: 'Inter', monospace;
         letter-spacing: -0.3px;
         line-height: 1;
+        flex-shrink: 0;
     }
     
     .ob-money {
-        font-size: 9px;
+        font-size: 8px;
         font-weight: 500;
         color: #3daa6a;
         font-family: 'Inter', monospace;
-        letter-spacing: -0.2px;
+        letter-spacing: -0.3px;
         line-height: 1;
+        flex-shrink: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     
     .ob-pct {
-        font-size: 9px;
+        font-size: 8px;
         font-weight: 500;
         color: #5c636b;
         font-family: 'Inter', monospace;
-        letter-spacing: -0.2px;
+        letter-spacing: -0.3px;
         line-height: 1;
+        flex-shrink: 0;
+        white-space: nowrap;
     }
     
     .ob-trend {

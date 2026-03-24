@@ -10294,7 +10294,10 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
 }
 
 function _liveMobileBlock(label, d, totalVol) {
-    var odds = (d && d.odds) ? d.odds.toFixed(2) : '-';
+    var odds = '-';
+    if (d && d.odds) {
+        odds = d.odds >= 100 ? d.odds.toFixed(0) : d.odds.toFixed(2);
+    }
     var pct = '';
     var moneyStr = '';
     if (d && d.share !== null && d.share !== undefined) {
