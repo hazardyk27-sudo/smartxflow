@@ -10261,16 +10261,16 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
     html += '</div>';
     html += '<div class="odds-card-meta"><span>' + escLiveHtml(m.league) + '</span><span class="meta-sep">\u2022</span>';
     var cardMin = _calcLiveMatchMin(m);
-    html += '<span class="live-min-badge" style="font-size:11px;"' + (goalSide ? ' data-goal-min="' + cardMin + '"' : '') + '>' + (goalSide ? 'GOL!' : cardMin) + '</span>';
+    html += '<span class="live-min-badge" style="font-size:11px;color:#e5484d;font-weight:700;"' + (goalSide ? ' data-goal-min="' + cardMin + '"' : '') + '>' + (goalSide ? 'GOL!' : cardMin) + '</span>';
     var cardScore = m.score ? escLiveHtml(m.score) : (cardMin === 'MS' ? '-' : '');
     if (cardScore) {
         var csp = cardScore.split('-');
         if (csp.length === 2 && goalSide) {
             var chCls = goalSide === 'home' || goalSide === 'both' ? ' goal-pop' : '';
             var caCls = goalSide === 'away' || goalSide === 'both' ? ' goal-pop' : '';
-            html += '<span class="meta-sep">\u2022</span><span class="score-h' + chCls + '" style="font-weight:600;">' + csp[0].trim() + '</span><span class="score-sep" style="font-weight:600;">-</span><span class="score-a' + caCls + '" style="font-weight:600;">' + csp[1].trim() + '</span>';
+            html += '<span class="meta-sep">\u2022</span><span class="score-h' + chCls + '" style="color:#e0e4e8;font-weight:700;">' + csp[0].trim() + '</span><span class="score-sep" style="color:#e0e4e8;font-weight:700;">-</span><span class="score-a' + caCls + '" style="color:#e0e4e8;font-weight:700;">' + csp[1].trim() + '</span>';
         } else {
-            html += '<span class="meta-sep">\u2022</span><span style="color:#f59e0b;font-weight:600;">' + cardScore + '</span>';
+            html += '<span class="meta-sep">\u2022</span><span style="color:#e0e4e8;font-weight:700;">' + cardScore + '</span>';
         }
     }
     html += '</div>';
