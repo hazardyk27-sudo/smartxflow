@@ -12878,7 +12878,7 @@ table.desktop-only {
     padding: 10px 14px 8px;
 }
 .modal-live-section .smart-money-icon {
-    color: #ef4444;
+    color: rgba(229, 72, 77, 0.6);
     font-size: 7px;
     opacity: 0.7;
 }
@@ -12911,7 +12911,7 @@ table.desktop-only {
 }
 .modal-live-body .live-period-table {
     font-size: 12px;
-    background: transparent;
+    background: #1a1d21;
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
@@ -12923,7 +12923,7 @@ table.desktop-only {
 }
 .modal-live-body .live-period-table thead th {
     padding: 0;
-    background: #1c1f23;
+    background: #1e2227;
     text-align: center;
     vertical-align: middle;
     white-space: nowrap;
@@ -12936,32 +12936,32 @@ table.desktop-only {
     font-size: 14px;
     font-weight: 700;
     padding: 10px 6px 6px;
-    color: rgba(219,234,254,0.9);
+    color: rgba(203,213,225,0.85);
     letter-spacing: 1.2px;
-    box-shadow: inset 0 -1px 0 rgba(48,54,61,0.5);
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,0.04);
 }
 .modal-live-body .live-period-table thead tr.lpt-col-row th {
     top: 30px;
     padding: 6px 6px 8px;
-    box-shadow: inset 0 -2px 0 #2e3238;
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,0.04);
 }
 .modal-live-body .live-period-table tbody td {
     padding: 9px 6px;
-    background: #191c20;
-    box-shadow: inset 0 -1px 0 rgba(48,54,61,0.4);
+    background: #1a1d21;
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,0.03);
     border: none;
     text-align: center;
     vertical-align: middle;
 }
 .modal-live-body .live-period-table tbody tr:hover td {
-    background: #1c2128;
+    background: #1e2226;
 }
 .modal-live-body .period-dk-skor {
     width: 62px;
     min-width: 62px;
     max-width: 62px;
     padding: 9px 8px;
-    border-right: 2px solid #2e3238 !important;
+    border-right: 1px solid rgba(255,255,255,0.04) !important;
     text-align: center;
 }
 .modal-live-body .period-dk-skor .dk-val {
@@ -13040,8 +13040,8 @@ table.desktop-only {
     text-align: center;
     vertical-align: middle;
     padding: 8px 8px;
-    border-right: 2px solid #2e3238 !important;
-    background: #1c1f23;
+    border-right: 1px solid rgba(255,255,255,0.04) !important;
+    background: #1e2227;
     position: sticky;
     top: 0;
     z-index: 3;
@@ -13066,10 +13066,10 @@ table.desktop-only {
     line-height: 1;
 }
 .modal-live-body .lpt-group-th {
-    border-left: 2px solid #2e3238 !important;
+    border-left: 1px solid rgba(255,255,255,0.04) !important;
 }
 .modal-live-body .lpt-sel-divider {
-    border-left: 2px solid #2e3238 !important;
+    border-left: 1px solid rgba(255,255,255,0.04) !important;
 }
 .live-dtab {
     background: transparent;
