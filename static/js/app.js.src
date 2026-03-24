@@ -562,6 +562,29 @@ function getMatchStatus(dateStr) {
     }
 }
 
+function getMatchLiveCapsule(dateStr) {
+    if (!dateStr) return '';
+    const matchTime = toTurkeyTime(dateStr);
+    if (!matchTime || !matchTime.isValid()) return '';
+    const now = nowTurkey();
+    const diffMinutes = now.diff(matchTime, 'minute');
+    if (diffMinutes < 0 || diffMinutes > 113) return '';
+    var minStr = '';
+    if (diffMinutes <= 45) {
+        minStr = diffMinutes + "'";
+    } else if (diffMinutes <= 60) {
+        minStr = 'HT';
+    } else if (diffMinutes <= 105) {
+        minStr = (diffMinutes - 15) + "'";
+    } else {
+        minStr = "90+'";
+    }
+    return '<div class="live-capsule live-capsule-sm">' +
+        '<span class="lc-dot"></span>' +
+        '<span class="lc-min">' + minStr + '</span>' +
+        '</div>';
+}
+
 function formatTurkeyTime(value, format = 'HH:mm') {
     const dt = toTurkeyTime(value);
     return dt ? dt.format(format) : '';
@@ -1536,10 +1559,11 @@ function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
     
     const matchStatus = getMatchStatus(match.date);
     
+    const liveCapsule = getMatchLiveCapsule(match.date);
     return `
         <div class="match-card odds-card moneyway-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
-                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${matchStatus}${starHtml || ''}</div>
+                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
             <div class="odds-card-meta">
@@ -1665,10 +1689,11 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr, starHtml) {
     const blockCount = currentMarket.includes('1x2') ? 'three' : 'two';
     const matchStatus = getMatchStatus(match.date);
     
+    const liveCapsule = getMatchLiveCapsule(match.date);
     return `
         <div class="match-card odds-card dropping-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
-                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${matchStatus}${starHtml || ''}</div>
+                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
             <div class="odds-card-meta">
