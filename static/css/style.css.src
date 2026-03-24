@@ -9145,7 +9145,7 @@ table.desktop-only {
     }
     
     .mob-act-alarm {
-        flex: 2.2 !important;
+        flex: 2 !important;
     }
     
     .mob-act-btn:active {
