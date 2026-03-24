@@ -6,19 +6,19 @@ resolve();});});};let currentMarket='moneyway_1x2';let matches=[];let filteredMa
 return did;}
 let _licenseExpiredShown=false;function showLicenseExpiredOverlay(){if(_licenseExpiredShown)return;_licenseExpiredShown=true;const appContent=document.querySelector('.main-content')||document.querySelector('main')||document.getElementById('appContainer');if(appContent){appContent.style.filter='blur(12px)';appContent.style.pointerEvents='none';appContent.style.userSelect='none';}
 const header=document.querySelector('.top-bar')||document.querySelector('header')||document.querySelector('nav');if(header){header.style.filter='blur(12px)';header.style.pointerEvents='none';}
-let overlay=document.getElementById('licenseExpiredOverlay');if(overlay){overlay.style.display='flex';}else{overlay=document.createElement('div');overlay.id='licenseExpiredOverlay';overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);';overlay.innerHTML='<div style="background:#161b22;border:1px solid #30363d;border-radius:16px;padding:48px 40px;max-width:440px;width:90%;text-align:center;">'
+let overlay=document.getElementById('licenseExpiredOverlay');if(overlay){overlay.style.display='flex';}else{overlay=document.createElement('div');overlay.id='licenseExpiredOverlay';overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);';overlay.innerHTML='<div style="background:#1c1f23;border:1px solid #2e3238;border-radius:16px;padding:48px 40px;max-width:440px;width:90%;text-align:center;">'
 +'<div style="font-size:48px;margin-bottom:16px;">⏳</div>'
 +'<h2 style="color:#f0f6fc;font-size:22px;font-weight:700;margin:0 0 12px;">Lisansınızın Süresi Doldu</h2>'
-+'<p style="color:#8b949e;font-size:15px;line-height:1.6;margin:0 0 28px;">Lisans süreniz sona ermiştir. Uygulamayı kullanmaya devam etmek için paketinizi yenileyin.</p>'
-+'<a href="/pricing" style="display:inline-block;background:linear-gradient(135deg,#2BFF88,#1ae070);color:#0d1117;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;text-decoration:none;transition:transform 0.2s,box-shadow 0.2s;">Paketleri İncele →</a>'
++'<p style="color:#7d848c;font-size:15px;line-height:1.6;margin:0 0 28px;">Lisans süreniz sona ermiştir. Uygulamayı kullanmaya devam etmek için paketinizi yenileyin.</p>'
++'<a href="/pricing" style="display:inline-block;background:linear-gradient(135deg,#2BFF88,#1ae070);color:#141719;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;text-decoration:none;transition:transform 0.2s,box-shadow 0.2s;">Paketleri İncele →</a>'
 +'</div>';document.body.appendChild(overlay);}}
 let _deviceKickedShown=false;function showDeviceKickedOverlay(){if(_deviceKickedShown)return;_deviceKickedShown=true;const appContent=document.querySelector('.main-content')||document.querySelector('main')||document.getElementById('appContainer');if(appContent){appContent.style.filter='blur(12px)';appContent.style.pointerEvents='none';appContent.style.userSelect='none';}
 const header=document.querySelector('.header')||document.querySelector('header')||document.querySelector('nav');if(header){header.style.filter='blur(12px)';header.style.pointerEvents='none';}
-let overlay=document.getElementById('deviceKickedOverlay');if(overlay){overlay.style.display='flex';}else{overlay=document.createElement('div');overlay.id='deviceKickedOverlay';overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);';overlay.innerHTML='<div style="background:#161b22;border:1px solid #30363d;border-radius:16px;padding:48px 40px;max-width:440px;width:90%;text-align:center;">'
+let overlay=document.getElementById('deviceKickedOverlay');if(overlay){overlay.style.display='flex';}else{overlay=document.createElement('div');overlay.id='deviceKickedOverlay';overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);';overlay.innerHTML='<div style="background:#1c1f23;border:1px solid #2e3238;border-radius:16px;padding:48px 40px;max-width:440px;width:90%;text-align:center;">'
 +'<div style="font-size:48px;margin-bottom:16px;">🔒</div>'
 +'<h2 style="color:#f0f6fc;font-size:22px;font-weight:700;margin:0 0 12px;">Başka Bir Cihazdan Giriş Yapıldı</h2>'
-+'<p style="color:#8b949e;font-size:15px;line-height:1.6;margin:0 0 28px;">Hesabınıza başka bir cihazdan giriş yapılmıştır. Aynı anda yalnızca izin verilen sayıda cihazda oturum açılabilir.</p>'
-+'<button onclick="deviceKickedRelogin()" style="display:inline-block;background:linear-gradient(135deg,#2BFF88,#1ae070);color:#0d1117;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;border:none;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;">Tekrar Giriş Yap</button>'
++'<p style="color:#7d848c;font-size:15px;line-height:1.6;margin:0 0 28px;">Hesabınıza başka bir cihazdan giriş yapılmıştır. Aynı anda yalnızca izin verilen sayıda cihazda oturum açılabilir.</p>'
++'<button onclick="deviceKickedRelogin()" style="display:inline-block;background:linear-gradient(135deg,#2BFF88,#1ae070);color:#141719;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;border:none;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;">Tekrar Giriş Yap</button>'
 +'</div>';document.body.appendChild(overlay);}}
 function deviceKickedRelogin(){fetch('/api/licenses/logout',{method:'POST'}).catch(()=>{});localStorage.removeItem('smartxflow_web_license');localStorage.removeItem('smartxflow_web_license_valid');localStorage.removeItem('license_days_remaining');localStorage.removeItem('license_plan');window.location.reload();}
 let _licenseStatusInterval=null;function startLicenseStatusRefresh(){if(_licenseStatusInterval)return;async function checkLicenseStatus(){try{const savedLicKey=localStorage.getItem('smartxflow_web_license');const statusHeaders={};if(savedLicKey)statusHeaders['X-License-Key']=savedLicKey;const webDid=getWebDeviceId();const statusUrl='/api/license/status?device_id='+encodeURIComponent(webDid);const resp=await _originalFetch(statusUrl,{headers:statusHeaders});if(!resp.ok){try{const data=await resp.json();if(data.error==='DEVICE_KICKED'){showDeviceKickedOverlay();}else if(data.error==='LICENSE_EXPIRED'||data.error==='LICENSE_REVOKED'||data.error==='LICENSE_NOT_FOUND'){showLicenseExpiredOverlay();updateLicenseDaysBadge(0);localStorage.setItem('license_days_remaining','0');}}catch(parseErr){}
@@ -94,7 +94,7 @@ const tbody=document.getElementById('matchesTableBody');const colspan=currentMar
             </tr>
         `;const cardList=document.getElementById('matchCardList');if(cardList){cardList.innerHTML=`
                 <div class="match-card" style="justify-content: center; padding: 40px 20px;">
-                    <div style="text-align: center; color: #8b949e;">
+                    <div style="text-align: center; color: #7d848c;">
                         <div class="loading-spinner" style="margin: 0 auto 12px;"></div>
                         <p style="font-size: 13px; margin: 0;">Yükleniyor...</p>
                     </div>
@@ -164,7 +164,7 @@ thead.innerHTML=`
 function getColorClass(pctValue){const num=parseFloat(String(pctValue).replace(/[^0-9.]/g,''));if(isNaN(num))return'color-normal';if(num>=90)return'color-red';if(num>=70)return'color-orange';if(num>=50)return'color-yellow';return'color-normal';}
 function getDonutColor(pctValue){return'#22c55e';}
 function getMoneyColor(moneyStr){if(!moneyStr)return'money-low';const numStr=String(moneyStr).replace(/[£€$,\s]/g,'');const num=parseFloat(numStr);if(isNaN(num))return'money-low';return num>=3000?'money-high':'money-low';}
-function renderDonutSVG(percent,size=48){const num=parseFloat(String(percent).replace(/[^0-9.]/g,''))||0;const strokeWidth=size>40?5:4;const radius=(size-strokeWidth*2)/2;const circumference=2*Math.PI*radius;const offset=circumference-(num/100)*circumference;const trackColor='#1c2533';const isHigh=num>=50;const fillColor=isHigh?'#22c55e':'#111827';const textColor=isHigh?'#ffffff':'#9ca3af';const fontSize=size>40?11:9;return`
+function renderDonutSVG(percent,size=48){const num=parseFloat(String(percent).replace(/[^0-9.]/g,''))||0;const strokeWidth=size>40?5:4;const radius=(size-strokeWidth*2)/2;const circumference=2*Math.PI*radius;const offset=circumference-(num/100)*circumference;const trackColor='#2a2e33';const isHigh=num>=50;const fillColor=isHigh?'#22c55e':'#1a1d21';const textColor=isHigh?'#ffffff':'#9ca3af';const fontSize=size>40?11:9;return`
         <svg class="donut-svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
             <circle class="ring-track" cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="${trackColor}" stroke-width="${strokeWidth}"/>
             <circle class="ring-fill" cx="${size/2}" cy="${size/2}" r="${radius}" fill="none" stroke="${fillColor}" stroke-width="${strokeWidth}"
@@ -296,7 +296,7 @@ function loadMoreMatches(){if(hasMoreMatches&&!_loadMatchesLock){loadMatches(tru
 function isMobileView(){return window.innerWidth<=768;}
 function renderMobileMatchCards(data){if(typeof _liveMode!=='undefined'&&_liveMode)return;const cardList=document.getElementById('matchCardList');if(!cardList)return;_allFilteredMatches=data;_renderedCount=0;if(data.length===0){cardList.innerHTML=`
             <div class="match-card" style="justify-content: center; padding: 40px 20px;">
-                <div style="text-align: center; color: #8b949e;">
+                <div style="text-align: center; color: #7d848c;">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.4; margin-bottom: 8px;">
                         <circle cx="12" cy="12" r="10"/>
                         <path d="M12 6v6l4 2"/>
@@ -317,7 +317,7 @@ function renderMobileMoneywayCard(match,idx,d,volume,dateStr,starHtml){let oddsB
             ${renderMobileMoneywayBlock('Evet', d.OddsYes || d.Yes, d.PctYes)}
             ${renderMobileMoneywayBlock('Hayır', d.OddsNo || d.No, d.PctNo)}
         `;}
-const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);return`
+const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);var insightHtml=buildCardInsight(d,currentMarket);return`
         <div class="match-card odds-card moneyway-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
                 <div class="odds-card-teams">${match.home_team} – ${match.away_team}${matchStatus}${starHtml || ''}</div>
@@ -331,8 +331,11 @@ const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=g
             <div class="odds-card-row ${blockCount}">
                 ${oddsBlocks}
             </div>
+            ${insightHtml}
         </div>
     `;}
+function buildCardInsight(d,market){var parts=[];if(market.includes('1x2')){var p1=parseFloat(String(d.PctHome||d.Pct1||d.PctYes||'0').replace('%',''));var pX=parseFloat(String(d.PctDraw||d.PctX||'0').replace('%',''));var p2=parseFloat(String(d.PctAway||d.Pct2||d.PctNo||'0').replace('%',''));if(p1>0||pX>0||p2>0){var best=Math.max(p1,pX,p2);var leader=best===p1?'1':(best===pX?'X':'2');parts.push('<span class="insight-tag">Favori: <span class="insight-val">'+leader+'</span></span>');parts.push('<span class="insight-tag">Pay: <span class="insight-val positive">'+best.toFixed(0)+'%</span></span>');var spread=(best-Math.min(p1>0?p1:999,pX>0?pX:999,p2>0?p2:999)).toFixed(0);var label=parseInt(spread)>30?'Güçlü favori':(parseInt(spread)>10?'Favori açık':'Dengeli');parts.push('<span class="insight-label">'+label+'</span>');}}else if(market.includes('2.5')){var pOver=parseFloat(String(d.PctYes||d.PctOver||'0').replace('%',''));var pUnder=parseFloat(String(d.PctNo||d.PctUnder||'0').replace('%',''));if(pOver>0||pUnder>0){var lbl=pOver>pUnder?'Üst':'Alt';var pct=Math.max(pOver,pUnder);parts.push('<span class="insight-tag">Lider: <span class="insight-val">'+lbl+'</span></span>');parts.push('<span class="insight-tag">Pay: <span class="insight-val positive">'+pct.toFixed(0)+'%</span></span>');}}else if(market.includes('kg')){var pY=parseFloat(String(d.PctYes||'0').replace('%',''));var pN=parseFloat(String(d.PctNo||'0').replace('%',''));if(pY>0||pN>0){var lbl=pY>pN?'Evet':'Hayır';var pct=Math.max(pY,pN);parts.push('<span class="insight-tag">KG: <span class="insight-val">'+lbl+'</span></span>');parts.push('<span class="insight-tag">Pay: <span class="insight-val positive">'+pct.toFixed(0)+'%</span></span>');}}
+if(parts.length===0)return'';return'<div class="odds-card-insight">'+parts.join('')+'</div>';}
 function renderMobileMoneywayBlock(label,oddsValue,pctValue){const odds=formatOdds(oddsValue);let pct='—';if(pctValue!==null&&pctValue!==undefined){const pctNum=parseFloat(String(pctValue).replace('%',''));if(!isNaN(pctNum)){pct=pctNum.toFixed(0)+'%';}}
 return`
         <div class="odds-block mw-block">
@@ -352,7 +355,7 @@ function renderMobileOddsCard(match,idx,d,volume,dateStr,starHtml){let oddsBlock
             ${renderMobileOddsBlock('Evet', d.OddsYes || d.Yes, trendYes)}
             ${renderMobileOddsBlock('Hayır', d.OddsNo || d.No, trendNo)}
         `;}
-const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);return`
+const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);var insightHtml=buildCardInsight(d,currentMarket);return`
         <div class="match-card odds-card dropping-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
                 <div class="odds-card-teams">${match.home_team} – ${match.away_team}${matchStatus}${starHtml || ''}</div>
@@ -366,6 +369,7 @@ const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=g
             <div class="odds-card-row ${blockCount}">
                 ${oddsBlocks}
             </div>
+            ${insightHtml}
         </div>
     `;}
 function renderMobileOddsBlock(label,oddsValue,trendData){const odds=formatOdds(oddsValue);let dropHtml='';if(trendData&&trendData.pct_change!==null&&trendData.pct_change!==undefined){const pctChange=trendData.pct_change;if(pctChange!==0){const isDown=trendData.trend==='down';const dropClass=isDown?'pct-down':'pct-up';const arrow=isDown?'▼':'▲';dropHtml=`<div class="odds-block-pct ${dropClass}"><span class="trend-icon">${arrow}</span> ${Math.abs(pctChange).toFixed(1)}%</div>`;}else{dropHtml=`<div class="odds-block-pct">—</div>`;}}else if(trendData&&trendData.trend&&(trendData.trend==='down'||trendData.trend==='up')){const isDown=trendData.trend==='down';const dropClass=isDown?'pct-down':'pct-up';const arrow=isDown?'▼':'▲';dropHtml=`<div class="odds-block-pct ${dropClass}"><span class="trend-icon">${arrow}</span></div>`;}else{dropHtml=`<div class="odds-block-pct">—</div>`;}
@@ -945,7 +949,7 @@ const closeBtn=document.querySelector('.modal-close');if(closeBtn)closeBtn.style
 const restoreStyles=()=>{modalContent.style.maxHeight=originalStyles.modalContent.maxHeight;modalContent.style.height=originalStyles.modalContent.height;modalContent.style.overflow=originalStyles.modalContent.overflow;if(modalBody&&originalStyles.modalBody){modalBody.style.maxHeight=originalStyles.modalBody.maxHeight;modalBody.style.height=originalStyles.modalBody.height;modalBody.style.overflow=originalStyles.modalBody.overflow;}
 if(closeBtn)closeBtn.style.display='';};if(typeof html2canvas==='undefined'){restoreStyles();showExportNotification('PNG kütüphanesi yüklenemedi',true);resetButton();return;}
 if(chart){chart.options.animation=false;chart.update('none');}
-requestAnimationFrame(()=>{setTimeout(()=>{html2canvas(modalContent,{backgroundColor:'#161b22',scale:window.devicePixelRatio||1,logging:false,useCORS:true,allowTaint:false,imageTimeout:5000,height:modalContent.scrollHeight,windowHeight:modalContent.scrollHeight,scrollY:0,scrollX:0,onclone:function(clonedDoc){const clonedCanvas=clonedDoc.querySelector('#oddsChart');if(clonedCanvas)clonedCanvas.crossOrigin='anonymous';}}).then(async canvas=>{restoreStyles();await savePNGViaAPI(canvas,filename);resetButton();}).catch(err=>{restoreStyles();showExportNotification('PNG oluşturma hatası',true);resetButton();});},50);});}
+requestAnimationFrame(()=>{setTimeout(()=>{html2canvas(modalContent,{backgroundColor:'#1c1f23',scale:window.devicePixelRatio||1,logging:false,useCORS:true,allowTaint:false,imageTimeout:5000,height:modalContent.scrollHeight,windowHeight:modalContent.scrollHeight,scrollY:0,scrollX:0,onclone:function(clonedDoc){const clonedCanvas=clonedDoc.querySelector('#oddsChart');if(clonedCanvas)clonedCanvas.crossOrigin='anonymous';}}).then(async canvas=>{restoreStyles();await savePNGViaAPI(canvas,filename);resetButton();}).catch(err=>{restoreStyles();showExportNotification('PNG oluşturma hatası',true);resetButton();});},50);});}
 function exportChartCSV(){if(!chart||!selectedMatch)return;const market=selectedChartMarket;const isMoneyway=market.startsWith('moneyway');const datasets=chart.data.datasets;const labels=chart.data.labels;const visibleDatasets=datasets.filter(ds=>!ds.hidden);const visibleSeriesNames=visibleDatasets.map(ds=>ds.label).join(', ');const timeRangeLabels={'10min':'10 dakika','30min':'30 dakika','1hour':'1 saat','6hour':'6 saat','12hour':'12 saat','1day':'1 gün'};const timeRangeLabel=timeRangeLabels[chartTimeRange]||'1 gün';const marketLabels={'moneyway_1x2':'Moneyway 1X2','moneyway_ou25':'Moneyway Alt/Üst 2.5','moneyway_btts':'Moneyway KG','dropping_1x2':'Oran 1X2','dropping_ou25':'Oran A/Ü 2.5','dropping_btts':'Oran KG'};const marketLabel=marketLabels[market]||market;let csvContent='\uFEFF';csvContent+=`# SmartXFlow - Odds Export\n`;csvContent+=`# Match: ${selectedMatch.home_team} vs ${selectedMatch.away_team}\n`;csvContent+=`# League: ${selectedMatch.league}\n`;csvContent+=`# Match Date: ${selectedMatch.start_time || 'N/A'}\n`;csvContent+=`# Chart Type: ${marketLabel}\n`;csvContent+=`# Time Range: ${timeRangeLabel}\n`;csvContent+=`# Visible Series: ${visibleSeriesNames}\n`;csvContent+=`# Export Date: ${nowTurkey().format('DD.MM.YYYY HH:mm')} (TR)\n`;csvContent+=`#\n`;let headers=['timestamp'];visibleDatasets.forEach(ds=>{headers.push(ds.label.toLowerCase().replace(/\s+/g,'_'));});csvContent+=headers.join(',')+'\n';for(let i=0;i<labels.length;i++){let row=[labels[i]];visibleDatasets.forEach(ds=>{const val=ds.data[i];row.push(val!==null&&val!==undefined?val:'');});csvContent+=row.map(cell=>{if(typeof cell==='string'&&(cell.includes(',')||cell.includes('"')||cell.includes('\n'))){return'"'+cell.replace(/"/g,'""')+'"';}
 return cell;}).join(',')+'\n';}
 const blob=new Blob([csvContent],{type:'text/csv;charset=utf-8;'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=generateExportFilename('csv');link.click();URL.revokeObjectURL(link.href);}
@@ -1149,34 +1153,34 @@ function updateAlertBandBadge(){const badge=document.getElementById('alarmsBadge
 if(mobileBadge){mobileBadge.textContent=count;}}
 function showAlertBandDetail(index){const alarm=alertBandData[index];if(!alarm)return;const info=getAlertType(alarm);const home=alarm.home||alarm.home_team||'-';const away=alarm.away||alarm.away_team||'-';const value=formatAlertValue(alarm);const modal=document.createElement('div');modal.className='modal-overlay';modal.id='alertBandModal';modal.onclick=(e)=>{if(e.target===modal)modal.remove();};let detailsHtml='';if(alarm._type==='sharp'){detailsHtml=`
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="background: #262a2f; border-radius: 8px; padding: 12px; text-align: center;">
                     <div style="color: #4ade80; font-size: 20px; font-weight: 700;">${alarm.volume ? '£' + Number(alarm.volume).toLocaleString('en-GB') : '-'}</div>
-                    <div style="color: #8b949e; font-size: 11px;">Volume</div>
+                    <div style="color: #7d848c; font-size: 11px;">Volume</div>
                 </div>
-                <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="background: #262a2f; border-radius: 8px; padding: 12px; text-align: center;">
                     <div style="color: #f0883e; font-size: 20px; font-weight: 700;">${alarm.stake_share ? alarm.stake_share.toFixed(1) + '%' : '-'}</div>
-                    <div style="color: #8b949e; font-size: 11px;">Stake Share</div>
+                    <div style="color: #7d848c; font-size: 11px;">Stake Share</div>
                 </div>
-                <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="background: #262a2f; border-radius: 8px; padding: 12px; text-align: center;">
                     <div style="color: #58a6ff; font-size: 20px; font-weight: 700;">${alarm.odds_move ? (alarm.odds_move > 0 ? '+' : '') + alarm.odds_move.toFixed(2) : '-'}</div>
-                    <div style="color: #8b949e; font-size: 11px;">Odds Move</div>
+                    <div style="color: #7d848c; font-size: 11px;">Odds Move</div>
                 </div>
-                <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="background: #262a2f; border-radius: 8px; padding: 12px; text-align: center;">
                     <div style="color: #a371f7; font-size: 20px; font-weight: 700;">${alarm.volume_shock ? alarm.volume_shock.toFixed(1) + 'x' : '-'}</div>
-                    <div style="color: #8b949e; font-size: 11px;">Volume Shock</div>
+                    <div style="color: #7d848c; font-size: 11px;">Volume Shock</div>
                 </div>
             </div>
         `;}else{detailsHtml=`
-            <div style="background: #21262d; border-radius: 8px; padding: 16px; text-align: center;">
+            <div style="background: #262a2f; border-radius: 8px; padding: 16px; text-align: center;">
                 <div style="color: #fbbf24; font-size: 28px; font-weight: 700;">${alarm.stake ? '£' + Number(alarm.stake).toLocaleString('en-GB') : (alarm.volume ? '£' + Number(alarm.volume).toLocaleString('en-GB') : '-')}</div>
-                <div style="color: #8b949e; font-size: 12px; margin-top: 4px;">Stake Amount</div>
+                <div style="color: #7d848c; font-size: 12px; margin-top: 4px;">Stake Amount</div>
             </div>
         `;}
 const typeColors={sharp:'#ef4444',bigmoney:'#fbbf24',volumeshock:'#F6C343',dropping:'#f85149',publicmove:'#FFCC00',volumeleader:'#06b6d4',mim:'#3B82F6'};modal.innerHTML=`
         <div class="modal-content" style="max-width: 480px;">
             <div class="modal-header">
                 <h2 style="display: flex; align-items: center; gap: 10px;">
-                    <span style="background: ${typeColors[alarm._type] || '#8b949e'}; width: 12px; height: 12px; border-radius: 50%;"></span>
+                    <span style="background: ${typeColors[alarm._type] || '#7d848c'}; width: 12px; height: 12px; border-radius: 50%;"></span>
                     ${info.label}
                 </h2>
                 <button class="close-btn" onclick="document.getElementById('alertBandModal').remove()">
@@ -1187,14 +1191,14 @@ const typeColors={sharp:'#ef4444',bigmoney:'#fbbf24',volumeshock:'#F6C343',dropp
             </div>
             <div class="modal-body" style="padding: 20px;">
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <div style="font-size: 42px; font-weight: 700; color: ${typeColors[alarm._type] || '#8b949e'};">${value}</div>
-                    <div style="color: #8b949e; font-size: 13px;">${alarm._type === 'sharp' ? 'Sharp Score' : 'Stake'}</div>
+                    <div style="font-size: 42px; font-weight: 700; color: ${typeColors[alarm._type] || '#7d848c'};">${value}</div>
+                    <div style="color: #7d848c; font-size: 13px;">${alarm._type === 'sharp' ? 'Sharp Score' : 'Stake'}</div>
                 </div>
-                <div style="background: #0d1117; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                <div style="background: #141719; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
                     <div style="font-size: 18px; font-weight: 600; color: #fff; text-align: center; margin-bottom: 8px;">
                         ${home} vs ${away}
                     </div>
-                    <div style="text-align: center; color: #8b949e; font-size: 13px;">
+                    <div style="text-align: center; color: #7d848c; font-size: 13px;">
                         ${(alarm.market || '-').replace(/O\/U/gi, 'A/Ü')} | <span style="color: #58a6ff;">${{'U': 'Alt', 'O': 'Üst', 'Y': 'Evet', 'N': 'Hayır', 'UNDER': 'Alt', 'OVER': 'Üst', 'YES': 'Evet', 'NO': 'Hayır'}[(alarm.selection || alarm.side || '-').toUpperCase()] || (alarm.selection || alarm.side || '-')}</span>
                     </div>
                 </div>
@@ -1230,7 +1234,7 @@ function parseAlarmDate(dateStr){if(!dateStr)return new Date(0);const str=String
 const turkeyTime=toTurkeyTime(str);if(turkeyTime&&turkeyTime.isValid()){return turkeyTime.toDate();}
 return new Date(str)||new Date(0);}
 const alarmFilterColors={all:null,sharp:'#4ade80',bigmoney:'#F08A24',volumeshock:'#F6C343',dropping:'#f85149',publicmove:'#FFCC00',volumeleader:'#06b6d4',mim:'#3B82F6'};const alarmFilterLabels={all:'Tumu',sharp:'Sharp',bigmoney:'Buyuk Para',volumeshock:'Hacim Soku',dropping:'Oran Düşüşü',publicmove:'Public Move',volumeleader:'Lider Degisti',mim:'MIM'};function toggleAlarmFilterDropdown(){const dropdown=document.getElementById('alarmFilterDropdown');dropdown.classList.toggle('open');}
-function selectAlarmFilter(type){const dropdown=document.getElementById('alarmFilterDropdown');const dotDisplay=document.getElementById('filterDotDisplay');const labelDisplay=document.getElementById('filterLabelDisplay');dropdown.classList.remove('open');document.querySelectorAll('.alarm-filter-option').forEach(opt=>{opt.classList.toggle('selected',opt.dataset.value===type);});labelDisplay.textContent=alarmFilterLabels[type]||'Tumu';if(type==='all'){dotDisplay.className='filter-dot-display show';dotDisplay.style.background='#6b7280';dotDisplay.innerHTML='';}else{dotDisplay.className='filter-dot-display show';dotDisplay.style.background=alarmFilterColors[type]||'#8b949e';dotDisplay.innerHTML='';}
+function selectAlarmFilter(type){const dropdown=document.getElementById('alarmFilterDropdown');const dotDisplay=document.getElementById('filterDotDisplay');const labelDisplay=document.getElementById('filterLabelDisplay');dropdown.classList.remove('open');document.querySelectorAll('.alarm-filter-option').forEach(opt=>{opt.classList.toggle('selected',opt.dataset.value===type);});labelDisplay.textContent=alarmFilterLabels[type]||'Tumu';if(type==='all'){dotDisplay.className='filter-dot-display show';dotDisplay.style.background='#6b7280';dotDisplay.innerHTML='';}else{dotDisplay.className='filter-dot-display show';dotDisplay.style.background=alarmFilterColors[type]||'#7d848c';dotDisplay.innerHTML='';}
 filterAlarms(type);}
 document.addEventListener('click',function(e){const dropdown=document.getElementById('alarmFilterDropdown');if(dropdown&&!dropdown.contains(e.target)){dropdown.classList.remove('open');}});function filterAlarms(type){currentAlarmFilter=type;alarmsDisplayCount=10;document.querySelectorAll('.alarm-pill').forEach(btn=>{btn.classList.toggle('active',btn.dataset.type===type);});renderAlarmsList(type);}
 function searchAlarms(query){alarmSearchQuery=query.toLowerCase().trim();alarmsDisplayCount=10;renderAlarmsList(currentAlarmFilter);}
@@ -1489,7 +1493,7 @@ async function loadAdminVolumeLeaderData(){const body=document.getElementById('a
                         <button class="admin-btn danger" onclick="deleteVolumeLeaderAlarms()">🗑️ Alarmları Sil</button>
                     </div>
                     
-                    <div id="vlCalcStatus" style="display:none; margin-top:12px; padding:8px; background:#0d1117; border-radius:4px; color:#8b949e; font-size:12px;"></div>
+                    <div id="vlCalcStatus" style="display:none; margin-top:12px; padding:8px; background:#141719; border-radius:4px; color:#7d848c; font-size:12px;"></div>
                 </div>
             </div>
             
@@ -1526,7 +1530,7 @@ async function deleteVolumeLeaderAlarms(){if(!confirm('Tüm Hacim Lideri alarmla
 async function loadAdminDroppingData(){const body=document.getElementById('adminPanelBody');if(!body)return;body.innerHTML='<div style="text-align:center; padding:40px; color:#94a3b8;">Yükleniyor...</div>';try{const configRes=await fetch('/api/dropping/config');const config=configRes.ok?await configRes.json():{};await fetchAlarmsBatch();const alarms=getCachedAlarmsByType('dropping');let html=`
             <div class="admin-section">
                 <h3 style="color:#f85149; margin-bottom:16px;">📉 Dropping Alarm - Max Oran Eşiği</h3>
-                <p style="color:#8b949e; font-size:12px; margin-bottom:16px;">
+                <p style="color:#7d848c; font-size:12px; margin-bottom:16px;">
                     Açılış oranı bu eşiklerin üzerindeyse dropping alarmı tetiklenmez.
                 </p>
                 
@@ -1549,7 +1553,7 @@ async function loadAdminDroppingData(){const body=document.getElementById('admin
                         <span class="config-hint">BTTS için max açılış oranı (varsayılan: 3.0)</span>
                     </div>
                     
-                    <div style="border-top: 1px solid #30363d; margin-top: 16px; padding-top: 16px;">
+                    <div style="border-top: 1px solid #2e3238; margin-top: 16px; padding-top: 16px;">
                         <h4 style="color:#f85149; margin-bottom:12px; font-size:13px;">📊 Düşüş Yüzde Eşikleri</h4>
                         
                         <div class="config-row">
@@ -1585,7 +1589,7 @@ async function loadAdminDroppingData(){const body=document.getElementById('admin
                         <button class="admin-btn danger" onclick="deleteDroppingAlarms()">🗑️ Alarmları Sil</button>
                     </div>
                     
-                    <div id="drCalcStatus" style="display:none; margin-top:12px; padding:8px; background:#0d1117; border-radius:4px; color:#8b949e; font-size:12px;"></div>
+                    <div id="drCalcStatus" style="display:none; margin-top:12px; padding:8px; background:#141719; border-radius:4px; color:#7d848c; font-size:12px;"></div>
                 </div>
             </div>
             
@@ -1611,7 +1615,7 @@ async function loadAdminDroppingData(){const body=document.getElementById('admin
                         <td>${odds}</td>
                         <td class="admin-value-negative">${dropPct}</td>
                     </tr>
-                `;});html+='</tbody></table>';if(alarms.length>30){html+=`<div style="text-align:center; padding:12px; color:#6e7681; font-size:12px;">+${alarms.length - 30} daha fazla alarm...</div>`;}}
+                `;});html+='</tbody></table>';if(alarms.length>30){html+=`<div style="text-align:center; padding:12px; color:#5c636b; font-size:12px;">+${alarms.length - 30} daha fazla alarm...</div>`;}}
 html+='</div>';body.innerHTML=html;}catch(e){console.error('Dropping admin veri hatası:',e);body.innerHTML='<div class="admin-no-data">Veri yüklenirken hata oluştu.</div>';}}
 async function saveDroppingConfig(){const config={max_odds_1x2:parseFloat(document.getElementById('drMaxOdds1x2').value)||5.0,max_odds_ou25:parseFloat(document.getElementById('drMaxOddsOu25').value)||3.0,max_odds_btts:parseFloat(document.getElementById('drMaxOddsBtts').value)||3.0,min_drop_l1:parseInt(document.getElementById('drMinDropL1').value)||10,max_drop_l1:parseInt(document.getElementById('drMaxDropL1').value)||17,min_drop_l2:parseInt(document.getElementById('drMinDropL2').value)||17,max_drop_l2:parseInt(document.getElementById('drMaxDropL2').value)||20,min_drop_l3:parseInt(document.getElementById('drMinDropL3').value)||20};try{const res=await fetch('/api/dropping/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(config)});if(res.ok){showToast('Dropping ayarları kaydedildi','success');}else{showToast('Kaydetme hatası','error');}}catch(e){showToast('Bağlantı hatası','error');}}
 async function calculateDroppingAlarms(){const btn=document.getElementById('drCalcBtn');const statusDiv=document.getElementById('drCalcStatus');if(btn)btn.disabled=true;if(statusDiv){statusDiv.style.display='block';statusDiv.textContent='Dropping alarmları hesaplanıyor...';}
@@ -1620,7 +1624,7 @@ async function deleteDroppingAlarms(){if(!confirm('Tüm Dropping alarmlarını s
 async function loadAdminMimData(){const body=document.getElementById('adminPanelBody');if(!body)return;body.innerHTML='<div style="text-align:center; padding:40px; color:#94a3b8;">Yükleniyor...</div>';try{const configRes=await fetch('/api/mim/config');const config=configRes.ok?await configRes.json():{};await fetchAlarmsBatch();const alarms=getCachedAlarmsByType('mim');let html=`
             <div class="admin-section">
                 <h3 style="color:#3B82F6; margin-bottom:16px;">💰 MIM (Market Impact Money) - Ayarlar</h3>
-                <p style="color:#8b949e; font-size:12px; margin-bottom:16px;">
+                <p style="color:#7d848c; font-size:12px; margin-bottom:16px;">
                     MIM alarmı, piyasa etkisini ölçer. Impact değeri ne kadar yüksekse, o seçim için para akışı o kadar güçlüdür.
                 </p>
                 
@@ -1670,7 +1674,7 @@ async function loadAdminMimData(){const body=document.getElementById('adminPanel
                         <td>${volume}</td>
                         <td class="admin-value-muted">${eventTime}</td>
                     </tr>
-                `;});html+='</tbody></table>';if(alarms.length>50){html+=`<div style="text-align:center; padding:12px; color:#6e7681; font-size:12px;">+${alarms.length - 50} daha fazla alarm...</div>`;}}
+                `;});html+='</tbody></table>';if(alarms.length>50){html+=`<div style="text-align:center; padding:12px; color:#5c636b; font-size:12px;">+${alarms.length - 50} daha fazla alarm...</div>`;}}
 html+='</div>';body.innerHTML=html;}catch(e){console.error('MIM admin veri hatası:',e);body.innerHTML='<div class="admin-no-data">Veri yüklenirken hata oluştu.</div>';}}
 async function saveMimConfig(){const config={min_impact_threshold:parseFloat(document.getElementById('mimMinImpact').value)||0.10,min_volume:parseInt(document.getElementById('mimMinVolume').value)||1000};try{const res=await fetch('/api/mim/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(config)});if(res.ok){showToast('MIM ayarları kaydedildi','success');}else{showToast('Kaydetme hatası','error');}}catch(e){showToast('Bağlantı hatası','error');}}
 async function deleteMimAlarms(){if(!confirm('Tüm MIM alarmlarını silmek istediğinize emin misiniz?'))return;try{const res=await fetch('/api/mim/alarms',{method:'DELETE'});if(res.ok){showToast('MIM alarmları silindi','success');invalidateAlarmCache();loadAdminMimData();}else{showToast('Silme hatası','error');}}catch(e){showToast('Bağlantı hatası','error');}}
@@ -1703,7 +1707,7 @@ String(now.getMinutes()).padStart(2,'0')+':'+
 String(now.getSeconds()).padStart(2,'0');}catch(e){console.error('Live matches error:',e&&e.message?e.message:e);}}
 function formatLiveVol(v){if(!v&&v!==0)return'-';if(v>=1000000)return'\u00A3'+(v/1000000).toFixed(1)+'M';if(v>=1000)return'\u00A3'+(v/1000).toFixed(0)+'K';return'\u00A3'+Math.round(v);}
 function escLiveHtml(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-function _liveDonut(pct,sz){sz=sz||44;var num=parseFloat(String(pct).replace(/[^0-9.]/g,''))||0;var sw=4;var r=(sz-sw*2)/2;var c=2*Math.PI*r;var off=c-(num/100)*c;var hi=num>=50;var fc=hi?'#22c55e':'#111827';var tc=hi?'#ffffff':'#9ca3af';return'<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 '+sz+' '+sz+'">'+'<circle cx="'+sz/2+'" cy="'+sz/2+'" r="'+r+'" fill="none" stroke="#1c2533" stroke-width="'+sw+'"/>'+'<circle cx="'+sz/2+'" cy="'+sz/2+'" r="'+r+'" fill="none" stroke="'+fc+'" stroke-width="'+sw+'"'+' stroke-dasharray="'+c+'" stroke-dashoffset="'+off+'" stroke-linecap="round" transform="rotate(-90 '+sz/2+' '+sz/2+')"/>'+'<text x="'+sz/2+'" y="'+sz/2+'" text-anchor="middle" dominant-baseline="central" fill="'+tc+'" font-size="9" font-weight="600">'+num.toFixed(0)+'%</text>'+'</svg>';}
+function _liveDonut(pct,sz){sz=sz||44;var num=parseFloat(String(pct).replace(/[^0-9.]/g,''))||0;var sw=4;var r=(sz-sw*2)/2;var c=2*Math.PI*r;var off=c-(num/100)*c;var hi=num>=50;var fc=hi?'#22c55e':'#1a1d21';var tc=hi?'#ffffff':'#9ca3af';return'<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 '+sz+' '+sz+'">'+'<circle cx="'+sz/2+'" cy="'+sz/2+'" r="'+r+'" fill="none" stroke="#2a2e33" stroke-width="'+sw+'"/>'+'<circle cx="'+sz/2+'" cy="'+sz/2+'" r="'+r+'" fill="none" stroke="'+fc+'" stroke-width="'+sw+'"'+' stroke-dasharray="'+c+'" stroke-dashoffset="'+off+'" stroke-linecap="round" transform="rotate(-90 '+sz/2+' '+sz/2+')"/>'+'<text x="'+sz/2+'" y="'+sz/2+'" text-anchor="middle" dominant-baseline="central" fill="'+tc+'" font-size="9" font-weight="600">'+num.toFixed(0)+'%</text>'+'</svg>';}
 function _liveGetOu(m,line){var ols=m.ou_lines||{};return ols[line]||{};}
 function _liveCalcVol1x2(m){var o=m.odds||{};var v=0;if(o['1'])v+=o['1'].volume||0;if(o['X'])v+=o['X'].volume||0;if(o['2'])v+=o['2'].volume||0;return v;}
 function _liveCalcVolOU(ou){var v=0;if(ou['U'])v+=ou['U'].volume||0;if(ou['O'])v+=ou['O'].volume||0;return v;}
@@ -1727,7 +1731,7 @@ if(/\d{1,2}:\d{2}/.test(rawMin))return'';return escLiveHtml(rawMin);}
 function _liveMwBlock(label,d){if(!d)return renderMoneywayBlock(label,0,'-','');return renderMoneywayBlock(label,d.share||0,d.odds||'-',d.volume||'');}
 function _liveMobileCard(m,marketOrLine,onclickAttr,goalSide){var is1x2=(marketOrLine==='1x2');var cardCls='match-card odds-card moneyway-card'+(goalSide?' goal-flash-card':'');var html='<div class="'+cardCls+'" '+onclickAttr+'>';html+='<div class="odds-card-header">';html+='<div class="odds-card-teams">'+escLiveHtml(m.home_team)+' \u2013 '+escLiveHtml(m.away_team)+'</div>';var vol=0;if(is1x2){vol=_liveCalcVol1x2(m);}else{var ou=_liveGetOu(m,marketOrLine);vol=_liveCalcVolOU(ou);}
 html+='<div class="odds-card-volume">'+formatLiveVol(vol)+'</div>';html+='</div>';html+='<div class="odds-card-meta"><span>'+escLiveHtml(m.league)+'</span><span class="meta-sep">\u2022</span>';var cardMin=_calcLiveMatchMin(m);html+='<span class="live-min-badge" style="font-size:11px;"'+(goalSide?' data-goal-min="'+cardMin+'"':'')+'>'+(goalSide?'GOL!':cardMin)+'</span>';var cardScore=m.score?escLiveHtml(m.score):(cardMin==='MS'?'-':'');if(cardScore){var csp=cardScore.split('-');if(csp.length===2&&goalSide){var chCls=goalSide==='home'||goalSide==='both'?' goal-pop':'';var caCls=goalSide==='away'||goalSide==='both'?' goal-pop':'';html+='<span class="meta-sep">\u2022</span><span class="score-h'+chCls+'" style="font-weight:600;">'+csp[0].trim()+'</span><span class="score-sep" style="font-weight:600;">-</span><span class="score-a'+caCls+'" style="font-weight:600;">'+csp[1].trim()+'</span>';}else{html+='<span class="meta-sep">\u2022</span><span style="color:#f59e0b;font-weight:600;">'+cardScore+'</span>';}}
-html+='</div>';if(is1x2){var o=m.odds||{};html+='<div class="odds-card-row three">';html+=_liveMobileBlock('1',o['1']);html+=_liveMobileBlock('X',o['X']);html+=_liveMobileBlock('2',o['2']);html+='</div>';}else{var ouD=_liveGetOu(m,marketOrLine);html+='<div class="odds-card-row two">';html+=_liveMobileBlock('Alt',ouD['U']);html+=_liveMobileBlock('Ust',ouD['O']);html+='</div>';}
+html+='</div>';if(is1x2){var o=m.odds||{};html+='<div class="odds-card-row three">';html+=_liveMobileBlock('1',o['1']);html+=_liveMobileBlock('X',o['X']);html+=_liveMobileBlock('2',o['2']);html+='</div>';var lp1=(o['1']&&o['1'].share)?parseFloat(o['1'].share):0;var lpX=(o['X']&&o['X'].share)?parseFloat(o['X'].share):0;var lp2=(o['2']&&o['2'].share)?parseFloat(o['2'].share):0;if(lp1>0||lpX>0||lp2>0){var lBest=Math.max(lp1,lpX,lp2);var lLeader=lBest===lp1?'1':(lBest===lpX?'X':'2');var lSpread=(lBest-Math.min(lp1>0?lp1:999,lpX>0?lpX:999,lp2>0?lp2:999)).toFixed(0);var lTag=parseInt(lSpread)>30?'Güçlü favori':(parseInt(lSpread)>10?'Favori açık':'Dengeli');html+='<div class="odds-card-insight"><span class="insight-tag">Favori: <span class="insight-val">'+lLeader+'</span></span><span class="insight-tag">Pay: <span class="insight-val positive">'+lBest.toFixed(0)+'%</span></span><span class="insight-label">'+lTag+'</span></div>';}}else{var ouD=_liveGetOu(m,marketOrLine);html+='<div class="odds-card-row two">';html+=_liveMobileBlock('Alt',ouD['U']);html+=_liveMobileBlock('Ust',ouD['O']);html+='</div>';var lpU=(ouD['U']&&ouD['U'].share)?parseFloat(ouD['U'].share):0;var lpO=(ouD['O']&&ouD['O'].share)?parseFloat(ouD['O'].share):0;if(lpU>0||lpO>0){var ouLdr=lpO>lpU?'Üst':'Alt';var ouPct=Math.max(lpU,lpO);html+='<div class="odds-card-insight"><span class="insight-tag">Lider: <span class="insight-val">'+ouLdr+'</span></span><span class="insight-tag">Pay: <span class="insight-val positive">'+ouPct.toFixed(0)+'%</span></span></div>';}}
 html+='</div>';return html;}
 function _liveMobileBlock(label,d){var odds=(d&&d.odds)?d.odds.toFixed(2):'-';var pct='\u2014';if(d&&d.share!==null&&d.share!==undefined){var pn=parseFloat(String(d.share));if(!isNaN(pn))pct=pn.toFixed(0)+'%';}
 return'<div class="odds-block mw-block">'+'<div class="odds-block-label">'+label+'</div>'+'<div class="odds-block-value">'+odds+'</div>'+'<div class="odds-block-pct mw-pct">'+pct+'</div>'+'</div>';}

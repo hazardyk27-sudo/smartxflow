@@ -110,11 +110,11 @@ function showLicenseExpiredOverlay() {
         overlay = document.createElement('div');
         overlay.id = 'licenseExpiredOverlay';
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);';
-        overlay.innerHTML = '<div style="background:#161b22;border:1px solid #30363d;border-radius:16px;padding:48px 40px;max-width:440px;width:90%;text-align:center;">'
+        overlay.innerHTML = '<div style="background:#1c1f23;border:1px solid #2e3238;border-radius:16px;padding:48px 40px;max-width:440px;width:90%;text-align:center;">'
             + '<div style="font-size:48px;margin-bottom:16px;">⏳</div>'
             + '<h2 style="color:#f0f6fc;font-size:22px;font-weight:700;margin:0 0 12px;">Lisansınızın Süresi Doldu</h2>'
-            + '<p style="color:#8b949e;font-size:15px;line-height:1.6;margin:0 0 28px;">Lisans süreniz sona ermiştir. Uygulamayı kullanmaya devam etmek için paketinizi yenileyin.</p>'
-            + '<a href="/pricing" style="display:inline-block;background:linear-gradient(135deg,#2BFF88,#1ae070);color:#0d1117;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;text-decoration:none;transition:transform 0.2s,box-shadow 0.2s;">Paketleri İncele →</a>'
+            + '<p style="color:#7d848c;font-size:15px;line-height:1.6;margin:0 0 28px;">Lisans süreniz sona ermiştir. Uygulamayı kullanmaya devam etmek için paketinizi yenileyin.</p>'
+            + '<a href="/pricing" style="display:inline-block;background:linear-gradient(135deg,#2BFF88,#1ae070);color:#141719;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;text-decoration:none;transition:transform 0.2s,box-shadow 0.2s;">Paketleri İncele →</a>'
             + '</div>';
         document.body.appendChild(overlay);
     }
@@ -142,11 +142,11 @@ function showDeviceKickedOverlay() {
         overlay = document.createElement('div');
         overlay.id = 'deviceKickedOverlay';
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);';
-        overlay.innerHTML = '<div style="background:#161b22;border:1px solid #30363d;border-radius:16px;padding:48px 40px;max-width:440px;width:90%;text-align:center;">'
+        overlay.innerHTML = '<div style="background:#1c1f23;border:1px solid #2e3238;border-radius:16px;padding:48px 40px;max-width:440px;width:90%;text-align:center;">'
             + '<div style="font-size:48px;margin-bottom:16px;">🔒</div>'
             + '<h2 style="color:#f0f6fc;font-size:22px;font-weight:700;margin:0 0 12px;">Başka Bir Cihazdan Giriş Yapıldı</h2>'
-            + '<p style="color:#8b949e;font-size:15px;line-height:1.6;margin:0 0 28px;">Hesabınıza başka bir cihazdan giriş yapılmıştır. Aynı anda yalnızca izin verilen sayıda cihazda oturum açılabilir.</p>'
-            + '<button onclick="deviceKickedRelogin()" style="display:inline-block;background:linear-gradient(135deg,#2BFF88,#1ae070);color:#0d1117;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;border:none;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;">Tekrar Giriş Yap</button>'
+            + '<p style="color:#7d848c;font-size:15px;line-height:1.6;margin:0 0 28px;">Hesabınıza başka bir cihazdan giriş yapılmıştır. Aynı anda yalnızca izin verilen sayıda cihazda oturum açılabilir.</p>'
+            + '<button onclick="deviceKickedRelogin()" style="display:inline-block;background:linear-gradient(135deg,#2BFF88,#1ae070);color:#141719;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;border:none;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;">Tekrar Giriş Yap</button>'
             + '</div>';
         document.body.appendChild(overlay);
     }
@@ -871,7 +871,7 @@ async function loadMatches(appendMode = false) {
         if (cardList) {
             cardList.innerHTML = `
                 <div class="match-card" style="justify-content: center; padding: 40px 20px;">
-                    <div style="text-align: center; color: #8b949e;">
+                    <div style="text-align: center; color: #7d848c;">
                         <div class="loading-spinner" style="margin: 0 auto 12px;"></div>
                         <p style="font-size: 13px; margin: 0;">Yükleniyor...</p>
                     </div>
@@ -1136,9 +1136,9 @@ function renderDonutSVG(percent, size = 48) {
     const radius = (size - strokeWidth * 2) / 2;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (num / 100) * circumference;
-    const trackColor = '#1c2533';
+    const trackColor = '#2a2e33';
     const isHigh = num >= 50;
-    const fillColor = isHigh ? '#22c55e' : '#111827';
+    const fillColor = isHigh ? '#22c55e' : '#1a1d21';
     const textColor = isHigh ? '#ffffff' : '#9ca3af';
     const fontSize = size > 40 ? 11 : 9;
     
@@ -1491,7 +1491,7 @@ function renderMobileMatchCards(data) {
     if (data.length === 0) {
         cardList.innerHTML = `
             <div class="match-card" style="justify-content: center; padding: 40px 20px;">
-                <div style="text-align: center; color: #8b949e;">
+                <div style="text-align: center; color: #7d848c;">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.4; margin-bottom: 8px;">
                         <circle cx="12" cy="12" r="10"/>
                         <path d="M12 6v6l4 2"/>
@@ -1538,6 +1538,8 @@ function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
     
     const matchStatus = getMatchStatus(match.date);
     
+    var insightHtml = buildCardInsight(d, currentMarket);
+    
     return `
         <div class="match-card odds-card moneyway-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
@@ -1552,8 +1554,47 @@ function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
             <div class="odds-card-row ${blockCount}">
                 ${oddsBlocks}
             </div>
+            ${insightHtml}
         </div>
     `;
+}
+
+function buildCardInsight(d, market) {
+    var parts = [];
+    if (market.includes('1x2')) {
+        var p1 = parseFloat(String(d.PctHome || d.Pct1 || d.PctYes || '0').replace('%',''));
+        var pX = parseFloat(String(d.PctDraw || d.PctX || '0').replace('%',''));
+        var p2 = parseFloat(String(d.PctAway || d.Pct2 || d.PctNo || '0').replace('%',''));
+        if (p1 > 0 || pX > 0 || p2 > 0) {
+            var best = Math.max(p1, pX, p2);
+            var leader = best === p1 ? '1' : (best === pX ? 'X' : '2');
+            parts.push('<span class="insight-tag">Favori: <span class="insight-val">' + leader + '</span></span>');
+            parts.push('<span class="insight-tag">Pay: <span class="insight-val positive">' + best.toFixed(0) + '%</span></span>');
+            var spread = (best - Math.min(p1 > 0 ? p1 : 999, pX > 0 ? pX : 999, p2 > 0 ? p2 : 999)).toFixed(0);
+            var label = parseInt(spread) > 30 ? 'Güçlü favori' : (parseInt(spread) > 10 ? 'Favori açık' : 'Dengeli');
+            parts.push('<span class="insight-label">' + label + '</span>');
+        }
+    } else if (market.includes('2.5')) {
+        var pOver = parseFloat(String(d.PctYes || d.PctOver || '0').replace('%',''));
+        var pUnder = parseFloat(String(d.PctNo || d.PctUnder || '0').replace('%',''));
+        if (pOver > 0 || pUnder > 0) {
+            var lbl = pOver > pUnder ? 'Üst' : 'Alt';
+            var pct = Math.max(pOver, pUnder);
+            parts.push('<span class="insight-tag">Lider: <span class="insight-val">' + lbl + '</span></span>');
+            parts.push('<span class="insight-tag">Pay: <span class="insight-val positive">' + pct.toFixed(0) + '%</span></span>');
+        }
+    } else if (market.includes('kg')) {
+        var pY = parseFloat(String(d.PctYes || '0').replace('%',''));
+        var pN = parseFloat(String(d.PctNo || '0').replace('%',''));
+        if (pY > 0 || pN > 0) {
+            var lbl = pY > pN ? 'Evet' : 'Hayır';
+            var pct = Math.max(pY, pN);
+            parts.push('<span class="insight-tag">KG: <span class="insight-val">' + lbl + '</span></span>');
+            parts.push('<span class="insight-tag">Pay: <span class="insight-val positive">' + pct.toFixed(0) + '%</span></span>');
+        }
+    }
+    if (parts.length === 0) return '';
+    return '<div class="odds-card-insight">' + parts.join('') + '</div>';
 }
 
 function renderMobileMoneywayBlock(label, oddsValue, pctValue) {
@@ -1613,6 +1654,7 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr, starHtml) {
     
     const blockCount = currentMarket.includes('1x2') ? 'three' : 'two';
     const matchStatus = getMatchStatus(match.date);
+    var insightHtml = buildCardInsight(d, currentMarket);
     
     return `
         <div class="match-card odds-card dropping-card" data-index="${idx}" onclick="openMatchModal(${idx})">
@@ -1628,6 +1670,7 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr, starHtml) {
             <div class="odds-card-row ${blockCount}">
                 ${oddsBlocks}
             </div>
+            ${insightHtml}
         </div>
     `;
 }
@@ -5548,7 +5591,7 @@ function exportChartPNGFallback(filename, resetButton) {
     requestAnimationFrame(() => {
         setTimeout(() => {
             html2canvas(modalContent, {
-                backgroundColor: '#161b22',
+                backgroundColor: '#1c1f23',
                 scale: window.devicePixelRatio || 1,
                 logging: false,
                 useCORS: true,
@@ -6928,29 +6971,29 @@ function showAlertBandDetail(index) {
     if (alarm._type === 'sharp') {
         detailsHtml = `
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="background: #262a2f; border-radius: 8px; padding: 12px; text-align: center;">
                     <div style="color: #4ade80; font-size: 20px; font-weight: 700;">${alarm.volume ? '£' + Number(alarm.volume).toLocaleString('en-GB') : '-'}</div>
-                    <div style="color: #8b949e; font-size: 11px;">Volume</div>
+                    <div style="color: #7d848c; font-size: 11px;">Volume</div>
                 </div>
-                <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="background: #262a2f; border-radius: 8px; padding: 12px; text-align: center;">
                     <div style="color: #f0883e; font-size: 20px; font-weight: 700;">${alarm.stake_share ? alarm.stake_share.toFixed(1) + '%' : '-'}</div>
-                    <div style="color: #8b949e; font-size: 11px;">Stake Share</div>
+                    <div style="color: #7d848c; font-size: 11px;">Stake Share</div>
                 </div>
-                <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="background: #262a2f; border-radius: 8px; padding: 12px; text-align: center;">
                     <div style="color: #58a6ff; font-size: 20px; font-weight: 700;">${alarm.odds_move ? (alarm.odds_move > 0 ? '+' : '') + alarm.odds_move.toFixed(2) : '-'}</div>
-                    <div style="color: #8b949e; font-size: 11px;">Odds Move</div>
+                    <div style="color: #7d848c; font-size: 11px;">Odds Move</div>
                 </div>
-                <div style="background: #21262d; border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="background: #262a2f; border-radius: 8px; padding: 12px; text-align: center;">
                     <div style="color: #a371f7; font-size: 20px; font-weight: 700;">${alarm.volume_shock ? alarm.volume_shock.toFixed(1) + 'x' : '-'}</div>
-                    <div style="color: #8b949e; font-size: 11px;">Volume Shock</div>
+                    <div style="color: #7d848c; font-size: 11px;">Volume Shock</div>
                 </div>
             </div>
         `;
     } else {
         detailsHtml = `
-            <div style="background: #21262d; border-radius: 8px; padding: 16px; text-align: center;">
+            <div style="background: #262a2f; border-radius: 8px; padding: 16px; text-align: center;">
                 <div style="color: #fbbf24; font-size: 28px; font-weight: 700;">${alarm.stake ? '£' + Number(alarm.stake).toLocaleString('en-GB') : (alarm.volume ? '£' + Number(alarm.volume).toLocaleString('en-GB') : '-')}</div>
-                <div style="color: #8b949e; font-size: 12px; margin-top: 4px;">Stake Amount</div>
+                <div style="color: #7d848c; font-size: 12px; margin-top: 4px;">Stake Amount</div>
             </div>
         `;
     }
@@ -6961,7 +7004,7 @@ function showAlertBandDetail(index) {
         <div class="modal-content" style="max-width: 480px;">
             <div class="modal-header">
                 <h2 style="display: flex; align-items: center; gap: 10px;">
-                    <span style="background: ${typeColors[alarm._type] || '#8b949e'}; width: 12px; height: 12px; border-radius: 50%;"></span>
+                    <span style="background: ${typeColors[alarm._type] || '#7d848c'}; width: 12px; height: 12px; border-radius: 50%;"></span>
                     ${info.label}
                 </h2>
                 <button class="close-btn" onclick="document.getElementById('alertBandModal').remove()">
@@ -6972,14 +7015,14 @@ function showAlertBandDetail(index) {
             </div>
             <div class="modal-body" style="padding: 20px;">
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <div style="font-size: 42px; font-weight: 700; color: ${typeColors[alarm._type] || '#8b949e'};">${value}</div>
-                    <div style="color: #8b949e; font-size: 13px;">${alarm._type === 'sharp' ? 'Sharp Score' : 'Stake'}</div>
+                    <div style="font-size: 42px; font-weight: 700; color: ${typeColors[alarm._type] || '#7d848c'};">${value}</div>
+                    <div style="color: #7d848c; font-size: 13px;">${alarm._type === 'sharp' ? 'Sharp Score' : 'Stake'}</div>
                 </div>
-                <div style="background: #0d1117; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                <div style="background: #141719; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
                     <div style="font-size: 18px; font-weight: 600; color: #fff; text-align: center; margin-bottom: 8px;">
                         ${home} vs ${away}
                     </div>
-                    <div style="text-align: center; color: #8b949e; font-size: 13px;">
+                    <div style="text-align: center; color: #7d848c; font-size: 13px;">
                         ${(alarm.market || '-').replace(/O\/U/gi, 'A/Ü')} | <span style="color: #58a6ff;">${{'U': 'Alt', 'O': 'Üst', 'Y': 'Evet', 'N': 'Hayır', 'UNDER': 'Alt', 'OVER': 'Üst', 'YES': 'Evet', 'NO': 'Hayır'}[(alarm.selection || alarm.side || '-').toUpperCase()] || (alarm.selection || alarm.side || '-')}</span>
                     </div>
                 </div>
@@ -7494,7 +7537,7 @@ function selectAlarmFilter(type) {
         dotDisplay.innerHTML = '';
     } else {
         dotDisplay.className = 'filter-dot-display show';
-        dotDisplay.style.background = alarmFilterColors[type] || '#8b949e';
+        dotDisplay.style.background = alarmFilterColors[type] || '#7d848c';
         dotDisplay.innerHTML = '';
     }
     
@@ -9075,7 +9118,7 @@ async function loadAdminVolumeLeaderData() {
                         <button class="admin-btn danger" onclick="deleteVolumeLeaderAlarms()">🗑️ Alarmları Sil</button>
                     </div>
                     
-                    <div id="vlCalcStatus" style="display:none; margin-top:12px; padding:8px; background:#0d1117; border-radius:4px; color:#8b949e; font-size:12px;"></div>
+                    <div id="vlCalcStatus" style="display:none; margin-top:12px; padding:8px; background:#141719; border-radius:4px; color:#7d848c; font-size:12px;"></div>
                 </div>
             </div>
             
@@ -9218,7 +9261,7 @@ async function loadAdminDroppingData() {
         let html = `
             <div class="admin-section">
                 <h3 style="color:#f85149; margin-bottom:16px;">📉 Dropping Alarm - Max Oran Eşiği</h3>
-                <p style="color:#8b949e; font-size:12px; margin-bottom:16px;">
+                <p style="color:#7d848c; font-size:12px; margin-bottom:16px;">
                     Açılış oranı bu eşiklerin üzerindeyse dropping alarmı tetiklenmez.
                 </p>
                 
@@ -9241,7 +9284,7 @@ async function loadAdminDroppingData() {
                         <span class="config-hint">BTTS için max açılış oranı (varsayılan: 3.0)</span>
                     </div>
                     
-                    <div style="border-top: 1px solid #30363d; margin-top: 16px; padding-top: 16px;">
+                    <div style="border-top: 1px solid #2e3238; margin-top: 16px; padding-top: 16px;">
                         <h4 style="color:#f85149; margin-bottom:12px; font-size:13px;">📊 Düşüş Yüzde Eşikleri</h4>
                         
                         <div class="config-row">
@@ -9277,7 +9320,7 @@ async function loadAdminDroppingData() {
                         <button class="admin-btn danger" onclick="deleteDroppingAlarms()">🗑️ Alarmları Sil</button>
                     </div>
                     
-                    <div id="drCalcStatus" style="display:none; margin-top:12px; padding:8px; background:#0d1117; border-radius:4px; color:#8b949e; font-size:12px;"></div>
+                    <div id="drCalcStatus" style="display:none; margin-top:12px; padding:8px; background:#141719; border-radius:4px; color:#7d848c; font-size:12px;"></div>
                 </div>
             </div>
             
@@ -9324,7 +9367,7 @@ async function loadAdminDroppingData() {
             
             html += '</tbody></table>';
             if (alarms.length > 30) {
-                html += `<div style="text-align:center; padding:12px; color:#6e7681; font-size:12px;">+${alarms.length - 30} daha fazla alarm...</div>`;
+                html += `<div style="text-align:center; padding:12px; color:#5c636b; font-size:12px;">+${alarms.length - 30} daha fazla alarm...</div>`;
             }
         }
         
@@ -9425,7 +9468,7 @@ async function loadAdminMimData() {
         let html = `
             <div class="admin-section">
                 <h3 style="color:#3B82F6; margin-bottom:16px;">💰 MIM (Market Impact Money) - Ayarlar</h3>
-                <p style="color:#8b949e; font-size:12px; margin-bottom:16px;">
+                <p style="color:#7d848c; font-size:12px; margin-bottom:16px;">
                     MIM alarmı, piyasa etkisini ölçer. Impact değeri ne kadar yüksekse, o seçim için para akışı o kadar güçlüdür.
                 </p>
                 
@@ -9498,7 +9541,7 @@ async function loadAdminMimData() {
             
             html += '</tbody></table>';
             if (alarms.length > 50) {
-                html += `<div style="text-align:center; padding:12px; color:#6e7681; font-size:12px;">+${alarms.length - 50} daha fazla alarm...</div>`;
+                html += `<div style="text-align:center; padding:12px; color:#5c636b; font-size:12px;">+${alarms.length - 50} daha fazla alarm...</div>`;
             }
         }
         
@@ -9931,10 +9974,10 @@ function _liveDonut(pct, sz) {
     var c = 2 * Math.PI * r;
     var off = c - (num / 100) * c;
     var hi = num >= 50;
-    var fc = hi ? '#22c55e' : '#111827';
+    var fc = hi ? '#22c55e' : '#1a1d21';
     var tc = hi ? '#ffffff' : '#9ca3af';
     return '<svg width="' + sz + '" height="' + sz + '" viewBox="0 0 ' + sz + ' ' + sz + '">' +
-        '<circle cx="' + sz/2 + '" cy="' + sz/2 + '" r="' + r + '" fill="none" stroke="#1c2533" stroke-width="' + sw + '"/>' +
+        '<circle cx="' + sz/2 + '" cy="' + sz/2 + '" r="' + r + '" fill="none" stroke="#2a2e33" stroke-width="' + sw + '"/>' +
         '<circle cx="' + sz/2 + '" cy="' + sz/2 + '" r="' + r + '" fill="none" stroke="' + fc + '" stroke-width="' + sw + '"' +
         ' stroke-dasharray="' + c + '" stroke-dashoffset="' + off + '" stroke-linecap="round" transform="rotate(-90 ' + sz/2 + ' ' + sz/2 + ')"/>' +
         '<text x="' + sz/2 + '" y="' + sz/2 + '" text-anchor="middle" dominant-baseline="central" fill="' + tc + '" font-size="9" font-weight="600">' + num.toFixed(0) + '%</text>' +
@@ -10232,12 +10275,29 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
         html += _liveMobileBlock('X', o['X']);
         html += _liveMobileBlock('2', o['2']);
         html += '</div>';
+        var lp1 = (o['1'] && o['1'].share) ? parseFloat(o['1'].share) : 0;
+        var lpX = (o['X'] && o['X'].share) ? parseFloat(o['X'].share) : 0;
+        var lp2 = (o['2'] && o['2'].share) ? parseFloat(o['2'].share) : 0;
+        if (lp1 > 0 || lpX > 0 || lp2 > 0) {
+            var lBest = Math.max(lp1, lpX, lp2);
+            var lLeader = lBest === lp1 ? '1' : (lBest === lpX ? 'X' : '2');
+            var lSpread = (lBest - Math.min(lp1 > 0 ? lp1 : 999, lpX > 0 ? lpX : 999, lp2 > 0 ? lp2 : 999)).toFixed(0);
+            var lTag = parseInt(lSpread) > 30 ? 'Güçlü favori' : (parseInt(lSpread) > 10 ? 'Favori açık' : 'Dengeli');
+            html += '<div class="odds-card-insight"><span class="insight-tag">Favori: <span class="insight-val">' + lLeader + '</span></span><span class="insight-tag">Pay: <span class="insight-val positive">' + lBest.toFixed(0) + '%</span></span><span class="insight-label">' + lTag + '</span></div>';
+        }
     } else {
         var ouD = _liveGetOu(m, marketOrLine);
         html += '<div class="odds-card-row two">';
         html += _liveMobileBlock('Alt', ouD['U']);
         html += _liveMobileBlock('Ust', ouD['O']);
         html += '</div>';
+        var lpU = (ouD['U'] && ouD['U'].share) ? parseFloat(ouD['U'].share) : 0;
+        var lpO = (ouD['O'] && ouD['O'].share) ? parseFloat(ouD['O'].share) : 0;
+        if (lpU > 0 || lpO > 0) {
+            var ouLdr = lpO > lpU ? 'Üst' : 'Alt';
+            var ouPct = Math.max(lpU, lpO);
+            html += '<div class="odds-card-insight"><span class="insight-tag">Lider: <span class="insight-val">' + ouLdr + '</span></span><span class="insight-tag">Pay: <span class="insight-val positive">' + ouPct.toFixed(0) + '%</span></span></div>';
+        }
     }
     html += '</div>';
     return html;
