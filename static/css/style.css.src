@@ -8970,8 +8970,11 @@ table.desktop-only {
         display: flex !important;
         flex-direction: column !important;
         padding: 6px 4px 4px !important;
-        background: transparent !important;
+        background: #141719 !important;
         gap: 3px !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 100 !important;
     }
     
     .mob-ctrl-row {
