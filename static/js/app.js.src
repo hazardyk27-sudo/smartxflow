@@ -10259,21 +10259,29 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
     }
     html += '<div class="odds-card-volume">' + formatLiveVol(vol) + '</div>';
     html += '</div>';
-    html += '<div class="odds-card-meta"><span>' + escLiveHtml(m.league) + '</span><span class="meta-sep">\u2022</span>';
     var cardMin = _calcLiveMatchMin(m);
-    html += '<span class="live-min-badge" style="font-size:11px;color:#e5484d;font-weight:700;"' + (goalSide ? ' data-goal-min="' + cardMin + '"' : '') + '>' + (goalSide ? 'GOL!' : cardMin) + '</span>';
     var cardScore = m.score ? escLiveHtml(m.score) : (cardMin === 'MS' ? '-' : '');
-    if (cardScore) {
-        var csp = cardScore.split('-');
-        if (csp.length === 2 && goalSide) {
-            var chCls = goalSide === 'home' || goalSide === 'both' ? ' goal-pop' : '';
-            var caCls = goalSide === 'away' || goalSide === 'both' ? ' goal-pop' : '';
-            html += '<span class="meta-sep">\u2022</span><span class="score-h' + chCls + '" style="color:#e0e4e8;font-weight:700;">' + csp[0].trim() + '</span><span class="score-sep" style="color:#e0e4e8;font-weight:700;">-</span><span class="score-a' + caCls + '" style="color:#e0e4e8;font-weight:700;">' + csp[1].trim() + '</span>';
-        } else {
-            html += '<span class="meta-sep">\u2022</span><span style="color:#e0e4e8;font-weight:700;">' + cardScore + '</span>';
+    var liveCapHtml = '';
+    if (cardMin || cardScore) {
+        var minDisp = goalSide ? 'GOL!' : cardMin;
+        var scoreDisp = '';
+        if (cardScore) {
+            var csp = cardScore.split('-');
+            if (csp.length === 2 && goalSide) {
+                var chCls = goalSide === 'home' || goalSide === 'both' ? ' goal-pop' : '';
+                var caCls = goalSide === 'away' || goalSide === 'both' ? ' goal-pop' : '';
+                scoreDisp = '<span class="lc-score-h' + chCls + '">' + csp[0].trim() + '</span><span class="lc-score-sep">-</span><span class="lc-score-a' + caCls + '">' + csp[1].trim() + '</span>';
+            } else {
+                scoreDisp = '<span class="lc-score-val">' + cardScore + '</span>';
+            }
         }
+        liveCapHtml = '<div class="live-capsule">' +
+            '<span class="lc-dot"></span>' +
+            '<span class="lc-min"' + (goalSide ? ' data-goal-min="' + cardMin + '"' : '') + '>' + minDisp + '</span>' +
+            (scoreDisp ? '<span class="lc-divider"></span>' + scoreDisp : '') +
+            '</div>';
     }
-    html += '</div>';
+    html += '<div class="odds-card-meta"><span>' + escLiveHtml(m.league) + '</span>' + liveCapHtml + '</div>';
     if (is1x2) {
         var o = m.odds || {};
         html += '<div class="odds-card-row three">';

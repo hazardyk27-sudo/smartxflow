@@ -9748,7 +9748,8 @@ table.desktop-only {
     .odds-card-meta {
         display: flex;
         align-items: center;
-        gap: 4px;
+        justify-content: space-between;
+        gap: 6px;
         font-size: 10.5px;
         color: #5c636b;
         padding: 4px 12px 8px;
@@ -9757,6 +9758,67 @@ table.desktop-only {
     
     .odds-card-meta .meta-sep {
         color: #3a3f45;
+    }
+    
+    .live-capsule {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(229, 72, 77, 0.08);
+        border: 1px solid rgba(229, 72, 77, 0.18);
+        border-radius: 4px;
+        padding: 2px 7px 2px 5px;
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+    
+    .lc-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #e5484d;
+        animation: lc-pulse 1.5s ease-in-out infinite;
+        flex-shrink: 0;
+    }
+    
+    @keyframes lc-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+    
+    .lc-min {
+        font-size: 10px;
+        font-weight: 700;
+        color: #e5484d;
+        letter-spacing: 0.2px;
+    }
+    
+    .lc-divider {
+        width: 1px;
+        height: 10px;
+        background: rgba(255,255,255,0.1);
+        flex-shrink: 0;
+    }
+    
+    .lc-score-val,
+    .lc-score-h,
+    .lc-score-a {
+        font-size: 10px;
+        font-weight: 700;
+        color: #e0e4e8;
+        letter-spacing: 0.3px;
+    }
+    
+    .lc-score-sep {
+        font-size: 9px;
+        font-weight: 500;
+        color: #5c636b;
+        margin: 0 1px;
+    }
+    
+    .lc-score-h.goal-pop,
+    .lc-score-a.goal-pop {
+        color: #4ade80;
     }
     
     .odds-card-row {
