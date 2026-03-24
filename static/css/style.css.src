@@ -8950,7 +8950,7 @@ table.desktop-only {
 
     /* ========== MAIN CONTENT ========== */
     .main-content {
-        padding: 8px 8px 6px;
+        padding: 8px 0 6px;
         height: auto;
         min-height: calc(100vh - 150px);
         overflow-y: auto;
