@@ -881,15 +881,19 @@ h1, h2, h3, h4, h5, h6,
 
 .live-capsule-desk {
     gap: 5px;
-    padding: 2px 8px 2px 6px;
-    height: 20px;
+    padding: 2px 8px 2px 7px;
+    min-width: 80px;
+    height: 21px;
     border-radius: 4px;
     margin-left: 0;
+    justify-content: center;
+    background: rgba(229, 72, 77, 0.09);
+    border: 1px solid rgba(229, 72, 77, 0.19);
 }
 
 .live-capsule-desk .lc-dot {
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
 }
 
 .live-capsule-desk .lc-min {
@@ -897,7 +901,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .live-capsule-desk .lc-divider {
-    height: 12px;
+    height: 13px;
 }
 
 .live-capsule-desk .lc-score-val,
