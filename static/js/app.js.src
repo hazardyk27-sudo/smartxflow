@@ -1536,8 +1536,6 @@ function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
     
     const matchStatus = getMatchStatus(match.date);
     
-    var insightHtml = buildCardInsight(d, currentMarket);
-    
     return `
         <div class="match-card odds-card moneyway-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
@@ -1552,7 +1550,6 @@ function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
             <div class="odds-card-row ${blockCount}">
                 ${oddsBlocks}
             </div>
-            ${insightHtml}
         </div>
     `;
 }
@@ -1670,7 +1667,6 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr, starHtml) {
     
     const blockCount = currentMarket.includes('1x2') ? 'three' : 'two';
     const matchStatus = getMatchStatus(match.date);
-    var insightHtml = buildCardInsight(d, currentMarket);
     
     return `
         <div class="match-card odds-card dropping-card" data-index="${idx}" onclick="openMatchModal(${idx})">
@@ -1686,7 +1682,6 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr, starHtml) {
             <div class="odds-card-row ${blockCount}">
                 ${oddsBlocks}
             </div>
-            ${insightHtml}
         </div>
     `;
 }
@@ -10291,16 +10286,6 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
         html += _liveMobileBlock('X', o['X'], vol);
         html += _liveMobileBlock('2', o['2'], vol);
         html += '</div>';
-        var lp1 = (o['1'] && o['1'].share) ? parseFloat(o['1'].share) : 0;
-        var lpX = (o['X'] && o['X'].share) ? parseFloat(o['X'].share) : 0;
-        var lp2 = (o['2'] && o['2'].share) ? parseFloat(o['2'].share) : 0;
-        if (lp1 > 0 || lpX > 0 || lp2 > 0) {
-            var lBest = Math.max(lp1, lpX, lp2);
-            var lLeader = lBest === lp1 ? '1' : (lBest === lpX ? 'X' : '2');
-            var lSpread = (lBest - Math.min(lp1 > 0 ? lp1 : 999, lpX > 0 ? lpX : 999, lp2 > 0 ? lp2 : 999)).toFixed(0);
-            var lTag = parseInt(lSpread) > 30 ? 'Güçlü favori' : (parseInt(lSpread) > 10 ? 'Favori açık' : 'Dengeli');
-            html += '<div class="odds-card-insight"><span class="insight-tag">Favori: <span class="insight-val">' + lLeader + '</span></span><span class="insight-tag">Pay: <span class="insight-val positive">' + lBest.toFixed(0) + '%</span></span><span class="insight-label">' + lTag + '</span></div>';
-        }
     } else {
         var ouD = _liveGetOu(m, marketOrLine);
         var ouVol = _liveCalcVolOU(ouD);
@@ -10308,13 +10293,6 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
         html += _liveMobileBlock('Alt', ouD['U'], ouVol);
         html += _liveMobileBlock('Ust', ouD['O'], ouVol);
         html += '</div>';
-        var lpU = (ouD['U'] && ouD['U'].share) ? parseFloat(ouD['U'].share) : 0;
-        var lpO = (ouD['O'] && ouD['O'].share) ? parseFloat(ouD['O'].share) : 0;
-        if (lpU > 0 || lpO > 0) {
-            var ouLdr = lpO > lpU ? 'Üst' : 'Alt';
-            var ouPct = Math.max(lpU, lpO);
-            html += '<div class="odds-card-insight"><span class="insight-tag">Lider: <span class="insight-val">' + ouLdr + '</span></span><span class="insight-tag">Pay: <span class="insight-val positive">' + ouPct.toFixed(0) + '%</span></span></div>';
-        }
     }
     html += '</div>';
     return html;
