@@ -10114,7 +10114,7 @@ function renderLiveMatches(matches, goalHashes) {
         }
         var minCell = '<td class="match-date">' +
             '<div class="dk-cell-inner"' + goalData + '>' +
-            '<div class="date-line live-min-badge' + minExtra + '">' + escLiveHtml(matchMin) + '</div>' +
+            '<div class="date-line live-min-badge' + minExtra + '" style="color:#e5484d;">' + escLiveHtml(matchMin) + '</div>' +
             scoreHtml +
             '</div></td>';
         if (is1x2) {
