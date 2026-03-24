@@ -7027,32 +7027,12 @@ var _mobMarkets = {
 var _mobCurCat = 'moneyway';
 var _mobCurMkt = '1x2';
 
-function toggleMobDD(which) {
-    var wrap = document.getElementById(which === 'cat' ? 'mobCatWrap' : 'mobMktWrap');
-    var other = document.getElementById(which === 'cat' ? 'mobMktWrap' : 'mobCatWrap');
-    if (!wrap) return;
-    if (other) other.classList.remove('open');
-    wrap.classList.toggle('open');
-    if (wrap.classList.contains('open')) {
-        setTimeout(function() {
-            document.addEventListener('click', function _cl(e) {
-                if (!wrap.contains(e.target)) { wrap.classList.remove('open'); }
-                document.removeEventListener('click', _cl);
-            });
-        }, 10);
-    }
-}
-
 function selectMobCat(cat) {
     _mobCurCat = cat;
-    var valEl = document.getElementById('mobCatVal');
-    var labels = {moneyway:'Moneyway', dropping:'Oran', live:'Canlı'};
-    if (valEl) valEl.textContent = labels[cat] || cat;
-    document.querySelectorAll('#mobCatMenu .mob-dd-opt').forEach(function(b) {
+    document.querySelectorAll('#mobCatRow .mob-tab').forEach(function(b) {
         b.classList.toggle('active', b.getAttribute('data-cat') === cat);
     });
-    document.getElementById('mobCatWrap').classList.remove('open');
-    _updateMobMktOptions(cat);
+    _updateMobMktRow(cat);
     if (cat === 'live') {
         switchToLive();
     } else {
@@ -7060,17 +7040,15 @@ function selectMobCat(cat) {
     }
 }
 
-function _updateMobMktOptions(cat) {
-    var menu = document.getElementById('mobMktMenu');
-    if (!menu) return;
+function _updateMobMktRow(cat) {
+    var row = document.getElementById('mobMktRow');
+    if (!row) return;
     var opts = _mobMarkets[cat] || _mobMarkets.moneyway;
     var html = '';
     opts.forEach(function(o, i) {
-        html += '<button class="mob-dd-opt' + (i === 0 ? ' active' : '') + '" data-mkt="' + o.v + '" onclick="selectMobMkt(\'' + o.v + '\')">' + o.l + '</button>';
+        html += '<button class="mob-tab' + (i === 0 ? ' active' : '') + '" data-mkt="' + o.v + '" onclick="selectMobMkt(\'' + o.v + '\')">' + o.l + '</button>';
     });
-    menu.innerHTML = html;
-    var valEl = document.getElementById('mobMktVal');
-    if (valEl) valEl.textContent = opts[0].l;
+    row.innerHTML = html;
     _mobCurMkt = opts[0].v;
     if (cat === 'live') {
         setLiveMarket(opts[0].v);
@@ -7081,37 +7059,14 @@ function _updateMobMktOptions(cat) {
 
 function selectMobMkt(mkt) {
     _mobCurMkt = mkt;
-    var menu = document.getElementById('mobMktMenu');
-    if (menu) {
-        menu.querySelectorAll('.mob-dd-opt').forEach(function(b) {
-            b.classList.toggle('active', b.getAttribute('data-mkt') === mkt);
-        });
-        var sel = menu.querySelector('.mob-dd-opt[data-mkt="' + mkt + '"]');
-        var valEl = document.getElementById('mobMktVal');
-        if (sel && valEl) valEl.textContent = sel.textContent.trim();
-    }
-    document.getElementById('mobMktWrap').classList.remove('open');
+    document.querySelectorAll('#mobMktRow .mob-tab').forEach(function(b) {
+        b.classList.toggle('active', b.getAttribute('data-mkt') === mkt);
+    });
     if (_mobCurCat === 'live') {
         setLiveMarket(mkt);
     } else {
         setMobileMarket(mkt);
     }
-}
-
-function openMobSearch() {
-    var wrap = document.getElementById('mobSearchWrap');
-    if (wrap) {
-        wrap.style.display = 'block';
-        var inp = document.getElementById('mobSearchInput');
-        if (inp) { inp.value = document.getElementById('searchInput').value || ''; inp.focus(); }
-    }
-}
-
-function closeMobSearch() {
-    var wrap = document.getElementById('mobSearchWrap');
-    if (wrap) wrap.style.display = 'none';
-    var inp = document.getElementById('mobSearchInput');
-    if (inp) { inp.value = ''; document.getElementById('searchInput').value = ''; document.getElementById('searchInput').dispatchEvent(new Event('input')); }
 }
 
 function toggleMobileOverflow(e) {

@@ -9,13 +9,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap"></noscript>
-    <link rel="stylesheet" href="/static/css/style.css?v=1774310274">
+    <link rel="stylesheet" href="/static/css/style.css?v=1774310572">
     <link rel="stylesheet" href="/static/css/alert_band.css?v=89">
     <script defer src="/static/js/vendor/dayjs.min.js"></script>
     <script defer src="/static/js/vendor/dayjs-utc.js"></script>
     <script defer src="/static/js/vendor/dayjs-timezone.js"></script>
     <script defer src="/static/js/vendor/dayjs-customParseFormat.js"></script>
-    <script defer src="/static/js/app.js?v=1774310274"></script>
+    <script defer src="/static/js/app.js?v=1774310572"></script>
     <script defer src="/static/js/ui.js?v=1773704900"></script>
 </head>
 <body>
@@ -202,37 +202,23 @@
         </div>
     </div>
 
-    <!-- Mobile: Premium Dropdown Controls -->
+    <!-- Mobile: 3-row tab control -->
     <div class="mob-ctrl mobile-only">
-        <div class="mob-ctrl-row">
-            <div class="mob-dd" id="mobCatWrap">
-                <button class="mob-dd-btn" id="mobCatBtn" onclick="toggleMobDD('cat')">
-                    <span class="mob-dd-val" id="mobCatVal">Moneyway</span>
-                    <svg class="mob-dd-chev" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-                </button>
-                <div class="mob-dd-menu" id="mobCatMenu">
-                    <button class="mob-dd-opt active" data-cat="moneyway" onclick="selectMobCat('moneyway')">Moneyway</button>
-                    <button class="mob-dd-opt" data-cat="dropping" onclick="selectMobCat('dropping')">Oran</button>
-                    <button class="mob-dd-opt" data-cat="live" onclick="selectMobCat('live')"><span class="live-dot"></span> Canlı</button>
-                </div>
-            </div>
-            <div class="mob-dd" id="mobMktWrap">
-                <button class="mob-dd-btn" id="mobMktBtn" onclick="toggleMobDD('mkt')">
-                    <span class="mob-dd-val" id="mobMktVal">1X2</span>
-                    <svg class="mob-dd-chev" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-                </button>
-                <div class="mob-dd-menu" id="mobMktMenu">
-                    <button class="mob-dd-opt active" data-mkt="1x2" onclick="selectMobMkt('1x2')">1X2</button>
-                    <button class="mob-dd-opt" data-mkt="ou25" onclick="selectMobMkt('ou25')">2.5</button>
-                    <button class="mob-dd-opt" data-mkt="btts" onclick="selectMobMkt('btts')">KG</button>
-                </div>
-            </div>
+        <div class="mob-ctrl-row mob-cat-row" id="mobCatRow">
+            <button class="mob-tab active" data-cat="moneyway" onclick="selectMobCat('moneyway')">Moneyway</button>
+            <button class="mob-tab" data-cat="dropping" onclick="selectMobCat('dropping')">Oran</button>
+            <button class="mob-tab" data-cat="live" onclick="selectMobCat('live')"><span class="live-dot"></span> Canlı</button>
+        </div>
+        <div class="mob-ctrl-row mob-mkt-row" id="mobMktRow">
+            <button class="mob-tab active" data-mkt="1x2" onclick="selectMobMkt('1x2')">1X2</button>
+            <button class="mob-tab" data-mkt="ou25" onclick="selectMobMkt('ou25')">2.5</button>
+            <button class="mob-tab" data-mkt="btts" onclick="selectMobMkt('btts')">KG</button>
+        </div>
+        <div class="mob-ctrl-row mob-action-row">
             <div class="mob-search-inline">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
                 <input type="text" id="mobSearchInput" placeholder="Ara..." oninput="document.getElementById('searchInput').value=this.value; document.getElementById('searchInput').dispatchEvent(new Event('input'));">
             </div>
-        </div>
-        <div class="mob-ctrl-row mob-action-row">
             <button class="mob-act-btn" id="mobileFilterBtn" onclick="openMobileFilterModal()">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
@@ -248,20 +234,29 @@
                 <span>Alarmlar</span>
                 <span class="mob-act-badge" id="mobileAlarmBadge">0</span>
             </button>
-            <button class="mob-act-btn" onclick="openTrendsModal('moves')">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                </svg>
-                <span>Kılavuz</span>
-            </button>
-            <button class="mob-act-btn" onclick="openTrendsModal('analysis')" style="position:relative;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                </svg>
-                <span>Analizler</span>
-                <span class="analysis-active-badge" style="display:none;">0</span>
-            </button>
+            <div class="mobile-overflow-wrap">
+                <button class="mob-act-btn mob-act-sq" onclick="toggleMobileOverflow(event)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                    </svg>
+                </button>
+                <div class="mobile-overflow-menu" id="mobileOverflowMenu">
+                    <button onclick="openTrendsModal('moves'); closeMobileOverflow();">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                        </svg>
+                        Kılavuz
+                    </button>
+                    <button onclick="openTrendsModal('analysis'); closeMobileOverflow();" style="position:relative;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                        Analizler
+                        <span class="analysis-active-badge" style="display:none;">0</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
