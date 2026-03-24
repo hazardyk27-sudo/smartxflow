@@ -9739,14 +9739,6 @@ table.desktop-only {
         justify-content: center;
     }
     
-    .odds-block.drop-block {
-        background: #252930 !important;
-        border: 1px solid rgba(255,255,255,0.04) !important;
-        border-radius: 7px !important;
-        padding: 6px 0 5px !important;
-        min-height: 44px !important;
-    }
-    
     .odds-block-label {
         font-size: 9px;
         font-weight: 500;
@@ -13225,7 +13217,8 @@ table.desktop-only {
 .odds-card-row.two {
     grid-template-columns: 1fr 1fr;
 }
-.mw-block {
+.mw-block,
+.drop-block {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 8px;
