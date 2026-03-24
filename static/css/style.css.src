@@ -9739,9 +9739,12 @@ table.desktop-only {
         justify-content: center;
     }
     
-    .drop-block {
-        background: #252930;
-        border: 1px solid rgba(255,255,255,0.04);
+    .odds-block.drop-block {
+        background: #252930 !important;
+        border: 1px solid rgba(255,255,255,0.04) !important;
+        border-radius: 7px !important;
+        padding: 6px 0 5px !important;
+        min-height: 44px !important;
     }
     
     .odds-block-label {
