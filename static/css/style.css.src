@@ -9068,16 +9068,17 @@ table.desktop-only {
     /* --- Action Row (Toolbar Controls) --- */
     .mob-action-row {
         display: flex !important;
-        gap: 2px !important;
-        align-items: stretch !important;
+        gap: 3px !important;
+        align-items: center !important;
         margin-top: 2px !important;
+        height: 32px !important;
     }
     
     .mob-search-inline {
         display: flex !important;
         align-items: center !important;
         gap: 6px !important;
-        flex: 2.5 !important;
+        flex: 3 !important;
         height: 32px !important;
         padding: 0 10px !important;
         background: #1e2125 !important;
@@ -9214,7 +9215,8 @@ table.desktop-only {
         align-items: center;
         justify-content: center;
         gap: 4px;
-        padding: 5px 10px;
+        height: 32px;
+        padding: 0 12px;
         background: rgba(48, 54, 61, 0.3);
         border: 1px solid rgba(255,255,255,0.06);
         border-radius: 6px;
@@ -9223,7 +9225,8 @@ table.desktop-only {
         font-weight: 500;
         cursor: pointer;
         white-space: nowrap;
-        flex-shrink: 0;
+        flex: 1.8;
+        box-sizing: border-box;
     }
 
     .mobile-filter-btn svg {
@@ -9252,13 +9255,15 @@ table.desktop-only {
         align-items: center;
         justify-content: center;
         width: 32px;
-        height: 28px;
+        height: 32px;
+        flex-shrink: 0;
         background: rgba(48, 54, 61, 0.3);
         border: 1px solid rgba(255,255,255,0.06);
         border-radius: 6px;
         color: #7d848c;
         cursor: pointer;
         transition: background 0.15s;
+        box-sizing: border-box;
     }
     
     .mobile-overflow-btn:active {
@@ -9536,14 +9541,18 @@ table.desktop-only {
         align-items: center;
         justify-content: center;
         gap: 4px;
-        padding: 5px 10px;
-        margin-left: 6px;
-        background: rgba(33, 38, 45, 0.8);
-        border: none;
+        height: 32px;
+        padding: 0 12px;
+        margin-left: 0;
+        background: rgba(48, 54, 61, 0.3);
+        border: 1px solid rgba(255,255,255,0.06);
         border-radius: 6px;
         cursor: pointer;
         color: #7d848c;
         transition: all 0.15s;
+        flex: 2;
+        box-sizing: border-box;
+        white-space: nowrap;
     }
     
     .mobile-alarm-btn:active {
@@ -9557,7 +9566,7 @@ table.desktop-only {
     }
     
     .mobile-alarm-text {
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 500;
         color: #7d848c;
     }
