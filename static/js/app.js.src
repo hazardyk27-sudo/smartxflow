@@ -1693,7 +1693,7 @@ function renderMobileOddsBlock(label, oddsValue, trendData) {
             const isDown = trendData.trend === 'down';
             const arrow = isDown ? '▼' : '▲';
             const color = isDown ? '#ef4444' : '#22c55e';
-            trendStr = '<span class="ob-trend" style="color:' + color + '">' + arrow + Math.abs(pctChange).toFixed(1) + '%</span>';
+            trendStr = '<span class="ob-trend" style="color:' + color + '">' + arrow + ' ' + Math.abs(pctChange).toFixed(1) + '%</span>';
         } else {
             trendStr = '<span class="ob-trend" style="color:#5c636b">— 0%</span>';
         }
