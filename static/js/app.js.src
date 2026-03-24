@@ -1513,24 +1513,22 @@ function renderMobileMatchCards(data) {
 function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
     let oddsBlocks = '';
     
+    var tv = d.Volume;
     if (currentMarket.includes('1x2')) {
-        // 1X2 market: 3 blocks with percentages
         oddsBlocks = `
-            ${renderMobileMoneywayBlock('1', d.Odds1 || d['1'], d.Pct1)}
-            ${renderMobileMoneywayBlock('X', d.OddsX || d['X'], d.PctX)}
-            ${renderMobileMoneywayBlock('2', d.Odds2 || d['2'], d.Pct2)}
+            ${renderMobileMoneywayBlock('1', d.Odds1 || d['1'], d.Pct1, tv)}
+            ${renderMobileMoneywayBlock('X', d.OddsX || d['X'], d.PctX, tv)}
+            ${renderMobileMoneywayBlock('2', d.Odds2 || d['2'], d.Pct2, tv)}
         `;
     } else if (currentMarket.includes('ou25')) {
-        // O/U 2.5 market: 2 blocks
         oddsBlocks = `
-            ${renderMobileMoneywayBlock('Alt', d.Under, d.PctUnder)}
-            ${renderMobileMoneywayBlock('Üst', d.Over, d.PctOver)}
+            ${renderMobileMoneywayBlock('Alt', d.Under, d.PctUnder, tv)}
+            ${renderMobileMoneywayBlock('Üst', d.Over, d.PctOver, tv)}
         `;
     } else {
-        // BTTS market: 2 blocks
         oddsBlocks = `
-            ${renderMobileMoneywayBlock('Evet', d.OddsYes || d.Yes, d.PctYes)}
-            ${renderMobileMoneywayBlock('Hayır', d.OddsNo || d.No, d.PctNo)}
+            ${renderMobileMoneywayBlock('Evet', d.OddsYes || d.Yes, d.PctYes, tv)}
+            ${renderMobileMoneywayBlock('Hayır', d.OddsNo || d.No, d.PctNo, tv)}
         `;
     }
     
@@ -1597,22 +1595,40 @@ function buildCardInsight(d, market) {
     return '<div class="odds-card-insight">' + parts.join('') + '</div>';
 }
 
-function renderMobileMoneywayBlock(label, oddsValue, pctValue) {
+function renderMobileMoneywayBlock(label, oddsValue, pctValue, totalVol) {
     const odds = formatOdds(oddsValue);
-    let pct = '—';
+    let pct = '';
+    let moneyHtml = '';
     
     if (pctValue !== null && pctValue !== undefined) {
         const pctNum = parseFloat(String(pctValue).replace('%', ''));
         if (!isNaN(pctNum)) {
             pct = pctNum.toFixed(0) + '%';
+            if (totalVol) {
+                var rawVol = String(totalVol).replace(/[£€$,\s]/g, '');
+                var mult = 1;
+                if (rawVol.toUpperCase().includes('M')) { mult = 1000000; rawVol = rawVol.replace(/M/gi, ''); }
+                else if (rawVol.toUpperCase().includes('K')) { mult = 1000; rawVol = rawVol.replace(/K/gi, ''); }
+                var totalNum = parseFloat(rawVol) * mult;
+                if (!isNaN(totalNum) && totalNum > 0) {
+                    var blockMoney = totalNum * pctNum / 100;
+                    var moneyStr = blockMoney >= 1000000 ? '£' + (blockMoney/1000000).toFixed(1) + 'M' : blockMoney >= 1000 ? '£' + (blockMoney/1000).toFixed(1) + 'k' : '£' + Math.round(blockMoney);
+                    moneyHtml = '<span class="ob-money">' + moneyStr + '</span>';
+                }
+            }
         }
+    }
+    
+    var bottomRow = '';
+    if (moneyHtml || pct) {
+        bottomRow = '<div class="odds-block-bottom">' + moneyHtml + (pct ? '<span class="ob-pct">' + pct + '</span>' : '') + '</div>';
     }
     
     return `
         <div class="odds-block mw-block">
             <div class="odds-block-label">${label}</div>
             <div class="odds-block-value">${odds}</div>
-            <div class="odds-block-pct mw-pct">${pct}</div>
+            ${bottomRow}
         </div>
     `;
 }
@@ -10271,9 +10287,9 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
     if (is1x2) {
         var o = m.odds || {};
         html += '<div class="odds-card-row three">';
-        html += _liveMobileBlock('1', o['1']);
-        html += _liveMobileBlock('X', o['X']);
-        html += _liveMobileBlock('2', o['2']);
+        html += _liveMobileBlock('1', o['1'], vol);
+        html += _liveMobileBlock('X', o['X'], vol);
+        html += _liveMobileBlock('2', o['2'], vol);
         html += '</div>';
         var lp1 = (o['1'] && o['1'].share) ? parseFloat(o['1'].share) : 0;
         var lpX = (o['X'] && o['X'].share) ? parseFloat(o['X'].share) : 0;
@@ -10287,9 +10303,10 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
         }
     } else {
         var ouD = _liveGetOu(m, marketOrLine);
+        var ouVol = _liveCalcVolOU(ouD);
         html += '<div class="odds-card-row two">';
-        html += _liveMobileBlock('Alt', ouD['U']);
-        html += _liveMobileBlock('Ust', ouD['O']);
+        html += _liveMobileBlock('Alt', ouD['U'], ouVol);
+        html += _liveMobileBlock('Ust', ouD['O'], ouVol);
         html += '</div>';
         var lpU = (ouD['U'] && ouD['U'].share) ? parseFloat(ouD['U'].share) : 0;
         var lpO = (ouD['O'] && ouD['O'].share) ? parseFloat(ouD['O'].share) : 0;
@@ -10303,17 +10320,29 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
     return html;
 }
 
-function _liveMobileBlock(label, d) {
+function _liveMobileBlock(label, d, totalVol) {
     var odds = (d && d.odds) ? d.odds.toFixed(2) : '-';
-    var pct = '\u2014';
+    var pct = '';
+    var moneyHtml = '';
     if (d && d.share !== null && d.share !== undefined) {
         var pn = parseFloat(String(d.share));
-        if (!isNaN(pn)) pct = pn.toFixed(0) + '%';
+        if (!isNaN(pn)) {
+            pct = pn.toFixed(0) + '%';
+            if (totalVol && totalVol > 0) {
+                var bm = totalVol * pn / 100;
+                var ms = bm >= 1000000 ? '£' + (bm/1000000).toFixed(1) + 'M' : bm >= 1000 ? '£' + (bm/1000).toFixed(1) + 'k' : '£' + Math.round(bm);
+                moneyHtml = '<span class="ob-money">' + ms + '</span>';
+            }
+        }
+    }
+    var bottom = '';
+    if (moneyHtml || pct) {
+        bottom = '<div class="odds-block-bottom">' + moneyHtml + (pct ? '<span class="ob-pct">' + pct + '</span>' : '') + '</div>';
     }
     return '<div class="odds-block mw-block">' +
         '<div class="odds-block-label">' + label + '</div>' +
         '<div class="odds-block-value">' + odds + '</div>' +
-        '<div class="odds-block-pct mw-pct">' + pct + '</div>' +
+        bottom +
         '</div>';
 }
 

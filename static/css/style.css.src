@@ -9778,6 +9778,31 @@ table.desktop-only {
         font-weight: 600;
     }
     
+    .odds-block-bottom {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 0 4px;
+        margin-top: 4px;
+        gap: 4px;
+    }
+    
+    .ob-money {
+        font-size: 9.5px;
+        font-weight: 500;
+        color: #5c636b;
+        font-family: 'Inter', monospace;
+        letter-spacing: -0.2px;
+    }
+    
+    .ob-pct {
+        font-size: 9.5px;
+        font-weight: 600;
+        color: #4ade80;
+        font-family: 'Inter', monospace;
+    }
+    
     /* Card insight footer */
     .odds-card-insight {
         display: flex;
