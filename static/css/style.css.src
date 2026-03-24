@@ -8998,10 +8998,10 @@ table.desktop-only {
         gap: 5px !important;
         height: 30px !important;
         padding: 0 8px !important;
-        background: #222529 !important;
-        border: 1px solid rgba(255,255,255,0.03) !important;
+        background: transparent !important;
+        border: 1px solid transparent !important;
         border-radius: 6px !important;
-        color: #6b727a !important;
+        color: #555b63 !important;
         font-size: 11.5px !important;
         font-weight: 500 !important;
         letter-spacing: 0.1px !important;
@@ -9015,23 +9015,23 @@ table.desktop-only {
     }
     
     .mob-tab.active {
-        background: #2c3036 !important;
-        color: #e0e4e8 !important;
+        background: #282c32 !important;
+        color: #d8dce2 !important;
         font-weight: 600 !important;
-        border-color: rgba(255,255,255,0.08) !important;
+        border-color: rgba(255,255,255,0.06) !important;
         box-shadow: none !important;
     }
     
     .mob-cat-row .mob-tab.active {
-        background: #2c3036 !important;
-        color: #e0e4e8 !important;
-        border-color: rgba(255,255,255,0.08) !important;
+        background: #282c32 !important;
+        color: #d8dce2 !important;
+        border-color: rgba(255,255,255,0.06) !important;
         box-shadow: none !important;
     }
     
     .mob-tab:active {
         transform: scale(0.97) !important;
-        background: #282c31 !important;
+        background: rgba(255,255,255,0.04) !important;
     }
     
     .mob-tab.active:active {
@@ -9053,8 +9053,8 @@ table.desktop-only {
         flex: 2 !important;
         height: 30px !important;
         padding: 0 10px !important;
-        background: #222529 !important;
-        border: 1px solid rgba(255,255,255,0.03) !important;
+        background: #1e2125 !important;
+        border: 1px solid rgba(255,255,255,0.04) !important;
         border-radius: 6px !important;
         box-sizing: border-box !important;
         box-shadow: none !important;
@@ -9096,10 +9096,10 @@ table.desktop-only {
         gap: 4px !important;
         height: 30px !important;
         padding: 0 11px !important;
-        background: #222529 !important;
-        border: 1px solid rgba(255,255,255,0.03) !important;
+        background: #1e2125 !important;
+        border: 1px solid rgba(255,255,255,0.04) !important;
         border-radius: 6px !important;
-        color: #7d848c !important;
+        color: #6b727a !important;
         font-size: 10.5px !important;
         font-weight: 500 !important;
         letter-spacing: 0.1px !important;
