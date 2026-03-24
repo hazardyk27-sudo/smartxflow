@@ -1693,20 +1693,24 @@ function renderMobileOddsBlock(label, oddsValue, trendData) {
             const isDown = trendData.trend === 'down';
             const arrow = isDown ? '▼' : '▲';
             const color = isDown ? '#ef4444' : '#22c55e';
-            trendStr = '<span class="ob-trend" style="color:' + color + '">' + arrow + ' ' + Math.abs(pctChange).toFixed(1) + '%</span>';
+            trendStr = '<span class="ob-trend" style="color:' + color + '">' + arrow + Math.abs(pctChange).toFixed(1) + '%</span>';
+        } else {
+            trendStr = '<span class="ob-trend" style="color:#5c636b">—</span>';
         }
     } else if (trendData && trendData.trend && (trendData.trend === 'down' || trendData.trend === 'up')) {
         const isDown = trendData.trend === 'down';
         const arrow = isDown ? '▼' : '▲';
         const color = isDown ? '#ef4444' : '#22c55e';
         trendStr = '<span class="ob-trend" style="color:' + color + '">' + arrow + '</span>';
+    } else {
+        trendStr = '<span class="ob-trend" style="color:#5c636b">—</span>';
     }
     
     return '<div class="odds-block mw-block">' +
         '<div class="odds-block-label">' + label + '</div>' +
         '<div class="ob-data-row">' +
             '<span class="ob-odds">' + odds + '</span>' +
-            (trendStr ? trendStr : '') +
+            trendStr +
         '</div>' +
     '</div>';
 }
