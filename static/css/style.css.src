@@ -889,8 +889,8 @@ h1, h2, h3, h4, h5, h6,
     border-radius: 4px;
     margin-left: 0;
     justify-content: space-between;
-    background: rgba(229, 72, 77, 0.09);
-    border: 1px solid rgba(229, 72, 77, 0.19);
+    background: rgba(229, 72, 77, 0.08);
+    border: 1px solid rgba(229, 72, 77, 0.18);
     box-sizing: border-box;
 }
 
