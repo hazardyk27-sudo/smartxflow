@@ -9,14 +9,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap"></noscript>
-    <link rel="stylesheet" href="/static/css/style.css?v=1774316164">
-    <link rel="stylesheet" href="/static/css/alert_band.css?v=1774316164">
+    <link rel="stylesheet" href="/static/css/style.css?v=1774316326">
+    <link rel="stylesheet" href="/static/css/alert_band.css?v=1774316326">
     <script defer src="/static/js/vendor/dayjs.min.js"></script>
     <script defer src="/static/js/vendor/dayjs-utc.js"></script>
     <script defer src="/static/js/vendor/dayjs-timezone.js"></script>
     <script defer src="/static/js/vendor/dayjs-customParseFormat.js"></script>
-    <script defer src="/static/js/app.js?v=1774316164"></script>
-    <script defer src="/static/js/ui.js?v=1774316164"></script>
+    <script defer src="/static/js/app.js?v=1774316326"></script>
+    <script defer src="/static/js/ui.js?v=1774316326"></script>
 </head>
 <body>
     <!-- License Gate - Birebir Desktop Aynisi -->
@@ -219,14 +219,14 @@
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
                 <input type="text" id="mobSearchInput" placeholder="Ara..." oninput="document.getElementById('searchInput').value=this.value; document.getElementById('searchInput').dispatchEvent(new Event('input'));">
             </div>
-            <button class="mob-act-btn" id="mobileFilterBtn" onclick="openMobileFilterModal()">
+            <button class="mob-act-btn mob-act-filter" id="mobileFilterBtn" onclick="openMobileFilterModal()">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
                     <circle cx="8" cy="6" r="2" fill="currentColor"/><circle cx="16" cy="12" r="2" fill="currentColor"/><circle cx="10" cy="18" r="2" fill="currentColor"/>
                 </svg>
                 <span>Filtrele</span>
             </button>
-            <button class="mob-act-btn" onclick="toggleAlarmsSidebar()">
+            <button class="mob-act-btn mob-act-alarm" onclick="toggleAlarmsSidebar()">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>

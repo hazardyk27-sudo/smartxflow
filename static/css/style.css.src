@@ -9123,7 +9123,7 @@ table.desktop-only {
         justify-content: center !important;
         gap: 4px !important;
         height: 32px !important;
-        padding: 0 13px !important;
+        padding: 0 10px !important;
         background: #1e2125 !important;
         border: 1px solid rgba(255,255,255,0.04) !important;
         border-radius: 6px !important;
@@ -9133,12 +9133,19 @@ table.desktop-only {
         letter-spacing: 0.1px !important;
         cursor: pointer !important;
         white-space: nowrap !important;
-        transition: all 0.2s ease !important;
+        transition: all 0.15s ease !important;
         min-height: auto !important;
         min-width: auto !important;
         box-sizing: border-box !important;
-        flex-shrink: 0 !important;
         box-shadow: none !important;
+    }
+    
+    .mob-act-filter {
+        flex: 1.8 !important;
+    }
+    
+    .mob-act-alarm {
+        flex: 2.2 !important;
     }
     
     .mob-act-btn:active {
@@ -9153,8 +9160,11 @@ table.desktop-only {
     }
     
     .mob-act-sq {
-        width: 38px !important;
+        width: 32px !important;
+        height: 32px !important;
         padding: 0 !important;
+        flex-shrink: 0 !important;
+        flex-grow: 0 !important;
     }
     
     .mob-act-badge {
