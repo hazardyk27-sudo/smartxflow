@@ -9723,9 +9723,6 @@ table.desktop-only {
         flex: 1;
     }
     
-    .odds-card-row.two {
-        max-width: 280px;
-    }
     .odds-card-row.two .odds-block {
         flex: 1;
     }
