@@ -8969,7 +8969,7 @@ table.desktop-only {
     .mob-ctrl {
         display: flex !important;
         flex-direction: column !important;
-        padding: 6px 10px 4px !important;
+        padding: 6px 0 4px !important;
         background: transparent !important;
         gap: 3px !important;
     }
@@ -9691,7 +9691,7 @@ table.desktop-only {
         border: 1px solid rgba(255,255,255,0.04);
         border-radius: 10px;
         overflow: hidden;
-        margin-bottom: 6px;
+        margin: 0 0 6px 0;
     }
     
     .odds-card-header {
