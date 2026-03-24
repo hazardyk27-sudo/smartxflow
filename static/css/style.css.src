@@ -869,7 +869,7 @@ h1, h2, h3, h4, h5, h6,
 .lc-score-sep {
     font-size: 10px;
     font-weight: 500;
-    color: #5c636b;
+    color: #e0e4e8;
     margin: 0 1px;
     line-height: 1;
 }
