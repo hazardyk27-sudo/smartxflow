@@ -8982,7 +8982,7 @@ table.desktop-only {
     /* --- Segmented Control Container (Category & Market) --- */
     .mob-cat-row,
     .mob-mkt-row {
-        gap: 3px !important;
+        gap: 2px !important;
         background: #1c1f23 !important;
         border-radius: 8px !important;
         padding: 3px !important;
@@ -8998,10 +8998,10 @@ table.desktop-only {
         gap: 5px !important;
         height: 30px !important;
         padding: 0 8px !important;
-        background: transparent !important;
-        border: 1px solid transparent !important;
+        background: #222529 !important;
+        border: 1px solid rgba(255,255,255,0.03) !important;
         border-radius: 6px !important;
-        color: #5c636b !important;
+        color: #6b727a !important;
         font-size: 11.5px !important;
         font-weight: 500 !important;
         letter-spacing: 0.1px !important;
@@ -9015,23 +9015,23 @@ table.desktop-only {
     }
     
     .mob-tab.active {
-        background: #252930 !important;
+        background: #2c3036 !important;
         color: #e0e4e8 !important;
         font-weight: 600 !important;
-        border-color: rgba(255,255,255,0.06) !important;
+        border-color: rgba(255,255,255,0.08) !important;
         box-shadow: none !important;
     }
     
     .mob-cat-row .mob-tab.active {
-        background: #252930 !important;
+        background: #2c3036 !important;
         color: #e0e4e8 !important;
-        border-color: rgba(255,255,255,0.06) !important;
+        border-color: rgba(255,255,255,0.08) !important;
         box-shadow: none !important;
     }
     
     .mob-tab:active {
         transform: scale(0.97) !important;
-        background: rgba(255,255,255,0.03) !important;
+        background: #282c31 !important;
     }
     
     .mob-tab.active:active {
@@ -9041,7 +9041,7 @@ table.desktop-only {
     /* --- Action Row (Toolbar Controls) --- */
     .mob-action-row {
         display: flex !important;
-        gap: 3px !important;
+        gap: 2px !important;
         align-items: stretch !important;
         margin-top: 2px !important;
     }
@@ -9050,12 +9050,12 @@ table.desktop-only {
         display: flex !important;
         align-items: center !important;
         gap: 6px !important;
-        flex: 1.4 !important;
+        flex: 2 !important;
         height: 30px !important;
         padding: 0 10px !important;
-        background: #1c1f23 !important;
-        border: 1px solid rgba(255,255,255,0.04) !important;
-        border-radius: 7px !important;
+        background: #222529 !important;
+        border: 1px solid rgba(255,255,255,0.03) !important;
+        border-radius: 6px !important;
         box-sizing: border-box !important;
         box-shadow: none !important;
         transition: border-color 0.2s !important;
@@ -9095,10 +9095,10 @@ table.desktop-only {
         justify-content: center !important;
         gap: 4px !important;
         height: 30px !important;
-        padding: 0 9px !important;
-        background: #1c1f23 !important;
-        border: 1px solid rgba(255,255,255,0.04) !important;
-        border-radius: 7px !important;
+        padding: 0 11px !important;
+        background: #222529 !important;
+        border: 1px solid rgba(255,255,255,0.03) !important;
+        border-radius: 6px !important;
         color: #7d848c !important;
         font-size: 10.5px !important;
         font-weight: 500 !important;
@@ -9115,7 +9115,7 @@ table.desktop-only {
     
     .mob-act-btn:active {
         transform: scale(0.96) !important;
-        background: #171a1e !important;
+        background: #1a1d21 !important;
         box-shadow: none !important;
     }
     
@@ -9125,7 +9125,7 @@ table.desktop-only {
     }
     
     .mob-act-sq {
-        width: 32px !important;
+        width: 36px !important;
         padding: 0 !important;
     }
     
