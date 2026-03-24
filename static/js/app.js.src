@@ -1597,10 +1597,14 @@ function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
     return `
         <div class="match-card odds-card moneyway-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
-                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${!liveCapsule ? matchStatus : ''}${starHtml || ''}</div>
+                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
-            <div class="odds-card-meta"><span>${match.league || '-'}</span>${liveCapsule || ('<span class="meta-sep">•</span><span>' + dateStr + '</span>')}</div>
+            <div class="odds-card-meta">
+                <span>${match.league || '-'}</span>
+                <span class="meta-sep">•</span>
+                <span>${dateStr}</span>
+            </div>
             <div class="odds-card-row ${blockCount}">
                 ${oddsBlocks}
             </div>
@@ -1723,10 +1727,14 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr, starHtml) {
     return `
         <div class="match-card odds-card dropping-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
-                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${!liveCapsule ? matchStatus : ''}${starHtml || ''}</div>
+                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
-            <div class="odds-card-meta"><span>${match.league || '-'}</span>${liveCapsule || ('<span class="meta-sep">•</span><span>' + dateStr + '</span>')}</div>
+            <div class="odds-card-meta">
+                <span>${match.league || '-'}</span>
+                <span class="meta-sep">•</span>
+                <span>${dateStr}</span>
+            </div>
             <div class="odds-card-row ${blockCount}">
                 ${oddsBlocks}
             </div>
@@ -10300,16 +10308,6 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
     var cardCls = 'match-card odds-card moneyway-card' + (goalSide ? ' goal-flash-card' : '');
     var html = '<div class="' + cardCls + '" ' + onclickAttr + '>';
     html += '<div class="odds-card-header">';
-    html += '<div class="odds-card-teams">' + escLiveHtml(m.home_team) + ' \u2013 ' + escLiveHtml(m.away_team) + '</div>';
-    var vol = 0;
-    if (is1x2) {
-        vol = _liveCalcVol1x2(m);
-    } else {
-        var ou = _liveGetOu(m, marketOrLine);
-        vol = _liveCalcVolOU(ou);
-    }
-    html += '<div class="odds-card-volume">' + formatLiveVol(vol) + '</div>';
-    html += '</div>';
     var cardMin = _calcLiveMatchMin(m);
     var cardScore = m.score ? escLiveHtml(m.score) : (cardMin === 'MS' ? '-' : '');
     var liveCapHtml = '';
@@ -10332,7 +10330,17 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
             (scoreDisp ? '<span class="lc-divider"></span>' + scoreDisp : '') +
             '</div>';
     }
-    html += '<div class="odds-card-meta"><span>' + escLiveHtml(m.league) + '</span>' + liveCapHtml + '</div>';
+    html += '<div class="odds-card-teams">' + escLiveHtml(m.home_team) + ' \u2013 ' + escLiveHtml(m.away_team) + liveCapHtml + '</div>';
+    var vol = 0;
+    if (is1x2) {
+        vol = _liveCalcVol1x2(m);
+    } else {
+        var ou = _liveGetOu(m, marketOrLine);
+        vol = _liveCalcVolOU(ou);
+    }
+    html += '<div class="odds-card-volume">' + formatLiveVol(vol) + '</div>';
+    html += '</div>';
+    html += '<div class="odds-card-meta"><span>' + escLiveHtml(m.league) + '</span></div>';
     if (is1x2) {
         var o = m.odds || {};
         html += '<div class="odds-card-row three">';

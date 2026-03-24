@@ -325,10 +325,14 @@ function renderMobileMoneywayCard(match,idx,d,volume,dateStr,starHtml){let oddsB
 const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);const liveCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team);return`
         <div class="match-card odds-card moneyway-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
-                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${!liveCapsule ? matchStatus : ''}${starHtml || ''}</div>
+                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
-            <div class="odds-card-meta"><span>${match.league || '-'}</span>${liveCapsule || ('<span class="meta-sep">•</span><span>' + dateStr + '</span>')}</div>
+            <div class="odds-card-meta">
+                <span>${match.league || '-'}</span>
+                <span class="meta-sep">•</span>
+                <span>${dateStr}</span>
+            </div>
             <div class="odds-card-row ${blockCount}">
                 ${oddsBlocks}
             </div>
@@ -357,10 +361,14 @@ function renderMobileOddsCard(match,idx,d,volume,dateStr,starHtml){let oddsBlock
 const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);const liveCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team);return`
         <div class="match-card odds-card dropping-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
-                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${!liveCapsule ? matchStatus : ''}${starHtml || ''}</div>
+                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
-            <div class="odds-card-meta"><span>${match.league || '-'}</span>${liveCapsule || ('<span class="meta-sep">•</span><span>' + dateStr + '</span>')}</div>
+            <div class="odds-card-meta">
+                <span>${match.league || '-'}</span>
+                <span class="meta-sep">•</span>
+                <span>${dateStr}</span>
+            </div>
             <div class="odds-card-row ${blockCount}">
                 ${oddsBlocks}
             </div>
@@ -1718,11 +1726,11 @@ var stoppage=rawMin.match(/^(\d{1,3})\+(\d{1,2})'?$/);if(stoppage){return stoppa
 if(/^\d{1,3}'?$/.test(rawMin)){var n=parseInt(rawMin,10);if(n>=0&&n<=130){return n+"'";}}
 if(/\d{1,2}:\d{2}/.test(rawMin))return'';return escLiveHtml(rawMin);}
 function _liveMwBlock(label,d){if(!d)return renderMoneywayBlock(label,0,'-','');return renderMoneywayBlock(label,d.share||0,d.odds||'-',d.volume||'');}
-function _liveMobileCard(m,marketOrLine,onclickAttr,goalSide){var is1x2=(marketOrLine==='1x2');var cardCls='match-card odds-card moneyway-card'+(goalSide?' goal-flash-card':'');var html='<div class="'+cardCls+'" '+onclickAttr+'>';html+='<div class="odds-card-header">';html+='<div class="odds-card-teams">'+escLiveHtml(m.home_team)+' \u2013 '+escLiveHtml(m.away_team)+'</div>';var vol=0;if(is1x2){vol=_liveCalcVol1x2(m);}else{var ou=_liveGetOu(m,marketOrLine);vol=_liveCalcVolOU(ou);}
-html+='<div class="odds-card-volume">'+formatLiveVol(vol)+'</div>';html+='</div>';var cardMin=_calcLiveMatchMin(m);var cardScore=m.score?escLiveHtml(m.score):(cardMin==='MS'?'-':'');var liveCapHtml='';if(cardMin||cardScore){var minDisp=goalSide?'GOL!':cardMin;var scoreDisp='';if(cardScore){var csp=cardScore.split('-');if(csp.length===2&&goalSide){var chCls=goalSide==='home'||goalSide==='both'?' goal-pop':'';var caCls=goalSide==='away'||goalSide==='both'?' goal-pop':'';scoreDisp='<span class="lc-score-h'+chCls+'">'+csp[0].trim()+'</span><span class="lc-score-sep">-</span><span class="lc-score-a'+caCls+'">'+csp[1].trim()+'</span>';}else{scoreDisp='<span class="lc-score-val">'+cardScore+'</span>';}}
+function _liveMobileCard(m,marketOrLine,onclickAttr,goalSide){var is1x2=(marketOrLine==='1x2');var cardCls='match-card odds-card moneyway-card'+(goalSide?' goal-flash-card':'');var html='<div class="'+cardCls+'" '+onclickAttr+'>';html+='<div class="odds-card-header">';var cardMin=_calcLiveMatchMin(m);var cardScore=m.score?escLiveHtml(m.score):(cardMin==='MS'?'-':'');var liveCapHtml='';if(cardMin||cardScore){var minDisp=goalSide?'GOL!':cardMin;var scoreDisp='';if(cardScore){var csp=cardScore.split('-');if(csp.length===2&&goalSide){var chCls=goalSide==='home'||goalSide==='both'?' goal-pop':'';var caCls=goalSide==='away'||goalSide==='both'?' goal-pop':'';scoreDisp='<span class="lc-score-h'+chCls+'">'+csp[0].trim()+'</span><span class="lc-score-sep">-</span><span class="lc-score-a'+caCls+'">'+csp[1].trim()+'</span>';}else{scoreDisp='<span class="lc-score-val">'+cardScore+'</span>';}}
 liveCapHtml='<div class="live-capsule">'+'<span class="lc-dot"></span>'+'<span class="lc-min"'+(goalSide?' data-goal-min="'+cardMin+'"':'')+'>'+minDisp+'</span>'+
 (scoreDisp?'<span class="lc-divider"></span>'+scoreDisp:'')+'</div>';}
-html+='<div class="odds-card-meta"><span>'+escLiveHtml(m.league)+'</span>'+liveCapHtml+'</div>';if(is1x2){var o=m.odds||{};html+='<div class="odds-card-row three">';html+=_liveMobileBlock('1',o['1'],vol);html+=_liveMobileBlock('X',o['X'],vol);html+=_liveMobileBlock('2',o['2'],vol);html+='</div>';}else{var ouD=_liveGetOu(m,marketOrLine);var ouVol=_liveCalcVolOU(ouD);html+='<div class="odds-card-row two">';html+=_liveMobileBlock('Alt',ouD['U'],ouVol);html+=_liveMobileBlock('Ust',ouD['O'],ouVol);html+='</div>';}
+html+='<div class="odds-card-teams">'+escLiveHtml(m.home_team)+' \u2013 '+escLiveHtml(m.away_team)+liveCapHtml+'</div>';var vol=0;if(is1x2){vol=_liveCalcVol1x2(m);}else{var ou=_liveGetOu(m,marketOrLine);vol=_liveCalcVolOU(ou);}
+html+='<div class="odds-card-volume">'+formatLiveVol(vol)+'</div>';html+='</div>';html+='<div class="odds-card-meta"><span>'+escLiveHtml(m.league)+'</span></div>';if(is1x2){var o=m.odds||{};html+='<div class="odds-card-row three">';html+=_liveMobileBlock('1',o['1'],vol);html+=_liveMobileBlock('X',o['X'],vol);html+=_liveMobileBlock('2',o['2'],vol);html+='</div>';}else{var ouD=_liveGetOu(m,marketOrLine);var ouVol=_liveCalcVolOU(ouD);html+='<div class="odds-card-row two">';html+=_liveMobileBlock('Alt',ouD['U'],ouVol);html+=_liveMobileBlock('Ust',ouD['O'],ouVol);html+='</div>';}
 html+='</div>';return html;}
 function _liveMobileBlock(label,d,totalVol){var odds='-';if(d&&d.odds){odds=d.odds>=100?d.odds.toFixed(0):d.odds.toFixed(2);}
 var pct='';var moneyStr='';if(d&&d.share!==null&&d.share!==undefined){var pn=parseFloat(String(d.share));if(!isNaN(pn)){pct=pn.toFixed(0)+'%';if(totalVol&&totalVol>0){var bm=totalVol*pn/100;moneyStr=bm>=1000000?'£'+(bm/1000000).toFixed(1)+'M':bm>=1000?'£'+(bm/1000).toFixed(1)+'k':'£'+Math.round(bm);}}}
