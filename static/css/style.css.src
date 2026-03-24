@@ -12917,8 +12917,8 @@ table.desktop-only {
     border-spacing: 0;
 }
 .modal-live-body .live-detail-table-wrap {
-    max-height: 480px;
-    overflow-y: auto;
+    max-height: none;
+    overflow-y: visible;
     position: relative;
 }
 .modal-live-body .live-period-table thead th {
