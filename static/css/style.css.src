@@ -8965,13 +8965,13 @@ table.desktop-only {
         display: none !important;
     }
 
-    /* ========== MOBILE TAB CONTROLS ========== */
+    /* ========== MOBILE CONTROL PANEL — Premium Trading Terminal ========== */
     .mob-ctrl {
         display: flex !important;
         flex-direction: column !important;
-        padding: 6px 10px 4px !important;
+        padding: 6px 8px 5px !important;
         background: transparent !important;
-        gap: 0 !important;
+        gap: 4px !important;
     }
     
     .mob-ctrl-row {
@@ -8979,18 +8979,15 @@ table.desktop-only {
         align-items: stretch !important;
     }
 
-    /* --- Category & Market tabs (premium pill style) --- */
+    /* --- Segmented Control Container (Category & Market) --- */
     .mob-cat-row,
     .mob-mkt-row {
-        gap: 0 !important;
-        background: rgba(22, 27, 34, 0.85) !important;
+        gap: 2px !important;
+        background: linear-gradient(180deg, rgba(17, 21, 28, 0.95) 0%, rgba(22, 27, 34, 0.9) 100%) !important;
         border-radius: 10px !important;
         padding: 3px !important;
-        border: 1px solid rgba(255,255,255,0.04) !important;
-    }
-    
-    .mob-mkt-row {
-        margin-top: 5px !important;
+        border: 1px solid rgba(255,255,255,0.06) !important;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.02) !important;
     }
     
     .mob-tab {
@@ -8999,16 +8996,17 @@ table.desktop-only {
         align-items: center !important;
         justify-content: center !important;
         gap: 5px !important;
-        height: 30px !important;
+        height: 32px !important;
         padding: 0 10px !important;
         background: transparent !important;
-        border: none !important;
+        border: 1px solid transparent !important;
         border-radius: 7px !important;
-        color: #6e7681 !important;
+        color: #545d68 !important;
         font-size: 12px !important;
         font-weight: 500 !important;
+        letter-spacing: 0.2px !important;
         cursor: pointer !important;
-        transition: all 0.2s ease !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
         min-height: auto !important;
         min-width: auto !important;
         box-sizing: border-box !important;
@@ -9017,26 +9015,35 @@ table.desktop-only {
     }
     
     .mob-tab.active {
-        background: rgba(74, 222, 128, 0.12) !important;
-        color: #4ade80 !important;
-        font-weight: 700 !important;
-        box-shadow: 0 1px 4px rgba(74, 222, 128, 0.1) !important;
+        background: linear-gradient(180deg, rgba(38, 46, 56, 0.9) 0%, rgba(30, 38, 48, 0.85) 100%) !important;
+        color: #e6edf3 !important;
+        font-weight: 600 !important;
+        border-color: rgba(255,255,255,0.08) !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05) !important;
     }
     
     .mob-cat-row .mob-tab.active {
-        background: linear-gradient(135deg, rgba(74, 222, 128, 0.15), rgba(74, 222, 128, 0.08)) !important;
+        background: linear-gradient(180deg, rgba(34, 50, 42, 0.9) 0%, rgba(28, 42, 36, 0.85) 100%) !important;
+        color: #6ee7a0 !important;
+        border-color: rgba(74, 222, 128, 0.12) !important;
+        box-shadow: 0 1px 4px rgba(74, 222, 128, 0.08), 0 0 8px rgba(74, 222, 128, 0.04), inset 0 1px 0 rgba(74, 222, 128, 0.06) !important;
     }
     
     .mob-tab:active {
-        background: rgba(255,255,255,0.04) !important;
+        transform: scale(0.97) !important;
+        background: rgba(255,255,255,0.03) !important;
+    }
+    
+    .mob-tab.active:active {
+        transform: scale(0.98) !important;
     }
 
-    /* --- Action row (flat utility style) --- */
+    /* --- Action Row (Toolbar Controls) --- */
     .mob-action-row {
         display: flex !important;
-        gap: 5px !important;
+        gap: 4px !important;
         align-items: stretch !important;
-        margin-top: 6px !important;
+        margin-top: 1px !important;
     }
     
     .mob-search-inline {
@@ -9044,16 +9051,23 @@ table.desktop-only {
         align-items: center !important;
         gap: 6px !important;
         flex: 1 !important;
-        height: 30px !important;
-        padding: 0 9px !important;
-        background: rgba(22, 27, 34, 0.6) !important;
-        border: 1px solid rgba(255,255,255,0.04) !important;
-        border-radius: 7px !important;
+        height: 32px !important;
+        padding: 0 10px !important;
+        background: linear-gradient(180deg, rgba(17, 21, 28, 0.8) 0%, rgba(22, 27, 34, 0.75) 100%) !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        border-radius: 8px !important;
         box-sizing: border-box !important;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.2) !important;
+        transition: border-color 0.2s !important;
+    }
+    
+    .mob-search-inline:focus-within {
+        border-color: rgba(74, 222, 128, 0.15) !important;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.2), 0 0 6px rgba(74, 222, 128, 0.05) !important;
     }
     
     .mob-search-inline svg {
-        opacity: 0.3 !important;
+        opacity: 0.25 !important;
         flex-shrink: 0 !important;
     }
     
@@ -9064,14 +9078,15 @@ table.desktop-only {
         background: transparent !important;
         border: none !important;
         outline: none !important;
-        color: #e6edf3 !important;
+        color: #c9d1d9 !important;
         font-size: 11px !important;
         font-family: inherit !important;
         padding: 0 !important;
+        letter-spacing: 0.1px !important;
     }
     
     .mob-search-inline input::placeholder {
-        color: #484f58 !important;
+        color: #3d444d !important;
     }
     
     .mob-act-btn {
@@ -9079,25 +9094,29 @@ table.desktop-only {
         align-items: center !important;
         justify-content: center !important;
         gap: 4px !important;
-        height: 30px !important;
-        padding: 0 9px !important;
-        background: rgba(22, 27, 34, 0.6) !important;
-        border: 1px solid rgba(255,255,255,0.04) !important;
-        border-radius: 7px !important;
-        color: #6e7681 !important;
-        font-size: 10px !important;
+        height: 32px !important;
+        padding: 0 10px !important;
+        background: linear-gradient(180deg, rgba(25, 31, 39, 0.85) 0%, rgba(20, 26, 33, 0.8) 100%) !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        border-radius: 8px !important;
+        color: #7a8490 !important;
+        font-size: 10.5px !important;
         font-weight: 500 !important;
+        letter-spacing: 0.2px !important;
         cursor: pointer !important;
         white-space: nowrap !important;
-        transition: all 0.15s !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
         min-height: auto !important;
         min-width: auto !important;
         box-sizing: border-box !important;
         flex-shrink: 0 !important;
+        box-shadow: 0 1px 0 rgba(255,255,255,0.02) !important;
     }
     
     .mob-act-btn:active {
-        background: rgba(48, 54, 61, 0.6) !important;
+        transform: scale(0.96) !important;
+        background: linear-gradient(180deg, rgba(20, 26, 33, 0.9) 0%, rgba(17, 22, 28, 0.85) 100%) !important;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.3) !important;
     }
     
     .mob-act-btn svg {
@@ -9106,19 +9125,33 @@ table.desktop-only {
     }
     
     .mob-act-sq {
-        width: 30px !important;
+        width: 32px !important;
         padding: 0 !important;
     }
     
     .mob-act-badge {
-        font-size: 10px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 9px !important;
         font-weight: 700 !important;
         color: #4ade80 !important;
+        background: rgba(74, 222, 128, 0.1) !important;
+        border-radius: 4px !important;
+        padding: 1px 4px !important;
+        min-width: 14px !important;
+        letter-spacing: 0.3px !important;
     }
     
     .mob-act-btn.has-filter {
-        border-color: rgba(74, 222, 128, 0.2) !important;
-        color: #4ade80 !important;
+        border-color: rgba(74, 222, 128, 0.15) !important;
+        color: #6ee7a0 !important;
+        background: linear-gradient(180deg, rgba(28, 40, 34, 0.85) 0%, rgba(22, 34, 28, 0.8) 100%) !important;
+    }
+    
+    .mob-act-btn.has-filter svg {
+        opacity: 0.7 !important;
+        stroke: #6ee7a0 !important;
     }
 
     /* Hide desktop search on mobile */
