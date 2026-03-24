@@ -9788,6 +9788,15 @@ table.desktop-only {
         line-height: 1;
     }
     
+    .ob-trend {
+        font-size: 9px;
+        font-weight: 500;
+        font-family: 'Inter', monospace;
+        letter-spacing: -0.2px;
+        margin-left: auto;
+        line-height: 1;
+    }
+    
     .odds-block-value {
         font-size: 15px;
         font-weight: 700;
