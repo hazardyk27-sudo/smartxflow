@@ -879,6 +879,37 @@ h1, h2, h3, h4, h5, h6,
     color: #4ade80;
 }
 
+.live-capsule-desk {
+    gap: 6px;
+    padding: 2px 10px 2px 8px;
+    height: 27px;
+    border-radius: 6px;
+    margin-left: 0;
+}
+
+.live-capsule-desk .lc-dot {
+    width: 7px;
+    height: 7px;
+}
+
+.live-capsule-desk .lc-min {
+    font-size: 16px;
+}
+
+.live-capsule-desk .lc-divider {
+    height: 15px;
+}
+
+.live-capsule-desk .lc-score-val,
+.live-capsule-desk .lc-score-h,
+.live-capsule-desk .lc-score-a {
+    font-size: 16px;
+}
+
+.live-capsule-desk .lc-score-sep {
+    font-size: 14px;
+}
+
 .match-status {
     font-size: 9px;
     font-weight: 600;
