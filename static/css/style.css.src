@@ -9730,10 +9730,10 @@ table.desktop-only {
     .odds-block {
         display: flex;
         flex-direction: column;
-        align-items: stretch;
+        align-items: center;
         background: #252930;
         border-radius: 7px;
-        padding: 7px 8px 6px;
+        padding: 6px 0 5px;
         border: 1px solid rgba(255,255,255,0.04);
         min-height: 44px;
         justify-content: center;
@@ -9743,7 +9743,7 @@ table.desktop-only {
         font-size: 9px;
         font-weight: 500;
         color: #5c636b;
-        margin-bottom: 2px;
+        margin-bottom: 3px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         text-align: center;
@@ -9753,8 +9753,12 @@ table.desktop-only {
     .ob-data-row {
         display: flex;
         align-items: baseline;
+        justify-content: center;
+        gap: 4px;
         width: 100%;
         line-height: 1;
+        padding: 0 6px;
+        box-sizing: border-box;
     }
     
     .ob-odds {
@@ -9772,7 +9776,6 @@ table.desktop-only {
         color: #3daa6a;
         font-family: 'Inter', monospace;
         letter-spacing: -0.2px;
-        margin-left: 5px;
         line-height: 1;
     }
     
@@ -9782,7 +9785,6 @@ table.desktop-only {
         color: #5c636b;
         font-family: 'Inter', monospace;
         letter-spacing: -0.2px;
-        margin-left: auto;
         line-height: 1;
     }
     
