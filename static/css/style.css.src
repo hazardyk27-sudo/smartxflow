@@ -8950,7 +8950,7 @@ table.desktop-only {
 
     /* ========== MAIN CONTENT ========== */
     .main-content {
-        padding: 8px 0 6px;
+        padding: 8px 4px 6px;
         height: auto;
         min-height: calc(100vh - 150px);
         overflow-y: auto;
@@ -8969,7 +8969,7 @@ table.desktop-only {
     .mob-ctrl {
         display: flex !important;
         flex-direction: column !important;
-        padding: 6px 0 4px !important;
+        padding: 6px 4px 4px !important;
         background: transparent !important;
         gap: 3px !important;
     }
@@ -9996,7 +9996,7 @@ table.desktop-only {
     }
     
     .main-content {
-        padding: 8px 0 6px;
+        padding: 8px 4px 6px;
         height: calc(100vh - 120px);
     }
     
