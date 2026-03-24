@@ -9987,7 +9987,7 @@ table.desktop-only {
     }
     
     .main-content {
-        padding: 8px 6px 6px;
+        padding: 8px 0 6px;
         height: calc(100vh - 120px);
     }
     
