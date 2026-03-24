@@ -10445,24 +10445,7 @@ function _liveMobileBlock(label, d, totalVol) {
 }
 
 async function openLiveDetail(hash, home, away) {
-    if (window.innerWidth <= 768) {
-        _openLiveInMainModal(hash, home, away);
-        return;
-    }
-    document.getElementById('liveDetailModal').style.display = 'flex';
-    document.getElementById('liveDetailTitle').textContent = (home || '--') + ' vs ' + (away || '--');
-    document.getElementById('liveDetailBody').innerHTML =
-        '<div class="live-loading"><div class="loading-spinner"></div>Periyot verileri yukleniyor...</div>';
-    _liveDetailMarket = _liveMarket;
-    try {
-        var resp = await fetch('/api/live/match/history?hash=' + encodeURIComponent(hash));
-        var data = await resp.json();
-        _liveDetailData = data.snapshots || [];
-        _buildDetailTabs(_liveDetailData);
-        renderLiveDetail(_liveDetailData, _liveDetailMarket);
-    } catch (e) {
-        document.getElementById('liveDetailBody').innerHTML = '<div class="live-loading">Veri yuklenemedi</div>';
-    }
+    _openLiveInMainModal(hash, home, away);
 }
 
 async function _openLiveInMainModal(hash, home, away) {

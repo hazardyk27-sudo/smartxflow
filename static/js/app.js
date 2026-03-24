@@ -1740,8 +1740,7 @@ var pct='';var moneyStr='';if(d&&d.share!==null&&d.share!==undefined){var pn=par
 return'<div class="odds-block mw-block">'+'<div class="odds-block-label">'+label+'</div>'+'<div class="ob-data-row">'+'<span class="ob-odds">'+odds+'</span>'+
 (moneyStr?'<span class="ob-money">'+moneyStr+'</span>':'')+
 (pct?'<span class="ob-pct">'+pct+'</span>':'')+'</div>'+'</div>';}
-async function openLiveDetail(hash,home,away){if(window.innerWidth<=768){_openLiveInMainModal(hash,home,away);return;}
-document.getElementById('liveDetailModal').style.display='flex';document.getElementById('liveDetailTitle').textContent=(home||'--')+' vs '+(away||'--');document.getElementById('liveDetailBody').innerHTML='<div class="live-loading"><div class="loading-spinner"></div>Periyot verileri yukleniyor...</div>';_liveDetailMarket=_liveMarket;try{var resp=await fetch('/api/live/match/history?hash='+encodeURIComponent(hash));var data=await resp.json();_liveDetailData=data.snapshots||[];_buildDetailTabs(_liveDetailData);renderLiveDetail(_liveDetailData,_liveDetailMarket);}catch(e){document.getElementById('liveDetailBody').innerHTML='<div class="live-loading">Veri yuklenemedi</div>';}}
+async function openLiveDetail(hash,home,away){_openLiveInMainModal(hash,home,away);}
 async function _openLiveInMainModal(hash,home,away){var match=null;var matchIdx=-1;var usedSource='filtered';var homeLow=(home||'').toLowerCase().trim();var awayLow=(away||'').toLowerCase().trim();function _fuzzySearch(arr,label){for(var i=0;i<arr.length;i++){var mh=(arr[i].home_team||'').toLowerCase().trim();var ma=(arr[i].away_team||'').toLowerCase().trim();if(mh===homeLow&&ma===awayLow){return{m:arr[i],idx:i};}
 if((mh.includes(homeLow)||homeLow.includes(mh))&&(ma.includes(awayLow)||awayLow.includes(ma))){console.log('[LiveModal] Fuzzy matched in '+label+':',mh,'vs',ma,'at index',i);return{m:arr[i],idx:i};}}
 return null;}
