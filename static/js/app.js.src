@@ -10387,7 +10387,7 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
             (scoreDisp ? '<span class="lc-divider"></span>' + scoreDisp : '') +
             '</div>';
     }
-    html += '<div class="odds-card-teams">' + escLiveHtml(m.home_team) + ' \u2013 ' + escLiveHtml(m.away_team) + liveCapHtml + '</div>';
+    html += '<div class="odds-card-teams">' + escLiveHtml(m.home_team) + ' \u2013 ' + escLiveHtml(m.away_team) + '</div>';
     var vol = 0;
     if (is1x2) {
         vol = _liveCalcVol1x2(m);
@@ -10397,7 +10397,7 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
     }
     html += '<div class="odds-card-volume">' + formatLiveVol(vol) + '</div>';
     html += '</div>';
-    html += '<div class="odds-card-meta"><span>' + escLiveHtml(m.league) + '</span></div>';
+    html += '<div class="odds-card-meta"><span>' + escLiveHtml(m.league) + '</span>' + liveCapHtml + '</div>';
     if (is1x2) {
         var o = m.odds || {};
         html += '<div class="odds-card-row three">';
