@@ -2898,16 +2898,19 @@ async function openMatchModalFromMatches(index) {
         selectedChartMarket = currentMarket;
 
         var modalTitleHtml = escapeHtml(selectedMatch.home_team) + ' vs ' + escapeHtml(selectedMatch.away_team);
-        var modalFtCapsule = _getModalFinishedCapsule(selectedMatch);
-        document.getElementById('modalMatchTitle').innerHTML = modalTitleHtml + modalFtCapsule;
+        document.getElementById('modalMatchTitle').innerHTML = modalTitleHtml;
         
+        var modalFtCapsule = _getModalFinishedCapsule(selectedMatch);
+        var isFinishedMatch = modalFtCapsule !== '';
         const headerDt = toTurkeyTime(selectedMatch.date);
-        let headerDateText = selectedMatch.date || '';
-        if (headerDt && headerDt.isValid()) {
+        let headerDateText = '';
+        if (!isFinishedMatch && headerDt && headerDt.isValid()) {
             headerDateText = headerDt.format('DD.MM HH:mm');
         }
-        document.getElementById('modalLeague').textContent = 
-            `${selectedMatch.league || ''} • ${headerDateText}`;
+        var leagueHtml = escapeHtml(selectedMatch.league || '');
+        if (isFinishedMatch) leagueHtml += modalFtCapsule;
+        else if (headerDateText) leagueHtml += ' • ' + headerDateText;
+        document.getElementById('modalLeague').innerHTML = leagueHtml;
         
         document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
             t.classList.remove('active');
@@ -2994,16 +2997,19 @@ async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
     selectedChartMarket = currentMarket;
 
     var modalTitleHtml = escapeHtml(homeTeam) + ' vs ' + escapeHtml(awayTeam);
-    var modalFtCapsule = _getModalFinishedCapsule(selectedMatch);
-    document.getElementById('modalMatchTitle').innerHTML = modalTitleHtml + modalFtCapsule;
+    document.getElementById('modalMatchTitle').innerHTML = modalTitleHtml;
     
+    var modalFtCapsule = _getModalFinishedCapsule(selectedMatch);
+    var isFinishedMatch = modalFtCapsule !== '';
     const headerDt = apiKickoff ? toTurkeyTime(apiKickoff) : null;
     let headerDateText = '';
-    if (headerDt && headerDt.isValid()) {
+    if (!isFinishedMatch && headerDt && headerDt.isValid()) {
         headerDateText = headerDt.format('DD.MM HH:mm');
     }
-    document.getElementById('modalLeague').textContent = 
-        apiLeague ? `${apiLeague}${headerDateText ? ' • ' + headerDateText : ''}` : (headerDateText || '');
+    var leagueHtml = escapeHtml(apiLeague || '');
+    if (isFinishedMatch) leagueHtml += modalFtCapsule;
+    else if (headerDateText) leagueHtml += ' • ' + headerDateText;
+    document.getElementById('modalLeague').innerHTML = leagueHtml || '';
     
     document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
         t.classList.remove('active');
@@ -3045,16 +3051,19 @@ async function openMatchModal(index) {
         selectedChartMarket = currentMarket;
         
         var modalTitleHtml = escapeHtml(selectedMatch.home_team) + ' vs ' + escapeHtml(selectedMatch.away_team);
-        var modalFtCapsule = _getModalFinishedCapsule(selectedMatch);
-        document.getElementById('modalMatchTitle').innerHTML = modalTitleHtml + modalFtCapsule;
+        document.getElementById('modalMatchTitle').innerHTML = modalTitleHtml;
         
+        var modalFtCapsule = _getModalFinishedCapsule(selectedMatch);
+        var isFinishedMatch = modalFtCapsule !== '';
         const headerDt = toTurkeyTime(selectedMatch.date);
-        let headerDateText = selectedMatch.date || '';
-        if (headerDt && headerDt.isValid()) {
+        let headerDateText = '';
+        if (!isFinishedMatch && headerDt && headerDt.isValid()) {
             headerDateText = headerDt.format('DD.MM HH:mm');
         }
-        document.getElementById('modalLeague').textContent = 
-            `${selectedMatch.league || ''} • ${headerDateText}`;
+        var leagueHtml = escapeHtml(selectedMatch.league || '');
+        if (isFinishedMatch) leagueHtml += modalFtCapsule;
+        else if (headerDateText) leagueHtml += ' • ' + headerDateText;
+        document.getElementById('modalLeague').innerHTML = leagueHtml;
         
         document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
             t.classList.remove('active');
