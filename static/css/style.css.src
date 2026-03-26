@@ -982,6 +982,30 @@ h1, h2, h3, h4, h5, h6,
     flex-shrink: 0;
 }
 
+.live-capsule.lc-ended,
+.live-capsule-desk.lc-ended {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.12);
+}
+.live-capsule.lc-ended .lc-min,
+.live-capsule-desk.lc-ended .lc-min {
+    color: rgba(255,255,255,0.45);
+    font-size: 9px;
+    font-weight: 600;
+}
+.live-capsule.lc-ended .lc-score-h,
+.live-capsule.lc-ended .lc-score-a,
+.live-capsule.lc-ended .lc-score-sep,
+.live-capsule-desk.lc-ended .lc-score-h,
+.live-capsule-desk.lc-ended .lc-score-a,
+.live-capsule-desk.lc-ended .lc-score-sep {
+    color: rgba(255,255,255,0.55);
+}
+.live-capsule.lc-ended .lc-divider,
+.live-capsule-desk.lc-ended .lc-divider {
+    background: rgba(255,255,255,0.12);
+}
+
 .match-status {
     font-size: 9px;
     font-weight: 600;

@@ -1847,7 +1847,13 @@ def get_live_matches():
         fix_resp = supabase._get_http_client().get(fix_url, headers=headers, timeout=15)
         if fix_resp.status_code != 200:
             return jsonify({'matches': [], 'error': f'Fixtures HTTP {fix_resp.status_code}'}), 200
-        fixtures = fix_resp.json()
+        fixtures = fix_resp.json() or []
+
+        ft_url = f"{supabase._rest_url('live_fixtures')}?status=eq.ft&order=updated_at.desc&limit=100"
+        ft_resp = supabase._get_http_client().get(ft_url, headers=headers, timeout=10)
+        ft_fixtures = ft_resp.json() if ft_resp.status_code == 200 else []
+        fixtures = fixtures + ft_fixtures
+
         if not fixtures:
             return jsonify({'matches': [], 'total': 0}), 200
 
@@ -1885,12 +1891,12 @@ def get_live_matches():
             score = f.get('score', '')
             f_status = (f.get('status') or '').strip().lower()
 
-            if f_status == 'ft':
-                continue
-            if minute_val in ('FT', 'MS', 'AET', 'PEN'):
-                continue
+            is_finished = f_status == 'ft' or minute_val in ('FT', 'MS', 'AET', 'PEN')
 
-            if not minute_val and not score:
+            if is_finished:
+                if not score:
+                    continue
+            elif not minute_val and not score:
                 ko_str = f.get('kickoff_utc', '')
                 if ko_str:
                     try:
