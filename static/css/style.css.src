@@ -9131,9 +9131,9 @@ table.desktop-only {
     .mob-ctrl {
         display: flex !important;
         flex-direction: column !important;
-        padding: 4px 6px 4px !important;
+        padding: 6px 8px 5px !important;
         background: #1c1f23 !important;
-        gap: 3px !important;
+        gap: 4px !important;
     }
     
     .mob-ctrl-row {
@@ -9141,42 +9141,34 @@ table.desktop-only {
         align-items: stretch !important;
     }
 
-    /* --- Unified Category + Market Panel --- */
+    /* --- Unified Segmented Panel (cat + market as one block) --- */
     .mob-cat-row,
     .mob-mkt-row {
-        gap: 2px !important;
+        gap: 0 !important;
         background: transparent !important;
         border-radius: 0 !important;
-        padding: 2px 2px !important;
+        padding: 0 !important;
         border: none !important;
         box-shadow: none !important;
     }
-    
-    .mob-cat-row {
-        padding-bottom: 0 !important;
-    }
-    
-    .mob-mkt-row {
-        padding-top: 0 !important;
-    }
-    
+
     .mob-ctrl > .mob-ctrl-row.mob-cat-row,
     .mob-ctrl > .mob-ctrl-row.mob-mkt-row {
-        background: rgba(255,255,255,0.02) !important;
-        border: 1px solid rgba(255,255,255,0.03) !important;
+        background: rgba(255,255,255,0.025) !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
     }
     
     .mob-ctrl > .mob-ctrl-row.mob-cat-row {
-        border-radius: 8px 8px 0 0 !important;
+        border-radius: 10px 10px 0 0 !important;
         border-bottom: none !important;
-        padding: 3px 2px 2px !important;
+        padding: 3px 3px 1px !important;
     }
     
     .mob-ctrl > .mob-ctrl-row.mob-mkt-row {
-        border-radius: 0 0 8px 8px !important;
-        border-top: 1px solid rgba(255,255,255,0.025) !important;
-        padding: 2px 2px 3px !important;
-        margin-top: -3px !important;
+        border-radius: 0 0 10px 10px !important;
+        border-top: 1px solid rgba(255,255,255,0.03) !important;
+        padding: 1px 3px 3px !important;
+        margin-top: -1px !important;
     }
     
     .mob-tab {
@@ -9187,13 +9179,13 @@ table.desktop-only {
         gap: 4px !important;
         height: 30px !important;
         padding: 0 6px !important;
-        background: #1c1f23 !important;
-        border: 1px solid rgba(255, 255, 255, 0.06) !important;
-        border-radius: 6px !important;
-        color: rgba(156,163,175,0.55) !important;
+        background: transparent !important;
+        border: 1px solid transparent !important;
+        border-radius: 7px !important;
+        color: rgba(156,163,175,0.45) !important;
         font-size: 11px !important;
         font-weight: 500 !important;
-        letter-spacing: 0.1px !important;
+        letter-spacing: 0.2px !important;
         cursor: pointer !important;
         transition: all 0.2s ease !important;
         min-height: auto !important;
@@ -9204,18 +9196,18 @@ table.desktop-only {
     }
     
     .mob-tab.active {
-        background: #1c1f23 !important;
-        color: rgba(230,234,238,0.9) !important;
+        background: rgba(255,255,255,0.07) !important;
+        color: #e6eaee !important;
         font-weight: 600 !important;
-        border-color: rgba(255, 255, 255, 0.12) !important;
-        box-shadow: none !important;
+        border-color: rgba(255,255,255,0.08) !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04) !important;
     }
     
     .mob-cat-row .mob-tab.active {
-        background: #1c1f23 !important;
-        color: rgba(230,234,238,0.9) !important;
-        border-color: rgba(255, 255, 255, 0.12) !important;
-        box-shadow: none !important;
+        background: rgba(255,255,255,0.07) !important;
+        color: #e6eaee !important;
+        border-color: rgba(255,255,255,0.08) !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04) !important;
     }
     
     .mob-tab:active {
@@ -9230,9 +9222,9 @@ table.desktop-only {
     /* --- Action Row (Toolbar Controls) --- */
     .mob-action-row {
         display: flex !important;
-        gap: 4px !important;
+        gap: 3px !important;
         align-items: center !important;
-        margin-top: 1px !important;
+        margin-top: 0 !important;
         height: 30px !important;
     }
     
@@ -9243,21 +9235,22 @@ table.desktop-only {
         flex: 4 !important;
         height: 30px !important;
         padding: 0 10px !important;
-        background: rgba(255,255,255,0.025) !important;
-        border: 1px solid rgba(255,255,255,0.04) !important;
-        border-radius: 6px !important;
+        background: rgba(255,255,255,0.03) !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        border-radius: 8px !important;
         box-sizing: border-box !important;
-        box-shadow: none !important;
-        transition: border-color 0.2s !important;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.15) !important;
+        transition: all 0.2s !important;
     }
     
     .mob-search-inline:focus-within {
-        border-color: rgba(255,255,255,0.08) !important;
-        box-shadow: none !important;
+        border-color: rgba(255,255,255,0.1) !important;
+        background: rgba(255,255,255,0.04) !important;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.03) !important;
     }
     
     .mob-search-inline svg {
-        opacity: 0.2 !important;
+        opacity: 0.25 !important;
         flex-shrink: 0 !important;
     }
     
@@ -9272,11 +9265,12 @@ table.desktop-only {
         font-size: 11px !important;
         font-family: inherit !important;
         padding: 0 !important;
-        letter-spacing: 0.1px !important;
+        letter-spacing: 0.2px !important;
     }
     
     .mob-search-inline input::placeholder {
         color: rgba(156,163,175,0.3) !important;
+        letter-spacing: 0.3px !important;
     }
     
     .mob-act-btn {
@@ -9286,13 +9280,13 @@ table.desktop-only {
         gap: 4px !important;
         height: 30px !important;
         padding: 0 10px !important;
-        background: rgba(255,255,255,0.025) !important;
-        border: 1px solid rgba(255,255,255,0.04) !important;
-        border-radius: 6px !important;
-        color: rgba(156,163,175,0.55) !important;
+        background: rgba(255,255,255,0.03) !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        border-radius: 8px !important;
+        color: rgba(156,163,175,0.5) !important;
         font-size: 10.5px !important;
         font-weight: 500 !important;
-        letter-spacing: 0.1px !important;
+        letter-spacing: 0.2px !important;
         cursor: pointer !important;
         white-space: nowrap !important;
         transition: all 0.15s ease !important;
@@ -9312,7 +9306,7 @@ table.desktop-only {
     
     .mob-act-btn:active {
         transform: scale(0.96) !important;
-        background: rgba(255,255,255,0.04) !important;
+        background: rgba(255,255,255,0.05) !important;
         box-shadow: none !important;
     }
     
@@ -9336,17 +9330,17 @@ table.desktop-only {
         font-size: 8px !important;
         font-weight: 700 !important;
         color: rgba(201,209,217,0.7) !important;
-        background: rgba(255,255,255,0.06) !important;
+        background: rgba(255,255,255,0.07) !important;
         border-radius: 3px !important;
-        padding: 1px 3px !important;
+        padding: 1px 4px !important;
         min-width: 12px !important;
         letter-spacing: 0.2px !important;
     }
     
     .mob-act-btn.has-filter {
-        border-color: rgba(255,255,255,0.08) !important;
+        border-color: rgba(255,255,255,0.1) !important;
         color: rgba(201,209,217,0.7) !important;
-        background: rgba(255,255,255,0.04) !important;
+        background: rgba(255,255,255,0.05) !important;
     }
     
     .mob-act-btn.has-filter svg {
