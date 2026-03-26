@@ -8942,15 +8942,15 @@ table.desktop-only {
     .header {
         display: flex !important;
         flex-wrap: nowrap !important;
-        height: 44px !important;
-        padding: 6px 12px !important;
-        gap: 6px !important;
+        height: 48px !important;
+        padding: 0 14px !important;
+        gap: 0 !important;
         align-items: center !important;
         position: relative !important;
         z-index: 100 !important;
         justify-content: space-between !important;
-        background: #141719 !important;
-        border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+        background: #1c1f23 !important;
+        border-bottom: 1px solid rgba(255,255,255,0.05) !important;
     }
     
     .header-left {
@@ -8958,6 +8958,7 @@ table.desktop-only {
         min-width: 0 !important;
         display: flex !important;
         align-items: center !important;
+        height: 100% !important;
     }
     
     .header-right {
@@ -8965,6 +8966,7 @@ table.desktop-only {
         align-items: center !important;
         gap: 8px !important;
         flex: 0 0 auto !important;
+        height: 100% !important;
     }
     
     .header-right .status-indicator,
@@ -8975,29 +8977,42 @@ table.desktop-only {
     
     .logo-container {
         display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        gap: 0 !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        justify-content: center !important;
+        gap: 1px !important;
+        height: 100% !important;
     }
     
     .app-logo {
         display: flex !important;
         align-items: center !important;
         gap: 3px !important;
+        line-height: 1 !important;
     }
     
     .logo-smart, .logo-flow {
-        font-size: 15px !important;
-        font-weight: 600 !important;
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.8px !important;
+        color: rgba(237,240,243,0.92) !important;
     }
     
     .logo-icon {
-        width: 16px !important;
-        height: 16px !important;
+        width: 15px !important;
+        height: 15px !important;
     }
     
     .logo-subtitle {
-        display: none !important;
+        display: block !important;
+        font-size: 9px !important;
+        font-weight: 500 !important;
+        color: rgba(156,163,175,0.5) !important;
+        letter-spacing: 0.6px !important;
+        text-transform: uppercase !important;
+        line-height: 1 !important;
+        margin-top: 1px !important;
+        opacity: 1 !important;
     }
     
     .mobile-last-update {
@@ -9006,25 +9021,54 @@ table.desktop-only {
     
     .license-days-badge {
         font-size: 10px !important;
-        padding: 3px 8px !important;
-        gap: 4px !important;
-        opacity: 0.7 !important;
+        padding: 4px 10px !important;
+        gap: 5px !important;
+        border-radius: 6px !important;
+        background: rgba(255,255,255,0.04) !important;
+        border: 1px solid rgba(255,255,255,0.06) !important;
+        color: rgba(203,213,225,0.7) !important;
+        font-weight: 500 !important;
+        opacity: 1 !important;
     }
     
     .license-days-badge svg {
         width: 10px !important;
         height: 10px !important;
+        stroke: rgba(203,213,225,0.5) !important;
+    }
+    
+    .license-days-badge.warning {
+        background: rgba(251,191,36,0.06) !important;
+        border-color: rgba(251,191,36,0.12) !important;
+        color: rgba(251,191,36,0.7) !important;
+    }
+    
+    .license-days-badge.danger {
+        background: rgba(239,68,68,0.06) !important;
+        border-color: rgba(239,68,68,0.12) !important;
+        color: rgba(239,68,68,0.7) !important;
     }
     
     .logout-btn {
-        padding: 4px 8px !important;
+        padding: 4px 10px !important;
         font-size: 10px !important;
-        gap: 3px !important;
+        gap: 4px !important;
+        border-radius: 6px !important;
+        background: rgba(255,255,255,0.03) !important;
+        border: 1px solid rgba(255,255,255,0.06) !important;
+        color: rgba(203,213,225,0.5) !important;
+        font-weight: 500 !important;
+        margin-left: 0 !important;
     }
     
     .logout-btn svg {
-        width: 12px !important;
-        height: 12px !important;
+        width: 11px !important;
+        height: 11px !important;
+        stroke: rgba(203,213,225,0.4) !important;
+    }
+    
+    .logout-text {
+        display: none !important;
     }
 
     /* ========== TAB BAR - Compact Pills ========== */
