@@ -1882,7 +1882,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .chart-wrapper {
-    background: #262a2f;
+    background: #1a1d21;
     border-radius: 12px;
     padding: 24px;
     height: 480px;
@@ -2139,7 +2139,7 @@ h1, h2, h3, h4, h5, h6,
 .chart-wrapper-full {
     height: 400px;
     position: relative;
-    background: linear-gradient(180deg, #1a1d21 0%, #111315 100%);
+    background: #1a1d21;
     border-radius: var(--radius-md);
     padding: var(--space-lg);
 }
