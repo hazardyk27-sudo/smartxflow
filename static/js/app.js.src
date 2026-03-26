@@ -10245,10 +10245,26 @@ function renderLiveMatches(matches, goalHashes) {
             var b1 = _liveMwBlock('1', o['1']);
             var bX = _liveMwBlock('X', o['X']);
             var b2 = _liveMwBlock('2', o['2']);
-            var deskLiveCap = '<div class="live-capsule live-capsule-desk">' +
+            var capGoalCls = goalSide ? ' lc-goal' : '';
+            var capMinText = goalSide ? 'GOL!' : escLiveHtml(matchMin);
+            var capScoreHtml = '';
+            if (showScore) {
+                var csp = showScore.split('-');
+                if (csp.length === 2 && goalSide) {
+                    var hGoal = (goalSide === 'home' || goalSide === 'both');
+                    var aGoal = (goalSide === 'away' || goalSide === 'both');
+                    capScoreHtml = '<span class="lc-divider"></span>' +
+                        '<span class="lc-score-h' + (hGoal ? ' lc-scored' : '') + '">' + csp[0].trim() + '</span>' +
+                        '<span class="lc-score-sep">-</span>' +
+                        '<span class="lc-score-a' + (aGoal ? ' lc-scored' : '') + '">' + csp[1].trim() + '</span>';
+                } else {
+                    capScoreHtml = '<span class="lc-divider"></span><span class="lc-score-val">' + escLiveHtml(showScore) + '</span>';
+                }
+            }
+            var deskLiveCap = '<div class="live-capsule live-capsule-desk' + capGoalCls + '">' +
                 '<span class="lc-dot"></span>' +
-                '<span class="lc-min">' + escLiveHtml(matchMin) + '</span>' +
-                (showScore ? '<span class="lc-divider"></span><span class="lc-score-val">' + escLiveHtml(showScore) + '</span>' : '') +
+                '<span class="lc-min">' + capMinText + '</span>' +
+                capScoreHtml +
                 '</div>';
             rowsHtml += '<tr class="live-row" ' + onclickAttr + '>' +
                 '<td class="match-date">' + deskLiveCap + '</td>' +
@@ -10262,10 +10278,26 @@ function renderLiveMatches(matches, goalHashes) {
             var volOU = _liveCalcVolOU(ou);
             var bU = _liveMwBlock('Alt', ou['U']);
             var bO = _liveMwBlock('Ust', ou['O']);
-            var deskLiveCapOU = '<div class="live-capsule live-capsule-desk">' +
+            var capGoalClsOU = goalSide ? ' lc-goal' : '';
+            var capMinTextOU = goalSide ? 'GOL!' : escLiveHtml(matchMin);
+            var capScoreHtmlOU = '';
+            if (showScore) {
+                var cspOU = showScore.split('-');
+                if (cspOU.length === 2 && goalSide) {
+                    var hGoalOU = (goalSide === 'home' || goalSide === 'both');
+                    var aGoalOU = (goalSide === 'away' || goalSide === 'both');
+                    capScoreHtmlOU = '<span class="lc-divider"></span>' +
+                        '<span class="lc-score-h' + (hGoalOU ? ' lc-scored' : '') + '">' + cspOU[0].trim() + '</span>' +
+                        '<span class="lc-score-sep">-</span>' +
+                        '<span class="lc-score-a' + (aGoalOU ? ' lc-scored' : '') + '">' + cspOU[1].trim() + '</span>';
+                } else {
+                    capScoreHtmlOU = '<span class="lc-divider"></span><span class="lc-score-val">' + escLiveHtml(showScore) + '</span>';
+                }
+            }
+            var deskLiveCapOU = '<div class="live-capsule live-capsule-desk' + capGoalClsOU + '">' +
                 '<span class="lc-dot"></span>' +
-                '<span class="lc-min">' + escLiveHtml(matchMin) + '</span>' +
-                (showScore ? '<span class="lc-divider"></span><span class="lc-score-val">' + escLiveHtml(showScore) + '</span>' : '') +
+                '<span class="lc-min">' + capMinTextOU + '</span>' +
+                capScoreHtmlOU +
                 '</div>';
             rowsHtml += '<tr class="live-row" ' + onclickAttr + '>' +
                 '<td class="match-date">' + deskLiveCapOU + '</td>' +

@@ -879,6 +879,46 @@ h1, h2, h3, h4, h5, h6,
     color: #4ade80;
 }
 
+.live-capsule-desk.lc-goal {
+    background: rgba(34,197,94,0.15) !important;
+    border-color: rgba(34,197,94,0.4) !important;
+    animation: lcGoalPulse 7s ease-out forwards;
+}
+.live-capsule-desk.lc-goal .lc-dot {
+    background: #4ade80 !important;
+    box-shadow: 0 0 6px rgba(34,197,94,0.8) !important;
+}
+.live-capsule-desk.lc-goal .lc-min {
+    color: #4ade80 !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.5px !important;
+}
+.lc-score-h, .lc-score-a {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.45);
+    line-height: 1;
+    transition: all 0.3s ease;
+}
+.lc-score-h.lc-scored {
+    color: #ffffff !important;
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    text-shadow: 0 0 8px rgba(255,255,255,0.5);
+}
+.lc-score-a.lc-scored {
+    color: #ffffff !important;
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    text-shadow: 0 0 8px rgba(255,255,255,0.5);
+}
+@keyframes lcGoalPulse {
+    0%   { background: rgba(34,197,94,0.25); border-color: rgba(34,197,94,0.6); box-shadow: 0 0 12px rgba(34,197,94,0.4); }
+    20%  { background: rgba(34,197,94,0.18); border-color: rgba(34,197,94,0.45); box-shadow: 0 0 8px rgba(34,197,94,0.25); }
+    50%  { background: rgba(34,197,94,0.10); border-color: rgba(34,197,94,0.3); box-shadow: 0 0 4px rgba(34,197,94,0.15); }
+    100% { background: rgba(229,72,77,0.08); border-color: rgba(229,72,77,0.18); box-shadow: none; }
+}
+
 .live-capsule-desk {
     display: inline-flex;
     align-items: center;
