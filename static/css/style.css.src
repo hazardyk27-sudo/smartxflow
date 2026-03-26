@@ -9185,12 +9185,12 @@ table.desktop-only {
         align-items: center !important;
         justify-content: center !important;
         gap: 4px !important;
-        height: 28px !important;
+        height: 30px !important;
         padding: 0 6px !important;
-        background: transparent !important;
-        border: 1px solid transparent !important;
-        border-radius: 5px !important;
-        color: rgba(156,163,175,0.5) !important;
+        background: #1c1f23 !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 6px !important;
+        color: rgba(156,163,175,0.55) !important;
         font-size: 11px !important;
         font-weight: 500 !important;
         letter-spacing: 0.1px !important;
@@ -9204,17 +9204,17 @@ table.desktop-only {
     }
     
     .mob-tab.active {
-        background: rgba(255,255,255,0.05) !important;
-        color: rgba(230,234,238,0.85) !important;
+        background: #1c1f23 !important;
+        color: rgba(230,234,238,0.9) !important;
         font-weight: 600 !important;
-        border-color: rgba(255,255,255,0.05) !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
         box-shadow: none !important;
     }
     
     .mob-cat-row .mob-tab.active {
-        background: rgba(255,255,255,0.05) !important;
-        color: rgba(230,234,238,0.85) !important;
-        border-color: rgba(255,255,255,0.05) !important;
+        background: #1c1f23 !important;
+        color: rgba(230,234,238,0.9) !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
         box-shadow: none !important;
     }
     
@@ -11004,16 +11004,14 @@ table.desktop-only {
     
     /* === 5. CHART TAB İÇERİĞİ === */
     .chart-tabs {
-        display: flex !important;
-        flex-wrap: nowrap !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch !important;
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
         gap: 6px !important;
         padding: 10px 16px !important;
         margin: 0 !important;
         background: transparent !important;
         border: none !important;
-        scrollbar-width: none !important;
+        overflow: visible !important;
     }
     
     .chart-tabs::-webkit-scrollbar {
@@ -11022,23 +11020,47 @@ table.desktop-only {
     
     .chart-tab {
         flex-shrink: 0 !important;
-        padding: 5px 10px !important;
-        font-size: 10px !important;
+        padding: 8px 6px !important;
+        font-size: 11px !important;
         font-weight: 500 !important;
-        color: rgba(110, 118, 129, 0.5) !important;
-        background: transparent !important;
-        border: 0.5px solid rgba(48, 54, 61, 0.6) !important;
-        border-radius: 12px !important;
+        color: rgba(156, 163, 175, 0.55) !important;
+        background: #1c1f23 !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 8px !important;
         white-space: nowrap !important;
-        opacity: 0.7 !important;
+        opacity: 1 !important;
         transition: all 0.2s ease !important;
+        text-align: center !important;
+        justify-content: center !important;
+        position: relative !important;
+        box-shadow: none !important;
+        height: auto !important;
+        min-height: 34px !important;
+    }
+    
+    .chart-tab::after {
+        content: '' !important;
+        position: absolute !important;
+        bottom: 3px !important;
+        left: 50% !important;
+        transform: translateX(-50%) scaleX(0) !important;
+        width: 18px !important;
+        height: 2px !important;
+        background: rgba(255, 255, 255, 0.35) !important;
+        border-radius: 1px !important;
+        transition: transform 0.15s ease !important;
     }
     
     .chart-tab.active {
-        color: #4ade80 !important;
-        background: rgba(74, 222, 128, 0.08) !important;
-        border-color: rgba(74, 222, 128, 0.3) !important;
+        color: rgba(230, 234, 238, 0.9) !important;
+        background: #1c1f23 !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        font-weight: 600 !important;
         opacity: 1 !important;
+    }
+    
+    .chart-tab.active::after {
+        transform: translateX(-50%) scaleX(1) !important;
     }
     
     .chart-legend-filters {
@@ -11603,22 +11625,52 @@ table.desktop-only {
     .chart-tabs {
         display: grid !important;
         grid-template-columns: repeat(3, 1fr) !important;
-        gap: 8px !important;
-        padding: 12px 16px !important;
+        gap: 6px !important;
+        padding: 10px 16px !important;
         margin: 0 !important;
         overflow: visible !important;
     }
     
     .chart-tab {
         height: 34px !important;
-        padding: 6px 8px !important;
-        font-size: 12px !important;
+        padding: 8px 6px !important;
+        font-size: 11px !important;
         font-weight: 500 !important;
-        border-radius: 6px !important;
+        border-radius: 8px !important;
         white-space: nowrap !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        background: #1c1f23 !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        color: rgba(156, 163, 175, 0.55) !important;
+        box-shadow: none !important;
+        opacity: 1 !important;
+        position: relative !important;
+    }
+    
+    .chart-tab.active {
+        color: rgba(230, 234, 238, 0.9) !important;
+        background: #1c1f23 !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        font-weight: 600 !important;
+    }
+    
+    .chart-tab::after {
+        content: '' !important;
+        position: absolute !important;
+        bottom: 3px !important;
+        left: 50% !important;
+        transform: translateX(-50%) scaleX(0) !important;
+        width: 18px !important;
+        height: 2px !important;
+        background: rgba(255, 255, 255, 0.35) !important;
+        border-radius: 1px !important;
+        transition: transform 0.15s ease !important;
+    }
+    
+    .chart-tab.active::after {
+        transform: translateX(-50%) scaleX(1) !important;
     }
     
     .chart-tab .tab-full {
