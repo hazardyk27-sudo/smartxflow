@@ -1406,7 +1406,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .match-info-card {
-    background: rgba(255, 255, 255, 0.04);
+    background: #1c1f23;
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 24px;
@@ -1444,7 +1444,7 @@ h1, h2, h3, h4, h5, h6,
     vertical-align: top;
     text-align: left;
     padding: 16px 20px;
-    background: rgba(255, 255, 255, 0.04);
+    background: #262a2f;
     border-radius: 10px;
     min-width: 120px;
     width: 30%;
