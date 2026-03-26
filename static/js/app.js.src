@@ -5602,7 +5602,7 @@ function exportChartPNG() {
     requestAnimationFrame(() => {
         setTimeout(() => {
             html2canvas(modalContent, {
-                backgroundColor: '#15202b',
+                backgroundColor: '#1a1d21',
                 scale: window.devicePixelRatio || 1,
                 useCORS: true,
                 allowTaint: false,

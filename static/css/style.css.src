@@ -12887,7 +12887,7 @@ table.desktop-only {
 }
 .live-detail-content {
     position: relative;
-    background: #0c1018;
+    background: #1a1d21;
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 14px;
     width: 95%;
@@ -13159,7 +13159,7 @@ table.desktop-only {
     overflow-y: auto;
     padding: 12px;
     flex: 1;
-    background: #0c1018;
+    background: #1a1d21;
 }
 .live-detail-body::-webkit-scrollbar {
     width: 4px;
@@ -13191,7 +13191,7 @@ table.desktop-only {
     border-collapse: separate;
     border-spacing: 0;
     font-size: 13px;
-    background: #0c1018;
+    background: #1a1d21;
 }
 .live-period-table thead th {
     position: sticky;
@@ -13227,7 +13227,7 @@ table.desktop-only {
     color: var(--mw-text-odds);
     border-bottom: 1px solid rgba(255,255,255,0.03);
     white-space: nowrap;
-    background: #0c1018;
+    background: #1a1d21;
     transition: background 0.15s ease;
 }
 .live-period-table tbody tr:hover td {
