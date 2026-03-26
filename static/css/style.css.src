@@ -11100,34 +11100,36 @@ table.desktop-only {
     
     /* === 6. EVENTS TAB İÇERİĞİ - Premium Design === */
     .smart-money-section {
-        margin: 8px 16px 16px !important;
-        background: transparent !important;
-        border: none !important;
+        margin: 0 16px 16px !important;
+        background: #1c1f23 !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 10px !important;
+        overflow: hidden !important;
     }
     
     .smart-money-header {
         display: flex !important;
         align-items: center !important;
-        justify-content: space-between !important;
-        padding: 0 0 10px 0 !important;
-        background: transparent !important;
+        justify-content: flex-start !important;
+        padding: 12px 14px !important;
+        background: rgba(255, 255, 255, 0.02) !important;
         border: none !important;
-        border-bottom: 1px solid #2e3238 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
         border-radius: 0 !important;
-        margin-bottom: 12px !important;
+        margin-bottom: 0 !important;
     }
     
     .smart-money-icon {
         font-size: 11px !important;
-        opacity: 0.8 !important;
+        opacity: 0.7 !important;
     }
     
     .smart-money-title {
         font-size: 11px !important;
-        font-weight: 500 !important;
+        font-weight: 600 !important;
         text-transform: uppercase !important;
-        letter-spacing: 0.04em !important;
-        color: #7d848c !important;
+        letter-spacing: 1px !important;
+        color: rgba(200, 210, 220, 0.5) !important;
     }
     
     .smart-money-chevron {
@@ -12976,7 +12978,7 @@ table.desktop-only {
     margin-bottom: 0;
 }
 .modal-live-section .smart-money-header {
-    padding: 10px 14px 8px;
+    padding: 12px 14px;
 }
 .modal-live-section .smart-money-icon {
     color: rgba(229, 72, 77, 0.6);
@@ -12985,9 +12987,9 @@ table.desktop-only {
 }
 .modal-live-section .smart-money-title {
     font-size: 11px;
-    letter-spacing: 1.5px;
+    letter-spacing: 1px;
     text-transform: uppercase;
-    color: rgba(203,213,225,0.4);
+    color: rgba(200, 210, 220, 0.5);
     font-weight: 600;
 }
 .modal-live-tabs {
@@ -13684,18 +13686,18 @@ table.desktop-only {
         display: none;
     }
     .modal-live-section .smart-money-header {
-        padding: 8px 12px 6px 12px !important;
+        padding: 12px 14px !important;
         margin-bottom: 0 !important;
-        border-bottom: none !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
     }
     .modal-live-section .smart-money-icon {
         font-size: 7px !important;
-        opacity: 0.6 !important;
+        opacity: 0.7 !important;
     }
     .modal-live-section .smart-money-title {
-        font-size: 10px !important;
-        letter-spacing: 1.5px !important;
-        color: rgba(203,213,225,0.35) !important;
+        font-size: 11px !important;
+        letter-spacing: 1px !important;
+        color: rgba(200, 210, 220, 0.5) !important;
         font-weight: 600 !important;
     }
     .modal-live-section .modal-live-tabs {
