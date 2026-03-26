@@ -616,6 +616,21 @@ function _findLiveMatchExact(homeTeam, awayTeam) {
     return null;
 }
 
+function _findFinishedScore(homeTeam, awayTeam) {
+    var key = ((homeTeam || '') + '|' + (awayTeam || '')).toLowerCase();
+    return _finishedScores[key] || null;
+}
+
+async function loadFinishedScores() {
+    try {
+        var resp = await fetch('/api/finished-scores');
+        var data = await resp.json();
+        if (data && data.scores) {
+            _finishedScores = data.scores;
+        }
+    } catch (e) {}
+}
+
 function getMatchLiveCapsule(dateStr, homeTeam, awayTeam) {
     if (!dateStr) return '';
     const matchTime = toTurkeyTime(dateStr);
@@ -626,6 +641,10 @@ function getMatchLiveCapsule(dateStr, homeTeam, awayTeam) {
         var lmExact = _findLiveMatchExact(homeTeam, awayTeam);
         if (_isFinishedLiveMatch(lmExact)) {
             return _buildFinishedCapsule(lmExact, '');
+        }
+        var ftScore = _findFinishedScore(homeTeam, awayTeam);
+        if (ftScore) {
+            return _buildFinishedCapsule({score: ftScore.score, status: 'ft'}, '');
         }
     }
     var lm = _findLiveMatch(homeTeam, awayTeam);
@@ -673,6 +692,10 @@ function getMatchLiveCapsuleDT(dateStr, homeTeam, awayTeam) {
         var lmExact = _findLiveMatchExact(homeTeam, awayTeam);
         if (_isFinishedLiveMatch(lmExact)) {
             return _buildFinishedCapsule(lmExact, 'live-capsule-desk');
+        }
+        var ftScore = _findFinishedScore(homeTeam, awayTeam);
+        if (ftScore) {
+            return _buildFinishedCapsule({score: ftScore.score, status: 'ft'}, 'live-capsule-desk');
         }
     }
     var lm = _findLiveMatch(homeTeam, awayTeam);
@@ -785,6 +808,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!_isLicensed) return;
     
     fetchAnalysisMatchHashes();
+    loadFinishedScores();
     loadMatches();
     checkStatus();
     window.statusInterval = window.setInterval(checkStatus, 60000);
@@ -1562,13 +1586,30 @@ function _updateRenderedCount() {
 function _setupInfiniteScroll() {
     if (_scrollListenerAttached) return;
     _scrollListenerAttached = true;
+    var container = document.querySelector('.table-container');
+    if (container) {
+        container.addEventListener('scroll', function() {
+            if (_renderedCount >= _allFilteredMatches.length) return;
+            var scrollTop = container.scrollTop;
+            var clientH = container.clientHeight;
+            var scrollH = container.scrollHeight;
+            if (scrollTop + clientH >= scrollH - 300) {
+                var isMobile = window.innerWidth <= 768;
+                if (isMobile) {
+                    _renderMoreMobile();
+                } else {
+                    _renderMoreDesktop();
+                }
+            }
+        }, { passive: true });
+    }
     window.addEventListener('scroll', function() {
         if (_renderedCount >= _allFilteredMatches.length) return;
-        const scrollY = window.scrollY || window.pageYOffset;
-        const windowH = window.innerHeight;
-        const docH = document.documentElement.scrollHeight;
+        var scrollY = window.scrollY || window.pageYOffset;
+        var windowH = window.innerHeight;
+        var docH = document.documentElement.scrollHeight;
         if (scrollY + windowH >= docH - 300) {
-            const isMobile = window.innerWidth <= 768;
+            var isMobile = window.innerWidth <= 768;
             if (isMobile) {
                 _renderMoreMobile();
             } else {
@@ -9996,6 +10037,7 @@ var _modalLiveMarket = '1x2';
 var _liveDetailData = null;
 var _liveDetailMarket = '1x2';
 var _prevLiveScores = {};
+var _finishedScores = {};
 
 function switchToLive() {
     _liveMode = true;

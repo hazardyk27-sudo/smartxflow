@@ -1975,6 +1975,39 @@ def get_live_matches():
         return jsonify({'matches': [], 'error': str(e)}), 200
 
 
+_ft_scores_cache = {'data': None, 'ts': 0}
+
+@app.route('/api/finished-scores')
+@license_required
+def get_finished_scores():
+    """Biten maçların skorlarını döndür — live_fixtures tablosundan ft olanlar"""
+    import time as _t
+    now = _t.time()
+    if _ft_scores_cache['data'] is not None and now - _ft_scores_cache['ts'] < 60:
+        return jsonify(_ft_scores_cache['data']), 200
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return jsonify({'scores': {}}), 200
+        headers = supabase._headers()
+        url = f"{supabase._rest_url('live_fixtures')}?status=eq.ft&select=home_team,away_team,score,match_id_hash&order=updated_at.desc&limit=200"
+        resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
+        scores = {}
+        if resp.status_code == 200:
+            for f in resp.json():
+                sc = (f.get('score') or '').strip()
+                if sc:
+                    key = (f.get('home_team', '') + '|' + f.get('away_team', '')).lower()
+                    scores[key] = {'score': sc, 'home': f.get('home_team', ''), 'away': f.get('away_team', '')}
+        result = {'scores': scores}
+        _ft_scores_cache['data'] = result
+        _ft_scores_cache['ts'] = now
+        return jsonify(result), 200
+    except Exception as e:
+        print(f"[API] /api/finished-scores hata: {e}")
+        return jsonify({'scores': {}}), 200
+
+
 @app.route('/api/live/match/history-by-teams')
 @license_required
 def get_live_match_history_by_teams():
