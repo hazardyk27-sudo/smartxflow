@@ -4732,7 +4732,7 @@ async function loadChart(home, away, market, league = '') {
                     // Premium solid anthracite background (NO gradient)
                     ctx.beginPath();
                     ctx.roundRect(left - padding, top - padding, width + padding * 2, height + padding * 2, radius);
-                    ctx.fillStyle = '#0E141B';
+                    ctx.fillStyle = '#1a1d21';
                     ctx.fill();
                     
                     // Subtle border for "box" feel
