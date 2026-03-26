@@ -1867,7 +1867,34 @@ def get_live_matches():
         fix_resp = supabase._get_http_client().get(fix_url, headers=headers, timeout=15)
         if fix_resp.status_code != 200:
             return jsonify({'matches': [], 'error': f'Fixtures HTTP {fix_resp.status_code}'}), 200
-        fixtures = fix_resp.json() or []
+        raw_fixtures = fix_resp.json() or []
+
+        from datetime import datetime as _dt2, timezone as _tz2
+        _now_api = _dt2.now(_tz2.utc)
+        auto_ft_hashes = []
+        fixtures = []
+        for f in raw_fixtures:
+            ko_str = f.get('kickoff_utc', '')
+            if ko_str:
+                try:
+                    ko_t = _dt2.fromisoformat(ko_str)
+                    dm = (_now_api - ko_t).total_seconds() / 60
+                    if dm >= 120:
+                        auto_ft_hashes.append(f['match_id_hash'])
+                        f['status'] = 'ft'
+                        if not f.get('minute') or f['minute'] not in ('FT', 'MS', 'AET', 'PEN'):
+                            f['minute'] = 'FT'
+                except Exception:
+                    pass
+            fixtures.append(f)
+        if auto_ft_hashes:
+            try:
+                for aft_h in auto_ft_hashes:
+                    patch_url = f"{supabase._rest_url('live_fixtures')}?match_id_hash=eq.{aft_h}"
+                    supabase._get_http_client().patch(patch_url, headers={**headers, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'}, json={'status': 'ft', 'minute': 'FT'}, timeout=5)
+                print(f"[Live API] Auto-FT: {len(auto_ft_hashes)} maç DB'de güncellendi")
+            except Exception as e:
+                print(f"[Live API] Auto-FT DB güncelleme hatası: {e}")
 
         ft_url = f"{supabase._rest_url('live_fixtures')}?status=eq.ft&order=updated_at.desc&limit=100"
         ft_resp = supabase._get_http_client().get(ft_url, headers=headers, timeout=10)

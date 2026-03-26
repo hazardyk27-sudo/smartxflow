@@ -761,6 +761,25 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
 
     if all_fixtures:
         _apply_sofascore_results(all_fixtures, sofa_result)
+        now_dt = datetime.now(timezone.utc)
+        auto_ft_count = 0
+        for h, fix in all_fixtures.items():
+            if fix.get('status') == 'ft':
+                continue
+            ko_str = fix.get('kickoff_utc', '')
+            if ko_str:
+                try:
+                    ko_time = datetime.fromisoformat(ko_str)
+                    diff_min = (now_dt - ko_time).total_seconds() / 60
+                    if diff_min >= 120:
+                        fix['status'] = 'ft'
+                        if not fix.get('minute') or fix['minute'] not in ('FT', 'MS', 'AET', 'PEN'):
+                            fix['minute'] = 'FT'
+                        auto_ft_count += 1
+                except Exception:
+                    pass
+        if auto_ft_count:
+            log(f"  [AUTO-FT] {auto_ft_count} maç 120+ dk geçtiği için otomatik FT yapıldı")
         already_ft = writer.get_ft_fixture_hashes()
         ft_skipped = 0
         fixtures_list = []

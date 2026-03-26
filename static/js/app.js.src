@@ -10293,16 +10293,17 @@ function renderLiveMatches(matches, goalHashes) {
         var min = (m.minute || '').trim().toUpperCase();
         if (min === 'FT' || min === 'MS' || min === 'AET' || min === 'PEN') return false;
         if ((m.status || '').toLowerCase() === 'ft') return false;
-        if (!min && !m.score) {
-            if (m.kickoff_utc) {
-                var ko = new Date(m.kickoff_utc);
-                if (!isNaN(ko.getTime())) {
-                    var diffM = (nowMs - ko.getTime()) / 60000;
-                    if (diffM < 0 || diffM > 130) return false;
+        if (m.kickoff_utc) {
+            var ko = new Date(m.kickoff_utc);
+            if (!isNaN(ko.getTime())) {
+                var diffM = (nowMs - ko.getTime()) / 60000;
+                if (diffM >= 120) return false;
+                if (diffM < 0 || diffM > 130) {
+                    if (!min && !m.score) return false;
                 }
-            } else {
-                return false;
             }
+        } else if (!min && !m.score) {
+            return false;
         }
         if (is1x2) return _liveCalcVol1x2(m) > 0;
         return _liveCalcVolOU(_liveGetOu(m, ouLine)) > 0;
