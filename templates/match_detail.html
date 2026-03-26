@@ -335,7 +335,7 @@
         async function exportChartPNG() {
             const content = document.querySelector('.match-detail-content');
             try {
-                const canvas = await html2canvas(content, {backgroundColor:'#0d1117',scale:2});
+                const canvas = await html2canvas(content, {backgroundColor:'#141719',scale:2});
                 const link = document.createElement('a');
                 link.download = matchHome + '_vs_' + matchAway + '.png';
                 link.href = canvas.toDataURL('image/png');
