@@ -630,11 +630,11 @@ function _getModalFinishedCapsule(match) {
     if (diff < 80) return '';
     var lmExact = _findLiveMatchExact(match.home_team, match.away_team);
     if (_isFinishedLiveMatch(lmExact)) {
-        return ' <span class="lc-ended" style="margin-left:8px;font-size:13px;vertical-align:middle;">BİTTİ ' + (lmExact.score || '') + '</span>';
+        return ' ' + _buildFinishedCapsule(lmExact, 'lc-modal');
     }
     var ft = _findFinishedScore(match.home_team, match.away_team, match.match_id);
     if (ft) {
-        return ' <span class="lc-ended" style="margin-left:8px;font-size:13px;vertical-align:middle;">BİTTİ ' + (ft.score || '') + '</span>';
+        return ' ' + _buildFinishedCapsule({score: ft.score, status: 'ft'}, 'lc-modal');
     }
     return '';
 }

@@ -1006,6 +1006,14 @@ h1, h2, h3, h4, h5, h6,
     background: rgba(255,255,255,0.12);
 }
 
+.live-capsule.lc-modal {
+    display: inline-flex;
+    vertical-align: middle;
+    margin-left: 10px;
+    font-size: 12px;
+    padding: 3px 10px;
+}
+
 .match-status {
     font-size: 9px;
     font-weight: 600;
