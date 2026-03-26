@@ -839,6 +839,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Dropping preload deferred — loaded on tab switch
     
     setupAutoRefresh();
+    _startBackgroundLiveFetch();
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
 });
@@ -925,6 +926,11 @@ function handleVisibilityChange() {
             }, intervalWithJitter);
         }
         
+        if (!_bgLiveInterval) {
+            _fetchBackgroundLiveData();
+            _bgLiveInterval = setInterval(_fetchBackgroundLiveData, 60000);
+        }
+        
         // 10 dakikadan fazla geçtiyse yenile
         if (_lastMatchRefreshTime) {
             const now = dayjs().tz(APP_TIMEZONE);
@@ -943,6 +949,10 @@ function handleVisibilityChange() {
             clearInterval(_matchRefreshInterval);
             _matchRefreshInterval = null;
             console.log('[AutoRefresh] Tab arka planda - interval durduruldu');
+        }
+        if (_bgLiveInterval) {
+            clearInterval(_bgLiveInterval);
+            _bgLiveInterval = null;
         }
     }
 }
@@ -10060,6 +10070,23 @@ document.addEventListener('DOMContentLoaded', function() {
 document.getElementById('licenseKeyInput')?.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') validateWebLicense();
 });
+
+// ── Background Live Data Fetch (MW/Oran sayfalarında dk/skor için) ──
+var _bgLiveInterval = null;
+
+async function _fetchBackgroundLiveData() {
+    if (_liveMode) return;
+    try {
+        var resp = await fetch('/api/live/matches');
+        var data = await resp.json();
+        _liveData = data.matches || [];
+    } catch (e) {}
+}
+
+function _startBackgroundLiveFetch() {
+    _fetchBackgroundLiveData();
+    _bgLiveInterval = setInterval(_fetchBackgroundLiveData, 60000);
+}
 
 // ── Canlı (Live) Tab ──────────────────────────────────────
 var _liveMode = false;
