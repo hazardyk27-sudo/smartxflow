@@ -1883,6 +1883,13 @@ def get_live_matches():
             h = f['match_id_hash']
             minute_val = (f.get('minute') or '').strip()
             score = f.get('score', '')
+            f_status = (f.get('status') or '').strip().lower()
+
+            if f_status == 'ft':
+                continue
+            if minute_val in ('FT', 'MS', 'AET', 'PEN'):
+                continue
+
             if not minute_val and not score:
                 ko_str = f.get('kickoff_utc', '')
                 if ko_str:
@@ -1890,10 +1897,23 @@ def get_live_matches():
                         ko_time = _dt.fromisoformat(ko_str)
                         if ko_time > now_utc:
                             continue
+                        diff_min = (now_utc - ko_time).total_seconds() / 60
+                        if diff_min > 130:
+                            continue
                     except Exception:
                         pass
                 else:
                     continue
+            elif minute_val and not score:
+                ko_str = f.get('kickoff_utc', '')
+                if ko_str:
+                    try:
+                        ko_time = _dt.fromisoformat(ko_str)
+                        diff_min = (now_utc - ko_time).total_seconds() / 60
+                        if diff_min > 150:
+                            continue
+                    except Exception:
+                        pass
             match_data = {
                 'match_id_hash': h,
                 'home_team': f.get('home_team', ''),
