@@ -1430,6 +1430,7 @@ function _renderMatchRow(match, idx) {
 }
 
 function _renderMoreDesktop() {
+    if (typeof _liveMode !== 'undefined' && _liveMode) return;
     if (_renderedCount >= _allFilteredMatches.length) return;
     const tbody = document.getElementById('matchesTableBody');
     if (!tbody) return;
@@ -1447,6 +1448,7 @@ function _renderMoreDesktop() {
 }
 
 function _renderMoreMobile() {
+    if (typeof _liveMode !== 'undefined' && _liveMode) return;
     if (_renderedCount >= _allFilteredMatches.length) return;
     const cardList = document.getElementById('matchCardList');
     if (!cardList) return;
