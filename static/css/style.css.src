@@ -882,10 +882,6 @@ h1, h2, h3, h4, h5, h6,
 .live-capsule-desk.lc-goal {
     background: rgba(34,197,94,0.15) !important;
     border-color: rgba(34,197,94,0.4) !important;
-    width: auto !important;
-    min-width: 90px !important;
-    padding: 0 10px !important;
-    gap: 5px !important;
     animation: lcGoalPulse 7s ease-out forwards;
 }
 .live-capsule-desk.lc-goal .lc-dot {
@@ -921,13 +917,11 @@ h1, h2, h3, h4, h5, h6,
 }
 .lc-score-h.lc-scored {
     color: #ffffff !important;
-    font-size: 14px !important;
     font-weight: 800 !important;
     text-shadow: 0 0 6px rgba(255,255,255,0.4);
 }
 .lc-score-a.lc-scored {
     color: #ffffff !important;
-    font-size: 14px !important;
     font-weight: 800 !important;
     text-shadow: 0 0 6px rgba(255,255,255,0.4);
 }
