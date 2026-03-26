@@ -8942,15 +8942,15 @@ table.desktop-only {
     .header {
         display: flex !important;
         flex-wrap: nowrap !important;
-        height: 48px !important;
-        padding: 0 14px !important;
+        height: 44px !important;
+        padding: 0 12px !important;
         gap: 0 !important;
         align-items: center !important;
         position: relative !important;
         z-index: 100 !important;
         justify-content: space-between !important;
         background: #1c1f23 !important;
-        border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+        border-bottom: 1px solid rgba(255,255,255,0.04) !important;
     }
     
     .header-left {
@@ -8964,7 +8964,7 @@ table.desktop-only {
     .header-right {
         display: flex !important;
         align-items: center !important;
-        gap: 8px !important;
+        gap: 6px !important;
         flex: 0 0 auto !important;
         height: 100% !important;
     }
@@ -8980,7 +8980,7 @@ table.desktop-only {
         flex-direction: column !important;
         align-items: flex-start !important;
         justify-content: center !important;
-        gap: 1px !important;
+        gap: 0 !important;
         height: 100% !important;
     }
     
@@ -8992,26 +8992,27 @@ table.desktop-only {
     }
     
     .logo-smart, .logo-flow {
-        font-size: 14px !important;
+        font-size: 13px !important;
         font-weight: 700 !important;
-        letter-spacing: 0.8px !important;
-        color: rgba(237,240,243,0.92) !important;
+        letter-spacing: 1.2px !important;
+        color: rgba(230,234,238,0.88) !important;
     }
     
     .logo-icon {
-        width: 15px !important;
-        height: 15px !important;
+        width: 14px !important;
+        height: 14px !important;
+        transform: translateY(0) !important;
     }
     
     .logo-subtitle {
         display: block !important;
-        font-size: 9px !important;
+        font-size: 8.5px !important;
         font-weight: 500 !important;
-        color: rgba(156,163,175,0.5) !important;
-        letter-spacing: 0.6px !important;
+        color: rgba(156,163,175,0.4) !important;
+        letter-spacing: 0.8px !important;
         text-transform: uppercase !important;
         line-height: 1 !important;
-        margin-top: 1px !important;
+        margin-top: 2px !important;
         opacity: 1 !important;
     }
     
@@ -9021,50 +9022,54 @@ table.desktop-only {
     
     .license-days-badge {
         font-size: 10px !important;
-        padding: 4px 10px !important;
+        padding: 5px 10px !important;
         gap: 5px !important;
         border-radius: 6px !important;
-        background: rgba(255,255,255,0.04) !important;
-        border: 1px solid rgba(255,255,255,0.06) !important;
-        color: rgba(203,213,225,0.7) !important;
+        background: rgba(255,255,255,0.03) !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        color: rgba(203,213,225,0.55) !important;
         font-weight: 500 !important;
         opacity: 1 !important;
+        height: 28px !important;
+        box-sizing: border-box !important;
     }
     
     .license-days-badge svg {
         width: 10px !important;
         height: 10px !important;
-        stroke: rgba(203,213,225,0.5) !important;
+        stroke: rgba(203,213,225,0.35) !important;
     }
     
     .license-days-badge.warning {
-        background: rgba(251,191,36,0.06) !important;
-        border-color: rgba(251,191,36,0.12) !important;
-        color: rgba(251,191,36,0.7) !important;
+        background: rgba(251,191,36,0.05) !important;
+        border-color: rgba(251,191,36,0.1) !important;
+        color: rgba(251,191,36,0.6) !important;
     }
     
     .license-days-badge.danger {
-        background: rgba(239,68,68,0.06) !important;
-        border-color: rgba(239,68,68,0.12) !important;
-        color: rgba(239,68,68,0.7) !important;
+        background: rgba(239,68,68,0.05) !important;
+        border-color: rgba(239,68,68,0.1) !important;
+        color: rgba(239,68,68,0.6) !important;
     }
     
     .logout-btn {
-        padding: 4px 10px !important;
+        padding: 5px 8px !important;
         font-size: 10px !important;
-        gap: 4px !important;
+        gap: 0 !important;
         border-radius: 6px !important;
         background: rgba(255,255,255,0.03) !important;
-        border: 1px solid rgba(255,255,255,0.06) !important;
-        color: rgba(203,213,225,0.5) !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        color: rgba(203,213,225,0.4) !important;
         font-weight: 500 !important;
         margin-left: 0 !important;
+        height: 28px !important;
+        box-sizing: border-box !important;
     }
     
     .logout-btn svg {
-        width: 11px !important;
-        height: 11px !important;
-        stroke: rgba(203,213,225,0.4) !important;
+        width: 12px !important;
+        height: 12px !important;
+        stroke: rgba(203,213,225,0.35) !important;
     }
     
     .logout-text {
@@ -9126,8 +9131,8 @@ table.desktop-only {
     .mob-ctrl {
         display: flex !important;
         flex-direction: column !important;
-        padding: 6px 4px 4px !important;
-        background: #141719 !important;
+        padding: 4px 6px 4px !important;
+        background: #1c1f23 !important;
         gap: 3px !important;
     }
     
@@ -9142,7 +9147,7 @@ table.desktop-only {
         gap: 2px !important;
         background: transparent !important;
         border-radius: 0 !important;
-        padding: 2px 3px !important;
+        padding: 2px 2px !important;
         border: none !important;
         box-shadow: none !important;
     }
@@ -9157,20 +9162,20 @@ table.desktop-only {
     
     .mob-ctrl > .mob-ctrl-row.mob-cat-row,
     .mob-ctrl > .mob-ctrl-row.mob-mkt-row {
-        background: #1c1f23 !important;
-        border: 1px solid rgba(255,255,255,0.04) !important;
+        background: rgba(255,255,255,0.02) !important;
+        border: 1px solid rgba(255,255,255,0.03) !important;
     }
     
     .mob-ctrl > .mob-ctrl-row.mob-cat-row {
         border-radius: 8px 8px 0 0 !important;
         border-bottom: none !important;
-        padding: 3px 3px 2px !important;
+        padding: 3px 2px 2px !important;
     }
     
     .mob-ctrl > .mob-ctrl-row.mob-mkt-row {
         border-radius: 0 0 8px 8px !important;
-        border-top: 1px solid rgba(255,255,255,0.03) !important;
-        padding: 2px 3px 3px !important;
+        border-top: 1px solid rgba(255,255,255,0.025) !important;
+        padding: 2px 2px 3px !important;
         margin-top: -3px !important;
     }
     
@@ -9179,14 +9184,14 @@ table.desktop-only {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        gap: 5px !important;
+        gap: 4px !important;
         height: 28px !important;
-        padding: 0 8px !important;
+        padding: 0 6px !important;
         background: transparent !important;
         border: 1px solid transparent !important;
         border-radius: 5px !important;
-        color: #555b63 !important;
-        font-size: 11.5px !important;
+        color: rgba(156,163,175,0.5) !important;
+        font-size: 11px !important;
         font-weight: 500 !important;
         letter-spacing: 0.1px !important;
         cursor: pointer !important;
@@ -9199,23 +9204,23 @@ table.desktop-only {
     }
     
     .mob-tab.active {
-        background: #282c32 !important;
-        color: #d8dce2 !important;
+        background: rgba(255,255,255,0.05) !important;
+        color: rgba(230,234,238,0.85) !important;
         font-weight: 600 !important;
-        border-color: rgba(255,255,255,0.06) !important;
+        border-color: rgba(255,255,255,0.05) !important;
         box-shadow: none !important;
     }
     
     .mob-cat-row .mob-tab.active {
-        background: #282c32 !important;
-        color: #d8dce2 !important;
-        border-color: rgba(255,255,255,0.06) !important;
+        background: rgba(255,255,255,0.05) !important;
+        color: rgba(230,234,238,0.85) !important;
+        border-color: rgba(255,255,255,0.05) !important;
         box-shadow: none !important;
     }
     
     .mob-tab:active {
         transform: scale(0.97) !important;
-        background: rgba(255,255,255,0.04) !important;
+        background: rgba(255,255,255,0.03) !important;
     }
     
     .mob-tab.active:active {
@@ -9225,10 +9230,10 @@ table.desktop-only {
     /* --- Action Row (Toolbar Controls) --- */
     .mob-action-row {
         display: flex !important;
-        gap: 2px !important;
+        gap: 4px !important;
         align-items: center !important;
-        margin-top: 2px !important;
-        height: 32px !important;
+        margin-top: 1px !important;
+        height: 30px !important;
     }
     
     .mob-search-inline {
@@ -9236,9 +9241,9 @@ table.desktop-only {
         align-items: center !important;
         gap: 6px !important;
         flex: 4 !important;
-        height: 32px !important;
+        height: 30px !important;
         padding: 0 10px !important;
-        background: #1e2125 !important;
+        background: rgba(255,255,255,0.025) !important;
         border: 1px solid rgba(255,255,255,0.04) !important;
         border-radius: 6px !important;
         box-sizing: border-box !important;
@@ -9247,12 +9252,12 @@ table.desktop-only {
     }
     
     .mob-search-inline:focus-within {
-        border-color: rgba(255,255,255,0.1) !important;
+        border-color: rgba(255,255,255,0.08) !important;
         box-shadow: none !important;
     }
     
     .mob-search-inline svg {
-        opacity: 0.25 !important;
+        opacity: 0.2 !important;
         flex-shrink: 0 !important;
     }
     
@@ -9263,7 +9268,7 @@ table.desktop-only {
         background: transparent !important;
         border: none !important;
         outline: none !important;
-        color: #c9d1d9 !important;
+        color: rgba(201,209,217,0.8) !important;
         font-size: 11px !important;
         font-family: inherit !important;
         padding: 0 !important;
@@ -9271,7 +9276,7 @@ table.desktop-only {
     }
     
     .mob-search-inline input::placeholder {
-        color: #3d444d !important;
+        color: rgba(156,163,175,0.3) !important;
     }
     
     .mob-act-btn {
@@ -9279,12 +9284,12 @@ table.desktop-only {
         align-items: center !important;
         justify-content: center !important;
         gap: 4px !important;
-        height: 32px !important;
+        height: 30px !important;
         padding: 0 10px !important;
-        background: #1e2125 !important;
+        background: rgba(255,255,255,0.025) !important;
         border: 1px solid rgba(255,255,255,0.04) !important;
         border-radius: 6px !important;
-        color: #6b727a !important;
+        color: rgba(156,163,175,0.55) !important;
         font-size: 10.5px !important;
         font-weight: 500 !important;
         letter-spacing: 0.1px !important;
@@ -9307,18 +9312,18 @@ table.desktop-only {
     
     .mob-act-btn:active {
         transform: scale(0.96) !important;
-        background: #1a1d21 !important;
+        background: rgba(255,255,255,0.04) !important;
         box-shadow: none !important;
     }
     
     .mob-act-btn svg {
         flex-shrink: 0 !important;
-        opacity: 0.4 !important;
+        opacity: 0.3 !important;
     }
     
     .mob-act-sq {
-        width: 32px !important;
-        height: 32px !important;
+        width: 30px !important;
+        height: 30px !important;
         padding: 0 !important;
         flex-shrink: 0 !important;
         flex-grow: 0 !important;
@@ -9330,8 +9335,8 @@ table.desktop-only {
         justify-content: center !important;
         font-size: 8px !important;
         font-weight: 700 !important;
-        color: #c9cdd2 !important;
-        background: rgba(255, 255, 255, 0.08) !important;
+        color: rgba(201,209,217,0.7) !important;
+        background: rgba(255,255,255,0.06) !important;
         border-radius: 3px !important;
         padding: 1px 3px !important;
         min-width: 12px !important;
@@ -9339,14 +9344,14 @@ table.desktop-only {
     }
     
     .mob-act-btn.has-filter {
-        border-color: rgba(255,255,255,0.1) !important;
-        color: #c9cdd2 !important;
-        background: #222629 !important;
+        border-color: rgba(255,255,255,0.08) !important;
+        color: rgba(201,209,217,0.7) !important;
+        background: rgba(255,255,255,0.04) !important;
     }
     
     .mob-act-btn.has-filter svg {
-        opacity: 0.7 !important;
-        stroke: #c9cdd2 !important;
+        opacity: 0.5 !important;
+        stroke: rgba(201,209,217,0.7) !important;
     }
 
     /* Hide desktop search on mobile */
