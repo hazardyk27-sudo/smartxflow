@@ -1962,6 +1962,36 @@ def get_live_matches():
 
             matches.append(match_data)
 
+        import time as _time
+        _demo_elapsed = int(_time.time()) % 300
+        _demo_goals_home = _demo_elapsed // 30
+        _demo_goals_away = max(0, (_demo_elapsed - 15) // 60)
+        _demo_min = 10 + _demo_elapsed // 6
+        _demo_score = f"{_demo_goals_home}-{_demo_goals_away}"
+        _demo_match = {
+            'match_id_hash': 'demo_test_match_001',
+            'home_team': 'Demo FC',
+            'away_team': 'Test United',
+            'league': 'Demo League',
+            'score': _demo_score,
+            'minute': f"{_demo_min}'",
+            'kickoff_utc': '',
+            'status': 'live',
+            'updated_at': now_utc.isoformat(),
+            'odds': {
+                '1': {'odds': 1.85, 'share': 45.0, 'volume': 12500},
+                'X': {'odds': 3.60, 'share': 22.0, 'volume': 6100},
+                '2': {'odds': 4.20, 'share': 33.0, 'volume': 9200},
+            },
+            'ou_lines': {
+                '2.5': {
+                    'U': {'odds': 1.55, 'share': 58.0, 'volume': 8900},
+                    'O': {'odds': 2.50, 'share': 42.0, 'volume': 6400},
+                }
+            },
+        }
+        matches.insert(0, _demo_match)
+
         return jsonify({'matches': matches, 'total': len(matches)}), 200
 
     except Exception as e:
