@@ -639,12 +639,15 @@ function _getModalFinishedCapsule(match) {
     return '';
 }
 
-async function loadFinishedScores() {
+async function loadFinishedScores(reRender) {
     try {
         var resp = await fetch('/api/finished-scores');
         var data = await resp.json();
         if (data && data.scores) {
             _finishedScores = data.scores;
+            if (reRender && filteredMatches && filteredMatches.length) {
+                renderMatches(filteredMatches);
+            }
         }
     } catch (e) {}
 }
@@ -1133,11 +1136,14 @@ async function loadMatches(appendMode = false) {
                 return;
             }
             
-            // Handle response
+            if (result.finished_scores) {
+                _finishedScores = result.finished_scores;
+            }
+
             if (result.matches !== undefined) {
                 matches = result.matches || [];
                 totalMatchCount = result.total || matches.length;
-                hasMoreMatches = false; // Bulk mode returns all, no more pages
+                hasMoreMatches = false;
                 currentOffset = matches.length;
             } else {
                 matches = result || [];

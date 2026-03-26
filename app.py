@@ -1234,7 +1234,11 @@ def get_matches():
         if cached_data:
             elapsed = (t.time() - start_time) * 1000
             print(f"[Matches/Bulk] Cache HIT for {market} - {elapsed:.0f}ms, {len(cached_data)} matches")
-            return jsonify({'matches': cached_data, 'total': len(cached_data), 'has_more': False})
+            ft_scores = _get_finished_scores_map()
+            resp_data = {'matches': cached_data, 'total': len(cached_data), 'has_more': False}
+            if ft_scores:
+                resp_data['finished_scores'] = ft_scores
+            return jsonify(resp_data)
         
         # Cache miss - fetch ALL matches in one go
         all_matches = []
@@ -1386,7 +1390,11 @@ def get_matches():
         elapsed = (t.time() - start_time) * 1000
         print(f"[Matches/Bulk] Cache MISS for {market} - fetched {len(all_matches)} matches in {elapsed:.0f}ms")
         
-        return jsonify({'matches': all_matches, 'total': len(all_matches), 'has_more': False})
+        ft_scores = _get_finished_scores_map()
+        resp_data = {'matches': all_matches, 'total': len(all_matches), 'has_more': False}
+        if ft_scores:
+            resp_data['finished_scores'] = ft_scores
+        return jsonify(resp_data)
     
     # PAGINATED MODE (legacy): Use for non-bulk requests
     # Use new paginated function for ALL/no date_filter (most common case)
@@ -1473,11 +1481,15 @@ def get_matches():
                 'history_count': 1
             })
         
-        return jsonify({
+        ft_scores = _get_finished_scores_map()
+        resp_data = {
             'matches': enriched,
             'total': result.get('total', len(enriched)),
             'has_more': result.get('has_more', False)
-        })
+        }
+        if ft_scores:
+            resp_data['finished_scores'] = ft_scores
+        return jsonify(resp_data)
     
     # Fallback to old method for date_filter (today/yesterday)
     now = time.time()
@@ -1488,7 +1500,11 @@ def get_matches():
         if (now - last_time) < matches_cache['ttl']:
             cached_data = matches_cache['data'][cache_key]
             sliced = cached_data[offset:offset + limit]
-            return jsonify({'matches': sliced, 'total': len(cached_data), 'has_more': offset + limit < len(cached_data)})
+            ft_scores = _get_finished_scores_map()
+            resp_data = {'matches': sliced, 'total': len(cached_data), 'has_more': offset + limit < len(cached_data)}
+            if ft_scores:
+                resp_data['finished_scores'] = ft_scores
+            return jsonify(resp_data)
     
     matches_with_latest = db.get_all_matches_with_latest(market, date_filter=date_filter)
     
@@ -1575,7 +1591,11 @@ def get_matches():
     matches_cache['timestamp'][cache_key] = now
     
     sliced = enriched[offset:offset + limit]
-    return jsonify({'matches': sliced, 'total': len(enriched), 'has_more': offset + limit < len(enriched)})
+    ft_scores = _get_finished_scores_map()
+    resp_data = {'matches': sliced, 'total': len(enriched), 'has_more': offset + limit < len(enriched)}
+    if ft_scores:
+        resp_data['finished_scores'] = ft_scores
+    return jsonify(resp_data)
 
 
 @app.route('/api/match/history/bulk')
@@ -1977,18 +1997,15 @@ def get_live_matches():
 
 _ft_scores_cache = {'data': None, 'ts': 0}
 
-@app.route('/api/finished-scores')
-@license_required
-def get_finished_scores():
-    """Biten maçların skorlarını döndür — live_fixtures tablosundan ft olanlar"""
+def _get_finished_scores_map():
     import time as _t
     now = _t.time()
     if _ft_scores_cache['data'] is not None and now - _ft_scores_cache['ts'] < 60:
-        return jsonify(_ft_scores_cache['data']), 200
+        return _ft_scores_cache['data'].get('scores', {})
     try:
         supabase = get_supabase_client()
         if not supabase or not supabase.is_available:
-            return jsonify({'scores': {}}), 200
+            return {}
         headers = supabase._headers()
         url = f"{supabase._rest_url('live_fixtures')}?status=eq.ft&select=home_team,away_team,score,match_id_hash&order=updated_at.desc&limit=200"
         resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
@@ -2006,11 +2023,16 @@ def get_finished_scores():
         result = {'scores': scores}
         _ft_scores_cache['data'] = result
         _ft_scores_cache['ts'] = now
-        print(f"[FT-Scores] {len(scores)} keys cached ({resp.status_code})")
-        return jsonify(result), 200
+        return scores
     except Exception as e:
-        print(f"[API] /api/finished-scores hata: {e}")
-        return jsonify({'scores': {}}), 200
+        print(f"[FT-Scores] hata: {e}")
+        return {}
+
+@app.route('/api/finished-scores')
+@license_required
+def get_finished_scores():
+    scores = _get_finished_scores_map()
+    return jsonify({'scores': scores}), 200
 
 
 @app.route('/api/live/match/history-by-teams')
