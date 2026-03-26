@@ -1877,9 +1877,23 @@ def get_live_matches():
                 ou_by_match[h].append(s)
 
         matches = []
+        from datetime import datetime as _dt, timezone as _tz
+        now_utc = _dt.now(_tz.utc)
         for f in fixtures:
             h = f['match_id_hash']
+            minute_val = (f.get('minute') or '').strip()
             score = f.get('score', '')
+            if not minute_val and not score:
+                ko_str = f.get('kickoff_utc', '')
+                if ko_str:
+                    try:
+                        ko_time = _dt.fromisoformat(ko_str)
+                        if ko_time > now_utc:
+                            continue
+                    except Exception:
+                        pass
+                else:
+                    continue
             match_data = {
                 'match_id_hash': h,
                 'home_team': f.get('home_team', ''),
