@@ -423,12 +423,6 @@ class SupabaseClient:
                         latest = {}
                     
                     kickoff_utc = fix.get('kickoff_utc', '')
-                    if isinstance(kickoff_utc, str):
-                        try:
-                            dt = datetime.fromisoformat(kickoff_utc.replace('Z', '+00:00'))
-                            kickoff_utc = dt.strftime('%H:%M %d.%b')
-                        except:
-                            pass
                     
                     matches.append({
                         'home_team': home,
@@ -509,17 +503,6 @@ class SupabaseClient:
                     league = fix.get('league', '')
                     
                     kickoff_utc = fix.get('kickoff_utc', '')
-                    date_display = fix.get('fixture_date', '')
-                    if kickoff_utc:
-                        try:
-                            if isinstance(kickoff_utc, str):
-                                kickoff_dt = datetime.fromisoformat(kickoff_utc.replace('Z', '+00:00'))
-                            else:
-                                kickoff_dt = kickoff_utc
-                            kickoff_tr = kickoff_dt.astimezone(tr_tz)
-                            date_display = kickoff_tr.strftime('%d.%b %H:%M')
-                        except:
-                            pass
                     
                     match_hash = fix.get('match_id_hash', '')
                     latest_odds = {
@@ -538,7 +521,7 @@ class SupabaseClient:
                         'home_team': home,
                         'away_team': away,
                         'league': league,
-                        'date': date_display,
+                        'date': kickoff_utc,
                         'match_id_hash': fix.get('match_id_hash', ''),
                         'kickoff_utc': kickoff_utc,
                         'latest': latest_odds
