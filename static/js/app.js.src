@@ -2606,12 +2606,10 @@ function applySorting(data) {
         const d2 = b.details || b.odds || {};
         
         switch (currentSortColumn) {
-            case 'date': {
-                const nowMs = Date.now();
-                const tA = parseDate(a.date) || 0;
-                const tB = parseDate(b.date) || 0;
-                return Math.abs(tA - nowMs) - Math.abs(tB - nowMs);
-            }
+            case 'date':
+                valA = parseDate(a.date);
+                valB = parseDate(b.date);
+                break;
             case 'league':
                 valA = (a.league || '').toLowerCase();
                 valB = (b.league || '').toLowerCase();
@@ -2763,7 +2761,7 @@ function sortByColumn(column) {
         currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
     } else {
         currentSortColumn = column;
-        currentSortDirection = 'desc';
+        currentSortDirection = (column === 'date' || column === 'league' || column === 'match') ? 'asc' : 'desc';
     }
     
     updateTrendSortButtons();
