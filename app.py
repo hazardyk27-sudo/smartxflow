@@ -1997,11 +1997,16 @@ def get_finished_scores():
             for f in resp.json():
                 sc = (f.get('score') or '').strip()
                 if sc:
-                    key = (f.get('home_team', '') + '|' + f.get('away_team', '')).lower()
-                    scores[key] = {'score': sc, 'home': f.get('home_team', ''), 'away': f.get('away_team', '')}
+                    h = f.get('match_id_hash', '')
+                    key_name = (f.get('home_team', '') + '|' + f.get('away_team', '')).lower()
+                    entry = {'score': sc, 'home': f.get('home_team', ''), 'away': f.get('away_team', '')}
+                    scores[key_name] = entry
+                    if h:
+                        scores[h] = entry
         result = {'scores': scores}
         _ft_scores_cache['data'] = result
         _ft_scores_cache['ts'] = now
+        print(f"[FT-Scores] {len(scores)} keys cached ({resp.status_code})")
         return jsonify(result), 200
     except Exception as e:
         print(f"[API] /api/finished-scores hata: {e}")
