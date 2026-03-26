@@ -10423,14 +10423,15 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
         if (cardScore) {
             var csp = cardScore.split('-');
             if (csp.length === 2 && goalSide) {
-                var chCls = goalSide === 'home' || goalSide === 'both' ? ' goal-pop' : '';
-                var caCls = goalSide === 'away' || goalSide === 'both' ? ' goal-pop' : '';
+                var chCls = goalSide === 'home' || goalSide === 'both' ? ' lc-scored' : '';
+                var caCls = goalSide === 'away' || goalSide === 'both' ? ' lc-scored' : '';
                 scoreDisp = '<span class="lc-score-h' + chCls + '">' + csp[0].trim() + '</span><span class="lc-score-sep">-</span><span class="lc-score-a' + caCls + '">' + csp[1].trim() + '</span>';
             } else {
                 scoreDisp = '<span class="lc-score-val">' + cardScore + '</span>';
             }
         }
-        liveCapHtml = '<div class="live-capsule">' +
+        var mobCapGoalCls = goalSide ? ' lc-goal' : '';
+        liveCapHtml = '<div class="live-capsule' + mobCapGoalCls + '">' +
             '<span class="lc-dot"></span>' +
             '<span class="lc-min"' + (goalSide ? ' data-goal-min="' + cardMin + '"' : '') + '>' + minDisp + '</span>' +
             (scoreDisp ? '<span class="lc-divider"></span>' + scoreDisp : '') +
