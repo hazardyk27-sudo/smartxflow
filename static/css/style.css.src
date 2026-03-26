@@ -11416,7 +11416,7 @@ table.desktop-only {
         background: #141719 !important;
     }
     
-    .mob-ctrl-row {
+    .mobile-chart-controls .mob-ctrl-row {
         display: flex !important;
         align-items: center !important;
         justify-content: space-between !important;
@@ -11794,7 +11794,7 @@ table.desktop-only {
         border-top: 1px solid #262a2f !important;
     }
     
-    .mob-ctrl-row {
+    .mobile-chart-controls .mob-ctrl-row {
         display: flex !important;
         justify-content: center !important;
         gap: 16px !important;
