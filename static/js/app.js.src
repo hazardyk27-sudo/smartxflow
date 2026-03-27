@@ -1041,7 +1041,7 @@ function setupSearch() {
     }
 }
 
-const _matchesMarketCache = {};
+let _matchesMarketCache = {};
 const _MATCHES_CACHE_TTL = 90000;
 
 async function loadMatches(appendMode = false) {

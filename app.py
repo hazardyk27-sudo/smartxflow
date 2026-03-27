@@ -1917,10 +1917,10 @@ def get_matchbook_history_bulk():
                         'fill': False
                     })
             elif market_name in ['moneyway_btts', 'dropping_btts']:
-                for key, color, label in [('Yes', '#f97316', 'Yes'), ('No', '#06b6d4', 'No')]:
+                for key, alt_key, color, label in [('Yes', 'OddsYes', '#f97316', 'Yes'), ('No', 'OddsNo', '#06b6d4', 'No')]:
                     values = []
                     for h in history:
-                        val = h.get(key, '')
+                        val = h.get(key, '') or h.get(alt_key, '')
                         try:
                             v = float(str(val).split('\n')[0]) if val else None
                             values.append(v)
