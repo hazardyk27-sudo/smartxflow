@@ -74,6 +74,7 @@ let _mobileHideEnded = false;
 let _mobileHideLive = false;
 let _mobileOnlyLive = false;
 let _analysisHashesFetched = false;
+let currentSource = 'betfair';
 
 let _licenseReadyResolve;
 const _licenseReady = new Promise(r => { _licenseReadyResolve = r; });
@@ -1023,6 +1024,8 @@ function setupModalChartTabs() {
             if (selectedMatch) {
                 showChartLoading();
                 loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league || '');
+                var arbH = selectedMatch.arbworld_hash || selectedMatch.match_id || '';
+                loadMatchbookChartForModal(selectedMatch.home_team, selectedMatch.away_team, selectedMatch.league || '', arbH, selectedChartMarket);
             }
         });
     });
@@ -1053,7 +1056,8 @@ async function loadMatches(appendMode = false) {
     _loadMatchesLock = true;
     
     const requestMarket = currentMarket;
-    const cacheKey = `${requestMarket}|${dateFilterMode}`;
+    const requestSource = currentSource;
+    const cacheKey = `${requestMarket}|${dateFilterMode}|${requestSource}`;
     const cached = _matchesMarketCache[cacheKey];
     if (!appendMode && cached && (Date.now() - cached.ts) < _MATCHES_CACHE_TTL) {
         matches = cached.matches;
@@ -1114,14 +1118,15 @@ async function loadMatches(appendMode = false) {
             }
             
             let apiUrl;
+            const srcParam = requestSource !== 'betfair' ? `&source=${requestSource}` : '';
             if (dateFilterMode === 'ALL') {
-                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today_future&bulk=1`;
+                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today_future&bulk=1${srcParam}`;
             } else if (dateFilterMode === 'YESTERDAY') {
-                apiUrl = `/api/matches?market=${requestMarket}&date_filter=yesterday&bulk=1`;
+                apiUrl = `/api/matches?market=${requestMarket}&date_filter=yesterday&bulk=1${srcParam}`;
             } else if (dateFilterMode === 'TODAY') {
-                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today&bulk=1`;
+                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today&bulk=1${srcParam}`;
             } else {
-                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today_future&bulk=1`;
+                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today_future&bulk=1${srcParam}`;
             }
             
             console.log('[Matches] Loading with bulk mode:', apiUrl);
@@ -2097,6 +2102,10 @@ function openMobileFilterModal() {
         if (v === 'onlyLive') c.classList.toggle('active', _mobileOnlyLive);
     });
     
+    document.querySelectorAll('.mf-chip[data-group="source"]').forEach(function(c) {
+        c.classList.toggle('active', c.getAttribute('data-value') === currentSource);
+    });
+    
     overlay.style.display = 'flex';
 }
 
@@ -2129,6 +2138,19 @@ function mfToggle(el) {
     el.classList.toggle('active');
 }
 
+function setSource(src) {
+    if (currentSource === src) return;
+    currentSource = src;
+    document.querySelectorAll('.mf-chip[data-group="source"]').forEach(function(c) {
+        c.classList.toggle('active', c.getAttribute('data-value') === src);
+    });
+    document.querySelectorAll('.source-toggle-btn').forEach(function(b) {
+        b.classList.toggle('active', b.getAttribute('data-source') === src);
+    });
+    _matchesMarketCache = {};
+    loadMatches();
+}
+
 function applyMobileFilter() {
     var dateChip = document.querySelector('.mf-chip[data-group="date"].active');
     var sortChip = document.querySelector('.mf-chip[data-group="sort"].active');
@@ -2140,7 +2162,14 @@ function applyMobileFilter() {
     _mobileHideLive = !!document.querySelector('.mf-sw[data-value="hideLive"].active');
     _mobileOnlyLive = !!document.querySelector('.mf-sw[data-value="onlyLive"].active');
     
-    var hasFilter = (dateVal !== 'all') || _mobileHideEnded || _mobileHideLive || _mobileOnlyLive || (sortVal !== 'date');
+    var sourceChip = document.querySelector('.mf-chip[data-group="source"].active');
+    var newSource = sourceChip ? sourceChip.getAttribute('data-value') : 'betfair';
+    if (newSource !== currentSource) {
+        currentSource = newSource;
+        _matchesMarketCache = {};
+    }
+    
+    var hasFilter = (dateVal !== 'all') || _mobileHideEnded || _mobileHideLive || _mobileOnlyLive || (sortVal !== 'date') || (currentSource !== 'betfair');
     var btn = document.getElementById('mobileFilterBtn');
     if (btn) btn.classList.toggle('has-filter', hasFilter);
     var dBtn = document.getElementById('desktopFilterBtn');
@@ -2171,7 +2200,7 @@ function applyMobileFilter() {
     var labels = {all: 'Tümü', today: 'Bugün', yesterday: 'Dün', future: 'Gelecek'};
     if (labelEl) labelEl.textContent = labels[dateVal] || 'Tümü';
     
-    delete _matchesMarketCache[currentMarket + '|' + dateFilterMode];
+    delete _matchesMarketCache[currentMarket + '|' + dateFilterMode + '|' + currentSource];
     loadMatches();
 }
 
@@ -2961,7 +2990,10 @@ async function openMatchModalFromMatches(index) {
         
         const livePipeline = _checkModalLiveData(home, away, reqId);
         
-        await Promise.all([chartPipeline, alarmsPipeline, livePipeline]);
+        var arbHash = selectedMatch.arbworld_hash || selectedMatch.match_id || '';
+        const mbPipeline = loadMatchbookChartForModal(home, away, league, arbHash, selectedChartMarket, reqId);
+        
+        await Promise.all([chartPipeline, alarmsPipeline, livePipeline, mbPipeline]);
     }
 }
 
@@ -3057,7 +3089,10 @@ async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
         
         const livePipeline = _checkModalLiveData(homeTeam, awayTeam, reqId);
         
-        await Promise.all([chartPipeline, alarmsPipeline, livePipeline]);
+        var arbHash2 = selectedMatch.arbworld_hash || selectedMatch.match_id || '';
+        const mbPipeline2 = loadMatchbookChartForModal(apiHome, apiAway, apiLeague, arbHash2, selectedChartMarket, reqId);
+        
+        await Promise.all([chartPipeline, alarmsPipeline, livePipeline, mbPipeline2]);
         
     } catch (error) {
         console.error('[openMatchModalFromAPI] Error:', error);
@@ -3114,7 +3149,10 @@ async function openMatchModal(index) {
         
         const livePipeline = _checkModalLiveData(home, away, reqId);
         
-        await Promise.all([chartPipeline, alarmsPipeline, livePipeline]);
+        var arbHash3 = selectedMatch.arbworld_hash || selectedMatch.match_id || '';
+        const mbPipeline3 = loadMatchbookChartForModal(home, away, league, arbHash3, selectedChartMarket, reqId);
+        
+        await Promise.all([chartPipeline, alarmsPipeline, livePipeline, mbPipeline3]);
     }
 }
 
@@ -3153,8 +3191,102 @@ function resetModalState() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
+    var mbSection = document.getElementById('matchbookChartSection');
+    if (mbSection) mbSection.style.display = 'none';
+    if (window._mbChart) { window._mbChart.destroy(); window._mbChart = null; }
+
     showSmartMoneyLoading();
     showChartLoading();
+}
+
+let _mbBulkCache = {};
+let _mbBulkCacheKey = '';
+
+async function loadMatchbookChartForModal(home, away, league, arbHash, market, reqId) {
+    var section = document.getElementById('matchbookChartSection');
+    if (!section) return;
+    
+    try {
+        var cacheKey = `${home}|${away}|${league}|mb`;
+        if (_mbBulkCacheKey !== cacheKey) {
+            var params = `home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&league=${encodeURIComponent(league || '')}`;
+            if (arbHash) params += `&arb_hash=${encodeURIComponent(arbHash)}`;
+            var resp = await fetch('/api/match/history/matchbook?' + params);
+            var data = await resp.json();
+            if (reqId !== _modalRequestId) return;
+            _mbBulkCache = data.markets || {};
+            _mbBulkCacheKey = cacheKey;
+        }
+        
+        var mktData = _mbBulkCache[market];
+        if (!mktData || !mktData.history || mktData.history.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+        
+        section.style.display = 'block';
+        var canvas = document.getElementById('matchbookChart');
+        if (!canvas) return;
+        
+        if (window._mbChart) { window._mbChart.destroy(); window._mbChart = null; }
+        
+        var chartData = mktData.chart_data;
+        if (!chartData || !chartData.datasets || chartData.datasets.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+        
+        await window.loadChartLibs();
+        
+        var ctx = canvas.getContext('2d');
+        window._mbChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartData.labels,
+                datasets: chartData.datasets.map(function(ds) {
+                    return {
+                        label: ds.label,
+                        data: ds.data,
+                        borderColor: ds.borderColor,
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: false,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    };
+                })
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: { color: '#7d848c', font: { size: 11 }, boxWidth: 12, padding: 8 }
+                    },
+                    title: { display: false }
+                },
+                scales: {
+                    x: { 
+                        display: true,
+                        ticks: { color: '#5c636b', font: { size: 10 }, maxTicksLimit: 8 },
+                        grid: { color: 'rgba(255,255,255,0.04)' }
+                    },
+                    y: {
+                        display: true,
+                        ticks: { color: '#5c636b', font: { size: 10 } },
+                        grid: { color: 'rgba(255,255,255,0.04)' }
+                    }
+                }
+            }
+        });
+    } catch(e) {
+        console.error('[MB Chart] Error:', e);
+        if (section) section.style.display = 'none';
+    }
 }
 
 function showSmartMoneyLoading() {

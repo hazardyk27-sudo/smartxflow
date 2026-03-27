@@ -9,14 +9,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap"></noscript>
-    <link rel="stylesheet" href="/static/css/style.css?v=1774621186">
-    <link rel="stylesheet" href="/static/css/alert_band.css?v=1774621186">
+    <link rel="stylesheet" href="/static/css/style.css?v=1774624913">
+    <link rel="stylesheet" href="/static/css/alert_band.css?v=1774624913">
     <script defer src="/static/js/vendor/dayjs.min.js"></script>
     <script defer src="/static/js/vendor/dayjs-utc.js"></script>
     <script defer src="/static/js/vendor/dayjs-timezone.js"></script>
     <script defer src="/static/js/vendor/dayjs-customParseFormat.js"></script>
-    <script defer src="/static/js/app.js?v=1774621186"></script>
-    <script defer src="/static/js/ui.js?v=1774621186"></script>
+    <script defer src="/static/js/app.js?v=1774624913"></script>
+    <script defer src="/static/js/ui.js?v=1774624913"></script>
 </head>
 <body>
     <!-- License Gate - Birebir Desktop Aynisi -->
@@ -270,6 +270,10 @@
                             <path d="M21 21l-4.35-4.35"/>
                         </svg>
                         <input type="text" id="searchInput" placeholder="Takim veya Lig ara...">
+                    </div>
+                    <div class="source-toggle-inline desktop-only">
+                        <button class="source-toggle-btn active" data-source="betfair" onclick="setSource('betfair')">Betfair</button>
+                        <button class="source-toggle-btn" data-source="matchbook" onclick="setSource('matchbook')">Matchbook</button>
                     </div>
                     <button class="btn btn-filter desktop-only" id="desktopFilterBtn" onclick="openMobileFilterModal()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -573,6 +577,16 @@
                         </div>
                     </div>
                     </div><!-- /desktopChartBody -->
+                    
+                    <div class="matchbook-chart-section" id="matchbookChartSection" style="display:none;">
+                        <div class="mb-chart-header">
+                            <span class="mb-chart-icon">📊</span>
+                            <span class="mb-chart-title">Matchbook Exchange</span>
+                        </div>
+                        <div class="mb-chart-wrapper">
+                            <canvas id="matchbookChart"></canvas>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="mobile-tab-content" id="mobileTabEvents">
@@ -685,6 +699,13 @@
                     <button class="mf-chip" data-group="date" data-value="today" onclick="mfSelect(this)">Bugün</button>
                     <button class="mf-chip" data-group="date" data-value="yesterday" onclick="mfSelect(this)">Dün</button>
                     <button class="mf-chip" data-group="date" data-value="future" onclick="mfSelect(this)">Gelecek</button>
+                </div>
+            </div>
+            <div class="mf-section">
+                <div class="mf-label">Veri Kaynağı</div>
+                <div class="mf-chips">
+                    <button class="mf-chip active" data-group="source" data-value="betfair" onclick="mfSelect(this)">Betfair</button>
+                    <button class="mf-chip" data-group="source" data-value="matchbook" onclick="mfSelect(this)">Matchbook</button>
                 </div>
             </div>
             <div class="mf-section">

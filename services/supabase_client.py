@@ -2285,6 +2285,262 @@ class SupabaseClient:
             print(f"[Supabase] Error checking analyses table: {e}")
 
 
+    def get_matchbook_matches_with_latest(self, market: str, date_filter: str = None) -> List[Dict[str, Any]]:
+        if not self.is_available:
+            return []
+        
+        try:
+            import pytz
+            from datetime import time as dt_time
+            from urllib.parse import quote
+            
+            mb_market_map = {
+                'moneyway_1x2': 'matchbook_1x2_history',
+                'dropping_1x2': 'matchbook_1x2_history',
+                'moneyway_ou25': 'matchbook_ou25_history',
+                'dropping_ou25': 'matchbook_ou25_history',
+                'moneyway_btts': 'matchbook_btts_history',
+                'dropping_btts': 'matchbook_btts_history',
+            }
+            
+            history_table = mb_market_map.get(market, 'matchbook_1x2_history')
+            
+            tr_tz = pytz.timezone('Europe/Istanbul')
+            now_tr = datetime.now(tr_tz)
+            
+            fix_url = f"{self._rest_url('matchbook_fixtures')}?select=*&order=kickoff_utc.desc&limit=500"
+            
+            if date_filter in ('today', 'yesterday'):
+                if date_filter == 'today':
+                    target_date = now_tr.date()
+                else:
+                    target_date = now_tr.date() - timedelta(days=1)
+                
+                day_start_tr = tr_tz.localize(datetime.combine(target_date, dt_time.min))
+                day_end_tr = tr_tz.localize(datetime.combine(target_date + timedelta(days=1), dt_time.min))
+                day_start_utc = day_start_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
+                day_end_utc = day_end_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
+                
+                fix_url = (
+                    f"{self._rest_url('matchbook_fixtures')}?select=*"
+                    f"&kickoff_utc=gte.{quote(day_start_utc)}&kickoff_utc=lt.{quote(day_end_utc)}"
+                    f"&order=kickoff_utc.desc&limit=500"
+                )
+            
+            fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=15)
+            if fix_resp.status_code != 200:
+                print(f"[Supabase] MB fixtures fetch error: {fix_resp.status_code}")
+                return []
+            
+            fixtures = fix_resp.json()
+            if not fixtures:
+                return []
+            
+            print(f"[Supabase] MB: Got {len(fixtures)} fixtures")
+            
+            odds_cache = {}
+            hashes = [fix.get('match_id_hash', '') for fix in fixtures if fix.get('match_id_hash')]
+            batch_size = 50
+            
+            for i in range(0, len(hashes), batch_size):
+                batch_hashes = hashes[i:i+batch_size]
+                hash_list = ','.join(batch_hashes)
+                if not hash_list:
+                    continue
+                try:
+                    batch_url = f"{self._rest_url(history_table)}?match_id_hash=in.({hash_list})&order=scraped_at.desc&limit=1000"
+                    batch_resp = self._get_http_client().get(batch_url, headers=self._headers(), timeout=30)
+                    if batch_resp.status_code == 200:
+                        for row in batch_resp.json():
+                            h = row.get('match_id_hash', '')
+                            if h and h not in odds_cache:
+                                odds_cache[h] = row
+                except Exception as e:
+                    print(f"[Supabase] MB batch error: {e}")
+            
+            matches = []
+            for fix in fixtures:
+                home = fix.get('home_team', '')
+                away = fix.get('away_team', '')
+                league = fix.get('league', '')
+                match_hash = fix.get('match_id_hash', '')
+                arb_hash = fix.get('arbworld_hash', '')
+                
+                if match_hash in odds_cache:
+                    row = odds_cache[match_hash]
+                    latest = self._normalize_matchbook_history_row(row, market)
+                else:
+                    latest = {}
+                
+                kickoff_utc = fix.get('kickoff_utc', '')
+                
+                matches.append({
+                    'home_team': home,
+                    'away_team': away,
+                    'league': league,
+                    'date': kickoff_utc,
+                    'match_id_hash': match_hash,
+                    'arbworld_hash': arb_hash or '',
+                    'latest': latest
+                })
+            
+            print(f"[Supabase] MB: Returning {len(matches)} matches with {len(odds_cache)} odds")
+            return matches
+        except Exception as e:
+            print(f"[Supabase] MB matches error: {e}")
+            return []
+    
+    def _normalize_matchbook_history_row(self, row: Dict, market: str) -> Dict:
+        result = {
+            'ScrapedAt': row.get('scraped_at', ''),
+            'Volume': row.get('volume', ''),
+        }
+        
+        if market in ['moneyway_1x2', 'dropping_1x2']:
+            result.update({
+                'Odds1': row.get('odds1', ''),
+                'OddsX': row.get('oddsx', ''),
+                'Odds2': row.get('odds2', ''),
+                'Pct1': row.get('pct1', ''),
+                'Amt1': row.get('amt1', ''),
+                'PctX': row.get('pctx', ''),
+                'AmtX': row.get('amtx', ''),
+                'Pct2': row.get('pct2', ''),
+                'Amt2': row.get('amt2', ''),
+                'Odds1_prev': row.get('odds1_prev', ''),
+                'OddsX_prev': row.get('oddsx_prev', ''),
+                'Odds2_prev': row.get('odds2_prev', ''),
+                'Trend1': row.get('trend1', ''),
+                'TrendX': row.get('trendx', ''),
+                'Trend2': row.get('trend2', ''),
+            })
+        elif market in ['moneyway_ou25', 'dropping_ou25']:
+            result.update({
+                'Under': row.get('under', ''),
+                'Over': row.get('over', ''),
+                'Line': row.get('line', '2.5'),
+                'PctUnder': row.get('pctunder', ''),
+                'AmtUnder': row.get('amtunder', ''),
+                'PctOver': row.get('pctover', ''),
+                'AmtOver': row.get('amtover', ''),
+                'Under_prev': row.get('under_prev', ''),
+                'Over_prev': row.get('over_prev', ''),
+                'TrendUnder': row.get('trendunder', ''),
+                'TrendOver': row.get('trendover', ''),
+            })
+        elif market in ['moneyway_btts', 'dropping_btts']:
+            result.update({
+                'OddsYes': row.get('oddsyes', ''),
+                'OddsNo': row.get('oddsno', ''),
+                'Yes': row.get('oddsyes', ''),
+                'No': row.get('oddsno', ''),
+                'PctYes': row.get('pctyes', ''),
+                'AmtYes': row.get('amtyes', ''),
+                'PctNo': row.get('pctno', ''),
+                'AmtNo': row.get('amtno', ''),
+                'OddsYes_prev': row.get('oddsyes_prev', ''),
+                'OddsNo_prev': row.get('oddsno_prev', ''),
+                'TrendYes': row.get('trendyes', ''),
+                'TrendNo': row.get('trendno', ''),
+            })
+        
+        return result
+    
+    def get_matchbook_match_history(self, home: str, away: str, market: str, league: str = '') -> List[Dict[str, Any]]:
+        if not self.is_available:
+            return []
+        
+        try:
+            import urllib.parse
+            
+            mb_market_map = {
+                'moneyway_1x2': 'matchbook_1x2_history',
+                'dropping_1x2': 'matchbook_1x2_history',
+                'moneyway_ou25': 'matchbook_ou25_history',
+                'dropping_ou25': 'matchbook_ou25_history',
+                'moneyway_btts': 'matchbook_btts_history',
+                'dropping_btts': 'matchbook_btts_history',
+            }
+            
+            history_table = mb_market_map.get(market, 'matchbook_1x2_history')
+            home_enc = urllib.parse.quote(home, safe='')
+            away_enc = urllib.parse.quote(away, safe='')
+            
+            all_rows = []
+            offset = 0
+            page_size = 1000
+            
+            for page in range(5):
+                base_url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}"
+                if league:
+                    league_enc = urllib.parse.quote(league, safe='')
+                    base_url += f"&league=eq.{league_enc}"
+                url = f"{base_url}&order=scraped_at.asc&limit={page_size}&offset={offset}"
+                resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
+                
+                if resp.status_code != 200:
+                    break
+                
+                rows = resp.json()
+                if not rows:
+                    break
+                
+                all_rows.extend(rows)
+                if len(rows) < page_size:
+                    break
+                offset += page_size
+            
+            return [self._history_row_to_legacy(r, market) for r in all_rows]
+        except Exception as e:
+            print(f"[Supabase] MB history error: {e}")
+            return []
+    
+    def get_matchbook_history_by_arbhash(self, arb_hash: str, market: str) -> List[Dict[str, Any]]:
+        if not self.is_available or not arb_hash:
+            return []
+        
+        try:
+            mb_market_map = {
+                'moneyway_1x2': 'matchbook_1x2_history',
+                'dropping_1x2': 'matchbook_1x2_history',
+                'moneyway_ou25': 'matchbook_ou25_history',
+                'dropping_ou25': 'matchbook_ou25_history',
+                'moneyway_btts': 'matchbook_btts_history',
+                'dropping_btts': 'matchbook_btts_history',
+            }
+            
+            history_table = mb_market_map.get(market, 'matchbook_1x2_history')
+            
+            url = f"{self._rest_url(history_table)}?arbworld_hash=eq.{arb_hash}&order=scraped_at.asc&limit=2000"
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
+            
+            if resp.status_code != 200:
+                return []
+            
+            rows = resp.json()
+            return [self._history_row_to_legacy(r, market) for r in rows]
+        except Exception as e:
+            print(f"[Supabase] MB history by arb_hash error: {e}")
+            return []
+    
+    def get_matchbook_arbhash_for_match(self, home: str, away: str, league: str = '') -> Optional[str]:
+        if not self.is_available:
+            return None
+        try:
+            import urllib.parse
+            home_enc = urllib.parse.quote(home, safe='')
+            away_enc = urllib.parse.quote(away, safe='')
+            url = f"{self._rest_url('matchbook_fixtures')}?home_team=eq.{home_enc}&away_team=eq.{away_enc}&select=arbworld_hash,match_id_hash&limit=1"
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=10)
+            if resp.status_code == 200:
+                rows = resp.json()
+                if rows:
+                    return rows[0].get('arbworld_hash') or rows[0].get('match_id_hash')
+            return None
+        except:
+            return None
+
+
 class LocalDatabase:
     """Fallback local SQLite database when Supabase is not available"""
     
@@ -2566,6 +2822,26 @@ class HybridDatabase:
     def ensure_analyses_table(self):
         if self.supabase.is_available:
             self.supabase.ensure_analyses_table()
+
+    def get_matchbook_matches_with_latest(self, market: str, date_filter: str = None) -> List[Dict[str, Any]]:
+        if self.supabase.is_available:
+            return self.supabase.get_matchbook_matches_with_latest(market, date_filter=date_filter)
+        return []
+
+    def get_matchbook_match_history(self, home: str, away: str, market: str, league: str = '') -> List[Dict[str, Any]]:
+        if self.supabase.is_available:
+            return self.supabase.get_matchbook_match_history(home, away, market, league)
+        return []
+
+    def get_matchbook_history_by_arbhash(self, arb_hash: str, market: str) -> List[Dict[str, Any]]:
+        if self.supabase.is_available:
+            return self.supabase.get_matchbook_history_by_arbhash(arb_hash, market)
+        return []
+
+    def get_matchbook_arbhash_for_match(self, home: str, away: str, league: str = '') -> Optional[str]:
+        if self.supabase.is_available:
+            return self.supabase.get_matchbook_arbhash_for_match(home, away, league)
+        return None
 
 
 _database = None
