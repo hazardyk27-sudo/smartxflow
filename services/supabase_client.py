@@ -2462,7 +2462,7 @@ class SupabaseClient:
         
         return result
     
-    def get_matchbook_match_history(self, home: str, away: str, market: str, league: str = '') -> List[Dict[str, Any]]:
+    def get_matchbook_match_history(self, home: str, away: str, market: str, league: str = '', match_id_hash: str = '') -> List[Dict[str, Any]]:
         if not self.is_available:
             return []
         
@@ -2479,18 +2479,22 @@ class SupabaseClient:
             }
             
             history_table = mb_market_map.get(market, 'matchbook_1x2_history')
-            home_enc = urllib.parse.quote(home, safe='')
-            away_enc = urllib.parse.quote(away, safe='')
             
             all_rows = []
             offset = 0
             page_size = 1000
             
             for page in range(5):
-                base_url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}"
-                if league:
-                    league_enc = urllib.parse.quote(league, safe='')
-                    base_url += f"&league=eq.{league_enc}"
+                if match_id_hash:
+                    hash_enc = urllib.parse.quote(match_id_hash, safe='')
+                    base_url = f"{self._rest_url(history_table)}?match_id_hash=eq.{hash_enc}"
+                else:
+                    home_enc = urllib.parse.quote(home, safe='')
+                    away_enc = urllib.parse.quote(away, safe='')
+                    base_url = f"{self._rest_url(history_table)}?home=eq.{home_enc}&away=eq.{away_enc}"
+                    if league:
+                        league_enc = urllib.parse.quote(league, safe='')
+                        base_url += f"&league=eq.{league_enc}"
                 url = f"{base_url}&order=scraped_at.asc&limit={page_size}&offset={offset}"
                 resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
                 

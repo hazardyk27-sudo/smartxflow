@@ -1856,8 +1856,9 @@ def get_matchbook_history_bulk():
     away = request.args.get('away', '')
     league = request.args.get('league', '')
     arb_hash = request.args.get('arb_hash', '')
+    match_id_hash = request.args.get('match_id_hash', '')
     
-    if not home and not away and not arb_hash:
+    if not home and not away and not arb_hash and not match_id_hash:
         return jsonify({'error': 'Missing parameters', 'markets': {}})
     
     start_time = time.time()
@@ -1866,7 +1867,9 @@ def get_matchbook_history_bulk():
     
     def _build_mb_market_data(market_name):
         history = None
-        if arb_hash:
+        if match_id_hash:
+            history = db.get_matchbook_match_history('', '', market_name, '', match_id_hash)
+        if (not history) and arb_hash:
             history = db.get_matchbook_history_by_arbhash(arb_hash, market_name)
         if (not history) and home and away:
             history = db.get_matchbook_match_history(home, away, market_name, league)
