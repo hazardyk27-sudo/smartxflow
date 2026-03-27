@@ -1235,6 +1235,7 @@ def get_matches():
             elapsed = (t.time() - start_time) * 1000
             print(f"[Matches/Bulk] Cache HIT for {market} - {elapsed:.0f}ms, {len(cached_data)} matches")
             ft_scores = _get_finished_scores_map()
+            _enrich_ft_scores_with_match_hashes(ft_scores, cached_data)
             resp_data = {'matches': cached_data, 'total': len(cached_data), 'has_more': False}
             if ft_scores:
                 resp_data['finished_scores'] = ft_scores
@@ -1391,6 +1392,7 @@ def get_matches():
         print(f"[Matches/Bulk] Cache MISS for {market} - fetched {len(all_matches)} matches in {elapsed:.0f}ms")
         
         ft_scores = _get_finished_scores_map()
+        _enrich_ft_scores_with_match_hashes(ft_scores, all_matches)
         resp_data = {'matches': all_matches, 'total': len(all_matches), 'has_more': False}
         if ft_scores:
             resp_data['finished_scores'] = ft_scores
@@ -1482,6 +1484,7 @@ def get_matches():
             })
         
         ft_scores = _get_finished_scores_map()
+        _enrich_ft_scores_with_match_hashes(ft_scores, enriched)
         resp_data = {
             'matches': enriched,
             'total': result.get('total', len(enriched)),
@@ -1501,6 +1504,7 @@ def get_matches():
             cached_data = matches_cache['data'][cache_key]
             sliced = cached_data[offset:offset + limit]
             ft_scores = _get_finished_scores_map()
+            _enrich_ft_scores_with_match_hashes(ft_scores, cached_data)
             resp_data = {'matches': sliced, 'total': len(cached_data), 'has_more': offset + limit < len(cached_data)}
             if ft_scores:
                 resp_data['finished_scores'] = ft_scores
@@ -1592,6 +1596,7 @@ def get_matches():
     
     sliced = enriched[offset:offset + limit]
     ft_scores = _get_finished_scores_map()
+    _enrich_ft_scores_with_match_hashes(ft_scores, enriched)
     resp_data = {'matches': sliced, 'total': len(enriched), 'has_more': offset + limit < len(enriched)}
     if ft_scores:
         resp_data['finished_scores'] = ft_scores
@@ -2023,6 +2028,58 @@ def get_live_matches():
 
 
 _ft_scores_cache = {'data': None, 'ts': 0}
+
+def _fuzzy_team_match(name1, name2):
+    if name1 == name2:
+        return True
+    if len(name1) < 3 or len(name2) < 3:
+        return False
+    shorter, longer = (name1, name2) if len(name1) <= len(name2) else (name2, name1)
+    if longer.startswith(shorter):
+        return True
+    w1 = shorter.split()
+    w2 = longer.split()
+    if w1 and w2 and len(w1[0]) >= 4 and len(w2[0]) >= 4:
+        sw, lw = (w1[0], w2[0]) if len(w1[0]) <= len(w2[0]) else (w2[0], w1[0])
+        if lw.startswith(sw):
+            return True
+    return False
+
+def _enrich_ft_scores_with_match_hashes(ft_scores, matches):
+    if not ft_scores or not matches:
+        return ft_scores
+    ft_entries = []
+    seen = set()
+    for key, entry in ft_scores.items():
+        if '|' not in key or not isinstance(entry, dict):
+            continue
+        eid = id(entry)
+        if eid in seen:
+            continue
+        seen.add(eid)
+        h_norm = normalize_field(entry.get('home', ''))
+        a_norm = normalize_field(entry.get('away', ''))
+        if h_norm and a_norm:
+            ft_entries.append((h_norm, a_norm, entry))
+    if not ft_entries:
+        return ft_scores
+    added = 0
+    for m in matches:
+        mid = m.get('match_id', '')
+        if not mid or mid in ft_scores:
+            continue
+        h_norm = normalize_field(m.get('home_team', ''))
+        a_norm = normalize_field(m.get('away_team', ''))
+        if not h_norm or not a_norm:
+            continue
+        for ft_h, ft_a, entry in ft_entries:
+            if _fuzzy_team_match(h_norm, ft_h) and _fuzzy_team_match(a_norm, ft_a):
+                ft_scores[mid] = entry
+                added += 1
+                break
+    if added:
+        print(f"[FT-Scores] Cross-ref: {added} Arbworld hash eklendi")
+    return ft_scores
 
 def _get_finished_scores_map():
     import time as _t
