@@ -336,9 +336,10 @@ class MatchMatcher:
     
     def load_arbworld_fixtures(self):
         try:
+            from urllib.parse import quote
             now = datetime.now(timezone.utc)
-            start = (now - timedelta(hours=6)).isoformat()
-            end = (now + timedelta(days=3)).isoformat()
+            start = quote((now - timedelta(hours=6)).isoformat())
+            end = quote((now + timedelta(days=3)).isoformat())
             
             url = (
                 f"{self._rest_url('fixtures')}?select=home_team,away_team,league,kickoff_utc,match_id_hash"

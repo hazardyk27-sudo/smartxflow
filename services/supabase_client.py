@@ -2310,22 +2310,38 @@ class SupabaseClient:
             
             fix_url = f"{self._rest_url('matchbook_fixtures')}?select=*&order=kickoff_utc.desc&limit=500"
             
-            if date_filter in ('today', 'yesterday'):
-                if date_filter == 'today':
-                    target_date = now_tr.date()
-                else:
+            if date_filter in ('today', 'yesterday', 'today_future'):
+                if date_filter == 'yesterday':
                     target_date = now_tr.date() - timedelta(days=1)
-                
-                day_start_tr = tr_tz.localize(datetime.combine(target_date, dt_time.min))
-                day_end_tr = tr_tz.localize(datetime.combine(target_date + timedelta(days=1), dt_time.min))
-                day_start_utc = day_start_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
-                day_end_utc = day_end_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
-                
-                fix_url = (
-                    f"{self._rest_url('matchbook_fixtures')}?select=*"
-                    f"&kickoff_utc=gte.{quote(day_start_utc)}&kickoff_utc=lt.{quote(day_end_utc)}"
-                    f"&order=kickoff_utc.desc&limit=500"
-                )
+                    day_start_tr = tr_tz.localize(datetime.combine(target_date, dt_time.min))
+                    day_end_tr = tr_tz.localize(datetime.combine(target_date + timedelta(days=1), dt_time.min))
+                    day_start_utc = day_start_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
+                    day_end_utc = day_end_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
+                    fix_url = (
+                        f"{self._rest_url('matchbook_fixtures')}?select=*"
+                        f"&kickoff_utc=gte.{quote(day_start_utc)}&kickoff_utc=lt.{quote(day_end_utc)}"
+                        f"&order=kickoff_utc.desc&limit=500"
+                    )
+                elif date_filter == 'today':
+                    target_date = now_tr.date()
+                    day_start_tr = tr_tz.localize(datetime.combine(target_date, dt_time.min))
+                    day_end_tr = tr_tz.localize(datetime.combine(target_date + timedelta(days=1), dt_time.min))
+                    day_start_utc = day_start_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
+                    day_end_utc = day_end_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
+                    fix_url = (
+                        f"{self._rest_url('matchbook_fixtures')}?select=*"
+                        f"&kickoff_utc=gte.{quote(day_start_utc)}&kickoff_utc=lt.{quote(day_end_utc)}"
+                        f"&order=kickoff_utc.desc&limit=500"
+                    )
+                elif date_filter == 'today_future':
+                    target_date = now_tr.date()
+                    day_start_tr = tr_tz.localize(datetime.combine(target_date, dt_time.min))
+                    day_start_utc = day_start_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
+                    fix_url = (
+                        f"{self._rest_url('matchbook_fixtures')}?select=*"
+                        f"&kickoff_utc=gte.{quote(day_start_utc)}"
+                        f"&order=kickoff_utc.desc&limit=500"
+                    )
             
             fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=15)
             if fix_resp.status_code != 200:
