@@ -173,8 +173,8 @@ def _get_best_back_price(runner: Dict) -> Tuple[Optional[float], float]:
     
     for p in prices:
         side = p.get('side', '').lower()
-        if side == 'back':
-            odds = p.get('odds', p.get('decimal-odds'))
+        if side in ('back', 'win'):
+            odds = p.get('decimal-odds', p.get('odds'))
             avail = p.get('available-amount', 0)
             if odds is not None:
                 if best_odds is None or odds > best_odds:
@@ -731,22 +731,16 @@ def run_scrape():
     print(f"{'='*60}")
     
     mb_client = MatchbookClient()
-    matcher = MatchMatcher(supabase_url, supabase_key)
     writer = MatchbookWriter(supabase_url, supabase_key)
     
     try:
-        matcher.load_arbworld_fixtures()
-        matcher.load_league_map()
-        
         events = mb_client.fetch_events()
         print(f"[MB] Fetched {len(events)} raw events")
         
         parsed_count = 0
-        matched_count = 0
         written_1x2 = 0
         written_ou25 = 0
         written_btts = 0
-        unmatched_leagues = set()
         
         now_utc = datetime.now(timezone.utc)
         skipped_live = 0
@@ -762,33 +756,22 @@ def run_scrape():
             
             parsed_count += 1
             
-            arb_hash = matcher.find_arbworld_match(parsed)
-            if arb_hash:
-                matched_count += 1
-            else:
-                if parsed.get('league'):
-                    unmatched_leagues.add(parsed['league'])
-            
-            mb_hash = writer.upsert_fixture(parsed, arb_hash)
+            mb_hash = writer.upsert_fixture(parsed, None)
             
             if '1x2' in parsed['markets']:
-                writer.write_1x2(parsed, mb_hash, arb_hash)
+                writer.write_1x2(parsed, mb_hash, None)
                 written_1x2 += 1
             if 'ou25' in parsed['markets']:
-                writer.write_ou25(parsed, mb_hash, arb_hash)
+                writer.write_ou25(parsed, mb_hash, None)
                 written_ou25 += 1
             if 'btts' in parsed['markets']:
-                writer.write_btts(parsed, mb_hash, arb_hash)
+                writer.write_btts(parsed, mb_hash, None)
                 written_btts += 1
         
         if skipped_live > 0:
             print(f"[MB] Skipped {skipped_live} live/in-play events (pre-match only)")
         print(f"[MB] Parsed: {parsed_count} events")
-        print(f"[MB] Matched with Arbworld: {matched_count}/{parsed_count}")
         print(f"[MB] Written - 1X2: {written_1x2}, OU25: {written_ou25}, BTTS: {written_btts}")
-        
-        if unmatched_leagues:
-            print(f"[MB] Unmatched leagues ({len(unmatched_leagues)}): {', '.join(list(unmatched_leagues)[:10])}")
         
         return parsed_count
     
@@ -799,7 +782,6 @@ def run_scrape():
     
     finally:
         mb_client.close()
-        matcher.close()
         writer.close()
 
 
