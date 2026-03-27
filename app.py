@@ -1865,9 +1865,10 @@ def get_matchbook_history_bulk():
                    'dropping_1x2', 'dropping_ou25', 'dropping_btts']
     
     def _build_mb_market_data(market_name):
+        history = None
         if arb_hash:
             history = db.get_matchbook_history_by_arbhash(arb_hash, market_name)
-        else:
+        if (not history) and home and away:
             history = db.get_matchbook_match_history(home, away, market_name, league)
         
         chart_data = {'labels': [], 'datasets': []}

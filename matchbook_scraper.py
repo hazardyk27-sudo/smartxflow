@@ -187,21 +187,25 @@ def _get_best_back_price(runner: Dict) -> Tuple[Optional[float], float]:
 def _parse_1x2_runners(runners: List[Dict]) -> Dict:
     result = {'odds1': None, 'oddsx': None, 'odds2': None, 'vol1': 0, 'volx': 0, 'vol2': 0}
     
+    home_set = False
+    away_set = False
+    
     for r in runners:
-        name = r.get('name', '').lower()
+        name = r.get('name', '').lower().strip()
         odds, vol = _get_best_back_price(r)
         matched = r.get('volume', 0) or 0
         
-        if name == 'home' or r.get('event-participant-id'):
-            if result['odds1'] is None:
-                result['odds1'] = odds
-                result['vol1'] = matched or vol
-        elif name == 'draw':
+        if name == 'draw':
             result['oddsx'] = odds
             result['volx'] = matched or vol
-        elif name == 'away':
+        elif name == 'home' or (r.get('event-participant-id') and not home_set and name != 'away'):
+            result['odds1'] = odds
+            result['vol1'] = matched or vol
+            home_set = True
+        elif name == 'away' or (r.get('event-participant-id') and home_set and not away_set):
             result['odds2'] = odds
             result['vol2'] = matched or vol
+            away_set = True
     
     if result['odds1'] is None and len(runners) >= 3:
         for i, r in enumerate(runners):
@@ -496,20 +500,27 @@ class MatchbookWriter:
         if not mkt or mkt.get('odds1') is None:
             return
         
-        total_vol = (mkt.get('vol1', 0) or 0) + (mkt.get('volx', 0) or 0) + (mkt.get('vol2', 0) or 0)
-        
-        pct1 = pctx = pct2 = ''
-        amt1 = amtx = amt2 = ''
-        if total_vol > 0:
-            pct1 = f"{(mkt.get('vol1', 0) or 0) / total_vol * 100:.1f}%"
-            pctx = f"{(mkt.get('volx', 0) or 0) / total_vol * 100:.1f}%"
-            pct2 = f"{(mkt.get('vol2', 0) or 0) / total_vol * 100:.1f}%"
-            amt1 = f"£{int(mkt.get('vol1', 0) or 0):,}"
-            amtx = f"£{int(mkt.get('volx', 0) or 0):,}"
-            amt2 = f"£{int(mkt.get('vol2', 0) or 0):,}"
+        cur_vol1 = mkt.get('vol1', 0) or 0
+        cur_volx = mkt.get('volx', 0) or 0
+        cur_vol2 = mkt.get('vol2', 0) or 0
         
         prev_key = f"{mb_hash}_1x2"
         prev = _prev_snapshots.get(prev_key, {})
+        
+        delta1 = max(0, cur_vol1 - (prev.get('raw_vol1', 0) or 0)) if prev else cur_vol1
+        deltax = max(0, cur_volx - (prev.get('raw_volx', 0) or 0)) if prev else cur_volx
+        delta2 = max(0, cur_vol2 - (prev.get('raw_vol2', 0) or 0)) if prev else cur_vol2
+        delta_total = delta1 + deltax + delta2
+        
+        pct1 = pctx = pct2 = ''
+        amt1 = amtx = amt2 = ''
+        if delta_total > 0:
+            pct1 = f"{delta1 / delta_total * 100:.1f}%"
+            pctx = f"{deltax / delta_total * 100:.1f}%"
+            pct2 = f"{delta2 / delta_total * 100:.1f}%"
+            amt1 = f"£{int(delta1):,}"
+            amtx = f"£{int(deltax):,}"
+            amt2 = f"£{int(delta2):,}"
         
         trend1 = _calc_trend(mkt.get('odds1'), prev.get('odds1'))
         trendx = _calc_trend(mkt.get('oddsx'), prev.get('oddsx'))
@@ -518,6 +529,8 @@ class MatchbookWriter:
         kickoff_str = ''
         if event.get('kickoff'):
             kickoff_str = event['kickoff'].isoformat()
+        
+        total_vol = cur_vol1 + cur_volx + cur_vol2
         
         row = {
             "home": event['home'],
@@ -544,7 +557,10 @@ class MatchbookWriter:
         _prev_snapshots[prev_key] = {
             'odds1': mkt.get('odds1'),
             'oddsx': mkt.get('oddsx'),
-            'odds2': mkt.get('odds2')
+            'odds2': mkt.get('odds2'),
+            'raw_vol1': cur_vol1,
+            'raw_volx': cur_volx,
+            'raw_vol2': cur_vol2
         }
         
         self._insert('matchbook_1x2_history', row)
@@ -554,18 +570,23 @@ class MatchbookWriter:
         if not mkt or (mkt.get('over') is None and mkt.get('under') is None):
             return
         
-        total_vol = (mkt.get('vol_over', 0) or 0) + (mkt.get('vol_under', 0) or 0)
-        
-        pctover = pctunder = ''
-        amtover = amtunder = ''
-        if total_vol > 0:
-            pctover = f"{(mkt.get('vol_over', 0) or 0) / total_vol * 100:.1f}%"
-            pctunder = f"{(mkt.get('vol_under', 0) or 0) / total_vol * 100:.1f}%"
-            amtover = f"£{int(mkt.get('vol_over', 0) or 0):,}"
-            amtunder = f"£{int(mkt.get('vol_under', 0) or 0):,}"
+        cur_vol_over = mkt.get('vol_over', 0) or 0
+        cur_vol_under = mkt.get('vol_under', 0) or 0
         
         prev_key = f"{mb_hash}_ou25"
         prev = _prev_snapshots.get(prev_key, {})
+        
+        delta_over = max(0, cur_vol_over - (prev.get('raw_vol_over', 0) or 0)) if prev else cur_vol_over
+        delta_under = max(0, cur_vol_under - (prev.get('raw_vol_under', 0) or 0)) if prev else cur_vol_under
+        delta_total = delta_over + delta_under
+        
+        pctover = pctunder = ''
+        amtover = amtunder = ''
+        if delta_total > 0:
+            pctover = f"{delta_over / delta_total * 100:.1f}%"
+            pctunder = f"{delta_under / delta_total * 100:.1f}%"
+            amtover = f"£{int(delta_over):,}"
+            amtunder = f"£{int(delta_under):,}"
         
         trendover = _calc_trend(mkt.get('over'), prev.get('over'))
         trendunder = _calc_trend(mkt.get('under'), prev.get('under'))
@@ -573,6 +594,8 @@ class MatchbookWriter:
         kickoff_str = ''
         if event.get('kickoff'):
             kickoff_str = event['kickoff'].isoformat()
+        
+        total_vol = cur_vol_over + cur_vol_under
         
         row = {
             "home": event['home'],
@@ -597,7 +620,9 @@ class MatchbookWriter:
         
         _prev_snapshots[prev_key] = {
             'over': mkt.get('over'),
-            'under': mkt.get('under')
+            'under': mkt.get('under'),
+            'raw_vol_over': cur_vol_over,
+            'raw_vol_under': cur_vol_under
         }
         
         self._insert('matchbook_ou25_history', row)
@@ -607,18 +632,23 @@ class MatchbookWriter:
         if not mkt or (mkt.get('yes') is None and mkt.get('no') is None):
             return
         
-        total_vol = (mkt.get('vol_yes', 0) or 0) + (mkt.get('vol_no', 0) or 0)
-        
-        pctyes = pctno = ''
-        amtyes = amtno = ''
-        if total_vol > 0:
-            pctyes = f"{(mkt.get('vol_yes', 0) or 0) / total_vol * 100:.1f}%"
-            pctno = f"{(mkt.get('vol_no', 0) or 0) / total_vol * 100:.1f}%"
-            amtyes = f"£{int(mkt.get('vol_yes', 0) or 0):,}"
-            amtno = f"£{int(mkt.get('vol_no', 0) or 0):,}"
+        cur_vol_yes = mkt.get('vol_yes', 0) or 0
+        cur_vol_no = mkt.get('vol_no', 0) or 0
         
         prev_key = f"{mb_hash}_btts"
         prev = _prev_snapshots.get(prev_key, {})
+        
+        delta_yes = max(0, cur_vol_yes - (prev.get('raw_vol_yes', 0) or 0)) if prev else cur_vol_yes
+        delta_no = max(0, cur_vol_no - (prev.get('raw_vol_no', 0) or 0)) if prev else cur_vol_no
+        delta_total = delta_yes + delta_no
+        
+        pctyes = pctno = ''
+        amtyes = amtno = ''
+        if delta_total > 0:
+            pctyes = f"{delta_yes / delta_total * 100:.1f}%"
+            pctno = f"{delta_no / delta_total * 100:.1f}%"
+            amtyes = f"£{int(delta_yes):,}"
+            amtno = f"£{int(delta_no):,}"
         
         trendyes = _calc_trend(mkt.get('yes'), prev.get('yes'))
         trendno = _calc_trend(mkt.get('no'), prev.get('no'))
@@ -626,6 +656,8 @@ class MatchbookWriter:
         kickoff_str = ''
         if event.get('kickoff'):
             kickoff_str = event['kickoff'].isoformat()
+        
+        total_vol = cur_vol_yes + cur_vol_no
         
         row = {
             "home": event['home'],
@@ -649,7 +681,9 @@ class MatchbookWriter:
         
         _prev_snapshots[prev_key] = {
             'yes': mkt.get('yes'),
-            'no': mkt.get('no')
+            'no': mkt.get('no'),
+            'raw_vol_yes': cur_vol_yes,
+            'raw_vol_no': cur_vol_no
         }
         
         self._insert('matchbook_btts_history', row)

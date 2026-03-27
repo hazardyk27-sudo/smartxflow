@@ -1024,7 +1024,7 @@ function setupModalChartTabs() {
             if (selectedMatch) {
                 showChartLoading();
                 loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league || '');
-                var arbH = selectedMatch.arbworld_hash || selectedMatch.match_id || '';
+                var arbH = selectedMatch.arbworld_hash || '';
                 loadMatchbookChartForModal(selectedMatch.home_team, selectedMatch.away_team, selectedMatch.league || '', arbH, selectedChartMarket);
             }
         });
@@ -2990,7 +2990,7 @@ async function openMatchModalFromMatches(index) {
         
         const livePipeline = _checkModalLiveData(home, away, reqId);
         
-        var arbHash = selectedMatch.arbworld_hash || selectedMatch.match_id || '';
+        var arbHash = selectedMatch.arbworld_hash || '';
         const mbPipeline = loadMatchbookChartForModal(home, away, league, arbHash, selectedChartMarket, reqId);
         
         await Promise.all([chartPipeline, alarmsPipeline, livePipeline, mbPipeline]);
@@ -3089,7 +3089,7 @@ async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
         
         const livePipeline = _checkModalLiveData(homeTeam, awayTeam, reqId);
         
-        var arbHash2 = selectedMatch.arbworld_hash || selectedMatch.match_id || '';
+        var arbHash2 = selectedMatch.arbworld_hash || '';
         const mbPipeline2 = loadMatchbookChartForModal(apiHome, apiAway, apiLeague, arbHash2, selectedChartMarket, reqId);
         
         await Promise.all([chartPipeline, alarmsPipeline, livePipeline, mbPipeline2]);
@@ -3149,7 +3149,7 @@ async function openMatchModal(index) {
         
         const livePipeline = _checkModalLiveData(home, away, reqId);
         
-        var arbHash3 = selectedMatch.arbworld_hash || selectedMatch.match_id || '';
+        var arbHash3 = selectedMatch.arbworld_hash || '';
         const mbPipeline3 = loadMatchbookChartForModal(home, away, league, arbHash3, selectedChartMarket, reqId);
         
         await Promise.all([chartPipeline, alarmsPipeline, livePipeline, mbPipeline3]);
