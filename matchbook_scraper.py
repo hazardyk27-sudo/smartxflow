@@ -750,7 +750,7 @@ def run_scrape():
             if not parsed:
                 continue
             
-            if parsed.get('kickoff') and parsed['kickoff'] < now_utc:
+            if not parsed.get('kickoff') or parsed['kickoff'] <= now_utc:
                 skipped_live += 1
                 continue
             
