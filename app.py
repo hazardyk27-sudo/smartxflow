@@ -1326,7 +1326,7 @@ def get_matches():
     source = request.args.get('source', 'betfair')
     is_dropping = market.startswith('dropping')
     
-    if source == 'matchbook' and bulk_mode:
+    if source == 'matchbook':
         return _get_matchbook_matches_bulk(market, date_filter, force_refresh, start_time, t)
     
     # BULK MODE: Return all matches from cache (instant on hit)

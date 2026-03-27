@@ -747,10 +747,18 @@ def run_scrape():
         written_btts = 0
         unmatched_leagues = set()
         
+        now_utc = datetime.now(timezone.utc)
+        skipped_live = 0
+        
         for event in events:
             parsed = parse_event(event)
             if not parsed:
                 continue
+            
+            if parsed.get('kickoff') and parsed['kickoff'] < now_utc:
+                skipped_live += 1
+                continue
+            
             parsed_count += 1
             
             arb_hash = matcher.find_arbworld_match(parsed)
@@ -772,6 +780,8 @@ def run_scrape():
                 writer.write_btts(parsed, mb_hash, arb_hash)
                 written_btts += 1
         
+        if skipped_live > 0:
+            print(f"[MB] Skipped {skipped_live} live/in-play events (pre-match only)")
         print(f"[MB] Parsed: {parsed_count} events")
         print(f"[MB] Matched with Arbworld: {matched_count}/{parsed_count}")
         print(f"[MB] Written - 1X2: {written_1x2}, OU25: {written_ou25}, BTTS: {written_btts}")

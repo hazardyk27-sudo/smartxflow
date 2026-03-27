@@ -3206,6 +3206,11 @@ async function loadMatchbookChartForModal(home, away, league, arbHash, market, r
     var section = document.getElementById('matchbookChartSection');
     if (!section) return;
     
+    if (currentSource === 'matchbook') {
+        section.style.display = 'none';
+        return;
+    }
+    
     try {
         var cacheKey = `${home}|${away}|${league}|mb`;
         if (_mbBulkCacheKey !== cacheKey) {
