@@ -10344,6 +10344,7 @@ function _updateLiveCapsulesInDOM() {
         var away = parts[parts.length - 1].trim();
         var lm = _findLiveMatchByHash(matchId) || _findLiveMatch(home, away);
         if (!lm) return;
+        if (_isFinishedLiveMatch(lm)) return;
         if (capsuleEl) {
             var rawMin = (lm.minute || '').trim();
             var sc = lm.score || '';
