@@ -364,7 +364,7 @@ function renderMobileMatchCards(data){if(typeof _liveMode!=='undefined'&&_liveMo
             </div>
         `;_updateRenderedCount();return;}
 cardList.innerHTML='';_renderMoreMobile();_setupInfiniteScroll();}
-function _mobileFavLine(mk,isFav,count){return'<div class="mobile-fav-line"><span class="fav-heart '+(isFav?'fav-active':'')+'" data-matchkey="'+mk.replace(/"/g,'&quot;')+'" onclick="event.stopPropagation(); toggleFavorite(this);">&#9829;</span><span class="mobile-fav-count" data-matchkey="'+mk.replace(/"/g,'&quot;')+'">'+(count>0?count+' kişi takip ediyor':'')+'</span></div>';}
+function _mobileFavLine(mk,isFav,count){if(!isFav&&count<=0)return'';return'<div class="mobile-fav-line"><span class="fav-heart '+(isFav?'fav-active':'')+'" data-matchkey="'+mk.replace(/"/g,'&quot;')+'" onclick="event.stopPropagation(); toggleFavorite(this);">&#9829;</span><span class="mobile-fav-count" data-matchkey="'+mk.replace(/"/g,'&quot;')+'">'+(count>0?count+' kişi takip ediyor':'')+'</span></div>';}
 function renderMobileMoneywayCard(match,idx,d,volume,dateStr,starHtml){let oddsBlocks='';var tv=d.Volume;if(currentMarket.includes('1x2')){oddsBlocks=`
             ${renderMobileMoneywayBlock('1', d.Odds1 || d['1'], d.Pct1, tv)}
             ${renderMobileMoneywayBlock('X', d.OddsX || d['X'], d.PctX, tv)}
