@@ -140,7 +140,7 @@ function _updateFavCountsInDOM() {
         if (mk) {
             var c = _favCounts[mk] || 0;
             if (c === 0 && _userFavorites.has(mk)) c = 1;
-            el.textContent = c > 0 ? c : '';
+            el.textContent = c > 0 ? c + ' kişi takip ediyor' : '';
         }
     });
 }
@@ -181,7 +181,7 @@ function toggleFavorite(el) {
             }
         });
         document.querySelectorAll('.mobile-fav-count[data-matchkey="' + mk.replace(/"/g, '\\"') + '"]').forEach(function(mc) {
-            mc.textContent = displayCount > 0 ? displayCount : '';
+            mc.textContent = displayCount > 0 ? displayCount + ' kişi takip ediyor' : '';
         });
         if (_favFilterActive && !data.favorited) {
             var row = el.closest('tr');
@@ -1782,8 +1782,9 @@ function _renderMoreMobile() {
             const _fc = _favCounts[_mk] || (_isFav ? 1 : 0);
             html += `
                 <div class="match-card" data-index="${i}" onclick="openMatchModal(${i})">
+                    ${_mobileFavLine(_mk, _isFav, _fc)}
                     <div class="match-card-left">
-                        <div class="match-card-teams">${_mobileFavInline(_mk, _isFav, _fc)}${match.home_team}<span class="vs">-</span>${match.away_team}${_mStar}</div>
+                        <div class="match-card-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${_mStar}</div>
                         <div class="match-card-meta">
                             <span class="match-card-league">${match.league || '-'}</span>
                             <span class="match-card-separator">•</span>
@@ -1940,9 +1941,9 @@ function renderMobileMatchCards(data) {
 }
 
 // Mobile Moneyway Card - Shows odds with betting percentages
-function _mobileFavInline(mk, isFav, count) {
+function _mobileFavLine(mk, isFav, count) {
     if (!isFav && count <= 0) return '';
-    return '<span class="mobile-fav-inline"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">&#9829;</span><span class="mobile-fav-count" data-matchkey="' + mk.replace(/"/g, '&quot;') + '">' + (count > 0 ? count : '') + '</span></span>';
+    return '<div class="mobile-fav-line"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">&#9829;</span><span class="mobile-fav-count" data-matchkey="' + mk.replace(/"/g, '&quot;') + '">' + (count > 0 ? count + ' kişi takip ediyor' : '') + '</span></div>';
 }
 
 function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
@@ -1977,8 +1978,9 @@ function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
     const _fc = _favCounts[_mk] || (_isFav ? 1 : 0);
     return `
         <div class="match-card odds-card moneyway-card" data-index="${idx}" onclick="openMatchModal(${idx})">
+            ${_mobileFavLine(_mk, _isFav, _fc)}
             <div class="odds-card-header">
-                ${_mobileFavInline(_mk, _isFav, _fc)}<div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
+                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
             <div class="odds-card-meta">
@@ -2110,8 +2112,9 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr, starHtml) {
     const _fc = _favCounts[_mk] || (_isFav ? 1 : 0);
     return `
         <div class="match-card odds-card dropping-card" data-index="${idx}" onclick="openMatchModal(${idx})">
+            ${_mobileFavLine(_mk, _isFav, _fc)}
             <div class="odds-card-header">
-                ${_mobileFavInline(_mk, _isFav, _fc)}<div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
+                <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
             <div class="odds-card-meta">
