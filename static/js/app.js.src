@@ -245,6 +245,14 @@ function _favCountHtml(count) {
     return '<span class="fav-count-num">' + count + ' kişi</span>takip ediyor';
 }
 
+function _buildLiveFavCell(match) {
+    var mk = _getMatchKey(match);
+    var isFav = _userFavorites.has(mk);
+    var count = _favCounts[mk] || 0;
+    if (count === 0 && isFav) count = 1;
+    return '<td class="fav-cell"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">\u2665</span><span class="fav-count">' + _favCountHtml(count) + '</span></td>';
+}
+
 function _buildFavCell(match) {
     var mk = _getMatchKey(match);
     var isFav = _userFavorites.has(mk);
@@ -10354,7 +10362,7 @@ function switchToLive() {
     var marketRow = document.querySelector('.mobile-tab-row.market-row');
     if (marketRow) marketRow.style.display = 'none';
     var tbody = document.getElementById('matchesTableBody');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;"><div class="loading-spinner"></div> Canli maclar yukleniyor...</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;"><div class="loading-spinner"></div> Canli maclar yukleniyor...</td></tr>';
     var cardList = document.getElementById('matchCardList');
     if (cardList) cardList.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loading-spinner"></div> Canli maclar yukleniyor...</div>';
     loadLiveMatches();
@@ -10542,8 +10550,8 @@ function renderLiveMatches(matches, goalHashes) {
         '<div class="live-empty-sub">Canli maclar basladiginda burada gorunecek</div>' +
         '</div>';
     if (!matches || matches.length === 0) {
-        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;">' + emptyHtml + '</td></tr>';
-        if (thead) thead.innerHTML = '<tr><th colspan="7" style="text-align:center;">Canli mac bulunamadi</th></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;">' + emptyHtml + '</td></tr>';
+        if (thead) thead.innerHTML = '<tr><th colspan="8" style="text-align:center;">Canli mac bulunamadi</th></tr>';
         if (cardList) cardList.innerHTML = emptyHtml;
         var mc = document.getElementById('matchCount');
         if (mc) mc.textContent = '0';
@@ -10554,9 +10562,10 @@ function renderLiveMatches(matches, goalHashes) {
     if (is1x2) {
         if (table) table.setAttribute('data-selection-count', '3');
         if (colgroup) colgroup.innerHTML =
-            '<col class="col-date"><col class="col-league"><col class="col-match">' +
+            '<col class="col-fav"><col class="col-date"><col class="col-league"><col class="col-match">' +
             '<col class="col-selection"><col class="col-selection"><col class="col-selection"><col class="col-volume">';
         if (thead) thead.innerHTML = '<tr>' +
+            '<th class="col-fav"></th>' +
             '<th class="col-date">DK</th>' +
             '<th class="col-league">LİG</th>' +
             '<th class="col-match">MAÇ</th>' +
@@ -10568,9 +10577,10 @@ function renderLiveMatches(matches, goalHashes) {
     } else {
         if (table) table.setAttribute('data-selection-count', '2');
         if (colgroup) colgroup.innerHTML =
-            '<col class="col-date"><col class="col-league"><col class="col-match">' +
+            '<col class="col-fav"><col class="col-date"><col class="col-league"><col class="col-match">' +
             '<col class="col-selection"><col class="col-selection"><col class="col-volume">';
         if (thead) thead.innerHTML = '<tr>' +
+            '<th class="col-fav"></th>' +
             '<th class="col-date">DK</th>' +
             '<th class="col-league">LİG</th>' +
             '<th class="col-match">MAÇ</th>' +
@@ -10600,7 +10610,7 @@ function renderLiveMatches(matches, goalHashes) {
         return _liveCalcVolOU(_liveGetOu(m, ouLine)) > 0;
     });
     if (filtered.length === 0) {
-        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;">' + emptyHtml + '</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;">' + emptyHtml + '</td></tr>';
         if (cardList) cardList.innerHTML = emptyHtml;
         var mc0 = document.getElementById('matchCount');
         if (mc0) mc0.textContent = '0';
@@ -10679,7 +10689,9 @@ function renderLiveMatches(matches, goalHashes) {
                 '<span class="lc-min">' + capMinText + '</span>' +
                 capScoreHtml +
                 '</div>';
+            var _liveFavTd = _buildLiveFavCell(m);
             rowsHtml += '<tr class="live-row"' + _liveMkAttr + ' ' + onclickAttr + '>' +
+                _liveFavTd +
                 '<td class="match-date">' + deskLiveCap + '</td>' +
                 '<td class="match-league" title="' + escLiveHtml(m.league) + '">' + escLiveHtml(m.league) + '</td>' +
                 '<td class="match-teams">' + escLiveHtml(m.home_team) + '<span class="vs">-</span>' + escLiveHtml(m.away_team) + '</td>' +
@@ -10712,7 +10724,9 @@ function renderLiveMatches(matches, goalHashes) {
                 '<span class="lc-min">' + capMinTextOU + '</span>' +
                 capScoreHtmlOU +
                 '</div>';
+            var _liveFavTdOU = _buildLiveFavCell(m);
             rowsHtml += '<tr class="live-row"' + _liveMkAttr + ' ' + onclickAttr + '>' +
+                _liveFavTdOU +
                 '<td class="match-date">' + deskLiveCapOU + '</td>' +
                 '<td class="match-league" title="' + escLiveHtml(m.league) + '">' + escLiveHtml(m.league) + '</td>' +
                 '<td class="match-teams">' + escLiveHtml(m.home_team) + '<span class="vs">-</span>' + escLiveHtml(m.away_team) + '</td>' +
