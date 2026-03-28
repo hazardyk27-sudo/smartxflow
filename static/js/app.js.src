@@ -1021,6 +1021,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadFinishedScores();
     await loadUserFavorites();
     loadMatches();
+    _startBackgroundLiveFetch();
     checkStatus();
     window.statusInterval = window.setInterval(checkStatus, 60000);
     
@@ -10323,7 +10324,56 @@ async function _fetchBackgroundLiveData() {
         var resp = await fetch('/api/live/matches');
         var data = await resp.json();
         _liveData = data.matches || [];
+        _updateLiveCapsulesInDOM();
     } catch (e) {}
+}
+
+function _updateLiveCapsulesInDOM() {
+    if (_liveMode) return;
+    document.querySelectorAll('#matchesTableBody tr').forEach(function(row) {
+        var teamsCell = row.querySelector('.match-teams');
+        var dateCell = row.querySelector('.match-date');
+        if (!teamsCell || !dateCell) return;
+        var capsuleEl = teamsCell.querySelector('.live-capsule');
+        var deskCapsuleEl = dateCell.querySelector('.live-capsule-desk');
+        var matchId = row.getAttribute('data-match-id') || '';
+        var teamsText = teamsCell.textContent || '';
+        var parts = teamsText.split(/\s*[-–]\s*/);
+        if (parts.length < 2) return;
+        var home = parts[0].trim();
+        var away = parts[parts.length - 1].trim();
+        var lm = _findLiveMatchByHash(matchId) || _findLiveMatch(home, away);
+        if (!lm) return;
+        if (capsuleEl) {
+            var rawMin = (lm.minute || '').trim();
+            var sc = lm.score || '';
+            if (rawMin || sc) {
+                var minDisp = rawMin || '';
+                var scoreDisp = '';
+                if (sc) {
+                    var sp = sc.split('-');
+                    if (sp.length === 2) {
+                        scoreDisp = '<span class="lc-divider"></span><span class="lc-score-val"><span class="lc-score-h">' + sp[0].trim() + '</span><span class="lc-score-sep">-</span><span class="lc-score-a">' + sp[1].trim() + '</span></span>';
+                    }
+                }
+                capsuleEl.innerHTML = '<span class="lc-dot"></span><span class="lc-min">' + minDisp + '</span>' + scoreDisp;
+            }
+        }
+        if (deskCapsuleEl) {
+            var rawMin2 = (lm.minute || '').trim();
+            var sc2 = lm.score || '';
+            if (rawMin2 || sc2) {
+                var scoreDisp2 = '';
+                if (sc2) {
+                    var sp2 = sc2.split('-');
+                    if (sp2.length === 2) {
+                        scoreDisp2 = '<span class="lc-divider"></span><span class="lc-score-h">' + sp2[0].trim() + '</span><span class="lc-score-sep">-</span><span class="lc-score-a">' + sp2[1].trim() + '</span>';
+                    }
+                }
+                deskCapsuleEl.innerHTML = '<span class="lc-dot"></span><span class="lc-min">' + rawMin2 + '</span>' + scoreDisp2;
+            }
+        }
+    });
 }
 
 function _startBackgroundLiveFetch() {
