@@ -2569,26 +2569,6 @@ class HybridDatabase:
         if self.supabase.is_available:
             self.supabase.ensure_analyses_table()
 
-    def get_matchbook_matches_with_latest(self, market: str, date_filter: str = None) -> List[Dict[str, Any]]:
-        if self.supabase.is_available:
-            return self.supabase.get_matchbook_matches_with_latest(market, date_filter=date_filter)
-        return []
-
-    def get_matchbook_match_history(self, home: str, away: str, market: str, league: str = '', match_id_hash: str = '') -> List[Dict[str, Any]]:
-        if self.supabase.is_available:
-            return self.supabase.get_matchbook_match_history(home, away, market, league, match_id_hash)
-        return []
-
-    def get_matchbook_history_by_arbhash(self, arb_hash: str, market: str) -> List[Dict[str, Any]]:
-        if self.supabase.is_available:
-            return self.supabase.get_matchbook_history_by_arbhash(arb_hash, market)
-        return []
-
-    def get_matchbook_arbhash_for_match(self, home: str, away: str, league: str = '') -> Optional[str]:
-        if self.supabase.is_available:
-            return self.supabase.get_matchbook_arbhash_for_match(home, away, league)
-        return None
-
 
 _database = None
 
