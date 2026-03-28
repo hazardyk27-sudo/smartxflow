@@ -1942,8 +1942,7 @@ function renderMobileMatchCards(data) {
 
 // Mobile Moneyway Card - Shows odds with betting percentages
 function _mobileFavLine(mk, isFav, count) {
-    if (!isFav && count <= 0) return '';
-    return '<div class="mobile-fav-line"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">&#9829;</span><span class="mobile-fav-count" data-matchkey="' + mk.replace(/"/g, '&quot;') + '">' + (count > 0 ? count + ' kişi takip ediyor' : '') + '</span></div>';
+    return '<div class="mobile-fav-line"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">&#9829;</span>' + (count > 0 ? '<span class="mobile-fav-count" data-matchkey="' + mk.replace(/"/g, '&quot;') + '">' + count + ' kişi takip ediyor</span>' : '<span class="mobile-fav-count" data-matchkey="' + mk.replace(/"/g, '&quot;') + '"></span>') + '</div>';
 }
 
 function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
