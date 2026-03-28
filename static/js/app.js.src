@@ -1730,6 +1730,7 @@ function _renderMoreDesktop() {
     if (currentMarket.startsWith('dropping')) {
         setTimeout(() => attachTrendTooltipListeners(), 50);
     }
+    if (_favFilterActive) setTimeout(() => _applyFavoritesFilter(), 10);
 }
 
 function _renderMoreMobile() {
@@ -1787,6 +1788,7 @@ function _renderMoreMobile() {
     cardList.insertAdjacentHTML('beforeend', html);
     _renderedCount = end;
     _updateRenderedCount();
+    if (_favFilterActive) setTimeout(() => _applyFavoritesFilter(), 10);
 }
 
 function _updateRenderedCount() {
