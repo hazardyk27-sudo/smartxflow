@@ -10841,7 +10841,10 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
     var is1x2 = (marketOrLine === '1x2');
     var cardCls = 'match-card odds-card moneyway-card' + (goalSide ? ' goal-flash-card' : '');
     var _lmk = _getMatchKey(m);
+    var _lmkIsFav = _userFavorites.has(_lmk);
+    var _lmkFc = _favCounts[_lmk] || (_lmkIsFav ? 1 : 0);
     var html = '<div class="' + cardCls + '" data-matchkey="' + _lmk.replace(/"/g, '&quot;') + '" ' + onclickAttr + '>';
+    html += _mobileFavLine(_lmk, _lmkIsFav, _lmkFc);
     html += '<div class="odds-card-header">';
     var cardMin = _calcLiveMatchMin(m);
     var cardScore = m.score ? escLiveHtml(m.score) : (cardMin === 'MS' ? '-' : '');
