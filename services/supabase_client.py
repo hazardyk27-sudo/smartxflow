@@ -2284,28 +2284,61 @@ class SupabaseClient:
         except Exception as e:
             print(f"[Supabase] Error checking analyses table: {e}")
 
+    def _ensure_favorites_table(self):
+        if getattr(self, '_fav_table_ok', False):
+            return True
+        try:
+            url = f"{self._rest_url('match_favorites')}?select=id&limit=0"
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=5)
+            if resp.status_code == 200:
+                self._fav_table_ok = True
+                return True
+            print(f"[Supabase] match_favorites table not found (status {resp.status_code}). Please create it in Supabase Dashboard SQL Editor:")
+            print("""  CREATE TABLE IF NOT EXISTS match_favorites (
+    id SERIAL PRIMARY KEY,
+    device_id VARCHAR(16) NOT NULL,
+    match_key TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(device_id, match_key)
+  );""")
+            return False
+        except Exception as e:
+            print(f"[Supabase] _ensure_favorites_table error: {e}")
+            return False
+
     def toggle_favorite(self, device_id: str, match_key: str) -> Dict:
         if not self.is_available or not device_id or not match_key:
             return {'favorited': False, 'total_count': 0}
+        if not self._ensure_favorites_table():
+            return {'favorited': False, 'total_count': 0, 'error': 'table_missing'}
         try:
             import urllib.parse
             dk = urllib.parse.quote(device_id, safe='')
             mk = urllib.parse.quote(match_key, safe='')
             check_url = f"{self._rest_url('match_favorites')}?device_id=eq.{dk}&match_key=eq.{mk}&select=id"
             resp = self._get_http_client().get(check_url, headers=self._headers(), timeout=10)
+            print(f"[Supabase] toggle_favorite check: status={resp.status_code}, rows={len(resp.json()) if resp.status_code == 200 else 'N/A'}")
             if resp.status_code == 200 and resp.json():
                 row_id = resp.json()[0]['id']
                 del_url = f"{self._rest_url('match_favorites')}?id=eq.{row_id}"
-                self._get_http_client().delete(del_url, headers=self._headers(), timeout=10)
+                del_resp = self._get_http_client().delete(del_url, headers=self._headers(), timeout=10)
+                print(f"[Supabase] toggle_favorite DELETE id={row_id}: status={del_resp.status_code}")
+                if del_resp.status_code not in (200, 204):
+                    print(f"[Supabase] DELETE failed: {del_resp.text[:200]}")
+                    return {'favorited': True, 'total_count': 0}
                 favorited = False
             else:
                 ins_headers = {**self._headers(), 'Prefer': 'return=minimal'}
-                self._get_http_client().post(
+                ins_resp = self._get_http_client().post(
                     self._rest_url('match_favorites'),
                     headers=ins_headers,
                     json={'device_id': device_id, 'match_key': match_key},
                     timeout=10
                 )
+                print(f"[Supabase] toggle_favorite INSERT: status={ins_resp.status_code}")
+                if ins_resp.status_code not in (200, 201, 204):
+                    print(f"[Supabase] INSERT failed: {ins_resp.text[:200]}")
+                    return {'favorited': False, 'total_count': 0}
                 favorited = True
             count_url = f"{self._rest_url('match_favorites')}?match_key=eq.{mk}&select=id"
             count_headers = {**self._headers(), 'Prefer': 'count=exact', 'Range-Unit': 'items', 'Range': '0-0'}
@@ -2323,6 +2356,8 @@ class SupabaseClient:
     def get_user_favorites(self, device_id: str) -> list:
         if not self.is_available or not device_id:
             return []
+        if not self._ensure_favorites_table():
+            return []
         try:
             import urllib.parse
             dk = urllib.parse.quote(device_id, safe='')
@@ -2337,6 +2372,8 @@ class SupabaseClient:
 
     def get_favorite_counts(self, match_keys: list) -> Dict:
         if not self.is_available or not match_keys:
+            return {}
+        if not self._ensure_favorites_table():
             return {}
         try:
             import urllib.parse

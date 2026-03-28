@@ -648,7 +648,7 @@ h1, h2, h3, h4, h5, h6,
     table-layout: fixed;
 }
 
-.matches-table colgroup col.col-fav { width: 36px; }
+.matches-table colgroup col.col-fav { width: 50px; }
 .matches-table colgroup col.col-date { width: 82px; }
 .matches-table colgroup col.col-league { width: 130px; }
 .matches-table colgroup col.col-match { width: 200px; }
@@ -658,14 +658,14 @@ h1, h2, h3, h4, h5, h6,
     padding: 4px 2px !important;
     text-align: center;
     vertical-align: middle;
-    width: 36px;
-    min-width: 36px;
-    max-width: 36px;
+    width: 50px;
+    min-width: 50px;
+    max-width: 50px;
 }
 
 .fav-heart {
     display: block;
-    font-size: 16px;
+    font-size: 19px;
     color: #4a5058;
     cursor: pointer;
     transition: color 0.2s ease, transform 0.2s ease;
@@ -674,32 +674,39 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .fav-heart:hover {
-    color: #ef4444;
+    color: #e5484d;
     transform: scale(1.2);
 }
 
 .fav-heart.fav-active {
-    color: #ef4444;
+    color: #e5484d;
 }
 
 .fav-count {
-    display: block;
-    font-size: 9px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 8px;
     color: #5a6068;
-    line-height: 1.2;
-    margin-top: 1px;
+    line-height: 1.15;
+    margin-top: 2px;
     white-space: nowrap;
 }
 
+.fav-count .fav-count-num {
+    font-weight: 600;
+    color: #7d848c;
+}
+
 .btn-favorites-active {
-    background: rgba(239, 68, 68, 0.15) !important;
-    border-color: rgba(239, 68, 68, 0.4) !important;
-    color: #ef4444 !important;
+    background: rgba(229, 72, 77, 0.15) !important;
+    border-color: rgba(229, 72, 77, 0.4) !important;
+    color: #e5484d !important;
 }
 
 .btn-favorites-active svg {
-    fill: #ef4444;
-    stroke: #ef4444;
+    fill: #e5484d;
+    stroke: #e5484d;
 }
 
 .match-card-fav {
@@ -710,7 +717,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .match-card-fav .fav-heart {
-    font-size: 18px;
+    font-size: 22px;
 }
 
 .matches-table[data-selection-count="3"] colgroup col.col-selection { width: 90px; }
