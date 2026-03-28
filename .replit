@@ -44,7 +44,7 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python scheduled_scraper.py & python alarm_engine.py & python live_scraper.py & python matchbook_scraper.py & wait"
+args = "python scheduled_scraper.py & python alarm_engine.py & python live_scraper.py & wait"
 
 [userenv]
 

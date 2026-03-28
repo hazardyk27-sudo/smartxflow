@@ -75,7 +75,6 @@ let _mobileHideLive = false;
 let _mobileOnlyLive = false;
 let _analysisHashesFetched = false;
 let currentSource = 'betfair';
-let chartOddsSource = 'betfair';
 
 let _licenseReadyResolve;
 const _licenseReady = new Promise(r => { _licenseReadyResolve = r; });
@@ -1024,14 +1023,7 @@ function setupModalChartTabs() {
             }
             if (selectedMatch) {
                 showChartLoading();
-                if (selectedChartMarket.startsWith('dropping') && chartOddsSource === 'matchbook') {
-                    loadChartForSource(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league || '');
-                } else {
-                    if (selectedChartMarket.startsWith('dropping')) chartOddsSource = 'betfair';
-                    loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league || '');
-                }
-                var arbH = selectedMatch.arbworld_hash || '';
-                loadMatchbookChartForModal(selectedMatch.home_team, selectedMatch.away_team, selectedMatch.league || '', arbH, selectedChartMarket);
+                loadChartWithTrends(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league || '');
             }
         });
     });
@@ -2988,10 +2980,7 @@ async function openMatchModalFromMatches(index) {
         
         const livePipeline = _checkModalLiveData(home, away, reqId);
         
-        var arbHash = selectedMatch.arbworld_hash || '';
-        const mbPipeline = loadMatchbookChartForModal(home, away, league, arbHash, selectedChartMarket, reqId);
-        
-        await Promise.all([chartPipeline, alarmsPipeline, livePipeline, mbPipeline]);
+        await Promise.all([chartPipeline, alarmsPipeline, livePipeline]);
     }
 }
 
@@ -3088,10 +3077,7 @@ async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
         
         const livePipeline = _checkModalLiveData(homeTeam, awayTeam, reqId);
         
-        var arbHash2 = selectedMatch.arbworld_hash || '';
-        const mbPipeline2 = loadMatchbookChartForModal(apiHome, apiAway, apiLeague, arbHash2, selectedChartMarket, reqId);
-        
-        await Promise.all([chartPipeline, alarmsPipeline, livePipeline, mbPipeline2]);
+        await Promise.all([chartPipeline, alarmsPipeline, livePipeline]);
         
     } catch (error) {
         console.error('[openMatchModalFromAPI] Error:', error);
@@ -3149,10 +3135,7 @@ async function openMatchModal(index) {
         
         const livePipeline = _checkModalLiveData(home, away, reqId);
         
-        var arbHash3 = selectedMatch.arbworld_hash || '';
-        const mbPipeline3 = loadMatchbookChartForModal(home, away, league, arbHash3, selectedChartMarket, reqId);
-        
-        await Promise.all([chartPipeline, alarmsPipeline, livePipeline, mbPipeline3]);
+        await Promise.all([chartPipeline, alarmsPipeline, livePipeline]);
     }
 }
 
@@ -3166,8 +3149,6 @@ function resetModalState() {
     previousOddsData = null;
     bulkHistoryCache = {};
     bulkHistoryCacheKey = '';
-    chartOddsSource = 'betfair';
-
     _modalLiveData = null;
     _modalLiveMarket = '1x2';
 
@@ -3192,112 +3173,8 @@ function resetModalState() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
-    var mbSection = document.getElementById('matchbookChartSection');
-    if (mbSection) mbSection.style.display = 'none';
-    if (window._mbChart) { window._mbChart.destroy(); window._mbChart = null; }
-
     showSmartMoneyLoading();
     showChartLoading();
-}
-
-let _mbBulkCache = {};
-let _mbBulkCacheKey = '';
-
-async function loadMatchbookChartForModal(home, away, league, arbHash, market, reqId) {
-    var section = document.getElementById('matchbookChartSection');
-    if (!section) return;
-    
-    if (currentSource === 'matchbook') {
-        section.style.display = 'none';
-        return;
-    }
-    
-    if (!arbHash && !home) {
-        section.style.display = 'none';
-        return;
-    }
-    
-    try {
-        var cacheKey = `${home}|${away}|${league}|mb`;
-        if (_mbBulkCacheKey !== cacheKey) {
-            var params = `home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&league=${encodeURIComponent(league || '')}`;
-            if (arbHash) params += `&arb_hash=${encodeURIComponent(arbHash)}`;
-            var resp = await fetch('/api/match/history/matchbook?' + params);
-            var data = await resp.json();
-            if (reqId !== _modalRequestId) return;
-            _mbBulkCache = data.markets || {};
-            _mbBulkCacheKey = cacheKey;
-        }
-        
-        var mktData = _mbBulkCache[market];
-        if (!mktData || !mktData.history || mktData.history.length === 0) {
-            section.style.display = 'none';
-            return;
-        }
-        
-        section.style.display = 'block';
-        var canvas = document.getElementById('matchbookChart');
-        if (!canvas) return;
-        
-        if (window._mbChart) { window._mbChart.destroy(); window._mbChart = null; }
-        
-        var chartData = mktData.chart_data;
-        if (!chartData || !chartData.datasets || chartData.datasets.length === 0) {
-            section.style.display = 'none';
-            return;
-        }
-        
-        await window.loadChartLibs();
-        
-        var ctx = canvas.getContext('2d');
-        window._mbChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: chartData.labels,
-                datasets: chartData.datasets.map(function(ds) {
-                    return {
-                        label: ds.label,
-                        data: ds.data,
-                        borderColor: ds.borderColor,
-                        backgroundColor: 'transparent',
-                        borderWidth: 2,
-                        tension: 0.1,
-                        fill: false,
-                        pointRadius: 0,
-                        pointHoverRadius: 4
-                    };
-                })
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: { color: '#7d848c', font: { size: 11 }, boxWidth: 12, padding: 8 }
-                    },
-                    title: { display: false }
-                },
-                scales: {
-                    x: { 
-                        display: true,
-                        ticks: { color: '#5c636b', font: { size: 10 }, maxTicksLimit: 8 },
-                        grid: { color: 'rgba(255,255,255,0.04)' }
-                    },
-                    y: {
-                        display: true,
-                        ticks: { color: '#5c636b', font: { size: 10 } },
-                        grid: { color: 'rgba(255,255,255,0.04)' }
-                    }
-                }
-            }
-        });
-    } catch(e) {
-        console.error('[MB Chart] Error:', e);
-        if (section) section.style.display = 'none';
-    }
 }
 
 function showSmartMoneyLoading() {
@@ -3370,14 +3247,7 @@ async function loadAllMarketsAtOnce(home, away, league = '', matchIdHash = '') {
     try {
         console.log('[Bulk] Fetching all markets for', home, 'vs', away, 'league:', league, 'source:', currentSource);
         const startTime = performance.now();
-        var url;
-        if (currentSource === 'matchbook') {
-            var params = `home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&league=${encodeURIComponent(league || '')}`;
-            if (matchIdHash) params += `&match_id_hash=${encodeURIComponent(matchIdHash)}`;
-            url = '/api/match/history/matchbook?' + params;
-        } else {
-            url = `/api/match/history/bulk?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&league=${encodeURIComponent(league || '')}`;
-        }
+        var url = `/api/match/history/bulk?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&league=${encodeURIComponent(league || '')}`;
         const response = await fetch(url);
         const data = await response.json();
         const elapsed = performance.now() - startTime;
@@ -4347,11 +4217,7 @@ function formatTimeLabel(date) {
     return dt.format('DD.MM • HH:mm');
 }
 
-async function loadChartWithData(home, away, market, league, dataOverride) {
-    return loadChart(home, away, market, league, dataOverride);
-}
-
-async function loadChart(home, away, market, league = '', dataOverride = null) {
+async function loadChart(home, away, market, league = '') {
     try {
         if (typeof Chart === 'undefined') {
             console.error('[loadChart] Chart.js not loaded, retrying...');
@@ -4365,23 +4231,18 @@ async function loadChart(home, away, market, league = '', dataOverride = null) {
         }
         let data = { history: [] };
         
-        if (dataOverride) {
-            data = dataOverride;
-            console.log('[loadChart] Using direct data override for', market, ':', (data.history || []).length, 'rows');
+        const cacheKey = `${home}|${away}|${league}|${currentSource}`;
+        if (bulkHistoryCacheKey === cacheKey && bulkHistoryCache[market]) {
+            data = bulkHistoryCache[market];
+            console.log('[loadChart] Using bulk cache for', market);
         } else {
-            const cacheKey = `${home}|${away}|${league}|${currentSource}`;
-            if (bulkHistoryCacheKey === cacheKey && bulkHistoryCache[market]) {
-                data = bulkHistoryCache[market];
-                console.log('[loadChart] Using bulk cache for', market);
-            } else {
-                try {
-                    const response = await fetch(
-                        `/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}&league=${encodeURIComponent(league || '')}`
-                    );
-                    data = await response.json();
-                } catch (e) {
-                    console.log('No history data available');
-                }
+            try {
+                const response = await fetch(
+                    `/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}&league=${encodeURIComponent(league || '')}`
+                );
+                data = await response.json();
+            } catch (e) {
+                console.log('No history data available');
             }
         }
         
@@ -5655,21 +5516,6 @@ function renderChartLegendFilters(datasets, market) {
         <div class="chart-filter-group time-filters">
             ${timeButtons}
         </div>
-        ${market.startsWith('dropping') ? `
-        <div class="chart-filter-divider"></div>
-        <div class="chart-filter-group source-selector">
-            <div class="chart-source-dropdown">
-                <button class="chart-source-btn" onclick="toggleChartSourceDropdown(event)">
-                    <span class="chart-source-label">${chartOddsSource === 'betfair' ? 'Betfair' : 'Matchbook'}</span>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-                </button>
-                <div class="chart-source-menu" id="chartSourceMenu">
-                    <button class="${chartOddsSource === 'betfair' ? 'active' : ''}" onclick="setChartOddsSource('betfair')">Betfair</button>
-                    <button class="${chartOddsSource === 'matchbook' ? 'active' : ''}" onclick="setChartOddsSource('matchbook')">Matchbook</button>
-                </div>
-            </div>
-        </div>
-        ` : ''}
         <div class="chart-filter-divider"></div>
         <div class="chart-export-btns">
             <button class="chart-export-btn" onclick="exportChartPNG()">
@@ -5711,79 +5557,7 @@ function setChartTimeRange(range) {
     });
     
     if (selectedMatch) {
-        if (selectedChartMarket.startsWith('dropping') && chartOddsSource === 'matchbook') {
-            loadChartForSource(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league || '');
-        } else {
-            loadChart(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league || '');
-        }
-    }
-}
-
-function toggleChartSourceDropdown(e) {
-    e.stopPropagation();
-    var menu = document.getElementById('chartSourceMenu');
-    if (!menu) return;
-    var isOpen = menu.classList.contains('open');
-    menu.classList.toggle('open');
-    if (!isOpen) {
-        var closeHandler = function(ev) {
-            if (!menu.contains(ev.target)) {
-                menu.classList.remove('open');
-                document.removeEventListener('click', closeHandler);
-            }
-        };
-        setTimeout(function() { document.addEventListener('click', closeHandler); }, 0);
-    }
-}
-
-function setChartOddsSource(src) {
-    if (chartOddsSource === src) return;
-    chartOddsSource = src;
-    var menu = document.getElementById('chartSourceMenu');
-    if (menu) menu.classList.remove('open');
-    var label = document.querySelector('.chart-source-label');
-    if (label) label.textContent = src === 'betfair' ? 'Betfair' : 'Matchbook';
-    document.querySelectorAll('.chart-source-menu button').forEach(function(b) {
-        b.classList.toggle('active', b.textContent.trim().toLowerCase() === src);
-    });
-    bulkHistoryCache = {};
-    bulkHistoryCacheKey = '';
-    _mbBulkCache = {};
-    _mbBulkCacheKey = '';
-    if (selectedMatch) {
-        loadChartForSource(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league || '');
-    }
-}
-
-async function loadChartForSource(home, away, market, league) {
-    if (chartOddsSource === 'matchbook') {
-        var cacheKey = `${home}|${away}|${league}|mb`;
-        if (_mbBulkCacheKey !== cacheKey) {
-            var params = `home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&league=${encodeURIComponent(league || '')}`;
-            if (selectedMatch && selectedMatch.match_id) {
-                params += `&arb_hash=${encodeURIComponent(selectedMatch.match_id)}`;
-            }
-            try {
-                var resp = await fetch('/api/match/history/matchbook?' + params);
-                var data = await resp.json();
-                _mbBulkCache = data.markets || {};
-                _mbBulkCacheKey = cacheKey;
-            } catch(e) {
-                console.error('[ChartSource] Matchbook fetch error:', e);
-                return;
-            }
-        }
-        var mktData = _mbBulkCache[market];
-        var mbHistory = (mktData && mktData.history) ? mktData.history : [];
-        console.log('[ChartSource] Matchbook data for', market, ':', mbHistory.length, 'rows');
-        loadChartWithData(home, away, market, league, { history: mbHistory });
-    } else {
-        bulkHistoryCache = {};
-        bulkHistoryCacheKey = '';
-        var reqId = ++_modalRequestId;
-        var marketsPromise = loadAllMarketsAtOnce(home, away, league, selectedMatch ? selectedMatch.match_id : '');
-        await marketsPromise;
-        loadChart(home, away, market, league);
+        loadChart(selectedMatch.home_team, selectedMatch.away_team, selectedChartMarket, selectedMatch.league || '');
     }
 }
 
