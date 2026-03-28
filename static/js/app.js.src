@@ -148,6 +148,7 @@ function toggleFavorite(el) {
     })
     .then(function(r) { console.log('[Fav] response status:', r.status); return r.json(); })
     .then(function(data) {
+        if (data.error) { console.warn('[Fav] error:', data.error); return; }
         console.log('[Fav] result:', data.favorited ? 'ADDED' : 'REMOVED', 'count:', data.total_count);
         if (data.favorited) {
             _userFavorites.add(mk);

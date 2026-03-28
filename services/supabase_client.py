@@ -2325,7 +2325,7 @@ class SupabaseClient:
                 print(f"[Supabase] toggle_favorite DELETE id={row_id}: status={del_resp.status_code}")
                 if del_resp.status_code not in (200, 204):
                     print(f"[Supabase] DELETE failed: {del_resp.text[:200]}")
-                    return {'favorited': True, 'total_count': 0}
+                    return {'error': 'delete_failed'}
                 favorited = False
             else:
                 ins_headers = {**self._headers(), 'Prefer': 'return=minimal'}
@@ -2338,7 +2338,7 @@ class SupabaseClient:
                 print(f"[Supabase] toggle_favorite INSERT: status={ins_resp.status_code}")
                 if ins_resp.status_code not in (200, 201, 204):
                     print(f"[Supabase] INSERT failed: {ins_resp.text[:200]}")
-                    return {'favorited': False, 'total_count': 0}
+                    return {'error': 'insert_failed'}
                 favorited = True
             count_url = f"{self._rest_url('match_favorites')}?match_key=eq.{mk}&select=id"
             count_headers = {**self._headers(), 'Prefer': 'count=exact', 'Range-Unit': 'items', 'Range': '0-0'}
