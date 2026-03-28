@@ -4361,7 +4361,7 @@ async function loadChart(home, away, market, league = '') {
         }
         let data = { history: [] };
         
-        const cacheKey = `${home}|${away}|${league}`;
+        const cacheKey = `${home}|${away}|${league}|${currentSource}`;
         if (bulkHistoryCacheKey === cacheKey && bulkHistoryCache[market]) {
             data = bulkHistoryCache[market];
             console.log('[loadChart] Using bulk cache for', market);
