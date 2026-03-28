@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Matchbook Exchange Scraper
-Login-free API'den futbol odds + volume verisi ceker.
+Oran Scraper (Matchbook Exchange)
+Login-free API'den futbol oran verisi ceker.
 9 dakikada bir calisir, scheduled_scraper ile paralel.
-Alarm engine'e dahil OLMAZ - sadece gorsel karsilastirma.
+Alarm engine'e dahil OLMAZ - sadece oran karsilastirmasi.
 """
 import os
 import sys
@@ -766,7 +766,7 @@ def run_scrape():
 
 
 def run_loop():
-    print(f"[MB] Matchbook Scraper starting - {SCRAPE_INTERVAL//60} min interval")
+    print(f"[MB] Oran Scraper (Matchbook) starting - {SCRAPE_INTERVAL//60} min interval")
     
     while True:
         try:
