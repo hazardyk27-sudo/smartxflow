@@ -9534,13 +9534,13 @@ table.desktop-only {
         position: absolute;
         top: calc(100% + 4px);
         right: 0;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255,255,255,0.08);
+        background: #1c1f23;
+        border: 1px solid #2e3238;
         border-radius: 8px;
         padding: 4px;
         z-index: 200;
         min-width: 140px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.6);
     }
     
     .mobile-overflow-menu.show {
