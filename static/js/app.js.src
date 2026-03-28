@@ -3404,7 +3404,7 @@ async function loadChartWithTrends(home, away, market, league = '', reqId) {
             console.log('[Modal] Using modal cache for', market, 'count:', data.history?.length);
         }
         else {
-            const cacheKey = `${home}|${away}|${league}`;
+            const cacheKey = `${home}|${away}|${league}|${currentSource}`;
             if (bulkHistoryCacheKey === cacheKey && bulkHistoryCache[market]) {
                 data = bulkHistoryCache[market];
                 console.log('[Modal] Using bulk cache for', market, 'count:', data.history?.length);
@@ -6208,7 +6208,7 @@ async function exportFullMatchTXT() {
     const matchDate = selectedMatch.date || selectedMatch.start_time || '';
     const matchId = selectedMatch.match_id || '';
 
-    const cacheKey = `${home}|${away}|${league}`;
+    const cacheKey = `${home}|${away}|${league}|${currentSource}`;
     let marketsData = {};
     if (bulkHistoryCacheKey === cacheKey && Object.keys(bulkHistoryCache).length > 0) {
         marketsData = bulkHistoryCache;
