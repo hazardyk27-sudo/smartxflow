@@ -149,16 +149,23 @@ function toggleFavorite(el) {
     .then(function(data) {
         if (data.favorited) {
             _userFavorites.add(mk);
-            el.classList.add('fav-active');
         } else {
             _userFavorites.delete(mk);
-            el.classList.remove('fav-active');
         }
+        document.querySelectorAll('.fav-heart[data-matchkey="' + mk.replace(/"/g, '\\"') + '"]').forEach(function(h) {
+            if (data.favorited) {
+                h.classList.add('fav-active');
+            } else {
+                h.classList.remove('fav-active');
+            }
+        });
         _favCounts[mk] = data.total_count || 0;
-        var countEl = el.parentElement.querySelector('.fav-count');
-        if (countEl) {
-            countEl.textContent = data.total_count > 0 ? data.total_count + ' kişi' : '';
-        }
+        document.querySelectorAll('.fav-count').forEach(function(fc) {
+            var heart = fc.parentElement ? fc.parentElement.querySelector('.fav-heart') : null;
+            if (heart && heart.getAttribute('data-matchkey') === mk) {
+                fc.textContent = data.total_count > 0 ? data.total_count + ' kişi' : '';
+            }
+        });
         if (_favFilterActive && !data.favorited) {
             var row = el.closest('tr');
             if (row) row.style.display = 'none';
