@@ -7,10 +7,10 @@ return did;}
 let _userFavorites=new Set();let _favCounts={};let _favFilterActive=false;function _getMatchKey(match){return(match.home_team||'')+'|'+(match.away_team||'')+'|'+(match.league||'');}
 function loadUserFavorites(){var did=getWebDeviceId();if(!did)return Promise.resolve();return fetch('/api/favorites?device_id='+encodeURIComponent(did)).then(function(r){return r.json();}).then(function(data){_userFavorites=new Set(data.favorites||[]);}).catch(function(){});}
 function loadFavoriteCounts(matches){if(!matches||!matches.length)return Promise.resolve();var keys=matches.map(function(m){return _getMatchKey(m);});var unique=Array.from(new Set(keys));return fetch('/api/favorite/counts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({match_keys:unique})}).then(function(r){return r.json();}).then(function(data){_favCounts=data.counts||{};_updateFavCountsInDOM();}).catch(function(){});}
-function _updateFavCountsInDOM(){document.querySelectorAll('.fav-heart').forEach(function(el){var mk=el.getAttribute('data-matchkey');var countEl=el.parentElement.querySelector('.fav-count');if(countEl&&mk){var c=_favCounts[mk]||0;if(c===0&&_userFavorites.has(mk))c=1;countEl.innerHTML=_favCountHtml(c);}});}
+function _updateFavCountsInDOM(){document.querySelectorAll('.fav-heart').forEach(function(el){var mk=el.getAttribute('data-matchkey');var c=_favCounts[mk]||0;if(c===0&&_userFavorites.has(mk))c=1;var countEl=el.parentElement.querySelector('.fav-count');if(countEl&&mk){countEl.innerHTML=_favCountHtml(c);}});document.querySelectorAll('.mobile-fav-count').forEach(function(el){var mk=el.getAttribute('data-matchkey');if(mk){var c=_favCounts[mk]||0;if(c===0&&_userFavorites.has(mk))c=1;el.textContent=c>0?c+' kişi takip ediyor':'';}});}
 function toggleFavorite(el){var mk=el.getAttribute('data-matchkey');if(!mk)return;var did=getWebDeviceId();console.log('[Fav] toggle:',mk,'device:',did);fetch('/api/favorite/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({match_key:mk,device_id:did})}).then(function(r){console.log('[Fav] response status:',r.status);return r.json();}).then(function(data){if(data.error){console.warn('[Fav] error:',data.error);return;}
 console.log('[Fav] result:',data.favorited?'ADDED':'REMOVED','count:',data.total_count);if(data.favorited){_userFavorites.add(mk);}else{_userFavorites.delete(mk);}
-document.querySelectorAll('.fav-heart[data-matchkey="'+mk.replace(/"/g,'\\"')+'"]').forEach(function(h){if(data.favorited){h.classList.add('fav-active');}else{h.classList.remove('fav-active');}});_favCounts[mk]=data.total_count||0;document.querySelectorAll('.fav-count').forEach(function(fc){var heart=fc.parentElement?fc.parentElement.querySelector('.fav-heart'):null;if(heart&&heart.getAttribute('data-matchkey')===mk){fc.innerHTML=_favCountHtml(data.total_count);}});if(_favFilterActive&&!data.favorited){var row=el.closest('tr');if(row)row.style.display='none';var card=el.closest('.match-card');if(card)card.style.display='none';}}).catch(function(){});}
+document.querySelectorAll('.fav-heart[data-matchkey="'+mk.replace(/"/g,'\\"')+'"]').forEach(function(h){if(data.favorited){h.classList.add('fav-active');}else{h.classList.remove('fav-active');}});_favCounts[mk]=data.total_count||0;var displayCount=data.total_count||0;if(displayCount===0&&data.favorited)displayCount=1;document.querySelectorAll('.fav-count').forEach(function(fc){var heart=fc.parentElement?fc.parentElement.querySelector('.fav-heart'):null;if(heart&&heart.getAttribute('data-matchkey')===mk){fc.innerHTML=_favCountHtml(displayCount);}});document.querySelectorAll('.mobile-fav-count[data-matchkey="'+mk.replace(/"/g,'\\"')+'"]').forEach(function(mc){mc.textContent=displayCount>0?displayCount+' kişi takip ediyor':'';});if(_favFilterActive&&!data.favorited){var row=el.closest('tr');if(row)row.style.display='none';var card=el.closest('.match-card');if(card)card.style.display='none';}}).catch(function(){});}
 function toggleFavoritesFilter(){_favFilterActive=!_favFilterActive;var btn=document.getElementById('favoritesBtn');var btnM=document.getElementById('favoritesBtnMobile');if(_favFilterActive){if(btn)btn.classList.add('btn-favorites-active');if(btnM)btnM.classList.add('btn-favorites-active');_applyFavoritesFilter();}else{if(btn)btn.classList.remove('btn-favorites-active');if(btnM)btnM.classList.remove('btn-favorites-active');_clearFavoritesFilter();}}
 function _applyFavoritesFilter(){document.querySelectorAll('#matchesTableBody tr').forEach(function(row){var heart=row.querySelector('.fav-heart');if(heart){var mk=heart.getAttribute('data-matchkey');row.style.display=_userFavorites.has(mk)?'':'none';}});document.querySelectorAll('#matchCardList .match-card').forEach(function(card){var heart=card.querySelector('.fav-heart');if(heart){var mk=heart.getAttribute('data-matchkey');card.style.display=_userFavorites.has(mk)?'':'none';}});}
 function _clearFavoritesFilter(){document.querySelectorAll('#matchesTableBody tr').forEach(function(row){row.style.display='';});document.querySelectorAll('#matchCardList .match-card').forEach(function(card){card.style.display='';});}
@@ -314,11 +314,9 @@ function _renderMoreDesktop(){if(typeof _liveMode!=='undefined'&&_liveMode)retur
 tbody.insertAdjacentHTML('beforeend',html);_renderedCount=end;_updateRenderedCount();if(currentMarket.startsWith('dropping')){setTimeout(()=>attachTrendTooltipListeners(),50);}
 if(_favFilterActive)setTimeout(()=>_applyFavoritesFilter(),10);}
 function _renderMoreMobile(){if(typeof _liveMode!=='undefined'&&_liveMode)return;if(_renderedCount>=_allFilteredMatches.length)return;const cardList=document.getElementById('matchCardList');if(!cardList)return;const end=Math.min(_renderedCount+_RENDER_BATCH,_allFilteredMatches.length);let html='';const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMarket.startsWith('moneyway');for(let i=_renderedCount;i<end;i++){const match=_allFilteredMatches[i];const d=match.details||match.odds||{};const volume=formatVolumeCompact(d.Volume);const _mStar=getAnalysisStarHtml(match.match_id);let dateStr='';try{const dt=dayjs(match.date).tz('Europe/Istanbul');const day=dt.format('D');const monthIdx=dt.month();const monthsTR=['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];const time=dt.format('HH:mm');dateStr=`${day} ${monthsTR[monthIdx]} ${time}`;}catch(e){dateStr=match.date||'';}
-if(isMoneyway){html+=renderMobileMoneywayCard(match,i,d,volume,dateStr,_mStar);}else if(isDropping){html+=renderMobileOddsCard(match,i,d,volume,dateStr,_mStar);}else{const matchStatus=getMatchStatus(match.date);const _mk=_getMatchKey(match);const _isFav=_userFavorites.has(_mk);html+=`
+if(isMoneyway){html+=renderMobileMoneywayCard(match,i,d,volume,dateStr,_mStar);}else if(isDropping){html+=renderMobileOddsCard(match,i,d,volume,dateStr,_mStar);}else{const matchStatus=getMatchStatus(match.date);const _mk=_getMatchKey(match);const _isFav=_userFavorites.has(_mk);const _fc=_favCounts[_mk]||(_isFav?1:0);html+=`
                 <div class="match-card" data-index="${i}" onclick="openMatchModal(${i})">
-                    <div class="match-card-fav">
-                        <span class="fav-heart ${_isFav ? 'fav-active' : ''}" data-matchkey="${_mk.replace(/"/g, '&quot;')}" onclick="event.stopPropagation(); toggleFavorite(this);">&#9829;</span>
-                    </div>
+                    ${_mobileFavLine(_mk, _isFav, _fc)}
                     <div class="match-card-left">
                         <div class="match-card-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${_mStar}</div>
                         <div class="match-card-meta">
@@ -366,6 +364,7 @@ function renderMobileMatchCards(data){if(typeof _liveMode!=='undefined'&&_liveMo
             </div>
         `;_updateRenderedCount();return;}
 cardList.innerHTML='';_renderMoreMobile();_setupInfiniteScroll();}
+function _mobileFavLine(mk,isFav,count){return'<div class="mobile-fav-line"><span class="fav-heart '+(isFav?'fav-active':'')+'" data-matchkey="'+mk.replace(/"/g,'&quot;')+'" onclick="event.stopPropagation(); toggleFavorite(this);">&#9829;</span><span class="mobile-fav-count" data-matchkey="'+mk.replace(/"/g,'&quot;')+'">'+(count>0?count+' kişi takip ediyor':'')+'</span></div>';}
 function renderMobileMoneywayCard(match,idx,d,volume,dateStr,starHtml){let oddsBlocks='';var tv=d.Volume;if(currentMarket.includes('1x2')){oddsBlocks=`
             ${renderMobileMoneywayBlock('1', d.Odds1 || d['1'], d.Pct1, tv)}
             ${renderMobileMoneywayBlock('X', d.OddsX || d['X'], d.PctX, tv)}
@@ -377,10 +376,10 @@ function renderMobileMoneywayCard(match,idx,d,volume,dateStr,starHtml){let oddsB
             ${renderMobileMoneywayBlock('Evet', d.OddsYes || d.Yes, d.PctYes, tv)}
             ${renderMobileMoneywayBlock('Hayır', d.OddsNo || d.No, d.PctNo, tv)}
         `;}
-const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);const liveCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team,match.match_id);const _mk=_getMatchKey(match);const _isFav=_userFavorites.has(_mk);return`
+const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);const liveCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team,match.match_id);const _mk=_getMatchKey(match);const _isFav=_userFavorites.has(_mk);const _fc=_favCounts[_mk]||(_isFav?1:0);return`
         <div class="match-card odds-card moneyway-card" data-index="${idx}" onclick="openMatchModal(${idx})">
+            ${_mobileFavLine(_mk, _isFav, _fc)}
             <div class="odds-card-header">
-                <span class="fav-heart ${_isFav ? 'fav-active' : ''}" data-matchkey="${_mk.replace(/"/g, '&quot;')}" onclick="event.stopPropagation(); toggleFavorite(this);" style="margin-right:6px;">&#9829;</span>
                 <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
@@ -414,10 +413,10 @@ function renderMobileOddsCard(match,idx,d,volume,dateStr,starHtml){let oddsBlock
             ${renderMobileOddsBlock('Evet', d.OddsYes || d.Yes, trendYes)}
             ${renderMobileOddsBlock('Hayır', d.OddsNo || d.No, trendNo)}
         `;}
-const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);const liveCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team,match.match_id);const _mk=_getMatchKey(match);const _isFav=_userFavorites.has(_mk);return`
+const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);const liveCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team,match.match_id);const _mk=_getMatchKey(match);const _isFav=_userFavorites.has(_mk);const _fc=_favCounts[_mk]||(_isFav?1:0);return`
         <div class="match-card odds-card dropping-card" data-index="${idx}" onclick="openMatchModal(${idx})">
+            ${_mobileFavLine(_mk, _isFav, _fc)}
             <div class="odds-card-header">
-                <span class="fav-heart ${_isFav ? 'fav-active' : ''}" data-matchkey="${_mk.replace(/"/g, '&quot;')}" onclick="event.stopPropagation(); toggleFavorite(this);" style="margin-right:6px;">&#9829;</span>
                 <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>

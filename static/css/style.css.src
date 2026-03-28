@@ -720,6 +720,24 @@ h1, h2, h3, h4, h5, h6,
     font-size: 22px;
 }
 
+.mobile-fav-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 0 4px 0;
+}
+
+.mobile-fav-line .fav-heart {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.mobile-fav-count {
+    font-size: 10px;
+    color: #7d848c;
+    white-space: nowrap;
+}
+
 .matches-table[data-selection-count="3"] colgroup col.col-selection { width: 90px; }
 .matches-table[data-selection-count="2"] colgroup col.col-selection { width: 110px; }
 

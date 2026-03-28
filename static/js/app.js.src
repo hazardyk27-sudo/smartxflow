@@ -128,11 +128,19 @@ function loadFavoriteCounts(matches) {
 function _updateFavCountsInDOM() {
     document.querySelectorAll('.fav-heart').forEach(function(el) {
         var mk = el.getAttribute('data-matchkey');
+        var c = _favCounts[mk] || 0;
+        if (c === 0 && _userFavorites.has(mk)) c = 1;
         var countEl = el.parentElement.querySelector('.fav-count');
         if (countEl && mk) {
+            countEl.innerHTML = _favCountHtml(c);
+        }
+    });
+    document.querySelectorAll('.mobile-fav-count').forEach(function(el) {
+        var mk = el.getAttribute('data-matchkey');
+        if (mk) {
             var c = _favCounts[mk] || 0;
             if (c === 0 && _userFavorites.has(mk)) c = 1;
-            countEl.innerHTML = _favCountHtml(c);
+            el.textContent = c > 0 ? c + ' kişi takip ediyor' : '';
         }
     });
 }
@@ -164,11 +172,16 @@ function toggleFavorite(el) {
             }
         });
         _favCounts[mk] = data.total_count || 0;
+        var displayCount = data.total_count || 0;
+        if (displayCount === 0 && data.favorited) displayCount = 1;
         document.querySelectorAll('.fav-count').forEach(function(fc) {
             var heart = fc.parentElement ? fc.parentElement.querySelector('.fav-heart') : null;
             if (heart && heart.getAttribute('data-matchkey') === mk) {
-                fc.innerHTML = _favCountHtml(data.total_count);
+                fc.innerHTML = _favCountHtml(displayCount);
             }
+        });
+        document.querySelectorAll('.mobile-fav-count[data-matchkey="' + mk.replace(/"/g, '\\"') + '"]').forEach(function(mc) {
+            mc.textContent = displayCount > 0 ? displayCount + ' kişi takip ediyor' : '';
         });
         if (_favFilterActive && !data.favorited) {
             var row = el.closest('tr');
@@ -1766,11 +1779,10 @@ function _renderMoreMobile() {
             const matchStatus = getMatchStatus(match.date);
             const _mk = _getMatchKey(match);
             const _isFav = _userFavorites.has(_mk);
+            const _fc = _favCounts[_mk] || (_isFav ? 1 : 0);
             html += `
                 <div class="match-card" data-index="${i}" onclick="openMatchModal(${i})">
-                    <div class="match-card-fav">
-                        <span class="fav-heart ${_isFav ? 'fav-active' : ''}" data-matchkey="${_mk.replace(/"/g, '&quot;')}" onclick="event.stopPropagation(); toggleFavorite(this);">&#9829;</span>
-                    </div>
+                    ${_mobileFavLine(_mk, _isFav, _fc)}
                     <div class="match-card-left">
                         <div class="match-card-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${_mStar}</div>
                         <div class="match-card-meta">
@@ -1929,6 +1941,10 @@ function renderMobileMatchCards(data) {
 }
 
 // Mobile Moneyway Card - Shows odds with betting percentages
+function _mobileFavLine(mk, isFav, count) {
+    return '<div class="mobile-fav-line"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">&#9829;</span><span class="mobile-fav-count" data-matchkey="' + mk.replace(/"/g, '&quot;') + '">' + (count > 0 ? count + ' kişi takip ediyor' : '') + '</span></div>';
+}
+
 function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
     let oddsBlocks = '';
     
@@ -1958,10 +1974,11 @@ function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
     const liveCapsule = getMatchLiveCapsule(match.date, match.home_team, match.away_team, match.match_id);
     const _mk = _getMatchKey(match);
     const _isFav = _userFavorites.has(_mk);
+    const _fc = _favCounts[_mk] || (_isFav ? 1 : 0);
     return `
         <div class="match-card odds-card moneyway-card" data-index="${idx}" onclick="openMatchModal(${idx})">
+            ${_mobileFavLine(_mk, _isFav, _fc)}
             <div class="odds-card-header">
-                <span class="fav-heart ${_isFav ? 'fav-active' : ''}" data-matchkey="${_mk.replace(/"/g, '&quot;')}" onclick="event.stopPropagation(); toggleFavorite(this);" style="margin-right:6px;">&#9829;</span>
                 <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
@@ -2091,10 +2108,11 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr, starHtml) {
     const liveCapsule = getMatchLiveCapsule(match.date, match.home_team, match.away_team, match.match_id);
     const _mk = _getMatchKey(match);
     const _isFav = _userFavorites.has(_mk);
+    const _fc = _favCounts[_mk] || (_isFav ? 1 : 0);
     return `
         <div class="match-card odds-card dropping-card" data-index="${idx}" onclick="openMatchModal(${idx})">
+            ${_mobileFavLine(_mk, _isFav, _fc)}
             <div class="odds-card-header">
-                <span class="fav-heart ${_isFav ? 'fav-active' : ''}" data-matchkey="${_mk.replace(/"/g, '&quot;')}" onclick="event.stopPropagation(); toggleFavorite(this);" style="margin-right:6px;">&#9829;</span>
                 <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
