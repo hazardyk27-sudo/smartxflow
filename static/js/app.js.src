@@ -129,7 +129,6 @@ function _updateFavCountsInDOM() {
     document.querySelectorAll('.fav-heart').forEach(function(el) {
         var mk = el.getAttribute('data-matchkey');
         var c = _favCounts[mk] || 0;
-        if (c === 0 && _userFavorites.has(mk)) c = 1;
         var countEl = el.parentElement.querySelector('.fav-count');
         if (countEl && mk) {
             countEl.innerHTML = _favCountHtml(c);
@@ -139,8 +138,7 @@ function _updateFavCountsInDOM() {
         var mk = el.getAttribute('data-matchkey');
         if (mk) {
             var c = _favCounts[mk] || 0;
-            if (c === 0 && _userFavorites.has(mk)) c = 1;
-            el.textContent = (c > 0 ? c : 0) + ' kişi takip ediyor';
+            el.textContent = c + ' kişi takip ediyor';
         }
     });
 }
@@ -172,8 +170,7 @@ function toggleFavorite(el) {
             }
         });
         _favCounts[mk] = data.total_count || 0;
-        var displayCount = data.total_count || 0;
-        if (displayCount === 0 && data.favorited) displayCount = 1;
+        var displayCount = _favCounts[mk];
         document.querySelectorAll('.fav-count').forEach(function(fc) {
             var heart = fc.parentElement ? fc.parentElement.querySelector('.fav-heart') : null;
             if (heart && heart.getAttribute('data-matchkey') === mk) {
@@ -249,7 +246,6 @@ function _buildLiveFavCell(match) {
     var mk = _getMatchKey(match);
     var isFav = _userFavorites.has(mk);
     var count = _favCounts[mk] || 0;
-    if (count === 0 && isFav) count = 1;
     return '<td class="fav-cell"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">\u2665</span><span class="fav-count">' + _favCountHtml(count) + '</span></td>';
 }
 
@@ -257,7 +253,6 @@ function _buildFavCell(match) {
     var mk = _getMatchKey(match);
     var isFav = _userFavorites.has(mk);
     var count = _favCounts[mk] || 0;
-    if (count === 0 && isFav) count = 1;
     return '<td class="fav-cell"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">\u2665</span><span class="fav-count">' + _favCountHtml(count) + '</span></td>';
 }
 
@@ -1794,7 +1789,7 @@ function _renderMoreMobile() {
             const matchStatus = getMatchStatus(match.date);
             const _mk = _getMatchKey(match);
             const _isFav = _userFavorites.has(_mk);
-            const _fc = _favCounts[_mk] || (_isFav ? 1 : 0);
+            const _fc = _favCounts[_mk] || 0;
             html += `
                 <div class="match-card" data-index="${i}" onclick="openMatchModal(${i})">
                     ${_mobileFavLine(_mk, _isFav, _fc)}
@@ -1990,7 +1985,7 @@ function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
     const liveCapsule = getMatchLiveCapsule(match.date, match.home_team, match.away_team, match.match_id);
     const _mk = _getMatchKey(match);
     const _isFav = _userFavorites.has(_mk);
-    const _fc = _favCounts[_mk] || (_isFav ? 1 : 0);
+    const _fc = _favCounts[_mk] || 0;
     return `
         <div class="match-card odds-card moneyway-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             ${_mobileFavLine(_mk, _isFav, _fc)}
@@ -2124,7 +2119,7 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr, starHtml) {
     const liveCapsule = getMatchLiveCapsule(match.date, match.home_team, match.away_team, match.match_id);
     const _mk = _getMatchKey(match);
     const _isFav = _userFavorites.has(_mk);
-    const _fc = _favCounts[_mk] || (_isFav ? 1 : 0);
+    const _fc = _favCounts[_mk] || 0;
     return `
         <div class="match-card odds-card dropping-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             ${_mobileFavLine(_mk, _isFav, _fc)}
@@ -10893,7 +10888,7 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
     var cardCls = 'match-card odds-card moneyway-card' + (goalSide ? ' goal-flash-card' : '');
     var _lmk = _getMatchKey(m);
     var _lmkIsFav = _userFavorites.has(_lmk);
-    var _lmkFc = _favCounts[_lmk] || (_lmkIsFav ? 1 : 0);
+    var _lmkFc = _favCounts[_lmk] || 0;
     var html = '<div class="' + cardCls + '" data-matchkey="' + _lmk.replace(/"/g, '&quot;') + '" ' + onclickAttr + '>';
     html += _mobileFavLine(_lmk, _lmkIsFav, _lmkFc);
     html += '<div class="odds-card-header">';

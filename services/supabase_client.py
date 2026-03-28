@@ -2341,13 +2341,11 @@ class SupabaseClient:
                     return {'error': 'insert_failed'}
                 favorited = True
             count_url = f"{self._rest_url('match_favorites')}?match_key=eq.{mk}&select=id"
-            count_headers = {**self._headers(), 'Prefer': 'count=exact', 'Range-Unit': 'items', 'Range': '0-0'}
-            cr = self._get_http_client().get(count_url, headers=count_headers, timeout=10)
+            cr = self._get_http_client().get(count_url, headers=self._headers(), timeout=10)
             total = 0
-            if 'content-range' in cr.headers:
-                parts = cr.headers['content-range'].split('/')
-                if len(parts) == 2 and parts[1] != '*':
-                    total = int(parts[1])
+            if cr.status_code == 200:
+                total = len(cr.json())
+            print(f"[Supabase] toggle_favorite count: favorited={favorited}, total={total}")
             return {'favorited': favorited, 'total_count': total}
         except Exception as e:
             print(f"[Supabase] toggle_favorite error: {e}")
