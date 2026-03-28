@@ -2379,13 +2379,21 @@ class SupabaseClient:
             batch_size = 50
             for i in range(0, len(match_keys), batch_size):
                 batch = match_keys[i:i+batch_size]
-                keys_param = ','.join(urllib.parse.quote(k, safe='') for k in batch)
-                url = f"{self._rest_url('match_favorites')}?match_key=in.({keys_param})&select=match_key"
+                keys_quoted = ','.join('"' + k.replace('\\', '\\\\').replace('"', '\\"') + '"' for k in batch)
+                encoded_filter = urllib.parse.quote(f'in.({keys_quoted})', safe='')
+                url = f"{self._rest_url('match_favorites')}?match_key={encoded_filter}&select=match_key"
                 resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
                 if resp.status_code == 200:
-                    for r in resp.json():
+                    rows = resp.json()
+                    for r in rows:
                         mk = r['match_key']
                         counts[mk] = counts.get(mk, 0) + 1
+                    if i == 0:
+                        print(f"[Supabase] get_favorite_counts: batch0 returned {len(rows)} rows")
+                else:
+                    print(f"[Supabase] get_favorite_counts batch error: status={resp.status_code}, body={resp.text[:300]}")
+            if counts:
+                print(f"[Supabase] get_favorite_counts: {len(counts)} matches with favorites")
             return counts
         except Exception as e:
             print(f"[Supabase] get_favorite_counts error: {e}")
