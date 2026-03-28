@@ -131,6 +131,7 @@ function _updateFavCountsInDOM() {
         var countEl = el.parentElement.querySelector('.fav-count');
         if (countEl && mk) {
             var c = _favCounts[mk] || 0;
+            if (c === 0 && _userFavorites.has(mk)) c = 1;
             countEl.innerHTML = _favCountHtml(c);
         }
     });
@@ -229,6 +230,7 @@ function _buildFavCell(match) {
     var mk = _getMatchKey(match);
     var isFav = _userFavorites.has(mk);
     var count = _favCounts[mk] || 0;
+    if (count === 0 && isFav) count = 1;
     return '<td class="fav-cell"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">\u2665</span><span class="fav-count">' + _favCountHtml(count) + '</span></td>';
 }
 
