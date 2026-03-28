@@ -9,14 +9,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap"></noscript>
-    <link rel="stylesheet" href="/static/css/style.css?v=1774710300">
-    <link rel="stylesheet" href="/static/css/alert_band.css?v=1774710300">
+    <link rel="stylesheet" href="/static/css/style.css?v=1774710720">
+    <link rel="stylesheet" href="/static/css/alert_band.css?v=1774710720">
     <script defer src="/static/js/vendor/dayjs.min.js"></script>
     <script defer src="/static/js/vendor/dayjs-utc.js"></script>
     <script defer src="/static/js/vendor/dayjs-timezone.js"></script>
     <script defer src="/static/js/vendor/dayjs-customParseFormat.js"></script>
-    <script defer src="/static/js/app.js?v=1774710300"></script>
-    <script defer src="/static/js/ui.js?v=1774710300"></script>
+    <script defer src="/static/js/app.js?v=1774710720"></script>
+    <script defer src="/static/js/ui.js?v=1774710720"></script>
 </head>
 <body>
     <!-- License Gate - Birebir Desktop Aynisi -->
@@ -241,6 +241,12 @@
                     </svg>
                 </button>
                 <div class="mobile-overflow-menu" id="mobileOverflowMenu">
+                    <button id="favoritesBtnMobile" onclick="toggleFavoritesFilter(); closeMobileOverflow();">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                        </svg>
+                        Favoriler
+                    </button>
                     <button onclick="openTrendsModal('moves'); closeMobileOverflow();">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
@@ -277,6 +283,12 @@
                             <circle cx="8" cy="6" r="2" fill="currentColor"/><circle cx="16" cy="12" r="2" fill="currentColor"/><circle cx="10" cy="18" r="2" fill="currentColor"/>
                         </svg>
                         Filtrele
+                    </button>
+                    <button class="btn btn-today btn-favorites desktop-only" id="favoritesBtn" onclick="toggleFavoritesFilter()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                        </svg>
+                        Favoriler
                     </button>
                     <button class="btn btn-today desktop-only" onclick="openTrendsModal('moves')">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -648,10 +648,70 @@ h1, h2, h3, h4, h5, h6,
     table-layout: fixed;
 }
 
+.matches-table colgroup col.col-fav { width: 36px; }
 .matches-table colgroup col.col-date { width: 82px; }
 .matches-table colgroup col.col-league { width: 130px; }
 .matches-table colgroup col.col-match { width: 200px; }
 .matches-table colgroup col.col-volume { width: 85px; }
+
+.fav-cell {
+    padding: 4px 2px !important;
+    text-align: center;
+    vertical-align: middle;
+    width: 36px;
+    min-width: 36px;
+    max-width: 36px;
+}
+
+.fav-heart {
+    display: block;
+    font-size: 16px;
+    color: #4a5058;
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.2s ease;
+    line-height: 1;
+    user-select: none;
+}
+
+.fav-heart:hover {
+    color: #ef4444;
+    transform: scale(1.2);
+}
+
+.fav-heart.fav-active {
+    color: #ef4444;
+}
+
+.fav-count {
+    display: block;
+    font-size: 9px;
+    color: #5a6068;
+    line-height: 1.2;
+    margin-top: 1px;
+    white-space: nowrap;
+}
+
+.btn-favorites-active {
+    background: rgba(239, 68, 68, 0.15) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    color: #ef4444 !important;
+}
+
+.btn-favorites-active svg {
+    fill: #ef4444;
+    stroke: #ef4444;
+}
+
+.match-card-fav {
+    display: flex;
+    align-items: center;
+    padding-right: 8px;
+    flex-shrink: 0;
+}
+
+.match-card-fav .fav-heart {
+    font-size: 18px;
+}
 
 .matches-table[data-selection-count="3"] colgroup col.col-selection { width: 90px; }
 .matches-table[data-selection-count="2"] colgroup col.col-selection { width: 110px; }

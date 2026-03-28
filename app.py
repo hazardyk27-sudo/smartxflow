@@ -1745,6 +1745,36 @@ def get_match_history_bulk():
     return jsonify({'markets': result})
 
 
+@app.route('/api/favorite/toggle', methods=['POST'])
+@license_required
+def toggle_favorite():
+    data = request.get_json() or {}
+    match_key = data.get('match_key', '').strip()
+    device_id = (data.get('device_id', '') or request.headers.get('X-Device-Id', '')).strip()[:16]
+    if not match_key or not device_id:
+        return jsonify({'error': 'match_key and device_id required'}), 400
+    result = db.toggle_favorite(device_id, match_key)
+    return jsonify(result)
+
+@app.route('/api/favorites')
+@license_required
+def get_favorites():
+    device_id = (request.args.get('device_id', '') or request.headers.get('X-Device-Id', '')).strip()[:16]
+    if not device_id:
+        return jsonify({'favorites': []})
+    favorites = db.get_user_favorites(device_id)
+    return jsonify({'favorites': favorites})
+
+@app.route('/api/favorite/counts', methods=['POST'])
+@license_required
+def get_favorite_counts():
+    data = request.get_json() or {}
+    match_keys = data.get('match_keys', [])
+    if not match_keys:
+        return jsonify({'counts': {}})
+    counts = db.get_favorite_counts(match_keys)
+    return jsonify({'counts': counts})
+
 @app.route('/api/match/history')
 @license_required
 def get_match_history():

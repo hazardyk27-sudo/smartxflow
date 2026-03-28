@@ -4,6 +4,17 @@ window._chartLibsLoading=true;window._chartLibsRetry=false;var coreScripts=['htt
 loadScript(coreScripts[0]).then(function(){var parallel=pluginScripts.map(function(src){return loadScript(src);});parallel.push(loadScript(zoomScript));return Promise.all(parallel);}).then(function(){if(typeof Chart!=='undefined'){window._chartLibsLoaded=true;}else{console.error('[ChartLibs] Chart.js failed to load. Failed scripts:',failed);window._chartLibsLoaded=false;window._chartLibsLoading=false;window._chartLibsRetry=true;}
 resolve();});});};let currentMarket='moneyway_1x2';let matches=[];let filteredMatches=[];let chart=null;let selectedMatch=null;let selectedChartMarket='moneyway_1x2';let autoScrapeRunning=false;let currentSortColumn='volume';let currentSortDirection='desc';let chartVisibleSeries={};let dateFilterMode='ALL';let chartTimeRange='10min';let currentChartHistoryData=[];let chartViewMode='percent';let isClientMode=true;let _modalRequestId=0;let _analysisMatchHashes=[];let _mobileHideEnded=false;let _mobileHideLive=false;let _mobileOnlyLive=false;let _analysisHashesFetched=false;let currentSource='betfair';let _licenseReadyResolve;const _licenseReady=new Promise(r=>{_licenseReadyResolve=r;});let _isLicensed=false;function getWebDeviceId(){let did=localStorage.getItem('smartxflow_device_id');if(!did||did.length>16){did='w-'+crypto.randomUUID().replace(/-/g,'').substring(0,14);localStorage.setItem('smartxflow_device_id',did);}
 return did;}
+let _userFavorites=new Set();let _favCounts={};let _favFilterActive=false;function _getMatchKey(match){return(match.home_team||'')+'|'+(match.away_team||'')+'|'+(match.league||'');}
+function loadUserFavorites(){var did=getWebDeviceId();if(!did)return Promise.resolve();return fetch('/api/favorites?device_id='+encodeURIComponent(did)).then(function(r){return r.json();}).then(function(data){_userFavorites=new Set(data.favorites||[]);}).catch(function(){});}
+function loadFavoriteCounts(matches){if(!matches||!matches.length)return Promise.resolve();var keys=matches.map(function(m){return _getMatchKey(m);});var unique=Array.from(new Set(keys));return fetch('/api/favorite/counts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({match_keys:unique})}).then(function(r){return r.json();}).then(function(data){_favCounts=data.counts||{};_updateFavCountsInDOM();}).catch(function(){});}
+function _updateFavCountsInDOM(){document.querySelectorAll('.fav-heart').forEach(function(el){var mk=el.getAttribute('data-matchkey');var countEl=el.parentElement.querySelector('.fav-count');if(countEl&&mk){var c=_favCounts[mk]||0;countEl.textContent=c>0?c+' kişi':'';}});}
+function toggleFavorite(el){var mk=el.getAttribute('data-matchkey');if(!mk)return;var did=getWebDeviceId();fetch('/api/favorite/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({match_key:mk,device_id:did})}).then(function(r){return r.json();}).then(function(data){if(data.favorited){_userFavorites.add(mk);el.classList.add('fav-active');}else{_userFavorites.delete(mk);el.classList.remove('fav-active');}
+_favCounts[mk]=data.total_count||0;var countEl=el.parentElement.querySelector('.fav-count');if(countEl){countEl.textContent=data.total_count>0?data.total_count+' kişi':'';}
+if(_favFilterActive&&!data.favorited){var row=el.closest('tr');if(row)row.style.display='none';var card=el.closest('.match-card');if(card)card.style.display='none';}}).catch(function(){});}
+function toggleFavoritesFilter(){_favFilterActive=!_favFilterActive;var btn=document.getElementById('favoritesBtn');var btnM=document.getElementById('favoritesBtnMobile');if(_favFilterActive){if(btn)btn.classList.add('btn-favorites-active');if(btnM)btnM.classList.add('btn-favorites-active');_applyFavoritesFilter();}else{if(btn)btn.classList.remove('btn-favorites-active');if(btnM)btnM.classList.remove('btn-favorites-active');_clearFavoritesFilter();}}
+function _applyFavoritesFilter(){document.querySelectorAll('#matchesTableBody tr').forEach(function(row){var heart=row.querySelector('.fav-heart');if(heart){var mk=heart.getAttribute('data-matchkey');row.style.display=_userFavorites.has(mk)?'':'none';}});document.querySelectorAll('#matchCardList .match-card').forEach(function(card){var heart=card.querySelector('.fav-heart');if(heart){var mk=heart.getAttribute('data-matchkey');card.style.display=_userFavorites.has(mk)?'':'none';}});}
+function _clearFavoritesFilter(){document.querySelectorAll('#matchesTableBody tr').forEach(function(row){row.style.display='';});document.querySelectorAll('#matchCardList .match-card').forEach(function(card){card.style.display='';});}
+function _buildFavCell(match){var mk=_getMatchKey(match);var isFav=_userFavorites.has(mk);var count=_favCounts[mk]||0;return'<td class="fav-cell"><span class="fav-heart '+(isFav?'fav-active':'')+'" data-matchkey="'+mk.replace(/"/g,'&quot;')+'" onclick="event.stopPropagation(); toggleFavorite(this);">\u2665</span><span class="fav-count">'+(count>0?count+' kişi':'')+'</span></td>';}
 let _licenseExpiredShown=false;function showLicenseExpiredOverlay(){if(_licenseExpiredShown)return;_licenseExpiredShown=true;const appContent=document.querySelector('.main-content')||document.querySelector('main')||document.getElementById('appContainer');if(appContent){appContent.style.filter='blur(12px)';appContent.style.pointerEvents='none';appContent.style.userSelect='none';}
 const header=document.querySelector('.top-bar')||document.querySelector('header')||document.querySelector('nav');if(header){header.style.filter='blur(12px)';header.style.pointerEvents='none';}
 let overlay=document.getElementById('licenseExpiredOverlay');if(overlay){overlay.style.display='flex';}else{overlay=document.createElement('div');overlay.id='licenseExpiredOverlay';overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);';overlay.innerHTML='<div style="background:#1c1f23;border:1px solid #2e3238;border-radius:16px;padding:48px 40px;max-width:440px;width:90%;text-align:center;">'
@@ -91,7 +102,7 @@ const kickoffRaw=alarm.kickoff_utc||alarm.kickoff||alarm.fixture_date;const trig
 const kickoffTime=toTurkeyTime(kickoffRaw);const triggerTime=toTurkeyTime(triggerAtRaw);if(!kickoffTime||!triggerTime||!kickoffTime.isValid()||!triggerTime.isValid()){return 0;}
 const diffHours=kickoffTime.diff(triggerTime,'hour',true);return diffHours>0?diffHours:0;}
 function escapeHtml(str){if(!str)return'';return String(str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
-document.addEventListener('DOMContentLoaded',async()=>{const allBtn=document.getElementById('allBtn');if(allBtn)allBtn.classList.add('active');setupTabs();setupSearch();setupModalChartTabs();await _licenseReady;if(!_isLicensed)return;fetchAnalysisMatchHashes();loadFinishedScores();loadMatches();checkStatus();window.statusInterval=window.setInterval(checkStatus,60000);if(window.loadChartLibs)window.loadChartLibs().then(()=>registerChartPlugins()).catch(()=>{});setupAutoRefresh();_startBackgroundLiveFetch();document.addEventListener('visibilitychange',handleVisibilityChange);});function updateLastRefreshDisplay(){const now=dayjs().tz(APP_TIMEZONE);_lastMatchRefreshTime=now;let refreshEl=document.getElementById('lastRefreshTime');if(!refreshEl){const statusArea=document.querySelector('.status-area');if(statusArea){refreshEl=document.createElement('span');refreshEl.id='lastRefreshTime';refreshEl.className='last-refresh-time';refreshEl.style.cssText='margin-left: 15px; color: #888; font-size: 12px;';statusArea.appendChild(refreshEl);}}
+document.addEventListener('DOMContentLoaded',async()=>{const allBtn=document.getElementById('allBtn');if(allBtn)allBtn.classList.add('active');setupTabs();setupSearch();setupModalChartTabs();await _licenseReady;if(!_isLicensed)return;fetchAnalysisMatchHashes();loadFinishedScores();await loadUserFavorites();loadMatches();checkStatus();window.statusInterval=window.setInterval(checkStatus,60000);if(window.loadChartLibs)window.loadChartLibs().then(()=>registerChartPlugins()).catch(()=>{});setupAutoRefresh();_startBackgroundLiveFetch();document.addEventListener('visibilitychange',handleVisibilityChange);});function updateLastRefreshDisplay(){const now=dayjs().tz(APP_TIMEZONE);_lastMatchRefreshTime=now;let refreshEl=document.getElementById('lastRefreshTime');if(!refreshEl){const statusArea=document.querySelector('.status-area');if(statusArea){refreshEl=document.createElement('span');refreshEl.id='lastRefreshTime';refreshEl.className='last-refresh-time';refreshEl.style.cssText='margin-left: 15px; color: #888; font-size: 12px;';statusArea.appendChild(refreshEl);}}
 if(refreshEl){refreshEl.textContent=`Son güncelleme: ${now.format('HH:mm')} (TR)`;}}
 function getRefreshJitter(){return Math.floor(Math.random()*60000);}
 function setupAutoRefresh(){updateLastRefreshDisplay();const jitter=getRefreshJitter();const intervalWithJitter=MATCH_REFRESH_INTERVAL+jitter;_matchRefreshInterval=setInterval(async()=>{console.log('[AutoRefresh] 10 dakika doldu, maçlar yenileniyor...');await refreshMatchData();},intervalWithJitter);console.log(`[AutoRefresh] Kuruldu - ${Math.round(intervalWithJitter/1000)}s'de bir yenilenecek (jitter: ${Math.round(jitter/1000)}s)`);}
@@ -114,7 +125,7 @@ let _matchesMarketCache={};const _MATCHES_CACHE_TTL=90000;async function loadMat
 return;}
 _loadMatchesLock=true;const requestMarket=currentMarket;const requestSource=currentSource;const cacheKey=`${requestMarket}|${dateFilterMode}|${requestSource}`;const cached=_matchesMarketCache[cacheKey];if(!appendMode&&cached&&(Date.now()-cached.ts)<_MATCHES_CACHE_TTL){matches=cached.matches;totalMatchCount=cached.total;hasMoreMatches=false;currentOffset=matches.length;filteredMatches=applySorting(matches);updateTableHeaders();renderMatches(filteredMatches);if(requestMarket.startsWith('dropping')){attachTrendTooltipListeners();}
 _loadMatchesLock=false;console.log('[Matches] Cache HIT:',cacheKey);return;}
-const tbody=document.getElementById('matchesTableBody');const colspan=currentMarket.includes('1x2')?7:6;if(!appendMode){currentOffset=0;matches=[];tbody.innerHTML=`
+const tbody=document.getElementById('matchesTableBody');const colspan=currentMarket.includes('1x2')?8:7;if(!appendMode){currentOffset=0;matches=[];tbody.innerHTML=`
             <tr class="loading-row">
                 <td colspan="${colspan}">
                     <div class="loading-spinner"></div>
@@ -144,6 +155,7 @@ if(allNewMatches.length>0){matches=[...matches,...allNewMatches];filteredMatches
 console.log('[Pagination] Loaded all matches in single batch:',matches.length);}
 function updateTableHeaders(){const table=document.querySelector('.matches-table');const thead=document.querySelector('.matches-table thead tr');const colgroup=document.querySelector('.matches-table colgroup');if(!thead||!table)return;const getArrow=(col)=>{if(currentSortColumn===col){return currentSortDirection==='asc'?'↑':'↓';}
 return'';};const getActiveClass=(col)=>currentSortColumn===col?'active':'';if(currentMarket.includes('1x2')){table.setAttribute('data-selection-count','3');if(colgroup){colgroup.innerHTML=`
+                <col class="col-fav">
                 <col class="col-date">
                 <col class="col-league">
                 <col class="col-match">
@@ -153,6 +165,7 @@ return'';};const getActiveClass=(col)=>currentSortColumn===col?'active':'';if(cu
                 <col class="col-volume">
             `;}
 thead.innerHTML=`
+            <th class="col-fav"></th>
             <th class="col-date sortable ${getActiveClass('date')}" data-sort="date" onclick="sortByColumn('date')">TARİH <span class="sort-arrow">${getArrow('date')}</span></th>
             <th class="col-league sortable ${getActiveClass('league')}" data-sort="league" onclick="sortByColumn('league')">LİG <span class="sort-arrow">${getArrow('league')}</span></th>
             <th class="col-match sortable ${getActiveClass('match')}" data-sort="match" onclick="sortByColumn('match')">MAÇ <span class="sort-arrow">${getArrow('match')}</span></th>
@@ -161,6 +174,7 @@ thead.innerHTML=`
             <th class="col-selection sortable ${getActiveClass('sel2')}" data-sort="sel2" onclick="sortByColumn('sel2')">2 <span class="sort-arrow">${getArrow('sel2')}</span></th>
             <th class="col-volume sortable ${getActiveClass('volume')}" data-sort="volume" onclick="sortByColumn('volume')">HACİM <span class="sort-arrow">${getArrow('volume')}</span></th>
         `;}else if(currentMarket.includes('ou25')){table.setAttribute('data-selection-count','2');if(colgroup){colgroup.innerHTML=`
+                <col class="col-fav">
                 <col class="col-date">
                 <col class="col-league">
                 <col class="col-match">
@@ -169,6 +183,7 @@ thead.innerHTML=`
                 <col class="col-volume">
             `;}
 thead.innerHTML=`
+            <th class="col-fav"></th>
             <th class="col-date sortable ${getActiveClass('date')}" data-sort="date" onclick="sortByColumn('date')">TARİH <span class="sort-arrow">${getArrow('date')}</span></th>
             <th class="col-league sortable ${getActiveClass('league')}" data-sort="league" onclick="sortByColumn('league')">LİG <span class="sort-arrow">${getArrow('league')}</span></th>
             <th class="col-match sortable ${getActiveClass('match')}" data-sort="match" onclick="sortByColumn('match')">MAÇ <span class="sort-arrow">${getArrow('match')}</span></th>
@@ -176,6 +191,7 @@ thead.innerHTML=`
             <th class="col-selection sortable ${getActiveClass('sel2')}" data-sort="sel2" onclick="sortByColumn('sel2')">ÜST <span class="sort-arrow">${getArrow('sel2')}</span></th>
             <th class="col-volume sortable ${getActiveClass('volume')}" data-sort="volume" onclick="sortByColumn('volume')">HACİM <span class="sort-arrow">${getArrow('volume')}</span></th>
         `;}else if(currentMarket.includes('btts')){table.setAttribute('data-selection-count','2');if(colgroup){colgroup.innerHTML=`
+                <col class="col-fav">
                 <col class="col-date">
                 <col class="col-league">
                 <col class="col-match">
@@ -184,6 +200,7 @@ thead.innerHTML=`
                 <col class="col-volume">
             `;}
 thead.innerHTML=`
+            <th class="col-fav"></th>
             <th class="col-date sortable ${getActiveClass('date')}" data-sort="date" onclick="sortByColumn('date')">TARİH <span class="sort-arrow">${getArrow('date')}</span></th>
             <th class="col-league sortable ${getActiveClass('league')}" data-sort="league" onclick="sortByColumn('league')">LİG <span class="sort-arrow">${getArrow('league')}</span></th>
             <th class="col-match sortable ${getActiveClass('match')}" data-sort="match" onclick="sortByColumn('match')">MAÇ <span class="sort-arrow">${getArrow('match')}</span></th>
@@ -217,8 +234,9 @@ function formatPct(val){if(!val||val==='-')return'-';const cleaned=String(val).r
 function cleanPct(val){if(!val||val==='-')return'';return String(val).replace(/%/g,'').trim();}
 async function fetchAnalysisMatchHashes(){try{const resp=await fetch('/api/analyses/match-hashes');if(resp.ok){const data=await resp.json();_analysisMatchHashes=Array.isArray(data)?data:(data.hashes||[]);_analysisHashesFetched=true;const ac=(data&&typeof data.active_count==='number')?data.active_count:0;document.querySelectorAll('.analysis-active-badge').forEach(el=>{el.textContent=ac;el.style.display=ac>0?'':'none';});}}catch(e){}}
 function getAnalysisStarHtml(matchId){if(!matchId||!_analysisMatchHashes.length)return'';if(_analysisMatchHashes.indexOf(matchId)===-1)return'';return'<span class="analysis-star" title="Bu maç ile ilgili analiz mevcut" onclick="event.stopPropagation(); openTrendsModal(\'analysis\');">★</span>';}
-function _renderMatchRow(match,idx){const d=match.details||match.odds||{};const _star=getAnalysisStarHtml(match.match_id);const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMarket.startsWith('moneyway');if(currentMarket.includes('1x2')){if(isMoneyway){const block1=renderMoneywayBlock('1',d.Pct1,d.Odds1||d['1'],d.Amt1);const blockX=renderMoneywayBlock('X',d.PctX,d.OddsX||d['X'],d.AmtX);const block2=renderMoneywayBlock('2',d.Pct2,d.Odds2||d['2'],d.Amt2);const matchStatus=getMatchStatus(match.date);const deskCapsule=getMatchLiveCapsuleDT(match.date,match.home_team,match.away_team,match.match_id);return`
+function _renderMatchRow(match,idx){const d=match.details||match.odds||{};const _star=getAnalysisStarHtml(match.match_id);const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMarket.startsWith('moneyway');const _favTd=_buildFavCell(match);if(currentMarket.includes('1x2')){if(isMoneyway){const block1=renderMoneywayBlock('1',d.Pct1,d.Odds1||d['1'],d.Amt1);const blockX=renderMoneywayBlock('X',d.PctX,d.OddsX||d['X'],d.AmtX);const block2=renderMoneywayBlock('2',d.Pct2,d.Odds2||d['2'],d.Amt2);const matchStatus=getMatchStatus(match.date);const deskCapsule=getMatchLiveCapsuleDT(match.date,match.home_team,match.away_team,match.match_id);return`
                 <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                    ${_favTd}
                     <td class="match-date">${deskCapsule || formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                     <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${!deskCapsule ? matchStatus : ''}${_star}</td>
@@ -233,6 +251,7 @@ function _renderMatchRow(match,idx){const d=match.details||match.odds||{};const 
                 </tr>
             `;}else{const trend1Data=buildTrendDataFromMatch(d.Odds1||d['1'],d.PrevOdds1||d.Odds1_prev,d.Trend1);const trendXData=buildTrendDataFromMatch(d.OddsX||d['X'],d.PrevOddsX||d.OddsX_prev,d.TrendX);const trend2Data=buildTrendDataFromMatch(d.Odds2||d['2'],d.PrevOdds2||d.Odds2_prev,d.Trend2);const cell1=renderDrop1X2Cell('1',d.Odds1||d['1'],trend1Data);const cellX=renderDrop1X2Cell('X',d.OddsX||d['X'],trendXData);const cell2=renderDrop1X2Cell('2',d.Odds2||d['2'],trend2Data);const matchStatus=getMatchStatus(match.date);const deskCapsule=getMatchLiveCapsuleDT(match.date,match.home_team,match.away_team,match.match_id);return`
                 <tr class="dropping-1x2-row" data-index="${idx}" onclick="openMatchModal(${idx})">
+                    ${_favTd}
                     <td class="match-date">${deskCapsule || formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                     <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${!deskCapsule ? matchStatus : ''}${_star}</td>
@@ -243,6 +262,7 @@ function _renderMatchRow(match,idx){const d=match.details||match.odds||{};const 
                 </tr>
             `;}}else if(currentMarket.includes('ou25')){if(isMoneyway){const blockUnder=renderMoneywayBlock('Alt',d.PctUnder,d.Under,d.AmtUnder);const blockOver=renderMoneywayBlock('Üst',d.PctOver,d.Over,d.AmtOver);const matchStatus=getMatchStatus(match.date);const deskCapsule=getMatchLiveCapsuleDT(match.date,match.home_team,match.away_team,match.match_id);return`
                 <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                    ${_favTd}
                     <td class="match-date">${deskCapsule || formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                     <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${!deskCapsule ? matchStatus : ''}${_star}</td>
@@ -256,6 +276,7 @@ function _renderMatchRow(match,idx){const d=match.details||match.odds||{};const 
                 </tr>
             `;}else{const trendUnderData=buildTrendDataFromMatch(d.Under,d.PrevUnder||d.Under_prev,d.TrendUnder);const trendOverData=buildTrendDataFromMatch(d.Over,d.PrevOver||d.Over_prev,d.TrendOver);const cellUnder=renderOddsWithTrend(d.Under,trendUnderData);const cellOver=renderOddsWithTrend(d.Over,trendOverData);const matchStatus=getMatchStatus(match.date);const deskCapsule=getMatchLiveCapsuleDT(match.date,match.home_team,match.away_team,match.match_id);return`
                 <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                    ${_favTd}
                     <td class="match-date">${deskCapsule || formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                     <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${!deskCapsule ? matchStatus : ''}${_star}</td>
@@ -265,6 +286,7 @@ function _renderMatchRow(match,idx){const d=match.details||match.odds||{};const 
                 </tr>
             `;}}else{if(isMoneyway){const blockYes=renderMoneywayBlock('Evet',d.PctYes,d.OddsYes||d.Yes,d.AmtYes);const blockNo=renderMoneywayBlock('Hayır',d.PctNo,d.OddsNo||d.No,d.AmtNo);const matchStatus=getMatchStatus(match.date);const deskCapsule=getMatchLiveCapsuleDT(match.date,match.home_team,match.away_team,match.match_id);return`
                 <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                    ${_favTd}
                     <td class="match-date">${deskCapsule || formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                     <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${!deskCapsule ? matchStatus : ''}${_star}</td>
@@ -278,6 +300,7 @@ function _renderMatchRow(match,idx){const d=match.details||match.odds||{};const 
                 </tr>
             `;}else{const trendYesData=buildTrendDataFromMatch(d.OddsYes||d.Yes,d.PrevYes||d.OddsYes_prev||d.Yes_prev,d.TrendYes);const trendNoData=buildTrendDataFromMatch(d.OddsNo||d.No,d.PrevNo||d.OddsNo_prev||d.No_prev,d.TrendNo);const cellYes=renderOddsWithTrend(d.OddsYes||d.Yes,trendYesData);const cellNo=renderOddsWithTrend(d.OddsNo||d.No,trendNoData);const matchStatus=getMatchStatus(match.date);const deskCapsule=getMatchLiveCapsuleDT(match.date,match.home_team,match.away_team,match.match_id);return`
                 <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                    ${_favTd}
                     <td class="match-date">${deskCapsule || formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                     <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${!deskCapsule ? matchStatus : ''}${_star}</td>
@@ -289,8 +312,11 @@ function _renderMatchRow(match,idx){const d=match.details||match.odds||{};const 
 function _renderMoreDesktop(){if(typeof _liveMode!=='undefined'&&_liveMode)return;if(_renderedCount>=_allFilteredMatches.length)return;const tbody=document.getElementById('matchesTableBody');if(!tbody)return;const end=Math.min(_renderedCount+_RENDER_BATCH,_allFilteredMatches.length);let html='';for(let i=_renderedCount;i<end;i++){html+=_renderMatchRow(_allFilteredMatches[i],i);}
 tbody.insertAdjacentHTML('beforeend',html);_renderedCount=end;_updateRenderedCount();if(currentMarket.startsWith('dropping')){setTimeout(()=>attachTrendTooltipListeners(),50);}}
 function _renderMoreMobile(){if(typeof _liveMode!=='undefined'&&_liveMode)return;if(_renderedCount>=_allFilteredMatches.length)return;const cardList=document.getElementById('matchCardList');if(!cardList)return;const end=Math.min(_renderedCount+_RENDER_BATCH,_allFilteredMatches.length);let html='';const isDropping=currentMarket.startsWith('dropping');const isMoneyway=currentMarket.startsWith('moneyway');for(let i=_renderedCount;i<end;i++){const match=_allFilteredMatches[i];const d=match.details||match.odds||{};const volume=formatVolumeCompact(d.Volume);const _mStar=getAnalysisStarHtml(match.match_id);let dateStr='';try{const dt=dayjs(match.date).tz('Europe/Istanbul');const day=dt.format('D');const monthIdx=dt.month();const monthsTR=['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];const time=dt.format('HH:mm');dateStr=`${day} ${monthsTR[monthIdx]} ${time}`;}catch(e){dateStr=match.date||'';}
-if(isMoneyway){html+=renderMobileMoneywayCard(match,i,d,volume,dateStr,_mStar);}else if(isDropping){html+=renderMobileOddsCard(match,i,d,volume,dateStr,_mStar);}else{const matchStatus=getMatchStatus(match.date);html+=`
+if(isMoneyway){html+=renderMobileMoneywayCard(match,i,d,volume,dateStr,_mStar);}else if(isDropping){html+=renderMobileOddsCard(match,i,d,volume,dateStr,_mStar);}else{const matchStatus=getMatchStatus(match.date);const _mk=_getMatchKey(match);const _isFav=_userFavorites.has(_mk);html+=`
                 <div class="match-card" data-index="${i}" onclick="openMatchModal(${i})">
+                    <div class="match-card-fav">
+                        <span class="fav-heart ${_isFav ? 'fav-active' : ''}" data-matchkey="${_mk.replace(/"/g, '&quot;')}" onclick="event.stopPropagation(); toggleFavorite(this);">&#9829;</span>
+                    </div>
                     <div class="match-card-left">
                         <div class="match-card-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${_mStar}</div>
                         <div class="match-card-meta">
@@ -309,7 +335,7 @@ cardList.insertAdjacentHTML('beforeend',html);_renderedCount=end;_updateRendered
 function _updateRenderedCount(){const countEl=document.getElementById('matchCount');const mobileCountEl=document.getElementById('mobileMatchCount');const total=_allFilteredMatches.length;const shown=Math.min(_renderedCount,total);const text=shown<total?`${shown} / ${total}`:`${total}`;if(countEl)countEl.textContent=text;if(mobileCountEl)mobileCountEl.textContent=text;}
 function _setupInfiniteScroll(){if(_scrollListenerAttached)return;_scrollListenerAttached=true;var container=document.querySelector('.table-container');if(container){container.addEventListener('scroll',function(){if(_renderedCount>=_allFilteredMatches.length)return;var scrollTop=container.scrollTop;var clientH=container.clientHeight;var scrollH=container.scrollHeight;if(scrollTop+clientH>=scrollH-300){var isMobile=window.innerWidth<=768;if(isMobile){_renderMoreMobile();}else{_renderMoreDesktop();}}},{passive:true});}
 window.addEventListener('scroll',function(){if(_renderedCount>=_allFilteredMatches.length)return;var scrollY=window.scrollY||window.pageYOffset;var windowH=window.innerHeight;var docH=document.documentElement.scrollHeight;if(scrollY+windowH>=docH-300){var isMobile=window.innerWidth<=768;if(isMobile){_renderMoreMobile();}else{_renderMoreDesktop();}}},{passive:true});}
-function renderMatches(data){if(typeof _liveMode!=='undefined'&&_liveMode)return;console.log('[renderMatches] Called with',data?.length||0,'matches');_allFilteredMatches=data;_renderedCount=0;const tbody=document.getElementById('matchesTableBody');const countEl=document.getElementById('matchCount');const mobileCountEl=document.getElementById('mobileMatchCount');if(data.length===0){const colspan=currentMarket.includes('1x2')?7:6;const emptyMessage=isClientMode?"Bu market için veri bulunamadı. Scraper'ın Supabase'e veri gönderdiğinden emin olun.":"No matches found for this market. Click 'Scrape Now' to fetch data.";tbody.innerHTML=`
+function renderMatches(data){if(typeof _liveMode!=='undefined'&&_liveMode)return;console.log('[renderMatches] Called with',data?.length||0,'matches');_allFilteredMatches=data;_renderedCount=0;const tbody=document.getElementById('matchesTableBody');const countEl=document.getElementById('matchCount');const mobileCountEl=document.getElementById('mobileMatchCount');if(data.length===0){const colspan=currentMarket.includes('1x2')?8:7;const emptyMessage=isClientMode?"Bu market için veri bulunamadı. Scraper'ın Supabase'e veri gönderdiğinden emin olun.":"No matches found for this market. Click 'Scrape Now' to fetch data.";tbody.innerHTML=`
             <tr class="loading-row">
                 <td colspan="${colspan}">
                     <div class="empty-state">
@@ -322,7 +348,8 @@ function renderMatches(data){if(typeof _liveMode!=='undefined'&&_liveMode)return
                 </td>
             </tr>
         `;if(countEl)countEl.textContent='0';if(mobileCountEl)mobileCountEl.textContent='0';return;}
-tbody.innerHTML='';const firstBatch=data.slice(0,_RENDER_BATCH);let html=firstBatch.map((match,idx)=>_renderMatchRow(match,idx)).join('');tbody.innerHTML=html;_renderedCount=firstBatch.length;_updateRenderedCount();_setupInfiniteScroll();if(currentMarket.startsWith('dropping')){setTimeout(()=>attachTrendTooltipListeners(),50);}}
+tbody.innerHTML='';const firstBatch=data.slice(0,_RENDER_BATCH);let html=firstBatch.map((match,idx)=>_renderMatchRow(match,idx)).join('');tbody.innerHTML=html;_renderedCount=firstBatch.length;_updateRenderedCount();_setupInfiniteScroll();if(currentMarket.startsWith('dropping')){setTimeout(()=>attachTrendTooltipListeners(),50);}
+loadFavoriteCounts(data);if(_favFilterActive)setTimeout(()=>_applyFavoritesFilter(),50);}
 function loadMoreMatches(){if(hasMoreMatches&&!_loadMatchesLock){loadMatches(true);}}
 function isMobileView(){return window.innerWidth<=768;}
 function renderMobileMatchCards(data){if(typeof _liveMode!=='undefined'&&_liveMode)return;const cardList=document.getElementById('matchCardList');if(!cardList)return;_allFilteredMatches=data;_renderedCount=0;if(data.length===0){cardList.innerHTML=`
@@ -348,9 +375,10 @@ function renderMobileMoneywayCard(match,idx,d,volume,dateStr,starHtml){let oddsB
             ${renderMobileMoneywayBlock('Evet', d.OddsYes || d.Yes, d.PctYes, tv)}
             ${renderMobileMoneywayBlock('Hayır', d.OddsNo || d.No, d.PctNo, tv)}
         `;}
-const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);const liveCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team,match.match_id);return`
+const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);const liveCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team,match.match_id);const _mk=_getMatchKey(match);const _isFav=_userFavorites.has(_mk);return`
         <div class="match-card odds-card moneyway-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
+                <span class="fav-heart ${_isFav ? 'fav-active' : ''}" data-matchkey="${_mk.replace(/"/g, '&quot;')}" onclick="event.stopPropagation(); toggleFavorite(this);" style="margin-right:6px;">&#9829;</span>
                 <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>
@@ -384,9 +412,10 @@ function renderMobileOddsCard(match,idx,d,volume,dateStr,starHtml){let oddsBlock
             ${renderMobileOddsBlock('Evet', d.OddsYes || d.Yes, trendYes)}
             ${renderMobileOddsBlock('Hayır', d.OddsNo || d.No, trendNo)}
         `;}
-const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);const liveCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team,match.match_id);return`
+const blockCount=currentMarket.includes('1x2')?'three':'two';const matchStatus=getMatchStatus(match.date);const liveCapsule=getMatchLiveCapsule(match.date,match.home_team,match.away_team,match.match_id);const _mk=_getMatchKey(match);const _isFav=_userFavorites.has(_mk);return`
         <div class="match-card odds-card dropping-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             <div class="odds-card-header">
+                <span class="fav-heart ${_isFav ? 'fav-active' : ''}" data-matchkey="${_mk.replace(/"/g, '&quot;')}" onclick="event.stopPropagation(); toggleFavorite(this);" style="margin-right:6px;">&#9829;</span>
                 <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
                 <div class="odds-card-volume">${volume}</div>
             </div>

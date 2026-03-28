@@ -2284,7 +2284,77 @@ class SupabaseClient:
         except Exception as e:
             print(f"[Supabase] Error checking analyses table: {e}")
 
+    def toggle_favorite(self, device_id: str, match_key: str) -> Dict:
+        if not self.is_available or not device_id or not match_key:
+            return {'favorited': False, 'total_count': 0}
+        try:
+            import urllib.parse
+            dk = urllib.parse.quote(device_id, safe='')
+            mk = urllib.parse.quote(match_key, safe='')
+            check_url = f"{self._rest_url('match_favorites')}?device_id=eq.{dk}&match_key=eq.{mk}&select=id"
+            resp = self._get_http_client().get(check_url, headers=self._headers(), timeout=10)
+            if resp.status_code == 200 and resp.json():
+                row_id = resp.json()[0]['id']
+                del_url = f"{self._rest_url('match_favorites')}?id=eq.{row_id}"
+                self._get_http_client().delete(del_url, headers=self._headers(), timeout=10)
+                favorited = False
+            else:
+                ins_headers = {**self._headers(), 'Prefer': 'return=minimal'}
+                self._get_http_client().post(
+                    self._rest_url('match_favorites'),
+                    headers=ins_headers,
+                    json={'device_id': device_id, 'match_key': match_key},
+                    timeout=10
+                )
+                favorited = True
+            count_url = f"{self._rest_url('match_favorites')}?match_key=eq.{mk}&select=id"
+            count_headers = {**self._headers(), 'Prefer': 'count=exact', 'Range-Unit': 'items', 'Range': '0-0'}
+            cr = self._get_http_client().get(count_url, headers=count_headers, timeout=10)
+            total = 0
+            if 'content-range' in cr.headers:
+                parts = cr.headers['content-range'].split('/')
+                if len(parts) == 2 and parts[1] != '*':
+                    total = int(parts[1])
+            return {'favorited': favorited, 'total_count': total}
+        except Exception as e:
+            print(f"[Supabase] toggle_favorite error: {e}")
+            return {'favorited': False, 'total_count': 0}
 
+    def get_user_favorites(self, device_id: str) -> list:
+        if not self.is_available or not device_id:
+            return []
+        try:
+            import urllib.parse
+            dk = urllib.parse.quote(device_id, safe='')
+            url = f"{self._rest_url('match_favorites')}?device_id=eq.{dk}&select=match_key"
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=10)
+            if resp.status_code == 200:
+                return [r['match_key'] for r in resp.json()]
+            return []
+        except Exception as e:
+            print(f"[Supabase] get_user_favorites error: {e}")
+            return []
+
+    def get_favorite_counts(self, match_keys: list) -> Dict:
+        if not self.is_available or not match_keys:
+            return {}
+        try:
+            import urllib.parse
+            counts = {}
+            batch_size = 50
+            for i in range(0, len(match_keys), batch_size):
+                batch = match_keys[i:i+batch_size]
+                keys_param = ','.join(urllib.parse.quote(k, safe='') for k in batch)
+                url = f"{self._rest_url('match_favorites')}?match_key=in.({keys_param})&select=match_key"
+                resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
+                if resp.status_code == 200:
+                    for r in resp.json():
+                        mk = r['match_key']
+                        counts[mk] = counts.get(mk, 0) + 1
+            return counts
+        except Exception as e:
+            print(f"[Supabase] get_favorite_counts error: {e}")
+            return {}
 
 
 class LocalDatabase:
@@ -2568,6 +2638,21 @@ class HybridDatabase:
     def ensure_analyses_table(self):
         if self.supabase.is_available:
             self.supabase.ensure_analyses_table()
+
+    def toggle_favorite(self, device_id: str, match_key: str) -> Dict:
+        if self.supabase.is_available:
+            return self.supabase.toggle_favorite(device_id, match_key)
+        return {'favorited': False, 'total_count': 0}
+
+    def get_user_favorites(self, device_id: str) -> list:
+        if self.supabase.is_available:
+            return self.supabase.get_user_favorites(device_id)
+        return []
+
+    def get_favorite_counts(self, match_keys: list) -> Dict:
+        if self.supabase.is_available:
+            return self.supabase.get_favorite_counts(match_keys)
+        return {}
 
 
 _database = None
