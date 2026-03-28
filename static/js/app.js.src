@@ -108,21 +108,18 @@ function loadUserFavorites() {
         .catch(function() {});
 }
 
-function loadFavoriteCounts(matches) {
-    if (!matches || !matches.length) return Promise.resolve();
-    var keys = matches.map(function(m) { return _getMatchKey(m); });
-    var unique = Array.from(new Set(keys));
-    return fetch('/api/favorite/counts', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({match_keys: unique})
+function loadFavoriteCounts() {
+    return fetch('/api/favorite/all-counts')
+    .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
     })
-    .then(function(r) { return r.json(); })
     .then(function(data) {
+        console.log('[Fav] Loaded counts:', Object.keys(data.counts || {}).length, 'matches');
         _favCounts = data.counts || {};
         _updateFavCountsInDOM();
     })
-    .catch(function() {});
+    .catch(function(err) { console.error('[Fav] loadFavoriteCounts error:', err); });
 }
 
 function _updateFavCountsInDOM() {
@@ -1016,7 +1013,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     fetchAnalysisMatchHashes();
     loadFinishedScores();
-    await loadUserFavorites();
+    await Promise.all([loadUserFavorites(), loadFavoriteCounts()]);
     loadMatches();
     _startBackgroundLiveFetch();
     checkStatus();
@@ -1907,7 +1904,7 @@ function renderMatches(data) {
     if (currentMarket.startsWith('dropping')) {
         setTimeout(() => attachTrendTooltipListeners(), 50);
     }
-    loadFavoriteCounts(data);
+    loadFavoriteCounts();
     if (_favFilterActive) setTimeout(() => _applyFavoritesFilter(), 50);
 }
 

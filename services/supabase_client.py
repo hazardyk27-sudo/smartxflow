@@ -2399,6 +2399,29 @@ class SupabaseClient:
             print(f"[Supabase] get_favorite_counts error: {e}")
             return {}
 
+    def get_all_favorite_counts(self) -> Dict:
+        if not self.is_available:
+            return {}
+        if not self._ensure_favorites_table():
+            return {}
+        try:
+            url = f"{self._rest_url('match_favorites')}?select=match_key"
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
+            if resp.status_code == 200:
+                rows = resp.json()
+                counts = {}
+                for r in rows:
+                    mk = r['match_key']
+                    counts[mk] = counts.get(mk, 0) + 1
+                print(f"[Supabase] get_all_favorite_counts: {len(rows)} rows, {len(counts)} unique matches")
+                return counts
+            else:
+                print(f"[Supabase] get_all_favorite_counts error: status={resp.status_code}")
+                return {}
+        except Exception as e:
+            print(f"[Supabase] get_all_favorite_counts error: {e}")
+            return {}
+
 
 class LocalDatabase:
     """Fallback local SQLite database when Supabase is not available"""
@@ -2695,6 +2718,11 @@ class HybridDatabase:
     def get_favorite_counts(self, match_keys: list) -> Dict:
         if self.supabase.is_available:
             return self.supabase.get_favorite_counts(match_keys)
+        return {}
+
+    def get_all_favorite_counts(self) -> Dict:
+        if self.supabase.is_available:
+            return self.supabase.get_all_favorite_counts()
         return {}
 
 

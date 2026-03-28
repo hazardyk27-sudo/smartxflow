@@ -1775,6 +1775,13 @@ def get_favorite_counts():
     counts = db.get_favorite_counts(match_keys)
     return jsonify({'counts': counts})
 
+@app.route('/api/favorite/all-counts')
+@license_required
+def get_all_favorite_counts():
+    counts = db.get_all_favorite_counts()
+    print(f"[FavCounts] GET /api/favorite/all-counts: {len(counts)} matches with favorites")
+    return jsonify({'counts': counts})
+
 @app.route('/api/match/history')
 @license_required
 def get_match_history():
