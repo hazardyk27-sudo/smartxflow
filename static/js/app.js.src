@@ -10408,8 +10408,30 @@ function setLiveMarket(market) {
     document.querySelectorAll('.live-market-btn').forEach(function(b) {
         b.classList.toggle('active', b.getAttribute('data-lmarket') === market);
     });
+    document.querySelectorAll('.live-market-dropdown-item').forEach(function(b) {
+        b.classList.toggle('active', b.getAttribute('data-lmarket') === market);
+    });
     renderLiveMatches(_liveData);
 }
+
+function toggleLiveMarketDropdown(e) {
+    e.stopPropagation();
+    var dd = document.getElementById('liveMarketTabs');
+    if (dd) dd.classList.toggle('open');
+}
+
+function setLiveMarketFromDropdown(market, label) {
+    setLiveMarket(market);
+    var lbl = document.getElementById('liveMarketDropdownLabel');
+    if (lbl) lbl.textContent = label;
+    var dd = document.getElementById('liveMarketTabs');
+    if (dd) dd.classList.remove('open');
+}
+
+document.addEventListener('click', function(e) {
+    var dd = document.getElementById('liveMarketTabs');
+    if (dd && !dd.contains(e.target)) dd.classList.remove('open');
+});
 
 async function loadLiveMatches() {
     try {

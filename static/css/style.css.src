@@ -12874,6 +12874,74 @@ table.desktop-only {
     margin-left: 8px;
     opacity: 0.6;
 }
+.live-market-dropdown {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin-left: 6px;
+}
+.live-market-dropdown-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #262a2f;
+    border: 1px solid #3a3f45;
+    border-radius: 6px;
+    color: #e0e4e8;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.live-market-dropdown-toggle:hover {
+    background: #2e3338;
+    border-color: #4a4f55;
+}
+.live-market-dropdown-toggle svg {
+    transition: transform 0.2s;
+}
+.live-market-dropdown.open .live-market-dropdown-toggle svg {
+    transform: rotate(180deg);
+}
+.live-market-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    background: #1c1f23;
+    border: 1px solid #3a3f45;
+    border-radius: 6px;
+    padding: 4px;
+    z-index: 1000;
+    min-width: 70px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.live-market-dropdown.open .live-market-dropdown-menu {
+    display: block;
+}
+.live-market-dropdown-item {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    color: rgba(203,213,225,0.6);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    text-align: left;
+    transition: all 0.12s;
+}
+.live-market-dropdown-item:hover {
+    background: #262a2f;
+    color: #e0e4e8;
+}
+.live-market-dropdown-item.active {
+    color: #4ade80;
+    font-weight: 600;
+}
 .live-market-tabs {
     display: flex;
     align-items: center;

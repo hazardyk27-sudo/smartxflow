@@ -9,14 +9,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap"></noscript>
-    <link rel="stylesheet" href="/static/css/style.css?v=1774715100">
-    <link rel="stylesheet" href="/static/css/alert_band.css?v=1774715100">
+    <link rel="stylesheet" href="/static/css/style.css?v=1774715200">
+    <link rel="stylesheet" href="/static/css/alert_band.css?v=1774715200">
     <script defer src="/static/js/vendor/dayjs.min.js"></script>
     <script defer src="/static/js/vendor/dayjs-utc.js"></script>
     <script defer src="/static/js/vendor/dayjs-timezone.js"></script>
     <script defer src="/static/js/vendor/dayjs-customParseFormat.js"></script>
-    <script defer src="/static/js/app.js?v=1774715100"></script>
-    <script defer src="/static/js/ui.js?v=1774715100"></script>
+    <script defer src="/static/js/app.js?v=1774715200"></script>
+    <script defer src="/static/js/ui.js?v=1774715200"></script>
 </head>
 <body>
     <!-- License Gate - Birebir Desktop Aynisi -->
@@ -304,12 +304,18 @@
                         Analizler
                         <span class="analysis-active-badge" style="display:none;">0</span>
                     </button>
-                    <div class="live-market-tabs desktop-only" id="liveMarketTabs" style="display:none;">
-                        <button class="live-market-btn active" data-lmarket="1x2" onclick="setLiveMarket('1x2')">1X2</button>
-                        <button class="live-market-btn" data-lmarket="ou1.5" onclick="setLiveMarket('ou1.5')">1.5</button>
-                        <button class="live-market-btn" data-lmarket="ou2.5" onclick="setLiveMarket('ou2.5')">2.5</button>
-                        <button class="live-market-btn" data-lmarket="ou3.5" onclick="setLiveMarket('ou3.5')">3.5</button>
-                        <button class="live-market-btn" data-lmarket="ou4.5" onclick="setLiveMarket('ou4.5')">4.5</button>
+                    <div class="live-market-dropdown desktop-only" id="liveMarketTabs" style="display:none;">
+                        <button class="live-market-dropdown-toggle" id="liveMarketDropdownToggle" onclick="toggleLiveMarketDropdown(event)">
+                            <span id="liveMarketDropdownLabel">1X2</span>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div class="live-market-dropdown-menu" id="liveMarketDropdownMenu">
+                            <button class="live-market-dropdown-item active" data-lmarket="1x2" onclick="setLiveMarketFromDropdown('1x2','1X2')">1X2</button>
+                            <button class="live-market-dropdown-item" data-lmarket="ou1.5" onclick="setLiveMarketFromDropdown('ou1.5','1.5')">1.5</button>
+                            <button class="live-market-dropdown-item" data-lmarket="ou2.5" onclick="setLiveMarketFromDropdown('ou2.5','2.5')">2.5</button>
+                            <button class="live-market-dropdown-item" data-lmarket="ou3.5" onclick="setLiveMarketFromDropdown('ou3.5','3.5')">3.5</button>
+                            <button class="live-market-dropdown-item" data-lmarket="ou4.5" onclick="setLiveMarketFromDropdown('ou4.5','4.5')">4.5</button>
+                        </div>
                     </div>
                 </div>
                 
