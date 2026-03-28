@@ -242,18 +242,20 @@ function _favCountHtml(count) {
     return '<span class="fav-count-num">' + count + ' kişi</span>takip ediyor';
 }
 
+var _heartSvg = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+
 function _buildLiveFavCell(match) {
     var mk = _getMatchKey(match);
     var isFav = _userFavorites.has(mk);
     var count = _favCounts[mk] || 0;
-    return '<td class="fav-cell"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">\u2665</span><span class="fav-count">' + _favCountHtml(count) + '</span></td>';
+    return '<td class="fav-cell"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">' + _heartSvg + '</span><span class="fav-count">' + _favCountHtml(count) + '</span></td>';
 }
 
 function _buildFavCell(match) {
     var mk = _getMatchKey(match);
     var isFav = _userFavorites.has(mk);
     var count = _favCounts[mk] || 0;
-    return '<td class="fav-cell"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">\u2665</span><span class="fav-count">' + _favCountHtml(count) + '</span></td>';
+    return '<td class="fav-cell"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">' + _heartSvg + '</span><span class="fav-count">' + _favCountHtml(count) + '</span></td>';
 }
 
 let _licenseExpiredShown = false;
@@ -1953,7 +1955,7 @@ function renderMobileMatchCards(data) {
 // Mobile Moneyway Card - Shows odds with betting percentages
 function _mobileFavLine(mk, isFav, count) {
     var txt = (count > 0 ? count : 0) + ' kişi takip ediyor';
-    return '<div class="mobile-fav-line"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">&#9829;</span><span class="mobile-fav-count" data-matchkey="' + mk.replace(/"/g, '&quot;') + '">' + txt + '</span></div>';
+    return '<div class="mobile-fav-line"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">' + _heartSvg + '</span><span class="mobile-fav-count" data-matchkey="' + mk.replace(/"/g, '&quot;') + '">' + txt + '</span></div>';
 }
 
 function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
