@@ -2144,9 +2144,6 @@ function setSource(src) {
     document.querySelectorAll('.mf-chip[data-group="source"]').forEach(function(c) {
         c.classList.toggle('active', c.getAttribute('data-value') === src);
     });
-    document.querySelectorAll('.source-toggle-btn').forEach(function(b) {
-        b.classList.toggle('active', b.getAttribute('data-source') === src);
-    });
     _matchesMarketCache = {};
     loadMatches();
 }
