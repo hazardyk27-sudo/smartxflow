@@ -140,7 +140,7 @@ function _updateFavCountsInDOM() {
         if (mk) {
             var c = _favCounts[mk] || 0;
             if (c === 0 && _userFavorites.has(mk)) c = 1;
-            el.textContent = c > 0 ? c + ' kişi takip ediyor' : '';
+            el.textContent = (c > 0 ? c : 0) + ' kişi takip ediyor';
         }
     });
 }
@@ -181,7 +181,7 @@ function toggleFavorite(el) {
             }
         });
         document.querySelectorAll('.mobile-fav-count[data-matchkey="' + mk.replace(/"/g, '\\"') + '"]').forEach(function(mc) {
-            mc.textContent = displayCount > 0 ? displayCount + ' kişi takip ediyor' : '';
+            mc.textContent = (displayCount > 0 ? displayCount : 0) + ' kişi takip ediyor';
         });
         if (_favFilterActive && !data.favorited) {
             var row = el.closest('tr');
@@ -1942,7 +1942,8 @@ function renderMobileMatchCards(data) {
 
 // Mobile Moneyway Card - Shows odds with betting percentages
 function _mobileFavLine(mk, isFav, count) {
-    return '<div class="mobile-fav-line"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">&#9829;</span>' + (count > 0 ? '<span class="mobile-fav-count" data-matchkey="' + mk.replace(/"/g, '&quot;') + '">' + count + ' kişi takip ediyor</span>' : '<span class="mobile-fav-count" data-matchkey="' + mk.replace(/"/g, '&quot;') + '"></span>') + '</div>';
+    var txt = (count > 0 ? count : 0) + ' kişi takip ediyor';
+    return '<div class="mobile-fav-line"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">&#9829;</span><span class="mobile-fav-count" data-matchkey="' + mk.replace(/"/g, '&quot;') + '">' + txt + '</span></div>';
 }
 
 function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
