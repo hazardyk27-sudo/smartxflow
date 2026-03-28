@@ -210,16 +210,22 @@ function toggleFavoritesFilter() {
 
 function _applyFavoritesFilter() {
     document.querySelectorAll('#matchesTableBody tr').forEach(function(row) {
-        var heart = row.querySelector('.fav-heart');
-        if (heart) {
-            var mk = heart.getAttribute('data-matchkey');
+        var mk = row.getAttribute('data-matchkey');
+        if (!mk) {
+            var heart = row.querySelector('.fav-heart');
+            if (heart) mk = heart.getAttribute('data-matchkey');
+        }
+        if (mk) {
             row.style.display = _userFavorites.has(mk) ? '' : 'none';
         }
     });
     document.querySelectorAll('#matchCardList .match-card').forEach(function(card) {
-        var heart = card.querySelector('.fav-heart');
-        if (heart) {
-            var mk = heart.getAttribute('data-matchkey');
+        var mk = card.getAttribute('data-matchkey');
+        if (!mk) {
+            var heart = card.querySelector('.fav-heart');
+            if (heart) mk = heart.getAttribute('data-matchkey');
+        }
+        if (mk) {
             card.style.display = _userFavorites.has(mk) ? '' : 'none';
         }
     });
@@ -10614,6 +10620,8 @@ function renderLiveMatches(matches, goalHashes) {
         var matchMin = _calcLiveMatchMin(m);
         var scoreStr = m.score ? escLiveHtml(m.score) : '';
         var onclickAttr = 'onclick="openLiveDetail(\'' + m.match_id_hash + '\',\'' + escLiveHtml(m.home_team) + '\',\'' + escLiveHtml(m.away_team) + '\')"';
+        var _liveMk = _getMatchKey(m);
+        var _liveMkAttr = ' data-matchkey="' + _liveMk.replace(/"/g, '&quot;') + '"';
         var showScore = (matchMin === 'MS') ? (scoreStr || '-') : scoreStr;
         var goalInfo = m.match_id_hash ? goalHashes[m.match_id_hash] : null;
         var goalSide = goalInfo ? goalInfo.side : null;
@@ -10671,7 +10679,7 @@ function renderLiveMatches(matches, goalHashes) {
                 '<span class="lc-min">' + capMinText + '</span>' +
                 capScoreHtml +
                 '</div>';
-            rowsHtml += '<tr class="live-row" ' + onclickAttr + '>' +
+            rowsHtml += '<tr class="live-row"' + _liveMkAttr + ' ' + onclickAttr + '>' +
                 '<td class="match-date">' + deskLiveCap + '</td>' +
                 '<td class="match-league" title="' + escLiveHtml(m.league) + '">' + escLiveHtml(m.league) + '</td>' +
                 '<td class="match-teams">' + escLiveHtml(m.home_team) + '<span class="vs">-</span>' + escLiveHtml(m.away_team) + '</td>' +
@@ -10704,7 +10712,7 @@ function renderLiveMatches(matches, goalHashes) {
                 '<span class="lc-min">' + capMinTextOU + '</span>' +
                 capScoreHtmlOU +
                 '</div>';
-            rowsHtml += '<tr class="live-row" ' + onclickAttr + '>' +
+            rowsHtml += '<tr class="live-row"' + _liveMkAttr + ' ' + onclickAttr + '>' +
                 '<td class="match-date">' + deskLiveCapOU + '</td>' +
                 '<td class="match-league" title="' + escLiveHtml(m.league) + '">' + escLiveHtml(m.league) + '</td>' +
                 '<td class="match-teams">' + escLiveHtml(m.home_team) + '<span class="vs">-</span>' + escLiveHtml(m.away_team) + '</td>' +
@@ -10735,6 +10743,7 @@ function renderLiveMatches(matches, goalHashes) {
     });
     var mc = document.getElementById('matchCount');
     if (mc) mc.textContent = sorted.length;
+    if (_favFilterActive) setTimeout(function() { _applyFavoritesFilter(); }, 10);
 }
 
 function _startGoalTakeover(cell) {
@@ -10817,7 +10826,8 @@ function _liveMwBlock(label, d) {
 function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
     var is1x2 = (marketOrLine === '1x2');
     var cardCls = 'match-card odds-card moneyway-card' + (goalSide ? ' goal-flash-card' : '');
-    var html = '<div class="' + cardCls + '" ' + onclickAttr + '>';
+    var _lmk = _getMatchKey(m);
+    var html = '<div class="' + cardCls + '" data-matchkey="' + _lmk.replace(/"/g, '&quot;') + '" ' + onclickAttr + '>';
     html += '<div class="odds-card-header">';
     var cardMin = _calcLiveMatchMin(m);
     var cardScore = m.score ? escLiveHtml(m.score) : (cardMin === 'MS' ? '-' : '');
