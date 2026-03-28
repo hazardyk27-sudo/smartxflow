@@ -131,7 +131,7 @@ function _updateFavCountsInDOM() {
         var countEl = el.parentElement.querySelector('.fav-count');
         if (countEl && mk) {
             var c = _favCounts[mk] || 0;
-            countEl.textContent = c > 0 ? c + ' kişi' : '';
+            countEl.innerHTML = _favCountHtml(c);
         }
     });
 }
@@ -140,13 +140,15 @@ function toggleFavorite(el) {
     var mk = el.getAttribute('data-matchkey');
     if (!mk) return;
     var did = getWebDeviceId();
+    console.log('[Fav] toggle:', mk, 'device:', did);
     fetch('/api/favorite/toggle', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({match_key: mk, device_id: did})
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) { console.log('[Fav] response status:', r.status); return r.json(); })
     .then(function(data) {
+        console.log('[Fav] result:', data.favorited ? 'ADDED' : 'REMOVED', 'count:', data.total_count);
         if (data.favorited) {
             _userFavorites.add(mk);
         } else {
