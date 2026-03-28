@@ -712,8 +712,12 @@ def run_scrape():
     
     mb_client = MatchbookClient()
     writer = MatchbookWriter(supabase_url, supabase_key)
+    matcher = MatchMatcher(supabase_url, supabase_key)
     
     try:
+        matcher.load_arbworld_fixtures()
+        matcher.load_league_map()
+        
         events = mb_client.fetch_events()
         print(f"[MB] Fetched {len(events)} raw events")
         
@@ -721,6 +725,7 @@ def run_scrape():
         written_1x2 = 0
         written_ou25 = 0
         written_btts = 0
+        matched_count = 0
         
         now_utc = datetime.now(timezone.utc)
         skipped_live = 0
@@ -736,21 +741,25 @@ def run_scrape():
             
             parsed_count += 1
             
-            mb_hash = writer.upsert_fixture(parsed, None)
+            arb_hash = matcher.find_arbworld_match(parsed)
+            if arb_hash:
+                matched_count += 1
+            
+            mb_hash = writer.upsert_fixture(parsed, arb_hash)
             
             if '1x2' in parsed['markets']:
-                writer.write_1x2(parsed, mb_hash, None)
+                writer.write_1x2(parsed, mb_hash, arb_hash)
                 written_1x2 += 1
             if 'ou25' in parsed['markets']:
-                writer.write_ou25(parsed, mb_hash, None)
+                writer.write_ou25(parsed, mb_hash, arb_hash)
                 written_ou25 += 1
             if 'btts' in parsed['markets']:
-                writer.write_btts(parsed, mb_hash, None)
+                writer.write_btts(parsed, mb_hash, arb_hash)
                 written_btts += 1
         
         if skipped_live > 0:
             print(f"[MB] Skipped {skipped_live} live/in-play events (pre-match only)")
-        print(f"[MB] Parsed: {parsed_count} events")
+        print(f"[MB] Parsed: {parsed_count} events, Matched: {matched_count}/{parsed_count}")
         print(f"[MB] Written - 1X2: {written_1x2}, OU25: {written_ou25}, BTTS: {written_btts}")
         
         return parsed_count
@@ -763,6 +772,7 @@ def run_scrape():
     finally:
         mb_client.close()
         writer.close()
+        matcher.close()
 
 
 def run_loop():
