@@ -770,96 +770,55 @@
 }
 
 /* =====================================================
-   MOBILE ALERT BAND - Premium Signal Chip
+   MOBILE ALERT BAND - Compact Premium
    ===================================================== */
 
 @media (max-width: 768px) {
+    /* Hide alarm button from band on mobile - moved to filter bar */
     .btn-alarms {
         display: none !important;
     }
     
     .alert-band {
-        height: 32px;
+        height: 28px;
         padding: 0;
         position: relative;
         z-index: 99;
-        border-bottom: 1px solid rgba(255,255,255,0.06);
     }
     
     .alert-band-track {
-        padding: 0 8px;
-        gap: 5px;
+        padding: 0 10px;
+        gap: 6px;
         width: 100%;
     }
     
     .alert-band-track-inner {
-        gap: 5px;
+        gap: 6px;
     }
     
     .ab-pill {
-        padding: 3px 8px;
-        height: 24px;
-        border-radius: 8px;
-        gap: 4px;
-    }
-    
-    .ab-pill::before {
-        border-radius: 8px;
+        padding: 2px 6px;
+        height: 20px;
+        border-radius: 6px;
+        font-size: 9px;
     }
     
     .ab-dot {
-        width: 4px;
-        height: 4px;
-        margin-right: 2px;
-        box-shadow: none;
-    }
-    
-    .ab-type {
-        font-size: 8px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        opacity: 0.9;
-        flex-shrink: 0;
-    }
-    
-    .ab-sep {
-        display: none;
+        width: 5px;
+        height: 5px;
+        margin-right: 3px;
     }
     
     .ab-match {
-        font-size: 10px;
-        font-weight: 500;
-        max-width: 90px;
+        font-size: 9px;
+        max-width: 70px;
         overflow: hidden;
         text-overflow: ellipsis;
-        color: #C9D1D9;
     }
     
-    .ab-sel {
+    .ab-value {
         font-size: 8px;
-        font-weight: 500;
-        color: rgba(255,255,255,0.45);
-        flex-shrink: 0;
-    }
-    
-    .ab-val {
-        font-size: 9px;
-        height: 16px;
-        padding: 0 5px;
-        margin-left: 4px;
-        border-radius: 4px;
-        font-weight: 600;
-        line-height: 16px;
-        flex-shrink: 0;
-    }
-    
-    .ab-leader-change {
-        font-size: 9px;
-        gap: 3px;
-    }
-    
-    .ab-arrow {
-        font-size: 10px;
+        padding: 1px 4px;
     }
     
     .ab-time {
@@ -869,65 +828,25 @@
     .alert-band-empty {
         font-size: 9px;
     }
-
-    .ab-pill.dropping-l1 {
-        background: linear-gradient(90deg, rgba(248, 81, 73, 0.08), transparent);
-        border-color: rgba(248, 81, 73, 0.22);
-    }
-    .ab-pill.dropping-l2 {
-        background: linear-gradient(90deg, rgba(248, 81, 73, 0.12), transparent);
-        border-color: rgba(248, 81, 73, 0.35);
-    }
-    .ab-pill.dropping-l3 {
-        background: linear-gradient(90deg, rgba(248, 81, 73, 0.18), transparent);
-        border-color: rgba(248, 81, 73, 0.50);
-    }
-    .ab-pill.drop {
-        background: linear-gradient(90deg, rgba(220, 38, 38, 0.10), transparent);
-        border-color: rgba(220, 38, 38, 0.30);
-    }
-    .ab-pill.sharp {
-        background: linear-gradient(90deg, rgba(22, 163, 74, 0.10), transparent);
-        border-color: rgba(0, 255, 135, 0.28);
-    }
-    .ab-pill.bigmoney {
-        background: linear-gradient(90deg, rgba(240, 138, 36, 0.10), transparent);
-        border-color: rgba(255, 145, 33, 0.30);
-    }
-    .ab-pill.hugemoney {
-        background: linear-gradient(90deg, rgba(249, 115, 22, 0.10), transparent);
-        border-color: rgba(249, 115, 22, 0.30);
-    }
-    .ab-pill.volumeshock {
-        background: linear-gradient(90deg, rgba(250, 204, 21, 0.10), transparent);
-        border-color: rgba(250, 204, 21, 0.30);
-    }
-    .ab-pill.volumeleader {
-        background: linear-gradient(90deg, rgba(6, 182, 212, 0.10), transparent);
-        border-color: rgba(6, 182, 212, 0.30);
-    }
-    .ab-pill.mim {
-        background: linear-gradient(90deg, rgba(59, 130, 246, 0.10), transparent);
-        border-color: rgba(59, 130, 246, 0.30);
-    }
-    .ab-pill.publicmove {
-        background: linear-gradient(90deg, rgba(255, 204, 0, 0.10), transparent);
-        border-color: rgba(255, 215, 0, 0.30);
-    }
 }
 
 @media (max-width: 480px) {
     .alert-band {
-        height: 32px;
+        height: 28px;
     }
     
     .ab-pill {
-        padding: 3px 7px;
-        height: 24px;
+        padding: 2px 5px;
+        height: 20px;
     }
     
     .ab-match {
-        max-width: 75px;
-        font-size: 10px;
+        max-width: 60px;
+        font-size: 9px;
+    }
+    
+    .ab-value {
+        font-size: 8px;
+        padding: 1px 3px;
     }
 }
