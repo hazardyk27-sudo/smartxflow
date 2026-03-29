@@ -10592,6 +10592,10 @@ async function _renderLiveProLock() {
 
 function switchToLive() {
     if (window.userPlan === 'core') {
+        var _cTbody = document.getElementById('matchesTableBody');
+        if (_cTbody) _cTbody.innerHTML = '';
+        var _cCards = document.getElementById('matchCardList');
+        if (_cCards) _cCards.innerHTML = '';
         _renderLiveProLock();
         return;
     }
