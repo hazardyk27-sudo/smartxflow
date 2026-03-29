@@ -10422,10 +10422,14 @@ var _finishedScores = {};
 
 function proLockPanelHtml() {
     return '<div class="pro-lock-panel">' +
-        '<div class="pro-lock-icon">\uD83D\uDD12</div>' +
-        '<div class="pro-lock-title">Pro \u00dcyelik Gerektirir</div>' +
-        '<div class="pro-lock-sub">Bu i\u00e7erik yaln\u0131zca Pro \u00fcyelere a\u00e7\u0131kt\u0131r.</div>' +
-        '<a href="/pricing" class="pro-lock-btn">Pro\'ya Ge\u00e7</a>' +
+        '<div class="pro-lock-icon-wrap">' +
+        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2BFF88" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+        '<rect x="3" y="11" width="18" height="11" rx="2.5"/>' +
+        '<path d="M7 11V7a5 5 0 0 1 10 0v4"/>' +
+        '</svg>' +
+        '</div>' +
+        '<div class="pro-lock-title">Canl\u0131 veriler i\u00e7in <span class="pro-lock-accent">Pro</span> \u00fcyelik gerekmektedir</div>' +
+        '<a href="/pricing" class="pro-lock-btn">Pro\'ya Ge\u00e7 \u2192</a>' +
         '</div>';
 }
 
