@@ -9316,7 +9316,7 @@ table.desktop-only {
         display: flex !important;
         flex-direction: column !important;
         padding: 6px 4px 5px !important;
-        background: #141719 !important;
+        background: #1c1f23 !important;
         gap: 4px !important;
     }
     
