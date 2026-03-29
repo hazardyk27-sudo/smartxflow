@@ -1049,6 +1049,22 @@ def run_scrape(writer: SupabaseWriter, logger_callback=None):
             rows = extractor(table)
             
             if rows:
+                # Maç başlamış (kickoff geçmiş) satırları filtrele - canlı veri live_scraper'a bırakılır
+                _now_utc = datetime.utcnow()
+                _prematch = []
+                for _r in rows:
+                    _ko = parse_date_to_kickoff(_r.get('date', ''))
+                    try:
+                        _ko_dt = datetime.strptime(_ko[:19], '%Y-%m-%dT%H:%M:%S')
+                        if _ko_dt > _now_utc:
+                            _prematch.append(_r)
+                    except Exception:
+                        _prematch.append(_r)
+                _skipped = len(rows) - len(_prematch)
+                if _skipped > 0:
+                    _log(f"  [PREMATCH FILTER] {_skipped} canli mac atlandi (kickoff gecmis)")
+                rows = _prematch
+
                 # Her satır için match_id_hash hesapla ve fixture/snapshot oluştur
                 for row in rows:
                     home = row.get('home', '')
