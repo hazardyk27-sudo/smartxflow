@@ -6916,11 +6916,10 @@ function highlightNewAlarm(alarm) {
     
     // Volume Leader için özel format
     let contentHtml = '';
+    const matchDisplay = `${home} - ${away}`;
     if (alarmType === 'volumeleader') {
         const oldLeader = alarm.old_leader || alarm.previous_leader || '?';
         const newLeader = alarm.new_leader || alarm.selection || '?';
-        const isMobile = window.innerWidth <= 768;
-        const matchDisplay = isMobile ? home : `${home} - ${away}`;
         contentHtml = `
             <span class="ab-dot dot-${info.pillClass}"></span>
             <span class="ab-type">${info.label}</span>
@@ -6930,8 +6929,6 @@ function highlightNewAlarm(alarm) {
             <span class="ab-leader-change">${oldLeader} <span class="ab-arrow">▸</span> ${newLeader}</span>
         `;
     } else {
-        const isMobile = window.innerWidth <= 768;
-        const matchDisplay = isMobile ? home : `${home} - ${away}`;
         contentHtml = `
             <span class="ab-dot dot-${info.pillClass}"></span>
             <span class="ab-type">${info.label}</span>
@@ -7385,9 +7382,7 @@ function renderAlertBand() {
         const alarmLeague = (alarm.league || '').replace(/'/g, "\\'");
         const alarmKickoff = (alarm.kickoff_utc || alarm.match_date || alarm.fixture_date || '').replace(/'/g, "\\'");
         
-        // Mobil kontrolü - sadece ev sahibi takım göster
-        const isMobile = window.innerWidth <= 768;
-        const matchDisplay = isMobile ? home : `${home} - ${away}`;
+        const matchDisplay = `${home} - ${away}`;
         
         // Volume Leader için özel format: OLD_LEADER > NEW_LEADER
         if (alarm._type === 'volumeleader') {
