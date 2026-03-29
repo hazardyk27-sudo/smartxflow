@@ -14136,7 +14136,6 @@ table.desktop-only {
     opacity: 0.88;
 }
 @media (max-width: 768px) {
-    .live-pro-overlay:not(.live-pro-overlay-mobile) { display: none; }
     .live-pro-overlay-box {
         flex-direction: column;
         gap: 8px;
@@ -14144,7 +14143,4 @@ table.desktop-only {
         font-size: 13px;
         text-align: center;
     }
-}
-@media (min-width: 769px) {
-    .live-pro-overlay-mobile { display: none; }
 }
