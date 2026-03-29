@@ -3373,6 +3373,10 @@ function resetModalState() {
     if (liveBody) liveBody.innerHTML = '';
     var liveTabs = document.getElementById('modalLiveMarketTabs');
     if (liveTabs) liveTabs.innerHTML = '';
+    if (window.userPlan === 'core') {
+        if (liveTab) liveTab.style.display = '';
+        if (liveBody) liveBody.innerHTML = proLockPanelHtml();
+    }
 
     const canvas = document.getElementById('oddsChart');
     if (canvas) {
@@ -3813,6 +3817,20 @@ function getTrendArrow(current, previous) {
 }
 
 function switchMobileTab(tabName) {
+    if (tabName === 'live' && window.userPlan === 'core') {
+        document.querySelectorAll('.mobile-tab-bar .mob-tab').forEach(t => {
+            t.classList.remove('active');
+            if (t.dataset.tab === tabName) t.classList.add('active');
+        });
+        document.querySelectorAll('.mobile-tab-content').forEach(c => { c.classList.remove('active'); });
+        var _tc = document.getElementById('mobileTabLive');
+        if (_tc) _tc.classList.add('active');
+        var _lb = document.getElementById('modalLiveBody');
+        if (_lb) _lb.innerHTML = proLockPanelHtml();
+        var _lt = document.getElementById('modalLiveMarketTabs');
+        if (_lt) _lt.innerHTML = '';
+        return;
+    }
     document.querySelectorAll('.mobile-tab-bar .mob-tab').forEach(t => {
         t.classList.remove('active');
         if (t.dataset.tab === tabName) t.classList.add('active');
@@ -10402,7 +10420,42 @@ var _liveDetailMarket = '1x2';
 var _prevLiveScores = {};
 var _finishedScores = {};
 
+function proLockPanelHtml() {
+    return '<div class="pro-lock-panel">' +
+        '<div class="pro-lock-icon">\uD83D\uDD12</div>' +
+        '<div class="pro-lock-title">Pro \u00dcyelik Gerektirir</div>' +
+        '<div class="pro-lock-sub">Bu i\u00e7erik yaln\u0131zca Pro \u00fcyelere a\u00e7\u0131kt\u0131r.</div>' +
+        '<a href="/pricing" class="pro-lock-btn">Pro\'ya Ge\u00e7</a>' +
+        '</div>';
+}
+
+function _renderLiveProLock() {
+    _liveMode = true;
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.mobile-tab-btn').forEach(function(t) { t.classList.remove('active'); });
+    var liveTab = document.querySelector('.tab-live');
+    if (liveTab) liveTab.classList.add('active');
+    var mobileLive = document.querySelector('.mobile-live-btn');
+    if (mobileLive) mobileLive.classList.add('active');
+    var mcLabel = document.getElementById('matchCountLabel');
+    if (mcLabel) mcLabel.textContent = 'Canl\u0131 Ma\u00e7lar ';
+    var mcSuffix = document.getElementById('matchCountSuffix');
+    if (mcSuffix) mcSuffix.textContent = '';
+    var mcWrap = document.querySelector('.match-count');
+    if (mcWrap) mcWrap.classList.add('mc-live');
+    var lmt = document.getElementById('liveMarketTabs');
+    if (lmt) lmt.style.display = 'none';
+    var tbody = document.getElementById('matchesTableBody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="8">' + proLockPanelHtml() + '</td></tr>';
+    var cardList = document.getElementById('matchCardList');
+    if (cardList) cardList.innerHTML = proLockPanelHtml();
+}
+
 function switchToLive() {
+    if (window.userPlan === 'core') {
+        _renderLiveProLock();
+        return;
+    }
     _liveMode = true;
     document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
     document.querySelectorAll('.mobile-tab-btn').forEach(function(t) { t.classList.remove('active'); });
@@ -11221,7 +11274,7 @@ async function _checkModalLiveData(home, away, reqId) {
         var resp = await fetch('/api/live/match/history-by-teams?home=' + encodeURIComponent(home) + '&away=' + encodeURIComponent(away));
         var data = await resp.json();
         if (reqId !== _modalRequestId) return;
-        if (data.has_live && data.snapshots && data.snapshots.length > 0) {
+        if (data.has_live && data.snapshots && data.snapshots.length > 0 && window.userPlan !== 'core') {
             _modalLiveData = data.snapshots;
             _modalLiveMarket = '1x2';
             var liveTab = document.getElementById('modalLiveTab');

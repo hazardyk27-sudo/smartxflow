@@ -684,7 +684,8 @@ def pricing_page():
 @app.route('/analysis')
 def analysis_page():
     """Analysis page - Analiz paylaşımları"""
-    return render_template('analysis.html')
+    plan = session.get('license_plan', 'core')
+    return render_template('analysis.html', pro_required=(plan != 'pro'))
 
 @app.route('/terms')
 def terms_page():
