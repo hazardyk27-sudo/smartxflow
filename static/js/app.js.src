@@ -10421,7 +10421,7 @@ var _prevLiveScores = {};
 var _finishedScores = {};
 
 function proLockPanelHtml() {
-    return '<div class="live-loading">Canl\u0131 periyot verileri i\u00e7in Pro \u00fcyelik gerektirir</div>';
+    return '<div class="smart-money-empty" style="display:block">Canl\u0131 periyot verileri i\u00e7in Pro \u00fcyelik gerektirir.</div>';
 }
 
 function _liveProBanner() {
