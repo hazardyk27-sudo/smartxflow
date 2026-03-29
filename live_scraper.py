@@ -426,6 +426,19 @@ class LiveSupabaseWriter:
             log(f"[GET live hashes] Hata: {e}")
             return []
 
+    def get_live_fixture_info(self) -> Dict[str, str]:
+        """Status=live olan maçların hash → kickoff_utc eşlemesini döndürür."""
+        try:
+            headers = self._headers()
+            url = f"{self._rest_url('live_fixtures')}?status=eq.live&select=match_id_hash,kickoff_utc"
+            resp = requests.get(url, headers=headers, timeout=15, verify=SSL_VERIFY)
+            if resp.status_code == 200:
+                return {r['match_id_hash']: r.get('kickoff_utc', '') for r in resp.json()}
+            return {}
+        except Exception as e:
+            log(f"[GET live info] Hata: {e}")
+            return {}
+
     def get_ft_fixture_hashes(self) -> set:
         try:
             headers = self._headers()
@@ -835,9 +848,30 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
         del _kickoff_cache[k]
 
     if bw_result.get("fetch_ok"):
-        existing_live = writer.get_live_fixture_hashes()
+        existing_live_info = writer.get_live_fixture_info()
         current_hashes = set(all_fixtures.keys())
-        stale_hashes = [h for h in existing_live if h not in current_hashes]
+        now_dt = datetime.now(timezone.utc)
+        stale_hashes = []
+        skipped_early = []
+        for h, ko_str in existing_live_info.items():
+            if h in current_hashes:
+                continue
+            elapsed_min = 999
+            if ko_str:
+                try:
+                    ko_time = datetime.fromisoformat(ko_str)
+                    elapsed_min = (now_dt - ko_time).total_seconds() / 60
+                except Exception:
+                    pass
+            if elapsed_min >= 89:
+                stale_hashes.append(h)
+            else:
+                skipped_early.append((h, elapsed_min))
+        if skipped_early:
+            log(f"  [KORUMA] {len(skipped_early)} maç erken FT'den korundu (89 dk dolmadı):")
+            for h, em in skipped_early:
+                info = existing_live_info.get(h, '')
+                log(f"    hash={h} kickoff={info} elapsed={em:.0f}dk")
         if stale_hashes:
             final_scores = _fetch_final_scores(writer, stale_hashes)
             marked = writer.mark_fixtures_finished(stale_hashes, final_scores)
