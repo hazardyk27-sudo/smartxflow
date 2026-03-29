@@ -3153,12 +3153,12 @@ async function openMatchModalFromMatches(index) {
         var isFinishedMatch = modalFtCapsule !== '';
         const headerDt = toTurkeyTime(selectedMatch.date);
         let headerDateText = '';
-        if (!isFinishedMatch && headerDt && headerDt.isValid()) {
+        if (headerDt && headerDt.isValid()) {
             headerDateText = headerDt.format('DD.MM HH:mm');
         }
         var leagueHtml = escapeHtml(selectedMatch.league || '');
         if (isFinishedMatch) leagueHtml += modalFtCapsule;
-        else if (headerDateText) leagueHtml += ' • ' + headerDateText;
+        if (headerDateText) leagueHtml += ' • ' + headerDateText;
         document.getElementById('modalLeague').innerHTML = leagueHtml;
         
         document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
@@ -3253,12 +3253,12 @@ async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
     var isFinishedMatch = modalFtCapsule !== '';
     const headerDt = apiKickoff ? toTurkeyTime(apiKickoff) : null;
     let headerDateText = '';
-    if (!isFinishedMatch && headerDt && headerDt.isValid()) {
+    if (headerDt && headerDt.isValid()) {
         headerDateText = headerDt.format('DD.MM HH:mm');
     }
     var leagueHtml = escapeHtml(apiLeague || '');
     if (isFinishedMatch) leagueHtml += modalFtCapsule;
-    else if (headerDateText) leagueHtml += ' • ' + headerDateText;
+    if (headerDateText) leagueHtml += ' • ' + headerDateText;
     document.getElementById('modalLeague').innerHTML = leagueHtml || '';
     
     document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
@@ -3308,12 +3308,12 @@ async function openMatchModal(index) {
         var isFinishedMatch = modalFtCapsule !== '';
         const headerDt = toTurkeyTime(selectedMatch.date);
         let headerDateText = '';
-        if (!isFinishedMatch && headerDt && headerDt.isValid()) {
+        if (headerDt && headerDt.isValid()) {
             headerDateText = headerDt.format('DD.MM HH:mm');
         }
         var leagueHtml = escapeHtml(selectedMatch.league || '');
         if (isFinishedMatch) leagueHtml += modalFtCapsule;
-        else if (headerDateText) leagueHtml += ' • ' + headerDateText;
+        if (headerDateText) leagueHtml += ' • ' + headerDateText;
         document.getElementById('modalLeague').innerHTML = leagueHtml;
         
         document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {

@@ -10462,6 +10462,9 @@ table.desktop-only {
     
     .modal-subtitle {
         font-size: 11px;
+        white-space: normal;
+        word-break: break-word;
+        line-height: 1.4;
     }
     
     .modal-body {
@@ -10696,6 +10699,9 @@ table.desktop-only {
     .modal-subtitle {
         font-size: 11px !important;
         color: #5c636b !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        line-height: 1.4 !important;
     }
     
     .modal-close {
@@ -11024,6 +11030,9 @@ table.desktop-only {
         font-size: 12px !important;
         color: #7d848c !important;
         font-weight: 500 !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        line-height: 1.4 !important;
     }
     
     .modal-close {
