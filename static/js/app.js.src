@@ -3158,7 +3158,7 @@ async function openMatchModalFromMatches(index) {
         }
         var leagueHtml = escapeHtml(selectedMatch.league || '');
         if (isFinishedMatch) leagueHtml += modalFtCapsule;
-        if (headerDateText) leagueHtml += ' • ' + headerDateText;
+        if (headerDateText) leagueHtml += '<span class="modal-sub-sep"> \u2022 </span><span class="modal-sub-date">' + headerDateText + '</span>';
         document.getElementById('modalLeague').innerHTML = leagueHtml;
         
         document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
@@ -3258,7 +3258,7 @@ async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
     }
     var leagueHtml = escapeHtml(apiLeague || '');
     if (isFinishedMatch) leagueHtml += modalFtCapsule;
-    if (headerDateText) leagueHtml += ' • ' + headerDateText;
+    if (headerDateText) leagueHtml += '<span class="modal-sub-sep"> \u2022 </span><span class="modal-sub-date">' + headerDateText + '</span>';
     document.getElementById('modalLeague').innerHTML = leagueHtml || '';
     
     document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
@@ -3313,7 +3313,7 @@ async function openMatchModal(index) {
         }
         var leagueHtml = escapeHtml(selectedMatch.league || '');
         if (isFinishedMatch) leagueHtml += modalFtCapsule;
-        if (headerDateText) leagueHtml += ' • ' + headerDateText;
+        if (headerDateText) leagueHtml += '<span class="modal-sub-sep"> \u2022 </span><span class="modal-sub-date">' + headerDateText + '</span>';
         document.getElementById('modalLeague').innerHTML = leagueHtml;
         
         document.querySelectorAll('#modalChartTabs .chart-tab').forEach(t => {
