@@ -13994,41 +13994,54 @@ table.desktop-only {
 /* === PRO LOCK PANEL === */
 .pro-lock-panel {
     display: flex;
-    flex-direction: row;
     align-items: center;
     justify-content: center;
-    padding: 18px 20px;
-    gap: 8px;
+    padding: 28px 20px;
     font-family: inherit;
-    flex-wrap: wrap;
+}
+.pro-lock-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 0;
+}
+.pro-lock-icon {
+    flex-shrink: 0;
+    opacity: 0.85;
 }
 .pro-lock-title {
-    font-size: 13px;
-    font-weight: 500;
-    color: #9ca3af;
-    letter-spacing: 0.01em;
-    line-height: 1.4;
+    font-size: 12.5px;
+    font-weight: 400;
+    color: rgba(209,213,219,0.72);
+    letter-spacing: 0.025em;
+    line-height: 1;
     margin: 0;
     font-family: inherit;
 }
 .pro-lock-accent {
-    color: #2BFF88;
-    font-weight: 700;
+    color: rgba(43,255,136,0.75);
+    font-weight: 600;
+}
+.pro-lock-sep {
+    color: rgba(255,255,255,0.18);
+    font-size: 14px;
+    line-height: 1;
+    user-select: none;
 }
 .pro-lock-btn {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    color: #2BFF88;
-    font-weight: 600;
-    font-size: 12.5px;
+    color: rgba(43,255,136,0.72);
+    font-weight: 500;
+    font-size: 12px;
     text-decoration: none;
-    letter-spacing: 0.01em;
-    transition: opacity 0.15s;
+    letter-spacing: 0.03em;
+    transition: color 0.18s;
     font-family: inherit;
-    margin-left: 2px;
 }
-.pro-lock-btn:hover { opacity: 0.75; }
+.pro-lock-btn:hover { color: rgba(43,255,136,0.95); }
+.pro-lock-btn svg { margin-top: 0.5px; }
 
 /* Live Pro Blur — core user canlı tab */
 .live-pro-msg-row {
