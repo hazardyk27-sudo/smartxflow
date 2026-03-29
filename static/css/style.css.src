@@ -14043,9 +14043,14 @@ table.desktop-only {
 .pro-lock-btn:hover { opacity: 0.75; }
 
 /* Live Pro Blur — core user canlı tab */
+.live-pro-banner-row {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+}
 .live-pro-banner-row td {
     padding: 0 !important;
-    background: transparent !important;
+    background: #1c1f23 !important;
     border: none !important;
 }
 .live-pro-banner {
@@ -14060,6 +14065,9 @@ table.desktop-only {
     font-size: 13px;
     color: #d1d5db;
     flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 4;
 }
 .live-pro-banner strong {
     color: #2BFF88;
