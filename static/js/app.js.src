@@ -10585,6 +10585,39 @@ async function _renderLiveProLock() {
     if (tbody) tbody.innerHTML = rowsHtml;
     if (cardList) cardList.innerHTML = cardsHtml;
 
+    var oldOverlay = document.getElementById('liveProOverlay');
+    if (oldOverlay) oldOverlay.remove();
+    var oldOverlayM = document.getElementById('liveProOverlayMobile');
+    if (oldOverlayM) oldOverlayM.remove();
+
+    if (filtered.length > 0) {
+        var tableWrap = document.querySelector('.table-container');
+        if (tableWrap) {
+            tableWrap.style.position = 'relative';
+            var ov = document.createElement('div');
+            ov.id = 'liveProOverlay';
+            ov.className = 'live-pro-overlay';
+            ov.innerHTML = '<div class="live-pro-overlay-box">' +
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2BFF88" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+                '<span>Canl\u0131 veriler <strong>Pro</strong> \u00fcyelik gerektirir</span>' +
+                '<a href="/pricing" class="live-pro-overlay-btn">Pro\'ya Ge\u00e7</a>' +
+                '</div>';
+            tableWrap.appendChild(ov);
+        }
+        if (cardList) {
+            cardList.style.position = 'relative';
+            var ovM = document.createElement('div');
+            ovM.id = 'liveProOverlayMobile';
+            ovM.className = 'live-pro-overlay live-pro-overlay-mobile';
+            ovM.innerHTML = '<div class="live-pro-overlay-box">' +
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2BFF88" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+                '<span>Canl\u0131 veriler <strong>Pro</strong> \u00fcyelik gerektirir</span>' +
+                '<a href="/pricing" class="live-pro-overlay-btn">Pro\'ya Ge\u00e7</a>' +
+                '</div>';
+            cardList.appendChild(ovM);
+        }
+    }
+
     var mc = document.getElementById('matchCount');
     if (mc) mc.textContent = filtered.length;
     if (_favFilterActive) setTimeout(function() { _applyFavoritesFilter(); }, 10);
