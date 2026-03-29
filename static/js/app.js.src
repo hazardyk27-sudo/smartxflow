@@ -3515,6 +3515,16 @@ async function loadChartWithTrends(home, away, market, league = '', reqId) {
             previousOddsData = null;
         }
         
+        if (modalOddsData && modalOddsData.Date) {
+            const leagueEl = document.getElementById('modalLeague');
+            if (leagueEl && leagueEl.innerHTML.indexOf(' • ') === -1) {
+                const dt = toTurkeyTime(modalOddsData.Date);
+                if (dt && dt.isValid()) {
+                    leagueEl.innerHTML += ' • ' + dt.format('DD.MM HH:mm');
+                }
+            }
+        }
+        
         updateMatchInfoCard();
         
         await loadChart(home, away, market, league);
