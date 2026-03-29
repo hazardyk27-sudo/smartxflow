@@ -183,62 +183,6 @@
             font-size: 14px;
             color: #8b949e;
         }
-        .pricing-tabs {
-            display: flex;
-            justify-content: center;
-            gap: 0;
-            margin-top: 32px;
-            margin-bottom: 0;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 10px;
-            padding: 4px;
-            max-width: 420px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .pricing-tab {
-            flex: 1;
-            padding: 12px 28px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            cursor: pointer;
-            transition: all 0.25s ease;
-            text-align: center;
-            border: none;
-            background: transparent;
-            color: rgba(255,255,255,0.45);
-            white-space: nowrap;
-        }
-        .pricing-tab:hover {
-            color: rgba(255,255,255,0.7);
-        }
-        .pricing-tab.active-core {
-            background: rgba(88,166,255,0.15);
-            color: #58a6ff;
-            box-shadow: 0 2px 12px rgba(88,166,255,0.18);
-            border: 1px solid rgba(88,166,255,0.3);
-        }
-        .pricing-tab.active-pro {
-            background: rgba(43,255,136,0.15);
-            color: #2BFF88;
-            box-shadow: 0 2px 12px rgba(43,255,136,0.18);
-            border: 1px solid rgba(43,255,136,0.3);
-        }
-        .pricing-tab-subtitle {
-            display: block;
-            font-size: 10px;
-            font-weight: 500;
-            opacity: 0.7;
-            margin-top: 2px;
-            letter-spacing: 0.02em;
-        }
-        .pricing-tabs-slider { display: none; }
-        .pricing-tabs-glow { display: none; }
-        .pricing-panel { display: none; }
-        .pricing-panel.active { display: block; }
         .tier-badge {
             display: inline-block;
             padding: 4px 12px;
@@ -261,49 +205,11 @@
         }
         .pricing-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 18px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 24px;
             align-items: stretch;
-        }
-        .duration-tabs {
-            display: none;
-            justify-content: center;
-            gap: 0;
-            margin-bottom: 36px;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 10px;
-            padding: 3px;
-            max-width: 320px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .duration-tab {
-            flex: 1;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.25s ease;
-            text-align: center;
-            border: none;
-            background: transparent;
-            color: rgba(255,255,255,0.4);
-            white-space: nowrap;
-        }
-        .duration-tab:hover {
-            color: rgba(255,255,255,0.65);
-        }
-        .duration-tab.active-core {
-            background: rgba(88,166,255,0.15);
-            color: #58a6ff;
-            border: 1px solid rgba(88,166,255,0.3);
-        }
-        .duration-tab.active-pro {
-            background: rgba(43,255,136,0.15);
-            color: #2BFF88;
-            border: 1px solid rgba(43,255,136,0.3);
+            max-width: 800px;
+            margin: 0 auto;
         }
         .pricing-card {
             background: #161b22;
@@ -934,9 +840,6 @@
         .footer-contact svg { width: 16px; height: 16px; flex-shrink: 0; }
         .footer-copy { font-size: 12px; color: #21262d; text-align: center; }
 
-        @media (max-width: 1100px) {
-            .pricing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        }
         @media (max-width: 768px) {
             .mobile-br { display: block; }
             .nav-links { display: none; }
@@ -945,10 +848,8 @@
             .page-header { padding: 80px 16px 4px; }
             .page-header h1 { font-size: 26px; margin-bottom: 4px; }
             .page-header p { font-size: 14px; margin-bottom: 0; }
-            .pricing-section { padding: 0 16px 60px; display: flex; flex-direction: column; }
-            .pricing-tabs { margin-bottom: 6px; margin-top: 10px; }
-            .duration-tabs { display: flex; margin-bottom: 10px; margin-top: 0; order: -2; }
-            .promoNotice { margin-top: 6px; margin-bottom: 6px; padding: 16px 18px; order: -1; }
+            .pricing-section { padding: 16px 16px 60px; }
+            .promoNotice { margin-top: 6px; margin-bottom: 6px; padding: 16px 18px; }
             .pricing-grid { grid-template-columns: 1fr; max-width: 100%; margin: 0 auto; gap: 16px; }
             .pricing-card { min-height: auto; padding: 24px 18px; }
             .pricing-card.featured { order: -1; }
@@ -993,147 +894,43 @@
     <section class="page-header">
         <h1>Paketler & Fiyatlandırma</h1>
         <p>İhtiyacınıza uygun paketi seçin, hemen başlayın.</p>
-        <div class="pricing-tabs">
-            <button class="pricing-tab" data-tab="core" onclick="switchTab('core')">
-                CORE
-                <span class="pricing-tab-subtitle">Sadece Yazılım</span>
-            </button>
-            <button class="pricing-tab active-pro" data-tab="pro" onclick="switchTab('pro')">
-                PRO
-                <span class="pricing-tab-subtitle">Yazılım + Kılavuz</span>
-            </button>
-        </div>
     </section>
 
     <section class="pricing-section">
 
 
 
-        <div class="duration-tabs">
-            <button class="duration-tab" data-duration="1ay" onclick="switchDuration('1ay')">1 Ay</button>
-            <button class="duration-tab" data-duration="3ay" onclick="switchDuration('3ay')">3 Ay</button>
-            <button class="duration-tab" data-duration="yillik" onclick="switchDuration('yillik')">Yıllık</button>
-        </div>
-
-        <div id="panel-core" class="pricing-panel">
-            <div class="pricing-grid">
-                <div class="pricing-card" data-duration="1ay">
-                    <span class="tier-badge tier-badge--core">CORE</span>
-                    <h3>Lisans – 1 Ay</h3>
-                    <div class="card-desc">Keşfetmek isteyenler için</div>
-                    <div class="price">₺1.199,90<span>/ay</span></div>
-                    <div class="period">Aylık faturalandırma</div>
-                    <ul class="features">
-                        <li>Canlı para akışı (Moneyway)</li>
-                        <li>Canlı Oran takibi</li>
-                        <li>Tüm alarm türleri</li>
-                        <li>Mobil + masaüstü kullanım</li>
-                        <li>1 cihaz</li>
-                    </ul>
-                    <div class="cta"><a href="#" class="btn-buy btn-buy-outline" data-plan-id="core-1ay" data-plan-name="CORE – 1 Ay" data-price="1.199,90" onclick="openPaymentModal(this);return false;">Satın Al</a></div>
-                </div>
-
-                <div class="pricing-card featured" data-duration="3ay">
-                    <div class="popular-badge">En Popüler</div>
-                    <span class="tier-badge tier-badge--core">CORE</span>
-                    <h3>Lisans – 3 Ay</h3>
-                    <div class="card-desc">Düzenli takip edenler için</div>
-                    <div class="price">₺2.399,90<span>/3 ay</span></div>
-                    <div class="period">3 aylık faturalandırma</div>
-                    <ul class="features">
-                        <li>Canlı para akışı (Moneyway)</li>
-                        <li>Canlı Oran takibi</li>
-                        <li>Tüm alarm türleri</li>
-                        <li>Mobil + masaüstü kullanım</li>
-                        <li>2 cihaz</li>
-                    </ul>
-                    <div class="advantage-note">3 ayda avantajlı fiyat</div>
-                    <div class="cta"><a href="#" class="btn-buy btn-buy-primary" data-plan-id="core-3ay" data-plan-name="CORE – 3 Ay" data-price="2.399,90" onclick="openPaymentModal(this);return false;">Satın Al</a></div>
-                </div>
-
-                <div class="pricing-card" data-duration="yillik">
-                    <span class="tier-badge tier-badge--core">CORE</span>
-                    <h3>Lisans – Yıllık</h3>
-                    <div class="card-desc">Uzun vadeli kullanıcılar için</div>
-                    <div class="price">₺5.999,90<span>/yıl</span></div>
-                    <div class="period">Yıllık faturalandırma</div>
-                    <ul class="features">
-                        <li>Canlı para akışı (Moneyway)</li>
-                        <li>Canlı Oran takibi</li>
-                        <li>Tüm alarm türleri</li>
-                        <li>Mobil + masaüstü kullanım</li>
-                        <li>3 cihaz</li>
-                    </ul>
-                    <div class="advantage-note">Yıllık kullanımda en avantajlı fiyat</div>
-                    <div class="cta"><a href="#" class="btn-buy btn-buy-outline" data-plan-id="core-yillik" data-plan-name="CORE – Yıllık" data-price="5.999,90" onclick="openPaymentModal(this);return false;">Satın Al</a></div>
-                </div>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <span class="tier-badge tier-badge--core">CORE</span>
+                <h3>Core – Aylık</h3>
+                <div class="card-desc">Temel yazılım erişimi</div>
+                <div class="price">₺649,90<span>/ay</span></div>
+                <div class="period">Aylık faturalandırma</div>
+                <ul class="features">
+                    <li>Canlı para akışı (Moneyway)</li>
+                    <li>Canlı Oran takibi</li>
+                    <li>Tüm alarm türleri</li>
+                    <li>Mobil + masaüstü kullanım</li>
+                </ul>
+                <div class="cta"><a href="#" class="btn-buy btn-buy-outline" data-plan-id="core-aylik" data-plan-name="CORE – Aylık" data-price="649,90" onclick="openPaymentModal(this);return false;">Satın Al</a></div>
             </div>
-        </div>
 
-        <div id="panel-pro" class="pricing-panel active">
-            <div class="pricing-grid">
-                <div class="pricing-card" data-duration="1ay">
-                    <span class="tier-badge tier-badge--pro">PRO</span>
-                    <h3>Pro – 1 Ay</h3>
-                    <div class="card-desc">Analizle güçlü başlangıç</div>
-                    <div class="price">₺1.699,90<span>/ay</span></div>
-                    <div class="period">Aylık faturalandırma</div>
-                    <ul class="features">
-                        <li>Canlı para akışı (Moneyway)</li>
-                        <li>Canlı Oran takibi</li>
-                        <li>Tüm alarm türleri</li>
-                        <li>Mobil + masaüstü kullanım</li>
-                        <li>1 cihaz</li>
-                        <li>Profesyonel piyasa hareketleri</li>
-                        <li>Özel hareket kılavuzu</li>
-                        <li>Üyelere özel telegram kanalına giriş</li>
-                        <li>Öncelikli destek</li>
-                    </ul>
-                    <div class="cta"><a href="#" class="btn-buy btn-buy-outline" data-plan-id="pro-1ay" data-plan-name="PRO – 1 Ay" data-price="1.699,90" onclick="openPaymentModal(this);return false;">Satın Al</a></div>
-                </div>
-
-                <div class="pricing-card featured" data-duration="3ay">
-                    <div class="popular-badge">En Popüler</div>
-                    <span class="tier-badge tier-badge--pro">PRO</span>
-                    <h3>Pro – 3 Ay</h3>
-                    <div class="card-desc">Profesyonel takip paketi</div>
-                    <div class="price">₺3.399,90<span>/3 ay</span></div>
-                    <div class="period">3 aylık faturalandırma</div>
-                    <ul class="features">
-                        <li>Canlı para akışı (Moneyway)</li>
-                        <li>Canlı Oran takibi</li>
-                        <li>Tüm alarm türleri</li>
-                        <li>Mobil + masaüstü kullanım</li>
-                        <li>2 cihaz</li>
-                        <li>Profesyonel piyasa hareketleri</li>
-                        <li>Özel hareket kılavuzu</li>
-                        <li>Üyelere özel telegram kanalına giriş</li>
-                        <li>Öncelikli destek</li>
-                    </ul>
-                    <div class="advantage-note">3 ayda avantajlı fiyat</div>
-                    <div class="cta"><a href="#" class="btn-buy btn-buy-primary" data-plan-id="pro-3ay" data-plan-name="PRO – 3 Ay" data-price="3.399,90" onclick="openPaymentModal(this);return false;">Satın Al</a></div>
-                </div>
-
-                <div class="pricing-card" data-duration="yillik">
-                    <span class="tier-badge tier-badge--pro">PRO</span>
-                    <h3>Pro – Yıllık</h3>
-                    <div class="card-desc">Maksimum avantaj paketi</div>
-                    <div class="price">₺6.999,90<span>/yıl</span></div>
-                    <div class="period">Yıllık faturalandırma</div>
-                    <ul class="features">
-                        <li>Canlı para akışı (Moneyway)</li>
-                        <li>Canlı Oran takibi</li>
-                        <li>Tüm alarm türleri</li>
-                        <li>Mobil + masaüstü kullanım</li>
-                        <li>3 cihaz</li>
-                        <li>Profesyonel piyasa hareketleri</li>
-                        <li>Özel hareket kılavuzu</li>
-                        <li>Üyelere özel telegram kanalına giriş</li>
-                        <li>Öncelikli destek</li>
-                    </ul>
-                    <div class="advantage-note">Yıllık kullanımda en avantajlı fiyat</div>
-                    <div class="cta"><a href="#" class="btn-buy btn-buy-outline" data-plan-id="pro-yillik" data-plan-name="PRO – Yıllık" data-price="6.999,90" onclick="openPaymentModal(this);return false;">Satın Al</a></div>
-                </div>
+            <div class="pricing-card featured">
+                <div class="popular-badge">En Popüler</div>
+                <span class="tier-badge tier-badge--pro">CORE + LIVE</span>
+                <h3>Core + Live – Aylık</h3>
+                <div class="card-desc">Canlı maç verisine tam erişim</div>
+                <div class="price">₺899,90<span>/ay</span></div>
+                <div class="period">Aylık faturalandırma</div>
+                <ul class="features">
+                    <li>Canlı para akışı (Moneyway)</li>
+                    <li>Canlı Oran takibi</li>
+                    <li>Tüm alarm türleri</li>
+                    <li>Mobil + masaüstü kullanım</li>
+                    <li style="color:#2BFF88;font-weight:600;">Canlı maç verisi</li>
+                </ul>
+                <div class="cta"><a href="#" class="btn-buy btn-buy-primary" data-plan-id="core-live-aylik" data-plan-name="CORE + LIVE – Aylık" data-price="899,90" onclick="openPaymentModal(this);return false;">Satın Al</a></div>
             </div>
         </div>
     </section>
@@ -1146,7 +943,7 @@
                 <span class="arrow">▼</span>
             </div>
             <div class="faq-answer">
-                <div class="faq-answer-inner">Lisans 1 Ay paketinde 1, Lisans 3 Ay'da 2, Lisans Yıllık'ta 3 cihaz kullanabilirsiniz. Cihaz değişikliği istediğiniz zaman yapılabilir.</div>
+                <div class="faq-answer-inner">Her iki pakette de tek bir cihaz üzerinden kullanım yapılabilir. Cihaz değişikliği talebiniz için bizimle iletişime geçebilirsiniz.</div>
             </div>
         </div>
         <div class="faq-item">
@@ -1187,11 +984,11 @@
         </div>
         <div class="faq-item">
             <div class="faq-question" onclick="toggleFaq(this)">
-                <span>CORE ve PRO arasındaki fark nedir?</span>
+                <span>CORE ve CORE + LIVE arasındaki fark nedir?</span>
                 <span class="arrow">▼</span>
             </div>
             <div class="faq-answer">
-                <div class="faq-answer-inner">CORE paketi canlı para akışı, oran takibi ve alarm gibi temel yazılım özelliklerini içerir. PRO paketi ise tüm CORE özelliklerine ek olarak profesyonel piyasa analizleri, özel hareket tavsiyeleri, üyelere özel telegram grubuna giriş ve öncelikli destek sunar.</div>
+                <div class="faq-answer-inner">CORE paketi canlı para akışı, oran takibi ve alarm gibi temel yazılım özelliklerini içerir. CORE + LIVE paketi ise tüm CORE özelliklerine ek olarak canlı maç verisine tam erişim sunar.</div>
             </div>
         </div>
     </section>
@@ -1239,60 +1036,6 @@
         function toggleFaq(el) {
             el.parentElement.classList.toggle('open');
         }
-        var currentTab = 'pro';
-        var currentDuration = '3ay';
-        function switchTab(tab) {
-            currentTab = tab;
-            var tabs = document.querySelectorAll('.pricing-tab');
-            tabs.forEach(function(t) {
-                t.className = 'pricing-tab';
-            });
-            var activeTab = document.querySelector('.pricing-tab[data-tab="' + tab + '"]');
-            if (tab === 'core') {
-                activeTab.classList.add('active-core');
-            } else {
-                activeTab.classList.add('active-pro');
-            }
-            document.querySelectorAll('.pricing-panel').forEach(function(p) {
-                p.classList.remove('active');
-            });
-            document.getElementById('panel-' + tab).classList.add('active');
-            updateDurationColors();
-            applyMobileFilter();
-        }
-        function switchDuration(dur) {
-            currentDuration = dur;
-            document.querySelectorAll('.duration-tab').forEach(function(t) {
-                t.className = 'duration-tab';
-            });
-            var btn = document.querySelector('.duration-tab[data-duration="' + dur + '"]');
-            btn.classList.add(currentTab === 'core' ? 'active-core' : 'active-pro');
-            applyMobileFilter();
-        }
-        function updateDurationColors() {
-            document.querySelectorAll('.duration-tab').forEach(function(t) {
-                if (t.classList.contains('active-core') || t.classList.contains('active-pro')) {
-                    t.classList.remove('active-core', 'active-pro');
-                    t.classList.add(currentTab === 'core' ? 'active-core' : 'active-pro');
-                }
-            });
-        }
-        function applyMobileFilter() {
-            var isMobile = window.innerWidth <= 768;
-            document.querySelectorAll('.pricing-card').forEach(function(card) {
-                if (isMobile) {
-                    card.style.display = (card.getAttribute('data-duration') === currentDuration) ? 'flex' : 'none';
-                } else {
-                    card.style.display = '';
-                }
-            });
-        }
-
-
-        document.addEventListener('DOMContentLoaded', function() {
-            switchDuration('3ay');
-        });
-        window.addEventListener('resize', applyMobileFilter);
         window.addEventListener('scroll', function() {
             var navbar = document.querySelector('.navbar');
             if (window.scrollY > 40) {
