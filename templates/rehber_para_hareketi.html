@@ -100,15 +100,29 @@
         .scenario-box .scenario-title .scenario-icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; background: rgba(88,166,255,0.1); font-size: 11px; }
         .scenario-box p { font-size: 14px; line-height: 1.7; color: #8b949e; margin-bottom: 8px; }
         .scenario-box p:last-child { margin-bottom: 0; }
-        .guide-table-wrap { overflow-x: auto; margin: 20px 0; border-radius: 14px; border: 1px solid #21262d; }
-        .guide-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .guide-table th { background: #161b22; color: #8b949e; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px; padding: 12px 16px; text-align: left; border-bottom: 1px solid #21262d; }
-        .guide-table td { padding: 12px 16px; color: #c9d1d9; border-bottom: 1px solid rgba(33,38,45,0.5); }
-        .guide-table tr:last-child td { border-bottom: none; }
-        .guide-table tr:hover td { background: rgba(255,255,255,0.02); }
-        .guide-table .cell-green { color: #2BFF88; font-weight: 600; }
-        .guide-table .cell-red { color: #f85149; font-weight: 600; }
-        .guide-table .cell-amber { color: #d29922; font-weight: 600; }
+        .signal-grid { display: flex; flex-direction: column; gap: 12px; margin: 24px 0; }
+        .signal-card { display: grid; grid-template-columns: 1fr 1fr 2.2fr; align-items: center; gap: 0; background: #161b22; border: 1px solid #21262d; border-radius: 14px; overflow: hidden; transition: border-color 0.25s, box-shadow 0.25s; }
+        .signal-card:hover { border-color: rgba(43,255,136,0.25); box-shadow: 0 0 20px rgba(43,255,136,0.04); }
+        .signal-cell { padding: 18px 20px; display: flex; flex-direction: column; gap: 4px; }
+        .signal-cell-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: #484f58; font-weight: 700; }
+        .signal-cell-value { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+        .signal-cell-value .arrow { font-size: 18px; line-height: 1; }
+        .signal-cell-divider { border-left: 1px solid #21262d; }
+        .signal-verdict { padding: 18px 22px; border-left: 1px solid #21262d; }
+        .signal-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; padding: 3px 10px; border-radius: 6px; margin-bottom: 6px; }
+        .badge-strong { background: rgba(43,255,136,0.12); color: #2BFF88; }
+        .badge-caution { background: rgba(210,153,34,0.12); color: #d29922; }
+        .badge-value { background: rgba(56,139,253,0.12); color: #58a6ff; }
+        .badge-exit { background: rgba(248,81,73,0.12); color: #f85149; }
+        .signal-desc { font-size: 13px; color: #8b949e; line-height: 1.55; }
+        .val-green { color: #2BFF88; }
+        .val-red { color: #f85149; }
+        @media (max-width: 600px) {
+            .signal-card { grid-template-columns: 1fr; }
+            .signal-cell-divider, .signal-verdict { border-left: none; border-top: 1px solid #21262d; }
+            .signal-cell { padding: 14px 18px; }
+            .signal-verdict { padding: 14px 18px; }
+        }
         .related-topics { margin-top: 60px; padding: 32px; background: #161b22; border: 1px solid #21262d; border-radius: 16px; }
         .related-topics-title { font-size: 14px; font-weight: 700; color: #8b949e; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 20px; }
         .related-topics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -203,34 +217,63 @@
             </div>
             <p>En güçlü sinyaller, oran hareketi ve para akışı <strong>aynı yöne işaret ettiğinde</strong> ortaya çıkar. Bu iki veriyi birlikte okumak, piyasanın gerçek eğilimini anlamanın en etkili yoludur.</p>
 
-            <div class="guide-table-wrap">
-                <table class="guide-table">
-                    <thead>
-                        <tr><th>Oran</th><th>Para Akışı</th><th>Yorum</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="cell-green">Düşüyor ↓</td>
-                            <td class="cell-green">Aynı yöne akıyor ↑</td>
-                            <td><strong>Güçlü sinyal:</strong> Piyasa hem fiyat hem para ile aynı yönü gösteriyor</td>
-                        </tr>
-                        <tr>
-                            <td class="cell-green">Düşüyor ↓</td>
-                            <td class="cell-red">Ters yöne akıyor ↓</td>
-                            <td><strong>Dikkatli ol:</strong> Oran düşüyor ama para o yöne gitmiyor — olası manipülasyon sinyali</td>
-                        </tr>
-                        <tr>
-                            <td class="cell-red">Yükseliyor ↑</td>
-                            <td class="cell-green">O yöne akıyor ↑</td>
-                            <td><strong>Value fırsatı:</strong> Piyasa parası o tarafa giderken oran henüz yükselmiş — değer olabilir</td>
-                        </tr>
-                        <tr>
-                            <td class="cell-red">Yükseliyor ↑</td>
-                            <td class="cell-red">Uzaklaşıyor ↓</td>
-                            <td><strong>Piyasa terk ediyor:</strong> Hem oran hem para o sonuçtan uzaklaşıyor</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="signal-grid">
+                <div class="signal-card">
+                    <div class="signal-cell">
+                        <span class="signal-cell-label">Oran</span>
+                        <span class="signal-cell-value val-green"><span class="arrow">&#8595;</span> Düşüyor</span>
+                    </div>
+                    <div class="signal-cell signal-cell-divider">
+                        <span class="signal-cell-label">Para Akışı</span>
+                        <span class="signal-cell-value val-green"><span class="arrow">&#8593;</span> Aynı yöne akıyor</span>
+                    </div>
+                    <div class="signal-verdict">
+                        <span class="signal-badge badge-strong">Güçlü Sinyal</span>
+                        <p class="signal-desc">Piyasa hem fiyat hem para ile aynı yönü gösteriyor</p>
+                    </div>
+                </div>
+                <div class="signal-card">
+                    <div class="signal-cell">
+                        <span class="signal-cell-label">Oran</span>
+                        <span class="signal-cell-value val-green"><span class="arrow">&#8595;</span> Düşüyor</span>
+                    </div>
+                    <div class="signal-cell signal-cell-divider">
+                        <span class="signal-cell-label">Para Akışı</span>
+                        <span class="signal-cell-value val-red"><span class="arrow">&#8595;</span> Ters yöne akıyor</span>
+                    </div>
+                    <div class="signal-verdict">
+                        <span class="signal-badge badge-caution">Dikkatli Ol</span>
+                        <p class="signal-desc">Oran düşüyor ama para o yöne gitmiyor — olası manipülasyon sinyali</p>
+                    </div>
+                </div>
+                <div class="signal-card">
+                    <div class="signal-cell">
+                        <span class="signal-cell-label">Oran</span>
+                        <span class="signal-cell-value val-red"><span class="arrow">&#8593;</span> Yükseliyor</span>
+                    </div>
+                    <div class="signal-cell signal-cell-divider">
+                        <span class="signal-cell-label">Para Akışı</span>
+                        <span class="signal-cell-value val-green"><span class="arrow">&#8593;</span> O yöne akıyor</span>
+                    </div>
+                    <div class="signal-verdict">
+                        <span class="signal-badge badge-value">Value Fırsatı</span>
+                        <p class="signal-desc">Piyasa parası o tarafa giderken oran henüz yükselmiş — değer olabilir</p>
+                    </div>
+                </div>
+                <div class="signal-card">
+                    <div class="signal-cell">
+                        <span class="signal-cell-label">Oran</span>
+                        <span class="signal-cell-value val-red"><span class="arrow">&#8593;</span> Yükseliyor</span>
+                    </div>
+                    <div class="signal-cell signal-cell-divider">
+                        <span class="signal-cell-label">Para Akışı</span>
+                        <span class="signal-cell-value val-red"><span class="arrow">&#8595;</span> Uzaklaşıyor</span>
+                    </div>
+                    <div class="signal-verdict">
+                        <span class="signal-badge badge-exit">Piyasa Terk Ediyor</span>
+                        <p class="signal-desc">Hem oran hem para o sonuçtan uzaklaşıyor</p>
+                    </div>
+                </div>
             </div>
 
             <div class="scenario-box">
