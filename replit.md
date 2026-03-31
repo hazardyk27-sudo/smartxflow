@@ -57,6 +57,7 @@ The system employs a hybrid architecture with Supabase serving as the single sou
 - **Data Model:** Uses `fixtures`, `moneyway_snapshots`, `dropping_odds_snapshots`, `live_fixtures`, and `live_snapshots` tables in Supabase.
 - **match_id_hash Contract:** A critical, immutable contract defines `match_id_hash` as a 12-character MD5 hash of a canonical string (`league|home|away`), with specific normalization rules. Kickoff/date is explicitly excluded from hash calculation.
 - **Endpoint Response Contract:** The `/api/match/<match_id_hash>/snapshot` endpoint has an immutable response structure, ensuring backward compatibility, allowing only the addition of new fields or nested objects.
+- **SEO:** Meta description, OG tags, Twitter Card, canonical URL on public pages (landing, nedir, pricing, analysis). JSON-LD structured data: Organization+WebSite on landing, FAQPage on pricing. robots.txt + sitemap.xml served via Flask routes. Legal pages have noindex. App panel (index.html) has noindex/nofollow.
 
 ## External Dependencies
 - **arbworld.net:** Primary data source for betting odds.

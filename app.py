@@ -658,6 +658,47 @@ def start_server_scheduler():
     print("[Server Mode] Web app runs as UI-only")
 
 
+@app.route('/robots.txt')
+def robots_txt():
+    content = """User-agent: *
+Allow: /
+Allow: /nedir
+Allow: /pricing
+Allow: /analysis
+Disallow: /app
+Disallow: /api/
+Disallow: /admin
+Disallow: /scraper/
+Disallow: /alarm-engine/
+Disallow: /lisans
+Disallow: /status
+
+Sitemap: https://smartxflow.com/sitemap.xml
+"""
+    return app.response_class(content, mimetype='text/plain')
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    from datetime import datetime
+    now = datetime.utcnow().strftime('%Y-%m-%d')
+    pages = [
+        {'loc': '/', 'changefreq': 'weekly', 'priority': '1.0'},
+        {'loc': '/nedir', 'changefreq': 'monthly', 'priority': '0.8'},
+        {'loc': '/pricing', 'changefreq': 'weekly', 'priority': '0.9'},
+        {'loc': '/analysis', 'changefreq': 'daily', 'priority': '0.7'},
+    ]
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    for p in pages:
+        xml += '  <url>\n'
+        xml += f'    <loc>https://smartxflow.com{p["loc"]}</loc>\n'
+        xml += f'    <lastmod>{now}</lastmod>\n'
+        xml += f'    <changefreq>{p["changefreq"]}</changefreq>\n'
+        xml += f'    <priority>{p["priority"]}</priority>\n'
+        xml += '  </url>\n'
+    xml += '</urlset>'
+    return app.response_class(xml, mimetype='application/xml')
+
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory('static', 'favicon.ico', mimetype='image/x-icon')
