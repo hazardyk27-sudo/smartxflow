@@ -686,6 +686,10 @@ def sitemap_xml():
         {'loc': '/nedir', 'changefreq': 'monthly', 'priority': '0.8'},
         {'loc': '/pricing', 'changefreq': 'weekly', 'priority': '0.9'},
         {'loc': '/analysis', 'changefreq': 'daily', 'priority': '0.7'},
+        {'loc': '/terms', 'changefreq': 'yearly', 'priority': '0.3'},
+        {'loc': '/privacy', 'changefreq': 'yearly', 'priority': '0.3'},
+        {'loc': '/cookies', 'changefreq': 'yearly', 'priority': '0.3'},
+        {'loc': '/disclaimer', 'changefreq': 'yearly', 'priority': '0.3'},
     ]
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
