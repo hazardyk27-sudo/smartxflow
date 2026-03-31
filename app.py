@@ -665,6 +665,7 @@ Allow: /
 Allow: /nedir
 Allow: /pricing
 Allow: /analysis
+Allow: /rehber
 Disallow: /app
 Disallow: /api/
 Disallow: /admin
@@ -686,6 +687,7 @@ def sitemap_xml():
         {'loc': '/nedir', 'changefreq': 'monthly', 'priority': '0.8'},
         {'loc': '/pricing', 'changefreq': 'weekly', 'priority': '0.9'},
         {'loc': '/analysis', 'changefreq': 'daily', 'priority': '0.7'},
+        {'loc': '/rehber', 'changefreq': 'monthly', 'priority': '0.8'},
         {'loc': '/terms', 'changefreq': 'yearly', 'priority': '0.3'},
         {'loc': '/privacy', 'changefreq': 'yearly', 'priority': '0.3'},
         {'loc': '/cookies', 'changefreq': 'yearly', 'priority': '0.3'},
@@ -715,6 +717,11 @@ def landing_page():
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
     return response
+
+@app.route('/rehber')
+def rehber_page():
+    """Rehber page - Kullanim rehberi"""
+    return render_template('rehber.html')
 
 @app.route('/nedir')
 def nedir_page():

@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache">
+    <title>SmartXFlow Rehber - Maç Analizi & Oran Takip Rehberi</title>
+    <meta name="description" content="SmartXFlow kullanım rehberi: Maç analizi, oran hareketi, para akışı takibi, alarm sistemi ve canlı maç verilerini nasıl okuyacağınızı adım adım öğrenin.">
+    <meta name="keywords" content="SmartXFlow rehber, maç analizi nasıl yapılır, oran hareketi okuma, para akışı analiz, bahis alarm sistemi, canlı maç takibi">
+    <link rel="canonical" href="https://smartxflow.com/rehber">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="SmartXFlow Rehber - Maç Analizi & Oran Takip Rehberi">
+    <meta property="og:description" content="Maç analizi, oran hareketi, para akışı takibi ve alarm sistemini adım adım öğrenin.">
+    <meta property="og:url" content="https://smartxflow.com/rehber">
+    <meta property="og:image" content="https://smartxflow.com/static/images/smartxflow_logo.png">
+    <meta property="og:locale" content="tr_TR">
+    <meta property="og:site_name" content="SmartXFlow">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="SmartXFlow Rehber">
+    <meta name="twitter:description" content="Maç analizi, oran hareketi, para akışı takibi ve alarm sistemini adım adım öğrenin.">
+    <meta name="twitter:image" content="https://smartxflow.com/static/images/smartxflow_logo.png">
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { overflow-x: hidden; max-width: 100vw; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+        a { text-decoration: none; color: inherit; }
+
+        .navbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            background: rgba(10, 14, 20, 0.10);
+            backdrop-filter: blur(18px) saturate(1.2);
+            -webkit-backdrop-filter: blur(18px) saturate(1.2);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            height: 80px;
+            transition: background 0.3s, backdrop-filter 0.3s;
+        }
+        .navbar.scrolled {
+            background: rgba(10, 14, 20, 0.25);
+            backdrop-filter: blur(24px) saturate(1.4);
+            -webkit-backdrop-filter: blur(24px) saturate(1.4);
+            box-shadow: 0 4px 30px rgba(0,0,0,0.3);
+        }
+        .navbar-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .nav-brand { display: flex; align-items: center; gap: 4px; }
+        .nav-brand img { width: 32px; height: 32px; object-fit: contain; margin: 0 2px; filter: drop-shadow(0 0 10px rgba(43,255,136,0.22)); }
+        .nav-brand span { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 23px; font-weight: 600; color: #e6edf3; letter-spacing: 0.3px; }
+        .nav-links { display: flex; align-items: center; gap: 6px; }
+        .nav-links a {
+            padding: 10px 16px; font-size: 14px; font-weight: 500;
+            color: rgba(255,255,255,0.55); border-radius: 999px;
+            transition: all 160ms ease; letter-spacing: 0.2px;
+        }
+        .nav-links a:hover { color: rgba(255,255,255,0.9); }
+        .nav-links a.active { color: rgba(255,255,255,0.95); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); }
+        .nav-links a.nav-cta {
+            background: #2BFF88; color: #06110B; font-weight: 700;
+            margin-left: 6px; padding: 10px 20px; border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: 0 10px 30px rgba(43,255,136,0.18);
+            transition: all 160ms ease;
+        }
+        .nav-links a.nav-cta:hover { background: #24e078; transform: translateY(-1px); box-shadow: 0 16px 40px rgba(43,255,136,0.22); }
+        .nav-links a.nav-cta:active { transform: translateY(0); }
+        .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 8px; z-index: 1001; }
+        .hamburger span { display: block; width: 24px; height: 2px; background: #c9d1d9; border-radius: 2px; transition: all 0.3s; }
+        .mobile-menu {
+            display: none; position: fixed; top: 80px; left: 0; right: 0;
+            background: rgba(10, 14, 20, 0.98);
+            backdrop-filter: blur(20px) saturate(1.4);
+            -webkit-backdrop-filter: blur(20px) saturate(1.4);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 16px 24px; flex-direction: column; gap: 4px; z-index: 999;
+        }
+        .mobile-menu.open { display: flex; }
+        .mobile-menu a { padding: 12px 16px; font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.55); border-radius: 12px; transition: all 160ms ease; }
+        .mobile-menu a:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+        .mobile-menu a.active { color: rgba(255,255,255,0.95); background: rgba(255,255,255,0.06); }
+        .mobile-menu a.nav-cta { background: #2BFF88; color: #06110B; text-align: center; font-weight: 700; margin-top: 8px; border-radius: 999px; }
+
+        .page-hero {
+            padding: 160px 24px 60px;
+            text-align: center;
+            background: radial-gradient(ellipse at 50% 0%, rgba(43,255,136,0.06) 0%, transparent 60%);
+        }
+        .page-hero h1 {
+            font-size: 48px;
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            line-height: 1.1;
+            margin-bottom: 24px;
+        }
+        .page-hero h1 span {
+            background: linear-gradient(90deg, #2BFF88 0%, #7CFFD2 45%, #E6FFF4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .page-hero .hero-desc {
+            font-size: 18px;
+            color: #8b949e;
+            max-width: 640px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+
+        .toc {
+            max-width: 720px;
+            margin: 0 auto 60px;
+            padding: 0 24px;
+        }
+        .toc-card {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 16px;
+            padding: 28px 32px;
+        }
+        .toc-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 16px;
+        }
+        .toc-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 24px;
+        }
+        .toc-list li a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #c9d1d9;
+            transition: all 160ms ease;
+        }
+        .toc-list li a:hover {
+            background: rgba(43,255,136,0.06);
+            color: #2BFF88;
+        }
+        .toc-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 8px;
+            background: rgba(43,255,136,0.08);
+            border: 1px solid rgba(43,255,136,0.15);
+            font-size: 11px;
+            font-weight: 700;
+            color: #2BFF88;
+            flex-shrink: 0;
+        }
+
+        .guide-content {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 0 24px 80px;
+        }
+
+        .guide-section {
+            margin-bottom: 56px;
+        }
+        .guide-section-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .guide-section-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            background: rgba(43,255,136,0.08);
+            border: 1px solid rgba(43,255,136,0.18);
+            font-size: 15px;
+            font-weight: 800;
+            color: #2BFF88;
+            flex-shrink: 0;
+        }
+        .guide-section-header h2 {
+            font-size: 24px;
+            font-weight: 800;
+            color: #e6edf3;
+            letter-spacing: -0.5px;
+        }
+
+        .guide-section p {
+            font-size: 15px;
+            line-height: 1.8;
+            color: #8b949e;
+            margin-bottom: 16px;
+        }
+        .guide-section p strong {
+            color: #c9d1d9;
+            font-weight: 600;
+        }
+        .guide-section p em {
+            color: #2BFF88;
+            font-style: normal;
+            font-weight: 600;
+        }
+
+        .guide-list {
+            list-style: none;
+            margin: 16px 0 20px;
+            padding: 0;
+        }
+        .guide-list li {
+            font-size: 15px;
+            line-height: 1.8;
+            color: #8b949e;
+            padding: 6px 0 6px 24px;
+            position: relative;
+        }
+        .guide-list li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 14px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #2BFF88;
+            opacity: 0.6;
+        }
+        .guide-list li strong {
+            color: #c9d1d9;
+            font-weight: 600;
+        }
+
+        .info-card {
+            background: rgba(43,255,136,0.04);
+            border: 1px solid rgba(43,255,136,0.12);
+            border-radius: 14px;
+            padding: 20px 24px;
+            margin: 20px 0;
+        }
+        .info-card p {
+            color: #c9d1d9;
+            margin-bottom: 0;
+        }
+        .info-card .info-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #2BFF88;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 8px;
+        }
+
+        .warning-card {
+            background: rgba(210,153,34,0.06);
+            border: 1px solid rgba(210,153,34,0.15);
+            border-radius: 14px;
+            padding: 20px 24px;
+            margin: 20px 0;
+        }
+        .warning-card p {
+            color: #c9d1d9;
+            margin-bottom: 0;
+        }
+        .warning-card .warning-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #d29922;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 8px;
+        }
+
+        .scenario-box {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 14px;
+            padding: 22px 24px;
+            margin: 20px 0;
+        }
+        .scenario-box .scenario-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #e6edf3;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .scenario-box .scenario-title .scenario-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            background: rgba(88,166,255,0.1);
+            font-size: 11px;
+        }
+        .scenario-box p {
+            font-size: 14px;
+            line-height: 1.7;
+            color: #8b949e;
+            margin-bottom: 8px;
+        }
+        .scenario-box p:last-child { margin-bottom: 0; }
+
+        .guide-table-wrap {
+            overflow-x: auto;
+            margin: 20px 0;
+            border-radius: 14px;
+            border: 1px solid #21262d;
+        }
+        .guide-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .guide-table th {
+            background: #161b22;
+            color: #8b949e;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 11px;
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #21262d;
+        }
+        .guide-table td {
+            padding: 12px 16px;
+            color: #c9d1d9;
+            border-bottom: 1px solid rgba(33,38,45,0.5);
+        }
+        .guide-table tr:last-child td { border-bottom: none; }
+        .guide-table tr:hover td { background: rgba(255,255,255,0.02); }
+        .guide-table .cell-green { color: #2BFF88; font-weight: 600; }
+        .guide-table .cell-red { color: #f85149; font-weight: 600; }
+        .guide-table .cell-amber { color: #d29922; font-weight: 600; }
+
+        .cta-strip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 32px;
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 20px;
+            padding: 40px 48px;
+            margin-top: 60px;
+        }
+        .cta-strip-left { flex: 1; }
+        .cta-strip-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #2BFF88;
+            background: rgba(43,255,136,0.08);
+            border: 1px solid rgba(43,255,136,0.15);
+            padding: 6px 14px;
+            border-radius: 999px;
+            margin-bottom: 16px;
+        }
+        .cta-strip-badge .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: #2BFF88;
+        }
+        .cta-strip-left h3 {
+            font-size: 24px;
+            font-weight: 800;
+            color: #e6edf3;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+        .cta-strip-left p {
+            font-size: 15px;
+            color: #8b949e;
+            line-height: 1.6;
+        }
+        .cta-strip-right { flex-shrink: 0; text-align: center; }
+        .cta-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 32px;
+            background: #2BFF88;
+            color: #06110B;
+            font-size: 15px;
+            font-weight: 700;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: 0 10px 30px rgba(43,255,136,0.18);
+            transition: all 160ms ease;
+        }
+        .cta-btn:hover { background: #24e078; transform: translateY(-2px); box-shadow: 0 16px 40px rgba(43,255,136,0.25); }
+        .cta-btn:active { transform: translateY(0); }
+        .cta-trust {
+            display: block;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #484f58;
+        }
+
+        .footer {
+            padding: 40px 24px;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            text-align: center;
+            margin-top: auto;
+        }
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+        .footer-row { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; justify-content: center; }
+        .footer-row-divider { width: 1px; height: 14px; background: rgba(255,255,255,0.08); }
+        .footer-row a { font-size: 13px; color: #484f58; transition: color 0.2s; }
+        .footer-row a:hover { color: #2BFF88; }
+        .footer-brand { display: flex; align-items: center; gap: 3px; }
+        .footer-brand img { width: 18px; height: 18px; }
+        .footer-brand span { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; color: #3d444d; letter-spacing: 0.3px; }
+        .footer-contact { display: flex; gap: 16px; align-items: center; justify-content: center; }
+        .footer-contact a { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #484f58; transition: color 0.2s; }
+        .footer-contact a:hover { color: #2BFF88; }
+        .footer-contact svg { width: 16px; height: 16px; flex-shrink: 0; }
+        .footer-copy { font-size: 12px; color: #21262d; }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hamburger { display: flex; }
+            .navbar-inner { padding: 0 16px; }
+            .page-hero { padding: 120px 20px 40px; }
+            .page-hero h1 { font-size: 32px; }
+            .page-hero .hero-desc { font-size: 15px; }
+            .toc { padding: 0 16px; margin-bottom: 40px; }
+            .toc-card { padding: 20px; }
+            .toc-list { grid-template-columns: 1fr; gap: 2px; }
+            .guide-content { padding: 0 16px 60px; }
+            .guide-section-header h2 { font-size: 20px; }
+            .guide-section-num { width: 30px; height: 30px; font-size: 13px; }
+            .cta-strip { flex-direction: column; padding: 28px 24px; text-align: center; gap: 20px; }
+            .cta-strip-left h3 { font-size: 20px; }
+            .footer { padding: 30px 16px; }
+            .footer-contact { flex-wrap: wrap; }
+            .info-card, .warning-card, .scenario-box { padding: 16px 18px; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+      <div class="navbar-inner">
+        <a href="/" class="nav-brand">
+            <span>Smart</span><img src="/static/images/smartxflow_logo.png" alt="X"><span>Flow</span>
+        </a>
+        <div class="nav-links">
+            <a href="/">Ana Sayfa</a>
+            <a href="/nedir">Nedir?</a>
+            <a href="/#features">Özellikler</a>
+            <a href="/pricing">Paketler</a>
+            <a href="/rehber" class="active">Rehber</a>
+            <a href="/app" class="nav-cta">Uygulamaya Git</a>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()">
+            <span></span><span></span><span></span>
+        </div>
+      </div>
+    </nav>
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="/">Ana Sayfa</a>
+        <a href="/nedir">Nedir?</a>
+        <a href="/#features">Özellikler</a>
+        <a href="/pricing">Paketler</a>
+        <a href="/rehber" class="active">Rehber</a>
+        <a href="/app" class="nav-cta">Uygulamaya Git</a>
+    </div>
+
+    <section class="page-hero">
+        <h1><span>Kullanım</span> Rehberi</h1>
+        <p class="hero-desc">SmartXFlow'u en verimli şekilde kullanmak için bilmeniz gereken her şey. Para akışı, oran hareketi, alarm sistemi ve canlı maç takibini adım adım öğrenin.</p>
+    </section>
+
+    <div class="toc">
+        <div class="toc-card">
+            <div class="toc-title">İçindekiler</div>
+            <ul class="toc-list">
+                <li><a href="#bolum-1"><span class="toc-num">1</span> Maç Analizi Nedir?</a></li>
+                <li><a href="#bolum-2"><span class="toc-num">2</span> Oran Analizi</a></li>
+                <li><a href="#bolum-3"><span class="toc-num">3</span> Para Hareketi</a></li>
+                <li><a href="#bolum-4"><span class="toc-num">4</span> Oran ve Para Birlikte</a></li>
+                <li><a href="#bolum-5"><span class="toc-num">5</span> Alarm Sistemi</a></li>
+                <li><a href="#bolum-6"><span class="toc-num">6</span> Canlı Maç Takibi</a></li>
+                <li><a href="#bolum-7"><span class="toc-num">7</span> Hareket Kılavuzu</a></li>
+                <li><a href="#bolum-8"><span class="toc-num">8</span> SmartXFlow Nasıl Yardımcı Olur?</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="guide-content">
+
+        <div class="guide-section" id="bolum-1">
+            <div class="guide-section-header">
+                <span class="guide-section-num">1</span>
+                <h2>Maç Analizi Nedir?</h2>
+            </div>
+            <p>Maç analizi, bir spor karşılaşmasının olası sonucunu tahmin etmek için kullanılan veri odaklı değerlendirme sürecidir. Geleneksel analizde takım formları, sakatlıklar ve geçmiş karşılaşmalar incelenirken; <strong>piyasa tabanlı analiz</strong> ise bahis piyasasındaki oran hareketlerini ve para akışını esas alır.</p>
+            <p>SmartXFlow, bu ikinci yaklaşıma odaklanır: <strong>Piyasa ne diyor?</strong> sorusunun cevabını veriye dayalı şekilde ortaya koyar. Bahis şirketlerinin oranlarında ve piyasaya giren paradaki değişimleri izleyerek, maç hakkında önemli sinyaller yakalar.</p>
+            <div class="info-card">
+                <div class="info-label">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                    Temel Prensip
+                </div>
+                <p>Oranlar bahis şirketlerinin olasılık algısını; para akışı ise piyasadaki büyük oyuncuların pozisyonlarını yansıtır. Bu iki veriyi birlikte okumak, tek başına oran veya istatistik takibinden çok daha güçlü bir analiz sağlar.</p>
+            </div>
+            <p>Piyasa tabanlı analizin avantajı, <em>henüz kamuoyuna yansımamış bilgileri</em> fiyatlara yansıtmasıdır. Bir takımın kilit oyuncusunun maçta oynayamayacağı bilgisi, haberlere düşmeden önce oranlarda hareket olarak görülebilir. SmartXFlow bu hareketleri otomatik olarak izler.</p>
+        </div>
+
+        <div class="guide-section" id="bolum-2">
+            <div class="guide-section-header">
+                <span class="guide-section-num">2</span>
+                <h2>Oran Analizi</h2>
+            </div>
+            <p>Oran analizi, bahis şirketlerinin bir maç için sunduğu oranların <strong>zaman içinde nasıl değiştiğini</strong> izlemeye dayanır. Bu değişimler rastgele değildir; piyasadaki bilgi akışını, risk yönetimini ve büyük bahisleri yansıtır.</p>
+
+            <p><strong>Dropping Odds (Düşen Oranlar):</strong> Bir seçeneğin oranı kısa sürede belirgin şekilde düştüğünde, o sonuca güçlü bir piyasa ilgisi olduğunu gösterir. SmartXFlow, 1X2, Üst/Alt 2.5 ve Karşılıklı Gol piyasalarındaki oran düşüşlerini otomatik izler.</p>
+
+            <div class="guide-table-wrap">
+                <table class="guide-table">
+                    <thead>
+                        <tr>
+                            <th>Oran Hareketi</th>
+                            <th>Anlamı</th>
+                            <th>Sinyal Gücü</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Ani ve sert düşüş</td>
+                            <td>Büyük oyuncular o sonuca yoğun bahis yapıyor</td>
+                            <td class="cell-green">Güçlü</td>
+                        </tr>
+                        <tr>
+                            <td>Kademeli düşüş</td>
+                            <td>Piyasa konsensüsü o yönde oluşuyor</td>
+                            <td class="cell-amber">Orta</td>
+                        </tr>
+                        <tr>
+                            <td>Ani yükseliş</td>
+                            <td>Piyasa o sonuçtan uzaklaşıyor veya bilgi geldi</td>
+                            <td class="cell-green">Güçlü</td>
+                        </tr>
+                        <tr>
+                            <td>Stabil / sabit</td>
+                            <td>Piyasada yeni bilgi akışı yok</td>
+                            <td class="cell-red">Zayıf</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="scenario-box">
+                <div class="scenario-title"><span class="scenario-icon">📊</span> Örnek Senaryo</div>
+                <p>Manchester City - Arsenal maçında City'nin galibiyeti 1.85'ten 1.62'ye düşüyor. Bu düşüş, piyasanın City galibiyetine olan güveninin arttığını gösterir. Aynı anda Arsenal'in oranı 4.50'den 5.20'ye yükselir — piyasa deplasman galibiyetini daha düşük olasılıklı görmeye başlamıştır.</p>
+            </div>
+
+            <p>SmartXFlow'da <strong>"Oran 1X2", "Oran 2.5" ve "Oran KG"</strong> sekmeleri, tüm piyasalardaki oran değişimlerini gerçek zamanlı olarak listeler. Her maçın detay grafiğinde oranın zaman içindeki seyrini görebilirsiniz.</p>
+        </div>
+
+        <div class="guide-section" id="bolum-3">
+            <div class="guide-section-header">
+                <span class="guide-section-num">3</span>
+                <h2>Para Hareketi (Moneyway)</h2>
+            </div>
+            <p>Para hareketi (Moneyway), bir maçın her seçeneğine giren <strong>bahis miktarının yüzdesel dağılımını</strong> gösterir. Oranlar bahis şirketinin algısını yansıtırken, para akışı doğrudan piyasanın parasını — yani <em>gerçek pozisyonlarını</em> — ortaya koyar.</p>
+
+            <p><strong>Moneyway verileri nasıl okunur?</strong></p>
+            <ul class="guide-list">
+                <li><strong>%55+ tek yöne yığılma:</strong> Piyasanın o sonuca güçlü şekilde yöneldiğini gösterir</li>
+                <li><strong>%40-55 arası dengeli dağılım:</strong> Piyasa kararsız veya henüz net bir yön oluşmamış</li>
+                <li><strong>Ani yüzde değişimi:</strong> Büyük bir bahis girişi olduğunu ve piyasanın hızla yön değiştirdiğini işaret eder</li>
+            </ul>
+
+            <div class="info-card">
+                <div class="info-label">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                    Neden Önemli?
+                </div>
+                <p>Oranlar düşerken para akışı aynı yöne gitmiyorsa, bu bir <strong>uyumsuzluk sinyali</strong> olabilir. Böyle durumlarda bahis şirketinin riski dengelemek için oranı manipüle ettiği düşünülebilir. Gerçek piyasa yönünü görmek için her zaman para akışını da kontrol edin.</p>
+            </div>
+
+            <p>SmartXFlow'da <strong>"Moneyway 1X2", "Moneyway 2.5" ve "Moneyway KG"</strong> sekmeleri para akışı verilerini gösterir. Her maçın detay panelinde seçeneklerin yüzdesel dağılımı ve grafik üzerinden zaman içindeki akış değişimi izlenebilir.</p>
+        </div>
+
+        <div class="guide-section" id="bolum-4">
+            <div class="guide-section-header">
+                <span class="guide-section-num">4</span>
+                <h2>Oran ve Para Birlikte Nasıl Okunur?</h2>
+            </div>
+            <p>En güçlü sinyaller, oran hareketi ve para akışı <strong>aynı yöne işaret ettiğinde</strong> ortaya çıkar. Bu iki veriyi birlikte okumak, piyasanın gerçek eğilimini anlamanın en etkili yoludur.</p>
+
+            <div class="guide-table-wrap">
+                <table class="guide-table">
+                    <thead>
+                        <tr>
+                            <th>Oran</th>
+                            <th>Para Akışı</th>
+                            <th>Yorum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="cell-green">Düşüyor ↓</td>
+                            <td class="cell-green">Aynı yöne akıyor ↑</td>
+                            <td><strong>Güçlü sinyal:</strong> Piyasa hem fiyat hem para ile aynı yönü gösteriyor</td>
+                        </tr>
+                        <tr>
+                            <td class="cell-green">Düşüyor ↓</td>
+                            <td class="cell-red">Ters yöne akıyor ↓</td>
+                            <td><strong>Dikkatli ol:</strong> Oran düşüyor ama para o yöne gitmiyor — olası manipülasyon sinyali</td>
+                        </tr>
+                        <tr>
+                            <td class="cell-red">Yükseliyor ↑</td>
+                            <td class="cell-green">O yöne akıyor ↑</td>
+                            <td><strong>Value fırsatı:</strong> Piyasa parası o tarafa giderken oran henüz yükselmiş — değer olabilir</td>
+                        </tr>
+                        <tr>
+                            <td class="cell-red">Yükseliyor ↑</td>
+                            <td class="cell-red">Uzaklaşıyor ↓</td>
+                            <td><strong>Piyasa terk ediyor:</strong> Hem oran hem para o sonuçtan uzaklaşıyor</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="scenario-box">
+                <div class="scenario-title"><span class="scenario-icon">🔍</span> Uygulama Örneği</div>
+                <p><strong>Maç:</strong> Real Madrid - Barcelona</p>
+                <p>Real Madrid galibiyeti oranı: 2.10 → 1.80 (düşüyor). Aynı anda Moneyway'de Real Madrid galibiyetine %58 para akışı var. Oran ve para <em>aynı yönde</em> — bu güçlü bir sinyal.</p>
+                <p>Karşıt senaryo: Oran 2.10 → 1.80 düşüyor ama Moneyway'de Real Madrid'e sadece %35 para akışı var. Oran düşmesine rağmen para o yöne akmıyor — bu durumda dikkatli olmak gerekir.</p>
+            </div>
+
+            <div class="warning-card">
+                <div class="warning-label">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    Önemli Uyarı
+                </div>
+                <p>Tek bir sinyal hiçbir zaman kesin sonuç garantisi vermez. Her zaman birden fazla veri noktasını birlikte değerlendirin. SmartXFlow bir <strong>analiz aracıdır</strong>, yatırım veya bahis tavsiyesi değildir.</p>
+            </div>
+        </div>
+
+        <div class="guide-section" id="bolum-5">
+            <div class="guide-section-header">
+                <span class="guide-section-num">5</span>
+                <h2>Alarm Sistemi</h2>
+            </div>
+            <p>SmartXFlow'un alarm sistemi, piyasadaki <strong>anormal hareketleri otomatik olarak tespit eder</strong> ve sizi bilgilendirir. Manuel takip yapmadan, kritik sinyalleri anında görmenizi sağlar.</p>
+
+            <p><strong>Alarm türleri:</strong></p>
+            <ul class="guide-list">
+                <li><strong>Sert oran düşüşü alarmı:</strong> Bir oranın kısa sürede belirgin şekilde düşmesi durumunda tetiklenir</li>
+                <li><strong>Yoğun para akışı alarmı:</strong> Bir seçeneğe normalin çok üzerinde para girişi tespit edildiğinde devreye girer</li>
+                <li><strong>Uyumsuzluk alarmı:</strong> Oran ve para akışı ters yönlere işaret ettiğinde uyarı verir</li>
+                <li><strong>Canlı maç alarmı:</strong> Maç devam ederken oluşan kritik piyasa değişimlerini bildirir</li>
+            </ul>
+
+            <p>Alarmlar, uygulamanın üst kısmındaki <strong>alarm bandında</strong> kayan metin olarak görünür. "Alarmlar" butonuna tıklayarak tüm aktif alarmları detaylı şekilde inceleyebilir ve geçmiş alarmları görebilirsiniz.</p>
+
+            <div class="info-card">
+                <div class="info-label">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                    İpucu
+                </div>
+                <p>Alarm aldığınızda hemen harekete geçmek yerine, önce ilgili maçın detay panelini açarak oran grafiğini ve para akışını birlikte inceleyin. Alarmın bağlamını anlamak, doğru değerlendirme yapmanın ilk adımıdır.</p>
+            </div>
+        </div>
+
+        <div class="guide-section" id="bolum-6">
+            <div class="guide-section-header">
+                <span class="guide-section-num">6</span>
+                <h2>Canlı Maç Takibi</h2>
+            </div>
+            <p>SmartXFlow'un <strong>"Canlı"</strong> sekmesi, şu anda devam eden maçların anlık verilerini gösterir. Maç içi oran değişimleri, skor güncellemeleri ve canlı piyasa hareketlerini tek ekranda takip edebilirsiniz.</p>
+
+            <p><strong>Canlı sekmede göreceğiniz veriler:</strong></p>
+            <ul class="guide-list">
+                <li><strong>Anlık skor ve dakika bilgisi:</strong> Maçın mevcut durumu</li>
+                <li><strong>Canlı oran değişimleri:</strong> Maç sırasında oranların nasıl hareket ettiği</li>
+                <li><strong>Maç içi para akışı:</strong> Devam eden maçta paranın hangi yöne aktığı</li>
+                <li><strong>Periyot bilgisi:</strong> İlk yarı, ikinci yarı gibi maçın hangi aşamada olduğu</li>
+            </ul>
+
+            <div class="scenario-box">
+                <div class="scenario-title"><span class="scenario-icon">⚡</span> Canlı Maç Okuma</div>
+                <p>Bir maçta 0-0 devam ederken "Üst 2.5" oranı aniden 2.40'tan 1.90'a düşüyorsa, piyasa gol beklentisini artırmış demektir. Aynı anda Moneyway'de "Üst 2.5"ye %60+ para akışı varsa, bu güçlü bir canlı sinyal olarak değerlendirilebilir.</p>
+            </div>
+
+            <div class="warning-card">
+                <div class="warning-label">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    Pro Özellik
+                </div>
+                <p>Canlı maç verileri ve periyot bilgisi <strong>Pro</strong> planına dahildir. Core kullanıcıları canlı verileri bulanık olarak görür. Tam erişim için Pro planına yükseltme yapabilirsiniz.</p>
+            </div>
+        </div>
+
+        <div class="guide-section" id="bolum-7">
+            <div class="guide-section-header">
+                <span class="guide-section-num">7</span>
+                <h2>Hareket Kılavuzu</h2>
+            </div>
+            <p>SmartXFlow'daki veri hareketlerini doğru yorumlamak için aşağıdaki kılavuzu referans olarak kullanabilirsiniz. Bu tablo, farklı piyasa koşullarında gözlemlenen yaygın kalıpları özetler.</p>
+
+            <div class="guide-table-wrap">
+                <table class="guide-table">
+                    <thead>
+                        <tr>
+                            <th>Durum</th>
+                            <th>Gözlem</th>
+                            <th>Olası Yorum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Oran düşüyor + Para aynı yöne</td>
+                            <td class="cell-green">Uyumlu sinyal</td>
+                            <td>Piyasa güçlü şekilde o sonuca yöneliyor</td>
+                        </tr>
+                        <tr>
+                            <td>Oran düşüyor + Para ters yöne</td>
+                            <td class="cell-amber">Uyumsuz sinyal</td>
+                            <td>Dikkat — olası line manipulation veya dengeleme</td>
+                        </tr>
+                        <tr>
+                            <td>Çok yönlü düşüş (1X2 hepsi)</td>
+                            <td class="cell-amber">Marj değişimi</td>
+                            <td>Bahis şirketi marjını düşürüyor olabilir</td>
+                        </tr>
+                        <tr>
+                            <td>Son dakika sert düşüş</td>
+                            <td class="cell-green">Geç bilgi</td>
+                            <td>Kadro açıklaması veya içeriden bilgi akışı</td>
+                        </tr>
+                        <tr>
+                            <td>Canlı maçta ani oran hareketi</td>
+                            <td class="cell-green">Maç içi gelişme</td>
+                            <td>Gol, kırmızı kart veya taktik değişiklik etkisi</td>
+                        </tr>
+                        <tr>
+                            <td>Para akışı %70+ tek yöne</td>
+                            <td class="cell-green">Ağır baskı</td>
+                            <td>Piyasada çok güçlü bir yönelim var</td>
+                        </tr>
+                        <tr>
+                            <td>Dengeli dağılım, stabil oran</td>
+                            <td class="cell-red">Net sinyal yok</td>
+                            <td>Piyasa kararsız — bekle & izle</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="info-card">
+                <div class="info-label">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                    Pratik Öneri
+                </div>
+                <p>Her maçı bu kılavuza göre değerlendirirken, maçın ligine, saatine ve önemine de dikkat edin. Üst düzey liglerdeki sinyaller genellikle daha güvenilir olurken, alt liglerdeki hareketler daha volatil olabilir.</p>
+            </div>
+        </div>
+
+        <div class="guide-section" id="bolum-8">
+            <div class="guide-section-header">
+                <span class="guide-section-num">8</span>
+                <h2>SmartXFlow Nasıl Yardımcı Olur?</h2>
+            </div>
+            <p>SmartXFlow, yukarıda anlattığımız tüm verileri <strong>tek bir platformda</strong> birleştirerek, piyasa analizi sürecinizi hızlandırır ve kolaylaştırır.</p>
+
+            <ul class="guide-list">
+                <li><strong>Gerçek zamanlı veri:</strong> Oran ve para akışı verileri otomatik güncellenir — sürekli yenileme yapmanıza gerek kalmaz</li>
+                <li><strong>Otomatik alarm sistemi:</strong> Kritik piyasa hareketlerini kaçırmamanız için sizi anında bilgilendirir</li>
+                <li><strong>Grafik destekli analiz:</strong> Her maçın oran ve para akışı grafiklerini detaylı şekilde inceleyebilirsiniz</li>
+                <li><strong>Çoklu piyasa desteği:</strong> 1X2, Üst/Alt 2.5 ve Karşılıklı Gol piyasalarını tek panelden takip edin</li>
+                <li><strong>Canlı maç verisi:</strong> Devam eden maçların anlık verilerini ve piyasa tepkilerini izleyin</li>
+                <li><strong>Favori maç takibi:</strong> İlgilendiğiniz maçları favorilere ekleyerek hızlıca erişin</li>
+                <li><strong>Filtre ve arama:</strong> Lig, takım veya tarih bazında filtreleme yaparak aradığınız veriyi anında bulun</li>
+                <li><strong>Mobil uyumlu tasarım:</strong> Bilgisayar ve mobil cihazlardan aynı deneyimle kullanın</li>
+            </ul>
+
+            <p>SmartXFlow, veriye dayalı analiz yapmanız için gereken tüm araçları sunar. Ancak unutmayın: <strong>platform bir analiz aracıdır</strong>, nihai karar her zaman sizindir. Piyasa verileri yön göstericidir, kesin sonuç garantisi değildir.</p>
+        </div>
+
+        <div class="cta-strip">
+            <div class="cta-strip-left">
+                <div class="cta-strip-badge"><span class="dot"></span> Hemen Başlayın</div>
+                <h3>Piyasayı veriyle okumaya hazır mısınız?</h3>
+                <p>SmartXFlow ile oran hareketlerini ve para akışını gerçek zamanlı takip edin. Piyasanın sinyallerini kaçırmayın.</p>
+            </div>
+            <div class="cta-strip-right">
+                <a href="/pricing" class="cta-btn">Paketleri İncele <span>→</span></a>
+                <span class="cta-trust">Core & Pro planlar · Anında erişim</span>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-row">
+                <div class="footer-brand">
+                    <span>Smart</span><img src="/static/images/smartxflow_logo.png" alt="X"><span>Flow</span>
+                </div>
+                <div class="footer-row-divider"></div>
+                <a href="/">Ana Sayfa</a>
+                <a href="/nedir">Nedir?</a>
+                <a href="/pricing">Paketler</a>
+                <a href="/rehber">Rehber</a>
+                <a href="/app">Uygulama</a>
+            </div>
+            <div class="footer-row">
+                <a href="/terms" style="font-size:12px;color:#484f58;">Kullanım Şartları</a>
+                <a href="/privacy" style="font-size:12px;color:#484f58;">Gizlilik</a>
+                <a href="/cookies" style="font-size:12px;color:#484f58;">Çerezler</a>
+                <a href="/disclaimer" style="font-size:12px;color:#484f58;">Sorumluluk Reddi</a>
+            </div>
+            <div class="footer-contact">
+                <a href="https://instagram.com/smartxflow" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                    smartxflow
+                </a>
+                <a href="https://t.me/smartxflow" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12.056 0h-.112zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                    @smartxflow
+                </a>
+                <a href="mailto:smartxflow29@gmail.com">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                    smartxflow29@gmail.com
+                </a>
+            </div>
+            <div class="footer-copy">© 2025 SmartXFlow. Tüm hakları saklıdır.</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleMenu() {
+            document.getElementById('mobileMenu').classList.toggle('open');
+        }
+        window.addEventListener('scroll', function() {
+            var navbar = document.querySelector('.navbar');
+            if (window.scrollY > 40) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+    </script>
+</body>
+</html>
