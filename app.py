@@ -666,6 +666,9 @@ Allow: /nedir
 Allow: /pricing
 Allow: /analysis
 Allow: /rehber
+Allow: /rehber/oran-analizi
+Allow: /rehber/para-hareketi
+Allow: /rehber/canli-oran-takibi
 Disallow: /app
 Disallow: /api/
 Disallow: /admin
