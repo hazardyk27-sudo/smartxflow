@@ -688,10 +688,9 @@ def sitemap_xml():
         {'loc': '/pricing', 'changefreq': 'weekly', 'priority': '0.9'},
         {'loc': '/analysis', 'changefreq': 'daily', 'priority': '0.7'},
         {'loc': '/rehber', 'changefreq': 'monthly', 'priority': '0.8'},
-        {'loc': '/terms', 'changefreq': 'yearly', 'priority': '0.3'},
-        {'loc': '/privacy', 'changefreq': 'yearly', 'priority': '0.3'},
-        {'loc': '/cookies', 'changefreq': 'yearly', 'priority': '0.3'},
-        {'loc': '/disclaimer', 'changefreq': 'yearly', 'priority': '0.3'},
+        {'loc': '/rehber/oran-analizi', 'changefreq': 'monthly', 'priority': '0.7'},
+        {'loc': '/rehber/para-hareketi', 'changefreq': 'monthly', 'priority': '0.7'},
+        {'loc': '/rehber/canli-oran-takibi', 'changefreq': 'monthly', 'priority': '0.7'},
     ]
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
@@ -720,8 +719,34 @@ def landing_page():
 
 @app.route('/rehber')
 def rehber_page():
-    """Rehber page - Kullanim rehberi"""
+    """Rehber hub page"""
     return render_template('rehber.html')
+
+@app.route('/rehber/oran-analizi')
+def rehber_oran_analizi():
+    return render_template('rehber_oran_analizi.html')
+
+@app.route('/rehber/para-hareketi')
+def rehber_para_hareketi():
+    return render_template('rehber_para_hareketi.html')
+
+@app.route('/rehber/canli-oran-takibi')
+def rehber_canli_oran_takibi():
+    return render_template('rehber_canli_oran_takibi.html')
+
+@app.route('/oran-analizi')
+@app.route('/oran-degisimi')
+def redirect_oran_analizi():
+    return redirect('/rehber/oran-analizi', code=301)
+
+@app.route('/oran-ve-para-nasil-okunur')
+def redirect_para_hareketi():
+    return redirect('/rehber/para-hareketi', code=301)
+
+@app.route('/canli-oran-takibi')
+@app.route('/orani-dusen-maclar')
+def redirect_canli_oran():
+    return redirect('/rehber/canli-oran-takibi', code=301)
 
 @app.route('/nedir')
 def nedir_page():
