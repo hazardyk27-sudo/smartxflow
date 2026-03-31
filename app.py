@@ -677,7 +677,7 @@ Disallow: /alarm-engine/
 Disallow: /lisans
 Disallow: /status
 
-Sitemap: https://smartxflow.com/sitemap.xml
+Sitemap: https://www.smartxflow.com/sitemap.xml
 """
     return app.response_class(content, mimetype='text/plain')
 
@@ -699,7 +699,7 @@ def sitemap_xml():
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
     for p in pages:
         xml += '  <url>\n'
-        xml += f'    <loc>https://smartxflow.com{p["loc"]}</loc>\n'
+        xml += f'    <loc>https://www.smartxflow.com{p["loc"]}</loc>\n'
         xml += f'    <lastmod>{now}</lastmod>\n'
         xml += f'    <changefreq>{p["changefreq"]}</changefreq>\n'
         xml += f'    <priority>{p["priority"]}</priority>\n'
