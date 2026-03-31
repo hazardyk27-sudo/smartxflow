@@ -217,7 +217,10 @@ class SupabaseClient:
         for attempt in range(max_retries + 1):
             try:
                 import urllib.parse
-                history_table = f"{market}_history"
+                if market.startswith('dropping_'):
+                    history_table = market.replace('dropping_', 'moneyway_') + '_history'
+                else:
+                    history_table = f"{market}_history"
                 home_enc = urllib.parse.quote(home_team, safe='')
                 away_enc = urllib.parse.quote(away_team, safe='')
                 
@@ -354,7 +357,10 @@ class SupabaseClient:
             from datetime import datetime, timedelta
             import pytz
             
-            history_table = f"{market}_history"
+            if market.startswith('dropping_'):
+                history_table = market.replace('dropping_', 'moneyway_') + '_history'
+            else:
+                history_table = f"{market}_history"
             
             tr_tz = pytz.timezone('Europe/Istanbul')
             now_tr = datetime.now(tr_tz)
@@ -440,7 +446,10 @@ class SupabaseClient:
                 # FIXTURES-FIRST APPROACH: Get all today's fixtures first, then batch fetch odds
                 today_date = now_tr.date()
                 today_str = today_date.strftime('%Y-%m-%d')
-                history_table = f"{market}_history"
+                if market.startswith('dropping_'):
+                    history_table = market.replace('dropping_', 'moneyway_') + '_history'
+                else:
+                    history_table = f"{market}_history"
                 print(f"[Supabase] TODAY: Fixtures-first approach for {today_str}")
                 
                 # Step 1: Get ALL today's fixtures using kickoff_utc (Türkiye saatine göre)
@@ -898,7 +907,10 @@ class SupabaseClient:
                 return []
             
             fixtures = resp.json()
-            history_table = f"{market}_history"
+            if market.startswith('dropping_'):
+                history_table = market.replace('dropping_', 'moneyway_') + '_history'
+            else:
+                history_table = f"{market}_history"
             
             # Collect fixtures not in seen
             fixtures_to_enrich = []
@@ -1025,7 +1037,10 @@ class SupabaseClient:
                 return []
             
             fixtures = resp.json()
-            history_table = f"{market}_history"
+            if market.startswith('dropping_'):
+                history_table = market.replace('dropping_', 'moneyway_') + '_history'
+            else:
+                history_table = f"{market}_history"
             
             # Collect fixtures not in seen
             fixtures_to_enrich = []
@@ -1614,7 +1629,10 @@ class SupabaseClient:
         if not self.is_available or not market.startswith('dropping'):
             return {}
         
-        history_table = f"{market}_history"
+        if market.startswith('dropping_'):
+            history_table = market.replace('dropping_', 'moneyway_') + '_history'
+        else:
+            history_table = f"{market}_history"
         
         try:
             import time
