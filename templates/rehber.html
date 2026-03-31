@@ -4,21 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache">
-    <title>SmartXFlow Rehber - Maç Analizi & Oran Takip Rehberi</title>
-    <meta name="description" content="SmartXFlow kullanım rehberi: Maç analizi, oran hareketi, para akışı takibi, alarm sistemi ve canlı maç verilerini nasıl okuyacağınızı adım adım öğrenin.">
-    <meta name="keywords" content="SmartXFlow rehber, maç analizi nasıl yapılır, oran hareketi okuma, para akışı analiz, bahis alarm sistemi, canlı maç takibi">
+    <title>Maç Oran Analizi ve Para Hareketi Rehberi | SmartXFlow</title>
+    <meta name="description" content="Maçlarda oran değişimi, para hareketi, canlı oran takibi ve alarm mantığını sade şekilde öğrenin. SmartXFlow rehberi ile maçları sadece istatistikle değil, piyasa hareketleriyle de okuyun.">
+    <meta name="keywords" content="oran analizi, maç analizi, oran değişimi, para hareketi, canlı oran takibi, dropping odds, moneyway, oran alarmı, SmartXFlow rehber">
+    <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://smartxflow.com/rehber">
     <meta property="og:type" content="article">
-    <meta property="og:title" content="SmartXFlow Rehber - Maç Analizi & Oran Takip Rehberi">
-    <meta property="og:description" content="Maç analizi, oran hareketi, para akışı takibi ve alarm sistemini adım adım öğrenin.">
+    <meta property="og:title" content="Maç Oran Analizi ve Para Hareketi Rehberi | SmartXFlow">
+    <meta property="og:description" content="Maçlarda oran değişimi, para hareketi, canlı oran takibi ve alarm mantığını sade şekilde öğrenin. SmartXFlow rehberi ile maçları sadece istatistikle değil, piyasa hareketleriyle de okuyun.">
     <meta property="og:url" content="https://smartxflow.com/rehber">
     <meta property="og:image" content="https://smartxflow.com/static/images/smartxflow_logo.png">
     <meta property="og:locale" content="tr_TR">
     <meta property="og:site_name" content="SmartXFlow">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="SmartXFlow Rehber">
-    <meta name="twitter:description" content="Maç analizi, oran hareketi, para akışı takibi ve alarm sistemini adım adım öğrenin.">
+    <meta name="twitter:title" content="Maç Oran Analizi ve Para Hareketi Rehberi | SmartXFlow">
+    <meta name="twitter:description" content="Maçlarda oran değişimi, para hareketi, canlı oran takibi ve alarm mantığını sade şekilde öğrenin. SmartXFlow rehberi ile maçları piyasa hareketleriyle okuyun.">
     <meta name="twitter:image" content="https://smartxflow.com/static/images/smartxflow_logo.png">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Maç Oran Analizi ve Para Hareketi Rehberi",
+        "description": "Maçlarda oran değişimi, para hareketi, canlı oran takibi ve alarm mantığını sade şekilde öğrenin. SmartXFlow rehberi ile maçları sadece istatistikle değil, piyasa hareketleriyle de okuyun.",
+        "url": "https://smartxflow.com/rehber",
+        "inLanguage": "tr",
+        "publisher": {
+            "@type": "Organization",
+            "name": "SmartXFlow",
+            "url": "https://smartxflow.com",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://smartxflow.com/static/images/smartxflow_logo.png"
+            }
+        },
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https://smartxflow.com/rehber"
+        }
+    }
+    </script>
     <link rel="icon" type="image/png" href="/static/favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -374,6 +398,53 @@
         .guide-table .cell-red { color: #f85149; font-weight: 600; }
         .guide-table .cell-amber { color: #d29922; font-weight: 600; }
 
+        .related-topics {
+            margin-top: 60px;
+            padding: 32px;
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 16px;
+        }
+        .related-topics-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 20px;
+        }
+        .related-topics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .related-topics-grid a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            background: rgba(43,255,136,0.03);
+            border: 1px solid rgba(43,255,136,0.08);
+            font-size: 14px;
+            font-weight: 500;
+            color: #c9d1d9;
+            transition: all 160ms ease;
+        }
+        .related-topics-grid a:hover {
+            background: rgba(43,255,136,0.08);
+            border-color: rgba(43,255,136,0.18);
+            color: #2BFF88;
+            transform: translateX(4px);
+        }
+        .related-topics-grid a svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            color: #2BFF88;
+            opacity: 0.6;
+        }
+
         .cta-strip {
             display: flex;
             align-items: center;
@@ -383,7 +454,7 @@
             border: 1px solid #21262d;
             border-radius: 20px;
             padding: 40px 48px;
-            margin-top: 60px;
+            margin-top: 40px;
         }
         .cta-strip-left { flex: 1; }
         .cta-strip-badge {
@@ -485,6 +556,8 @@
             .footer { padding: 30px 16px; }
             .footer-contact { flex-wrap: wrap; }
             .info-card, .warning-card, .scenario-box { padding: 16px 18px; }
+            .related-topics { padding: 20px; }
+            .related-topics-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -517,22 +590,22 @@
     </div>
 
     <section class="page-hero">
-        <h1><span>Kullanım</span> Rehberi</h1>
-        <p class="hero-desc">SmartXFlow'u en verimli şekilde kullanmak için bilmeniz gereken her şey. Para akışı, oran hareketi, alarm sistemi ve canlı maç takibini adım adım öğrenin.</p>
+        <h1><span>Maç Oran Analizi</span> ve Para Hareketi Rehberi</h1>
+        <p class="hero-desc">Maç analizi yaparken oran değişimlerini ve para hareketlerini doğru okumak büyük fark yaratır. Bu rehberde oran analizi, canlı oran takibi, para akışı yorumlama ve alarm sistemlerini sade bir dille öğreneceksiniz. SmartXFlow ile piyasayı sadece istatistiklerle değil, gerçek piyasa verileriyle okumaya başlayın.</p>
     </section>
 
     <div class="toc">
         <div class="toc-card">
             <div class="toc-title">İçindekiler</div>
             <ul class="toc-list">
-                <li><a href="#bolum-1"><span class="toc-num">1</span> Maç Analizi Nedir?</a></li>
-                <li><a href="#bolum-2"><span class="toc-num">2</span> Oran Analizi</a></li>
-                <li><a href="#bolum-3"><span class="toc-num">3</span> Para Hareketi</a></li>
-                <li><a href="#bolum-4"><span class="toc-num">4</span> Oran ve Para Birlikte</a></li>
-                <li><a href="#bolum-5"><span class="toc-num">5</span> Alarm Sistemi</a></li>
-                <li><a href="#bolum-6"><span class="toc-num">6</span> Canlı Maç Takibi</a></li>
-                <li><a href="#bolum-7"><span class="toc-num">7</span> Hareket Kılavuzu</a></li>
-                <li><a href="#bolum-8"><span class="toc-num">8</span> SmartXFlow Nasıl Yardımcı Olur?</a></li>
+                <li><a href="#bolum-1"><span class="toc-num">1</span> Oran Analizi Nedir?</a></li>
+                <li><a href="#bolum-2"><span class="toc-num">2</span> Oran Değişimi Nasıl Yorumlanır?</a></li>
+                <li><a href="#bolum-3"><span class="toc-num">3</span> Maçlarda Para Hareketi Nasıl Okunur?</a></li>
+                <li><a href="#bolum-4"><span class="toc-num">4</span> Oran ve Para Birlikte Nasıl Okunur?</a></li>
+                <li><a href="#bolum-5"><span class="toc-num">5</span> Oran Alarmı Nedir?</a></li>
+                <li><a href="#bolum-6"><span class="toc-num">6</span> Canlı Oran Takibi Neden Önemlidir?</a></li>
+                <li><a href="#bolum-7"><span class="toc-num">7</span> Oranı Düşen Maçlar Ne Anlama Gelir?</a></li>
+                <li><a href="#bolum-8"><span class="toc-num">8</span> SmartXFlow Ne Sağlar?</a></li>
             </ul>
         </div>
     </div>
@@ -542,7 +615,7 @@
         <div class="guide-section" id="bolum-1">
             <div class="guide-section-header">
                 <span class="guide-section-num">1</span>
-                <h2>Maç Analizi Nedir?</h2>
+                <h2>Oran Analizi Nedir?</h2>
             </div>
             <p>Maç analizi, bir spor karşılaşmasının olası sonucunu tahmin etmek için kullanılan veri odaklı değerlendirme sürecidir. Geleneksel analizde takım formları, sakatlıklar ve geçmiş karşılaşmalar incelenirken; <strong>piyasa tabanlı analiz</strong> ise bahis piyasasındaki oran hareketlerini ve para akışını esas alır.</p>
             <p>SmartXFlow, bu ikinci yaklaşıma odaklanır: <strong>Piyasa ne diyor?</strong> sorusunun cevabını veriye dayalı şekilde ortaya koyar. Bahis şirketlerinin oranlarında ve piyasaya giren paradaki değişimleri izleyerek, maç hakkında önemli sinyaller yakalar.</p>
@@ -559,7 +632,7 @@
         <div class="guide-section" id="bolum-2">
             <div class="guide-section-header">
                 <span class="guide-section-num">2</span>
-                <h2>Oran Analizi</h2>
+                <h2>Oran Değişimi Nasıl Yorumlanır?</h2>
             </div>
             <p>Oran analizi, bahis şirketlerinin bir maç için sunduğu oranların <strong>zaman içinde nasıl değiştiğini</strong> izlemeye dayanır. Bu değişimler rastgele değildir; piyasadaki bilgi akışını, risk yönetimini ve büyük bahisleri yansıtır.</p>
 
@@ -610,7 +683,7 @@
         <div class="guide-section" id="bolum-3">
             <div class="guide-section-header">
                 <span class="guide-section-num">3</span>
-                <h2>Para Hareketi (Moneyway)</h2>
+                <h2>Maçlarda Para Hareketi Nasıl Okunur?</h2>
             </div>
             <p>Para hareketi (Moneyway), bir maçın her seçeneğine giren <strong>bahis miktarının yüzdesel dağılımını</strong> gösterir. Oranlar bahis şirketinin algısını yansıtırken, para akışı doğrudan piyasanın parasını — yani <em>gerçek pozisyonlarını</em> — ortaya koyar.</p>
 
@@ -692,7 +765,7 @@
         <div class="guide-section" id="bolum-5">
             <div class="guide-section-header">
                 <span class="guide-section-num">5</span>
-                <h2>Alarm Sistemi</h2>
+                <h2>Oran Alarmı Nedir?</h2>
             </div>
             <p>SmartXFlow'un alarm sistemi, piyasadaki <strong>anormal hareketleri otomatik olarak tespit eder</strong> ve sizi bilgilendirir. Manuel takip yapmadan, kritik sinyalleri anında görmenizi sağlar.</p>
 
@@ -718,7 +791,7 @@
         <div class="guide-section" id="bolum-6">
             <div class="guide-section-header">
                 <span class="guide-section-num">6</span>
-                <h2>Canlı Maç Takibi</h2>
+                <h2>Canlı Oran Takibi Neden Önemlidir?</h2>
             </div>
             <p>SmartXFlow'un <strong>"Canlı"</strong> sekmesi, şu anda devam eden maçların anlık verilerini gösterir. Maç içi oran değişimleri, skor güncellemeleri ve canlı piyasa hareketlerini tek ekranda takip edebilirsiniz.</p>
 
@@ -747,7 +820,7 @@
         <div class="guide-section" id="bolum-7">
             <div class="guide-section-header">
                 <span class="guide-section-num">7</span>
-                <h2>Hareket Kılavuzu</h2>
+                <h2>Oranı Düşen Maçlar Ne Anlama Gelir?</h2>
             </div>
             <p>SmartXFlow'daki veri hareketlerini doğru yorumlamak için aşağıdaki kılavuzu referans olarak kullanabilirsiniz. Bu tablo, farklı piyasa koşullarında gözlemlenen yaygın kalıpları özetler.</p>
 
@@ -812,7 +885,7 @@
         <div class="guide-section" id="bolum-8">
             <div class="guide-section-header">
                 <span class="guide-section-num">8</span>
-                <h2>SmartXFlow Nasıl Yardımcı Olur?</h2>
+                <h2>SmartXFlow Ne Sağlar?</h2>
             </div>
             <p>SmartXFlow, yukarıda anlattığımız tüm verileri <strong>tek bir platformda</strong> birleştirerek, piyasa analizi sürecinizi hızlandırır ve kolaylaştırır.</p>
 
@@ -828,6 +901,32 @@
             </ul>
 
             <p>SmartXFlow, veriye dayalı analiz yapmanız için gereken tüm araçları sunar. Ancak unutmayın: <strong>platform bir analiz aracıdır</strong>, nihai karar her zaman sizindir. Piyasa verileri yön göstericidir, kesin sonuç garantisi değildir.</p>
+        </div>
+
+        <div class="related-topics">
+            <div class="related-topics-title">Devamını Oku</div>
+            <div class="related-topics-grid">
+                <a href="/rehber#bolum-1">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                    Oran Analizi Nedir?
+                </a>
+                <a href="/rehber#bolum-2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                    Oran Değişimi Nasıl Yorumlanır?
+                </a>
+                <a href="/rehber#bolum-6">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                    Canlı Oran Takibi
+                </a>
+                <a href="/rehber#bolum-7">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                    Oranı Düşen Maçlar
+                </a>
+                <a href="/rehber#bolum-4">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                    Oran ve Para Nasıl Okunur?
+                </a>
+            </div>
         </div>
 
         <div class="cta-strip">
