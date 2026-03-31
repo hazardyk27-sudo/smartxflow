@@ -6,7 +6,26 @@
     <meta http-equiv="Cache-Control" content="no-cache">
     <title>SmartXFlow - Analizciler | Profesyonel Piyasa Analizleri</title>
     <meta name="description" content="SmartXFlow profesyonel piyasa analizcileri ve geçmiş performansları. Uzman analizlerle piyasa hareketlerini daha iyi anlayın.">
+    <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://smartxflow.com/analysis">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "SmartXFlow Analizciler - Profesyonel Piyasa Analizleri",
+        "description": "SmartXFlow profesyonel piyasa analizcileri ve geçmiş performansları. Uzman analizlerle piyasa hareketlerini daha iyi anlayın.",
+        "url": "https://smartxflow.com/analysis",
+        "inLanguage": "tr",
+        "publisher": {
+            "@type": "Organization",
+            "name": "SmartXFlow",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://smartxflow.com/static/images/smartxflow_logo.png"
+            }
+        }
+    }
+    </script>
     <meta property="og:type" content="website">
     <meta property="og:title" content="SmartXFlow Analizciler - Profesyonel Piyasa Analizleri">
     <meta property="og:description" content="Profesyonel piyasa analizcileri ve geçmiş performansları. Uzman analizlerle piyasa hareketlerini daha iyi anlayın.">
@@ -246,6 +265,8 @@
     </div>
 
     <div class="page-content">
+        <h1 class="page-title">Analizciler</h1>
+        <p class="page-subtitle">Profesyonel piyasa analizcileri ve geçmiş performansları.</p>
         <div id="mainView"></div>
     </div>
 
@@ -342,8 +363,6 @@
         async function loadAnalystList() {
             const view = document.getElementById('mainView');
             view.innerHTML = `
-                <h1 class="page-title">Analizciler</h1>
-                <p class="page-subtitle">Profesyonel piyasa analizcileri ve gecmis performanslari.</p>
                 <div class="loading-state"><div class="loading-spinner-lg"></div><p style="color:#8b949e;font-size:13px;">Yukleniyor...</p></div>
             `;
             try {
@@ -351,8 +370,6 @@
                 const analysts = await resp.json();
                 if (!analysts || analysts.length === 0) {
                     view.innerHTML = `
-                        <h1 class="page-title">Analizciler</h1>
-                        <p class="page-subtitle">Profesyonel piyasa analizcileri ve gecmis performanslari.</p>
                         <div class="empty-state"><h3>Henuz analizci bulunmuyor</h3><p>Yakinda profesyonel analizcilerimiz burada yer alacak.</p></div>
                     `;
                     return;
@@ -384,14 +401,10 @@
                     `;
                 }).join('');
                 view.innerHTML = `
-                    <h1 class="page-title">Analizciler</h1>
-                    <p class="page-subtitle">Profesyonel piyasa analizcileri ve gecmis performanslari.</p>
                     <div class="analyst-grid">${cards}</div>
                 `;
             } catch(e) {
                 view.innerHTML = `
-                    <h1 class="page-title">Analizciler</h1>
-                    <p class="page-subtitle">Profesyonel piyasa analizcileri ve gecmis performanslari.</p>
                     <div class="empty-state"><h3>Bir hata olustu</h3><p>Lutfen sayfayi yenileyin.</p></div>
                 `;
             }
