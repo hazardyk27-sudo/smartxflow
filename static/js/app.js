@@ -1945,6 +1945,17 @@ function isMobileView() {
 
 function renderMobileMatchCards(data) {
     if (typeof _liveMode !== 'undefined' && _liveMode) return;
+    if (_isTestLockedMarket(currentMarket)) {
+        _showTestLockedToast();
+        _mobCurCat = 'moneyway';
+        _mobCurMkt = '1x2';
+        document.querySelectorAll('#mobCatRow .mob-tab').forEach(function(b) {
+            b.classList.toggle('active', b.getAttribute('data-cat') === 'moneyway');
+        });
+        _updateMobMktRow('moneyway');
+        setMobileGroup('moneyway');
+        return;
+    }
     const cardList = document.getElementById('matchCardList');
     if (!cardList) return;
     
