@@ -3318,7 +3318,7 @@ async function openMatchModal(index) {
     if (index >= 0 && index < dataSource.length) {
         var _matchForCheck = dataSource[index];
         if (window.userPlan === 'test' && (currentMarket === 'moneyway_1x2' || currentMarket === 'dropping_1x2') && !_isTestFreeMatch(_matchForCheck.match_id)) {
-            showToast('Bu mac icin lisans gereklidir', 'warning');
+            showToast('Bu maç için lisans gereklidir', 'warning');
             return;
         }
         const reqId = ++_modalRequestId;
