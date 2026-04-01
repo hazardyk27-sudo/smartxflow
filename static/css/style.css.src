@@ -12560,35 +12560,12 @@ table.desktop-only {
     50% { opacity: 0.7; }
 }
 .license-test-btn {
-    margin-top: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    width: 100%;
-    padding: 14px 24px;
-    background: linear-gradient(135deg, #1a6b3c 0%, #22884d 100%);
-    border: 1px solid rgba(34,136,77,0.3);
-    border-radius: 10px;
-    color: white;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    margin-top: 16px;
+    background: linear-gradient(135deg, #0d9b4a 0%, #15803d 100%);
 }
 .license-test-btn:hover {
-    transform: translateY(-2px);
-    background: linear-gradient(135deg, #22884d 0%, #2ba05c 100%);
-    box-shadow: 0 6px 20px rgba(34,136,77,0.4);
-}
-.license-test-hint {
-    margin-top: 8px;
-    font-size: 10px;
-    color: #5c636b;
-    text-align: center;
-}
-.license-test-icon {
-    font-size: 18px;
+    background: linear-gradient(135deg, #15803d 0%, #1a9d50 100%);
+    box-shadow: 0 12px 28px rgba(13, 155, 74, 0.4);
 }
 .test-locked-row {
     opacity: 0.3;
