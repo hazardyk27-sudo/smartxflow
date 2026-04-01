@@ -8222,7 +8222,7 @@ def get_free_matches():
 def _parse_vol(v_str):
     if not v_str or v_str == '-':
         return 0
-    s = str(v_str).replace('£', '').replace('$', '').replace('€', '').replace(',', '').strip()
+    s = str(v_str).replace('£', '').replace('$', '').replace('€', '').replace(',', '').replace(' ', '').strip()
     try:
         if s.upper().endswith('M'):
             return float(s[:-1]) * 1_000_000

@@ -12573,6 +12573,14 @@ table.desktop-only {
     filter: blur(3px);
     user-select: none;
 }
+.test-blur-values {
+    filter: blur(5px);
+    user-select: none;
+    pointer-events: none;
+}
+.test-locked-row-click {
+    cursor: default;
+}
 .test-locked-overlay {
     position: fixed;
     top: 0;

@@ -1611,6 +1611,9 @@ function _renderMatchRow(match, idx) {
     const _star = getAnalysisStarHtml(match.match_id);
     const isDropping = currentMarket.startsWith('dropping');
     const isMoneyway = currentMarket.startsWith('moneyway');
+    var _testBlur = (window.userPlan === 'test' && (currentMarket === 'moneyway_1x2' || currentMarket === 'dropping_1x2') && !_isTestFreeMatch(match.match_id));
+    var _blurCls = _testBlur ? ' test-blur-values' : '';
+    var _rowExtra = _testBlur ? ' test-locked-row-click' : '';
 
     const _favTd = _buildFavCell(match);
 
@@ -1622,19 +1625,19 @@ function _renderMatchRow(match, idx) {
             const matchStatus = getMatchStatus(match.date);
             const deskCapsule = getMatchLiveCapsuleDT(match.date, match.home_team, match.away_team, match.match_id);
             return `
-                <tr data-index="${idx}" onclick="openMatchModal(${idx})">
+                <tr class="${_rowExtra}" data-index="${idx}" onclick="openMatchModal(${idx})">
                     ${_favTd}
                     <td class="match-date">${deskCapsule || formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                     <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${!deskCapsule ? matchStatus : ''}${_star}</td>
-                    <td class="mw-outcomes-cell" colspan="3">
+                    <td class="mw-outcomes-cell${_blurCls}" colspan="3">
                         <div class="mw-grid mw-grid-3">
                             ${block1}
                             ${blockX}
                             ${block2}
                         </div>
                     </td>
-                    <td class="volume-cell">${formatVolume(d.Volume)}</td>
+                    <td class="volume-cell${_blurCls}">${formatVolume(d.Volume)}</td>
                 </tr>
             `;
         } else {
@@ -1647,15 +1650,15 @@ function _renderMatchRow(match, idx) {
             const matchStatus = getMatchStatus(match.date);
             const deskCapsule = getMatchLiveCapsuleDT(match.date, match.home_team, match.away_team, match.match_id);
             return `
-                <tr class="dropping-1x2-row" data-index="${idx}" onclick="openMatchModal(${idx})">
+                <tr class="dropping-1x2-row${_rowExtra}" data-index="${idx}" onclick="openMatchModal(${idx})">
                     ${_favTd}
                     <td class="match-date">${deskCapsule || formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                     <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${!deskCapsule ? matchStatus : ''}${_star}</td>
-                    <td class="drop-cell">${cell1}</td>
-                    <td class="drop-cell">${cellX}</td>
-                    <td class="drop-cell">${cell2}</td>
-                    <td class="volume-cell">${formatVolume(d.Volume)}</td>
+                    <td class="drop-cell${_blurCls}">${cell1}</td>
+                    <td class="drop-cell${_blurCls}">${cellX}</td>
+                    <td class="drop-cell${_blurCls}">${cell2}</td>
+                    <td class="volume-cell${_blurCls}">${formatVolume(d.Volume)}</td>
                 </tr>
             `;
         }
@@ -1911,22 +1914,11 @@ function renderMatches(data) {
     }
     
     tbody.innerHTML = '';
-    var displayData = data;
-    if (window.userPlan === 'test' && (currentMarket === 'moneyway_1x2' || currentMarket === 'dropping_1x2')) {
-        displayData = data.filter(function(m) { return _isTestFreeMatch(m.match_id); });
-    }
-    _allFilteredMatches = displayData;
-    const firstBatch = displayData.slice(0, _RENDER_BATCH);
+    _allFilteredMatches = data;
+    const firstBatch = data.slice(0, _RENDER_BATCH);
     let html = '';
     for (var ri = 0; ri < firstBatch.length; ri++) {
         html += _renderMatchRow(firstBatch[ri], ri);
-    }
-    if (window.userPlan === 'test' && (currentMarket === 'moneyway_1x2' || currentMarket === 'dropping_1x2')) {
-        var hiddenCount = data.length - displayData.length;
-        if (hiddenCount > 0) {
-            var colspan = currentMarket.includes('1x2') ? 8 : 7;
-            html += '<tr class="test-upgrade-row" onclick="window.location.href=\'/pricing\'"><td colspan="' + colspan + '">🔒 Tum maclari gormek icin lisans alin (' + hiddenCount + ' mac gizli)</td></tr>';
-        }
     }
     tbody.innerHTML = html;
     _renderedCount = firstBatch.length;
@@ -1957,14 +1949,10 @@ function renderMobileMatchCards(data) {
     const cardList = document.getElementById('matchCardList');
     if (!cardList) return;
     
-    var mobileDisplayData = data;
-    if (window.userPlan === 'test' && (currentMarket === 'moneyway_1x2' || currentMarket === 'dropping_1x2')) {
-        mobileDisplayData = data.filter(function(m) { return _isTestFreeMatch(m.match_id); });
-    }
-    _allFilteredMatches = mobileDisplayData;
+    _allFilteredMatches = data;
     _renderedCount = 0;
     
-    if (mobileDisplayData.length === 0) {
+    if (data.length === 0) {
         cardList.innerHTML = `
             <div class="match-card" style="justify-content: center; padding: 40px 20px;">
                 <div style="text-align: center; color: #7d848c;">
@@ -1993,6 +1981,8 @@ function _mobileFavLine(mk, isFav, count) {
 
 function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
     let oddsBlocks = '';
+    var _mTestBlur = (window.userPlan === 'test' && (currentMarket === 'moneyway_1x2' || currentMarket === 'dropping_1x2') && !_isTestFreeMatch(match.match_id));
+    var _mBlurCls = _mTestBlur ? ' test-blur-values' : '';
     
     var tv = d.Volume;
     if (currentMarket.includes('1x2')) {
@@ -2026,14 +2016,14 @@ function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
             ${_mobileFavLine(_mk, _isFav, _fc)}
             <div class="odds-card-header">
                 <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
-                <div class="odds-card-volume">${volume}</div>
+                <div class="odds-card-volume${_mBlurCls}">${volume}</div>
             </div>
             <div class="odds-card-meta">
                 <span>${match.league || '-'}</span>
                 <span class="meta-sep">•</span>
                 <span>${dateStr}</span>
             </div>
-            <div class="odds-card-row ${blockCount}">
+            <div class="odds-card-row ${blockCount}${_mBlurCls}">
                 ${oddsBlocks}
             </div>
         </div>
@@ -2116,10 +2106,9 @@ function renderMobileMoneywayBlock(label, oddsValue, pctValue, totalVol) {
 // Mobile Odds Card - Shows odds with percentage drop changes (for Dropping/Odds pages)
 function renderMobileOddsCard(match, idx, d, volume, dateStr, starHtml) {
     let oddsBlocks = '';
+    var _oTestBlur = (window.userPlan === 'test' && (currentMarket === 'moneyway_1x2' || currentMarket === 'dropping_1x2') && !_isTestFreeMatch(match.match_id));
+    var _oBlurCls = _oTestBlur ? ' test-blur-values' : '';
     
-    // For Dropping Odds, use API data directly (PrevOdds = 24h ago odds from backend)
-    // Do NOT use oddsTrendCache because it contains recent snapshots
-    // PrevOdds fields are populated with 24h ago snapshot values
     if (currentMarket.includes('1x2')) {
         const trend1 = buildTrendDataFromMatch(d.Odds1 || d['1'], d.PrevOdds1 || d.Odds1_prev, d.Trend1, d.DropPct1);
         const trendX = buildTrendDataFromMatch(d.OddsX || d['X'], d.PrevOddsX || d.OddsX_prev, d.TrendX, d.DropPctX);
@@ -2160,14 +2149,14 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr, starHtml) {
             ${_mobileFavLine(_mk, _isFav, _fc)}
             <div class="odds-card-header">
                 <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
-                <div class="odds-card-volume">${volume}</div>
+                <div class="odds-card-volume${_oBlurCls}">${volume}</div>
             </div>
             <div class="odds-card-meta">
                 <span>${match.league || '-'}</span>
                 <span class="meta-sep">•</span>
                 <span>${dateStr}</span>
             </div>
-            <div class="odds-card-row ${blockCount}">
+            <div class="odds-card-row ${blockCount}${_oBlurCls}">
                 ${oddsBlocks}
             </div>
         </div>
@@ -3328,7 +3317,8 @@ async function openMatchModal(index) {
     const dataSource = _allFilteredMatches.length > 0 ? _allFilteredMatches : (filteredMatches.length > 0 ? filteredMatches : matches);
     if (index >= 0 && index < dataSource.length) {
         var _matchForCheck = dataSource[index];
-        if (window.userPlan === 'test' && !_isTestFreeMatch(_matchForCheck.match_id)) {
+        if (window.userPlan === 'test' && (currentMarket === 'moneyway_1x2' || currentMarket === 'dropping_1x2') && !_isTestFreeMatch(_matchForCheck.match_id)) {
+            showToast('Bu mac icin lisans gereklidir', 'warning');
             return;
         }
         const reqId = ++_modalRequestId;
