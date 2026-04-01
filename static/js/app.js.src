@@ -1876,6 +1876,12 @@ function _setupInfiniteScroll() {
 
 function renderMatches(data) {
     if (typeof _liveMode !== 'undefined' && _liveMode) return;
+    if (_isTestLockedMarket(currentMarket)) {
+        _showTestLockedToast();
+        var _fallbackTab = document.querySelector('.market-tabs .tab[data-market="moneyway_1x2"]');
+        if (_fallbackTab) _fallbackTab.click();
+        return;
+    }
     console.log('[renderMatches] Called with', data?.length || 0, 'matches');
     _renderedCount = 0;
 
