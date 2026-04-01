@@ -370,6 +370,9 @@ def license_required(f):
         
         header_key = request.headers.get('X-License-Key', '').strip()
         
+        if session.get('license_plan') == 'test':
+            return f(*args, **kwargs)
+        
         lic_valid = session.get('license_valid')
         if lic_valid:
             session_key = session.get('license_key', '') or header_key
@@ -765,7 +768,7 @@ def pricing_page():
 def analysis_page():
     """Analysis page - Analiz paylaşımları"""
     plan = session.get('license_plan', 'core')
-    return render_template('analysis.html', pro_required=(plan != 'pro'))
+    return render_template('analysis.html', pro_required=(plan not in ('pro', 'premium') or plan == 'test'))
 
 @app.route('/terms')
 def terms_page():
@@ -8174,6 +8177,64 @@ def license_logout():
     session.pop('license_expires', None)
     session.pop('license_plan', None)
     return jsonify({'success': True})
+
+
+@app.route('/api/test/activate', methods=['POST'])
+def activate_test_mode():
+    session['license_plan'] = 'test'
+    session['license_valid'] = True
+    session.permanent = True
+    return jsonify({'success': True, 'plan': 'test'})
+
+
+@app.route('/api/test/free-matches')
+@license_required
+def get_free_matches():
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return jsonify({'hashes': [], 'teams': []})
+        headers = supabase._headers()
+        url = (
+            f"{supabase._rest_url('match_snapshots')}"
+            f"?select=match_id_hash,Volume,home_team,away_team"
+            f"&order=id.desc&limit=500"
+        )
+        resp = supabase._get_http_client().get(url, headers=headers, timeout=15)
+        if resp.status_code != 200:
+            return jsonify({'hashes': [], 'teams': []})
+        rows = resp.json()
+        vol_map = {}
+        team_map = {}
+        for r in rows:
+            h = r.get('match_id_hash', '')
+            if not h:
+                continue
+            if h not in vol_map:
+                v_str = r.get('Volume', '0')
+                vol_map[h] = _parse_vol(v_str)
+                team_map[h] = {'home': r.get('home_team', ''), 'away': r.get('away_team', '')}
+        sorted_matches = sorted(vol_map.items(), key=lambda x: x[1], reverse=True)
+        top3 = [h for h, v in sorted_matches[:3]]
+        teams = [team_map.get(h, {}) for h in top3]
+        return jsonify({'hashes': top3, 'teams': teams})
+    except Exception as e:
+        print(f"[API] /api/test/free-matches hata: {e}")
+        return jsonify({'hashes': [], 'teams': []})
+
+
+def _parse_vol(v_str):
+    if not v_str or v_str == '-':
+        return 0
+    s = str(v_str).replace('£', '').replace('$', '').replace('€', '').replace(',', '').strip()
+    try:
+        if s.upper().endswith('M'):
+            return float(s[:-1]) * 1_000_000
+        elif s.upper().endswith('K'):
+            return float(s[:-1]) * 1_000
+        return float(s)
+    except:
+        return 0
 
 
 # ============================================

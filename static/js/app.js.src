@@ -1752,9 +1752,19 @@ function _renderMoreDesktop() {
     for (let i = _renderedCount; i < end; i++) {
         html += _renderMatchRow(_allFilteredMatches[i], i);
     }
+    var _prevEnd = _renderedCount;
     tbody.insertAdjacentHTML('beforeend', html);
     _renderedCount = end;
     _updateRenderedCount();
+    if (window.userPlan === 'test' && (currentMarket === 'moneyway_1x2' || currentMarket === 'dropping_1x2')) {
+        for (let ti = _prevEnd; ti < end; ti++) {
+            var tMatch = _allFilteredMatches[ti];
+            if (tMatch && !_isTestFreeMatch(tMatch)) {
+                var tRow = tbody.querySelector('tr[data-index="' + ti + '"]');
+                if (tRow) { tRow.classList.add('test-locked-row'); tRow.setAttribute('onclick', ''); }
+            }
+        }
+    }
     if (currentMarket.startsWith('dropping')) {
         setTimeout(() => attachTrendTooltipListeners(), 50);
     }
@@ -1812,9 +1822,19 @@ function _renderMoreMobile() {
             `;
         }
     }
+    var _prevEndM = _renderedCount;
     cardList.insertAdjacentHTML('beforeend', html);
     _renderedCount = end;
     _updateRenderedCount();
+    if (window.userPlan === 'test' && (currentMarket === 'moneyway_1x2' || currentMarket === 'dropping_1x2')) {
+        for (let ti = _prevEndM; ti < end; ti++) {
+            var tMatch = _allFilteredMatches[ti];
+            if (tMatch && !_isTestFreeMatch(tMatch)) {
+                var tCard = cardList.querySelector('.match-card[data-index="' + ti + '"]');
+                if (tCard) { tCard.classList.add('test-locked-row'); tCard.setAttribute('onclick', ''); }
+            }
+        }
+    }
     if (_favFilterActive) setTimeout(() => _applyFavoritesFilter(), 10);
 }
 
@@ -1897,9 +1917,37 @@ function renderMatches(data) {
         return;
     }
     
+    if (window.userPlan === 'test') {
+        var isAllowed = (currentMarket === 'moneyway_1x2' || currentMarket === 'dropping_1x2');
+        if (!isAllowed) {
+            tbody.innerHTML = '';
+            _showTestLockedOverlay();
+            if (countEl) countEl.textContent = '0';
+            if (mobileCountEl) mobileCountEl.textContent = '0';
+            return;
+        }
+        _removeTestLockedOverlay();
+    }
+    
     tbody.innerHTML = '';
     const firstBatch = data.slice(0, _RENDER_BATCH);
-    let html = firstBatch.map((match, idx) => _renderMatchRow(match, idx)).join('');
+    let html = '';
+    for (var ri = 0; ri < firstBatch.length; ri++) {
+        var rowMatch = firstBatch[ri];
+        if (window.userPlan === 'test' && !_isTestFreeMatch(rowMatch.match_id)) {
+            html += '<tr class="test-locked-row">' + _renderMatchRow(rowMatch, ri).replace(/^<tr[^>]*>/, '').replace(/<\/tr>$/, '') + '</tr>';
+        } else {
+            html += _renderMatchRow(rowMatch, ri);
+        }
+    }
+    if (window.userPlan === 'test') {
+        var freeCount = firstBatch.filter(function(m) { return _isTestFreeMatch(m.match_id); }).length;
+        var lockedCount = firstBatch.length - freeCount;
+        if (lockedCount > 0) {
+            var colspan = currentMarket.includes('1x2') ? 8 : 7;
+            html += '<tr class="test-upgrade-row" onclick="window.location.href=\'/pricing\'"><td colspan="' + colspan + '">🔒 Tum maclari gormek icin lisans alin (' + lockedCount + ' mac gizli)</td></tr>';
+        }
+    }
     tbody.innerHTML = html;
     _renderedCount = firstBatch.length;
     _updateRenderedCount();
@@ -3295,6 +3343,10 @@ async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
 async function openMatchModal(index) {
     const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
     if (index >= 0 && index < dataSource.length) {
+        var _matchForCheck = dataSource[index];
+        if (window.userPlan === 'test' && !_isTestFreeMatch(_matchForCheck.match_id)) {
+            return;
+        }
         const reqId = ++_modalRequestId;
         resetModalState();
 
@@ -3374,6 +3426,10 @@ function resetModalState() {
     var liveTabs = document.getElementById('modalLiveMarketTabs');
     if (liveTabs) liveTabs.innerHTML = '';
     if (window.userPlan === 'core') {
+        if (liveTab) liveTab.style.display = '';
+        if (liveBody) liveBody.innerHTML = proLockPanelHtml();
+    }
+    if (window.userPlan === 'test' && selectedMatch && !_isTestFreeMatch(selectedMatch.match_id)) {
         if (liveTab) liveTab.style.display = '';
         if (liveBody) liveBody.innerHTML = proLockPanelHtml();
     }
@@ -3817,7 +3873,7 @@ function getTrendArrow(current, previous) {
 }
 
 function switchMobileTab(tabName) {
-    if (tabName === 'live' && window.userPlan === 'core') {
+    if (tabName === 'live' && (window.userPlan === 'core' || window.userPlan === 'test')) {
         document.querySelectorAll('.mobile-tab-bar .mob-tab').forEach(t => {
             t.classList.remove('active');
             if (t.dataset.tab === tabName) t.classList.add('active');
@@ -7421,6 +7477,9 @@ function renderAlertBand() {
         const isMobile = window.innerWidth <= 768;
         const matchDisplay = isMobile ? home : `${home} - ${away}`;
         
+        var _alarmFree = _isTestFreeAlarm(home, away);
+        var _blurClass = (window.userPlan === 'test' && !_alarmFree) ? ' test-blur-alarm' : '';
+        
         // Volume Leader için özel format: OLD_LEADER > NEW_LEADER
         if (alarm._type === 'volumeleader') {
             const oldLeader = alarm.old_leader || alarm.previous_leader || '?';
@@ -7432,7 +7491,7 @@ function renderAlertBand() {
                     <span class="ab-sep">—</span>
                     <span class="ab-match">${matchDisplay}</span>
                     <span class="ab-sep">—</span>
-                    <span class="ab-leader-change">${oldLeader} <span class="ab-arrow">▸</span> ${newLeader}</span>
+                    <span class="ab-leader-change${_blurClass}">${oldLeader} <span class="ab-arrow">▸</span> ${newLeader}</span>
                 </div>
             `;
         }
@@ -7444,8 +7503,8 @@ function renderAlertBand() {
                 <span class="ab-sep">—</span>
                 <span class="ab-match">${matchDisplay}</span>
                 <span class="ab-sep">—</span>
-                <span class="ab-sel">${selection}</span>
-                <span class="ab-val">${value}</span>
+                <span class="ab-sel${_blurClass}">${selection}</span>
+                <span class="ab-val${_blurClass}">${value}</span>
             </div>
         `;
     }).join('');
@@ -8852,6 +8911,10 @@ function goToMatchPage(matchKey, alarmType, alarmMarket) {
 }
 
 function goToMatchFromAlarm(homeTeam, awayTeam, alarmType, alarmMarket, league, kickoff) {
+    if (window.userPlan === 'test') {
+        var _testFake = { home_team: homeTeam, away_team: awayTeam };
+        if (!_isTestFreeMatch(_testFake)) return;
+    }
     openAlarmId = null;
     closeAlarmsSidebar();
     
@@ -10119,7 +10182,16 @@ async function deleteMimAlarms() {
 const WEB_LICENSE_KEY = 'smartxflow_web_license';
 const WEB_LICENSE_VALID_KEY = 'smartxflow_license_valid_until';
 
+window._testFreeHashes = [];
+window._testFreeTeams = [];
+
 function checkWebLicense() {
+    if (localStorage.getItem('license_plan') === 'test') {
+        window.userPlan = 'test';
+        window.userLicenseKey = '';
+        if (typeof _isPro !== 'undefined') _isPro = false;
+        return true;
+    }
     const savedKey = localStorage.getItem(WEB_LICENSE_KEY);
     const validUntil = localStorage.getItem(WEB_LICENSE_VALID_KEY);
     
@@ -10267,6 +10339,69 @@ async function validateWebLicense() {
     }
 }
 
+async function activateTestMode() {
+    try {
+        var res = await fetch('/api/test/activate', { method: 'POST' });
+        var data = await res.json();
+        if (data.success) {
+            localStorage.setItem('license_plan', 'test');
+            localStorage.removeItem(WEB_LICENSE_KEY);
+            localStorage.removeItem(WEB_LICENSE_VALID_KEY);
+            window.userPlan = 'test';
+            if (typeof _isPro !== 'undefined') _isPro = false;
+            hideLicenseGate();
+            window.location.reload();
+        }
+    } catch(e) {
+        console.error('Test mode activate error:', e);
+    }
+}
+
+async function _loadTestFreeHashes() {
+    if (window.userPlan !== 'test') return;
+    try {
+        var res = await fetch('/api/test/free-matches');
+        var data = await res.json();
+        window._testFreeHashes = data.hashes || [];
+        window._testFreeTeams = data.teams || [];
+    } catch(e) {
+        window._testFreeHashes = [];
+        window._testFreeTeams = [];
+    }
+}
+
+function _isTestFreeAlarm(home, away) {
+    if (window.userPlan !== 'test') return true;
+    var h = (home || '').toLowerCase().trim();
+    var a = (away || '').toLowerCase().trim();
+    for (var ti = 0; ti < window._testFreeTeams.length; ti++) {
+        var t = window._testFreeTeams[ti];
+        var th = (t.home || '').toLowerCase().trim();
+        var ta = (t.away || '').toLowerCase().trim();
+        if (th && ta && th === h && ta === a) return true;
+    }
+    return false;
+}
+
+function _isTestFreeMatch(matchId) {
+    if (window.userPlan !== 'test') return true;
+    return window._testFreeHashes.indexOf(matchId) !== -1;
+}
+
+function _showTestLockedOverlay() {
+    if (document.getElementById('testLockedOverlay')) return;
+    var ov = document.createElement('div');
+    ov.id = 'testLockedOverlay';
+    ov.className = 'test-locked-overlay';
+    ov.innerHTML = '<div class="test-lock-icon">🔒</div><div class="test-lock-title">Bu sayfa lisans gerektirir</div><div>Test modunda sadece MW 1X2 ve Oran 1X2 marketlerine erisim vardir</div><a href="/pricing" class="test-lock-cta">Lisans Satin Al</a>';
+    document.body.appendChild(ov);
+}
+
+function _removeTestLockedOverlay() {
+    var ov = document.getElementById('testLockedOverlay');
+    if (ov) ov.remove();
+}
+
 async function initLicenseCheck() {
     if (!checkWebLicense()) {
         showLicenseGate();
@@ -10277,6 +10412,20 @@ async function initLicenseCheck() {
     } else {
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) logoutBtn.style.display = 'flex';
+        
+        if (window.userPlan === 'test') {
+            _isLicensed = true;
+            _licenseReadyResolve();
+            _loadTestFreeHashes();
+            updateLicenseDaysBadge(-1);
+            var daysBadge = document.getElementById('licenseDaysBadge');
+            if (daysBadge) {
+                var daysText = document.getElementById('licenseDaysText');
+                if (daysText) daysText.textContent = 'Test Modu';
+                daysBadge.classList.add('warning');
+            }
+            return;
+        }
         
         const savedDays = localStorage.getItem('license_days_remaining');
         if (savedDays) {
@@ -10314,6 +10463,7 @@ function logoutWebLicense() {
         localStorage.removeItem(WEB_LICENSE_KEY);
         localStorage.removeItem(WEB_LICENSE_VALID_KEY);
         localStorage.removeItem('license_days_remaining');
+        localStorage.removeItem('license_plan');
         window.location.reload();
     }
 }
@@ -10582,7 +10732,7 @@ async function _renderLiveProLock() {
 }
 
 function switchToLive() {
-    if (window.userPlan === 'core') {
+    if (window.userPlan === 'core' || window.userPlan === 'test') {
         var _cTbody = document.getElementById('matchesTableBody');
         if (_cTbody) _cTbody.innerHTML = '';
         var _cCards = document.getElementById('matchCardList');
