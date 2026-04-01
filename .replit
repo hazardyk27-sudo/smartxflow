@@ -27,13 +27,13 @@ args = "Scraper Engine"
 name = "SmartXFlow Web"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python app.py"
-waitForPort = 5000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "REPL_DEPLOYMENT=1 python app.py"
+waitForPort = 5000
 
 [[workflows.workflow]]
 name = "Scraper Engine"
@@ -58,10 +58,6 @@ BETWATCH_COOKIE = "__stripe_mid=0e44a892-d1c2-48ad-92e4-cbb9e149021ed2f7da; csrf
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 5904
-externalPort = 3000
 
 [deployment]
 deploymentTarget = "vm"
