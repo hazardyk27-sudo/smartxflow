@@ -12577,7 +12577,7 @@ table.desktop-only {
     user-select: none;
 }
 .test-blur-values {
-    filter: blur(5px);
+    filter: blur(14px);
     user-select: none;
     pointer-events: none;
 }
