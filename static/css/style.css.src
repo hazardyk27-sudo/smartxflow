@@ -12575,11 +12575,11 @@ table.desktop-only {
 }
 .license-test-btn {
     margin-top: 10px;
-    background: linear-gradient(135deg, #0d9b4a 0%, #15803d 100%);
+    background: linear-gradient(135deg, #1565c0 0%, #1976d2 100%);
 }
 .license-test-btn:hover {
-    background: linear-gradient(135deg, #15803d 0%, #1a9d50 100%);
-    box-shadow: 0 12px 28px rgba(13, 155, 74, 0.4);
+    background: linear-gradient(135deg, #1976d2 0%, #1e88e5 100%);
+    box-shadow: 0 12px 28px rgba(25, 118, 210, 0.4);
 }
 .test-locked-row {
     opacity: 0.3;
