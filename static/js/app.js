@@ -1156,10 +1156,6 @@ function setupTabs() {
             }
             
             if (market === 'live') {
-                if (_isTestLockedMarket('live')) {
-                    _showTestLockedToast();
-                    return;
-                }
                 return;
             }
             
@@ -1908,10 +1904,6 @@ function renderMatches(data) {
         if (countEl) countEl.textContent = '0';
         if (mobileCountEl) mobileCountEl.textContent = '0';
         return;
-    }
-    
-    if (window.userPlan === 'test') {
-        _removeTestLockedOverlay();
     }
     
     tbody.innerHTML = '';
@@ -10389,11 +10381,6 @@ function _isTestLockedMarket(market) {
 
 function _showTestLockedToast() {
     showToast(_TEST_LOCKED_TOAST, 'warning');
-}
-
-function _removeTestLockedOverlay() {
-    var ov = document.getElementById('testLockedOverlay');
-    if (ov) ov.remove();
 }
 
 function _addTestLockIcons() {
