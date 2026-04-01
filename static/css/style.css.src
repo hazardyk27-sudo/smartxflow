@@ -12591,6 +12591,12 @@ table.desktop-only {
     user-select: none;
     pointer-events: none;
 }
+.test-gray-block {
+    display: inline-block;
+    background: #2e3138;
+    border-radius: 4px;
+    vertical-align: middle;
+}
 .test-locked-row-click {
     cursor: default;
 }
