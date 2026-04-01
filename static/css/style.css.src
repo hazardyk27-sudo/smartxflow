@@ -12573,7 +12573,7 @@ table.desktop-only {
 .test-locked-row {
     opacity: 0.3;
     pointer-events: none;
-    filter: blur(3px);
+    filter: blur(14px);
     user-select: none;
 }
 .test-blur-values {
@@ -12591,7 +12591,7 @@ table.desktop-only {
     opacity: 0.55;
 }
 .test-blur-alarm {
-    filter: blur(4px);
+    filter: blur(14px);
     user-select: none;
 }
 .license-shopier-btn {
