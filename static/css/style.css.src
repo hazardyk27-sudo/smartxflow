@@ -12581,48 +12581,11 @@ table.desktop-only {
 .test-locked-row-click {
     cursor: default;
 }
-.test-locked-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(10,12,16,0.92);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 9000;
-    color: #8a919a;
-    font-size: 15px;
-    text-align: center;
-    gap: 16px;
-}
-.test-locked-overlay .test-lock-icon {
-    font-size: 48px;
-    margin-bottom: 8px;
-}
-.test-locked-overlay .test-lock-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #c8cdd4;
-}
-.test-locked-overlay .test-lock-cta {
-    margin-top: 12px;
-    padding: 12px 32px;
-    background: linear-gradient(135deg, #c45500, #d4650a);
-    border: none;
-    border-radius: 8px;
-    color: white;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.3s ease;
-}
-.test-locked-overlay .test-lock-cta:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(196,85,0,0.4);
+.test-lock-icon-sm {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 3px;
+    opacity: 0.55;
 }
 .test-blur-alarm {
     filter: blur(4px);
