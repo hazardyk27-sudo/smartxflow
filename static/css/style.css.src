@@ -12658,7 +12658,7 @@ table.desktop-only {
 }
 .license-social-section {
     margin-top: 14px;
-    padding: 16px;
+    padding: 14px;
     background: rgba(13,17,23,0.5);
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 10px;
@@ -12668,69 +12668,53 @@ table.desktop-only {
     color: #7d848c;
     font-size: 12px;
     font-weight: 500;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 .license-social-icons {
     display: flex;
-    justify-content: center;
-    gap: 16px;
-}
-.license-social-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    text-decoration: none;
-}
-.license-social-icon svg {
-    width: 20px;
-    height: 20px;
-}
-.license-social-icon.instagram {
-    background: rgba(225,48,108,0.15);
-    border: 1px solid rgba(225,48,108,0.3);
-}
-.license-social-icon.instagram svg {
-    fill: #E1306C;
-}
-.license-social-icon.telegram {
-    background: rgba(0,136,204,0.15);
-    border: 1px solid rgba(0,136,204,0.3);
-}
-.license-social-icon.telegram svg {
-    fill: #0088cc;
-}
-.license-social-icon:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-.license-social-icon-email {
-    display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 8px;
-    padding: 8px 14px;
-    background: rgba(234,67,53,0.15);
-    border: 1px solid rgba(234,67,53,0.3);
-    border-radius: 10px;
+}
+.license-social-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    border-radius: 8px;
     text-decoration: none;
-    color: #ea4335;
-    font-size: 11px;
+    font-size: 12px;
+    font-weight: 500;
     transition: all 0.2s ease;
     cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
 }
-.license-social-icon-email svg {
+.license-social-link svg {
     width: 18px;
     height: 18px;
     flex-shrink: 0;
-    fill: #ea4335;
 }
-.license-social-icon-email:hover {
-    transform: scale(1.05);
-    background: rgba(234,67,53,0.25);
+.license-social-link.instagram {
+    background: rgba(225,48,108,0.12);
+    border: 1px solid rgba(225,48,108,0.25);
+    color: #E1306C;
+}
+.license-social-link.instagram svg { fill: #E1306C; }
+.license-social-link.telegram {
+    background: rgba(0,136,204,0.12);
+    border: 1px solid rgba(0,136,204,0.25);
+    color: #0088cc;
+}
+.license-social-link.telegram svg { fill: #0088cc; }
+.license-social-link.email {
+    background: rgba(234,67,53,0.12);
+    border: 1px solid rgba(234,67,53,0.25);
+    color: #ea4335;
+}
+.license-social-link.email svg { fill: #ea4335; }
+.license-social-link:hover {
+    transform: translateX(3px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 .license-device-info {
     margin-top: 20px;
@@ -12920,6 +12904,54 @@ table.desktop-only {
     }
     .analyst-card-meta {
         font-size: 9px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .license-gate {
+        align-items: flex-start;
+        padding-top: 20px;
+    }
+    .license-container {
+        padding: 22px 20px;
+        max-width: 95%;
+    }
+    .license-logo {
+        width: 46px;
+        max-height: 46px;
+        margin-bottom: 8px;
+    }
+    .license-title {
+        font-size: 21px;
+    }
+    .license-subtitle {
+        margin-bottom: 12px;
+    }
+    .license-form-group {
+        margin-bottom: 10px;
+    }
+    .license-test-btn {
+        margin-top: 8px;
+    }
+    .license-shopier-btn {
+        padding: 13px 16px;
+    }
+    .license-shopier-hint {
+        margin-bottom: 10px;
+    }
+    .license-social-section {
+        margin-top: 10px;
+        padding: 12px;
+    }
+    .license-social-title {
+        margin-bottom: 8px;
+    }
+    .license-social-link {
+        padding: 8px 12px;
+        font-size: 11px;
+    }
+    .license-back-btn {
+        margin-top: 12px;
     }
 }
 
