@@ -8634,6 +8634,7 @@ td.volume,
     transition: opacity 0.3s ease, transform 0.3s ease;
     z-index: 99999;
     pointer-events: none;
+    white-space: nowrap;
 }
 
 .toast-notification.show {
