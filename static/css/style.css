@@ -8622,19 +8622,21 @@ td.volume,
     bottom: 24px;
     left: 50%;
     transform: translateX(-50%) translateY(20px);
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 13px;
+    padding: 10px 22px;
+    border-radius: 6px;
+    font-size: 12.5px;
     font-weight: 500;
-    color: #c9d1d9;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid #2e3238;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    letter-spacing: 0.2px;
+    color: #8b939e;
+    background: #1a1d22;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
     opacity: 0;
     transition: opacity 0.3s ease, transform 0.3s ease;
     z-index: 99999;
     pointer-events: none;
     white-space: nowrap;
+    backdrop-filter: blur(8px);
 }
 
 .toast-notification.show {
@@ -8643,21 +8645,21 @@ td.volume,
 }
 
 .toast-notification.toast-warning {
-    background: #3d2a1a;
-    border-color: #f0883e;
-    color: #f0883e;
+    background: rgba(26,29,34,0.95);
+    border-color: rgba(255,255,255,0.08);
+    color: #a0a8b4;
 }
 
 .toast-notification.toast-error {
-    background: #3d1a1a;
-    border-color: #f85149;
-    color: #f85149;
+    background: rgba(26,29,34,0.95);
+    border-color: rgba(248,81,73,0.25);
+    color: #e5736d;
 }
 
 .toast-notification.toast-success {
-    background: #1a3d2a;
-    border-color: #3fb950;
-    color: #3fb950;
+    background: rgba(26,29,34,0.95);
+    border-color: rgba(63,185,80,0.25);
+    color: #5dba72;
 }
 
 /* ========== SMC HISTORY SECTION ========== */
