@@ -815,7 +815,9 @@ def cookies_page():
     </ul>
     <p>amaçlarıyla kullanılmaktadır. Kullanıcılar tarayıcı ayarlarından çerezleri devre dışı bırakabilir.</p>
     """
-    return render_template('legal.html', title='Çerez Politikası', content=content)
+    resp = make_response(render_template('legal.html', title='Çerez Politikası', content=content))
+    resp.headers['X-Robots-Tag'] = 'noindex, nofollow'
+    return resp
 
 @app.route('/disclaimer')
 def disclaimer_page():
