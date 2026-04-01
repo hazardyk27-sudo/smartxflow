@@ -8191,32 +8191,28 @@ def activate_test_mode():
 @license_required
 def get_free_matches():
     try:
-        supabase = get_supabase_client()
-        if not supabase or not supabase.is_available:
+        cached, hit = get_cached_matches('moneyway_1x2_today_future')
+        if not cached:
+            cached, hit = get_cached_matches('moneyway_1x2_all')
+        if not cached:
+            cached, hit = get_cached_matches('dropping_1x2_today_future')
+        if not cached:
             return jsonify({'hashes': [], 'teams': []})
-        headers = supabase._headers()
-        url = (
-            f"{supabase._rest_url('match_snapshots')}"
-            f"?select=match_id_hash,Volume,home_team,away_team"
-            f"&order=id.desc&limit=500"
-        )
-        resp = supabase._get_http_client().get(url, headers=headers, timeout=15)
-        if resp.status_code != 200:
-            return jsonify({'hashes': [], 'teams': []})
-        rows = resp.json()
         vol_map = {}
         team_map = {}
-        for r in rows:
-            h = r.get('match_id_hash', '')
+        for m in cached:
+            h = m.get('match_id', '')
             if not h:
                 continue
             if h not in vol_map:
-                v_str = r.get('Volume', '0')
+                odds = m.get('odds', {})
+                v_str = odds.get('Volume', '0')
                 vol_map[h] = _parse_vol(v_str)
-                team_map[h] = {'home': r.get('home_team', ''), 'away': r.get('away_team', '')}
+                team_map[h] = {'home': m.get('home_team', ''), 'away': m.get('away_team', '')}
         sorted_matches = sorted(vol_map.items(), key=lambda x: x[1], reverse=True)
         top3 = [h for h, v in sorted_matches[:3]]
         teams = [team_map.get(h, {}) for h in top3]
+        print(f"[TestFree] Top 3 hashes: {top3}")
         return jsonify({'hashes': top3, 'teams': teams})
     except Exception as e:
         print(f"[API] /api/test/free-matches hata: {e}")

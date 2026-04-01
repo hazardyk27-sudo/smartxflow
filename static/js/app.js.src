@@ -1756,15 +1756,6 @@ function _renderMoreDesktop() {
     tbody.insertAdjacentHTML('beforeend', html);
     _renderedCount = end;
     _updateRenderedCount();
-    if (window.userPlan === 'test' && (currentMarket === 'moneyway_1x2' || currentMarket === 'dropping_1x2')) {
-        for (let ti = _prevEnd; ti < end; ti++) {
-            var tMatch = _allFilteredMatches[ti];
-            if (tMatch && !_isTestFreeMatch(tMatch)) {
-                var tRow = tbody.querySelector('tr[data-index="' + ti + '"]');
-                if (tRow) { tRow.classList.add('test-locked-row'); tRow.setAttribute('onclick', ''); }
-            }
-        }
-    }
     if (currentMarket.startsWith('dropping')) {
         setTimeout(() => attachTrendTooltipListeners(), 50);
     }
@@ -1826,15 +1817,6 @@ function _renderMoreMobile() {
     cardList.insertAdjacentHTML('beforeend', html);
     _renderedCount = end;
     _updateRenderedCount();
-    if (window.userPlan === 'test' && (currentMarket === 'moneyway_1x2' || currentMarket === 'dropping_1x2')) {
-        for (let ti = _prevEndM; ti < end; ti++) {
-            var tMatch = _allFilteredMatches[ti];
-            if (tMatch && !_isTestFreeMatch(tMatch)) {
-                var tCard = cardList.querySelector('.match-card[data-index="' + ti + '"]');
-                if (tCard) { tCard.classList.add('test-locked-row'); tCard.setAttribute('onclick', ''); }
-            }
-        }
-    }
     if (_favFilterActive) setTimeout(() => _applyFavoritesFilter(), 10);
 }
 
@@ -1887,7 +1869,6 @@ function _setupInfiniteScroll() {
 function renderMatches(data) {
     if (typeof _liveMode !== 'undefined' && _liveMode) return;
     console.log('[renderMatches] Called with', data?.length || 0, 'matches');
-    _allFilteredMatches = data;
     _renderedCount = 0;
 
     const tbody = document.getElementById('matchesTableBody');
@@ -1930,22 +1911,21 @@ function renderMatches(data) {
     }
     
     tbody.innerHTML = '';
-    const firstBatch = data.slice(0, _RENDER_BATCH);
+    var displayData = data;
+    if (window.userPlan === 'test' && (currentMarket === 'moneyway_1x2' || currentMarket === 'dropping_1x2')) {
+        displayData = data.filter(function(m) { return _isTestFreeMatch(m.match_id); });
+    }
+    _allFilteredMatches = displayData;
+    const firstBatch = displayData.slice(0, _RENDER_BATCH);
     let html = '';
     for (var ri = 0; ri < firstBatch.length; ri++) {
-        var rowMatch = firstBatch[ri];
-        if (window.userPlan === 'test' && !_isTestFreeMatch(rowMatch.match_id)) {
-            html += '<tr class="test-locked-row">' + _renderMatchRow(rowMatch, ri).replace(/^<tr[^>]*>/, '').replace(/<\/tr>$/, '') + '</tr>';
-        } else {
-            html += _renderMatchRow(rowMatch, ri);
-        }
+        html += _renderMatchRow(firstBatch[ri], ri);
     }
-    if (window.userPlan === 'test') {
-        var freeCount = firstBatch.filter(function(m) { return _isTestFreeMatch(m.match_id); }).length;
-        var lockedCount = firstBatch.length - freeCount;
-        if (lockedCount > 0) {
+    if (window.userPlan === 'test' && (currentMarket === 'moneyway_1x2' || currentMarket === 'dropping_1x2')) {
+        var hiddenCount = data.length - displayData.length;
+        if (hiddenCount > 0) {
             var colspan = currentMarket.includes('1x2') ? 8 : 7;
-            html += '<tr class="test-upgrade-row" onclick="window.location.href=\'/pricing\'"><td colspan="' + colspan + '">🔒 Tum maclari gormek icin lisans alin (' + lockedCount + ' mac gizli)</td></tr>';
+            html += '<tr class="test-upgrade-row" onclick="window.location.href=\'/pricing\'"><td colspan="' + colspan + '">🔒 Tum maclari gormek icin lisans alin (' + hiddenCount + ' mac gizli)</td></tr>';
         }
     }
     tbody.innerHTML = html;
@@ -1977,10 +1957,14 @@ function renderMobileMatchCards(data) {
     const cardList = document.getElementById('matchCardList');
     if (!cardList) return;
     
-    _allFilteredMatches = data;
+    var mobileDisplayData = data;
+    if (window.userPlan === 'test' && (currentMarket === 'moneyway_1x2' || currentMarket === 'dropping_1x2')) {
+        mobileDisplayData = data.filter(function(m) { return _isTestFreeMatch(m.match_id); });
+    }
+    _allFilteredMatches = mobileDisplayData;
     _renderedCount = 0;
     
-    if (data.length === 0) {
+    if (mobileDisplayData.length === 0) {
         cardList.innerHTML = `
             <div class="match-card" style="justify-content: center; padding: 40px 20px;">
                 <div style="text-align: center; color: #7d848c;">
@@ -3341,7 +3325,7 @@ async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
 }
 
 async function openMatchModal(index) {
-    const dataSource = filteredMatches.length > 0 ? filteredMatches : matches;
+    const dataSource = _allFilteredMatches.length > 0 ? _allFilteredMatches : (filteredMatches.length > 0 ? filteredMatches : matches);
     if (index >= 0 && index < dataSource.length) {
         var _matchForCheck = dataSource[index];
         if (window.userPlan === 'test' && !_isTestFreeMatch(_matchForCheck.match_id)) {
@@ -7707,6 +7691,10 @@ function closeMobileOverflow() {
 }
 
 function toggleAlarmsSidebar() {
+    if (window.userPlan === 'test') {
+        showToast('Alarm listesi lisans gerektirir', 'warning');
+        return;
+    }
     if (alarmsSidebarOpen) {
         closeAlarmsSidebar();
     } else {
@@ -7715,6 +7703,10 @@ function toggleAlarmsSidebar() {
 }
 
 function openAlarmsSidebar() {
+    if (window.userPlan === 'test') {
+        showToast('Alarm listesi lisans gerektirir', 'warning');
+        return;
+    }
     alarmsSidebarOpen = true;
     document.getElementById('alarmsSidebar').classList.add('open');
     document.getElementById('alarmsSidebarOverlay').classList.add('open');
@@ -10415,8 +10407,8 @@ async function initLicenseCheck() {
         
         if (window.userPlan === 'test') {
             _isLicensed = true;
+            await _loadTestFreeHashes();
             _licenseReadyResolve();
-            _loadTestFreeHashes();
             updateLicenseDaysBadge(-1);
             var daysBadge = document.getElementById('licenseDaysBadge');
             if (daysBadge) {
