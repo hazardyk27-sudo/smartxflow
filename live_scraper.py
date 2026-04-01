@@ -107,6 +107,15 @@ SOFASCORE_HEADERS = {
 }
 
 
+_TEAM_ABBREVS = {
+    'utd': 'united',
+    'muni': 'munich',
+    'man': 'manchester',
+    'cty': 'city',
+    'wed': 'wednesday',
+    'ath': 'athletic',
+}
+
 def _normalize_team(name: str) -> str:
     if not name:
         return ""
@@ -117,6 +126,11 @@ def _normalize_team(name: str) -> str:
     for suffix in [' fc', ' sc', ' fk', ' sk', ' cf', ' ac', ' as', ' bc']:
         if s.endswith(suffix):
             s = s[:-len(suffix)].strip()
+    words = s.split()
+    expanded = [_TEAM_ABBREVS.get(w, w) for w in words]
+    s = ' '.join(expanded)
+    if s.endswith(' w'):
+        s = s[:-2] + ' women'
     return s
 
 
@@ -514,6 +528,24 @@ def update_heartbeat(supabase_url: str, supabase_key: str, status: str, match_co
         return False
 
 
+def _betwatch_ko_to_utc(ce_val: str, fallback: str) -> str:
+    """Betwatch'ın utc=3 parametresiyle döndürdüğü kickoff zamanını gerçek UTC'ye çevirir."""
+    if not ce_val:
+        return fallback
+    try:
+        if ce_val.endswith('Z'):
+            tr_time = datetime.fromisoformat(ce_val.replace('Z', '+00:00'))
+            real_utc = tr_time - timedelta(hours=3)
+            return real_utc.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        dt = datetime.fromisoformat(ce_val)
+        if dt.tzinfo is None:
+            real_utc = dt - timedelta(hours=3)
+            return real_utc.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        return ce_val
+    except Exception:
+        return fallback
+
+
 def _fetch_sofascore_data() -> Dict[str, Dict]:
     """Sofascore canlı verilerini çeker (thread içinde çalışır)."""
     return _fetch_sofascore_live()
@@ -621,9 +653,7 @@ def _process_betwatch_data(bw_result: dict, now_utc: str, today_str: str) -> tup
         if not home or not away:
             continue
         h = make_live_match_hash(home, away, league)
-        ko_utc = entry.get('ce', now_utc)
-        if ko_utc and ko_utc.endswith('Z'):
-            ko_utc = ko_utc.replace('Z', '+00:00')
+        ko_utc = _betwatch_ko_to_utc(entry.get('ce', ''), now_utc)
         all_fixtures[h] = {
             "match_id_hash": h,
             "home_team": home[:100],
@@ -670,9 +700,7 @@ def _process_betwatch_data(bw_result: dict, now_utc: str, today_str: str) -> tup
             continue
         h = make_live_match_hash(home, away, league)
         if h not in all_fixtures:
-            ko_utc = entry.get('ce', now_utc)
-            if ko_utc and ko_utc.endswith('Z'):
-                ko_utc = ko_utc.replace('Z', '+00:00')
+            ko_utc = _betwatch_ko_to_utc(entry.get('ce', ''), now_utc)
             all_fixtures[h] = {
                 "match_id_hash": h,
                 "home_team": home[:100],
