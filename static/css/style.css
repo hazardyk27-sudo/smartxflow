@@ -8644,6 +8644,16 @@ td.volume,
     transform: translateX(-50%) translateY(0);
 }
 
+.toast-notification.toast-anchored {
+    bottom: auto;
+    transform: translateX(-50%) translateY(-6px);
+}
+
+.toast-notification.toast-anchored.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
 .toast-notification.toast-warning {
     background: rgba(26,29,34,0.95);
     border-color: rgba(255,255,255,0.08);

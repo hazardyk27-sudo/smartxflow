@@ -529,20 +529,31 @@ function invalidateAlarmCache() {
 }
 // ============================================
 
-function showToast(message, type = 'info') {
+function showToast(message, type = 'info', anchorEl) {
     const existing = document.querySelector('.toast-notification');
     if (existing) existing.remove();
     
     const toast = document.createElement('div');
     toast.className = `toast-notification toast-${type}`;
     toast.textContent = message;
-    document.body.appendChild(toast);
+    
+    if (anchorEl) {
+        toast.classList.add('toast-anchored');
+        document.body.appendChild(toast);
+        const rect = anchorEl.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const topY = rect.bottom + 6;
+        toast.style.top = topY + 'px';
+        toast.style.left = centerX + 'px';
+    } else {
+        document.body.appendChild(toast);
+    }
     
     setTimeout(() => toast.classList.add('show'), 10);
     setTimeout(() => {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    }, 2500);
 }
 
 /**
@@ -1160,7 +1171,7 @@ function setupTabs() {
             }
             
             if (_isTestLockedMarket(market)) {
-                _showTestLockedToast();
+                _showTestLockedToast(tab);
                 return;
             }
             
@@ -7634,7 +7645,7 @@ var _mobCurMkt = '1x2';
 
 function selectMobCat(cat) {
     if (cat === 'live' && window.userPlan === 'test') {
-        _showTestLockedToast();
+        _showTestLockedToast(document.querySelector('#mobCatRow .mob-tab[data-cat="live"]'));
         return;
     }
     _mobCurCat = cat;
@@ -7669,7 +7680,7 @@ function _updateMobMktRow(cat) {
 
 function selectMobMkt(mkt) {
     if (window.userPlan === 'test' && mkt !== '1x2') {
-        _showTestLockedToast();
+        _showTestLockedToast(document.querySelector('#mobMktRow .mob-tab[data-mkt="' + mkt + '"]'));
         return;
     }
     _mobCurMkt = mkt;
@@ -7701,7 +7712,7 @@ function closeMobileOverflow() {
 
 function toggleAlarmsSidebar() {
     if (window.userPlan === 'test') {
-        _showTestLockedToast();
+        _showTestLockedToast(document.getElementById('alarmsBtn'));
         return;
     }
     if (alarmsSidebarOpen) {
@@ -7713,7 +7724,7 @@ function toggleAlarmsSidebar() {
 
 function openAlarmsSidebar() {
     if (window.userPlan === 'test') {
-        _showTestLockedToast();
+        _showTestLockedToast(document.getElementById('alarmsBtn'));
         return;
     }
     alarmsSidebarOpen = true;
@@ -10396,8 +10407,8 @@ function _isTestLockedMarket(market) {
     return market !== 'moneyway_1x2' && market !== 'dropping_1x2';
 }
 
-function _showTestLockedToast() {
-    showToast(_TEST_LOCKED_TOAST, 'warning');
+function _showTestLockedToast(anchorEl) {
+    showToast(_TEST_LOCKED_TOAST, 'warning', anchorEl || null);
 }
 
 function _addTestLockIcons() {
@@ -10441,9 +10452,9 @@ function _addTestLockIcons() {
     }
 }
 
-function _testGuardAnalysis() {
+function _testGuardAnalysis(btn) {
     if (window.userPlan === 'test') {
-        _showTestLockedToast();
+        _showTestLockedToast(btn || null);
         return;
     }
     openTrendsModal('analysis');
@@ -10802,7 +10813,7 @@ async function _renderLiveProLock() {
 
 function switchToLive() {
     if (window.userPlan === 'test') {
-        _showTestLockedToast();
+        _showTestLockedToast(document.querySelector('.tab-live'));
         return;
     }
     if (window.userPlan === 'core') {
