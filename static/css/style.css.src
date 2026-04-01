@@ -12597,6 +12597,18 @@ table.desktop-only {
     border-radius: 4px;
     vertical-align: middle;
 }
+.test-lock-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    opacity: 0.45;
+}
+.test-lock-mob {
+    flex: 1;
+    min-height: 58px;
+}
 .test-locked-row-click {
     cursor: default;
 }

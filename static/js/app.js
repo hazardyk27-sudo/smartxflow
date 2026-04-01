@@ -1635,12 +1635,13 @@ function _renderMatchRow(match, idx) {
 
     if (currentMarket.includes('1x2')) {
         if (isMoneyway) {
-            const _mwGray = '<span class="test-gray-block" style="width:64px;height:56px;border-radius:6px;"></span>';
+            const _lockSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4a5068" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+            const _lockCell = '<div class="test-lock-cell">' + _lockSvg + '</div>';
             const block1 = _testBlur ? '' : renderMoneywayBlock('1', d.Pct1, d.Odds1 || d['1'], d.Amt1);
             const blockX = _testBlur ? '' : renderMoneywayBlock('X', d.PctX, d.OddsX || d['X'], d.AmtX);
             const block2 = _testBlur ? '' : renderMoneywayBlock('2', d.Pct2, d.Odds2 || d['2'], d.Amt2);
-            const _mwInner = _testBlur ? (_mwGray + _mwGray + _mwGray) : (block1 + blockX + block2);
-            const _mwVol = _testBlur ? '<span class="test-gray-block" style="width:44px;height:16px;"></span>' : formatVolume(d.Volume);
+            const _mwInner = _testBlur ? (_lockCell + _lockCell + _lockCell) : (block1 + blockX + block2);
+            const _mwVol = formatVolume(d.Volume);
             const matchStatus = getMatchStatus(match.date);
             const deskCapsule = getMatchLiveCapsuleDT(match.date, match.home_team, match.away_team, match.match_id);
             return `
@@ -1658,14 +1659,15 @@ function _renderMatchRow(match, idx) {
                 </tr>
             `;
         } else {
-            const _dpGray = '<span class="test-gray-block" style="width:52px;height:32px;border-radius:4px;"></span>';
+            const _dpLockSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4a5068" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+            const _dpLock = '<div class="test-lock-cell">' + _dpLockSvg + '</div>';
             const trend1Data = buildTrendDataFromMatch(d.Odds1 || d['1'], d.PrevOdds1 || d.Odds1_prev, d.Trend1);
             const trendXData = buildTrendDataFromMatch(d.OddsX || d['X'], d.PrevOddsX || d.OddsX_prev, d.TrendX);
             const trend2Data = buildTrendDataFromMatch(d.Odds2 || d['2'], d.PrevOdds2 || d.Odds2_prev, d.Trend2);
             const cell1 = _testBlur ? '' : renderDrop1X2Cell('1', d.Odds1 || d['1'], trend1Data);
             const cellX = _testBlur ? '' : renderDrop1X2Cell('X', d.OddsX || d['X'], trendXData);
             const cell2 = _testBlur ? '' : renderDrop1X2Cell('2', d.Odds2 || d['2'], trend2Data);
-            const _dpVol = _testBlur ? '<span class="test-gray-block" style="width:44px;height:16px;"></span>' : formatVolume(d.Volume);
+            const _dpVol = formatVolume(d.Volume);
             const matchStatus = getMatchStatus(match.date);
             const deskCapsule = getMatchLiveCapsuleDT(match.date, match.home_team, match.away_team, match.match_id);
             return `
@@ -1674,9 +1676,9 @@ function _renderMatchRow(match, idx) {
                     <td class="match-date">${deskCapsule || formatDateTwoLine(match.date)}</td>
                     <td class="match-league" title="${match.league || ''}">${match.league || '-'}</td>
                     <td class="match-teams">${match.home_team}<span class="vs">-</span>${match.away_team}${!deskCapsule ? matchStatus : ''}${_star}</td>
-                    <td class="drop-cell">${_testBlur ? _dpGray : cell1}</td>
-                    <td class="drop-cell">${_testBlur ? _dpGray : cellX}</td>
-                    <td class="drop-cell">${_testBlur ? _dpGray : cell2}</td>
+                    <td class="drop-cell">${_testBlur ? _dpLock : cell1}</td>
+                    <td class="drop-cell">${_testBlur ? _dpLock : cellX}</td>
+                    <td class="drop-cell">${_testBlur ? _dpLock : cell2}</td>
                     <td class="volume-cell">${_dpVol}</td>
                 </tr>
             `;
@@ -2035,15 +2037,15 @@ function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
     const _mk = _getMatchKey(match);
     const _isFav = _userFavorites.has(_mk);
     const _fc = _favCounts[_mk] || 0;
-    const _mobGrayCard = '<span class="test-gray-block" style="width:70px;height:62px;border-radius:8px;"></span>';
-    const _mobGrayVol = '<span class="test-gray-block" style="width:44px;height:16px;"></span>';
-    const _mwGrayRow = _mTestBlur ? (_mobGrayCard + _mobGrayCard + (blockCount === 'three' ? _mobGrayCard : '')) : oddsBlocks;
+    const _mobLockSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4a5068" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+    const _mobLockCell = '<div class="test-lock-cell test-lock-mob">' + _mobLockSvg + '</div>';
+    const _mwGrayRow = _mTestBlur ? (_mobLockCell + _mobLockCell + (blockCount === 'three' ? _mobLockCell : '')) : oddsBlocks;
     return `
         <div class="match-card odds-card moneyway-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             ${_mobileFavLine(_mk, _isFav, _fc)}
             <div class="odds-card-header">
                 <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
-                <div class="odds-card-volume">${_mTestBlur ? _mobGrayVol : volume}</div>
+                <div class="odds-card-volume">${volume}</div>
             </div>
             <div class="odds-card-meta">
                 <span>${match.league || '-'}</span>
@@ -2171,15 +2173,15 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr, starHtml) {
     const _mk = _getMatchKey(match);
     const _isFav = _userFavorites.has(_mk);
     const _fc = _favCounts[_mk] || 0;
-    const _oddsGray = '<span class="test-gray-block" style="width:70px;height:62px;border-radius:8px;"></span>';
-    const _oddsGrayVol = '<span class="test-gray-block" style="width:44px;height:16px;"></span>';
-    const _oGrayRow = _oTestBlur ? (_oddsGray + _oddsGray + (blockCount === 'three' ? _oddsGray : '')) : oddsBlocks;
+    const _oddsLockSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4a5068" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+    const _oddsLockCell = '<div class="test-lock-cell test-lock-mob">' + _oddsLockSvg + '</div>';
+    const _oGrayRow = _oTestBlur ? (_oddsLockCell + _oddsLockCell + (blockCount === 'three' ? _oddsLockCell : '')) : oddsBlocks;
     return `
         <div class="match-card odds-card dropping-card" data-index="${idx}" onclick="openMatchModal(${idx})">
             ${_mobileFavLine(_mk, _isFav, _fc)}
             <div class="odds-card-header">
                 <div class="odds-card-teams">${match.home_team} – ${match.away_team}${liveCapsule || matchStatus}${starHtml || ''}</div>
-                <div class="odds-card-volume">${_oTestBlur ? _oddsGrayVol : volume}</div>
+                <div class="odds-card-volume">${volume}</div>
             </div>
             <div class="odds-card-meta">
                 <span>${match.league || '-'}</span>
@@ -11099,8 +11101,8 @@ function renderLiveMatches(matches, goalHashes) {
     var rowsHtml = '';
     var cardsHtml = '';
     var _isTestLive = (window.userPlan === 'test');
-    var _lgB = '<span class="test-gray-block" style="width:64px;height:56px;border-radius:6px;display:inline-block;"></span>';
-    var _lgV = '<span class="test-gray-block" style="width:44px;height:16px;display:inline-block;"></span>';
+    var _lgLockSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4a5068" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+    var _lgB = '<div class="test-lock-cell">' + _lgLockSvg + '</div>';
     for (var i = 0; i < sorted.length; i++) {
         var m = sorted[i];
         var o = m.odds || {};
@@ -11173,7 +11175,7 @@ function renderLiveMatches(matches, goalHashes) {
                 '<td class="match-league" title="' + escLiveHtml(m.league) + '">' + escLiveHtml(m.league) + '</td>' +
                 '<td class="match-teams">' + escLiveHtml(m.home_team) + '<span class="vs">-</span>' + escLiveHtml(m.away_team) + '</td>' +
                 '<td class="mw-outcomes-cell" colspan="3"><div class="mw-grid mw-grid-3">' + (_isTestLive ? (_lgB + _lgB + _lgB) : (b1 + bX + b2)) + '</div></td>' +
-                '<td class="volume-cell">' + (_isTestLive ? _lgV : formatLiveVol(vol)) + '</td></tr>';
+                '<td class="volume-cell">' + formatLiveVol(vol) + '</td></tr>';
             cardsHtml += _liveMobileCard(m, '1x2', onclickAttr, goalSide);
         } else {
             var ou = _liveGetOu(m, ouLine);
@@ -11208,7 +11210,7 @@ function renderLiveMatches(matches, goalHashes) {
                 '<td class="match-league" title="' + escLiveHtml(m.league) + '">' + escLiveHtml(m.league) + '</td>' +
                 '<td class="match-teams">' + escLiveHtml(m.home_team) + '<span class="vs">-</span>' + escLiveHtml(m.away_team) + '</td>' +
                 '<td class="mw-outcomes-cell" colspan="2"><div class="mw-grid mw-grid-2">' + (_isTestLive ? (_lgB + _lgB) : (bU + bO)) + '</div></td>' +
-                '<td class="volume-cell">' + (_isTestLive ? _lgV : formatLiveVol(volOU)) + '</td></tr>';
+                '<td class="volume-cell">' + formatLiveVol(volOU) + '</td></tr>';
             cardsHtml += _liveMobileCard(m, ouLine, onclickAttr, goalSide);
         }
     }
@@ -11355,16 +11357,16 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
         vol = _liveCalcVolOU(ou);
     }
     var _isTestLc = (window.userPlan === 'test');
-    var _lcGray = '<span class="test-gray-block" style="width:70px;height:62px;border-radius:8px;display:inline-block;"></span>';
-    var _lcGrayV = '<span class="test-gray-block" style="width:44px;height:16px;display:inline-block;"></span>';
-    html += '<div class="odds-card-volume">' + (_isTestLc ? _lcGrayV : formatLiveVol(vol)) + '</div>';
+    var _lcLockSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4a5068" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+    var _lcLock = '<div class="test-lock-cell test-lock-mob">' + _lcLockSvg + '</div>';
+    html += '<div class="odds-card-volume">' + formatLiveVol(vol) + '</div>';
     html += '</div>';
     html += '<div class="odds-card-meta"><span>' + escLiveHtml(m.league) + '</span>' + liveCapHtml + '</div>';
     if (is1x2) {
         var o = m.odds || {};
         html += '<div class="odds-card-row three">';
         if (_isTestLc) {
-            html += _lcGray + _lcGray + _lcGray;
+            html += _lcLock + _lcLock + _lcLock;
         } else {
             html += _liveMobileBlock('1', o['1'], vol);
             html += _liveMobileBlock('X', o['X'], vol);
@@ -11376,7 +11378,7 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
         var ouVol = _liveCalcVolOU(ouD);
         html += '<div class="odds-card-row two">';
         if (_isTestLc) {
-            html += _lcGray + _lcGray;
+            html += _lcLock + _lcLock;
         } else {
             html += _liveMobileBlock('Alt', ouD['U'], ouVol);
             html += _liveMobileBlock('Ust', ouD['O'], ouVol);
