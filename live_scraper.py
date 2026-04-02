@@ -315,8 +315,6 @@ def _enrich_fixtures_with_ss(all_fixtures: Dict[str, Dict], ss_data: Dict[str, D
                 continue
             if ko_diff >= 0 and ko_diff > 300:
                 continue
-            if league_sc >= 0 and league_sc < 0.50:
-                continue
             if combined > best_combined:
                 best_combined = combined
                 best_key = ss_full_key
