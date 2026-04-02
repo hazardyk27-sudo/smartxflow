@@ -9336,7 +9336,8 @@ def _initialize_server():
 
     if is_server_mode():
         start_server_scheduler()
-        start_cleanup_scheduler()
+        if not _is_production():
+            start_cleanup_scheduler()
         start_alarm_scheduler()
         print("[Init] Web-only mode - scraper/alarm managed by run_services.sh", flush=True)
 
@@ -9374,28 +9375,52 @@ def main():
                     def load(self):
                         return self.application
 
+                def _try_acquire_cleanup_lock(pid):
+                    lock_file = '/tmp/smartxflow_cleanup.lock'
+                    try:
+                        fd = os.open(lock_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                        os.write(fd, str(pid).encode())
+                        os.close(fd)
+                        return True
+                    except FileExistsError:
+                        try:
+                            with open(lock_file, 'r') as _lf:
+                                owner_pid = int(_lf.read().strip())
+                            try:
+                                os.kill(owner_pid, 0)
+                                return False
+                            except ProcessLookupError:
+                                os.remove(lock_file)
+                                return _try_acquire_cleanup_lock(pid)
+                        except Exception:
+                            return False
+                    except Exception:
+                        return False
+
                 def post_worker_init(worker):
                     import random as _rnd
                     delay = _rnd.uniform(0, 3)
                     print(f"[Gunicorn] Worker {worker.pid} started, warmup delay={delay:.1f}s...", flush=True)
                     time.sleep(delay)
-                    lock_file = '/tmp/smartxflow_cleanup.lock'
-                    try:
-                        fd = os.open(lock_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-                        os.write(fd, str(worker.pid).encode())
-                        os.close(fd)
+                    if _try_acquire_cleanup_lock(worker.pid):
                         print(f"[Gunicorn] Worker {worker.pid} acquired cleanup lock, starting scheduler...", flush=True)
                         start_cleanup_scheduler()
-                    except FileExistsError:
+                    else:
                         print(f"[Gunicorn] Worker {worker.pid} skipping cleanup scheduler (another worker owns it)", flush=True)
-                    except Exception as _e:
-                        print(f"[Gunicorn] Worker {worker.pid} cleanup lock error ({_e}), starting scheduler anyway...", flush=True)
-                        start_cleanup_scheduler()
                     print(f"[Gunicorn] Worker {worker.pid} triggering eager warmup...", flush=True)
                     trigger_app_warmup()
 
                 def worker_exit(server, worker):
                     print(f"[Gunicorn] Worker {worker.pid} exiting gracefully...", flush=True)
+                    lock_file = '/tmp/smartxflow_cleanup.lock'
+                    try:
+                        with open(lock_file, 'r') as _lf:
+                            owner_pid = int(_lf.read().strip())
+                        if owner_pid == worker.pid:
+                            os.remove(lock_file)
+                            print(f"[Gunicorn] Worker {worker.pid} released cleanup lock", flush=True)
+                    except Exception:
+                        pass
 
                 options = {
                     'bind': f'{host}:{port}',
