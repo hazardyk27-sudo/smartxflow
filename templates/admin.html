@@ -3187,7 +3187,18 @@
                         <h3 style="color: #c9d1d9; margin: 0;">Ücretsiz Maç Seçimi</h3>
                         <span id="freeMatchCount" style="background: #21262d; border: 1px solid #30363d; border-radius: 12px; padding: 4px 12px; color: #8b949e; font-size: 13px;">0 / 5</span>
                     </div>
-                    <p style="color: #8b949e; font-size: 13px; margin-bottom: 16px;">Test modundaki kullanıcılara gösterilecek ücretsiz maçları seçin. Hiç seçilmezse otomatik (hacim bazlı) seçim devam eder.</p>
+                    <p style="color: #8b949e; font-size: 13px; margin-bottom: 12px;">Test modundaki kullanıcılara gösterilecek ücretsiz maçları seçin. Hiç seçilmezse otomatik (hacim bazlı) seçim devam eder.</p>
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px;">
+                        <span style="color: #8b949e; font-size: 13px;">Otomatik modda gösterilecek maç sayısı:</span>
+                        <select id="freeMatchCount_auto" onchange="document.getElementById('freeMatchSaveStatus').textContent=''" style="background: #21262d; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9; padding: 4px 8px; font-size: 13px;">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3" selected>3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                        <span style="color: #484f58; font-size: 12px;">(maç seçilmediğinde geçerli)</span>
+                    </div>
                     <div style="position: relative; margin-bottom: 12px;">
                         <input type="text" id="freeMatchSearchInput" placeholder="Maç ara... (ör: Galatasaray, Premier League)" autocomplete="off" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; width: 100%; box-sizing: border-box;">
                         <div id="freeMatchDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 280px; overflow-y: auto; background: #161b22; border: 1px solid #30363d; border-top: none; border-radius: 0 0 6px 6px; z-index: 100;"></div>
@@ -7949,6 +7960,8 @@
                     home: (data.teams && data.teams[i]) ? data.teams[i].home : '',
                     away: (data.teams && data.teams[i]) ? data.teams[i].away : ''
                 }));
+                const sel = document.getElementById('freeMatchCount_auto');
+                if (sel && data.free_count) sel.value = String(data.free_count);
             } catch (e) {
                 _freeMatchSelected = [];
             }
@@ -8046,9 +8059,12 @@
             status.style.color = '#8b949e';
             status.textContent = 'Kaydediliyor...';
             try {
+                const countSel = document.getElementById('freeMatchCount_auto');
+                const free_count = countSel ? parseInt(countSel.value) : 3;
                 const payload = {
                     hashes: _freeMatchSelected.map(m => m.hash),
-                    teams: _freeMatchSelected.map(m => ({ home: m.home, away: m.away }))
+                    teams: _freeMatchSelected.map(m => ({ home: m.home, away: m.away })),
+                    free_count: free_count
                 };
                 const resp = await fetch('/api/admin/free-matches-config', {
                     method: 'POST',

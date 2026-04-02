@@ -6914,10 +6914,11 @@ def set_free_matches_config():
     data = request.get_json() or {}
     hashes = data.get('hashes', [])[:5]
     teams = data.get('teams', [])[:5]
-    config = {'hashes': hashes, 'teams': teams}
+    free_count = min(max(int(data.get('free_count', 3)), 0), 5)
+    config = {'hashes': hashes, 'teams': teams, 'free_count': free_count}
     if save_free_matches_config(config):
         free_matches_config = config
-        return jsonify({'success': True, 'count': len(hashes)})
+        return jsonify({'success': True, 'count': len(hashes), 'free_count': free_count})
     return jsonify({'success': False, 'error': 'Kayıt hatası'}), 500
 
 
@@ -8264,11 +8265,12 @@ def get_free_matches():
                 v_str = odds.get('Volume', '0')
                 vol_map[h] = _parse_vol(v_str)
                 team_map[h] = {'home': m.get('home_team', ''), 'away': m.get('away_team', '')}
+        free_count = min(max(int(free_matches_config.get('free_count', 3)), 0), 5)
         sorted_matches = sorted(vol_map.items(), key=lambda x: x[1], reverse=True)
-        top3 = [h for h, v in sorted_matches[:3]]
-        teams = [team_map.get(h, {}) for h in top3]
-        print(f"[TestFree] Top 3 hashes (volume-based): {top3}")
-        return jsonify({'hashes': top3, 'teams': teams})
+        top_hashes = [h for h, v in sorted_matches[:free_count]]
+        teams = [team_map.get(h, {}) for h in top_hashes]
+        print(f"[TestFree] Top {free_count} hashes (volume-based): {top_hashes}")
+        return jsonify({'hashes': top_hashes, 'teams': teams})
     except Exception as e:
         print(f"[API] /api/test/free-matches hata: {e}")
         return jsonify({'hashes': [], 'teams': []})
