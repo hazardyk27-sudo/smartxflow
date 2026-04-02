@@ -9375,8 +9375,22 @@ def main():
                         return self.application
 
                 def post_worker_init(worker):
-                    print(f"[Gunicorn] Worker {worker.pid} started, initializing schedulers...", flush=True)
-                    start_cleanup_scheduler()
+                    import random as _rnd
+                    delay = _rnd.uniform(0, 3)
+                    print(f"[Gunicorn] Worker {worker.pid} started, warmup delay={delay:.1f}s...", flush=True)
+                    time.sleep(delay)
+                    lock_file = '/tmp/smartxflow_cleanup.lock'
+                    try:
+                        fd = os.open(lock_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                        os.write(fd, str(worker.pid).encode())
+                        os.close(fd)
+                        print(f"[Gunicorn] Worker {worker.pid} acquired cleanup lock, starting scheduler...", flush=True)
+                        start_cleanup_scheduler()
+                    except FileExistsError:
+                        print(f"[Gunicorn] Worker {worker.pid} skipping cleanup scheduler (another worker owns it)", flush=True)
+                    except Exception as _e:
+                        print(f"[Gunicorn] Worker {worker.pid} cleanup lock error ({_e}), starting scheduler anyway...", flush=True)
+                        start_cleanup_scheduler()
                     print(f"[Gunicorn] Worker {worker.pid} triggering eager warmup...", flush=True)
                     trigger_app_warmup()
 
@@ -9385,7 +9399,7 @@ def main():
 
                 options = {
                     'bind': f'{host}:{port}',
-                    'workers': 3,
+                    'workers': 2,
                     'threads': 4,
                     'timeout': 300,
                     'graceful_timeout': 30,

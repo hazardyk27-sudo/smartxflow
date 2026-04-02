@@ -1939,6 +1939,33 @@ class SupabaseClient:
             if table_count > 0:
                 deleted[table] = table_count
                 print(f"[Cleanup] Deleted {table_count} old records from {table}")
+
+        main_tables = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts',
+                       'dropping_1x2', 'dropping_ou25', 'dropping_btts']
+        for table in main_tables:
+            table_count = 0
+            for i in range(0, len(old_hashes), batch_size):
+                batch = old_hashes[i:i+batch_size]
+                hash_filter = ','.join(batch)
+                try:
+                    headers = self._headers()
+                    headers['Prefer'] = 'return=representation'
+                    url = f"{self._rest_url(table)}?match_id_hash=in.({hash_filter})"
+                    resp = httpx.delete(url, headers=headers, timeout=120)
+                    if resp.status_code == 200:
+                        try:
+                            deleted_rows = resp.json()
+                            count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
+                            table_count += count
+                        except:
+                            pass
+                    elif resp.status_code not in [204, 404]:
+                        print(f"[Cleanup] Error deleting from {table}: {resp.status_code}")
+                except Exception as e:
+                    print(f"[Cleanup] Exception for {table}: {e}")
+            if table_count > 0:
+                deleted[table] = table_count
+                print(f"[Cleanup] Deleted {table_count} old records from {table}")
         
         for fix_table in ['fixtures', 'live_fixtures']:
             fix_count = 0
