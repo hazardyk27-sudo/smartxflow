@@ -3000,7 +3000,10 @@ function applySorting(data) {
         const freeSet = new Set(window._testFreeHashes);
         const pinned = sortedData.filter(m => freeSet.has(m.match_id));
         const rest = sortedData.filter(m => !freeSet.has(m.match_id));
+        console.log('[PinTop] userPlan=test, freeHashes:', window._testFreeHashes, 'pinned count:', pinned.length);
         return [...pinned, ...rest];
+    } else {
+        console.log('[PinTop] SKIP - userPlan:', window.userPlan, '_testFreeHashes:', window._testFreeHashes);
     }
 
     return sortedData;
