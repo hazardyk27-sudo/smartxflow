@@ -2399,9 +2399,7 @@ def get_live_match_history():
 
 @app.route('/health')
 def health_check():
-    if _app_warmup_started and not _app_warmup_done.is_set():
-        return jsonify({'status': 'warming_up', 'timestamp': time.time()}), 503
-    return jsonify({'status': 'ok', 'timestamp': time.time()}), 200
+    return jsonify({'status': 'ok', 'ts': time.time()}), 200
 
 
 @app.route('/api/status')
