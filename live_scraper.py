@@ -188,6 +188,7 @@ def _fetch_sofascore_live() -> Dict[str, Dict]:
             kickoff_utc = ''
             if start_ts:
                 kickoff_utc = datetime.fromtimestamp(start_ts, tz=timezone.utc).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+            tournament_name = ev.get('tournament', {}).get('name', '')
             key = _normalize_team(home) + '|' + _normalize_team(away)
             result[key] = {
                 'score': score_str,
@@ -195,6 +196,7 @@ def _fetch_sofascore_live() -> Dict[str, Dict]:
                 'home': home,
                 'away': away,
                 'kickoff_utc': kickoff_utc,
+                'league': tournament_name,
             }
         log(f"  [Sofascore] {len(result)} canlı maç bulundu")
         return result
@@ -223,6 +225,17 @@ def _team_match_score(arb: str, fs: str) -> float:
         if len(fs_words) == 1 and fs_words[0] in arb_words:
             return 0.85
     return difflib.SequenceMatcher(None, arb, fs).ratio()
+
+
+def _kickoff_diff_seconds(ko1: str, ko2: str) -> int:
+    if not ko1 or not ko2:
+        return -1
+    try:
+        dt1 = datetime.fromisoformat(ko1)
+        dt2 = datetime.fromisoformat(ko2)
+        return abs(int((dt1 - dt2).total_seconds()))
+    except Exception:
+        return -1
 
 
 def _apply_sofascore_results(all_fixtures: Dict[str, Dict], ss_data: Dict[str, Dict]) -> int:
@@ -272,32 +285,51 @@ def _enrich_fixtures_with_ss(all_fixtures: Dict[str, Dict], ss_data: Dict[str, D
         arb_away = _normalize_team(fix.get('away_team', ''))
         if not arb_home or not arb_away:
             continue
+        bw_ko = fix.get('kickoff_utc', '')
+        bw_league = fix.get('league', '')
+        bw_league_norm = _normalize_team(bw_league) if bw_league else ''
         best_combined = 0.0
         best_key = None
+        best_ko_diff = -1
+        best_league_sc = 0.0
         top_candidates = []
         for ss_h, ss_a, ss_full_key in ss_entries:
             h_score = _team_match_score(arb_home, ss_h)
             a_score = _team_match_score(arb_away, ss_a)
             combined = (h_score + a_score) / 2
-            if combined > 0.30:
-                ssd_tmp = ss_data[ss_full_key]
-                top_candidates.append((combined, h_score, a_score, ss_full_key, ssd_tmp.get('home', ''), ssd_tmp.get('away', '')))
-            if h_score < 0.55 or a_score < 0.55:
+            ssd_tmp = ss_data[ss_full_key]
+            ss_ko = ssd_tmp.get('kickoff_utc', '')
+            ko_diff = _kickoff_diff_seconds(bw_ko, ss_ko)
+            ss_league = ssd_tmp.get('league', '')
+            ss_league_norm = _normalize_team(ss_league) if ss_league else ''
+            league_sc = _team_match_score(bw_league_norm, ss_league_norm) if bw_league_norm and ss_league_norm else -1.0
+            if combined > 0.20:
+                top_candidates.append((combined, h_score, a_score, ss_full_key,
+                                       ssd_tmp.get('home', ''), ssd_tmp.get('away', ''),
+                                       ko_diff, league_sc, ss_league[:25]))
+            if h_score < 0.40 or a_score < 0.40:
+                continue
+            if combined < 0.50:
+                continue
+            if ko_diff >= 0 and ko_diff > 300:
+                continue
+            if league_sc >= 0 and league_sc < 0.50:
                 continue
             if combined > best_combined:
                 best_combined = combined
                 best_key = ss_full_key
+                best_ko_diff = ko_diff
+                best_league_sc = league_sc
         top_candidates.sort(key=lambda x: x[0], reverse=True)
         top3 = top_candidates[:3]
         raw_home = fix.get('home_team', '?')[:25]
         raw_away = fix.get('away_team', '?')[:25]
-        if best_key and best_combined >= 0.70:
+        if best_key and best_combined >= 0.50:
             ssd = ss_data[best_key]
             arb_min_num = _minute_to_num(fix.get('minute', ''))
             ss_min_num = _minute_to_num(ssd.get('minute', ''))
             if arb_min_num >= 0 and ss_min_num >= 0 and abs(arb_min_num - ss_min_num) > 15:
-                log(f"  [MATCH-DBG] BW: \"{raw_home}\" vs \"{raw_away}\" (norm: \"{arb_home}\" vs \"{arb_away}\")")
-                log(f"  [MATCH-DBG]   → SKIP dk farkı: arb={arb_min_num} ss={ss_min_num} | SS: \"{ssd.get('home','')[:20]}\" vs \"{ssd.get('away','')[:20]}\" avg={best_combined:.2f}")
+                log(f"  [MATCH-DBG] BW: \"{raw_home}\" vs \"{raw_away}\" → SKIP dk farkı: arb={arb_min_num} ss={ss_min_num} avg={best_combined:.2f} ko_diff={best_ko_diff}s lig={best_league_sc:.2f}")
                 continue
             if ssd['score']:
                 fix['score'] = ssd['score']
@@ -312,20 +344,28 @@ def _enrich_fixtures_with_ss(all_fixtures: Dict[str, Dict], ss_data: Dict[str, D
             enriched += 1
         else:
             bw_miss_count += 1
-            log(f"  [MATCH-DBG] BW: \"{raw_home}\" vs \"{raw_away}\" (norm: \"{arb_home}\" vs \"{arb_away}\")")
+            log(f"  [MATCH-DBG] BW: \"{raw_home}\" vs \"{raw_away}\" lig=\"{bw_league[:30]}\" ko={bw_ko[-8:]}")
             if not top3:
-                log(f"  [MATCH-DBG]   → Eşleşme YOK — hiç aday yok (SS'de benzer takım bulunamadı)")
+                log(f"  [MATCH-DBG]   → Eşleşme YOK — hiç aday yok")
             else:
-                for i, (comb, hs, as_, sk, sh, sa) in enumerate(top3):
+                for i, (comb, hs, as_, sk, sh, sa, kd, lsc, sl) in enumerate(top3):
                     fail_reason = []
-                    if hs < 0.55:
-                        fail_reason.append(f"home<0.55")
-                    if as_ < 0.55:
-                        fail_reason.append(f"away<0.55")
-                    if comb < 0.70:
-                        fail_reason.append(f"avg<0.70")
+                    if hs < 0.40:
+                        fail_reason.append(f"h<0.40")
+                    if as_ < 0.40:
+                        fail_reason.append(f"a<0.40")
+                    if comb < 0.50:
+                        fail_reason.append(f"avg<0.50")
+                    if kd >= 0 and kd > 300:
+                        fail_reason.append(f"ko>{kd}s")
+                    elif kd < 0:
+                        fail_reason.append(f"ko=?")
+                    if lsc >= 0 and lsc < 0.50:
+                        fail_reason.append(f"lig={lsc:.2f}<0.50")
+                    elif lsc < 0:
+                        fail_reason.append(f"lig=?")
                     reason_str = ', '.join(fail_reason) if fail_reason else "OK"
-                    log(f"  [MATCH-DBG]   Aday{i+1}: SS \"{sh[:20]}\" vs \"{sa[:20]}\" h={hs:.2f} a={as_:.2f} avg={comb:.2f} — {reason_str}")
+                    log(f"  [MATCH-DBG]   Aday{i+1}: \"{sh[:20]}\" vs \"{sa[:20]}\" h={hs:.2f} a={as_:.2f} avg={comb:.2f} ko_diff={kd}s lig={lsc:.2f}(\"{sl[:20]}\") — {reason_str}")
                 log(f"  [MATCH-DBG]   → Eşleşme YOK (en iyi avg={best_combined:.2f})")
     ss_only_count = 0
     for sk, sv in ss_data.items():
@@ -334,7 +374,8 @@ def _enrich_fixtures_with_ss(all_fixtures: Dict[str, Dict], ss_data: Dict[str, D
             ss_home = sv.get('home', '?')[:25]
             ss_away = sv.get('away', '?')[:25]
             ss_min = sv.get('minute', '?')
-            log(f"  [MATCH-DBG] SS-ONLY: \"{ss_home}\" vs \"{ss_away}\" dk={ss_min} — Betwatch'ta yok")
+            ss_lg = sv.get('league', '?')[:25]
+            log(f"  [MATCH-DBG] SS-ONLY: \"{ss_home}\" vs \"{ss_away}\" dk={ss_min} lig=\"{ss_lg}\"")
     log(f"  [MATCH ÖZET] BW: {len(all_fixtures)} | SS: {len(ss_data)} | Eşleşen: {enriched} | BW-miss: {bw_miss_count} | SS-only: {ss_only_count}")
     return enriched
 
@@ -718,7 +759,7 @@ def _process_betwatch_data(bw_result: dict, now_utc: str, today_str: str) -> tup
         if not home or not away:
             continue
         h = make_live_match_hash(home, away, league)
-        ko_utc = _betwatch_ko_to_utc(entry.get('ce', ''), now_utc)
+        ko_utc = _betwatch_ko_to_utc(entry.get('ce', ''), '')
         all_fixtures[h] = {
             "match_id_hash": h,
             "home_team": home[:100],
@@ -765,7 +806,7 @@ def _process_betwatch_data(bw_result: dict, now_utc: str, today_str: str) -> tup
             continue
         h = make_live_match_hash(home, away, league)
         if h not in all_fixtures:
-            ko_utc = _betwatch_ko_to_utc(entry.get('ce', ''), now_utc)
+            ko_utc = _betwatch_ko_to_utc(entry.get('ce', ''), '')
             all_fixtures[h] = {
                 "match_id_hash": h,
                 "home_team": home[:100],
@@ -989,6 +1030,9 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
             if db_home and db_away and sofa_result:
                 norm_h = _normalize_team(db_home)
                 norm_a = _normalize_team(db_away)
+                db_league = db_fix.get('league', '')
+                db_league_norm = _normalize_team(db_league) if db_league else ''
+                db_ko = db_fix.get('kickoff_utc', '')
                 best_score = 0
                 best_minute = ''
                 best_ss_home = ''
@@ -999,13 +1043,25 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                     ss_a = parts[1] if len(parts) > 1 else ''
                     h_sc = _team_match_score(norm_h, ss_h)
                     a_sc = _team_match_score(norm_a, ss_a)
-                    if h_sc >= 0.55 and a_sc >= 0.55:
-                        combined = (h_sc + a_sc) / 2
-                        if combined >= 0.70 and combined > best_score:
-                            best_score = combined
-                            best_minute = sv.get('minute', '')
-                            best_ss_home = sv.get('home', '')[:20]
-                            best_ss_away = sv.get('away', '')[:20]
+                    if h_sc < 0.40 or a_sc < 0.40:
+                        continue
+                    combined = (h_sc + a_sc) / 2
+                    if combined < 0.50:
+                        continue
+                    ss_ko = sv.get('kickoff_utc', '')
+                    ko_diff = _kickoff_diff_seconds(db_ko, ss_ko)
+                    if ko_diff >= 0 and ko_diff > 300:
+                        continue
+                    ss_league = sv.get('league', '')
+                    ss_league_norm = _normalize_team(ss_league) if ss_league else ''
+                    league_sc = _team_match_score(db_league_norm, ss_league_norm) if db_league_norm and ss_league_norm else -1.0
+                    if league_sc >= 0 and league_sc < 0.50:
+                        continue
+                    if combined > best_score:
+                        best_score = combined
+                        best_minute = sv.get('minute', '')
+                        best_ss_home = sv.get('home', '')[:20]
+                        best_ss_away = sv.get('away', '')[:20]
                 if best_score > 0 and best_minute and best_minute not in ('FT', 'AET', 'PEN'):
                     ss_protected.append(h)
                     log(f"  [SS-KORUMA-DBG] \"{db_home[:20]}\" vs \"{db_away[:20]}\" → SS: \"{best_ss_home}\" vs \"{best_ss_away}\" avg={best_score:.2f} dk={best_minute} — KORUMA")
