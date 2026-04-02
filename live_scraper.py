@@ -300,6 +300,11 @@ def _enrich_fixtures_with_ss(all_fixtures: Dict[str, Dict], ss_data: Dict[str, D
             if ssd.get('kickoff_utc'):
                 fix['kickoff_utc'] = ssd['kickoff_utc']
             enriched += 1
+        else:
+            unmatched_home = fix.get('home_team', '?')[:20]
+            unmatched_away = fix.get('away_team', '?')[:20]
+            best_info = f"en iyi skor={best_combined:.2f}" if best_combined > 0 else "hiç aday yok"
+            log(f"  [Sofascore MISS] {unmatched_home} vs {unmatched_away} | {best_info}")
     log(f"  [Sofascore] {enriched}/{len(all_fixtures)} maç eşleşti")
     return enriched
 
@@ -477,6 +482,28 @@ class LiveSupabaseWriter:
             return []
         except Exception:
             return []
+
+    def unmark_ft(self, hashes: List[str], fixtures_data: Dict[str, Dict]) -> int:
+        if not hashes:
+            return 0
+        now_utc = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        recovered = 0
+        headers = self._headers()
+        for h in hashes:
+            try:
+                fix = fixtures_data.get(h, {})
+                url = f"{self._rest_url('live_fixtures')}?match_id_hash=eq.{h}"
+                patch = {"status": "live", "updated_at": now_utc}
+                if fix.get('minute'):
+                    patch['minute'] = fix['minute']
+                if fix.get('score'):
+                    patch['score'] = fix['score']
+                resp = requests.patch(url, headers=headers, json=patch, timeout=10, verify=SSL_VERIFY)
+                if resp.status_code in [200, 204]:
+                    recovered += 1
+            except Exception:
+                pass
+        return recovered
 
     def mark_fixtures_finished(self, hashes: List[str], final_scores: Dict[str, str] = None) -> int:
         if not hashes:
@@ -804,6 +831,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
         _apply_sofascore_results(all_fixtures, sofa_result)
         now_dt = datetime.now(timezone.utc)
         auto_ft_count = 0
+        auto_ft_skipped = 0
         for h, fix in all_fixtures.items():
             if fix.get('status') == 'ft':
                 continue
@@ -813,6 +841,10 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                     ko_time = datetime.fromisoformat(ko_str)
                     diff_min = (now_dt - ko_time).total_seconds() / 60
                     if diff_min >= 120:
+                        fix_min = fix.get('minute', '')
+                        if fix_min and fix_min not in ('FT', 'MS', 'AET', 'PEN'):
+                            auto_ft_skipped += 1
+                            continue
                         fix['status'] = 'ft'
                         if not fix.get('minute') or fix['minute'] not in ('FT', 'MS', 'AET', 'PEN'):
                             fix['minute'] = 'FT'
@@ -821,14 +853,27 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                     pass
         if auto_ft_count:
             log(f"  [AUTO-FT] {auto_ft_count} maç 120+ dk geçtiği için otomatik FT yapıldı")
+        if auto_ft_skipped:
+            log(f"  [AUTO-FT SKIP] {auto_ft_skipped} maç 120+ dk ama Sofascore'da hâlâ aktif")
         already_ft = writer.get_ft_fixture_hashes()
         ft_skipped = 0
+        ft_recovered = []
         fixtures_list = []
         for h, fix in all_fixtures.items():
             if h in already_ft and fix.get('status') != 'ft':
-                ft_skipped += 1
-                continue
-            fixtures_list.append(fix)
+                fix_minute = fix.get('minute', '')
+                if fix_minute and fix_minute not in ('FT', 'MS', 'AET', 'PEN'):
+                    ft_recovered.append(h)
+                    log(f"  [FT-RECOVERY] {fix.get('home_team','')[:20]} vs {fix.get('away_team','')[:20]} | dk={fix_minute} skor={fix.get('score','')} | FT geri alınıyor")
+                    fixtures_list.append(fix)
+                else:
+                    ft_skipped += 1
+                    continue
+            else:
+                fixtures_list.append(fix)
+        if ft_recovered:
+            recovered_count = writer.unmark_ft(ft_recovered, all_fixtures)
+            log(f"  [FT-RECOVERY] {recovered_count}/{len(ft_recovered)} maç FT'den live'a döndürüldü")
         if ft_skipped:
             log(f"  [SKIP] {ft_skipped} zaten FT olan maç atlandı")
         if fixtures_list:
@@ -881,6 +926,12 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
         now_dt = datetime.now(timezone.utc)
         stale_hashes = []
         skipped_early = []
+        ss_protected = []
+        existing_fixtures_data = {}
+        if existing_live_info:
+            db_fixes = writer.get_fixtures_by_hashes(list(existing_live_info.keys()))
+            for df in db_fixes:
+                existing_fixtures_data[df['match_id_hash']] = df
         for h, ko_str in existing_live_info.items():
             if h in current_hashes:
                 continue
@@ -891,10 +942,34 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                     elapsed_min = (now_dt - ko_time).total_seconds() / 60
                 except Exception:
                     pass
-            if elapsed_min >= 89:
-                stale_hashes.append(h)
-            else:
+            if elapsed_min < 89:
                 skipped_early.append((h, elapsed_min))
+                continue
+            db_fix = existing_fixtures_data.get(h, {})
+            db_home = db_fix.get('home_team', '')
+            db_away = db_fix.get('away_team', '')
+            if db_home and db_away and sofa_result:
+                norm_h = _normalize_team(db_home)
+                norm_a = _normalize_team(db_away)
+                best_score = 0
+                best_minute = ''
+                for sk, sv in sofa_result.items():
+                    parts = sk.split('|')
+                    ss_h = parts[0]
+                    ss_a = parts[1] if len(parts) > 1 else ''
+                    h_sc = _team_match_score(norm_h, ss_h)
+                    a_sc = _team_match_score(norm_a, ss_a)
+                    if h_sc >= 0.55 and a_sc >= 0.55:
+                        combined = (h_sc + a_sc) / 2
+                        if combined >= 0.70 and combined > best_score:
+                            best_score = combined
+                            best_minute = sv.get('minute', '')
+                if best_score > 0 and best_minute and best_minute not in ('FT', 'AET', 'PEN'):
+                    ss_protected.append(h)
+                    continue
+            stale_hashes.append(h)
+        if ss_protected:
+            log(f"  [SS-KORUMA] {len(ss_protected)} maç Sofascore'da hâlâ devam ediyor, FT yapılmadı")
         if skipped_early:
             log(f"  [KORUMA] {len(skipped_early)} maç erken FT'den korundu (89 dk dolmadı):")
             for h, em in skipped_early:
