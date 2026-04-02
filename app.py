@@ -6914,7 +6914,10 @@ def set_free_matches_config():
     data = request.get_json() or {}
     hashes = data.get('hashes', [])[:5]
     teams = data.get('teams', [])[:5]
-    free_count = min(max(int(data.get('free_count', 3)), 0), 5)
+    try:
+        free_count = min(max(int(data.get('free_count', 3)), 0), 5)
+    except (TypeError, ValueError):
+        free_count = 3
     config = {'hashes': hashes, 'teams': teams, 'free_count': free_count}
     if save_free_matches_config(config):
         free_matches_config = config
