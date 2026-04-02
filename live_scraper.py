@@ -187,7 +187,9 @@ def _fetch_sofascore_live() -> Dict[str, Dict]:
             start_ts = ev.get('startTimestamp', 0)
             kickoff_utc = ''
             if start_ts:
-                kickoff_utc = datetime.fromtimestamp(start_ts, tz=timezone.utc).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+                utc_dt = datetime.fromtimestamp(start_ts, tz=timezone.utc)
+                tr_dt = utc_dt + timedelta(hours=3)
+                kickoff_utc = tr_dt.strftime('%Y-%m-%dT%H:%M:%S+03:00')
             tournament_name = ev.get('tournament', {}).get('name', '')
             key = _normalize_team(home) + '|' + _normalize_team(away)
             result[key] = {
@@ -635,18 +637,18 @@ def update_heartbeat(supabase_url: str, supabase_key: str, status: str, match_co
 
 
 def _betwatch_ko_to_utc(ce_val: str, fallback: str) -> str:
-    """Betwatch'ın utc=3 parametresiyle döndürdüğü kickoff zamanını gerçek UTC'ye çevirir."""
+    """Betwatch'ın UTC kickoff zamanını UTC+3'e çevirir (uygulama TR saatiyle çalışır)."""
     if not ce_val:
         return fallback
     try:
         if ce_val.endswith('Z'):
-            tr_time = datetime.fromisoformat(ce_val.replace('Z', '+00:00'))
-            real_utc = tr_time - timedelta(hours=3)
-            return real_utc.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+            utc_time = datetime.fromisoformat(ce_val.replace('Z', '+00:00'))
+            tr_time = utc_time + timedelta(hours=3)
+            return tr_time.strftime('%Y-%m-%dT%H:%M:%S+03:00')
         dt = datetime.fromisoformat(ce_val)
         if dt.tzinfo is None:
-            real_utc = dt - timedelta(hours=3)
-            return real_utc.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+            tr_time = dt + timedelta(hours=3)
+            return tr_time.strftime('%Y-%m-%dT%H:%M:%S+03:00')
         return ce_val
     except Exception:
         return fallback
@@ -761,8 +763,6 @@ def _process_betwatch_data(bw_result: dict, now_utc: str, today_str: str) -> tup
         h = make_live_match_hash(home, away, league)
         raw_ce = entry.get('ce', '')
         ko_utc = _betwatch_ko_to_utc(raw_ce, '')
-        if raw_ce:
-            log(f"  [KO-DBG] {home[:20]} vs {away[:20]} | raw_ce={raw_ce} → ko_utc={ko_utc}")
         all_fixtures[h] = {
             "match_id_hash": h,
             "home_team": home[:100],
