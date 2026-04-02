@@ -3108,9 +3108,10 @@
             <div style="display: flex; gap: 8px; margin-bottom: 24px;">
                 <button class="btn btn-primary" id="contentTabAnalysis" onclick="switchContentTab('analysis')" style="padding: 8px 16px;">Analizler</button>
                 <button class="btn" id="contentTabMoves" onclick="switchContentTab('moves')" style="padding: 8px 16px; background: #21262d; border: 1px solid #30363d; color: #c9d1d9;">Kılavuz</button>
+                <button class="btn" id="contentTabFree" onclick="switchContentTab('free')" style="padding: 8px 16px; background: #21262d; border: 1px solid #30363d; color: #c9d1d9;">Ücretsiz Maçlar</button>
             </div>
             
-            <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+            <div id="contentFormSection" style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
                 <h3 style="margin-bottom: 16px; color: #c9d1d9;" id="contentFormTitle">Yeni Analiz Ekle</h3>
                 <div id="contentFormFields" style="display: flex; flex-direction: column; gap: 12px;">
                     <div id="movesFieldsGroup" style="display: none;">
@@ -3178,6 +3179,26 @@
             
             <div id="contentList" style="display: flex; flex-direction: column; gap: 12px;">
                 <div style="text-align: center; color: #8b949e; padding: 40px;">Yükleniyor...</div>
+            </div>
+
+            <div id="freeMatchesPanel" style="display: none;">
+                <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h3 style="color: #c9d1d9; margin: 0;">Ücretsiz Maç Seçimi</h3>
+                        <span id="freeMatchCount" style="background: #21262d; border: 1px solid #30363d; border-radius: 12px; padding: 4px 12px; color: #8b949e; font-size: 13px;">0 / 5</span>
+                    </div>
+                    <p style="color: #8b949e; font-size: 13px; margin-bottom: 16px;">Test modundaki kullanıcılara gösterilecek ücretsiz maçları seçin. Hiç seçilmezse otomatik (hacim bazlı) seçim devam eder.</p>
+                    <div style="position: relative; margin-bottom: 12px;">
+                        <input type="text" id="freeMatchSearchInput" placeholder="Maç ara... (ör: Galatasaray, Premier League)" autocomplete="off" style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; width: 100%; box-sizing: border-box;">
+                        <div id="freeMatchDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 280px; overflow-y: auto; background: #161b22; border: 1px solid #30363d; border-top: none; border-radius: 0 0 6px 6px; z-index: 100;"></div>
+                    </div>
+                    <div id="freeMatchSelectedList" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;"></div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button class="btn btn-primary" onclick="saveFreeMatchesConfig()" style="padding: 10px 24px;">Kaydet</button>
+                        <button class="btn" onclick="clearAllFreeMatches()" style="padding: 10px 16px; background: #21262d; border: 1px solid #30363d; color: #8b949e;">Tümünü Temizle</button>
+                        <span id="freeMatchSaveStatus" style="font-size: 13px; margin-left: 8px;"></span>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
@@ -7883,24 +7904,170 @@
             currentContentTab = tab;
             const btnA = document.getElementById('contentTabAnalysis');
             const btnM = document.getElementById('contentTabMoves');
+            const btnF = document.getElementById('contentTabFree');
+            const isFree = tab === 'free';
             btnA.style.background = tab === 'analysis' ? '#238636' : '#21262d';
             btnA.style.color = tab === 'analysis' ? '#fff' : '#c9d1d9';
             btnA.style.border = tab === 'analysis' ? '1px solid #238636' : '1px solid #30363d';
             btnM.style.background = tab === 'moves' ? '#238636' : '#21262d';
             btnM.style.color = tab === 'moves' ? '#fff' : '#c9d1d9';
             btnM.style.border = tab === 'moves' ? '1px solid #238636' : '1px solid #30363d';
-            document.getElementById('movesFieldsGroup').style.display = tab === 'moves' ? 'block' : 'none';
-            document.getElementById('analysisFieldsGroup').style.display = tab === 'moves' ? 'none' : 'block';
-            document.getElementById('analysisOddsGroup').style.display = tab === 'moves' ? 'none' : 'flex';
-            document.getElementById('analysisAnalystGroup').style.display = tab === 'moves' ? 'none' : 'block';
-            document.getElementById('contentFormTitle').textContent = tab === 'analysis' ? 'Yeni Analiz Ekle' : 'Yeni Kılavuz İçeriği Ekle';
-            if (tab === 'analysis') loadAnalystDropdown();
-            cancelEdit();
-            loadContentList();
+            btnF.style.background = isFree ? '#238636' : '#21262d';
+            btnF.style.color = isFree ? '#fff' : '#c9d1d9';
+            btnF.style.border = isFree ? '1px solid #238636' : '1px solid #30363d';
+            const contentForm = document.getElementById('contentFormSection');
+            if (contentForm) contentForm.style.display = isFree ? 'none' : 'block';
+            document.getElementById('contentList').style.display = isFree ? 'none' : 'flex';
+            document.getElementById('freeMatchesPanel').style.display = isFree ? 'block' : 'none';
+            if (!isFree) {
+                document.getElementById('movesFieldsGroup').style.display = tab === 'moves' ? 'block' : 'none';
+                document.getElementById('analysisFieldsGroup').style.display = tab === 'moves' ? 'none' : 'block';
+                document.getElementById('analysisOddsGroup').style.display = tab === 'moves' ? 'none' : 'flex';
+                document.getElementById('analysisAnalystGroup').style.display = tab === 'moves' ? 'none' : 'block';
+                document.getElementById('contentFormTitle').textContent = tab === 'analysis' ? 'Yeni Analiz Ekle' : 'Yeni Kılavuz İçeriği Ekle';
+                if (tab === 'analysis') loadAnalystDropdown();
+                cancelEdit();
+                loadContentList();
+            } else {
+                loadFreeMatchesConfig();
+            }
         }
 
         async function loadContentPage() {
             switchContentTab('analysis');
+        }
+
+        let _freeMatchAllMatches = [];
+        let _freeMatchSelected = [];
+
+        async function loadFreeMatchesConfig() {
+            try {
+                const resp = await fetch('/api/admin/free-matches-config');
+                const data = await resp.json();
+                _freeMatchSelected = (data.hashes || []).map((h, i) => ({
+                    hash: h,
+                    home: (data.teams && data.teams[i]) ? data.teams[i].home : '',
+                    away: (data.teams && data.teams[i]) ? data.teams[i].away : ''
+                }));
+            } catch (e) {
+                _freeMatchSelected = [];
+            }
+            if (!_freeMatchAllMatches.length) await fetchFreeMatchAllMatches();
+            renderFreeMatchSelected();
+            setupFreeMatchSearch();
+        }
+
+        async function fetchFreeMatchAllMatches() {
+            try {
+                const resp = await fetch('/api/admin/matches-for-dropdown');
+                const data = await resp.json();
+                _freeMatchAllMatches = data.matches || [];
+            } catch (e) {
+                _freeMatchAllMatches = [];
+            }
+        }
+
+        function renderFreeMatchSelected() {
+            const list = document.getElementById('freeMatchSelectedList');
+            const counter = document.getElementById('freeMatchCount');
+            counter.textContent = `${_freeMatchSelected.length} / 5`;
+            counter.style.color = _freeMatchSelected.length >= 5 ? '#f85149' : '#3fb950';
+            if (_freeMatchSelected.length === 0) {
+                list.innerHTML = '<div style="color: #484f58; font-size: 13px; padding: 8px 0;">Henüz maç seçilmedi — otomatik (hacim bazlı) mod aktif</div>';
+                return;
+            }
+            list.innerHTML = _freeMatchSelected.map((m, idx) => `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: #0d1117; border: 1px solid #238636; border-radius: 6px; padding: 10px 14px;">
+                    <span style="color: #3fb950; font-size: 13px; font-weight: 500;">${escapeHtml(m.home)} vs ${escapeHtml(m.away)}</span>
+                    <button type="button" onclick="removeFreeMatch(${idx})" style="background: none; border: none; color: #f85149; cursor: pointer; font-size: 18px; padding: 0 4px; line-height: 1;">&times;</button>
+                </div>
+            `).join('');
+        }
+
+        function setupFreeMatchSearch() {
+            const input = document.getElementById('freeMatchSearchInput');
+            const dropdown = document.getElementById('freeMatchDropdown');
+            if (input._freeSearchBound) return;
+            input._freeSearchBound = true;
+            input.addEventListener('input', function() {
+                const q = this.value.trim().toLowerCase();
+                if (!q) { dropdown.style.display = 'none'; return; }
+                const filtered = _freeMatchAllMatches.filter(m =>
+                    (m.home_team + ' ' + m.away_team + ' ' + m.league).toLowerCase().includes(q)
+                ).slice(0, 20);
+                if (!filtered.length) { dropdown.style.display = 'none'; return; }
+                dropdown.innerHTML = filtered.map(m => `
+                    <div onclick="addFreeMatch('${m.match_id}', '${escapeHtml(m.home_team).replace(/'/g,"\\'")}', '${escapeHtml(m.away_team).replace(/'/g,"\\'")}', this)"
+                         style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #21262d; color: #c9d1d9; font-size: 13px;"
+                         onmouseover="this.style.background='#21262d'" onmouseout="this.style.background=''">
+                        <span style="font-weight: 500;">${escapeHtml(m.home_team)} vs ${escapeHtml(m.away_team)}</span>
+                        <span style="color: #484f58; margin-left: 8px; font-size: 12px;">${escapeHtml(m.league)}</span>
+                    </div>
+                `).join('');
+                dropdown.style.display = 'block';
+            });
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        }
+
+        function addFreeMatch(hash, home, away, el) {
+            if (_freeMatchSelected.length >= 5) {
+                showToast('En fazla 5 maç seçilebilir', 'error');
+                return;
+            }
+            if (_freeMatchSelected.find(m => m.hash === hash)) {
+                showToast('Bu maç zaten seçili', 'warning');
+                return;
+            }
+            _freeMatchSelected.push({ hash, home, away });
+            document.getElementById('freeMatchSearchInput').value = '';
+            document.getElementById('freeMatchDropdown').style.display = 'none';
+            document.getElementById('freeMatchSaveStatus').textContent = '';
+            renderFreeMatchSelected();
+        }
+
+        function removeFreeMatch(idx) {
+            _freeMatchSelected.splice(idx, 1);
+            document.getElementById('freeMatchSaveStatus').textContent = '';
+            renderFreeMatchSelected();
+        }
+
+        function clearAllFreeMatches() {
+            _freeMatchSelected = [];
+            document.getElementById('freeMatchSaveStatus').textContent = '';
+            renderFreeMatchSelected();
+        }
+
+        async function saveFreeMatchesConfig() {
+            const status = document.getElementById('freeMatchSaveStatus');
+            status.style.color = '#8b949e';
+            status.textContent = 'Kaydediliyor...';
+            try {
+                const payload = {
+                    hashes: _freeMatchSelected.map(m => m.hash),
+                    teams: _freeMatchSelected.map(m => ({ home: m.home, away: m.away }))
+                };
+                const resp = await fetch('/api/admin/free-matches-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    status.style.color = '#3fb950';
+                    status.textContent = `${data.count} maç kaydedildi`;
+                    showToast('Ücretsiz maçlar kaydedildi', 'success');
+                } else {
+                    status.style.color = '#f85149';
+                    status.textContent = data.error || 'Hata oluştu';
+                }
+            } catch (e) {
+                status.style.color = '#f85149';
+                status.textContent = 'Bağlantı hatası';
+            }
         }
 
         async function loadContentList() {

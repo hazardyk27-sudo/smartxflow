@@ -3360,6 +3360,32 @@ dropping_config = load_dropping_config()
 dropping_alarms = load_dropping_alarms_from_file()
 
 
+FREE_MATCHES_CONFIG_FILE = 'free_matches_config.json'
+
+def load_free_matches_config():
+    try:
+        if os.path.exists(FREE_MATCHES_CONFIG_FILE):
+            with open(FREE_MATCHES_CONFIG_FILE, 'r') as f:
+                data = json.load(f)
+                print(f"[FreeMatches] Config loaded: {len(data.get('hashes', []))} maç seçili")
+                return data
+    except Exception as e:
+        print(f"[FreeMatches] Config load error: {e}")
+    return {'hashes': [], 'teams': []}
+
+def save_free_matches_config(data):
+    try:
+        with open(FREE_MATCHES_CONFIG_FILE, 'w') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        print(f"[FreeMatches] Config saved: {len(data.get('hashes', []))} maç")
+        return True
+    except Exception as e:
+        print(f"[FreeMatches] Config save error: {e}")
+        return False
+
+free_matches_config = load_free_matches_config()
+
+
 @app.route('/api/dropping/config', methods=['GET'])
 def get_dropping_config():
     """Get Dropping Alert config with default fallback"""
@@ -6871,6 +6897,30 @@ def admin_matches_for_dropdown():
         print(f"[Admin] matches-for-dropdown error: {e}")
         return jsonify({'matches': [], 'total': 0})
 
+
+@app.route('/api/admin/free-matches-config', methods=['GET'])
+def get_free_matches_config():
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    global free_matches_config
+    return jsonify(free_matches_config)
+
+
+@app.route('/api/admin/free-matches-config', methods=['POST'])
+def set_free_matches_config():
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    global free_matches_config
+    data = request.get_json() or {}
+    hashes = data.get('hashes', [])[:5]
+    teams = data.get('teams', [])[:5]
+    config = {'hashes': hashes, 'teams': teams}
+    if save_free_matches_config(config):
+        free_matches_config = config
+        return jsonify({'success': True, 'count': len(hashes)})
+    return jsonify({'success': False, 'error': 'Kayıt hatası'}), 500
+
+
 @app.route('/api/analyses', methods=['POST'])
 def create_analysis():
     """Create new analysis with optional image upload"""
@@ -8191,6 +8241,11 @@ def activate_test_mode():
 @license_required
 def get_free_matches():
     try:
+        pinned = free_matches_config.get('hashes', [])
+        if pinned:
+            teams = free_matches_config.get('teams', [])
+            print(f"[TestFree] Pinned hashes ({len(pinned)}): {pinned}")
+            return jsonify({'hashes': pinned, 'teams': teams})
         cached, hit = get_cached_matches('moneyway_1x2_today_future')
         if not cached:
             cached, hit = get_cached_matches('moneyway_1x2_all')
@@ -8212,7 +8267,7 @@ def get_free_matches():
         sorted_matches = sorted(vol_map.items(), key=lambda x: x[1], reverse=True)
         top3 = [h for h, v in sorted_matches[:3]]
         teams = [team_map.get(h, {}) for h in top3]
-        print(f"[TestFree] Top 3 hashes: {top3}")
+        print(f"[TestFree] Top 3 hashes (volume-based): {top3}")
         return jsonify({'hashes': top3, 'teams': teams})
     except Exception as e:
         print(f"[API] /api/test/free-matches hata: {e}")
