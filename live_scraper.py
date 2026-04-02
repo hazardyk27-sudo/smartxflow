@@ -759,7 +759,10 @@ def _process_betwatch_data(bw_result: dict, now_utc: str, today_str: str) -> tup
         if not home or not away:
             continue
         h = make_live_match_hash(home, away, league)
-        ko_utc = _betwatch_ko_to_utc(entry.get('ce', ''), '')
+        raw_ce = entry.get('ce', '')
+        ko_utc = _betwatch_ko_to_utc(raw_ce, '')
+        if raw_ce:
+            log(f"  [KO-DBG] {home[:20]} vs {away[:20]} | raw_ce={raw_ce} → ko_utc={ko_utc}")
         all_fixtures[h] = {
             "match_id_hash": h,
             "home_team": home[:100],
