@@ -265,6 +265,8 @@ def _enrich_fixtures_with_ss(all_fixtures: Dict[str, Dict], ss_data: Dict[str, D
     for sk, sv in ss_data.items():
         parts = sk.split('|')
         ss_entries.append((parts[0], parts[1] if len(parts) > 1 else '', sk))
+    matched_ss_keys = set()
+    bw_miss_count = 0
     for h, fix in all_fixtures.items():
         arb_home = _normalize_team(fix.get('home_team', ''))
         arb_away = _normalize_team(fix.get('away_team', ''))
@@ -272,23 +274,30 @@ def _enrich_fixtures_with_ss(all_fixtures: Dict[str, Dict], ss_data: Dict[str, D
             continue
         best_combined = 0.0
         best_key = None
+        top_candidates = []
         for ss_h, ss_a, ss_full_key in ss_entries:
             h_score = _team_match_score(arb_home, ss_h)
-            if h_score < 0.55:
-                continue
             a_score = _team_match_score(arb_away, ss_a)
-            if a_score < 0.55:
-                continue
             combined = (h_score + a_score) / 2
+            if combined > 0.30:
+                ssd_tmp = ss_data[ss_full_key]
+                top_candidates.append((combined, h_score, a_score, ss_full_key, ssd_tmp.get('home', ''), ssd_tmp.get('away', '')))
+            if h_score < 0.55 or a_score < 0.55:
+                continue
             if combined > best_combined:
                 best_combined = combined
                 best_key = ss_full_key
+        top_candidates.sort(key=lambda x: x[0], reverse=True)
+        top3 = top_candidates[:3]
+        raw_home = fix.get('home_team', '?')[:25]
+        raw_away = fix.get('away_team', '?')[:25]
         if best_key and best_combined >= 0.70:
             ssd = ss_data[best_key]
             arb_min_num = _minute_to_num(fix.get('minute', ''))
             ss_min_num = _minute_to_num(ssd.get('minute', ''))
             if arb_min_num >= 0 and ss_min_num >= 0 and abs(arb_min_num - ss_min_num) > 15:
-                log(f"  [Sofascore SKIP] {fix.get('home_team','')} vs {fix.get('away_team','')} | dk farkı: arb={arb_min_num} ss={ss_min_num}")
+                log(f"  [MATCH-DBG] BW: \"{raw_home}\" vs \"{raw_away}\" (norm: \"{arb_home}\" vs \"{arb_away}\")")
+                log(f"  [MATCH-DBG]   → SKIP dk farkı: arb={arb_min_num} ss={ss_min_num} | SS: \"{ssd.get('home','')[:20]}\" vs \"{ssd.get('away','')[:20]}\" avg={best_combined:.2f}")
                 continue
             if ssd['score']:
                 fix['score'] = ssd['score']
@@ -299,13 +308,34 @@ def _enrich_fixtures_with_ss(all_fixtures: Dict[str, Dict], ss_data: Dict[str, D
                 fix['status'] = 'ft'
             if ssd.get('kickoff_utc'):
                 fix['kickoff_utc'] = ssd['kickoff_utc']
+            matched_ss_keys.add(best_key)
             enriched += 1
         else:
-            unmatched_home = fix.get('home_team', '?')[:20]
-            unmatched_away = fix.get('away_team', '?')[:20]
-            best_info = f"en iyi skor={best_combined:.2f}" if best_combined > 0 else "hiç aday yok"
-            log(f"  [Sofascore MISS] {unmatched_home} vs {unmatched_away} | {best_info}")
-    log(f"  [Sofascore] {enriched}/{len(all_fixtures)} maç eşleşti")
+            bw_miss_count += 1
+            log(f"  [MATCH-DBG] BW: \"{raw_home}\" vs \"{raw_away}\" (norm: \"{arb_home}\" vs \"{arb_away}\")")
+            if not top3:
+                log(f"  [MATCH-DBG]   → Eşleşme YOK — hiç aday yok (SS'de benzer takım bulunamadı)")
+            else:
+                for i, (comb, hs, as_, sk, sh, sa) in enumerate(top3):
+                    fail_reason = []
+                    if hs < 0.55:
+                        fail_reason.append(f"home<0.55")
+                    if as_ < 0.55:
+                        fail_reason.append(f"away<0.55")
+                    if comb < 0.70:
+                        fail_reason.append(f"avg<0.70")
+                    reason_str = ', '.join(fail_reason) if fail_reason else "OK"
+                    log(f"  [MATCH-DBG]   Aday{i+1}: SS \"{sh[:20]}\" vs \"{sa[:20]}\" h={hs:.2f} a={as_:.2f} avg={comb:.2f} — {reason_str}")
+                log(f"  [MATCH-DBG]   → Eşleşme YOK (en iyi avg={best_combined:.2f})")
+    ss_only_count = 0
+    for sk, sv in ss_data.items():
+        if sk not in matched_ss_keys:
+            ss_only_count += 1
+            ss_home = sv.get('home', '?')[:25]
+            ss_away = sv.get('away', '?')[:25]
+            ss_min = sv.get('minute', '?')
+            log(f"  [MATCH-DBG] SS-ONLY: \"{ss_home}\" vs \"{ss_away}\" dk={ss_min} — Betwatch'ta yok")
+    log(f"  [MATCH ÖZET] BW: {len(all_fixtures)} | SS: {len(ss_data)} | Eşleşen: {enriched} | BW-miss: {bw_miss_count} | SS-only: {ss_only_count}")
     return enriched
 
 
@@ -349,14 +379,18 @@ def _fetch_final_scores(writer, stale_hashes: List[str]) -> Dict[str, str]:
             return {}
         ss_finished = _fetch_sofascore_finished_events()
         if not ss_finished:
+            log(f"  [FINAL-DBG] Sofascore'dan biten maç verisi alınamadı")
             return {}
         final_scores = {}
         for fix in fixtures:
             h = fix['match_id_hash']
+            raw_home = fix.get('home_team', '?')[:25]
+            raw_away = fix.get('away_team', '?')[:25]
             arb_home = _normalize_team(fix.get('home_team', ''))
             arb_away = _normalize_team(fix.get('away_team', ''))
             best_score = ''
             best_combined = 0.0
+            best_ss_key = ''
             for ss_key, score in ss_finished.items():
                 ss_h, ss_a = ss_key.split('|', 1)
                 h_s = _team_match_score(arb_home, ss_h)
@@ -367,8 +401,12 @@ def _fetch_final_scores(writer, stale_hashes: List[str]) -> Dict[str, str]:
                 if comb > best_combined:
                     best_combined = comb
                     best_score = score
+                    best_ss_key = ss_key
             if best_combined >= 0.70 and best_score:
                 final_scores[h] = best_score
+                log(f"  [FINAL-DBG] \"{raw_home}\" vs \"{raw_away}\" → SS skor: {best_score} (avg={best_combined:.2f})")
+            else:
+                log(f"  [FINAL-DBG] \"{raw_home}\" vs \"{raw_away}\" → SS skor bulunamadı (en iyi avg={best_combined:.2f})")
         return final_scores
     except Exception as e:
         log(f"  [Final Scores] Hata: {e}")
@@ -953,6 +991,8 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                 norm_a = _normalize_team(db_away)
                 best_score = 0
                 best_minute = ''
+                best_ss_home = ''
+                best_ss_away = ''
                 for sk, sv in sofa_result.items():
                     parts = sk.split('|')
                     ss_h = parts[0]
@@ -964,9 +1004,17 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                         if combined >= 0.70 and combined > best_score:
                             best_score = combined
                             best_minute = sv.get('minute', '')
+                            best_ss_home = sv.get('home', '')[:20]
+                            best_ss_away = sv.get('away', '')[:20]
                 if best_score > 0 and best_minute and best_minute not in ('FT', 'AET', 'PEN'):
                     ss_protected.append(h)
+                    log(f"  [SS-KORUMA-DBG] \"{db_home[:20]}\" vs \"{db_away[:20]}\" → SS: \"{best_ss_home}\" vs \"{best_ss_away}\" avg={best_score:.2f} dk={best_minute} — KORUMA")
                     continue
+                else:
+                    ss_reason = f"avg={best_score:.2f} dk={best_minute}" if best_score > 0 else "SS eşleşme yok"
+                    log(f"  [SS-KORUMA-DBG] \"{db_home[:20]}\" vs \"{db_away[:20]}\" → {ss_reason} — STALE")
+            else:
+                log(f"  [SS-KORUMA-DBG] hash={h} → takım bilgisi yok veya SS verisi yok — STALE")
             stale_hashes.append(h)
         if ss_protected:
             log(f"  [SS-KORUMA] {len(ss_protected)} maç Sofascore'da hâlâ devam ediyor, FT yapılmadı")
