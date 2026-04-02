@@ -2995,6 +2995,15 @@ function applySorting(data) {
             }
         }
     });
+
+    if (window.userPlan === 'test' && window._testFreeHashes && window._testFreeHashes.length > 0) {
+        const freeSet = new Set(window._testFreeHashes);
+        const pinned = sortedData.filter(m => freeSet.has(m.match_id));
+        const rest = sortedData.filter(m => !freeSet.has(m.match_id));
+        return [...pinned, ...rest];
+    }
+
+    return sortedData;
 }
 
 function parseOddsValue(val) {
