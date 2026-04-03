@@ -12289,8 +12289,8 @@ table.desktop-only {
 
 .analysis-overflow-badge {
     position: absolute;
-    top: 2px;
-    right: 2px;
+    top: 0px;
+    right: -2px;
     background: #ef4444;
     color: #fff;
     font-size: 8px;
@@ -12302,6 +12302,7 @@ table.desktop-only {
     border-radius: 8px;
     padding: 0 3px;
     box-sizing: border-box;
+    pointer-events: none;
 }
 
 .analysis-star {
