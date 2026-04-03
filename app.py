@@ -3361,25 +3361,64 @@ dropping_alarms = load_dropping_alarms_from_file()
 FREE_MATCHES_CONFIG_FILE = 'free_matches_config.json'
 
 def load_free_matches_config():
+    # 1. Supabase'den oku (birincil kaynak)
+    try:
+        _db = get_supabase_client()
+        if _db and _db.is_available:
+            import httpx as _httpx
+            url = f"{_db.url}/rest/v1/alarm_settings?alarm_type=eq.free_matches_config&select=config"
+            headers = {'apikey': _db.key, 'Authorization': f'Bearer {_db.key}'}
+            r = _httpx.get(url, headers=headers, timeout=8)
+            if r.status_code == 200:
+                rows = r.json()
+                if rows and rows[0].get('config'):
+                    data = rows[0]['config']
+                    print(f"[FreeMatches] Config loaded from Supabase: {len(data.get('hashes', []))} maç seçili")
+                    return data
+    except Exception as e:
+        print(f"[FreeMatches] Supabase load error: {e}")
+    # 2. Local dosya fallback
     try:
         if os.path.exists(FREE_MATCHES_CONFIG_FILE):
             with open(FREE_MATCHES_CONFIG_FILE, 'r') as f:
                 data = json.load(f)
-                print(f"[FreeMatches] Config loaded: {len(data.get('hashes', []))} maç seçili")
+                print(f"[FreeMatches] Config loaded from file (fallback): {len(data.get('hashes', []))} maç seçili")
                 return data
     except Exception as e:
-        print(f"[FreeMatches] Config load error: {e}")
-    return {'hashes': [], 'teams': []}
+        print(f"[FreeMatches] Config file load error: {e}")
+    return {'hashes': [], 'teams': [], 'free_count': 3}
 
 def save_free_matches_config(data):
+    ok = False
+    # 1. Supabase'e yaz (birincil hedef)
+    try:
+        _db = get_supabase_client()
+        if _db and _db.is_available:
+            import httpx as _httpx
+            url = f"{_db.url}/rest/v1/alarm_settings?on_conflict=alarm_type"
+            headers = {
+                'apikey': _db.key, 'Authorization': f'Bearer {_db.key}',
+                'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal'
+            }
+            payload = {'alarm_type': 'free_matches_config', 'enabled': True, 'config': data}
+            r = _httpx.post(url, headers=headers, json=payload, timeout=10)
+            if r.status_code in [200, 201, 204]:
+                print(f"[FreeMatches] Config saved to Supabase: {len(data.get('hashes', []))} maç")
+                ok = True
+            else:
+                print(f"[FreeMatches] Supabase save error: HTTP {r.status_code}")
+    except Exception as e:
+        print(f"[FreeMatches] Supabase save error: {e}")
+    # 2. Local dosyaya da yaz (yedek)
     try:
         with open(FREE_MATCHES_CONFIG_FILE, 'w') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
-        print(f"[FreeMatches] Config saved: {len(data.get('hashes', []))} maç")
-        return True
+        if not ok:
+            print(f"[FreeMatches] Config saved to file only: {len(data.get('hashes', []))} maç")
+        ok = True
     except Exception as e:
-        print(f"[FreeMatches] Config save error: {e}")
-        return False
+        print(f"[FreeMatches] Config file save error: {e}")
+    return ok
 
 free_matches_config = load_free_matches_config()
 
