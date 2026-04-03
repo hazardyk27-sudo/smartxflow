@@ -6858,7 +6858,9 @@ def get_analyses():
         else:
             return jsonify({'error': 'INVALID_KEY'}), 401
     else:
-        return jsonify({'error': 'PRO_REQUIRED', 'message': 'Bu ozellik PRO uyelikte aktif.'}), 403
+        category = request.args.get('category', None)
+        if category != 'moves':
+            return jsonify({'error': 'PRO_REQUIRED', 'message': 'Bu ozellik PRO uyelikte aktif.'}), 403
     
     category = request.args.get('category', None)
     cache_key = category or 'all'
@@ -8240,7 +8242,6 @@ def activate_test_mode():
 
 
 @app.route('/api/test/free-matches')
-@license_required
 def get_free_matches():
     try:
         pinned = free_matches_config.get('hashes', [])
