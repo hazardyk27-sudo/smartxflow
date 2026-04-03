@@ -8430,6 +8430,7 @@ def analytics_dashboard():
         devices = license_select('license_devices', 'license_key') or []
         
         price_map = _load_pricing()
+        price_history = _get_price_history()
         
         total_licenses = len(licenses)
         active_licenses = 0
@@ -8466,8 +8467,8 @@ def analytics_dashboard():
                 continue
             
             lic_price = 0
-            if not lic.get('is_free', False) and sub_type != 'free_trial' and sub_type in price_map:
-                lic_price = price_map[sub_type].get('price', 0)
+            if not lic.get('is_free', False) and sub_type != 'free_trial':
+                lic_price = _get_price_at_time(created_at, sub_type, price_history, price_map)
             total_revenue += lic_price
             
             try:
@@ -8559,6 +8560,82 @@ def _save_pricing_file(data):
     with open(PRICING_FILE, 'w') as f:
         json.dump(data, f, indent=2)
 
+def _get_price_history():
+    """Supabase alarm_settings'ten fiyat geçmişini yükle"""
+    try:
+        supabase = get_supabase_client()
+        if supabase:
+            row = supabase.get_alarm_setting('price_history')
+            if row and row.get('config') and isinstance(row['config'], dict):
+                return row['config'].get('changes', [])
+    except Exception as e:
+        print(f'[PriceHistory] Load error: {e}')
+    return []
+
+def _append_price_history(new_pricing, previous_pricing=None):
+    """Fiyat değişikliğini Supabase'e timestamp'li olarak kaydet"""
+    try:
+        from datetime import datetime
+        supabase = get_supabase_client()
+        if not supabase:
+            return
+        row = supabase.get_alarm_setting('price_history')
+        if row and row.get('config') and isinstance(row['config'], dict):
+            changes = row['config'].get('changes', [])
+        else:
+            changes = []
+        # Geçmiş boşsa, eski fiyatı 2000-01-01 timestamp'iyle taban olarak ekle
+        # (tüm mevcut lisanslar bu fiyatı görür)
+        if not changes:
+            baseline_pricing = previous_pricing if previous_pricing else new_pricing
+            baseline_prices = {
+                k: {'price': v.get('price', 0)}
+                for k, v in baseline_pricing.items()
+                if isinstance(v, dict) and 'price' in v
+            }
+            changes.append({'at': '2000-01-01T00:00:00', 'prices': baseline_prices})
+        # Yeni fiyatı şu anki timestamp'le ekle
+        now_str = datetime.utcnow().isoformat()
+        new_prices = {
+            k: {'price': v.get('price', 0)}
+            for k, v in new_pricing.items()
+            if isinstance(v, dict) and 'price' in v
+        }
+        changes.append({'at': now_str, 'prices': new_prices})
+        supabase.update_alarm_setting('price_history', True, {'changes': changes})
+        print(f'[PriceHistory] Kaydedildi: {now_str}')
+    except Exception as e:
+        print(f'[PriceHistory] Save error: {e}')
+
+def _get_price_at_time(created_at_str, sub_type, price_history, fallback_price_map):
+    """Lisans oluşturulduğu andaki fiyatı geçmişten bul"""
+    if not sub_type or sub_type == 'free_trial':
+        return 0
+    try:
+        from datetime import datetime
+        created = datetime.fromisoformat(created_at_str.replace('Z', '+00:00').replace('+00:00', ''))
+        best_entry = None
+        best_at = None
+        for entry in price_history:
+            at_str = entry.get('at', '')
+            try:
+                at_dt = datetime.fromisoformat(at_str.replace('Z', '+00:00').replace('+00:00', ''))
+                if at_dt <= created:
+                    if best_at is None or at_dt > best_at:
+                        best_at = at_dt
+                        best_entry = entry
+            except:
+                pass
+        if best_entry:
+            prices = best_entry.get('prices', {})
+            if sub_type in prices:
+                return prices[sub_type].get('price', 0)
+    except:
+        pass
+    # Fallback: mevcut fiyat listesi
+    v = fallback_price_map.get(sub_type)
+    return v.get('price', 0) if isinstance(v, dict) else 0
+
 @app.route('/api/pricing/get')
 def get_pricing():
     """Get all pricing config"""
@@ -8582,12 +8659,14 @@ def save_pricing():
         from datetime import datetime
         now = datetime.utcnow().isoformat()
         
-        pricing = _load_pricing()
+        previous_pricing = _load_pricing()
+        pricing = dict(previous_pricing)
         pricing[plan_key] = {
             'price': price,
             'updated_at': now
         }
         _save_pricing_file(pricing)
+        _append_price_history(pricing, previous_pricing=previous_pricing)
         
         return jsonify({'success': True})
     except Exception as e:
