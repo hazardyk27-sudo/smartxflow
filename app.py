@@ -7813,6 +7813,15 @@ def create_license():
         else:
             expires_at = now + timedelta(days=duration_days)
         
+        # Satış anındaki fiyatı hesapla
+        sub_type = _classify_subscription(duration_days, plan)
+        current_pricing = _load_pricing()
+        if is_free or sub_type == 'free_trial':
+            computed_price_paid = 0.0
+        else:
+            p = current_pricing.get(sub_type, {})
+            computed_price_paid = float(p.get('price', 0)) if isinstance(p, dict) else 0.0
+
         # Insert license
         insert_data = {
             'key': key,
@@ -7823,13 +7832,18 @@ def create_license():
             'max_devices': max_devices,
             'note': note or None,
             'plan': plan,
-            'is_free': is_free
+            'is_free': is_free,
+            'price_paid': computed_price_paid
         }
         if telegram_membership:
             insert_data['telegram_membership'] = telegram_membership
         if telegram_username:
             insert_data['telegram_username'] = telegram_username
         result = license_insert('licenses', insert_data)
+        # price_paid kolonu henüz eklenmemişse kolonsuz tekrar dene
+        if result is None:
+            insert_data.pop('price_paid', None)
+            result = license_insert('licenses', insert_data)
         
         if result:
             _license_cache['data'] = None
@@ -8425,7 +8439,14 @@ def analytics_dashboard():
         week_ago = now - timedelta(days=7)
         five_min_ago = now - timedelta(minutes=5)
         
-        licenses = license_select('licenses', 'status,expires_at,duration_days,created_at,plan') or []
+        _lic_cols = 'status,expires_at,duration_days,created_at,plan,price_paid,is_free'
+        licenses = license_select('licenses', _lic_cols) or []
+        if not licenses:
+            # price_paid kolonu yoksa veya tablo boşsa; kolon olmadan tekrar dene
+            _lic_cols_fb = 'status,expires_at,duration_days,created_at,plan,is_free'
+            _test = license_select('licenses', _lic_cols_fb)
+            if _test is not None and isinstance(_test, list) and len(_test) > 0:
+                licenses = _test
         sessions = license_select('user_sessions', 'license_key,device_id,last_seen') or []
         devices = license_select('license_devices', 'license_key') or []
         
@@ -8468,7 +8489,11 @@ def analytics_dashboard():
             
             lic_price = 0
             if not lic.get('is_free', False) and sub_type != 'free_trial':
-                lic_price = _get_price_at_time(created_at, sub_type, price_history, price_map)
+                price_paid = lic.get('price_paid')
+                if price_paid is not None:
+                    lic_price = float(price_paid)
+                else:
+                    lic_price = _get_price_at_time(created_at, sub_type, price_history, price_map)
             total_revenue += lic_price
             
             try:
