@@ -259,10 +259,11 @@
                 <span class="mob-act-badge" id="mobileAlarmBadge">0</span>
             </button>
             <div class="mobile-overflow-wrap">
-                <button class="mob-act-btn mob-act-sq" onclick="toggleMobileOverflow(event)">
+                <button class="mob-act-btn mob-act-sq" onclick="toggleMobileOverflow(event)" style="position:relative;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
                     </svg>
+                    <span class="analysis-overflow-badge" style="display:none;">0</span>
                 </button>
                 <div class="mobile-overflow-menu" id="mobileOverflowMenu">
                     <button id="favoritesBtnMobile" onclick="toggleFavoritesFilter(); closeMobileOverflow();">
@@ -278,7 +279,7 @@
                         </svg>
                         Kılavuz
                     </button>
-                    <button onclick="_testGuardAnalysis(this); closeMobileOverflow();" style="position:relative;">
+                    <button onclick="_testGuardAnalysis(this); closeMobileOverflow();">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                         </svg>

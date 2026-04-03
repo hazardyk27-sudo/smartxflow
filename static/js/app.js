@@ -1608,7 +1608,7 @@ async function fetchAnalysisMatchHashes() {
             _analysisMatchHashes = Array.isArray(data) ? data : (data.hashes || []);
             _analysisHashesFetched = true;
             const ac = (data && typeof data.active_count === 'number') ? data.active_count : 0;
-            document.querySelectorAll('.analysis-active-badge').forEach(el => {
+            document.querySelectorAll('.analysis-active-badge, .analysis-overflow-badge').forEach(el => {
                 el.textContent = ac;
                 el.style.display = ac > 0 ? '' : 'none';
             });
