@@ -8451,7 +8451,6 @@ def analytics_dashboard():
         devices = license_select('license_devices', 'license_key') or []
         
         price_map = _load_pricing()
-        price_history = _get_price_history()
         
         total_licenses = len(licenses)
         active_licenses = 0
@@ -8492,8 +8491,8 @@ def analytics_dashboard():
                 price_paid = lic.get('price_paid')
                 if price_paid is not None:
                     lic_price = float(price_paid)
-                else:
-                    lic_price = _get_price_at_time(created_at, sub_type, price_history, price_map)
+                elif sub_type in price_map:
+                    lic_price = price_map[sub_type].get('price', 0)
             total_revenue += lic_price
             
             try:
@@ -8691,7 +8690,6 @@ def save_pricing():
             'updated_at': now
         }
         _save_pricing_file(pricing)
-        _append_price_history(pricing, previous_pricing=previous_pricing)
         
         return jsonify({'success': True})
     except Exception as e:
