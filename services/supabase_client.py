@@ -2349,39 +2349,39 @@ class SupabaseClient:
         if getattr(self, '_fav_table_ok', False):
             return True
         try:
-            url = f"{self._rest_url('match_favorites')}?select=id&limit=0"
+            url = f"{self._rest_url('license_favorites')}?select=id&limit=0"
             resp = self._get_http_client().get(url, headers=self._headers(), timeout=5)
             if resp.status_code == 200:
                 self._fav_table_ok = True
                 return True
-            print(f"[Supabase] match_favorites table not found (status {resp.status_code}). Please create it in Supabase Dashboard SQL Editor:")
-            print("""  CREATE TABLE IF NOT EXISTS match_favorites (
+            print(f"[Supabase] license_favorites table not found (status {resp.status_code}). Please create it in Supabase Dashboard SQL Editor:")
+            print("""  CREATE TABLE IF NOT EXISTS license_favorites (
     id SERIAL PRIMARY KEY,
-    device_id VARCHAR(16) NOT NULL,
+    license_key TEXT NOT NULL,
     match_key TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now(),
-    UNIQUE(device_id, match_key)
+    UNIQUE(license_key, match_key)
   );""")
             return False
         except Exception as e:
             print(f"[Supabase] _ensure_favorites_table error: {e}")
             return False
 
-    def toggle_favorite(self, device_id: str, match_key: str) -> Dict:
-        if not self.is_available or not device_id or not match_key:
+    def toggle_favorite(self, license_key: str, match_key: str) -> Dict:
+        if not self.is_available or not license_key or not match_key:
             return {'favorited': False, 'total_count': 0}
         if not self._ensure_favorites_table():
             return {'favorited': False, 'total_count': 0, 'error': 'table_missing'}
         try:
             import urllib.parse
-            dk = urllib.parse.quote(device_id, safe='')
+            lk = urllib.parse.quote(license_key, safe='')
             mk = urllib.parse.quote(match_key, safe='')
-            check_url = f"{self._rest_url('match_favorites')}?device_id=eq.{dk}&match_key=eq.{mk}&select=id"
+            check_url = f"{self._rest_url('license_favorites')}?license_key=eq.{lk}&match_key=eq.{mk}&select=id"
             resp = self._get_http_client().get(check_url, headers=self._headers(), timeout=10)
             print(f"[Supabase] toggle_favorite check: status={resp.status_code}, rows={len(resp.json()) if resp.status_code == 200 else 'N/A'}")
             if resp.status_code == 200 and resp.json():
                 row_id = resp.json()[0]['id']
-                del_url = f"{self._rest_url('match_favorites')}?id=eq.{row_id}"
+                del_url = f"{self._rest_url('license_favorites')}?id=eq.{row_id}"
                 del_resp = self._get_http_client().delete(del_url, headers=self._headers(), timeout=10)
                 print(f"[Supabase] toggle_favorite DELETE id={row_id}: status={del_resp.status_code}")
                 if del_resp.status_code not in (200, 204):
@@ -2391,9 +2391,9 @@ class SupabaseClient:
             else:
                 ins_headers = {**self._headers(), 'Prefer': 'return=minimal'}
                 ins_resp = self._get_http_client().post(
-                    self._rest_url('match_favorites'),
+                    self._rest_url('license_favorites'),
                     headers=ins_headers,
-                    json={'device_id': device_id, 'match_key': match_key},
+                    json={'license_key': license_key, 'match_key': match_key},
                     timeout=10
                 )
                 print(f"[Supabase] toggle_favorite INSERT: status={ins_resp.status_code}")
@@ -2401,7 +2401,7 @@ class SupabaseClient:
                     print(f"[Supabase] INSERT failed: {ins_resp.text[:200]}")
                     return {'error': 'insert_failed'}
                 favorited = True
-            count_url = f"{self._rest_url('match_favorites')}?match_key=eq.{mk}&select=id"
+            count_url = f"{self._rest_url('license_favorites')}?match_key=eq.{mk}&select=id"
             cr = self._get_http_client().get(count_url, headers=self._headers(), timeout=10)
             total = 0
             if cr.status_code == 200:
@@ -2412,15 +2412,15 @@ class SupabaseClient:
             print(f"[Supabase] toggle_favorite error: {e}")
             return {'favorited': False, 'total_count': 0}
 
-    def get_user_favorites(self, device_id: str) -> list:
-        if not self.is_available or not device_id:
+    def get_user_favorites(self, license_key: str) -> list:
+        if not self.is_available or not license_key:
             return []
         if not self._ensure_favorites_table():
             return []
         try:
             import urllib.parse
-            dk = urllib.parse.quote(device_id, safe='')
-            url = f"{self._rest_url('match_favorites')}?device_id=eq.{dk}&select=match_key"
+            lk = urllib.parse.quote(license_key, safe='')
+            url = f"{self._rest_url('license_favorites')}?license_key=eq.{lk}&select=match_key"
             resp = self._get_http_client().get(url, headers=self._headers(), timeout=10)
             if resp.status_code == 200:
                 return [r['match_key'] for r in resp.json()]
@@ -2442,7 +2442,7 @@ class SupabaseClient:
                 batch = match_keys[i:i+batch_size]
                 keys_quoted = ','.join('"' + k.replace('\\', '\\\\').replace('"', '\\"') + '"' for k in batch)
                 encoded_filter = urllib.parse.quote(f'in.({keys_quoted})', safe='')
-                url = f"{self._rest_url('match_favorites')}?match_key={encoded_filter}&select=match_key"
+                url = f"{self._rest_url('license_favorites')}?match_key={encoded_filter}&select=match_key"
                 resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
                 if resp.status_code == 200:
                     rows = resp.json()
@@ -2466,7 +2466,7 @@ class SupabaseClient:
         if not self._ensure_favorites_table():
             return {}
         try:
-            url = f"{self._rest_url('match_favorites')}?select=match_key"
+            url = f"{self._rest_url('license_favorites')}?select=match_key"
             resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
             if resp.status_code == 200:
                 rows = resp.json()
@@ -2766,14 +2766,14 @@ class HybridDatabase:
         if self.supabase.is_available:
             self.supabase.ensure_analyses_table()
 
-    def toggle_favorite(self, device_id: str, match_key: str) -> Dict:
+    def toggle_favorite(self, license_key: str, match_key: str) -> Dict:
         if self.supabase.is_available:
-            return self.supabase.toggle_favorite(device_id, match_key)
+            return self.supabase.toggle_favorite(license_key, match_key)
         return {'favorited': False, 'total_count': 0}
 
-    def get_user_favorites(self, device_id: str) -> list:
+    def get_user_favorites(self, license_key: str) -> list:
         if self.supabase.is_available:
-            return self.supabase.get_user_favorites(device_id)
+            return self.supabase.get_user_favorites(license_key)
         return []
 
     def get_favorite_counts(self, match_keys: list) -> Dict:

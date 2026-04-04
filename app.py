@@ -1865,19 +1865,25 @@ def get_match_history_bulk():
 def toggle_favorite():
     data = request.get_json() or {}
     match_key = data.get('match_key', '').strip()
-    device_id = (data.get('device_id', '') or request.headers.get('X-Device-Id', '')).strip()[:16]
-    if not match_key or not device_id:
-        return jsonify({'error': 'match_key and device_id required'}), 400
-    result = db.toggle_favorite(device_id, match_key)
+    license_key = session.get('license_key', '').strip()
+    if not license_key:
+        device_id = (data.get('device_id', '') or request.headers.get('X-Device-Id', '')).strip()[:16]
+        license_key = f"device:{device_id}" if device_id else ''
+    if not match_key or not license_key:
+        return jsonify({'error': 'match_key and license_key required'}), 400
+    result = db.toggle_favorite(license_key, match_key)
     return jsonify(result)
 
 @app.route('/api/favorites')
 @license_required
 def get_favorites():
-    device_id = (request.args.get('device_id', '') or request.headers.get('X-Device-Id', '')).strip()[:16]
-    if not device_id:
+    license_key = session.get('license_key', '').strip()
+    if not license_key:
+        device_id = (request.args.get('device_id', '') or request.headers.get('X-Device-Id', '')).strip()[:16]
+        license_key = f"device:{device_id}" if device_id else ''
+    if not license_key:
         return jsonify({'favorites': []})
-    favorites = db.get_user_favorites(device_id)
+    favorites = db.get_user_favorites(license_key)
     return jsonify({'favorites': favorites})
 
 @app.route('/api/favorite/counts', methods=['POST'])
