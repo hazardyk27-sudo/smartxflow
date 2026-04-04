@@ -584,7 +584,7 @@ class SupabaseClient:
                 print(f"[Supabase] ALL: {len(odds_by_hash)} unique matches by hash")
                 
                 # Step 2: Get fixtures metadata for kickoff times
-                fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,kickoff_utc,fixture_date&fixture_date=gte.{yesterday_str}"
+                fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{yesterday_str}"
                 fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=10)
                 
                 fixtures_by_hash = {}
@@ -600,9 +600,16 @@ class SupabaseClient:
                 tr_tz = pytz.timezone('Europe/Istanbul')
                 
                 for match_hash, row in odds_by_hash.items():
-                    home = row.get('home', '')
-                    away = row.get('away', '')
-                    league = row.get('league', '')
+                    # Fixtures tablosundan home/away/league al (history tablosunda bu kolonlar yok)
+                    if match_hash in fixtures_by_hash:
+                        fix = fixtures_by_hash[match_hash]
+                        home = fix.get('home_team', '') or row.get('home', '')
+                        away = fix.get('away_team', '') or row.get('away', '')
+                        league = fix.get('league', '') or row.get('league', '')
+                    else:
+                        home = row.get('home', '')
+                        away = row.get('away', '')
+                        league = row.get('league', '')
                     date_str = row.get('date', '')
                     
                     # Get kickoff from fixtures if available
