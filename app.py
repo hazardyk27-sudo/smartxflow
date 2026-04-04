@@ -1242,10 +1242,39 @@ def _lazy_app_warmup():
     print(f"[App Warmup] Complete in {_t.time()-start:.1f}s")
     threading.Thread(target=_periodic_matches_warmup, daemon=True).start()
 
+def _try_acquire_warmup_lock(pid):
+    """Try to acquire the warmup master lock. Returns True if acquired."""
+    lock_file = '/tmp/smartxflow_warmup.lock'
+    try:
+        fd = os.open(lock_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.write(fd, str(pid).encode())
+        os.close(fd)
+        return True
+    except FileExistsError:
+        try:
+            with open(lock_file, 'r') as _lf:
+                owner_pid = int(_lf.read().strip())
+            try:
+                os.kill(owner_pid, 0)
+                return False
+            except ProcessLookupError:
+                os.remove(lock_file)
+                return _try_acquire_warmup_lock(pid)
+        except Exception:
+            return False
+    except Exception:
+        return False
+
 def _periodic_matches_warmup():
-    """Keep matches cache always warm — refresh every 100s (TTL=120s)"""
+    """Keep matches cache always warm — refresh every 100s (TTL=120s).
+    Only the master worker (file-lock winner) runs this; slave skips."""
     import time as _t
-    print("[Cache Warmup] Periodic refresh started (every 100s)")
+    my_pid = os.getpid()
+    is_master = _try_acquire_warmup_lock(my_pid)
+    if not is_master:
+        print(f"[Cache Warmup] Worker {my_pid}: slave - periodic refresh skipped (master owns lock)")
+        return
+    print(f"[Cache Warmup] Worker {my_pid}: master - periodic refresh started (every 100s)")
     while True:
         _t.sleep(100)
         try:
@@ -9557,15 +9586,18 @@ def main():
 
                 def worker_exit(server, worker):
                     print(f"[Gunicorn] Worker {worker.pid} exiting gracefully...", flush=True)
-                    lock_file = '/tmp/smartxflow_cleanup.lock'
-                    try:
-                        with open(lock_file, 'r') as _lf:
-                            owner_pid = int(_lf.read().strip())
-                        if owner_pid == worker.pid:
-                            os.remove(lock_file)
-                            print(f"[Gunicorn] Worker {worker.pid} released cleanup lock", flush=True)
-                    except Exception:
-                        pass
+                    for lf_path, lf_name in [
+                        ('/tmp/smartxflow_cleanup.lock', 'cleanup'),
+                        ('/tmp/smartxflow_warmup.lock', 'warmup'),
+                    ]:
+                        try:
+                            with open(lf_path, 'r') as _lf:
+                                owner_pid = int(_lf.read().strip())
+                            if owner_pid == worker.pid:
+                                os.remove(lf_path)
+                                print(f"[Gunicorn] Worker {worker.pid} released {lf_name} lock", flush=True)
+                        except Exception:
+                            pass
 
                 options = {
                     'bind': f'{host}:{port}',
