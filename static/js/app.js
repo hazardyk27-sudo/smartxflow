@@ -2829,6 +2829,8 @@ function applySorting(data) {
     };
     
     sortedData = sortedData.filter(m => {
+        // Test modu: seçilen ücretsiz maçları odds filtreden muaf tut
+        if (window.userPlan === 'test' && window._testFreeHashes && window._testFreeHashes.indexOf(m.match_id) !== -1) return true;
         const d = m.details || m.odds || {};
         // Hem details/odds objesi hem de doğrudan match objesi kontrol edilir
         // Bazı API'ler veriyi farklı yapıda döndürüyor olabilir
