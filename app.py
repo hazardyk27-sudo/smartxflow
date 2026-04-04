@@ -3367,12 +3367,12 @@ def load_free_matches_config():
         if _db and _db.is_available:
             import httpx as _httpx
             _h = {'apikey': _db.key, 'Authorization': f'Bearer {_db.key}'}
-            fm_url = f"{_db.url}/rest/v1/free_matches?active=eq.true&select=match_id_hash,home_team,away_team&order=selected_at.asc"
+            fm_url = f"{_db.url}/rest/v1/free_matches?active=eq.true&select=match_id_hash,home_team,away_team,league,fixture_date&order=selected_at.asc"
             r = _httpx.get(fm_url, headers=_h, timeout=8)
             if r.status_code == 200:
                 rows = r.json()
                 hashes = [row['match_id_hash'] for row in rows]
-                teams = [{'home': row.get('home_team', ''), 'away': row.get('away_team', '')} for row in rows]
+                teams = [{'home': row.get('home_team', ''), 'away': row.get('away_team', ''), 'league': row.get('league', ''), 'date': str(row.get('fixture_date', '') or '')} for row in rows]
                 # free_count için alarm_settings'den oku
                 fc = 3
                 try:
@@ -3441,10 +3441,17 @@ def save_free_matches_config(data):
                     rows_to_insert = []
                     for i, h in enumerate(hashes):
                         team = teams[i] if i < len(teams) else {}
+                        fixture_date = team.get('date', '') or None
+                        if fixture_date and len(fixture_date) >= 10:
+                            fixture_date = fixture_date[:10]  # YYYY-MM-DD
+                        else:
+                            fixture_date = None
                         rows_to_insert.append({
                             'match_id_hash': h,
                             'home_team': team.get('home', ''),
                             'away_team': team.get('away', ''),
+                            'league': team.get('league', '') or None,
+                            'fixture_date': fixture_date,
                             'active': True
                         })
                     ins_r = _httpx.post(

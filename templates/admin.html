@@ -7958,7 +7958,9 @@
                 _freeMatchSelected = (data.hashes || []).map((h, i) => ({
                     hash: h,
                     home: (data.teams && data.teams[i]) ? data.teams[i].home : '',
-                    away: (data.teams && data.teams[i]) ? data.teams[i].away : ''
+                    away: (data.teams && data.teams[i]) ? data.teams[i].away : '',
+                    league: (data.teams && data.teams[i]) ? (data.teams[i].league || '') : '',
+                    date: (data.teams && data.teams[i]) ? (data.teams[i].date || '') : ''
                 }));
                 const sel = document.getElementById('freeMatchCount_auto');
                 if (sel && data.free_count) sel.value = String(data.free_count);
@@ -8010,7 +8012,7 @@
                 ).slice(0, 20);
                 if (!filtered.length) { dropdown.style.display = 'none'; return; }
                 dropdown.innerHTML = filtered.map(m => `
-                    <div onclick="addFreeMatch('${m.match_id}', '${escapeHtml(m.home_team).replace(/'/g,"\\'")}', '${escapeHtml(m.away_team).replace(/'/g,"\\'")}', this)"
+                    <div onclick="addFreeMatch('${m.match_id}', '${escapeHtml(m.home_team).replace(/'/g,"\\'")}', '${escapeHtml(m.away_team).replace(/'/g,"\\'")}', '${escapeHtml(m.league).replace(/'/g,"\\'")}', '${(m.date||'').replace(/'/g,'')}', this)"
                          style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #21262d; color: #c9d1d9; font-size: 13px;"
                          onmouseover="this.style.background='#21262d'" onmouseout="this.style.background=''">
                         <span style="font-weight: 500;">${escapeHtml(m.home_team)} vs ${escapeHtml(m.away_team)}</span>
@@ -8026,7 +8028,7 @@
             });
         }
 
-        function addFreeMatch(hash, home, away, el) {
+        function addFreeMatch(hash, home, away, league, date, el) {
             if (_freeMatchSelected.length >= 5) {
                 showToast('En fazla 5 maç seçilebilir', 'error');
                 return;
@@ -8035,7 +8037,7 @@
                 showToast('Bu maç zaten seçili', 'warning');
                 return;
             }
-            _freeMatchSelected.push({ hash, home, away });
+            _freeMatchSelected.push({ hash, home, away, league: league || '', date: date || '' });
             document.getElementById('freeMatchSearchInput').value = '';
             document.getElementById('freeMatchDropdown').style.display = 'none';
             document.getElementById('freeMatchSaveStatus').textContent = '';
@@ -8063,7 +8065,7 @@
                 const free_count = countSel ? parseInt(countSel.value) : 3;
                 const payload = {
                     hashes: _freeMatchSelected.map(m => m.hash),
-                    teams: _freeMatchSelected.map(m => ({ home: m.home, away: m.away })),
+                    teams: _freeMatchSelected.map(m => ({ home: m.home, away: m.away, league: m.league || '', date: m.date || '' })),
                     free_count: free_count
                 };
                 const resp = await fetch('/api/admin/free-matches-config', {
