@@ -1318,10 +1318,13 @@ async function loadMatches(appendMode = false) {
             console.log('[Matches] Loading with bulk mode:', apiUrl);
             const startTime = performance.now();
             
+            const _savedLicKey = localStorage.getItem('smartxflow_web_license');
             const _fetchWithTimeout = (url, ms) => {
                 const ctrl = new AbortController();
                 const tid = setTimeout(() => ctrl.abort(), ms);
-                return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(tid));
+                const _fetchOpts = { signal: ctrl.signal };
+                if (_savedLicKey) _fetchOpts.headers = { 'X-License-Key': _savedLicKey };
+                return fetch(url, _fetchOpts).finally(() => clearTimeout(tid));
             };
             
             let response;
