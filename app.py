@@ -7594,9 +7594,7 @@ def admin_get_underdog_signals():
     for sig in signals:
         mk = sig.get('match_key', '')
         sc = sig.get('selection_code', '')
-        file_result = results_map.get(f"{mk}|{sc}")
-        if file_result:
-            sig['result'] = file_result
+        sig['result'] = results_map.get(f"{mk}|{sc}", '')
     return jsonify({'signals': signals, 'count': len(signals)})
 
 
