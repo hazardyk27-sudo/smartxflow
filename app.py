@@ -7626,17 +7626,21 @@ def admin_update_underdog_result():
 @app.route('/api/admin/underdog-signals/import-date', methods=['POST'])
 def admin_import_underdog_signals_for_date():
     """Fetch moneyway_1x2_history data for a given date, apply underdog filters,
-    and upsert matching signals into underdog_signals table."""
+    and upsert matching signals into underdog_signals table.
+    Accepts date via query param (?date=YYYY-MM-DD) or JSON body."""
     if not session.get('admin_authenticated'):
         return jsonify({'error': 'UNAUTHORIZED'}), 401
+
+    # Accept date from query param OR JSON body
     data = request.get_json(silent=True) or {}
-    target_date = data.get('date', '').strip()
+    target_date = (request.args.get('date', '').strip()
+                   or str(data.get('date', '')).strip())
     if not target_date:
         return jsonify({'status': 'error', 'message': 'date zorunlu (YYYY-MM-DD)'}), 400
+
     try:
-        from datetime import datetime, timedelta, date as _date_cls, time as _time_cls
+        from datetime import datetime, timedelta, time as _time_cls
         import pytz
-        import re as _re
         datetime.strptime(target_date, '%Y-%m-%d')
     except ValueError:
         return jsonify({'status': 'error', 'message': 'Geçersiz tarih formatı (YYYY-MM-DD)'}), 400
@@ -7676,21 +7680,26 @@ def admin_import_underdog_signals_for_date():
             return jsonify({'status': 'ok', 'imported': 0, 'skipped': 0, 'date': target_date,
                             'message': 'Bu tarih için fixture bulunamadı'})
 
-        # Step 2: batch fetch latest history snapshots
+        # Step 2: fetch the latest history snapshot per hash reliably.
+        # Use small batches (10 hashes) with high per-batch limit (2000 rows)
+        # so the worst-case 200 snapshots/match are always covered within the batch window.
         hashes = [f.get('match_id_hash', '') for f in fixtures if f.get('match_id_hash')]
         odds_cache = {}
-        batch_size = 50
+        batch_size = 10          # 10 hashes per request
+        per_batch_limit = 2000   # covers up to 200 snapshots per hash
         for i in range(0, len(hashes), batch_size):
             batch = hashes[i:i+batch_size]
             hash_list = ','.join(batch)
             if not hash_list:
                 continue
-            h_url = (f"{supabase._rest_url('moneyway_1x2_history')}?match_id_hash=in.({hash_list})"
-                     f"&order=scraped_at.desc&limit=1000")
+            h_url = (f"{supabase._rest_url('moneyway_1x2_history')}?"
+                     f"match_id_hash=in.({hash_list})"
+                     f"&order=scraped_at.desc&limit={per_batch_limit}")
             h_resp = supabase._get_http_client().get(h_url, headers=headers, timeout=30)
             if h_resp.status_code == 200:
                 for row in h_resp.json():
                     h = row.get('match_id_hash', '')
+                    # Keep only the first (= most recent) row per hash
                     if h and h not in odds_cache:
                         odds_cache[h] = row
 
@@ -7734,10 +7743,38 @@ def admin_import_underdog_signals_for_date():
             return jsonify({'status': 'ok', 'imported': 0, 'skipped': 0, 'date': target_date,
                             'message': 'Eşiği geçen sinyal bulunamadı'})
 
-        # Step 4: upsert to underdog_signals (ignore duplicates)
-        _save_underdog_signals(signals)
+        # Step 4: upsert and get accurate imported/skipped counts.
+        # return=representation with resolution=ignore-duplicates returns only inserted rows.
+        records = []
+        for s in signals:
+            match_key = f"{s['home_team']}|{s['away_team']}|{s.get('date','')}"
+            records.append({
+                'match_key': match_key,
+                'home_team': s.get('home_team', ''),
+                'away_team': s.get('away_team', ''),
+                'league': s.get('league', ''),
+                'match_date': s.get('date', ''),
+                'selection_code': s.get('selection_code', ''),
+                'odds': str(s.get('odds', '')),
+                'pct': str(s.get('pct', '')),
+                'amt': str(s.get('amt', '')),
+                'volume': str(s.get('volume', '')),
+            })
+        upsert_headers = dict(headers)
+        upsert_headers['Prefer'] = 'resolution=ignore-duplicates,return=representation'
+        url = f"{supabase._rest_url('underdog_signals')}?on_conflict=match_key,selection_code"
+        upsert_resp = supabase._get_http_client().post(
+            url, headers=upsert_headers, json=records, timeout=15)
+        if upsert_resp.status_code in (200, 201):
+            inserted = upsert_resp.json() if upsert_resp.text else []
+            imported = len(inserted) if isinstance(inserted, list) else len(records)
+        else:
+            print(f"[UnderdogImport] upsert non-2xx: {upsert_resp.status_code} {upsert_resp.text[:200]}")
+            imported = len(records)  # best-effort fallback
+        skipped = len(signals) - imported
 
-        return jsonify({'status': 'ok', 'imported': len(signals), 'skipped': 0,
+        print(f"[UnderdogImport] date={target_date} signals={len(signals)} imported={imported} skipped={skipped}")
+        return jsonify({'status': 'ok', 'imported': imported, 'skipped': skipped,
                         'date': target_date, 'fixtures_checked': len(fixtures),
                         'fixtures_with_odds': len(odds_cache)})
 
