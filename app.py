@@ -2286,7 +2286,6 @@ def _save_underdog_signals(signals):
                 'league': s.get('league', ''),
                 'match_date': s.get('date', ''),
                 'selection_code': s.get('selection_code', ''),
-                'selection_label': s.get('selection_label', ''),
                 'odds': str(s.get('odds', '')),
                 'pct': str(s.get('pct', '')),
                 'amt': str(s.get('amt', '')),
@@ -2298,7 +2297,10 @@ def _save_underdog_signals(signals):
         headers['Prefer'] = 'resolution=ignore-duplicates,return=minimal'
         url = f"{supabase._rest_url('underdog_signals')}?on_conflict=match_key,selection_code"
         resp = supabase._get_http_client().post(url, headers=headers, json=records, timeout=10)
-        print(f"[UnderdogSignals] Saved {len(records)} signals: {resp.status_code}")
+        if resp.status_code not in (200, 201):
+            print(f"[UnderdogSignals] Save non-2xx: {resp.status_code} {resp.text[:200]}")
+        else:
+            print(f"[UnderdogSignals] Saved {len(records)} signals: {resp.status_code}")
     except Exception as e:
         print(f"[UnderdogSignals] save error: {e}")
 
@@ -2310,9 +2312,10 @@ def _update_underdog_signal_scores():
         if not supabase or not supabase.is_available:
             return
         headers = supabase._headers()
-        url = f"{supabase._rest_url('underdog_signals')}?score=is.null&select=id,home_team,away_team&limit=300"
+        url = f"{supabase._rest_url('underdog_signals')}?score=is.null&select=match_key,selection_code,home_team,away_team&limit=300"
         resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
         if resp.status_code != 200:
+            print(f"[UnderdogSignals] Fetch pending non-2xx: {resp.status_code}")
             return
         pending = resp.json()
         if not pending:
@@ -2348,10 +2351,14 @@ def _update_underdog_signal_scores():
                         break
             if entry and entry.get('score'):
                 ph = supabase._headers()
-                pu = f"{supabase._rest_url('underdog_signals')}?id=eq.{sig['id']}"
+                mk = sig.get('match_key', '')
+                sc = sig.get('selection_code', '')
+                pu = f"{supabase._rest_url('underdog_signals')}?match_key=eq.{mk}&selection_code=eq.{sc}"
                 pr = supabase._get_http_client().patch(pu, headers=ph, json={'score': entry['score']}, timeout=5)
                 if pr.status_code in (200, 204):
                     updated += 1
+                else:
+                    print(f"[UnderdogSignals] Score patch non-2xx: {pr.status_code} mk={mk}")
         if updated:
             print(f"[UnderdogSignals] Updated scores for {updated} signals")
     except Exception as e:
