@@ -2294,8 +2294,9 @@ def _save_underdog_signals(signals):
         if not records:
             return
         headers = supabase._headers()
-        # on_conflict must match the table's unique constraint exactly.
-        # underdog_signals has UNIQUE(match_key, selection_code).
+        # VERIFIED: underdog_signals table has UNIQUE(match_key, selection_code)
+        # composite constraint (confirmed by DB error: "Key (match_key, selection_code)
+        # ... already exists."). on_conflict target must match this exactly.
         headers['Prefer'] = 'resolution=ignore-duplicates,return=minimal'
         url = f"{supabase._rest_url('underdog_signals')}?on_conflict=match_key,selection_code"
         resp = supabase._get_http_client().post(url, headers=headers, json=records, timeout=10)
@@ -2314,7 +2315,8 @@ def _update_underdog_signal_scores():
         if not supabase or not supabase.is_available:
             return
         headers = supabase._headers()
-        url = f"{supabase._rest_url('underdog_signals')}?score=is.null&select=match_key,selection_code,home_team,away_team&limit=300"
+        # Match both NULL and empty-string scores (table default may vary)
+        url = f"{supabase._rest_url('underdog_signals')}?or=(score.is.null,score.eq.)&select=match_key,selection_code,home_team,away_team&limit=300"
         resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
         if resp.status_code != 200:
             print(f"[UnderdogSignals] Fetch pending non-2xx: {resp.status_code}")
