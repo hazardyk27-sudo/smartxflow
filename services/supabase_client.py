@@ -1631,15 +1631,12 @@ class SupabaseClient:
             return False
     
     def get_6h_odds_history(self, market: str) -> Dict[str, Dict[str, Any]]:
-        """Drop markets: 24 saat önceki snapshot vs Son snapshot = Son 24 saat değişim.
-        OPTIMIZED: Her maç için 24h ago + last record."""
+        """Drop markets: En eski snapshot (açılış oranı) vs Son snapshot = Toplam düşüş.
+        OPTIMIZED: Her maç için oldest + last record."""
         if not self.is_available or not market.startswith('dropping'):
             return {}
         
-        if market.startswith('dropping_'):
-            history_table = market.replace('dropping_', 'moneyway_') + '_history'
-        else:
-            history_table = f"{market}_history"
+        history_table = f"{market}_history"
         
         try:
             import time
@@ -1648,9 +1645,6 @@ class SupabaseClient:
             start_time = time.time()
             
             now_utc = datetime.now(timezone.utc)
-            window_start = (now_utc - timedelta(hours=28)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
-            window_end = (now_utc - timedelta(hours=20)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
-            target_time = now_utc - timedelta(hours=24)
             
             if market == 'dropping_1x2':
                 sels = ['odds1', 'oddsx', 'odds2']
@@ -1691,15 +1685,6 @@ class SupabaseClient:
                         break
                 return rows
             
-            def fetch_24h_window():
-                url = (f"{self._rest_url(history_table)}?select={select_cols}"
-                       f"&scraped_at=gte.{window_start}&scraped_at=lte.{window_end}"
-                       f"&order=scraped_at.asc&limit=5000")
-                resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
-                if resp.status_code == 200:
-                    return resp.json()
-                return []
-            
             def fetch_oldest():
                 seen = set()
                 rows = []
@@ -1724,28 +1709,13 @@ class SupabaseClient:
                         break
                 return rows
             
-            with ThreadPoolExecutor(max_workers=3) as executor:
+            with ThreadPoolExecutor(max_workers=2) as executor:
                 future_last = executor.submit(fetch_unique_matches_last)
-                future_24h = executor.submit(fetch_24h_window)
                 future_oldest = executor.submit(fetch_oldest)
                 last_rows = future_last.result()
-                window_rows = future_24h.result()
                 oldest_rows = future_oldest.result()
             
             match_last = {f"{r.get('home', '')}|{r.get('away', '')}": r for r in last_rows}
-            
-            best_24h = {}
-            for row in window_rows:
-                key = f"{row.get('home', '')}|{row.get('away', '')}"
-                scraped = row.get('scraped_at', '')
-                try:
-                    row_time = datetime.fromisoformat(scraped.replace('Z', '+00:00'))
-                    diff = abs((row_time - target_time).total_seconds())
-                except:
-                    diff = 999999
-                if key not in best_24h or diff < best_24h[key][1]:
-                    best_24h[key] = (row, diff)
-            
             match_oldest = {f"{r.get('home', '')}|{r.get('away', '')}": r for r in oldest_rows}
             
             if not match_last:
@@ -1753,9 +1723,7 @@ class SupabaseClient:
             
             result = {}
             for key in match_last.keys():
-                if key in best_24h:
-                    ref_row = best_24h[key][0]
-                elif key in match_oldest:
+                if key in match_oldest:
                     ref_row = match_oldest[key]
                 else:
                     ref_row = match_last[key]
@@ -1778,7 +1746,7 @@ class SupabaseClient:
                 result[key] = match_data
             
             elapsed = time.time() - start_time
-            print(f"[Drop] Got {len(result)} matches for {market} in {elapsed:.1f}s (24h comparison)")
+            print(f"[Drop] Got {len(result)} matches for {market} in {elapsed:.1f}s (oldest→latest comparison)")
             return result
             
         except Exception as e:
