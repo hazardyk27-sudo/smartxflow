@@ -506,6 +506,9 @@ function showUnderdogPressure() {
 
 function renderUnderdogPressureView(data) {
     _underdogLastData = data;
+    var TR_DAYS_SHORT = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+    var TR_MONTHS_UPPER = ['OCAK','ŞUBAT','MART','NİSAN','MAYIS','HAZİRAN','TEMMUZ','AĞUSTOS','EYLÜL','EKİM','KASIM','ARALIK'];
+    var TR_DAYS_FULL = ['PAZAR','PAZARTESİ','SALI','ÇARŞAMBA','PERŞEMBE','CUMA','CUMARTESİ'];
     var contentArea = document.getElementById('trendsContentArea');
     var signals = data.signals || [];
     var count = data.count || 0;
