@@ -2937,11 +2937,13 @@ class AlarmCalculator:
                 market_max_odds = max_odds_btts
             
             # History verilerini al
-            history_table = f"{market}_history"
-            self.batch_fetch_history(market)
+            # dropping_1x2: moneyway_1x2_history kullan (dropping_1x2_history prematch filter nedeniyle her zaman boş)
+            fetch_market = 'moneyway_1x2' if market == 'dropping_1x2' else market
+            history_table = f"{fetch_market}_history"
+            self.batch_fetch_history(fetch_market)
             history_map = self._history_cache.get(history_table, {})
             
-            matches = self.get_matches_with_latest(market)
+            matches = self.get_matches_with_latest(fetch_market)
             
             for match in matches:
                 if not self._is_valid_match_date(match.get('date', '')):
