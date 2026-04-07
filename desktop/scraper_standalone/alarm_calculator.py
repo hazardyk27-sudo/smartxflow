@@ -3092,46 +3092,8 @@ class AlarmCalculator:
             new_count = self._upsert_alarms('dropping_alarms', alarms, ['match_id_hash', 'market', 'selection'])
             log(f"Dropping: {new_count} alarms upserted")
             
-            # STALE CLEANUP: Sadece bugünün maçları için geçersiz dropping alarmlarını temizle
-            # Dünün (D-1) alarmlarına DOKUNMA — onlar _cleanup_expired_match_alarms ile silinir
-            valid_keys = set()
-            for a in alarms:
-                key = f"{a['match_id_hash']}|{a['market']}|{a['selection']}"
-                valid_keys.add(key)
-            
-            today_str = now_turkey().date().strftime('%Y-%m-%d')
-            persistence_cutoff = (now_turkey() - timedelta(minutes=int(persistence_minutes))).isoformat()
-            try:
-                existing = self._get('dropping_alarms', f'select=id,match_id_hash,market,selection,match_date,trigger_at&match_date=gte.{today_str}') or []
-                stale_ids = []
-                for row in existing:
-                    key = f"{row.get('match_id_hash', '')}|{row.get('market', '')}|{row.get('selection', '')}"
-                    if key not in valid_keys:
-                        trigger_val = row.get('trigger_at', '') or ''
-                        if trigger_val and trigger_val > persistence_cutoff:
-                            continue
-                        stale_ids.append(row.get('id'))
-                
-                if stale_ids:
-                    for stale_id in stale_ids:
-                        self._delete('dropping_alarms', f'id=eq.{stale_id}')
-                    log(f"[Dropping] Removed {len(stale_ids)} stale alarms (today+ only, D-1 preserved)")
-            except Exception as e:
-                log(f"[Dropping] Stale alarm cleanup failed: {e}")
         else:
-            today_str = now_turkey().date().strftime('%Y-%m-%d')
-            persistence_cutoff = (now_turkey() - timedelta(minutes=int(persistence_minutes))).isoformat()
-            try:
-                existing_today = self._get('dropping_alarms', f'select=id,trigger_at&match_date=gte.{today_str}') or []
-                to_delete = [r for r in existing_today if not (r.get('trigger_at', '') or '') or (r.get('trigger_at', '') or '') <= persistence_cutoff]
-                if to_delete:
-                    for row in to_delete:
-                        self._delete('dropping_alarms', f'id=eq.{row.get("id")}')
-                    log(f"[Dropping] 0 alarm - {len(to_delete)} stale today+ alarms cleared (D-1 preserved, {len(existing_today)-len(to_delete)} within persistence window kept)")
-                else:
-                    log("Dropping: 0 alarm")
-            except Exception as e:
-                log(f"[Dropping] Stale cleanup failed: {e}")
+            log("Dropping: 0 yeni alarm (mevcut alarmlar korunuyor)")
         
         return len(alarms)
     
