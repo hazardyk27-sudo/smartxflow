@@ -2359,13 +2359,15 @@ def _update_underdog_signal_scores():
 
 
 def _fetch_all_underdog_signals():
-    """Fetch all persisted signals from underdog_signals table."""
+    """Fetch signals from underdog_signals table (last 90 days)."""
     try:
+        from datetime import date as _d, timedelta as _td
+        since = (_d.today() - _td(days=90)).isoformat()
         supabase = get_supabase_client()
         if not supabase or not supabase.is_available:
             return []
         headers = supabase._headers()
-        url = f"{supabase._rest_url('underdog_signals')}?select=*&order=match_date.asc,home_team.asc&limit=5000"
+        url = f"{supabase._rest_url('underdog_signals')}?select=*&match_date=gte.{since}&order=match_date.asc,home_team.asc&limit=5000"
         resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
         if resp.status_code == 200:
             rows = resp.json()
