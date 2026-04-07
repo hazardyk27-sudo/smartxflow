@@ -7623,6 +7623,130 @@ def admin_update_underdog_result():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
+@app.route('/api/admin/underdog-signals/import-date', methods=['POST'])
+def admin_import_underdog_signals_for_date():
+    """Fetch moneyway_1x2_history data for a given date, apply underdog filters,
+    and upsert matching signals into underdog_signals table."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    data = request.get_json(silent=True) or {}
+    target_date = data.get('date', '').strip()
+    if not target_date:
+        return jsonify({'status': 'error', 'message': 'date zorunlu (YYYY-MM-DD)'}), 400
+    try:
+        from datetime import datetime, timedelta, date as _date_cls, time as _time_cls
+        import pytz
+        import re as _re
+        datetime.strptime(target_date, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({'status': 'error', 'message': 'Geçersiz tarih formatı (YYYY-MM-DD)'}), 400
+
+    try:
+        import pytz
+        from datetime import datetime, timedelta, time as _time_cls
+        from urllib.parse import quote as _url_quote
+
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return jsonify({'status': 'error', 'message': 'DB bağlantısı yok'}), 500
+
+        tr_tz = pytz.timezone('Europe/Istanbul')
+        target_dt = datetime.strptime(target_date, '%Y-%m-%d').date()
+
+        # Convert Istanbul date range to UTC for fixtures query
+        day_start_tr = tr_tz.localize(datetime.combine(target_dt, _time_cls.min))
+        day_end_tr   = tr_tz.localize(datetime.combine(target_dt + timedelta(days=1), _time_cls.min))
+        day_start_utc = day_start_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
+        day_end_utc   = day_end_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        headers = supabase._headers()
+
+        # Step 1: fetch fixtures for the date
+        fix_url = (
+            f"{supabase._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,"
+            f"league,kickoff_utc&kickoff_utc=gte.{_url_quote(day_start_utc)}"
+            f"&kickoff_utc=lt.{_url_quote(day_end_utc)}&order=kickoff_utc.asc&limit=500"
+        )
+        fix_resp = supabase._get_http_client().get(fix_url, headers=headers, timeout=15)
+        if fix_resp.status_code != 200:
+            return jsonify({'status': 'error', 'message': f'fixtures fetch error: {fix_resp.status_code}'}), 500
+
+        fixtures = fix_resp.json()
+        if not fixtures:
+            return jsonify({'status': 'ok', 'imported': 0, 'skipped': 0, 'date': target_date,
+                            'message': 'Bu tarih için fixture bulunamadı'})
+
+        # Step 2: batch fetch latest history snapshots
+        hashes = [f.get('match_id_hash', '') for f in fixtures if f.get('match_id_hash')]
+        odds_cache = {}
+        batch_size = 50
+        for i in range(0, len(hashes), batch_size):
+            batch = hashes[i:i+batch_size]
+            hash_list = ','.join(batch)
+            if not hash_list:
+                continue
+            h_url = (f"{supabase._rest_url('moneyway_1x2_history')}?match_id_hash=in.({hash_list})"
+                     f"&order=scraped_at.desc&limit=1000")
+            h_resp = supabase._get_http_client().get(h_url, headers=headers, timeout=30)
+            if h_resp.status_code == 200:
+                for row in h_resp.json():
+                    h = row.get('match_id_hash', '')
+                    if h and h not in odds_cache:
+                        odds_cache[h] = row
+
+        # Step 3: apply underdog thresholds and build signals list
+        odds_threshold = 3.00
+        pct_threshold  = 50.0
+        signals = []
+        for fix in fixtures:
+            mhash = fix.get('match_id_hash', '')
+            row   = odds_cache.get(mhash)
+            if not row:
+                continue
+            home   = fix.get('home_team', '')
+            away   = fix.get('away_team', '')
+            league = fix.get('league', '')
+            date   = fix.get('kickoff_utc', target_date)
+            volume = row.get('volume', '')
+            candidates = [
+                ('1', 'Ev Sahibi',  row.get('odds1', '-'), row.get('pct1', ''),  row.get('amt1', '')),
+                ('X', 'Beraberlik', row.get('oddsx', '-'), row.get('pctx', ''),  row.get('amtx', '')),
+                ('2', 'Deplasman',  row.get('odds2', '-'), row.get('pct2', ''),  row.get('amt2', '')),
+            ]
+            for code, label, raw_odds, raw_pct, raw_amt in candidates:
+                try:
+                    odds_val = float(str(raw_odds).replace(',', '.')) if raw_odds and raw_odds != '-' else 0.0
+                except (ValueError, TypeError):
+                    odds_val = 0.0
+                try:
+                    pct_val = float(str(raw_pct).replace('%', '').strip()) if raw_pct else 0.0
+                except (ValueError, TypeError):
+                    pct_val = 0.0
+                if odds_val >= odds_threshold and pct_val >= pct_threshold:
+                    signals.append({
+                        'home_team': home, 'away_team': away, 'league': league,
+                        'date': date, 'selection_code': code, 'selection_label': label,
+                        'odds': str(raw_odds), 'pct': str(raw_pct),
+                        'amt': str(raw_amt), 'volume': str(volume),
+                    })
+
+        if not signals:
+            return jsonify({'status': 'ok', 'imported': 0, 'skipped': 0, 'date': target_date,
+                            'message': 'Eşiği geçen sinyal bulunamadı'})
+
+        # Step 4: upsert to underdog_signals (ignore duplicates)
+        _save_underdog_signals(signals)
+
+        return jsonify({'status': 'ok', 'imported': len(signals), 'skipped': 0,
+                        'date': target_date, 'fixtures_checked': len(fixtures),
+                        'fixtures_with_odds': len(odds_cache)})
+
+    except Exception as e:
+        import traceback
+        print(f"[UnderdogImport] error: {traceback.format_exc()}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
 @app.route('/api/analysts', methods=['POST'])
 def create_analyst_endpoint():
     """Create new analyst (admin only)"""

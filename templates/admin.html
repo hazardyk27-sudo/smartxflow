@@ -3228,6 +3228,13 @@
 
             <div id="udAdminStats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;"></div>
 
+            <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <span style="font-size:13px;color:#8b949e;font-weight:500;">Geçmiş Tarih Aktar:</span>
+                <input type="date" id="udImportDateInput" style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:6px 10px;color:#c9d1d9;font-size:13px;" value="">
+                <button class="btn btn-primary" onclick="importUnderdogDate()" style="padding:6px 16px;font-size:13px;">Aktar</button>
+                <span id="udImportStatus" style="font-size:12px;color:#8b949e;"></span>
+            </div>
+
             <div id="udAdminList" style="display:flex;flex-direction:column;gap:0;">
                 <div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>
             </div>
@@ -8734,6 +8741,44 @@
                 }
             } catch(e) { alert('Hata: ' + e.message); }
         }
+
+        async function importUnderdogDate() {
+            var dateVal = document.getElementById('udImportDateInput').value;
+            var statusEl = document.getElementById('udImportStatus');
+            if (!dateVal) { statusEl.textContent = 'Lütfen bir tarih seçin'; statusEl.style.color = '#f85149'; return; }
+            statusEl.textContent = 'Aktarılıyor...'; statusEl.style.color = '#8b949e';
+            try {
+                const resp = await fetch('/api/admin/underdog-signals/import-date', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({date: dateVal})
+                });
+                const data = await resp.json();
+                if (data.status === 'ok') {
+                    var msg = data.imported > 0
+                        ? (dateVal + ' için ' + data.imported + ' sinyal aktarıldı ✓')
+                        : (data.message || 'Sinyal bulunamadı');
+                    statusEl.textContent = msg;
+                    statusEl.style.color = data.imported > 0 ? '#3fb950' : '#8b949e';
+                    if (data.imported > 0) loadUnderdogSignals();
+                } else {
+                    statusEl.textContent = 'Hata: ' + (data.message || 'Bilinmeyen');
+                    statusEl.style.color = '#f85149';
+                }
+            } catch(e) {
+                statusEl.textContent = 'Hata: ' + e.message;
+                statusEl.style.color = '#f85149';
+            }
+        }
+
+        // Pre-fill import date with yesterday
+        (function() {
+            var inp = document.getElementById('udImportDateInput');
+            if (inp) {
+                var d = new Date(); d.setDate(d.getDate() - 1);
+                inp.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+            }
+        })();
 
     </script>
 </body>
