@@ -2410,27 +2410,35 @@ def _fetch_all_underdog_signals():
 
 
 def _ensure_underdog_result_column():
-    """Add result column to underdog_signals if it doesn't exist (one-time migration)."""
+    """No-op: result column migration replaced by JSON file approach."""
+    pass
+
+
+_ud_results_path = os.path.join('data', 'underdog_results.json')
+
+
+def _load_ud_results():
+    """Load underdog signal results from JSON file."""
     try:
-        supabase = get_supabase_client()
-        if not supabase or not supabase.is_available:
-            return
-        from services import embedded_credentials as _ec
-        _url = getattr(_ec, 'SUPABASE_URL', '') or supabase.url
-        _key = getattr(_ec, 'SUPABASE_KEY', '') or supabase.key
-        if not _url or not _key:
-            return
-        import httpx as _httpx
-        rpc_url = f"{_url}/rest/v1/rpc/exec_sql"
-        headers = {"apikey": _key, "Authorization": f"Bearer {_key}", "Content-Type": "application/json"}
-        sql = "ALTER TABLE underdog_signals ADD COLUMN IF NOT EXISTS result TEXT DEFAULT NULL;"
-        resp = _httpx.post(rpc_url, json={"query": sql}, headers=headers, timeout=15)
-        if resp.status_code in (200, 201, 204):
-            print("[UnderdogSignals] result column migration OK")
-        else:
-            print(f"[UnderdogSignals] result column migration skipped ({resp.status_code}): {resp.text[:100]}")
-    except Exception as e:
-        print(f"[UnderdogSignals] result column migration error: {e}")
+        if os.path.exists(_ud_results_path):
+            with open(_ud_results_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
+def _save_ud_result(match_key, selection_code, result):
+    """Save (or clear) an underdog signal result to JSON file."""
+    results = _load_ud_results()
+    key = f"{match_key}|{selection_code}"
+    if result:
+        results[key] = result
+    else:
+        results.pop(key, None)
+    os.makedirs('data', exist_ok=True)
+    with open(_ud_results_path, 'w', encoding='utf-8') as f:
+        json.dump(results, f)
 
 
 @app.route('/api/finished-scores')
@@ -7581,20 +7589,20 @@ def admin_get_underdog_signals():
     """Return all underdog signals for admin (last 90 days, includes result field)."""
     if not session.get('admin_authenticated'):
         return jsonify({'error': 'UNAUTHORIZED'}), 401
-    global _underdog_result_col_migrated
-    if not _underdog_result_col_migrated:
-        _underdog_result_col_migrated = True
-        try:
-            _ensure_underdog_result_column()
-        except Exception:
-            pass
     signals = _fetch_all_underdog_signals()
+    results_map = _load_ud_results()
+    for sig in signals:
+        mk = sig.get('match_key', '')
+        sc = sig.get('selection_code', '')
+        file_result = results_map.get(f"{mk}|{sc}")
+        if file_result:
+            sig['result'] = file_result
     return jsonify({'signals': signals, 'count': len(signals)})
 
 
 @app.route('/api/admin/underdog-signals/result', methods=['PATCH'])
 def admin_update_underdog_result():
-    """Update won/lost result for an underdog signal."""
+    """Update won/lost result for an underdog signal (stored in data/underdog_results.json)."""
     if not session.get('admin_authenticated'):
         return jsonify({'error': 'UNAUTHORIZED'}), 401
     data = request.get_json(silent=True) or {}
@@ -7606,19 +7614,8 @@ def admin_update_underdog_result():
     if not match_key or not selection_code:
         return jsonify({'status': 'error', 'message': 'match_key ve selection_code zorunlu'}), 400
     try:
-        supabase = get_supabase_client()
-        if not supabase or not supabase.is_available:
-            return jsonify({'status': 'error', 'message': 'DB bağlantısı yok'}), 500
-        from urllib.parse import quote as _url_quote
-        headers = supabase._headers()
-        mk = _url_quote(match_key, safe='')
-        sc = _url_quote(selection_code, safe='')
-        url = f"{supabase._rest_url('underdog_signals')}?match_key=eq.{mk}&selection_code=eq.{sc}"
-        result_to_set = result_val if result_val else None
-        resp = supabase._get_http_client().patch(url, headers=headers, json={'result': result_to_set}, timeout=10)
-        if resp.status_code in (200, 204):
-            return jsonify({'status': 'ok'})
-        return jsonify({'status': 'error', 'message': f'DB hatası: {resp.status_code}'}), 500
+        _save_ud_result(match_key, selection_code, result_val)
+        return jsonify({'status': 'ok'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 

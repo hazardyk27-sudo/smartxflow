@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+    window.addEventListener('unhandledrejection', function(e) {
+        e.preventDefault();
+        console.warn('[SmartXFlow] Unhandled rejection suppressed:', e.reason && e.reason.message || e.reason);
+    });
+    </script>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-NN1FFSFF2N"></script>
     <script>
