@@ -8657,7 +8657,13 @@
             try {
                 const resp = await fetch('/api/admin/underdog-signals');
                 if (!resp.ok) { listEl.innerHTML = '<div style="color:#f85149;padding:20px;">Yükleme hatası: ' + resp.status + '</div>'; return; }
-                const data = await resp.json();
+                let data;
+                try {
+                    data = await resp.json();
+                } catch(parseErr) {
+                    listEl.innerHTML = '<div style="color:#f85149;padding:20px;">Yanıt parse hatası: ' + parseErr.message + '</div>';
+                    return;
+                }
                 _udSignalsCache = data.signals || [];
                 renderUdAdminSignals(_udSignalsCache, listEl, statsEl);
             } catch(e) {
@@ -8706,7 +8712,9 @@
                     var wonActive = res === 'won' ? 'background:#1a3a1e;border-color:#3fb950;color:#3fb950;' : 'background:#161b22;border-color:#30363d;color:#8b949e;';
                     var lostActive = res === 'lost' ? 'background:#3a1a1a;border-color:#f85149;color:#f85149;' : 'background:#161b22;border-color:#30363d;color:#8b949e;';
                     var btnBase = 'cursor:pointer;border:1px solid;border-radius:5px;padding:4px 10px;font-size:11px;font-weight:600;transition:all 0.15s;';
-                    var clearBtn = res ? '<button onclick="setUdResult(' + JSON.stringify(mk) + ',' + JSON.stringify(sc) + ',\'\')" style="' + btnBase + 'background:#161b22;border-color:#21262d;color:#3a3f45;" title="Temizle">✕</button>' : '';
+                    var safeMk = mk.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+                    var safeSc = sc.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+                    var clearBtn = res ? '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="" style="' + btnBase + 'background:#161b22;border-color:#21262d;color:#3a3f45;" title="Temizle">✕</button>' : '';
                     var rowId = 'udrow-' + (mk + sc).split('').reduce(function(h,c){return (((h<<5)-h)+c.charCodeAt(0))|0;},0).toString(36).replace('-','n');
                     html += '<div id="' + rowId + '" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;background:#161b22;border:1px solid #21262d;margin-bottom:6px;flex-wrap:wrap;">';
                     html += '<div style="flex:1;min-width:150px;">';
@@ -8717,8 +8725,8 @@
                     html += '<span style="color:#93c5fd;font-size:12px;font-weight:600;">' + (sig.odds||'-') + '</span>';
                     html += '<span style="color:#34d399;font-size:12px;font-weight:600;">' + (sig.pct||'-') + '</span>';
                     html += '<div style="display:flex;gap:4px;margin-left:auto;">';
-                    html += '<button onclick="setUdResult(' + JSON.stringify(mk) + ',' + JSON.stringify(sc) + ',\'won\')" style="' + btnBase + wonActive + '">✓ Kazandı</button>';
-                    html += '<button onclick="setUdResult(' + JSON.stringify(mk) + ',' + JSON.stringify(sc) + ',\'lost\')" style="' + btnBase + lostActive + '">✗ Kaybetti</button>';
+                    html += '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="won" style="' + btnBase + wonActive + '">✓ Kazandı</button>';
+                    html += '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="lost" style="' + btnBase + lostActive + '">✗ Kaybetti</button>';
                     html += clearBtn;
                     html += '</div></div>';
                 });
@@ -8733,7 +8741,13 @@
                     headers: {'Content-Type':'application/json'},
                     body: JSON.stringify({match_key: matchKey, selection_code: selectionCode, result: result})
                 });
-                const data = await resp.json();
+                let data;
+                try {
+                    data = await resp.json();
+                } catch(parseErr) {
+                    alert('Yanıt parse hatası: ' + parseErr.message + ' (HTTP ' + resp.status + ')');
+                    return;
+                }
                 if (data.status === 'ok') {
                     if (_udSignalsCache) {
                         _udSignalsCache.forEach(function(s) {
@@ -8749,6 +8763,19 @@
                 }
             } catch(e) { alert('Hata: ' + e.message); }
         }
+
+        (function() {
+            document.addEventListener('click', function(e) {
+                var btn = e.target.closest('button.ud-result-btn');
+                if (!btn) return;
+                var mk = btn.getAttribute('data-mk');
+                var sc = btn.getAttribute('data-sc');
+                var res = btn.getAttribute('data-res');
+                if (mk !== null && sc !== null && res !== null) {
+                    setUdResult(mk, sc, res);
+                }
+            });
+        })();
 
         async function importUnderdogDate() {
             var dateVal = document.getElementById('udImportDateInput').value;
