@@ -536,8 +536,14 @@ function renderUnderdogPressureView(data) {
                 html += '<div style="background:#1c1f23;border:1px solid rgba(210,153,34,0.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';
                 html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
                 html += '<div style="flex:1;min-width:0;">';
+                var amtFmt = sig.amt ? ('£\u00a0' + parseFloat(String(sig.amt).replace(/[^0-9.]/g,'')).toLocaleString('en-GB', {maximumFractionDigits:0})) : '';
+                var volFmt = sig.volume ? ('£\u00a0' + parseFloat(String(sig.volume).replace(/[^0-9.]/g,'')).toLocaleString('en-GB', {maximumFractionDigits:0})) : '';
                 html += '<div style="font-size:13px;font-weight:600;color:#e0e4e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.home_team || '') + ' - ' + (sig.away_team || '') + '</div>';
-                html += '<div style="font-size:10px;color:#484f58;margin-top:2px;">' + (sig.league || '') + '</div>';
+                html += '<div style="display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;">';
+                html += '<div style="font-size:10px;color:#484f58;">' + (sig.league || '') + '</div>';
+                if (amtFmt) html += '<div style="font-size:10px;color:#7d848c;display:flex;align-items:center;gap:3px;"><span style="color:#3a3f45;">Para:</span>' + amtFmt + '</div>';
+                if (volFmt) html += '<div style="font-size:10px;color:#7d848c;display:flex;align-items:center;gap:3px;"><span style="color:#3a3f45;">Hacim:</span>' + volFmt + '</div>';
+                html += '</div>';
                 html += '</div>';
                 html += '<div style="display:flex;gap:4px;flex-shrink:0;">';
                 html += '<span style="background:rgba(210,153,34,0.1);color:#d29922;border:1px solid rgba(210,153,34,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">' + selLabel + '</span>';
