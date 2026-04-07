@@ -7481,6 +7481,10 @@ def underdog_pressure_endpoint():
         league = m.get('league', '')
         date = m.get('date', '')
         volume = odds_obj.get('Volume', '')
+        try:
+            volume_val = float(str(volume).replace('£', '').replace(',', '').strip()) if volume else 0.0
+        except (ValueError, TypeError):
+            volume_val = 0.0
 
         candidates = [
             ('1', 'Ev Sahibi', odds_obj.get('Odds1', '-'), odds_obj.get('Pct1', ''), odds_obj.get('Amt1', '')),
@@ -7497,7 +7501,7 @@ def underdog_pressure_endpoint():
             except (ValueError, TypeError):
                 pct_val = 0.0
 
-            if odds_val >= odds_threshold and pct_val >= pct_threshold:
+            if odds_val >= odds_threshold and pct_val >= pct_threshold and volume_val < 1000:
                 live_signals.append({
                     'home_team': home,
                     'away_team': away,
