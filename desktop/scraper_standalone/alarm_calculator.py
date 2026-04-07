@@ -3101,23 +3101,8 @@ class AlarmCalculator:
         else:
             log("Dropping: 0 yeni alarm (mevcut alarmlar korunuyor)")
 
-        # RECOVERY CLEANUP: drop_pct < L1 eşiğine düşen alarmları sil
-        to_recover = recovered_keys - valid_keys
-        if to_recover:
-            today_str = now_turkey().date().strftime('%Y-%m-%d')
-            try:
-                existing = self._get('dropping_alarms', f'select=id,match_id_hash,market,selection&match_date=gte.{today_str}') or []
-                delete_ids = []
-                for row in existing:
-                    row_key = f"{row.get('match_id_hash','')}|{row.get('market','')}|{row.get('selection','')}"
-                    if row_key in to_recover:
-                        delete_ids.append(row.get('id'))
-                if delete_ids:
-                    for did in delete_ids:
-                        self._delete('dropping_alarms', f'id=eq.{did}')
-                    log(f"[Dropping] {len(delete_ids)} alarm silindi (oran L1 eşiğinin altına döndü)")
-            except Exception as e:
-                log(f"[Dropping] Recovery cleanup failed: {e}")
+        # RECOVERY CLEANUP DEVRE DIŞI: Alarmlar expiry cleanup (D-2 cutoff) ile temizleniyor.
+        # Snapshot titremesi nedeniyle valid alarmlar yanlışlıkla siliniyordu.
         
         return len(alarms)
     
