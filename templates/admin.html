@@ -8678,11 +8678,17 @@
             var pendingCount = signals.filter(s => !s.result).length;
             if (statsEl) {
                 var sb = 'display:inline-flex;flex-direction:column;align-items:center;padding:10px 20px;border-radius:8px;background:#161b22;border:1px solid #30363d;min-width:70px;';
+                var resolvedCount = wonCount + lostCount;
+                var successRate = resolvedCount > 0 ? Math.round(wonCount / resolvedCount * 100) : null;
+                var successHtml = successRate !== null
+                    ? '<div style="' + sb + 'border-color:rgba(59,130,246,0.4);"><div style="font-size:18px;font-weight:800;color:#60a5fa;">%' + successRate + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Başarı</div></div>'
+                    : '';
                 statsEl.innerHTML =
                     '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#d29922;">' + signals.length + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Toplam</div></div>' +
                     '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#3fb950;">' + wonCount + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kazandı</div></div>' +
                     '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#f85149;">' + lostCount + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kaybetti</div></div>' +
-                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#8b949e;">' + pendingCount + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Bekliyor</div></div>';
+                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#8b949e;">' + pendingCount + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Bekliyor</div></div>' +
+                    successHtml;
             }
             if (!signals.length) {
                 listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Kayıtlı sinyal bulunmuyor</div>';
@@ -8724,6 +8730,8 @@
                     html += '<span style="background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.25);color:#d29922;font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;">' + selLabel + '</span>';
                     html += '<span style="color:#93c5fd;font-size:12px;font-weight:600;">' + (sig.odds||'-') + '</span>';
                     html += '<span style="color:#34d399;font-size:12px;font-weight:600;">' + (sig.pct||'-') + '</span>';
+                    if (sig.amt) html += '<span style="color:#8b949e;font-size:11px;" title="Seçenek parası">Para: ' + sig.amt + '</span>';
+                    if (sig.volume) html += '<span style="color:#484f58;font-size:11px;" title="Toplam hacim">Hacim: ' + sig.volume + '</span>';
                     html += '<div style="display:flex;gap:4px;margin-left:auto;">';
                     html += '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="won" style="' + btnBase + wonActive + '">✓ Kazandı</button>';
                     html += '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="lost" style="' + btnBase + lostActive + '">✗ Kaybetti</button>';
