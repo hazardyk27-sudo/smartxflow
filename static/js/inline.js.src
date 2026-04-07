@@ -532,11 +532,11 @@ function renderUnderdogPressureView(data) {
             html += '<span style="font-size:10px;font-weight:600;color:#3a3f45;background:rgba(255,255,255,0.03);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.05);">' + items.length + ' SİNYAL</span>';
             html += '</div>';
             items.forEach(function(sig) {
-                var selLabel = sig.selection === '1' ? 'Ev Sahibi' : sig.selection === '2' ? 'Deplasman' : 'Beraberlik';
+                var selLabel = sig.selection_code === '1' ? 'Ev Sahibi' : sig.selection_code === '2' ? 'Deplasman' : 'Beraberlik';
                 html += '<div style="background:#1c1f23;border:1px solid rgba(210,153,34,0.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';
                 html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
                 html += '<div style="flex:1;min-width:0;">';
-                html += '<div style="font-size:13px;font-weight:600;color:#e0e4e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.home || '') + ' - ' + (sig.away || '') + '</div>';
+                html += '<div style="font-size:13px;font-weight:600;color:#e0e4e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.home_team || '') + ' - ' + (sig.away_team || '') + '</div>';
                 html += '<div style="font-size:10px;color:#484f58;margin-top:2px;">' + (sig.league || '') + '</div>';
                 html += '</div>';
                 html += '<div style="display:flex;gap:4px;flex-shrink:0;">';
