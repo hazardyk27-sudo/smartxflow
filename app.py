@@ -2387,6 +2387,7 @@ def _fetch_all_underdog_signals():
             result = []
             for r in rows:
                 result.append({
+                    'match_key': r.get('match_key', ''),
                     'home_team': r.get('home_team', ''),
                     'away_team': r.get('away_team', ''),
                     'league': r.get('league', ''),
@@ -7580,6 +7581,13 @@ def admin_get_underdog_signals():
     """Return all underdog signals for admin (last 90 days, includes result field)."""
     if not session.get('admin_authenticated'):
         return jsonify({'error': 'UNAUTHORIZED'}), 401
+    global _underdog_result_col_migrated
+    if not _underdog_result_col_migrated:
+        _underdog_result_col_migrated = True
+        try:
+            _ensure_underdog_result_column()
+        except Exception:
+            pass
     signals = _fetch_all_underdog_signals()
     return jsonify({'signals': signals, 'count': len(signals)})
 
