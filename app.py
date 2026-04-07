@@ -2294,6 +2294,8 @@ def _save_underdog_signals(signals):
         if not records:
             return
         headers = supabase._headers()
+        # on_conflict must match the table's unique constraint exactly.
+        # underdog_signals has UNIQUE(match_key, selection_code).
         headers['Prefer'] = 'resolution=ignore-duplicates,return=minimal'
         url = f"{supabase._rest_url('underdog_signals')}?on_conflict=match_key,selection_code"
         resp = supabase._get_http_client().post(url, headers=headers, json=records, timeout=10)
@@ -2350,15 +2352,16 @@ def _update_underdog_signal_scores():
                         entry = ft_entry
                         break
             if entry and entry.get('score'):
+                from urllib.parse import quote as _url_quote
                 ph = supabase._headers()
-                mk = sig.get('match_key', '')
-                sc = sig.get('selection_code', '')
+                mk = _url_quote(sig.get('match_key', ''), safe='')
+                sc = _url_quote(sig.get('selection_code', ''), safe='')
                 pu = f"{supabase._rest_url('underdog_signals')}?match_key=eq.{mk}&selection_code=eq.{sc}"
                 pr = supabase._get_http_client().patch(pu, headers=ph, json={'score': entry['score']}, timeout=5)
                 if pr.status_code in (200, 204):
                     updated += 1
                 else:
-                    print(f"[UnderdogSignals] Score patch non-2xx: {pr.status_code} mk={mk}")
+                    print(f"[UnderdogSignals] Score patch non-2xx: {pr.status_code} mk={sig.get('match_key','')}")
         if updated:
             print(f"[UnderdogSignals] Updated scores for {updated} signals")
     except Exception as e:
