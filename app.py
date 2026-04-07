@@ -7274,13 +7274,10 @@ def get_analysts_endpoint():
 
 
 @app.route('/api/underdog-pressure', methods=['GET'])
+@license_required
 def underdog_pressure_endpoint():
     """Return matches where an underdog (odds >= 3.00) attracts >= 50% of money"""
-    from flask import session as flask_session
-    license_key = request.headers.get('X-License-Key') or flask_session.get('license_key')
-    if not license_key:
-        return jsonify({'error': 'UNAUTHORIZED'}), 403
-
+    from datetime import date as _date
     odds_threshold = 3.00
     pct_threshold = 50.0
 
@@ -7332,6 +7329,32 @@ def underdog_pressure_endpoint():
                     'volume': volume,
                 })
 
+    today_str = _date.today().strftime('%Y-%m-%d')
+
+    def _is_today_or_future(date_val):
+        if not date_val:
+            return True
+        try:
+            dv = str(date_val)
+            if len(dv) >= 10 and dv[4] == '-':
+                return dv[:10] >= today_str
+            import re as _re
+            m = _re.search(r'(\d{2})\.(\w{3})', dv)
+            if m:
+                months = {'Jan':1,'Feb':2,'Mar':3,'Apr':4,'May':5,'Jun':6,'Jul':7,'Aug':8,'Sep':9,'Oct':10,'Nov':11,'Dec':12}
+                day = int(m.group(1)); mon = months.get(m.group(2), 0)
+                from datetime import date as _d2
+                yr = _d2.today().year
+                try:
+                    d_obj = _d2(yr, mon, day)
+                    return d_obj >= _d2.today()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        return True
+
+    signals = [s for s in signals if _is_today_or_future(s.get('date'))]
     signals.sort(key=lambda x: (x.get('date', ''), x.get('home_team', '')))
 
     avg_odds = 0.0

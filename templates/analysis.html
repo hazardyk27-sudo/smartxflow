@@ -427,8 +427,22 @@
                 <div class="loading-state"><div class="loading-spinner-lg"></div><p style="color:#8b949e;font-size:13px;">Yukleniyor...</p></div>
             `;
             try {
-                const resp = await fetch('/api/analysts?active=true');
+                const licKey = localStorage.getItem('smartxflow_web_license') || '';
+                const [analystResp, udResp] = await Promise.allSettled([
+                    fetch('/api/analysts?active=true'),
+                    fetch('/api/underdog-pressure', { headers: licKey ? { 'X-License-Key': licKey } : {} })
+                ]);
+                const resp = analystResp.status === 'fulfilled' ? analystResp.value : null;
+                if (!resp || !resp.ok) throw new Error('Analyst API error');
                 const analysts = await resp.json();
+
+                let udCount = null;
+                if (udResp.status === 'fulfilled' && udResp.value.ok) {
+                    try {
+                        const udData = await udResp.value.json();
+                        udCount = udData.count ?? null;
+                    } catch(e) {}
+                }
                 if (!analysts) {
                     view.innerHTML = `
                         <div class="empty-state"><h3>Bir hata olustu</h3><p>Lutfen sayfayi yenileyin.</p></div>
@@ -462,6 +476,7 @@
                     `;
                 }).join('');
 
+                const udCountDisplay = udCount !== null ? `${udCount}` : '—';
                 const udCard = `
                     <div class="analyst-card signal-card" onclick="loadUnderdogPressure()">
                         <span class="signal-badge">Otomatik Sinyal</span>
@@ -470,8 +485,8 @@
                         <div class="analyst-bio">3.00+ oranlı underdog'a %50'den fazla para akan maçları tespit eder.</div>
                         <div class="analyst-stats-row">
                             <div class="analyst-stat">
-                                <div class="analyst-stat-value" style="color:#d29922;">Canlı</div>
-                                <div class="analyst-stat-label">Durum</div>
+                                <div class="analyst-stat-value" style="color:#d29922;">${udCountDisplay}</div>
+                                <div class="analyst-stat-label">Aktif Sinyal</div>
                             </div>
                             <div class="analyst-stat">
                                 <div class="analyst-stat-value" style="color:#d29922;">1X2</div>
