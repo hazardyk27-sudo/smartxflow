@@ -1640,11 +1640,9 @@ class SupabaseClient:
         
         try:
             import time
-            from datetime import datetime, timedelta, timezone
+            from datetime import datetime, timezone
             from concurrent.futures import ThreadPoolExecutor
             start_time = time.time()
-            
-            now_utc = datetime.now(timezone.utc)
             
             if market == 'dropping_1x2':
                 sels = ['odds1', 'oddsx', 'odds2']
