@@ -2919,6 +2919,8 @@ class AlarmCalculator:
         
         alarms = []
         seen_alarms = set()
+        valid_keys = set()
+        recovered_keys = set()
         markets = ['dropping_1x2', 'dropping_ou25', 'dropping_btts']
         market_names = {'dropping_1x2': '1X2', 'dropping_ou25': 'O/U 2.5', 'dropping_btts': 'BTTS'}
         
@@ -2999,7 +3001,11 @@ class AlarmCalculator:
                     
                     drop_pct = ((opening_odds - current_odds) / opening_odds) * 100
                     
+                    _chk_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
+                    _chk_key = f"{_chk_id}|{market_names.get(market, market)}|{selection}"
+                    
                     if drop_pct < l1_min:
+                        recovered_keys.add(_chk_key)
                         continue
                     
                     # === KALICILIK KONTROLÜ (persistence_enabled ise) ===
@@ -3086,14 +3092,32 @@ class AlarmCalculator:
                         'snapshots_checked': int(len(recent_snapshots))
                     }
                     alarms.append(alarm)
+                    valid_keys.add(f"{match_id}|{market_names.get(market, market)}|{selection}")
                     log(f"  [DROPPING-{level}] {home} vs {away} | {market_names.get(market, market)}-{selection} | {opening_odds:.2f}->{current_odds:.2f} (-%{drop_pct:.1f}) | Kalıcı: {len(recent_snapshots)} snap")
         
         if alarms:
             new_count = self._upsert_alarms('dropping_alarms', alarms, ['match_id_hash', 'market', 'selection'])
             log(f"Dropping: {new_count} alarms upserted")
-            
         else:
             log("Dropping: 0 yeni alarm (mevcut alarmlar korunuyor)")
+
+        # RECOVERY CLEANUP: drop_pct < L1 eşiğine düşen alarmları sil
+        to_recover = recovered_keys - valid_keys
+        if to_recover:
+            today_str = now_turkey().date().strftime('%Y-%m-%d')
+            try:
+                existing = self._get('dropping_alarms', f'select=id,match_id_hash,market,selection&match_date=gte.{today_str}') or []
+                delete_ids = []
+                for row in existing:
+                    row_key = f"{row.get('match_id_hash','')}|{row.get('market','')}|{row.get('selection','')}"
+                    if row_key in to_recover:
+                        delete_ids.append(row.get('id'))
+                if delete_ids:
+                    for did in delete_ids:
+                        self._delete('dropping_alarms', f'id=eq.{did}')
+                    log(f"[Dropping] {len(delete_ids)} alarm silindi (oran L1 eşiğinin altına döndü)")
+            except Exception as e:
+                log(f"[Dropping] Recovery cleanup failed: {e}")
         
         return len(alarms)
     
