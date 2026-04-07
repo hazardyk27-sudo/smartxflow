@@ -7612,6 +7612,10 @@ def admin_get_underdog_signals():
     if not session.get('admin_authenticated'):
         return jsonify({'error': 'UNAUTHORIZED'}), 401
     signals = _fetch_all_underdog_signals()
+    def _pv(v):
+        try: return float(str(v).replace('£','').replace(',','').replace(' ','').strip()) if v else 0.0
+        except: return 0.0
+    signals = [s for s in signals if _pv(s.get('volume','')) >= 1000]
     results_map = _load_ud_results()
     for sig in signals:
         mk = sig.get('match_key', '')
