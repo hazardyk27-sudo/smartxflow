@@ -7769,8 +7769,11 @@ def admin_import_underdog_signals_for_date():
             inserted = upsert_resp.json() if upsert_resp.text else []
             imported = len(inserted) if isinstance(inserted, list) else len(records)
         else:
-            print(f"[UnderdogImport] upsert non-2xx: {upsert_resp.status_code} {upsert_resp.text[:200]}")
-            imported = len(records)  # best-effort fallback
+            err_body = upsert_resp.text[:300] if upsert_resp.text else ''
+            print(f"[UnderdogImport] upsert non-2xx: {upsert_resp.status_code} {err_body}")
+            return jsonify({'status': 'error',
+                            'message': f'DB upsert hatası: {upsert_resp.status_code}',
+                            'detail': err_body}), 500
         skipped = len(signals) - imported
 
         print(f"[UnderdogImport] date={target_date} signals={len(signals)} imported={imported} skipped={skipped}")

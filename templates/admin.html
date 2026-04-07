@@ -8760,7 +8760,7 @@
                         : (data.message || 'Sinyal bulunamadı');
                     statusEl.textContent = msg;
                     statusEl.style.color = data.imported > 0 ? '#3fb950' : '#8b949e';
-                    if (data.imported > 0) loadUnderdogSignals();
+                    loadUnderdogSignals();
                 } else {
                     statusEl.textContent = 'Hata: ' + (data.message || 'Bilinmeyen');
                     statusEl.style.color = '#f85149';
