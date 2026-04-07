@@ -2270,6 +2270,129 @@ def _get_finished_scores_map():
         print(f"[FT-Scores] hata: {e}")
         return {}
 
+def _save_underdog_signals(signals):
+    """Upsert new signals to underdog_signals table; ignore duplicates."""
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return
+        records = []
+        for s in signals:
+            match_key = f"{s['home_team']}|{s['away_team']}|{s.get('date','')}"
+            records.append({
+                'match_key': match_key,
+                'home_team': s.get('home_team', ''),
+                'away_team': s.get('away_team', ''),
+                'league': s.get('league', ''),
+                'match_date': s.get('date', ''),
+                'selection_code': s.get('selection_code', ''),
+                'selection_label': s.get('selection_label', ''),
+                'odds': str(s.get('odds', '')),
+                'pct': str(s.get('pct', '')),
+                'amt': str(s.get('amt', '')),
+                'volume': str(s.get('volume', '')),
+            })
+        if not records:
+            return
+        headers = supabase._headers()
+        headers['Prefer'] = 'resolution=ignore-duplicates,return=minimal'
+        url = f"{supabase._rest_url('underdog_signals')}?on_conflict=match_key,selection_code"
+        resp = supabase._get_http_client().post(url, headers=headers, json=records, timeout=10)
+        print(f"[UnderdogSignals] Saved {len(records)} signals: {resp.status_code}")
+    except Exception as e:
+        print(f"[UnderdogSignals] save error: {e}")
+
+
+def _update_underdog_signal_scores():
+    """Fill in FT scores for signals that don't have one yet."""
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return
+        headers = supabase._headers()
+        url = f"{supabase._rest_url('underdog_signals')}?score=is.null&select=id,home_team,away_team&limit=300"
+        resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            return
+        pending = resp.json()
+        if not pending:
+            return
+        ft_scores = _get_finished_scores_map()
+        if not ft_scores:
+            return
+        # Build normalised FT entries list once
+        ft_entries = []
+        seen_ids = set()
+        for ft_key, ft_entry in ft_scores.items():
+            if '|' not in ft_key or not isinstance(ft_entry, dict):
+                continue
+            eid = id(ft_entry)
+            if eid in seen_ids:
+                continue
+            seen_ids.add(eid)
+            ft_h = normalize_field(ft_entry.get('home', ''))
+            ft_a = normalize_field(ft_entry.get('away', ''))
+            if ft_h and ft_a:
+                ft_entries.append((ft_h, ft_a, ft_entry))
+        updated = 0
+        for sig in pending:
+            sig_h = normalize_field(sig.get('home_team', ''))
+            sig_a = normalize_field(sig.get('away_team', ''))
+            # Direct key lookup first
+            direct_key = (sig.get('home_team', '') + '|' + sig.get('away_team', '')).lower()
+            entry = ft_scores.get(direct_key)
+            if not entry:
+                for ft_h, ft_a, ft_entry in ft_entries:
+                    if _fuzzy_team_match(sig_h, ft_h) and _fuzzy_team_match(sig_a, ft_a):
+                        entry = ft_entry
+                        break
+            if entry and entry.get('score'):
+                ph = supabase._headers()
+                pu = f"{supabase._rest_url('underdog_signals')}?id=eq.{sig['id']}"
+                pr = supabase._get_http_client().patch(pu, headers=ph, json={'score': entry['score']}, timeout=5)
+                if pr.status_code in (200, 204):
+                    updated += 1
+        if updated:
+            print(f"[UnderdogSignals] Updated scores for {updated} signals")
+    except Exception as e:
+        print(f"[UnderdogSignals] score update error: {e}")
+
+
+def _fetch_all_underdog_signals():
+    """Fetch all persisted signals from underdog_signals table."""
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return []
+        headers = supabase._headers()
+        url = f"{supabase._rest_url('underdog_signals')}?select=*&order=match_date.asc,home_team.asc&limit=5000"
+        resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
+        if resp.status_code == 200:
+            rows = resp.json()
+            # Normalise field names for frontend compatibility
+            result = []
+            for r in rows:
+                result.append({
+                    'home_team': r.get('home_team', ''),
+                    'away_team': r.get('away_team', ''),
+                    'league': r.get('league', ''),
+                    'date': r.get('match_date', ''),
+                    'match_date': r.get('match_date', ''),
+                    'selection_code': r.get('selection_code', ''),
+                    'selection_label': r.get('selection_label', ''),
+                    'odds': r.get('odds', ''),
+                    'pct': r.get('pct', ''),
+                    'amt': r.get('amt', ''),
+                    'volume': r.get('volume', ''),
+                    'score': r.get('score') or '',
+                })
+            return result
+        return []
+    except Exception as e:
+        print(f"[UnderdogSignals] fetch error: {e}")
+        return []
+
+
 @app.route('/api/finished-scores')
 @license_required
 def get_finished_scores():
@@ -7276,8 +7399,10 @@ def get_analysts_endpoint():
 @app.route('/api/underdog-pressure', methods=['GET'])
 @license_required
 def underdog_pressure_endpoint():
-    """Return matches where an underdog (odds >= 3.00) attracts >= 50% of money"""
+    """Return matches where an underdog (odds >= 3.00) attracts >= 50% of money.
+    Current live signals are saved to DB; all historical signals are returned."""
     from datetime import date as _date
+    import re as _re
     odds_threshold = 3.00
     pct_threshold = 50.0
 
@@ -7291,7 +7416,7 @@ def underdog_pressure_endpoint():
         except Exception as e:
             print(f"[UnderdogPressure] fetch error: {e}")
 
-    signals = []
+    live_signals = []
     for m in matches_data:
         odds_obj = m.get('odds') or {}
         home = m.get('home_team', '')
@@ -7316,7 +7441,7 @@ def underdog_pressure_endpoint():
                 pct_val = 0.0
 
             if odds_val >= odds_threshold and pct_val >= pct_threshold:
-                signals.append({
+                live_signals.append({
                     'home_team': home,
                     'away_team': away,
                     'league': league,
@@ -7338,11 +7463,10 @@ def underdog_pressure_endpoint():
             dv = str(date_val)
             if len(dv) >= 10 and dv[4] == '-':
                 return dv[:10] >= today_str
-            import re as _re
-            m = _re.search(r'(\d{2})\.(\w{3})', dv)
-            if m:
+            m2 = _re.search(r'(\d{2})\.(\w{3})', dv)
+            if m2:
                 months = {'Jan':1,'Feb':2,'Mar':3,'Apr':4,'May':5,'Jun':6,'Jul':7,'Aug':8,'Sep':9,'Oct':10,'Nov':11,'Dec':12}
-                day = int(m.group(1)); mon = months.get(m.group(2), 0)
+                day = int(m2.group(1)); mon = months.get(m2.group(2), 0)
                 from datetime import date as _d2
                 yr = _d2.today().year
                 try:
@@ -7354,15 +7478,34 @@ def underdog_pressure_endpoint():
             pass
         return True
 
-    signals = [s for s in signals if _is_today_or_future(s.get('date'))]
-    signals.sort(key=lambda x: (x.get('date', ''), x.get('home_team', '')))
+    # Current active signals (today/future) for stats
+    active_signals = [s for s in live_signals if _is_today_or_future(s.get('date'))]
+
+    # Persist current live signals to DB (ignore duplicates)
+    if live_signals:
+        try:
+            _save_underdog_signals(live_signals)
+        except Exception as e:
+            print(f"[UnderdogPressure] save error: {e}")
+
+    # Try to fill FT scores for old pending signals
+    try:
+        _update_underdog_signal_scores()
+    except Exception as e:
+        print(f"[UnderdogPressure] score update error: {e}")
+
+    # Fetch all persisted signals (historical + current)
+    all_signals = _fetch_all_underdog_signals()
+    if not all_signals:
+        # Fallback to live signals only if DB fetch failed
+        all_signals = [{**s, 'score': ''} for s in active_signals]
 
     avg_odds = 0.0
     avg_pct = 0.0
-    if signals:
+    if active_signals:
         odds_list = []
         pct_list = []
-        for s in signals:
+        for s in active_signals:
             try:
                 odds_list.append(float(str(s['odds']).replace(',', '.')))
             except Exception:
@@ -7377,8 +7520,8 @@ def underdog_pressure_endpoint():
             avg_pct = round(sum(pct_list) / len(pct_list), 1)
 
     return jsonify({
-        'signals': signals,
-        'count': len(signals),
+        'signals': all_signals,
+        'count': len(active_signals),
         'avg_odds': avg_odds,
         'avg_pct': avg_pct,
     })
