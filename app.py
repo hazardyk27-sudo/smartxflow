@@ -7640,15 +7640,16 @@ def admin_import_underdog_signals_for_date():
 
     try:
         from datetime import datetime, timedelta, time as _time_cls
+        from urllib.parse import quote as _url_quote
         import pytz
         datetime.strptime(target_date, '%Y-%m-%d')
     except ValueError:
         return jsonify({'status': 'error', 'message': 'Geçersiz tarih formatı (YYYY-MM-DD)'}), 400
 
     try:
-        import pytz
         from datetime import datetime, timedelta, time as _time_cls
         from urllib.parse import quote as _url_quote
+        import pytz
 
         supabase = get_supabase_client()
         if not supabase or not supabase.is_available:
@@ -7669,7 +7670,7 @@ def admin_import_underdog_signals_for_date():
         fix_url = (
             f"{supabase._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,"
             f"league,kickoff_utc&kickoff_utc=gte.{_url_quote(day_start_utc)}"
-            f"&kickoff_utc=lt.{_url_quote(day_end_utc)}&order=kickoff_utc.asc&limit=500"
+            f"&kickoff_utc=lt.{_url_quote(day_end_utc)}&order=kickoff_utc.asc&limit=1000"
         )
         fix_resp = supabase._get_http_client().get(fix_url, headers=headers, timeout=15)
         if fix_resp.status_code != 200:
@@ -7685,6 +7686,7 @@ def admin_import_underdog_signals_for_date():
         # so the worst-case 200 snapshots/match are always covered within the batch window.
         hashes = [f.get('match_id_hash', '') for f in fixtures if f.get('match_id_hash')]
         odds_cache = {}
+        batch_errors = []
         batch_size = 10          # 10 hashes per request
         per_batch_limit = 2000   # covers up to 200 snapshots per hash
         for i in range(0, len(hashes), batch_size):
@@ -7702,6 +7704,10 @@ def admin_import_underdog_signals_for_date():
                     # Keep only the first (= most recent) row per hash
                     if h and h not in odds_cache:
                         odds_cache[h] = row
+            else:
+                msg = f"batch {i//batch_size+1}: HTTP {h_resp.status_code}"
+                batch_errors.append(msg)
+                print(f"[UnderdogImport] history fetch warning — {msg}")
 
         # Step 3: apply underdog thresholds and build signals list
         odds_threshold = 3.00
@@ -7777,9 +7783,12 @@ def admin_import_underdog_signals_for_date():
         skipped = len(signals) - imported
 
         print(f"[UnderdogImport] date={target_date} signals={len(signals)} imported={imported} skipped={skipped}")
-        return jsonify({'status': 'ok', 'imported': imported, 'skipped': skipped,
-                        'date': target_date, 'fixtures_checked': len(fixtures),
-                        'fixtures_with_odds': len(odds_cache)})
+        result = {'status': 'ok', 'imported': imported, 'skipped': skipped,
+                  'date': target_date, 'fixtures_checked': len(fixtures),
+                  'fixtures_with_odds': len(odds_cache)}
+        if batch_errors:
+            result['warnings'] = batch_errors
+        return jsonify(result)
 
     except Exception as e:
         import traceback
