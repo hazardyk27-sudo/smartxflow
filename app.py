@@ -7569,6 +7569,16 @@ def underdog_pressure_endpoint():
             if (mk, sc) not in db_keys:
                 all_signals.append({**s, 'match_key': mk, 'score': '', 'result': ''})
 
+    # Volume filtresi: £1000 altındakileri ele (her iki listeden de)
+    def _parse_volume(v):
+        try:
+            return float(str(v).replace('£', '').replace(',', '').strip()) if v else 0.0
+        except (ValueError, TypeError):
+            return 0.0
+
+    all_signals = [s for s in all_signals if _parse_volume(s.get('volume', '')) >= 1000]
+    active_signals = [s for s in active_signals if _parse_volume(s.get('volume', '')) >= 1000]
+
     avg_odds = 0.0
     avg_pct = 0.0
     if active_signals:
