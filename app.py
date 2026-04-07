@@ -7272,6 +7272,95 @@ def get_analysts_endpoint():
     _analysts_cache['ts'] = now
     return jsonify(analysts)
 
+
+@app.route('/api/underdog-pressure', methods=['GET'])
+def underdog_pressure_endpoint():
+    """Return matches where an underdog (odds >= 3.00) attracts >= 50% of money"""
+    from flask import session as flask_session
+    license_key = request.headers.get('X-License-Key') or flask_session.get('license_key')
+    if not license_key:
+        return jsonify({'error': 'UNAUTHORIZED'}), 403
+
+    odds_threshold = 3.00
+    pct_threshold = 50.0
+
+    matches_data = _server_matches_cache.get('moneyway_1x2_all') or _server_matches_cache.get('moneyway_1x2')
+    if not matches_data:
+        matches_data = []
+        try:
+            raw = db.get_all_matches_with_latest('moneyway_1x2', date_filter=None)
+            if raw:
+                matches_data = _build_enriched_matches(raw)
+        except Exception as e:
+            print(f"[UnderdogPressure] fetch error: {e}")
+
+    signals = []
+    for m in matches_data:
+        odds_obj = m.get('odds') or {}
+        home = m.get('home_team', '')
+        away = m.get('away_team', '')
+        league = m.get('league', '')
+        date = m.get('date', '')
+        volume = odds_obj.get('Volume', '')
+
+        candidates = [
+            ('1', 'Ev Sahibi', odds_obj.get('Odds1', '-'), odds_obj.get('Pct1', ''), odds_obj.get('Amt1', '')),
+            ('X', 'Beraberlik', odds_obj.get('OddsX', '-'), odds_obj.get('PctX', ''), odds_obj.get('AmtX', '')),
+            ('2', 'Deplasman', odds_obj.get('Odds2', '-'), odds_obj.get('Pct2', ''), odds_obj.get('Amt2', '')),
+        ]
+        for code, label, raw_odds, raw_pct, raw_amt in candidates:
+            try:
+                odds_val = float(str(raw_odds).replace(',', '.')) if raw_odds and raw_odds != '-' else 0.0
+            except (ValueError, TypeError):
+                odds_val = 0.0
+            try:
+                pct_val = float(str(raw_pct).replace('%', '').strip()) if raw_pct else 0.0
+            except (ValueError, TypeError):
+                pct_val = 0.0
+
+            if odds_val >= odds_threshold and pct_val >= pct_threshold:
+                signals.append({
+                    'home_team': home,
+                    'away_team': away,
+                    'league': league,
+                    'date': date,
+                    'selection_code': code,
+                    'selection_label': label,
+                    'odds': raw_odds,
+                    'pct': raw_pct,
+                    'amt': raw_amt,
+                    'volume': volume,
+                })
+
+    signals.sort(key=lambda x: (x.get('date', ''), x.get('home_team', '')))
+
+    avg_odds = 0.0
+    avg_pct = 0.0
+    if signals:
+        odds_list = []
+        pct_list = []
+        for s in signals:
+            try:
+                odds_list.append(float(str(s['odds']).replace(',', '.')))
+            except Exception:
+                pass
+            try:
+                pct_list.append(float(str(s['pct']).replace('%', '').strip()))
+            except Exception:
+                pass
+        if odds_list:
+            avg_odds = round(sum(odds_list) / len(odds_list), 2)
+        if pct_list:
+            avg_pct = round(sum(pct_list) / len(pct_list), 1)
+
+    return jsonify({
+        'signals': signals,
+        'count': len(signals),
+        'avg_odds': avg_odds,
+        'avg_pct': avg_pct,
+    })
+
+
 @app.route('/api/analysts', methods=['POST'])
 def create_analyst_endpoint():
     """Create new analyst (admin only)"""

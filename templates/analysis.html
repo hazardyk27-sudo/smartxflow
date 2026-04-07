@@ -242,6 +242,57 @@
         @media (max-width: 400px) {
             .analyst-grid { grid-template-columns: 1fr; }
         }
+
+        .analyst-card.signal-card {
+            border-color: rgba(210,153,34,0.25);
+            position: relative;
+        }
+        .analyst-card.signal-card:hover {
+            border-color: rgba(210,153,34,0.5);
+            box-shadow: 0 12px 32px rgba(210,153,34,0.12);
+        }
+        .signal-badge {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
+            padding: 3px 8px; border-radius: 20px;
+            background: rgba(210,153,34,0.12); color: #d29922;
+            border: 1px solid rgba(210,153,34,0.25);
+            text-transform: uppercase; margin-bottom: 10px; display: inline-block;
+        }
+        .signal-avatar-placeholder {
+            width: 64px; height: 64px; border-radius: 50%; margin-bottom: 10px;
+            background: linear-gradient(135deg, rgba(210,153,34,0.18), rgba(248,81,73,0.10));
+            border: 2px solid rgba(210,153,34,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 26px;
+        }
+        .signal-avatar-lg {
+            width: 80px; height: 80px; border-radius: 50%; flex-shrink: 0;
+            background: linear-gradient(135deg, rgba(210,153,34,0.18), rgba(248,81,73,0.10));
+            border: 3px solid rgba(210,153,34,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 34px;
+        }
+        .signal-item {
+            background: #161b22; border: 1px solid #21262d; border-radius: 12px;
+            padding: 16px 20px; margin-bottom: 10px; transition: border-color 0.2s;
+        }
+        .signal-item:hover { border-color: rgba(210,153,34,0.2); }
+        .signal-item-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+        .signal-match-title { font-size: 15px; font-weight: 700; color: #e6edf3; }
+        .signal-league { font-size: 11px; color: #6e7681; margin-top: 2px; }
+        .signal-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+        .signal-sel-badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px;
+            background: rgba(210,153,34,0.12); color: #d29922; border: 1px solid rgba(210,153,34,0.25); }
+        .signal-odds-tag { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 6px;
+            background: rgba(43,255,136,0.08); color: #2BFF88; border: 1px solid rgba(43,255,136,0.18); }
+        .signal-pct-tag { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 6px;
+            background: rgba(88,166,255,0.08); color: #58a6ff; border: 1px solid rgba(88,166,255,0.18); }
+        .signal-vol-tag { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 6px;
+            background: rgba(255,255,255,0.04); color: #8b949e; border: 1px solid rgba(255,255,255,0.08); }
+        .signal-date-tag { font-size: 11px; color: #484f58; }
+        .signal-no-data { background: rgba(210,153,34,0.04); border: 1px dashed rgba(210,153,34,0.15);
+            border-radius: 10px; padding: 24px; text-align: center;
+            font-size: 13px; color: #6e7681; font-style: italic; }
     </style>
 </head>
 <body>
@@ -378,9 +429,9 @@
             try {
                 const resp = await fetch('/api/analysts?active=true');
                 const analysts = await resp.json();
-                if (!analysts || analysts.length === 0) {
+                if (!analysts) {
                     view.innerHTML = `
-                        <div class="empty-state"><h3>Henuz analizci bulunmuyor</h3><p>Yakinda profesyonel analizcilerimiz burada yer alacak.</p></div>
+                        <div class="empty-state"><h3>Bir hata olustu</h3><p>Lutfen sayfayi yenileyin.</p></div>
                     `;
                     return;
                 }
@@ -410,8 +461,28 @@
                         </div>
                     `;
                 }).join('');
+
+                const udCard = `
+                    <div class="analyst-card signal-card" onclick="loadUnderdogPressure()">
+                        <span class="signal-badge">Otomatik Sinyal</span>
+                        <div class="signal-avatar-placeholder">⚡</div>
+                        <div class="analyst-name">Underdog Pressure</div>
+                        <div class="analyst-bio">3.00+ oranlı underdog'a %50'den fazla para akan maçları tespit eder.</div>
+                        <div class="analyst-stats-row">
+                            <div class="analyst-stat">
+                                <div class="analyst-stat-value" style="color:#d29922;">Canlı</div>
+                                <div class="analyst-stat-label">Durum</div>
+                            </div>
+                            <div class="analyst-stat">
+                                <div class="analyst-stat-value" style="color:#d29922;">1X2</div>
+                                <div class="analyst-stat-label">Piyasa</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
                 view.innerHTML = `
-                    <div class="analyst-grid">${cards}</div>
+                    <div class="analyst-grid">${udCard}${cards}</div>
                 `;
             } catch(e) {
                 view.innerHTML = `
@@ -520,6 +591,121 @@
             }
         }
 
+        async function loadUnderdogPressure() {
+            const view = document.getElementById('mainView');
+            view.innerHTML = `<div class="loading-state"><div class="loading-spinner-lg"></div><p style="color:#8b949e;font-size:13px;">Sinyaller hesaplaniyor...</p></div>`;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            history.pushState({ underdogPressure: true }, '', '/analysis#underdog-pressure');
+            try {
+                const licKey = localStorage.getItem('smartxflow_web_license') || '';
+                const resp = await fetch('/api/underdog-pressure', {
+                    headers: licKey ? { 'X-License-Key': licKey } : {}
+                });
+                if (resp.status === 403) {
+                    view.innerHTML = `
+                        <div class="page-back" onclick="goBack()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                            Tum Analizciler
+                        </div>
+                        <div class="empty-state"><h3>Erisim Reddedildi</h3><p>Bu ozellik Pro uyelik gerektirir.</p></div>
+                    `;
+                    return;
+                }
+                if (!resp.ok) throw new Error('API error');
+                const data = await resp.json();
+                const signals = data.signals || [];
+                const count = data.count || 0;
+                const avgOdds = data.avg_odds ? parseFloat(data.avg_odds).toFixed(2) : '-';
+                const avgPct = data.avg_pct ? parseFloat(data.avg_pct).toFixed(1) : '-';
+
+                let profileHtml = `
+                    <div class="page-back" onclick="goBack()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                        Tum Analizciler
+                    </div>
+                    <div class="profile-header" style="border-color:rgba(210,153,34,0.2);">
+                        <div class="signal-avatar-lg">⚡</div>
+                        <div class="profile-info">
+                            <div style="margin-bottom:8px;"><span class="signal-badge">Otomatik Sinyal</span></div>
+                            <div class="profile-name">Underdog Pressure</div>
+                            <div class="profile-bio">Piyasada 3.00 ve uzeri oranlara (underdog) sahip seceneklerin, toplam piyasa parasinin %50'sinden fazlasini cektigi maclari tespit eder. Bookmaker'larin dusuk olasilik verdigi bir secenege ciddi miktarda akilli para girisi oldugunu gosterir.</div>
+                            <div class="profile-stats">
+                                <div class="profile-stat-box" style="border-color:rgba(210,153,34,0.2);">
+                                    <div class="profile-stat-num amber">${count}</div>
+                                    <div class="profile-stat-lbl">Aktif Sinyal</div>
+                                </div>
+                                <div class="profile-stat-box">
+                                    <div class="profile-stat-num">${avgOdds}</div>
+                                    <div class="profile-stat-lbl">Ort. Oran</div>
+                                </div>
+                                <div class="profile-stat-box">
+                                    <div class="profile-stat-num" style="color:#58a6ff;">%${avgPct}</div>
+                                    <div class="profile-stat-lbl">Ort. Para</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                let signalsHtml = '';
+                if (signals.length === 0) {
+                    signalsHtml = `<div class="signal-no-data">Simdilik aktif sinyal bulunmuyor. Veriler guncellendikce kriterler saglandigi anda burada goruntulenir.</div>`;
+                } else {
+                    const grouped = {};
+                    for (const s of signals) {
+                        const k = s.date || 'Tarihsiz';
+                        if (!grouped[k]) grouped[k] = [];
+                        grouped[k].push(s);
+                    }
+                    for (const dateKey of Object.keys(grouped).sort()) {
+                        const dateLabel = dateKey && dateKey !== 'Tarihsiz' ? formatDateTR(dateKey) : 'Tarih Belirtilmemis';
+                        const items = grouped[dateKey];
+                        let itemsHtml = items.map(s => {
+                            const volHtml = s.volume ? `<span class="signal-vol-tag">Hacim: ${escapeHtml(String(s.volume))}</span>` : '';
+                            const amtHtml = s.amt ? `<span class="signal-vol-tag">${escapeHtml(String(s.amt))}</span>` : '';
+                            return `
+                                <div class="signal-item">
+                                    <div class="signal-item-top">
+                                        <div>
+                                            <div class="signal-match-title">${escapeHtml(s.home_team)} - ${escapeHtml(s.away_team)}</div>
+                                            <div class="signal-league">${escapeHtml(s.league || '')}</div>
+                                        </div>
+                                        <span class="signal-sel-badge">${escapeHtml(s.selection_label)}</span>
+                                    </div>
+                                    <div class="signal-meta">
+                                        <span class="signal-odds-tag">Oran: ${escapeHtml(String(s.odds))}</span>
+                                        <span class="signal-pct-tag">Para: %${escapeHtml(String(s.pct).replace('%',''))}</span>
+                                        ${amtHtml}
+                                        ${volHtml}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                        signalsHtml += `
+                            <div class="date-group">
+                                <div class="date-group-header">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    ${dateLabel}
+                                    <span class="date-group-count">${items.length} sinyal</span>
+                                </div>
+                                ${itemsHtml}
+                            </div>
+                        `;
+                    }
+                }
+
+                view.innerHTML = profileHtml + signalsHtml;
+            } catch(e) {
+                view.innerHTML = `
+                    <div class="page-back" onclick="goBack()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                        Tum Analizciler
+                    </div>
+                    <div class="empty-state"><h3>Bir hata olustu</h3><p>Sinyal verileri yuklenemedi.</p></div>
+                `;
+            }
+        }
+
         function goBack() {
             history.pushState(null, '', '/analysis');
             loadAnalystList();
@@ -527,6 +713,10 @@
 
         function handleRoute() {
             const hash = window.location.hash;
+            if (hash === '#underdog-pressure') {
+                loadUnderdogPressure();
+                return;
+            }
             const match = hash.match(/^#analyst-(\d+)$/);
             if (match) {
                 loadAnalystDetail(parseInt(match[1]));
