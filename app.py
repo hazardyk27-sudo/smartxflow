@@ -2399,12 +2399,37 @@ def _fetch_all_underdog_signals():
                     'amt': r.get('amt', ''),
                     'volume': r.get('volume', ''),
                     'score': r.get('score') or '',
+                    'result': r.get('result') or '',
                 })
             return result
         return []
     except Exception as e:
         print(f"[UnderdogSignals] fetch error: {e}")
         return []
+
+
+def _ensure_underdog_result_column():
+    """Add result column to underdog_signals if it doesn't exist (one-time migration)."""
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return
+        from services import embedded_credentials as _ec
+        _url = getattr(_ec, 'SUPABASE_URL', '') or supabase.url
+        _key = getattr(_ec, 'SUPABASE_KEY', '') or supabase.key
+        if not _url or not _key:
+            return
+        import httpx as _httpx
+        rpc_url = f"{_url}/rest/v1/rpc/exec_sql"
+        headers = {"apikey": _key, "Authorization": f"Bearer {_key}", "Content-Type": "application/json"}
+        sql = "ALTER TABLE underdog_signals ADD COLUMN IF NOT EXISTS result TEXT DEFAULT NULL;"
+        resp = _httpx.post(rpc_url, json={"query": sql}, headers=headers, timeout=15)
+        if resp.status_code in (200, 201, 204):
+            print("[UnderdogSignals] result column migration OK")
+        else:
+            print(f"[UnderdogSignals] result column migration skipped ({resp.status_code}): {resp.text[:100]}")
+    except Exception as e:
+        print(f"[UnderdogSignals] result column migration error: {e}")
 
 
 @app.route('/api/finished-scores')
@@ -7410,11 +7435,20 @@ def get_analysts_endpoint():
     return jsonify(analysts)
 
 
+_underdog_result_col_migrated = False
+
 @app.route('/api/underdog-pressure', methods=['GET'])
 @license_required
 def underdog_pressure_endpoint():
     """Return matches where an underdog (odds >= 3.00) attracts >= 50% of money.
     Current live signals are saved to DB; all historical signals are returned."""
+    global _underdog_result_col_migrated
+    if not _underdog_result_col_migrated:
+        _underdog_result_col_migrated = True
+        try:
+            _ensure_underdog_result_column()
+        except Exception:
+            pass
     from datetime import date as _date
     import re as _re
     odds_threshold = 3.00
@@ -7539,6 +7573,46 @@ def underdog_pressure_endpoint():
         'avg_odds': avg_odds,
         'avg_pct': avg_pct,
     })
+
+
+@app.route('/api/admin/underdog-signals', methods=['GET'])
+def admin_get_underdog_signals():
+    """Return all underdog signals for admin (last 90 days, includes result field)."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    signals = _fetch_all_underdog_signals()
+    return jsonify({'signals': signals, 'count': len(signals)})
+
+
+@app.route('/api/admin/underdog-signals/result', methods=['PATCH'])
+def admin_update_underdog_result():
+    """Update won/lost result for an underdog signal."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    data = request.get_json(silent=True) or {}
+    match_key = data.get('match_key', '').strip()
+    selection_code = data.get('selection_code', '').strip()
+    result_val = data.get('result', '')
+    if result_val not in ('won', 'lost', ''):
+        return jsonify({'status': 'error', 'message': 'Geçersiz sonuç (won/lost/boş)'}), 400
+    if not match_key or not selection_code:
+        return jsonify({'status': 'error', 'message': 'match_key ve selection_code zorunlu'}), 400
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return jsonify({'status': 'error', 'message': 'DB bağlantısı yok'}), 500
+        from urllib.parse import quote as _url_quote
+        headers = supabase._headers()
+        mk = _url_quote(match_key, safe='')
+        sc = _url_quote(selection_code, safe='')
+        url = f"{supabase._rest_url('underdog_signals')}?match_key=eq.{mk}&selection_code=eq.{sc}"
+        result_to_set = result_val if result_val else None
+        resp = supabase._get_http_client().patch(url, headers=headers, json={'result': result_to_set}, timeout=10)
+        if resp.status_code in (200, 204):
+            return jsonify({'status': 'ok'})
+        return jsonify({'status': 'error', 'message': f'DB hatası: {resp.status_code}'}), 500
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 @app.route('/api/analysts', methods=['POST'])

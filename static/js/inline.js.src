@@ -537,6 +537,8 @@ function renderUnderdogPressureView(data) {
     html += '</div></div>';
     var today = new Date();
     var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+    var yest = new Date(today); yest.setDate(yest.getDate() - 1);
+    var yesterdayStr = yest.getFullYear() + '-' + String(yest.getMonth()+1).padStart(2,'0') + '-' + String(yest.getDate()).padStart(2,'0');
     var udDateGroupMap = {};
     signals.forEach(function(s) {
         var iso = _parseSignalDateToISO(s.match_date || s.date);
@@ -546,6 +548,8 @@ function renderUnderdogPressureView(data) {
     });
     var udDatesWithData = Object.keys(udDateGroupMap).sort();
     var udFirstDate = udDatesWithData[0] || todayStr;
+    // Always include yesterday in the strip even if no data exists for it
+    if (udFirstDate > yesterdayStr) udFirstDate = yesterdayStr;
     var udLastDate = udDatesWithData[udDatesWithData.length - 1] || todayStr;
     if (udLastDate < todayStr) udLastDate = todayStr;
     var udAllDates = [];
@@ -556,7 +560,8 @@ function renderUnderdogPressureView(data) {
         udCur.setDate(udCur.getDate() + 1);
     }
     if (!_underdogSelectedDate || !udDateGroupMap[_underdogSelectedDate]) {
-        _underdogSelectedDate = udDatesWithData[0] || todayStr;
+        // Default to today if there's data for today, otherwise first date with data
+        _underdogSelectedDate = udDateGroupMap[todayStr] ? todayStr : (udDatesWithData[0] || todayStr);
     }
     html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:4px;margin-bottom:12px;display:flex;overflow-x:auto;gap:2px;" id="udDateStrip">';
     udAllDates.forEach(function(dateKey) {
