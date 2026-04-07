@@ -3336,14 +3336,15 @@
         function initScraperConsole() {
             // Load existing logs
             fetch('/scraper/logs')
-                .then(r => r.json())
+                .then(r => r.ok ? r.json() : Promise.reject(r.status))
                 .then(data => {
                     if (data.logs && data.logs.length > 0) {
                         const output = document.getElementById('scraperConsoleOutput');
                         output.innerHTML = '';
                         data.logs.forEach(log => addScraperLog(log));
                     }
-                });
+                })
+                .catch(() => {});
             
             // Start SSE connection
             if (!scraperSSE) {
@@ -3505,14 +3506,15 @@
         
         function initAlarmEngineConsole() {
             fetch('/alarm-engine/logs')
-                .then(r => r.json())
+                .then(r => r.ok ? r.json() : Promise.reject(r.status))
                 .then(data => {
                     if (data.logs && data.logs.length > 0) {
                         const output = document.getElementById('alarmEngineConsoleOutput');
                         output.innerHTML = '';
                         data.logs.forEach(log => addAlarmEngineLog(log));
                     }
-                });
+                })
+                .catch(() => {});
             
             if (!alarmEngineSSE) {
                 alarmEngineSSE = new EventSource('/alarm-engine/stream');
