@@ -8749,15 +8749,7 @@
                     return;
                 }
                 if (data.status === 'ok') {
-                    if (_udSignalsCache) {
-                        _udSignalsCache.forEach(function(s) {
-                            var mk = s.match_key || (s.home_team + '|' + s.away_team + '|' + (s.match_date || s.date || ''));
-                            if (mk === matchKey && s.selection_code === selectionCode) s.result = result;
-                        });
-                        var listEl = document.getElementById('udAdminList');
-                        var statsEl = document.getElementById('udAdminStats');
-                        renderUdAdminSignals(_udSignalsCache, listEl, statsEl);
-                    }
+                    loadUnderdogSignals();
                 } else {
                     alert('Kaydetme hatası: ' + (data.message || 'Bilinmeyen hata'));
                 }

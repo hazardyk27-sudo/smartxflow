@@ -7556,6 +7556,14 @@ def underdog_pressure_endpoint():
     if not all_signals:
         # Fallback to live signals only if DB fetch failed
         all_signals = [{**s, 'score': ''} for s in active_signals]
+    else:
+        # Merge active_signals (live) that are not yet in DB
+        db_keys = {(s.get('match_key', ''), s.get('selection_code', '')) for s in all_signals}
+        for s in active_signals:
+            mk = f"{s['home_team']}|{s['away_team']}|{s.get('date', '')}"
+            sc = s.get('selection_code', '')
+            if (mk, sc) not in db_keys:
+                all_signals.append({**s, 'match_key': mk, 'score': '', 'result': ''})
 
     avg_odds = 0.0
     avg_pct = 0.0
