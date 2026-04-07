@@ -7482,7 +7482,7 @@ def underdog_pressure_endpoint():
         date = m.get('date', '')
         volume = odds_obj.get('Volume', '')
         try:
-            volume_val = float(str(volume).replace('£', '').replace(',', '').strip()) if volume else 0.0
+            volume_val = float(str(volume).replace('£', '').replace(',', '').replace(' ', '').strip()) if volume else 0.0
         except (ValueError, TypeError):
             volume_val = 0.0
 
@@ -7572,7 +7572,7 @@ def underdog_pressure_endpoint():
     # Volume filtresi: £1000 altındakileri ele (her iki listeden de)
     def _parse_volume(v):
         try:
-            return float(str(v).replace('£', '').replace(',', '').strip()) if v else 0.0
+            return float(str(v).replace('£', '').replace(',', '').replace(' ', '').strip()) if v else 0.0
         except (ValueError, TypeError):
             return 0.0
 
