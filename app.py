@@ -7746,7 +7746,16 @@ def confirmed_money_endpoint():
             key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
             if key not in _cm_seen:
                 _cm_seen[key] = s
-        all_signals = list(_cm_seen.values())
+        deduped = list(_cm_seen.values())
+        # Tersine dönen oranları filtrele: current_odds > odds_now → sinyal geçersiz
+        def _is_reversed(s):
+            try:
+                cur = float(str(s.get('current_odds') or '').strip())
+                ini = float(str(s.get('odds_now') or '').strip())
+                return cur > ini and ini > 0
+            except Exception:
+                return False
+        all_signals = [s for s in deduped if not _is_reversed(s)]
         _cm_signals_cache = all_signals
         _cm_signals_cache_time = now
 
@@ -7791,7 +7800,16 @@ def admin_get_confirmed_signals():
         key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
         if key not in _seen:
             _seen[key] = s
-    signals = list(_seen.values())
+    deduped_admin = list(_seen.values())
+    # Tersine dönen oranları filtrele: current_odds > odds_now → sinyal geçersiz
+    def _admin_is_reversed(s):
+        try:
+            cur = float(str(s.get('current_odds') or '').strip())
+            ini = float(str(s.get('odds_now') or '').strip())
+            return cur > ini and ini > 0
+        except Exception:
+            return False
+    signals = [s for s in deduped_admin if not _admin_is_reversed(s)]
     return jsonify({'signals': signals, 'count': len(signals)})
 
 
