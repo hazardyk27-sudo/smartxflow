@@ -50,6 +50,10 @@ _server_alarm_cache = None
 _server_alarm_cache_time = 0
 SERVER_ALARM_CACHE_TTL = 120
 
+_cm_signals_cache = None
+_cm_signals_cache_time = 0
+CM_SIGNALS_CACHE_TTL = 60
+
 def get_cached_alarms(force_refresh=False):
     """Get alarms from server-side cache or refresh from Supabase. Waits for app warmup if in progress."""
     global _server_alarm_cache, _server_alarm_cache_time
@@ -7718,7 +7722,8 @@ def _fetch_all_confirmed_money_signals():
 @app.route('/api/confirmed-money', methods=['GET'])
 @license_required
 def confirmed_money_endpoint():
-    """Confirmed Money sinyallerini döndür (90 günlük, DB'den)."""
+    """Confirmed Money sinyallerini döndür (90 günlük, DB'den). 60s server cache."""
+    global _cm_signals_cache, _cm_signals_cache_time
     from datetime import date as _date
 
     def _is_today_or_future(d):
@@ -7729,15 +7734,21 @@ def confirmed_money_endpoint():
         except Exception:
             return False
 
-    all_signals = _fetch_all_confirmed_money_signals()
-
-    # Deduplication: aynı (home, away, selection_code) için tek kayıt tut (en güncel)
-    _cm_seen = {}
-    for s in all_signals:
-        key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
-        if key not in _cm_seen:
-            _cm_seen[key] = s
-    all_signals = list(_cm_seen.values())
+    now = time.time()
+    # Cache kontrolü — 60 saniye geçerli
+    if _cm_signals_cache is not None and (now - _cm_signals_cache_time) < CM_SIGNALS_CACHE_TTL:
+        all_signals = _cm_signals_cache
+    else:
+        raw = _fetch_all_confirmed_money_signals()
+        # Deduplication: aynı (home, away, selection_code) için tek kayıt tut (en güncel)
+        _cm_seen = {}
+        for s in raw:
+            key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
+            if key not in _cm_seen:
+                _cm_seen[key] = s
+        all_signals = list(_cm_seen.values())
+        _cm_signals_cache = all_signals
+        _cm_signals_cache_time = now
 
     active_signals = [s for s in all_signals if _is_today_or_future(s.get('date'))]
 
