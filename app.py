@@ -7719,6 +7719,14 @@ def _fetch_all_confirmed_money_signals():
         return []
 
 
+def _cm_odds_reversed(s):
+    """True if current_odds > odds_now — signal is no longer valid (odds bounced back)."""
+    try:
+        return float(str(s.get('current_odds') or '').strip()) > float(str(s.get('odds_now') or '').strip())
+    except Exception:
+        return False
+
+
 @app.route('/api/confirmed-money', methods=['GET'])
 @license_required
 def confirmed_money_endpoint():
@@ -7748,14 +7756,7 @@ def confirmed_money_endpoint():
                 _cm_seen[key] = s
         deduped = list(_cm_seen.values())
         # Tersine dönen oranları filtrele: current_odds > odds_now → sinyal geçersiz
-        def _is_reversed(s):
-            try:
-                cur = float(str(s.get('current_odds') or '').strip())
-                ini = float(str(s.get('odds_now') or '').strip())
-                return cur > ini and ini > 0
-            except Exception:
-                return False
-        all_signals = [s for s in deduped if not _is_reversed(s)]
+        all_signals = [s for s in deduped if not _cm_odds_reversed(s)]
         _cm_signals_cache = all_signals
         _cm_signals_cache_time = now
 
@@ -7802,14 +7803,7 @@ def admin_get_confirmed_signals():
             _seen[key] = s
     deduped_admin = list(_seen.values())
     # Tersine dönen oranları filtrele: current_odds > odds_now → sinyal geçersiz
-    def _admin_is_reversed(s):
-        try:
-            cur = float(str(s.get('current_odds') or '').strip())
-            ini = float(str(s.get('odds_now') or '').strip())
-            return cur > ini and ini > 0
-        except Exception:
-            return False
-    signals = [s for s in deduped_admin if not _admin_is_reversed(s)]
+    signals = [s for s in deduped_admin if not _cm_odds_reversed(s)]
     return jsonify({'signals': signals, 'count': len(signals)})
 
 
