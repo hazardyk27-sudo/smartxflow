@@ -8990,7 +8990,7 @@
             var TR_MONTHS = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
             var dateSet = {};
             signals.forEach(function(s) { var d = (s.match_date||'').substring(0,10); if (d) dateSet[d] = (dateSet[d]||0)+1; });
-            var dates = Object.keys(dateSet).sort().reverse();
+            var dates = Object.keys(dateSet).sort();
             var todayStr = new Date().toISOString().substring(0,10);
             var btnBase = 'cursor:pointer;border:1px solid #30363d;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;white-space:nowrap;transition:all 0.15s;background:#161b22;color:#8b949e;';
             var btnActive = 'cursor:pointer;border:1px solid rgba(52,211,153,0.4);border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;white-space:nowrap;background:rgba(52,211,153,0.08);color:#34d399;';
@@ -9048,7 +9048,7 @@
                 if (!dateGroups[d]) dateGroups[d] = [];
                 dateGroups[d].push(s);
             });
-            var sortedDates = Object.keys(dateGroups).sort().reverse();
+            var sortedDates = Object.keys(dateGroups).sort();
             var html = '';
             sortedDates.forEach(function(dateKey) {
                 var items = dateGroups[dateKey];
@@ -9089,10 +9089,53 @@
                         html += _fmtRow(curOdds, curPct||initPct, curVol||initVol);
                         html += '</div>';
                     }
+                    // Sonuç satırı
+                    var sigResult = sig.result || '';
+                    var sigId = sig.id || '';
+                    html += '<div style="display:flex;align-items:center;gap:8px;padding:7px 0 2px;border-top:1px solid rgba(255,255,255,0.04);margin-top:2px;">';
+                    if (sigResult === 'win') {
+                        html += '<span style="background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.4);border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;">✓ KAZANDI</span>';
+                    } else if (sigResult === 'loss') {
+                        html += '<span style="background:rgba(248,113,113,0.12);color:#f87171;border:1px solid rgba(248,113,113,0.35);border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;">✗ KAYBETTİ</span>';
+                    }
+                    if (sigId) {
+                        html += '<button onclick="setCmResult(' + sigId + ',\'win\')" style="cursor:pointer;border:1px solid rgba(52,211,153,' + (sigResult==='win'?'0.5':'0.2') + ');border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:rgba(52,211,153,' + (sigResult==='win'?'0.12':'0.03') + ');color:' + (sigResult==='win'?'#34d399':'#4a5568') + ';transition:all 0.15s;">✓ Kazandı</button>';
+                        html += '<button onclick="setCmResult(' + sigId + ',\'loss\')" style="cursor:pointer;border:1px solid rgba(248,113,113,' + (sigResult==='loss'?'0.5':'0.2') + ');border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:rgba(248,113,113,' + (sigResult==='loss'?'0.12':'0.03') + ');color:' + (sigResult==='loss'?'#f87171':'#4a5568') + ';transition:all 0.15s;">✗ Kaybetti</button>';
+                        if (sigResult) {
+                            html += '<button onclick="setCmResult(' + sigId + ',null)" style="cursor:pointer;border:1px solid rgba(255,255,255,0.08);border-radius:5px;padding:3px 9px;font-size:10px;font-weight:500;background:transparent;color:#3a3f45;transition:all 0.15s;">Temizle</button>';
+                        }
+                    }
+                    html += '</div>';
                     html += '</div>';
                 });
             });
             listEl.innerHTML = html;
+        }
+
+        async function setCmResult(signalId, result) {
+            try {
+                var resp = await fetch('/api/admin/cm-signal-result/' + signalId, {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({result: result}),
+                });
+                var data = await resp.json();
+                if (data.ok) {
+                    // Listeyi yenile — cache sunucuda temizlendi, yeni fetch al
+                    var listEl = document.getElementById('cmAdminList');
+                    if (listEl) listEl.style.opacity = '0.5';
+                    var r2 = await fetch('/api/admin/confirmed-signals');
+                    var d2 = await r2.json();
+                    _cmSignalsCache = d2.signals || [];
+                    buildCmDateTabs(_cmSignalsCache);
+                    renderCmSignalList(_cmSignalsCache, document.getElementById('cmAdminList'));
+                    if (listEl) listEl.style.opacity = '1';
+                } else {
+                    alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+                }
+            } catch(e) {
+                alert('İstek başarısız: ' + e.message);
+            }
         }
 
     </script>

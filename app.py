@@ -7694,6 +7694,7 @@ def _fetch_all_confirmed_money_signals():
             result = []
             for r in rows:
                 result.append({
+                    'id': r.get('id'),
                     'match_key': r.get('match_key', ''),
                     'home_team': r.get('home_team', ''),
                     'away_team': r.get('away_team', ''),
@@ -7711,6 +7712,8 @@ def _fetch_all_confirmed_money_signals():
                     'current_volume': r.get('current_volume') or '',
                     'odds_drop_pct': r.get('odds_drop_pct') or '',
                     'last_updated_at': r.get('last_updated_at') or '',
+                    'created_at': r.get('created_at') or '',
+                    'result': r.get('result') or '',
                 })
             return result
         return []
@@ -7805,6 +7808,41 @@ def admin_get_confirmed_signals():
     # Tersine dönen oranları filtrele: current_odds > odds_now → sinyal geçersiz
     signals = [s for s in deduped_admin if not _cm_odds_reversed(s)]
     return jsonify({'signals': signals, 'count': len(signals)})
+
+
+@app.route('/api/admin/cm-signal-result/<int:signal_id>', methods=['PATCH'])
+def admin_set_cm_signal_result(signal_id):
+    """Set the result (win/loss/null) for a CM signal by ID."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    data = request.get_json(silent=True) or {}
+    result_val = data.get('result')  # 'win', 'loss', or null/empty → clear
+    if result_val not in ('win', 'loss', None, ''):
+        return jsonify({'error': 'Invalid result value. Use win, loss, or null.'}), 400
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return jsonify({'error': 'DB unavailable'}), 503
+        key = supabase.key
+        headers = {
+            'apikey': key,
+            'Authorization': f'Bearer {key}',
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+        }
+        patch_url = f"{supabase._rest_url('confirmed_money_signals')}?id=eq.{signal_id}"
+        patch_data = {'result': result_val if result_val else None}
+        resp = supabase._get_http_client().patch(patch_url, headers=headers, json=patch_data, timeout=10)
+        if resp.status_code in (200, 204):
+            # Invalidate server-side cache so next fetch picks up new result
+            global _cm_signals_cache, _cm_signals_cache_time
+            _cm_signals_cache = None
+            _cm_signals_cache_time = 0
+            return jsonify({'ok': True, 'signal_id': signal_id, 'result': result_val})
+        return jsonify({'error': f'DB error {resp.status_code}', 'detail': resp.text[:200]}), 500
+    except Exception as e:
+        print(f"[CM-Result] PATCH error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/admin/underdog-signals', methods=['GET'])

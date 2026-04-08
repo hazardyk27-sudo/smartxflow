@@ -20,5 +20,9 @@ CREATE TABLE IF NOT EXISTS confirmed_money_signals (
     current_volume text,
     odds_drop_pct real,
     created_at timestamptz DEFAULT now(),
-    last_updated_at timestamptz
+    last_updated_at timestamptz,
+    result text
 );
+
+-- Mevcut tabloya result kolonu ekle (zaten varsa atlar):
+ALTER TABLE confirmed_money_signals ADD COLUMN IF NOT EXISTS result text;
