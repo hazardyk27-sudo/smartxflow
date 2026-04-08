@@ -290,6 +290,8 @@
         .signal-vol-tag { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 6px;
             background: rgba(255,255,255,0.04); color: #8b949e; border: 1px solid rgba(255,255,255,0.08); }
         .signal-date-tag { font-size: 11px; color: #484f58; }
+        .sig-arrow { opacity: 0.5; font-style: normal; margin: 0 2px; }
+        .sig-cur { color: #d2a234; }
         .signal-no-data { background: rgba(210,153,34,0.04); border: 1px dashed rgba(210,153,34,0.15);
             border-radius: 10px; padding: 24px; text-align: center;
             font-size: 13px; color: #6e7681; font-style: italic; }
@@ -676,8 +678,16 @@
                         const dateLabel = dateKey && dateKey !== 'Tarihsiz' ? formatDateTR(dateKey) : 'Tarih Belirtilmemis';
                         const items = grouped[dateKey];
                         let itemsHtml = items.map(s => {
-                            const volHtml = s.volume ? `<span class="signal-vol-tag">Hacim: ${escapeHtml(String(s.volume))}</span>` : '';
-                            const amtHtml = s.amt ? `<span class="signal-vol-tag">${escapeHtml(String(s.amt))}</span>` : '';
+                            const initOdds = escapeHtml(String(s.odds || ''));
+                            const curOdds  = s.current_odds && s.current_odds !== s.odds ? escapeHtml(String(s.current_odds)) : '';
+                            const initPct  = escapeHtml(String(s.pct || '').replace('%',''));
+                            const curPct   = s.current_pct && s.current_pct !== s.pct ? escapeHtml(String(s.current_pct).replace('%','')) : '';
+                            const curVol   = s.current_volume && s.current_volume !== s.volume ? escapeHtml(String(s.current_volume)) : '';
+                            const volStr   = curVol ? `${escapeHtml(String(s.volume))} <span class="sig-arrow">→</span> <span class="sig-cur">${curVol}</span>` : escapeHtml(String(s.volume || ''));
+                            const volHtml  = s.volume ? `<span class="signal-vol-tag">Hacim: ${volStr}</span>` : '';
+                            const amtHtml  = s.amt ? `<span class="signal-vol-tag">${escapeHtml(String(s.amt))}</span>` : '';
+                            const oddsInner = curOdds ? `${initOdds} <span class="sig-arrow">→</span> <span class="sig-cur">${curOdds}</span>` : initOdds;
+                            const pctInner  = curPct  ? `%${initPct} <span class="sig-arrow">→</span> <span class="sig-cur">%${curPct}</span>` : `%${initPct}`;
                             return `
                                 <div class="signal-item">
                                     <div class="signal-item-top">
@@ -688,8 +698,8 @@
                                         <span class="signal-sel-badge">${escapeHtml(s.selection_label)}</span>
                                     </div>
                                     <div class="signal-meta">
-                                        <span class="signal-odds-tag">Oran: ${escapeHtml(String(s.odds))}</span>
-                                        <span class="signal-pct-tag">Para: %${escapeHtml(String(s.pct).replace('%',''))}</span>
+                                        <span class="signal-odds-tag">Oran: ${oddsInner}</span>
+                                        <span class="signal-pct-tag">Para: ${pctInner}</span>
                                         ${amtHtml}
                                         ${volHtml}
                                     </div>

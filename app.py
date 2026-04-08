@@ -2399,6 +2399,11 @@ def _fetch_all_underdog_signals():
                     'pct': r.get('pct', ''),
                     'amt': r.get('amt', ''),
                     'volume': r.get('volume', ''),
+                    'current_odds': r.get('current_odds') or '',
+                    'current_pct': r.get('current_pct') or '',
+                    'current_amt': r.get('current_amt') or '',
+                    'current_volume': r.get('current_volume') or '',
+                    'last_updated_at': r.get('last_updated_at') or '',
                     'score': r.get('score') or '',
                     'result': r.get('result') or '',
                 })
