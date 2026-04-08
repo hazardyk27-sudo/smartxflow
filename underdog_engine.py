@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SmartXFlow Underdog Engine v1.1
+SmartXFlow Sinyal Engine v1.1
 Periyodik olarak maçları tarayarak Underdog Pressure sinyallerini bulur ve Supabase'e kaydeder.
 
 Çalışma aralığı: 15 dakika
@@ -208,7 +208,7 @@ def save_new_signals(signals, with_current_cols):
         except Exception:
             inserted = 0
         return inserted
-    log(f"[UnderdogEngine] INSERT hatası: {r.status_code} {r.text[:200]}")
+    log(f"[SinyalEngine] INSERT hatası: {r.status_code} {r.text[:200]}")
     return 0
 
 
@@ -296,7 +296,7 @@ def update_current_values_for_existing(existing_signals, snapshot_lookup):
             failed += 1
 
     if failed and not updated:
-        log(f"[UnderdogEngine] current_* kolonları yok — migrations/underdog_signals_current_columns.sql çalıştırın.")
+        log(f"[SinyalEngine] current_* kolonları yok — migrations/underdog_signals_current_columns.sql çalıştırın.")
     return updated, not_found
 
 
@@ -318,10 +318,10 @@ def update_heartbeat(status):
 
 
 def run_scan():
-    log("[UnderdogEngine] Tarama başlıyor...")
+    log("[SinyalEngine] Tarama başlıyor...")
     snapshots = fetch_latest_snapshots()
     if not snapshots:
-        log("[UnderdogEngine] Veri çekilemedi, tarama atlandı")
+        log("[SinyalEngine] Veri çekilemedi, tarama atlandı")
         return 0, 0
 
     snapshot_lookup = build_snapshot_lookup(snapshots)
@@ -336,18 +336,18 @@ def run_scan():
     if has_cols:
         existing = fetch_existing_signals()
         updated_count, not_found = update_current_values_for_existing(existing, snapshot_lookup)
-        log(f"[UnderdogEngine] found={len(new_triggers)} inserted={new_count} "
+        log(f"[SinyalEngine] found={len(new_triggers)} inserted={new_count} "
             f"updated={updated_count} (existing={len(existing)} no_snapshot={not_found})")
     else:
         updated_count = 0
-        log(f"[UnderdogEngine] found={len(new_triggers)} inserted={new_count} updated=0 (migration gerekli)")
+        log(f"[SinyalEngine] found={len(new_triggers)} inserted={new_count} updated=0 (migration gerekli)")
 
     return new_count, updated_count
 
 
 def run_engine():
     print("=" * 60)
-    print("SMARTXFLOW UNDERDOG ENGINE v1.1")
+    print("SMARTXFLOW SİNYAL ENGINE v1.1")
     print(f"Tarama aralığı : {SCAN_INTERVAL // 60} dakika")
     print(f"Kriterler      : odds>={ODDS_THRESHOLD}, pct>={PCT_THRESHOLD}%, volume>={VOLUME_THRESHOLD:,.0f}")
     print(f"Supabase URL   : {SUPABASE_URL[:40]}..." if SUPABASE_URL else "Supabase URL: NOT SET")

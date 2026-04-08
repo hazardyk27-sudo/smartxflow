@@ -61,7 +61,7 @@ start_underdog() {
 echo "============================================"
 echo "[run_services] SmartXFlow Services Supervisor"
 echo "[run_services] $(date '+%Y-%m-%d %H:%M:%S')"
-echo "[run_services] Scraper + Alarm Engine + Live Scraper + Underdog Engine (auto-restart)"
+echo "[run_services] Scraper + Alarm Engine + Live Scraper + Sinyal Engine (auto-restart)"
 echo "============================================"
 
 start_scraper &
