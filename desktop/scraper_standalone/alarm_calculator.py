@@ -2945,9 +2945,29 @@ class AlarmCalculator:
             self.batch_fetch_history(fetch_market)
             history_map = self._history_cache.get(history_table, {})
             
-            matches = self.get_matches_with_latest(fetch_market)
+            # RACE CONDITION FIX (dropping_1x2):
+            # moneyway_1x2 tablosu scraper tarafından her 15 dakikada sıfırlanıp yeniden yazılır.
+            # Alarm engine bu yazım sırasında çalışırsa tablo yarı dolu olur → bazı maçlar kaybolur.
+            # moneyway_1x2_history append-only'dir, scraper onu silmez → tutarlı kaynak.
+            # history_map zaten yüklü, ek sorgu gerekmez.
+            if market == 'dropping_1x2':
+                match_iter = []
+                for hash_key, hrows in history_map.items():
+                    if not hrows:
+                        continue
+                    rep = hrows[0]
+                    match_iter.append({
+                        'match_id_hash': rep.get('match_id_hash') or hash_key,
+                        'home': rep.get('home', ''),
+                        'away': rep.get('away', ''),
+                        'league': rep.get('league', ''),
+                        'date': rep.get('date', '')
+                    })
+                log(f"FETCH dropping_1x2 (from history_map): {len(match_iter)} unique matches")
+            else:
+                match_iter = self.get_matches_with_latest(fetch_market)
             
-            for match in matches:
+            for match in match_iter:
                 if not self._is_valid_match_date(match.get('date', '')):
                     continue
                 
