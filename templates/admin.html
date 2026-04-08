@@ -9125,6 +9125,7 @@
                     var listEl = document.getElementById('cmAdminList');
                     if (listEl) listEl.style.opacity = '0.5';
                     var r2 = await fetch('/api/admin/confirmed-signals');
+                    if (!r2.ok) throw new Error('Liste yenileme başarısız: HTTP ' + r2.status);
                     var d2 = await r2.json();
                     _cmSignalsCache = d2.signals || [];
                     buildCmDateTabs(_cmSignalsCache);
