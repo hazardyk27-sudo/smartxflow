@@ -212,22 +212,78 @@ def save_new_signals(signals, with_current_cols):
     return 0
 
 
-def update_current_values(signals):
-    """Bulunan tüm sinyallerin current_* alanlarını güncelle."""
+def fetch_existing_signals():
+    """DB'deki mevcut tüm sinyallerin match_key ve selection_code listesini çek."""
+    try:
+        url = (
+            f"{SUPABASE_URL}/rest/v1/underdog_signals"
+            "?select=match_key,selection_code,home_team,away_team,date:match_date"
+            "&limit=5000"
+        )
+        r = requests.get(url, headers=_headers_read(), timeout=12)
+        if r.status_code == 200:
+            return r.json()
+        log(f"[FetchExisting] HTTP {r.status_code}: {r.text[:120]}")
+        return []
+    except Exception as e:
+        log(f"[FetchExisting] Hata: {e}")
+        return []
+
+
+def build_snapshot_lookup(snapshots):
+    """Snapshot listesini match_key bazlı dict'e çevir (home|away|date → row)."""
+    lookup = {}
+    for _hash, row in snapshots.items():
+        home = row.get('home', '')
+        away = row.get('away', '')
+        date = row.get('date', '')
+        mk = f"{home}|{away}|{date}"
+        lookup[mk] = row
+    return lookup
+
+
+def update_current_values_for_existing(existing_signals, snapshot_lookup):
+    """
+    DB'deki tüm sinyallerin current_* alanlarını güncelle,
+    kriterleri karşılamasa bile — ilk tetiklenme koşulları değişse de takip devam eder.
+    """
     now = datetime.now(timezone.utc).isoformat()
     updated = 0
     failed = 0
+    not_found = 0
     wh = _headers_write()
-    for s in signals:
+
+    for sig in existing_signals:
+        match_key = sig.get('match_key', '')
+        sel_code = sig.get('selection_code', '')
+        row = snapshot_lookup.get(match_key)
+        if not row:
+            not_found += 1
+            continue
+
+        code_map = {
+            '1': ('odds1', 'pct1', 'amt1'),
+            'X': ('oddsx', 'pctx', 'amtx'),
+            '2': ('odds2', 'pct2', 'amt2'),
+        }
+        fields = code_map.get(sel_code)
+        if not fields:
+            continue
+
+        cur_odds = str(row.get(fields[0]) or '')
+        cur_pct = str(row.get(fields[1]) or '')
+        cur_amt = str(row.get(fields[2]) or '')
+        cur_vol = str(row.get('volume') or '')
+
         try:
-            mk = url_quote(s['match_key'], safe='')
-            sc = url_quote(s['selection_code'], safe='')
+            mk = url_quote(match_key, safe='')
+            sc = url_quote(sel_code, safe='')
             url = f"{SUPABASE_URL}/rest/v1/underdog_signals?match_key=eq.{mk}&selection_code=eq.{sc}"
             data = {
-                'current_odds': s['odds'],
-                'current_pct': s['pct'],
-                'current_amt': s['amt'],
-                'current_volume': s['volume'],
+                'current_odds': cur_odds,
+                'current_pct': cur_pct,
+                'current_amt': cur_amt,
+                'current_volume': cur_vol,
                 'last_updated_at': now,
             }
             r = requests.patch(url, headers=wh, json=data, timeout=10)
@@ -238,9 +294,10 @@ def update_current_values(signals):
         except Exception as e:
             log(f"[Update] Hata: {e}")
             failed += 1
+
     if failed and not updated:
-        log(f"[UnderdogEngine] current_* kolonları yok — Supabase SQL Editor'da migration çalıştırın.")
-    return updated
+        log(f"[UnderdogEngine] current_* kolonları yok — migrations/underdog_signals_current_columns.sql çalıştırın.")
+    return updated, not_found
 
 
 def update_heartbeat(status):
@@ -267,17 +324,24 @@ def run_scan():
         log("[UnderdogEngine] Veri çekilemedi, tarama atlandı")
         return 0, 0
 
-    signals = find_signals(snapshots)
-
-    if not signals:
-        log(f"[UnderdogEngine] found=0 updated=0")
-        return 0, 0
-
+    snapshot_lookup = build_snapshot_lookup(snapshots)
     has_cols = check_columns_exist()
-    new_count = save_new_signals(signals, with_current_cols=has_cols)
-    updated_count = update_current_values(signals) if has_cols else 0
 
-    log(f"[UnderdogEngine] found={len(signals)} inserted={new_count} updated={updated_count}")
+    # Adım 1: Kriterleri karşılayan sinyalleri tespit et ve yeni olanları kaydet
+    new_triggers = find_signals(snapshots)
+    new_count = save_new_signals(new_triggers, with_current_cols=has_cols) if new_triggers else 0
+
+    # Adım 2: DB'deki TÜM mevcut sinyallerin current_* değerlerini güncelle
+    # (kriterler karşılanmasa bile — ilk tetiklenme sabit, şu anki değer takip edilir)
+    if has_cols:
+        existing = fetch_existing_signals()
+        updated_count, not_found = update_current_values_for_existing(existing, snapshot_lookup)
+        log(f"[UnderdogEngine] found={len(new_triggers)} inserted={new_count} "
+            f"updated={updated_count} (existing={len(existing)} no_snapshot={not_found})")
+    else:
+        updated_count = 0
+        log(f"[UnderdogEngine] found={len(new_triggers)} inserted={new_count} updated=0 (migration gerekli)")
+
     return new_count, updated_count
 
 
