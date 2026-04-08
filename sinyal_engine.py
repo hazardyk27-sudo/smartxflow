@@ -395,26 +395,6 @@ def fetch_cm_recent_cooldowns():
 def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
     """Confirmed Money kriterlerini kontrol et."""
     signals = []
-    now_utc = datetime.now(timezone.utc)
-    t8_target = now_utc - timedelta(hours=8)
-    t16_target = now_utc - timedelta(hours=16)
-
-    def find_closest_snap(snaps, target_ts):
-        best = None
-        best_diff = float('inf')
-        for row in snaps:
-            ts_str = row.get('scraped_at', '')
-            if not ts_str:
-                continue
-            try:
-                ts = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
-                diff = abs((ts - target_ts).total_seconds())
-                if diff < best_diff:
-                    best_diff = diff
-                    best = row
-            except Exception:
-                pass
-        return best
 
     for h, latest in latest_snapshots.items():
         if parse_volume_amt(latest.get('volume', '')) < CM_VOLUME_THRESHOLD:
@@ -445,20 +425,17 @@ def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
                 continue
 
             odds_0 = parse_odds_pct(latest.get(o_field))
-            snap_8h = find_closest_snap(match_history_sorted, t8_target)
-            snap_16h = find_closest_snap(match_history_sorted, t16_target)
-            if not snap_8h or not snap_16h:
+
+            # 16h penceresindeki en eski snapshot ile karşılaştır
+            oldest_snap = match_history_sorted[-1] if match_history_sorted else None
+            if not oldest_snap:
                 continue
 
-            odds_8 = parse_odds_pct(snap_8h.get(o_field))
-            odds_16 = parse_odds_pct(snap_16h.get(o_field))
-
-            if odds_0 <= 0 or odds_8 <= 0 or odds_16 <= 0:
-                continue
-            if not (odds_16 > odds_8 >= odds_0):
+            odds_oldest = parse_odds_pct(oldest_snap.get(o_field))
+            if odds_0 <= 0 or odds_oldest <= 0:
                 continue
 
-            drop_pct = (odds_16 - odds_0) / odds_16
+            drop_pct = (odds_oldest - odds_0) / odds_oldest
             if drop_pct < CM_ODDS_DROP_PCT:
                 continue
 
@@ -470,7 +447,7 @@ def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
                 'date': latest.get('date', ''),
                 'selection_code': code,
                 'selection_label': label,
-                'odds_16h': str(round(odds_16, 4)),
+                'odds_16h': str(round(odds_oldest, 4)),
                 'odds_now': str(round(odds_0, 4)),
                 'pct_now': str(round(pct_now, 2)),
                 'volume_now': str(int(parse_volume_amt(latest.get('volume', '')))),
