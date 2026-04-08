@@ -3,12 +3,14 @@
 SCRAPER_PID=""
 ALARM_PID=""
 LIVE_PID=""
+UNDERDOG_PID=""
 
 cleanup() {
     echo "[run_services] SIGTERM received, shutting down..."
     [ -n "$SCRAPER_PID" ] && kill $SCRAPER_PID 2>/dev/null
     [ -n "$ALARM_PID" ] && kill $ALARM_PID 2>/dev/null
     [ -n "$LIVE_PID" ] && kill $LIVE_PID 2>/dev/null
+    [ -n "$UNDERDOG_PID" ] && kill $UNDERDOG_PID 2>/dev/null
     wait 2>/dev/null
     echo "[run_services] All services stopped."
     exit 0
@@ -46,10 +48,20 @@ start_live() {
     done
 }
 
+start_underdog() {
+    while true; do
+        echo "[run_services] $(date '+%H:%M:%S') Starting underdog_engine.py..."
+        python underdog_engine.py
+        EXIT_CODE=$?
+        echo "[run_services] $(date '+%H:%M:%S') underdog_engine.py exited (code=$EXIT_CODE), restarting in 5s..."
+        sleep 5
+    done
+}
+
 echo "============================================"
 echo "[run_services] SmartXFlow Services Supervisor"
 echo "[run_services] $(date '+%Y-%m-%d %H:%M:%S')"
-echo "[run_services] Scraper + Alarm Engine + Live Scraper (auto-restart)"
+echo "[run_services] Scraper + Alarm Engine + Live Scraper + Underdog Engine (auto-restart)"
 echo "============================================"
 
 start_scraper &
@@ -60,5 +72,8 @@ ALARM_PID=$!
 
 start_live &
 LIVE_PID=$!
+
+start_underdog &
+UNDERDOG_PID=$!
 
 wait
