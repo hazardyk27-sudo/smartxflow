@@ -503,13 +503,11 @@ def save_confirmed_money_signals(signals):
             'last_updated_at': now,
         })
     url = f"{SUPABASE_URL}/rest/v1/confirmed_money_signals"
-    headers = _headers_write('return=representation')
+    headers = _headers_write('return=minimal')
     r = requests.post(url, headers=headers, json=records, timeout=15)
     if r.status_code in (200, 201):
-        try:
-            return len(r.json()) if r.text else 0
-        except Exception:
-            return 0
+        log(f"[ConfirmedMoney] INSERT OK ({len(records)} yeni sinyal)")
+        return len(records)
     log(f"[ConfirmedMoney] INSERT hatası: {r.status_code} {r.text[:200]}")
     return 0
 
@@ -582,10 +580,31 @@ def run_cm_scan(snapshots, snapshot_lookup):
         history = fetch_history_16h()
         cooldown_set = fetch_cm_recent_cooldowns()
         signals = find_confirmed_money(snapshots, history, cooldown_set)
-        inserted = save_confirmed_money_signals(signals) if signals else 0
+
+        # Önce DB'deki mevcut kayıtları çek
         existing_cm = fetch_existing_cm_signals()
+
+        # (home_team, away_team, selection_code) üçlüsüne göre var olanları belirle
+        existing_keys = {
+            (r.get('home_team', '').strip().lower(),
+             r.get('away_team', '').strip().lower(),
+             r.get('selection_code', ''))
+            for r in existing_cm
+        }
+
+        # Sadece DB'de olmayan sinyalleri kaydet (duplicate önleme)
+        new_signals = [
+            s for s in signals
+            if (s.get('home_team', '').strip().lower(),
+                s.get('away_team', '').strip().lower(),
+                s.get('selection_code', '')) not in existing_keys
+        ]
+
+        inserted = save_confirmed_money_signals(new_signals) if new_signals else 0
+
+        # Mevcut tüm CM kayıtlarının current_* değerlerini güncelle
         cm_updated, cm_not_found = update_cm_current_values(existing_cm, snapshot_lookup)
-        log(f"[ConfirmedMoney] found={len(signals)} inserted={inserted} "
+        log(f"[ConfirmedMoney] found={len(signals)} new={len(new_signals)} inserted={inserted} "
             f"updated={cm_updated} (existing={len(existing_cm)} no_snapshot={cm_not_found})")
     except Exception as e:
         log(f"[ConfirmedMoney] Tarama hatası: {e}")
