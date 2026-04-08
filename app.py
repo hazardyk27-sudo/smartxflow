@@ -7839,6 +7839,11 @@ def admin_set_cm_signal_result(signal_id):
             _cm_signals_cache = None
             _cm_signals_cache_time = 0
             return jsonify({'ok': True, 'signal_id': signal_id, 'result': result_val})
+        if resp.status_code == 400:
+            # Likely missing column — return structured migration error for frontend
+            body = resp.text[:500]
+            migration_sql = 'ALTER TABLE confirmed_money_signals ADD COLUMN IF NOT EXISTS result text;'
+            return jsonify({'error': 'MIGRATION_NEEDED', 'migration_sql': migration_sql, 'detail': body}), 400
         return jsonify({'error': f'DB error {resp.status_code}', 'detail': resp.text[:200]}), 500
     except Exception as e:
         print(f"[CM-Result] PATCH error: {e}")
