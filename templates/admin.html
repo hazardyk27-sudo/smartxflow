@@ -8688,6 +8688,22 @@
 
         var _udSelectedDate = null;
 
+        function _udParseDate(dateStr) {
+            if (!dateStr) return '';
+            if (dateStr.match(/^\d{4}-\d{2}-\d{2}/)) return dateStr.substring(0, 10);
+            var bwMatch = dateStr.match(/^(\d{2})\.([A-Za-z]{3})/);
+            if (bwMatch) {
+                var MONTHS = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+                var day = bwMatch[1];
+                var mon = MONTHS[bwMatch[2]];
+                if (mon) {
+                    var yr = new Date().getFullYear();
+                    return yr + '-' + ('0'+mon).slice(-2) + '-' + day;
+                }
+            }
+            return dateStr.substring(0, 10);
+        }
+
         function _udFmtKey(d) {
             var mm = ('0' + (d.getMonth()+1)).slice(-2);
             var dd = ('0' + d.getDate()).slice(-2);
@@ -8702,7 +8718,7 @@
             today.setHours(0,0,0,0);
             var signalDates = {};
             signals.forEach(function(s) {
-                var d = (s.match_date || s.date || '').substring(0, 10);
+                var d = _udParseDate(s.match_date || s.date || '');
                 if (d) signalDates[d] = (signalDates[d] || 0) + 1;
             });
             // Window: -3 to +3 days from today
@@ -8803,7 +8819,7 @@
         function renderUdSignalList(signals, listEl) {
             var TR_MONTHS = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
             var filtered = (_udSelectedDate && _udSelectedDate !== 'all')
-                ? signals.filter(function(s) { return (s.match_date || s.date || '').substring(0, 10) === _udSelectedDate; })
+                ? signals.filter(function(s) { return _udParseDate(s.match_date || s.date || '') === _udSelectedDate; })
                 : signals;
             if (!filtered.length) {
                 listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Bu tarih için sinyal bulunmuyor</div>';
