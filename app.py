@@ -7699,6 +7699,15 @@ def confirmed_money_endpoint():
     })
 
 
+@app.route('/api/admin/confirmed-signals', methods=['GET'])
+def admin_get_confirmed_signals():
+    """Return all confirmed money signals for admin (last 90 days)."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    signals = _fetch_all_confirmed_money_signals()
+    return jsonify({'signals': signals, 'count': len(signals)})
+
+
 @app.route('/api/admin/underdog-signals', methods=['GET'])
 def admin_get_underdog_signals():
     """Return all underdog signals for admin (last 90 days, includes result field)."""

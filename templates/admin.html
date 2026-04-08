@@ -865,6 +865,10 @@
                 <span class="nav-item-icon">⚡</span>
                 <span>Underdog Sinyalleri</span>
             </div>
+            <div class="nav-item" onclick="showPage('confirmedsignals')" data-page="confirmedsignals">
+                <span class="nav-item-icon">💰</span>
+                <span>Confirmed Money</span>
+            </div>
         </nav>
         <div class="sidebar-footer">
             <a href="/" class="back-home">
@@ -3223,6 +3227,21 @@
             </div>
         </div>
 
+        <div id="page-confirmedsignals" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title">💰 Confirmed Money Sinyalleri</h2>
+                    <p class="page-subtitle">Otomatik tespit edilen para baskısı sinyalleri (oran düşüşü + hacim)</p>
+                </div>
+                <button class="btn btn-primary" onclick="loadConfirmedSignals()" style="padding:8px 18px;font-size:13px;">Yenile</button>
+            </div>
+            <div id="cmAdminStats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;"></div>
+            <div id="cmDateTabs" style="display:flex;gap:4px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;"></div>
+            <div id="cmAdminList" style="display:flex;flex-direction:column;gap:0;">
+                <div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>
+            </div>
+        </div>
+
         <div id="page-underdogsignals" class="page-content">
             <div class="page-header">
                 <div>
@@ -3992,6 +4011,7 @@
             if (pageId === 'license') loadLicensePage();
             if (pageId === 'orders') loadOrders();
             if (pageId === 'underdogsignals') loadUnderdogSignals();
+            if (pageId === 'confirmedsignals') loadConfirmedSignals();
         }
         
         var _allOrders = [];
@@ -8894,6 +8914,121 @@
                 inp.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
             }
         })();
+
+        // ============================================
+        // CONFIRMED MONEY SİNYALLERİ
+        // ============================================
+        var _cmSignalsCache = [];
+        var _cmSelectedDate = null;
+
+        async function loadConfirmedSignals() {
+            _cmSelectedDate = null;
+            var listEl = document.getElementById('cmAdminList');
+            var statsEl = document.getElementById('cmAdminStats');
+            if (!listEl) return;
+            listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>';
+            try {
+                var resp = await fetch('/api/admin/confirmed-signals');
+                if (!resp.ok) { listEl.innerHTML = '<div style="color:#f85149;padding:20px;">Yükleme hatası: ' + resp.status + '</div>'; return; }
+                var data = await resp.json();
+                _cmSignalsCache = data.signals || [];
+                renderCmAdminSignals(_cmSignalsCache, listEl, statsEl);
+            } catch(e) {
+                listEl.innerHTML = '<div style="color:#f85149;padding:20px;">Hata: ' + e.message + '</div>';
+            }
+        }
+
+        function renderCmAdminSignals(signals, listEl, statsEl) {
+            var TR_MONTHS = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+            if (statsEl) {
+                var sb = 'display:inline-flex;flex-direction:column;align-items:center;padding:10px 20px;border-radius:8px;background:#161b22;border:1px solid #30363d;min-width:70px;';
+                var avgOdds = signals.length > 0 ? (signals.reduce(function(s,x){ return s + parseFloat((x.current_odds||x.odds_now||'0').replace(/[^0-9.]/g,'')||0); },0) / signals.length).toFixed(2) : '-';
+                var avgDrop = signals.length > 0 ? (signals.reduce(function(s,x){ return s + (parseFloat(x.odds_drop_pct||0)||0); },0) / signals.length).toFixed(1) : '-';
+                statsEl.innerHTML =
+                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#34d399;">' + signals.length + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Toplam</div></div>' +
+                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#93c5fd;">' + avgOdds + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Ort. Oran</div></div>' +
+                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#f87171;">-%' + avgDrop + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Ort. Düşüş</div></div>';
+            }
+            buildCmDateTabs(signals);
+            renderCmSignalList(signals, listEl);
+        }
+
+        function buildCmDateTabs(signals) {
+            var tabsEl = document.getElementById('cmDateTabs');
+            if (!tabsEl) return;
+            var TR_MONTHS = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+            var dateSet = {};
+            signals.forEach(function(s) { var d = (s.match_date||'').substring(0,10); if (d) dateSet[d] = (dateSet[d]||0)+1; });
+            var dates = Object.keys(dateSet).sort().reverse();
+            var todayStr = new Date().toISOString().substring(0,10);
+            var btnBase = 'cursor:pointer;border:1px solid #30363d;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;white-space:nowrap;transition:all 0.15s;background:#161b22;color:#8b949e;';
+            var btnActive = 'cursor:pointer;border:1px solid rgba(52,211,153,0.4);border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;white-space:nowrap;background:rgba(52,211,153,0.08);color:#34d399;';
+            var html = '<button onclick="selectCmDate(\'all\')" style="' + (!_cmSelectedDate||_cmSelectedDate==='all' ? btnActive : btnBase) + '">Tüm Tarih</button>';
+            dates.forEach(function(d) {
+                var dp = d.split('-');
+                var label = dp.length===3 ? (parseInt(dp[2]) + ' ' + TR_MONTHS[parseInt(dp[1])-1]) : d;
+                if (d === todayStr) label = 'Bugün';
+                var isActive = _cmSelectedDate === d;
+                html += '<button onclick="selectCmDate(\'' + d + '\')" style="' + (isActive ? btnActive : btnBase) + '">' + label + ' <span style="opacity:0.6;">(' + dateSet[d] + ')</span></button>';
+            });
+            tabsEl.innerHTML = html;
+        }
+
+        function selectCmDate(dateKey) {
+            _cmSelectedDate = dateKey;
+            buildCmDateTabs(_cmSignalsCache);
+            renderCmSignalList(_cmSignalsCache, document.getElementById('cmAdminList'));
+        }
+
+        function renderCmSignalList(signals, listEl) {
+            var TR_MONTHS = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+            var filtered = (_cmSelectedDate && _cmSelectedDate !== 'all')
+                ? signals.filter(function(s) { return (s.match_date||'').substring(0,10) === _cmSelectedDate; })
+                : signals;
+            if (!filtered.length) {
+                listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Henüz sinyal yok</div>';
+                return;
+            }
+            var dateGroups = {};
+            filtered.forEach(function(s) {
+                var d = (s.match_date||'').substring(0,10);
+                if (!dateGroups[d]) dateGroups[d] = [];
+                dateGroups[d].push(s);
+            });
+            var sortedDates = Object.keys(dateGroups).sort().reverse();
+            var html = '';
+            sortedDates.forEach(function(dateKey) {
+                var items = dateGroups[dateKey];
+                var dp = dateKey.split('-');
+                var dObj = dp.length===3 ? new Date(parseInt(dp[0]), parseInt(dp[1])-1, parseInt(dp[2])) : null;
+                var dateLabel = dObj ? (dObj.getDate() + ' ' + TR_MONTHS[dObj.getMonth()] + ' ' + dObj.getFullYear()) : dateKey;
+                html += '<div style="padding:10px 0 4px;font-size:11px;font-weight:600;color:#484f58;letter-spacing:0.5px;text-transform:uppercase;border-bottom:1px solid #21262d;margin-bottom:6px;">' + dateLabel + ' <span style="color:#3a3f45;font-weight:400;">(' + items.length + ' sinyal)</span></div>';
+                items.forEach(function(sig) {
+                    var sc = sig.selection_code || '';
+                    var selLabel = sc === '1' ? 'Ev Sahibi' : sc === '2' ? 'Deplasman' : sc === 'X' ? 'Beraberlik' : sc;
+                    var oddsNow = sig.current_odds || sig.odds_now || '-';
+                    var pctNow = sig.current_pct || sig.pct_now || '-';
+                    var volNow = sig.current_volume || sig.volume_now || '';
+                    var dropPct = sig.odds_drop_pct ? parseFloat(sig.odds_drop_pct).toFixed(1) : '-';
+                    var volFmt = volNow ? ('£ ' + parseFloat(String(volNow).replace(/[^0-9.]/g,'')).toLocaleString('en-GB', {maximumFractionDigits:0})) : '';
+                    html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;background:#161b22;border:1px solid rgba(52,211,153,0.1);margin-bottom:6px;flex-wrap:wrap;">';
+                    html += '<div style="flex:1;min-width:150px;">';
+                    html += '<div style="font-size:13px;font-weight:600;color:#c9d1d9;">' + (sig.home_team||'') + ' - ' + (sig.away_team||'') + '</div>';
+                    html += '<div style="font-size:10px;color:#484f58;margin-top:2px;">' + (sig.league||'') + '</div>';
+                    html += '</div>';
+                    html += '<span style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);color:#34d399;font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;">' + selLabel + '</span>';
+                    html += '<span style="color:#93c5fd;font-size:12px;font-weight:600;">' + oddsNow + '</span>';
+                    var pctNum = pctNow !== '-' ? parseFloat(pctNow).toFixed(0) + '%' : '-';
+                    html += '<span style="color:#34d399;font-size:12px;font-weight:600;">' + pctNum + '</span>';
+                    if (dropPct !== '-') html += '<span style="color:#f87171;font-size:11px;font-weight:600;">-%' + dropPct + ' düşüş</span>';
+                    if (volFmt) html += '<span style="color:#484f58;font-size:11px;">Hacim: ' + volFmt + '</span>';
+                    var createdAt = sig.created_at ? new Date(sig.created_at).toLocaleString('tr-TR',{timeZone:'Europe/Istanbul',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+                    if (createdAt) html += '<span style="color:#3a3f45;font-size:10px;margin-left:auto;">' + createdAt + '</span>';
+                    html += '</div>';
+                });
+            });
+            listEl.innerHTML = html;
+        }
 
     </script>
 </body>
