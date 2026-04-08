@@ -2422,15 +2422,13 @@ def _update_underdog_signal_scores():
 
 
 def _fetch_all_underdog_signals():
-    """Fetch signals from underdog_signals table (last 90 days)."""
+    """Fetch signals from underdog_signals table (all records, up to 5000)."""
     try:
-        from datetime import date as _d, timedelta as _td
-        since = (_d.today() - _td(days=90)).isoformat()
         supabase = get_supabase_client()
         if not supabase or not supabase.is_available:
             return []
         headers = supabase._headers()
-        url = f"{supabase._rest_url('underdog_signals')}?select=*&match_date=gte.{since}&order=match_date.asc,home_team.asc&limit=5000"
+        url = f"{supabase._rest_url('underdog_signals')}?select=*&order=match_date.desc,home_team.asc&limit=5000"
         resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
         if resp.status_code == 200:
             rows = resp.json()
@@ -7761,19 +7759,77 @@ def admin_get_confirmed_signals():
 
 @app.route('/api/admin/underdog-signals', methods=['GET'])
 def admin_get_underdog_signals():
-    """Return all underdog signals for admin (last 90 days, includes result field)."""
+    """Return all underdog signals for admin (includes result field).
+    Merges DB records with live cache signals so today's matches always appear."""
     if not session.get('admin_authenticated'):
         return jsonify({'error': 'UNAUTHORIZED'}), 401
-    signals = _fetch_all_underdog_signals()
+
     def _pv(v):
         try: return float(str(v).replace('£','').replace(',','').replace(' ','').strip()) if v else 0.0
         except: return 0.0
+
+    # Fetch persisted signals from DB
+    signals = _fetch_all_underdog_signals()
+
+    # Compute live signals from cache (same logic as underdog_pressure_endpoint)
+    odds_threshold = 3.00
+    pct_threshold = 50.0
+    matches_data = _server_matches_cache.get('moneyway_1x2_all') or _server_matches_cache.get('moneyway_1x2') or []
+    live_signals = []
+    for m in matches_data:
+        odds_obj = m.get('odds') or {}
+        home = m.get('home_team', '')
+        away = m.get('away_team', '')
+        league = m.get('league', '')
+        date = m.get('date', '')
+        volume = odds_obj.get('Volume', '')
+        try:
+            volume_val = float(str(volume).replace('£','').replace(',','').replace(' ','').strip()) if volume else 0.0
+        except Exception:
+            volume_val = 0.0
+        if volume_val < 1000:
+            continue
+        for code, label, raw_odds, raw_pct, raw_amt in [
+            ('1', 'Ev Sahibi', odds_obj.get('Odds1', '-'), odds_obj.get('Pct1', ''), odds_obj.get('Amt1', '')),
+            ('X', 'Beraberlik', odds_obj.get('OddsX', '-'), odds_obj.get('PctX', ''), odds_obj.get('AmtX', '')),
+            ('2', 'Deplasman', odds_obj.get('Odds2', '-'), odds_obj.get('Pct2', ''), odds_obj.get('Amt2', '')),
+        ]:
+            try:
+                odds_val = float(str(raw_odds).replace(',', '.')) if raw_odds and raw_odds != '-' else 0.0
+            except Exception:
+                odds_val = 0.0
+            try:
+                pct_val = float(str(raw_pct).replace('%', '').strip()) if raw_pct else 0.0
+            except Exception:
+                pct_val = 0.0
+            if odds_val >= odds_threshold and pct_val >= pct_threshold:
+                live_signals.append({
+                    'match_key': f"{home}|{away}|{date}",
+                    'home_team': home, 'away_team': away, 'league': league,
+                    'date': date, 'match_date': date,
+                    'selection_code': code, 'selection_label': label,
+                    'odds': str(raw_odds), 'pct': str(raw_pct), 'amt': str(raw_amt),
+                    'volume': volume, 'current_odds': '', 'current_pct': '',
+                    'current_amt': '', 'current_volume': '', 'last_updated_at': '',
+                    'score': '', 'result': '',
+                })
+
+    # Merge: add live signals not already in DB result
+    db_keys = {(s.get('match_key', ''), s.get('selection_code', '')) for s in signals}
+    for ls in live_signals:
+        mk = ls['match_key']
+        sc = ls['selection_code']
+        if (mk, sc) not in db_keys:
+            signals.append(ls)
+            db_keys.add((mk, sc))
+
     signals = [s for s in signals if _pv(s.get('volume','')) >= 1000]
     results_map = _load_ud_results()
     for sig in signals:
         mk = sig.get('match_key', '')
         sc = sig.get('selection_code', '')
-        sig['result'] = results_map.get(f"{mk}|{sc}", '')
+        if not sig.get('result'):
+            sig['result'] = results_map.get(f"{mk}|{sc}", '')
     return jsonify({'signals': signals, 'count': len(signals)})
 
 
