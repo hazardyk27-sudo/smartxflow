@@ -7781,10 +7781,17 @@ def confirmed_money_endpoint():
 
 @app.route('/api/admin/confirmed-signals', methods=['GET'])
 def admin_get_confirmed_signals():
-    """Return all confirmed money signals for admin (last 90 days)."""
+    """Return all confirmed money signals for admin (last 90 days), deduped."""
     if not session.get('admin_authenticated'):
         return jsonify({'error': 'UNAUTHORIZED'}), 401
-    signals = _fetch_all_confirmed_money_signals()
+    raw = _fetch_all_confirmed_money_signals()
+    # (home_team, away_team, selection_code) bazlı dedup — en güncel kaydı tut (created_at.desc)
+    _seen = {}
+    for s in raw:
+        key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
+        if key not in _seen:
+            _seen[key] = s
+    signals = list(_seen.values())
     return jsonify({'signals': signals, 'count': len(signals)})
 
 
