@@ -7674,7 +7674,7 @@ def underdog_pressure_endpoint():
 
 
 def _fetch_all_confirmed_money_signals():
-    """confirmed_money_signals tablosundan son 90 günün sinyallerini çek."""
+    """confirmed_money_signals tablosundan en son 1000 sinyali çek (created_at desc)."""
     try:
         supabase = get_supabase_client()
         if not supabase or not supabase.is_available:
