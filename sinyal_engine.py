@@ -457,6 +457,25 @@ def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
     return signals
 
 
+def _betwatch_date_to_iso(date_str):
+    """'08.Apr 14:00:00' formatını '2026-04-08' ISO'ya çevirir."""
+    try:
+        import re as _re
+        from datetime import date as _d
+        m = _re.search(r'(\d{2})\.(\w{3})', str(date_str))
+        if m:
+            months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5,
+                      'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10,
+                      'Nov': 11, 'Dec': 12}
+            day = int(m.group(1))
+            mon = months.get(m.group(2), 0)
+            if mon:
+                return _d(_d.today().year, mon, day).isoformat()
+    except Exception:
+        pass
+    return str(date_str)[:10] if date_str else ''
+
+
 def save_confirmed_money_signals(signals):
     """Yeni Confirmed Money sinyallerini kaydet."""
     if not signals:
@@ -469,7 +488,7 @@ def save_confirmed_money_signals(signals):
             'home_team': s['home_team'],
             'away_team': s['away_team'],
             'league': s['league'],
-            'match_date': s['date'],
+            'match_date': _betwatch_date_to_iso(s['date']),
             'selection_code': s['selection_code'],
             'selection_label': s['selection_label'],
             'odds_16h': s['odds_16h'],

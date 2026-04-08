@@ -7555,7 +7555,7 @@ def underdog_pressure_endpoint():
             except (ValueError, TypeError):
                 pct_val = 0.0
 
-            if odds_val >= odds_threshold and pct_val >= pct_threshold and volume_val >= 1000:
+            if odds_val >= odds_threshold and pct_val >= pct_threshold and volume_val >= 2000:
                 live_signals.append({
                     'home_team': home,
                     'away_team': away,
@@ -7623,15 +7623,28 @@ def underdog_pressure_endpoint():
             if (mk, sc) not in db_keys:
                 all_signals.append({**s, 'match_key': mk, 'score': '', 'result': ''})
 
-    # Volume filtresi: £1000 altındakileri ele (her iki listeden de)
+    # Volume filtresi: £2000 altındakileri ele (her iki listeden de)
     def _parse_volume(v):
         try:
             return float(str(v).replace('£', '').replace(',', '').replace(' ', '').strip()) if v else 0.0
         except (ValueError, TypeError):
             return 0.0
 
-    all_signals = [s for s in all_signals if _parse_volume(s.get('volume', '')) >= 1000]
-    active_signals = [s for s in active_signals if _parse_volume(s.get('volume', '')) >= 1000]
+    all_signals = [s for s in all_signals if _parse_volume(s.get('volume', '')) >= 2000]
+    active_signals = [s for s in active_signals if _parse_volume(s.get('volume', '')) >= 2000]
+
+    # Deduplication: aynı (home, away, selection_code) için tek kayıt tut
+    seen_ud = {}
+    for s in all_signals:
+        key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
+        if key not in seen_ud:
+            seen_ud[key] = s
+        else:
+            existing_vol = _parse_volume(seen_ud[key].get('volume', ''))
+            new_vol = _parse_volume(s.get('volume', ''))
+            if new_vol > existing_vol:
+                seen_ud[key] = s
+    all_signals = list(seen_ud.values())
 
     avg_odds = 0.0
     avg_pct = 0.0
@@ -7663,15 +7676,13 @@ def underdog_pressure_endpoint():
 def _fetch_all_confirmed_money_signals():
     """confirmed_money_signals tablosundan son 90 günün sinyallerini çek."""
     try:
-        from datetime import date as _d, timedelta as _td
-        since = (_d.today() - _td(days=90)).isoformat()
         supabase = get_supabase_client()
         if not supabase or not supabase.is_available:
             return []
         headers = supabase._headers()
         url = (
             f"{supabase._rest_url('confirmed_money_signals')}"
-            f"?select=*&match_date=gte.{since}&order=match_date.asc,home_team.asc&limit=5000"
+            f"?select=*&order=created_at.desc,home_team.asc&limit=1000"
         )
         resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
         if resp.status_code == 200:
@@ -7787,7 +7798,7 @@ def admin_get_underdog_signals():
             volume_val = float(str(volume).replace('£','').replace(',','').replace(' ','').strip()) if volume else 0.0
         except Exception:
             volume_val = 0.0
-        if volume_val < 1000:
+        if volume_val < 2000:
             continue
         for code, label, raw_odds, raw_pct, raw_amt in [
             ('1', 'Ev Sahibi', odds_obj.get('Odds1', '-'), odds_obj.get('Pct1', ''), odds_obj.get('Amt1', '')),
@@ -7823,7 +7834,19 @@ def admin_get_underdog_signals():
             signals.append(ls)
             db_keys.add((mk, sc))
 
-    signals = [s for s in signals if _pv(s.get('volume','')) >= 1000]
+    signals = [s for s in signals if _pv(s.get('volume','')) >= 2000]
+
+    # Deduplication: aynı (home, away, selection_code) için tek kayıt tut
+    seen_admin = {}
+    for s in signals:
+        key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
+        if key not in seen_admin:
+            seen_admin[key] = s
+        else:
+            if _pv(s.get('volume', '')) > _pv(seen_admin[key].get('volume', '')):
+                seen_admin[key] = s
+    signals = list(seen_admin.values())
+
     results_map = _load_ud_results()
     for sig in signals:
         mk = sig.get('match_key', '')
