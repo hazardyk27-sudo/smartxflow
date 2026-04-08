@@ -7730,6 +7730,15 @@ def confirmed_money_endpoint():
             return False
 
     all_signals = _fetch_all_confirmed_money_signals()
+
+    # Deduplication: aynı (home, away, selection_code) için tek kayıt tut (en güncel)
+    _cm_seen = {}
+    for s in all_signals:
+        key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
+        if key not in _cm_seen:
+            _cm_seen[key] = s
+    all_signals = list(_cm_seen.values())
+
     active_signals = [s for s in all_signals if _is_today_or_future(s.get('date'))]
 
     avg_drop = 0.0
