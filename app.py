@@ -1886,6 +1886,57 @@ def get_favorites():
     favorites = db.get_user_favorites(license_key)
     return jsonify({'favorites': favorites})
 
+@app.route('/api/favorites-matches')
+@license_required
+def get_favorites_matches():
+    """Returns full match data for all favorited matches (any date)."""
+    license_key = session.get('license_key', '').strip()
+    if not license_key:
+        device_id = (request.args.get('device_id', '') or request.headers.get('X-Device-Id', '')).strip()[:16]
+        license_key = f"device:{device_id}" if device_id else ''
+    if not license_key:
+        return jsonify({'matches': []})
+
+    market = request.args.get('market', 'moneyway_1x2')
+    favorites = db.get_user_favorites(license_key)
+    if not favorites:
+        return jsonify({'matches': []})
+
+    fav_set = set(favorites)
+
+    def _mk(m):
+        return (m.get('home_team', '') or '') + '|' + (m.get('away_team', '') or '') + '|' + (m.get('league', '') or '')
+
+    fav_matches = []
+    found_keys = set()
+
+    # Try server-side cache first (all matches, no date limit)
+    for cache_key in (f'{market}_all', f'{market}_today_future'):
+        cached, _ = get_matches_cache(cache_key)
+        if cached:
+            for m in cached:
+                k = _mk(m)
+                if k in fav_set and k not in found_keys:
+                    fav_matches.append(m)
+                    found_keys.add(k)
+
+    # For favorites still not found, try yesterday's data
+    still_missing = fav_set - found_keys
+    if still_missing:
+        try:
+            yest_raw = db.get_all_matches_with_latest(market, date_filter='yesterday')
+            if yest_raw:
+                yest_enriched = _build_enriched_matches(yest_raw) if isinstance(yest_raw, list) else _build_enriched_matches(yest_raw.get('matches', []))
+                for m in yest_enriched:
+                    k = _mk(m)
+                    if k in still_missing and k not in found_keys:
+                        fav_matches.append(m)
+                        found_keys.add(k)
+        except Exception as e:
+            print(f"[FavMatches] Yesterday fetch error: {e}")
+
+    return jsonify({'matches': fav_matches})
+
 @app.route('/api/favorite/counts', methods=['POST'])
 @license_required
 def get_favorite_counts():

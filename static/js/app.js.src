@@ -198,12 +198,73 @@ function toggleFavoritesFilter() {
     if (_favFilterActive) {
         if (btn) btn.classList.add('btn-favorites-active');
         if (btnM) btnM.classList.add('btn-favorites-active');
-        _applyFavoritesFilter();
+        _loadAndApplyFavoritesFilter();
     } else {
         if (btn) btn.classList.remove('btn-favorites-active');
         if (btnM) btnM.classList.remove('btn-favorites-active');
         _clearFavoritesFilter();
     }
+}
+
+async function _loadAndApplyFavoritesFilter() {
+    if (_userFavorites.size === 0) {
+        _applyFavoritesFilter();
+        return;
+    }
+
+    var renderedKeys = new Set();
+    document.querySelectorAll('#matchesTableBody tr').forEach(function(row) {
+        var mk = row.getAttribute('data-matchkey');
+        if (!mk) { var h = row.querySelector('.fav-heart'); if (h) mk = h.getAttribute('data-matchkey'); }
+        if (mk) renderedKeys.add(mk);
+    });
+    document.querySelectorAll('#matchCardList .match-card').forEach(function(card) {
+        var mk = card.getAttribute('data-matchkey');
+        if (!mk) { var h = card.querySelector('.fav-heart'); if (h) mk = h.getAttribute('data-matchkey'); }
+        if (mk) renderedKeys.add(mk);
+    });
+
+    var missingFavs = [];
+    _userFavorites.forEach(function(mk) {
+        if (!renderedKeys.has(mk)) missingFavs.push(mk);
+    });
+
+    if (missingFavs.length === 0) {
+        _applyFavoritesFilter();
+        return;
+    }
+
+    try {
+        var did = getWebDeviceId();
+        var mkt = (typeof currentMarket !== 'undefined') ? currentMarket : 'moneyway_1x2';
+        var srcParam = (typeof currentSource !== 'undefined' && currentSource !== 'betfair') ? '&source=' + encodeURIComponent(currentSource) : '';
+        var url = '/api/favorites-matches?device_id=' + encodeURIComponent(did || '') + '&market=' + encodeURIComponent(mkt) + srcParam;
+        var resp = await fetch(url);
+        var data = await resp.json();
+        var extraMatches = data.matches || [];
+
+        if (extraMatches.length > 0) {
+            var missingSet = new Set(missingFavs);
+            var existingKeys = new Set();
+            (matches || []).forEach(function(m) {
+                existingKeys.add((m.home_team || '') + '|' + (m.away_team || '') + '|' + (m.league || ''));
+            });
+            var toAdd = extraMatches.filter(function(m) {
+                var mk = (m.home_team || '') + '|' + (m.away_team || '') + '|' + (m.league || '');
+                return missingSet.has(mk) && !existingKeys.has(mk);
+            });
+            if (toAdd.length > 0) {
+                matches = (matches || []).concat(toAdd);
+                filteredMatches = applySorting(matches);
+                renderMatches(filteredMatches);
+                return;
+            }
+        }
+    } catch(e) {
+        console.error('[Fav] Error loading past favorites:', e);
+    }
+
+    _applyFavoritesFilter();
 }
 
 function _applyFavoritesFilter() {
