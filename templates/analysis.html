@@ -685,7 +685,10 @@
                             const curVol   = s.current_volume && s.current_volume !== s.volume ? escapeHtml(String(s.current_volume)) : '';
                             const volStr   = curVol ? `${escapeHtml(String(s.volume))} <span class="sig-arrow">→</span> <span class="sig-cur">${curVol}</span>` : escapeHtml(String(s.volume || ''));
                             const volHtml  = s.volume ? `<span class="signal-vol-tag">Hacim: ${volStr}</span>` : '';
-                            const amtHtml  = s.amt ? `<span class="signal-vol-tag">${escapeHtml(String(s.amt))}</span>` : '';
+                            const initAmt  = escapeHtml(String(s.amt || ''));
+                            const curAmt   = s.current_amt && s.current_amt !== s.amt ? escapeHtml(String(s.current_amt)) : '';
+                            const amtInner = curAmt ? `${initAmt} <span class="sig-arrow">→</span> <span class="sig-cur">${curAmt}</span>` : initAmt;
+                            const amtHtml  = s.amt ? `<span class="signal-vol-tag">${amtInner}</span>` : '';
                             const oddsInner = curOdds ? `${initOdds} <span class="sig-arrow">→</span> <span class="sig-cur">${curOdds}</span>` : initOdds;
                             const pctInner  = curPct  ? `%${initPct} <span class="sig-arrow">→</span> <span class="sig-cur">%${curPct}</span>` : `%${initPct}`;
                             return `

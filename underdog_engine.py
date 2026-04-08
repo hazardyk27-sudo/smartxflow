@@ -83,9 +83,21 @@ def check_columns_exist():
         return False
 
 
-def parse_float(val):
+def parse_odds_pct(val):
+    """Odds/yüzde için: virgül ondalık ayırıcı olarak kabul edilir (3,40 → 3.40)."""
     try:
-        return float(str(val).replace('£', '').replace('%', '').replace(',', '').replace(' ', '').strip())
+        s = str(val).replace('£', '').replace('%', '').replace(' ', '').strip()
+        s = s.replace(',', '.')
+        return float(s)
+    except Exception:
+        return 0.0
+
+
+def parse_volume_amt(val):
+    """Hacim/miktar için: virgül binlik ayırıcı olarak kaldırılır (£1,000 → 1000)."""
+    try:
+        s = str(val).replace('£', '').replace('%', '').replace(',', '').replace(' ', '').strip()
+        return float(s)
     except Exception:
         return 0.0
 
@@ -126,7 +138,7 @@ def find_signals(snapshots):
         date = row.get('date', '')
 
         volume_str = row.get('volume', '')
-        volume_val = parse_float(volume_str)
+        volume_val = parse_volume_amt(volume_str)
         if volume_val < VOLUME_THRESHOLD:
             continue
 
@@ -137,8 +149,8 @@ def find_signals(snapshots):
         ]
 
         for code, label, raw_odds, raw_pct, raw_amt in candidates:
-            odds_val = parse_float(raw_odds)
-            pct_val = parse_float(raw_pct)
+            odds_val = parse_odds_pct(raw_odds)
+            pct_val = parse_odds_pct(raw_pct)
 
             if odds_val >= ODDS_THRESHOLD and pct_val >= PCT_THRESHOLD:
                 signals.append({
@@ -187,12 +199,16 @@ def save_new_signals(signals, with_current_cols):
             rec['last_updated_at'] = now
         records.append(rec)
 
-    headers = _headers_write('resolution=ignore-duplicates,return=minimal')
+    headers = _headers_write('resolution=ignore-duplicates,return=representation')
     url = f"{SUPABASE_URL}/rest/v1/underdog_signals?on_conflict=match_key,selection_code"
     r = requests.post(url, headers=headers, json=records, timeout=15)
     if r.status_code in (200, 201):
-        return len(records)
-    log(f"[Save] INSERT hatası: {r.status_code} {r.text[:200]}")
+        try:
+            inserted = len(r.json()) if r.text else 0
+        except Exception:
+            inserted = 0
+        return inserted
+    log(f"[UnderdogEngine] INSERT hatası: {r.status_code} {r.text[:200]}")
     return 0
 
 
@@ -223,7 +239,7 @@ def update_current_values(signals):
             log(f"[Update] Hata: {e}")
             failed += 1
     if failed and not updated:
-        log(f"[Update] current_* kolonları yok. Supabase SQL Editor'da migration çalıştırın.")
+        log(f"[UnderdogEngine] current_* kolonları yok — Supabase SQL Editor'da migration çalıştırın.")
     return updated
 
 
@@ -245,25 +261,23 @@ def update_heartbeat(status):
 
 
 def run_scan():
-    global _columns_verified
-    log("=== Tarama başlıyor ===")
+    log("[UnderdogEngine] Tarama başlıyor...")
     snapshots = fetch_latest_snapshots()
     if not snapshots:
-        log("Veri çekilemedi, tarama atlandı")
+        log("[UnderdogEngine] Veri çekilemedi, tarama atlandı")
         return 0, 0
 
     signals = find_signals(snapshots)
-    log(f"Kriterler karşılayan: {len(signals)} sinyal")
 
     if not signals:
-        log("=== Tarama tamamlandı — sinyal yok ===")
+        log(f"[UnderdogEngine] found=0 updated=0")
         return 0, 0
 
     has_cols = check_columns_exist()
     new_count = save_new_signals(signals, with_current_cols=has_cols)
     updated_count = update_current_values(signals) if has_cols else 0
 
-    log(f"=== Tarama tamamlandı — {new_count} yeni kayıt, {updated_count} current güncelleme ===")
+    log(f"[UnderdogEngine] found={len(signals)} inserted={new_count} updated={updated_count}")
     return new_count, updated_count
 
 
