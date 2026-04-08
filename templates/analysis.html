@@ -430,9 +430,10 @@
             `;
             try {
                 const licKey = localStorage.getItem('smartxflow_web_license') || '';
-                const [analystResp, udResp] = await Promise.allSettled([
+                const [analystResp, udResp, cmResp] = await Promise.allSettled([
                     fetch('/api/analysts?active=true'),
-                    fetch('/api/underdog-pressure', { headers: licKey ? { 'X-License-Key': licKey } : {} })
+                    fetch('/api/underdog-pressure', { headers: licKey ? { 'X-License-Key': licKey } : {} }),
+                    fetch('/api/confirmed-money', { headers: licKey ? { 'X-License-Key': licKey } : {} })
                 ]);
                 const resp = analystResp.status === 'fulfilled' ? analystResp.value : null;
                 if (!resp || !resp.ok) throw new Error('Analyst API error');
@@ -443,6 +444,14 @@
                     try {
                         const udData = await udResp.value.json();
                         udCount = udData.count ?? null;
+                    } catch(e) {}
+                }
+
+                let cmCount = null;
+                if (cmResp.status === 'fulfilled' && cmResp.value.ok) {
+                    try {
+                        const cmData = await cmResp.value.json();
+                        cmCount = cmData.count ?? null;
                     } catch(e) {}
                 }
                 if (!analysts) {
@@ -498,8 +507,28 @@
                     </div>
                 `;
 
+                const cmCountDisplay = cmCount !== null ? `${cmCount}` : '—';
+                const cmCard = `
+                    <div class="analyst-card signal-card" onclick="loadConfirmedMoney()">
+                        <span class="signal-badge">Otomatik Sinyal</span>
+                        <div class="signal-avatar-placeholder" style="background:rgba(63,185,80,0.12);color:#3fb950;">💰</div>
+                        <div class="analyst-name">Confirmed Money</div>
+                        <div class="analyst-bio">16 saatte %4+ oran düşüşü + %80+ para yüzdesi olan maçlarda akıllı para baskısını tespit eder.</div>
+                        <div class="analyst-stats-row">
+                            <div class="analyst-stat">
+                                <div class="analyst-stat-value" style="color:#3fb950;">${cmCountDisplay}</div>
+                                <div class="analyst-stat-label">Aktif Sinyal</div>
+                            </div>
+                            <div class="analyst-stat">
+                                <div class="analyst-stat-value" style="color:#3fb950;">1X2</div>
+                                <div class="analyst-stat-label">Piyasa</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
                 view.innerHTML = `
-                    <div class="analyst-grid">${udCard}${cards}</div>
+                    <div class="analyst-grid">${udCard}${cmCard}${cards}</div>
                 `;
             } catch(e) {
                 view.innerHTML = `
@@ -734,6 +763,133 @@
             }
         }
 
+        async function loadConfirmedMoney() {
+            const view = document.getElementById('mainView');
+            view.innerHTML = `<div class="loading-state"><div class="loading-spinner-lg"></div><p style="color:#8b949e;font-size:13px;">Sinyaller hesaplaniyor...</p></div>`;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            history.pushState({ confirmedMoney: true }, '', '/analysis#confirmed-money');
+            try {
+                const licKey = localStorage.getItem('smartxflow_web_license') || '';
+                const resp = await fetch('/api/confirmed-money', {
+                    headers: licKey ? { 'X-License-Key': licKey } : {}
+                });
+                if (resp.status === 403) {
+                    view.innerHTML = `
+                        <div class="page-back" onclick="goBack()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                            Tum Analizciler
+                        </div>
+                        <div class="empty-state"><h3>Erisim Reddedildi</h3><p>Bu ozellik Pro uyelik gerektirir.</p></div>
+                    `;
+                    return;
+                }
+                if (!resp.ok) throw new Error('API error');
+                const data = await resp.json();
+                const signals = data.signals || [];
+                const count = data.count || 0;
+                const avgDrop = data.avg_drop_pct ? parseFloat(data.avg_drop_pct).toFixed(1) : '-';
+                const avgPct = data.avg_pct ? parseFloat(data.avg_pct).toFixed(1) : '-';
+
+                let profileHtml = `
+                    <div class="page-back" onclick="goBack()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                        Tum Analizciler
+                    </div>
+                    <div class="profile-header" style="border-color:rgba(63,185,80,0.2);">
+                        <div class="signal-avatar-lg" style="background:rgba(63,185,80,0.12);color:#3fb950;">💰</div>
+                        <div class="profile-info">
+                            <div style="margin-bottom:8px;"><span class="signal-badge">Otomatik Sinyal</span></div>
+                            <div class="profile-name">Confirmed Money</div>
+                            <div class="profile-bio">Son 16 saatte oranlarda %4 veya daha fazla monoton düşüş yaşanan ve toplam piyasa parasinin %80'inden fazlasini ceken secenekleri tespit eder. Bu sinyal, bookmaker'larin oranları düşürmek zorunda kaldigi güclü akilli para girişini gosterir.</div>
+                            <div class="profile-stats">
+                                <div class="profile-stat-box" style="border-color:rgba(63,185,80,0.2);">
+                                    <div class="profile-stat-num" style="color:#3fb950;">${count}</div>
+                                    <div class="profile-stat-lbl">Aktif Sinyal</div>
+                                </div>
+                                <div class="profile-stat-box">
+                                    <div class="profile-stat-num">%${avgDrop}</div>
+                                    <div class="profile-stat-lbl">Ort. Düşüş</div>
+                                </div>
+                                <div class="profile-stat-box">
+                                    <div class="profile-stat-num" style="color:#58a6ff;">%${avgPct}</div>
+                                    <div class="profile-stat-lbl">Ort. Para</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                let signalsHtml = '';
+                if (signals.length === 0) {
+                    signalsHtml = `<div class="signal-no-data">Simdilik aktif sinyal bulunmuyor. Kriterler saglandigi anda burada goruntulenir.</div>`;
+                } else {
+                    const grouped = {};
+                    for (const s of signals) {
+                        const k = s.date || 'Tarihsiz';
+                        if (!grouped[k]) grouped[k] = [];
+                        grouped[k].push(s);
+                    }
+                    for (const dateKey of Object.keys(grouped).sort()) {
+                        const dateLabel = dateKey && dateKey !== 'Tarihsiz' ? formatDateTR(dateKey) : 'Tarih Belirtilmemis';
+                        const items = grouped[dateKey];
+                        let itemsHtml = items.map(s => {
+                            const odds16    = escapeHtml(String(s.odds_16h || ''));
+                            const oddsNow   = escapeHtml(String(s.odds_now || ''));
+                            const curOdds   = s.current_odds && s.current_odds !== s.odds_now ? escapeHtml(String(s.current_odds)) : '';
+                            const pctNow    = escapeHtml(String(s.pct_now || '').replace('%',''));
+                            const curPct    = s.current_pct && s.current_pct !== s.pct_now ? escapeHtml(String(s.current_pct).replace('%','')) : '';
+                            const volNow    = escapeHtml(String(s.volume_now || ''));
+                            const curVol    = s.current_volume && s.current_volume !== s.volume_now ? escapeHtml(String(s.current_volume)) : '';
+                            const dropPct   = s.odds_drop_pct ? `%${parseFloat(s.odds_drop_pct).toFixed(1)}` : '';
+
+                            const oddsInner = curOdds ? `${oddsNow} <span class="sig-arrow">→</span> <span class="sig-cur">${curOdds}</span>` : oddsNow;
+                            const pctInner  = curPct  ? `%${pctNow} <span class="sig-arrow">→</span> <span class="sig-cur">%${curPct}</span>` : `%${pctNow}`;
+                            const volInner  = curVol  ? `${volNow} <span class="sig-arrow">→</span> <span class="sig-cur">${curVol}</span>` : volNow;
+
+                            return `
+                                <div class="signal-item">
+                                    <div class="signal-item-top">
+                                        <div>
+                                            <div class="signal-match-title">${escapeHtml(s.home_team)} - ${escapeHtml(s.away_team)}</div>
+                                            <div class="signal-league">${escapeHtml(s.league || '')}</div>
+                                        </div>
+                                        <span class="signal-sel-badge" style="background:rgba(63,185,80,0.15);color:#3fb950;">${escapeHtml(s.selection_label)}</span>
+                                    </div>
+                                    <div class="signal-meta">
+                                        <span class="signal-odds-tag">16s Oran: ${odds16}</span>
+                                        <span class="signal-odds-tag">Şu an: ${oddsInner}</span>
+                                        ${dropPct ? `<span class="signal-pct-tag" style="color:#3fb950;">Düşüş: ${dropPct}</span>` : ''}
+                                        <span class="signal-pct-tag">Para: ${pctInner}</span>
+                                        ${volNow ? `<span class="signal-vol-tag">Hacim: ${volInner}</span>` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                        signalsHtml += `
+                            <div class="date-group">
+                                <div class="date-group-header">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    ${dateLabel}
+                                    <span class="date-group-count">${items.length} sinyal</span>
+                                </div>
+                                ${itemsHtml}
+                            </div>
+                        `;
+                    }
+                }
+
+                view.innerHTML = profileHtml + signalsHtml;
+            } catch(e) {
+                view.innerHTML = `
+                    <div class="page-back" onclick="goBack()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                        Tum Analizciler
+                    </div>
+                    <div class="empty-state"><h3>Bir hata olustu</h3><p>Sinyal verileri yuklenemedi.</p></div>
+                `;
+            }
+        }
+
         function goBack() {
             history.pushState(null, '', '/analysis');
             loadAnalystList();
@@ -743,6 +899,10 @@
             const hash = window.location.hash;
             if (hash === '#underdog-pressure') {
                 loadUnderdogPressure();
+                return;
+            }
+            if (hash === '#confirmed-money') {
+                loadConfirmedMoney();
                 return;
             }
             const match = hash.match(/^#analyst-(\d+)$/);

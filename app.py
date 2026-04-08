@@ -7611,6 +7611,94 @@ def underdog_pressure_endpoint():
     })
 
 
+def _fetch_all_confirmed_money_signals():
+    """confirmed_money_signals tablosundan son 90 günün sinyallerini çek."""
+    try:
+        from datetime import date as _d, timedelta as _td
+        since = (_d.today() - _td(days=90)).isoformat()
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return []
+        headers = supabase._headers()
+        url = (
+            f"{supabase._rest_url('confirmed_money_signals')}"
+            f"?select=*&match_date=gte.{since}&order=match_date.asc,home_team.asc&limit=5000"
+        )
+        resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
+        if resp.status_code == 200:
+            rows = resp.json()
+            result = []
+            for r in rows:
+                result.append({
+                    'match_key': r.get('match_key', ''),
+                    'home_team': r.get('home_team', ''),
+                    'away_team': r.get('away_team', ''),
+                    'league': r.get('league', ''),
+                    'date': r.get('match_date', ''),
+                    'match_date': r.get('match_date', ''),
+                    'selection_code': r.get('selection_code', ''),
+                    'selection_label': r.get('selection_label', ''),
+                    'odds_16h': r.get('odds_16h', ''),
+                    'odds_now': r.get('odds_now', ''),
+                    'current_odds': r.get('current_odds') or '',
+                    'pct_now': r.get('pct_now', ''),
+                    'current_pct': r.get('current_pct') or '',
+                    'volume_now': r.get('volume_now', ''),
+                    'current_volume': r.get('current_volume') or '',
+                    'odds_drop_pct': r.get('odds_drop_pct') or '',
+                    'last_updated_at': r.get('last_updated_at') or '',
+                })
+            return result
+        return []
+    except Exception as e:
+        print(f"[ConfirmedMoneySignals] fetch error: {e}")
+        return []
+
+
+@app.route('/api/confirmed-money', methods=['GET'])
+@license_required
+def confirmed_money_endpoint():
+    """Confirmed Money sinyallerini döndür (90 günlük, DB'den)."""
+    from datetime import date as _date
+
+    def _is_today_or_future(d):
+        if not d:
+            return False
+        try:
+            return str(d) >= str(_date.today())
+        except Exception:
+            return False
+
+    all_signals = _fetch_all_confirmed_money_signals()
+    active_signals = [s for s in all_signals if _is_today_or_future(s.get('date'))]
+
+    avg_drop = 0.0
+    avg_pct = 0.0
+    if active_signals:
+        drop_list = []
+        pct_list = []
+        for s in active_signals:
+            try:
+                drop_list.append(float(str(s.get('odds_drop_pct', '') or 0)))
+            except Exception:
+                pass
+            try:
+                pct_list.append(float(str(s.get('pct_now', '') or 0).replace('%', '').strip()))
+            except Exception:
+                pass
+        if drop_list:
+            avg_drop = round(sum(drop_list) / len(drop_list), 2)
+        if pct_list:
+            avg_pct = round(sum(pct_list) / len(pct_list), 1)
+
+    return jsonify({
+        'signals': all_signals,
+        'count': len(active_signals),
+        'avg_drop_pct': avg_drop,
+        'avg_pct': avg_pct,
+    })
+
+
 @app.route('/api/admin/underdog-signals', methods=['GET'])
 def admin_get_underdog_signals():
     """Return all underdog signals for admin (last 90 days, includes result field)."""
