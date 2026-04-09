@@ -7507,7 +7507,7 @@ _underdog_result_col_migrated = False
 @app.route('/api/underdog-pressure', methods=['GET'])
 @license_required
 def underdog_pressure_endpoint():
-    """Return matches where an underdog (odds >= 3.00) attracts >= 50% of money.
+    """Return matches where an underdog (odds >= 2.90) attracts >= 50% of money.
     Current live signals are saved to DB; all historical signals are returned."""
     global _underdog_result_col_migrated
     if not _underdog_result_col_migrated:
@@ -7518,7 +7518,7 @@ def underdog_pressure_endpoint():
             pass
     from datetime import date as _date
     import re as _re
-    odds_threshold = 3.00
+    odds_threshold = 2.90
     pct_threshold = 50.0
 
     matches_data = _server_matches_cache.get('moneyway_1x2_all') or _server_matches_cache.get('moneyway_1x2')
@@ -7875,7 +7875,7 @@ def admin_get_underdog_signals():
     signals = _fetch_all_underdog_signals()
 
     # Compute live signals from cache (same logic as underdog_pressure_endpoint)
-    odds_threshold = 3.00
+    odds_threshold = 2.90
     pct_threshold = 50.0
     matches_data = _server_matches_cache.get('moneyway_1x2_all') or _server_matches_cache.get('moneyway_1x2') or []
     live_signals = []
@@ -8055,7 +8055,7 @@ def admin_import_underdog_signals_for_date():
                 print(f"[UnderdogImport] history fetch warning — {msg}")
 
         # Step 3: apply underdog thresholds and build signals list
-        odds_threshold = 3.00
+        odds_threshold = 2.90
         pct_threshold  = 50.0
         signals = []
         for fix in fixtures:

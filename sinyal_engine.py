@@ -2,7 +2,7 @@
 """
 SmartXFlow Sinyal Engine v1.2
 İki sinyal tipini aynı anda tarar:
-  1. Underdog Pressure: odds >= 3.00, pct >= 50%, volume >= £1,000
+  1. Underdog Pressure: odds >= 2.90, pct >= 50%, volume >= £1,000
   2. Confirmed Money: pct > 80%, oran >= %4 düşüş (16 saat), volume >= £2,000, stabilite onaylı
 
 Çalışma aralığı: 15 dakika
@@ -27,7 +27,7 @@ SCAN_INTERVAL = 15 * 60
 ERROR_WAIT = 60
 
 # Underdog Pressure kriterleri
-ODDS_THRESHOLD = 3.00
+ODDS_THRESHOLD = 2.90
 PCT_THRESHOLD = 50.0
 VOLUME_THRESHOLD = 1000.0
 
