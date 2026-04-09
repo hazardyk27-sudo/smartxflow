@@ -210,9 +210,8 @@ def find_signals(snapshots):
         if parse_volume_amt(volume_str) < VOLUME_THRESHOLD:
             continue
         for code, label, raw_odds, raw_pct, raw_amt in [
-            ('1', 'Ev Sahibi',   row.get('odds1'), row.get('pct1'), row.get('amt1')),
-            ('X', 'Beraberlik',  row.get('oddsx'), row.get('pctx'), row.get('amtx')),
-            ('2', 'Deplasman',   row.get('odds2'), row.get('pct2'), row.get('amt2')),
+            ('1', 'Ev Sahibi',  row.get('odds1'), row.get('pct1'), row.get('amt1')),
+            ('2', 'Deplasman',  row.get('odds2'), row.get('pct2'), row.get('amt2')),
         ]:
             if parse_odds_pct(raw_odds) >= ODDS_THRESHOLD and parse_odds_pct(raw_pct) >= PCT_THRESHOLD:
                 signals.append({
@@ -418,9 +417,8 @@ def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
         match_history_sorted = sorted(match_history, key=lambda r: r.get('scraped_at', ''), reverse=True)
 
         for code, label, o_field, p_field in [
-            ('1', 'Ev Sahibi',  'odds1', 'pct1'),
-            ('X', 'Beraberlik', 'oddsx', 'pctx'),
-            ('2', 'Deplasman',  'odds2', 'pct2'),
+            ('1', 'Ev Sahibi', 'odds1', 'pct1'),
+            ('2', 'Deplasman', 'odds2', 'pct2'),
         ]:
             mk = f"{latest.get('home', '')}|{latest.get('away', '')}|{latest.get('date', '')}"
 

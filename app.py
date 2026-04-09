@@ -7537,9 +7537,8 @@ def _build_unified_underdog_signals():
         if _pv(volume) < 2000:
             continue
         for code, label, raw_odds, raw_pct, raw_amt in [
-            ('1', 'Ev Sahibi',  odds_obj.get('Odds1', '-'), odds_obj.get('Pct1', ''), odds_obj.get('Amt1', '')),
-            ('X', 'Beraberlik', odds_obj.get('OddsX', '-'), odds_obj.get('PctX', ''), odds_obj.get('AmtX', '')),
-            ('2', 'Deplasman',  odds_obj.get('Odds2', '-'), odds_obj.get('Pct2', ''), odds_obj.get('Amt2', '')),
+            ('1', 'Ev Sahibi', odds_obj.get('Odds1', '-'), odds_obj.get('Pct1', ''), odds_obj.get('Amt1', '')),
+            ('2', 'Deplasman', odds_obj.get('Odds2', '-'), odds_obj.get('Pct2', ''), odds_obj.get('Amt2', '')),
         ]:
             try:
                 odds_val = float(str(raw_odds).replace(',', '.')) if raw_odds and raw_odds != '-' else 0.0
@@ -7611,9 +7610,8 @@ def underdog_pressure_endpoint():
         if volume_val < 2000:
             continue
         for code, label, raw_odds, raw_pct, raw_amt in [
-            ('1', 'Ev Sahibi',  odds_obj.get('Odds1', '-'), odds_obj.get('Pct1', ''), odds_obj.get('Amt1', '')),
-            ('X', 'Beraberlik', odds_obj.get('OddsX', '-'), odds_obj.get('PctX', ''), odds_obj.get('AmtX', '')),
-            ('2', 'Deplasman',  odds_obj.get('Odds2', '-'), odds_obj.get('Pct2', ''), odds_obj.get('Amt2', '')),
+            ('1', 'Ev Sahibi', odds_obj.get('Odds1', '-'), odds_obj.get('Pct1', ''), odds_obj.get('Amt1', '')),
+            ('2', 'Deplasman', odds_obj.get('Odds2', '-'), odds_obj.get('Pct2', ''), odds_obj.get('Amt2', '')),
         ]:
             try:
                 odds_val = float(str(raw_odds).replace(',', '.')) if raw_odds and raw_odds != '-' else 0.0
@@ -8027,9 +8025,8 @@ def admin_import_underdog_signals_for_date():
             date   = fix.get('kickoff_utc', target_date)
             volume = row.get('volume', '')
             candidates = [
-                ('1', 'Ev Sahibi',  row.get('odds1', '-'), row.get('pct1', ''),  row.get('amt1', '')),
-                ('X', 'Beraberlik', row.get('oddsx', '-'), row.get('pctx', ''),  row.get('amtx', '')),
-                ('2', 'Deplasman',  row.get('odds2', '-'), row.get('pct2', ''),  row.get('amt2', '')),
+                ('1', 'Ev Sahibi', row.get('odds1', '-'), row.get('pct1', ''), row.get('amt1', '')),
+                ('2', 'Deplasman', row.get('odds2', '-'), row.get('pct2', ''), row.get('amt2', '')),
             ]
             for code, label, raw_odds, raw_pct, raw_amt in candidates:
                 try:
