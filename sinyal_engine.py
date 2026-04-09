@@ -37,6 +37,8 @@ CM_ODDS_DROP_PCT = 0.04      # %4 düşüş (göreli)
 CM_VOLUME_THRESHOLD = 2000.0
 CM_COOLDOWN_HOURS = 3
 CM_STABILITY_SNAPSHOTS = 3   # Son 3 ardışık snapshot'ta pct > %80
+CM_MIN_ODDS = 1.35           # Seçim oranı alt sınırı
+CM_MAX_ODDS = 2.20           # Seçim oranı üst sınırı
 
 MIGRATION_SQL = """
 -- underdog_signals current kolonları (zaten çalıştırıldıysa atla):
@@ -427,6 +429,10 @@ def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
                 continue
 
             odds_0 = parse_odds_pct(latest.get(o_field))
+
+            # Seçim oranı aralık filtresi: 1.35 ≤ odds ≤ 2.20
+            if not (CM_MIN_ODDS <= odds_0 <= CM_MAX_ODDS):
+                continue
 
             # 16h penceresindeki en eski snapshot ile karşılaştır
             oldest_snap = match_history_sorted[-1] if match_history_sorted else None

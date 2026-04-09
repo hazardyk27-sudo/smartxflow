@@ -7758,8 +7758,14 @@ def confirmed_money_endpoint():
             if key not in _cm_seen:
                 _cm_seen[key] = s
         deduped = list(_cm_seen.values())
-        # Tersine dönen oranları filtrele: current_odds > odds_now → sinyal geçersiz
-        all_signals = [s for s in deduped if not _cm_odds_reversed(s)]
+        # Tersine dönen oranları ve odds aralığı dışındakileri filtrele
+        def _cm_in_odds_range(s):
+            try:
+                v = float(str(s.get('odds_now') or '').strip())
+                return 1.35 <= v <= 2.20
+            except Exception:
+                return True
+        all_signals = [s for s in deduped if not _cm_odds_reversed(s) and _cm_in_odds_range(s)]
         _cm_signals_cache = all_signals
         _cm_signals_cache_time = now
 
@@ -7805,8 +7811,14 @@ def admin_get_confirmed_signals():
         if key not in _seen:
             _seen[key] = s
     deduped_admin = list(_seen.values())
-    # Tersine dönen oranları filtrele: current_odds > odds_now → sinyal geçersiz
-    signals = [s for s in deduped_admin if not _cm_odds_reversed(s)]
+    # Tersine dönen oranları ve odds aralığı dışındakileri filtrele
+    def _cm_in_odds_range_admin(s):
+        try:
+            v = float(str(s.get('odds_now') or '').strip())
+            return 1.35 <= v <= 2.20
+        except Exception:
+            return True
+    signals = [s for s in deduped_admin if not _cm_odds_reversed(s) and _cm_in_odds_range_admin(s)]
     return jsonify({'signals': signals, 'count': len(signals)})
 
 
