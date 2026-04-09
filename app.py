@@ -2432,7 +2432,7 @@ def _fetch_all_underdog_signals():
         if not supabase or not supabase.is_available:
             return []
         headers = supabase._headers()
-        url = f"{supabase._rest_url('underdog_signals')}?select=*&order=match_date.desc,home_team.asc&limit=5000"
+        url = f"{supabase._rest_url('underdog_signals')}?select=*&selection_code=neq.X&order=match_date.desc,home_team.asc&limit=5000"
         resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
         if resp.status_code == 200:
             rows = resp.json()

@@ -417,8 +417,9 @@ def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
         match_history_sorted = sorted(match_history, key=lambda r: r.get('scraped_at', ''), reverse=True)
 
         for code, label, o_field, p_field in [
-            ('1', 'Ev Sahibi', 'odds1', 'pct1'),
-            ('2', 'Deplasman', 'odds2', 'pct2'),
+            ('1', 'Ev Sahibi',  'odds1', 'pct1'),
+            ('X', 'Beraberlik', 'oddsx', 'pctx'),
+            ('2', 'Deplasman',  'odds2', 'pct2'),
         ]:
             mk = f"{latest.get('home', '')}|{latest.get('away', '')}|{latest.get('date', '')}"
 
