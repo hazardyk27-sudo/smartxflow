@@ -8975,10 +8975,22 @@
                 var sb = 'display:inline-flex;flex-direction:column;align-items:center;padding:10px 20px;border-radius:8px;background:#161b22;border:1px solid #30363d;min-width:70px;';
                 var avgOdds = signals.length > 0 ? (signals.reduce(function(s,x){ return s + parseFloat((x.current_odds||x.odds_now||'0').replace(/[^0-9.]/g,'')||0); },0) / signals.length).toFixed(2) : '-';
                 var avgDrop = signals.length > 0 ? (signals.reduce(function(s,x){ return s + (parseFloat(x.odds_drop_pct||0)||0); },0) / signals.length).toFixed(1) : '-';
+                var wins = signals.filter(function(x){ return x.result === 'win'; }).length;
+                var losses = signals.filter(function(x){ return x.result === 'loss'; }).length;
+                var judged = wins + losses;
+                var winPct = judged > 0 ? (wins / judged * 100).toFixed(1) : '-';
+                var winColor = judged === 0 ? '#8b949e' : (parseFloat(winPct) >= 55 ? '#34d399' : parseFloat(winPct) >= 45 ? '#f0883e' : '#f87171');
                 statsEl.innerHTML =
                     '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#34d399;">' + signals.length + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Toplam</div></div>' +
                     '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#93c5fd;">' + avgOdds + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Ort. Oran</div></div>' +
-                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#f87171;">-%' + avgDrop + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Ort. Düşüş</div></div>';
+                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#f87171;">-%' + avgDrop + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Ort. Düşüş</div></div>' +
+                    '<div style="width:1px;background:#21262d;margin:0 4px;align-self:stretch;"></div>' +
+                    '<div style="' + sb + 'border-color:rgba(52,211,153,0.25);background:rgba(52,211,153,0.04);"><div style="font-size:18px;font-weight:800;color:#34d399;">' + wins + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kazandı</div></div>' +
+                    '<div style="' + sb + 'border-color:rgba(248,113,113,0.25);background:rgba(248,113,113,0.04);"><div style="font-size:18px;font-weight:800;color:#f87171;">' + losses + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kaybetti</div></div>' +
+                    '<div style="' + sb + 'border-color:rgba(255,255,255,0.08);"><div style="font-size:18px;font-weight:800;color:#8b949e;">' + judged + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Sonuçlu</div></div>' +
+                    '<div style="' + sb + 'border-color:rgba(' + (winColor==='#34d399'?'52,211,153':winColor==='#f0883e'?'240,136,62':'248,113,113') + ',0.3);background:rgba(' + (winColor==='#34d399'?'52,211,153':winColor==='#f0883e'?'240,136,62':'248,113,113') + ',0.06);min-width:90px;">' +
+                        '<div style="font-size:20px;font-weight:800;color:' + winColor + ';">' + (winPct === '-' ? '-' : '%' + winPct) + '</div>' +
+                        '<div style="font-size:11px;color:#8b949e;margin-top:2px;">Başarı Oranı</div></div>';
             }
             buildCmDateTabs(signals);
             renderCmSignalList(signals, listEl);
