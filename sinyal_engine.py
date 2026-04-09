@@ -118,12 +118,17 @@ def parse_volume_amt(val):
 
 
 def fetch_latest_snapshots():
-    """moneyway_1x2_history tablosundan her maç için en son snapshot'ı çek."""
+    """moneyway_1x2 tablosundan her maç için en son snapshot'ı çek.
+    moneyway_1x2: scheduled scraper tarafından her 15dk'da sıfırlanıp yeniden yazılan
+    güncel tablo (~1987 maç) — history tablosundan çok daha kapsamlı.
+    Kolonlar: home,away,league,date,volume,odds1,oddsx,odds2,amt1,amtx,amt2,pct1,pctx,pct2
+    (match_id_hash ve scraped_at bu tabloda yok)
+    """
     try:
         url = (
-            f"{SUPABASE_URL}/rest/v1/moneyway_1x2_history"
-            "?select=home,away,league,date,odds1,oddsx,odds2,pct1,pctx,pct2,amt1,amtx,amt2,volume,scraped_at,match_id_hash"
-            "&order=scraped_at.desc&limit=15000"
+            f"{SUPABASE_URL}/rest/v1/moneyway_1x2"
+            "?select=home,away,league,date,odds1,oddsx,odds2,pct1,pctx,pct2,amt1,amtx,amt2,volume"
+            "&limit=5000"
         )
         r = requests.get(url, headers=_headers_read(), timeout=25)
         if r.status_code != 200:
@@ -132,10 +137,14 @@ def fetch_latest_snapshots():
         rows = r.json()
         latest = {}
         for row in rows:
-            h = row.get('match_id_hash', '')
-            if h and h not in latest:
-                latest[h] = row
-        log(f"[Fetch] {len(latest)} benzersiz maç için son snapshot çekildi")
+            home = row.get('home', '')
+            away = row.get('away', '')
+            date = row.get('date', '')
+            key = f"{home}|{away}|{date}"
+            if key and key not in latest:
+                row['match_id_hash'] = key
+                latest[key] = row
+        log(f"[Fetch] {len(latest)} benzersiz maç için son snapshot çekildi (moneyway_1x2)")
         return latest
     except Exception as e:
         log(f"[Fetch] Hata: {e}")
