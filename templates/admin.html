@@ -8999,20 +8999,54 @@
         function buildCmDateTabs(signals) {
             var tabsEl = document.getElementById('cmDateTabs');
             if (!tabsEl) return;
-            var TR_MONTHS = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
-            var dateSet = {};
-            signals.forEach(function(s) { var d = (s.match_date||'').substring(0,10); if (d) dateSet[d] = (dateSet[d]||0)+1; });
-            var dates = Object.keys(dateSet).sort();
-            var todayStr = new Date().toISOString().substring(0,10);
-            var btnBase = 'cursor:pointer;border:1px solid #30363d;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;white-space:nowrap;transition:all 0.15s;background:#161b22;color:#8b949e;';
-            var btnActive = 'cursor:pointer;border:1px solid rgba(52,211,153,0.4);border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;white-space:nowrap;background:rgba(52,211,153,0.08);color:#34d399;';
-            var html = '<button onclick="selectCmDate(\'all\')" style="' + (!_cmSelectedDate||_cmSelectedDate==='all' ? btnActive : btnBase) + '">Tüm Tarih</button>';
-            dates.forEach(function(d) {
-                var dp = d.split('-');
-                var label = dp.length===3 ? (parseInt(dp[2]) + ' ' + TR_MONTHS[parseInt(dp[1])-1]) : d;
-                if (d === todayStr) label = 'Bugün';
-                var isActive = _cmSelectedDate === d;
-                html += '<button onclick="selectCmDate(\'' + d + '\')" style="' + (isActive ? btnActive : btnBase) + '">' + label + ' <span style="opacity:0.6;">(' + dateSet[d] + ')</span></button>';
+            var TR_SHORT = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+            var today = new Date();
+            today.setHours(0,0,0,0);
+            function _cmFmtKey(d) {
+                return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2);
+            }
+            var signalDates = {};
+            signals.forEach(function(s) {
+                var d = (s.match_date||'').substring(0,10);
+                if (d) signalDates[d] = (signalDates[d]||0)+1;
+            });
+            // Window: -3 to +3 days from today
+            var tabs = [];
+            for (var i = -3; i <= 3; i++) {
+                var d = new Date(today);
+                d.setDate(today.getDate() + i);
+                tabs.push(d);
+            }
+            // Auto-select: bugün varsa bugün, yoksa en son veri olan gün
+            if (!_cmSelectedDate) {
+                var todayKey = _cmFmtKey(today);
+                if (signalDates[todayKey]) {
+                    _cmSelectedDate = todayKey;
+                } else {
+                    var allDates = Object.keys(signalDates).sort().reverse();
+                    _cmSelectedDate = allDates[0] || todayKey;
+                }
+            }
+            var html = '';
+            // "TÜM / Tarih" butonu
+            var allActive = _cmSelectedDate === 'all';
+            html += '<button onclick="selectCmDate(\'all\')" style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:8px 14px;border-radius:8px;border:1px solid ' + (allActive ? '#34d399' : '#30363d') + ';background:' + (allActive ? 'rgba(52,211,153,0.12)' : '#161b22') + ';cursor:pointer;gap:2px;">' +
+                '<span style="font-size:10px;font-weight:600;color:' + (allActive ? '#34d399' : '#8b949e') + ';letter-spacing:0.5px;">TÜM</span>' +
+                '<span style="font-size:12px;font-weight:700;color:' + (allActive ? '#34d399' : '#c9d1d9') + ';">Tarih</span>' +
+                (Object.keys(signalDates).length ? '<div style="width:5px;height:5px;border-radius:50%;background:#34d399;margin-top:2px;"></div>' : '<div style="width:5px;height:5px;margin-top:2px;"></div>') +
+            '</button>';
+            tabs.forEach(function(d) {
+                var key = _cmFmtKey(d);
+                var isToday = key === _cmFmtKey(today);
+                var isActive = _cmSelectedDate === key;
+                var hasSignals = !!signalDates[key];
+                var dayName = TR_SHORT[d.getDay()];
+                var dateDisp = ('0'+d.getDate()).slice(-2) + '.' + ('0'+(d.getMonth()+1)).slice(-2);
+                html += '<button onclick="selectCmDate(\'' + key + '\')" style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:8px 14px;border-radius:8px;border:1px solid ' + (isActive ? '#34d399' : '#30363d') + ';background:' + (isActive ? 'rgba(52,211,153,0.12)' : '#161b22') + ';cursor:pointer;gap:2px;">' +
+                    '<span style="font-size:10px;font-weight:600;color:' + (isActive ? '#34d399' : '#8b949e') + ';letter-spacing:0.5px;">' + dayName + '</span>' +
+                    '<span style="font-size:12px;font-weight:700;color:' + (isActive ? '#34d399' : '#c9d1d9') + ';">' + (isToday ? 'Bugün' : dateDisp) + '</span>' +
+                    (hasSignals ? '<div style="width:5px;height:5px;border-radius:50%;background:#34d399;margin-top:2px;"></div>' : '<div style="width:5px;height:5px;margin-top:2px;"></div>') +
+                '</button>';
             });
             tabsEl.innerHTML = html;
         }
