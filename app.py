@@ -7504,6 +7504,81 @@ def get_analysts_endpoint():
 
 _underdog_result_col_migrated = False
 
+
+def _build_unified_underdog_signals():
+    """App ve admin panelinin AYNI underdog sinyal listesini görmesi için ortak helper.
+
+    1. DB'den tüm kayıtları çek (sinyal_engine + app tarafından kaydedilmiş)
+    2. Anlık cache'den live sinyalleri hesapla
+    3. (home, away, code) bazlı merge — date format farklılığını tolere eder
+    4. Volume >= 2000 filtresi
+    5. (home, away, code) bazlı dedup — en yüksek volume'u tut
+    """
+    def _pv(v):
+        try:
+            return float(str(v).replace('£', '').replace(',', '').replace(' ', '').strip()) if v else 0.0
+        except Exception:
+            return 0.0
+
+    odds_threshold = 2.90
+    pct_threshold = 50.0
+
+    db_signals = _fetch_all_underdog_signals()
+
+    matches_data = _server_matches_cache.get('moneyway_1x2_all') or _server_matches_cache.get('moneyway_1x2') or []
+    live_signals = []
+    for m in matches_data:
+        odds_obj = m.get('odds') or {}
+        home = m.get('home_team', '')
+        away = m.get('away_team', '')
+        league = m.get('league', '')
+        date = m.get('date', '')
+        volume = odds_obj.get('Volume', '')
+        if _pv(volume) < 2000:
+            continue
+        for code, label, raw_odds, raw_pct, raw_amt in [
+            ('1', 'Ev Sahibi',  odds_obj.get('Odds1', '-'), odds_obj.get('Pct1', ''), odds_obj.get('Amt1', '')),
+            ('X', 'Beraberlik', odds_obj.get('OddsX', '-'), odds_obj.get('PctX', ''), odds_obj.get('AmtX', '')),
+            ('2', 'Deplasman',  odds_obj.get('Odds2', '-'), odds_obj.get('Pct2', ''), odds_obj.get('Amt2', '')),
+        ]:
+            try:
+                odds_val = float(str(raw_odds).replace(',', '.')) if raw_odds and raw_odds != '-' else 0.0
+            except Exception:
+                odds_val = 0.0
+            try:
+                pct_val = float(str(raw_pct).replace('%', '').strip()) if raw_pct else 0.0
+            except Exception:
+                pct_val = 0.0
+            if odds_val >= odds_threshold and pct_val >= pct_threshold:
+                live_signals.append({
+                    'match_key': f"{home}|{away}|{date}",
+                    'home_team': home, 'away_team': away, 'league': league,
+                    'date': date, 'match_date': date,
+                    'selection_code': code, 'selection_label': label,
+                    'odds': str(raw_odds), 'pct': str(raw_pct), 'amt': str(raw_amt),
+                    'volume': volume, 'current_odds': '', 'current_pct': '',
+                    'current_amt': '', 'current_volume': '', 'last_updated_at': '',
+                    'score': '', 'result': '',
+                })
+
+    db_hak = {(s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', '')) for s in db_signals}
+    all_signals = list(db_signals)
+    for ls in live_signals:
+        hak = (ls['home_team'], ls['away_team'], ls['selection_code'])
+        if hak not in db_hak:
+            all_signals.append(ls)
+            db_hak.add(hak)
+
+    all_signals = [s for s in all_signals if _pv(s.get('volume', '')) >= 2000]
+
+    seen = {}
+    for s in all_signals:
+        key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
+        if key not in seen or _pv(s.get('volume', '')) > _pv(seen[key].get('volume', '')):
+            seen[key] = s
+    return list(seen.values())
+
+
 @app.route('/api/underdog-pressure', methods=['GET'])
 @license_required
 def underdog_pressure_endpoint():
@@ -7518,20 +7593,10 @@ def underdog_pressure_endpoint():
             pass
     from datetime import date as _date
     import re as _re
-    odds_threshold = 2.90
-    pct_threshold = 50.0
 
-    matches_data = _server_matches_cache.get('moneyway_1x2_all') or _server_matches_cache.get('moneyway_1x2')
-    if not matches_data:
-        matches_data = []
-        try:
-            raw = db.get_all_matches_with_latest('moneyway_1x2', date_filter=None)
-            if raw:
-                matches_data = _build_enriched_matches(raw)
-        except Exception as e:
-            print(f"[UnderdogPressure] fetch error: {e}")
-
-    live_signals = []
+    # Canlı sinyalleri DB'ye kaydet
+    matches_data = _server_matches_cache.get('moneyway_1x2_all') or _server_matches_cache.get('moneyway_1x2') or []
+    live_signals_to_save = []
     for m in matches_data:
         odds_obj = m.get('odds') or {}
         home = m.get('home_team', '')
@@ -7543,13 +7608,13 @@ def underdog_pressure_endpoint():
             volume_val = float(str(volume).replace('£', '').replace(',', '').replace(' ', '').strip()) if volume else 0.0
         except (ValueError, TypeError):
             volume_val = 0.0
-
-        candidates = [
-            ('1', 'Ev Sahibi', odds_obj.get('Odds1', '-'), odds_obj.get('Pct1', ''), odds_obj.get('Amt1', '')),
+        if volume_val < 2000:
+            continue
+        for code, label, raw_odds, raw_pct, raw_amt in [
+            ('1', 'Ev Sahibi',  odds_obj.get('Odds1', '-'), odds_obj.get('Pct1', ''), odds_obj.get('Amt1', '')),
             ('X', 'Beraberlik', odds_obj.get('OddsX', '-'), odds_obj.get('PctX', ''), odds_obj.get('AmtX', '')),
-            ('2', 'Deplasman', odds_obj.get('Odds2', '-'), odds_obj.get('Pct2', ''), odds_obj.get('Amt2', '')),
-        ]
-        for code, label, raw_odds, raw_pct, raw_amt in candidates:
+            ('2', 'Deplasman',  odds_obj.get('Odds2', '-'), odds_obj.get('Pct2', ''), odds_obj.get('Amt2', '')),
+        ]:
             try:
                 odds_val = float(str(raw_odds).replace(',', '.')) if raw_odds and raw_odds != '-' else 0.0
             except (ValueError, TypeError):
@@ -7558,20 +7623,26 @@ def underdog_pressure_endpoint():
                 pct_val = float(str(raw_pct).replace('%', '').strip()) if raw_pct else 0.0
             except (ValueError, TypeError):
                 pct_val = 0.0
-
-            if odds_val >= odds_threshold and pct_val >= pct_threshold and volume_val >= 2000:
-                live_signals.append({
-                    'home_team': home,
-                    'away_team': away,
-                    'league': league,
-                    'date': date,
-                    'selection_code': code,
-                    'selection_label': label,
-                    'odds': raw_odds,
-                    'pct': raw_pct,
-                    'amt': raw_amt,
-                    'volume': volume,
+            if odds_val >= 2.90 and pct_val >= 50.0:
+                live_signals_to_save.append({
+                    'home_team': home, 'away_team': away, 'league': league, 'date': date,
+                    'selection_code': code, 'selection_label': label,
+                    'odds': raw_odds, 'pct': raw_pct, 'amt': raw_amt, 'volume': volume,
                 })
+
+    if live_signals_to_save:
+        try:
+            _save_underdog_signals(live_signals_to_save)
+        except Exception as e:
+            print(f"[UnderdogPressure] save error: {e}")
+
+    try:
+        _update_underdog_signal_scores()
+    except Exception as e:
+        print(f"[UnderdogPressure] score update error: {e}")
+
+    # Ortak helper — admin ile aynı liste
+    all_signals = _build_unified_underdog_signals()
 
     today_str = _date.today().strftime('%Y-%m-%d')
 
@@ -7597,58 +7668,7 @@ def underdog_pressure_endpoint():
             pass
         return True
 
-    # Current active signals (today/future) for stats
-    active_signals = [s for s in live_signals if _is_today_or_future(s.get('date'))]
-
-    # Persist current live signals to DB (ignore duplicates)
-    if live_signals:
-        try:
-            _save_underdog_signals(live_signals)
-        except Exception as e:
-            print(f"[UnderdogPressure] save error: {e}")
-
-    # Try to fill FT scores for old pending signals
-    try:
-        _update_underdog_signal_scores()
-    except Exception as e:
-        print(f"[UnderdogPressure] score update error: {e}")
-
-    # Fetch all persisted signals (historical + current)
-    all_signals = _fetch_all_underdog_signals()
-    if not all_signals:
-        # Fallback to live signals only if DB fetch failed
-        all_signals = [{**s, 'score': ''} for s in active_signals]
-    else:
-        # Merge active_signals (live) that are not yet in DB
-        db_keys = {(s.get('match_key', ''), s.get('selection_code', '')) for s in all_signals}
-        for s in active_signals:
-            mk = f"{s['home_team']}|{s['away_team']}|{s.get('date', '')}"
-            sc = s.get('selection_code', '')
-            if (mk, sc) not in db_keys:
-                all_signals.append({**s, 'match_key': mk, 'score': '', 'result': ''})
-
-    # Volume filtresi: £2000 altındakileri ele (her iki listeden de)
-    def _parse_volume(v):
-        try:
-            return float(str(v).replace('£', '').replace(',', '').replace(' ', '').strip()) if v else 0.0
-        except (ValueError, TypeError):
-            return 0.0
-
-    all_signals = [s for s in all_signals if _parse_volume(s.get('volume', '')) >= 2000]
-    active_signals = [s for s in active_signals if _parse_volume(s.get('volume', '')) >= 2000]
-
-    # Deduplication: aynı (home, away, selection_code) için tek kayıt tut
-    seen_ud = {}
-    for s in all_signals:
-        key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
-        if key not in seen_ud:
-            seen_ud[key] = s
-        else:
-            existing_vol = _parse_volume(seen_ud[key].get('volume', ''))
-            new_vol = _parse_volume(s.get('volume', ''))
-            if new_vol > existing_vol:
-                seen_ud[key] = s
-    all_signals = list(seen_ud.values())
+    active_signals = [s for s in all_signals if _is_today_or_future(s.get('date'))]
 
     avg_odds = 0.0
     avg_pct = 0.0
@@ -7804,19 +7824,27 @@ def confirmed_money_endpoint():
 
 @app.route('/api/admin/confirmed-signals', methods=['GET'])
 def admin_get_confirmed_signals():
-    """Return all confirmed money signals for admin (last 90 days), deduped."""
+    """Return all confirmed money signals for admin (last 90 days), deduped.
+    App ile aynı _cm_signals_cache kullanılır — liste her zaman birebir aynı."""
     if not session.get('admin_authenticated'):
         return jsonify({'error': 'UNAUTHORIZED'}), 401
-    raw = _fetch_all_confirmed_money_signals()
-    # (home_team, away_team, selection_code) bazlı dedup — en güncel kaydı tut (created_at.desc)
-    _seen = {}
-    for s in raw:
-        key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
-        if key not in _seen:
-            _seen[key] = s
-    deduped_admin = list(_seen.values())
-    # Tersine dönen oranları ve odds aralığı dışındakileri filtrele
-    signals = [s for s in deduped_admin if not _cm_odds_reversed(s) and _cm_in_odds_range(s)]
+
+    global _cm_signals_cache, _cm_signals_cache_time
+    now = time.time()
+    if _cm_signals_cache is not None and (now - _cm_signals_cache_time) < CM_SIGNALS_CACHE_TTL:
+        signals = _cm_signals_cache
+    else:
+        raw = _fetch_all_confirmed_money_signals()
+        _cm_seen = {}
+        for s in raw:
+            key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
+            if key not in _cm_seen:
+                _cm_seen[key] = s
+        deduped = list(_cm_seen.values())
+        signals = [s for s in deduped if not _cm_odds_reversed(s) and _cm_in_odds_range(s)]
+        _cm_signals_cache = signals
+        _cm_signals_cache_time = now
+
     return jsonify({'signals': signals, 'count': len(signals)})
 
 
@@ -7863,81 +7891,11 @@ def admin_set_cm_signal_result(signal_id):
 @app.route('/api/admin/underdog-signals', methods=['GET'])
 def admin_get_underdog_signals():
     """Return all underdog signals for admin (includes result field).
-    Merges DB records with live cache signals so today's matches always appear."""
+    _build_unified_underdog_signals() kullanılır — app ile birebir aynı liste."""
     if not session.get('admin_authenticated'):
         return jsonify({'error': 'UNAUTHORIZED'}), 401
 
-    def _pv(v):
-        try: return float(str(v).replace('£','').replace(',','').replace(' ','').strip()) if v else 0.0
-        except: return 0.0
-
-    # Fetch persisted signals from DB
-    signals = _fetch_all_underdog_signals()
-
-    # Compute live signals from cache (same logic as underdog_pressure_endpoint)
-    odds_threshold = 2.90
-    pct_threshold = 50.0
-    matches_data = _server_matches_cache.get('moneyway_1x2_all') or _server_matches_cache.get('moneyway_1x2') or []
-    live_signals = []
-    for m in matches_data:
-        odds_obj = m.get('odds') or {}
-        home = m.get('home_team', '')
-        away = m.get('away_team', '')
-        league = m.get('league', '')
-        date = m.get('date', '')
-        volume = odds_obj.get('Volume', '')
-        try:
-            volume_val = float(str(volume).replace('£','').replace(',','').replace(' ','').strip()) if volume else 0.0
-        except Exception:
-            volume_val = 0.0
-        if volume_val < 2000:
-            continue
-        for code, label, raw_odds, raw_pct, raw_amt in [
-            ('1', 'Ev Sahibi', odds_obj.get('Odds1', '-'), odds_obj.get('Pct1', ''), odds_obj.get('Amt1', '')),
-            ('X', 'Beraberlik', odds_obj.get('OddsX', '-'), odds_obj.get('PctX', ''), odds_obj.get('AmtX', '')),
-            ('2', 'Deplasman', odds_obj.get('Odds2', '-'), odds_obj.get('Pct2', ''), odds_obj.get('Amt2', '')),
-        ]:
-            try:
-                odds_val = float(str(raw_odds).replace(',', '.')) if raw_odds and raw_odds != '-' else 0.0
-            except Exception:
-                odds_val = 0.0
-            try:
-                pct_val = float(str(raw_pct).replace('%', '').strip()) if raw_pct else 0.0
-            except Exception:
-                pct_val = 0.0
-            if odds_val >= odds_threshold and pct_val >= pct_threshold:
-                live_signals.append({
-                    'match_key': f"{home}|{away}|{date}",
-                    'home_team': home, 'away_team': away, 'league': league,
-                    'date': date, 'match_date': date,
-                    'selection_code': code, 'selection_label': label,
-                    'odds': str(raw_odds), 'pct': str(raw_pct), 'amt': str(raw_amt),
-                    'volume': volume, 'current_odds': '', 'current_pct': '',
-                    'current_amt': '', 'current_volume': '', 'last_updated_at': '',
-                    'score': '', 'result': '',
-                })
-
-    # Merge: add live signals not already in DB result
-    db_keys = {(s.get('match_key', ''), s.get('selection_code', '')) for s in signals}
-    for ls in live_signals:
-        mk = ls['match_key']
-        sc = ls['selection_code']
-        if (mk, sc) not in db_keys:
-            signals.append(ls)
-            db_keys.add((mk, sc))
-
-    signals = [s for s in signals if _pv(s.get('volume','')) >= 2000]
-
-    # Deduplication: aynı (home, away, selection_code) için tek kayıt tut
-    seen_admin = {}
-    for s in signals:
-        key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
-        if key not in seen_admin:
-            seen_admin[key] = s
-        else:
-            if _pv(s.get('volume', '')) > _pv(seen_admin[key].get('volume', '')):
-                seen_admin[key] = s
-    signals = list(seen_admin.values())
+    signals = _build_unified_underdog_signals()
 
     results_map = _load_ud_results()
     for sig in signals:
