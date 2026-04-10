@@ -41,7 +41,7 @@ CM_MIN_ODDS = 1.35           # Seçim oranı alt sınırı
 CM_MAX_ODDS = 2.20           # Seçim oranı üst sınırı
 
 # Fake Sharp kriterleri
-FS_PCT_THRESHOLD = 80.0
+FS_PCT_THRESHOLD = 75.0
 FS_ODDS_RISE_PCT = 0.04      # %4 yükseliş (göreli)
 FS_VOLUME_THRESHOLD = 2000.0
 FS_COOLDOWN_HOURS = 3
