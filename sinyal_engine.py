@@ -636,6 +636,10 @@ def update_cm_current_values(existing_cm, snapshot_lookup):
                 'current_volume': str(row.get('volume') or ''),
                 'last_updated_at': now,
             }
+            raw_date = row.get('date', '')
+            existing_date = sig.get('match_date', '')
+            if raw_date and ':' in raw_date and len(existing_date) <= 10:
+                data['match_date'] = raw_date
             r = requests.patch(patch_url, headers=wh, json=data, timeout=10)
             if r.status_code in (200, 204):
                 updated += 1
@@ -879,6 +883,10 @@ def update_fs_current_odds(existing_fs, snapshot_lookup):
                 'current_volume': str(row.get('volume') or ''),
                 'last_updated_at': now,
             }
+            raw_date = row.get('date', '')
+            existing_date = sig.get('match_date', '')
+            if raw_date and ':' in raw_date and len(existing_date) <= 10:
+                data['match_date'] = raw_date
             r = requests.patch(patch_url, headers=wh, json=data, timeout=10)
             if r.status_code in (200, 204):
                 updated += 1
