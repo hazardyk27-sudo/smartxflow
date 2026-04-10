@@ -549,6 +549,34 @@ def _betwatch_date_to_iso(date_str):
     return str(date_str)[:10] if date_str else ''
 
 
+def _betwatch_to_iso_datetime(date_str):
+    """'08.Apr 14:00:00' formatını '2026-04-08T14:00' ISO datetime'a çevirir.
+    substring(0,10) ile '2026-04-08' verir (admin panel uyumlu).
+    str karşılaştırmasında '2026-04-08T14:00' >= '2026-04-08' → True (_is_today_or_future uyumlu).
+    _extractKickoffTime ile '14:00' verir (JS saat uyumlu).
+    """
+    try:
+        import re as _re
+        from datetime import date as _d
+        s = str(date_str)
+        m = _re.search(r'(\d{2})\.(\w{3})', s)
+        if m:
+            months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5,
+                      'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10,
+                      'Nov': 11, 'Dec': 12}
+            day = int(m.group(1))
+            mon = months.get(m.group(2), 0)
+            if mon:
+                iso_date = _d(_d.today().year, mon, day).isoformat()
+                t = _re.search(r'(\d{2}):(\d{2})(?::\d{2})?', s)
+                if t:
+                    return f"{iso_date}T{t.group(1)}:{t.group(2)}"
+                return iso_date
+    except Exception:
+        pass
+    return str(date_str)[:10] if date_str else ''
+
+
 def save_confirmed_money_signals(signals):
     """Yeni Confirmed Money sinyallerini kaydet."""
     if not signals:
@@ -561,7 +589,7 @@ def save_confirmed_money_signals(signals):
             'home_team': s['home_team'],
             'away_team': s['away_team'],
             'league': s['league'],
-            'match_date': s['date'],
+            'match_date': _betwatch_to_iso_datetime(s['date']),
             'selection_code': s['selection_code'],
             'selection_label': s['selection_label'],
             'odds_16h': s['odds_16h'],
@@ -639,7 +667,7 @@ def update_cm_current_values(existing_cm, snapshot_lookup):
             raw_date = row.get('date', '')
             existing_date = sig.get('match_date', '')
             if raw_date and ':' in raw_date and len(existing_date) <= 10:
-                data['match_date'] = raw_date
+                data['match_date'] = _betwatch_to_iso_datetime(raw_date)
             r = requests.patch(patch_url, headers=wh, json=data, timeout=10)
             if r.status_code in (200, 204):
                 updated += 1
@@ -812,7 +840,7 @@ def save_fake_sharp_signals(signals):
             'home_team': s['home_team'],
             'away_team': s['away_team'],
             'league': s['league'],
-            'match_date': s['date'],
+            'match_date': _betwatch_to_iso_datetime(s['date']),
             'selection_code': s['selection_code'],
             'selection_label': s['selection_label'],
             'odds_16h': s['odds_16h'],
@@ -886,7 +914,7 @@ def update_fs_current_odds(existing_fs, snapshot_lookup):
             raw_date = row.get('date', '')
             existing_date = sig.get('match_date', '')
             if raw_date and ':' in raw_date and len(existing_date) <= 10:
-                data['match_date'] = raw_date
+                data['match_date'] = _betwatch_to_iso_datetime(raw_date)
             r = requests.patch(patch_url, headers=wh, json=data, timeout=10)
             if r.status_code in (200, 204):
                 updated += 1

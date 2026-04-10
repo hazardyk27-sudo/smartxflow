@@ -9016,6 +9016,19 @@
             renderCmSignalList(signals, listEl);
         }
 
+        function _adminParseDateToISO(dateStr) {
+            if (!dateStr) return '';
+            if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.substring(0, 10);
+            var m = dateStr.match(/^(\d{2})\.(\w{3})/);
+            if (m) {
+                var months = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',
+                              Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+                var mon = months[m[2].charAt(0).toUpperCase()+m[2].slice(1).toLowerCase()] || '01';
+                return new Date().getFullYear() + '-' + mon + '-' + m[1];
+            }
+            return dateStr.substring(0, 10);
+        }
+
         function buildCmDateTabs(signals) {
             var tabsEl = document.getElementById('cmDateTabs');
             if (!tabsEl) return;
@@ -9027,7 +9040,7 @@
             }
             var signalDates = {};
             signals.forEach(function(s) {
-                var d = (s.match_date||'').substring(0,10);
+                var d = _adminParseDateToISO(s.match_date||'');
                 if (d) signalDates[d] = (signalDates[d]||0)+1;
             });
             // Window: -3 to +3 days from today
@@ -9080,7 +9093,7 @@
         function renderCmSignalList(signals, listEl) {
             var TR_MONTHS = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
             var filtered = (_cmSelectedDate && _cmSelectedDate !== 'all')
-                ? signals.filter(function(s) { return (s.match_date||'').substring(0,10) === _cmSelectedDate; })
+                ? signals.filter(function(s) { return _adminParseDateToISO(s.match_date||'') === _cmSelectedDate; })
                 : signals;
             // Dedup: (home_team, away_team, selection_code) bazlı — zaten created_at.desc sıralı
             var _dedupSeen = {};
@@ -9110,7 +9123,7 @@
 
             var dateGroups = {};
             filtered.forEach(function(s) {
-                var d = (s.match_date||'').substring(0,10);
+                var d = _adminParseDateToISO(s.match_date||'');
                 if (!dateGroups[d]) dateGroups[d] = [];
                 dateGroups[d].push(s);
             });
@@ -9289,7 +9302,7 @@
             }
             var signalDates = {};
             signals.forEach(function(s) {
-                var d = (s.match_date||'').substring(0,10);
+                var d = _adminParseDateToISO(s.match_date||'');
                 if (d) signalDates[d] = (signalDates[d]||0)+1;
             });
             var tabs = [];
@@ -9339,7 +9352,7 @@
         function renderFsSignalList(signals, listEl) {
             var TR_MONTHS = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
             var filtered = (_fsSelectedDate && _fsSelectedDate !== 'all')
-                ? signals.filter(function(s) { return (s.match_date||'').substring(0,10) === _fsSelectedDate; })
+                ? signals.filter(function(s) { return _adminParseDateToISO(s.match_date||'') === _fsSelectedDate; })
                 : signals;
             var _dedupSeen = {};
             filtered = filtered.filter(function(s) {
@@ -9368,7 +9381,7 @@
 
             var dateGroups = {};
             filtered.forEach(function(s) {
-                var d = (s.match_date||'').substring(0,10);
+                var d = _adminParseDateToISO(s.match_date||'');
                 if (!dateGroups[d]) dateGroups[d] = [];
                 dateGroups[d].push(s);
             });
