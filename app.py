@@ -7572,12 +7572,16 @@ def _build_unified_underdog_signals():
             all_signals.append(ls)
             db_hak.add(hak)
 
-    all_signals = [s for s in all_signals if _pv(s.get('volume', '')) >= 2000]
+    def _eff_vol(s):
+        """current_volume varsa onu, yoksa volume'u kullan (sinyal_engine güncellemiş olabilir)."""
+        return _pv(s.get('current_volume') or s.get('volume', ''))
+
+    all_signals = [s for s in all_signals if _eff_vol(s) >= 2000]
 
     seen = {}
     for s in all_signals:
         key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
-        if key not in seen or _pv(s.get('volume', '')) > _pv(seen[key].get('volume', '')):
+        if key not in seen or _eff_vol(s) > _eff_vol(seen[key]):
             seen[key] = s
     return list(seen.values())
 
