@@ -565,7 +565,7 @@ def _betwatch_to_iso_datetime(date_str):
                       'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10,
                       'Nov': 11, 'Dec': 12}
             day = int(m.group(1))
-            mon = months.get(m.group(2), 0)
+            mon = months.get(m.group(2).capitalize(), 0)
             if mon:
                 iso_date = _d(_d.today().year, mon, day).isoformat()
                 t = _re.search(r'(\d{2}):(\d{2})(?::\d{2})?', s)
