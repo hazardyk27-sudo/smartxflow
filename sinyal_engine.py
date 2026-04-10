@@ -2,7 +2,7 @@
 """
 SmartXFlow Sinyal Engine v1.2
 İki sinyal tipini aynı anda tarar:
-  1. Underdog Pressure: odds >= 2.90, pct >= 50%, volume >= £1,000
+  1. Underdog Pressure: odds >= 2.90, pct >= 50%, volume >= £2,000
   2. Confirmed Money: pct > 80%, oran >= %4 düşüş (10 saat), volume >= £2,000, stabilite onaylı
 
 Çalışma aralığı: 15 dakika
@@ -29,7 +29,7 @@ ERROR_WAIT = 60
 # Underdog Pressure kriterleri
 ODDS_THRESHOLD = 2.90
 PCT_THRESHOLD = 50.0
-VOLUME_THRESHOLD = 1000.0
+VOLUME_THRESHOLD = 2000.0
 
 # Confirmed Money kriterleri
 CM_PCT_THRESHOLD = 80.0
@@ -339,9 +339,46 @@ def update_current_values_for_existing(existing_signals, snapshot_lookup):
     return updated, not_found
 
 
+def cleanup_low_volume_signals():
+    """underdog_signals tablosundan VOLUME_THRESHOLD altındaki eski/hatalı kayıtları sil.
+    Eşik 1000'den 2000'e yükseltilmeden önce kaydedilmiş düşük hacimli kayıtları temizler.
+    """
+    try:
+        url = (
+            f"{SUPABASE_URL}/rest/v1/underdog_signals"
+            "?select=match_key,selection_code,volume&limit=5000"
+        )
+        r = requests.get(url, headers=_headers_read(), timeout=12)
+        if r.status_code != 200:
+            return
+        rows = r.json()
+        to_delete = [
+            row for row in rows
+            if parse_volume_amt(row.get('volume', '')) < VOLUME_THRESHOLD
+        ]
+        if not to_delete:
+            return
+        wh = _headers_write()
+        deleted = 0
+        for row in to_delete:
+            mk = url_quote(row.get('match_key', ''), safe='')
+            sc = url_quote(row.get('selection_code', ''), safe='')
+            del_url = (
+                f"{SUPABASE_URL}/rest/v1/underdog_signals"
+                f"?match_key=eq.{mk}&selection_code=eq.{sc}"
+            )
+            dr = requests.delete(del_url, headers=wh, timeout=10)
+            if dr.status_code in (200, 204):
+                deleted += 1
+        log(f"[Cleanup] {deleted}/{len(to_delete)} düşük hacimli underdog kaydı silindi (eşik: {VOLUME_THRESHOLD:,.0f})")
+    except Exception as e:
+        log(f"[Cleanup] Hata: {e}")
+
+
 def run_underdog_scan(snapshots, snapshot_lookup):
     """Underdog Pressure taraması."""
     has_cols = check_columns_exist()
+    cleanup_low_volume_signals()
     new_triggers = find_signals(snapshots)
     new_count = save_new_signals(new_triggers, with_current_cols=has_cols) if new_triggers else 0
     if has_cols:
