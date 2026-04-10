@@ -3,7 +3,7 @@
 SmartXFlow Sinyal Engine v1.2
 İki sinyal tipini aynı anda tarar:
   1. Underdog Pressure: odds >= 2.90, pct >= 50%, volume >= £1,000
-  2. Confirmed Money: pct > 80%, oran >= %4 düşüş (16 saat), volume >= £2,000, stabilite onaylı
+  2. Confirmed Money: pct > 80%, oran >= %4 düşüş (10 saat), volume >= £2,000, stabilite onaylı
 
 Çalışma aralığı: 15 dakika
 
@@ -371,8 +371,8 @@ def check_cm_table_exists():
 
 
 def fetch_history_16h():
-    """Son 16 saatin tüm snapshot'larını çek, match_id_hash bazlı grupla."""
-    cutoff = (datetime.now(timezone.utc) - timedelta(hours=16, minutes=5)).isoformat()
+    """Son 10 saatin tüm snapshot'larını çek, match_id_hash bazlı grupla."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=10, minutes=5)).isoformat()
     url = (
         f"{SUPABASE_URL}/rest/v1/moneyway_1x2_history"
         f"?select=match_id_hash,home,away,date,odds1,oddsx,odds2,pct1,pctx,pct2,volume,scraped_at"
