@@ -7699,6 +7699,33 @@ def underdog_pressure_endpoint():
     })
 
 
+def _normalize_match_date(date_str):
+    """Betwatch tarih formatını ('10.Apr 14:00:00') ISO datetime'a çevirir ('2026-04-10T14:00').
+    Zaten ISO formatta olanlar (YYYY-MM-DD...) değiştirilmeden döner.
+    """
+    if not date_str:
+        return ''
+    s = str(date_str)
+    if s[:4].isdigit() and len(s) >= 10:
+        return s
+    import re as _re
+    from datetime import date as _d
+    m = _re.search(r'(\d{2})\.(\w{3})', s)
+    if m:
+        months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5,
+                  'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10,
+                  'Nov': 11, 'Dec': 12}
+        day = int(m.group(1))
+        mon = months.get(m.group(2).capitalize(), 0)
+        if mon:
+            iso_date = _d(_d.today().year, mon, day).isoformat()
+            t = _re.search(r'(\d{2}):(\d{2})(?::\d{2})?', s)
+            if t:
+                return f"{iso_date}T{t.group(1)}:{t.group(2)}"
+            return iso_date
+    return s
+
+
 def _fetch_all_confirmed_money_signals():
     """confirmed_money_signals tablosundan en son 1000 sinyali çek (created_at desc)."""
     try:
@@ -7721,8 +7748,8 @@ def _fetch_all_confirmed_money_signals():
                     'home_team': r.get('home_team', ''),
                     'away_team': r.get('away_team', ''),
                     'league': r.get('league', ''),
-                    'date': r.get('match_date', ''),
-                    'match_date': r.get('match_date', ''),
+                    'date': _normalize_match_date(r.get('match_date', '')),
+                    'match_date': _normalize_match_date(r.get('match_date', '')),
                     'selection_code': r.get('selection_code', ''),
                     'selection_label': r.get('selection_label', ''),
                     'odds_16h': r.get('odds_16h', ''),
@@ -7912,8 +7939,8 @@ def _fetch_all_fake_sharp_signals():
                     'home_team': r.get('home_team', ''),
                     'away_team': r.get('away_team', ''),
                     'league': r.get('league', ''),
-                    'date': r.get('match_date', ''),
-                    'match_date': r.get('match_date', ''),
+                    'date': _normalize_match_date(r.get('match_date', '')),
+                    'match_date': _normalize_match_date(r.get('match_date', '')),
                     'selection_code': r.get('selection_code', ''),
                     'selection_label': r.get('selection_label', ''),
                     'odds_16h': r.get('odds_16h', ''),
