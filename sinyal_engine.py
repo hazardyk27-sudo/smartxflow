@@ -132,7 +132,8 @@ def fetch_latest_snapshots():
     moneyway_1x2: scheduled scraper tarafından her 15dk'da sıfırlanıp yeniden yazılan
     güncel tablo (~1987 maç) — history tablosundan çok daha kapsamlı.
     Kolonlar: home,away,league,date,volume,odds1,oddsx,odds2,amt1,amtx,amt2,pct1,pctx,pct2
-    Anahtar: her zaman home|away|date formatı kullanılır (history lookup ile tutarlılık için).
+    Anahtar: tabloda gerçek match_id_hash varsa onu kullan; yoksa home|away|date
+    (fetch_history_16h() da aynı formatı kullanır — lookup tutarlılığı sağlanır).
     """
     try:
         url = (
@@ -152,7 +153,8 @@ def fetch_latest_snapshots():
             date = row.get('date', '')
             if not home or not away:
                 continue
-            key = f"{home}|{away}|{date}"
+            real_hash = row.get('match_id_hash', '')
+            key = real_hash if real_hash else f"{home}|{away}|{date}"
             if key not in latest:
                 row['match_id_hash'] = key
                 latest[key] = row
