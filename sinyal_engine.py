@@ -132,7 +132,7 @@ def fetch_latest_snapshots():
     moneyway_1x2: scheduled scraper tarafından her 15dk'da sıfırlanıp yeniden yazılan
     güncel tablo (~1987 maç) — history tablosundan çok daha kapsamlı.
     Kolonlar: home,away,league,date,volume,odds1,oddsx,odds2,amt1,amtx,amt2,pct1,pctx,pct2
-    (match_id_hash ve scraped_at bu tabloda yok)
+    Anahtar: her zaman home|away|date formatı kullanılır (history lookup ile tutarlılık için).
     """
     try:
         url = (
@@ -150,8 +150,10 @@ def fetch_latest_snapshots():
             home = row.get('home', '')
             away = row.get('away', '')
             date = row.get('date', '')
+            if not home or not away:
+                continue
             key = f"{home}|{away}|{date}"
-            if key and key not in latest:
+            if key not in latest:
                 row['match_id_hash'] = key
                 latest[key] = row
         log(f"[Fetch] {len(latest)} benzersiz maç için son snapshot çekildi (moneyway_1x2)")
@@ -371,11 +373,13 @@ def check_cm_table_exists():
 
 
 def fetch_history_16h():
-    """Son 10 saatin tüm snapshot'larını çek, match_id_hash bazlı grupla."""
+    """Son 10 saatin tüm snapshot'larını çek, home|away|date bazlı grupla.
+    NOT: match_id_hash (UUID) yerine home|away|date anahtarı kullanılır çünkü
+    fetch_latest_snapshots() moneyway_1x2'den aynı format anahtarı üretiyor."""
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=10, minutes=5)).isoformat()
     url = (
         f"{SUPABASE_URL}/rest/v1/moneyway_1x2_history"
-        f"?select=match_id_hash,home,away,date,odds1,oddsx,odds2,pct1,pctx,pct2,volume,scraped_at"
+        f"?select=home,away,date,odds1,oddsx,odds2,pct1,pctx,pct2,volume,scraped_at"
         f"&scraped_at=gte.{cutoff}"
         f"&order=scraped_at.desc&limit=50000"
     )
@@ -386,11 +390,15 @@ def fetch_history_16h():
     rows = r.json()
     history = {}
     for row in rows:
-        h = row.get('match_id_hash', '')
-        if h:
-            if h not in history:
-                history[h] = []
-            history[h].append(row)
+        home = row.get('home', '')
+        away = row.get('away', '')
+        date = row.get('date', '')
+        if not home or not away:
+            continue
+        h = f"{home}|{away}|{date}"
+        if h not in history:
+            history[h] = []
+        history[h].append(row)
     log(f"[CM-Fetch] {len(history)} maç için 10 saatlik geçmiş çekildi ({len(rows)} satır)")
     return history
 
