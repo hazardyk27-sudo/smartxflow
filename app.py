@@ -54,6 +54,10 @@ _cm_signals_cache = None
 _cm_signals_cache_time = 0
 CM_SIGNALS_CACHE_TTL = 60
 
+_fs_signals_cache = None
+_fs_signals_cache_time = 0
+FS_SIGNALS_CACHE_TTL = 60
+
 def get_cached_alarms(force_refresh=False):
     """Get alarms from server-side cache or refresh from Supabase. Waits for app warmup if in progress."""
     global _server_alarm_cache, _server_alarm_cache_time
@@ -7883,6 +7887,172 @@ def admin_set_cm_signal_result(signal_id):
         return jsonify({'error': f'DB error {resp.status_code}', 'detail': resp.text[:200]}), 500
     except Exception as e:
         print(f"[CM-Result] PATCH error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+def _fetch_all_fake_sharp_signals():
+    """fake_sharp_signals tablosundan en son 1000 sinyali çek (created_at desc)."""
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return []
+        headers = supabase._headers()
+        url = (
+            f"{supabase._rest_url('fake_sharp_signals')}"
+            f"?select=*&order=created_at.desc,home_team.asc&limit=1000"
+        )
+        resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
+        if resp.status_code == 200:
+            rows = resp.json()
+            result = []
+            for r in rows:
+                result.append({
+                    'id': r.get('id'),
+                    'match_key': r.get('match_key', ''),
+                    'home_team': r.get('home_team', ''),
+                    'away_team': r.get('away_team', ''),
+                    'league': r.get('league', ''),
+                    'date': r.get('match_date', ''),
+                    'match_date': r.get('match_date', ''),
+                    'selection_code': r.get('selection_code', ''),
+                    'selection_label': r.get('selection_label', ''),
+                    'odds_16h': r.get('odds_16h', ''),
+                    'odds_now': r.get('odds_now', ''),
+                    'current_odds': r.get('current_odds') or '',
+                    'pct_now': r.get('pct_now', ''),
+                    'current_pct': r.get('current_pct') or '',
+                    'volume_now': r.get('volume_now', ''),
+                    'current_volume': r.get('current_volume') or '',
+                    'odds_rise_pct': r.get('odds_rise_pct') or '',
+                    'last_updated_at': r.get('last_updated_at') or '',
+                    'created_at': r.get('created_at') or '',
+                    'result': r.get('result') or '',
+                })
+            return result
+        return []
+    except Exception as e:
+        print(f"[FakeSharpSignals] fetch error: {e}")
+        return []
+
+
+@app.route('/api/fake-sharp', methods=['GET'])
+@license_required
+def fake_sharp_endpoint():
+    """Fake Sharp sinyallerini döndür (DB'den). 60s server cache."""
+    global _fs_signals_cache, _fs_signals_cache_time
+    from datetime import date as _date
+
+    def _is_today_or_future(d):
+        if not d:
+            return False
+        try:
+            return str(d) >= str(_date.today())
+        except Exception:
+            return False
+
+    now = time.time()
+    if _fs_signals_cache is not None and (now - _fs_signals_cache_time) < FS_SIGNALS_CACHE_TTL:
+        all_signals = _fs_signals_cache
+    else:
+        raw = _fetch_all_fake_sharp_signals()
+        _fs_seen = {}
+        for s in raw:
+            key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
+            if key not in _fs_seen:
+                _fs_seen[key] = s
+        all_signals = list(_fs_seen.values())
+        _fs_signals_cache = all_signals
+        _fs_signals_cache_time = now
+
+    active_signals = [s for s in all_signals if _is_today_or_future(s.get('date'))]
+
+    avg_rise = 0.0
+    avg_pct = 0.0
+    if active_signals:
+        rise_list = []
+        pct_list = []
+        for s in active_signals:
+            try:
+                rise_list.append(float(str(s.get('odds_rise_pct', '') or 0)))
+            except Exception:
+                pass
+            try:
+                pct_list.append(float(str(s.get('pct_now', '') or 0).replace('%', '').strip()))
+            except Exception:
+                pass
+        if rise_list:
+            avg_rise = round(sum(rise_list) / len(rise_list), 2)
+        if pct_list:
+            avg_pct = round(sum(pct_list) / len(pct_list), 1)
+
+    return jsonify({
+        'signals': all_signals,
+        'count': len(active_signals),
+        'avg_rise_pct': avg_rise,
+        'avg_pct': avg_pct,
+    })
+
+
+@app.route('/api/admin/fake-sharp-signals', methods=['GET'])
+def admin_get_fake_sharp_signals():
+    """Return all fake sharp signals for admin.
+    App ile aynı _fs_signals_cache kullanılır."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+
+    global _fs_signals_cache, _fs_signals_cache_time
+    now = time.time()
+    if _fs_signals_cache is not None and (now - _fs_signals_cache_time) < FS_SIGNALS_CACHE_TTL:
+        signals = _fs_signals_cache
+    else:
+        raw = _fetch_all_fake_sharp_signals()
+        _fs_seen = {}
+        for s in raw:
+            key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
+            if key not in _fs_seen:
+                _fs_seen[key] = s
+        signals = list(_fs_seen.values())
+        _fs_signals_cache = signals
+        _fs_signals_cache_time = now
+
+    return jsonify({'signals': signals, 'count': len(signals)})
+
+
+@app.route('/api/admin/fs-signal-result/<int:signal_id>', methods=['PATCH'])
+def admin_set_fs_signal_result(signal_id):
+    """Set the result (win/loss/null) for a Fake Sharp signal by ID."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    data = request.get_json(silent=True) or {}
+    result_val = data.get('result')
+    if result_val not in ('win', 'loss', None, ''):
+        return jsonify({'error': 'Invalid result value. Use win, loss, or null.'}), 400
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return jsonify({'error': 'DB unavailable'}), 503
+        key = supabase.key
+        headers = {
+            'apikey': key,
+            'Authorization': f'Bearer {key}',
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+        }
+        patch_url = f"{supabase._rest_url('fake_sharp_signals')}?id=eq.{signal_id}"
+        patch_data = {'result': result_val if result_val else None}
+        resp = supabase._get_http_client().patch(patch_url, headers=headers, json=patch_data, timeout=10)
+        if resp.status_code in (200, 204):
+            global _fs_signals_cache, _fs_signals_cache_time
+            _fs_signals_cache = None
+            _fs_signals_cache_time = 0
+            return jsonify({'ok': True, 'signal_id': signal_id, 'result': result_val})
+        if resp.status_code == 400:
+            body = resp.text[:500]
+            migration_sql = 'ALTER TABLE fake_sharp_signals ADD COLUMN IF NOT EXISTS result text;'
+            return jsonify({'error': 'MIGRATION_NEEDED', 'migration_sql': migration_sql, 'detail': body}), 400
+        return jsonify({'error': f'DB error {resp.status_code}', 'detail': resp.text[:200]}), 500
+    except Exception as e:
+        print(f"[FS-Result] PATCH error: {e}")
         return jsonify({'error': str(e)}), 500
 
 

@@ -40,6 +40,15 @@ CM_STABILITY_SNAPSHOTS = 3   # Son 3 ardışık snapshot'ta pct > %80
 CM_MIN_ODDS = 1.35           # Seçim oranı alt sınırı
 CM_MAX_ODDS = 2.20           # Seçim oranı üst sınırı
 
+# Fake Sharp kriterleri
+FS_PCT_THRESHOLD = 80.0
+FS_ODDS_RISE_PCT = 0.04      # %4 yükseliş (göreli)
+FS_VOLUME_THRESHOLD = 2000.0
+FS_COOLDOWN_HOURS = 3
+FS_STABILITY_SNAPSHOTS = 3   # Son 3 ardışık snapshot'ta pct > %80
+FS_MIN_ODDS = 1.35           # Seçim oranı alt sınırı
+FS_MAX_ODDS = 2.20           # Seçim oranı üst sınırı
+
 MIGRATION_SQL = """
 -- underdog_signals current kolonları (zaten çalıştırıldıysa atla):
 ALTER TABLE underdog_signals ADD COLUMN IF NOT EXISTS current_odds text;
@@ -77,6 +86,7 @@ ALTER TABLE confirmed_money_signals ADD COLUMN IF NOT EXISTS result text;
 
 _columns_verified = False
 _cm_table_verified = False
+_fs_table_verified = False
 
 
 def log(msg):
@@ -629,6 +639,245 @@ def run_cm_scan(snapshots, snapshot_lookup):
 
 
 # ============================================================
+# FAKE SHARP ENGINE
+# ============================================================
+
+
+def check_fs_table_exists():
+    """fake_sharp_signals tablosunun mevcut olup olmadığını kontrol et."""
+    global _fs_table_verified
+    if _fs_table_verified:
+        return True
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/fake_sharp_signals?select=id&limit=1"
+        r = requests.get(url, headers=_headers_read(), timeout=8)
+        if r.status_code == 200:
+            _fs_table_verified = True
+            log("[FS] fake_sharp_signals tablosu mevcut")
+            return True
+        return False
+    except Exception:
+        return False
+
+
+def fetch_fs_cooldown():
+    """Son FS_COOLDOWN_HOURS saatteki fake_sharp_signals kayıtlarını çek."""
+    try:
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=FS_COOLDOWN_HOURS)).isoformat()
+        url = (
+            f"{SUPABASE_URL}/rest/v1/fake_sharp_signals"
+            f"?select=match_key,selection_code"
+            f"&created_at=gte.{cutoff}"
+            f"&limit=5000"
+        )
+        r = requests.get(url, headers=_headers_read(), timeout=10)
+        if r.status_code == 200:
+            rows = r.json()
+            return {(row['match_key'], row['selection_code']) for row in rows}
+        return set()
+    except Exception:
+        return set()
+
+
+def find_fake_sharp(latest_snapshots, history_by_hash, cooldown_set):
+    """Fake Sharp kriterlerini kontrol et.
+    CM'in tam tersi: odds yükselirken pct >80% kalıyorsa sahte sharp baskısı."""
+    signals = []
+
+    for h, latest in latest_snapshots.items():
+        if parse_volume_amt(latest.get('volume', '')) < FS_VOLUME_THRESHOLD:
+            continue
+        match_history = history_by_hash.get(h, [])
+        if not match_history:
+            continue
+        match_history_sorted = sorted(match_history, key=lambda r: r.get('scraped_at', ''), reverse=True)
+
+        for code, label, o_field, p_field in [
+            ('1', 'Ev Sahibi', 'odds1', 'pct1'),
+            ('2', 'Deplasman', 'odds2', 'pct2'),
+        ]:
+            mk = f"{latest.get('home', '')}|{latest.get('away', '')}|{latest.get('date', '')}"
+
+            if (mk, code) in cooldown_set:
+                continue
+
+            pct_now = parse_odds_pct(latest.get(p_field))
+            if pct_now <= FS_PCT_THRESHOLD:
+                continue
+
+            last_snaps = match_history_sorted[:FS_STABILITY_SNAPSHOTS]
+            if len(last_snaps) < FS_STABILITY_SNAPSHOTS:
+                continue
+            if not all(parse_odds_pct(r.get(p_field)) > FS_PCT_THRESHOLD for r in last_snaps):
+                continue
+
+            odds_0 = parse_odds_pct(latest.get(o_field))
+
+            # Seçim oranı aralık filtresi: 1.35 ≤ odds ≤ 2.20
+            if not (FS_MIN_ODDS <= odds_0 <= FS_MAX_ODDS):
+                continue
+
+            # 16h penceresindeki en eski snapshot ile karşılaştır
+            oldest_snap = match_history_sorted[-1] if match_history_sorted else None
+            if not oldest_snap:
+                continue
+
+            odds_oldest = parse_odds_pct(oldest_snap.get(o_field))
+            if odds_0 <= 0 or odds_oldest <= 0:
+                continue
+
+            # Fake Sharp: odds YÜKSELMİŞ olmak zorunda (CM'in tersi)
+            rise_pct = (odds_0 - odds_oldest) / odds_oldest
+            if rise_pct < FS_ODDS_RISE_PCT:
+                continue
+
+            signals.append({
+                'match_key': mk,
+                'home_team': latest.get('home', ''),
+                'away_team': latest.get('away', ''),
+                'league': latest.get('league', ''),
+                'date': latest.get('date', ''),
+                'selection_code': code,
+                'selection_label': label,
+                'odds_16h': str(round(odds_oldest, 4)),
+                'odds_now': str(round(odds_0, 4)),
+                'pct_now': str(round(pct_now, 2)),
+                'volume_now': str(int(parse_volume_amt(latest.get('volume', '')))),
+                'odds_rise_pct': round(rise_pct * 100, 2),
+            })
+
+    return signals
+
+
+def save_fake_sharp_signals(signals):
+    """Yeni Fake Sharp sinyallerini kaydet."""
+    if not signals:
+        return 0
+    now = datetime.now(timezone.utc).isoformat()
+    records = []
+    for s in signals:
+        records.append({
+            'match_key': s['match_key'],
+            'home_team': s['home_team'],
+            'away_team': s['away_team'],
+            'league': s['league'],
+            'match_date': _betwatch_date_to_iso(s['date']),
+            'selection_code': s['selection_code'],
+            'selection_label': s['selection_label'],
+            'odds_16h': s['odds_16h'],
+            'odds_now': s['odds_now'],
+            'current_odds': s['odds_now'],
+            'pct_now': s['pct_now'],
+            'current_pct': s['pct_now'],
+            'volume_now': s['volume_now'],
+            'current_volume': s['volume_now'],
+            'odds_rise_pct': s['odds_rise_pct'],
+            'created_at': now,
+            'last_updated_at': now,
+        })
+    url = f"{SUPABASE_URL}/rest/v1/fake_sharp_signals"
+    headers = _headers_write('return=minimal')
+    r = requests.post(url, headers=headers, json=records, timeout=15)
+    if r.status_code in (200, 201):
+        log(f"[FakeSharp] INSERT OK ({len(records)} yeni sinyal)")
+        return len(records)
+    log(f"[FakeSharp] INSERT hatası: {r.status_code} {r.text[:200]}")
+    return 0
+
+
+def fetch_existing_fs_signals():
+    """DB'deki mevcut fake_sharp_signals listesini çek."""
+    try:
+        url = (
+            f"{SUPABASE_URL}/rest/v1/fake_sharp_signals"
+            "?select=match_key,selection_code,home_team,away_team,match_date"
+            "&limit=5000"
+        )
+        r = requests.get(url, headers=_headers_read(), timeout=12)
+        if r.status_code == 200:
+            return r.json()
+        return []
+    except Exception as e:
+        log(f"[FS-FetchExisting] Hata: {e}")
+        return []
+
+
+def update_fs_current_odds(existing_fs, snapshot_lookup):
+    """DB'deki tüm FS sinyallerinin current_* değerlerini güncelle."""
+    now = datetime.now(timezone.utc).isoformat()
+    updated = 0
+    not_found = 0
+    wh = _headers_write()
+    code_map = {
+        '1': ('odds1', 'pct1'),
+        '2': ('odds2', 'pct2'),
+    }
+    for sig in existing_fs:
+        mk = sig.get('match_key', '')
+        sc = sig.get('selection_code', '')
+        row = snapshot_lookup.get(mk)
+        if not row:
+            not_found += 1
+            continue
+        fields = code_map.get(sc)
+        if not fields:
+            continue
+        try:
+            mk_enc = url_quote(mk, safe='')
+            sc_enc = url_quote(sc, safe='')
+            patch_url = f"{SUPABASE_URL}/rest/v1/fake_sharp_signals?match_key=eq.{mk_enc}&selection_code=eq.{sc_enc}"
+            data = {
+                'current_odds': str(row.get(fields[0]) or ''),
+                'current_pct': str(row.get(fields[1]) or ''),
+                'current_volume': str(row.get('volume') or ''),
+                'last_updated_at': now,
+            }
+            r = requests.patch(patch_url, headers=wh, json=data, timeout=10)
+            if r.status_code in (200, 204):
+                updated += 1
+        except Exception as e:
+            log(f"[FS-Update] Hata: {e}")
+    return updated, not_found
+
+
+def run_fs_scan(snapshots, snapshot_lookup):
+    """Fake Sharp taraması."""
+    if not check_fs_table_exists():
+        log("[FakeSharp] Tablo yok — migrations/create_fake_sharp_signals.sql çalıştırın")
+        return
+    try:
+        history = fetch_history_16h()
+        cooldown_set = fetch_fs_cooldown()
+        signals = find_fake_sharp(snapshots, history, cooldown_set)
+
+        existing_fs = fetch_existing_fs_signals()
+
+        existing_keys = {
+            (r.get('home_team', '').strip().lower(),
+             r.get('away_team', '').strip().lower(),
+             r.get('selection_code', ''))
+            for r in existing_fs
+        }
+
+        new_signals = [
+            s for s in signals
+            if (s.get('home_team', '').strip().lower(),
+                s.get('away_team', '').strip().lower(),
+                s.get('selection_code', '')) not in existing_keys
+        ]
+
+        inserted = save_fake_sharp_signals(new_signals) if new_signals else 0
+
+        fs_updated, fs_not_found = update_fs_current_odds(existing_fs, snapshot_lookup)
+        log(f"[FakeSharp] found={len(signals)} new={len(new_signals)} inserted={inserted} "
+            f"updated={fs_updated} (existing={len(existing_fs)} no_snapshot={fs_not_found})")
+    except Exception as e:
+        log(f"[FakeSharp] Tarama hatası: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+# ============================================================
 # MAIN SCAN + ENGINE LOOP
 # ============================================================
 
@@ -641,14 +890,16 @@ def run_scan():
     snapshot_lookup = build_snapshot_lookup(snapshots)
     run_underdog_scan(snapshots, snapshot_lookup)
     run_cm_scan(snapshots, snapshot_lookup)
+    run_fs_scan(snapshots, snapshot_lookup)
 
 
 def run_engine():
     print("=" * 60)
-    print("SMARTXFLOW SİNYAL ENGINE v1.2")
+    print("SMARTXFLOW SİNYAL ENGINE v1.3")
     print(f"Tarama aralığı  : {SCAN_INTERVAL // 60} dakika")
     print(f"[Underdog]      : odds>={ODDS_THRESHOLD}, pct>={PCT_THRESHOLD}%, vol>={VOLUME_THRESHOLD:,.0f}")
-    print(f"[ConfirmedMoney]: pct>{CM_PCT_THRESHOLD}%, düsüs>={CM_ODDS_DROP_PCT*100:.0f}%, vol>={CM_VOLUME_THRESHOLD:,.0f}, cooldown={CM_COOLDOWN_HOURS}sa")
+    print(f"[ConfirmedMoney]: pct>{CM_PCT_THRESHOLD}%, düsüş>={CM_ODDS_DROP_PCT*100:.0f}%, vol>={CM_VOLUME_THRESHOLD:,.0f}, cooldown={CM_COOLDOWN_HOURS}sa")
+    print(f"[FakeSharp]     : pct>{FS_PCT_THRESHOLD}%, yükseliş>={FS_ODDS_RISE_PCT*100:.0f}%, vol>={FS_VOLUME_THRESHOLD:,.0f}, cooldown={FS_COOLDOWN_HOURS}sa")
     print(f"Supabase URL    : {SUPABASE_URL[:40]}..." if SUPABASE_URL else "Supabase URL: NOT SET")
     print("=" * 60)
 
@@ -666,6 +917,13 @@ def run_engine():
         print("\n" + "=" * 60)
         print("UYARI: confirmed_money_signals tablosu yok.")
         print(CM_MIGRATION_SQL)
+        print("Engine migration olmadan da çalışmaya devam eder.")
+        print("=" * 60 + "\n")
+
+    if not check_fs_table_exists():
+        print("\n" + "=" * 60)
+        print("UYARI: fake_sharp_signals tablosu yok.")
+        print("migrations/create_fake_sharp_signals.sql çalıştırın.")
         print("Engine migration olmadan da çalışmaya devam eder.")
         print("=" * 60 + "\n")
 
