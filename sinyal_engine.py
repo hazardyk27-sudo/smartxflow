@@ -391,7 +391,7 @@ def fetch_history_16h():
             if h not in history:
                 history[h] = []
             history[h].append(row)
-    log(f"[CM-Fetch] {len(history)} maç için 16 saatlik geçmiş çekildi ({len(rows)} satır)")
+    log(f"[CM-Fetch] {len(history)} maç için 10 saatlik geçmiş çekildi ({len(rows)} satır)")
     return history
 
 
